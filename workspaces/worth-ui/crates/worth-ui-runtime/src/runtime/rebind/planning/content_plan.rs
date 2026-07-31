@@ -12,7 +12,12 @@ pub(super) fn compile_content_plan(
     scope: &super::super::UiResolvedAffectedScope,
 ) -> Result<crate::mounting::UiMountedSemanticContentInput, super::UiRebindPlanningDenial> {
     let mut content = crate::mounting::UiMountedSemanticContentInput::empty();
-    content.set_projection_input_capacity(candidate.query_binding_plan().projection_input_count());
+    let projection_input_capacity = candidate.query_binding_plan().projection_input_count();
+    if predecessor.query_binding_plan() == candidate.query_binding_plan() {
+        content.merge_projection_inputs(projection_input_capacity);
+    } else {
+        content.replace_projection_inputs(projection_input_capacity);
+    }
     retain_projection_inputs(candidate, scope, &mut content)?;
     let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
     for lookup in scope.lookups() {

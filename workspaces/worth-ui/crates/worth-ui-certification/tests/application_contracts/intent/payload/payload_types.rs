@@ -4,7 +4,7 @@ use worth_ui::facade::intent::{
     UiIntent, UiIntentAcceptedInteractions, UiIntentBoolean, UiIntentId, UiIntentPayload,
     UiIntentPayloadField, UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldSet,
     UiIntentPayloadProjection, UiIntentPayloadProjectionViolation, UiIntentProductOutcome,
-    UiIntentSchema, UiIntentSelection, UiIntentText, UiIntentUnsigned64,
+    UiIntentSchema, UiIntentSelection, UiIntentSelectionValue, UiIntentText, UiIntentUnsigned64,
     UiSemanticInteractionFamily,
 };
 
@@ -28,7 +28,9 @@ pub(super) const SELECTION_FIELD: UiIntentPayloadField<SelectionPayload, UiInten
 pub(super) struct QueryTextPayload;
 pub(super) struct ApplicationPayload;
 pub(super) struct DraftPayload;
-pub(super) struct SelectionPayload;
+pub(super) struct SelectionPayload {
+    _selection: UiIntentSelectionValue,
+}
 pub(super) struct WidePayload;
 pub(super) struct PayloadOutcome;
 
@@ -117,10 +119,9 @@ impl UiIntentPayload for SelectionPayload {
         fields: &mut UiIntentPayloadProjection<Self>,
     ) -> Result<Self, UiIntentPayloadProjectionViolation> {
         let selection = fields.take(SELECTION_FIELD)?;
-        if selection.option().identity_for_reporting() != "pulse.bravo" {
-            return Err(UiIntentPayloadProjection::malformed(SELECTION_FIELD));
-        }
-        Ok(Self)
+        Ok(Self {
+            _selection: selection,
+        })
     }
 }
 

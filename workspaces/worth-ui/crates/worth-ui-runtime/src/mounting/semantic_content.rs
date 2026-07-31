@@ -4,12 +4,27 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedSemanticContentInput {
     by_graph_node: BTreeMap<crate::graph::UiGraphNodeIdentity, UiMountedSemanticTextContent>,
-    projection_input_capacity: usize,
-    projection_inputs: BTreeMap<
-        worth_ui_query_binding::UiProjectionInputSlot,
-        worth_ui_query_binding::UiProjectionInputFactReference,
-    >,
+    projection_inputs: UiMountedProjectionInputTransition,
     schema_transitions: Vec<crate::runtime::rebind::UiProjectionSchemaTransition>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum UiMountedProjectionInputTransition {
+    Retain,
+    Merge {
+        capacity: usize,
+        inputs: BTreeMap<
+            worth_ui_query_binding::UiProjectionInputSlot,
+            worth_ui_query_binding::UiProjectionInputFactReference,
+        >,
+    },
+    Replace {
+        capacity: usize,
+        inputs: BTreeMap<
+            worth_ui_query_binding::UiProjectionInputSlot,
+            worth_ui_query_binding::UiProjectionInputFactReference,
+        >,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -74,8 +89,7 @@ impl UiMountedSemanticContentInput {
     pub(crate) fn empty() -> Self {
         Self {
             by_graph_node: BTreeMap::new(),
-            projection_input_capacity: 0,
-            projection_inputs: BTreeMap::new(),
+            projection_inputs: UiMountedProjectionInputTransition::Retain,
             schema_transitions: Vec::new(),
         }
     }
@@ -136,12 +150,54 @@ impl UiMountedSemanticContentInput {
 
     pub(crate) fn is_empty(&self) -> bool {
         self.by_graph_node.is_empty()
-            && self.projection_inputs.is_empty()
-            && self.projection_input_capacity == 0
+            && match &self.projection_inputs {
+                UiMountedProjectionInputTransition::Retain => true,
+                UiMountedProjectionInputTransition::Merge { inputs, .. } => inputs.is_empty(),
+                UiMountedProjectionInputTransition::Replace { .. } => false,
+            }
     }
 
-    pub(crate) fn set_projection_input_capacity(&mut self, capacity: usize) {
-        self.projection_input_capacity = capacity;
+    pub(crate) fn merge_projection_inputs(&mut self, capacity: usize) {
+        self.projection_inputs = UiMountedProjectionInputTransition::Merge {
+            capacity,
+            inputs: BTreeMap::new(),
+        };
+    }
+
+    pub(crate) fn replace_projection_inputs(&mut self, capacity: usize) {
+        self.projection_inputs = UiMountedProjectionInputTransition::Replace {
+            capacity,
+            inputs: BTreeMap::new(),
+        };
+    }
+
+    pub(crate) fn require_projection_input_replacement(&mut self, capacity: usize) {
+        let transition = std::mem::replace(
+            &mut self.projection_inputs,
+            UiMountedProjectionInputTransition::Retain,
+        );
+        self.projection_inputs = match transition {
+            UiMountedProjectionInputTransition::Retain => {
+                UiMountedProjectionInputTransition::Replace {
+                    capacity,
+                    inputs: BTreeMap::new(),
+                }
+            }
+            UiMountedProjectionInputTransition::Merge {
+                capacity: declared,
+                inputs,
+            }
+            | UiMountedProjectionInputTransition::Replace {
+                capacity: declared,
+                inputs,
+            } => {
+                assert_eq!(
+                    declared, capacity,
+                    "candidate projection facts use the candidate plan width"
+                );
+                UiMountedProjectionInputTransition::Replace { capacity, inputs }
+            }
+        };
     }
 
     pub(crate) fn insert_projection_input(
@@ -149,34 +205,28 @@ impl UiMountedSemanticContentInput {
         input: worth_ui_query_binding::UiProjectionInputFactReference,
     ) -> Result<(), ()> {
         let slot = input.revision().slot();
-        if slot.index() >= self.projection_input_capacity {
+        let (capacity, inputs) = match &mut self.projection_inputs {
+            UiMountedProjectionInputTransition::Retain => return Err(()),
+            UiMountedProjectionInputTransition::Merge { capacity, inputs }
+            | UiMountedProjectionInputTransition::Replace { capacity, inputs } => {
+                (*capacity, inputs)
+            }
+        };
+        if slot.index() >= capacity {
             return Err(());
         }
-        match self.projection_inputs.get(&slot) {
+        match inputs.get(&slot) {
             Some(existing) if existing != &input => Err(()),
             Some(_) => Ok(()),
             None => {
-                self.projection_inputs.insert(slot, input);
+                inputs.insert(slot, input);
                 Ok(())
             }
         }
     }
 
-    pub(crate) const fn projection_input_capacity(&self) -> usize {
-        self.projection_input_capacity
-    }
-
-    pub(crate) fn projection_inputs(
-        &self,
-    ) -> impl ExactSizeIterator<
-        Item = (
-            worth_ui_query_binding::UiProjectionInputSlot,
-            &worth_ui_query_binding::UiProjectionInputFactReference,
-        ),
-    > {
-        self.projection_inputs
-            .iter()
-            .map(|(slot, input)| (*slot, input))
+    pub(crate) const fn projection_input_transition(&self) -> &UiMountedProjectionInputTransition {
+        &self.projection_inputs
     }
 
     pub(crate) fn record_schema_transition(

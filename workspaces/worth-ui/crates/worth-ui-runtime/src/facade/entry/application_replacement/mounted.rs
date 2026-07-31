@@ -48,10 +48,17 @@ impl WorthUiActiveApplicationSession {
         admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
         boundary: crate::runtime::WorthUiFrameBoundary,
         lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
-        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        mut semantic_content: crate::mounting::UiMountedSemanticContentInput,
         request: crate::mounting::UiMountedFrameRequest,
     ) -> Result<WorthUiMountedReplacementPreparationOutcome<'_>, WorthUiApplicationCutoverDenial>
     {
+        let active_query_plan = self.application.prepared_authority().query_binding_plan();
+        let candidate_query_plan = pending.next_app.prepared_authority().query_binding_plan();
+        if active_query_plan != candidate_query_plan {
+            semantic_content.require_projection_input_replacement(
+                candidate_query_plan.projection_input_count(),
+            );
+        }
         let candidate_graph = pending.next_app.graph_snapshot().clone();
         let candidate_generation = pending.next_app.generation_identity().clone();
         let prepared = self.prepare_application_cutover(

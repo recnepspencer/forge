@@ -170,8 +170,10 @@ fn build_full_projection(
     } else {
         super::super::UiMountWorkClass::InitialMount
     };
+    let mut semantic = UiMountedSemanticProjection::initial(nodes, surfaces);
+    semantic.inherit_projection_inputs(input.lowering.predecessor);
     Ok(UiMountedProjectionBuild {
-        semantic: UiMountedSemanticProjection::initial(nodes, surfaces),
+        semantic,
         cost: super::cost_accounting::UiMountedProjectionCostInput {
             work_class,
             considered: node_count
