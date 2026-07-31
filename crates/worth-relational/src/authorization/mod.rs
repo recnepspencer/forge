@@ -1,27 +1,31 @@
 mod constraint;
 mod denial;
+mod dependency_collection;
 mod evaluation;
 mod evidence;
+mod field_observation;
 mod freshness;
-mod identity;
+mod observation_identity;
+mod path_evaluation;
 mod plan;
+mod plan_validation;
 
 pub use denial::{RelationalAuthorizationObservationDenial, RelationalAuthorizationPlanDenial};
 pub use evidence::{
-    RelationalAuthorizationAdjacencyDependency, RelationalAuthorizationDecision,
-    RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
-    RelationalAuthorizationObservationFreshness, RelationalAuthorizationObservationIdentity,
-    RelationalAuthorizationPathObservation, RelationalAuthorizationPlanIdentity,
+    RelationalAuthorizationAdjacencyDependency, RelationalAuthorizationObservationCounters,
+    RelationalAuthorizationObservationEvidence, RelationalAuthorizationObservationFreshness,
+    RelationalAuthorizationObservationIdentity, RelationalAuthorizationPathObservation,
 };
 pub use plan::{
     RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,
-    RelationalAuthorizationPathEffect, RelationalAuthorizationPathPlan,
-    RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationPathPlan, RelationalAuthorizationTraversal,
+    RelationalAuthorizationTraversalDirection,
 };
 
 #[cfg(test)]
 mod tests;
 pub use constraint::{
     RelationalAuthorizationEntityAnchor, RelationalAuthorizationFieldComparison,
+    RelationalAuthorizationFieldConstraint, RelationalAuthorizationFieldOperand,
     RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
 };

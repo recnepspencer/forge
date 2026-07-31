@@ -3,20 +3,18 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
-use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
 use worth_query_installation::facade::{
-    ApplicationSchemaBindingIdentity, WorthQueryCanonicalWorkEvidence,
-    WorthQueryCanonicalWorkPhases, WorthQueryCompiledApplicationOperationContracts,
+    ApplicationSchemaBindingIdentity, WorthQueryCanonicalWorkPhases,
+    WorthQueryCompiledApplicationOperationContracts,
 };
 use worth_relational::facade::authorization::{
     RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
 };
 use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
-use super::scope_identity::PreparedOperationScopeIdentity;
 use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
 
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
@@ -47,25 +45,28 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationC
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryOperationScopeFingerprint {
-    digest: CanonicalDigestId,
-    canonical_work: WorthQueryCanonicalWorkEvidence,
+    runtime_authority: u64,
+    binding_identity: ApplicationSchemaBindingIdentity,
+    operation_authority_identity: Arc<str>,
+    principal: worth_relational::facade::identity::EntityId,
+    scope: worth_relational::facade::identity::EntityId,
 }
 
 impl WorthQueryOperationScopeFingerprint {
-    pub(super) fn mint(prepared: PreparedOperationScopeIdentity) -> Self {
+    pub(super) fn mint(
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+        operation_authority_identity: &str,
+        principal: worth_relational::facade::identity::EntityId,
+        scope: worth_relational::facade::identity::EntityId,
+    ) -> Self {
         Self {
-            digest: prepared.digest,
-            canonical_work: prepared.work,
+            runtime_authority: runtime_authority.as_u64(),
+            binding_identity: binding_identity.clone(),
+            operation_authority_identity: Arc::from(operation_authority_identity),
+            principal,
+            scope,
         }
-    }
-
-    /// Descriptive canonical bytes. Possessing them grants no Query authority.
-    pub fn bytes(&self) -> &[u8; 32] {
-        self.digest.bytes()
-    }
-
-    const fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
-        self.canonical_work
     }
 }
 
@@ -129,9 +130,7 @@ impl<Schema, Operation, Input, Scope>
         ));
         let canonical_work = WorthQueryCanonicalWorkPhases::new(
             contracts.canonical_work(),
-            operation_scope_fingerprint
-                .canonical_work()
-                .combine(mutation_preconditions.canonical_work()),
+            mutation_preconditions.canonical_work(),
         );
         Ok(Self {
             runtime_authority,

@@ -16,6 +16,7 @@ use worth_query_declaration::facade::application_schema::{
 };
 
 mod canonical_work_budgets;
+mod decision_ownership;
 
 impl OperationExpectsFact<TouchAccountOperation> for AccountLabel {}
 
@@ -78,6 +79,15 @@ fn current_installed_membership_mints_exact_operation_admission() {
         admitted.operation_scope_fingerprint(),
         retried.operation_scope_fingerprint()
     );
+    let warm_work = admitted.canonical_work().admission();
+    assert_eq!(warm_work.basis_preparations(), 0);
+    assert_eq!(warm_work.digest_derivations(), 0);
+    assert_eq!(warm_work.canonical_entries(), 0);
+    assert_eq!(warm_work.canonical_encoded_bytes(), 0);
+    assert_eq!(warm_work.canonical_material_allocation_bytes(), 0);
+    assert_eq!(warm_work.sha256_input_bytes(), 0);
+    assert_eq!(warm_work.sha256_compression_blocks(), 0);
+    assert_eq!(warm_work.digest_text_materializations(), 0);
 }
 
 #[test]

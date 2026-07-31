@@ -37,12 +37,15 @@ impl WorthQueryApplicationIdempotencyBinding {
 
     pub(in crate::domain_computation::primary_graph) const fn bind_preconditions(
         self,
-        precondition_identity: &[u8; 32],
+        precondition_identity: Option<&[u8; 32]>,
     ) -> Self {
         Self {
             key_identity: self.key_identity,
             intent_identity: self.intent_identity,
-            precondition_identity: Some(*precondition_identity),
+            precondition_identity: match precondition_identity {
+                Some(identity) => Some(*identity),
+                None => None,
+            },
         }
     }
 }

@@ -5,16 +5,10 @@ use crate::snapshots::data::SnapshotHandle;
 use crate::transactions::data::RecordRef;
 
 use super::{
-    identity::observation_plan_identity, RelationalAuthorizationEntityAnchor,
-    RelationalAuthorizationPlanDenial, RelationalAuthorizationPlanIdentity,
+    plan_validation::validate_plan, RelationalAuthorizationEntityAnchor,
+    RelationalAuthorizationFieldConstraint, RelationalAuthorizationPlanDenial,
     RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelationalAuthorizationPathEffect {
-    Allow,
-    Deny,
-}
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum RelationalAuthorizationTraversalDirection {
@@ -64,26 +58,33 @@ impl RelationalAuthorizationTraversal {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalAuthorizationPathPlan {
-    effect: RelationalAuthorizationPathEffect,
     traversals: Vec<RelationalAuthorizationTraversal>,
     predicates: Vec<RelationalAuthorizationPredicate>,
+    field_constraints: Vec<RelationalAuthorizationFieldConstraint>,
     entity_anchors: Vec<RelationalAuthorizationEntityAnchor>,
     related_entities: Vec<RelationalAuthorizationRelatedEntityConstraint>,
 }
 
 impl RelationalAuthorizationPathPlan {
     pub fn new(
-        effect: RelationalAuthorizationPathEffect,
         traversals: impl IntoIterator<Item = RelationalAuthorizationTraversal>,
         predicates: impl IntoIterator<Item = RelationalAuthorizationPredicate>,
     ) -> Self {
         Self {
-            effect,
             traversals: traversals.into_iter().collect(),
             predicates: predicates.into_iter().collect(),
+            field_constraints: Vec::new(),
             entity_anchors: Vec::new(),
             related_entities: Vec::new(),
         }
+    }
+
+    pub fn with_field_constraints(
+        mut self,
+        constraints: impl IntoIterator<Item = RelationalAuthorizationFieldConstraint>,
+    ) -> Self {
+        self.field_constraints = constraints.into_iter().collect();
+        self
     }
 
     pub fn with_entity_anchors(
@@ -102,16 +103,16 @@ impl RelationalAuthorizationPathPlan {
         self
     }
 
-    pub const fn effect(&self) -> RelationalAuthorizationPathEffect {
-        self.effect
-    }
-
     pub fn traversals(&self) -> &[RelationalAuthorizationTraversal] {
         &self.traversals
     }
 
     pub fn predicates(&self) -> &[RelationalAuthorizationPredicate] {
         &self.predicates
+    }
+
+    pub fn field_constraints(&self) -> &[RelationalAuthorizationFieldConstraint] {
+        &self.field_constraints
     }
 
     pub fn entity_anchors(&self) -> &[RelationalAuthorizationEntityAnchor] {
@@ -162,7 +163,6 @@ pub struct RelationalAuthorizationObservationPlan {
     scope_kind: KindId,
     paths: Vec<RelationalAuthorizationPathPlan>,
     proposed_effects: Vec<RelationalAuthorizationEffectTarget>,
-    identity: RelationalAuthorizationPlanIdentity,
 }
 
 impl RelationalAuthorizationObservationPlan {
@@ -175,7 +175,7 @@ impl RelationalAuthorizationObservationPlan {
         paths: impl IntoIterator<Item = RelationalAuthorizationPathPlan>,
         proposed_effects: impl IntoIterator<Item = RelationalAuthorizationEffectTarget>,
     ) -> Result<Self, RelationalAuthorizationPlanDenial> {
-        let mut plan = Self {
+        let plan = Self {
             snapshot,
             principal,
             scope,
@@ -183,10 +183,8 @@ impl RelationalAuthorizationObservationPlan {
             scope_kind,
             paths: paths.into_iter().collect(),
             proposed_effects: proposed_effects.into_iter().collect(),
-            identity: RelationalAuthorizationPlanIdentity::uninitialized(),
         };
         validate_plan(&plan)?;
-        plan.identity = observation_plan_identity(&plan);
         Ok(plan)
     }
 
@@ -218,10 +216,6 @@ impl RelationalAuthorizationObservationPlan {
         &self.proposed_effects
     }
 
-    pub const fn identity(&self) -> RelationalAuthorizationPlanIdentity {
-        self.identity
-    }
-
     pub(crate) fn comparison_at(
         &self,
         snapshot: SnapshotHandle,
@@ -234,149 +228,8 @@ impl RelationalAuthorizationObservationPlan {
             scope_kind: self.scope_kind,
             paths: self.paths.clone(),
             proposed_effects: self.proposed_effects.clone(),
-            identity: RelationalAuthorizationPlanIdentity::uninitialized(),
         };
         validate_plan(&plan)?;
         Ok(plan)
-    }
-}
-
-fn validate_plan(
-    plan: &RelationalAuthorizationObservationPlan,
-) -> Result<(), RelationalAuthorizationPlanDenial> {
-    if plan.paths.is_empty() {
-        return Err(RelationalAuthorizationPlanDenial::NoPaths);
-    }
-    if !plan
-        .paths
-        .iter()
-        .any(|path| path.effect == RelationalAuthorizationPathEffect::Allow)
-    {
-        return Err(RelationalAuthorizationPlanDenial::NoAllowPath);
-    }
-    for (path_index, path) in plan.paths.iter().enumerate() {
-        validate_path(plan, path_index, path)?;
-    }
-    Ok(())
-}
-
-fn validate_path(
-    plan: &RelationalAuthorizationObservationPlan,
-    path_index: usize,
-    path: &RelationalAuthorizationPathPlan,
-) -> Result<(), RelationalAuthorizationPlanDenial> {
-    let mut kinds = Vec::with_capacity(path.traversals.len() + 1);
-    kinds.push(plan.principal_kind);
-    for (traversal_index, traversal) in path.traversals.iter().enumerate() {
-        let expected = kinds[traversal_index];
-        let (actual, next) = match traversal.direction {
-            RelationalAuthorizationTraversalDirection::Forward => {
-                (traversal.from_kind, traversal.to_kind)
-            }
-            RelationalAuthorizationTraversalDirection::Reverse => {
-                (traversal.to_kind, traversal.from_kind)
-            }
-        };
-        if actual != expected {
-            return Err(RelationalAuthorizationPlanDenial::DiscontinuousTraversal {
-                path: path_index,
-                traversal: traversal_index,
-                expected,
-                actual,
-            });
-        }
-        if traversal_index == 0 && actual != plan.principal_kind {
-            return Err(RelationalAuthorizationPlanDenial::PathStartsAtWrongKind {
-                path: path_index,
-                expected: plan.principal_kind,
-                actual,
-            });
-        }
-        kinds.push(next);
-    }
-    let final_kind = *kinds.last().expect("principal kind is always present");
-    if final_kind != plan.scope_kind {
-        return Err(RelationalAuthorizationPlanDenial::PathEndsAtWrongKind {
-            path: path_index,
-            expected: plan.scope_kind,
-            actual: final_kind,
-        });
-    }
-    for predicate in &path.predicates {
-        if predicate.field().field_path().fields().len() != 1 {
-            return Err(
-                RelationalAuthorizationPlanDenial::PredicateFieldPathNotSingle {
-                    path: path_index,
-                    ordinal: predicate.traversal_ordinal(),
-                    fields: predicate.field().field_path().fields().len(),
-                },
-            );
-        }
-        let Some(expected) = kinds.get(predicate.traversal_ordinal()).copied() else {
-            return Err(RelationalAuthorizationPlanDenial::PredicateOutsidePath {
-                path: path_index,
-                ordinal: predicate.traversal_ordinal(),
-                traversals: path.traversals.len(),
-            });
-        };
-        if predicate.entity_kind() != expected {
-            return Err(
-                RelationalAuthorizationPlanDenial::PredicateTargetsWrongKind {
-                    path: path_index,
-                    ordinal: predicate.traversal_ordinal(),
-                    expected,
-                    actual: predicate.entity_kind(),
-                },
-            );
-        }
-    }
-    for anchor in &path.entity_anchors {
-        let Some(expected) = kinds.get(anchor.traversal_ordinal()).copied() else {
-            return Err(RelationalAuthorizationPlanDenial::EntityAnchorOutsidePath {
-                path: path_index,
-                ordinal: anchor.traversal_ordinal(),
-                traversals: path.traversals.len(),
-            });
-        };
-        if anchor.entity_kind() != expected {
-            return Err(
-                RelationalAuthorizationPlanDenial::EntityAnchorTargetsWrongKind {
-                    path: path_index,
-                    ordinal: anchor.traversal_ordinal(),
-                    expected,
-                    actual: anchor.entity_kind(),
-                },
-            );
-        }
-    }
-    for related in &path.related_entities {
-        let Some(expected) = kinds.get(related.traversal_ordinal()).copied() else {
-            return Err(
-                RelationalAuthorizationPlanDenial::RelatedEntityOutsidePath {
-                    path: path_index,
-                    ordinal: related.traversal_ordinal(),
-                    traversals: path.traversals.len(),
-                },
-            );
-        };
-        let actual = traversal_start_kind(related.traversal());
-        if actual != expected {
-            return Err(
-                RelationalAuthorizationPlanDenial::RelatedEntityStartsAtWrongKind {
-                    path: path_index,
-                    ordinal: related.traversal_ordinal(),
-                    expected,
-                    actual,
-                },
-            );
-        }
-    }
-    Ok(())
-}
-
-const fn traversal_start_kind(traversal: &RelationalAuthorizationTraversal) -> KindId {
-    match traversal.direction {
-        RelationalAuthorizationTraversalDirection::Forward => traversal.from_kind,
-        RelationalAuthorizationTraversalDirection::Reverse => traversal.to_kind,
     }
 }

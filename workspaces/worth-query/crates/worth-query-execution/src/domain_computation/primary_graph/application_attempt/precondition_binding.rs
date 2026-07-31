@@ -27,7 +27,7 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryBoundMutationP
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryBoundMutationPreconditions {
     entries: Vec<WorthQueryBoundMutationPrecondition>,
-    canonical_digest: CanonicalDigestId,
+    canonical_digest: Option<CanonicalDigestId>,
     canonical_work: WorthQueryCanonicalWorkEvidence,
     expected_version_count: usize,
     expected_fact_count: usize,
@@ -85,12 +85,17 @@ pub(in crate::domain_computation::primary_graph) fn bind_mutation_preconditions<
             expected_value: entry.expected_value().clone(),
         });
     }
-    let budget = contracts.precondition_canonical_work_budget().ok_or(())?;
-    let canonical = prepare_precondition_identity(&entries, scope_entity_id, budget)?;
+    let (canonical_digest, canonical_work) = if entries.is_empty() {
+        (None, WorthQueryCanonicalWorkEvidence::zero())
+    } else {
+        let budget = contracts.precondition_canonical_work_budget().ok_or(())?;
+        let canonical = prepare_precondition_identity(&entries, scope_entity_id, budget)?;
+        (Some(canonical.digest), canonical.work)
+    };
     Ok(WorthQueryBoundMutationPreconditions {
         entries: bound,
-        canonical_digest: canonical.digest,
-        canonical_work: canonical.work,
+        canonical_digest,
+        canonical_work,
         expected_version_count,
         expected_fact_count,
     })
@@ -118,8 +123,8 @@ impl WorthQueryBoundMutationPreconditions {
         })
     }
 
-    pub(in crate::domain_computation::primary_graph) fn identity(&self) -> &[u8; 32] {
-        self.canonical_digest.bytes()
+    pub(in crate::domain_computation::primary_graph) fn identity(&self) -> Option<&[u8; 32]> {
+        self.canonical_digest.as_ref().map(CanonicalDigestId::bytes)
     }
 
     pub(in crate::domain_computation::primary_graph) const fn canonical_work(

@@ -84,6 +84,79 @@ impl RelationalAuthorizationPredicate {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationalAuthorizationFieldOperand {
+    traversal_ordinal: usize,
+    entity_kind: KindId,
+    field: AspectFieldLocator,
+}
+
+impl RelationalAuthorizationFieldOperand {
+    pub fn new(traversal_ordinal: usize, entity_kind: KindId, field: AspectFieldLocator) -> Self {
+        Self {
+            traversal_ordinal,
+            entity_kind,
+            field,
+        }
+    }
+
+    pub const fn traversal_ordinal(&self) -> usize {
+        self.traversal_ordinal
+    }
+
+    pub const fn entity_kind(&self) -> KindId {
+        self.entity_kind
+    }
+
+    pub const fn field(&self) -> &AspectFieldLocator {
+        &self.field
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationalAuthorizationFieldConstraint {
+    left: RelationalAuthorizationFieldOperand,
+    comparison: RelationalAuthorizationFieldComparison,
+    right: RelationalAuthorizationFieldOperand,
+}
+
+impl RelationalAuthorizationFieldConstraint {
+    pub fn new(
+        left: RelationalAuthorizationFieldOperand,
+        comparison: RelationalAuthorizationFieldComparison,
+        right: RelationalAuthorizationFieldOperand,
+    ) -> Self {
+        Self {
+            left,
+            comparison,
+            right,
+        }
+    }
+
+    pub const fn left(&self) -> &RelationalAuthorizationFieldOperand {
+        &self.left
+    }
+
+    pub const fn comparison(&self) -> RelationalAuthorizationFieldComparison {
+        self.comparison
+    }
+
+    pub const fn right(&self) -> &RelationalAuthorizationFieldOperand {
+        &self.right
+    }
+
+    pub(crate) fn matches(&self, left: &AspectValue, right: &AspectValue) -> bool {
+        if left.value_family() != right.value_family() {
+            return false;
+        }
+        match self.comparison {
+            RelationalAuthorizationFieldComparison::Equal => left == right,
+            RelationalAuthorizationFieldComparison::AtMost => left <= right,
+            RelationalAuthorizationFieldComparison::AtLeast => left >= right,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RelationalAuthorizationEntityAnchor {
     traversal_ordinal: usize,

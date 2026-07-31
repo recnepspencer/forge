@@ -6,10 +6,8 @@ use crate::transactions::data::{
     WorkerIntentBatch,
 };
 
-use super::{allow_and_deny_plan, allow_plan, authorization_fixture};
-use crate::authorization::{
-    RelationalAuthorizationDecision, RelationalAuthorizationObservationFreshness,
-};
+use super::{allow_plan, authorization_fixture, role_and_direct_path_plan};
+use crate::authorization::RelationalAuthorizationObservationFreshness;
 
 #[test]
 fn exact_authorization_observation_stales_after_membership_revocation() {
@@ -76,21 +74,18 @@ fn unrelated_relation_kind_does_not_widen_authorization_causality() {
 }
 
 #[test]
-fn newly_matching_deny_path_stales_previously_allowed_evidence() {
+fn newly_matching_parallel_path_stales_the_exact_observation() {
     let mut fixture = authorization_fixture();
     let admitted_snapshot = fixture.runtime.visibility_authority().snapshot();
     let admitted = fixture
         .runtime
-        .observe_authorization(allow_and_deny_plan(
+        .observe_authorization(role_and_direct_path_plan(
             admitted_snapshot,
             fixture.principal,
             fixture.scope,
         ))
         .unwrap();
-    assert_eq!(
-        admitted.decision(),
-        RelationalAuthorizationDecision::Allowed
-    );
+    assert!(!admitted.paths()[1].matched());
 
     create_relation(
         &mut fixture.runtime,

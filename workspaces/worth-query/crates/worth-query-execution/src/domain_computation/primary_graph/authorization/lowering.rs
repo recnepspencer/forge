@@ -1,11 +1,9 @@
 use worth_query_installation::facade::{
-    ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
-    ApplicationAuthorizationTraversalDirection,
+    ApplicationAuthorizationPath, ApplicationAuthorizationTraversalDirection,
 };
 use worth_relational::facade::authorization::{
-    RelationalAuthorizationPathEffect, RelationalAuthorizationPathPlan,
-    RelationalAuthorizationPredicate, RelationalAuthorizationTraversal,
-    RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationPathPlan, RelationalAuthorizationPredicate,
+    RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 
 use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
@@ -76,12 +74,5 @@ pub(super) fn lower_authorization_path(
             predicate.value().clone(),
         ));
     }
-    Ok(RelationalAuthorizationPathPlan::new(
-        match path.effect() {
-            ApplicationAuthorizationPathEffect::Allow => RelationalAuthorizationPathEffect::Allow,
-            ApplicationAuthorizationPathEffect::Deny => RelationalAuthorizationPathEffect::Deny,
-        },
-        traversals,
-        predicates,
-    ))
+    Ok(RelationalAuthorizationPathPlan::new(traversals, predicates))
 }

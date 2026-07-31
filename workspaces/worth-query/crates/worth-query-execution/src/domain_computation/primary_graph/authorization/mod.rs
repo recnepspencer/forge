@@ -4,7 +4,6 @@ mod bridge_observation;
 mod denial;
 mod installed_policy;
 mod lowering;
-mod scope_identity;
 
 pub use admitted_operation::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationScopeFingerprint,

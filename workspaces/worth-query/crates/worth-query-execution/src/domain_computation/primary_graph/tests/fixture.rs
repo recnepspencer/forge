@@ -29,7 +29,8 @@ mod world_authentication;
 mod world_installation;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
-    installed_authorization_world_with_resource_profile,
+    installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
+    AuthorizationWorld,
 };
 pub(super) use world_installation::{
     installed_two_principal_authorization_world, installed_world, installed_world_with_policy_fact,
@@ -92,6 +93,11 @@ worth_query_application_schema! {
                 )
                 .relation(
                     AccountOwner::reference(),
+                    Principal::reference(),
+                    Account::reference(),
+                )
+                .relation(
+                    AccountBlocked::reference(),
                     Principal::reference(),
                     Account::reference(),
                 )
@@ -194,20 +200,34 @@ worth_query_application_schema! {
                 .ability_policy(
                     ViewAccount::reference(),
                     AccountAccessPolicy::reference(),
-                    [worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
-                        Principal::reference(),
-                    )
-                    .forward(AccountOwner::reference())
-                    .allow(Account::reference())],
+                    [
+                        worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
+                            Principal::reference(),
+                        )
+                        .forward(AccountOwner::reference())
+                        .allow(Account::reference()),
+                        worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
+                            Principal::reference(),
+                        )
+                        .forward(AccountBlocked::reference())
+                        .deny(Account::reference()),
+                    ],
                 )
                 .ability_policy(
                     EditAccount::reference(),
                     AccountAccessPolicy::reference(),
-                    [worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
-                        Principal::reference(),
-                    )
-                    .forward(AccountOwner::reference())
-                    .allow(Account::reference())],
+                    [
+                        worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
+                            Principal::reference(),
+                        )
+                        .forward(AccountOwner::reference())
+                        .allow(Account::reference()),
+                        worth_query_declaration::facade::application_schema::ApplicationAuthorizationPathBuilder::from_principal(
+                            Principal::reference(),
+                        )
+                        .forward(AccountBlocked::reference())
+                        .deny(Account::reference()),
+                    ],
                 )
                 .ability_policy(
                     ManageOwnership::reference(),
@@ -287,6 +307,10 @@ worth_query_relation!(
     Principal => Account
 );
 worth_query_relation!(
+    pub AccountBlocked in IdentityExecutionSchema,
+    Principal => Account
+);
+worth_query_relation!(
     pub AccountPrimaryActivity in IdentityExecutionSchema,
     Account => Activity
 );
@@ -354,18 +378,6 @@ pub(super) struct IdentityWorld {
     pub(super) schema: WorthQueryInstalledApplicationSchema<IdentityExecutionSchema>,
     pub(super) binding: InstalledIdentityBinding,
     pub(super) publication: WorthQueryPrimaryGraphPublication,
-}
-
-pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
-    pub(in crate::domain_computation::primary_graph) application:
-        crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
-            IdentityExecutionSchema,
-        >,
-    pub(in crate::domain_computation::primary_graph) binding: InstalledIdentityBinding,
-    pub(in crate::domain_computation::primary_graph) invariant:
-        crate::domain_computation::primary_graph::WorthQueryApplicationInvariantProjectionAuthority<
-            IdentityExecutionSchema,
-        >,
 }
 
 pub(super) fn external_identity(subject: &str) -> WorthQueryExternalPrincipalIdentity {

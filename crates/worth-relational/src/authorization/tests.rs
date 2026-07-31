@@ -11,21 +11,21 @@ use crate::tests::support::{
 use crate::transactions::data::RecordRef;
 
 use super::{
-    RelationalAuthorizationDecision, RelationalAuthorizationEffectTarget,
-    RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationDenial,
-    RelationalAuthorizationObservationPlan, RelationalAuthorizationPathEffect,
+    RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationCounters,
+    RelationalAuthorizationObservationDenial, RelationalAuthorizationObservationPlan,
     RelationalAuthorizationPathPlan, RelationalAuthorizationPlanDenial,
     RelationalAuthorizationPredicate, RelationalAuthorizationTraversal,
     RelationalAuthorizationTraversalDirection,
 };
 
 mod freshness;
+mod witnesses;
 
 const ENTITY_KIND: KindId = KindId(1);
 const RELATION_KIND: KindId = KindId(2);
 
 #[test]
-fn actual_snapshot_observation_mints_exact_allow_evidence() {
+fn actual_snapshot_observation_mints_exact_neutral_evidence() {
     let mut fixture = authorization_fixture();
     let snapshot = fixture.runtime.visibility_authority().snapshot();
     let plan = allow_plan(
@@ -36,18 +36,12 @@ fn actual_snapshot_observation_mints_exact_allow_evidence() {
             RecordRef::Entity(fixture.scope),
         )],
     );
-    let expected_identity = plan.identity();
-
     let evidence = fixture
         .runtime
         .observe_authorization(plan)
-        .expect("installed path should allow the principal");
+        .expect("installed path should be observable");
 
-    assert_eq!(evidence.plan_identity(), expected_identity);
-    assert_eq!(
-        evidence.decision(),
-        RelationalAuthorizationDecision::Allowed
-    );
+    assert_ne!(evidence.observation_identity().bytes(), &[0; 32]);
     assert_eq!(evidence.principal(), fixture.principal);
     assert_eq!(evidence.scope(), fixture.scope);
     assert!(evidence.paths()[0].matched());
@@ -70,7 +64,7 @@ fn actual_snapshot_observation_mints_exact_allow_evidence() {
 }
 
 #[test]
-fn deny_path_has_precedence_over_a_matching_allow_path() {
+fn parallel_matching_paths_remain_neutral_graph_observations() {
     let mut fixture = authorization_fixture();
     create_relation(
         &mut fixture.runtime,
@@ -79,14 +73,13 @@ fn deny_path_has_precedence_over_a_matching_allow_path() {
         "initiated-payment",
     );
     let snapshot = fixture.runtime.visibility_authority().snapshot();
-    let plan = allow_and_deny_plan(snapshot, fixture.principal, fixture.scope);
+    let plan = role_and_direct_path_plan(snapshot, fixture.principal, fixture.scope);
 
     let evidence = fixture
         .runtime
         .observe_authorization(plan)
         .expect("the snapshot can be observed");
 
-    assert_eq!(evidence.decision(), RelationalAuthorizationDecision::Denied);
     assert!(evidence.paths()[0].matched());
     assert!(evidence.paths()[1].matched());
     assert!(evidence.paths().iter().all(|path| path.exhaustive()));
@@ -125,19 +118,10 @@ fn revocation_changes_only_new_snapshot_authority() {
         .observe_authorization(allow_plan(before, fixture.principal, fixture.scope, []))
         .expect("pinned historical observation");
 
-    assert_eq!(
-        before_evidence.decision(),
-        RelationalAuthorizationDecision::Allowed
-    );
-    assert_eq!(
-        historical_evidence.decision(),
-        RelationalAuthorizationDecision::Allowed
-    );
+    assert!(before_evidence.paths()[0].matched());
+    assert!(historical_evidence.paths()[0].matched());
     assert!(historical_evidence.counters().reconstructive_graph_scans > 0);
-    assert_eq!(
-        after_evidence.decision(),
-        RelationalAuthorizationDecision::Denied
-    );
+    assert!(!after_evidence.paths()[0].matched());
     assert_eq!(after_evidence.paths()[0].adjacency_lists().len(), 2);
 }
 
@@ -162,7 +146,7 @@ fn foreign_runtime_is_a_typed_denial_before_graph_reads() {
 }
 
 #[test]
-fn malformed_path_is_rejected_before_it_can_be_observed() {
+fn empty_observation_plan_is_rejected_before_graph_reads() {
     let mut fixture = authorization_fixture();
     let snapshot = fixture.runtime.visibility_authority().snapshot();
     let denial = RelationalAuthorizationObservationPlan::try_new(
@@ -171,16 +155,12 @@ fn malformed_path_is_rejected_before_it_can_be_observed() {
         fixture.scope,
         ENTITY_KIND,
         ENTITY_KIND,
-        [RelationalAuthorizationPathPlan::new(
-            RelationalAuthorizationPathEffect::Deny,
-            [],
-            [],
-        )],
+        [],
         [],
     )
-    .expect_err("a policy without an allow path is not executable");
+    .expect_err("an observation without graph paths is meaningless");
 
-    assert_eq!(denial, RelationalAuthorizationPlanDenial::NoAllowPath);
+    assert_eq!(denial, RelationalAuthorizationPlanDenial::NoPaths);
 }
 
 #[test]
@@ -197,7 +177,6 @@ fn reverse_path_validation_uses_declared_relation_orientation() {
         principal_kind,
         scope_kind,
         [RelationalAuthorizationPathPlan::new(
-            RelationalAuthorizationPathEffect::Allow,
             [RelationalAuthorizationTraversal::new(
                 RELATION_KIND,
                 scope_kind,
@@ -305,7 +284,7 @@ fn allow_plan(
     .expect("fixture policy is structurally valid")
 }
 
-fn allow_and_deny_plan(
+fn role_and_direct_path_plan(
     snapshot: crate::snapshots::data::SnapshotHandle,
     principal: crate::identity::data::EntityId,
     scope: crate::identity::data::EntityId,
@@ -318,11 +297,7 @@ fn allow_and_deny_plan(
         ENTITY_KIND,
         [
             allow_path(),
-            RelationalAuthorizationPathPlan::new(
-                RelationalAuthorizationPathEffect::Deny,
-                [forward_traversal()],
-                [],
-            ),
+            RelationalAuthorizationPathPlan::new([forward_traversal()], []),
         ],
         [],
     )
@@ -331,7 +306,6 @@ fn allow_and_deny_plan(
 
 fn allow_path() -> RelationalAuthorizationPathPlan {
     RelationalAuthorizationPathPlan::new(
-        RelationalAuthorizationPathEffect::Allow,
         [forward_traversal(), forward_traversal()],
         [RelationalAuthorizationPredicate::new(
             1,

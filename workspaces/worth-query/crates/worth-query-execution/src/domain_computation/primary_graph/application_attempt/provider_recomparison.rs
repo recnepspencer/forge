@@ -4,7 +4,7 @@ use super::precondition_binding::WorthQueryBoundMutationPreconditions;
 pub struct WorthQueryMutationPreconditionComparisonEvidence {
     expected_version_count: usize,
     expected_fact_count: usize,
-    identity: [u8; 32],
+    identity: Option<[u8; 32]>,
 }
 
 impl WorthQueryMutationPreconditionComparisonEvidence {
@@ -16,8 +16,8 @@ impl WorthQueryMutationPreconditionComparisonEvidence {
         self.expected_fact_count
     }
 
-    pub const fn identity(&self) -> &[u8; 32] {
-        &self.identity
+    pub const fn identity(&self) -> Option<&[u8; 32]> {
+        self.identity.as_ref()
     }
 }
 
@@ -39,6 +39,9 @@ fn evidence(
     WorthQueryMutationPreconditionComparisonEvidence {
         expected_version_count: preconditions.expected_version_count(),
         expected_fact_count: preconditions.expected_fact_count(),
-        identity: *preconditions.identity(),
+        identity: match preconditions.identity() {
+            Some(identity) => Some(*identity),
+            None => None,
+        },
     }
 }

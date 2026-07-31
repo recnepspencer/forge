@@ -3,7 +3,6 @@ use crate::identity::data::KindId;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RelationalAuthorizationPlanDenial {
     NoPaths,
-    NoAllowPath,
     PathStartsAtWrongKind {
         path: usize,
         expected: KindId,
@@ -33,6 +32,25 @@ pub enum RelationalAuthorizationPlanDenial {
     },
     PredicateFieldPathNotSingle {
         path: usize,
+        ordinal: usize,
+        fields: usize,
+    },
+    FieldConstraintOutsidePath {
+        path: usize,
+        constraint: usize,
+        ordinal: usize,
+        traversals: usize,
+    },
+    FieldConstraintTargetsWrongKind {
+        path: usize,
+        constraint: usize,
+        ordinal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
+    FieldConstraintPathNotSingle {
+        path: usize,
+        constraint: usize,
         ordinal: usize,
         fields: usize,
     },
@@ -69,4 +87,5 @@ pub enum RelationalAuthorizationObservationDenial {
     SnapshotUnavailable,
     PrincipalUnavailableOrWrongKind,
     ScopeUnavailableOrWrongKind,
+    ObservationIdentityExhausted,
 }

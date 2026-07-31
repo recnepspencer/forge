@@ -18,7 +18,7 @@ impl RelationalRuntime {
         else {
             return RelationalAuthorizationObservationFreshness::Stale;
         };
-        if current.decision == expected.decision() && current.paths == expected.paths() {
+        if current.paths == expected.paths() {
             RelationalAuthorizationObservationFreshness::Fresh
         } else {
             RelationalAuthorizationObservationFreshness::Stale

@@ -6,7 +6,6 @@ use super::super::{
 };
 use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
 use super::bridge_observation::lower_bridge_observation;
-use super::scope_identity::derive_operation_scope_identity;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
@@ -19,9 +18,7 @@ use worth_query_installation::facade::{
     ApplicationSchema, ApplicationSchemaBindingIdentity, TypedApplicationValue,
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperation,
 };
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationDecision, RelationalAuthorizationObservationPlan,
-};
+use worth_relational::facade::authorization::RelationalAuthorizationObservationPlan;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -122,7 +119,7 @@ where
             operation.binding_identity().clone(),
             operation.operation().to_string(),
             operation.authority_identity().to_string(),
-            operation_scope_fingerprint(self, principal, scope_identity, operation)?,
+            operation_scope_fingerprint(self, principal, scope_identity, operation),
             scope_identity.entity_id(),
             scope_identity.entity_kind(),
             scope_identity.entity_name().to_string(),
@@ -197,19 +194,12 @@ where
                     requirement.policy(),
                 )
             })?;
-            let expected_plan_identity = *plan.identity().bytes();
             let evidence = relational.observe_authorization(plan).map_err(|_| {
                 denial(
                     WorthQueryOperationAuthorizationDenialKind::RelationalObservationRejected,
                     requirement.policy(),
                 )
             })?;
-            if evidence.plan_identity().bytes() != &expected_plan_identity {
-                return Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                    requirement.policy(),
-                ));
-            }
             let dependency_identity = *evidence.observation_identity().bytes();
             let bridge_observation = lower_bridge_observation(
                 installed,
@@ -248,21 +238,14 @@ fn operation_scope_fingerprint<Schema, Principal, PrincipalIdentity, Operation, 
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     scope: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-) -> Result<WorthQueryOperationScopeFingerprint, WorthQueryOperationAuthorizationDenial> {
-    derive_operation_scope_identity(
+) -> WorthQueryOperationScopeFingerprint {
+    WorthQueryOperationScopeFingerprint::mint(
         runtime.runtime.authority_identity(),
         operation.binding_identity(),
         operation.authority_identity(),
         principal.principal_entity_id(),
         scope.entity_id(),
     )
-    .map(WorthQueryOperationScopeFingerprint::mint)
-    .map_err(|_| {
-        denial(
-            WorthQueryOperationAuthorizationDenialKind::CanonicalWorkDenied,
-            operation.operation(),
-        )
-    })
 }
 
 fn validate_static_authority<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(
@@ -324,16 +307,13 @@ fn validate_decision(
             policy,
         ));
     }
-    match (relational.decision(), bridge.is_allowed()) {
-        (RelationalAuthorizationDecision::Allowed, true) => Ok(()),
-        (RelationalAuthorizationDecision::Denied, false) => Err(denial(
+    if bridge.is_allowed() {
+        Ok(())
+    } else {
+        Err(denial(
             WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
             policy,
-        )),
-        _ => Err(denial(
-            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-            policy,
-        )),
+        ))
     }
 }
 

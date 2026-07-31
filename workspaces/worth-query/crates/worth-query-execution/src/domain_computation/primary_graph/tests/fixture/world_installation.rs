@@ -1,5 +1,17 @@
 use super::*;
 
+pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
+    pub(in crate::domain_computation::primary_graph) application:
+        crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
+            IdentityExecutionSchema,
+        >,
+    pub(in crate::domain_computation::primary_graph) binding: InstalledIdentityBinding,
+    pub(in crate::domain_computation::primary_graph) invariant:
+        crate::domain_computation::primary_graph::WorthQueryApplicationInvariantProjectionAuthority<
+            IdentityExecutionSchema,
+        >,
+}
+
 pub(in crate::domain_computation::primary_graph::tests) fn installed_world(
     rows: &[(&str, WorthQueryPrincipalMappingStatus)],
 ) -> IdentityWorld {
@@ -63,6 +75,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
         include_owner_relation,
+        false,
         1,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
@@ -74,6 +87,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
         true,
+        false,
         1,
         label,
         WorthQueryApplicationQueryResourceProfile::default(),
@@ -83,7 +97,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
 pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_with_resource_profile(
     profile: WorthQueryApplicationQueryResourceProfile,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(true, 1, "primary", profile)
+    installed_authorization_world_with_principal_count(true, false, 1, "primary", profile)
 }
 
 pub(in crate::domain_computation::primary_graph) fn installed_two_principal_authorization_world(
@@ -91,7 +105,19 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
         include_owner_relation,
+        false,
         2,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorization_world(
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        true,
+        true,
+        1,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
     )
@@ -99,6 +125,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
 
 fn installed_authorization_world_with_principal_count(
     include_owner_relation: bool,
+    include_blocked_relation: bool,
     principal_count: usize,
     primary_label: &str,
     resources: WorthQueryApplicationQueryResourceProfile,
@@ -197,6 +224,16 @@ fn installed_authorization_world_with_principal_count(
                 ))
                 .unwrap();
         }
+    }
+    if include_blocked_relation {
+        bootstrap
+            .bind_relation(WorthQueryApplicationRelationSeed::new(
+                AccountBlocked::reference(),
+                "blocked-1",
+                WorthQueryApplicationEntityKey::new("principal-0").unwrap(),
+                WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+            ))
+            .unwrap();
     }
     let invariant = bootstrap.retain_invariant_projection_authority();
     let application = bootstrap

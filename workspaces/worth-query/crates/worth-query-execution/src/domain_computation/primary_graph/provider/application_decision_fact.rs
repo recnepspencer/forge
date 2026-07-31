@@ -1,4 +1,3 @@
-use std::fmt::Write;
 use std::sync::Arc;
 
 use worth_relational::facade::authorization::{
@@ -32,11 +31,7 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
             relational: observation,
             bridge,
         } = dependency;
-        let mut locator = format!("application-authorization:{requirement_ordinal}:");
-        for byte in observation.observation_identity().bytes() {
-            write!(&mut locator, "{byte:02x}")
-                .expect("writing canonical authorization identity into a string cannot fail");
-        }
+        let locator = format!("application-authorization:{requirement_ordinal}");
         Self::Authorization {
             locator: Arc::from(locator),
             observation: Arc::new(observation),

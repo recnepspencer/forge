@@ -5,36 +5,20 @@ use crate::snapshots::data::SnapshotHandle;
 
 use super::{
     RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,
-    RelationalAuthorizationPathEffect, RelationalAuthorizationPlanDenial,
-    RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationPlanDenial, RelationalAuthorizationTraversalDirection,
 };
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct RelationalAuthorizationPlanIdentity(pub(crate) [u8; 32]);
-
-impl RelationalAuthorizationPlanIdentity {
-    pub(crate) const fn uninitialized() -> Self {
-        Self([0; 32])
-    }
-
-    pub const fn bytes(&self) -> &[u8; 32] {
-        &self.0
-    }
-}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct RelationalAuthorizationObservationIdentity(pub(crate) [u8; 32]);
 
 impl RelationalAuthorizationObservationIdentity {
+    pub(crate) const fn mint(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     pub const fn bytes(&self) -> &[u8; 32] {
         &self.0
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelationalAuthorizationDecision {
-    Allowed,
-    Denied,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -58,7 +42,6 @@ pub struct RelationalAuthorizationObservationCounters {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct RelationalAuthorizationPathObservation {
-    effect: RelationalAuthorizationPathEffect,
     matched: bool,
     dependencies: RelationalAuthorizationPathDependencies,
     exhaustive: bool,
@@ -107,21 +90,15 @@ pub(crate) struct RelationalAuthorizationPathDependencies {
 
 impl RelationalAuthorizationPathObservation {
     pub(crate) fn new(
-        effect: RelationalAuthorizationPathEffect,
         matched: bool,
         dependencies: RelationalAuthorizationPathDependencies,
         exhaustive: bool,
     ) -> Self {
         Self {
-            effect,
             matched,
             dependencies,
             exhaustive,
         }
-    }
-
-    pub const fn effect(&self) -> RelationalAuthorizationPathEffect {
-        self.effect
     }
 
     pub const fn matched(&self) -> bool {
@@ -157,7 +134,6 @@ impl RelationalAuthorizationPathObservation {
 pub struct RelationalAuthorizationObservationEvidence {
     plan: RelationalAuthorizationObservationPlan,
     observation_identity: RelationalAuthorizationObservationIdentity,
-    decision: RelationalAuthorizationDecision,
     paths: Vec<RelationalAuthorizationPathObservation>,
     counters: RelationalAuthorizationObservationCounters,
 }
@@ -166,14 +142,12 @@ impl RelationalAuthorizationObservationEvidence {
     pub(crate) fn mint(
         plan: RelationalAuthorizationObservationPlan,
         observation_identity: RelationalAuthorizationObservationIdentity,
-        decision: RelationalAuthorizationDecision,
         paths: Vec<RelationalAuthorizationPathObservation>,
         counters: RelationalAuthorizationObservationCounters,
     ) -> Self {
         Self {
             plan,
             observation_identity,
-            decision,
             paths,
             counters,
         }
@@ -181,10 +155,6 @@ impl RelationalAuthorizationObservationEvidence {
 
     pub fn snapshot(&self) -> &SnapshotHandle {
         self.plan.snapshot()
-    }
-
-    pub const fn plan_identity(&self) -> RelationalAuthorizationPlanIdentity {
-        self.plan.identity()
     }
 
     pub const fn observation_identity(&self) -> RelationalAuthorizationObservationIdentity {
@@ -197,10 +167,6 @@ impl RelationalAuthorizationObservationEvidence {
 
     pub const fn scope(&self) -> EntityId {
         self.plan.scope()
-    }
-
-    pub const fn decision(&self) -> RelationalAuthorizationDecision {
-        self.decision
     }
 
     pub fn paths(&self) -> &[RelationalAuthorizationPathObservation] {
