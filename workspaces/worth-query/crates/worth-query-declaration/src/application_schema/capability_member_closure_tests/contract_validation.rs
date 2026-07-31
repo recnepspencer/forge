@@ -61,3 +61,24 @@ fn capability_currentness_requires_status_and_resource_workflow_fields() {
         );
     }
 }
+
+#[test]
+fn capability_validity_timeline_requires_compatible_field_families() {
+    let mut members = members(contract(false, false, true));
+    for member in &mut members {
+        if let ApplicationSchemaMember::Field {
+            field,
+            scalar_family,
+            ..
+        } = member
+        {
+            if field == "ValidFrom" {
+                *scalar_family = ScalarAspectType::Int64;
+            }
+        }
+    }
+    assert_eq!(
+        build_from_members(members),
+        Err(ApplicationSchemaDeclarationDenial::MissingApplicationCapabilityDependency)
+    );
+}

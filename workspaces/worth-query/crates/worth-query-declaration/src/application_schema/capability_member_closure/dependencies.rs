@@ -85,6 +85,10 @@ pub(super) fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) 
         && currentness.validity().not_after().entity() == grant
         && currentness.validity().not_before().value_type()
             == currentness.validity().not_after().value_type()
+        && currentness.validity().not_before().scalar_family()
+            == currentness.validity().timeline().scalar_family()
+        && currentness.validity().not_after().scalar_family()
+            == currentness.validity().timeline().scalar_family()
         && delegation.limit().entity() == grant
         && delegation.parent().from() == grant
         && delegation.parent().to() == grant
@@ -126,11 +130,13 @@ fn field_exists(
                 entity,
                 aspect,
                 field,
+                scalar_family,
                 value_type,
                 ..
             } if entity == binding.entity()
                 && aspect == binding.aspect()
                 && field == binding.field()
+                && *scalar_family == binding.scalar_family()
                 && value_type == binding.value_type()
         )
     })

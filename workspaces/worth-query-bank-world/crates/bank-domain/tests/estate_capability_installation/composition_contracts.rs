@@ -249,6 +249,11 @@ fn estate_contract_installs_exact_grant_currentness_meaning() {
         &CapabilityGrantStatus::Active.into_foundational_value()
     );
     assert_eq!(
+        currentness.validity().timeline(),
+        worth_query_decl::facade::application_capability::
+            ApplicationCapabilityValidityTimeline::UnixEpochSeconds
+    );
+    assert_eq!(
         currentness.workflow().grant().field(),
         "CapabilityWorkflowStageField"
     );

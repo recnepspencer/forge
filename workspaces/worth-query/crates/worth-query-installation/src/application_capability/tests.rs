@@ -16,8 +16,8 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
         ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
         ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
-        ErasedApplicationCapabilityContract,
+        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityWorkflowDefinition, ErasedApplicationCapabilityContract,
     },
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
@@ -28,8 +28,11 @@ use worth_query_declaration::facade::{
 
 use super::canonical_basis::prepare_capability_basis;
 
+mod axis;
 mod budgets;
 mod residue;
+
+use axis::Axis;
 
 pub(super) struct Schema;
 struct Capability;
@@ -61,32 +64,9 @@ struct Provenance;
 struct OtherProvenance;
 struct ResourceSlot;
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub(super) enum Axis {
-    Action,
-    Resource,
-    Relation,
-    Field,
-    Purpose,
-    Amount,
-    Cardinality,
-    Workflow,
-    ResourceWorkflow,
-    Status,
-    Validity,
-    Delegation,
-    Provenance,
-    Context,
-    Rule(usize),
-    ContextAnchor,
-    AlternativeGrouping,
-    ConjunctiveGrouping,
-    OversizedComposition,
-}
-
 mod identity_axes;
 
-pub(super) fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
+fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
     let context_name = if matches!(axis, Some(Axis::Context)) {
         "ChangedContext"
     } else {
@@ -106,7 +86,7 @@ pub(super) fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContrac
     )
 }
 
-pub(super) fn contract_with_context<ContextMarker>(
+fn contract_with_context<ContextMarker>(
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
 ) -> ErasedApplicationCapabilityContract {
     contract_with_axis(
@@ -195,6 +175,11 @@ fn constraints<ContextMarker>(
     } else {
         1
     };
+    let validity_timeline = if matches!(axis, Some(Axis::ValidityTimeline)) {
+        ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds
+    } else {
+        ApplicationCapabilityValidityTimeline::UnixEpochSeconds
+    };
     ApplicationCapabilityConstraintDefinition::new(
         if matches!(axis, Some(Axis::Amount)) {
             ApplicationCapabilityFieldDimension::not_applicable()
@@ -213,6 +198,7 @@ fn constraints<ContextMarker>(
                 resource_field_binding::<ResourceWorkflow>(resource_workflow_name),
             ),
             ApplicationCapabilityValidityDefinition::new(
+                validity_timeline,
                 field_binding::<ValidFrom>(validity_name),
                 field_binding::<ValidThrough>("ValidThrough"),
             ),
@@ -241,9 +227,11 @@ fn changed_name(
     changed: &'static str,
     baseline: &'static str,
 ) -> &'static str {
-    (axis == Some(changed_axis))
-        .then_some(changed)
-        .unwrap_or(baseline)
+    if axis == Some(changed_axis) {
+        changed
+    } else {
+        baseline
+    }
 }
 
 fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {

@@ -99,6 +99,11 @@ fn append_constraints(
         "constraints.currentness.workflow.resource",
         currentness.workflow().resource(),
     );
+    text(
+        components,
+        "constraints.currentness.validity.timeline",
+        currentness.validity().timeline().canonical_name(),
+    );
     append_field(
         components,
         "constraints.currentness.validity.not-before",
@@ -142,6 +147,11 @@ pub(super) fn append_field(
     text(components, format!("{prefix}.entity"), field.entity());
     text(components, format!("{prefix}.aspect"), field.aspect());
     text(components, format!("{prefix}.field"), field.field());
+    text(
+        components,
+        format!("{prefix}.scalar-family"),
+        field.scalar_family().canonical_name(),
+    );
     text(
         components,
         format!("{prefix}.value-type"),

@@ -2,7 +2,7 @@ use crate::application_schema::{
     ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef, TypedApplicationValue,
     WritePosture,
 };
-use worth_foundational::facade::AspectValue;
+use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
 use super::{
     ApplicationCapabilityContextRef, ApplicationCapabilityCurrentnessDefinition,
@@ -14,6 +14,7 @@ pub struct ApplicationCapabilityFieldBinding {
     entity: String,
     aspect: String,
     field: String,
+    scalar_family: ScalarAspectType,
     value_type: String,
 }
 
@@ -30,6 +31,7 @@ impl ApplicationCapabilityFieldBinding {
             entity: field.entity().to_string(),
             aspect: field.aspect().to_string(),
             field: field.field().to_string(),
+            scalar_family: Value::SCALAR_FAMILY,
             value_type: field.value_type_name().to_string(),
         }
     }
@@ -44,6 +46,10 @@ impl ApplicationCapabilityFieldBinding {
 
     pub fn field(&self) -> &str {
         &self.field
+    }
+
+    pub const fn scalar_family(&self) -> ScalarAspectType {
+        self.scalar_family
     }
 
     pub fn value_type(&self) -> &str {

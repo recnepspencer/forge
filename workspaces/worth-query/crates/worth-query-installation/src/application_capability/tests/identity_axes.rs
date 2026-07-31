@@ -58,6 +58,7 @@ fn every_scope_and_composition_axis_changes_structured_and_digest_identity() {
         Axis::Workflow,
         Axis::ResourceWorkflow,
         Axis::Status,
+        Axis::ValidityTimeline,
         Axis::Validity,
         Axis::Delegation,
         Axis::Provenance,

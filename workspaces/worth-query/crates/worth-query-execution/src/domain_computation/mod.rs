@@ -1,5 +1,6 @@
 mod artifact_identity;
 pub(crate) mod artifact_owner;
+pub(crate) mod authorization;
 pub(crate) mod convergence_epoch;
 mod domain_evidence_binding;
 mod evidence_material;

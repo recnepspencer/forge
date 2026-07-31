@@ -1,0 +1,23 @@
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(super) enum Axis {
+    Action,
+    Resource,
+    Relation,
+    Field,
+    Purpose,
+    Amount,
+    Cardinality,
+    Workflow,
+    ResourceWorkflow,
+    Status,
+    ValidityTimeline,
+    Validity,
+    Delegation,
+    Provenance,
+    Context,
+    Rule(usize),
+    ContextAnchor,
+    AlternativeGrouping,
+    ConjunctiveGrouping,
+    OversizedComposition,
+}

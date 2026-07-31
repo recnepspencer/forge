@@ -16,8 +16,8 @@ use crate::application_capability::{
     ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
     ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
     ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
-    ApplicationCapabilityWorkflowDefinition,
+    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+    ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
 };
 
 use super::{
@@ -244,6 +244,7 @@ fn constraint_definition() -> ApplicationCapabilityConstraintDefinition {
                 resource_binding::<ResourceWorkflow>("ResourceWorkflow"),
             ),
             ApplicationCapabilityValidityDefinition::new(
+                ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
                 binding::<ValidFrom>("ValidFrom"),
                 binding::<ValidThrough>("ValidThrough"),
             ),

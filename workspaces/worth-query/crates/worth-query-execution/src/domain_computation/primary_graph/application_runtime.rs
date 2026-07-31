@@ -7,6 +7,7 @@ use worth_query_installation::facade::{
     WorthQueryInstalledPrincipalBinding,
 };
 
+use crate::domain_computation::authorization::WorthQueryAuthorizationClock;
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
 };
@@ -41,6 +42,7 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
     pub(super) authorization: WorthQueryInstalledAuthorizationRegistry,
+    pub(super) authorization_clock: WorthQueryAuthorizationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
@@ -115,6 +117,7 @@ where
             installed_schema,
             publication,
             authorization,
+            authorization_clock: WorthQueryAuthorizationClock,
             relational_source,
             bridge,
             primary_provider,

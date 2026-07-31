@@ -1,20 +1,49 @@
 use super::{ApplicationCapabilityFieldBinding, ApplicationCapabilityValueBinding};
+use worth_foundational::facade::ScalarAspectType;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum ApplicationCapabilityValidityTimeline {
+    UnixEpochSeconds,
+    UnixEpochMilliseconds,
+}
+
+impl ApplicationCapabilityValidityTimeline {
+    pub const fn scalar_family(self) -> ScalarAspectType {
+        match self {
+            Self::UnixEpochSeconds | Self::UnixEpochMilliseconds => ScalarAspectType::UInt64,
+        }
+    }
+
+    pub const fn canonical_name(self) -> &'static str {
+        match self {
+            Self::UnixEpochSeconds => "unix-epoch-seconds",
+            Self::UnixEpochMilliseconds => "unix-epoch-milliseconds",
+        }
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityValidityDefinition {
+    timeline: ApplicationCapabilityValidityTimeline,
     not_before: ApplicationCapabilityFieldBinding,
     not_after: ApplicationCapabilityFieldBinding,
 }
 
 impl ApplicationCapabilityValidityDefinition {
     pub fn new(
+        timeline: ApplicationCapabilityValidityTimeline,
         not_before: ApplicationCapabilityFieldBinding,
         not_after: ApplicationCapabilityFieldBinding,
     ) -> Self {
         Self {
+            timeline,
             not_before,
             not_after,
         }
+    }
+
+    pub const fn timeline(&self) -> ApplicationCapabilityValidityTimeline {
+        self.timeline
     }
 
     pub fn not_before(&self) -> &ApplicationCapabilityFieldBinding {

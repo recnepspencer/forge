@@ -34,7 +34,7 @@ pub use contract::{
 };
 pub use currentness::{
     ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityValidityDefinition,
-    ApplicationCapabilityWorkflowDefinition,
+    ApplicationCapabilityValidityTimeline, ApplicationCapabilityWorkflowDefinition,
 };
 pub use delegation::ApplicationCapabilityDelegationRule;
 pub use disclosure::ApplicationCapabilityDisclosureRule;

@@ -2092,6 +2092,9 @@ ledger.
   validity, disclosure, purpose, or downstream delegation posture;
 - purpose-bound request context introduced at an explicit entry boundary and
   thereafter Query-carried without ambient or adapter-owned policy;
+- an installed validity timeline and Query-owned current-time source whose
+  exact sample enters the decision facts; callers and transport adapters
+  cannot choose the moment at which a grant is evaluated;
 - separate typed internal-computation and consumer-disclosure admission,
   including noninterference posture for protected facts that influence
   predicates, ordering, cursors, counts, aggregates, explanations, history,
@@ -2155,6 +2158,7 @@ worth-query-execution/src/domain_computation/authorization/
     conflict_admission.rs
     elevation_progression.rs
     currentness.rs
+    time_basis.rs
 
 worth-query-publication/src/application_authorization/
     disclosed_result.rs
@@ -2183,6 +2187,9 @@ It must:
   cardinality, workflow-stage, validity, delegation, provenance, and
   application-defined constrained-context dimensions without omitted
   dimensions silently becoming global;
+- bind validity fields to an explicit installed timeline interpretation that
+  Query can sample without application-name inference or a caller-authored
+  `now` value;
 - identify the exact active grant-status predicate and bind grant workflow
   scope to the resource-side workflow field whose current value it constrains;
   current admission may not infer either binding from names, application
@@ -2226,8 +2233,15 @@ It must:
 - introduce purpose and constrained request context at the governed entry
   boundary and carry them through Query without thread-local, adapter-owned, or
   ambient policy;
+- sample grant validity through the Query-owned time source and retain the
+  exact trusted sample in the decision facts; a caller-supplied timestamp is
+  descriptive input and cannot satisfy currentness;
 - resolve current principal, relationship, grant, grant-validity, workflow,
   denial, and negative-membership facts through the canonical touched graph;
+- bind every request-varying capability dimension to the exact admitted
+  operation input or query parameters before that authority can open the
+  consumer; a parallel caller-authored summary cannot understate amount,
+  field, relation, purpose, cardinality, or constrained context;
 - emit exact typed decision facts and the corresponding authorization read set
   so compare-and-commit, continuation, history, preview, and live progression
   can revalidate the decision; and
@@ -2235,8 +2249,9 @@ It must:
   copied access context before it can authorize execution.
 
 Proof requires independent relational and policy oracles, one-axis currentness
-drift attacks, and compile-fail evidence that neither authentication nor a
-descriptive capability value satisfies the admitted access-context input.
+drift attacks, caller-time and underreported-input attacks, and compile-fail
+evidence that neither authentication nor a descriptive capability value
+satisfies the admitted access-context input.
 
 #### Runtime Phase 7.3: Internal Computation, Disclosure, And Noninterference
 
@@ -2357,6 +2372,10 @@ It must:
 - route ordinary, delegated, conflicted, disclosure-limited, and emergency
   estate operations through the public installed Query progression with no
   bank-local authorization executor;
+- derive or verify every capability request dimension against the exact Bank
+  command input or query parameter authority consumed downstream; Bank
+  adapters cannot submit a narrower authorization summary beside a wider
+  operation;
 - re-admit the strengthened access context for one-shot, continuation,
   historical, preview, and live lanes without changing canonical query
   identity or result meaning;

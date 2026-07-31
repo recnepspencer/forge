@@ -6,7 +6,8 @@ use worth_query_decl::facade::{
         ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
         ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
         ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::ApplicationSchemaDeclarationBuilder,
 };
@@ -313,6 +314,7 @@ fn constraints(
                 ),
             ),
             ApplicationCapabilityValidityDefinition::new(
+                ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
                 ApplicationCapabilityFieldBinding::from_reference(
                     CapabilityValidFromField::reference(),
                 ),
