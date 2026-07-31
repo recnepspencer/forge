@@ -21,12 +21,13 @@ struct UnpublishedFailureInput {
     work: super::RecordPublicationWorkTrace,
 }
 
-pub(in crate::physical_runtime::record_serving) fn unpublished_residency(
+pub(in crate::physical_runtime::record_serving) fn unpublished_candidate_frame_residency(
     media: &QualifiedFilesystemMedia,
     plan: &PublicationPlan,
     before: MediaCounterSnapshot,
     stage: RecordPublicationStage,
     denial: RecordAppendDenial,
+    posture: super::super::residency::frame_ports::CandidateFrameFailurePosture,
 ) -> RecordAppendError {
     unpublished(
         media,
@@ -35,7 +36,7 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_residency(
         UnpublishedFailureInput {
             stage,
             cause: UnpublishedRecordBatchCause::Residency { stage, denial },
-            current_effect_fate: UnpublishedRecordEffectFate::DeniedBeforeEffect,
+            current_effect_fate: candidate_frame_effect_fate(posture),
             world_fate: UnpublishedRecordWorldFate::InspectionRequired,
             work: plan.work.clone(),
         },
@@ -102,6 +103,24 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_candidate_frame_c
     stage: RecordPublicationStage,
     violation: super::super::CandidateFrameContractViolation,
 ) -> RecordAppendError {
+    unpublished_candidate_frame_contract_with_posture(
+        media,
+        plan,
+        before,
+        stage,
+        violation,
+        super::super::residency::frame_ports::CandidateFrameFailurePosture::ProvenNoEffect,
+    )
+}
+
+pub(in crate::physical_runtime::record_serving) fn unpublished_candidate_frame_contract_with_posture(
+    media: &QualifiedFilesystemMedia,
+    plan: &PublicationPlan,
+    before: MediaCounterSnapshot,
+    stage: RecordPublicationStage,
+    violation: super::super::CandidateFrameContractViolation,
+    posture: super::super::residency::frame_ports::CandidateFrameFailurePosture,
+) -> RecordAppendError {
     unpublished(
         media,
         plan,
@@ -109,11 +128,25 @@ pub(in crate::physical_runtime::record_serving) fn unpublished_candidate_frame_c
         UnpublishedFailureInput {
             stage,
             cause: UnpublishedRecordBatchCause::CandidateFrameContract { stage, violation },
-            current_effect_fate: UnpublishedRecordEffectFate::DeniedBeforeEffect,
+            current_effect_fate: candidate_frame_effect_fate(posture),
             world_fate: UnpublishedRecordWorldFate::InspectionRequired,
             work: plan.work.clone(),
         },
     )
+}
+
+fn candidate_frame_effect_fate(
+    posture: super::super::residency::frame_ports::CandidateFrameFailurePosture,
+) -> UnpublishedRecordEffectFate {
+    match posture {
+        super::super::residency::frame_ports::CandidateFrameFailurePosture::EffectPossible => {
+            UnpublishedRecordEffectFate::EffectPossible
+        }
+        super::super::residency::frame_ports::CandidateFrameFailurePosture::ProvenNoEffect
+        | super::super::residency::frame_ports::CandidateFrameFailurePosture::UnsettledBeforeEffect => {
+            UnpublishedRecordEffectFate::DeniedBeforeEffect
+        }
+    }
 }
 
 pub(in crate::physical_runtime::record_serving) fn unpublished_physical_work(

@@ -26,8 +26,9 @@ pub use barrier::{
     PhysicalWalBarrierSettlement, WalBarrierIndeterminatePhysicalMutation,
 };
 pub(in crate::physical_runtime) use data::{
-    join_dispatched_data, PhysicalDataPlanBindingDenial, PreparedPhysicalDataFrame,
-    PreparedPhysicalDataPlan, WalBoundPhysicalDataFrame, WalBoundPhysicalDataPlan,
+    join_dispatched_data, CompletionBoundPhysicalDataSettlement, PhysicalDataPlanBindingDenial,
+    PreparedPhysicalDataFrame, PreparedPhysicalDataPlan, WalBoundPhysicalDataFrame,
+    WalBoundPhysicalDataPlan,
 };
 pub use data::{
     CertifiedPriorPageBasis, CertifiedPriorPageImage, IndeterminatePhysicalDataDispatch,

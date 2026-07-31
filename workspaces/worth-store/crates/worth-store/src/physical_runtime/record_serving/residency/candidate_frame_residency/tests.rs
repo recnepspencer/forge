@@ -79,7 +79,10 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(CandidateFrameContractViolation::UnexpectedFrame)
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::UnexpectedFrame,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     let mut mismatched = session(&allocation, declared_inline_frames(&[(0, 1)]));
     let failure = mismatched
@@ -97,9 +100,10 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(
-            CandidateFrameContractViolation::CoordinateRoleMismatch
-        )
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::CoordinateRoleMismatch,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     assert_eq!(writes, 0);
 }
@@ -131,9 +135,10 @@ fn retained_bytes_must_still_be_the_declared_candidate_before_any_store_effect()
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(
-            CandidateFrameContractViolation::RetainedFrameBytesChanged
-        )
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::RetainedFrameBytesChanged,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     assert_eq!(writes, 0);
 }

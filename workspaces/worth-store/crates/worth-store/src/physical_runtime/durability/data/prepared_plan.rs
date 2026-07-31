@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use worth_proof::CanonicalVec;
 use worth_store_physical_format::{
     encode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn, PhysicalRecordFormatDeclaration,
@@ -207,8 +206,12 @@ fn bind_frames(
                 PhysicalDataPlanBindingDenial::InvalidFrame,
             ));
         }
-        let digest: [u8; 32] = Sha256::digest(&frame.bytes).into();
-        let basis = match PageWalBasis::new(frame.target, frame.prior, delta, digest) {
+        let basis = match PageWalBasis::from_encoded_frame(
+            frame.target,
+            frame.prior,
+            delta,
+            &frame.bytes,
+        ) {
             Some(basis) => basis,
             None => {
                 return Err((
@@ -217,7 +220,7 @@ fn bind_frames(
                 ))
             }
         };
-        let claim = PhysicalRedoTargetClaim::new(frame.target, digest);
+        let claim = PhysicalRedoTargetClaim::new(frame.target, basis.resulting_payload_digest());
         for ordinal in frame.redo_ordinals.as_slice() {
             targets[*ordinal as usize].push(claim);
         }

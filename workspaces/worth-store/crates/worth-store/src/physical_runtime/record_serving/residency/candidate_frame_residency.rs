@@ -5,8 +5,8 @@ pub(in crate::physical_runtime) use self::write_evidence::{
     CandidateFrameEffectSettlement, CandidateFrameEffectSource,
 };
 pub(in crate::physical_runtime::record_serving) use self::write_evidence::{
-    CandidateFramePhysicalWrite, CandidateFrameResidencySettlement, CandidateFrameWriteCompletion,
-    CandidateFrameWriteFailure,
+    CandidateFrameFailurePosture, CandidateFramePhysicalWrite, CandidateFrameResidencySettlement,
+    CandidateFrameWriteCompletion, CandidateFrameWriteFailure,
 };
 use super::super::RecordAppendDenial;
 

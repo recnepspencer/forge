@@ -3,9 +3,9 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::super::RecordAppendError;
 use super::{
-    manifest_progression::ManifestsSynchronized, unpublished_candidate_frame_contract,
-    unpublished_physical_work, unpublished_residency, PublicationPlan, RecordPublicationStage,
-    RecordPublicationWorkTrace,
+    manifest_progression::ManifestsSynchronized, unpublished_candidate_frame_contract_with_posture,
+    unpublished_candidate_frame_residency, unpublished_physical_work, PublicationPlan,
+    RecordPublicationStage, RecordPublicationWorkTrace,
 };
 use crate::physical_runtime::record_serving::residency::{
     candidate_frame_residency::CandidateFrameWriteCompletion,
@@ -129,19 +129,25 @@ fn frame_failure(
             RecordPublicationStage::CatalogCandidateSynchronization,
             &failure,
         ),
-        CandidateFrameWriteFailure::Contract(violation) => unpublished_candidate_frame_contract(
-            media,
-            plan,
-            before,
-            RecordPublicationStage::CatalogCandidateSynchronization,
-            violation,
-        ),
-        CandidateFrameWriteFailure::Residency(denial) => unpublished_residency(
-            media,
-            plan,
-            before,
-            RecordPublicationStage::CatalogCandidateSynchronization,
-            denial,
-        ),
+        CandidateFrameWriteFailure::Contract { violation, posture } => {
+            unpublished_candidate_frame_contract_with_posture(
+                media,
+                plan,
+                before,
+                RecordPublicationStage::CatalogCandidateSynchronization,
+                violation,
+                posture,
+            )
+        }
+        CandidateFrameWriteFailure::Residency { denial, posture } => {
+            unpublished_candidate_frame_residency(
+                media,
+                plan,
+                before,
+                RecordPublicationStage::CatalogCandidateSynchronization,
+                denial,
+                posture,
+            )
+        }
     }
 }

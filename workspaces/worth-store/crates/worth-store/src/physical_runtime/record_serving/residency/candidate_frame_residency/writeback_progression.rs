@@ -3,8 +3,8 @@ use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::RecordFrameCoordinate;
 
 use super::{
-    CandidateFrame, CandidateFrameWriteCompletion, CandidateFrameWriteFailure,
-    StoreCandidateFramePublicationSession,
+    CandidateFrame, CandidateFrameFailurePosture, CandidateFrameWriteCompletion,
+    CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
 };
 use crate::physical_runtime::record_serving::{
     residency::{
@@ -43,7 +43,10 @@ impl StoreCandidateFramePublicationSession<'_> {
             coordinate,
             resident
                 .into_dirty()
-                .map_err(CandidateFrameWriteFailure::Residency)?,
+                .map_err(|denial| CandidateFrameWriteFailure::Residency {
+                    denial,
+                    posture: CandidateFrameFailurePosture::UnsettledBeforeEffect,
+                })?,
         );
         let prepared = match writeback.prepare(
             dirty,
@@ -81,7 +84,7 @@ impl StoreCandidateFramePublicationSession<'_> {
                 retryable
                     .into_dirty()
                     .discard()
-                    .map_err(residency_failure)?;
+                    .map_err(unsettled_residency_failure)?;
                 Err(CandidateFrameWriteFailure::Effect(
                     PhysicalRecordWritebackFailureEvidence::settled(
                         PhysicalRecordWritebackFailureCause::RetryableNoEffect,
@@ -114,14 +117,17 @@ fn discard_transition_failure(
     let cause = failure.cause();
     let dirty = failure.into_dirty();
     let coordinate = dirty.coordinate();
-    dirty.discard().map_err(residency_failure)?;
+    dirty.discard().map_err(unsettled_residency_failure)?;
     Err(CandidateFrameWriteFailure::Effect(
         PhysicalRecordWritebackFailureEvidence::transition(identity, cause, coordinate),
     ))
 }
 
-fn residency_failure(
+fn unsettled_residency_failure(
     reason: worth_store_buffer_pool::PhysicalResidencyDenial,
 ) -> CandidateFrameWriteFailure<PhysicalRecordWritebackFailureEvidence> {
-    CandidateFrameWriteFailure::Residency(RecordAppendDenial::from_residency(reason))
+    CandidateFrameWriteFailure::Residency {
+        denial: RecordAppendDenial::from_residency(reason),
+        posture: CandidateFrameFailurePosture::UnsettledBeforeEffect,
+    }
 }

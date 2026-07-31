@@ -1,5 +1,6 @@
+use sha2::{Digest, Sha256};
 use worth_proof::CanonicalVec;
-use worth_store_physical_format::PhysicalPageLsn;
+use worth_store_physical_format::{decode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn};
 use worth_store_wal::LogSequenceNumber;
 
 use super::{CertifiedPriorPageBasis, PhysicalDataFrameIdentity};
@@ -64,22 +65,28 @@ impl PhysicalRedoTargetClaim {
 }
 
 impl PageWalBasis {
-    pub(in crate::physical_runtime) fn new(
+    pub(in crate::physical_runtime) fn from_encoded_frame(
         target: PhysicalDataFrameIdentity,
         prior: CertifiedPriorPageBasis,
         delta: CanonicalVec<PhysicalRedoLsn>,
-        resulting_payload_digest: [u8; 32],
+        encoded_frame: &[u8],
     ) -> Option<Self> {
         if !prior.admits_target(target) {
             return None;
         }
         let resulting = strictly_advancing_result(prior.page_lsn(), delta.as_slice())?;
+        let resulting_page_lsn = PhysicalPageLsn::new(resulting.get());
+        if decode_data_frame_page_lsn(encoded_frame, durable_kind(target.kind()))
+            != Ok(resulting_page_lsn)
+        {
+            return None;
+        }
         Some(Self {
             target,
             prior,
             delta,
-            resulting_page_lsn: PhysicalPageLsn::new(resulting.get()),
-            resulting_payload_digest,
+            resulting_page_lsn,
+            resulting_payload_digest: Sha256::digest(encoded_frame).into(),
         })
     }
 
@@ -101,6 +108,13 @@ impl PageWalBasis {
 
     pub const fn resulting_payload_digest(&self) -> [u8; 32] {
         self.resulting_payload_digest
+    }
+}
+
+const fn durable_kind(kind: super::PhysicalDataFrameKind) -> DurableFrameKind {
+    match kind {
+        super::PhysicalDataFrameKind::InlinePage => DurableFrameKind::InlinePage,
+        super::PhysicalDataFrameKind::ExtentChunk => DurableFrameKind::Extent,
     }
 }
 

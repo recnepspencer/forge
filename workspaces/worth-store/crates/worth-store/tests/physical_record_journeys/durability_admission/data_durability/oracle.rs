@@ -103,6 +103,14 @@ pub(super) fn verify_effect(
     bytes
 }
 
+pub(super) fn frame_page_lsn_matches_basis(
+    effect: &PhysicalDataEffectSettlement,
+    bytes: &[u8],
+) -> bool {
+    decode_data_frame_page_lsn(bytes, durable_kind(effect.basis().target()))
+        == Ok(effect.basis().resulting_page_lsn())
+}
+
 pub(super) fn artifact_path(store_root: &Path, artifact: RecordArtifactFile) -> PathBuf {
     let family = match artifact {
         RecordArtifactFile::Segment { .. } => "segments",

@@ -2,8 +2,8 @@ use worth_store_physical_backend::{MediaCounterSnapshot, QualifiedFilesystemMedi
 
 use super::super::RecordAppendError;
 use super::{
-    unpublished_candidate_frame_contract, unpublished_physical_work, unpublished_residency,
-    PublicationPlan, RecordPublicationStage, RecordPublicationWorkTrace,
+    unpublished_candidate_frame_contract_with_posture, unpublished_candidate_frame_residency,
+    unpublished_physical_work, PublicationPlan, RecordPublicationStage, RecordPublicationWorkTrace,
 };
 use crate::physical_runtime::record_serving::residency::{
     candidate_frame_residency::CandidateFrameWriteCompletion,
@@ -154,19 +154,25 @@ fn frame_failure(
             RecordPublicationStage::ManifestSynchronization,
             &failure,
         ),
-        CandidateFrameWriteFailure::Contract(violation) => unpublished_candidate_frame_contract(
-            media,
-            plan,
-            before,
-            RecordPublicationStage::ManifestSynchronization,
-            violation,
-        ),
-        CandidateFrameWriteFailure::Residency(denial) => unpublished_residency(
-            media,
-            plan,
-            before,
-            RecordPublicationStage::ManifestSynchronization,
-            denial,
-        ),
+        CandidateFrameWriteFailure::Contract { violation, posture } => {
+            unpublished_candidate_frame_contract_with_posture(
+                media,
+                plan,
+                before,
+                RecordPublicationStage::ManifestSynchronization,
+                violation,
+                posture,
+            )
+        }
+        CandidateFrameWriteFailure::Residency { denial, posture } => {
+            unpublished_candidate_frame_residency(
+                media,
+                plan,
+                before,
+                RecordPublicationStage::ManifestSynchronization,
+                denial,
+                posture,
+            )
+        }
     }
 }

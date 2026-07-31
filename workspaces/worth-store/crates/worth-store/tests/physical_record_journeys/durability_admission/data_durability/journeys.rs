@@ -3,12 +3,16 @@ use std::fs;
 
 use super::super::super::{configuration, serving_from_initialization};
 use super::mutation_world::{append, synchronize};
-use super::oracle::{assert_encoded_wal_matches_claims, assert_targets_absent, verify_effect};
+use super::oracle::{
+    assert_encoded_wal_matches_claims, assert_targets_absent, frame_page_lsn_matches_basis,
+    verify_effect,
+};
 use worth_store::physical_runtime::{
     CertifiedPriorPageImage, PhysicalDataDispatchOutcome, PhysicalDataEffectSource,
     PhysicalDataFrameSubject, PhysicalDataSettlementOutcome, PhysicalMutationIdempotencyMaterial,
     RecordAppendBatch,
 };
+use worth_store_physical_format::{encode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn};
 
 #[test]
 fn materialized_inline_prior_advances_through_exact_wal_bound_copy_on_write() {
@@ -50,6 +54,17 @@ fn materialized_inline_prior_advances_through_exact_wal_bound_copy_on_write() {
     ));
     assert_eq!(effect.basis().delta().len(), 1);
     let target_bytes = verify_effect(&store_root, format.declaration(), member, effect);
+    let mut page_lsn_ahead = target_bytes.clone();
+    encode_data_frame_page_lsn(
+        &mut page_lsn_ahead,
+        DurableFrameKind::InlinePage,
+        PhysicalPageLsn::new(effect.basis().resulting_page_lsn().get() + 1),
+    )
+    .expect("controlled pageLSN-ahead frame remains structurally valid");
+    assert!(
+        !frame_page_lsn_matches_basis(effect, &page_lsn_ahead),
+        "the independent oracle must reject a checksum-valid pageLSN-ahead mutation"
+    );
     assert_ne!(target_bytes, source_before);
     assert_eq!(fs::read(&source_path).unwrap(), source_before);
     match dispatched.settle_exact_effects() {

@@ -102,7 +102,21 @@ error[E0624]: associated function `new` is private
    |
   ::: src/physical_runtime/durability/mutation/progression/data_settled.rs
    |
-   | /     pub(in crate::physical_runtime) const fn new(
-   | |         dispatched: DataDispatchedPhysicalMutation,
+   | /     pub(in crate::physical_runtime) fn new(
+   | |         settlement: CompletionBoundPhysicalDataSettlement,
    | |     ) -> Self {
    | |_____________- private associated function defined here
+
+error[E0308]: mismatched types
+  --> tests/physical_runtime_authority/physical_data_progression_is_sealed.rs:36:38
+   |
+36 |     DataSettledPhysicalMutation::new(dispatched)
+   |     -------------------------------- ^^^^^^^^^^ expected `CompletionBoundPhysicalDataSettlement`, found `DataDispatchedPhysicalMutation`
+   |     |
+   |     arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> src/physical_runtime/durability/mutation/progression/data_settled.rs
+   |
+   |     pub(in crate::physical_runtime) fn new(
+   |                                        ^^^

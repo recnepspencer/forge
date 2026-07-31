@@ -240,7 +240,20 @@ pub enum CandidateFrameContractViolation {
 
 #[derive(Debug)]
 pub(in crate::physical_runtime::record_serving) enum CandidateFrameWriteFailure<EffectFailure> {
-    Contract(CandidateFrameContractViolation),
+    Contract {
+        violation: CandidateFrameContractViolation,
+        posture: CandidateFrameFailurePosture,
+    },
     Effect(EffectFailure),
-    Residency(RecordAppendDenial),
+    Residency {
+        denial: RecordAppendDenial,
+        posture: CandidateFrameFailurePosture,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime::record_serving) enum CandidateFrameFailurePosture {
+    ProvenNoEffect,
+    UnsettledBeforeEffect,
+    EffectPossible,
 }

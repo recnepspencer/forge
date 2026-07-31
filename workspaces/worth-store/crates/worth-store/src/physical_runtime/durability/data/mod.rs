@@ -18,7 +18,9 @@ pub(in crate::physical_runtime) use prepared_plan::{
     WalBoundPhysicalDataFrame, WalBoundPhysicalDataPlan,
 };
 pub use prior_page_basis::{CertifiedPriorPageBasis, CertifiedPriorPageImage};
-pub(in crate::physical_runtime) use writeback_join::join_dispatched_data;
+pub(in crate::physical_runtime) use writeback_join::{
+    join_dispatched_data, CompletionBoundPhysicalDataSettlement,
+};
 pub use writeback_join::{
     PhysicalDataEffectSettlement, PhysicalDataEffectSource, PhysicalDataSettlementFailureCause,
     PhysicalDataSettlementOutcome,

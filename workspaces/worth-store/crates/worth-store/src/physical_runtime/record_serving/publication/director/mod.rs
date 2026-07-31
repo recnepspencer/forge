@@ -19,6 +19,7 @@ mod durable_preparation;
 mod execution;
 mod lifecycle;
 mod submission;
+mod wal_data_planning;
 
 pub use submission::{PhysicalRecordSubmission, PreparedRecordAppend};
 

@@ -14,8 +14,8 @@ use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFr
 
 pub(in crate::physical_runtime::record_serving) use super::candidate_frame_residency::{
     CandidateFrame, CandidateFrameCoordinate, CandidateFrameDeclaration,
-    CandidateFramePublicationPort, CandidateFrameRole, CandidateFrameSet,
-    CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
+    CandidateFrameFailurePosture, CandidateFramePublicationPort, CandidateFrameRole,
+    CandidateFrameSet, CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
 };
 pub(in crate::physical_runtime::record_serving) use super::frame_loading::FrameLoadPort;
 

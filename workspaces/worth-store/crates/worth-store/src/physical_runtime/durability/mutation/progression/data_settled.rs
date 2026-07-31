@@ -1,15 +1,19 @@
 use super::DataDispatchedPhysicalMutation;
-use crate::physical_runtime::PhysicalMutationIdentity;
+use crate::physical_runtime::{
+    durability::CompletionBoundPhysicalDataSettlement, PhysicalMutationIdentity,
+};
 
 pub struct DataSettledPhysicalMutation {
     dispatched: DataDispatchedPhysicalMutation,
 }
 
 impl DataSettledPhysicalMutation {
-    pub(in crate::physical_runtime) const fn new(
-        dispatched: DataDispatchedPhysicalMutation,
+    pub(in crate::physical_runtime) fn new(
+        settlement: CompletionBoundPhysicalDataSettlement,
     ) -> Self {
-        Self { dispatched }
+        Self {
+            dispatched: settlement.into_dispatched(),
+        }
     }
 
     pub const fn mutation_identity(&self) -> PhysicalMutationIdentity {

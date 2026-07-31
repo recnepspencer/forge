@@ -1,9 +1,10 @@
 use worth_store_physical_backend::{MediaCounterSnapshot, QualifiedFilesystemMedia};
 
 use super::{
-    unpublished_candidate_frame_contract, unpublished_frame_writeback, unpublished_physical_work,
-    unpublished_residency, unpublished_semantic, unpublished_stream, write_candidate_data,
-    CandidateDataArtifact, CandidateDataWriteFailure, PublicationPlan, RecordPublicationStage,
+    unpublished_candidate_frame_contract_with_posture, unpublished_candidate_frame_residency,
+    unpublished_frame_writeback, unpublished_physical_work, unpublished_semantic,
+    unpublished_stream, write_candidate_data, CandidateDataArtifact, CandidateDataWriteFailure,
+    PublicationPlan, RecordPublicationStage,
 };
 use crate::physical_runtime::record_serving::{
     residency::{
@@ -104,23 +105,27 @@ impl<'authority> PayloadPublicationProgression<'authority> {
                     RecordPublicationStage::CandidateDataWrite,
                     denial,
                 ),
-                CandidateDataWriteFailure::Residency(denial) => unpublished_residency(
-                    self.media,
-                    plan,
-                    self.basis.before,
-                    RecordPublicationStage::CandidateDataWrite,
-                    denial,
-                ),
+                CandidateDataWriteFailure::Residency { denial, posture } => {
+                    unpublished_candidate_frame_residency(
+                        self.media,
+                        plan,
+                        self.basis.before,
+                        RecordPublicationStage::CandidateDataWrite,
+                        denial,
+                        posture,
+                    )
+                }
                 CandidateDataWriteFailure::Stream(failure) => {
                     unpublished_stream(self.media, plan, self.basis.before, failure)
                 }
-                CandidateDataWriteFailure::CandidateFrameContract(violation) => {
-                    unpublished_candidate_frame_contract(
+                CandidateDataWriteFailure::CandidateFrameContract { violation, posture } => {
+                    unpublished_candidate_frame_contract_with_posture(
                         self.media,
                         plan,
                         self.basis.before,
                         RecordPublicationStage::CandidateDataWrite,
                         violation,
+                        posture,
                     )
                 }
                 CandidateDataWriteFailure::Canonical(failure) => {
@@ -226,26 +231,29 @@ impl<'authority> PayloadPublicationProgression<'authority> {
                         &failure,
                     ));
                 }
-                Err(PayloadManifestStageFailure::Frame(CandidateFrameWriteFailure::Contract(
+                Err(PayloadManifestStageFailure::Frame(CandidateFrameWriteFailure::Contract {
                     violation,
-                ))) => {
-                    return Err(unpublished_candidate_frame_contract(
+                    posture,
+                })) => {
+                    return Err(unpublished_candidate_frame_contract_with_posture(
                         self.media,
                         plan,
                         self.basis.before,
                         RecordPublicationStage::PayloadManifestSynchronization,
                         violation,
+                        posture,
                     ));
                 }
-                Err(PayloadManifestStageFailure::Frame(CandidateFrameWriteFailure::Residency(
-                    denial,
-                ))) => {
-                    return Err(unpublished_residency(
+                Err(PayloadManifestStageFailure::Frame(
+                    CandidateFrameWriteFailure::Residency { denial, posture },
+                )) => {
+                    return Err(unpublished_candidate_frame_residency(
                         self.media,
                         plan,
                         self.basis.before,
                         RecordPublicationStage::PayloadManifestSynchronization,
                         denial,
+                        posture,
                     ));
                 }
                 Err(PayloadManifestStageFailure::Synchronization(failure)) => {

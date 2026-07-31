@@ -37,6 +37,10 @@ pub enum PhysicalDataSettlementOutcome {
     },
 }
 
+pub(in crate::physical_runtime) struct CompletionBoundPhysicalDataSettlement(
+    DataDispatchedPhysicalMutation,
+);
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalDataSettlementFailureCause {
     EmptyEffectSet,
@@ -110,9 +114,15 @@ pub(in crate::physical_runtime) fn join_dispatched_data(
     let failure = validate(&dispatched).err();
     match failure {
         Some(cause) => PhysicalDataSettlementOutcome::InspectionRequired { dispatched, cause },
-        None => {
-            PhysicalDataSettlementOutcome::Settled(DataSettledPhysicalMutation::new(dispatched))
-        }
+        None => PhysicalDataSettlementOutcome::Settled(DataSettledPhysicalMutation::new(
+            CompletionBoundPhysicalDataSettlement(dispatched),
+        )),
+    }
+}
+
+impl CompletionBoundPhysicalDataSettlement {
+    pub(in crate::physical_runtime) fn into_dispatched(self) -> DataDispatchedPhysicalMutation {
+        self.0
     }
 }
 

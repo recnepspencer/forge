@@ -11,7 +11,8 @@ use crate::physical_runtime::{
         residency::{
             candidate_frame_residency::{
                 CandidateFrame, CandidateFrameCoordinate, CandidateFrameDeclaration,
-                CandidateFrameRole, CandidateFrameSet, CandidateFrameWriteFailure,
+                CandidateFrameFailurePosture, CandidateFrameRole, CandidateFrameSet,
+                CandidateFrameWriteFailure,
             },
             publication_artifacts::PublicationRecordArtifacts,
         },
@@ -173,11 +174,12 @@ fn map_canonical_failure(
     >,
 ) -> DispatchFailure {
     match failure {
-        CandidateFrameWriteFailure::Contract(violation) => DispatchFailure::Uncertain(
+        CandidateFrameWriteFailure::Contract { violation, posture } => posture_failure(
             PhysicalDataDispatchFailureCause::CandidateFrameContract(violation),
+            posture,
         ),
-        CandidateFrameWriteFailure::Residency(denial) => {
-            DispatchFailure::Uncertain(PhysicalDataDispatchFailureCause::Residency(denial))
+        CandidateFrameWriteFailure::Residency { denial, posture } => {
+            posture_failure(PhysicalDataDispatchFailureCause::Residency(denial), posture)
         }
         CandidateFrameWriteFailure::Effect(failure) => {
             let fate = failure.effect_fate();
@@ -195,11 +197,12 @@ fn map_writeback_failure(
     >,
 ) -> DispatchFailure {
     match failure {
-        CandidateFrameWriteFailure::Contract(violation) => DispatchFailure::Uncertain(
+        CandidateFrameWriteFailure::Contract { violation, posture } => posture_failure(
             PhysicalDataDispatchFailureCause::CandidateFrameContract(violation),
+            posture,
         ),
-        CandidateFrameWriteFailure::Residency(denial) => {
-            DispatchFailure::Uncertain(PhysicalDataDispatchFailureCause::Residency(denial))
+        CandidateFrameWriteFailure::Residency { denial, posture } => {
+            posture_failure(PhysicalDataDispatchFailureCause::Residency(denial), posture)
         }
         CandidateFrameWriteFailure::Effect(failure) => DispatchFailure::Settled {
             cause: PhysicalDataDispatchFailureCause::C6Writeback(failure),
@@ -209,11 +212,23 @@ fn map_writeback_failure(
 }
 
 enum DispatchFailure {
+    ProvenNoEffect(PhysicalDataDispatchFailureCause),
     Settled {
         cause: PhysicalDataDispatchFailureCause,
         fate: PhysicalWorkEffectFate,
     },
     Uncertain(PhysicalDataDispatchFailureCause),
+}
+
+fn posture_failure(
+    cause: PhysicalDataDispatchFailureCause,
+    posture: CandidateFrameFailurePosture,
+) -> DispatchFailure {
+    match posture {
+        CandidateFrameFailurePosture::ProvenNoEffect => DispatchFailure::ProvenNoEffect(cause),
+        CandidateFrameFailurePosture::UnsettledBeforeEffect
+        | CandidateFrameFailurePosture::EffectPossible => DispatchFailure::Uncertain(cause),
+    }
 }
 
 fn classify_dispatch_failure(
@@ -222,14 +237,17 @@ fn classify_dispatch_failure(
     failure: DispatchFailure,
 ) -> PhysicalDataDispatchOutcome {
     match failure {
+        DispatchFailure::ProvenNoEffect(cause) if effects.is_empty() => {
+            PhysicalDataDispatchOutcome::NotStarted { durable, cause }
+        }
         DispatchFailure::Settled {
             cause,
             fate: PhysicalWorkEffectFate::ProvenNoEffect,
         } if effects.is_empty() => PhysicalDataDispatchOutcome::NotStarted { durable, cause },
-        DispatchFailure::Settled { cause, .. } | DispatchFailure::Uncertain(cause) => {
-            PhysicalDataDispatchOutcome::Indeterminate(IndeterminatePhysicalDataDispatch::new(
-                durable, effects, cause,
-            ))
-        }
+        DispatchFailure::ProvenNoEffect(cause)
+        | DispatchFailure::Settled { cause, .. }
+        | DispatchFailure::Uncertain(cause) => PhysicalDataDispatchOutcome::Indeterminate(
+            IndeterminatePhysicalDataDispatch::new(durable, effects, cause),
+        ),
     }
 }

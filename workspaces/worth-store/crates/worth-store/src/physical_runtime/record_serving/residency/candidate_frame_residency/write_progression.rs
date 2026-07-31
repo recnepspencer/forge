@@ -1,5 +1,19 @@
 use super::*;
 
+fn contract<EffectFailure>(
+    violation: CandidateFrameContractViolation,
+    posture: CandidateFrameFailurePosture,
+) -> CandidateFrameWriteFailure<EffectFailure> {
+    CandidateFrameWriteFailure::Contract { violation, posture }
+}
+
+fn residency<EffectFailure>(
+    denial: RecordAppendDenial,
+    posture: CandidateFrameFailurePosture,
+) -> CandidateFrameWriteFailure<EffectFailure> {
+    CandidateFrameWriteFailure::Residency { denial, posture }
+}
+
 pub(in crate::physical_runtime::record_serving) trait CandidateFrameEffectFailure {
     fn effect_fate(&self) -> crate::physical_runtime::PhysicalWorkEffectFate;
 }
@@ -26,9 +40,9 @@ impl StoreCandidateFramePublicationSession<'_> {
                 if failure.effect_fate()
                     == crate::physical_runtime::PhysicalWorkEffectFate::ProvenNoEffect
                 {
-                    resident
-                        .discard()
-                        .map_err(CandidateFrameWriteFailure::Residency)?;
+                    resident.discard().map_err(|denial| {
+                        residency(denial, CandidateFrameFailurePosture::UnsettledBeforeEffect)
+                    })?;
                 }
                 return Err(CandidateFrameWriteFailure::Effect(failure));
             }
@@ -39,10 +53,12 @@ impl StoreCandidateFramePublicationSession<'_> {
                 resident.coordinate(),
                 resident.bytes(),
             )
-            .map_err(CandidateFrameWriteFailure::Contract)?;
+            .map_err(|violation| {
+                contract(violation, CandidateFrameFailurePosture::EffectPossible)
+            })?;
         let completion = resident
             .publish_clean(settlement)
-            .map_err(CandidateFrameWriteFailure::Residency)?;
+            .map_err(|denial| residency(denial, CandidateFrameFailurePosture::EffectPossible))?;
         self.complete_frame(expectation, &completion)?;
         Ok(completion)
     }
@@ -58,19 +74,23 @@ impl StoreCandidateFramePublicationSession<'_> {
         let expectation = RetainedFrameExpectation::capture(expected, &frame);
         let next_bytes = self.resident_bytes.saturating_add(expectation.frame_bytes);
         if next_bytes > self.declaration.total_frame_bytes() {
-            return Err(CandidateFrameWriteFailure::Contract(
+            return Err(contract(
                 CandidateFrameContractViolation::FrameBytesExceedDeclaration,
+                CandidateFrameFailurePosture::ProvenNoEffect,
             ));
         }
         let resident = self
             .residency
             .retain(frame)
-            .map_err(CandidateFrameWriteFailure::Residency)?;
+            .map_err(|denial| residency(denial, CandidateFrameFailurePosture::ProvenNoEffect))?;
         if let Err(violation) = verify_retained_frame(resident.as_ref(), expectation) {
-            resident
-                .discard()
-                .map_err(CandidateFrameWriteFailure::Residency)?;
-            return Err(CandidateFrameWriteFailure::Contract(violation));
+            resident.discard().map_err(|denial| {
+                residency(denial, CandidateFrameFailurePosture::UnsettledBeforeEffect)
+            })?;
+            return Err(contract(
+                violation,
+                CandidateFrameFailurePosture::ProvenNoEffect,
+            ));
         }
         Ok((resident, expectation))
     }
@@ -81,8 +101,9 @@ impl StoreCandidateFramePublicationSession<'_> {
         completion: &CandidateFrameWriteCompletion,
     ) -> Result<(), CandidateFrameWriteFailure<EffectFailure>> {
         if completion.frame_bytes() != expectation.frame_bytes {
-            return Err(CandidateFrameWriteFailure::Contract(
+            return Err(contract(
                 CandidateFrameContractViolation::FrameCompletionMismatch,
+                CandidateFrameFailurePosture::EffectPossible,
             ));
         }
         self.resident_frames = self.resident_frames.saturating_add(1);
@@ -96,21 +117,24 @@ impl StoreCandidateFramePublicationSession<'_> {
         frame: &CandidateFrame,
     ) -> Result<CandidateFrameDeclaration, CandidateFrameWriteFailure<EffectFailure>> {
         if !coordinate_matches_role(frame.role(), frame.coordinate().artifact()) {
-            return Err(CandidateFrameWriteFailure::Contract(
+            return Err(contract(
                 CandidateFrameContractViolation::CoordinateRoleMismatch,
+                CandidateFrameFailurePosture::ProvenNoEffect,
             ));
         }
         let Some(expected) = self.declaration.declaration(self.next_declaration) else {
-            return Err(CandidateFrameWriteFailure::Contract(
+            return Err(contract(
                 CandidateFrameContractViolation::FrameCountExceedsDeclaration,
+                CandidateFrameFailurePosture::ProvenNoEffect,
             ));
         };
         if expected.role != frame.role()
             || expected.coordinate != frame.coordinate()
             || u64::from(expected.length) != frame.bytes().len() as u64
         {
-            return Err(CandidateFrameWriteFailure::Contract(
+            return Err(contract(
                 CandidateFrameContractViolation::UnexpectedFrame,
+                CandidateFrameFailurePosture::ProvenNoEffect,
             ));
         }
         Ok(expected)

@@ -41,8 +41,9 @@ pub use durable_preparation::{
     PhysicalMutationPreparationStale, PhysicalMutationResourceShape, PreparedPhysicalMutation,
 };
 pub(in crate::physical_runtime::record_serving) use failure::{
-    indeterminate_physical_work, unpublished_candidate_frame_contract, unpublished_frame_writeback,
-    unpublished_physical_work, unpublished_prepared_physical_work, unpublished_residency,
+    indeterminate_physical_work, unpublished_candidate_frame_contract,
+    unpublished_candidate_frame_contract_with_posture, unpublished_candidate_frame_residency,
+    unpublished_frame_writeback, unpublished_physical_work, unpublished_prepared_physical_work,
     unpublished_semantic, unpublished_stream,
 };
 pub(in crate::physical_runtime::record_serving) use plan::{

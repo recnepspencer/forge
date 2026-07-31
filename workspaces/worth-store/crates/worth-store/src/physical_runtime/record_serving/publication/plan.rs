@@ -21,9 +21,15 @@ pub(in crate::physical_runtime::record_serving) enum CandidateDataArtifact {
 
 pub(in crate::physical_runtime::record_serving) enum CandidateDataWriteFailure {
     Semantic(RecordAppendDenial),
-    Residency(RecordAppendDenial),
+    Residency {
+        denial: RecordAppendDenial,
+        posture: super::super::residency::frame_ports::CandidateFrameFailurePosture,
+    },
     Stream(RecordStreamFailure),
-    CandidateFrameContract(super::super::CandidateFrameContractViolation),
+    CandidateFrameContract {
+        violation: super::super::CandidateFrameContractViolation,
+        posture: super::super::residency::frame_ports::CandidateFrameFailurePosture,
+    },
     Canonical(Box<super::super::CanonicalRecordMutationFailure>),
     Writeback(Box<super::super::PhysicalRecordWritebackFailureEvidence>),
 }
@@ -35,15 +41,17 @@ impl CandidateDataWriteFailure {
         >,
     ) -> Self {
         match failure {
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract {
                 violation,
-            ) => Self::CandidateFrameContract(violation),
+                posture,
+            } => Self::CandidateFrameContract { violation, posture },
             super::super::residency::frame_ports::CandidateFrameWriteFailure::Effect(failure) => {
                 Self::Canonical(Box::new(failure))
             }
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
-                Self::Residency(denial)
-            }
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency {
+                denial,
+                posture,
+            } => Self::Residency { denial, posture },
         }
     }
 
@@ -53,15 +61,17 @@ impl CandidateDataWriteFailure {
         >,
     ) -> Self {
         match failure {
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract {
                 violation,
-            ) => Self::CandidateFrameContract(violation),
+                posture,
+            } => Self::CandidateFrameContract { violation, posture },
             super::super::residency::frame_ports::CandidateFrameWriteFailure::Effect(failure) => {
                 Self::Writeback(Box::new(failure))
             }
-            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
-                Self::Residency(denial)
-            }
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency {
+                denial,
+                posture,
+            } => Self::Residency { denial, posture },
         }
     }
 }
