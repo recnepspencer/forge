@@ -1,4 +1,5 @@
 mod adapter;
+mod authorization;
 mod certification;
 mod declaration;
 mod denial;
@@ -20,6 +21,10 @@ pub use adapter::{
     WorthServerProductAdapterExecutionError, WorthServerProductApplicationAdapter,
     WorthServerProductOperationErrorMap, WorthServerProductOperationErrorMaps,
     WorthServerProductPayloadSchemaValidator,
+};
+pub use authorization::{
+    WorthServerProductOperationAuthorization, WorthServerProductOperationAuthorizationDenial,
+    WorthServerProductOperationAuthorizationRequest, WorthServerProductOperationAuthorizer,
 };
 pub use certification::{
     WorthServerProductAdapterCertificationCode, WorthServerProductAdapterCertificationError,

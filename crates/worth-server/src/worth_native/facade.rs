@@ -228,6 +228,9 @@ fn lower_request_context_input(
     if let Some(diagnostics_profile) = input.diagnostics_profile() {
         builder = builder.with_diagnostics_profile(diagnostics_profile);
     }
+    if let Some(proof_identity) = input.application_authority_proof_identity() {
+        builder = builder.with_application_authority_proof_identity(proof_identity);
+    }
 
     builder
         .build()

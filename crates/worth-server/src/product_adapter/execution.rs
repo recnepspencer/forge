@@ -24,10 +24,11 @@ use super::execution_pipeline::{
 use super::{
     WorthServerCompletedProductOperation, WorthServerExecutedProductReadBatch,
     WorthServerLoweredProductOperationPlan, WorthServerProductAdapterRegistry,
-    WorthServerProductOperationExecutionBoundary, WorthServerProductOperationInput,
-    WorthServerProductOperationOutcome, WorthServerProductOperationSurfaceDenial,
-    WorthServerProductOperationSurfaceDenialCode, WorthServerProductOperationSurfaceDenialFacts,
-    WorthServerScheduledProductOperation,
+    WorthServerProductOperationAuthorization, WorthServerProductOperationAuthorizationRequest,
+    WorthServerProductOperationDeclaration, WorthServerProductOperationExecutionBoundary,
+    WorthServerProductOperationInput, WorthServerProductOperationOutcome,
+    WorthServerProductOperationSurfaceDenial, WorthServerProductOperationSurfaceDenialCode,
+    WorthServerProductOperationSurfaceDenialFacts, WorthServerScheduledProductOperation,
 };
 
 #[derive(Clone, Debug)]
@@ -199,6 +200,7 @@ impl WorthServerProductOperationRuntime {
             let envelope = build_early_envelope(declaration.operation_name(), &request, &outcome);
             return Ok(WorthServerCompletedProductOperation::new(outcome, envelope));
         }
+        let application_authorization = self.authorize_product_operation(declaration, &request)?;
         let admitted_session = request
             .identity()
             .product_session_identity()
@@ -278,6 +280,7 @@ impl WorthServerProductOperationRuntime {
             admission,
             declaration.clone(),
             payload,
+            application_authorization,
             readiness.support_posture().clone(),
             readiness.precondition_posture().clone(),
             readiness.concurrency_class(),
@@ -352,5 +355,36 @@ impl WorthServerProductOperationRuntime {
             );
         }
         Ok(completed)
+    }
+
+    fn authorize_product_operation(
+        &self,
+        declaration: &WorthServerProductOperationDeclaration,
+        request: &crate::WorthServerOperationRequest,
+    ) -> Result<
+        Option<WorthServerProductOperationAuthorization>,
+        WorthServerProductOperationSurfaceDenial,
+    > {
+        let Some(authorizer) = self.adapter_registry.operation_authorizer() else {
+            return Ok(None);
+        };
+        authorizer
+            .authorize(&WorthServerProductOperationAuthorizationRequest::new(
+                declaration.operation_name(),
+                request,
+            ))
+            .map(Some)
+            .map_err(|denial| {
+                WorthServerProductOperationSurfaceDenial::new(
+                    WorthServerProductOperationSurfaceDenialCode::AdmissionDenied,
+                    format!("{}: {}", denial.reason_key(), denial.detail()),
+                )
+                .with_facts(
+                    WorthServerProductOperationSurfaceDenialFacts::default()
+                        .with_execution_boundary(
+                            WorthServerProductOperationExecutionBoundary::RejectedBeforeAdapterExecution,
+                        ),
+                )
+            })
     }
 }
