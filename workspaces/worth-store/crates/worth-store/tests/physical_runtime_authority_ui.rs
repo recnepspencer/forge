@@ -77,6 +77,13 @@ fn durability_policy_cases(cases: &trybuild::TestCases) {
     );
 }
 
+#[test]
+fn physical_data_progression_requires_exact_predecessor_authority() {
+    let cases = trybuild::TestCases::new();
+    cases.pass("tests/physical_runtime_authority/physical_data_progression_examples.rs");
+    cases.compile_fail("tests/physical_runtime_authority/physical_data_progression_is_sealed.rs");
+}
+
 fn record_chunk_view_cases(cases: &trybuild::TestCases) {
     cases.pass("tests/physical_runtime_authority/bounded_physical_record_access_examples.rs");
     cases.pass("tests/physical_runtime_authority/record_chunk_views_supported.rs");

@@ -9,9 +9,7 @@ use worth_store::physical_runtime::{
 };
 use worth_store_physical_backend::MediaOperationRole;
 
-use super::super::super::{
-    configuration, durability_with_group_limit, success,
-};
+use super::super::super::{configuration, durability_with_group_limit, success};
 use super::mutation_world::{
     append, certification_media, fault_scheduled_media,
     fault_scheduled_media_at_identified_ordinal, synchronize,

@@ -47,10 +47,13 @@ error: cannot construct `PreparedPhysicalMutation` with struct literal syntax du
    |             ^^^^^^^^^^^^^^^^^^^^^^^^
    |
    = note: private fields that were not provided
-help: you might have meant to use the `new` associated function
+help: you might have meant to use an associated function to build this type
    |
 13 -     let _ = PreparedPhysicalMutation {};
 13 +     let _ = PreparedPhysicalMutation::new(_, _, _, _, _, _, _);
+   |
+13 -     let _ = PreparedPhysicalMutation {};
+13 +     let _ = PreparedPhysicalMutation::from_planned_parts(_, _, _, _, _, _, _, _, _);
    |
 
 error[E0277]: the trait bound `PreparedPhysicalMutation: Clone` is not satisfied

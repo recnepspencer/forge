@@ -4,7 +4,7 @@ use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 use crate::physical_runtime::PhysicalWorkSignalFamily;
 
 use super::{
-    effect_contract::require_effect_contract, PhysicalWalAppendScope,
+    effect_contract::require_effect_contract, PhysicalWalAppendScope, PhysicalWalBarrierScope,
     PhysicalWorkDeclarationDenial, PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass,
     PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition, PhysicalWorkResourceDemand,
     PhysicalWorkScope,
@@ -141,6 +141,21 @@ fn wal_append_scope_and_demand_do_not_claim_a_durability_barrier() {
     assert_eq!(append.write_back_windows(), 0);
     assert_eq!(append.flush_permits(), 0);
     assert_eq!(append.sync_debt(), 0);
+
+    let barrier = PhysicalWalBarrierScope::new([1; 32], 3, 7, 128, 129, 64, 32)
+        .expect("fixture WAL barrier interval is valid");
+    let barrier = PhysicalWorkResourceDemand::derive(
+        &PhysicalWorkScope::wal_barrier(barrier),
+        PhysicalWorkOperationFamily::DurabilityBarrier,
+        PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
+    )
+    .queue_shape();
+    assert_eq!(barrier.queue_slots(), 1);
+    assert_eq!(barrier.worker_permits(), 1);
+    assert_eq!(barrier.bandwidth_tokens(), 1);
+    assert_eq!(barrier.write_back_windows(), 0);
+    assert_eq!(barrier.flush_permits(), 1);
+    assert_eq!(barrier.sync_debt(), 1);
 }
 
 #[test]
@@ -185,6 +200,10 @@ fn operation_family_has_one_exact_signal_family() {
         PhysicalWorkOperationFamily::WalAppend.required_signal_family(),
         PhysicalWorkSignalFamily::WalAppend
     );
+    assert_eq!(
+        PhysicalWorkOperationFamily::DurabilityBarrier.required_signal_family(),
+        PhysicalWorkSignalFamily::DurabilityBarrier
+    );
 }
 
 #[test]
@@ -195,6 +214,7 @@ fn effect_contract_matrix_has_no_implicit_success_cells() {
         PhysicalWorkOperationFamily::ArtifactRangeWrite,
         PhysicalWorkOperationFamily::ArtifactPublication,
         PhysicalWorkOperationFamily::WalAppend,
+        PhysicalWorkOperationFamily::DurabilityBarrier,
     ];
     let effects = [
         PhysicalWorkEffectClass::ReadOnly,
@@ -208,6 +228,7 @@ fn effect_contract_matrix_has_no_implicit_success_cells() {
             ArtifactRangeWriteDurabilityRequirement::BufferedWrite,
         ),
         PhysicalWorkDurabilityRequirement::WalAppend,
+        PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
     ];
     let recoveries = [
         PhysicalWorkRecoveryDisposition::NoEffect,
@@ -271,6 +292,11 @@ fn expected_effect_cell(
         PhysicalWorkOperationFamily::WalAppend => {
             effect == PhysicalWorkEffectClass::ReversibleBeforePublication
                 && durability == PhysicalWorkDurabilityRequirement::WalAppend
+                && recovery == PhysicalWorkRecoveryDisposition::InspectionRequired
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            effect == PhysicalWorkEffectClass::PublicationBoundary
+                && durability == PhysicalWorkDurabilityRequirement::WalDurabilityBarrier
                 && recovery == PhysicalWorkRecoveryDisposition::InspectionRequired
         }
     }

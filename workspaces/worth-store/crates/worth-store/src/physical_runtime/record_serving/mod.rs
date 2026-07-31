@@ -250,7 +250,7 @@ mod tests {
             .is_ok());
         let access = PhysicalRecordAccessPolicy::builder().admit(format).unwrap();
         let bootstrap_limits = BootstrapCatalogReadLimits::for_format(format, access);
-        assert_eq!(bootstrap_limits.catalog_bytes(), 74);
+        assert_eq!(bootstrap_limits.catalog_bytes(), 82);
         assert_eq!(bootstrap_limits.current_root_bytes().get(), 16_384);
         assert_eq!(bootstrap_limits.current_root_entries(), 185);
         let permissive = PhysicalRecordAccessPolicy::builder()

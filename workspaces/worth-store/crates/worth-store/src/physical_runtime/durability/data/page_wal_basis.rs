@@ -4,6 +4,10 @@ use worth_store_wal::LogSequenceNumber;
 
 use super::{CertifiedPriorPageBasis, PhysicalDataFrameIdentity};
 
+#[cfg(test)]
+#[path = "page_wal_basis/causal_extension_tests.rs"]
+mod causal_extension_tests;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PhysicalRedoLsn {
     ordinal: u32,
@@ -69,10 +73,7 @@ impl PageWalBasis {
         if !prior.admits_target(target) {
             return None;
         }
-        let resulting = delta.as_slice().last()?.lsn();
-        if resulting.get() <= prior.page_lsn().get() {
-            return None;
-        }
+        let resulting = strictly_advancing_result(prior.page_lsn(), delta.as_slice())?;
         Some(Self {
             target,
             prior,
@@ -101,4 +102,19 @@ impl PageWalBasis {
     pub const fn resulting_payload_digest(&self) -> [u8; 32] {
         self.resulting_payload_digest
     }
+}
+
+fn strictly_advancing_result(
+    prior: PhysicalPageLsn,
+    delta: &[PhysicalRedoLsn],
+) -> Option<LogSequenceNumber> {
+    let mut previous = prior.get();
+    for redo in delta {
+        let current = redo.lsn().get();
+        if current <= previous {
+            return None;
+        }
+        previous = current;
+    }
+    delta.last().map(|redo| redo.lsn())
 }

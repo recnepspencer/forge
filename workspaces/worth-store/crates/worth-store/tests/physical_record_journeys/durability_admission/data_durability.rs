@@ -1,3 +1,5 @@
+#[path = "data_durability/authority_matrix.rs"]
+mod authority_matrix;
 #[path = "data_durability/fault_matrix.rs"]
 mod fault_matrix;
 #[path = "data_durability/journeys.rs"]
