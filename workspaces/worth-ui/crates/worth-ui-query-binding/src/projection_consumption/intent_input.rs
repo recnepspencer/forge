@@ -3,10 +3,22 @@ use std::sync::Arc;
 use worth_query::facade::runtime::WorthQueryEvidenceIdentity;
 
 use super::{
-    UiCollectionCompleteness, UiCollectionProjectionFactReceipt, UiPresentProjection,
+    UiCollectionCompleteness, UiCollectionProjectionChange, UiCollectionProjectionDelivery,
+    UiCollectionProjectionFactReceipt, UiCollectionProjectionRowReference, UiPresentProjection,
     UiProjectionAvailability, UiProjectionFactReceipt, UiProjectionFactStopKind,
     UiProjectionRetainedActivityKind, UiProjectionUnavailableKind, UiScalarProjectionFactReceipt,
 };
+
+#[path = "intent_input/collection_catalog.rs"]
+mod collection_catalog;
+#[path = "intent_input/collection_transition.rs"]
+mod collection_transition;
+#[path = "intent_input/transition_work.rs"]
+mod transition_work;
+
+use collection_catalog::UiProjectionInputCollectionCatalog;
+pub use collection_transition::UiProjectionInputFactTransition;
+pub use transition_work::UiProjectionInputTransitionWork;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiProjectionInputSlot(u32);
@@ -33,6 +45,16 @@ pub enum UiProjectionInputPosture {
     RetainedStale(UiProjectionRetainedActivityKind),
     Unavailable(UiProjectionUnavailableKind),
     Stopped(UiProjectionFactStopKind),
+    TransitionStopped(UiProjectionInputTransitionStopKind),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiProjectionInputTransitionStopKind {
+    MissingPredecessor,
+    ProjectionChanged,
+    WrongShape,
+    PredecessorNotCurrent,
+    MalformedPatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -53,7 +75,8 @@ pub struct UiCollectionProjectionInputFact {
     revision: UiProjectionInputRevision,
     posture: UiProjectionInputPosture,
     completeness: Option<UiCollectionCompleteness>,
-    rows: Box<[UiProjectionInputCollectionRow]>,
+    catalog: Option<UiProjectionInputCollectionCatalog>,
+    transition_work: UiProjectionInputTransitionWork,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,7 +87,7 @@ pub struct UiProjectionOptionReference {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiProjectionInputCollectionRow {
-    option: UiProjectionOptionReference,
+    row: UiCollectionProjectionRowReference,
     selected_values: Box<[Arc<str>]>,
 }
 
@@ -113,6 +136,14 @@ impl UiProjectionInputRevision {
         self.inner
             .result_generation
             .terminal_projection_for_reporting()
+    }
+
+    pub(super) fn has_same_projection_owner(&self, other: &Self) -> bool {
+        self.inner.slot == other.inner.slot
+            && self.inner.projection == other.inner.projection
+            && self.inner.query_world == other.inner.query_world
+            && self.inner.binding == other.inner.binding
+            && self.inner.observation_order < other.inner.observation_order
     }
 }
 
@@ -163,8 +194,29 @@ impl UiCollectionProjectionInputFact {
         self.completeness
     }
 
-    pub fn rows(&self) -> &[UiProjectionInputCollectionRow] {
-        &self.rows
+    pub fn row_count(&self) -> usize {
+        self.catalog.as_ref().map_or(0, |catalog| catalog.len())
+    }
+
+    pub fn current_option(
+        &self,
+        row: &UiCollectionProjectionRowReference,
+    ) -> Option<UiProjectionOptionReference> {
+        if self.posture != UiProjectionInputPosture::Current {
+            return None;
+        }
+        let catalog = self.catalog.as_ref()?;
+        let (retained, _) = catalog.row(row.query_row_identity());
+        retained.map(|retained| {
+            UiProjectionOptionReference::query_issued(
+                self.revision.clone(),
+                retained.row().query_row_identity().clone(),
+            )
+        })
+    }
+
+    pub fn transition_work(&self) -> UiProjectionInputTransitionWork {
+        self.transition_work
     }
 }
 
@@ -189,8 +241,8 @@ impl UiProjectionOptionReference {
 }
 
 impl UiProjectionInputCollectionRow {
-    pub fn option(&self) -> &UiProjectionOptionReference {
-        &self.option
+    pub fn row(&self) -> &UiCollectionProjectionRowReference {
+        &self.row
     }
 
     pub fn selected_values(&self) -> &[Arc<str>] {
@@ -199,33 +251,28 @@ impl UiProjectionInputCollectionRow {
 }
 
 impl UiScalarProjectionFactReceipt {
-    pub fn intent_input_reference(
+    pub fn intent_input_transition(
         &self,
         slot: UiProjectionInputSlot,
-    ) -> UiProjectionInputFactReference {
+    ) -> UiProjectionInputFactTransition {
         let revision = UiProjectionInputRevision::from_fact(slot, self.core());
         let (posture, value) = scalar_input(self.availability());
-        UiProjectionInputFactReference::Scalar(Arc::new(UiScalarProjectionInputFact {
-            revision,
-            posture,
-            value,
-        }))
+        UiProjectionInputFactTransition::replace(UiProjectionInputFactReference::Scalar(Arc::new(
+            UiScalarProjectionInputFact {
+                revision,
+                posture,
+                value,
+            },
+        )))
     }
 }
 
 impl UiCollectionProjectionFactReceipt {
-    pub fn intent_input_reference(
+    pub fn intent_input_transition(
         &self,
         slot: UiProjectionInputSlot,
-    ) -> UiProjectionInputFactReference {
-        let revision = UiProjectionInputRevision::from_fact(slot, self.core());
-        let (posture, completeness, rows) = collection_input(self.availability(), &revision);
-        UiProjectionInputFactReference::Collection(Arc::new(UiCollectionProjectionInputFact {
-            revision,
-            posture,
-            completeness,
-            rows,
-        }))
+    ) -> UiProjectionInputFactTransition {
+        collection_transition::from_fact(self, slot)
     }
 }
 
@@ -263,9 +310,8 @@ fn scalar_input(
     }
 }
 
-fn collection_input(
+pub(super) fn collection_input(
     availability: &UiProjectionAvailability<super::UiCollectionProjectionValue>,
-    revision: &UiProjectionInputRevision,
 ) -> (
     UiProjectionInputPosture,
     Option<UiCollectionCompleteness>,
@@ -275,7 +321,7 @@ fn collection_input(
         UiProjectionAvailability::Present(UiPresentProjection::Current(value)) => (
             UiProjectionInputPosture::Current,
             Some(value.completeness()),
-            collection_rows(value, revision),
+            collection_rows(value),
         ),
         UiProjectionAvailability::Present(UiPresentProjection::RetainedStale {
             value,
@@ -283,7 +329,7 @@ fn collection_input(
         }) => (
             UiProjectionInputPosture::RetainedStale(activity.kind()),
             Some(value.completeness()),
-            collection_rows(value, revision),
+            collection_rows(value),
         ),
         UiProjectionAvailability::Unavailable(receipt) => (
             UiProjectionInputPosture::Unavailable(receipt.kind()),
@@ -300,16 +346,12 @@ fn collection_input(
 
 fn collection_rows(
     value: &super::UiCollectionProjectionValue,
-    revision: &UiProjectionInputRevision,
 ) -> Box<[UiProjectionInputCollectionRow]> {
     value
         .rows()
         .iter()
         .map(|row| UiProjectionInputCollectionRow {
-            option: UiProjectionOptionReference::query_issued(
-                revision.clone(),
-                row.row().query_row_identity().clone(),
-            ),
+            row: row.row().clone(),
             selected_values: row
                 .selected_values()
                 .iter()

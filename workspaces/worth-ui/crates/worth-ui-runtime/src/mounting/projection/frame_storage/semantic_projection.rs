@@ -247,8 +247,10 @@ impl UiMountedSemanticProjection {
                 (*capacity, inputs)
             }
         };
-        for (slot, input) in inputs {
+        for (slot, transition) in inputs {
             debug_assert!(slot.index() < capacity);
+            let predecessor = self.projection_inputs.get(slot.index()).cloned();
+            let input = transition.apply(predecessor.as_ref());
             self.projection_inputs.insert(slot.index(), input.clone());
         }
     }

@@ -54,9 +54,21 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
         .expect("the frozen plan assigns one compact collection slot");
     let bravo_entity_identity = entities[1].evidence_identity();
     let bravo_identity = bravo_entity_identity.terminal_projection_for_reporting();
-    let original_option = option_for_identity(&snapshot, slot, bravo_identity);
-    assert_eq!(original_option.identity_for_reporting(), bravo_identity);
+    let bravo_row = snapshot_value
+        .rows()
+        .iter()
+        .find(|row| row.row().identity_for_reporting() == bravo_identity)
+        .expect("the Query snapshot contains the independently seeded entity")
+        .row()
+        .clone();
+    let snapshot_input = snapshot.intent_input_transition(slot).apply(None);
     publish_collection(&mut world, snapshot, 314_051);
+    let original_option = world
+        .interaction
+        .session
+        .current_projection_option(&projection, &bravo_row)
+        .expect("the mounted snapshot exposes the exact current Query option");
+    assert_eq!(original_option.identity_for_reporting(), bravo_identity);
     assert_selection_payload(&mut world, original_option.clone());
 
     worth_ui_query_binding::certification::update_projection_identity(
@@ -65,7 +77,37 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
         "pulse.00-bravo",
     );
     let reordered = refresh_collection(&mut live, &mut query);
-    let current_option = option_for_identity(&reordered, slot, bravo_identity);
+    assert_eq!(reordered.changes().len(), 2);
+    assert!(reordered.changes().iter().all(|change| matches!(
+        change,
+        worth_ui_query_binding::UiCollectionProjectionChange::Move { .. }
+    )));
+    let UiProjectionAvailability::Present(UiPresentProjection::Current(reordered_value)) =
+        reordered.availability()
+    else {
+        panic!("the Query reorder remains current")
+    };
+    assert!(reordered_value.rows().is_empty());
+    let reordered_input = reordered
+        .intent_input_transition(slot)
+        .apply(Some(&snapshot_input));
+    let UiProjectionInputFactReference::Collection(reordered_collection) = &reordered_input else {
+        unreachable!("a collection patch preserves collection input shape")
+    };
+    assert_eq!(reordered_collection.row_count(), 2);
+    assert_eq!(reordered_collection.transition_work().replaced_rows(), 0);
+    assert_eq!(
+        reordered_collection.transition_work().change_operations(),
+        2
+    );
+    assert_eq!(reordered_collection.transition_work().key_probes(), 3);
+    assert_eq!(reordered_collection.transition_work().node_copies(), 0);
+    publish_collection(&mut world, reordered, 314_052);
+    let current_option = world
+        .interaction
+        .session
+        .current_projection_option(&projection, &bravo_row)
+        .expect("the mounted move patch retains the exact Query row");
     assert_eq!(
         current_option.identity_for_reporting(),
         original_option.identity_for_reporting()
@@ -74,7 +116,6 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
         current_option.owner_revision(),
         original_option.owner_revision()
     );
-    publish_collection(&mut world, reordered, 314_052);
 
     let UiSemanticInteraction::Activate(stale_activation) = super::activation(&mut world, [10, 20])
     else {
@@ -179,29 +220,6 @@ fn refresh_collection(
             panic!("reorder changes the collection revision")
         }
     }
-}
-
-fn option_for_identity(
-    fact: &UiCollectionProjectionFactReceipt,
-    slot: worth_ui_query_binding::UiProjectionInputSlot,
-    identity: &str,
-) -> worth_ui_query_binding::UiProjectionOptionReference {
-    let UiProjectionInputFactReference::Collection(input) = fact.intent_input_reference(slot)
-    else {
-        unreachable!("a collection fact produces collection input")
-    };
-    let observed = input
-        .rows()
-        .iter()
-        .find(|row| row.option().identity_for_reporting() == identity)
-        .map(|row| row.option().clone());
-    observed.unwrap_or_else(|| {
-        panic!(
-            "Query-issued entity identity missing: expected={identity:?}, availability={:?}, rows={:?}",
-            fact.availability(),
-            input.rows(),
-        )
-    })
 }
 
 fn publish_collection(

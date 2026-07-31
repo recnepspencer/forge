@@ -30,8 +30,9 @@ pub use fact_receipt::UiProjectionFactReceipt;
 pub(crate) use fact_receipt::UiProjectionFactReceiptInput;
 pub use intent_input::{
     UiCollectionProjectionInputFact, UiProjectionInputCollectionRow,
-    UiProjectionInputFactReference, UiProjectionInputPosture, UiProjectionInputRevision,
-    UiProjectionInputSlot, UiProjectionOptionReference, UiScalarProjectionInputFact,
+    UiProjectionInputFactReference, UiProjectionInputFactTransition, UiProjectionInputPosture,
+    UiProjectionInputRevision, UiProjectionInputSlot, UiProjectionInputTransitionStopKind,
+    UiProjectionInputTransitionWork, UiProjectionOptionReference, UiScalarProjectionInputFact,
 };
 pub use native_value::UiNativeTextValue;
 pub use posture::{

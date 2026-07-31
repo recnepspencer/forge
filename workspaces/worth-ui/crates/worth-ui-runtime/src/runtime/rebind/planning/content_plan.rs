@@ -73,12 +73,12 @@ fn retain_projection_inputs(
         let input = match (query.scalar_projection(), query.collection_projection()) {
             (Some(scalar), None) => {
                 projection_input(candidate, scalar.core().projection_identity(), |slot| {
-                    scalar.intent_input_reference(slot)
+                    scalar.intent_input_transition(slot)
                 })?
             }
             (None, Some(collection)) => {
                 projection_input(candidate, collection.core().projection_identity(), |slot| {
-                    collection.intent_input_reference(slot)
+                    collection.intent_input_transition(slot)
                 })?
             }
             (None, None) => continue,
@@ -86,7 +86,7 @@ fn retain_projection_inputs(
         };
         let projection = input.revision().projection_identity().clone();
         content
-            .insert_projection_input(input)
+            .insert_projection_input_transition(input)
             .map_err(|()| super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection })?;
     }
     Ok(())
@@ -97,8 +97,9 @@ fn projection_input(
     projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
     materialize: impl FnOnce(
         worth_ui_query_binding::UiProjectionInputSlot,
-    ) -> worth_ui_query_binding::UiProjectionInputFactReference,
-) -> Result<worth_ui_query_binding::UiProjectionInputFactReference, super::UiRebindPlanningDenial> {
+    ) -> worth_ui_query_binding::UiProjectionInputFactTransition,
+) -> Result<worth_ui_query_binding::UiProjectionInputFactTransition, super::UiRebindPlanningDenial>
+{
     let slot = candidate
         .query_binding_plan()
         .projection_input_slot(projection)

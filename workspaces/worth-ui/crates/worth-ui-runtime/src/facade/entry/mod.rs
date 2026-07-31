@@ -116,3 +116,4 @@ pub use native_projection_rebind::WorthUiNativeProjectionRebindDenial;
 pub use native_source_rebind::WorthUiNativeSourceRebindDenial;
 pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;
 pub(crate) use rebind_recovery::WorthUiRebindRecoveryAuthority;
+pub use selection_interaction::UiCurrentProjectionOptionStop;
