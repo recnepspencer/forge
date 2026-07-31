@@ -5,6 +5,7 @@ mod declaration_handoff;
 mod declared_posture;
 mod family;
 mod inspection;
+mod intent;
 mod measurement_dependency;
 #[cfg(test)]
 mod rust_authored_declaration_fixture;
@@ -51,6 +52,14 @@ pub use family::{
     UiDeclarationFamilyKind,
 };
 pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
+pub(crate) use intent::{
+    UiCanonicalIntentDeclaration, UiIntentCatalog, UiIntentCatalogResolvedRoute,
+};
+pub use intent::{
+    UiIntentCatalogMetrics, UiIntentCatalogPreparationDenial, UiIntentConfirmationRouteBinding,
+    UiIntentDeclaration, UiIntentDeclarationConstructionError, UiIntentDeclarationIdentity,
+    UiIntentRouteBinding,
+};
 pub(crate) use measurement_dependency::declared_measurement_basis_requirements;
 pub(crate) use measurement_dependency::declared_query_measurement_dependencies;
 pub use measurement_dependency::{

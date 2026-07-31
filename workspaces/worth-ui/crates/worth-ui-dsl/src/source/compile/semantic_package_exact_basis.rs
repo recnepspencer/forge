@@ -63,6 +63,14 @@ struct WorthUiSemanticBlockExactBasis {
 struct WorthUiStructuralBodyExactBasis {
     root_regions: Box<[WorthUiRegionExactBasis]>,
     projection_contents: Box<[String]>,
+    interaction_routes: Box<[WorthUiInteractionRouteExactBasis]>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct WorthUiInteractionRouteExactBasis {
+    family: String,
+    declaration: String,
+    kind: String,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -306,6 +314,19 @@ impl WorthUiStructuralBodyExactBasis {
                 .iter()
                 .map(|content| content.projection_identity_text().to_owned())
                 .collect(),
+            interaction_routes: structure
+                .interaction_routes()
+                .iter()
+                .map(|route| WorthUiInteractionRouteExactBasis {
+                    family: route.family().as_str().to_owned(),
+                    declaration: route.declaration_identity().to_owned(),
+                    kind: match route.kind() {
+                        crate::WorthUiIntentInteractionRouteKind::Product => "product",
+                        crate::WorthUiIntentInteractionRouteKind::Confirmation => "confirmation",
+                    }
+                    .to_owned(),
+                })
+                .collect(),
         }
     }
 
@@ -317,6 +338,12 @@ impl WorthUiStructuralBodyExactBasis {
         fingerprint.fold_usize(self.projection_contents.len());
         for projection in &self.projection_contents {
             fingerprint.fold_text(projection);
+        }
+        fingerprint.fold_usize(self.interaction_routes.len());
+        for route in &self.interaction_routes {
+            fingerprint.fold_text(&route.family);
+            fingerprint.fold_text(&route.declaration);
+            fingerprint.fold_text(&route.kind);
         }
     }
 }

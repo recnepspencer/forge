@@ -22,6 +22,10 @@ use worth_ui_test_support::{
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::known_empty_surface_world::profile;
 
+#[path = "filesystem_intent_world.rs"]
+mod intent_world;
+pub(super) use intent_world::{launch_file_intent_world, launch_rust_intent_world};
+
 #[derive(Clone, Copy)]
 pub(super) enum HitOrderProfile {
     Canonical,

@@ -6,6 +6,8 @@ pub(crate) enum WorthUiSourceTokenKind {
     StringLiteral(String),
     KeywordImport,
     KeywordComponent,
+    KeywordControl,
+    KeywordIntent,
     KeywordSurface,
     KeywordBinding,
     KeywordQueryScalar,

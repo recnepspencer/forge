@@ -29,6 +29,7 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     pub(crate) declaration_artifacts: Vec<UiDeclarationArtifact>,
     pub(crate) graph_snapshot: UiGraphSnapshot,
+    pub(crate) intent_catalog: crate::declaration::UiIntentCatalog,
     pub(crate) lifecycle: WorthUiFacadeLifecycleBootstrap,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     pub(crate) host_session_plan: WorthUiHostSessionPlan,
@@ -59,6 +60,7 @@ pub struct WorthUiPreparedApplicationAuthority {
     semantic_handoff: crate::runtime::WorthUiSemanticHandoffEvidence,
     declaration_artifacts: Rc<[UiDeclarationArtifact]>,
     graph_snapshot: UiGraphSnapshot,
+    intent_catalog: crate::declaration::UiIntentCatalog,
     lifecycle: WorthUiFacadeLifecycleBootstrap,
     authored_evidence_index: Rc<UiDeclarationAuthoredEvidenceIndex>,
     graph_node_evidence_index: Rc<UiGraphNodeEvidenceIndex>,
@@ -86,6 +88,7 @@ impl WorthUiPreparedApplicationAuthority {
             semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
+            intent_catalog,
             lifecycle,
             query_binding_plan,
             host_session_plan,
@@ -131,6 +134,7 @@ impl WorthUiPreparedApplicationAuthority {
             semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
+            intent_catalog,
             lifecycle,
             authored_evidence_index,
             graph_node_evidence_index,
@@ -184,6 +188,14 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub(crate) fn graph_snapshot(&self) -> &UiGraphSnapshot {
         &self.graph_snapshot
+    }
+
+    pub(crate) fn intent_catalog(&self) -> &crate::declaration::UiIntentCatalog {
+        &self.intent_catalog
+    }
+
+    pub fn intent_catalog_metrics(&self) -> crate::declaration::UiIntentCatalogMetrics {
+        self.intent_catalog.metrics()
     }
 
     pub(crate) fn lifecycle(&self) -> &WorthUiFacadeLifecycleBootstrap {

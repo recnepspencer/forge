@@ -21,6 +21,8 @@ pub enum WorthUiArtifactInputBodyAtom {
     StringLiteral(String),
     KeywordImport,
     KeywordComponent,
+    KeywordControl,
+    KeywordIntent,
     KeywordSurface,
     KeywordBinding,
     KeywordQueryScalar,

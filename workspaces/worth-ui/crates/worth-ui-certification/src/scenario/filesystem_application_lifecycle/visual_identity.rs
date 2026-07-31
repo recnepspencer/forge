@@ -1,4 +1,5 @@
 use worth_ui::facade::app::WorthUiApp;
+use worth_ui::facade::intent::{UiIntent, UiIntentDefinition};
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
@@ -32,6 +33,42 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .freeze()
             .expect("visual identity capabilities should prepare")
+    }
+
+    pub fn visual_identity_capability_application_with_intent<Host, I>(
+        &self,
+        host: Host,
+        definition: UiIntentDefinition<I>,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .freeze()
+            .expect("visual identity and intent capabilities should prepare")
+    }
+
+    pub fn visual_identity_capability_application_with_intents<Host, I, J>(
+        &self,
+        host: Host,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .freeze()
+            .expect("visual identity and intent capabilities should prepare")
     }
 
     pub fn duplicate_hit_order_capability_application<Host>(&self, host: Host) -> WorthUiApp
@@ -73,6 +110,86 @@ impl FilesystemApplicationLifecycleScenario {
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored visual identity application should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_intent_and_host<Host, I>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        definition: UiIntentDefinition<I>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_intents_and_host<Host, I, J>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_rust_application_with_intent_and_host<Host, I>(
+        &self,
+        input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+        definition: UiIntentDefinition<I>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .with_rust_authored_input(input)
+            .freeze()
+            .expect("Rust-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_rust_application_with_intents_and_host<Host, I, J>(
+        &self,
+        input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .with_rust_authored_input(input)
+            .freeze()
+            .expect("Rust-authored routed application should prepare")
     }
 
     pub fn prepare_visual_identity_application_with_policy_and_host<Host>(

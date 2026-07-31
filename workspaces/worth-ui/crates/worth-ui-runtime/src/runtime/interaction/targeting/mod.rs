@@ -4,7 +4,7 @@ mod presented_frame;
 pub use continuity::UiPointerGestureContinuityKind;
 #[cfg(test)]
 pub(crate) use presented_frame::interaction_target_view_for_test;
-pub(crate) use presented_frame::require_current_target;
+pub(crate) use presented_frame::{admit_current_target, require_current_target};
 pub use presented_frame::{
     UiInteractionTargetingDenial, UiPresentedInteractionTarget, UiPresentedInteractionTargetView,
     UiPresentedTargetFrameRelation,

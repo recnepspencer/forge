@@ -14,6 +14,7 @@ pub enum WorthUiApplicationPreparationDenial {
     DslCompilation(worth_ui_dsl::WorthUiDslCompileReport),
     RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
     Candidate(crate::runtime::WorthUiReplacementCandidateDenial),
+    IntentCatalog(crate::declaration::UiIntentCatalogPreparationDenial),
     CandidateSnapshotMismatch {
         candidate_snapshot_digest: u64,
         prepared_snapshot_digest: u64,
@@ -26,9 +27,10 @@ pub enum WorthUiApplicationPreparationDenial {
 impl WorthUiApplicationPreparationDenial {
     pub fn phase(&self) -> WorthUiApplicationPreparationPhase {
         match self {
-            Self::DslCompilation(_) | Self::RuntimePreparation(_) | Self::Candidate(_) => {
-                WorthUiApplicationPreparationPhase::CandidateBasis
-            }
+            Self::DslCompilation(_)
+            | Self::RuntimePreparation(_)
+            | Self::Candidate(_)
+            | Self::IntentCatalog(_) => WorthUiApplicationPreparationPhase::CandidateBasis,
             Self::CandidateSnapshotMismatch { .. } => {
                 WorthUiApplicationPreparationPhase::CandidateBasis
             }

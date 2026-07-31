@@ -8,6 +8,7 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+mod intent_routing;
 mod interaction;
 mod local_interaction_recipient;
 mod measurement_exchange;

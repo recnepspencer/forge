@@ -4,6 +4,7 @@ pub(crate) mod gesture;
 mod semantic;
 mod settlement;
 mod snapshot;
+mod source;
 mod state;
 pub(crate) mod targeting;
 mod transition;
@@ -31,6 +32,7 @@ pub use semantic::{
 pub(crate) use semantic::{UiEditCommitInput, UiKeyboardSemanticInput};
 pub use settlement::UiInteractionLifecycleSettlementReceipt;
 pub use snapshot::{UiInteractionLifecycleCounters, UiInteractionStateSnapshot};
+pub use source::UiIntentRouteSource;
 pub(crate) use state::{UiInteractionLifecycleStopReason, UiInteractionRuntimeState};
 pub use targeting::{
     UiInteractionTargetingDenial, UiPresentedInteractionTarget, UiPresentedInteractionTargetView,

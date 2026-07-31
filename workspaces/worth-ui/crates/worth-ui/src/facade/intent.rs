@@ -2,8 +2,12 @@
 
 pub use worth_ui_runtime::facade::intent::{
     FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent,
-    UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentDefinitionRegistrationError,
+    UiIntentAcceptedInteractions, UiIntentCatalogMetrics, UiIntentCatalogPreparationDenial,
+    UiIntentConfirmationRouteBinding, UiIntentDeclaration, UiIntentDeclarationConstructionError,
+    UiIntentDeclarationIdentity, UiIntentDefinition, UiIntentDefinitionRegistrationError,
     UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
+    UiIntentRouteBinding, UiIntentRouteResolution, UiIntentRouteResolutionStop,
+    UiIntentRouteSource, UiIntentRuntimeServiceDestination, UiIntentSchema,
+    UiIntentTransitionDestination, UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
     UiSemanticInteractionFamily,
 };

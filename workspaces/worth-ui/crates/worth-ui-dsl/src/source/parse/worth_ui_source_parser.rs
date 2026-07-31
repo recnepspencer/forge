@@ -100,6 +100,12 @@ fn parse_next_declaration(
         Some(WorthUiSourceTokenKind::KeywordComponent) => {
             parse_block_declaration(module_id, source_length, stream, BlockKind::Component)
         }
+        Some(WorthUiSourceTokenKind::KeywordControl) => {
+            parse_block_declaration(module_id, source_length, stream, BlockKind::Control)
+        }
+        Some(WorthUiSourceTokenKind::KeywordIntent) => {
+            parse_block_declaration(module_id, source_length, stream, BlockKind::Intent)
+        }
         Some(WorthUiSourceTokenKind::KeywordSurface) => {
             parse_block_declaration(module_id, source_length, stream, BlockKind::Surface)
         }
@@ -184,6 +190,8 @@ fn parse_block_declaration(
 
     Ok(match block_kind {
         BlockKind::Component => WorthUiParsedSourceDeclaration::Component(declaration),
+        BlockKind::Control => WorthUiParsedSourceDeclaration::Control(declaration),
+        BlockKind::Intent => WorthUiParsedSourceDeclaration::Intent(declaration),
         BlockKind::Surface => WorthUiParsedSourceDeclaration::Surface(declaration),
         BlockKind::Binding => WorthUiParsedSourceDeclaration::Binding(declaration),
         BlockKind::QueryScalar => WorthUiParsedSourceDeclaration::QueryScalar(declaration),
@@ -280,6 +288,8 @@ fn recover_module_root(stream: &mut WorthUiSourceTokenStream) {
             token.kind(),
             WorthUiSourceTokenKind::KeywordImport
                 | WorthUiSourceTokenKind::KeywordComponent
+                | WorthUiSourceTokenKind::KeywordControl
+                | WorthUiSourceTokenKind::KeywordIntent
                 | WorthUiSourceTokenKind::KeywordSurface
                 | WorthUiSourceTokenKind::KeywordBinding
                 | WorthUiSourceTokenKind::KeywordQueryScalar
@@ -295,6 +305,8 @@ fn recover_module_root(stream: &mut WorthUiSourceTokenStream) {
 #[derive(Clone, Copy)]
 enum BlockKind {
     Component,
+    Control,
+    Intent,
     Surface,
     Binding,
     QueryScalar,

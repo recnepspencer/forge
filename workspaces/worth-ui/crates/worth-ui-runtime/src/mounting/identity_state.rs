@@ -25,7 +25,8 @@ mod interaction_affinity;
 pub(crate) mod surface_lifecycle;
 
 pub(crate) use interaction_affinity::{
-    UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial, UiMountedInteractionAffinityInput,
+    UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial, UiCurrentInteractionAffinity,
+    UiMountedInteractionAffinityInput,
 };
 
 #[derive(Clone, Debug)]

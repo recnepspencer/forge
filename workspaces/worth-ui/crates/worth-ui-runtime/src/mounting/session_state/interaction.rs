@@ -24,7 +24,10 @@ impl WorthUiMountedSessionState {
     pub(crate) fn admit_current_interaction_affinity(
         &self,
         input: crate::mounting::UiMountedInteractionAffinityInput,
-    ) -> Result<(), crate::mounting::UiCurrentHitTargetAffinityDenial> {
+    ) -> Result<
+        crate::mounting::UiCurrentInteractionAffinity,
+        crate::mounting::UiCurrentHitTargetAffinityDenial,
+    > {
         self.identity.admit_current_interaction_affinity(input)
     }
 }

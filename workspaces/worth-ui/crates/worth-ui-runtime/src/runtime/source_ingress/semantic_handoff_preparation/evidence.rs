@@ -12,6 +12,7 @@ pub struct WorthUiSemanticHandoffEvidence {
     authored_mode: WorthUiAuthoredMode,
     projection_requirements: Box<[WorthUiAuthoredProjectionRequirement]>,
     projection_contents: Box<[WorthUiProjectionContentEdge]>,
+    intent_material: super::WorthUiAuthoredIntentMaterial,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -45,6 +46,7 @@ impl WorthUiSemanticHandoffEvidence {
                 .map(WorthUiAuthoredProjectionRequirement::from_sealed)
                 .collect(),
             projection_contents: projection_contents(package),
+            intent_material: Default::default(),
         }
     }
 
@@ -66,6 +68,14 @@ impl WorthUiSemanticHandoffEvidence {
 
     pub fn projection_requirements(&self) -> &[WorthUiAuthoredProjectionRequirement] {
         &self.projection_requirements
+    }
+
+    pub(crate) fn admit_intent_material(&mut self, material: super::WorthUiAuthoredIntentMaterial) {
+        self.intent_material = material;
+    }
+
+    pub(crate) fn intent_material(&self) -> &super::WorthUiAuthoredIntentMaterial {
+        &self.intent_material
     }
 
     pub fn projection_requirement(

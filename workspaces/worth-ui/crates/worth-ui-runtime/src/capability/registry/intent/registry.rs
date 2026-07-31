@@ -72,6 +72,14 @@ pub struct FrozenIntentDefinitionCapabilities {
     definitions: Vec<IntentDefinitionDescriptor>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct UiIntentDefinitionSlot(usize);
+
+pub(crate) struct UiResolvedIntentDefinition<'registry> {
+    slot: UiIntentDefinitionSlot,
+    descriptor: &'registry IntentDefinitionDescriptor,
+}
+
 impl FrozenIntentDefinitionCapabilities {
     #[cfg(test)]
     pub(crate) fn empty() -> Self {
@@ -108,6 +116,26 @@ impl FrozenIntentDefinitionCapabilities {
             .map(|index| &self.definitions[index])
     }
 
+    pub(crate) fn resolve_stable_text(
+        &self,
+        stable_text: &str,
+    ) -> Option<UiResolvedIntentDefinition<'_>> {
+        self.definitions
+            .binary_search_by(|definition| definition.id().as_str().cmp(stable_text))
+            .ok()
+            .map(|index| UiResolvedIntentDefinition {
+                slot: UiIntentDefinitionSlot(index),
+                descriptor: &self.definitions[index],
+            })
+    }
+
+    pub(crate) fn definition_at(
+        &self,
+        slot: UiIntentDefinitionSlot,
+    ) -> &IntentDefinitionDescriptor {
+        &self.definitions[slot.0]
+    }
+
     pub(crate) fn digest_basis(&self) -> u64 {
         let mut digest = UiIntentSemanticDigest::new(0x6614_6d3a_8cb9_104f)
             .usize("definition-count", self.definitions.len());
@@ -132,5 +160,15 @@ impl FrozenIntentDefinitionCapabilities {
             }
         }
         digest.finish()
+    }
+}
+
+impl UiResolvedIntentDefinition<'_> {
+    pub(crate) const fn slot(&self) -> UiIntentDefinitionSlot {
+        self.slot
+    }
+
+    pub(crate) const fn descriptor(&self) -> &IntentDefinitionDescriptor {
+        self.descriptor
     }
 }

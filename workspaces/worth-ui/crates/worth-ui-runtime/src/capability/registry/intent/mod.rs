@@ -20,5 +20,6 @@ pub use identity::UiIntentId;
 pub use interaction_family::UiSemanticInteractionFamily;
 pub use payload_schema::UiIntentPayload;
 pub(crate) use registry::IntentDefinitionRegistry;
+pub(crate) use registry::UiIntentDefinitionSlot;
 pub use registry::{FrozenIntentDefinitionCapabilities, UiIntentDefinitionRegistrationError};
 pub use result_schema::{UiIntentProductOutcome, UiIntentSchema};
