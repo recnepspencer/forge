@@ -210,9 +210,9 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
         crate::evidence_identity::worth_query_evidence_identity(
             crate::evidence_identity::WorthQueryEvidenceScope::DomainPackageIdentity,
         )
-        .field_value(
+        .field_digest(
             crate::evidence_identity::WorthQueryEvidenceTag::new("portable_package"),
-            portable_package.identity().as_str(),
+            portable_package.identity().digest(),
         )
         .seal(),
     );

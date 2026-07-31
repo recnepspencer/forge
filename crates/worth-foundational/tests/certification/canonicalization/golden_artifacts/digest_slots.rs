@@ -7,7 +7,7 @@ use worth_foundational::{
 use worth_proof::TransitionOutcome;
 
 #[test]
-fn digest_slot_fixture_has_stable_derived_value() {
+fn sha256_digest_slot_has_stable_derived_value() {
     let version = CanonicalizationRuleVersion::new("m2.golden.digest-slot").expect("valid version");
     let sequence = match prepare_canonical_basis_sequence(
         version.clone(),
@@ -28,7 +28,7 @@ fn digest_slot_fixture_has_stable_derived_value() {
     let ready = match admit_canonical_sequence_digest_derivation(
         sequence,
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             CanonicalBasisDomain::Value,
             version,
         ),
@@ -42,8 +42,8 @@ fn digest_slot_fixture_has_stable_derived_value() {
     assert_eq!(
         digest.value().bytes(),
         &[
-            133, 135, 210, 44, 152, 192, 176, 127, 147, 238, 226, 123, 102, 226, 61, 32, 163, 57,
-            216, 15, 126, 192, 78, 48, 80, 80, 249, 41, 207, 139, 52, 120,
+            89, 41, 204, 117, 202, 52, 125, 39, 24, 4, 120, 254, 17, 43, 108, 97, 249, 128, 96, 1,
+            220, 139, 212, 48, 18, 203, 195, 190, 118, 82, 94, 135,
         ]
     );
 }

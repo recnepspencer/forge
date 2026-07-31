@@ -93,10 +93,10 @@ impl WorthQueryPersistentGraphIndexRequirementDeclaration {
         if requirement_rows.is_empty() {
             return None;
         }
-        let read_graph_digest = requirements.read_graph_digest().to_string();
-        let access_shape_digest = requirements.access_shape_digest().to_string();
-        let selectivity_shape_digest = requirements.selectivity_shape_digest().to_string();
-        let requirement_set_digest = requirements.digest().as_str().to_string();
+        let read_graph_digest = requirements.read_graph_digest().render_hex();
+        let access_shape_digest = requirements.access_shape_digest().render_hex();
+        let selectivity_shape_digest = requirements.selectivity_shape_digest().render_hex();
+        let requirement_set_digest = requirements.digest().render_support_hex();
         let inventory_match_report_digest = report.digest().to_string();
         let estimated_index_bytes = estimate.supported().index_bytes();
         let estimated_result_bytes = estimate.supported().result_bytes();

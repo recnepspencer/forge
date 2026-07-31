@@ -110,9 +110,8 @@ fn run_precompute_dispatch_pass(
         #[cfg(feature = "parallel")]
         parallel_admission,
     )
-    .map_err(|err| {
-        record_stage_precompute_failure(graph, summary, stage_index, executor, &err);
-        err
+    .inspect_err(|err| {
+        record_stage_precompute_failure(graph, summary, stage_index, executor, err);
     })?;
     Ok(PrecomputeDispatchPass {
         execution,

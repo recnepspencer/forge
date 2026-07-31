@@ -25,6 +25,7 @@ pub(crate) fn derive_graph_read_access_shape(
     let result_pressure = result_pressure(
         operation_resolution.graph_family().clone(),
         references.projections().len(),
+        &fanout_posture,
     );
     WorthQueryGraphReadAccessShape::new(
         operation_resolution,
@@ -168,16 +169,22 @@ fn ordering_posture(
     if references.orderings().is_empty() {
         WorthQueryGraphReadOrderingPosture::Unordered
     } else {
-        WorthQueryGraphReadOrderingPosture::Ordered
+        WorthQueryGraphReadOrderingPosture::ProviderOrdered
     }
 }
 
 fn result_pressure(
     family: WorthQueryReadGraphFamily,
     projection_count: usize,
+    fanout_posture: &WorthQueryGraphReadFanoutPosture,
 ) -> WorthQueryGraphReadResultPressure {
     match family {
         WorthQueryReadGraphFamily::Detail => WorthQueryGraphReadResultPressure::Detail,
+        WorthQueryReadGraphFamily::Collection
+            if fanout_posture != &WorthQueryGraphReadFanoutPosture::None =>
+        {
+            WorthQueryGraphReadResultPressure::CollectionWide
+        }
         WorthQueryReadGraphFamily::Collection if projection_count <= 3 => {
             WorthQueryGraphReadResultPressure::CollectionNarrow
         }

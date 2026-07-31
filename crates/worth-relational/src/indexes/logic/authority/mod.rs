@@ -18,6 +18,7 @@ use self::diagnostics::{
 use self::packet_planning::{
     choose_index_preparation_strategy, plan_index_packets, planned_index_definitions,
 };
+use super::projected_field_values::IndexProjectionSource;
 use super::unique_entity_aspect_field_index::{
     rebuild_unique_entity_aspect_field_indexes,
     refresh_unique_entity_aspect_field_index_for_records,
@@ -70,7 +71,15 @@ impl<'runtime> IndexAuthority<'runtime> {
         record_index_preparation_strategy_counters(self.runtime, definitions.len(), &strategy);
 
         let schema_version = self.runtime.primary_schema_version_id();
-        let projection = self.runtime.read_truth().project_version(version_id);
+        let current_projection = (version_id == self.runtime.current_version_id())
+            .then(|| self.runtime.read_truth().project_version(version_id));
+        let reconstructed_projection = (version_id != self.runtime.current_version_id())
+            .then(|| self.runtime.read_truth().read_version(version_id));
+        let projection = match (&current_projection, &reconstructed_projection) {
+            (Some(projection), None) => IndexProjectionSource::Current(projection),
+            (None, Some(projection)) => IndexProjectionSource::Reconstructed(projection),
+            _ => unreachable!("one index projection source must match the requested version"),
+        };
         let packets = plan_index_packets(&definitions);
         let results =
             execute_index_packets(self.runtime, &projection, &packets, strategy.selected_mode);

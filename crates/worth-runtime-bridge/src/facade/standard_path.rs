@@ -188,6 +188,7 @@ pub struct BridgeSpeculativeComparison {
     preview_session_identity: BridgePreviewSessionIdentity,
     truth_branch_identity: TruthBranchIdentity,
     signal_branch_identity: BridgeSignalBranchIdentity,
+    truth_view_selector: BridgeTruthViewSelector,
     truth_view_basis_digest: std::sync::Arc<str>,
 }
 
@@ -199,6 +200,7 @@ impl BridgeSpeculativeComparison {
             preview_session_identity: session.session_identity().clone(),
             truth_branch_identity: binding.truth_branch_identity().clone(),
             signal_branch_identity: binding.signal_branch_identity().clone(),
+            truth_view_selector: declaration.session_basis().truth_view_selector().clone(),
             truth_view_basis_digest: declaration.truth_view_basis_digest().into(),
         }
     }
@@ -225,7 +227,7 @@ impl BridgeSpeculativeComparison {
 
     /// Builds the truth-view request for the speculative side.
     pub fn speculative_evaluation_request(&self) -> BridgeTruthViewEvaluationRequest {
-        BridgeTruthViewEvaluationRequest::for_branch_head(self.truth_branch_identity.clone())
+        BridgeTruthViewEvaluationRequest::new(self.truth_view_selector.clone())
     }
 
     /// Builds the truth-view request for the main side.
@@ -292,6 +294,7 @@ pub struct BridgeSpeculativeSessionHandle {
     runtime: RuntimeBridge,
     session: BridgePreviewSession<PreviewActive>,
     execution_record: BridgePreviewExecutionRecord,
+    liveness: BridgePreviewSessionLivenessOwner,
 }
 
 impl BridgeSpeculativeSessionHandle {
@@ -300,16 +303,23 @@ impl BridgeSpeculativeSessionHandle {
         session: BridgePreviewSession<PreviewActive>,
         execution_record: BridgePreviewExecutionRecord,
     ) -> Self {
+        let liveness = BridgePreviewSessionLivenessOwner::new(session.session_identity().clone());
         Self {
             runtime,
             session,
             execution_record,
+            liveness,
         }
     }
 
     /// Returns the preview session identity.
     pub fn session_identity(&self) -> &BridgePreviewSessionIdentity {
         self.session.session_identity()
+    }
+
+    /// Observes whether this exact Bridge-owned preview session remains active.
+    pub fn liveness_observer(&self) -> BridgePreviewSessionLivenessObserver {
+        self.liveness.observer()
     }
 
     /// Builds a comparison handle between this speculative session and main.

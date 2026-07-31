@@ -15,15 +15,15 @@ pub struct WorthQueryInstalledPackageIndexCounters {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryInstalledPackageIndexRebuildReport {
-    prior_identity: String,
-    rebuilt_identity: String,
+    prior_identity: WorthQueryInstalledPackageIndexIdentity,
+    rebuilt_identity: WorthQueryInstalledPackageIndexIdentity,
     counters: WorthQueryInstalledPackageIndexCounters,
 }
 
 impl WorthQueryInstalledPackageIndexRebuildReport {
     pub(crate) fn new(
-        prior_identity: String,
-        rebuilt_identity: String,
+        prior_identity: WorthQueryInstalledPackageIndexIdentity,
+        rebuilt_identity: WorthQueryInstalledPackageIndexIdentity,
         counters: WorthQueryInstalledPackageIndexCounters,
     ) -> Self {
         Self {
@@ -33,11 +33,11 @@ impl WorthQueryInstalledPackageIndexRebuildReport {
         }
     }
 
-    pub fn prior_identity(&self) -> &str {
+    pub fn prior_identity(&self) -> &WorthQueryInstalledPackageIndexIdentity {
         &self.prior_identity
     }
 
-    pub fn rebuilt_identity(&self) -> &str {
+    pub fn rebuilt_identity(&self) -> &WorthQueryInstalledPackageIndexIdentity {
         &self.rebuilt_identity
     }
 
@@ -45,3 +45,4 @@ impl WorthQueryInstalledPackageIndexRebuildReport {
         self.counters
     }
 }
+use super::WorthQueryInstalledPackageIndexIdentity;

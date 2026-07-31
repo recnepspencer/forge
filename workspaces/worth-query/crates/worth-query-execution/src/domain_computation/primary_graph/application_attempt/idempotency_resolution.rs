@@ -1,6 +1,9 @@
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::{WorthQueryApplicationCommitReceipt, WorthQueryApplicationIdempotencyBinding};
+use super::{
+    provider_recomparison::recover_equivalent_commit_evidence, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationIdempotencyBinding,
+};
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
@@ -79,14 +82,21 @@ where
         ) {
             return Err(WorthQueryApplicationIdempotencyResolutionDenial::foreign_admission());
         }
+        let binding = binding.bind_preconditions(admission.mutation_preconditions().identity());
         let _serialization = self.primary_provider.serialize_application_commit();
         match self.primary_provider.resolve_idempotency_binding(binding) {
             Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
                 Ok(WorthQueryApplicationIdempotencyResolution::Unseen)
             }
-            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
-                Ok(WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt))
-            }
+            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => Ok(
+                WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(
+                    WorthQueryApplicationCommitReceipt::from_provider(
+                        receipt,
+                        recover_equivalent_commit_evidence(admission.mutation_preconditions()),
+                        admission.canonical_work(),
+                    ),
+                ),
+            ),
             Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
                 Ok(WorthQueryApplicationIdempotencyResolution::IntentDrift)
             }

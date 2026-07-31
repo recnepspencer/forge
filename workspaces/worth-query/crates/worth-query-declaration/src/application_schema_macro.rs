@@ -193,6 +193,34 @@ macro_rules! worth_query_relation {
 }
 
 #[macro_export]
+macro_rules! worth_query_application_query {
+    (
+        $vis:vis $Query:ident in $Schema:ty,
+        parameters $Parameters:ty,
+        result $Result:ty,
+        scope $Scope:ty,
+        name $name:literal
+    ) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        $vis struct $Query;
+
+        impl $Query {
+            pub const fn reference() -> $crate::facade::application_query::ApplicationQueryReference<
+                $Schema,
+                Self,
+                $Parameters,
+                $Result,
+                $Scope,
+            > {
+                $crate::facade::application_query::ApplicationQueryReference::from_schema_identifier(
+                    $name,
+                )
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! worth_query_principal_binding {
     (
         $vis:vis $Binding:ident in $Schema:ty,

@@ -52,9 +52,8 @@ impl RuntimeBridge {
                 ),
             )),
         };
-        result.map_err(|error| {
-            self.record_writeback_dispatch_failure(attempt, &error);
-            error
+        result.inspect_err(|error| {
+            self.record_writeback_dispatch_failure(attempt, error);
         })
     }
 

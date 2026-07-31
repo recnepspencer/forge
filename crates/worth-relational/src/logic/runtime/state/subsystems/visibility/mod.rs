@@ -109,10 +109,32 @@ impl VisibilitySubsystem {
         self.execution_bases.binding(snapshot_id)
     }
 
+    pub(crate) fn execution_basis_is_live(
+        &self,
+        identity: &crate::visibility::execution_basis::RelationalExecutionBasisIdentity,
+    ) -> bool {
+        self.execution_bases
+            .retains_identity(identity.snapshot_id(), identity.lease_ordinal())
+    }
+
     pub(crate) fn active_versions(
         &self,
     ) -> impl Iterator<Item = crate::identity::data::VersionId> + '_ {
         self.handles.active_versions()
+    }
+
+    pub(crate) fn retains_published_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        self.handles.retains_published_version(version_id)
+    }
+
+    pub(crate) fn retains_execution_basis_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        self.execution_bases.retains_version(version_id)
     }
 
     pub(crate) fn retention_fence_version(
@@ -121,6 +143,7 @@ impl VisibilitySubsystem {
     ) -> crate::identity::data::VersionId {
         let non_execution_fence = self
             .active_versions()
+            .chain(self.handles.published_versions())
             .chain(self.replay_retention.versions())
             .min()
             .unwrap_or(published_version);

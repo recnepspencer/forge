@@ -269,7 +269,7 @@ pub(crate) fn representative_live_view_source_row() -> RepresentativeArtifacts {
             )
             .field_value(
                 WorthQueryEvidenceTag::new("schema_basis"),
-                schema_view.basis().as_str(),
+                schema_view.basis().render_support_hex(),
             )
             .seal(),
     );

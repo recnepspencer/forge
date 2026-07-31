@@ -5,8 +5,6 @@ mod denial;
 mod execution_evidence;
 mod explanation;
 mod planner;
-mod posture;
-mod required_capability;
 
 pub use admission::WorthQueryGraphReadAccessAdmission;
 pub use admitted_plan::WorthQueryAdmittedGraphReadAccessPlan;
@@ -29,5 +27,6 @@ pub(crate) use planner::admit_graph_read_access_for_family_in_authority_with_inv
 pub(crate) use planner::{
     admit_graph_read_access_for_family, plan_admitted_graph_read_access_for_family,
 };
-pub use posture::WorthQueryGraphReadAccessAdmissionPosture;
-pub use required_capability::WorthQueryGraphReadRequiredCapabilityOwner;
+pub use worth_query_admission::facade::graph_read_access::{
+    WorthQueryGraphReadAccessAdmissionPosture, WorthQueryGraphReadRequiredCapabilityOwner,
+};

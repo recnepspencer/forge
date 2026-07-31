@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/application_schema/application_query_projection_row_constructor_is_private.rs:7:66
+  |
+7 |     let _ = WorthQueryApplicationProjectionRow::<Schema, Query>::new;
+  |                                                                  ^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/application_query/projection.rs
+  |
+  |     pub(super) const fn new(node: &'row WorthQueryApplicationProjectionNode) -> Self {
+  |     -------------------------------------------------------------------------------- private associated function defined here

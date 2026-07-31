@@ -31,6 +31,9 @@ pub enum WorthQueryDomainPackageAdmissionDenialKind {
     AmbiguousArtifactMigration,
     DeferredArtifactComparator,
     UnsupportedArtifactComparator,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -134,9 +137,9 @@ pub(crate) fn admit_domain_package_with_artifact_support<D: WorthQueryDomainEntr
                 WorthQueryEvidenceTag::new("configuration"),
                 facade.validated_config().validated_digest(),
             )
-            .field_value(
+            .field_digest(
                 WorthQueryEvidenceTag::new("portable_admission"),
-                portable_package.admission_identity(),
+                portable_package.admission_identity().digest(),
             )
             .seal();
 

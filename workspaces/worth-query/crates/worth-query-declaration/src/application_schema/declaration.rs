@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 
+use crate::application_capability::ApplicationCapabilityContract;
+
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::capabilities::{ApplicationFieldCurrency, EqualityPosture, WritePosture};
+use super::declaration_denial::ApplicationSchemaDeclarationDenial;
 use super::identifier_validation::{validate_member_identifiers, validate_schema_header};
 use super::member_closure::validate_member_closure;
 use super::principal_binding_reference::ApplicationPrincipalBindingRef;
@@ -11,6 +14,7 @@ use super::references::{
     ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
     ApplicationRelationRef,
 };
+use super::schema_identity::ApplicationSchemaIdentity;
 use super::schema_member::ApplicationSchemaMember;
 use super::values::TypedApplicationValue;
 
@@ -22,19 +26,6 @@ pub trait ApplicationSchema: Sized + 'static {
 
     fn declaration(
     ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial>;
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ApplicationSchemaIdentity(String);
-
-impl ApplicationSchemaIdentity {
-    pub(super) fn from_canonical_hash(value: String) -> Self {
-        Self(value)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -247,6 +238,17 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         self
     }
 
+    pub fn capability<Capability, Operation, Input>(
+        mut self,
+        contract: ApplicationCapabilityContract<Schema, Capability, Operation, Input>,
+    ) -> Self {
+        self.members
+            .push(ApplicationSchemaMember::ApplicationCapability {
+                contract: contract.into_erased(),
+            });
+        self
+    }
+
     pub fn policy<Policy>(mut self, policy: ApplicationPolicyRef<Schema, Policy>) -> Self {
         self.members.push(ApplicationSchemaMember::Policy {
             policy: policy.name().to_string(),
@@ -353,28 +355,3 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         })
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ApplicationSchemaDeclarationDenial {
-    InvalidIdentifier,
-    DuplicateMember,
-    MissingEntity,
-    MissingAspect,
-    MissingCurrency,
-    MissingPrincipalBindingDependency,
-    MissingOperationProgramDependency,
-    MissingOperationDecisionReadDependency,
-    InvalidOperationDecisionFactBudget,
-    InvalidOperationProjectionWorkBudget,
-    MissingAbilityDependency,
-    MissingAbilityPolicyDependency,
-    InvalidAbilityPolicy,
-}
-
-impl std::fmt::Display for ApplicationSchemaDeclarationDenial {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "application schema declaration denied: {self:?}")
-    }
-}
-
-impl std::error::Error for ApplicationSchemaDeclarationDenial {}

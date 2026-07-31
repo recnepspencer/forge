@@ -65,14 +65,14 @@ fn trusted_requirement_derivation_preserves_canonical_parts_and_digest() {
     let requirements = derive_graph_read_access_requirements(access.access_shape(), &selectivity);
 
     assert_eq!(
-        requirements.canonical_parts(),
-        requirements.canonical_parts()
+        requirements.diagnostic_canonical_parts(),
+        requirements.diagnostic_canonical_parts()
     );
     assert_eq!(
-        requirements.digest().as_str(),
+        requirements.digest().render_support_hex(),
         derive_graph_read_access_requirements(access.access_shape(), &selectivity)
             .digest()
-            .as_str()
+            .render_support_hex()
     );
 }
 
@@ -118,13 +118,13 @@ fn predicate_and_ordering_authorities_name_exact_schema_fields() {
     assert_eq!(predicate[0].native_aspect_key(), &aspect_key("status"));
     assert_eq!(predicate[0].native_field_key(), &field_key("value"));
     assert_eq!(predicate[0].field_kind(), "string");
-    assert!(!predicate[0].schema_basis_digest().is_empty());
+    assert_ne!(predicate[0].schema_basis_digest().bytes(), &[0; 32]);
     assert_eq!(ordering.len(), 1);
     assert_eq!(ordering[0].native_aspect_key(), &aspect_key("profile"));
     assert_eq!(ordering[0].native_field_key(), &field_key("display_name"));
     assert_eq!(ordering[0].direction(), "ascending");
     assert_eq!(ordering[0].field_kind(), "string");
-    assert!(!ordering[0].schema_basis_digest().is_empty());
+    assert_ne!(ordering[0].schema_basis_digest().bytes(), &[0; 32]);
 }
 
 #[test]

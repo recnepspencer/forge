@@ -7,7 +7,6 @@ mod plan;
 mod receipt;
 mod session;
 
-pub(crate) use plan::streaming_frontier_is_admissible;
 pub(crate) use receipt::streaming_receipt_for_admitted_read_result;
 
 pub use counters::WorthQueryGraphReadStreamingCounters;

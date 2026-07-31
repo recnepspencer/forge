@@ -41,7 +41,7 @@ impl S5FoundationalCanonicalBasis {
             _ => unreachable!("canonical basis preparation only returns success or denial"),
         };
         let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             domain,
             version,
         );

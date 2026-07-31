@@ -34,7 +34,7 @@ fn descriptive_materialization_keeps_seam_cost_and_attachment_decisions_visible(
         claim,
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("descriptive plan");
 
@@ -94,7 +94,7 @@ fn support_materialization_stays_plannable_before_becoming_deferred_runtime_work
         claim,
         FoundationalBoundaryMaterializationSource::DerivedSupport,
         FoundationalBoundaryMaterializationSeam::SupportMaterialization,
-        profile.clone(),
+        profile,
     )
     .expect("support plan");
 
@@ -142,7 +142,7 @@ fn authoritative_materialization_lane_stays_distinct_from_descriptive_paths() {
         claim,
         FoundationalBoundaryMaterializationSource::NativeAuthority,
         FoundationalBoundaryMaterializationSeam::PersistenceExport,
-        profile.clone(),
+        profile,
     )
     .expect("authoritative plan");
 
@@ -232,7 +232,7 @@ fn coordinated_bundle_materialization_preserves_member_categories_and_membership
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("primary plan");
     let summary = plan_descriptive_boundary_materialization(
@@ -241,7 +241,7 @@ fn coordinated_bundle_materialization_preserves_member_categories_and_membership
         ),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("summary plan");
     let report = plan_descriptive_boundary_materialization(
@@ -250,7 +250,7 @@ fn coordinated_bundle_materialization_preserves_member_categories_and_membership
         ),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("report plan");
     let receipt = plan_descriptive_boundary_materialization(

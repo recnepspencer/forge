@@ -38,7 +38,7 @@ pub(crate) fn foundational_identity_for_checksum_basis(
             _ => return Err(ChecksumAlgorithmMismatchDenial::FoundationalEvidenceDenied),
         };
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         domain,
         version,
     );

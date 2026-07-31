@@ -12,6 +12,14 @@ pub trait OperationRequiresAbility<Operation> {}
 /// operation's decision without widening its installed read contract.
 pub trait OperationReads<Operation> {}
 
+/// Compile-time declaration that a field may carry an expected-version
+/// precondition for an operation. Installed authority remains mandatory.
+pub trait OperationExpectsVersion<Operation> {}
+
+/// Compile-time declaration that a field may carry an expected-fact
+/// precondition for an operation. Installed authority remains mandatory.
+pub trait OperationExpectsFact<Operation> {}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ReadOnly;
 

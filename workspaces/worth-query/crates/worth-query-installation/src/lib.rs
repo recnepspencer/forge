@@ -8,10 +8,15 @@
 
 mod admission;
 mod application_ability;
+mod application_capability;
 mod application_operation;
 mod application_principal_binding;
+mod application_query;
 mod application_schema;
+mod authority_cryptography;
+mod canonical_digest_derivation;
 mod canonical_hash_encoding;
+mod canonical_work;
 mod domain_computation;
 mod domain_operation;
 mod generation;
@@ -63,6 +68,9 @@ mod domain_computation_workflow_test_support;
 mod package_validation_tests;
 
 pub mod facade {
+    pub use worth_query_declaration::facade::application_capability::{
+        ApplicationCapabilityRef, ErasedApplicationCapabilityContract,
+    };
     pub use worth_query_declaration::facade::application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
         ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
@@ -83,17 +91,25 @@ pub mod facade {
     pub use crate::admission::{
         WorthQueryAdmittedPortableDomainPackage, WorthQueryArtifactVersionSupport,
         WorthQueryInstallationAdmissionDenial, WorthQueryInstallationAdmissionDenialKind,
-        WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
+        WorthQueryInstallationAdmissionIdentity, WorthQueryInstallationAdmissionProfile,
+        WorthQueryInstallationSupportStatus,
     };
     pub use crate::application_ability::{
         WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
         WorthQueryInstalledAbility,
     };
+    pub use crate::application_capability::{
+        WorthQueryApplicationCapabilityInstallationDenial,
+        WorthQueryApplicationCapabilityInstallationDenialKind,
+        WorthQueryCapabilityCanonicalArtifact, WorthQueryCapabilityLookupEvidence,
+        WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationCapabilityIdentity,
+    };
     pub use crate::application_operation::{
         WorthQueryApplicationOperationInstallationDenial,
         WorthQueryApplicationOperationInstallationDenialKind,
         WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
-        WorthQueryInstalledApplicationOperation, APPLICATION_AUTHORIZATION_FACT_FAMILY,
+        WorthQueryInstalledApplicationOperation, WorthQueryInstalledAuthorizationPath,
+        WorthQueryInstalledMutationPrecondition, APPLICATION_AUTHORIZATION_FACT_FAMILY,
         APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,
         APPLICATION_EXECUTION_ALLOCATOR_FAMILY, APPLICATION_EXECUTION_PROVIDER_FAMILY,
         APPLICATION_EXECUTION_SAFE_POINT_FAMILY, APPLICATION_INVARIANT_SLOT,
@@ -102,9 +118,31 @@ pub mod facade {
         WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
         WorthQueryPrincipalBindingInstallationDenialKind,
     };
+    pub use crate::application_query::{
+        prepare_canonical_read_graph_planning_basis, WorthQueryApplicationCanonicalArtifact,
+        WorthQueryApplicationQueryCanonicalWorkPolicy,
+        WorthQueryApplicationQueryInstallationDenial,
+        WorthQueryApplicationQueryInstallationDenialKind,
+        WorthQueryInstalledApplicationContinuationContract,
+        WorthQueryInstalledApplicationLiveContract, WorthQueryInstalledApplicationQuery,
+        WorthQueryInstalledApplicationQueryAuthorization,
+        WorthQueryInstalledApplicationQueryIdentity,
+        WorthQueryInstalledApplicationReadFamilyBinding, WorthQueryInstalledGraphOrdering,
+        WorthQueryInstalledGraphPredicate, WorthQueryInstalledGraphProjection,
+        WorthQueryInstalledGraphReadContract, WorthQueryInstalledGraphRelation,
+        WorthQueryInstalledRootPath, WorthQueryInstalledRootPathGuard,
+        WorthQueryInstalledRootPathStep, WorthQueryPreparedReadGraphPlanningContract,
+        WorthQueryReadGraphGuardView, WorthQueryReadGraphOrderingMechanism,
+        WorthQueryReadGraphOrderingView, WorthQueryReadGraphPlanningContract,
+        WorthQueryReadGraphPredicateView, WorthQueryReadGraphProjectionView,
+        WorthQueryReadGraphRelationDirection, WorthQueryReadGraphRelationView,
+    };
     pub use crate::application_schema::{
         WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
         WorthQueryInstalledApplicationSchemaDenialKind,
+    };
+    pub use crate::canonical_work::{
+        WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
     };
     pub use crate::domain_computation::*;
     pub use crate::domain_operation::*;

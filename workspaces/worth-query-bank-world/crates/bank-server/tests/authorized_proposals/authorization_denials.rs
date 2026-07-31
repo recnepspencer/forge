@@ -56,6 +56,7 @@ fn unauthorized_account_and_admitted_scope_drift_both_deny() {
         .authorize_create_personal_account(
             &owner_actor,
             id(bank_domain::model::InstitutionId::new, 1),
+            Default::default(),
             &request,
         )
         .err()
@@ -67,7 +68,7 @@ fn unauthorized_account_and_admitted_scope_drift_both_deny() {
     ));
     let denial = world
         .runtime
-        .authorize_send_money(&other_actor, source, &request)
+        .authorize_send_money(&other_actor, source, Default::default(), &request)
         .err()
         .expect("non-owner must be denied");
     assert!(matches!(
@@ -78,7 +79,7 @@ fn unauthorized_account_and_admitted_scope_drift_both_deny() {
 
     let admission = world
         .runtime
-        .authorize_send_money(&owner_actor, source, &request)
+        .authorize_send_money(&owner_actor, source, Default::default(), &request)
         .unwrap();
     let drift = BankOperationProposals::prepare_send_money(
         &world.runtime,

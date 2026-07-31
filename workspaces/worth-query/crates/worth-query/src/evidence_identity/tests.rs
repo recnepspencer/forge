@@ -90,7 +90,7 @@ fn evidence_identity_keeps_explicit_scheme_metadata() {
     );
     assert!(identity
         .as_str()
-        .starts_with("worth.query.evidence-identity.v1:worth.test.stable-digest-v1:"));
+        .starts_with("worth.query.evidence-identity.v1:sha256:"));
     assert!(!identity.canonical_digest().value().bytes().is_empty());
 }
 

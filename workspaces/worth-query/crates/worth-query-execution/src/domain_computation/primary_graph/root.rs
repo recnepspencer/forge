@@ -56,6 +56,9 @@ impl WorthQueryPrimaryGraph {
                 });
             field_layout.equality_index_id = Some(index_id);
         }
+        layout.register_continuation_orderings(|definition| {
+            runtime.index_authority().register(definition).index_id
+        });
         let provider_idempotency = layout.provider_idempotency_mut();
         let installed = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: worth_relational::facade::indexes::DerivedIndexId(0),
@@ -90,6 +93,7 @@ impl WorthQueryPrimaryGraph {
             .iter()
             .copied()
             .chain(self.layout.equality_index_ids())
+            .chain(self.layout.continuation_ordering_index_ids())
             .chain(std::iter::once(
                 self.layout.provider_idempotency().key_index_id,
             ))
@@ -165,6 +169,28 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         let Some(head) = runtime.history().latest_commit().cloned() else {
             return Ok(());
         };
+        self.ensure_primary_indexes_for_commit(runtime, head)
+    }
+
+    pub(crate) fn ensure_primary_indexes_for_version(
+        &self,
+        runtime: &mut RelationalRuntime,
+        version: worth_relational::facade::identity::VersionId,
+    ) -> Result<(), &'static str> {
+        let commit = runtime
+            .history()
+            .committed_version(version)
+            .ok_or("application-query basis version has no retained commit")?
+            .commit()
+            .clone();
+        self.ensure_primary_indexes_for_commit(runtime, commit)
+    }
+
+    fn ensure_primary_indexes_for_commit(
+        &self,
+        runtime: &mut RelationalRuntime,
+        head: worth_relational::facade::history::CommitReference,
+    ) -> Result<(), &'static str> {
         let branch = head.branch_id.clone();
         let current = self.primary_index_ids.iter().all(|index_id| {
             runtime

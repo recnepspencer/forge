@@ -11,7 +11,6 @@ use super::{
     WorthQueryInvariantReceiptMaterial, WorthQueryInvariantStructuralCounters,
     WorthQueryPassedInvariantReceipt, WorthQueryViolatedInvariantReceipt,
 };
-use crate::execution_digest::hash_parts;
 
 pub struct WorthQueryInvariantVerdictAdmission {
     pub(super) requirement: WorthQueryInstalledInvariantExecutionRequirement,
@@ -48,7 +47,7 @@ impl WorthQueryInvariantVerdictAdmission {
         }
         Ok(WorthQueryInvariantProviderVerdict::Passed(
             WorthQueryPassedInvariantReceipt {
-                material: self.material("passed", evidence)?,
+                material: self.material(evidence)?,
             },
         ))
     }
@@ -64,7 +63,7 @@ impl WorthQueryInvariantVerdictAdmission {
         }
         Ok(WorthQueryInvariantProviderVerdict::Advisory(
             WorthQueryAdvisoryInvariantReceipt {
-                material: self.material("advisory", evidence)?,
+                material: self.material(evidence)?,
             },
         ))
     }
@@ -75,7 +74,7 @@ impl WorthQueryInvariantVerdictAdmission {
     ) -> Result<WorthQueryInvariantProviderVerdict, WorthQueryInvariantExecutionFailure> {
         Ok(WorthQueryInvariantProviderVerdict::Violated(
             WorthQueryViolatedInvariantReceipt {
-                material: self.material("violated", evidence)?,
+                material: self.material(evidence)?,
             },
         ))
     }
@@ -86,7 +85,7 @@ impl WorthQueryInvariantVerdictAdmission {
     ) -> Result<WorthQueryInvariantProviderVerdict, WorthQueryInvariantExecutionFailure> {
         Ok(WorthQueryInvariantProviderVerdict::Indeterminate(
             WorthQueryIndeterminateInvariantReceipt {
-                material: self.material("indeterminate", evidence)?,
+                material: self.material(evidence)?,
             },
         ))
     }
@@ -97,14 +96,13 @@ impl WorthQueryInvariantVerdictAdmission {
     ) -> Result<WorthQueryInvariantProviderVerdict, WorthQueryInvariantExecutionFailure> {
         Ok(WorthQueryInvariantProviderVerdict::Exhausted(
             WorthQueryExhaustedInvariantReceipt {
-                material: self.material("exhausted", evidence)?,
+                material: self.material(evidence)?,
             },
         ))
     }
 
     fn material(
         self,
-        verdict: &str,
         evidence: WorthQueryInvariantVerdictEvidence,
     ) -> Result<WorthQueryInvariantReceiptMaterial, WorthQueryInvariantExecutionFailure> {
         let total_work = self
@@ -118,25 +116,9 @@ impl WorthQueryInvariantVerdictAdmission {
                 "invariant load and validator exhausted their shared installed work budget",
             ));
         }
-        let identity = hash_parts(&[
-            "worth_query_invariant_receipt_v1".to_owned(),
-            self.binding.requirement_identity.to_string(),
-            self.binding.provider_identity.to_string(),
-            self.binding.provider_generation.to_string(),
-            self.binding.session_binding_identity.to_string(),
-            self.binding.basis_identity.to_string(),
-            self.binding.proposed_state_identity.to_string(),
-            self.binding.attempt_generation.to_string(),
-            self.binding.state_load_plan_identity.to_string(),
-            self.binding.state_load_evidence_identity.to_string(),
-            verdict.to_owned(),
-            evidence.affected_scope.to_string(),
-            evidence.diagnostic_disposition.to_string(),
-            evidence.physical_execution_evidence.to_string(),
-            evidence.counters.execution_work_units().to_string(),
-        ]);
+        let identity = Arc::clone(&evidence.physical_execution_evidence);
         Ok(WorthQueryInvariantReceiptMaterial {
-            identity: identity.into(),
+            identity,
             requirement_identity: self.binding.requirement_identity,
             requirement: self.requirement,
             provider_identity: self.binding.provider_identity,

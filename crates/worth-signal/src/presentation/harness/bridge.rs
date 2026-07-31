@@ -383,13 +383,13 @@ impl HarnessAdapter for SignalHarnessBridge {
             changed_targets: request.targets.clone(),
             attachments: vec![AttachmentRecord::json(
                 "evaluation-plan-summary",
-                serde_json::to_value(&plan.summary).unwrap_or_else(|_| json!({})),
+                serde_json::to_value(plan.summary).unwrap_or_else(|_| json!({})),
             )],
             summary: Self::report_summary(&report),
             extensions: BTreeMap::from([
                 (
                     "evaluation_plan_summary".to_string(),
-                    serde_json::to_value(&plan.summary).unwrap_or_else(|_| json!({})),
+                    serde_json::to_value(plan.summary).unwrap_or_else(|_| json!({})),
                 ),
                 (
                     "execution_report".to_string(),

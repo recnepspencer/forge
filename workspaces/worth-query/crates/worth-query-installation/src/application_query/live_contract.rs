@@ -1,0 +1,213 @@
+use worth_query_declaration::facade::{
+    application_query::{ApplicationQueryLiveCauseContract, ErasedApplicationQueryDefinition},
+    application_schema::{ApplicationSchemaMember, ErasedApplicationSchemaDeclaration},
+    domain_computation::{
+        WorthQueryCancellationSafePointFamily, WorthQueryExecutionMode,
+        WorthQueryResourceDimension, WorthQueryResourceLimitRequest,
+        WorthQueryRetainedProgressPosture, WorthQuerySemanticScaleRequest,
+    },
+};
+
+use crate::domain_computation::WorthQueryExecutionResourceEnvelope;
+
+use super::{
+    WorthQueryApplicationQueryInstallationDenial, WorthQueryApplicationQueryInstallationDenialKind,
+    WorthQueryInstalledApplicationContinuationContract, WorthQueryInstalledGraphProjection,
+    WorthQueryInstalledGraphReadContract,
+};
+
+pub struct WorthQueryInstalledApplicationLiveContract {
+    binding_type: String,
+    effect: String,
+    payload_type: String,
+    scope_identity: WorthQueryInstalledGraphProjection,
+    target_identity: WorthQueryInstalledGraphProjection,
+    collection_path: String,
+    resource_envelope: WorthQueryExecutionResourceEnvelope,
+}
+
+impl WorthQueryInstalledApplicationLiveContract {
+    pub(super) fn compile(
+        definition: &ErasedApplicationQueryDefinition,
+        schema: &ErasedApplicationSchemaDeclaration,
+        graph: &WorthQueryInstalledGraphReadContract,
+        continuation: Option<&WorthQueryInstalledApplicationContinuationContract>,
+    ) -> Result<Option<Self>, WorthQueryApplicationQueryInstallationDenial> {
+        let Some(live) = definition.live_cause() else {
+            return Ok(None);
+        };
+        validate_effect_is_installed(schema, live)?;
+        let scope_identity = require_installed_projection(
+            graph,
+            live.scope_slot_type(),
+            live.scope_field(),
+            WorthQueryApplicationQueryInstallationDenialKind::LiveScopeIdentityNotInstalled,
+        )?;
+        let target_identity = require_installed_projection(
+            graph,
+            live.target_slot_type(),
+            live.target_field(),
+            WorthQueryApplicationQueryInstallationDenialKind::LiveTargetIdentityNotInstalled,
+        )?;
+        let continuation = continuation.ok_or_else(|| {
+            installation_denial(
+                WorthQueryApplicationQueryInstallationDenialKind::LiveTargetIdentityNotInstalled,
+                definition.name(),
+            )
+        })?;
+        if projection_parent_path(target_identity.result_path())
+            != Some(continuation.collection_path())
+        {
+            return Err(installation_denial(
+                WorthQueryApplicationQueryInstallationDenialKind::LiveTargetIdentityNotInstalled,
+                target_identity.result_path(),
+            ));
+        }
+        Ok(Some(Self {
+            binding_type: live.binding_type().to_string(),
+            effect: live.effect().to_string(),
+            payload_type: live.payload_type().to_string(),
+            scope_identity,
+            target_identity,
+            collection_path: continuation.collection_path().to_string(),
+            resource_envelope: compile_resource_envelope(live),
+        }))
+    }
+
+    pub fn binding_type(&self) -> &str {
+        &self.binding_type
+    }
+
+    pub fn effect(&self) -> &str {
+        &self.effect
+    }
+
+    pub fn payload_type(&self) -> &str {
+        &self.payload_type
+    }
+
+    pub const fn scope_identity(&self) -> &WorthQueryInstalledGraphProjection {
+        &self.scope_identity
+    }
+
+    pub const fn target_identity(&self) -> &WorthQueryInstalledGraphProjection {
+        &self.target_identity
+    }
+
+    pub fn collection_path(&self) -> &str {
+        &self.collection_path
+    }
+
+    pub const fn resource_envelope(&self) -> &WorthQueryExecutionResourceEnvelope {
+        &self.resource_envelope
+    }
+}
+
+fn projection_parent_path(path: &str) -> Option<&str> {
+    path.rsplit_once('/').map(|(parent, _)| parent)
+}
+
+fn validate_effect_is_installed(
+    schema: &ErasedApplicationSchemaDeclaration,
+    live: &ApplicationQueryLiveCauseContract,
+) -> Result<(), WorthQueryApplicationQueryInstallationDenial> {
+    let installed = schema.members().iter().any(|member| {
+        matches!(
+            member,
+            ApplicationSchemaMember::Effect {
+                effect,
+                payload_type,
+            } if effect == live.effect() && payload_type == live.payload_type()
+        )
+    });
+    if installed {
+        Ok(())
+    } else {
+        Err(installation_denial(
+            WorthQueryApplicationQueryInstallationDenialKind::LiveEffectNotInstalled,
+            live.effect(),
+        ))
+    }
+}
+
+fn installed_projection(
+    graph: &WorthQueryInstalledGraphReadContract,
+    slot_type: &str,
+    field: (&str, &str, &str),
+) -> Option<WorthQueryInstalledGraphProjection> {
+    graph
+        .projections()
+        .iter()
+        .find(|projection| {
+            projection.slot_type() == slot_type
+                && (projection.entity(), projection.aspect(), projection.field()) == field
+        })
+        .cloned()
+}
+
+fn require_installed_projection(
+    graph: &WorthQueryInstalledGraphReadContract,
+    slot_type: &str,
+    field: (&str, &str, &str),
+    denial_kind: WorthQueryApplicationQueryInstallationDenialKind,
+) -> Result<WorthQueryInstalledGraphProjection, WorthQueryApplicationQueryInstallationDenial> {
+    installed_projection(graph, slot_type, field)
+        .ok_or_else(|| installation_denial(denial_kind, slot_type))
+}
+
+fn compile_resource_envelope(
+    live: &ApplicationQueryLiveCauseContract,
+) -> WorthQueryExecutionResourceEnvelope {
+    let resources = live.resources();
+    let limits = WorthQueryResourceLimitRequest::bounded(resources.maximum_work_per_delivery())
+        .with(
+            WorthQueryResourceDimension::QueueDepth,
+            resources.maximum_buffered_causes(),
+        )
+        .with(WorthQueryResourceDimension::ChunkWidth, 1)
+        .with(
+            WorthQueryResourceDimension::RetainedBytes,
+            resources.maximum_retained_payload_bytes(),
+        );
+    WorthQueryExecutionResourceEnvelope::new(
+        WorthQuerySemanticScaleRequest::bounded(resources.maximum_work_per_delivery()),
+        limits,
+        WorthQueryExecutionMode::Asynchronous,
+        None,
+        WorthQueryCancellationSafePointFamily::new("application-query-live-delivery")
+            .expect("the installed live safe-point family is canonical"),
+    )
+    .with_retained_progress_posture(WorthQueryRetainedProgressPosture::RetainAttemptCapacity)
+}
+
+fn installation_denial(
+    kind: WorthQueryApplicationQueryInstallationDenialKind,
+    subject: impl Into<String>,
+) -> WorthQueryApplicationQueryInstallationDenial {
+    WorthQueryApplicationQueryInstallationDenial::new(kind, subject)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::projection_parent_path;
+
+    #[test]
+    fn target_field_is_bound_to_its_exact_collection_parent() {
+        assert_eq!(
+            projection_parent_path("root/relation[0]/field[1]"),
+            Some("root/relation[0]")
+        );
+    }
+
+    #[test]
+    fn nested_or_sibling_target_field_cannot_alias_the_collection() {
+        assert_ne!(
+            projection_parent_path("root/relation[0]/relation[0]/field[1]"),
+            Some("root/relation[0]")
+        );
+        assert_ne!(
+            projection_parent_path("root/relation[1]/field[1]"),
+            Some("root/relation[0]")
+        );
+    }
+}

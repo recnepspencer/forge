@@ -189,7 +189,6 @@ impl SignalGraph {
         let cold_artifact = self.node_cold_artifact_record(node)?;
         let execution_trace = self.node_execution_trace_stamp(node)?;
         let causality = self.causality_of(node)?;
-        let rewiring = rewiring;
         let mut compact_explanation = ExplanationFact::compact_explanation_from_runtime_projection(
             node,
             state,
@@ -259,13 +258,13 @@ impl SignalGraph {
             checkpoint_image: SignalCheckpointImage {
                 authority: self.capture_checkpoint_authority(),
                 dependency_snapshot_batch: self.capture_checkpoint_dependency_snapshot_batch(),
-                graph_telemetry: self.telemetry().clone(),
+                graph_telemetry: *self.telemetry(),
             },
             diagnostic_graph: self.clone(),
             diagnostics: self
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention),
-            graph_telemetry: self.telemetry().clone(),
+            graph_telemetry: *self.telemetry(),
             runtime_telemetry: None,
             reconstructability: Some(
                 crate::logic::transaction::ReconstructabilityRecord::from_snapshot_boundary(
@@ -413,7 +412,7 @@ impl SignalGraph {
         let current_policy = current_diagnostics.policy();
         let mut restored =
             self.restore_authority_from_snapshot_proof(snapshot, &reconstructability_proof)?;
-        restored.observation.telemetry = snapshot.checkpoint_image.graph_telemetry.clone();
+        restored.observation.telemetry = snapshot.checkpoint_image.graph_telemetry;
         Self::rebuild_required_derived_from_snapshot_proof(
             &mut restored,
             snapshot,

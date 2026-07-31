@@ -18,9 +18,9 @@ pub(super) fn materialized_field_projection_canonical_basis(
 ) -> String {
     format!(
         "row-field-projection|locator={}|projection-mask={}|identity={}",
-        canonical_basis_ready_text(&locator_basis)
+        canonical_basis_ready_text(locator_basis)
             .expect("row field projection locator basis is renderable"),
-        canonical_basis_ready_text(&mask_basis)
+        canonical_basis_ready_text(mask_basis)
             .expect("row field projection mask basis is renderable"),
         field_identity.as_str(),
     )

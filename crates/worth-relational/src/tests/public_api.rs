@@ -81,11 +81,30 @@ fn execution_basis_lease_drop_closes_snapshot_authority() {
         .snapshots()
         .admit_execution_basis(version_id)
         .expect("reconstructible version should admit");
-    let handle = lease.snapshot_handle().clone();
+    let identity = lease.identity().clone();
+    assert!(runtime.snapshots().execution_basis_is_live(&identity));
 
     drop(lease);
 
-    assert!(runtime.read_truth().read_snapshot(&handle).is_none());
+    assert!(!runtime.snapshots().execution_basis_is_live(&identity));
+}
+
+#[test]
+fn foreign_runtime_cannot_observe_an_execution_basis_as_live() {
+    let mut runtime = public_api_runtime();
+    let mut foreign = public_api_runtime();
+    let committed =
+        crate::tests::support::create_entity_outcome(&mut runtime, "foreign-execution-basis");
+    let version_id = committed.snapshot.version_id;
+    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    let lease = runtime
+        .snapshots()
+        .admit_execution_basis(version_id)
+        .expect("owned reconstructible version should admit");
+    let identity = lease.identity().clone();
+
+    assert!(runtime.snapshots().execution_basis_is_live(&identity));
+    assert!(!foreign.snapshots().execution_basis_is_live(&identity));
 }
 
 #[test]

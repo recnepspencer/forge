@@ -13,6 +13,8 @@ mod query_traversal;
 mod snapshot_reads;
 mod truth_access;
 mod truth_adjacency;
+mod truth_frontier_adjacency;
+mod truth_frontier_field_equality;
 mod truth_record_access;
 
 use crate::authority::commit::preparation::planning::strategy::{
@@ -40,8 +42,8 @@ use crate::visibility::cache_state::{
     cached_state_for_version, reconstruct_state, residency_for_version,
 };
 use crate::visibility::snapshot_states::{
-    build_visibility_state, read_view_from_snapshot_state, resolve_snapshot_handle,
-    resolve_snapshot_inspection, resolve_snapshot_state,
+    read_view_from_snapshot_state, resolve_snapshot_handle, resolve_snapshot_inspection,
+    resolve_snapshot_state,
 };
 use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -63,3 +65,9 @@ const TARGET_TRAVERSAL_SEEDS_PER_PACKET: usize = 4;
 pub use context::VisibilityReadContext;
 use query_fragment_scratch::QueryFragmentScratch;
 pub use truth_adjacency::{AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead};
+pub use truth_frontier_adjacency::{
+    BoundedFrontierAdjacencyTruthRead, FrontierAdjacencyTruthReadLimitExceeded,
+};
+pub use truth_frontier_field_equality::{
+    BoundedFrontierFieldEqualityTruthRead, FrontierFieldEqualityTruthReadLimitExceeded,
+};

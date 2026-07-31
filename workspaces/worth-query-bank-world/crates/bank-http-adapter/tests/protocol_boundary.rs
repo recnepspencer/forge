@@ -4,6 +4,18 @@ use bank_http_adapter::{
 };
 
 #[test]
+fn csrf_comparison_uses_the_timing_resistant_secret_type_contract() {
+    let adapter = include_str!("../src/adapter.rs");
+    let workspace = include_str!("../Cargo.toml");
+    let bank_workspace = include_str!("../../../Cargo.toml");
+
+    assert!(!adapter.contains("state.secret() !="));
+    assert!(adapter.contains("pending.state != callback.state"));
+    assert!(workspace.contains("openidconnect.workspace = true"));
+    assert!(bank_workspace.contains("timing-resistant-secret-traits"));
+}
+
+#[test]
 fn malformed_authorization_callbacks_fail_at_the_transport_boundary() {
     assert_callback_denial(
         "",

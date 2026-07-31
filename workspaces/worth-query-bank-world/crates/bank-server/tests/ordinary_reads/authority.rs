@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
-use bank_domain::model::ReadOutcome;
-use bank_server::{queries, BankReadControls};
+use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
+use worth_query_host::facade::primary_graph::WorthQueryEntityResolutionDenialKind;
 
 use super::fixture::{ordinary_read_world, APPROVER, AUDITOR, OWNER, STRANGER, TELLER, VIEWER};
 use crate::support::request_scope;
@@ -16,59 +16,55 @@ fn account_visibility_does_not_imply_account_access_management() {
     let owner = fixture.authenticate(OWNER);
     let stranger = fixture.authenticate(STRANGER);
 
-    assert!(matches!(
-        fixture
-            .world
-            .runtime
-            .query(queries::account_detail(fixture.personal_account))
-            .as_principal(&viewer)
-            .controls(controls(8))
-            .execute(),
-        ReadOutcome::Delivered(_)
-    ));
-    assert!(matches!(
-        fixture
-            .world
-            .runtime
-            .query(queries::account_authorized_users(fixture.personal_account))
-            .as_principal(&viewer)
-            .controls(controls(8))
-            .execute(),
-        ReadOutcome::Denied(_)
-    ));
-    let users = delivered(
-        fixture
-            .world
-            .runtime
-            .query(queries::account_authorized_users(fixture.personal_account))
-            .as_principal(&owner)
-            .controls(controls(8))
-            .execute(),
-    );
+    assert!(fixture
+        .world
+        .runtime
+        .query(queries::account_detail(fixture.personal_account))
+        .as_principal(&viewer)
+        .controls(controls(8))
+        .execute()
+        .is_ok());
+    assert!(fixture
+        .world
+        .runtime
+        .query(queries::account_authorized_users(fixture.personal_account))
+        .as_principal(&viewer)
+        .controls(controls(8))
+        .execute()
+        .is_err());
+    let users_result = fixture
+        .world
+        .runtime
+        .query(queries::account_authorized_users(fixture.personal_account))
+        .as_principal(&owner)
+        .controls(controls(8))
+        .execute()
+        .expect("owner should read account authorizations");
+    let [users] = users_result.rows() else {
+        panic!("authorized users query must return one account row");
+    };
     assert!(users
-        .output()
+        .users()
         .iter()
         .any(|user| user.principal().get() == u64::try_from(VIEWER).unwrap() + 1));
-    assert!(matches!(
-        fixture
-            .world
-            .runtime
-            .query(queries::account_detail(fixture.personal_account))
-            .as_principal(&stranger)
-            .controls(controls(8))
-            .execute(),
-        ReadOutcome::Denied(_)
-    ));
-    assert!(matches!(
-        fixture
-            .world
-            .runtime
-            .query(queries::account_detail(fixture.recipient_account))
-            .as_principal(&owner)
-            .controls(controls(8))
-            .execute(),
-        ReadOutcome::Denied(_)
-    ));
+    assert_eq!(users_result.receipt().fallback_count(), 0);
+    assert_eq!(users_result.receipt().per_result_neighbor_lookup_count(), 0);
+    assert!(fixture
+        .world
+        .runtime
+        .query(queries::account_detail(fixture.personal_account))
+        .as_principal(&stranger)
+        .controls(controls(8))
+        .execute()
+        .is_err());
+    assert!(fixture
+        .world
+        .runtime
+        .query(queries::account_detail(fixture.recipient_account))
+        .as_principal(&owner)
+        .controls(controls(8))
+        .execute()
+        .is_err());
 }
 
 #[test]
@@ -79,48 +75,53 @@ fn payment_and_audit_reads_preserve_distinct_authority_paths() {
     let auditor = fixture.authenticate(AUDITOR);
     let teller = fixture.authenticate(TELLER);
 
-    let pending = delivered(
-        fixture
-            .world
-            .runtime
-            .query(queries::pending_payments())
-            .as_principal(&approver)
-            .controls(controls(8))
-            .execute(),
-    );
-    assert_eq!(pending.output().as_slice(), [payment_summary(&fixture)]);
-    let owner_pending = delivered(
-        fixture
-            .world
-            .runtime
-            .query(queries::pending_payments())
-            .as_principal(&owner)
-            .controls(controls(8))
-            .execute(),
-    );
-    assert!(owner_pending.output().is_empty());
-    assert!(matches!(
-        fixture
-            .world
-            .runtime
-            .query(queries::payment(fixture.payment))
-            .as_principal(&owner)
-            .controls(controls(1))
-            .execute(),
-        ReadOutcome::Delivered(_)
-    ));
+    let pending = fixture
+        .world
+        .runtime
+        .query(queries::pending_payments())
+        .as_principal(&approver)
+        .controls(controls(8))
+        .execute()
+        .expect("approver should discover approval-required payments");
+    assert_eq!(pending.rows(), [payment_summary(&fixture)]);
+    assert_eq!(pending.receipt().fallback_count(), 0);
+    assert_eq!(pending.receipt().per_result_neighbor_lookup_count(), 0);
+    let owner_pending = fixture
+        .world
+        .runtime
+        .query(queries::pending_payments())
+        .as_principal(&owner)
+        .controls(controls(8))
+        .execute()
+        .expect("non-approver visibility should yield an empty result");
+    assert!(owner_pending.rows().is_empty());
+    let payment = fixture
+        .world
+        .runtime
+        .query(queries::payment(fixture.payment))
+        .as_principal(&owner)
+        .controls(controls(1))
+        .execute()
+        .expect("payment participant should read payment detail");
+    assert_eq!(payment.rows(), [payment_summary(&fixture)]);
+    assert_eq!(payment.receipt().fallback_count(), 0);
+    assert_eq!(payment.receipt().per_result_neighbor_lookup_count(), 0);
 
-    let audit = delivered(
-        fixture
-            .world
-            .runtime
-            .query(queries::institution_audit(fixture.institution))
-            .as_principal(&auditor)
-            .controls(controls(16))
-            .execute(),
-    );
-    assert!(!audit.output().is_empty());
-    assert_eq!(audit.metadata().work().reconstructive_scans(), 0);
+    let audit = fixture
+        .world
+        .runtime
+        .query(queries::institution_audit(fixture.institution))
+        .as_principal(&auditor)
+        .controls(controls(16))
+        .execute()
+        .expect("an institution auditor should execute the installed audit query");
+    assert_eq!(audit.rows()[0].institution(), fixture.institution);
+    assert!(audit.rows()[0]
+        .accounts()
+        .iter()
+        .any(|account| !account.entries().is_empty()));
+    assert_eq!(audit.receipt().fallback_count(), 0);
+    assert_eq!(audit.receipt().per_result_neighbor_lookup_count(), 0);
     assert!(matches!(
         fixture
             .world
@@ -129,7 +130,7 @@ fn payment_and_audit_reads_preserve_distinct_authority_paths() {
             .as_principal(&teller)
             .controls(controls(16))
             .execute(),
-        ReadOutcome::Denied(_)
+        Err(BankApplicationQueryDenial::Admission(_))
     ));
 }
 
@@ -145,6 +146,7 @@ fn cancellation_and_deadline_are_typed_before_projection() {
             cancellation.token(),
         ),
         8,
+        10_000,
     )
     .unwrap();
     assert!(matches!(
@@ -155,13 +157,15 @@ fn cancellation_and_deadline_are_typed_before_projection() {
             .as_principal(&owner)
             .controls(cancelled)
             .execute(),
-        ReadOutcome::Cancelled
+        Err(BankApplicationQueryDenial::ScopeResolution(denial))
+            if denial.kind() == WorthQueryEntityResolutionDenialKind::Cancelled
     ));
 
     let deadline_source = WorthQueryCancellationSource::new();
     let expired = BankReadControls::current(
         WorthQueryRequestScope::new(Instant::now(), deadline_source.token()),
         8,
+        10_000,
     )
     .unwrap();
     assert!(matches!(
@@ -172,7 +176,8 @@ fn cancellation_and_deadline_are_typed_before_projection() {
             .as_principal(&owner)
             .controls(expired)
             .execute(),
-        ReadOutcome::DeadlineExceeded
+        Err(BankApplicationQueryDenial::ScopeResolution(denial))
+            if denial.kind() == WorthQueryEntityResolutionDenialKind::DeadlineExceeded
     ));
 }
 
@@ -180,25 +185,20 @@ fn payment_summary(
     fixture: &super::fixture::OrdinaryReadFixture,
 ) -> bank_domain::reads::PaymentSummary {
     let approver = fixture.authenticate(APPROVER);
-    delivered(
-        fixture
-            .world
-            .runtime
-            .query(queries::payment(fixture.payment))
-            .as_principal(&approver)
-            .controls(controls(1))
-            .execute(),
-    )
-    .into_output()
+    let result = fixture
+        .world
+        .runtime
+        .query(queries::payment(fixture.payment))
+        .as_principal(&approver)
+        .controls(controls(1))
+        .execute()
+        .expect("approver should read payment detail");
+    let [payment] = result.rows() else {
+        panic!("payment detail must return exactly one row")
+    };
+    *payment
 }
 
 fn controls(maximum_results: usize) -> BankReadControls {
-    BankReadControls::current(request_scope(), maximum_results).unwrap()
-}
-
-fn delivered<T, D>(outcome: ReadOutcome<T, D>) -> T {
-    match outcome {
-        ReadOutcome::Delivered(result) => result,
-        _ => panic!("expected a delivered read"),
-    }
+    BankReadControls::current(request_scope(), maximum_results, 10_000).unwrap()
 }

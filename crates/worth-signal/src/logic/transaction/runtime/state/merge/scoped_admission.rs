@@ -89,9 +89,7 @@ fn classify_scoped_strategy_unavailable(
     request: &LoweredFoundationalMergeRequest,
     strategy_hint: Option<BranchMergeStrategy>,
 ) -> Option<ScopedMergeAdmissionOutcome> {
-    let Some(strategy_hint) = strategy_hint else {
-        return None;
-    };
+    let strategy_hint = strategy_hint?;
     if matches!(
         request.normalized_request().normalized_scope().family(),
         BranchMergeRequestScopeFamily::FullBranch

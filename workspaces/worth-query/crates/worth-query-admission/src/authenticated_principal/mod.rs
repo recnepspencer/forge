@@ -1,4 +1,5 @@
 mod adapter;
+mod adapter_identity;
 mod admission;
 mod candidate;
 mod denial;
@@ -7,6 +8,7 @@ mod request_scope;
 mod vocabulary;
 
 pub use adapter::{WorthQueryAuthenticationAdapter, WorthQueryAuthenticationFuture};
+pub use adapter_identity::WorthQueryAuthenticationAdapterIdentity;
 pub use admission::{
     admit_authentication_adapter, WorthQueryAdmittedAuthenticationAdapter,
     WorthQueryAuthenticationAdapterAdmission, WorthQueryAuthenticationAdapterAdmissionDenial,

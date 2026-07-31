@@ -7,15 +7,16 @@ use super::super::{
     CanonicalDigestInputShapeBound, CanonicalExportReadyArtifact, CanonicalRuleVersionBound,
 };
 use super::algorithm::{
-    CanonicalDigestAlgorithmId, CanonicalDigestAlgorithmMetadata,
-    CanonicalDomainBundleDigestAlgorithmSlot, CanonicalExportBundleDigestAlgorithmSlot,
-    CanonicalSingleSequenceDigestAlgorithmSlot,
+    CanonicalDigestAlgorithmMetadata, CanonicalDomainBundleDigestAlgorithmSlot,
+    CanonicalExportBundleDigestAlgorithmSlot, CanonicalSingleSequenceDigestAlgorithmSlot,
 };
 use super::derived::CanonicalDigestDerivationDenial;
 use super::evidence::{
     CanonicalDigestBasisBundle, CanonicalDigestBasisSequence, CanonicalDigestDerivationInput,
     CanonicalDigestInputEvidence,
 };
+use super::material::canonical_digest_material;
+use super::{CanonicalDigestWorkBudget, CanonicalDigestWorkEvidence};
 
 pub type CanonicalDigestDerivationReadyArtifact = Artifact<
     CanonicalDigestDerivationReady,
@@ -31,6 +32,18 @@ pub fn admit_canonical_sequence_digest_derivation(
     sequence: CanonicalBasisReadyArtifact,
     slot: CanonicalSingleSequenceDigestAlgorithmSlot,
 ) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
+    admit_canonical_sequence_digest_derivation_with_budget(
+        sequence,
+        slot,
+        CanonicalDigestWorkBudget::standard(),
+    )
+}
+
+pub fn admit_canonical_sequence_digest_derivation_with_budget(
+    sequence: CanonicalBasisReadyArtifact,
+    slot: CanonicalSingleSequenceDigestAlgorithmSlot,
+    budget: CanonicalDigestWorkBudget,
+) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
     let (sequence, _proofs, _basis) = sequence.into_parts().into_parts();
     let evidence = CanonicalDigestInputEvidence::SingleSequence(CanonicalDigestBasisSequence::new(
         sequence.version().clone(),
@@ -38,12 +51,24 @@ pub fn admit_canonical_sequence_digest_derivation(
         sequence.entries(),
         sequence.cost(),
     ));
-    admit_canonical_digest_derivation(slot.into_metadata(), evidence)
+    admit_canonical_digest_derivation(slot.into_metadata(), evidence, budget)
 }
 
 pub fn admit_canonical_bundle_digest_derivation(
     bundle: CanonicalBundleReadyArtifact,
     slot: CanonicalDomainBundleDigestAlgorithmSlot,
+) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
+    admit_canonical_bundle_digest_derivation_with_budget(
+        bundle,
+        slot,
+        CanonicalDigestWorkBudget::standard(),
+    )
+}
+
+pub fn admit_canonical_bundle_digest_derivation_with_budget(
+    bundle: CanonicalBundleReadyArtifact,
+    slot: CanonicalDomainBundleDigestAlgorithmSlot,
+    budget: CanonicalDigestWorkBudget,
 ) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
     let (bundle, _proofs, _basis) = bundle.into_parts().into_parts();
     let sequences = bundle
@@ -64,12 +89,24 @@ pub fn admit_canonical_bundle_digest_derivation(
         sequences,
     ));
 
-    admit_canonical_digest_derivation(slot.into_metadata(), evidence)
+    admit_canonical_digest_derivation(slot.into_metadata(), evidence, budget)
 }
 
 pub fn admit_canonical_export_digest_derivation(
     export: CanonicalExportReadyArtifact,
     slot: CanonicalExportBundleDigestAlgorithmSlot,
+) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
+    admit_canonical_export_digest_derivation_with_budget(
+        export,
+        slot,
+        CanonicalDigestWorkBudget::standard(),
+    )
+}
+
+pub fn admit_canonical_export_digest_derivation_with_budget(
+    export: CanonicalExportReadyArtifact,
+    slot: CanonicalExportBundleDigestAlgorithmSlot,
+    budget: CanonicalDigestWorkBudget,
 ) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
     let (export, _proofs, _basis) = export.into_parts().into_parts();
     let sequences = export
@@ -90,14 +127,15 @@ pub fn admit_canonical_export_digest_derivation(
         sequences,
     ));
 
-    admit_canonical_digest_derivation(slot.into_metadata(), evidence)
+    admit_canonical_digest_derivation(slot.into_metadata(), evidence, budget)
 }
 
 fn admit_canonical_digest_derivation(
     algorithm: CanonicalDigestAlgorithmMetadata,
     evidence: CanonicalDigestInputEvidence,
+    budget: CanonicalDigestWorkBudget,
 ) -> TransitionOutcome<CanonicalDigestDerivationReadyArtifact, CanonicalDigestDerivationDenial> {
-    if algorithm.id() != &CanonicalDigestAlgorithmId::test_stable_fixture() {
+    if !algorithm.id().is_supported() {
         return TransitionOutcome::denied(CanonicalDigestDerivationDenial::UnsupportedAlgorithm);
     }
     if algorithm.rule_version() != evidence.version() {
@@ -109,6 +147,30 @@ fn admit_canonical_digest_derivation(
     if algorithm.input_domain() != evidence.input_domain() {
         return TransitionOutcome::denied(CanonicalDigestDerivationDenial::InputDomainMismatch);
     }
+    let entry_count = evidence.entry_count();
+    if entry_count > budget.maximum_entry_count() {
+        return TransitionOutcome::denied(CanonicalDigestDerivationDenial::EntryLimitExceeded {
+            maximum: budget.maximum_entry_count(),
+            actual: entry_count,
+        });
+    }
+    let material =
+        match canonical_digest_material(&algorithm, &evidence, budget.maximum_encoded_bytes()) {
+            Ok(material) => material,
+            Err(denial) => {
+                return TransitionOutcome::denied(
+                    CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
+                        maximum: denial.maximum(),
+                        attempted: denial.attempted(),
+                    },
+                )
+            }
+        };
+    let work = CanonicalDigestWorkEvidence::new(
+        entry_count,
+        material.encoded_bytes(),
+        material.allocation_bytes(),
+    );
 
     let authority =
         AuthorityWitness::from_authority_marker(CanonicalBasisConstructionAuthority::new());
@@ -121,7 +183,12 @@ fn admit_canonical_digest_derivation(
             &authority,
         ),
     );
-    let input = CanonicalDigestDerivationInput::new(algorithm.clone(), evidence);
+    let input = CanonicalDigestDerivationInput::new(
+        algorithm.clone(),
+        evidence,
+        material.into_bytes(),
+        work,
+    );
 
     TransitionOutcome::success(Artifact::with_proofs_and_current_basis(
         input, proofs, algorithm, authority,

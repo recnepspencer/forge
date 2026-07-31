@@ -90,7 +90,7 @@ impl AuthentikOidcAdapter {
         callback: AuthentikAuthorizationCallback,
         scope: &WorthQueryRequestScope,
     ) -> Result<AuthentikOidcCredential, AuthentikOidcFlowError> {
-        if pending.state.secret() != callback.state.secret() {
+        if pending.state != callback.state {
             return Err(AuthentikOidcFlowError::StateMismatch);
         }
         let client = self.client.read().await;

@@ -106,6 +106,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
             let commit_id = committed.envelope().commit.commit_id;
             let changed = committed.patch().len();
             let after = runtime.snapshots().snapshot();
+            let runtime_instance_id = after.runtime_instance_id;
             self.graph
                 .aggregate_projections
                 .lock()
@@ -146,7 +147,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                 ));
             }
             Ok(format!(
-                "primary-application-commit:{}:{changed}:{emitted}",
+                "primary-application-commit:{runtime_instance_id}:{}:{changed}:{emitted}",
                 commit_id.0,
             ))
         })

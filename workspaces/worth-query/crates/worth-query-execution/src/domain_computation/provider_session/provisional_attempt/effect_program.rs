@@ -7,7 +7,6 @@ use super::{
 };
 use crate::domain_computation::provider_session::WorthQueryFreshDecisionReadSet;
 use crate::domain_computation::provider_session::WorthQuerySessionEffectAuthority;
-use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryProvisionalEffectAction {
@@ -82,47 +81,6 @@ impl WorthQueryProvisionalEffectStep {
     pub fn proposal_basis(&self) -> Option<&WorthQueryProvisionalProposalBasis> {
         self.proposal_basis.as_ref()
     }
-
-    fn canonical_token(&self, ordinal: usize) -> String {
-        let action = match &self.action {
-            WorthQueryProvisionalEffectAction::Create { symbolic_identity } => {
-                format!("create:{symbolic_identity}")
-            }
-            WorthQueryProvisionalEffectAction::Replace { target_identity } => {
-                format!("replace:{target_identity}")
-            }
-            WorthQueryProvisionalEffectAction::Retire { target_identity } => {
-                format!("retire:{target_identity}")
-            }
-            WorthQueryProvisionalEffectAction::DeriveView { view_identity } => {
-                format!("derive:{view_identity}")
-            }
-        };
-        hash_parts(
-            &[
-                vec![
-                    "worth_query_provisional_effect_step_v1".to_owned(),
-                    ordinal.to_string(),
-                    self.effect_family.to_string(),
-                    action,
-                ],
-                self.symbolic_dependencies
-                    .iter()
-                    .map(|value| format!("symbol:{value}"))
-                    .collect(),
-                self.artifact_dependencies
-                    .iter()
-                    .map(|value| format!("artifact:{value}"))
-                    .collect(),
-                vec![self
-                    .proposal_basis
-                    .as_ref()
-                    .map_or("direct", WorthQueryProvisionalProposalBasis::identity)
-                    .to_owned()],
-            ]
-            .concat(),
-        )
-    }
 }
 
 pub struct WorthQueryLoweredProvisionalEffectProgram {
@@ -169,18 +127,8 @@ impl WorthQuerySessionEffectAuthority<'_> {
             ));
         }
         validate_closure_and_symbols(self, read_set, &steps)?;
-        let identity = hash_parts(
-            &std::iter::once("worth_query_lowered_provisional_program_v1".to_owned())
-                .chain(
-                    steps
-                        .iter()
-                        .enumerate()
-                        .map(|(ordinal, step)| step.canonical_token(ordinal)),
-                )
-                .collect::<Vec<_>>(),
-        );
         Ok(WorthQueryLoweredProvisionalEffectProgram {
-            identity: identity.into(),
+            identity: self.binding().canonical_identity().into(),
             binding_identity: self.binding().canonical_identity().into(),
             decision_read_set_identity: read_set.read_set_identity().into(),
             steps: steps.into(),

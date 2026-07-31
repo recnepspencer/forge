@@ -7,8 +7,8 @@ use worth_runtime_bridge::facade::{
     BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, CoarseRoutingMode, InvalidationSink, MappingSelector, RuntimeBridge,
     RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
-    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity,
-    TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
+    SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity, TruthPatchScope,
+    TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
 use super::{
@@ -36,13 +36,14 @@ where
     let builder = RuntimeBridgeBuilder::new()
         .with_policy(BridgeRuntimePolicy::operational())
         .with_relational_source(source.clone())
+        .with_truth_branch_head_source(source.clone())
         .with_source_adapter(WorthQueryApplicationBridgeSource { source })
         .with_signal_sink(WorthQueryApplicationInvalidationSink)
         .register_source(SourceDeclaration::new(
             SourceDeclarationIdentity::from_stable_name("primary-application-source"),
-            BridgeTruthViewSelector::branch_head(TruthBranchIdentity::from_relational_branch_id(
-                "main",
-            )),
+            BridgeTruthViewSelector::branch_head(
+                super::application_branch::primary_truth_branch_identity(),
+            ),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::BranchRead,
@@ -83,8 +84,9 @@ where
             let field_key = worth_foundational::facade::FieldKey::new(field)
                 .ok_or_else(|| bridge_denial(field))?;
             let identity = format!(
-                "application-field:{}:{entity}:{aspect}:{field}",
-                schema.installed_declaration().identity().as_str()
+                "application-field:{}:{}:{entity}:{aspect}:{field}",
+                schema.owner(),
+                schema.schema_name(),
             );
             Ok(BridgeMappingRegistration::new(
                 BridgeMappingId::from_stable_name(identity),

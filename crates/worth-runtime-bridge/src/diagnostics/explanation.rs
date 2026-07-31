@@ -27,7 +27,7 @@ impl BridgeRouteExplanation {
             snapshot_identity: record.source_snapshot().clone(),
             subscription_slice_identity: record.subscription_slice_identity().clone(),
             route_entries: record.entries().to_vec(),
-            subscription_slices: record.subscription_slices().iter().cloned().collect(),
+            subscription_slices: record.subscription_slices().to_vec(),
             invalidation_targets: record.invalidation_targets().to_vec(),
         }
     }

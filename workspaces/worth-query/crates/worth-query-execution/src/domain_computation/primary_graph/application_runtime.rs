@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicU64;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryAuthenticatedExternalPrincipal, WorthQueryRequestScope,
 };
@@ -45,6 +46,11 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
         worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority,
+    pub(super) result_buffers:
+        super::application_query::resource_lifecycle::WorthQueryApplicationResultBufferRegistry,
+    pub(super) basis_leases:
+        super::application_query::resource_lifecycle::WorthQueryApplicationBasisRegistry,
+    pub(super) next_preview_session: AtomicU64,
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>
@@ -113,6 +119,9 @@ where
             bridge,
             primary_provider,
             primary_graph_authority,
+            result_buffers: Default::default(),
+            basis_leases: Default::default(),
+            next_preview_session: AtomicU64::new(1),
         })
     }
 }
@@ -129,6 +138,18 @@ where
         &self.publication
     }
 
+    pub fn result_buffer_observer(
+        &self,
+    ) -> super::application_query::WorthQueryApplicationResultBufferObserver {
+        self.result_buffers.observer()
+    }
+
+    pub fn application_query_basis_observer(
+        &self,
+    ) -> super::application_query::WorthQueryApplicationBasisObserver {
+        self.basis_leases.observer()
+    }
+
     #[cfg(test)]
     pub(crate) fn lose_next_commit_response(&self) {
         self.primary_provider.lose_next_commit_response();
@@ -143,6 +164,20 @@ where
     pub(crate) fn reject_next_commit_before_transaction(&self) {
         self.primary_provider
             .reject_next_commit_before_transaction();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn provider_session_resource_count(&self) -> usize {
+        let sessions = self
+            .primary_provider
+            .sessions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        sessions
+            .application_attempts
+            .len()
+            .saturating_add(sessions.session_overlays.len())
+            .saturating_add(sessions.overlays.len())
     }
 
     #[cfg(test)]

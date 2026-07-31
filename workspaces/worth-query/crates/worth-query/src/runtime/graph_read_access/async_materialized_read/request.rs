@@ -118,7 +118,7 @@ impl WorthQueryGraphReadMaterializationRequest {
             .expect("materialization requests are built only after denial validation");
         let admission_denial_kind = denial.kind().clone();
         let admission_digest = admission.digest().to_string();
-        let requirement_set_digest = admission.requirement_set().digest().as_str().to_string();
+        let requirement_set_digest = admission.requirement_set().digest().render_support_hex();
         let cost_estimate = admission.cost_estimate();
         let cost_estimate_digest = cost_estimate.digest().as_str().to_string();
         let estimated_touched_edges = cost_estimate.intrinsic().edge_touches();
@@ -129,7 +129,7 @@ impl WorthQueryGraphReadMaterializationRequest {
             .graph_index_inventory_match_report()
             .digest()
             .to_string();
-        let read_graph_digest = admission.requirement_set().read_graph_digest().to_string();
+        let read_graph_digest = admission.requirement_set().read_graph_digest().render_hex();
         let digest = hash_parts(&[
             "worth_query_graph_read_materialization_request_v1".to_string(),
             format!("admission:{admission_digest}"),

@@ -6,6 +6,7 @@ mod fields;
 mod governance;
 mod manifest;
 mod operations;
+mod precondition_manifest;
 mod program_manifest;
 mod relations;
 mod values;

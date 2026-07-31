@@ -36,10 +36,9 @@ impl RuntimeBridge {
                 context.loop_prevention(),
                 context.strategy_coherence(),
             )
-            .map_err(|error| {
+            .inspect_err(|error| {
                 self.diagnostics
-                    .record_writeback_execution(blocked_before_candidate_record(context, &error));
-                error
+                    .record_writeback_execution(blocked_before_candidate_record(context, error));
             })?;
         let mapper_witness = BridgeWritebackMapperWitness::issue_from_effect(context.effect());
         let mapper_record = BridgeWritebackMapperRecord::new(&mapper_witness, &candidate);

@@ -11,5 +11,5 @@ fn main() {
 
     let _ = canonicalization()
         .digest()
-        .for_sequence(sequence, CanonicalDigestAlgorithmId::test_stable_fixture());
+        .for_sequence(sequence, CanonicalDigestAlgorithmId::sha256());
 }

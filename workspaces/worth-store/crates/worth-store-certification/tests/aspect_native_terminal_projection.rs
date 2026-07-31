@@ -353,7 +353,7 @@ fn basis_and_digest_for_boundary_fact(
         StoreCanonicalBasisFamily::AspectBoundaryFact,
         basis.clone(),
     )
-    .derive(CanonicalDigestAlgorithmId::test_stable_fixture())
+    .derive(CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(digest) => digest,
         outcome => panic!("Store digest derivation should succeed: {outcome:?}"),

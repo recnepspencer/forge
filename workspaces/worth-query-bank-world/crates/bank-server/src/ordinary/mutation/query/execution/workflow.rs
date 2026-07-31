@@ -1,4 +1,8 @@
-use bank_domain::schema::{ApprovePayment, InitiateBusinessPayment, RejectPayment};
+use bank_domain::schema::{
+    ApprovePayment, ApprovePaymentOperation, BankSchema, Business, InitiateBusinessPayment,
+    InitiateBusinessPaymentOperation, PaymentIntent, RejectPayment, RejectPaymentOperation,
+};
+use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
 
 use super::{denied, execute_standard, interrupted, map_admission_denial};
 use crate::ordinary::mutation::{
@@ -9,18 +13,27 @@ use crate::{
     BankCommitPreparationDenial, BankIdentityRuntime, BankOperationProposals, BankReadyMutation,
 };
 
-impl BankReadyMutation<'_, '_, mutations::InitiateBusinessPaymentMutation> {
+impl
+    BankReadyMutation<
+        '_,
+        '_,
+        mutations::InitiateBusinessPaymentMutation,
+        InitiateBusinessPaymentOperation,
+        Business,
+    >
+{
     pub fn execute(self) -> BankPaymentInitiationOutcome {
         execute_initiation(
             self.runtime,
             self.principal,
+            self.preconditions,
             &self.controls,
             &self.mutation.input,
         )
     }
 }
 
-impl BankReadyMutation<'_, '_, BankApprovePendingPayment> {
+impl BankReadyMutation<'_, '_, BankApprovePendingPayment, ApprovePaymentOperation, PaymentIntent> {
     pub fn execute(self) -> BankMutationOutcome {
         let input = ApprovePayment {
             payment: self.mutation.payment,
@@ -32,6 +45,7 @@ impl BankReadyMutation<'_, '_, BankApprovePendingPayment> {
                 self.runtime.authorize_approve_payment(
                     self.principal,
                     input.payment,
+                    self.preconditions,
                     self.controls.request(),
                 )
             },
@@ -48,7 +62,7 @@ impl BankReadyMutation<'_, '_, BankApprovePendingPayment> {
     }
 }
 
-impl BankReadyMutation<'_, '_, BankRejectPendingPayment> {
+impl BankReadyMutation<'_, '_, BankRejectPendingPayment, RejectPaymentOperation, PaymentIntent> {
     pub fn execute(self) -> BankMutationOutcome {
         let input = RejectPayment {
             payment: self.mutation.payment,
@@ -60,6 +74,7 @@ impl BankReadyMutation<'_, '_, BankRejectPendingPayment> {
                 self.runtime.authorize_reject_payment(
                     self.principal,
                     input.payment,
+                    self.preconditions,
                     self.controls.request(),
                 )
             },
@@ -74,6 +89,11 @@ impl BankReadyMutation<'_, '_, BankRejectPendingPayment> {
 fn execute_initiation(
     runtime: &BankIdentityRuntime,
     principal: &crate::BankAuthenticatedPrincipal,
+    preconditions: TypedMutationPreconditions<
+        BankSchema,
+        InitiateBusinessPaymentOperation,
+        Business,
+    >,
     controls: &crate::BankMutationControls,
     input: &InitiateBusinessPayment,
 ) -> BankPaymentInitiationOutcome {
@@ -83,6 +103,7 @@ fn execute_initiation(
     let admission = match runtime.authorize_initiate_business_payment(
         principal,
         input.business,
+        preconditions,
         controls.request(),
     ) {
         Ok(admission) => admission,

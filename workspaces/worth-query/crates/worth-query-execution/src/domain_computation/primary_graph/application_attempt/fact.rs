@@ -71,6 +71,13 @@ pub(crate) enum WorthQueryApplicationObservedFact {
 }
 
 impl WorthQueryApplicationObservedFact {
+    pub(super) const fn observed_field_value(&self) -> Option<&AspectValue> {
+        match self {
+            Self::Field { value, .. } => Some(value),
+            _ => None,
+        }
+    }
+
     pub(super) const fn target(&self) -> &ApplicationOperationDecisionReadTarget {
         match self {
             Self::Entity { target, .. }

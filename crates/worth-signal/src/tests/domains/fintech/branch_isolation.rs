@@ -183,12 +183,9 @@ fn fintech_cross_branch_churn_keeps_branch_truth_from_leaking() {
     let main_replay = main_truth.replays.get("main").unwrap();
     let analysis_replay = main_truth.replays.get("analysis").unwrap();
     let correction_replay = main_truth.replays.get("correction").unwrap();
-    assert!(replay_is_branch_local(
-        &main_replay,
-        &main_checkpoint.branch
-    ));
-    assert!(replay_is_branch_local(&analysis_replay, &analysis));
-    assert!(replay_is_branch_local(&correction_replay, &correction));
+    assert!(replay_is_branch_local(main_replay, &main_checkpoint.branch));
+    assert!(replay_is_branch_local(analysis_replay, &analysis));
+    assert!(replay_is_branch_local(correction_replay, &correction));
 
     assert_eq!(
         main_truth.branch_heads.get("main"),

@@ -4,13 +4,19 @@ use super::basis::prepare_materialized_boundary_artifact_for_canonical_basis;
 use super::materialization::FoundationalMaterializedBoundaryArtifact;
 use super::roles::FoundationalBoundaryArtifactRole;
 use crate::canonicalization::{
-    admit_canonical_sequence_digest_derivation, derive_canonical_digest,
+    admit_canonical_sequence_digest_derivation_with_budget, derive_canonical_digest,
     prepare_canonical_basis_sequence, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact,
     CanonicalBasisSequence, CanonicalBasisValue, CanonicalDerivedDigest,
-    CanonicalDigestAlgorithmId, CanonicalDigestDerivationDenial,
+    CanonicalDigestAlgorithmId, CanonicalDigestDerivationDenial, CanonicalDigestWorkBudget,
     CanonicalSingleSequenceDigestAlgorithmSlot, CanonicalizationRuleVersion,
 };
+
+const SAME_FAMILY_DIGEST_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(256, 64 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("same-family digest budget is nonzero"),
+    };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FoundationalSameFamilyBoundaryFamily(String);
@@ -186,11 +192,15 @@ pub fn derive_same_family_boundary_identity<Surface>(
     let basis_sequence = basis.payload().clone();
 
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::BoundaryArtifact,
         version,
     );
-    let derivation = match admit_canonical_sequence_digest_derivation(basis, slot) {
+    let derivation = match admit_canonical_sequence_digest_derivation_with_budget(
+        basis,
+        slot,
+        SAME_FAMILY_DIGEST_BUDGET,
+    ) {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => {
             return TransitionOutcome::denied(

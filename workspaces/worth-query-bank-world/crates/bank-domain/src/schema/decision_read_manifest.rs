@@ -7,14 +7,12 @@ use super::entities::AccountAuthorization;
 use super::fields::{
     AccountAuthorizationIdentity, AccountDisplayName, AccountIdentity, AccountingRevision,
     AuthorizationRole, BusinessIdentityField, InstitutionIdentityField, JournalIdentityField,
-    JournalPurpose, Kind, PaymentIdentityField, PostingAmount, PostingIdentityField, Purpose,
-    Status,
+    JournalPurpose, Kind, PostingAmount, PostingIdentityField, Purpose, Status,
 };
 use super::operations::*;
 use super::relations::{
-    AccountAuthorizedUser, AuthorizationAccount, BusinessAccount, BusinessOwner,
-    InstitutionAccount, InstitutionCashAccount, JournalPosting, JournalReversal, PersonalOwner,
-    PostingAccount,
+    AccountAuthorizedUser, AuthorizationAccount, BusinessAccount, InstitutionAccount,
+    InstitutionCashAccount, JournalPosting, JournalReversal, PersonalOwner, PostingAccount,
 };
 use super::BankSchema;
 
@@ -157,7 +155,7 @@ fn install_account_access_reads(
                 GrantAccountAuthorizationOperation::reference(),
                 AuthorizationRole::reference(),
             );
-    let schema = schema
+    schema
         .operation_read_field(
             RevokeAccountAuthorizationOperation::reference(),
             AccountIdentity::reference(),
@@ -185,59 +183,6 @@ fn install_account_access_reads(
         .operation_read_field(
             RevokeAccountAuthorizationOperation::reference(),
             AccountAuthorizationIdentity::reference(),
-        );
-    schema
-        .operation_read_field(
-            DiscoverAccountsOperation::reference(),
-            PrincipalIdentityField::reference(),
-        )
-        .operation_read_relation(
-            DiscoverAccountsOperation::reference(),
-            PersonalOwner::reference(),
-        )
-        .operation_read_relation(
-            DiscoverAccountsOperation::reference(),
-            AccountAuthorizedUser::reference(),
-        )
-        .operation_read_relation(
-            DiscoverAccountsOperation::reference(),
-            AuthorizationAccount::reference(),
-        )
-        .operation_read_relation(
-            DiscoverAccountsOperation::reference(),
-            BusinessOwner::reference(),
-        )
-        .operation_read_relation(
-            DiscoverAccountsOperation::reference(),
-            BusinessAccount::reference(),
-        )
-        .operation_read_field(
-            ReadAccountSummaryOperation::reference(),
-            AccountIdentity::reference(),
-        )
-        .operation_read_field(
-            ReadAccountDetailOperation::reference(),
-            AccountIdentity::reference(),
-        )
-        .operation_read_field(
-            ReadAccountAuthorizedUsersOperation::reference(),
-            AccountIdentity::reference(),
-        )
-        .operation_read_field(
-            ReadAccountActivityOperation::reference(),
-            AccountIdentity::reference(),
-        )
-        .operation_read_field(
-            ReadPendingPaymentsOperation::reference(),
-            PrincipalIdentityField::reference(),
-        )
-        .operation_read_field(
-            ReadPaymentOperation::reference(),
-            PaymentIdentityField::reference(),
-        )
-        .operation_read_field(
-            AuditInstitutionActivityOperation::reference(),
-            InstitutionIdentityField::reference(),
         )
 }
 
@@ -257,14 +202,6 @@ fn install_operation_budgets(
         .operation_decision_fact_budget(GrantAccountAuthorizationOperation::reference(), 96)
         .operation_decision_fact_budget(RevokeAccountAuthorizationOperation::reference(), 96)
         .operation_decision_fact_budget(ReverseJournalOperation::reference(), 256)
-        .operation_decision_fact_budget(DiscoverAccountsOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadAccountSummaryOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadAccountDetailOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadAccountAuthorizedUsersOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadAccountActivityOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadPendingPaymentsOperation::reference(), 1)
-        .operation_decision_fact_budget(ReadPaymentOperation::reference(), 1)
-        .operation_decision_fact_budget(AuditInstitutionActivityOperation::reference(), 1)
         .operation_projection_work_budget(CreatePersonalAccountOperation::reference(), 256)
         .operation_projection_work_budget(CreateBusinessAccountOperation::reference(), 256)
         .operation_projection_work_budget(ApplyOpeningFundingOperation::reference(), 4_096)
@@ -277,12 +214,4 @@ fn install_operation_budgets(
         .operation_projection_work_budget(GrantAccountAuthorizationOperation::reference(), 512)
         .operation_projection_work_budget(RevokeAccountAuthorizationOperation::reference(), 512)
         .operation_projection_work_budget(ReverseJournalOperation::reference(), 8_192)
-        .operation_projection_work_budget(DiscoverAccountsOperation::reference(), 1_024)
-        .operation_projection_work_budget(ReadAccountSummaryOperation::reference(), 4_096)
-        .operation_projection_work_budget(ReadAccountDetailOperation::reference(), 4_096)
-        .operation_projection_work_budget(ReadAccountAuthorizedUsersOperation::reference(), 1_024)
-        .operation_projection_work_budget(ReadAccountActivityOperation::reference(), 8_192)
-        .operation_projection_work_budget(ReadPendingPaymentsOperation::reference(), 4_096)
-        .operation_projection_work_budget(ReadPaymentOperation::reference(), 1_024)
-        .operation_projection_work_budget(AuditInstitutionActivityOperation::reference(), 16_384)
 }

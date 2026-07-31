@@ -105,7 +105,7 @@ impl ValidationRejectionMatrix {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct QueryValidationReport {
-    schema_basis_digest: String,
+    schema_basis_digest: SchemaBasisDigest,
     validated_projection_entries: usize,
     validated_traversal_entries: usize,
     validated_result_shape_bindings: usize,
@@ -119,7 +119,7 @@ pub struct QueryValidationReport {
 impl QueryValidationReport {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        schema_basis_digest: String,
+        schema_basis_digest: SchemaBasisDigest,
         validated_projection_entries: usize,
         validated_traversal_entries: usize,
         validated_result_shape_bindings: usize,
@@ -142,7 +142,7 @@ impl QueryValidationReport {
         }
     }
 
-    pub fn schema_basis_digest(&self) -> &str {
+    pub fn schema_basis_digest(&self) -> &SchemaBasisDigest {
         &self.schema_basis_digest
     }
 
@@ -178,3 +178,4 @@ impl QueryValidationReport {
         &self.rejection_matrix
     }
 }
+use crate::identity::SchemaBasisDigest;

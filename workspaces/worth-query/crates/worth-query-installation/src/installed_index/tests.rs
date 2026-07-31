@@ -2,6 +2,7 @@ use super::*;
 use crate::admission::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
 };
+use crate::authority_cryptography::InstallationAuthorityRootKey;
 use crate::package::{
     WorthQueryPortableDefinition, WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
 };
@@ -84,6 +85,22 @@ fn admission_profile_identity_is_part_of_installed_authority() {
 }
 
 #[test]
+fn authority_entropy_failure_denies_index_construction() {
+    let denial = WorthQueryInstalledPackageIndex::build_with_authority_root_result(
+        WorthQueryInstallationRuntimeIdentity::fresh(),
+        WorthQueryInstallationGeneration::initial(),
+        [admitted("worth.alpha", "direct")],
+        Err(()),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryInstalledPackageIndexDenialKind::AuthorityEntropyUnavailable
+    );
+}
+
+#[test]
 fn mixed_admission_profiles_cannot_converge_as_equivalent_packages() {
     let denial = WorthQueryInstalledPackageIndex::build(
         WorthQueryInstallationRuntimeIdentity::fresh(),
@@ -136,11 +153,11 @@ fn declaration_order_and_equivalent_packages_converge() {
     )
     .unwrap();
     assert_eq!(left.identity(), right.identity());
-    assert_eq!(
+    assert_ne!(
         left.domain("worth.alpha").unwrap(),
         right.domain("worth.alpha").unwrap()
     );
-    assert_eq!(
+    assert_ne!(
         left.operation("worth.alpha", "worth.alpha.read").unwrap(),
         right.operation("worth.alpha", "worth.alpha.read").unwrap()
     );
@@ -211,6 +228,11 @@ fn foreign_stale_and_rebuilt_authorities_remain_exact() {
         successor.validate(&authority).unwrap_err().kind(),
         WorthQueryInstalledPackageIndexDenialKind::StaleGeneration
     );
+    assert!(!successor
+        .domain("worth.alpha")
+        .unwrap()
+        .authority_key
+        .matches(&authority.authority_key));
 
     let rebuilt = index.rebuild();
     assert_eq!(index.identity(), rebuilt.identity());
@@ -226,6 +248,31 @@ fn foreign_stale_and_rebuilt_authorities_remain_exact() {
     rebuilt.validate(&authority).unwrap();
     rebuilt.validate_operation(&operation).unwrap();
     assert_eq!(rebuilt.indexed_operation_lookups(), 2);
+}
+
+#[test]
+fn independently_rooted_same_ordinal_index_is_foreign_authority() {
+    let runtime = WorthQueryInstallationRuntimeIdentity::fresh();
+    let first = WorthQueryInstalledPackageIndex::build_with_authority_root(
+        runtime.retained(),
+        WorthQueryInstallationGeneration::initial(),
+        [admitted("worth.alpha", "direct")],
+        InstallationAuthorityRootKey::repeated_byte_for_test(0x41),
+    )
+    .unwrap();
+    let second = WorthQueryInstalledPackageIndex::build_with_authority_root(
+        runtime,
+        WorthQueryInstallationGeneration::initial(),
+        [admitted("worth.alpha", "direct")],
+        InstallationAuthorityRootKey::repeated_byte_for_test(0x42),
+    )
+    .unwrap();
+
+    assert_eq!(first.identity(), second.identity());
+    assert_eq!(
+        first.relation_to(&second),
+        WorthQueryInstalledPackageIndexRelation::ForeignRuntime
+    );
 }
 
 #[test]

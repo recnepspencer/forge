@@ -1,5 +1,6 @@
 use super::authorization_policy::ApplicationAuthorizationPath;
-use super::declaration::ApplicationSchemaDeclarationDenial;
+use super::capability_identifier_validation::validate_capability_identifiers;
+use super::declaration_denial::ApplicationSchemaDeclarationDenial;
 use super::schema_member::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
     ApplicationSchemaMember,
@@ -19,7 +20,9 @@ pub(super) fn validate_schema_header(
     Ok(())
 }
 
-fn validate_simple_identifier(value: &str) -> Result<(), ApplicationSchemaDeclarationDenial> {
+pub(super) fn validate_simple_identifier(
+    value: &str,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
     if value.is_empty()
         || value.trim() != value
         || value.chars().any(char::is_whitespace)
@@ -78,6 +81,12 @@ pub(super) fn validate_member_identifiers(
                 principal_identity_aspect,
                 principal_identity_field,
             ])?,
+            ApplicationSchemaMember::ApplicationQuery { definition } => {
+                validate_application_query_identifiers(definition)?;
+            }
+            ApplicationSchemaMember::ApplicationCapability { contract } => {
+                validate_capability_identifiers(contract)?;
+            }
             ApplicationSchemaMember::Operation { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }
@@ -88,6 +97,12 @@ pub(super) fn validate_member_identifiers(
             ApplicationSchemaMember::OperationDecisionRead { operation, target } => {
                 validate_simple_identifier(operation)?;
                 validate_decision_read_target_identifiers(target)?;
+            }
+            ApplicationSchemaMember::OperationMutationPrecondition { operation, target } => {
+                validate_simple_identifier(operation)?;
+                validate_simple_identifier(target.entity())?;
+                validate_simple_identifier(target.aspect())?;
+                validate_simple_identifier(target.field_name())?;
             }
             ApplicationSchemaMember::OperationDecisionFactBudget { operation, .. } => {
                 validate_simple_identifier(operation)?;
@@ -123,6 +138,65 @@ pub(super) fn validate_member_identifiers(
                 validate_simple_identifier(effect)?;
             }
         }
+    }
+    Ok(())
+}
+
+fn validate_application_query_identifiers(
+    definition: &crate::application_query::ErasedApplicationQueryDefinition,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_simple_identifier(definition.name())?;
+    validate_simple_identifier(definition.root_entity())?;
+    validate_simple_identifier(definition.scope_entity())?;
+    for parameter in definition.parameters() {
+        validate_simple_identifier(parameter.name())?;
+    }
+    for path in definition.root_paths() {
+        for guard in path.guards() {
+            validate_query_identifiers([guard.entity(), guard.aspect(), guard.field()])?;
+        }
+    }
+    validate_result_shape_identifiers(definition.result_shape())?;
+    for predicate in definition.predicates() {
+        let (entity, aspect, field) = predicate.field();
+        validate_query_identifiers([entity, aspect, field, predicate.parameter()])?;
+    }
+    for ordering in definition.ordering() {
+        let (entity, aspect, field) = ordering.field();
+        validate_query_identifiers([entity, aspect, field])?;
+    }
+    Ok(())
+}
+
+fn validate_result_shape_identifiers(
+    shape: &crate::application_query::ApplicationQueryResultShape,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_simple_identifier(shape.root_entity())?;
+    for field in shape.fields() {
+        validate_query_identifiers([
+            field.entity(),
+            field.aspect(),
+            field.field(),
+            field.output_name(),
+        ])?;
+    }
+    for relation in shape.relations() {
+        validate_query_identifiers([
+            relation.relation(),
+            relation.from(),
+            relation.to(),
+            relation.output_name(),
+        ])?;
+        validate_result_shape_identifiers(relation.nested_shape())?;
+    }
+    Ok(())
+}
+
+fn validate_query_identifiers<'a>(
+    identifiers: impl IntoIterator<Item = &'a str>,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    for identifier in identifiers {
+        validate_simple_identifier(identifier)?;
     }
     Ok(())
 }

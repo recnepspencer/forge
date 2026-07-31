@@ -1,6 +1,6 @@
 use bank_domain::model::{
     AccountAuthorizationId, AccountId, BankPrincipalId, CustomerRole, JournalEntryId, Money,
-    PaymentId, SignedMoney, USD,
+    PaymentId, PostingId, SignedMoney, USD,
 };
 use bank_domain::schema::*;
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
@@ -67,7 +67,7 @@ fn installed_money_mutation_and_effect_program_are_usable() {
     assert_eq!(mutation.creates(), &["JournalEntry", "Posting"]);
     assert_eq!(
         mutation.binding().unwrap().schema_identity(),
-        BankSchema::declaration().unwrap().identity()
+        bank.binding_identity().schema_identity()
     );
 
     let effects = bank
@@ -77,6 +77,7 @@ fn installed_money_mutation_and_effect_program_are_usable() {
             ActivityEvent {
                 account: from,
                 journal: JournalEntryId::new(1).unwrap(),
+                posting: PostingId::new(1).unwrap(),
                 journal_sequence: 7,
             },
         )
@@ -303,6 +304,7 @@ fn assert_forged_effect_denied(
             ActivityEvent {
                 account,
                 journal: JournalEntryId::new(2).unwrap(),
+                posting: PostingId::new(2).unwrap(),
                 journal_sequence: 8,
             },
         )

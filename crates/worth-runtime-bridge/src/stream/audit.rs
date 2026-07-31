@@ -34,10 +34,10 @@ impl StreamReplayAuditSummary {
             consumer_contract_digest: std::sync::Arc::from(
                 window.consumer_contract_identity().as_str(),
             ),
-            diagnostics_digest: std::sync::Arc::from(digest_string(
+            diagnostics_digest: digest_string(
                 "stream-diagnostics-policy",
-                diagnostics_policy_class_label(window.diagnostics_policy_class()).as_ref(),
-            )),
+                diagnostics_policy_class_label(window.diagnostics_policy_class()),
+            ),
             audited_member_count: window.members().len(),
             counters: replay_record
                 .counters()

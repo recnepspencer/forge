@@ -149,7 +149,7 @@ fn grouped_canonicalization_surface_exposes_common_lower_and_stronger_lanes() {
     let lower_digest_ready = match lower_digest::admit_canonical_export_digest_derivation(
         lower_export_ready_for_digest,
         lower_digest::CanonicalExportBundleDigestAlgorithmSlot::export_bundle(
-            lower_digest::CanonicalDigestAlgorithmId::test_stable_fixture(),
+            lower_digest::CanonicalDigestAlgorithmId::sha256(),
             version(),
         ),
     ) {

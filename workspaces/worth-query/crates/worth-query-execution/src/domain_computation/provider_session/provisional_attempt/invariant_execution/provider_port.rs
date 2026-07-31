@@ -1,13 +1,9 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use super::{
     WorthQueryAdmittedInvariantStateLoadPlan, WorthQueryInvariantExecutionDenialKind,
     WorthQueryInvariantExecutionFailure,
 };
-use crate::execution_digest::hash_parts;
-
-static NEXT_INVARIANT_EVIDENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryInvariantStructuralCounters {
@@ -118,31 +114,8 @@ impl WorthQueryInvariantStateLoadAdmission {
                 WorthQueryInvariantExecutionDenialKind::ExecutionBudgetExceeded,
             ));
         }
-        let occurrence = NEXT_INVARIANT_EVIDENCE.fetch_add(1, Ordering::Relaxed);
-        let identity = hash_parts(
-            &[
-                vec![
-                    "worth_query_invariant_state_load_evidence_v1".to_owned(),
-                    self.binding.session_binding_identity.to_string(),
-                    self.binding.requirement_identity.to_string(),
-                    self.binding.proposed_state_identity.to_string(),
-                    self.binding.attempt_generation.to_string(),
-                    self.binding.load_plan_identity.to_string(),
-                    physical_load_evidence.to_string(),
-                    counters.loaded_facts().to_string(),
-                    counters.load_work_units().to_string(),
-                    occurrence.to_string(),
-                ],
-                std::iter::once(loaded.len().to_string())
-                    .chain(loaded.iter().flat_map(|locator| {
-                        [locator.family().to_owned(), locator.identity().to_owned()]
-                    }))
-                    .collect(),
-            ]
-            .concat(),
-        );
         Ok(WorthQueryInvariantStateLoadEvidence {
-            identity: identity.into(),
+            identity: Arc::clone(&physical_load_evidence),
             binding: self.binding,
             physical_load_evidence,
             loaded_fact_locators: loaded.into(),

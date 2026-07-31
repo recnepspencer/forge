@@ -13,6 +13,7 @@ use crate::visibility::materialization::read_records::{
     entity_query_locus_comparison_key, relation_query_locus_comparison_key,
 };
 
+use super::super::projected_field_values::IndexProjectionSource;
 use super::scratch::{index_query_scratch_for_runtime, retain_index_query_scratch};
 
 pub(crate) fn execute_index_backed_query_from_generation(
@@ -26,7 +27,22 @@ pub(crate) fn execute_index_backed_query_from_generation(
         .values()
         .flat_map(|generations| generations.iter())
         .find(|generation| generation.generation_id == generation_id)?;
-    let state = runtime.storage_access().current_state();
+    let current_projection =
+        (plan.snapshot.version_id == runtime.current_version_id()).then(|| {
+            runtime
+                .read_truth()
+                .project_version(plan.snapshot.version_id)
+        });
+    let historical_read = if plan.snapshot.version_id == runtime.current_version_id() {
+        None
+    } else {
+        Some(runtime.read_truth().read_snapshot(&plan.snapshot)?)
+    };
+    let source = match (&current_projection, &historical_read) {
+        (Some(projection), None) => IndexProjectionSource::Current(projection),
+        (None, Some(read)) => IndexProjectionSource::Reconstructed(read),
+        _ => unreachable!("one exact index read source must match the query snapshot"),
+    };
     match (&plan.packet.scope, &generation.entries) {
         (
             QueryScope::EntityFieldEquals {
@@ -40,7 +56,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
             execute_entity_index_lookup(
                 runtime,
                 plan,
-                &state,
+                &source,
                 field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 entries
@@ -82,7 +98,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
             execute_entity_index_lookup(
                 runtime,
                 plan,
-                &state,
+                &source,
                 field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 candidate_ids,
@@ -105,7 +121,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
             execute_relation_index_lookup(
                 runtime,
                 plan,
-                &state,
+                &source,
                 field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 entries
@@ -147,7 +163,7 @@ pub(crate) fn execute_index_backed_query_from_generation(
             execute_relation_index_lookup(
                 runtime,
                 plan,
-                &state,
+                &source,
                 field_locator,
                 partition_scope.as_ref().map(|scope| &**scope),
                 candidate_ids,
@@ -171,7 +187,7 @@ fn query_value_comparison_key(
 fn execute_entity_index_lookup(
     runtime: &RelationalRuntime,
     plan: &SnapshotPinnedQueryPlan,
-    state: &impl crate::logic::runtime::PartitionAccess,
+    source: &IndexProjectionSource<'_, '_>,
     _field_locator: &AspectFieldLocator,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
     candidate_ids: BTreeSet<crate::identity::data::EntityId>,
@@ -191,14 +207,7 @@ fn execute_entity_index_lookup(
         {
             continue;
         }
-        let Some(record) = runtime
-            .read_truth()
-            .authoritative_entity_record_for_id_at_version(
-                state,
-                entity_id,
-                plan.snapshot.version_id,
-            )
-        else {
+        let Some(record) = source.with_entity(entity_id, Clone::clone) else {
             continue;
         };
         if include(&record) {
@@ -224,7 +233,7 @@ fn execute_entity_index_lookup(
 fn execute_relation_index_lookup(
     runtime: &RelationalRuntime,
     plan: &SnapshotPinnedQueryPlan,
-    state: &impl crate::logic::runtime::PartitionAccess,
+    source: &IndexProjectionSource<'_, '_>,
     _field_locator: &AspectFieldLocator,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
     candidate_ids: BTreeSet<crate::identity::data::RelationId>,
@@ -244,14 +253,7 @@ fn execute_relation_index_lookup(
         {
             continue;
         }
-        let Some(record) = runtime
-            .read_truth()
-            .authoritative_relation_record_for_id_at_version(
-                state,
-                relation_id,
-                plan.snapshot.version_id,
-            )
-        else {
+        let Some(record) = source.with_relation(relation_id, Clone::clone) else {
             continue;
         };
         if include(&record) {

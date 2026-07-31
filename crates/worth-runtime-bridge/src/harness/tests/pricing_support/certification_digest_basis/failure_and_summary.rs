@@ -31,7 +31,7 @@ impl PricingWorkloadCertificationBundle {
                 "simulation_trace_count",
                 self.simulation.iteration_traces.len(),
             ),
-            PricingCertificationBasisEntry::debug("merge_denial_class", &self.merge.denial_class),
+            PricingCertificationBasisEntry::debug("merge_denial_class", self.merge.denial_class),
             PricingCertificationBasisEntry::debug(
                 "writeback_rejection",
                 self.writeback.rejection_error_kind,
@@ -91,7 +91,7 @@ impl PricingWorkloadCertificationBundle {
                 "writeback_failure",
                 self.writeback.rejection_error_kind,
             ),
-            PricingCertificationBasisEntry::debug("merge_denial_class", &self.merge.denial_class),
+            PricingCertificationBasisEntry::debug("merge_denial_class", self.merge.denial_class),
         ]
     }
 

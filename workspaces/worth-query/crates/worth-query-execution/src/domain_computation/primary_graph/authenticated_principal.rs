@@ -9,6 +9,7 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::identity::{EntityId, RelationId};
 
+use super::freshness::WorthQueryPrincipalFreshnessEvidence;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
 /// Opaque identity of one application principal in an installed primary graph.
@@ -50,7 +51,7 @@ impl<Schema, Principal, PrincipalIdentity> std::fmt::Debug
 ///     binding: String::new(),
 ///     mapping_entity_id: todo!(),
 ///     target_relation_id: todo!(),
-///     freshness_digest: [0; 32],
+///     freshness: todo!(),
 ///     examined_candidate_count: 0,
 /// };
 /// ```
@@ -71,7 +72,7 @@ pub struct WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity
     binding: String,
     mapping_entity_id: EntityId,
     target_relation_id: RelationId,
-    freshness_digest: [u8; 32],
+    freshness: WorthQueryPrincipalFreshnessEvidence,
     examined_candidate_count: usize,
 }
 
@@ -83,7 +84,7 @@ pub(super) struct WorthQueryResolvedPrincipalEvidence<PrincipalIdentity> {
     pub(super) binding: String,
     pub(super) mapping_entity_id: EntityId,
     pub(super) target_relation_id: RelationId,
-    pub(super) freshness_digest: [u8; 32],
+    pub(super) freshness: WorthQueryPrincipalFreshnessEvidence,
     pub(super) examined_candidate_count: usize,
 }
 
@@ -106,7 +107,7 @@ impl<Schema, Principal, PrincipalIdentity>
             binding: evidence.binding,
             mapping_entity_id: evidence.mapping_entity_id,
             target_relation_id: evidence.target_relation_id,
-            freshness_digest: evidence.freshness_digest,
+            freshness: evidence.freshness,
             examined_candidate_count: evidence.examined_candidate_count,
         }
     }
@@ -165,8 +166,8 @@ impl<Schema, Principal, PrincipalIdentity>
         self.target_relation_id
     }
 
-    pub(crate) const fn freshness_digest(&self) -> &[u8; 32] {
-        &self.freshness_digest
+    pub(super) const fn freshness(&self) -> &WorthQueryPrincipalFreshnessEvidence {
+        &self.freshness
     }
 }
 

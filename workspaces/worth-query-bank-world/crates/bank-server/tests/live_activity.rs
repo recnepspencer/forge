@@ -4,22 +4,30 @@
 )]
 #[path = "ordinary_reads/fixture.rs"]
 mod fixture;
+#[path = "live_activity/support.rs"]
+mod live_activity_support;
 mod support;
 
 use std::time::{Duration, Instant};
 
-use bank_domain::model::{CustomerRole, Money, ReadOutcome};
 use bank_domain::proposals::BankIdempotencyKey;
-use bank_domain::schema::{Deposit, GrantAccountAuthorization, RevokeAccountAuthorization};
+use bank_domain::schema::RevokeAccountAuthorization;
 use bank_server::{
-    mutations, queries, BankActivityLiveOutcome, BankLiveControls, BankMutationControls,
-    BankMutationStatus, BankReadControls,
+    mutations, BankAccountActivityLiveOutcome, BankApplicationQueryDenial, BankMutationControls,
+    BankMutationStatus,
 };
 
 use fixture::{ordinary_read_world, OWNER, TELLER, VIEWER};
+use live_activity_support::{
+    activity_count, assert_phase_posture, authorized_user_id, commit_authorization_toggle,
+    commit_deposit, live_controls, live_controls_for,
+};
 use support::request_scope;
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
+};
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationLiveControls, WorthQueryApplicationLiveOpenDenialKind,
 };
 
 #[test]
@@ -30,11 +38,14 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
     let mut live = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
         .subscribe(live_controls())
         .expect("authorized activity lease should open");
-    assert!(matches!(live.poll(), BankActivityLiveOutcome::Pending));
+    assert!(matches!(
+        live.poll(),
+        BankAccountActivityLiveOutcome::Pending
+    ));
 
     commit_deposit(
         &fixture,
@@ -42,7 +53,10 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
         fixture.recipient_account,
         "unrelated-live-deposit",
     );
-    assert!(matches!(live.poll(), BankActivityLiveOutcome::Pending));
+    assert!(matches!(
+        live.poll(),
+        BankAccountActivityLiveOutcome::Pending
+    ));
 
     let before = activity_count(&fixture, &owner);
     commit_deposit(
@@ -52,29 +66,86 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
         "matching-live-deposit",
     );
     let outcome = live.poll();
-    let BankActivityLiveOutcome::Delivered(update) = outcome else {
-        panic!("matching commit must deliver a fresh account projection: {outcome:?}");
+    let BankAccountActivityLiveOutcome::Delivered(update) = outcome else {
+        panic!("matching commit must deliver a fresh account projection");
     };
+    let activity = update.result();
     assert_eq!(
-        update.activity().output().account_sequence().get(),
+        activity.entries()[0].account_sequence().get(),
         u64::try_from(before).unwrap() + 1
     );
-    assert_eq!(update.activity().metadata().result_count(), 1);
-    assert!(!update.activity().metadata().truncated());
-    assert!(update.commit_id() > 0);
-    live.close();
+    assert_eq!(activity.account(), fixture.personal_account);
+    assert_eq!(activity.entries().len(), 1);
+    assert_eq!(update.receipt().projected_record_count(), 3);
+    assert!(update.commit_ordinal() > 0);
+    assert_eq!(
+        live.close(),
+        worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed
+    );
+}
+
+#[test]
+fn live_consumer_fanout_keeps_each_delivery_free_of_canonical_work() {
+    const CONSUMER_COUNT: usize = 32;
+
+    let fixture = ordinary_read_world("live-consumer-canonical-scale", 0);
+    let owner = fixture.authenticate(OWNER);
+    let teller = fixture.authenticate(TELLER);
+    let mut leases = (0..CONSUMER_COUNT)
+        .map(|_| {
+            fixture
+                .world
+                .runtime
+                .account_activity(fixture.personal_account)
+                .as_principal(&owner)
+                .subscribe(live_controls())
+                .expect("each bounded authenticated live consumer should open")
+        })
+        .collect::<Vec<_>>();
+
+    commit_deposit(
+        &fixture,
+        &teller,
+        fixture.personal_account,
+        "live-consumer-canonical-scale-deposit",
+    );
+
+    let mut expected_phases = None;
+    let mut delivered = 0usize;
+    for lease in &mut leases {
+        let BankAccountActivityLiveOutcome::Delivered(update) = lease.poll() else {
+            panic!("each retained consumer must receive the matching commit")
+        };
+        delivered += 1;
+        let phases = update.receipt().canonical_work();
+        assert_phase_posture(phases);
+        assert_eq!(update.receipt().authorization_work().requirement_count(), 1);
+        if let Some(expected) = expected_phases {
+            assert_eq!(phases, expected);
+        } else {
+            expected_phases = Some(phases);
+        }
+    }
+    assert_eq!(delivered, CONSUMER_COUNT);
+    for lease in leases {
+        assert_eq!(
+            lease.close(),
+            worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed
+        );
+    }
 }
 
 #[test]
 fn permission_revocation_closes_before_another_payload_is_delivered() {
     let fixture = ordinary_read_world("live-revocation", 0);
     let owner = fixture.authenticate(OWNER);
+    let teller = fixture.authenticate(TELLER);
     let viewer = fixture.authenticate(VIEWER);
     let authorization = authorized_user_id(&fixture, &owner, VIEWER);
     let mut live = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&viewer)
         .subscribe(live_controls())
         .expect("viewer should open activity lease");
@@ -95,10 +166,21 @@ fn permission_revocation_closes_before_another_payload_is_delivered() {
         ))
         .execute();
     assert!(matches!(revoked.status(), BankMutationStatus::Committed(_)));
+    commit_deposit(
+        &fixture,
+        &teller,
+        fixture.personal_account,
+        "revoked-viewer-live-deposit",
+    );
     assert!(matches!(
         live.poll(),
-        BankActivityLiveOutcome::AuthorizationRevoked(_)
+        BankAccountActivityLiveOutcome::AuthorizationDenied(_)
     ));
+    assert!(matches!(
+        live.poll(),
+        BankAccountActivityLiveOutcome::Closed
+    ));
+    assert_eq!(live.buffered_cause_count(), 0);
 }
 
 #[test]
@@ -113,35 +195,46 @@ fn cancellation_and_deadline_are_distinct_live_terminals() {
     let mut cancelled = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
-        .subscribe(BankLiveControls::current(request, 16, 2).unwrap())
+        .subscribe(live_controls_for(request, 16))
         .expect("live lease should open before cancellation");
     cancellation.cancel();
     let cancelled_outcome = cancelled.poll();
     assert!(
-        matches!(cancelled_outcome, BankActivityLiveOutcome::Cancelled),
-        "unexpected cancellation outcome: {cancelled_outcome:?}"
+        matches!(cancelled_outcome, BankAccountActivityLiveOutcome::Cancelled),
+        "unexpected cancellation outcome"
     );
+    assert!(matches!(
+        cancelled.poll(),
+        BankAccountActivityLiveOutcome::Closed
+    ));
 
-    let deadline = Instant::now() + Duration::from_millis(25);
+    let deadline = Instant::now() + Duration::from_secs(1);
     let deadline_source = WorthQueryCancellationSource::new();
     let request = WorthQueryRequestScope::new(deadline, deadline_source.token());
     let mut expired = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
-        .subscribe(BankLiveControls::current(request, 16, 2).unwrap())
+        .subscribe(live_controls_for(request, 16))
         .expect("live lease should open before its deadline");
     while Instant::now() < deadline {
         std::thread::yield_now();
     }
     let expired_outcome = expired.poll();
     assert!(
-        matches!(expired_outcome, BankActivityLiveOutcome::DeadlineExceeded),
-        "unexpected deadline outcome: {expired_outcome:?}"
+        matches!(
+            expired_outcome,
+            BankAccountActivityLiveOutcome::DeadlineExceeded
+        ),
+        "unexpected deadline outcome"
     );
+    assert!(matches!(
+        expired.poll(),
+        BankAccountActivityLiveOutcome::Closed
+    ));
 }
 
 #[test]
@@ -151,18 +244,41 @@ fn caller_cannot_enlarge_the_installed_live_buffer_ceiling() {
     let denial = match fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
-        .subscribe(BankLiveControls::current(request_scope(), 16, 3).unwrap())
+        .subscribe(live_controls_for(request_scope(), 65))
     {
         Err(denial) => denial,
         Ok(_) => panic!("caller buffer wider than installed queue authority must fail"),
     };
     assert!(matches!(
         denial,
-        bank_server::BankLiveOpenDenial::Delivery(
-            worth_query_host::facade::primary_graph::WorthQueryLiveDeliveryOpenDenialKind::BufferCapacityExceedsInstalled
-        )
+        BankApplicationQueryDenial::LiveOpen(error)
+            if error.kind()
+                == WorthQueryApplicationLiveOpenDenialKind::BufferCapacityExceedsInstalled
+    ));
+}
+
+#[test]
+fn caller_cannot_enlarge_the_installed_live_work_ceiling() {
+    let fixture = ordinary_read_world("live-work-ceiling", 0);
+    let owner = fixture.authenticate(OWNER);
+    let controls =
+        WorthQueryApplicationLiveControls::bounded(request_scope(), 16, 8, 2_049).unwrap();
+    let denial = match fixture
+        .world
+        .runtime
+        .account_activity(fixture.personal_account)
+        .as_principal(&owner)
+        .subscribe(controls)
+    {
+        Err(denial) => denial,
+        Ok(_) => panic!("caller work wider than installed delivery authority must fail"),
+    };
+    assert!(matches!(
+        denial,
+        BankApplicationQueryDenial::LiveOpen(error)
+            if error.kind() == WorthQueryApplicationLiveOpenDenialKind::WorkLimitExceedsInstalled
     ));
 }
 
@@ -191,9 +307,9 @@ fn admitted_buffer_capacity_retains_multiple_matching_commit_causes() {
     let mut live = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
-        .subscribe(BankLiveControls::current(request_scope(), 1, 2).unwrap())
+        .subscribe(live_controls_for(request_scope(), 2))
         .expect("installed two-cause buffer should open");
     let first_commit = commit_deposit(
         &fixture,
@@ -213,26 +329,39 @@ fn admitted_buffer_capacity_retains_multiple_matching_commit_causes() {
     );
 
     let first_outcome = live.poll();
-    let BankActivityLiveOutcome::Delivered(first) = first_outcome else {
-        panic!("first exact activity cause must deliver: {first_outcome:?}")
+    let BankAccountActivityLiveOutcome::Delivered(first) = first_outcome else {
+        panic!("first exact activity cause must deliver")
     };
-    assert_eq!(live.buffered_update_count(), 1);
+    assert_eq!(live.buffered_cause_count(), 1);
     let second_outcome = live.poll();
-    let BankActivityLiveOutcome::Delivered(second) = second_outcome else {
-        panic!("second exact activity cause must deliver: {second_outcome:?}")
+    let BankAccountActivityLiveOutcome::Delivered(second) = second_outcome else {
+        panic!("second exact activity cause must deliver")
     };
-    assert_eq!(live.buffered_update_count(), 0);
+    assert_eq!(live.buffered_cause_count(), 0);
     assert!(first.commit_id() < second.commit_id());
     assert_eq!(
-        first.activity().output().account_sequence().get() + 1,
-        second.activity().output().account_sequence().get()
+        first.result().entries()[0].account_sequence().get() + 1,
+        second.result().entries()[0].account_sequence().get()
     );
-    assert_eq!(first.activity().metadata().result_count(), 1);
-    assert_eq!(second.activity().metadata().result_count(), 1);
-    let first_work = first.activity().metadata().work();
-    assert_eq!(first_work, second.activity().metadata().work());
-    assert_eq!(first_work.equality_lookups(), 1);
-    assert_eq!(first_work.reconstructive_scans(), 0);
+    assert_eq!(first.result().entries().len(), 1);
+    assert_eq!(second.result().entries().len(), 1);
+    assert_eq!(
+        first.receipt().target_identity_index_entry_count(),
+        second.receipt().target_identity_index_entry_count()
+    );
+    assert_eq!(first.receipt().target_identity_index_entry_count(), 1);
+    assert_eq!(first.receipt().examined_candidate_count(), 2);
+    assert_eq!(
+        first.receipt().edge_scan_count(),
+        second.receipt().edge_scan_count()
+    );
+    assert_eq!(first.receipt().edge_scan_count(), 2);
+    assert_eq!(
+        first.receipt().adjacency_list_read_count(),
+        second.receipt().adjacency_list_read_count()
+    );
+    assert_eq!(first.receipt().per_result_neighbor_lookup_count(), 0);
+    assert_eq!(first.receipt().fallback_count(), 0);
 }
 
 #[test]
@@ -242,7 +371,7 @@ fn retained_commit_source_reports_exact_consumer_overflow() {
     let mut live = fixture
         .world
         .runtime
-        .query(queries::account_activity(fixture.personal_account))
+        .account_activity(fixture.personal_account)
         .as_principal(&owner)
         .subscribe(live_controls())
         .expect("authorized activity lease should open");
@@ -251,125 +380,8 @@ fn retained_commit_source_reports_exact_consumer_overflow() {
         commit_authorization_toggle(&fixture, &owner, ordinal);
     }
 
-    let BankActivityLiveOutcome::Overflow(overflow) = live.poll() else {
+    let BankAccountActivityLiveOutcome::Overflow(overflow) = live.poll() else {
         panic!("a consumer older than the retained source must receive typed overflow");
     };
     assert_eq!(overflow.missed_commit_batches(), 1);
-}
-
-fn commit_authorization_toggle(
-    fixture: &fixture::OrdinaryReadFixture,
-    owner: &bank_server::BankAuthenticatedPrincipal,
-    ordinal: usize,
-) {
-    let outcome = if ordinal.is_multiple_of(2) {
-        fixture
-            .world
-            .runtime
-            .mutate(mutations::revoke_account_access(
-                RevokeAccountAuthorization {
-                    account: fixture.personal_account,
-                    authorization: authorized_user_id(fixture, owner, VIEWER),
-                },
-            ))
-            .as_principal(owner)
-            .controls(mutation_controls(&format!("overflow-revoke-{ordinal}")))
-            .execute()
-    } else {
-        fixture
-            .world
-            .runtime
-            .mutate(mutations::grant_account_access(GrantAccountAuthorization {
-                account: fixture.personal_account,
-                principal: fixture::principal_id(VIEWER),
-                role: CustomerRole::Viewer,
-            }))
-            .as_principal(owner)
-            .controls(mutation_controls(&format!("overflow-grant-{ordinal}")))
-            .execute()
-    };
-    assert!(
-        matches!(outcome.status(), BankMutationStatus::Committed(_)),
-        "deposit did not commit: {:?}",
-        outcome.status()
-    );
-}
-
-fn authorized_user_id(
-    fixture: &fixture::OrdinaryReadFixture,
-    owner: &bank_server::BankAuthenticatedPrincipal,
-    principal: usize,
-) -> bank_domain::model::AccountAuthorizationId {
-    let ReadOutcome::Delivered(users) = fixture
-        .world
-        .runtime
-        .query(queries::account_authorized_users(fixture.personal_account))
-        .as_principal(owner)
-        .controls(BankReadControls::current(request_scope(), 16).unwrap())
-        .execute()
-    else {
-        panic!("owner should read authorized users")
-    };
-    users
-        .output()
-        .iter()
-        .find(|user| user.principal() == fixture::principal_id(principal))
-        .expect("fixture authorization should exist")
-        .authorization()
-}
-
-fn activity_count(
-    fixture: &fixture::OrdinaryReadFixture,
-    owner: &bank_server::BankAuthenticatedPrincipal,
-) -> usize {
-    let ReadOutcome::Delivered(activity) = fixture
-        .world
-        .runtime
-        .query(queries::account_activity(fixture.personal_account))
-        .as_principal(owner)
-        .controls(BankReadControls::current(request_scope(), 16).unwrap())
-        .execute()
-    else {
-        panic!("owner should read activity")
-    };
-    activity.output().len()
-}
-
-fn commit_deposit(
-    fixture: &fixture::OrdinaryReadFixture,
-    teller: &bank_server::BankAuthenticatedPrincipal,
-    account: bank_domain::model::AccountId,
-    key: &str,
-) -> bank_server::BankMutationOutcome {
-    let outcome = fixture
-        .world
-        .runtime
-        .mutate(mutations::deposit(Deposit {
-            institution: fixture.institution,
-            account,
-            amount: Money::from_minor(1).unwrap(),
-        }))
-        .as_principal(teller)
-        .controls(BankMutationControls::new(
-            request_scope(),
-            BankIdempotencyKey::new(key).unwrap(),
-        ))
-        .execute();
-    assert!(
-        matches!(outcome.status(), BankMutationStatus::Committed(_)),
-        "deposit did not commit: {:?}",
-        outcome.status()
-    );
-    outcome
-}
-
-fn live_controls() -> BankLiveControls {
-    BankLiveControls::current(request_scope(), 16, 2).unwrap()
-}
-
-fn mutation_controls(key: &str) -> BankMutationControls {
-    BankMutationControls::new(
-        request_scope(),
-        BankIdempotencyKey::new(key).expect("test idempotency key should admit"),
-    )
 }

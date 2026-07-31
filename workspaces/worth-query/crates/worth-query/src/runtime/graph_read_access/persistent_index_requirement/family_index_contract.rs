@@ -46,10 +46,10 @@ impl WorthQueryGraphReadFamilyIndexContract {
         requirements: &WorthQueryGraphReadAccessRequirementSet,
         persistent_requirement: Option<&WorthQueryPersistentGraphIndexRequirementDeclaration>,
     ) -> Self {
-        let read_graph_digest = requirements.read_graph_digest().to_string();
-        let access_shape_digest = requirements.access_shape_digest().to_string();
-        let selectivity_shape_digest = requirements.selectivity_shape_digest().to_string();
-        let requirement_set_digest = requirements.digest().as_str().to_string();
+        let read_graph_digest = requirements.read_graph_digest().render_hex();
+        let access_shape_digest = requirements.access_shape_digest().render_hex();
+        let selectivity_shape_digest = requirements.selectivity_shape_digest().render_hex();
+        let requirement_set_digest = requirements.digest().render_support_hex();
         let persistent_requirement_digest =
             persistent_requirement.map(|requirement| requirement.digest().to_string());
         let requirement_row_digests = requirements

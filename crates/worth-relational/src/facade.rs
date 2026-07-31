@@ -245,8 +245,11 @@ pub mod runtime {
         RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
     };
     pub use crate::visibility::materialization::read_records::{
-        AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead, ProjectionAspectFilter,
-        ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,
+        AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead,
+        BoundedFrontierAdjacencyTruthRead, BoundedFrontierFieldEqualityTruthRead,
+        FrontierAdjacencyTruthReadLimitExceeded, FrontierFieldEqualityTruthReadLimitExceeded,
+        ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectRequirement,
+        ProjectionAspectScope,
     };
 }
 

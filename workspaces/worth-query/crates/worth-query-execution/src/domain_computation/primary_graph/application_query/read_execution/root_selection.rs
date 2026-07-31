@@ -1,0 +1,235 @@
+use worth_relational::facade::identity::EntityId;
+use worth_relational::facade::indexes::{
+    BoundedEntityFieldLookupRequest, BoundedIndexParityMode, DerivedIndexGenerationId,
+};
+
+use super::{
+    read_execution_denial, WorthQueryApplicationReadExecutionDenial,
+    WorthQueryApplicationReadExecutionDenialKind,
+};
+use crate::domain_computation::primary_graph::application_query::WorthQueryAdmittedApplicationQueryPlan;
+
+mod path_union;
+
+pub(super) struct BoundedRootSelection {
+    pub(super) candidates: Vec<EntityId>,
+    pub(super) examined_candidates: usize,
+    pub(super) predicate_work_units: usize,
+    pub(super) work_units: usize,
+    pub(super) predicate_index_generation: Option<DerivedIndexGenerationId>,
+    pub(super) adjacency_lists_read: usize,
+    pub(super) relation_records_examined: usize,
+}
+
+pub(super) struct RootSelectionWork {
+    maximum_work: usize,
+    work_units: usize,
+    adjacency_lists_read: usize,
+    relation_records_examined: usize,
+    predicate_records_examined: usize,
+    predicate_work_units: usize,
+}
+
+impl RootSelectionWork {
+    fn new(maximum_work: usize) -> Self {
+        Self {
+            maximum_work,
+            work_units: 0,
+            adjacency_lists_read: 0,
+            relation_records_examined: 0,
+            predicate_records_examined: 0,
+            predicate_work_units: 0,
+        }
+    }
+
+    fn remaining(&self) -> usize {
+        self.maximum_work.saturating_sub(self.work_units)
+    }
+
+    fn charge(
+        &mut self,
+        adjacency_lists_read: usize,
+        relation_records_examined: usize,
+        endpoint_records_reserved: usize,
+        subject: &str,
+    ) -> Result<(), WorthQueryApplicationReadExecutionDenial> {
+        let charged = adjacency_lists_read
+            .saturating_add(relation_records_examined)
+            .saturating_add(endpoint_records_reserved);
+        if self.work_units.saturating_add(charged) > self.maximum_work {
+            return Err(read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::WorkLimitExceeded,
+                subject,
+            ));
+        }
+        self.work_units = self.work_units.saturating_add(charged);
+        self.adjacency_lists_read = self
+            .adjacency_lists_read
+            .saturating_add(adjacency_lists_read);
+        self.relation_records_examined = self
+            .relation_records_examined
+            .saturating_add(relation_records_examined);
+        Ok(())
+    }
+
+    fn charge_predicate(
+        &mut self,
+        records_examined: usize,
+        matches_reserved: usize,
+        subject: &str,
+    ) -> Result<(), WorthQueryApplicationReadExecutionDenial> {
+        let charged = records_examined.saturating_add(matches_reserved);
+        if self.work_units.saturating_add(charged) > self.maximum_work {
+            return Err(read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::WorkLimitExceeded,
+                subject,
+            ));
+        }
+        self.work_units = self.work_units.saturating_add(charged);
+        self.predicate_records_examined = self
+            .predicate_records_examined
+            .saturating_add(records_examined);
+        self.predicate_work_units = self.predicate_work_units.saturating_add(charged);
+        Ok(())
+    }
+}
+
+pub(super) fn select_bounded_roots<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+>(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    plan: &WorthQueryAdmittedApplicationQueryPlan<
+        '_,
+        Schema,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >,
+) -> Result<BoundedRootSelection, WorthQueryApplicationReadExecutionDenial> {
+    let contract = plan.query.read_family_binding().planning_contract();
+    if !contract.root_paths().is_empty() {
+        return path_union::select_root_path_union(runtime, graph, plan, contract.root_paths());
+    }
+    match contract.predicates() {
+        [] => Ok(BoundedRootSelection {
+            candidates: vec![plan.scope.entity_id()],
+            examined_candidates: 1,
+            predicate_work_units: 1,
+            work_units: 1,
+            predicate_index_generation: None,
+            adjacency_lists_read: 0,
+            relation_records_examined: 0,
+        }),
+        [predicate] => select_indexed_root(runtime, graph, plan, predicate),
+        _ => Err(read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+            plan.query.name(),
+        )),
+    }
+}
+
+fn select_indexed_root<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+>(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    plan: &WorthQueryAdmittedApplicationQueryPlan<
+        '_,
+        Schema,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >,
+    predicate: &worth_query_installation::facade::WorthQueryInstalledGraphPredicate,
+) -> Result<BoundedRootSelection, WorthQueryApplicationReadExecutionDenial> {
+    let (entity, aspect, field) = predicate.field();
+    let layout = graph
+        .layout
+        .equality_field(entity, aspect, field)
+        .ok_or_else(|| {
+            read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+                field,
+            )
+        })?;
+    let expected = plan
+        .parameters
+        .bindings()
+        .iter()
+        .find(|(name, _)| *name == predicate.parameter())
+        .map(|(_, value)| value.clone())
+        .ok_or_else(|| {
+            read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+                predicate.parameter(),
+            )
+        })?;
+    let equality_index_id = layout.equality_index_id.ok_or_else(|| {
+        read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+            field,
+        )
+    })?;
+    let request = BoundedEntityFieldLookupRequest::new(
+        plan.basis.snapshot_handle().clone(),
+        equality_index_id,
+        layout.entity_kind,
+        layout.locator.clone(),
+        expected,
+        2,
+    )
+    .map_err(|_| {
+        read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+            field,
+        )
+    })?;
+    let lookup = runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
+        .map_err(|_| {
+            read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+                field,
+            )
+        })?;
+    let scoped = lookup
+        .candidate_entity_ids()
+        .iter()
+        .copied()
+        .find(|candidate| *candidate == plan.scope.entity_id());
+    if scoped.is_none() && lookup.overflowed() {
+        return Err(read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::PredicateLookupOverflow,
+            field,
+        ));
+    }
+    Ok(BoundedRootSelection {
+        candidates: scoped.into_iter().collect(),
+        examined_candidates: lookup.examined_entry_count(),
+        predicate_work_units: lookup.examined_entry_count(),
+        work_units: lookup.examined_entry_count(),
+        predicate_index_generation: Some(lookup.generation_id()),
+        adjacency_lists_read: 0,
+        relation_records_examined: 0,
+    })
+}

@@ -4,6 +4,14 @@ pub mod authenticated_principal {
     pub use crate::authenticated_principal::*;
 }
 
+pub mod application_query {
+    pub use crate::application_query::*;
+}
+
+pub mod graph_read_access {
+    pub use crate::graph_read_access::*;
+}
+
 pub mod domain_computation {
     pub use crate::domain_computation::*;
 }

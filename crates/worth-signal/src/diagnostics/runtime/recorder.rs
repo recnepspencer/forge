@@ -493,7 +493,6 @@ pub fn record_lineage_transition(
 }
 
 #[allow(dead_code)]
-#[allow(dead_code)]
 pub fn stamp_trace_summary_and_record_lineage_transition(
     graph: &mut SignalGraph,
     node: crate::data::handle::NodeId,

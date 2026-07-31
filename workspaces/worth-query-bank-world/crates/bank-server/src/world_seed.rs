@@ -1,3 +1,4 @@
+use bank_domain::estate::BankEstateWorld;
 use bank_domain::model::{
     BankPrincipalId, BusinessId, EmployeeAssignmentId, EmployeeRole, InstitutionId,
 };
@@ -71,6 +72,7 @@ pub struct BankWorldSeed {
     principals: Vec<BankPrincipalSeed>,
     business_owners: Vec<BankBusinessOwnerSeed>,
     employees: Vec<BankEmployeeAssignmentSeed>,
+    estate: Option<BankEstateWorld>,
 }
 
 impl BankWorldSeed {
@@ -80,6 +82,7 @@ impl BankWorldSeed {
             principals: Vec::new(),
             business_owners: Vec::new(),
             employees: Vec::new(),
+            estate: None,
         }
     }
 
@@ -98,6 +101,11 @@ impl BankWorldSeed {
         self
     }
 
+    pub fn estate(mut self, estate: BankEstateWorld) -> Self {
+        self.estate = Some(estate);
+        self
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (
@@ -105,12 +113,14 @@ impl BankWorldSeed {
         Vec<BankPrincipalSeed>,
         Vec<BankBusinessOwnerSeed>,
         Vec<BankEmployeeAssignmentSeed>,
+        Option<BankEstateWorld>,
     ) {
         (
             self.snapshot,
             self.principals,
             self.business_owners,
             self.employees,
+            self.estate,
         )
     }
 }

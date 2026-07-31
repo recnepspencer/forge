@@ -223,7 +223,13 @@ fn cumulative_variable_width_payloads_are_denied_before_provider_commit() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant

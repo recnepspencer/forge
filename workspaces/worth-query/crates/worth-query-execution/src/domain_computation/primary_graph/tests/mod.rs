@@ -1,8 +1,9 @@
 mod application_attempt;
+mod application_query;
 mod authorization;
-mod fixture;
+pub(in crate::domain_computation::primary_graph) mod fixture;
 mod hostile_resolution;
 mod invariant_projection;
-mod live_delivery;
+pub(in crate::domain_computation::primary_graph) mod live_delivery_support;
 mod successful_resolution;
 mod typed_bootstrap;

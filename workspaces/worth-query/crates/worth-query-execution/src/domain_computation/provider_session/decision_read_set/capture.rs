@@ -8,7 +8,6 @@ use super::{
     WorthQueryDecisionReadSetDenialKind, WorthQueryDecisionReadSetFailure,
 };
 use crate::domain_computation::provider_session::WorthQuerySessionReadAuthority;
-use crate::execution_digest::hash_parts;
 use worth_query_installation::facade::WorthQueryDecisionFactCardinality;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -141,14 +140,8 @@ impl WorthQuerySessionReadAuthority<'_> {
             }
             evidence.push(fact);
         }
-        let identity = hash_parts(
-            &std::iter::once("worth_query_decision_read_set_v1".to_owned())
-                .chain(std::iter::once(binding.canonical_identity().to_owned()))
-                .chain(evidence.iter().map(|fact| fact.canonical_token()))
-                .collect::<Vec<_>>(),
-        );
         Ok(WorthQueryCompleteDecisionReadSetReceipt {
-            identity: identity.into(),
+            identity: binding.canonical_identity().into(),
             session_binding_identity: binding.canonical_identity().into(),
             evidence: evidence.into(),
             counters,

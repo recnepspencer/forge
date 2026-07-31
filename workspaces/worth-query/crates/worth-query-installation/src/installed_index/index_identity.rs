@@ -1,30 +1,50 @@
 use std::collections::BTreeMap;
 
-use sha2::{Digest, Sha256};
-
-use super::WorthQueryInstalledPackageRecord;
-use crate::canonical_hash_encoding::hash_text_field;
-use crate::domain_computation::WorthQueryPortableArtifactContract;
-use crate::domain_operation::WorthQueryValidatedDomainOperation;
-use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
-use crate::package::{
-    WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind,
-    WorthQueryPortableDomainPackageIdentity,
+use worth_foundational::facade::{
+    canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
+    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
+    CanonicalIntegerWidth, CanonicalizationRuleVersion,
 };
 use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
 
-pub(super) fn authority_nonce(
-    runtime: &WorthQueryInstallationRuntimeIdentity,
-    generation: WorthQueryInstallationGeneration,
-    package: &WorthQueryPortableDomainPackageIdentity,
-    admission_identity: &str,
-) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(runtime.ordinal().to_le_bytes());
-    hasher.update(generation.ordinal().to_le_bytes());
-    hasher.update(package.as_str().as_bytes());
-    hasher.update(admission_identity.as_bytes());
-    hasher.finalize().into()
+use super::WorthQueryInstalledPackageRecord;
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
+use crate::domain_computation::WorthQueryPortableArtifactContract;
+use crate::domain_operation::WorthQueryValidatedDomainOperation;
+use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
+use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
+
+const DOMAIN: CanonicalBasisDomain = CanonicalBasisDomain::Future("worth-query.installed-index");
+const RULE_VERSION: &str = "worth-query-installed-index-v2";
+const INDEX_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(32_768, 4 * 1_024 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("fixed installed-index canonical-work budget is valid"),
+    };
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryInstalledPackageIndexIdentity(CanonicalDigestId);
+
+impl WorthQueryInstalledPackageIndexIdentity {
+    pub const fn digest(&self) -> &CanonicalDigestId {
+        &self.0
+    }
+
+    pub const fn bytes(&self) -> &[u8; 32] {
+        self.0.bytes()
+    }
+
+    pub fn render_support_hex(&self) -> String {
+        self.0.render_hex()
+    }
+
+    #[cfg(test)]
+    pub(super) fn corrupt_for_test(&mut self) {
+        let mut bytes = *self.0.bytes();
+        bytes[0] ^= 0xff;
+        self.0 = CanonicalDigestId::new(bytes);
+    }
 }
 
 pub(super) struct IndexIdentityInput<'a> {
@@ -41,97 +61,180 @@ pub(super) struct IndexIdentityInput<'a> {
     pub application_schemas: &'a BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
 }
 
-pub(super) fn index_identity(input: IndexIdentityInput<'_>) -> String {
-    let mut hasher = Sha256::new();
-    hash_text_field(&mut hasher, "runtime", &input.runtime.ordinal().to_string());
-    hash_text_field(
-        &mut hasher,
-        "generation",
-        &input.generation.ordinal().to_string(),
-    );
-    hash_records(&mut hasher, input.records);
-    hash_definitions(&mut hasher, input.definitions);
-    hash_domain_operations(&mut hasher, input.domain_operations);
-    hash_artifact_contracts(&mut hasher, input.artifact_contracts);
-    hash_application_schemas(&mut hasher, input.application_schemas);
-    format!("{:x}", hasher.finalize())
+pub(super) fn index_identity(
+    input: IndexIdentityInput<'_>,
+) -> Result<
+    (
+        WorthQueryInstalledPackageIndexIdentity,
+        WorthQueryCanonicalWorkEvidence,
+    ),
+    CanonicalDigestDerivationDenial,
+> {
+    let mut entries = vec![
+        unsigned("runtime", input.runtime.ordinal()),
+        unsigned("generation", input.generation.ordinal()),
+        count("package-count", input.records.len()),
+        count("definition-count", input.definitions.len()),
+        count("domain-operation-count", input.domain_operations.len()),
+        count("artifact-contract-count", input.artifact_contracts.len()),
+        count("application-schema-count", input.application_schemas.len()),
+    ];
+    append_records(&mut entries, input.records);
+    append_definitions(&mut entries, input.definitions);
+    append_domain_operations(&mut entries, input.domain_operations);
+    append_artifact_contracts(&mut entries, input.artifact_contracts);
+    append_application_schemas(&mut entries, input.application_schemas);
+
+    let version = CanonicalizationRuleVersion::new(RULE_VERSION)
+        .expect("the installed-index identity rule is valid");
+    let basis = prepare_canonical_basis_sequence(version, DOMAIN, entries)
+        .into_result()
+        .expect("installed-index identity loci are unique and typed");
+    let ready = canonicalization()
+        .digest()
+        .for_sequence_with_budget(basis, CanonicalDigestAlgorithmId::sha256(), INDEX_BUDGET)
+        .into_result()?;
+    let derived = canonicalization().digest().derive(ready);
+    Ok((
+        WorthQueryInstalledPackageIndexIdentity(CanonicalDigestId::new(*derived.value().bytes())),
+        WorthQueryCanonicalWorkEvidence::one_digest(derived.metadata().work()),
+    ))
 }
 
-fn hash_records(hasher: &mut Sha256, records: &BTreeMap<String, WorthQueryInstalledPackageRecord>) {
-    for (owner, record) in records {
-        hash_text_field(hasher, "package-owner", owner);
-        hash_text_field(
-            hasher,
-            "package-identity",
-            record.package.package().identity().as_str(),
-        );
-        hash_text_field(
-            hasher,
-            "admission-identity",
-            record.package.admission_identity(),
-        );
+fn append_records(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    records: &BTreeMap<String, WorthQueryInstalledPackageRecord>,
+) {
+    for (index, (owner, record)) in records.iter().enumerate() {
+        let prefix = format!("package[{index}]");
+        entries.extend([
+            text(format!("{prefix}.owner"), owner),
+            digest(
+                format!("{prefix}.identity"),
+                record.package.package().identity().digest(),
+            ),
+            digest(
+                format!("{prefix}.admission-identity"),
+                record.package.admission_identity().digest(),
+            ),
+        ]);
     }
 }
 
-fn hash_definitions(
-    hasher: &mut Sha256,
+fn append_definitions(
+    entries: &mut Vec<CanonicalBasisEntry>,
     definitions: &BTreeMap<
         (WorthQueryPortableDefinitionKind, String, String),
         WorthQueryPortableDefinition,
     >,
 ) {
-    for ((kind, owner, slot), definition) in definitions {
-        hash_text_field(hasher, "definition-kind", kind.as_str());
-        hash_text_field(hasher, "definition-owner", owner);
-        hash_text_field(hasher, "definition-slot", slot);
-        hash_text_field(hasher, "definition-semantics", definition.semantics());
+    for (index, ((kind, owner, slot), definition)) in definitions.iter().enumerate() {
+        let prefix = format!("definition[{index}]");
+        entries.extend([
+            text(format!("{prefix}.kind"), kind.as_str()),
+            text(format!("{prefix}.owner"), owner),
+            text(format!("{prefix}.slot"), slot),
+            text(format!("{prefix}.semantics"), definition.semantics()),
+        ]);
     }
 }
 
-fn hash_domain_operations(
-    hasher: &mut Sha256,
-    domain_operations: &BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
+fn append_domain_operations(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    operations: &BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
 ) {
-    for ((owner, slot), operation) in domain_operations {
-        let operation = operation.definition();
-        hash_text_field(hasher, "domain-operation-owner", owner);
-        hash_text_field(hasher, "domain-operation-slot", slot);
-        hash_text_field(
-            hasher,
-            "domain-operation-identity",
-            operation.canonical_identity(),
-        );
+    for (index, ((owner, slot), operation)) in operations.iter().enumerate() {
+        let prefix = format!("domain-operation[{index}]");
+        entries.extend([
+            text(format!("{prefix}.owner"), owner),
+            text(format!("{prefix}.slot"), slot),
+            text(
+                format!("{prefix}.identity"),
+                operation.definition().canonical_identity(),
+            ),
+        ]);
     }
 }
 
-fn hash_artifact_contracts(
-    hasher: &mut Sha256,
-    artifact_contracts: &BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
+fn append_artifact_contracts(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    contracts: &BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
 ) {
-    for ((owner, family, schema, protocol), contract) in artifact_contracts {
-        hash_text_field(hasher, "artifact-contract-owner", owner);
-        hash_text_field(hasher, "artifact-contract-family", family);
-        hash_text_field(hasher, "artifact-contract-schema", &schema.to_string());
-        hash_text_field(hasher, "artifact-contract-protocol", &protocol.to_string());
-        hash_text_field(
-            hasher,
-            "artifact-contract-identity",
-            contract.identity().as_str(),
-        );
+    for (index, ((owner, family, schema, protocol), contract)) in contracts.iter().enumerate() {
+        let prefix = format!("artifact-contract[{index}]");
+        entries.extend([
+            text(format!("{prefix}.owner"), owner),
+            text(format!("{prefix}.family"), family),
+            unsigned32(format!("{prefix}.schema"), *schema),
+            unsigned32(format!("{prefix}.protocol"), *protocol),
+            text(format!("{prefix}.identity"), contract.identity().as_str()),
+        ]);
     }
 }
 
-fn hash_application_schemas(
-    hasher: &mut Sha256,
-    application_schemas: &BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+fn append_application_schemas(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    schemas: &BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
 ) {
-    for ((owner, name), schema) in application_schemas {
-        hash_text_field(hasher, "application-schema-owner", owner);
-        hash_text_field(hasher, "application-schema-name", name);
-        hash_text_field(
-            hasher,
-            "application-schema-identity",
-            schema.identity().as_str(),
-        );
+    for (index, ((owner, name), schema)) in schemas.iter().enumerate() {
+        let prefix = format!("application-schema[{index}]");
+        entries.extend([
+            text(format!("{prefix}.owner"), owner),
+            text(format!("{prefix}.name"), name),
+            text(format!("{prefix}.declared-owner"), schema.owner()),
+        ]);
     }
+}
+
+fn text(locus: impl Into<String>, value: &str) -> CanonicalBasisEntry {
+    entry(
+        locus,
+        CanonicalBasisValue::ExactText(value.to_owned().into()),
+    )
+}
+
+fn digest(
+    locus: impl Into<String>,
+    value: &worth_foundational::facade::CanonicalDigestId,
+) -> CanonicalBasisEntry {
+    entry(locus, CanonicalBasisValue::BytesDigest(*value))
+}
+
+fn unsigned(locus: impl Into<String>, value: u64) -> CanonicalBasisEntry {
+    entry(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: value.into(),
+        },
+    )
+}
+
+fn unsigned32(locus: impl Into<String>, value: u32) -> CanonicalBasisEntry {
+    entry(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits32,
+            value: value.into(),
+        },
+    )
+}
+
+fn count(locus: impl Into<String>, value: usize) -> CanonicalBasisEntry {
+    entry(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: value as u128,
+        },
+    )
+}
+
+fn entry(locus: impl Into<String>, value: CanonicalBasisValue) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        DOMAIN,
+        CanonicalBasisLocus::Named(locus.into().into()),
+        CanonicalBasisEntryKind::Identity,
+        value,
+    )
 }

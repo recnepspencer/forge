@@ -58,27 +58,57 @@ pub(in crate::domain_computation::primary_graph::tests) fn installed_world_with_
     }
 }
 
-pub(in crate::domain_computation::primary_graph::tests) fn installed_authorization_world(
+pub(in crate::domain_computation::primary_graph) fn installed_authorization_world(
     include_owner_relation: bool,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(include_owner_relation, 1)
+    installed_authorization_world_with_principal_count(
+        include_owner_relation,
+        1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+    )
 }
 
-pub(in crate::domain_computation::primary_graph::tests) fn installed_two_principal_authorization_world(
+pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_with_label(
+    label: &str,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        true,
+        1,
+        label,
+        WorthQueryApplicationQueryResourceProfile::default(),
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_with_resource_profile(
+    profile: WorthQueryApplicationQueryResourceProfile,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(true, 1, "primary", profile)
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_two_principal_authorization_world(
     include_owner_relation: bool,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(include_owner_relation, 2)
+    installed_authorization_world_with_principal_count(
+        include_owner_relation,
+        2,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+    )
 }
 
 fn installed_authorization_world_with_principal_count(
     include_owner_relation: bool,
     principal_count: usize,
+    primary_label: &str,
+    resources: WorthQueryApplicationQueryResourceProfile,
 ) -> AuthorizationWorld {
     let declaration = IdentityExecutionSchema::declaration().unwrap();
     let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
         .admit(portable_package(declaration.clone()))
         .unwrap();
     let installation = WorthQueryExecutionRuntimeInstaller::new()
+        .application_query_resources(resources)
         .install(WorthQueryInstallationGeneration::initial(), [admitted])
         .unwrap();
     let (runtime, authority) = installation.into_parts();
@@ -110,8 +140,52 @@ fn installed_authorization_world_with_principal_count(
             )
             .unwrap();
     }
-    bind_account(&mut bootstrap, "account-1", "open", "primary");
+    bind_account(&mut bootstrap, "account-1", "open", primary_label);
     bind_account(&mut bootstrap, "account-2", "unrelated", "secondary");
+    bind_activity(&mut bootstrap, "activity-primary", 11);
+    bind_activity(&mut bootstrap, "activity-secondary", 22);
+    bootstrap
+        .bind_relation(WorthQueryApplicationRelationSeed::new(
+            AccountPrimaryActivity::reference(),
+            "primary-activity-1",
+            WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+            WorthQueryApplicationEntityKey::new("activity-primary").unwrap(),
+        ))
+        .unwrap();
+    bootstrap
+        .bind_relation(WorthQueryApplicationRelationSeed::new(
+            AccountSecondaryActivity::reference(),
+            "secondary-activity-1",
+            WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+            WorthQueryApplicationEntityKey::new("activity-secondary").unwrap(),
+        ))
+        .unwrap();
+    for (relation, activity) in [
+        ("all-activity-2", "activity-secondary"),
+        ("all-activity-1", "activity-primary"),
+    ] {
+        bootstrap
+            .bind_relation(WorthQueryApplicationRelationSeed::new(
+                AccountAllActivity::reference(),
+                relation,
+                WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+                WorthQueryApplicationEntityKey::new(activity).unwrap(),
+            ))
+            .unwrap();
+    }
+    for (relation, activity) in [
+        ("reverse-activity-1", "activity-primary"),
+        ("reverse-activity-2", "activity-secondary"),
+    ] {
+        bootstrap
+            .bind_relation(WorthQueryApplicationRelationSeed::new(
+                ActivityAccount::reference(),
+                relation,
+                WorthQueryApplicationEntityKey::new(activity).unwrap(),
+                WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+            ))
+            .unwrap();
+    }
     if include_owner_relation {
         for (relation, account) in [("owner-1", "account-1"), ("owner-2", "account-2")] {
             bootstrap
@@ -164,8 +238,28 @@ fn bind_account(
                 Account::reference(),
                 WorthQueryApplicationEntityKey::new(key).unwrap(),
             )
+            .field(AccountIdentity::reference(), key.to_owned())
             .field(AccountStatus::reference(), status.to_string())
             .field(AccountLabel::reference(), label.to_string()),
+        )
+        .unwrap();
+}
+
+fn bind_activity(
+    bootstrap: &mut crate::domain_computation::primary_graph::WorthQueryPrimaryGraphBootstrap<
+        IdentityExecutionSchema,
+    >,
+    key: &str,
+    sequence: u64,
+) {
+    bootstrap
+        .bind_entity(
+            WorthQueryApplicationEntitySeed::new(
+                Activity::reference(),
+                WorthQueryApplicationEntityKey::new(key).unwrap(),
+            )
+            .field(ActivityIdentity::reference(), key.to_owned())
+            .field(ActivitySequence::reference(), sequence),
         )
         .unwrap();
 }

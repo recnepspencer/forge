@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/application_query_selector_requires_matching_query.rs:32:23
+   |
+32 |     let _ = row.field(selector);
+   |                 ----- ^^^^^^^^ expected `ApplicationQueryResultFieldRef<..., _, ..., _, _, _, _, _, _, _>`, found `ApplicationQueryResultFieldRef<..., ..., ..., ..., ..., ..., u64, ..., ..., ...>`
+   |                 |
+   |                 arguments to this method are incorrect
+   |
+   = note: expected struct `ApplicationQueryResultFieldRef<Query, _, Schema, _, _, _, _, _, _, _>`
+              found struct `ApplicationQueryResultFieldRef<ForeignQuery, Slot, Schema, Entity, Aspect, Field, u64, worth_query_decl::facade::application_schema::ReadOnly, worth_query_decl::facade::application_schema::EqualityPredicate, NoApplicationCurrency>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/application_query/projection.rs
+   |
+   |     pub fn field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+   |            ^^^^^

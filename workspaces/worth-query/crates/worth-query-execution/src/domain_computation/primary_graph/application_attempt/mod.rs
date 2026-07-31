@@ -6,8 +6,10 @@ mod fact;
 mod idempotency;
 mod idempotency_resolution;
 mod observation;
+pub(in crate::domain_computation::primary_graph) mod precondition_binding;
 mod provider_binding;
 mod provider_execution;
+mod provider_recomparison;
 mod read_phase;
 mod read_scope;
 mod read_set;
@@ -36,6 +38,7 @@ pub use idempotency_resolution::{
     WorthQueryApplicationIdempotencyResolutionDenialKind,
 };
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
+pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;
 pub use read_phase::{WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation};
 pub use read_set::{
     WorthQueryApplicationReadAttempt, WorthQueryCompleteApplicationReadSet,

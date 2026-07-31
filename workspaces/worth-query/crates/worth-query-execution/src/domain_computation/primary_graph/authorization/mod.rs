@@ -3,7 +3,7 @@ mod admitted_operation;
 mod denial;
 mod installed_policy;
 mod lowering;
-mod path_identity;
+mod scope_identity;
 
 pub use admitted_operation::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationScopeFingerprint,

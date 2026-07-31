@@ -2,7 +2,7 @@ use std::cell::Cell;
 use std::time::{Duration, Instant};
 
 use super::fixture::{
-    installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
+    installed_authorization_world, live_scope, AccountLabel, AccountStatus, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationProjectionDenialKind,
@@ -11,6 +11,13 @@ use crate::domain_computation::primary_graph::{
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
+use worth_query_declaration::facade::application_schema::{
+    OperationExpectsFact, TypedMutationPreconditions,
+};
+
+mod canonical_work_budgets;
+
+impl OperationExpectsFact<TouchAccountOperation> for AccountLabel {}
 
 #[test]
 fn current_installed_membership_mints_exact_operation_admission() {
@@ -43,11 +50,23 @@ fn current_installed_membership_mints_exact_operation_admission() {
 
     let admitted = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let retried = world
         .application
-        .authorize_operation(&principal, &account, &operation, &live_scope())
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &live_scope(),
+        )
         .unwrap();
 
     assert_eq!(admitted.operation(), "TouchAccountOperation");
@@ -58,6 +77,50 @@ fn current_installed_membership_mints_exact_operation_admission() {
     assert_eq!(
         admitted.operation_scope_fingerprint(),
         retried.operation_scope_fingerprint()
+    );
+}
+
+#[test]
+fn caller_marker_cannot_widen_the_installed_precondition_contract() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let external = world.authenticate("alice", Duration::from_secs(60), &request);
+    let principal = world
+        .application
+        .resolve_authenticated_principal(
+            &world.binding,
+            external,
+            &request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let account = world
+        .application
+        .resolve_entity(
+            AccountStatus::reference(),
+            "open".to_owned(),
+            &request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(TouchAccountOperation::reference())
+        .unwrap();
+    let caller_only = TypedMutationPreconditions::new().expect_fact(
+        AccountLabel::reference(),
+        "forged-contract-widening".to_owned(),
+    );
+
+    let denial = world
+        .application
+        .authorize_operation(&principal, &account, &operation, caller_only, &request)
+        .err()
+        .expect("caller marker authority must not widen the installed contract");
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected
     );
 }
 
@@ -91,7 +154,13 @@ fn missing_membership_and_crossed_runtime_scope_open_no_operation_authority() {
         .unwrap();
     let missing_membership = denied_world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .err()
         .expect("missing relationship must deny");
     assert_eq!(
@@ -111,7 +180,13 @@ fn missing_membership_and_crossed_runtime_scope_open_no_operation_authority() {
         .unwrap();
     let crossed_scope = denied_world
         .application
-        .authorize_operation(&principal, &foreign_account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &foreign_account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .err()
         .expect("foreign scope must deny");
     assert_eq!(
@@ -157,7 +232,13 @@ fn cancelled_request_cannot_reuse_otherwise_current_authority() {
 
     let denial = world
         .application
-        .authorize_operation(&principal, &account, &operation, &cancelled_request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &cancelled_request,
+        )
         .err()
         .expect("cancelled request must deny");
     assert_eq!(
@@ -196,7 +277,13 @@ fn admitted_operation_retains_expiry_and_cancellation_authority() {
         .unwrap();
     let expiring = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     assert!(expiring.validate_current_authority().is_ok());
     std::thread::sleep(Duration::from_millis(30));
@@ -235,7 +322,13 @@ fn admitted_operation_retains_expiry_and_cancellation_authority() {
         .unwrap();
     let cancellable = world
         .application
-        .authorize_operation(&principal, &account, &operation, &cancellable_request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &cancellable_request,
+        )
         .unwrap();
     cancellation.cancel();
     assert_eq!(

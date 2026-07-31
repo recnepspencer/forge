@@ -444,7 +444,6 @@ pub(crate) use fallback_seam_counters::{
     forbidden_fallback_seam_invocation_count, record_forbidden_fallback_seam_invocation,
     reset_forbidden_fallback_seam_invocations, WorthQueryForbiddenFallbackSeam,
 };
-pub(crate) use graph_read_access::match_graph_index_inventory_for_requirements;
 pub(crate) use graph_read_access::provision_ephemeral_graph_indexes_for_read_execution;
 pub(crate) use graph_read_access::streaming_receipt_for_admitted_read_result;
 pub use graph_read_access::{

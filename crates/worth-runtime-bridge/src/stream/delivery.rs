@@ -37,10 +37,10 @@ impl StreamWindowDeliverySummary {
             stream_digest: Arc::from(window.member_set_digest()),
             window_digest: Arc::from(window.digest()),
             consumer_contract_digest: Arc::from(window.consumer_contract_identity().as_str()),
-            diagnostics_digest: Arc::from(digest_string(
+            diagnostics_digest: digest_string(
                 "stream-diagnostics-policy",
-                diagnostics_policy_class_label(window.diagnostics_policy_class()).as_ref(),
-            )),
+                diagnostics_policy_class_label(window.diagnostics_policy_class()),
+            ),
             delivered_member_count: window.members().len(),
             delivered_route_count,
             delivered_target_count,

@@ -6,10 +6,7 @@ fn built_in_resource_policy_registry_exposes_freeze_evidence() {
     let report = registry.freeze_report();
     let descriptor_count = registry.descriptor_count();
 
-    assert_eq!(
-        descriptor_count as usize,
-        built_in_policy_registrations().len()
-    );
+    assert_eq!(descriptor_count, built_in_policy_registrations().len());
     assert_eq!(report.descriptor_count(), descriptor_count);
     assert_eq!(report.id_index_width(), descriptor_count);
     assert_eq!(report.kind_name_index_width(), descriptor_count);

@@ -16,13 +16,12 @@ use crate::domain_computation::operation_binding::{
     WorthQueryInstalledOperationExecutionSupport,
 };
 use crate::domain_computation::provider_session::WorthQueryProviderPlanDeclarations;
-use crate::execution_digest::hash_parts;
 
 pub(crate) struct WorthQueryApplicationOperationBindingInput<'a> {
     pub(crate) runtime: &'a WorthQueryExecutionRuntime,
     pub(crate) owner: &'a str,
-    pub(crate) installed_operation_fingerprint: &'a str,
-    pub(crate) operation_scope_fingerprint: &'a [u8; 32],
+    pub(crate) installed_operation_fingerprint: Arc<str>,
+    pub(crate) resource_binding_identity: Arc<str>,
     pub(crate) basis: &'a AdmittedBasisCapability<MutationPreparationLaneWitness>,
     pub(crate) contracts: &'a WorthQueryCompiledApplicationOperationContracts,
     pub(crate) graph: &'a WorthQueryInstalledGraphParticipationAuthority,
@@ -32,7 +31,6 @@ pub(crate) struct WorthQueryApplicationOperationBindingInput<'a> {
 impl WorthQueryExecutionBoundOperationAuthority {
     pub(crate) fn bind_application(input: WorthQueryApplicationOperationBindingInput<'_>) -> Self {
         let commit_posture = WorthQueryExecutionCommitPosture::Atomic;
-        let binding_identity = application_binding_identity(&input);
         let topology = resource_topology(
             std::iter::empty(),
             &[input.graph],
@@ -46,11 +44,11 @@ impl WorthQueryExecutionBoundOperationAuthority {
         Self {
             runtime_authority: input.runtime.authority_identity(),
             installation_runtime_ordinal: input.runtime.installed_packages().runtime_ordinal(),
-            binding_identity: binding_identity.into(),
-            operation_identity: input.installed_operation_fingerprint.into(),
+            binding_identity: Arc::clone(&input.resource_binding_identity),
+            operation_identity: Arc::clone(&input.installed_operation_fingerprint),
             basis_identity: input.basis.capability_digest().into(),
             semantic_basis: input.basis.normalized().clone(),
-            canonical_query_digest: canonical_application_query_digest(&input).into(),
+            canonical_query_digest: input.installed_operation_fingerprint,
             operation_resource_contract_identity: input
                 .contracts
                 .resources()
@@ -72,30 +70,4 @@ impl WorthQueryExecutionBoundOperationAuthority {
             ),
         }
     }
-}
-
-fn application_binding_identity(input: &WorthQueryApplicationOperationBindingInput<'_>) -> String {
-    hash_parts(&[
-        "worth_query_application_operation_binding_v1".to_owned(),
-        format!("runtime:{}", input.runtime.authority_identity().as_u64()),
-        format!("owner:{}", input.owner),
-        format!("operation:{}", input.installed_operation_fingerprint),
-        format!("scope:{}", fixed_bytes(input.operation_scope_fingerprint)),
-        format!("basis:{}", input.basis.capability_digest()),
-        format!("graph:{}", input.graph.authority_identity()),
-        format!("support:{}", input.support.identity()),
-    ])
-}
-
-fn canonical_application_query_digest(
-    input: &WorthQueryApplicationOperationBindingInput<'_>,
-) -> String {
-    hash_parts(&[
-        "worth_query_application_operation_query_v1".to_owned(),
-        input.installed_operation_fingerprint.to_owned(),
-    ])
-}
-
-fn fixed_bytes(bytes: &[u8; 32]) -> String {
-    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }

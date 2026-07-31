@@ -16,6 +16,7 @@ pub use validation_denial::{
     WorthQueryPortablePackageValidationDenial, WorthQueryPortablePackageValidationDenialKind,
 };
 
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::{
     WorthQueryPortableDomainOperationDefinition, WorthQueryValidatedDomainOperation,
@@ -25,6 +26,7 @@ use crate::package_requirements::{
     WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,
     WorthQueryInstallationContributionCategory, WorthQueryInstallationOperatingRequirement,
 };
+use worth_foundational::facade::CanonicalDigestDerivationDenial;
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchemaDeclaration, ErasedApplicationSchemaDeclaration,
 };
@@ -122,7 +124,8 @@ impl WorthQueryPortableDomainPackage {
     {
         validate_package_members(&mut self)?;
         let validated_domain_operations = admit_domain_operations(&self.domain_operations)?;
-        let identity = canonical_identity(&self);
+        let (identity, canonical_work) =
+            canonical_identity(&self).map_err(map_package_canonical_denial)?;
         let authority =
             AuthorityWitness::from_authority_marker(PortablePackageValidationAuthority {
                 _private: (),
@@ -136,6 +139,7 @@ impl WorthQueryPortableDomainPackage {
         Ok(WorthQueryValidatedPortableDomainPackage {
             artifact,
             identity,
+            canonical_work,
             validated_domain_operations,
         })
     }
@@ -161,6 +165,7 @@ fn admit_domain_operations(
 pub struct WorthQueryValidatedPortableDomainPackage {
     artifact: ValidatedPortablePackageArtifact,
     identity: WorthQueryPortableDomainPackageIdentity,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
     validated_domain_operations: Vec<WorthQueryValidatedDomainOperation>,
 }
 
@@ -210,6 +215,10 @@ impl WorthQueryValidatedPortableDomainPackage {
         &self.identity
     }
 
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
+    }
+
     pub fn capabilities(&self) -> &[WorthQueryInstallationCapabilityFamily] {
         &self.artifact.payload().capabilities
     }
@@ -244,5 +253,19 @@ impl WorthQueryValidatedPortableDomainPackage {
 
     pub fn contribution_policy(&self) -> &[WorthQueryInstallationContributionCategory] {
         &self.artifact.payload().contributions
+    }
+}
+
+fn map_package_canonical_denial(
+    denial: CanonicalDigestDerivationDenial,
+) -> WorthQueryPortablePackageValidationDenial {
+    match denial {
+        CanonicalDigestDerivationDenial::EntryLimitExceeded { .. } => {
+            WorthQueryPortablePackageValidationDenial::canonical_entry_budget_exceeded()
+        }
+        CanonicalDigestDerivationDenial::EncodedByteLimitExceeded { .. } => {
+            WorthQueryPortablePackageValidationDenial::canonical_encoded_byte_budget_exceeded()
+        }
+        _ => WorthQueryPortablePackageValidationDenial::canonical_digest_slot_rejected(),
     }
 }

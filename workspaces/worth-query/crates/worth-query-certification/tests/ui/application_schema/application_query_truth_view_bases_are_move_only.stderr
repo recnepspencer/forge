@@ -1,0 +1,39 @@
+error[E0277]: the trait bound `WorthQueryApplicationHistoricalBasis<Schema>: Clone` is not satisfied
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:10:20
+   |
+10 |     assert_clone::<WorthQueryApplicationHistoricalBasis<Schema>>();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `WorthQueryApplicationHistoricalBasis<Schema>`
+   |
+note: required by a bound in `assert_clone`
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:7:20
+   |
+ 7 | fn assert_clone<T: Clone>() {}
+   |                    ^^^^^ required by this bound in `assert_clone`
+
+error[E0277]: the trait bound `WorthQueryApplicationPreviewBasis<Schema>: Clone` is not satisfied
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:11:20
+   |
+11 |     assert_clone::<WorthQueryApplicationPreviewBasis<Schema>>();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `WorthQueryApplicationPreviewBasis<Schema>`
+   |
+note: required by a bound in `assert_clone`
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:7:20
+   |
+ 7 | fn assert_clone<T: Clone>() {}
+   |                    ^^^^^ required by this bound in `assert_clone`
+
+error: cannot construct `WorthQueryApplicationHistoricalBasis<Schema>` with struct literal syntax due to private fields
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:13:13
+   |
+13 |     let _ = WorthQueryApplicationHistoricalBasis::<Schema> {};
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: private fields that were not provided
+
+error: cannot construct `WorthQueryApplicationPreviewBasis<Schema>` with struct literal syntax due to private fields
+  --> tests/ui/application_schema/application_query_truth_view_bases_are_move_only.rs:14:13
+   |
+14 |     let _ = WorthQueryApplicationPreviewBasis::<Schema> {};
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: private fields that were not provided

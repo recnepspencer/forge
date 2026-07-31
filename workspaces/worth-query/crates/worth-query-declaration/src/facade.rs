@@ -4,6 +4,14 @@ pub mod application_schema {
     pub use crate::application_schema::*;
 }
 
+pub mod application_capability {
+    pub use crate::application_capability::*;
+}
+
+pub mod application_query {
+    pub use crate::application_query::*;
+}
+
 pub mod authentication {
     pub use crate::authentication::*;
 }

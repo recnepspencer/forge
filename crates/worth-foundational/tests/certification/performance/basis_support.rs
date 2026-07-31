@@ -45,7 +45,7 @@ pub fn derive_digest(
 ) -> CanonicalDerivedDigest {
     let digest_ready = match canonicalization()
         .digest()
-        .for_sequence(ready, CanonicalDigestAlgorithmId::test_stable_fixture())
+        .for_sequence(ready, CanonicalDigestAlgorithmId::sha256())
     {
         worth_proof::TransitionOutcome::Success(ready) => ready,
         _ => panic!("expected digest readiness"),

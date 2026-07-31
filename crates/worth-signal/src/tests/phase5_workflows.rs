@@ -1334,12 +1334,10 @@ fn inspect_only_at_end_after_50_step_session_preserves_forensic_truth() {
                 .unwrap();
         }
 
-        if step % 13 == 0 {
-            if runtime.observe().current_branch().id == main.id {
-                runtime
-                    .restore_branch_snapshot(main.clone(), saved.as_ref().unwrap())
-                    .unwrap();
-            }
+        if step % 13 == 0 && runtime.observe().current_branch().id == main.id {
+            runtime
+                .restore_branch_snapshot(main.clone(), saved.as_ref().unwrap())
+                .unwrap();
         }
     }
 

@@ -16,20 +16,17 @@ impl CanonicalAspectValueIdentityBasis {
 pub fn prepare_aspect_value_identity_basis(
     value: &AspectValue,
 ) -> CanonicalAspectValueIdentityBasis {
-    let mut material = String::new();
-    crate::canonicalization::digest_slots::append_value_material(
-        &mut material,
+    CanonicalAspectValueIdentityBasis(crate::canonicalization::digest_slots::value_material(
         &canonical_basis_value_for_aspect_value(value),
-    );
-    CanonicalAspectValueIdentityBasis(material)
+    ))
 }
 
 pub fn prepare_struct_aspect_value_identity_basis(
     value: &StructAspectValue,
 ) -> CanonicalAspectValueIdentityBasis {
-    let mut material = String::new();
-    crate::canonicalization::digest_slots::append_struct_value_material(&mut material, value);
-    CanonicalAspectValueIdentityBasis(material)
+    CanonicalAspectValueIdentityBasis(
+        crate::canonicalization::digest_slots::struct_value_material(value),
+    )
 }
 
 /// Lowers one Foundational scalar into its typed canonical-basis value.

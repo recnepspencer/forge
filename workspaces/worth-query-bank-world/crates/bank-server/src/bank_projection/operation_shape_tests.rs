@@ -14,13 +14,13 @@ use worth_query_host::facade::primary_graph::{
 
 use super::tests::{binding, entity_key, id, key, ProjectionHarness};
 use super::{project_journal_reversal, project_payment_approval, BankProjectionDenial};
-use crate::graph_bootstrap::{bind_bank_world, journal_key, payment_key};
+use crate::graph_bootstrap::{bind_bank_world_with_estate, journal_key, payment_key};
 
 #[test]
 fn payment_projection_rejects_multiple_decision_entities() {
     let (snapshot, payment) = pending_payment_world(0);
     let harness = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
         for ordinal in 1..=2 {
             let approval_key = format!("hostile-approval-{ordinal}");
             graph
@@ -81,7 +81,7 @@ fn payment_projection_preserves_the_source_account_balance() {
         .source();
     let expected = account_balance(snapshot.journal(), source).unwrap();
     let harness = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
     });
     let projected = harness
         .projection
@@ -108,7 +108,7 @@ fn payment_projection_preserves_the_source_account_balance() {
 fn orphan_incoming_reversal_cannot_hide_from_targeted_projection() {
     let (snapshot, original) = reversible_world(0);
     let harness = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
         let hostile = "hostile-orphan-reversal".to_string();
         graph
             .bind_entity(WorthQueryApplicationEntitySeed::new(
@@ -166,7 +166,7 @@ fn payment_work(
     payment: bank_domain::model::PaymentId,
 ) -> worth_query_host::facade::primary_graph::WorthQueryInvariantProjectionWork {
     let harness = ProjectionHarness::install(snapshot, |graph| {
-        bind_bank_world(graph, snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, snapshot, &[], &[], None).unwrap();
     });
     harness
         .projection
@@ -191,7 +191,7 @@ fn reversal_work(
     journal: bank_domain::model::JournalEntryId,
 ) -> worth_query_host::facade::primary_graph::WorthQueryInvariantProjectionWork {
     let harness = ProjectionHarness::install(snapshot, |graph| {
-        bind_bank_world(graph, snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, snapshot, &[], &[], None).unwrap();
     });
     harness
         .projection

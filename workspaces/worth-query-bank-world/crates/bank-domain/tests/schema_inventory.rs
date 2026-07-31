@@ -14,6 +14,8 @@ fn bank_manifest_matches_the_frozen_schema_world() {
     let members = declaration.erased().members();
     assert_entity_and_relation_inventory(members);
     assert_operation_inventory(members);
+    assert_capability_inventory(members);
+    assert_application_query_inventory(members);
     field_inventory::assert_field_and_governance_inventory(members);
     assert_account_creation_programs(members);
     assert_money_programs(members);
@@ -152,25 +154,73 @@ fn assert_operation_inventory(members: &[ApplicationSchemaMember]) {
         names(members, operation_name),
         expected(&[
             "ApplyOpeningFundingOperation",
+            "ApproveEstateEmergencyAccessOperation",
             "ApprovePaymentOperation",
-            "AuditInstitutionActivityOperation",
+            "CompleteEstateMandatoryReviewOperation",
             "CreateBusinessAccountOperation",
             "CreatePersonalAccountOperation",
+            "DelegateEstateCapabilityOperation",
             "DepositOperation",
-            "DiscoverAccountsOperation",
+            "DisburseEstateOperation",
+            "FreezeEstateAccountOperation",
             "GrantAccountAuthorizationOperation",
             "InitiateBusinessPaymentOperation",
-            "ReadAccountActivityOperation",
-            "ReadAccountAuthorizedUsersOperation",
-            "ReadAccountDetailOperation",
-            "ReadAccountSummaryOperation",
-            "ReadPaymentOperation",
-            "ReadPendingPaymentsOperation",
+            "NotifyDeathEstateOperation",
+            "OpenEstateCaseOperation",
+            "RecognizeEstateExecutorOperation",
             "RejectPaymentOperation",
+            "ReleaseEstateOperation",
+            "RequestEstateEmergencyAccessOperation",
             "ReverseJournalOperation",
             "RevokeAccountAuthorizationOperation",
+            "RevokeEstateCapabilityOperation",
+            "RevokeEstateEmergencyAccessOperation",
             "SendMoneyOperation",
+            "ViewRestrictedEstateOperation",
             "WithdrawOperation",
+        ])
+    );
+}
+
+fn assert_capability_inventory(members: &[ApplicationSchemaMember]) {
+    assert_eq!(
+        names(members, application_capability_name),
+        expected(&[
+            "ApproveEstateEmergencyAccessCapability",
+            "CompleteEstateMandatoryReviewCapability",
+            "DelegateEstateCapability",
+            "DisburseEstateCapability",
+            "FreezeEstateAccountCapability",
+            "NotifyDeathEstateCapability",
+            "OpenEstateCaseCapability",
+            "RecognizeEstateExecutorCapability",
+            "ReleaseEstateCapability",
+            "RequestEstateEmergencyAccessCapability",
+            "RevokeEstateCapability",
+            "RevokeEstateEmergencyAccessCapability",
+            "ViewEstateAdministrationCapability",
+            "ViewEstateEmergencyProtectionCapability",
+            "ViewEstateIdentityVerificationCapability",
+            "ViewEstateLegalComplianceCapability",
+            "ViewEstateMandatoryReviewCapability",
+        ])
+    );
+}
+
+fn assert_application_query_inventory(members: &[ApplicationSchemaMember]) {
+    assert_eq!(
+        names(members, application_query_name),
+        expected(&[
+            "account_activity",
+            "account_authorized_users",
+            "account_detail",
+            "account_discovery",
+            "account_summary",
+            "estate_case_overview",
+            "estate_governance_context",
+            "institution_audit",
+            "payment_detail",
+            "pending_payments",
         ])
     );
 }

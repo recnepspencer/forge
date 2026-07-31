@@ -1,6 +1,6 @@
 use super::super::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitOutcome,
 };
 
 pub(super) fn application_resource_request(
@@ -16,18 +16,25 @@ pub(super) fn application_resource_request(
     .ok()
 }
 
-pub(super) fn parse_provider_receipt(value: &str) -> Option<WorthQueryApplicationCommitReceipt> {
+pub(super) fn parse_provider_receipt(
+    value: &str,
+) -> Option<
+    crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication,
+> {
     let mut parts = value.split(':');
     if parts.next()? != "primary-application-commit" {
         return None;
     }
+    let runtime = parts.next()?.parse().ok()?;
     let commit = parts.next()?.parse().ok()?;
     let changed = parts.next()?.parse().ok()?;
     let emitted = parts.next()?.parse().ok()?;
     if parts.next().is_some() {
         return None;
     }
-    Some(WorthQueryApplicationCommitReceipt::new(
+    Some(
+        crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication::new(
+        runtime,
         worth_relational::facade::history::CommitId(commit),
         changed,
         emitted,

@@ -44,7 +44,7 @@ impl HostComputedDiagnosticsSummary {
             outcome: HostComputedOutcomeClass::Prepared,
             previous_dependency_count: request.previous_dependency_count() as u32,
             admitted_read_count: admitted_reads.dependencies().len() as u32,
-            retained_dependency_count: dependency_patch.retained_dependency_count() as u32,
+            retained_dependency_count: dependency_patch.retained_dependency_count(),
             added_dependency_count: dependency_patch.added_dependencies().len() as u32,
             removed_dependency_count: dependency_patch.removed_dependencies().len() as u32,
             denial_class: None,

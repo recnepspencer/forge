@@ -1,4 +1,6 @@
 mod authority_relation_installation;
+mod capability_contract_installation;
+mod capability_contracts;
 mod capability_installation;
 mod entities;
 mod estate_relation_installation;
@@ -9,6 +11,7 @@ mod policy_installation;
 mod relations;
 mod values;
 
+pub use capability_contracts::*;
 pub use entities::*;
 pub use fields::*;
 pub use policies::*;
@@ -25,5 +28,6 @@ pub(crate) fn install_estate_world(
     let schema = capability_installation::install(schema);
     let schema = estate_relation_installation::install(schema);
     let schema = authority_relation_installation::install(schema);
-    policy_installation::install(schema)
+    let schema = policy_installation::install(schema);
+    capability_contract_installation::install(schema)
 }

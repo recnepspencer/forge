@@ -4,7 +4,8 @@ mod reader;
 mod visibility;
 
 pub(crate) use projection::{
-    entity_query_locus_comparison_key, relation_query_locus_comparison_key,
+    entity_query_locus_comparison_key, entity_query_locus_value,
+    relation_query_locus_comparison_key,
 };
 pub use projection::{
     EntityProjectionRecord, EntityRecordProjection, ProjectionAspectFilter,
@@ -12,7 +13,9 @@ pub use projection::{
     RelationProjectionRecord, RelationRecordProjection, VisibilityProjectionView,
 };
 pub use reader::{
-    AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead, VisibilityReadContext,
+    AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead, BoundedFrontierAdjacencyTruthRead,
+    BoundedFrontierFieldEqualityTruthRead, FrontierAdjacencyTruthReadLimitExceeded,
+    FrontierFieldEqualityTruthReadLimitExceeded, VisibilityReadContext,
 };
 
 use crate::logic::runtime::RelationalRuntime;

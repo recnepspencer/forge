@@ -1,43 +1,53 @@
-use sha2::Sha256;
-
-use super::canonical_identity::hash_field;
+use super::canonical_basis::ApplicationSchemaCanonicalBasis;
 use super::ApplicationOperationProgramTarget;
 
-pub(super) fn hash_operation_target(hash: &mut Sha256, target: &ApplicationOperationProgramTarget) {
+pub(super) fn append_operation_target(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    target: &ApplicationOperationProgramTarget,
+) {
     match target {
         ApplicationOperationProgramTarget::Create { entity } => {
-            hash_field(hash, "program-action", "create");
-            hash_field(hash, "entity", entity);
+            basis.text(format!("{prefix}.action"), "create");
+            basis.text(format!("{prefix}.entity"), entity);
         }
         ApplicationOperationProgramTarget::Delete { entity } => {
-            hash_field(hash, "program-action", "delete");
-            hash_field(hash, "entity", entity);
+            basis.text(format!("{prefix}.action"), "delete");
+            basis.text(format!("{prefix}.entity"), entity);
         }
         ApplicationOperationProgramTarget::Write {
             entity,
             aspect,
             field,
         } => {
-            hash_field(hash, "program-action", "write");
-            hash_field(hash, "entity", entity);
-            hash_field(hash, "aspect", aspect);
-            hash_field(hash, "field", field);
+            basis.text(format!("{prefix}.action"), "write");
+            basis.text(format!("{prefix}.entity"), entity);
+            basis.text(format!("{prefix}.aspect"), aspect);
+            basis.text(format!("{prefix}.field"), field);
         }
         ApplicationOperationProgramTarget::Link { relation, from, to } => {
-            hash_field(hash, "program-action", "link");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
+            append_relation_target(basis, prefix, "link", relation, from, to);
         }
         ApplicationOperationProgramTarget::Unlink { relation, from, to } => {
-            hash_field(hash, "program-action", "unlink");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
+            append_relation_target(basis, prefix, "unlink", relation, from, to);
         }
         ApplicationOperationProgramTarget::Emit { effect } => {
-            hash_field(hash, "program-action", "emit");
-            hash_field(hash, "effect", effect);
+            basis.text(format!("{prefix}.action"), "emit");
+            basis.text(format!("{prefix}.effect"), effect);
         }
     }
+}
+
+fn append_relation_target(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    action: &str,
+    relation: &str,
+    from: &str,
+    to: &str,
+) {
+    basis.text(format!("{prefix}.action"), action);
+    basis.text(format!("{prefix}.relation"), relation);
+    basis.text(format!("{prefix}.from"), from);
+    basis.text(format!("{prefix}.to"), to);
 }

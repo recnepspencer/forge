@@ -116,6 +116,15 @@ fn map_admission_denial(
         WorthQueryInstallationAdmissionDenialKind::UnsupportedArtifactComparator => {
             WorthQueryDomainPackageAdmissionDenialKind::UnsupportedArtifactComparator
         }
+        WorthQueryInstallationAdmissionDenialKind::CanonicalEntryBudgetExceeded => {
+            WorthQueryDomainPackageAdmissionDenialKind::CanonicalEntryBudgetExceeded
+        }
+        WorthQueryInstallationAdmissionDenialKind::CanonicalEncodedByteBudgetExceeded => {
+            WorthQueryDomainPackageAdmissionDenialKind::CanonicalEncodedByteBudgetExceeded
+        }
+        WorthQueryInstallationAdmissionDenialKind::CanonicalDigestSlotRejected => {
+            WorthQueryDomainPackageAdmissionDenialKind::CanonicalDigestSlotRejected
+        }
     };
     WorthQueryDomainPackageAdmissionDenial::new(kind, denial.subject())
 }

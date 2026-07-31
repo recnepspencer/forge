@@ -13,7 +13,6 @@ use worth_runtime_bridge::facade::{
 
 use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
 use super::lowering::lower_authorization_path;
-use super::path_identity::authorization_path_identity;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -90,9 +89,10 @@ impl WorthQueryInstalledAuthorizationRegistry {
                         .bridge_paths
                         .iter()
                         .zip(requirement.policy_paths())
-                        .all(|(compiled, path)| {
-                            compiled.identity() == &authorization_path_identity(path)
-                                && compiled.effect() == lower_bridge_effect(path.effect())
+                        .all(|(compiled, installed_path)| {
+                            compiled.identity() == installed_path.identity().bytes()
+                                && compiled.effect()
+                                    == lower_bridge_effect(installed_path.path().effect())
                         })
             })
             .ok_or_else(|| {
@@ -132,12 +132,21 @@ where
     let scope_kind = layout.entity_kind(&key.scope_entity).ok_or_else(|| {
         authorization_denial(&key.scope_entity, "policy scope kind is not installed")
     })?;
-    let bridge_paths = paths
+    let installed_paths = schema
+        .installed_ability_requirement(&key.ability, &key.scope_entity)
+        .ok_or_else(|| {
+            authorization_denial(
+                &key.policy,
+                "installed authorization path identity is unavailable",
+            )
+        })?;
+    let bridge_paths = installed_paths
+        .policy_paths()
         .iter()
-        .map(|path| {
+        .map(|installed_path| {
             BridgeAuthorizationPathContract::new(
-                authorization_path_identity(path),
-                lower_bridge_effect(path.effect()),
+                *installed_path.identity().bytes(),
+                lower_bridge_effect(installed_path.path().effect()),
             )
         })
         .collect::<Vec<_>>();
@@ -147,6 +156,7 @@ where
         .collect::<Result<Vec<_>, _>>()?;
     let correspondence = bridge
         .install(BridgeAuthorizationInstallationRequest::new(
+            installed_paths.identity(),
             schema.binding_identity(),
             &key.ability,
             &key.scope_entity,

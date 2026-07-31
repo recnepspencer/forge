@@ -41,6 +41,7 @@ mod read_execution_product;
 mod read_extension_hook_support;
 mod read_family;
 mod read_graph_identity;
+mod read_graph_planning_contract;
 mod read_operator_coverage;
 mod read_receipt_accessors;
 mod read_receipt_construction;

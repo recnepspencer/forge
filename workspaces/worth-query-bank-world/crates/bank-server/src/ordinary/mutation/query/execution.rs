@@ -1,7 +1,7 @@
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestInterruption;
 use worth_query_host::facade::primary_graph::WorthQueryInvariantProjectionWork;
 
-use super::{mutations, BankReadyMutation};
+use super::{mutations, BankMutationContract, BankReadyMutation};
 use crate::ordinary::mutation::{
     BankMutationControls, BankMutationDenial, BankMutationOutcome, BankMutationStatus,
 };
@@ -10,41 +10,81 @@ use crate::{
     BankIdentityRuntime, BankMutationCommitOutcome, BankOperationAdmissionError,
     BankOperationProposalError, BankOperationProposals, BankSendMoneyPreparation,
 };
+use bank_domain::schema::BankSchema;
+use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
 
 mod workflow;
 
-trait ExecutableBankMutation {
+trait ExecutableBankMutation: BankMutationContract {
     fn execute(
         self,
         runtime: &BankIdentityRuntime,
         principal: &BankAuthenticatedPrincipal,
+        preconditions: TypedMutationPreconditions<BankSchema, Self::Operation, Self::Scope>,
         controls: &BankMutationControls,
     ) -> BankMutationOutcome;
 }
 
 macro_rules! expose_execute {
-    ($($mutation:ty),+ $(,)?) => {$(
-        impl BankReadyMutation<'_, '_, $mutation> {
+    ($($mutation:ty => ($operation:ty, $scope:ty)),+ $(,)?) => {$(
+        impl BankReadyMutation<'_, '_, $mutation, $operation, $scope> {
             pub fn execute(self) -> BankMutationOutcome {
-                self.mutation
-                    .execute(self.runtime, self.principal, &self.controls)
+                self.mutation.execute(
+                    self.runtime,
+                    self.principal,
+                    self.preconditions,
+                    &self.controls,
+                )
             }
         }
     )+};
 }
 
 expose_execute!(
-    mutations::CreatePersonalAccountMutation,
-    mutations::CreateBusinessAccountMutation,
-    mutations::OpeningFundingMutation,
-    mutations::DepositMutation,
-    mutations::WithdrawalMutation,
-    mutations::SendMoneyMutation,
-    mutations::ApprovePaymentMutation,
-    mutations::RejectPaymentMutation,
-    mutations::GrantAccountAccessMutation,
-    mutations::RevokeAccountAccessMutation,
-    mutations::ReverseJournalMutation,
+    mutations::CreatePersonalAccountMutation => (
+        bank_domain::schema::CreatePersonalAccountOperation,
+        bank_domain::schema::Institution
+    ),
+    mutations::CreateBusinessAccountMutation => (
+        bank_domain::schema::CreateBusinessAccountOperation,
+        bank_domain::schema::Institution
+    ),
+    mutations::OpeningFundingMutation => (
+        bank_domain::schema::ApplyOpeningFundingOperation,
+        bank_domain::schema::Institution
+    ),
+    mutations::DepositMutation => (
+        bank_domain::schema::DepositOperation,
+        bank_domain::schema::Institution
+    ),
+    mutations::WithdrawalMutation => (
+        bank_domain::schema::WithdrawOperation,
+        bank_domain::schema::Institution
+    ),
+    mutations::SendMoneyMutation => (
+        bank_domain::schema::SendMoneyOperation,
+        bank_domain::schema::Account
+    ),
+    mutations::ApprovePaymentMutation => (
+        bank_domain::schema::ApprovePaymentOperation,
+        bank_domain::schema::PaymentIntent
+    ),
+    mutations::RejectPaymentMutation => (
+        bank_domain::schema::RejectPaymentOperation,
+        bank_domain::schema::PaymentIntent
+    ),
+    mutations::GrantAccountAccessMutation => (
+        bank_domain::schema::GrantAccountAuthorizationOperation,
+        bank_domain::schema::Account
+    ),
+    mutations::RevokeAccountAccessMutation => (
+        bank_domain::schema::RevokeAccountAuthorizationOperation,
+        bank_domain::schema::Account
+    ),
+    mutations::ReverseJournalMutation => (
+        bank_domain::schema::ReverseJournalOperation,
+        bank_domain::schema::Institution
+    ),
 );
 
 trait PreparedMutation {
@@ -96,11 +136,19 @@ macro_rules! standard_mutation {
                 self,
                 runtime: &BankIdentityRuntime,
                 principal: &BankAuthenticatedPrincipal,
+                preconditions: TypedMutationPreconditions<BankSchema, Self::Operation, Self::Scope>,
                 controls: &BankMutationControls,
             ) -> BankMutationOutcome {
                 execute_standard(
                     controls,
-                    || runtime.$authorize(principal, $scope(&self.input), controls.request()),
+                    || {
+                        runtime.$authorize(
+                            principal,
+                            $scope(&self.input),
+                            preconditions,
+                            controls.request(),
+                        )
+                    },
                     |admission, key| {
                         BankOperationProposals::$prepare(runtime, admission, key, &self.input)
                     },
@@ -187,16 +235,21 @@ impl ExecutableBankMutation for mutations::SendMoneyMutation {
         self,
         runtime: &BankIdentityRuntime,
         principal: &BankAuthenticatedPrincipal,
+        preconditions: TypedMutationPreconditions<BankSchema, Self::Operation, Self::Scope>,
         controls: &BankMutationControls,
     ) -> BankMutationOutcome {
         if let Some(outcome) = interrupted(controls) {
             return outcome;
         }
-        let admission =
-            match runtime.authorize_send_money(principal, self.input.from, controls.request()) {
-                Ok(admission) => admission,
-                Err(denial) => return denied(map_admission_denial(denial), None),
-            };
+        let admission = match runtime.authorize_send_money(
+            principal,
+            self.input.from,
+            preconditions,
+            controls.request(),
+        ) {
+            Ok(admission) => admission,
+            Err(denial) => return denied(map_admission_denial(denial), None),
+        };
         match BankOperationProposals::prepare_send_money(
             runtime,
             admission,

@@ -4,6 +4,8 @@
 )]
 #[path = "ordinary_reads/fixture.rs"]
 mod fixture;
+#[path = "ordinary_mutations/preconditions.rs"]
+mod preconditions;
 mod support;
 
 use std::time::{Duration, Instant};
@@ -17,11 +19,12 @@ use bank_domain::schema::{
 };
 use bank_server::{
     mutations, queries, BankMutationControls, BankMutationOutcome, BankMutationStatus,
-    BankReadControls, BankReadOutcome,
+    BankReadControls,
 };
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
+use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
 
 use fixture::{ordinary_read_world, principal_id, APPROVER, OWNER, RECIPIENT, STRANGER, TELLER};
 use support::request_scope;
@@ -49,17 +52,15 @@ fn public_consumer_executes_every_typed_mutation_family() {
     let approver = fixture.authenticate(APPROVER);
     let teller = fixture.authenticate(TELLER);
     let stranger = fixture.authenticate(STRANGER);
-    let BankReadOutcome::Delivered(discovery) = fixture
+    let discovery = fixture
         .world
         .runtime
         .query(queries::accounts())
         .as_principal(&stranger)
         .controls(read_controls())
         .execute()
-    else {
-        panic!("the prospective account owner must be discoverable");
-    };
-    assert!(discovery.output().is_empty());
+        .expect("the prospective account owner must be discoverable");
+    assert!(discovery.rows().is_empty());
 
     assert_committed(execute!(
         fixture,
@@ -71,17 +72,15 @@ fn public_consumer_executes_every_typed_mutation_family() {
         }),
         "create-personal",
     ));
-    let BankReadOutcome::Delivered(created_accounts) = fixture
+    let created_accounts = fixture
         .world
         .runtime
         .query(queries::accounts())
         .as_principal(&stranger)
         .controls(read_controls())
         .execute()
-    else {
-        panic!("the created account must be query-visible");
-    };
-    let created_personal = created_accounts.output()[0].id();
+        .expect("the created account must be query-visible");
+    let created_personal = created_accounts.rows()[0].id();
     assert_committed(execute!(
         fixture,
         teller,
@@ -177,6 +176,9 @@ fn public_consumer_executes_every_typed_mutation_family() {
     );
     assert_emitting_commit(approval);
     let pending = pending_payments(&fixture, &approver);
+    assert!(pending
+        .iter()
+        .all(|payment| payment.id() != fixture.payment));
     let pending = pending
         .iter()
         .find(|payment| payment.id() != fixture.payment)
@@ -325,34 +327,32 @@ fn pending_payments(
     fixture: &fixture::OrdinaryReadFixture,
     principal: &bank_server::BankAuthenticatedPrincipal,
 ) -> Vec<bank_domain::reads::PaymentSummary> {
-    let outcome = fixture
+    let result = fixture
         .world
         .runtime
         .query(queries::pending_payments())
         .as_principal(principal)
         .controls(read_controls())
-        .execute();
-    let BankReadOutcome::Delivered(result) = outcome else {
-        panic!("pending payments must be readable: {outcome:?}")
-    };
-    result.into_output()
+        .execute()
+        .expect("pending payments must be readable");
+    result.rows().to_vec()
 }
 
 fn authorized_users(
     fixture: &fixture::OrdinaryReadFixture,
     principal: &bank_server::BankAuthenticatedPrincipal,
 ) -> Vec<bank_domain::reads::AuthorizedAccountUser> {
-    let BankReadOutcome::Delivered(result) = fixture
+    let result = fixture
         .world
         .runtime
         .query(queries::account_authorized_users(fixture.personal_account))
         .as_principal(principal)
         .controls(read_controls())
         .execute()
-    else {
-        panic!("authorized users must be readable")
-    };
-    result.into_output()
+        .expect("authorized users must be readable");
+    let mut rows = result.into_rows();
+    assert_eq!(rows.len(), 1);
+    rows.pop().unwrap().into_users()
 }
 
 fn account_activity(
@@ -360,21 +360,25 @@ fn account_activity(
     principal: &bank_server::BankAuthenticatedPrincipal,
     account: bank_domain::model::AccountId,
 ) -> Vec<bank_domain::reads::AccountActivityItem> {
-    let outcome = fixture
+    let request = request_scope();
+    fixture
         .world
         .runtime
-        .query(queries::account_activity(account))
+        .account_activity(account)
         .as_principal(principal)
-        .controls(read_controls())
-        .execute();
-    let BankReadOutcome::Delivered(result) = outcome else {
-        panic!("account activity must be readable: {outcome:?}")
-    };
-    result.into_output()
+        .execute(WorthQueryApplicationQueryControls::current_one_shot(
+            std::num::NonZeroUsize::new(128).unwrap(),
+            std::num::NonZeroUsize::new(8_192).unwrap(),
+            &request,
+        ))
+        .expect("account activity must be readable")
+        .rows()[0]
+        .entries()
+        .to_vec()
 }
 
 fn read_controls() -> BankReadControls {
-    BankReadControls::current(request_scope(), 128).unwrap()
+    BankReadControls::current(request_scope(), 128, 10_000).unwrap()
 }
 
 fn key(value: &str) -> BankIdempotencyKey {

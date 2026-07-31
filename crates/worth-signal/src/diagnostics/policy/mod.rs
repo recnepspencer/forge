@@ -46,20 +46,15 @@ pub enum SnapshotRestoreLineageMode {
     PerNode,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum DiagnosticsAvailability {
     RetainedAvailable,
     ReconstructedAvailable,
     OmittedByTier,
     DeniedByBudget,
+    #[default]
     UnavailableNotRetained,
     UnavailableNotReconstructable,
-}
-
-impl Default for DiagnosticsAvailability {
-    fn default() -> Self {
-        Self::UnavailableNotRetained
-    }
 }
 
 impl DiagnosticsAvailability {

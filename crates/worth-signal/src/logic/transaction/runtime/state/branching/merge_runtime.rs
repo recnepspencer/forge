@@ -618,8 +618,7 @@ where
             DeletionMergePolicy::PreserveTargetOnly,
         )?;
         let mut merge_strategy = resolved_strategy.descriptor.merge_strategy();
-        let mut reconciliation_policy =
-            resolved_strategy.descriptor.reconciliation_policy().clone();
+        let mut reconciliation_policy = *resolved_strategy.descriptor.reconciliation_policy();
         reconciliation_policy.conflict = resolved_conflict_policy.descriptor.policy();
         reconciliation_policy.source_only = resolved_source_only_policy.descriptor.policy();
         reconciliation_policy.deletion = resolved_deletion_policy.descriptor.policy();
@@ -1480,7 +1479,7 @@ where
             selected_semantics: plan.selected_semantics().clone(),
             strategy_witness: plan.strategy_witness().clone(),
             compatibility_witness,
-            reconciliation_policy: plan.reconciliation_policy().clone(),
+            reconciliation_policy: *plan.reconciliation_policy(),
             boundary_witness: plan.boundary_witness().clone(),
             identity_correspondence: plan.identity_correspondence().clone(),
             deletion_plan: plan.deletion_plan().clone(),
@@ -1616,20 +1615,20 @@ fn structural_deltas_for_facet(
             record
                 .structural_deltas
                 .iter()
-                .filter(|delta| match (facet, delta) {
-                    (
-                        StructuralConflictFacet::DependencyTopology,
-                        crate::data::graph::BranchStructuralDelta::DependencyTopologyChanged(_),
-                    ) => true,
-                    (
-                        StructuralConflictFacet::DependencySnapshot,
-                        crate::data::graph::BranchStructuralDelta::DependencySnapshotChanged(_),
-                    ) => true,
-                    (
-                        StructuralConflictFacet::RuntimeArtifact,
-                        crate::data::graph::BranchStructuralDelta::RuntimeArtifactChanged(_),
-                    ) => true,
-                    _ => false,
+                .filter(|delta| {
+                    matches!(
+                        (facet, delta),
+                        (
+                            StructuralConflictFacet::DependencyTopology,
+                            crate::data::graph::BranchStructuralDelta::DependencyTopologyChanged(_)
+                        ) | (
+                            StructuralConflictFacet::DependencySnapshot,
+                            crate::data::graph::BranchStructuralDelta::DependencySnapshotChanged(_)
+                        ) | (
+                            StructuralConflictFacet::RuntimeArtifact,
+                            crate::data::graph::BranchStructuralDelta::RuntimeArtifactChanged(_)
+                        )
+                    )
                 })
                 .cloned()
                 .collect()

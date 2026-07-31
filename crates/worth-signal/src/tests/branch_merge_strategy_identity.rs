@@ -113,7 +113,7 @@ fn strategy_witness_is_retained_across_plan_result_and_replay_surfaces() {
                 .as_ref()
                 .and_then(ReplayEventDetail::as_strategy_witness)
         })
-        .map(|witness| witness.clone())
+        .cloned()
         .expect("retained replay history should carry the strategy witness");
 
     assert_eq!(&planned_witness, &plan_report.strategy_witness);

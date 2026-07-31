@@ -314,6 +314,15 @@ impl<Schema, Operation, Input, Scope, Phase>
                 ));
             }
         }
+        self.admission
+            .mutation_preconditions()
+            .validate_observations(&self.facts)
+            .map_err(|()| {
+                denial(
+                    WorthQueryApplicationAttemptDenialKind::MutationPreconditionMismatch,
+                    self.admission.operation(),
+                )
+            })?;
         Ok(WorthQueryCompleteApplicationReadSet {
             admission: self.admission,
             lease: self.lease,

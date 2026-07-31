@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use bank_domain::estate::BankEstateWorld;
 use bank_domain::model::BankPrincipalId;
 use bank_domain::proposals::BankSnapshot;
 use bank_domain::schema::{BankPrincipalBinding, BankSchema, ExternalPrincipalMapping, Principal};
@@ -16,18 +17,20 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationInvariantProjectionAuthority, WorthQueryPrimaryGraphApplicationRuntime,
     WorthQueryPrincipalResolutionMode,
 };
-use worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller;
+use worth_query_host::facade::runtime::{
+    WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionRuntimeInstaller,
+};
 
 use crate::domain_package::bank_domain_package;
 use crate::error::{
     BankAuthenticationBoundaryBuildError, BankIdentityRuntimeBuildError,
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
-use crate::graph_bootstrap::bind_bank_world;
+use crate::graph_bootstrap::bind_bank_world_with_estate;
 use crate::principal_seed::{BankPrincipalSeed, PreparedBankPrincipalSeed};
 use crate::{
-    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankBusinessOwnerSeed,
-    BankEmployeeAssignmentSeed, BankWorldSeed,
+    BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankAuthenticationBoundary,
+    BankBusinessOwnerSeed, BankEmployeeAssignmentSeed, BankPreviewSession, BankWorldSeed,
 };
 
 pub struct BankAuthenticationConfiguration {
@@ -65,7 +68,7 @@ impl BankIdentityRuntime {
     }
 
     pub fn install_world(seed: BankWorldSeed) -> Result<Self, BankIdentityRuntimeBuildError> {
-        let (snapshot, principals, owners, employees) = seed.into_parts();
+        let (snapshot, principals, owners, employees, estate) = seed.into_parts();
         let principals = prepare_seeds(principals)?;
         validate_world_principals(&snapshot, &principals)?;
         Self::install_prepared(
@@ -74,6 +77,7 @@ impl BankIdentityRuntime {
                 snapshot,
                 owners,
                 employees,
+                estate,
             }),
         )
     }
@@ -93,7 +97,11 @@ impl BankIdentityRuntime {
         )
         .admit(validated)
         .map_err(BankIdentityRuntimeBuildError::PackageAdmission)?;
+        let application_query_resources =
+            WorthQueryApplicationQueryResourceProfile::bounded(32_768, 4_096, 32_768)
+                .expect("bank application-query resource profile is statically non-zero");
         let installation = WorthQueryExecutionRuntimeInstaller::new()
+            .application_query_resources(application_query_resources)
             .install(WorthQueryInstallationGeneration::initial(), [admitted])
             .map_err(BankIdentityRuntimeBuildError::RuntimeInstallation)?;
         let (runtime, authority) = installation.into_parts();
@@ -121,8 +129,14 @@ impl BankIdentityRuntime {
                 .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
         }
         if let Some(world) = &world {
-            bind_bank_world(&mut graph, &world.snapshot, &world.owners, &world.employees)
-                .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
+            bind_bank_world_with_estate(
+                &mut graph,
+                &world.snapshot,
+                &world.owners,
+                &world.employees,
+                world.estate.as_ref(),
+            )
+            .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
         }
         let invariant_projection = graph.retain_invariant_projection_authority();
         let runtime = graph
@@ -200,6 +214,15 @@ impl BankIdentityRuntime {
         self.runtime.publication().principal_binding_count()
     }
 
+    pub fn open_preview(
+        &self,
+        request: &WorthQueryRequestScope,
+    ) -> Result<BankPreviewSession, BankApplicationQueryDenial> {
+        self.runtime
+            .open_application_preview_session(request)
+            .map_err(BankApplicationQueryDenial::PreviewSession)
+    }
+
     pub(crate) const fn application_runtime(
         &self,
     ) -> &WorthQueryPrimaryGraphApplicationRuntime<BankSchema> {
@@ -217,6 +240,7 @@ struct BankGraphSeed {
     snapshot: BankSnapshot,
     owners: Vec<BankBusinessOwnerSeed>,
     employees: Vec<BankEmployeeAssignmentSeed>,
+    estate: Option<BankEstateWorld>,
 }
 
 fn prepare_seeds(

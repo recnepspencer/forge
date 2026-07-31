@@ -204,7 +204,7 @@ fn real_graph_allows_distinct_approver_and_deny_precedence_blocks_initiator() {
     .unwrap();
     let admission = world
         .runtime
-        .authorize_approve_payment(&approver_actor, payment, &request)
+        .authorize_approve_payment(&approver_actor, payment, Default::default(), &request)
         .unwrap();
     let approved = BankOperationProposals::prepare_approve_payment(
         &world.runtime,
@@ -226,7 +226,7 @@ fn real_graph_allows_distinct_approver_and_deny_precedence_blocks_initiator() {
     .unwrap();
     let denial = world
         .runtime
-        .authorize_approve_payment(&initiator_actor, payment, &request)
+        .authorize_approve_payment(&initiator_actor, payment, Default::default(), &request)
         .err()
         .expect("initiator deny path must override approver role");
     assert!(matches!(
@@ -270,7 +270,7 @@ fn authenticated_actor_cannot_be_relabelled_in_payment_input() {
     .unwrap();
     let admission = world
         .runtime
-        .authorize_approve_payment(&actor, payment, &request)
+        .authorize_approve_payment(&actor, payment, Default::default(), &request)
         .unwrap();
     let denial = BankOperationProposals::prepare_approve_payment(
         &world.runtime,
@@ -323,11 +323,12 @@ fn viewer_cross_business_and_employee_roles_do_not_combine_into_approval() {
         &request,
     ))
     .unwrap();
-    assert_permission_denied(
-        world
-            .runtime
-            .authorize_approve_payment(&actor, payment, &request),
-    );
+    assert_permission_denied(world.runtime.authorize_approve_payment(
+        &actor,
+        payment,
+        Default::default(),
+        &request,
+    ));
 }
 
 #[test]
@@ -378,11 +379,12 @@ fn revoked_approver_membership_is_absent_from_current_authorization_graph() {
         &request,
     ))
     .unwrap();
-    assert_permission_denied(
-        world
-            .runtime
-            .authorize_approve_payment(&actor, payment, &request),
-    );
+    assert_permission_denied(world.runtime.authorize_approve_payment(
+        &actor,
+        payment,
+        Default::default(),
+        &request,
+    ));
 }
 
 fn assert_permission_denied<T>(result: Result<T, BankOperationAdmissionError>) {

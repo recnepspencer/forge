@@ -195,8 +195,9 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
     );
     assert_eq!(
         comparison.speculative_evaluation_request().selector(),
-        &crate::facade::BridgeTruthViewSelector::branch_head(
-            crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis")
+        &crate::facade::BridgeTruthViewSelector::branch_snapshot(
+            crate::truth_identity_fixtures::truth_branch_fixture("truth:analysis"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
         )
     );
 
@@ -252,4 +253,42 @@ fn standard_speculation_flow_activates_discards_and_promotes() {
         runtime.diagnostics().explain_last(),
         Some(crate::facade::BridgeStandardDiagnosticsExplanation::PreviewPromotion(_))
     ));
+}
+
+#[test]
+fn preview_liveness_observer_tracks_handle_disposal_without_retaining_session() {
+    let runtime = runtime(BridgeRuntimePolicy::default());
+    let handle = runtime
+        .speculate(BridgeSpeculativeSessionRequest::new(
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:liveness-discard"),
+            preview_declaration(),
+            1,
+            0,
+            0,
+        ))
+        .expect("standard speculation should activate");
+    let observer = handle.liveness_observer();
+    let guard = observer
+        .admit_active_session()
+        .expect("the live handle must admit a lifecycle guard");
+    drop(guard);
+
+    handle
+        .discard(Vec::new())
+        .expect("zero-residue preview discard should succeed");
+    assert!(observer.admit_active_session().is_none());
+
+    let abandoned = runtime
+        .speculate(BridgeSpeculativeSessionRequest::new(
+            BridgePreviewSessionIdentity::admit_bridge_owned("preview-session:liveness-drop"),
+            preview_declaration(),
+            1,
+            0,
+            0,
+        ))
+        .expect("standard speculation should activate");
+    let abandoned_observer = abandoned.liveness_observer();
+    drop(abandoned);
+
+    assert!(abandoned_observer.admit_active_session().is_none());
 }

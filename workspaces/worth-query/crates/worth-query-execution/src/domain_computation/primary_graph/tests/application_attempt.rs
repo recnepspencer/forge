@@ -13,14 +13,22 @@ mod authority_lifecycle;
 mod authorization_causality;
 #[path = "application_attempt/decision_adjacency.rs"]
 mod decision_adjacency;
+#[path = "application_attempt/decision_manifest_ceiling.rs"]
+mod decision_manifest_ceiling;
 #[path = "application_attempt/effect_authority.rs"]
 mod effect_authority;
 #[path = "application_attempt/emitted_effects.rs"]
 mod emitted_effects;
+#[path = "application_attempt/program_fixture.rs"]
+mod program_fixture;
 #[path = "application_attempt/terminal_failures.rs"]
 mod terminal_failures;
 #[path = "application_attempt/touched_graph_closure.rs"]
 mod touched_graph_closure;
+
+use program_fixture::{
+    admitted_program, admitted_program_with_emit, admitted_program_with_expected_status,
+};
 
 #[test]
 fn same_fact_race_stales_loser_while_unrelated_drift_does_not_conflict() {
@@ -180,8 +188,20 @@ fn response_loss_resolves_the_published_commit_before_returning() {
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let account = resolved_account(&world, "open", &request);
-    let first = admitted_program(&world, &principal, &account, &request, "published");
-    let retry = admitted_program(&world, &principal, &account, &request, "published");
+    let first = admitted_program_with_expected_status(
+        &world,
+        &principal,
+        &account,
+        &request,
+        ("open", "published"),
+    );
+    let retry = admitted_program_with_expected_status(
+        &world,
+        &principal,
+        &account,
+        &request,
+        ("open", "published"),
+    );
 
     world.application.lose_next_commit_response();
     let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
@@ -197,7 +217,50 @@ fn response_loss_resolves_the_published_commit_before_returning() {
         panic!("retry must recover the transaction published before response loss");
     };
     assert_eq!(receipt, first_receipt);
+    assert_eq!(
+        receipt.precondition_comparison().expected_version_count(),
+        0
+    );
+    assert_eq!(receipt.precondition_comparison().expected_fact_count(), 1);
     assert!(receipt.changed_record_count() >= 2);
+}
+
+#[test]
+fn preparation_commit_recovery_and_retry_perform_no_execution_digest_derivation() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let before = crate::execution_digest::test_hash_parts_call_count();
+    let first = admitted_program(&world, &principal, &account, &request, "digest-free");
+    let retry = admitted_program(&world, &principal, &account, &request, "digest-free");
+
+    world.application.lose_next_commit_response();
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(31, 31)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let after_commit = crate::execution_digest::test_hash_parts_call_count();
+    assert_eq!(
+        after_commit,
+        before,
+        "preparation, provider execution, commit, or response-loss recovery derived legacy execution digests: {:?}",
+        crate::execution_digest::test_hash_parts_domains_since(before)
+    );
+
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(retry, idempotency(31, 31)),
+        WorthQueryApplicationCommitOutcome::AlreadyCommitted(_)
+    ));
+    assert_eq!(
+        crate::execution_digest::test_hash_parts_call_count(),
+        after_commit,
+        "idempotent retry or recovery derived a legacy execution digest"
+    );
 }
 
 pub(super) fn idempotency(key: u8, intent: u8) -> WorthQueryApplicationIdempotencyBinding {
@@ -241,114 +304,4 @@ pub(super) fn resolved_account(
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
         .unwrap()
-}
-
-fn admitted_program(
-    world: &super::fixture::AuthorizationWorld,
-    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Principal,
-        u64,
-    >,
-    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Account,
-    >,
-    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
-    replacement: &str,
-) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
-    super::fixture::IdentityExecutionSchema,
-    TouchAccountOperation,
-    super::fixture::TouchAccountInput,
-    super::fixture::Account,
-> {
-    admitted_program_with_emit(world, principal, account, request, replacement, None)
-}
-
-fn admitted_program_with_emit(
-    world: &super::fixture::AuthorizationWorld,
-    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Principal,
-        u64,
-    >,
-    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Account,
-    >,
-    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
-    replacement: &str,
-    emission: Option<&str>,
-) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
-    super::fixture::IdentityExecutionSchema,
-    TouchAccountOperation,
-    super::fixture::TouchAccountInput,
-    super::fixture::Account,
-> {
-    admitted_program_with_emissions(world, principal, account, request, replacement, emission)
-}
-
-pub(super) fn admitted_program_with_emissions<'a>(
-    world: &super::fixture::AuthorizationWorld,
-    principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Principal,
-        u64,
-    >,
-    account: &crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
-        super::fixture::IdentityExecutionSchema,
-        super::fixture::Account,
-    >,
-    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
-    replacement: &str,
-    emissions: impl IntoIterator<Item = &'a str>,
-) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
-    super::fixture::IdentityExecutionSchema,
-    TouchAccountOperation,
-    super::fixture::TouchAccountInput,
-    super::fixture::Account,
-> {
-    let operation = world
-        .application
-        .installed_schema()
-        .installed_operation(TouchAccountOperation::reference())
-        .unwrap();
-    let admission = world
-        .application
-        .authorize_operation(principal, account, &operation, request)
-        .unwrap();
-    let (_, projection, _) = world
-        .invariant
-        .project_admitted_operation(&admission, |reader, projected| {
-            reader
-                .require_decision_field(projected, AccountStatus::reference())
-                .unwrap();
-        })
-        .unwrap()
-        .into_parts();
-    let reads = world
-        .application
-        .begin_projected_application_read_attempt(admission, projection)
-        .unwrap();
-    let mut effects = reads
-        .complete_projected_dependencies()
-        .unwrap()
-        .begin_effect_program();
-    let account = effects.existing_entity(account).unwrap();
-    effects
-        .write_field(
-            &account,
-            AccountStatus::reference(),
-            replacement.to_string(),
-        )
-        .unwrap();
-    for payload in emissions {
-        effects
-            .emit(
-                super::fixture::AccountActivityEffect::reference(),
-                payload.to_owned(),
-            )
-            .unwrap();
-    }
-    effects.finish().unwrap()
 }

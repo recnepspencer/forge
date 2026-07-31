@@ -1,5 +1,37 @@
 use std::marker::PhantomData;
 
+mod canonical_identity;
+mod capability;
+mod principal_binding_match;
+
+use crate::application_ability::{
+    WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
+    WorthQueryInstalledAbility,
+};
+use crate::application_capability::{
+    compile_capability_registry, ApplicationCapabilityRegistry,
+    WorthQueryApplicationCapabilityInstallationDenial,
+};
+use crate::application_operation::{
+    compile_authorization_policy_registry, ApplicationAuthorizationPolicyRegistry,
+    WorthQueryApplicationOperationInstallationDenial, WorthQueryInstalledAbilityRequirement,
+    WorthQueryInstalledApplicationOperation,
+};
+use crate::application_principal_binding::{
+    WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
+    WorthQueryPrincipalBindingInstallationDenialKind,
+};
+use crate::application_query::{
+    WorthQueryApplicationQueryInstallationDenial, WorthQueryInstalledApplicationQuery,
+};
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
+use crate::installed_index::WorthQueryInstalledPackageAuthority;
+use crate::package::WorthQueryPortableDomainPackageIdentity;
+use canonical_identity::derive_installed_schema_identity;
+#[cfg(test)]
+pub(crate) use canonical_identity::derive_installed_schema_identity_with_budget;
+use principal_binding_match::{principal_binding_matches, principal_binding_name};
+use worth_foundational::facade::{CanonicalDigestDerivationDenial, CanonicalDigestId};
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationEntityRef, ApplicationOperationRef,
     ApplicationPrincipalBindingRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
@@ -7,20 +39,6 @@ use worth_query_declaration::facade::application_schema::{
     ErasedApplicationSchemaDeclaration, TypedApplicationValue, TypedEffectIntentBuilder,
     TypedOperationBuilder, TypedReadDeclarationBuilder,
 };
-
-use crate::application_ability::{
-    WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
-    WorthQueryInstalledAbility,
-};
-use crate::application_operation::{
-    WorthQueryApplicationOperationInstallationDenial, WorthQueryInstalledApplicationOperation,
-};
-use crate::application_principal_binding::{
-    WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
-    WorthQueryPrincipalBindingInstallationDenialKind,
-};
-use crate::installed_index::WorthQueryInstalledPackageAuthority;
-use crate::package::WorthQueryPortableDomainPackageIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstalledApplicationSchemaDenialKind {
@@ -32,6 +50,10 @@ pub enum WorthQueryInstalledApplicationSchemaDenialKind {
     PackageIdentityChanged,
     AdmissionIdentityChanged,
     AuthorityMismatch,
+    CapabilityInstallationDenied,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,9 +99,11 @@ impl std::error::Error for WorthQueryInstalledApplicationSchemaDenial {}
 pub struct WorthQueryInstalledApplicationSchema<Schema> {
     pub(crate) package_authority: WorthQueryInstalledPackageAuthority,
     pub(crate) schema_name: String,
-    pub(crate) schema_identity:
-        worth_query_declaration::facade::application_schema::ApplicationSchemaIdentity,
+    pub(crate) schema_identity: CanonicalDigestId,
     pub(crate) schema: ErasedApplicationSchemaDeclaration,
+    pub(crate) capability_registry: ApplicationCapabilityRegistry,
+    authorization_policy_registry: ApplicationAuthorizationPolicyRegistry,
+    installation_canonical_work: WorthQueryCanonicalWorkEvidence,
     _schema: PhantomData<fn() -> Schema>,
 }
 
@@ -90,14 +114,52 @@ where
     pub(crate) fn new(
         package_authority: WorthQueryInstalledPackageAuthority,
         declaration: &ApplicationSchemaDeclaration<Schema>,
-    ) -> Self {
-        Self {
+        upstream_installation_work: WorthQueryCanonicalWorkEvidence,
+    ) -> Result<Self, ApplicationSchemaCompilationDenial> {
+        let (schema_identity, schema_work) =
+            derive_installed_schema_identity(declaration.identity())
+                .map_err(ApplicationSchemaCompilationDenial::Canonical)?;
+        let binding_identity = ApplicationSchemaBindingIdentity::from_installed_parts(
+            package_authority.runtime_ordinal,
+            package_authority.generation.ordinal(),
+            *package_authority.package_identity.digest(),
+            schema_identity,
+        );
+        let capability_registry = compile_capability_registry(
+            &package_authority,
+            &binding_identity,
+            declaration.erased().members(),
+        )
+        .map_err(ApplicationSchemaCompilationDenial::Capability)?;
+        let authorization_policy_registry =
+            compile_authorization_policy_registry(declaration.erased().members())
+                .map_err(ApplicationSchemaCompilationDenial::Canonical)?;
+        let installation_canonical_work = upstream_installation_work.combine(
+            capability_registry
+                .values()
+                .fold(schema_work, |work, capability| {
+                    work.combine(capability.canonical().work())
+                })
+                .combine(
+                    authorization_policy_registry
+                        .values()
+                        .flat_map(|scopes| scopes.values())
+                        .fold(
+                            WorthQueryCanonicalWorkEvidence::zero(),
+                            |work, requirement| work.combine(requirement.canonical_work()),
+                        ),
+                ),
+        );
+        Ok(Self {
             schema_name: declaration.erased().name().to_string(),
-            schema_identity: declaration.identity().clone(),
+            schema_identity,
             schema: declaration.erased().clone(),
             package_authority,
+            capability_registry,
+            authorization_policy_registry,
+            installation_canonical_work,
             _schema: PhantomData,
-        }
+        })
     }
 
     fn authoring_context(&self) -> ApplicationSchemaAuthoringContext {
@@ -123,8 +185,8 @@ where
         ApplicationSchemaBindingIdentity::from_installed_parts(
             self.package_authority.runtime_ordinal,
             self.package_authority.generation.ordinal(),
-            self.package_authority.package_identity.as_str(),
-            self.schema_identity.clone(),
+            *self.package_authority.package_identity.digest(),
+            self.schema_identity,
         )
     }
 
@@ -135,6 +197,20 @@ where
     /// runtime and generation.
     pub fn installed_declaration(&self) -> &ErasedApplicationSchemaDeclaration {
         &self.schema
+    }
+
+    pub fn installed_ability_requirement(
+        &self,
+        ability: &str,
+        scope_entity: &str,
+    ) -> Option<&WorthQueryInstalledAbilityRequirement> {
+        self.authorization_policy_registry
+            .get(ability)
+            .and_then(|policies| policies.get(scope_entity))
+    }
+
+    pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.installation_canonical_work
     }
 
     pub fn query<Entity>(
@@ -263,56 +339,51 @@ where
     > {
         WorthQueryInstalledApplicationOperation::from_installed_schema(self, operation.name())
     }
-}
 
-fn principal_binding_name(member: &ApplicationSchemaMember) -> Option<&str> {
-    match member {
-        ApplicationSchemaMember::PrincipalBinding { binding, .. } => Some(binding),
-        _ => None,
+    pub fn validate_installed_query<Query, Parameters, QueryResult, Scope>(
+        &self,
+        query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+    ) -> Result<(), WorthQueryApplicationQueryInstallationDenial> {
+        let expected = self.binding_identity();
+        let actual = query.binding_identity();
+        let kind = if actual.runtime_ordinal() != expected.runtime_ordinal() {
+            Some(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::ForeignRuntime,
+            )
+        } else if actual.generation() != expected.generation() {
+            Some(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::StaleGeneration,
+            )
+        } else if actual.package_identity() != expected.package_identity() {
+            Some(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::PackageIdentityChanged,
+            )
+        } else if actual.schema_identity() != expected.schema_identity() {
+            Some(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::SchemaMeaningChanged,
+            )
+        } else {
+            None
+        };
+        if let Some(kind) = kind {
+            return Err(WorthQueryApplicationQueryInstallationDenial::new(
+                kind,
+                query.name(),
+            ));
+        }
+        if !query.authority_matches(&self.package_authority) {
+            return Err(WorthQueryApplicationQueryInstallationDenial::new(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::AuthorityMismatch,
+                query.name(),
+            ));
+        }
+        Ok(())
     }
 }
 
-fn principal_binding_matches<Schema, Binding, Mapping, Principal, PrincipalIdentity>(
-    member: &ApplicationSchemaMember,
-    reference: ApplicationPrincipalBindingRef<
-        Schema,
-        Binding,
-        Mapping,
-        Principal,
-        PrincipalIdentity,
-    >,
-) -> bool
-where
-    PrincipalIdentity: TypedApplicationValue,
-{
-    matches!(
-        member,
-        ApplicationSchemaMember::PrincipalBinding {
-            binding,
-            mapping_entity,
-            identity_aspect,
-            identity_field,
-            status_aspect,
-            status_field,
-            target_relation,
-            principal_entity,
-            principal_identity_aspect,
-            principal_identity_field,
-            principal_identity_scalar_family,
-            principal_identity_value_type,
-        } if binding == reference.name()
-            && mapping_entity == reference.mapping_entity()
-            && identity_aspect == reference.identity_aspect()
-            && identity_field == reference.identity_field()
-            && status_aspect == reference.status_aspect()
-            && status_field == reference.status_field()
-            && target_relation == reference.target_relation()
-            && principal_entity == reference.principal_entity()
-            && principal_identity_aspect == reference.principal_identity_aspect()
-            && principal_identity_field == reference.principal_identity_field()
-            && *principal_identity_scalar_family == reference.principal_identity_scalar_family()
-            && principal_identity_value_type == reference.principal_identity_value_type()
-    )
+pub(crate) enum ApplicationSchemaCompilationDenial {
+    Capability(WorthQueryApplicationCapabilityInstallationDenial),
+    Canonical(CanonicalDigestDerivationDenial),
 }
 
 impl<Schema> std::fmt::Debug for WorthQueryInstalledApplicationSchema<Schema> {

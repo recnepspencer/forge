@@ -23,6 +23,12 @@ pub struct FoundationalBranchCandidateBuilder {
     comparison_basis: Option<FoundationalBranchComparisonBasis>,
 }
 
+impl Default for FoundationalBranchCandidateBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FoundationalBranchCandidateBuilder {
     pub const fn new() -> Self {
         Self {

@@ -73,7 +73,7 @@ fn family_index_contract_carries_requirement_identity_without_index_names() {
 
     assert_eq!(
         contract.read_graph_digest(),
-        admission.requirement_set().read_graph_digest()
+        admission.requirement_set().read_graph_digest().render_hex()
     );
     assert_eq!(
         contract.requirement_set_digest(),

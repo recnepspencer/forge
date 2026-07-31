@@ -33,6 +33,7 @@ pub(super) struct OrdinaryReadFixture {
     pub business_account: AccountId,
     pub institution: InstitutionId,
     pub payment: PaymentId,
+    pub payments: Vec<PaymentId>,
 }
 
 pub(super) struct AccountDiscoveryFixture {
@@ -68,6 +69,15 @@ pub(super) fn ordinary_read_world(
     scenario: &str,
     unrelated_accounts: usize,
 ) -> OrdinaryReadFixture {
+    ordinary_read_world_with_pending_payments(scenario, unrelated_accounts, 1)
+}
+
+pub(super) fn ordinary_read_world_with_pending_payments(
+    scenario: &str,
+    unrelated_accounts: usize,
+    pending_payment_count: usize,
+) -> OrdinaryReadFixture {
+    assert!(pending_payment_count > 0);
     let mut identities = (0..(7 + unrelated_accounts))
         .map(|ordinal| DynamicIdentity::new(&format!("{scenario}-{ordinal}")))
         .collect::<Vec<_>>();
@@ -130,25 +140,27 @@ pub(super) fn ordinary_read_world(
         CustomerRole::Approver,
         "approver",
     );
-    let payment_proposal = BankProposalEngine::prepare_initiate_business_payment(
-        &snapshot,
-        binding(8),
-        &key("pending-payment"),
-        principal_id(OWNER),
-        &InitiateBusinessPayment {
-            business,
-            from: business_account,
-            recipient: principal_id(RECIPIENT),
-            amount: Money::from_minor(900).unwrap(),
-        },
-    )
-    .expect("pending payment should prepare");
-    snapshot = payment_proposal.proposed_snapshot().clone();
-    let payment = snapshot
+    for ordinal in 0..pending_payment_count {
+        let payment_proposal = BankProposalEngine::prepare_initiate_business_payment(
+            &snapshot,
+            binding(8),
+            &key(&format!("pending-payment-{ordinal}")),
+            principal_id(OWNER),
+            &InitiateBusinessPayment {
+                business,
+                from: business_account,
+                recipient: principal_id(RECIPIENT),
+                amount: Money::from_minor(900 + i64::try_from(ordinal).unwrap()).unwrap(),
+            },
+        )
+        .expect("pending payment should prepare");
+        snapshot = payment_proposal.proposed_snapshot().clone();
+    }
+    let payments = snapshot
         .payments()
-        .next()
-        .expect("pending payment should exist")
-        .id();
+        .map(|payment| payment.id())
+        .collect::<Vec<_>>();
+    let payment = payments[0];
     for ordinal in 0..unrelated_accounts {
         snapshot = create_personal(
             snapshot,
@@ -186,12 +198,21 @@ pub(super) fn ordinary_read_world(
         business_account,
         institution,
         payment,
+        payments,
     }
 }
 
 pub(super) fn over_budget_discovery_world(
     scenario: &str,
     authorized_accounts: usize,
+) -> AccountDiscoveryFixture {
+    over_budget_discovery_world_with_role(scenario, authorized_accounts, CustomerRole::Viewer)
+}
+
+pub(super) fn over_budget_discovery_world_with_role(
+    scenario: &str,
+    authorized_accounts: usize,
+    role: CustomerRole,
 ) -> AccountDiscoveryFixture {
     let actor = DynamicIdentity::new(&format!("{scenario}-actor"));
     let owner_identities = (0..authorized_accounts)
@@ -222,7 +243,7 @@ pub(super) fn over_budget_discovery_world(
                 ),
                 account,
                 actor_id,
-                CustomerRole::Viewer,
+                role,
             ));
     }
     let mut seed = BankWorldSeed::new(builder.build().expect("discovery world should build"))

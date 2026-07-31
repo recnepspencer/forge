@@ -12,7 +12,7 @@ use worth_relational::facade::indexes::{
 use crate::domain_computation::execution_runtime::WorthQueryExecutionRuntime;
 
 use super::authenticated_principal::WorthQueryResolvedPrincipalEvidence;
-use super::freshness::principal_binding_freshness_digest;
+use super::freshness::WorthQueryPrincipalFreshnessEvidence;
 use super::observations::{
     observe_exact_principal_target, observe_mapping, resolve_principal_target,
 };
@@ -243,7 +243,7 @@ where
         ));
     }
     let target = resolve_principal_target(runtime, snapshot, mapping_id, layout, binding)?;
-    let freshness_digest = principal_binding_freshness_digest(binding, &mapping, &target);
+    let freshness = WorthQueryPrincipalFreshnessEvidence::new(mapping.clone(), target.clone());
     let principal_identity = PrincipalIdentity::from_foundational_value(&target.principal_identity)
         .ok_or_else(|| {
             resolution_denial(
@@ -259,7 +259,7 @@ where
         binding: binding.to_string(),
         mapping_entity_id: mapping.entity_id,
         target_relation_id: target.relation_id,
-        freshness_digest,
+        freshness,
         examined_candidate_count: lookup.examined_entry_count(),
     })
 }
@@ -286,12 +286,11 @@ pub(super) fn validate_freshness_at_snapshot<Schema, Principal, PrincipalIdentit
         layout,
         principal.binding(),
     )?;
-    let current_digest = principal_binding_freshness_digest(principal.binding(), &mapping, &target);
     if !mapping.enabled
         || &mapping.identity != expected_identity
         || target.source != principal.mapping_entity_id()
         || target.target != principal.principal_entity_id()
-        || current_digest != *principal.freshness_digest()
+        || !principal.freshness().matches(&mapping, &target)
     {
         return Err(resolution_denial(
             WorthQueryPrincipalResolutionDenialKind::StalePrincipalProof,

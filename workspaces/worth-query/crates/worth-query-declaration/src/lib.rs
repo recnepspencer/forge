@@ -6,9 +6,13 @@
 
 #![forbid(unsafe_code)]
 
+mod application_capability;
+mod application_query;
 mod application_schema;
 mod authentication;
 mod authoring;
+#[macro_use]
+mod application_capability_macro;
 #[macro_use]
 mod application_schema_macro;
 #[macro_use]

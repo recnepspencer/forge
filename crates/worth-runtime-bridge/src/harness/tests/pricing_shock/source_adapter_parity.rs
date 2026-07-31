@@ -74,7 +74,7 @@ fn capture_pricing_bundle_with_harness_profile(
     PricingSourceProbeEvidence,
 ) {
     (
-        capture_pricing_workload_certification_bundle(policy.clone(), preview_session_identity),
+        capture_pricing_workload_certification_bundle(policy, preview_session_identity),
         execute_pricing_harness_source_probe(policy, profile, request_name),
     )
 }

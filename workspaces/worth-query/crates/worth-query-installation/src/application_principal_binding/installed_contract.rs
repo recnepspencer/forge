@@ -1,12 +1,14 @@
 use std::marker::PhantomData;
 
-use sha2::{Digest, Sha256};
 use worth_foundational::facade::ScalarAspectType;
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
 };
 
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
+use crate::authority_cryptography::{
+    AuthoritySeal, AuthoritySealDomain, AuthorityTranscript, PackageAuthorityKey,
+};
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 
 /// Opaque installation authority for one schema-declared principal binding.
@@ -35,7 +37,7 @@ pub struct WorthQueryInstalledPrincipalBinding<
     principal_identity_field: String,
     principal_identity_scalar_family: ScalarAspectType,
     principal_identity_value_type: String,
-    authority_identity: String,
+    authority_identity: AuthoritySeal,
     _marker: PhantomData<fn() -> (Schema, Binding, Mapping, Principal, PrincipalIdentity)>,
 }
 
@@ -63,7 +65,7 @@ impl<Schema, Binding, Mapping, Principal, PrincipalIdentity>
     {
         let binding_identity = schema.binding_identity();
         let authority_identity = authority_identity(
-            &schema.package_authority.authority_nonce,
+            &schema.package_authority.authority_key,
             &binding_identity,
             binding,
             mapping_entity,
@@ -160,7 +162,7 @@ impl<Schema, Binding, Mapping, Principal, PrincipalIdentity>
     }
 
     pub fn authority_identity(&self) -> &str {
-        &self.authority_identity
+        self.authority_identity.as_str()
     }
 
     pub(crate) fn meaning_matches(&self, member: &ApplicationSchemaMember) -> bool {
@@ -195,23 +197,25 @@ impl<Schema, Binding, Mapping, Principal, PrincipalIdentity>
     }
 
     pub(crate) fn authority_matches(&self, package: &WorthQueryInstalledPackageAuthority) -> bool {
-        self.authority_identity
-            == authority_identity(
-                &package.authority_nonce,
-                &self.binding_identity,
-                &self.binding,
-                &self.mapping_entity,
-                &self.identity_aspect,
-                &self.identity_field,
-                &self.status_aspect,
-                &self.status_field,
-                &self.target_relation,
-                &self.principal_entity,
-                &self.principal_identity_aspect,
-                &self.principal_identity_field,
-                self.principal_identity_scalar_family,
-                &self.principal_identity_value_type,
-            )
+        authority_transcript(
+            &package.authority_key,
+            &self.binding_identity,
+            PrincipalBindingAuthorityMeaning {
+                binding: &self.binding,
+                mapping_entity: &self.mapping_entity,
+                identity_aspect: &self.identity_aspect,
+                identity_field: &self.identity_field,
+                status_aspect: &self.status_aspect,
+                status_field: &self.status_field,
+                target_relation: &self.target_relation,
+                principal_entity: &self.principal_entity,
+                principal_identity_aspect: &self.principal_identity_aspect,
+                principal_identity_field: &self.principal_identity_field,
+                principal_identity_scalar_family: self.principal_identity_scalar_family,
+                principal_identity_value_type: &self.principal_identity_value_type,
+            },
+        )
+        .verifies(&self.authority_identity)
     }
 }
 
@@ -230,7 +234,7 @@ impl<Schema, Binding, Mapping, Principal, PrincipalIdentity> std::fmt::Debug
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn authority_identity(
-    nonce: &[u8; 32],
+    key: &PackageAuthorityKey,
     identity: &ApplicationSchemaBindingIdentity,
     binding: &str,
     mapping_entity: &str,
@@ -244,28 +248,72 @@ pub(crate) fn authority_identity(
     principal_identity_field: &str,
     principal_identity_scalar_family: ScalarAspectType,
     principal_identity_value_type: &str,
-) -> String {
-    let mut hash = Sha256::new();
-    hash.update(b"worth-query-installed-principal-binding-v1");
-    hash.update(nonce);
-    for value in [
-        identity.package_identity(),
-        identity.schema_identity().as_str(),
-        binding,
-        mapping_entity,
-        identity_aspect,
-        identity_field,
-        status_aspect,
-        status_field,
-        target_relation,
-        principal_entity,
-        principal_identity_aspect,
-        principal_identity_field,
-        principal_identity_scalar_family.canonical_name(),
-        principal_identity_value_type,
-    ] {
-        hash.update(value.len().to_le_bytes());
-        hash.update(value.as_bytes());
-    }
-    format!("{:x}", hash.finalize())
+) -> AuthoritySeal {
+    authority_transcript(
+        key,
+        identity,
+        PrincipalBindingAuthorityMeaning {
+            binding,
+            mapping_entity,
+            identity_aspect,
+            identity_field,
+            status_aspect,
+            status_field,
+            target_relation,
+            principal_entity,
+            principal_identity_aspect,
+            principal_identity_field,
+            principal_identity_scalar_family,
+            principal_identity_value_type,
+        },
+    )
+    .finish()
+}
+
+struct PrincipalBindingAuthorityMeaning<'a> {
+    binding: &'a str,
+    mapping_entity: &'a str,
+    identity_aspect: &'a str,
+    identity_field: &'a str,
+    status_aspect: &'a str,
+    status_field: &'a str,
+    target_relation: &'a str,
+    principal_entity: &'a str,
+    principal_identity_aspect: &'a str,
+    principal_identity_field: &'a str,
+    principal_identity_scalar_family: ScalarAspectType,
+    principal_identity_value_type: &'a str,
+}
+
+fn authority_transcript(
+    key: &PackageAuthorityKey,
+    identity: &ApplicationSchemaBindingIdentity,
+    meaning: PrincipalBindingAuthorityMeaning<'_>,
+) -> AuthorityTranscript {
+    let mut transcript =
+        AuthorityTranscript::new(key, AuthoritySealDomain::InstalledPrincipalBinding);
+    transcript.bytes("package", identity.package_identity().bytes());
+    transcript.bytes("schema", identity.schema_identity().bytes());
+    transcript.text("binding", meaning.binding);
+    transcript.text("mapping-entity", meaning.mapping_entity);
+    transcript.text("identity-aspect", meaning.identity_aspect);
+    transcript.text("identity-field", meaning.identity_field);
+    transcript.text("status-aspect", meaning.status_aspect);
+    transcript.text("status-field", meaning.status_field);
+    transcript.text("target-relation", meaning.target_relation);
+    transcript.text("principal-entity", meaning.principal_entity);
+    transcript.text(
+        "principal-identity-aspect",
+        meaning.principal_identity_aspect,
+    );
+    transcript.text("principal-identity-field", meaning.principal_identity_field);
+    transcript.text(
+        "principal-identity-scalar-family",
+        meaning.principal_identity_scalar_family.canonical_name(),
+    );
+    transcript.text(
+        "principal-identity-value-type",
+        meaning.principal_identity_value_type,
+    );
+    transcript
 }

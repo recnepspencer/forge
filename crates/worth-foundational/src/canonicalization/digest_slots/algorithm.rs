@@ -6,6 +6,8 @@ use super::super::{CanonicalBasisDomain, CanonicalizationRuleVersion};
 pub struct CanonicalDigestAlgorithmId(String);
 
 impl CanonicalDigestAlgorithmId {
+    const SHA256: &'static str = "sha256";
+
     pub fn new(value: impl Into<String>) -> Option<Self> {
         let value = value.into();
         if value.trim().is_empty() || value.contains(char::is_whitespace) {
@@ -15,12 +17,20 @@ impl CanonicalDigestAlgorithmId {
         }
     }
 
-    pub fn test_stable_fixture() -> Self {
-        Self("worth.test.stable-digest-v1".to_string())
+    pub fn sha256() -> Self {
+        Self(Self::SHA256.to_string())
     }
 
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+
+    pub(super) fn is_supported(&self) -> bool {
+        self.is_sha256()
+    }
+
+    pub(super) fn is_sha256(&self) -> bool {
+        self.0 == Self::SHA256
     }
 }
 

@@ -551,7 +551,7 @@ impl PreparedSerialStageBatch {
                 Some(input.dependency_inputs),
                 true,
             )
-            .map_err(|err| {
+            .inspect_err(|err| {
                 record_execution_failure(
                     graph,
                     ExecutionFailureContext::new(
@@ -564,7 +564,6 @@ impl PreparedSerialStageBatch {
                         err.to_string(),
                     ),
                 );
-                err
             })?;
 
             if let Some(snapshot) = apply_result.pending_snapshot {

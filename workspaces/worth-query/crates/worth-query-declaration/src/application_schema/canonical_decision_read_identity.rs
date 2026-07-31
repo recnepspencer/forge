@@ -1,32 +1,31 @@
-use sha2::Sha256;
-
-use super::canonical_identity::hash_field;
+use super::canonical_basis::ApplicationSchemaCanonicalBasis;
 use super::ApplicationOperationDecisionReadTarget;
 
-pub(super) fn hash_decision_read_target(
-    hash: &mut Sha256,
+pub(super) fn append_decision_read_target(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
     target: &ApplicationOperationDecisionReadTarget,
 ) {
     match target {
         ApplicationOperationDecisionReadTarget::Entity { entity } => {
-            hash_field(hash, "read-kind", "entity");
-            hash_field(hash, "entity", entity);
+            basis.text(format!("{prefix}.kind"), "entity");
+            basis.text(format!("{prefix}.entity"), entity);
         }
         ApplicationOperationDecisionReadTarget::Field {
             entity,
             aspect,
             field,
         } => {
-            hash_field(hash, "read-kind", "field");
-            hash_field(hash, "entity", entity);
-            hash_field(hash, "aspect", aspect);
-            hash_field(hash, "field", field);
+            basis.text(format!("{prefix}.kind"), "field");
+            basis.text(format!("{prefix}.entity"), entity);
+            basis.text(format!("{prefix}.aspect"), aspect);
+            basis.text(format!("{prefix}.field"), field);
         }
         ApplicationOperationDecisionReadTarget::Relation { relation, from, to } => {
-            hash_field(hash, "read-kind", "relation");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
+            basis.text(format!("{prefix}.kind"), "relation");
+            basis.text(format!("{prefix}.relation"), relation);
+            basis.text(format!("{prefix}.from"), from);
+            basis.text(format!("{prefix}.to"), to);
         }
     }
 }

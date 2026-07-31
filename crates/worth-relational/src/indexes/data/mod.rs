@@ -1,9 +1,20 @@
 mod bounded_entity_field_lookup;
+mod bounded_related_entity_ordered_lookup;
+mod related_entity_ordering;
 
 pub use bounded_entity_field_lookup::{
     BoundedEntityFieldLookupDenial, BoundedEntityFieldLookupDenialKind,
     BoundedEntityFieldLookupOutcome, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
     MAX_BOUNDED_INDEX_CANDIDATES,
+};
+pub use bounded_related_entity_ordered_lookup::{
+    BoundedRelatedEntityOrderedLookupDenial, BoundedRelatedEntityOrderedLookupDenialKind,
+    BoundedRelatedEntityOrderedLookupOutcome, BoundedRelatedEntityOrderedLookupRequest,
+    MAX_BOUNDED_RELATED_ENTITY_PAGE_WIDTH,
+};
+pub use related_entity_ordering::{
+    RelatedEntityEndpoint, RelatedEntityOrderingBoundary, RelatedEntityOrderingDirection,
+    RelatedEntityOrderingEntry, RelatedEntityOrderingField, RelatedEntityOrderingValue,
 };
 
 use std::collections::BTreeMap;
@@ -33,6 +44,12 @@ pub enum DerivedIndexKind {
         #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
         field_locator: AspectFieldLocator,
     },
+    RelatedEntityOrdering {
+        relation_kind: crate::identity::data::KindId,
+        parent_endpoint: RelatedEntityEndpoint,
+        child_kind: crate::identity::data::KindId,
+        ordering: Vec<RelatedEntityOrderingField>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,6 +64,7 @@ pub struct DerivedIndexDefinition {
 pub enum DerivedIndexEntries {
     EntityField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<EntityId>>),
     RelationField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<RelationId>>),
+    RelatedEntityOrdering(BTreeMap<EntityId, Vec<RelatedEntityOrderingEntry>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

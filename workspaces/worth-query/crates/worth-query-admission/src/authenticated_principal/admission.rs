@@ -1,14 +1,14 @@
 use std::marker::PhantomData;
 use std::time::{Instant, SystemTime};
 
-use sha2::{Digest, Sha256};
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaBindingIdentity,
 };
 use worth_query_installation::facade::WorthQueryInstalledApplicationSchema;
 
 use super::{
-    WorthQueryAuthenticatedExternalPrincipal, WorthQueryAuthenticationAdapter,
+    adapter_identity::adapter_identity, WorthQueryAuthenticatedExternalPrincipal,
+    WorthQueryAuthenticationAdapter, WorthQueryAuthenticationAdapterIdentity,
     WorthQueryAuthenticationAudience, WorthQueryAuthenticationDenial,
     WorthQueryAuthenticationDenialKind, WorthQueryAuthenticationMethod, WorthQueryRequestScope,
 };
@@ -32,6 +32,9 @@ impl WorthQueryAuthenticationAdapterAdmission {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryAuthenticationAdapterAdmissionDenial {
     InvalidConfigurationIdentity,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 pub fn admit_authentication_adapter<Schema, Adapter>(
@@ -55,12 +58,21 @@ where
         return Err(WorthQueryAuthenticationAdapterAdmissionDenial::InvalidConfigurationIdentity);
     }
     let binding_identity = schema.binding_identity();
-    let adapter_identity = adapter_identity::<Adapter>(
+    let adapter_identity = adapter_identity(
         &binding_identity,
         configuration_identity,
         &admission.audience,
         &admission.method,
-    );
+    )
+    .map_err(|denial| match denial {
+        worth_foundational::facade::CanonicalDigestDerivationDenial::EntryLimitExceeded {
+            ..
+        } => WorthQueryAuthenticationAdapterAdmissionDenial::CanonicalEntryBudgetExceeded,
+        worth_foundational::facade::CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
+            ..
+        } => WorthQueryAuthenticationAdapterAdmissionDenial::CanonicalEncodedByteBudgetExceeded,
+        _ => WorthQueryAuthenticationAdapterAdmissionDenial::CanonicalDigestSlotRejected,
+    })?;
     Ok(WorthQueryAdmittedAuthenticationAdapter {
         adapter,
         audience: admission.audience,
@@ -75,7 +87,7 @@ pub struct WorthQueryAdmittedAuthenticationAdapter<Schema, Adapter> {
     adapter: Adapter,
     audience: WorthQueryAuthenticationAudience,
     method: WorthQueryAuthenticationMethod,
-    adapter_identity: String,
+    adapter_identity: WorthQueryAuthenticationAdapterIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
     _schema: PhantomData<fn() -> Schema>,
 }
@@ -159,7 +171,7 @@ where
         ))
     }
 
-    pub fn adapter_identity(&self) -> &str {
+    pub const fn adapter_identity(&self) -> &WorthQueryAuthenticationAdapterIdentity {
         &self.adapter_identity
     }
 }
@@ -174,28 +186,4 @@ impl<Schema, Adapter> std::fmt::Debug for WorthQueryAdmittedAuthenticationAdapte
             .field("binding_identity", &self.binding_identity)
             .finish_non_exhaustive()
     }
-}
-
-fn adapter_identity<Adapter>(
-    binding: &ApplicationSchemaBindingIdentity,
-    configuration: &str,
-    audience: &WorthQueryAuthenticationAudience,
-    method: &WorthQueryAuthenticationMethod,
-) -> String {
-    let mut hash = Sha256::new();
-    hash.update(b"worth-query-authentication-adapter-v1");
-    for value in [
-        std::any::type_name::<Adapter>(),
-        configuration,
-        binding.package_identity(),
-        binding.schema_identity().as_str(),
-        audience.as_str(),
-        method.as_str(),
-    ] {
-        hash.update(value.len().to_le_bytes());
-        hash.update(value.as_bytes());
-    }
-    hash.update(binding.runtime_ordinal().to_le_bytes());
-    hash.update(binding.generation().to_le_bytes());
-    format!("{:x}", hash.finalize())
 }

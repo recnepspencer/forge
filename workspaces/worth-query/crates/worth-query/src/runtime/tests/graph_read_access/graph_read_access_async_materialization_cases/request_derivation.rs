@@ -53,7 +53,7 @@ fn async_required_admission_derives_materialization_request_with_budget_proof() 
     );
     assert_eq!(
         request.requirement_set_digest(),
-        admission.requirement_set().digest().as_str()
+        admission.requirement_set().digest().render_support_hex()
     );
     assert_eq!(
         request.inventory_match_report_digest(),

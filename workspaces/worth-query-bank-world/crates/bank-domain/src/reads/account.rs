@@ -1,6 +1,6 @@
 use crate::model::{
-    AccountAuthorizationId, AccountId, AccountName, BankPrincipalId, BusinessId, CustomerRole,
-    InstitutionId, SignedMoney, USD,
+    AccountAuthorizationId, AccountId, AccountJournalRevision, AccountName, BankPrincipalId,
+    BusinessId, CustomerRole, InstitutionId, SignedMoney, USD,
 };
 use crate::schema::{AccountKind, AccountStatus};
 
@@ -25,6 +25,7 @@ pub struct AccountSummary {
     display_name: AccountName,
     kind: AccountKind,
     status: AccountStatus,
+    accounting_revision: AccountJournalRevision,
     current_balance: SignedMoney<USD>,
     available_balance: SignedMoney<USD>,
 }
@@ -35,6 +36,7 @@ impl AccountSummary {
         display_name: AccountName,
         kind: AccountKind,
         status: AccountStatus,
+        accounting_revision: AccountJournalRevision,
         current_balance: SignedMoney<USD>,
         available_balance: SignedMoney<USD>,
     ) -> Self {
@@ -43,6 +45,7 @@ impl AccountSummary {
             display_name,
             kind,
             status,
+            accounting_revision,
             current_balance,
             available_balance,
         }
@@ -62,6 +65,10 @@ impl AccountSummary {
 
     pub const fn status(&self) -> AccountStatus {
         self.status
+    }
+
+    pub const fn accounting_revision(&self) -> AccountJournalRevision {
+        self.accounting_revision
     }
 
     pub const fn current_balance(&self) -> SignedMoney<USD> {

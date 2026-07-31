@@ -1,3 +1,4 @@
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
 use worth_query_declaration::{worth_query_application_schema, worth_query_entity};
 
@@ -25,6 +26,7 @@ fn installed_correspondence_retains_signal_decision_and_exact_dependency_identit
     let paths = paths();
     let identity = runtime
         .install(BridgeAuthorizationInstallationRequest::new(
+            &CanonicalDigestId::new([9; 32]),
             binding_identity(),
             "view_account",
             "Account",
@@ -32,6 +34,7 @@ fn installed_correspondence_retains_signal_decision_and_exact_dependency_identit
             paths.clone(),
         ))
         .unwrap();
+    assert_eq!(identity.bytes(), &[9; 32]);
     let evidence = runtime
         .evaluate(BridgeAuthorizationObservation::new(
             identity,
@@ -57,6 +60,7 @@ fn correspondence_rejects_reordered_or_non_exhaustive_policy_facts() {
     let paths = paths();
     let identity = runtime
         .install(BridgeAuthorizationInstallationRequest::new(
+            &CanonicalDigestId::new([10; 32]),
             binding_identity(),
             "approve_payment",
             "PaymentIntent",
@@ -111,11 +115,10 @@ fn observation(
 }
 
 fn binding_identity() -> ApplicationSchemaBindingIdentity {
-    let declaration = BridgeAuthorizationSchema::declaration().unwrap();
     ApplicationSchemaBindingIdentity::from_installed_parts(
         1,
         1,
-        "package",
-        declaration.identity().clone(),
+        CanonicalDigestId::new([11; 32]),
+        CanonicalDigestId::new([12; 32]),
     )
 }

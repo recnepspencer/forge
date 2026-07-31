@@ -11,5 +11,6 @@ pub mod estate;
 pub mod model;
 pub mod payments;
 pub mod proposals;
+pub mod queries;
 pub mod reads;
 pub mod schema;

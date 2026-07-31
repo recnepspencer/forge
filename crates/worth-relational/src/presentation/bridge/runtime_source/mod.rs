@@ -11,6 +11,8 @@ mod snapshot_authority;
 mod snapshot_reads;
 mod source_profile;
 
+pub use execution_basis::RelationalBridgeTruthViewBasisDenial;
+
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeRelationalSource {
     runtime: runtime_authority::RelationalBridgeRuntimeAuthority,

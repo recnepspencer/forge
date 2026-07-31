@@ -1,7 +1,8 @@
 use worth_query_decl::facade::{
     worth_query_operation, worth_query_operation_creates, worth_query_operation_deletes,
-    worth_query_operation_emits, worth_query_operation_links, worth_query_operation_unlinks,
-    worth_query_operation_writes,
+    worth_query_operation_emits, worth_query_operation_expects_fact,
+    worth_query_operation_expects_version, worth_query_operation_links,
+    worth_query_operation_unlinks, worth_query_operation_writes,
 };
 
 mod read_capabilities;
@@ -10,42 +11,6 @@ use crate::model::{
     AccountAuthorizationId, AccountId, AccountName, BankPrincipalId, BusinessId, CustomerRole,
     InstitutionId, JournalEntryId, Money, PaymentId, USD,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct DiscoverAccounts;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadAccountSummary {
-    pub account: AccountId,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadAccountDetail {
-    pub account: AccountId,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadAccountAuthorizedUsers {
-    pub account: AccountId,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadAccountActivity {
-    pub account: AccountId,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadPendingPayments;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct ReadPayment {
-    pub payment: PaymentId,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct AuditInstitutionActivity {
-    pub institution: InstitutionId,
-}
 
 use super::authentication::PrincipalIdentityField;
 use super::entities::{
@@ -59,7 +24,7 @@ use super::fields::{
 };
 use super::governance::AccountActivityEffect;
 use super::relations::{
-    AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount, BusinessOwner,
+    AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount,
     InstitutionAccount, InstitutionCashAccount, JournalPosting, JournalReversal, PaymentApproval,
     PaymentBusiness, PaymentDestination, PaymentInitiator, PaymentSource, PersonalOwner,
     PostingAccount,
@@ -161,6 +126,8 @@ worth_query_operation!(pub ApplyOpeningFundingOperation(ApplyOpeningFunding) in 
 worth_query_operation!(pub DepositOperation(Deposit) in BankSchema);
 worth_query_operation!(pub WithdrawOperation(Withdraw) in BankSchema);
 worth_query_operation!(pub SendMoneyOperation(SendMoney) in BankSchema);
+worth_query_operation_expects_version!(SendMoneyOperation => [AccountingRevision]);
+worth_query_operation_expects_fact!(SendMoneyOperation => [Status]);
 worth_query_operation!(
     pub InitiateBusinessPaymentOperation(InitiateBusinessPayment) in BankSchema
 );
@@ -173,19 +140,6 @@ worth_query_operation!(
     pub RevokeAccountAuthorizationOperation(RevokeAccountAuthorization) in BankSchema
 );
 worth_query_operation!(pub ReverseJournalOperation(ReverseJournal) in BankSchema);
-worth_query_operation!(pub DiscoverAccountsOperation(DiscoverAccounts) in BankSchema);
-worth_query_operation!(pub ReadAccountSummaryOperation(ReadAccountSummary) in BankSchema);
-worth_query_operation!(pub ReadAccountDetailOperation(ReadAccountDetail) in BankSchema);
-worth_query_operation!(
-    pub ReadAccountAuthorizedUsersOperation(ReadAccountAuthorizedUsers) in BankSchema
-);
-worth_query_operation!(pub ReadAccountActivityOperation(ReadAccountActivity) in BankSchema);
-worth_query_operation!(pub ReadPendingPaymentsOperation(ReadPendingPayments) in BankSchema);
-worth_query_operation!(pub ReadPaymentOperation(ReadPayment) in BankSchema);
-worth_query_operation!(
-    pub AuditInstitutionActivityOperation(AuditInstitutionActivity) in BankSchema
-);
-
 worth_query_operation_writes!(
     CreatePersonalAccountOperation => [
         AccountIdentity,

@@ -47,7 +47,7 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
     };
     let admission = world
         .runtime
-        .authorize_send_money(&actor, source, &request)
+        .authorize_send_money(&actor, source, Default::default(), &request)
         .unwrap();
     let proposal = expect_send_proposal(
         BankOperationProposals::prepare_send_money(
@@ -74,7 +74,7 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
 
     let retry_admission = world
         .runtime
-        .authorize_send_money(&actor, source, &request)
+        .authorize_send_money(&actor, source, Default::default(), &request)
         .unwrap();
     let retry = BankOperationProposals::prepare_send_money(
         &world.runtime,
@@ -90,7 +90,7 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
 
     let drift_admission = world
         .runtime
-        .authorize_send_money(&actor, source, &request)
+        .authorize_send_money(&actor, source, Default::default(), &request)
         .unwrap();
     let drift = BankOperationProposals::prepare_send_money(
         &world.runtime,
@@ -109,7 +109,7 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
 
     let next_admission = world
         .runtime
-        .authorize_send_money(&actor, source, &request)
+        .authorize_send_money(&actor, source, Default::default(), &request)
         .unwrap();
     let next = expect_send_proposal(
         BankOperationProposals::prepare_send_money(

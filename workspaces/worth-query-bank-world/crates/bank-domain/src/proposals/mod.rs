@@ -5,6 +5,8 @@ mod denial;
 mod effects;
 mod engine;
 mod idempotency;
+#[cfg(test)]
+mod idempotency_tests;
 mod journal_proposal;
 mod proposal_completion;
 mod proposal_identity;

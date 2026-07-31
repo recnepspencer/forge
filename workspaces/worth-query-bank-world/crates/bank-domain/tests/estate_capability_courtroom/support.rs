@@ -82,6 +82,9 @@ pub(super) fn courtroom() -> Courtroom {
             branch,
             role: EmployeeRole::Teller,
         })
+        .with_estate_assignment(estate, specialist_assignment)
+        .with_estate_assignment(estate, manager_assignment)
+        .with_estate_assignment(estate, teller_assignment)
         .with_legal_authority(EstateLegalAuthority {
             id: authority,
             estate,

@@ -1,5 +1,6 @@
 mod application_decision_fact;
 mod commit_causality;
+mod committed_application;
 mod decision_facts;
 mod graph_participation;
 mod idempotency;
@@ -13,6 +14,7 @@ use std::sync::{Arc, Mutex};
 
 use super::WorthQueryPrimaryGraphIntegrationHandle;
 pub(super) use application_decision_fact::WorthQueryPrimaryGraphApplicationDecisionFact;
+pub(super) use committed_application::WorthQueryPrimaryGraphCommittedApplication;
 pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
 
 pub(super) struct WorthQueryPrimaryGraphProvider {

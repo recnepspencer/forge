@@ -19,8 +19,9 @@ use crate::snapshot::TruthSnapshotIdentity;
 
 use super::coordinates::{BridgePatchTargetCoordinate, BridgeSnapshotReadCoordinate};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum BridgeErrorContext {
+    #[default]
     None,
     MappingFreeze(BridgeMappingFreezeContext),
     Patch(BridgePatchContext),
@@ -28,12 +29,6 @@ pub enum BridgeErrorContext {
     Delivery(BridgeDeliveryContext),
     Replay(BridgeReplayContext),
     Snapshot(BridgeSnapshotContext),
-}
-
-impl Default for BridgeErrorContext {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl BridgeErrorContext {

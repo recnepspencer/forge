@@ -64,7 +64,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
-        reconstruct_state(self.runtime, version_id, false)?;
+        reconstruct_state(self.runtime, version_id)?;
         let handle = self.open_active_snapshot(version_id, SnapshotReadPolicy::ImmutablePinned);
         Some(SnapshotGuard::new(handle))
     }
@@ -112,5 +112,13 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         crate::visibility::execution_basis::RelationalExecutionBasisDenial,
     > {
         crate::visibility::execution_basis::admit_execution_basis(self.runtime, version_id)
+    }
+
+    pub fn execution_basis_is_live(
+        &self,
+        identity: &crate::visibility::execution_basis::RelationalExecutionBasisIdentity,
+    ) -> bool {
+        identity.runtime_instance_id() == self.runtime.runtime_instance_id()
+            && self.runtime.visibility.execution_basis_is_live(identity)
     }
 }

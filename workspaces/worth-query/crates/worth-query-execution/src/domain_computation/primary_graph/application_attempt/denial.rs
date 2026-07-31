@@ -11,6 +11,7 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     IncompleteDecisionReadSet,
     DecisionDependencyMismatch,
     DecisionFactBudgetExceeded,
+    MutationPreconditionMismatch,
     AmbiguousRelation,
     UndeclaredEffect,
     ForeignEffectTarget,

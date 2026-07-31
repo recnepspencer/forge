@@ -1,19 +1,16 @@
+mod access_and_core;
+
 use bank_domain::model::{AccountId, BankPrincipalId, BusinessId, InstitutionId, PaymentId};
 use bank_domain::schema::*;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
-use worth_query_host::facade::declaration::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationOperationRef, EqualityPredicate,
-    TypedApplicationValue, WritePosture,
-};
+use worth_query_host::facade::declaration::application_schema::TypedMutationPreconditions;
 use worth_query_host::facade::domain::WorthQueryApplicationOperationInstallationDenial;
 use worth_query_host::facade::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryEntityResolutionDenial,
-    WorthQueryOperationAuthorizationDenial, WorthQueryPrincipalResolutionMode,
+    WorthQueryOperationAuthorizationDenial,
 };
 
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
-
-mod read;
 
 /// Bank-owned retention of Query's exact admitted-operation authority plus
 /// the typed bank actor and scope identities used by proposal semantics.
@@ -102,6 +99,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         institution: InstitutionId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            CreatePersonalAccountOperation,
+            Institution,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<
@@ -117,6 +119,7 @@ impl BankIdentityRuntime {
             InstitutionIdentityField::reference(),
             institution,
             CreatePersonalAccountOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -125,6 +128,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         institution: InstitutionId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            CreateBusinessAccountOperation,
+            Institution,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<
@@ -140,6 +148,7 @@ impl BankIdentityRuntime {
             InstitutionIdentityField::reference(),
             institution,
             CreateBusinessAccountOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -148,6 +157,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         institution: InstitutionId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            ApplyOpeningFundingOperation,
+            Institution,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<
@@ -163,6 +177,7 @@ impl BankIdentityRuntime {
             InstitutionIdentityField::reference(),
             institution,
             ApplyOpeningFundingOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -171,6 +186,7 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         institution: InstitutionId,
+        preconditions: TypedMutationPreconditions<BankSchema, DepositOperation, Institution>,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<DepositOperation, Deposit, Institution, InstitutionId>,
@@ -181,6 +197,7 @@ impl BankIdentityRuntime {
             InstitutionIdentityField::reference(),
             institution,
             DepositOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -189,6 +206,7 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         institution: InstitutionId,
+        preconditions: TypedMutationPreconditions<BankSchema, WithdrawOperation, Institution>,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<WithdrawOperation, Withdraw, Institution, InstitutionId>,
@@ -199,6 +217,7 @@ impl BankIdentityRuntime {
             InstitutionIdentityField::reference(),
             institution,
             WithdrawOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -207,6 +226,7 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         account: AccountId,
+        preconditions: TypedMutationPreconditions<BankSchema, SendMoneyOperation, Account>,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<SendMoneyOperation, SendMoney, Account, AccountId>,
@@ -217,6 +237,7 @@ impl BankIdentityRuntime {
             AccountIdentity::reference(),
             account,
             SendMoneyOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -225,6 +246,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         business: BusinessId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            InitiateBusinessPaymentOperation,
+            Business,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<
@@ -240,6 +266,7 @@ impl BankIdentityRuntime {
             BusinessIdentityField::reference(),
             business,
             InitiateBusinessPaymentOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -248,6 +275,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         payment: PaymentId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            ApprovePaymentOperation,
+            PaymentIntent,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<ApprovePaymentOperation, ApprovePayment, PaymentIntent, PaymentId>,
@@ -258,6 +290,7 @@ impl BankIdentityRuntime {
             PaymentIdentityField::reference(),
             payment,
             ApprovePaymentOperation::reference(),
+            preconditions,
             request,
         )
     }
@@ -266,6 +299,11 @@ impl BankIdentityRuntime {
         &self,
         actor: &BankAuthenticatedPrincipal,
         payment: PaymentId,
+        preconditions: TypedMutationPreconditions<
+            BankSchema,
+            RejectPaymentOperation,
+            PaymentIntent,
+        >,
         request: &WorthQueryRequestScope,
     ) -> Result<
         BankAdmittedOperation<RejectPaymentOperation, RejectPayment, PaymentIntent, PaymentId>,
@@ -276,118 +314,8 @@ impl BankIdentityRuntime {
             PaymentIdentityField::reference(),
             payment,
             RejectPaymentOperation::reference(),
+            preconditions,
             request,
         )
-    }
-
-    pub fn authorize_grant_account_access(
-        &self,
-        actor: &BankAuthenticatedPrincipal,
-        account: AccountId,
-        request: &WorthQueryRequestScope,
-    ) -> Result<
-        BankAdmittedOperation<
-            GrantAccountAuthorizationOperation,
-            GrantAccountAuthorization,
-            Account,
-            AccountId,
-        >,
-        BankOperationAdmissionError,
-    > {
-        self.authorize(
-            actor,
-            AccountIdentity::reference(),
-            account,
-            GrantAccountAuthorizationOperation::reference(),
-            request,
-        )
-    }
-
-    pub fn authorize_revoke_account_access(
-        &self,
-        actor: &BankAuthenticatedPrincipal,
-        account: AccountId,
-        request: &WorthQueryRequestScope,
-    ) -> Result<
-        BankAdmittedOperation<
-            RevokeAccountAuthorizationOperation,
-            RevokeAccountAuthorization,
-            Account,
-            AccountId,
-        >,
-        BankOperationAdmissionError,
-    > {
-        self.authorize(
-            actor,
-            AccountIdentity::reference(),
-            account,
-            RevokeAccountAuthorizationOperation::reference(),
-            request,
-        )
-    }
-
-    pub fn authorize_reverse_journal(
-        &self,
-        actor: &BankAuthenticatedPrincipal,
-        institution: InstitutionId,
-        request: &WorthQueryRequestScope,
-    ) -> Result<
-        BankAdmittedOperation<ReverseJournalOperation, ReverseJournal, Institution, InstitutionId>,
-        BankOperationAdmissionError,
-    > {
-        self.authorize(
-            actor,
-            InstitutionIdentityField::reference(),
-            institution,
-            ReverseJournalOperation::reference(),
-            request,
-        )
-    }
-
-    fn authorize<Aspect, Scope, Field, Value, Write, Currency, Operation, Input>(
-        &self,
-        actor: &BankAuthenticatedPrincipal,
-        field: ApplicationFieldRef<
-            BankSchema,
-            Scope,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            EqualityPredicate,
-            Currency,
-        >,
-        value: Value,
-        operation: ApplicationOperationRef<BankSchema, Operation, Input>,
-        request: &WorthQueryRequestScope,
-    ) -> Result<BankAdmittedOperation<Operation, Input, Scope, Value>, BankOperationAdmissionError>
-    where
-        Value: TypedApplicationValue + Clone + Copy,
-        Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
-    {
-        let identity = self
-            .application_runtime()
-            .resolve_entity(
-                field,
-                value,
-                request,
-                WorthQueryPrincipalResolutionMode::Ordinary,
-            )
-            .map_err(BankOperationAdmissionError::ScopeResolution)?;
-        let operation = self
-            .application_runtime()
-            .installed_schema()
-            .installed_operation(operation)
-            .map_err(BankOperationAdmissionError::OperationInstallation)?;
-        let query = self
-            .application_runtime()
-            .authorize_operation(actor.query(), &identity, &operation, request)
-            .map_err(BankOperationAdmissionError::Authorization)?;
-        Ok(BankAdmittedOperation {
-            actor: actor.principal_id(),
-            scope: value,
-            query,
-        })
     }
 }

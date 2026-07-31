@@ -172,12 +172,10 @@ impl fmt::Display for SignalError {
                 f,
                 "signal scratch is already leased for {active:?}; re-entrant {attempted:?} traversal is forbidden"
             ),
-            Self::ScratchMismatch { expected, restored } => match expected {
-                expected => write!(
-                    f,
-                    "signal scratch lease mismatch: expected {expected:?}, restored {restored:?}"
-                ),
-            },
+            Self::ScratchMismatch { expected, restored } => write!(
+                f,
+                "signal scratch lease mismatch: expected {expected:?}, restored {restored:?}"
+            ),
             Self::ContractViolation { node, requirement } => {
                 write!(f, "contract violation for {node}: missing {requirement:?}")
             }

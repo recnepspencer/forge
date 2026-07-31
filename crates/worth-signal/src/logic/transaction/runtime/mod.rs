@@ -11,7 +11,6 @@ pub use execution::{RuntimeExecutionRequest, TransactionExecutionRequest};
 pub(crate) use state::RuntimeObservationRegistry;
 pub use state::{branch_state_proof_report, canonical_digest};
 #[allow(unused_imports)]
-#[allow(unused_imports)]
 pub use state::{
     bridge_signal_branch_basis_trust_boundary, bridge_signal_merge_compatibility_trust_boundary,
     lowered_strategy_bundle_digest, merge_lineage_digest, replay_artifact_proof_report,

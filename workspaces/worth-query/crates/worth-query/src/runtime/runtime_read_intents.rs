@@ -293,9 +293,12 @@ fn validate_graph_read_access_plan_matches_handoff(
         .requirement_set()
         .read_graph_digest();
     let handoff_read_graph_digest = handoff.read_family().read_graph().digest();
-    if planned_read_graph_digest == handoff_read_graph_digest {
+    if worth_foundational::facade::CanonicalDigestId::parse_hex(handoff_read_graph_digest).as_ref()
+        == Some(planned_read_graph_digest)
+    {
         return Ok(());
     }
+    let planned_read_graph_digest = planned_read_graph_digest.render_hex();
     Err(WorthQueryRuntimeError::ReadCompositionDenied(
         WorthQueryReadDenial::new(
             WorthQueryReadDenialKind::BasisPreflightDenied,
@@ -304,7 +307,7 @@ fn validate_graph_read_access_plan_matches_handoff(
             ),
         )
         .with_access_plan_binding_mismatch(WorthQueryReadAccessPlanBindingMismatch::new(
-            planned_read_graph_digest,
+            &planned_read_graph_digest,
             handoff_read_graph_digest,
             graph_read_access_plan.digest(),
             graph_read_access_plan.admission().digest(),

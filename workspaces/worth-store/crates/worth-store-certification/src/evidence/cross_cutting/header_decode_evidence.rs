@@ -162,7 +162,7 @@ fn derive_header_report_digest(
         _ => unreachable!("canonical basis preparation only returns success or denial"),
     };
     let digest_slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         domain,
         version,
     );

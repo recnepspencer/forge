@@ -24,7 +24,7 @@ fn main() {
             _ => panic!("basis should be ready"),
         };
     let export_slot = CanonicalExportBundleDigestAlgorithmSlot::export_bundle(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         version,
     );
 

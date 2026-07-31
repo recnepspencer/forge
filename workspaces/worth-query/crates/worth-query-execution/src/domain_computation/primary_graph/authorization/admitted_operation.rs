@@ -1,28 +1,41 @@
 use std::marker::PhantomData;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::Instant;
 
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
 use worth_query_installation::facade::{
-    ApplicationSchemaBindingIdentity, WorthQueryCompiledApplicationOperationContracts,
+    ApplicationSchemaBindingIdentity, WorthQueryCanonicalWorkEvidence,
+    WorthQueryCanonicalWorkPhases, WorthQueryCompiledApplicationOperationContracts,
 };
 use worth_relational::facade::authorization::{
     RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
 };
 use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
+use super::scope_identity::PreparedOperationScopeIdentity;
 use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
 
-static NEXT_OPERATION_ADMISSION_IDENTITY: std::sync::atomic::AtomicU64 =
-    std::sync::atomic::AtomicU64::new(1);
+static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryOperationAdmissionIdentity(u64);
 
 impl WorthQueryOperationAdmissionIdentity {
-    fn mint() -> Self {
-        Self(NEXT_OPERATION_ADMISSION_IDENTITY.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    fn mint() -> Option<Self> {
+        Self::mint_from(&NEXT_OPERATION_ADMISSION_IDENTITY)
+    }
+
+    fn mint_from(counter: &AtomicU64) -> Option<Self> {
+        counter
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .ok()
+            .map(Self)
     }
 }
 
@@ -32,17 +45,27 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationC
     pub(in crate::domain_computation::primary_graph) bridge: BridgeAuthorizationDecisionEvidence,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WorthQueryOperationScopeFingerprint([u8; 32]);
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationScopeFingerprint {
+    digest: CanonicalDigestId,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
+}
 
 impl WorthQueryOperationScopeFingerprint {
-    pub(super) const fn mint(bytes: [u8; 32]) -> Self {
-        Self(bytes)
+    pub(super) fn mint(prepared: PreparedOperationScopeIdentity) -> Self {
+        Self {
+            digest: prepared.digest,
+            canonical_work: prepared.work,
+        }
     }
 
     /// Descriptive canonical bytes. Possessing them grants no Query authority.
-    pub const fn bytes(&self) -> &[u8; 32] {
-        &self.0
+    pub fn bytes(&self) -> &[u8; 32] {
+        self.digest.bytes()
+    }
+
+    const fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
     }
 }
 
@@ -63,15 +86,19 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
         crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
     operation: String,
-    operation_authority_identity: String,
+    operation_authority_identity: Arc<str>,
     admission_identity: WorthQueryOperationAdmissionIdentity,
+    resource_binding_identity: Arc<str>,
     operation_scope_fingerprint: WorthQueryOperationScopeFingerprint,
+    canonical_work: WorthQueryCanonicalWorkPhases,
     scope_entity_id: worth_relational::facade::identity::EntityId,
     scope_entity_kind: worth_relational::facade::identity::KindId,
     scope_entity_name: String,
     authentication_valid_until: Instant,
     request_scope: WorthQueryRequestScope,
     contracts: WorthQueryCompiledApplicationOperationContracts,
+    mutation_preconditions:
+        super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
     requirements: Vec<WorthQueryAuthorizationCommitDependency>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
@@ -91,24 +118,40 @@ impl<Schema, Operation, Input, Scope>
         authentication_valid_until: Instant,
         request_scope: WorthQueryRequestScope,
         contracts: WorthQueryCompiledApplicationOperationContracts,
+        mutation_preconditions:
+            super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
         requirements: Vec<WorthQueryAuthorizationCommitDependency>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, ()> {
+        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or(())?;
+        let resource_binding_identity = Arc::<str>::from(format!(
+            "worth-query-application-admission:{}",
+            admission_identity.0
+        ));
+        let canonical_work = WorthQueryCanonicalWorkPhases::new(
+            contracts.canonical_work(),
+            operation_scope_fingerprint
+                .canonical_work()
+                .combine(mutation_preconditions.canonical_work()),
+        );
+        Ok(Self {
             runtime_authority,
             binding_identity,
             operation,
-            operation_authority_identity,
-            admission_identity: WorthQueryOperationAdmissionIdentity::mint(),
+            operation_authority_identity: operation_authority_identity.into(),
+            admission_identity,
+            resource_binding_identity,
             operation_scope_fingerprint,
+            canonical_work,
             scope_entity_id,
             scope_entity_kind,
             scope_entity_name,
             authentication_valid_until,
             request_scope,
             contracts,
+            mutation_preconditions,
             requirements,
             _marker: PhantomData,
-        }
+        })
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
@@ -179,6 +222,17 @@ impl<Schema, Operation, Input, Scope>
         &self.contracts
     }
 
+    pub(in crate::domain_computation::primary_graph) const fn mutation_preconditions(
+        &self,
+    ) -> &super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions
+    {
+        &self.mutation_preconditions
+    }
+
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
+        self.canonical_work
+    }
+
     pub fn authorization_requirement_count(&self) -> usize {
         self.requirements.len()
     }
@@ -243,6 +297,18 @@ impl<Schema, Operation, Input, Scope>
         &self.operation_authority_identity
     }
 
+    pub(in crate::domain_computation::primary_graph) fn retain_installed_operation_fingerprint(
+        &self,
+    ) -> Arc<str> {
+        Arc::clone(&self.operation_authority_identity)
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn retain_resource_binding_identity(
+        &self,
+    ) -> Arc<str> {
+        Arc::clone(&self.resource_binding_identity)
+    }
+
     /// Revalidates the time and cancellation authority carried from the exact
     /// authentication request that minted this operation admission.
     ///
@@ -275,7 +341,21 @@ impl<Schema, Operation, Input, Scope>
     /// Stable identity of the authenticated runtime, installed operation,
     /// principal, and typed scope. It intentionally excludes snapshot identity
     /// so an equivalent authorized retry can retain one idempotency intent.
-    pub const fn operation_scope_fingerprint(&self) -> WorthQueryOperationScopeFingerprint {
-        self.operation_scope_fingerprint
+    pub const fn operation_scope_fingerprint(&self) -> &WorthQueryOperationScopeFingerprint {
+        &self.operation_scope_fingerprint
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::AtomicU64;
+
+    use super::WorthQueryOperationAdmissionIdentity;
+
+    #[test]
+    fn operation_admission_identity_exhaustion_cannot_wrap() {
+        let counter = AtomicU64::new(u64::MAX);
+        assert!(WorthQueryOperationAdmissionIdentity::mint_from(&counter).is_none());
+        assert_eq!(counter.load(std::sync::atomic::Ordering::Relaxed), u64::MAX);
     }
 }

@@ -98,9 +98,9 @@ fn account_creation_intent(
     owner: u64,
     display_name: &str,
 ) -> BankIdempotencyClaim {
-    let payload = CanonicalProposalPayload::new()
-        .u64(institution)
-        .u64(owner)
-        .text(display_name);
-    BankIdempotencyClaim::derive(binding, key, operation, payload.as_bytes())
+    let payload = CanonicalProposalPayload::new(operation)
+        .u64("institution", institution)
+        .u64("owner", owner)
+        .text("display-name", display_name);
+    BankIdempotencyClaim::derive(binding, key, payload)
 }

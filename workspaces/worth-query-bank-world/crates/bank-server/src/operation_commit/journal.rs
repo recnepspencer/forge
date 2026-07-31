@@ -100,20 +100,12 @@ where
     for posting in journal.postings() {
         lower_posting(effects, &journal_entity, journal, posting, &mut accounts)?;
     }
-    for (account_id, account) in accounts.0 {
+    for (_, account) in accounts.0 {
         if account.remaining_postings != 0 || account.next_sequence != account.revision {
             return Err(BankCommitPreparationDenial::InvalidProposalShape);
         }
         let target = effects.existing_entity(&account.identity)?;
         effects.write_field(&target, AccountingRevision::reference(), account.revision)?;
-        effects.emit(
-            AccountActivityEffect::reference(),
-            ActivityEvent {
-                account: account_id,
-                journal: journal.id(),
-                journal_sequence: account.revision.get(),
-            },
-        )?;
     }
     Ok(journal_entity)
 }
@@ -133,6 +125,7 @@ where
     Purpose: OperationWrites<Operation>,
     JournalPosting: OperationLinks<Operation>,
     PostingAccount: OperationLinks<Operation>,
+    AccountActivityEffect: OperationEmits<Operation>,
 {
     let posting_entity =
         effects.create_entity(Posting::reference(), entity_key(posting_key(posting.id()))?)?;
@@ -179,6 +172,15 @@ where
         format!("posting-account:{}", posting.id().canonical_text()),
         &posting_entity,
         &account,
+    )?;
+    effects.emit(
+        AccountActivityEffect::reference(),
+        ActivityEvent {
+            account: posting.account(),
+            journal: journal.id(),
+            posting: posting.id(),
+            journal_sequence: account_sequence.get(),
+        },
     )?;
     Ok(())
 }

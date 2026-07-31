@@ -1,12 +1,14 @@
 use std::marker::PhantomData;
 
-use sha2::{Digest, Sha256};
 use worth_query_declaration::facade::application_schema::{
     ApplicationAuthorizationPath, ApplicationSchema, ApplicationSchemaBindingIdentity,
     ApplicationSchemaMember,
 };
 
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
+use crate::authority_cryptography::{
+    AuthoritySeal, AuthoritySealDomain, AuthorityTranscript, PackageAuthorityKey,
+};
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 
 /// Opaque installation authority for one schema-declared scoped ability.
@@ -22,7 +24,7 @@ pub struct WorthQueryInstalledAbility<Schema, Ability, Scope> {
     scope_entity: String,
     policy: Option<String>,
     policy_paths: Vec<ApplicationAuthorizationPath>,
-    authority_identity: String,
+    authority_identity: AuthoritySeal,
     _marker: PhantomData<fn() -> (Schema, Ability, Scope)>,
 }
 
@@ -55,7 +57,7 @@ impl<Schema, Ability, Scope> WorthQueryInstalledAbility<Schema, Ability, Scope> 
             .unwrap_or_else(|| (None, Vec::new()));
         let binding_identity = schema.binding_identity();
         let authority_identity = authority_identity(
-            &schema.package_authority.authority_nonce,
+            &schema.package_authority.authority_key,
             &binding_identity,
             ability,
             scope_entity,
@@ -103,7 +105,7 @@ impl<Schema, Ability, Scope> WorthQueryInstalledAbility<Schema, Ability, Scope> 
     }
 
     pub fn authority_identity(&self) -> &str {
-        &self.authority_identity
+        self.authority_identity.as_str()
     }
 
     pub(crate) fn meaning_matches(&self, members: &[ApplicationSchemaMember]) -> bool {
@@ -136,14 +138,14 @@ impl<Schema, Ability, Scope> WorthQueryInstalledAbility<Schema, Ability, Scope> 
     }
 
     pub(crate) fn authority_matches(&self, package: &WorthQueryInstalledPackageAuthority) -> bool {
-        self.authority_identity
-            == authority_identity(
-                &package.authority_nonce,
-                &self.binding_identity,
-                &self.ability,
-                &self.scope_entity,
-                self.policy.as_deref(),
-            )
+        authority_transcript(
+            &package.authority_key,
+            &self.binding_identity,
+            &self.ability,
+            &self.scope_entity,
+            self.policy.as_deref(),
+        )
+        .verifies(&self.authority_identity)
     }
 }
 
@@ -162,24 +164,27 @@ impl<Schema, Ability, Scope> std::fmt::Debug
 }
 
 fn authority_identity(
-    nonce: &[u8; 32],
+    key: &PackageAuthorityKey,
     identity: &ApplicationSchemaBindingIdentity,
     ability: &str,
     scope_entity: &str,
     policy: Option<&str>,
-) -> String {
-    let mut hash = Sha256::new();
-    hash.update(b"worth-query-installed-ability-v2");
-    hash.update(nonce);
-    for value in [
-        identity.package_identity(),
-        identity.schema_identity().as_str(),
-        ability,
-        scope_entity,
-        policy.unwrap_or("unbound-policy"),
-    ] {
-        hash.update(value.len().to_le_bytes());
-        hash.update(value.as_bytes());
-    }
-    format!("{:x}", hash.finalize())
+) -> AuthoritySeal {
+    authority_transcript(key, identity, ability, scope_entity, policy).finish()
+}
+
+fn authority_transcript(
+    key: &PackageAuthorityKey,
+    identity: &ApplicationSchemaBindingIdentity,
+    ability: &str,
+    scope_entity: &str,
+    policy: Option<&str>,
+) -> AuthorityTranscript {
+    let mut transcript = AuthorityTranscript::new(key, AuthoritySealDomain::InstalledAbility);
+    transcript.bytes("package", identity.package_identity().bytes());
+    transcript.bytes("schema", identity.schema_identity().bytes());
+    transcript.text("ability", ability);
+    transcript.text("scope-entity", scope_entity);
+    transcript.optional_text("policy", policy);
+    transcript
 }

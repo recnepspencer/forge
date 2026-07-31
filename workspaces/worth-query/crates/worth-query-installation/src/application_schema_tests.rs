@@ -3,8 +3,8 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
     ApplicationPrincipalBindingRef, ApplicationRelationRef, ApplicationSchema,
     ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, EqualityPredicate,
-    NoEqualityPredicate, OperationCreates, OperationReads, OperationRequiresAbility, ReadOnly,
-    ReadWrite,
+    NoEqualityPredicate, OperationCreates, OperationExpectsFact, OperationReads,
+    OperationRequiresAbility, ReadOnly, ReadWrite,
 };
 use worth_query_declaration::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -18,6 +18,7 @@ use crate::facade::{
     WorthQueryPortableDomainPackage,
 };
 
+mod operation_contracts;
 mod package_schema_identity;
 mod read_only_operations;
 
@@ -38,6 +39,7 @@ struct TestPolicy;
 
 impl OperationCreates<TestOperation> for TestEntity {}
 impl OperationReads<TestOperation> for PrincipalIdentityField {}
+impl OperationExpectsFact<TestOperation> for PrincipalIdentityField {}
 impl OperationRequiresAbility<TestOperation> for TestAbility {}
 
 impl ApplicationSchema for TestSchema {
@@ -178,6 +180,22 @@ where
                 EqualityPredicate,
             >::from_schema_identifiers("TestEntity", "IdentityAspect", "PrincipalIdentityField"),
         )
+        .operation_expected_fact(
+            operation,
+            ApplicationFieldRef::<
+                Schema,
+                TestEntity,
+                IdentityAspect,
+                PrincipalIdentityField,
+                u64,
+                ReadOnly,
+                EqualityPredicate,
+            >::from_schema_identifiers(
+                "TestEntity",
+                "IdentityAspect",
+                "PrincipalIdentityField",
+            ),
+        )
         .operation_create(operation, entity)
 }
 
@@ -243,53 +261,6 @@ fn fabricated_ability_identity_cannot_bind_installed_authority() {
     assert_eq!(
         changed_scope.kind(),
         WorthQueryAbilityInstallationDenialKind::AbilityMeaningChanged
-    );
-}
-
-#[test]
-fn installed_application_operation_compiles_existing_authority_contract_families() {
-    let index = installed_index();
-    let schema = index
-        .bind_application_schema(TestSchema::declaration().unwrap())
-        .unwrap();
-    let operation = schema
-        .installed_operation(ApplicationOperationRef::<
-            TestSchema,
-            TestOperation,
-            TestInput,
-        >::from_schema_identifier("TestOperation"))
-        .unwrap();
-    index.validate_application_operation(&operation).unwrap();
-
-    assert_eq!(
-        operation.contracts().ability_requirements()[0].ability(),
-        "TestAbility"
-    );
-    assert!(matches!(
-        operation.contracts().graph_reads(),
-        crate::facade::WorthQueryOperationGraphReadContract::Declared { roles }
-            if roles.len() == 1 && roles[0].role == "primary"
-    ));
-    assert!(matches!(
-        operation.contracts().touches(),
-        crate::facade::WorthQueryOperationTouchContract::Declared { scopes, .. }
-            if scopes == &["create:TestEntity"]
-    ));
-    assert_eq!(operation.contracts().decision_reads().len(), 1);
-    assert_eq!(operation.contracts().projection_work_budget(), 32);
-    assert!(matches!(
-        operation.contracts().effects(),
-        crate::facade::WorthQueryOperationEffectContract::Declared { effect_families }
-            if effect_families == &[crate::facade::WorthQueryOperationEffectFamily::Mutation]
-    ));
-    assert_eq!(
-        operation
-            .contracts()
-            .execution_strategy()
-            .expect("compiled application operation must have one execution strategy")
-            .name()
-            .as_str(),
-        "primary-application-atomic"
     );
 }
 

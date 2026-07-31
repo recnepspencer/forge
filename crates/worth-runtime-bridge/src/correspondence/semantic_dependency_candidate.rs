@@ -202,7 +202,7 @@ impl BridgeSemanticDependencyCandidate {
             self.query_basis.to_string(),
             self.query_runtime_authority.to_string(),
             self.query_installation_generation.to_string(),
-            self.query_authority.authority_binding_identity(),
+            self.query_authority.authority_binding_identity().to_owned(),
             self.query_authority
                 .location()
                 .stage_identity()
@@ -231,7 +231,7 @@ impl BridgeSemanticDependencyCandidate {
         [
             self.query_runtime_authority.to_string(),
             self.query_installation_generation.to_string(),
-            self.query_authority.authority_binding_identity(),
+            self.query_authority.authority_binding_identity().to_owned(),
             self.graph_participation_identity.to_string(),
             self.graph_adapter_identity.to_string(),
             source_record_identity_token(self.source_record_identity),

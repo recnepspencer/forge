@@ -89,6 +89,16 @@ impl SnapshotHandles {
             .map(|binding| binding.version_id)
     }
 
+    pub(crate) fn published_versions(&self) -> impl Iterator<Item = VersionId> + '_ {
+        self.published.values().map(|binding| binding.version_id)
+    }
+
+    pub(crate) fn retains_published_version(&self, version_id: VersionId) -> bool {
+        self.published
+            .values()
+            .any(|binding| binding.version_id == version_id)
+    }
+
     pub(crate) fn published_binding(
         &self,
         snapshot_id: SnapshotId,
@@ -187,6 +197,11 @@ impl ExecutionBasisRegistry {
         })
     }
 
+    pub(crate) fn retains_identity(&self, snapshot_id: SnapshotId, lease_ordinal: u64) -> bool {
+        self.binding(snapshot_id)
+            .is_some_and(|binding| binding.lease_ordinal == lease_ordinal)
+    }
+
     pub(crate) fn release(&self, snapshot_id: SnapshotId, lease_ordinal: u64) -> bool {
         let mut state = self.lock_state();
         if state
@@ -218,6 +233,12 @@ impl ExecutionBasisRegistry {
             .version_ref_counts
             .first_key_value()
             .map(|(version_id, _count)| *version_id)
+    }
+
+    pub(crate) fn retains_version(&self, version_id: VersionId) -> bool {
+        self.lock_state()
+            .version_ref_counts
+            .contains_key(&version_id)
     }
 
     fn lock_state(&self) -> MutexGuard<'_, ExecutionBasisRegistryState> {

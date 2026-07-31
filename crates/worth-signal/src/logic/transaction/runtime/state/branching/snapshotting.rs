@@ -121,7 +121,7 @@ where
             .cloned()
             .collect::<Vec<_>>();
         snapshot.diagnostic_graph.clear_branch_mutation_nodes();
-        snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        snapshot.runtime_telemetry = Some(self.telemetry);
         snapshot.reconstructability = Some(
             super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                 snapshot.meta.branch_id,
@@ -225,7 +225,7 @@ where
                 snapshot,
                 &reconstructability_proof,
             )?;
-            *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry.clone();
+            *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
             Self::rebuild_runtime_required_derived_from_proof(
                 &mut graph,
                 snapshot,
@@ -255,8 +255,7 @@ where
             graph
                 .diagnostics_state_mut()
                 .set_branch_head_snapshot(snapshot.meta.branch_id, snapshot.meta.snapshot_id);
-            let mut state =
-                snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
+            let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
             crate::diagnostics::recorder::record_snapshot_restore_lineage(
                 state.graph_mut(),
                 snapshot.meta.snapshot_id,
@@ -316,7 +315,7 @@ where
 
         self.graph.restore_snapshot_with_intent(snapshot, intent)?;
         if let Some(telemetry) = &snapshot.runtime_telemetry {
-            self.telemetry = telemetry.clone();
+            self.telemetry = *telemetry;
         }
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
         self.synchronize_branch_catalogs(branch_catalog);
@@ -351,7 +350,7 @@ where
                 .graph()
                 .diagnostics_state()
                 .snapshot_payload_with_retention(artifact_retention);
-            let graph_telemetry = state.graph().telemetry().clone();
+            let graph_telemetry = *state.graph().telemetry();
             let retained_replay = state
                 .graph()
                 .observe()
@@ -368,7 +367,7 @@ where
                         dependency_snapshot_batch: state
                             .graph()
                             .capture_checkpoint_dependency_snapshot_batch(),
-                        graph_telemetry: state.graph().telemetry().clone(),
+                        graph_telemetry: *state.graph().telemetry(),
                     },
                     diagnostic_graph: {
                         let mut graph = state.graph().clone_stateful();
@@ -377,7 +376,7 @@ where
                     },
                     diagnostics,
                 graph_telemetry,
-                runtime_telemetry: Some(state.runtime_telemetry().clone()),
+                runtime_telemetry: Some(*state.runtime_telemetry()),
                 reconstructability: Some(
                     super::super::reconstructability::ReconstructabilityRecord::from_snapshot_boundary(
                         branch.id,
@@ -516,7 +515,7 @@ where
         let current_policy = current_diagnostics.policy();
         let mut graph = self
             .restore_runtime_authority_from_snapshot_proof(snapshot, &reconstructability_proof)?;
-        *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry.clone();
+        *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
         Self::rebuild_runtime_required_derived_from_proof(
             &mut graph,
             snapshot,
@@ -544,7 +543,7 @@ where
         graph
             .diagnostics_state_mut()
             .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
-        let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
+        let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             state.graph_mut(),
             snapshot.meta.snapshot_id,

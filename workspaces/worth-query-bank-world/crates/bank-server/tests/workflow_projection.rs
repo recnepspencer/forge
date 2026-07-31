@@ -35,7 +35,7 @@ fn authenticated_business_initiation_projects_only_its_real_neighborhood() {
     };
     let admission = world
         .runtime
-        .authorize_initiate_business_payment(&actor, business, &request)
+        .authorize_initiate_business_payment(&actor, business, Default::default(), &request)
         .unwrap();
     let proposal = BankOperationProposals::prepare_initiate_business_payment(
         &world.runtime,
@@ -64,7 +64,7 @@ fn authenticated_distinct_approver_can_reject_a_pending_payment() {
     };
     let admission = world
         .runtime
-        .authorize_reject_payment(&actor, payment, &request)
+        .authorize_reject_payment(&actor, payment, Default::default(), &request)
         .unwrap();
     let proposal = BankOperationProposals::prepare_reject_payment(
         &world.runtime,
@@ -104,7 +104,12 @@ fn authenticated_employee_reversal_projects_the_exact_journal_neighborhood() {
     };
     let admission = world
         .runtime
-        .authorize_reverse_journal(&actor, id(InstitutionId::new, 1), &request)
+        .authorize_reverse_journal(
+            &actor,
+            id(InstitutionId::new, 1),
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let proposal = BankOperationProposals::prepare_reverse_journal(
         &world.runtime,

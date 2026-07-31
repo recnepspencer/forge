@@ -66,7 +66,7 @@ pub(super) fn plan_with_registry(
     for mapped_target in mapped.targets {
         let declaration = mapped_target.declaration;
         let (allocated, keys_examined) = allocate_slot(
-            &registry,
+            registry,
             pending_owners,
             mapped.resolved.signal_graph.graph_instance_id(),
             &declaration,

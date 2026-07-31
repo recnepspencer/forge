@@ -5,30 +5,53 @@ mod journal;
 mod money_movement;
 mod reversal;
 
+use worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases;
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BankCommitReceipt {
-    commit_id: u64,
-    changed_record_count: usize,
-    emitted_effect_count: usize,
+    application: WorthQueryApplicationCommitReceipt,
 }
 
 impl BankCommitReceipt {
     pub const fn commit_id(&self) -> u64 {
-        self.commit_id
+        self.application.commit_id().0
     }
 
     pub const fn changed_record_count(&self) -> usize {
-        self.changed_record_count
+        self.application.changed_record_count()
     }
 
     pub const fn emitted_effect_count(&self) -> usize {
-        self.emitted_effect_count
+        self.application.emitted_effect_count()
+    }
+
+    pub const fn expected_version_count(&self) -> usize {
+        self.application
+            .precondition_comparison()
+            .expected_version_count()
+    }
+
+    pub const fn expected_fact_count(&self) -> usize {
+        self.application
+            .precondition_comparison()
+            .expected_fact_count()
+    }
+
+    pub const fn precondition_comparison_identity(&self) -> &[u8; 32] {
+        self.application.precondition_comparison().identity()
+    }
+
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
+        self.application.canonical_work()
+    }
+
+    pub(crate) const fn application(&self) -> &WorthQueryApplicationCommitReceipt {
+        &self.application
     }
 }
 
@@ -96,9 +119,7 @@ pub(crate) fn commit_receipt(
     receipt: worth_query_host::facade::primary_graph::WorthQueryApplicationCommitReceipt,
 ) -> BankCommitReceipt {
     BankCommitReceipt {
-        commit_id: receipt.commit_id().0,
-        changed_record_count: receipt.changed_record_count(),
-        emitted_effect_count: receipt.emitted_effect_count(),
+        application: receipt,
     }
 }
 

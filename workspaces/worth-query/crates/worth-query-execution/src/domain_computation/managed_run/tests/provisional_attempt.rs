@@ -90,7 +90,7 @@ fn equivalent_direct_and_revised_programs_have_the_same_semantic_post_state() {
         .begin_provisional_attempt(direct_fresh, direct_program)
         .unwrap()
         .materialize_proposed_state();
-    let direct_identity = direct.identity().to_owned();
+    let direct_facts = direct.facts().to_vec();
     direct.discard();
     cleanup(direct_run);
 
@@ -117,7 +117,7 @@ fn equivalent_direct_and_revised_programs_have_the_same_semantic_post_state() {
         .unwrap()
         .materialize_proposed_state();
     assert_eq!(revised.generation(), 2);
-    assert_eq!(revised.identity(), direct_identity);
+    assert_eq!(revised.facts(), direct_facts);
     assert_eq!(revised_state.lock().unwrap().discard_calls, 1);
     revised.discard();
     cleanup(revised_run);
@@ -135,7 +135,7 @@ fn proposal_dimensions_and_symbol_order_are_checked_before_provider_staging() {
         .unwrap();
     for changed in changed_proposal_dimensions(&basis) {
         match effect_authority.admit_proposal_basis(&fresh, changed) {
-            Ok(changed) => assert_ne!(first.identity(), changed.identity()),
+            Ok(changed) => assert_ne!(first, changed),
             Err(failure) => assert_eq!(
                 failure.kind(),
                 WorthQueryProvisionalDenialKind::ProposalBasisMismatch

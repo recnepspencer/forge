@@ -1,4 +1,3 @@
-use sha2::{Digest, Sha256};
 use worth_foundational::BoundaryArtifactId;
 
 use crate::domain_capabilities::identity::domain_capability_scope_encoder;
@@ -40,10 +39,5 @@ pub(crate) fn diagnostic_code_identity(
 }
 
 pub(crate) fn boundary_artifact_id(identity: &WorthQueryEvidenceIdentity) -> BoundaryArtifactId {
-    let mut hasher = Sha256::new();
-    hasher.update(identity.as_str().as_bytes());
-    let digest = hasher.finalize();
-    let mut bytes = [0u8; 8];
-    bytes.copy_from_slice(&digest[..8]);
-    BoundaryArtifactId::new(u64::from_be_bytes(bytes))
+    crate::domain_installation::foundational_boundary_artifact_id(identity)
 }

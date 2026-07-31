@@ -6,4 +6,5 @@ mod authorized_proposals {
     mod commit_progression;
     mod concurrency_and_work;
     mod fixture;
+    mod preconditions;
 }

@@ -1,36 +1,55 @@
-use sha2::Sha256;
+use super::authorization_policy::{
+    ApplicationAuthorizationPathEffect, ApplicationAuthorizationTraversalDirection,
+};
+use super::canonical_basis::ApplicationSchemaCanonicalBasis;
+use super::ApplicationAuthorizationPath;
 
-use super::authorization_policy::ApplicationAuthorizationPath;
-use super::canonical_identity::hash_field;
-
-pub(super) fn hash_authorization_path(hash: &mut Sha256, path: &ApplicationAuthorizationPath) {
-    hash_field(hash, "path-effect", &format!("{:?}", path.effect()));
-    hash_field(hash, "path-principal", path.principal_entity());
-    hash_field(hash, "path-scope", path.scope_entity());
-    for traversal in path.traversals() {
-        hash_field(hash, "path-relation", traversal.relation());
-        hash_field(hash, "path-from", traversal.from());
-        hash_field(hash, "path-to", traversal.to());
-        hash_field(
-            hash,
-            "path-direction",
-            &format!("{:?}", traversal.direction()),
+pub(super) fn append_authorization_path(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    path: &ApplicationAuthorizationPath,
+) {
+    basis.text(format!("{prefix}.effect"), effect_name(path.effect()));
+    basis.text(
+        format!("{prefix}.principal-entity"),
+        path.principal_entity(),
+    );
+    basis.text(format!("{prefix}.scope-entity"), path.scope_entity());
+    basis.usize(format!("{prefix}.traversal-count"), path.traversals().len());
+    for (index, traversal) in path.traversals().iter().enumerate() {
+        let traversal_prefix = format!("{prefix}.traversal[{index}]");
+        basis.text(format!("{traversal_prefix}.relation"), traversal.relation());
+        basis.text(format!("{traversal_prefix}.from"), traversal.from());
+        basis.text(format!("{traversal_prefix}.to"), traversal.to());
+        basis.text(
+            format!("{traversal_prefix}.direction"),
+            direction_name(traversal.direction()),
         );
     }
-    for predicate in path.predicates() {
-        hash_field(
-            hash,
-            "predicate-traversal-ordinal",
-            &predicate.traversal_ordinal().to_string(),
+    basis.usize(format!("{prefix}.predicate-count"), path.predicates().len());
+    for (index, predicate) in path.predicates().iter().enumerate() {
+        let predicate_prefix = format!("{prefix}.predicate[{index}]");
+        basis.usize(
+            format!("{predicate_prefix}.traversal-ordinal"),
+            predicate.traversal_ordinal(),
         );
-        hash_field(hash, "predicate-entity", predicate.entity());
-        hash_field(hash, "predicate-aspect", predicate.aspect());
-        hash_field(hash, "predicate-field", predicate.field());
-        hash_field(
-            hash,
-            "predicate-value",
-            worth_foundational::facade::prepare_aspect_value_identity_basis(predicate.value())
-                .as_str(),
-        );
+        basis.text(format!("{predicate_prefix}.entity"), predicate.entity());
+        basis.text(format!("{predicate_prefix}.aspect"), predicate.aspect());
+        basis.text(format!("{predicate_prefix}.field"), predicate.field());
+        basis.aspect_value(format!("{predicate_prefix}.value"), predicate.value());
+    }
+}
+
+const fn effect_name(effect: ApplicationAuthorizationPathEffect) -> &'static str {
+    match effect {
+        ApplicationAuthorizationPathEffect::Allow => "allow",
+        ApplicationAuthorizationPathEffect::Deny => "deny",
+    }
+}
+
+const fn direction_name(direction: ApplicationAuthorizationTraversalDirection) -> &'static str {
+    match direction {
+        ApplicationAuthorizationTraversalDirection::Forward => "forward",
+        ApplicationAuthorizationTraversalDirection::Reverse => "reverse",
     }
 }

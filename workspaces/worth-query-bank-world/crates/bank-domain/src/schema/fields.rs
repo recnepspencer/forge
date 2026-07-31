@@ -2,8 +2,8 @@ use worth_query_decl::facade::{worth_query_aspect, worth_query_field};
 
 use crate::model::{
     AccountAuthorizationId, AccountId, AccountJournalRevision, AccountName, BusinessId,
-    CustomerRole, EmployeeRole, InstitutionId, JournalEntryId, Money, PaymentId, PostingId,
-    SignedMoney, USD,
+    CustomerRole, EmployeeAssignmentId, EmployeeRole, InstitutionId, JournalEntryId, Money,
+    PaymentId, PostingId, SignedMoney, USD,
 };
 
 use super::entities::{
@@ -69,6 +69,10 @@ worth_query_field!(
 worth_query_field!(
     pub AccountAuthorizationIdentity in BankSchema, AccountAuthorization, AuthorizationIdentity:
     AccountAuthorizationId, read_only, equality
+);
+worth_query_field!(
+    pub EmployeeAssignmentIdentityField in BankSchema, EmployeeAssignment, EmployeeScope:
+    EmployeeAssignmentId, read_only, equality
 );
 worth_query_field!(
     pub AssignmentRole in BankSchema, EmployeeAssignment, EmployeeScope:

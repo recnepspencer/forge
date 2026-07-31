@@ -1,9 +1,9 @@
 use crate::canonicalization::{
-    admit_canonical_sequence_digest_derivation, derive_canonical_digest,
+    admit_canonical_sequence_digest_derivation_with_budget, derive_canonical_digest,
     prepare_canonical_basis_sequence, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
     CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact,
     CanonicalBasisValue, CanonicalDerivedDigest, CanonicalDigestAlgorithmId,
-    CanonicalDigestDerivationDenial, CanonicalizationRuleVersion,
+    CanonicalDigestDerivationDenial, CanonicalDigestWorkBudget, CanonicalizationRuleVersion,
 };
 use crate::values::InternedString;
 
@@ -21,6 +21,12 @@ use super::{
     FoundationalBoundaryEvidenceSupportAttachment,
 };
 use worth_proof::TransitionOutcome;
+
+const ATTACHMENT_DIGEST_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(512, 128 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("attachment digest budget is nonzero"),
+    };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalMaterializedBoundaryEvidenceAttachmentBundle {
@@ -171,7 +177,11 @@ pub fn derive_boundary_evidence_attachment_bundle_digest(
         basis.payload().version().clone(),
     );
 
-    match admit_canonical_sequence_digest_derivation(basis, slot) {
+    match admit_canonical_sequence_digest_derivation_with_budget(
+        basis,
+        slot,
+        ATTACHMENT_DIGEST_BUDGET,
+    ) {
         TransitionOutcome::Success(ready) => {
             TransitionOutcome::Success(derive_canonical_digest(ready))
         }

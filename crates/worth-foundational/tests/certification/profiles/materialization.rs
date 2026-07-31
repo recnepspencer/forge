@@ -231,9 +231,9 @@ fn absence_causes_and_target_applicability_remain_structurally_distinct() {
         FoundationalDescriptiveSurface::Provenance,
         FoundationalProfileFamily::RetentionDelivery
     ));
-    assert!(!support
+    assert!(support
         .governing_families(FoundationalDescriptiveSurface::Lineage)
-        .is_some());
+        .is_none());
     assert!(proof
         .governing_families(FoundationalDescriptiveSurface::Lineage)
         .is_none());

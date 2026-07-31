@@ -51,7 +51,7 @@ where
     .map_err(SignalRuntime::<D, I, E, Ctx, T>::branch_transfer_error_to_fork_denial)?;
     let snapshot_state = snapshot_state.clone();
     let mut graph = snapshot.authority_graph();
-    *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry.clone();
+    *graph.telemetry_mut() = snapshot.checkpoint_image.graph_telemetry;
     for requirement in &reconstructability_proof.required_rebuild {
         match requirement {
             crate::logic::transaction::RequiredDerivedRebuildSet::DependencyIndexes(_) => {
@@ -95,7 +95,7 @@ where
     graph
         .diagnostics_state_mut()
         .set_branch_head_snapshot(parent_branch.id, snapshot.meta.snapshot_id);
-    let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry.clone());
+    let mut state = snapshot_state.into_branch_state(graph, snapshot.runtime_telemetry);
     let retention_budget = state.graph().runtime_policy().retention_budget;
     let profile = state.graph().diagnostics_profile();
     let history = ExecutionHistorySummary::from_graph(

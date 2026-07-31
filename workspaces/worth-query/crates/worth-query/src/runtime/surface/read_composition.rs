@@ -19,8 +19,12 @@ use crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch;
 use crate::runtime::WorthQueryIntentExecutionProvenance;
 use crate::schema_view::QuerySchemaView;
 use crate::validation::ValidatedQueryBundle;
+use worth_query_installation::facade::WorthQueryApplicationCanonicalArtifact;
 
 use super::read_graph_identity::derive_read_graph_identity;
+use super::read_graph_planning_contract::{
+    prepare_mature_read_graph_planning_basis, WorthQueryReadGraphPlanningPreparation,
+};
 use super::{WorthQueryReadBreadth, WorthQueryReadBuiltInOperator, WorthQueryReadOperatorFamily};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,6 +94,7 @@ impl WorthQueryReadRelationshipProofPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryReadGraph {
     identity: WorthQueryEvidenceIdentity,
+    canonical_planning: WorthQueryApplicationCanonicalArtifact,
     family: WorthQueryReadGraphFamily,
     scope_class: WorthQueryReadScopeClass,
     schema_basis: SchemaBasisDigest,
@@ -115,6 +120,10 @@ impl WorthQueryReadGraph {
 
     pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.identity
+    }
+
+    pub fn canonical_planning_basis(&self) -> &WorthQueryApplicationCanonicalArtifact {
+        &self.canonical_planning
     }
 
     pub fn family(&self) -> &WorthQueryReadGraphFamily {
@@ -289,8 +298,17 @@ impl WorthQueryReadGraph {
             policy_aware_plan.as_ref(),
             &execution_plan,
         );
+        let canonical_planning =
+            prepare_mature_read_graph_planning_basis(&WorthQueryReadGraphPlanningPreparation {
+                schema_basis: &schema_basis,
+                built_in_operators: &built_in_operators,
+                declared_traversal_depth_limit,
+                canonical: &canonical,
+                validated: &validated,
+            });
         Self {
             identity,
+            canonical_planning,
             family,
             scope_class,
             schema_basis,

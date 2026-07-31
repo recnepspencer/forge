@@ -574,7 +574,6 @@ impl SignalGraph {
                     .arena
                     .slots
                     .iter()
-                    .cloned()
                     .map(|slot| Slot {
                         generation: slot.generation,
                         retired: slot.retired,
@@ -661,9 +660,7 @@ impl SignalGraph {
         index: usize,
     ) -> Option<NodeId> {
         let slot = authority.arena.slots.get(index)?;
-        if slot.node.is_none() {
-            return None;
-        }
+        slot.node.as_ref()?;
         Some(NodeId::new(index as u32, slot.generation))
     }
 

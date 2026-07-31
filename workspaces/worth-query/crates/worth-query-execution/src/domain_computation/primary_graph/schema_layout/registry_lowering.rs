@@ -91,7 +91,13 @@ pub(super) fn relational_schema_basis(
         .map(|basis| {
             basis.unwrap_or_else(|| {
                 (
-                    SchemaId(schema.identity().as_str().to_string()),
+                    SchemaId(format!(
+                        "application-schema:{}:{}:{}:{}",
+                        schema.owner(),
+                        schema.name(),
+                        schema.major(),
+                        schema.minor(),
+                    )),
                     SchemaVersionId(schema.major()),
                 )
             })

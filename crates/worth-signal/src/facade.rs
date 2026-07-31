@@ -250,7 +250,7 @@ pub mod core {
     ) -> Result<(), SignalError> {
         #[cfg(any(test, doctest))]
         {
-            return crate::logic::invalidation::mark_dirty(graph, source, changed_aspect);
+            crate::logic::invalidation::mark_dirty(graph, source, changed_aspect)
         }
         #[cfg(not(any(test, doctest)))]
         {
@@ -282,12 +282,12 @@ pub mod core {
     ) -> Result<(), SignalError> {
         #[cfg(any(test, doctest))]
         {
-            return crate::logic::invalidation::mark_dirty_with_regions(
+            crate::logic::invalidation::mark_dirty_with_regions(
                 graph,
                 source,
                 changed_aspect,
                 changed_regions,
-            );
+            )
         }
         #[cfg(not(any(test, doctest)))]
         {

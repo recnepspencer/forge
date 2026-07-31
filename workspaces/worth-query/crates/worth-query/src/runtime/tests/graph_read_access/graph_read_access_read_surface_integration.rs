@@ -308,7 +308,7 @@ fn explicit_access_plan_execution_denies_wrong_family_with_typed_binding_mismatc
         .admission()
         .requirement_set()
         .read_graph_digest()
-        .to_string();
+        .render_hex();
     let provided_plan_digest = plan.digest().to_string();
     let provided_admission_digest = plan.admission().digest().to_string();
 

@@ -1,14 +1,16 @@
 use std::num::NonZeroU32;
 
+use worth_foundational::facade::CanonicalDigestWorkBudget;
 use worth_query_declaration::facade::application_schema::{
-    ApplicationAuthorizationPath, ApplicationOperationDecisionReadTarget,
-    ApplicationOperationProgramTarget,
+    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
 };
 use worth_query_declaration::facade::domain_computation::{
     WorthQueryCancellationSafePointFamily, WorthQueryExecutionMode, WorthQueryResourceDimension,
     WorthQueryResourceLimitRequest, WorthQuerySemanticScaleRequest,
 };
 
+use super::{WorthQueryInstalledAbilityRequirement, WorthQueryInstalledMutationPrecondition};
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
     WorthQueryExecutionProviderFamily, WorthQueryExecutionProviderRequirements,
@@ -33,46 +35,6 @@ pub const APPLICATION_DECISION_FACT_FAMILY: &str = "application-operation-decisi
 pub const APPLICATION_AUTHORIZATION_FACT_FAMILY: &str = "application-operation-authorization-facts";
 pub const APPLICATION_INVARIANT_SLOT: &str = "application-touched-graph";
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct WorthQueryInstalledAbilityRequirement {
-    ability: String,
-    scope_entity: String,
-    policy: String,
-    policy_paths: Vec<ApplicationAuthorizationPath>,
-}
-
-impl WorthQueryInstalledAbilityRequirement {
-    pub(crate) fn new(
-        ability: String,
-        scope_entity: String,
-        policy: String,
-        policy_paths: Vec<ApplicationAuthorizationPath>,
-    ) -> Self {
-        Self {
-            ability,
-            scope_entity,
-            policy,
-            policy_paths,
-        }
-    }
-
-    pub fn ability(&self) -> &str {
-        &self.ability
-    }
-
-    pub fn scope_entity(&self) -> &str {
-        &self.scope_entity
-    }
-
-    pub fn policy(&self) -> &str {
-        &self.policy
-    }
-
-    pub fn policy_paths(&self) -> &[ApplicationAuthorizationPath] {
-        &self.policy_paths
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryCompiledApplicationOperationContracts {
     ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
@@ -87,6 +49,7 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
     decision_fact_budget: usize,
     projection_work_budget: usize,
+    mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
 }
 
 impl WorthQueryCompiledApplicationOperationContracts {
@@ -96,6 +59,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
         mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
         decision_fact_budget: usize,
         projection_work_budget: usize,
+        mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
     ) -> Self {
         ability_requirements.sort();
         ability_requirements.dedup();
@@ -154,7 +118,25 @@ impl WorthQueryCompiledApplicationOperationContracts {
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
+            mutation_preconditions,
         }
+    }
+
+    pub fn mutation_preconditions(&self) -> &[WorthQueryInstalledMutationPrecondition] {
+        &self.mutation_preconditions
+    }
+
+    pub fn precondition_canonical_work_budget(&self) -> Option<CanonicalDigestWorkBudget> {
+        let count = u32::try_from(self.mutation_preconditions.len()).ok()?;
+        let entries = count.checked_mul(5)?.checked_add(1)?;
+        CanonicalDigestWorkBudget::new(entries, 256 * 1_024)
+    }
+
+    pub fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.ability_requirements.iter().fold(
+            WorthQueryCanonicalWorkEvidence::zero(),
+            |work, requirement| work.combine(requirement.canonical_work()),
+        )
     }
 
     pub fn ability_requirements(&self) -> &[WorthQueryInstalledAbilityRequirement] {

@@ -2,7 +2,6 @@ use super::WorthQueryGraphReadStreamingPageBudget;
 use crate::identity::hash_parts;
 use crate::runtime::{
     WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAdmissionPosture,
-    WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementSet,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -57,13 +56,16 @@ impl WorthQueryGraphReadStreamingPlan {
             .candidate_roots()
             .max(1);
         let admission_digest = admission.digest().to_string();
-        let requirement_set_digest = admission.requirement_set().digest().as_str().to_string();
+        let requirement_set_digest = admission.requirement_set().digest().render_support_hex();
         let canonical_result_basis_digest = hash_parts(&[
             "worth_query_graph_read_streaming_canonical_result_basis_v1".to_string(),
             format!("requirements:{requirement_set_digest}"),
             format!(
                 "selectivity:{}",
-                admission.requirement_set().selectivity_shape_digest()
+                admission
+                    .requirement_set()
+                    .selectivity_shape_digest()
+                    .render_hex()
             ),
         ]);
         let replay_basis_digest = hash_parts(&[
@@ -91,16 +93,4 @@ impl WorthQueryGraphReadStreamingPlan {
             replay_basis_digest,
         })
     }
-}
-
-pub(crate) fn streaming_frontier_is_admissible(
-    requirements: &WorthQueryGraphReadAccessRequirementSet,
-) -> bool {
-    requirements.requires_kind(WorthQueryGraphReadAccessRequirementKind::ReverseAdjacency)
-        && requirements.requires_kind(WorthQueryGraphReadAccessRequirementKind::TraversalWorkset)
-        && requirements.requires_kind(WorthQueryGraphReadAccessRequirementKind::VisitedSet)
-        && requirements.requires_kind(WorthQueryGraphReadAccessRequirementKind::DedupSet)
-        && requirements.requires_kind(WorthQueryGraphReadAccessRequirementKind::ProofSupport)
-        && !requirements
-            .requires_kind(WorthQueryGraphReadAccessRequirementKind::LiveMaintenanceSupport)
 }

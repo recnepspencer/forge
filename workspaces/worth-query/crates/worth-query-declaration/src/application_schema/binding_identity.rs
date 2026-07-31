@@ -1,4 +1,4 @@
-use super::ApplicationSchemaIdentity;
+use worth_foundational::facade::CanonicalDigestId;
 
 /// Descriptive identity of the installed schema against which an intent was
 /// authored.
@@ -9,8 +9,8 @@ use super::ApplicationSchemaIdentity;
 pub struct ApplicationSchemaBindingIdentity {
     runtime_ordinal: u64,
     generation: u64,
-    package_identity: String,
-    schema_identity: ApplicationSchemaIdentity,
+    package_identity: CanonicalDigestId,
+    schema_identity: CanonicalDigestId,
 }
 
 impl ApplicationSchemaBindingIdentity {
@@ -18,13 +18,13 @@ impl ApplicationSchemaBindingIdentity {
     pub fn from_installed_parts(
         runtime_ordinal: u64,
         generation: u64,
-        package_identity: impl Into<String>,
-        schema_identity: ApplicationSchemaIdentity,
+        package_identity: CanonicalDigestId,
+        schema_identity: CanonicalDigestId,
     ) -> Self {
         Self {
             runtime_ordinal,
             generation,
-            package_identity: package_identity.into(),
+            package_identity,
             schema_identity,
         }
     }
@@ -37,11 +37,11 @@ impl ApplicationSchemaBindingIdentity {
         self.generation
     }
 
-    pub fn package_identity(&self) -> &str {
+    pub const fn package_identity(&self) -> &CanonicalDigestId {
         &self.package_identity
     }
 
-    pub fn schema_identity(&self) -> &ApplicationSchemaIdentity {
+    pub const fn schema_identity(&self) -> &CanonicalDigestId {
         &self.schema_identity
     }
 }

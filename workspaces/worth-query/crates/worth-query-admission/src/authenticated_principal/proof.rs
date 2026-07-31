@@ -5,7 +5,8 @@ use worth_query_declaration::facade::application_schema::ApplicationSchemaBindin
 use worth_query_declaration::facade::authentication::WorthQueryExternalPrincipalIdentity;
 
 use super::{
-    WorthQueryAuthenticationAudience, WorthQueryAuthenticationMethod, WorthQueryPrincipalAttribute,
+    WorthQueryAuthenticationAdapterIdentity, WorthQueryAuthenticationAudience,
+    WorthQueryAuthenticationMethod, WorthQueryPrincipalAttribute,
 };
 
 /// Sealed proof that one admitted adapter authenticated an external identity.
@@ -50,7 +51,7 @@ pub struct WorthQueryAuthenticatedExternalPrincipal<Schema> {
     validated_at: SystemTime,
     expires_at: SystemTime,
     valid_until: Instant,
-    adapter_identity: String,
+    adapter_identity: WorthQueryAuthenticationAdapterIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
     attributes: Vec<WorthQueryPrincipalAttribute>,
     _schema: PhantomData<fn() -> Schema>,
@@ -65,7 +66,7 @@ impl<Schema> WorthQueryAuthenticatedExternalPrincipal<Schema> {
         validated_at: SystemTime,
         expires_at: SystemTime,
         valid_until: Instant,
-        adapter_identity: String,
+        adapter_identity: WorthQueryAuthenticationAdapterIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         attributes: Vec<WorthQueryPrincipalAttribute>,
     ) -> Self {
@@ -107,7 +108,7 @@ impl<Schema> WorthQueryAuthenticatedExternalPrincipal<Schema> {
         self.valid_until
     }
 
-    pub fn adapter_identity(&self) -> &str {
+    pub const fn adapter_identity(&self) -> &WorthQueryAuthenticationAdapterIdentity {
         &self.adapter_identity
     }
 

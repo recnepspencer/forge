@@ -440,9 +440,10 @@ impl ResourceMilestoneCPolicyCertificationBundle {
         if self.passed {
             Ok(())
         } else {
-            Err(SignalError::invalid_input(format!(
+            Err(SignalError::invalid_input(
                 "resource milestone C policy certification bundle failed completeness checks"
-            )))
+                    .to_string(),
+            ))
         }
     }
 }

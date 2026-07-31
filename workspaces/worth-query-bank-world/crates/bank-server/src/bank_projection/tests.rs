@@ -26,7 +26,7 @@ use worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller;
 use super::{project_send_money_decision, BankProjectionDenial};
 use crate::domain_package::bank_domain_package;
 use crate::graph_bootstrap::{
-    account_key, bind_bank_world, bind_bank_world_with_revision_override, posting_key,
+    account_key, bind_bank_world_with_estate, bind_bank_world_with_revision_override, posting_key,
     principal_key,
 };
 
@@ -66,7 +66,7 @@ fn bounded_send_projection_carries_the_authoritative_starting_balance() {
     let source = source_account(&snapshot);
     let expected = bank_domain::accounting::account_balance(snapshot.journal(), source).unwrap();
     let harness = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
     });
 
     let cold = harness
@@ -104,7 +104,7 @@ fn bounded_send_projection_carries_the_authoritative_starting_balance() {
 
     drop(harness);
     let rebuilt = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
     });
     let rebuilt_projection = rebuilt
         .projection
@@ -131,7 +131,7 @@ fn bounded_send_projection_rejects_ambiguous_recipient_ownership() {
     let snapshot = funded_world();
     let source = source_account(&snapshot);
     let harness = ProjectionHarness::install(&snapshot, |graph| {
-        bind_bank_world(graph, &snapshot, &[], &[]).unwrap();
+        bind_bank_world_with_estate(graph, &snapshot, &[], &[], None).unwrap();
         graph
             .bind_relation(WorthQueryApplicationRelationSeed::new(
                 PersonalOwner::reference(),

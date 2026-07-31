@@ -2,8 +2,8 @@ use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBu
 
 use super::{
     EmergencyElevationPolicy, EstateBeneficiaryExclusionPolicy, EstateCapabilityScopePolicy,
-    EstateConflictOfInterestPolicy, EstateDisclosurePolicy, EstateDistinctActorPolicy,
-    EstateSeparationOfDutyPolicy,
+    EstateConflictOfInterestPolicy, EstateDelegationPolicy, EstateDisclosurePolicy,
+    EstateDistinctActorPolicy, EstateSeparationOfDutyPolicy,
 };
 use crate::schema::BankSchema;
 
@@ -17,5 +17,6 @@ pub(super) fn install(
         .policy(EstateDistinctActorPolicy::reference())
         .policy(EstateBeneficiaryExclusionPolicy::reference())
         .policy(EstateDisclosurePolicy::reference())
+        .policy(EstateDelegationPolicy::reference())
         .policy(EmergencyElevationPolicy::reference())
 }

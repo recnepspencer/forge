@@ -86,13 +86,12 @@ pub(crate) fn retry_lineage_after_cancellation(
     let prior = admit_retryable_request_response_identity(runtime, node, truth_basis);
     let cancellation_report =
         with_async_request_signal_runtime(runtime.signal_runtime_key, |signal_runtime| {
-            let cancellation_report = signal_runtime
+            signal_runtime
                 .cancel_resource_request(
                     prior.request_handle(),
                     ResourceCancellationReason::HostRequested,
                 )
-                .expect("cancellation should succeed");
-            cancellation_report
+                .expect("cancellation should succeed")
         })
         .expect("signal runtime should stay on the owning thread");
     let newer = admit_retryable_request_response_identity(

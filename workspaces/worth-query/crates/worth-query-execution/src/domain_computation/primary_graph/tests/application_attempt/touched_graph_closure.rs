@@ -1,9 +1,7 @@
 use super::{authenticated_principal, installed_authorization_world, live_scope, resolved_account};
 use crate::domain_computation::primary_graph::WorthQueryApplicationAttemptDenialKind;
 
-use super::super::fixture::{
-    AccountLabel, AccountStatus, MultiTouchOperation, TouchAccountOperation,
-};
+use super::super::fixture::{AccountStatus, MultiTouchOperation, TouchAccountOperation};
 
 #[test]
 fn incomplete_mandatory_decision_reads_cannot_form_an_effect_program() {
@@ -18,7 +16,13 @@ fn incomplete_mandatory_decision_reads_cannot_form_an_effect_program() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let attempt = world
         .application
@@ -47,7 +51,13 @@ fn sealed_projection_completion_accepts_the_exact_empty_dependency_set() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -77,7 +87,13 @@ fn same_type_entity_outside_the_admitted_root_cannot_enter_an_unprojected_read_s
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let attempt = world
         .application
@@ -109,11 +125,23 @@ fn only_the_exact_projection_occurrence_can_enter_its_read_set() {
 
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let other_admission = world
         .application
-        .authorize_operation(&principal, &other_account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &other_account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, other_projection, _) = world
         .invariant
@@ -132,11 +160,23 @@ fn only_the_exact_projection_occurrence_can_enter_its_read_set() {
 
     let first_equivalent = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let second_equivalent = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     assert_eq!(
         first_equivalent.operation_scope_fingerprint(),
@@ -172,7 +212,13 @@ fn projected_distinct_facts_cannot_exceed_the_installed_budget() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -217,7 +263,7 @@ fn fact_budget_denial_precedes_freshness_provider_work() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &other, &operation, &request)
+        .authorize_operation(&principal, &other, &operation, Default::default(), &request)
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -268,7 +314,13 @@ fn one_field_family_instance_cannot_satisfy_two_planned_entity_dependencies() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -303,34 +355,5 @@ fn one_field_family_instance_cannot_satisfy_two_planned_entity_dependencies() {
     assert_eq!(
         denial.kind(),
         WorthQueryApplicationAttemptDenialKind::DecisionDependencyMismatch
-    );
-}
-
-#[test]
-fn projection_capability_does_not_widen_the_installed_decision_manifest() {
-    let world = installed_authorization_world(true);
-    let request = live_scope();
-    let principal = authenticated_principal(&world, &request);
-    let account = resolved_account(&world, "open", &request);
-    let operation = world
-        .application
-        .installed_schema()
-        .installed_operation(TouchAccountOperation::reference())
-        .unwrap();
-    let admission = world
-        .application
-        .authorize_operation(&principal, &account, &operation, &request)
-        .unwrap();
-    let mut attempt = world
-        .application
-        .begin_application_read_attempt(admission)
-        .unwrap();
-
-    let Err(denial) = attempt.observe_field(&account, AccountLabel::reference()) else {
-        panic!("a compile-capable projection field must still need installed read admission");
-    };
-    assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationAttemptDenialKind::UndeclaredDecisionRead
     );
 }

@@ -487,6 +487,13 @@ Do not use it for:
 - hiding equivalence-basis choice or authority-witness spending in ambient
   helpers
 
+For operational compact identities, use
+`canonicalization().digest().for_sequence(...,
+CanonicalDigestAlgorithmId::sha256())` and then
+`canonicalization().digest().derive(...)`. SHA-256 is the only admitted digest
+algorithm; unsupported identifiers deny before derivation. A runtime must not
+call a hashing library directly after preparing canonical material.
+
 If Query or another owning crate already gives you a stronger receipt or
 identity-bearing artifact, keep that stronger type until you actually need a
 shared boundary form.

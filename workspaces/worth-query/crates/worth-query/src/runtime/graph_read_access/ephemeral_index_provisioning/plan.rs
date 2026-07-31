@@ -124,7 +124,7 @@ impl WorthQueryEphemeralGraphIndexPlan {
                 )
             })
             .collect::<Vec<_>>();
-        let requirement_set_digest = admission.requirement_set().digest().as_str().to_string();
+        let requirement_set_digest = admission.requirement_set().digest().render_support_hex();
         Some(Self::new(
             admission.digest(),
             requirement_set_digest,

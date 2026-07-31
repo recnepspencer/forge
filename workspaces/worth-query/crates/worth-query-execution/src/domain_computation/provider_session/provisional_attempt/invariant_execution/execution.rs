@@ -11,7 +11,6 @@ use super::{
     WorthQueryInvariantVerdictAdmission,
 };
 use crate::domain_computation::provider_session::WorthQueryProposedStateInspection;
-use crate::execution_digest::hash_parts;
 
 pub struct WorthQuerySelectedInstalledInvariant<'inspection, 'run> {
     inspection: &'inspection WorthQueryProposedStateInspection<'run>,
@@ -62,6 +61,7 @@ impl<'inspection, 'run> WorthQuerySelectedInstalledInvariant<'inspection, 'run> 
         WorthQueryInvariantExecutionFailure,
     > {
         let plan = WorthQueryAdmittedInvariantStateLoadPlan::admit(
+            self.inspection.proposed.identity(),
             locators,
             self.requirement.state_load_families(),
         )?;
@@ -204,23 +204,8 @@ impl WorthQueryBoundInvariantExecution<'_, '_> {
 
 pub(super) fn requirement_identity(
     requirement: &WorthQueryInstalledInvariantExecutionRequirement,
-) -> String {
-    hash_parts(
-        &[
-            vec![
-                "worth_query_invariant_requirement_v1".to_owned(),
-                requirement.slot().to_owned(),
-                requirement.family().to_owned(),
-                requirement.version().get().to_string(),
-                requirement.enforcement().as_str().to_owned(),
-                requirement.executor_role().to_owned(),
-                requirement.max_state_facts().to_string(),
-                requirement.max_work_units().to_string(),
-            ],
-            requirement.state_load_families().to_vec(),
-        ]
-        .concat(),
-    )
+) -> &str {
+    requirement.slot()
 }
 
 fn failure(kind: WorthQueryInvariantExecutionDenialKind) -> WorthQueryInvariantExecutionFailure {

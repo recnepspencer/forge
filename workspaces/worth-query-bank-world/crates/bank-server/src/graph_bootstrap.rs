@@ -9,16 +9,22 @@ use worth_query_host::facade::primary_graph::{
 
 use crate::{BankBusinessOwnerSeed, BankEmployeeAssignmentSeed};
 
+mod estate;
 mod journal;
 mod payment;
 
-pub(crate) fn bind_bank_world(
+pub(crate) fn bind_bank_world_with_estate(
     graph: &mut WorthQueryPrimaryGraphBootstrap<BankSchema>,
     snapshot: &BankSnapshot,
     owners: &[BankBusinessOwnerSeed],
     employees: &[BankEmployeeAssignmentSeed],
+    estate_world: Option<&bank_domain::estate::BankEstateWorld>,
 ) -> Result<(), WorthQueryPrimaryGraphInstallationDenial> {
-    bind_bank_world_with_revisions(graph, snapshot, owners, employees, |_, derived| derived)
+    bind_bank_world_with_revisions(graph, snapshot, owners, employees, |_, derived| derived)?;
+    if let Some(estate_world) = estate_world {
+        estate::bind_estate_world(graph, estate_world)?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -157,6 +163,7 @@ fn bind_employees(
                 EmployeeAssignment::reference(),
                 entity_key(employee_key(employee.id().get())),
             )
+            .field(EmployeeAssignmentIdentityField::reference(), employee.id())
             .field(AssignmentRole::reference(), employee.role()),
         )?;
     }

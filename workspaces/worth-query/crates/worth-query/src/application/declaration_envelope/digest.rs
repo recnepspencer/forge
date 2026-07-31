@@ -72,12 +72,11 @@ pub(crate) fn derive_envelope_digest(
         TransitionOutcome::Success(bundle) => bundle,
         outcome => panic!("envelope digest bundle should prepare cleanly: {outcome:?}"),
     };
-    let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(bundle, CanonicalDigestAlgorithmId::test_stable_fixture())
-    {
-        TransitionOutcome::Success(ready) => ready,
-        outcome => panic!("envelope digest derivation should succeed: {outcome:?}"),
-    };
+    let digest_ready =
+        match CanonicalDigestFrontDoor.for_bundle(bundle, CanonicalDigestAlgorithmId::sha256()) {
+            TransitionOutcome::Success(ready) => ready,
+            outcome => panic!("envelope digest derivation should succeed: {outcome:?}"),
+        };
     derive_canonical_digest(digest_ready)
 }
 

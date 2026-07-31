@@ -47,6 +47,20 @@ pub(super) fn operation_name(member: &ApplicationSchemaMember) -> Option<&str> {
     }
 }
 
+pub(super) fn application_query_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationQuery { definition } => Some(definition.name()),
+        _ => None,
+    }
+}
+
+pub(super) fn application_capability_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationCapability { contract } => Some(contract.name()),
+        _ => None,
+    }
+}
+
 pub(super) fn policy_name(member: &ApplicationSchemaMember) -> Option<&str> {
     match member {
         ApplicationSchemaMember::Policy { policy } => Some(policy),

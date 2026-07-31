@@ -50,7 +50,13 @@ fn distinct_abilities_sharing_one_policy_retain_exact_provider_cardinality() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     assert_eq!(admission.authorization_requirement_count(), 2);
     let (_, projection, _) = world

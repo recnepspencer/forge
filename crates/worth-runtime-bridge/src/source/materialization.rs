@@ -176,7 +176,7 @@ mod tests {
         );
         PlannedSourceReadPacketSet::new(
             contract.clone(),
-            ValidatedSourceDeclaration::from_contract(&contract),
+            ValidatedSourceDeclaration::from_contract(contract),
             vec![packet],
         )
     }

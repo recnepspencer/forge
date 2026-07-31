@@ -6,7 +6,6 @@ mod business_payment;
 mod money_movement;
 #[cfg(test)]
 mod operation_shape_tests;
-mod ordinary_read;
 mod reversal;
 mod send_money;
 #[cfg(test)]
@@ -46,12 +45,6 @@ pub(crate) use business_payment::{
     project_business_payment_initiation, project_payment_approval, project_payment_rejection,
 };
 pub(crate) use money_movement::project_institution_money_movement;
-pub(crate) use ordinary_read::{
-    project_account_activity_cause_read, project_account_activity_page_read,
-    project_account_activity_read, project_account_detail_read, project_account_discovery_read,
-    project_account_summary_read, project_account_users_read, project_institution_audit_read,
-    project_payment_read, project_pending_payments_read,
-};
 pub(crate) use reversal::project_journal_reversal;
 pub(crate) use send_money::project_send_money_decision;
 

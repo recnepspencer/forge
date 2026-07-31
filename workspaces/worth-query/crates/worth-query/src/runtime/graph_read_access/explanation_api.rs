@@ -278,7 +278,9 @@ pub(crate) fn explain_graph_read_access_requirements_for_family_with_operation_l
 pub(super) fn domain_operation_capability_requirement_set(
     requirement: WorthQueryGraphReadOperationCapabilityRequirement,
 ) -> WorthQueryGraphReadAccessRequirementSet {
-    let read_graph_digest = requirement.read_graph_digest().to_string();
+    let read_graph_digest =
+        worth_foundational::facade::CanonicalDigestId::parse_hex(requirement.read_graph_digest())
+            .expect("installed operation read-graph digests are canonical SHA-256 hex");
     let requirement_digest_part = requirement.digest_part();
     let access_shape_digest = hash_parts(&[
         "domain_operation_capability_registration_access_shape_v1".to_string(),
@@ -290,8 +292,10 @@ pub(super) fn domain_operation_capability_requirement_set(
     ]);
     WorthQueryGraphReadAccessRequirementSet::new(
         read_graph_digest,
-        access_shape_digest,
-        selectivity_shape_digest,
+        worth_foundational::facade::CanonicalDigestId::parse_hex(&access_shape_digest)
+            .expect("access-shape support digests are canonical SHA-256 hex"),
+        worth_foundational::facade::CanonicalDigestId::parse_hex(&selectivity_shape_digest)
+            .expect("selectivity support digests are canonical SHA-256 hex"),
         vec![WorthQueryGraphReadAccessRequirementRow::new(
             WorthQueryGraphReadAccessRequirementKind::DomainOperationCapabilityRegistration,
             WorthQueryGraphReadAccessRebuildBasis::RuntimeSupportRequired,
@@ -300,7 +304,11 @@ pub(super) fn domain_operation_capability_requirement_set(
             WorthQueryGraphReadAccessMemoryEstimateBasis::LifecycleManagedSupport,
         )
         .with_operation_capability_requirement(requirement)],
+        worth_foundational::facade::CanonicalDigestWorkBudget::new(64, 16 * 1024)
+            .expect("the domain-operation capability canonical budget is nonzero"),
+        worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
     )
+    .expect("domain-operation capability requirements fit their canonical budget")
 }
 
 pub(super) fn explain_boolean_selectivity_shape_for_access_shape(

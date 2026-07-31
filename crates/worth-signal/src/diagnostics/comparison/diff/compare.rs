@@ -205,8 +205,8 @@ pub fn compare_explanations(
         &mut diff.mismatches,
         DiagnosticMismatchCategory::Provenance,
         "materialization_mode",
-        left.materialization_mode.clone(),
-        right.materialization_mode.clone(),
+        left.materialization_mode,
+        right.materialization_mode,
     );
     compare_value(
         &mut diff.mismatches,

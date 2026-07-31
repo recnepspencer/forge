@@ -156,7 +156,7 @@ fn admitted_projection_supplies_its_exact_root_without_an_equality_lookup() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &scope, &operation, &request)
+        .authorize_operation(&principal, &scope, &operation, Default::default(), &request)
         .unwrap();
 
     let completed = world
@@ -203,7 +203,7 @@ fn admitted_projection_budget_exhaustion_mints_no_snapshot_authority() {
     assert_eq!(operation.contracts().projection_work_budget(), 32);
     let admission = world
         .application
-        .authorize_operation(&principal, &scope, &operation, &request)
+        .authorize_operation(&principal, &scope, &operation, Default::default(), &request)
         .unwrap();
     let baseline = world.invariant.active_snapshot_count();
 

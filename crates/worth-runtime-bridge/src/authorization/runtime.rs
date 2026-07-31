@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use sha2::{Digest, Sha256};
 use worth_signal::facade::{
     InstalledSignalAuthorizationPolicy, SignalAuthorizationDependencyCardinality,
     SignalAuthorizationObservation, SignalAuthorizationPathContract, SignalAuthorizationPathEffect,
@@ -49,7 +48,7 @@ impl BridgeAuthorizationRuntime {
         request: BridgeAuthorizationInstallationRequest,
     ) -> Result<BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationDenial> {
         validate_request(&request)?;
-        let identity = correspondence_identity(&request);
+        let identity = request.correspondence;
         if self.correspondences.contains_key(&identity) {
             return Err(denial(
                 BridgeAuthorizationDenialKind::DuplicateCorrespondence,
@@ -210,40 +209,11 @@ fn validate_request(
     Ok(())
 }
 
-fn correspondence_identity(
-    request: &BridgeAuthorizationInstallationRequest,
-) -> BridgeAuthorizationCorrespondenceIdentity {
-    let mut hash = Sha256::new();
-    hash_text(&mut hash, "worth-runtime-bridge.authorization.v1");
-    hash_text(&mut hash, request.binding_identity.package_identity());
-    hash_text(
-        &mut hash,
-        request.binding_identity.schema_identity().as_str(),
-    );
-    hash_text(&mut hash, &request.ability);
-    hash_text(&mut hash, &request.scope_entity);
-    hash_text(&mut hash, &request.policy);
-    hash.update(request.paths.len().to_le_bytes());
-    for path in &request.paths {
-        hash.update(path.identity());
-        hash.update([match path.effect() {
-            BridgeAuthorizationPathEffect::Allow => 1,
-            BridgeAuthorizationPathEffect::Deny => 2,
-        }]);
-    }
-    BridgeAuthorizationCorrespondenceIdentity(hash.finalize().into())
-}
-
 fn lower_effect(effect: BridgeAuthorizationPathEffect) -> SignalAuthorizationPathEffect {
     match effect {
         BridgeAuthorizationPathEffect::Allow => SignalAuthorizationPathEffect::Allow,
         BridgeAuthorizationPathEffect::Deny => SignalAuthorizationPathEffect::Deny,
     }
-}
-
-fn hash_text(hash: &mut Sha256, value: &str) {
-    hash.update(value.len().to_le_bytes());
-    hash.update(value.as_bytes());
 }
 
 fn denial(

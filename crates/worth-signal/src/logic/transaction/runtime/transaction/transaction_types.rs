@@ -192,7 +192,7 @@ pub struct TemporalEligibilityFact {
     pub eligibility: LoweredTemporalEligibility,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct TemporalTransactionEvidence {
     pub clock_basis: RuntimeClockBasis,
     pub eligibility_facts: Vec<TemporalEligibilityFact>,
@@ -203,22 +203,6 @@ pub struct TemporalTransactionEvidence {
     pub reused_wakes: Vec<TemporalWakeReuse>,
     pub interval_regenerations: Vec<IntervalWakeRegeneration>,
     pub previous_value_references: Vec<TemporalPreviousValueReference>,
-}
-
-impl Default for TemporalTransactionEvidence {
-    fn default() -> Self {
-        Self {
-            clock_basis: RuntimeClockBasis::default(),
-            eligibility_facts: Vec::new(),
-            scheduled_wakes: Vec::new(),
-            ready_wakes: Vec::new(),
-            retired_wakes: Vec::new(),
-            rescheduled_wakes: Vec::new(),
-            reused_wakes: Vec::new(),
-            interval_regenerations: Vec::new(),
-            previous_value_references: Vec::new(),
-        }
-    }
 }
 
 impl TemporalTransactionEvidence {

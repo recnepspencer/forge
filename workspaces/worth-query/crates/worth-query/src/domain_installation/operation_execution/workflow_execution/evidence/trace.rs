@@ -179,7 +179,7 @@ fn stage_semantic_part(receipt: &WorthQueryWorkflowStageReceipt) -> String {
                             "graph.projection",
                             graph
                                 .graph_read_product()
-                                .map(|projection| projection.result_digest())
+                                .map(|projection| projection.call_identity())
                                 .unwrap_or("not-projected")
                                 .into(),
                         ),

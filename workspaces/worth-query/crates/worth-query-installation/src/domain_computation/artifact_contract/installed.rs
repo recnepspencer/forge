@@ -1,3 +1,5 @@
+use crate::admission::WorthQueryInstallationAdmissionIdentity;
+use crate::authority_cryptography::PackageAuthorityKey;
 use crate::generation::WorthQueryInstallationGeneration;
 use crate::package::WorthQueryPortableDomainPackageIdentity;
 
@@ -21,7 +23,7 @@ use super::WorthQueryPortableArtifactContract;
 ///     owner: "worth.routing".into(),
 ///     package_identity: panic!("copied package identity"),
 ///     admission_identity: "copied-admission-digest".into(),
-///     package_authority_nonce: [0; 32],
+///     package_authority_key: panic!("copied authority key"),
 ///     contract: panic!("reconstructed contract"),
 /// };
 /// ```
@@ -60,8 +62,8 @@ pub struct WorthQueryInstalledArtifactContractAuthority {
     pub(crate) generation: WorthQueryInstallationGeneration,
     pub(crate) owner: String,
     pub(crate) package_identity: WorthQueryPortableDomainPackageIdentity,
-    pub(crate) admission_identity: String,
-    pub(crate) package_authority_nonce: [u8; 32],
+    pub(crate) admission_identity: WorthQueryInstallationAdmissionIdentity,
+    pub(crate) package_authority_key: PackageAuthorityKey,
     pub(crate) contract: WorthQueryPortableArtifactContract,
 }
 
@@ -78,7 +80,7 @@ impl WorthQueryInstalledArtifactContractAuthority {
         &self.package_identity
     }
 
-    pub fn admission_identity(&self) -> &str {
+    pub fn admission_identity(&self) -> &WorthQueryInstallationAdmissionIdentity {
         &self.admission_identity
     }
 
@@ -90,6 +92,8 @@ impl WorthQueryInstalledArtifactContractAuthority {
             && self.generation == operation.generation
             && self.owner == operation.owner
             && self.package_identity == operation.package_identity
-            && self.package_authority_nonce == operation.package_authority_nonce
+            && self
+                .package_authority_key
+                .matches(&operation.package_authority_key)
     }
 }

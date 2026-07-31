@@ -14,7 +14,7 @@ use bank_domain::schema::InitiateBusinessPayment;
 use bank_server::{
     mutations, queries, BankMutationControls, BankMutationExplanation,
     BankMutationExplanationStage, BankMutationStatus, BankPendingPaymentContinuation,
-    BankReadControls, BankReadOutcome,
+    BankReadControls,
 };
 
 use fixture::{ordinary_read_world, principal_id, APPROVER, OWNER, RECIPIENT};
@@ -201,20 +201,19 @@ fn pending_continuation(
     fixture: &fixture::OrdinaryReadFixture,
     principal: &bank_server::BankAuthenticatedPrincipal,
 ) -> BankPendingPaymentContinuation {
-    let outcome = fixture
+    let result = fixture
         .world
         .runtime
         .query(queries::pending_payments())
         .as_principal(principal)
-        .controls(BankReadControls::current(request_scope(), 16).unwrap())
-        .execute();
-    let BankReadOutcome::Delivered(result) = outcome else {
-        panic!("pending payments must be readable: {outcome:?}");
-    };
+        .controls(BankReadControls::current(request_scope(), 16, 10_000).unwrap())
+        .execute()
+        .expect("pending payments must be readable");
     let summary = result
-        .into_output()
-        .into_iter()
+        .rows()
+        .iter()
         .find(|payment| payment.id() == fixture.payment)
+        .cloned()
         .expect("fixture pending payment must be present");
     BankPendingPaymentContinuation::from_summary(summary)
         .expect("an approval-required payment must yield a continuation")

@@ -124,7 +124,7 @@ impl WorthQueryGraphReadAccessAuthorityContext {
     ) {
         let basis_binding = WorthQueryGraphReadBasisBinding::new(
             read_graph.digest(),
-            read_graph.schema_basis().as_str(),
+            *read_graph.schema_basis().digest(),
             basis_posture_from_scope(&self.basis_scope),
         );
         let explicit_relationship_proof = self

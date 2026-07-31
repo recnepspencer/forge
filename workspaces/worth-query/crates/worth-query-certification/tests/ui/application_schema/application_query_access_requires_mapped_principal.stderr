@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/application_query_access_requires_mapped_principal.rs:13:58
+   |
+13 |     let _ = WorthQueryApplicationQueryAccessContext::new(external, account);
+   |             -------------------------------------------- ^^^^^^^^ expected `WorthQueryAuthenticatedPrincipal<_, _, _>`, found `WorthQueryAuthenticatedExternalPrincipal<...>`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&WorthQueryAuthenticatedPrincipal<Schema, _, _>`
+              found reference `&WorthQueryAuthenticatedExternalPrincipal<Schema>`
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/application_query/access_context.rs
+   |
+   |     pub fn new(
+   |            ^^^

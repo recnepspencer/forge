@@ -127,6 +127,28 @@ macro_rules! worth_query_operation_reads {
 }
 
 #[macro_export]
+macro_rules! worth_query_operation_expects_version {
+    ($Operation:ty => [$($Field:ty),+ $(,)?]) => {
+        $(
+            impl $crate::facade::application_schema::OperationExpectsVersion<$Operation>
+                for $Field
+            {}
+        )+
+    };
+}
+
+#[macro_export]
+macro_rules! worth_query_operation_expects_fact {
+    ($Operation:ty => [$($Field:ty),+ $(,)?]) => {
+        $(
+            impl $crate::facade::application_schema::OperationExpectsFact<$Operation>
+                for $Field
+            {}
+        )+
+    };
+}
+
+#[macro_export]
 macro_rules! worth_query_operation_creates {
     ($Operation:ty => [$($Entity:ty),+ $(,)?]) => {
         $(

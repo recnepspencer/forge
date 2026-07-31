@@ -1,7 +1,4 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-
-use crate::execution_digest::hash_parts;
 
 use super::graph_provider::{
     WorthQueryGraphCallBindingDenial, WorthQueryGraphCommitCall, WorthQueryGraphCommitCallRequest,
@@ -9,8 +6,6 @@ use super::graph_provider::{
 };
 use super::{WorthQueryExecutionAttemptIdentity, WorthQueryExecutionResourceAttemptEvidence};
 use crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority;
-
-static NEXT_PROVIDER_SESSION: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug)]
 pub struct WorthQueryExecutionProviderSession {
@@ -24,12 +19,7 @@ impl WorthQueryExecutionProviderSession {
         attempt_identity: &WorthQueryExecutionAttemptIdentity,
         binding_authority: &WorthQueryExecutionBoundOperationAuthority,
     ) -> Self {
-        let ordinal = NEXT_PROVIDER_SESSION.fetch_add(1, Ordering::Relaxed);
-        let identity = Arc::<str>::from(hash_parts(&[
-            "worth_query_execution_provider_session_v1".into(),
-            format!("attempt:{}", attempt_identity.as_str()),
-            format!("ordinal:{ordinal}"),
-        ]));
+        let identity = Arc::<str>::from(attempt_identity.as_str());
         Self {
             identity,
             attempt_identity: Arc::from(attempt_identity.as_str()),

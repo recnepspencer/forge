@@ -1,7 +1,13 @@
 mod support;
 
 mod ordinary_reads {
+    mod application_query;
     mod authority;
+    mod canonical_scale_fixture;
+    mod canonical_work_scale;
+    mod estate;
+    mod estate_fixture;
     mod fixture;
     mod locality;
+    mod pending_payments;
 }

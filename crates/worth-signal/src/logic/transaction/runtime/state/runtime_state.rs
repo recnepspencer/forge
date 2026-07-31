@@ -1538,7 +1538,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let prior_stale_after_wake = self
             .resource
             .active_stale_after_wake_for_node(resource_node);
@@ -1690,7 +1690,7 @@ where
         let revalidation_descriptor = self.resource.descriptor_for_node(resource_node);
         let timeout_plan = revalidation_descriptor
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let revalidation_decision_digest = revalidation_descriptor
             .map(|descriptor| {
                 descriptor
@@ -1807,7 +1807,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
@@ -2004,7 +2004,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
@@ -2094,7 +2094,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
@@ -2199,7 +2199,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
@@ -2304,7 +2304,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);
@@ -2390,7 +2390,7 @@ where
         let revalidation_descriptor = self.resource.descriptor_for_node(node);
         let timeout_plan = revalidation_descriptor
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let revalidation_decision_digest = revalidation_descriptor
             .map(|descriptor| {
                 descriptor
@@ -2614,7 +2614,7 @@ where
         let timeout_plan = resource_node
             .and_then(|node| self.resource.descriptor_for_node(node))
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let prior_timeout_wake =
             resource_node.and_then(|node| self.resource.active_timeout_wake_for_node(node));
         let prior_stale_after_wake =

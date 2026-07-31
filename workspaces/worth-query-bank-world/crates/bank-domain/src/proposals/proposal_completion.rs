@@ -159,8 +159,7 @@ mod tests {
                 BankIdempotencyClaim::derive(
                     super::super::BankOperationScopeBinding::from_fingerprint_bytes([1; 32]),
                     &super::super::BankIdempotencyKey::new("missing-effect").unwrap(),
-                    "test",
-                    &[],
+                    super::super::CanonicalProposalPayload::new("test"),
                 ),
                 Vec::new(),
             ),

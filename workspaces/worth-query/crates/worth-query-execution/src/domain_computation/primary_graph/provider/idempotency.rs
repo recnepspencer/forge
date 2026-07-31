@@ -9,14 +9,13 @@ use worth_relational::facade::transactions::{
 };
 
 use super::WorthQueryPrimaryGraphProvider;
-use crate::domain_computation::primary_graph::application_attempt::{
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationIdempotencyBinding,
-};
+use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationIdempotencyBinding;
+use crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication;
 use crate::domain_computation::primary_graph::schema_layout::WorthQueryProviderIdempotencyLayout;
 
 pub(in crate::domain_computation::primary_graph) enum WorthQueryProviderIdempotencyResolution {
     Absent,
-    Equivalent(WorthQueryApplicationCommitReceipt),
+    Equivalent(WorthQueryPrimaryGraphCommittedApplication),
     Drift,
 }
 
@@ -180,7 +179,8 @@ fn resolve_at_snapshot(
     let emitted = usize::try_from(emitted)
         .map_err(|_| "provider idempotency emitted-effect count exceeds host representation")?;
     Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
-        WorthQueryApplicationCommitReceipt::new(
+        WorthQueryPrimaryGraphCommittedApplication::new(
+            snapshot.runtime_instance_id,
             committed.commit().commit_id,
             committed.changed_record_count(),
             emitted,

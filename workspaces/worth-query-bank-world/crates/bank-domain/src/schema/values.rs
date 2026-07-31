@@ -6,8 +6,8 @@ use worth_query_decl::facade::application_schema::{
 
 use crate::model::{
     AccountAuthorizationId, AccountId, AccountJournalRevision, AccountName, BankPrincipalId,
-    BusinessId, Currency, CustomerRole, EmployeeRole, InstitutionId, JournalEntryId, Money,
-    PaymentId, PostingId, SignedMoney,
+    BusinessId, Currency, CustomerRole, EmployeeAssignmentId, EmployeeRole, InstitutionId,
+    JournalEntryId, Money, PaymentId, PostingId, SignedMoney,
 };
 use crate::proposals::{BankIdempotencyIntent, BankIdempotencyKeyIdentity};
 
@@ -135,7 +135,12 @@ macro_rules! identity_application_value {
     };
 }
 
-identity_application_value!(BankPrincipalId, BusinessId, InstitutionId,);
+identity_application_value!(
+    BankPrincipalId,
+    BusinessId,
+    EmployeeAssignmentId,
+    InstitutionId,
+);
 
 impl TypedApplicationIdentityValue for BankPrincipalId {}
 

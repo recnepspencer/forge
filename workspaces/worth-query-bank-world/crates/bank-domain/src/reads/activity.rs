@@ -1,4 +1,6 @@
-use crate::model::{AccountId, AccountJournalRevision, JournalEntryId, SignedMoney, USD};
+use crate::model::{
+    AccountId, AccountJournalRevision, InstitutionId, JournalEntryId, SignedMoney, USD,
+};
 use crate::schema::PostingPurpose;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,5 +54,51 @@ impl AccountActivityItem {
 
     pub const fn reversal_of(self) -> Option<JournalEntryId> {
         self.reversal_of
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstitutionAuditAccount {
+    account: AccountId,
+    entries: Vec<AccountActivityItem>,
+}
+
+impl InstitutionAuditAccount {
+    pub(crate) fn from_projection(account: AccountId, entries: Vec<AccountActivityItem>) -> Self {
+        Self { account, entries }
+    }
+
+    pub const fn account(&self) -> AccountId {
+        self.account
+    }
+
+    pub fn entries(&self) -> &[AccountActivityItem] {
+        &self.entries
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InstitutionAuditView {
+    institution: InstitutionId,
+    accounts: Vec<InstitutionAuditAccount>,
+}
+
+impl InstitutionAuditView {
+    pub(crate) fn from_projection(
+        institution: InstitutionId,
+        accounts: Vec<InstitutionAuditAccount>,
+    ) -> Self {
+        Self {
+            institution,
+            accounts,
+        }
+    }
+
+    pub const fn institution(&self) -> InstitutionId {
+        self.institution
+    }
+
+    pub fn accounts(&self) -> &[InstitutionAuditAccount] {
+        &self.accounts
     }
 }

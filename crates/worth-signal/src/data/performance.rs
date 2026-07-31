@@ -32,19 +32,14 @@ pub enum CanonicalDependencyOrder {
     SourceAspectScope,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ComparatorBasis {
+    #[default]
     TierDefault,
     Exact,
     Tolerance,
     OutputIdentity,
     Custom,
-}
-
-impl Default for ComparatorBasis {
-    fn default() -> Self {
-        Self::TierDefault
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]

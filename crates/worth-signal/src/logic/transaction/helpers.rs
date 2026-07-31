@@ -7,11 +7,10 @@ use crate::data::temporal::TemporalExecutionSummary;
 use crate::logic::planner::ExecutionReport;
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
-    DedupedNodeBatch::canonicalize_unordered(graph.live_node_ids().into_iter().filter_map(|node| {
-        let Ok(state) = graph.get_state(node) else {
-            return None;
-        };
-        (!matches!(state, crate::data::node::NodeState::Clean)).then_some(node)
+    DedupedNodeBatch::canonicalize_unordered(graph.live_node_ids().into_iter().filter(|node| {
+        graph
+            .get_state(*node)
+            .is_ok_and(|state| !matches!(state, crate::data::node::NodeState::Clean))
     }))
     .into_vec()
 }

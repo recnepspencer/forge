@@ -116,6 +116,7 @@ pub struct BankEstateWorld {
     reviews: BTreeMap<MandatoryReviewId, MandatoryEstateReview>,
     executors: BTreeSet<(EstateCaseId, BankPrincipalId)>,
     beneficiaries: BTreeSet<(EstateCaseId, BankPrincipalId)>,
+    estate_assignments: BTreeSet<(EstateCaseId, EmployeeAssignmentId)>,
     joint_owners: BTreeSet<(AccountId, BankPrincipalId)>,
     authorized_signers: BTreeSet<(AccountId, BankPrincipalId)>,
     balances: BTreeMap<AccountId, SignedMoney<USD>>,
@@ -172,6 +173,15 @@ impl BankEstateWorld {
         self
     }
 
+    pub fn with_estate_assignment(
+        mut self,
+        estate: EstateCaseId,
+        assignment: EmployeeAssignmentId,
+    ) -> Self {
+        self.estate_assignments.insert((estate, assignment));
+        self
+    }
+
     pub fn with_joint_owner(mut self, account: AccountId, principal: BankPrincipalId) -> Self {
         self.joint_owners.insert((account, principal));
         self
@@ -221,6 +231,64 @@ impl BankEstateWorld {
 
     pub fn review(&self, id: MandatoryReviewId) -> Option<&MandatoryEstateReview> {
         self.reviews.get(&id)
+    }
+
+    pub fn branches(&self) -> impl ExactSizeIterator<Item = &EstateBranch> {
+        self.branches.values()
+    }
+
+    pub fn death_notices(&self) -> impl ExactSizeIterator<Item = &EstateDeathNotice> {
+        self.death_notices.values()
+    }
+
+    pub fn cases(&self) -> impl ExactSizeIterator<Item = &EstateCase> {
+        self.cases.values()
+    }
+
+    pub fn assignments(&self) -> impl ExactSizeIterator<Item = &EstateEmployeeAssignment> {
+        self.assignments.values()
+    }
+
+    pub fn legal_authorities(&self) -> impl ExactSizeIterator<Item = &EstateLegalAuthority> {
+        self.legal_authorities.values()
+    }
+
+    pub fn grants(&self) -> impl ExactSizeIterator<Item = &EstateCapabilityGrant> {
+        self.grants.values()
+    }
+
+    pub fn emergency_accesses(&self) -> impl ExactSizeIterator<Item = &EstateEmergencyAccess> {
+        self.emergency_access.values()
+    }
+
+    pub fn reviews(&self) -> impl ExactSizeIterator<Item = &MandatoryEstateReview> {
+        self.reviews.values()
+    }
+
+    pub fn executors(&self) -> impl ExactSizeIterator<Item = (EstateCaseId, BankPrincipalId)> + '_ {
+        self.executors.iter().copied()
+    }
+
+    pub fn beneficiaries(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (EstateCaseId, BankPrincipalId)> + '_ {
+        self.beneficiaries.iter().copied()
+    }
+
+    pub fn estate_assignments(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (EstateCaseId, EmployeeAssignmentId)> + '_ {
+        self.estate_assignments.iter().copied()
+    }
+
+    pub fn joint_owners(&self) -> impl ExactSizeIterator<Item = (AccountId, BankPrincipalId)> + '_ {
+        self.joint_owners.iter().copied()
+    }
+
+    pub fn authorized_signers(
+        &self,
+    ) -> impl ExactSizeIterator<Item = (AccountId, BankPrincipalId)> + '_ {
+        self.authorized_signers.iter().copied()
     }
 
     pub fn is_executor(&self, estate: EstateCaseId, principal: BankPrincipalId) -> bool {

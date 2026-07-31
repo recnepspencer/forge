@@ -71,27 +71,52 @@ fn real_query_binding_separates_principal_operation_and_scope_but_not_retry() {
 
     let baseline = world
         .runtime
-        .authorize_deposit(&first_actor, id(InstitutionId::new, 1), &request)
+        .authorize_deposit(
+            &first_actor,
+            id(InstitutionId::new, 1),
+            Default::default(),
+            &request,
+        )
         .unwrap()
         .operation_scope_fingerprint();
     let retry = world
         .runtime
-        .authorize_deposit(&first_actor, id(InstitutionId::new, 1), &request_scope())
+        .authorize_deposit(
+            &first_actor,
+            id(InstitutionId::new, 1),
+            Default::default(),
+            &request_scope(),
+        )
         .unwrap()
         .operation_scope_fingerprint();
     let principal_drift = world
         .runtime
-        .authorize_deposit(&second_actor, id(InstitutionId::new, 1), &request)
+        .authorize_deposit(
+            &second_actor,
+            id(InstitutionId::new, 1),
+            Default::default(),
+            &request,
+        )
         .unwrap()
         .operation_scope_fingerprint();
     let operation_drift = world
         .runtime
-        .authorize_withdrawal(&first_actor, id(InstitutionId::new, 1), &request)
+        .authorize_withdrawal(
+            &first_actor,
+            id(InstitutionId::new, 1),
+            Default::default(),
+            &request,
+        )
         .unwrap()
         .operation_scope_fingerprint();
     let scope_drift = world
         .runtime
-        .authorize_deposit(&first_actor, id(InstitutionId::new, 2), &request)
+        .authorize_deposit(
+            &first_actor,
+            id(InstitutionId::new, 2),
+            Default::default(),
+            &request,
+        )
         .unwrap()
         .operation_scope_fingerprint();
 

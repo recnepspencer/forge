@@ -4,8 +4,8 @@ use crate::facade::application_schema::{
     ApplicationSchemaAuthoringDenialKind, ApplicationSchemaBindingIdentity,
     ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
     ApplicationSchemaDeclarationDenial, DeclaredApplicationCurrency, EqualityPredicate,
-    OperationCreates, ReadOnly, TypedApplicationValue, TypedCurrencyApplicationValue,
-    TypedOperationBuilder,
+    OperationCreates, OperationExpectsFact, ReadOnly, TypedApplicationValue,
+    TypedCurrencyApplicationValue, TypedOperationBuilder,
 };
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
@@ -20,6 +20,8 @@ struct CurrencyValue;
 struct ProgramSchema;
 struct ProgramEntity;
 struct ProgramOperation;
+struct SchemaOperation;
+struct SchemaInput;
 struct NamespacedSchema;
 struct InvalidOwnerSchema;
 struct DottedMemberSchema;
@@ -38,6 +40,7 @@ crate::worth_query_application_schema! {
 crate::worth_query_entity!(MacroNamespacedEntity in MacroNamespacedSchema);
 
 impl OperationCreates<ProgramOperation> for ProgramEntity {}
+impl OperationExpectsFact<SchemaOperation> for Field {}
 
 #[test]
 fn application_schema_macro_accepts_the_canonical_namespace_qualified_owner() {
@@ -190,8 +193,8 @@ fn compile_capability_without_installed_operation_edge_is_denied() {
     let binding = ApplicationSchemaBindingIdentity::from_installed_parts(
         1,
         1,
-        "package",
-        declaration.identity().clone(),
+        worth_foundational::facade::CanonicalDigestId::new([1; 32]),
+        worth_foundational::facade::CanonicalDigestId::new([2; 32]),
     );
     let context = ApplicationSchemaAuthoringContext::from_installed_declaration(
         binding,
@@ -219,6 +222,22 @@ fn operation_program_with_missing_target_member_is_denied() {
     assert_eq!(
         denial,
         ApplicationSchemaDeclarationDenial::MissingOperationProgramDependency
+    );
+}
+
+#[test]
+fn mutation_precondition_without_the_exact_decision_read_is_denied() {
+    let denial = ApplicationSchemaDeclarationBuilder::<Schema>::for_schema()
+        .entity(entity())
+        .aspect(entity(), aspect())
+        .field(entity(), field())
+        .operation(schema_operation())
+        .operation_expected_fact(schema_operation(), field())
+        .build()
+        .unwrap_err();
+    assert_eq!(
+        denial,
+        ApplicationSchemaDeclarationDenial::MissingOperationMutationPreconditionDependency
     );
 }
 
@@ -251,6 +270,10 @@ fn aspect() -> ApplicationAspectRef<Schema, Entity, Aspect> {
 
 fn field() -> ApplicationFieldRef<Schema, Entity, Aspect, Field, u64, ReadOnly, EqualityPredicate> {
     ApplicationFieldRef::from_schema_identifiers("Entity", "Aspect", "Field")
+}
+
+fn schema_operation() -> ApplicationOperationRef<Schema, SchemaOperation, SchemaInput> {
+    ApplicationOperationRef::from_schema_identifier("SchemaOperation")
 }
 
 fn currency_field() -> ApplicationFieldRef<

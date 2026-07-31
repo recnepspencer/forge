@@ -241,7 +241,7 @@ where
 fn derive_declaration_digest(
     basis_bundle: CanonicalBundleReadyArtifact,
 ) -> Result<CanonicalDerivedDigest, WorthQueryDeclarationCanonicalizationError> {
-    let algorithm = CanonicalDigestAlgorithmId::test_stable_fixture();
+    let algorithm = CanonicalDigestAlgorithmId::sha256();
     match CanonicalDigestFrontDoor.for_bundle(basis_bundle, algorithm) {
         TransitionOutcome::Success(ready) => Ok(derive_canonical_digest(ready)),
         TransitionOutcome::Denied(denial) => {

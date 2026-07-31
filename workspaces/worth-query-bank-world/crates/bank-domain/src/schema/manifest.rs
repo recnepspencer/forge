@@ -9,6 +9,7 @@ use super::estate::install_estate_world;
 use super::fields::*;
 use super::governance::*;
 use super::operations::*;
+use super::precondition_manifest::install_operation_preconditions;
 use super::program_manifest::install_operation_program;
 use super::relations::*;
 
@@ -89,6 +90,10 @@ worth_query_application_schema! {
                 .field(
                     AccountAuthorization::reference(),
                     AccountAuthorizationIdentity::reference(),
+                )
+                .field(
+                    EmployeeAssignment::reference(),
+                    EmployeeAssignmentIdentityField::reference(),
                 )
                 .field(
                     EmployeeAssignment::reference(),
@@ -217,6 +222,7 @@ worth_query_application_schema! {
                 .ability(ApproveBusinessFunds::reference())
                 .ability(ServiceInstitutionAccount::reference())
                 .ability(AuditInstitution::reference())
+                .ability(ViewEstateCase::reference())
                 .operation(CreatePersonalAccountOperation::reference())
                 .operation(CreateBusinessAccountOperation::reference())
                 .operation(ApplyOpeningFundingOperation::reference())
@@ -228,23 +234,27 @@ worth_query_application_schema! {
                 .operation(RejectPaymentOperation::reference())
                 .operation(GrantAccountAuthorizationOperation::reference())
                 .operation(RevokeAccountAuthorizationOperation::reference())
-                .operation(ReverseJournalOperation::reference())
-                .operation(DiscoverAccountsOperation::reference())
-                .operation(ReadAccountSummaryOperation::reference())
-                .operation(ReadAccountDetailOperation::reference())
-                .operation(ReadAccountAuthorizedUsersOperation::reference())
-                .operation(ReadAccountActivityOperation::reference())
-                .operation(ReadPendingPaymentsOperation::reference())
-                .operation(ReadPaymentOperation::reference())
-                .operation(AuditInstitutionActivityOperation::reference());
+                .operation(ReverseJournalOperation::reference());
             let schema = install_estate_world(schema);
-            let schema = install_operation_decision_reads(install_operation_program(schema))
+            let schema = install_operation_preconditions(install_operation_decision_reads(
+                install_operation_program(schema),
+            ))
                 .policy(AccountVisibilityPolicy::reference())
                 .policy(AccountMutationScopePolicy::reference())
                 .policy(EmployeeScopePolicy::reference())
                 .policy(DistinctApproverPolicy::reference())
                 .currency(UsdCurrency::reference())
-                .effect(AccountActivityEffect::reference());
+                .effect(AccountActivityEffect::reference())
+                .application_query(crate::queries::account_authorized_users_definition())
+                .application_query(crate::queries::account_discovery_definition())
+                .application_query(crate::queries::account_detail_definition())
+                .application_query(crate::queries::account_summary_definition())
+                .application_query(crate::queries::account_activity_definition())
+                .application_query(crate::queries::payment_detail_definition())
+                .application_query(crate::queries::pending_payments_definition())
+                .application_query(crate::queries::estate_case_overview_definition())
+                .application_query(crate::queries::estate_governance_definition())
+                .application_query(crate::queries::institution_audit_definition());
             install_ability_policies(install_operation_abilities(schema))
         }
     }
@@ -303,34 +313,5 @@ fn install_operation_abilities(
         .operation_requires_ability(
             ReverseJournalOperation::reference(),
             ServiceInstitutionAccount::reference(),
-        )
-        .operation_requires_ability(
-            DiscoverAccountsOperation::reference(),
-            DiscoverOwnAccounts::reference(),
-        )
-        .operation_requires_ability(
-            ReadAccountSummaryOperation::reference(),
-            ViewAccount::reference(),
-        )
-        .operation_requires_ability(
-            ReadAccountDetailOperation::reference(),
-            ViewAccount::reference(),
-        )
-        .operation_requires_ability(
-            ReadAccountAuthorizedUsersOperation::reference(),
-            ViewAccountAccess::reference(),
-        )
-        .operation_requires_ability(
-            ReadAccountActivityOperation::reference(),
-            ViewAccount::reference(),
-        )
-        .operation_requires_ability(
-            ReadPendingPaymentsOperation::reference(),
-            DiscoverOwnAccounts::reference(),
-        )
-        .operation_requires_ability(ReadPaymentOperation::reference(), ViewPayment::reference())
-        .operation_requires_ability(
-            AuditInstitutionActivityOperation::reference(),
-            AuditInstitution::reference(),
         )
 }

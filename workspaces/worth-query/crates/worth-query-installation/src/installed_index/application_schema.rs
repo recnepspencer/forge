@@ -15,8 +15,8 @@ use crate::application_principal_binding::{
     WorthQueryPrincipalBindingInstallationDenialKind,
 };
 use crate::application_schema::{
-    WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
-    WorthQueryInstalledApplicationSchemaDenialKind,
+    ApplicationSchemaCompilationDenial, WorthQueryInstalledApplicationSchema,
+    WorthQueryInstalledApplicationSchemaDenial, WorthQueryInstalledApplicationSchemaDenialKind,
 };
 
 use super::{
@@ -54,10 +54,12 @@ impl WorthQueryInstalledPackageIndex {
         let authority = self
             .domain(schema.owner())
             .map_err(map_index_denial_to_schema_denial)?;
-        Ok(WorthQueryInstalledApplicationSchema::new(
+        WorthQueryInstalledApplicationSchema::new(
             authority,
             &declaration,
-        ))
+            self.installation_canonical_work(),
+        )
+        .map_err(|denial| map_compilation_denial(schema.name(), denial))
     }
 
     pub fn validate_application_schema<Schema>(
@@ -81,7 +83,7 @@ impl WorthQueryInstalledPackageIndex {
                     &installed.schema_name,
                 )
             })?;
-        if current.identity() != &installed.schema_identity {
+        if current != &installed.schema {
             return Err(WorthQueryInstalledApplicationSchemaDenial::new(
                 WorthQueryInstalledApplicationSchemaDenialKind::SchemaMeaningChanged,
                 &installed.schema_name,
@@ -125,19 +127,13 @@ impl WorthQueryInstalledPackageIndex {
                     installed,
                 )
             })?;
-        if schema.identity() != identity.schema_identity() {
-            return Err(principal_binding_denial(
-                WorthQueryPrincipalBindingInstallationDenialKind::SchemaMeaningChanged,
-                installed,
-            ));
-        }
         let package = self.domain(installed.owner()).map_err(|_| {
             principal_binding_denial(
                 WorthQueryPrincipalBindingInstallationDenialKind::PackageIdentityChanged,
                 installed,
             )
         })?;
-        if package.package_identity().as_str() != identity.package_identity() {
+        if package.package_identity().digest() != identity.package_identity() {
             return Err(principal_binding_denial(
                 WorthQueryPrincipalBindingInstallationDenialKind::PackageIdentityChanged,
                 installed,
@@ -191,19 +187,13 @@ impl WorthQueryInstalledPackageIndex {
                     installed,
                 )
             })?;
-        if schema.identity() != identity.schema_identity() {
-            return Err(ability_denial(
-                WorthQueryAbilityInstallationDenialKind::SchemaMeaningChanged,
-                installed,
-            ));
-        }
         let package = self.domain(installed.owner()).map_err(|_| {
             ability_denial(
                 WorthQueryAbilityInstallationDenialKind::PackageIdentityChanged,
                 installed,
             )
         })?;
-        if package.package_identity().as_str() != identity.package_identity() {
+        if package.package_identity().digest() != identity.package_identity() {
             return Err(ability_denial(
                 WorthQueryAbilityInstallationDenialKind::PackageIdentityChanged,
                 installed,
@@ -253,19 +243,13 @@ impl WorthQueryInstalledPackageIndex {
                     installed,
                 )
             })?;
-        if schema.identity() != identity.schema_identity() {
-            return Err(application_operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::SchemaMeaningChanged,
-                installed,
-            ));
-        }
         let package = self.domain(installed.owner()).map_err(|_| {
             application_operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::PackageIdentityChanged,
                 installed,
             )
         })?;
-        if package.package_identity().as_str() != identity.package_identity() {
+        if package.package_identity().digest() != identity.package_identity() {
             return Err(application_operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::PackageIdentityChanged,
                 installed,
@@ -285,6 +269,39 @@ impl WorthQueryInstalledPackageIndex {
         }
         Ok(())
     }
+}
+
+fn map_compilation_denial(
+    schema: &str,
+    denial: ApplicationSchemaCompilationDenial,
+) -> WorthQueryInstalledApplicationSchemaDenial {
+    let (kind, subject) = match denial {
+        ApplicationSchemaCompilationDenial::Capability(denial) => (
+            WorthQueryInstalledApplicationSchemaDenialKind::CapabilityInstallationDenied,
+            denial.subject().to_string(),
+        ),
+        ApplicationSchemaCompilationDenial::Canonical(
+            worth_foundational::facade::CanonicalDigestDerivationDenial::EntryLimitExceeded {
+                ..
+            },
+        ) => (
+            WorthQueryInstalledApplicationSchemaDenialKind::CanonicalEntryBudgetExceeded,
+            schema.to_string(),
+        ),
+        ApplicationSchemaCompilationDenial::Canonical(
+            worth_foundational::facade::CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
+                ..
+            },
+        ) => (
+            WorthQueryInstalledApplicationSchemaDenialKind::CanonicalEncodedByteBudgetExceeded,
+            schema.to_string(),
+        ),
+        ApplicationSchemaCompilationDenial::Canonical(_) => (
+            WorthQueryInstalledApplicationSchemaDenialKind::CanonicalDigestSlotRejected,
+            schema.to_string(),
+        ),
+    };
+    WorthQueryInstalledApplicationSchemaDenial::new(kind, subject)
 }
 
 fn ability_denial<Schema, Ability, Scope>(

@@ -66,6 +66,8 @@ const MERGE_RUNTIME_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/merge_runtime.rs");
 const BRANCH_BASIS_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/basis.rs");
+const BRANCH_BASIS_RUNTIME_SOURCE: &str =
+    include_str!("../logic/transaction/runtime/state/branching/basis_runtime.rs");
 const BRANCH_FORK_SOURCE: &str =
     include_str!("../logic/transaction/runtime/state/branching/fork.rs");
 const BRANCHES_SOURCE: &str =
@@ -147,7 +149,7 @@ fn branch_basis_api_is_source_visible_through_branching_and_facade_surfaces() {
         "phase-1 branch basis should type untracked snapshot posture instead of silently minting basis from arbitrary packets"
     );
     assert!(
-        BRANCH_BASIS_SOURCE.contains("validate_branch_basis_artifact"),
+        BRANCH_BASIS_RUNTIME_SOURCE.contains("validate_branch_basis_artifact"),
         "phase-1 branch basis should expose typed validation instead of ambient active-branch assumptions"
     );
     assert!(
@@ -2657,10 +2659,7 @@ fn committed_observation_delivery_avoids_recloning_boundary_summaries() {
 fn easy_mode_watch_and_effect_use_observation_substrate() {
     let mut graph = ReactiveGraph::new();
     let count = graph.input(1_i32);
-    let doubled = graph.computed({
-        let count = count;
-        move |context| context.get(count) * 2
-    });
+    let doubled = graph.computed(move |context| context.get(count) * 2);
 
     let watch_hits = std::sync::Arc::new(std::sync::Mutex::new(Vec::<usize>::new()));
     let watch_hits_clone = std::sync::Arc::clone(&watch_hits);
@@ -2701,10 +2700,7 @@ fn easy_mode_watch_and_effect_use_observation_substrate() {
 fn easy_mode_meaningful_change_watch_suppresses_recomputed_but_unchanged_values() {
     let mut graph = ReactiveGraph::new();
     let count = graph.input(1_i32);
-    let parity = graph.computed({
-        let count = count;
-        move |context| context.get(count) % 2
-    });
+    let parity = graph.computed(move |context| context.get(count) % 2);
 
     let watch_hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
     let effect_hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
@@ -2748,10 +2744,7 @@ fn easy_mode_meaningful_change_watch_suppresses_recomputed_but_unchanged_values(
 fn easy_mode_unobserve_stops_future_notifications() {
     let mut graph = ReactiveGraph::new();
     let count = graph.input(1_i32);
-    let doubled = graph.computed({
-        let count = count;
-        move |context| context.get(count) * 2
-    });
+    let doubled = graph.computed(move |context| context.get(count) * 2);
 
     let hits = std::sync::Arc::new(std::sync::Mutex::new(0_usize));
     let hits_clone = std::sync::Arc::clone(&hits);

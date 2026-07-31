@@ -204,7 +204,7 @@ fn signal_runtime_materializes_native_explanation_and_provenance_facts() {
         "provenance graph should retain the target vertex"
     );
     assert!(
-        provenance_fact.vertices.len() >= provenance_fact.edges.len().min(1) + 1,
+        provenance_fact.vertices.len() > provenance_fact.edges.len().min(1),
         "provenance graph should expose structured vertices, not only flattened edges"
     );
     let explanation = runtime.graph.observe().explain(node).unwrap();

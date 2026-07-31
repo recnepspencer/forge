@@ -2,6 +2,7 @@
 pub struct WorthQueryApplicationIdempotencyBinding {
     key_identity: [u8; 32],
     intent_identity: [u8; 32],
+    precondition_identity: Option<[u8; 32]>,
 }
 
 impl WorthQueryApplicationIdempotencyBinding {
@@ -9,6 +10,7 @@ impl WorthQueryApplicationIdempotencyBinding {
         Self {
             key_identity,
             intent_identity,
+            precondition_identity: None,
         }
     }
 
@@ -25,7 +27,23 @@ impl WorthQueryApplicationIdempotencyBinding {
     }
 
     pub(in crate::domain_computation::primary_graph) fn intent_text(self) -> String {
-        encode_identity(self.intent_identity)
+        let mut encoded = encode_identity(self.intent_identity);
+        if let Some(precondition) = self.precondition_identity {
+            encoded.push(':');
+            encoded.push_str(&encode_identity(precondition));
+        }
+        encoded
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn bind_preconditions(
+        self,
+        precondition_identity: &[u8; 32],
+    ) -> Self {
+        Self {
+            key_identity: self.key_identity,
+            intent_identity: self.intent_identity,
+            precondition_identity: Some(*precondition_identity),
+        }
     }
 }
 

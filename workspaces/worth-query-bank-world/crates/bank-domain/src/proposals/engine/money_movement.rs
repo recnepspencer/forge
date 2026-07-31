@@ -326,9 +326,9 @@ fn transfer_intent(
     credit: AccountId,
     amount: Money<USD>,
 ) -> BankIdempotencyClaim {
-    let payload = CanonicalProposalPayload::new()
-        .text(&debit.canonical_text())
-        .text(&credit.canonical_text())
-        .i64(amount.minor_units());
-    BankIdempotencyClaim::derive(binding, key, operation, payload.as_bytes())
+    let payload = CanonicalProposalPayload::new(operation)
+        .text("debit-account", &debit.canonical_text())
+        .text("credit-account", &credit.canonical_text())
+        .i64("amount-minor-units", amount.minor_units());
+    BankIdempotencyClaim::derive(binding, key, payload)
 }

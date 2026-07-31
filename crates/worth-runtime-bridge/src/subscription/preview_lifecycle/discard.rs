@@ -249,10 +249,9 @@ impl BridgeSubscriptionPreviewLifecycleDiscardProof {
         if total_residue_count != 0 {
             let nonzero = counts
                 .iter()
-                .filter_map(|(kind, count)| {
-                    (*count != 0).then(|| {
-                        BridgeSubscriptionPreviewLifecycleResidueKindCount::new(*kind, *count)
-                    })
+                .filter(|&(_kind, count)| *count != 0)
+                .map(|(kind, count)| {
+                    BridgeSubscriptionPreviewLifecycleResidueKindCount::new(*kind, *count)
                 })
                 .collect::<Vec<_>>();
             return Err(BridgeSubscriptionPreviewLifecycleDiscardRejection::new(

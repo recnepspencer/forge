@@ -1,6 +1,7 @@
 use crate::evidence_identity::{
     worth_query_evidence_identity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
+use worth_foundational::facade::CanonicalDigestId;
 
 use super::{
     WorthQueryReadBuiltInOperator, WorthQueryReadGraph, WorthQueryReadGraphFamily,
@@ -13,7 +14,7 @@ pub struct WorthQueryReadDomainInvariantSummary {
     scope_class: String,
     operator_families: Vec<WorthQueryReadOperatorFamily>,
     built_in_operator_coverage: Vec<WorthQueryReadBuiltInOperator>,
-    schema_basis_digest: String,
+    schema_basis_digest: CanonicalDigestId,
     query_digest: String,
     declared_traversal_clause_count: usize,
     declared_traversal_depth_limit: usize,
@@ -27,7 +28,7 @@ impl WorthQueryReadDomainInvariantSummary {
         let scope_class = read_graph.scope_class().as_str().to_string();
         let operator_families = read_graph.operator_families();
         let built_in_operator_coverage = read_graph.built_in_operators().to_vec();
-        let schema_basis_digest = read_graph.schema_basis().as_str().to_string();
+        let schema_basis_digest = *read_graph.schema_basis().digest();
         let query_digest = read_graph.query_digest().to_string();
         let declared_traversal_clause_count = read_graph.declared_traversal_clause_count();
         let declared_traversal_depth_limit = read_graph.declared_traversal_depth_limit();
@@ -47,7 +48,7 @@ impl WorthQueryReadDomainInvariantSummary {
                 )
                 .field_shape(WorthQueryEvidenceTag::new("family"), graph_family_label)
                 .field_shape(WorthQueryEvidenceTag::new("scope"), &scope_class)
-                .field_value(WorthQueryEvidenceTag::new("schema"), &schema_basis_digest)
+                .field_digest(WorthQueryEvidenceTag::new("schema"), &schema_basis_digest)
                 .field_value(WorthQueryEvidenceTag::new("query"), &query_digest)
                 .field_usize(
                     WorthQueryEvidenceTag::new("declared_traversal_count"),
@@ -106,7 +107,7 @@ impl WorthQueryReadDomainInvariantSummary {
         &self.built_in_operator_coverage
     }
 
-    pub fn schema_basis_digest(&self) -> &str {
+    pub const fn schema_basis_digest(&self) -> &CanonicalDigestId {
         &self.schema_basis_digest
     }
 

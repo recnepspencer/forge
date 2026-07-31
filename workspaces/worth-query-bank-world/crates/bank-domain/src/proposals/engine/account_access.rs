@@ -24,16 +24,11 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::DuplicateAuthorization);
         }
 
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.account.canonical_text())
-            .u64(input.principal.get())
-            .byte(role_tag(input.role));
-        let intent = BankIdempotencyClaim::derive(
-            binding,
-            key,
-            "grant-account-authorization",
-            payload.as_bytes(),
-        );
+        let payload = CanonicalProposalPayload::new("grant-account-authorization")
+            .text("account", &input.account.canonical_text())
+            .u64("principal", input.principal.get())
+            .byte("role", role_tag(input.role));
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let mut proposed = snapshot.clone();
         let authorization = BankAccountAuthorization::new(
             crate::model::AccountAuthorizationId::from_operation(intent.key().bytes(), 0),
@@ -62,17 +57,15 @@ impl BankProposalEngine {
         if authorization.account() != input.account {
             return Err(BankProposalDenial::ScopeInputMismatch);
         }
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.account.canonical_text())
-            .text(&input.authorization.canonical_text())
-            .text(&authorization.account().canonical_text())
-            .u64(authorization.principal().get());
-        let intent = BankIdempotencyClaim::derive(
-            binding,
-            key,
-            "revoke-account-authorization",
-            payload.as_bytes(),
-        );
+        let payload = CanonicalProposalPayload::new("revoke-account-authorization")
+            .text("account", &input.account.canonical_text())
+            .text("authorization", &input.authorization.canonical_text())
+            .text(
+                "authorized-account",
+                &authorization.account().canonical_text(),
+            )
+            .u64("authorized-principal", authorization.principal().get());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let mut proposed = snapshot.clone();
         proposed.remove_authorization(input.authorization);
         complete_proposal(

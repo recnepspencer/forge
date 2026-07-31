@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
   --> tests/ui/canonicalization/front_doors/raw_sequence_cannot_enter_front_door_digest_derivation.rs:14:23
    |
-14 |         .for_sequence(sequence, CanonicalDigestAlgorithmId::test_stable_fixture());
+14 |         .for_sequence(sequence, CanonicalDigestAlgorithmId::sha256());
    |          ------------ ^^^^^^^^ expected `Artifact<..., ..., ..., ...>`, found `CanonicalBasisSequence`
    |          |
    |          arguments to this method are incorrect

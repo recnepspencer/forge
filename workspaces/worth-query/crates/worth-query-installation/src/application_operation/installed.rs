@@ -1,18 +1,25 @@
 use std::marker::PhantomData;
 
-use sha2::{Digest, Sha256};
 use worth_query_declaration::facade::application_schema::{
-    ApplicationOperationProgramTarget, ApplicationSchema, ApplicationSchemaBindingIdentity,
-    ApplicationSchemaMember,
+    ApplicationSchema, ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
 };
 
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
+use crate::authority_cryptography::{
+    AuthoritySeal, AuthoritySealDomain, AuthorityTranscript, PackageAuthorityKey,
+};
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 
+use super::contract_resolution::{
+    ability_requirement_meaning_matches, ability_requirements, operation_decision_fact_budget,
+    operation_decision_reads, operation_decision_reads_from_members,
+    operation_mutation_preconditions, operation_program, operation_program_from_members,
+    operation_projection_work_budget,
+};
 use super::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind,
-    WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+    WorthQueryCompiledApplicationOperationContracts,
 };
 
 pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
@@ -22,7 +29,7 @@ pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
     operation: String,
     input_type: String,
     contracts: WorthQueryCompiledApplicationOperationContracts,
-    authority_identity: String,
+    authority_identity: AuthoritySeal,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
 
@@ -57,6 +64,17 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
         let abilities = ability_requirements(schema, operation)?;
         let program = operation_program(schema, operation);
         let decision_reads = operation_decision_reads(schema, operation);
+        let mutation_preconditions = super::precondition_contract::compile_precondition_contract(
+            operation_mutation_preconditions(schema.installed_declaration().members(), operation),
+            &decision_reads,
+            &abilities,
+        )
+        .map_err(|()| {
+            operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::InvalidMutationPreconditionContract,
+                operation,
+            )
+        })?;
         if program.is_empty() && decision_reads.is_empty() {
             return Err(operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
@@ -85,10 +103,11 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
+            mutation_preconditions,
         );
         let binding_identity = schema.binding_identity();
         let authority_identity = authority_identity(
-            &schema.package_authority.authority_nonce,
+            &schema.package_authority.authority_key,
             &binding_identity,
             operation,
             input_type,
@@ -126,7 +145,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
     }
 
     pub fn authority_identity(&self) -> &str {
-        &self.authority_identity
+        self.authority_identity.as_str()
     }
 
     pub(crate) fn meaning_matches(&self, members: &[ApplicationSchemaMember]) -> bool {
@@ -149,208 +168,71 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             return false;
         };
         operation_matches
-            && ability_requirements_from_members(members, &self.operation).is_ok_and(
-                |requirements| {
-                    WorthQueryCompiledApplicationOperationContracts::compile(
-                        requirements,
-                        operation_program_from_members(members, &self.operation),
-                        operation_decision_reads_from_members(members, &self.operation),
-                        decision_fact_budget,
-                        projection_work_budget,
-                    ) == self.contracts
-                },
+            && ability_requirement_meaning_matches(
+                members,
+                &self.operation,
+                self.contracts.ability_requirements(),
             )
+            && {
+                let requirements = self.contracts.ability_requirements().to_vec();
+                let decision_reads =
+                    operation_decision_reads_from_members(members, &self.operation);
+                let Ok(mutation_preconditions) =
+                    super::precondition_contract::compile_precondition_contract(
+                        operation_mutation_preconditions(members, &self.operation),
+                        &decision_reads,
+                        &requirements,
+                    )
+                else {
+                    return false;
+                };
+                WorthQueryCompiledApplicationOperationContracts::compile(
+                    requirements,
+                    operation_program_from_members(members, &self.operation),
+                    decision_reads,
+                    decision_fact_budget,
+                    projection_work_budget,
+                    mutation_preconditions,
+                ) == self.contracts
+            }
     }
 
     pub(crate) fn authority_matches(&self, package: &WorthQueryInstalledPackageAuthority) -> bool {
-        self.authority_identity
-            == authority_identity(
-                &package.authority_nonce,
-                &self.binding_identity,
-                &self.operation,
-                &self.input_type,
-            )
+        authority_transcript(
+            &package.authority_key,
+            &self.binding_identity,
+            &self.operation,
+            &self.input_type,
+        )
+        .verifies(&self.authority_identity)
     }
-}
-
-fn operation_projection_work_budget(
-    members: &[ApplicationSchemaMember],
-    operation: &str,
-) -> Option<usize> {
-    members.iter().find_map(|member| match member {
-        ApplicationSchemaMember::OperationProjectionWorkBudget {
-            operation: installed,
-            maximum_work_units,
-        } if installed == operation => Some(*maximum_work_units),
-        _ => None,
-    })
-}
-
-fn operation_decision_fact_budget(
-    members: &[ApplicationSchemaMember],
-    operation: &str,
-) -> Option<usize> {
-    members.iter().find_map(|member| match member {
-        ApplicationSchemaMember::OperationDecisionFactBudget {
-            operation: installed,
-            maximum_fact_count,
-        } if installed == operation => Some(*maximum_fact_count),
-        _ => None,
-    })
-}
-
-fn operation_decision_reads<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-) -> Vec<worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_decision_reads_from_members(schema.installed_declaration().members(), operation)
-}
-
-fn operation_decision_reads_from_members(
-    members: &[ApplicationSchemaMember],
-    operation: &str,
-) -> Vec<worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget>
-{
-    let mut reads = members
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::OperationDecisionRead {
-                operation: installed,
-                target,
-            } if installed == operation => Some(target.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    reads.sort();
-    reads.dedup();
-    reads
-}
-
-fn ability_requirements<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-) -> Result<
-    Vec<WorthQueryInstalledAbilityRequirement>,
-    WorthQueryApplicationOperationInstallationDenial,
->
-where
-    Schema: ApplicationSchema,
-{
-    let requirements =
-        ability_requirements_from_members(schema.installed_declaration().members(), operation)?;
-    if requirements.is_empty() {
-        return Err(operation_denial(
-            WorthQueryApplicationOperationInstallationDenialKind::MissingAbility,
-            operation,
-        ));
-    }
-    Ok(requirements)
-}
-
-fn ability_requirements_from_members(
-    members: &[ApplicationSchemaMember],
-    operation: &str,
-) -> Result<
-    Vec<WorthQueryInstalledAbilityRequirement>,
-    WorthQueryApplicationOperationInstallationDenial,
-> {
-    let mut requirements = Vec::new();
-    for member in members {
-        let requirement = match member {
-            ApplicationSchemaMember::OperationAbility {
-                operation: installed,
-                ability,
-                scope_entity,
-            } if installed == operation => {
-                let (policy, policy_paths) = members
-                    .iter()
-                    .find_map(|candidate| match candidate {
-                        ApplicationSchemaMember::AbilityPolicy {
-                            ability: policy_ability,
-                            scope_entity: policy_scope,
-                            policy,
-                            paths,
-                        } if policy_ability == ability && policy_scope == scope_entity => {
-                            Some((policy.clone(), paths.clone()))
-                        }
-                        _ => None,
-                    })
-                    .ok_or_else(|| {
-                        operation_denial(
-                            WorthQueryApplicationOperationInstallationDenialKind::MissingAbilityPolicy,
-                            operation,
-                        )
-                    })?;
-                Some(WorthQueryInstalledAbilityRequirement::new(
-                    ability.clone(),
-                    scope_entity.clone(),
-                    policy,
-                    policy_paths,
-                ))
-            }
-            _ => None,
-        };
-        requirements.extend(requirement);
-    }
-    requirements.sort();
-    requirements.dedup();
-    Ok(requirements)
-}
-
-fn operation_program<Schema>(
-    schema: &WorthQueryInstalledApplicationSchema<Schema>,
-    operation: &str,
-) -> Vec<ApplicationOperationProgramTarget>
-where
-    Schema: ApplicationSchema,
-{
-    operation_program_from_members(schema.installed_declaration().members(), operation)
-}
-
-fn operation_program_from_members(
-    members: &[ApplicationSchemaMember],
-    operation: &str,
-) -> Vec<ApplicationOperationProgramTarget> {
-    let mut program = members
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::OperationProgram {
-                operation: installed,
-                target,
-            } if installed == operation => Some(target.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    program.sort();
-    program.dedup();
-    program
 }
 
 fn authority_identity(
-    nonce: &[u8; 32],
+    key: &PackageAuthorityKey,
     identity: &ApplicationSchemaBindingIdentity,
     operation: &str,
     input_type: &str,
-) -> String {
-    let mut hash = Sha256::new();
-    hash.update(b"worth-query-installed-application-operation-v1");
-    hash.update(nonce);
-    for value in [
-        identity.package_identity(),
-        identity.schema_identity().as_str(),
-        operation,
-        input_type,
-    ] {
-        hash.update(value.len().to_le_bytes());
-        hash.update(value.as_bytes());
-    }
-    format!("{:x}", hash.finalize())
+) -> AuthoritySeal {
+    authority_transcript(key, identity, operation, input_type).finish()
 }
 
-fn operation_denial(
+fn authority_transcript(
+    key: &PackageAuthorityKey,
+    identity: &ApplicationSchemaBindingIdentity,
+    operation: &str,
+    input_type: &str,
+) -> AuthorityTranscript {
+    let mut transcript =
+        AuthorityTranscript::new(key, AuthoritySealDomain::InstalledApplicationOperation);
+    transcript.bytes("package", identity.package_identity().bytes());
+    transcript.bytes("schema", identity.schema_identity().bytes());
+    transcript.text("operation", operation);
+    transcript.text("input-type", input_type);
+    transcript
+}
+
+pub(super) fn operation_denial(
     kind: WorthQueryApplicationOperationInstallationDenialKind,
     operation: &str,
 ) -> WorthQueryApplicationOperationInstallationDenial {

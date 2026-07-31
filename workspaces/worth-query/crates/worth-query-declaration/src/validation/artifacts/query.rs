@@ -82,7 +82,7 @@ pub fn build_validated_query_artifact(
     let mut parts = vec![
         format!("family:{:?}", canonical_query.family()),
         format!("root:{}", canonical_query.root().as_str()),
-        format!("schema_basis:{}", schema_basis.as_str()),
+        format!("schema_basis:{}", schema_basis.render_support_hex()),
     ];
     parts.extend(canonical_query.identity_bindings().iter().map(|binding| {
         format!(

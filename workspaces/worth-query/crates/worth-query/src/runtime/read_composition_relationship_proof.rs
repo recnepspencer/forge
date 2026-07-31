@@ -94,7 +94,7 @@ fn synthetic_runtime_read_context(
     canonical: &CanonicalQueryArtifact,
     schema_basis: &SchemaBasisDigest,
 ) -> Result<crate::policy_basis::AdmittedPolicyTenantContext, WorthQueryReadDenial> {
-    let schema_identity = schema_basis.as_str().to_string();
+    let schema_identity = schema_basis.render_support_hex();
     let tenant_identity = format!("runtime-read-tenant:{schema_identity}");
     let policy = PolicyRuleSnapshot::synthetic_authority(
         RUNTIME_READ_POLICY_LABEL,

@@ -21,8 +21,11 @@ pub fn lower_view_shape_plan_to_live(
             ViewShapeLiveFailureClass::BasisInvariantRejected,
             format!(
                 "live lowering basis schema '{}' does not match validated query/result-shape schema '{}'",
-                basis.identity().schema_basis().as_str(),
-                plan.validated().query().schema_basis().as_str()
+                basis.identity().schema_basis().render_support_hex(),
+                plan.validated()
+                    .query()
+                    .schema_basis()
+                    .render_support_hex()
             ),
             ViewShapeLiveCounters::default(),
         ));

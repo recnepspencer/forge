@@ -79,6 +79,28 @@ impl WorthQueryAuthenticationAdapter for CausalAdapter {
     }
 }
 
+struct ConfiguredAdapter(&'static str);
+
+impl WorthQueryAuthenticationAdapter for ConfiguredAdapter {
+    type Credential = ();
+
+    fn configuration_identity(&self) -> &str {
+        self.0
+    }
+
+    fn validate<'a>(
+        &'a self,
+        _credential: Self::Credential,
+        _scope: &'a WorthQueryRequestScope,
+    ) -> WorthQueryAuthenticationFuture<'a> {
+        Box::pin(async {
+            Err(WorthQueryAuthenticationAdapterFailure::new(
+                WorthQueryAuthenticationAdapterFailureKind::ProtocolViolation,
+            ))
+        })
+    }
+}
+
 #[test]
 fn only_admitted_adapter_output_mints_external_proof() {
     let schema = installed_schema();
@@ -180,6 +202,43 @@ fn proof_debug_discloses_no_external_identity_or_attribute_values() {
     assert!(!debug.contains("Test User"));
     assert!(!debug.contains("https://issuer"));
     assert!(!debug.contains("subject"));
+}
+
+#[test]
+fn adapter_identity_converges_and_separates_every_semantic_binding_axis() {
+    let schema = installed_schema();
+    let admit = |configuration, audience, method| {
+        admit_authentication_adapter(
+            &schema,
+            WorthQueryAuthenticationAdapterAdmission::new(
+                WorthQueryAuthenticationAudience::new(audience).unwrap(),
+                WorthQueryAuthenticationMethod::new(method).unwrap(),
+            ),
+            ConfiguredAdapter(configuration),
+        )
+        .unwrap()
+        .adapter_identity()
+        .to_owned()
+    };
+
+    let baseline = admit("configuration-a", "bank", "oidc");
+    assert_eq!(baseline, admit("configuration-a", "bank", "oidc"));
+    assert_ne!(baseline, admit("configuration-b", "bank", "oidc"));
+    assert_ne!(baseline, admit("configuration-a", "other", "oidc"));
+    assert_ne!(baseline, admit("configuration-a", "bank", "mtls"));
+}
+
+#[test]
+fn adapter_identity_uses_foundational_digest_without_private_sha_or_type_names() {
+    let admission = include_str!("admission.rs");
+    let identity = include_str!("adapter_identity.rs");
+
+    assert!(!admission.contains("Sha256"));
+    assert!(!admission.contains("type_name"));
+    assert!(!identity.contains("use sha2"));
+    assert!(!identity.contains("type_name"));
+    assert!(identity.contains("CanonicalDigestAlgorithmId::sha256()"));
+    assert!(identity.contains("prepare_canonical_basis_sequence"));
 }
 
 fn installed_schema(

@@ -105,7 +105,7 @@ impl WritebackMapperParityMatrix {
                 .to_string(),
             },
             shadow_protocol_rejection: MapperParityShadowProtocolRejection {
-                failure_kind: failure_kind.clone(),
+                failure_kind,
                 failure_digest: digest_string(
                     "bridge-writeback-family-mapper-parity-shadow-protocol",
                     &evidence.shadow_protocol_error.to_string(),
@@ -114,8 +114,7 @@ impl WritebackMapperParityMatrix {
                 decision_trace_digest: digest_string(
                     "bridge-writeback-family-mapper-parity-shadow-trace",
                     &format!(
-                        "shadow={}|projected-admission={}|aspect-admission={}",
-                        format!("{failure_kind:?}"),
+                        "shadow={failure_kind:?}|projected-admission={}|aspect-admission={}",
                         evidence.projected_admission_record_digest,
                         evidence.aspect_admission_record_digest,
                     ),

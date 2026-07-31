@@ -6,14 +6,20 @@ use super::difference::{
 };
 use super::{AdmittedFoundationalProfileArtifact, FoundationalProfileSet};
 use crate::canonicalization::{
-    admit_canonical_sequence_digest_derivation, compare_canonical_basis, derive_canonical_digest,
-    prepare_canonical_basis_sequence, prepare_canonical_comparison,
+    admit_canonical_sequence_digest_derivation_with_budget, compare_canonical_basis,
+    derive_canonical_digest, prepare_canonical_basis_sequence, prepare_canonical_comparison,
     CanonicalBasisConstructionDenial, CanonicalBasisDomain, CanonicalBasisEntry,
     CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact,
     CanonicalBasisSequence, CanonicalBasisValue, CanonicalComparisonOutcome,
-    CanonicalDerivedDigest, CanonicalDigestAlgorithmId, CanonicalSingleSequenceDigestAlgorithmSlot,
-    CanonicalizationRuleVersion,
+    CanonicalDerivedDigest, CanonicalDigestAlgorithmId, CanonicalDigestWorkBudget,
+    CanonicalSingleSequenceDigestAlgorithmSlot, CanonicalizationRuleVersion,
 };
+
+const PROFILE_DIGEST_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(256, 64 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("profile digest budget is nonzero"),
+    };
 
 #[derive(Debug, Clone)]
 pub struct FoundationalProfileIdentity {
@@ -89,12 +95,16 @@ pub fn derive_foundational_profile_identity(
     let basis_sequence = basis.payload().clone();
 
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Profile,
         version,
     );
 
-    let derivation = match admit_canonical_sequence_digest_derivation(basis, slot) {
+    let derivation = match admit_canonical_sequence_digest_derivation_with_budget(
+        basis,
+        slot,
+        PROFILE_DIGEST_BUDGET,
+    ) {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => {
             return TransitionOutcome::denied(

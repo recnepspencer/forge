@@ -28,7 +28,13 @@ fn admission_from_an_equivalent_foreign_runtime_opens_no_application_door() {
         .unwrap();
     let admission = source_world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
 
     let idempotency_denial = target_world
@@ -52,7 +58,13 @@ fn admission_from_an_equivalent_foreign_runtime_opens_no_application_door() {
 
     let projected_admission = source_world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let projected_denial = target_world
         .invariant
@@ -107,7 +119,13 @@ fn cancelled_admission_cannot_inspect_provider_idempotency() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
 
     cancellation.cancel();

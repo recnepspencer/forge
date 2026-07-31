@@ -31,10 +31,10 @@ pub(super) fn canonical_digest(
     canonical_ready: CanonicalBasisReadyArtifact,
     denial_context: &'static str,
 ) -> CanonicalDerivedDigest {
-    let derivation = match canonicalization().digest().for_sequence(
-        canonical_ready,
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
-    ) {
+    let derivation = match canonicalization()
+        .digest()
+        .for_sequence(canonical_ready, CanonicalDigestAlgorithmId::sha256())
+    {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => {
             panic!("{denial_context}: {denial:?}")

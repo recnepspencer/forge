@@ -64,7 +64,7 @@ pub(crate) fn prepare_export_artifact(
         }
     };
     let slot = CanonicalExportBundleDigestAlgorithmSlot::export_bundle(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         export.payload().bundle().version().clone(),
     );
     let digest_ready = match admit_canonical_export_digest_derivation(digest_export, slot) {

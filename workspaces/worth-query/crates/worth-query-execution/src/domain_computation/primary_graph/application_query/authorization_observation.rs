@@ -1,0 +1,57 @@
+use worth_query_declaration::facade::application_schema::ApplicationSchema;
+use worth_query_installation::facade::{
+    WorthQueryInstalledApplicationQuery, WorthQueryInstalledApplicationQueryAuthorization,
+};
+
+use super::{
+    WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationQueryAccessContext,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryPrimaryGraphApplicationRuntime,
+};
+
+impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
+where
+    Schema: ApplicationSchema,
+{
+    pub(in crate::domain_computation::primary_graph::application_query) fn observe_query_authorization<
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Query,
+        Parameters,
+        QueryResult,
+    >(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+        query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+        access: &WorthQueryApplicationQueryAccessContext<
+            '_,
+            Schema,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+    ) -> Result<
+        WorthQueryApplicationAuthorizationWorkEvidence,
+        WorthQueryOperationAuthorizationDenial,
+    > {
+        let WorthQueryInstalledApplicationQueryAuthorization::Ability(requirement) =
+            query.authorization()
+        else {
+            return Ok(WorthQueryApplicationAuthorizationWorkEvidence::default());
+        };
+        self.observe_authorization_requirements(
+            runtime,
+            snapshot,
+            access.principal(),
+            access.scope(),
+            query.binding_identity(),
+            std::slice::from_ref(requirement),
+        )
+        .map(|dependencies| {
+            WorthQueryApplicationAuthorizationWorkEvidence::from_dependencies(&dependencies)
+        })
+    }
+}

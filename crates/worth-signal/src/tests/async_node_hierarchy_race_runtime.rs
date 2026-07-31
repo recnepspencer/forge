@@ -125,11 +125,10 @@ fn async_node_hierarchy_late_descendant_completion_switches_from_cancelled_to_st
             .class(),
         CompletionDenialClass::Stale
     );
-    assert_eq!(
+    assert!(
         runtime
             .in_flight_resource_request(grandchild_request.handle())
-            .is_some(),
-        false,
+            .is_none(),
         "restored hierarchy should not still retain drifted descendant handle identity"
     );
     assert_eq!(

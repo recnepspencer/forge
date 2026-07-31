@@ -20,7 +20,7 @@ impl PhysicalScenarioCanonicalIdentity {
         let canonical_basis = PhysicalScenarioCanonicalBasis::from_definition(definition)?;
         let ready_basis = canonical_basis.ready();
         let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             ready_basis.payload().domain(),
             ready_basis.payload().version().clone(),
         );

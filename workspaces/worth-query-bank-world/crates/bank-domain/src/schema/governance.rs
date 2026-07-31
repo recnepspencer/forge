@@ -1,6 +1,6 @@
 use worth_query_decl::facade::{worth_query_currency, worth_query_effect, worth_query_policy};
 
-use crate::model::{AccountId, JournalEntryId, USD};
+use crate::model::{AccountId, JournalEntryId, PostingId, USD};
 
 use super::BankSchema;
 
@@ -14,6 +14,7 @@ worth_query_currency!(pub UsdCurrency(USD) in BankSchema);
 pub struct ActivityEvent {
     pub account: AccountId,
     pub journal: JournalEntryId,
+    pub posting: PostingId,
     pub journal_sequence: u64,
 }
 
@@ -30,13 +31,14 @@ mod tests {
     use worth_query_decl::facade::application_schema::ApplicationEffectPayload;
 
     use super::ActivityEvent;
-    use crate::model::{AccountId, JournalEntryId};
+    use crate::model::{AccountId, JournalEntryId, PostingId};
 
     #[test]
     fn activity_event_retained_bytes_are_exactly_fixed_width() {
         let event = ActivityEvent {
             account: AccountId::new(1).unwrap(),
             journal: JournalEntryId::new(2).unwrap(),
+            posting: PostingId::from_operation([3; 32], 0),
             journal_sequence: 7,
         };
 

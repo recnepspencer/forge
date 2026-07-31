@@ -21,16 +21,11 @@ pub use summary_projection::{
     HarnessRecordSummaryValue, HarnessRecordSummaryView, HarnessSummaryProjection,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecordSchemaVersion {
+    #[default]
     V1,
     V2,
-}
-
-impl Default for RecordSchemaVersion {
-    fn default() -> Self {
-        Self::V1
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

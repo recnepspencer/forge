@@ -738,16 +738,20 @@ impl<T> SingleConsumer<T> {
         Self(value)
     }
 
-    pub fn as_ref(&self) -> &T {
-        &self.0
-    }
-
-    pub fn as_mut(&mut self) -> &mut T {
-        &mut self.0
-    }
-
     pub fn into_inner(self) -> T {
         self.0
+    }
+}
+
+impl<T> AsRef<T> for SingleConsumer<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> AsMut<T> for SingleConsumer<T> {
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.0
     }
 }
 
@@ -1506,56 +1510,6 @@ impl SummaryForm for InvalidationSeedBatch {}
 impl SummaryForm for FrontierPlan {}
 impl SummaryForm for FrontierExecutionSummary {}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::data::aspect::Aspect;
-
-    #[test]
-    fn snapshot_batch_commit_classifies_stable_shape_batches() {
-        let node = NodeId::new(0, 0);
-        let mut snapshot = DependencySnapshot::empty();
-        snapshot.record(NodeId::new(1, 0), Aspect::new(0), 3, None);
-        let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
-        let basis = crate::data::dependency::StableShapeSnapshotBasis::prove(
-            &crate::data::dependency::DependencyInputScan::stable_shape(
-                node,
-                crate::data::dependency::DependencySnapshotId::EMPTY,
-                1,
-                1,
-                vec![5],
-            ),
-            snapshot.shape().intern(&mut shape_store),
-        )
-        .expect("proof should exist");
-        let update = crate::data::dependency::CommittedSnapshotUpdate::VersionOnly(
-            crate::data::dependency::VersionOnlySnapshotUpdate::from_basis_and_versions(
-                basis.clone(),
-                crate::data::dependency::VersionVector::from_scan(
-                    &basis,
-                    &crate::data::dependency::DependencyInputScan::stable_shape(
-                        node,
-                        crate::data::dependency::DependencySnapshotId::EMPTY,
-                        1,
-                        1,
-                        vec![5],
-                    ),
-                ),
-            ),
-        );
-        let batch = SnapshotBatchCommit::new(PendingSnapshotBatch::new([PendingSnapshotCommit {
-            node,
-            update,
-            delta: SnapshotDeltaRecord::for_version_update(node, &snapshot, &[5]),
-        }]));
-
-        assert!(matches!(
-            batch.classify(),
-            ClassifiedSnapshotBatchCommit::StableShape(_)
-        ));
-    }
-}
-
 fn assert_strict_order<T: OrderedStreamItem>(items: &[T]) {
     for pair in items.windows(2) {
         if let [left, right] = pair {
@@ -1611,4 +1565,54 @@ fn is_strict_node_order(nodes: &[NodeId]) -> bool {
     nodes
         .windows(2)
         .all(|pair| node_sort_key(&pair[0]) < node_sort_key(&pair[1]))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::aspect::Aspect;
+
+    #[test]
+    fn snapshot_batch_commit_classifies_stable_shape_batches() {
+        let node = NodeId::new(0, 0);
+        let mut snapshot = DependencySnapshot::empty();
+        snapshot.record(NodeId::new(1, 0), Aspect::new(0), 3, None);
+        let mut shape_store = crate::data::dependency::DependencySnapshotShapeStore::default();
+        let basis = crate::data::dependency::StableShapeSnapshotBasis::prove(
+            &crate::data::dependency::DependencyInputScan::stable_shape(
+                node,
+                crate::data::dependency::DependencySnapshotId::EMPTY,
+                1,
+                1,
+                vec![5],
+            ),
+            snapshot.shape().intern(&mut shape_store),
+        )
+        .expect("proof should exist");
+        let update = crate::data::dependency::CommittedSnapshotUpdate::VersionOnly(
+            crate::data::dependency::VersionOnlySnapshotUpdate::from_basis_and_versions(
+                basis.clone(),
+                crate::data::dependency::VersionVector::from_scan(
+                    &basis,
+                    &crate::data::dependency::DependencyInputScan::stable_shape(
+                        node,
+                        crate::data::dependency::DependencySnapshotId::EMPTY,
+                        1,
+                        1,
+                        vec![5],
+                    ),
+                ),
+            ),
+        );
+        let batch = SnapshotBatchCommit::new(PendingSnapshotBatch::new([PendingSnapshotCommit {
+            node,
+            update,
+            delta: SnapshotDeltaRecord::for_version_update(node, &snapshot, &[5]),
+        }]));
+
+        assert!(matches!(
+            batch.classify(),
+            ClassifiedSnapshotBatchCommit::StableShape(_)
+        ));
+    }
 }

@@ -76,7 +76,7 @@ fn derive_transcript_digest(
             TransitionOutcome::Failed(value) => match value {},
         };
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         ready_basis.payload().domain(),
         ready_basis.payload().version().clone(),
     );

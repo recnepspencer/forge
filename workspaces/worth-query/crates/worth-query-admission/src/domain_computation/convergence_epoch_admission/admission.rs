@@ -5,8 +5,6 @@ use worth_query_installation::facade::{
     WorthQueryInstalledDomainOperationAuthority, WorthQueryOperationWorkflowContract,
 };
 
-use crate::admission_digest::hash_parts;
-
 use super::evidence::WorthQueryConvergenceContractBinding;
 use super::{
     WorthQueryAdmittedConvergenceContract, WorthQueryConvergenceAdmissionCounters,
@@ -152,32 +150,34 @@ fn convergence_admission_identity(
     artifact: &WorthQueryInstalledArtifactContractAuthority,
     binding: &WorthQueryConvergenceContractBinding,
 ) -> Arc<str> {
-    Arc::from(hash_parts(&[
-        "worth_query_admitted_convergence_contract_v1".into(),
-        format!("runtime:{}", operation.runtime_ordinal()),
-        format!("generation:{}", operation.generation().ordinal()),
-        format!("owner:{}", operation.owner()),
-        format!("operation:{}", operation.definition().canonical_identity()),
-        format!("artifact:{}", artifact.admission_identity()),
-        format!("artifact-contract:{}", binding.artifact_contract_identity),
-        format!(
-            "evidence-stage:{}",
-            binding
-                .evidence_stage_identity
-                .as_deref()
-                .unwrap_or("direct")
-        ),
-        format!("resources:{}", binding.resource_contract_identity),
-        format!("universe:{}", binding.universe_family),
-        format!("termination:{}", binding.termination_family),
-        format!("feasibility:{}", binding.feasibility_family),
-        format!("comparison:{}", binding.comparison_family),
-        format!("incumbent:{}", binding.incumbent_family),
-        format!("progress:{}", binding.progress_measure_family),
-        format!("comparator:{}", binding.comparator_family),
-        format!("repeated-state:{}", binding.repeated_state_family),
-        format!("iterations:{}", binding.iteration_bound),
-    ]))
+    Arc::from(crate::admission_digest::hash_parts_with_digests(
+        &[
+            "worth_query_admitted_convergence_contract_v1".into(),
+            format!("runtime:{}", operation.runtime_ordinal()),
+            format!("generation:{}", operation.generation().ordinal()),
+            format!("owner:{}", operation.owner()),
+            format!("operation:{}", operation.definition().canonical_identity()),
+            format!("artifact-contract:{}", binding.artifact_contract_identity),
+            format!(
+                "evidence-stage:{}",
+                binding
+                    .evidence_stage_identity
+                    .as_deref()
+                    .unwrap_or("direct")
+            ),
+            format!("resources:{}", binding.resource_contract_identity),
+            format!("universe:{}", binding.universe_family),
+            format!("termination:{}", binding.termination_family),
+            format!("feasibility:{}", binding.feasibility_family),
+            format!("comparison:{}", binding.comparison_family),
+            format!("incumbent:{}", binding.incumbent_family),
+            format!("progress:{}", binding.progress_measure_family),
+            format!("comparator:{}", binding.comparator_family),
+            format!("repeated-state:{}", binding.repeated_state_family),
+            format!("iterations:{}", binding.iteration_bound),
+        ],
+        &[artifact.admission_identity().digest()],
+    ))
 }
 
 fn resolve_evidence_stage(

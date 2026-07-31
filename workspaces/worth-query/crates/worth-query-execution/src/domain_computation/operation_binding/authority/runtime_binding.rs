@@ -254,7 +254,12 @@ fn binding_identity<L: BasisOperationLane>(
     graphs.sort_unstable();
     let mut domains = required_domains
         .iter()
-        .map(|(role, authority)| format!("{role}:{}", authority.admission_identity()))
+        .map(|(role, authority)| {
+            format!(
+                "{role}:{}",
+                authority.admission_identity().render_support_hex()
+            )
+        })
         .collect::<Vec<_>>();
     domains.sort_unstable();
     hash_parts(&[

@@ -10,14 +10,14 @@ use super::authorization_policy::{
     ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
     ApplicationAuthorizationTraversalDirection,
 };
-use super::{
-    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-    ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
-};
+use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
 
 mod decision_read_budgets;
 mod member_collections;
+mod target_closure;
 
+use super::capability_member_closure::validate_application_capability_members;
+use super::query_member_closure::validate_application_query_members;
 use decision_read_budgets::validate_decision_fact_budgets;
 use member_collections::{
     collect_abilities, collect_aspects, collect_currencies, collect_effects, collect_entities,
@@ -32,6 +32,8 @@ pub(super) fn validate_member_closure(
     for member in members {
         index.validate(member)?;
     }
+    validate_application_query_members(members)?;
+    validate_application_capability_members(members)?;
     validate_decision_fact_budgets(members, &index.operations)?;
     Ok(())
 }
@@ -134,6 +136,14 @@ impl<'a> ClosureIndex<'a> {
                     || !self.decision_read_target_exists(target) =>
             {
                 Err(ApplicationSchemaDeclarationDenial::MissingOperationDecisionReadDependency)
+            }
+            ApplicationSchemaMember::OperationMutationPrecondition { operation, target }
+                if !self.operations.contains(operation.as_str())
+                    || !self.precondition_target_is_decision_read(operation, target) =>
+            {
+                Err(
+                    ApplicationSchemaDeclarationDenial::MissingOperationMutationPreconditionDependency,
+                )
             }
             ApplicationSchemaMember::OperationDecisionFactBudget { operation, .. }
                 if !self.operations.contains(operation.as_str()) =>
@@ -314,79 +324,5 @@ impl<'a> ClosureIndex<'a> {
                 false,
                 true,
             )
-    }
-
-    fn field_matches(
-        &self,
-        entity_name: &str,
-        aspect_name: &str,
-        field_name: &str,
-        expected_family: ScalarAspectType,
-        expected_value_type: &str,
-        expected_writable: bool,
-        equality_required: bool,
-    ) -> bool {
-        self.members.iter().any(|member| {
-            matches!(
-                member,
-                ApplicationSchemaMember::Field {
-                    entity,
-                    aspect,
-                    field,
-                    scalar_family,
-                    value_type,
-                    writable,
-                    equality_queryable,
-                    ..
-                } if entity == entity_name
-                    && aspect == aspect_name
-                    && field == field_name
-                    && *scalar_family == expected_family
-                    && value_type == expected_value_type
-                    && *writable == expected_writable
-                    && (!equality_required || *equality_queryable)
-            )
-        })
-    }
-
-    fn program_target_exists(&self, target: &ApplicationOperationProgramTarget) -> bool {
-        match target {
-            ApplicationOperationProgramTarget::Create { entity }
-            | ApplicationOperationProgramTarget::Delete { entity } => {
-                self.entities.contains(entity.as_str())
-            }
-            ApplicationOperationProgramTarget::Write {
-                entity,
-                aspect,
-                field,
-            } => self
-                .fields
-                .contains(&(entity.as_str(), aspect.as_str(), field.as_str())),
-            ApplicationOperationProgramTarget::Link { relation, from, to }
-            | ApplicationOperationProgramTarget::Unlink { relation, from, to } => self
-                .relations
-                .contains(&(relation.as_str(), from.as_str(), to.as_str())),
-            ApplicationOperationProgramTarget::Emit { effect } => {
-                self.effects.contains(effect.as_str())
-            }
-        }
-    }
-
-    fn decision_read_target_exists(&self, target: &ApplicationOperationDecisionReadTarget) -> bool {
-        match target {
-            ApplicationOperationDecisionReadTarget::Entity { entity } => {
-                self.entities.contains(entity.as_str())
-            }
-            ApplicationOperationDecisionReadTarget::Field {
-                entity,
-                aspect,
-                field,
-            } => self
-                .fields
-                .contains(&(entity.as_str(), aspect.as_str(), field.as_str())),
-            ApplicationOperationDecisionReadTarget::Relation { relation, from, to } => self
-                .relations
-                .contains(&(relation.as_str(), from.as_str(), to.as_str())),
-        }
     }
 }

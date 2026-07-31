@@ -2,9 +2,10 @@ use crate::runtime::WorthQueryGraphReadAccessRequirementKind;
 use crate::runtime::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
     estimate_graph_read_access_cost_with_planning_observation,
-    explain_graph_read_access_requirements_for_family, WorthQueryGraphReadBudget,
-    WorthQueryGraphReadBudgetClassKind, WorthQueryGraphReadComplexityContractKind,
-    WorthQueryGraphReadCostEstimateStatusKind, WorthQueryGraphReadInlineEphemeralAllowanceKind,
+    explain_graph_read_access_requirements_for_family, WorthQueryGraphReadAccessCostEstimate,
+    WorthQueryGraphReadBudget, WorthQueryGraphReadBudgetClassKind,
+    WorthQueryGraphReadComplexityContractKind, WorthQueryGraphReadCostEstimateStatusKind,
+    WorthQueryGraphReadInlineEphemeralAllowanceKind, WorthQueryGraphReadResultPressure,
 };
 
 use crate::runtime::tests::graph_read_access::support::graph_read_access_cost_model::{
@@ -79,102 +80,141 @@ fn memory_estimate_names_each_relevant_access_structure_bucket() {
     let family = frontier_search_family(&mut workspace, "phase-five-memory-buckets");
     let requirements = explain_graph_read_access_requirements_for_family(&family)
         .expect("requirements should derive");
+    assert_eq!(
+        requirements
+            .rows()
+            .iter()
+            .find(|row| { row.kind() == &WorthQueryGraphReadAccessRequirementKind::ResultBuffer })
+            .and_then(|row| row.result_pressure()),
+        Some(&WorthQueryGraphReadResultPressure::CollectionWide)
+    );
+    let estimate = estimate_graph_read_access_cost(
+        &requirements,
+        derive_graph_read_cost_evidence(&requirements),
+    );
+    assert_memory_totals_equal_attribution_rows(&estimate);
+    assert_frontier_search_bucket_contract(&estimate);
+}
+
+fn assert_memory_totals_equal_attribution_rows(estimate: &WorthQueryGraphReadAccessCostEstimate) {
+    let memory = estimate.supported().memory();
+    assert_eq!(
+        memory.adjacency_bytes(),
+        bucket_sum(estimate, |row| row.adjacency_bytes())
+    );
+    assert_eq!(
+        memory.reverse_adjacency_bytes(),
+        bucket_sum(estimate, |row| row.reverse_adjacency_bytes())
+    );
+    assert_eq!(
+        memory.frontier_bytes(),
+        bucket_sum(estimate, |row| row.frontier_bytes())
+    );
+    assert_eq!(
+        memory.visited_bytes(),
+        bucket_sum(estimate, |row| row.visited_bytes())
+    );
+    assert_eq!(
+        memory.dedup_bytes(),
+        bucket_sum(estimate, |row| row.dedup_bytes())
+    );
+    assert_eq!(
+        memory.predicate_bytes(),
+        bucket_sum(estimate, |row| row.predicate_bytes())
+    );
+    assert_eq!(
+        memory.ordering_bytes(),
+        bucket_sum(estimate, |row| row.ordering_bytes())
+    );
+    assert_eq!(
+        memory.proof_bytes(),
+        bucket_sum(estimate, |row| row.proof_bytes())
+    );
+    assert_eq!(
+        memory.result_bytes(),
+        bucket_sum(estimate, |row| row.result_bytes())
+    );
+}
+
+fn assert_frontier_search_bucket_contract(estimate: &WorthQueryGraphReadAccessCostEstimate) {
+    use WorthQueryGraphReadAccessRequirementKind as Kind;
+
+    for (kind, bytes) in [
+        (Kind::DirectionalAdjacency, 512),
+        (Kind::ReverseAdjacency, 512),
+        (Kind::TraversalWorkset, 512),
+        (Kind::VisitedSet, 384),
+        (Kind::DedupSet, 384),
+        (Kind::PredicateSupport, 512),
+        (Kind::OrderingSupport, 512),
+        (Kind::ProofSupport, 256),
+        (Kind::ResultBuffer, 2048),
+    ] {
+        assert_exact_bucket_contribution(
+            estimate,
+            kind.clone(),
+            |memory| match kind {
+                Kind::DirectionalAdjacency => memory.adjacency_bytes(),
+                Kind::ReverseAdjacency => memory.reverse_adjacency_bytes(),
+                Kind::TraversalWorkset => memory.frontier_bytes(),
+                Kind::VisitedSet => memory.visited_bytes(),
+                Kind::DedupSet => memory.dedup_bytes(),
+                Kind::PredicateSupport => memory.predicate_bytes(),
+                Kind::OrderingSupport => memory.ordering_bytes(),
+                Kind::ProofSupport => memory.proof_bytes(),
+                Kind::ResultBuffer => memory.result_bytes(),
+                _ => unreachable!("frontier bucket matrix names only memory-owning rows"),
+            },
+            bytes,
+        );
+    }
+}
+
+#[test]
+fn proof_memory_is_counted_without_consuming_inline_index_capacity() {
+    let mut workspace = workspace("graph-read-access.phase-five.proof-memory");
+    let family = frontier_search_family(&mut workspace, "phase-five-proof-memory");
+    let requirements = explain_graph_read_access_requirements_for_family(&family)
+        .expect("requirements should derive");
     let estimate = estimate_graph_read_access_cost(
         &requirements,
         derive_graph_read_cost_evidence(&requirements),
     );
     let memory = estimate.supported().memory();
+    let index_bytes = memory.adjacency_bytes()
+        + memory.reverse_adjacency_bytes()
+        + memory.frontier_bytes()
+        + memory.visited_bytes()
+        + memory.dedup_bytes()
+        + memory.predicate_bytes()
+        + memory.ordering_bytes();
 
+    assert_eq!(memory.index_bytes(), index_bytes);
     assert_eq!(
-        memory.adjacency_bytes(),
-        bucket_sum(&estimate, |memory| memory.adjacency_bytes())
-    );
-    assert_eq!(
-        memory.reverse_adjacency_bytes(),
-        bucket_sum(&estimate, |memory| memory.reverse_adjacency_bytes())
+        memory.total_bytes(),
+        index_bytes + memory.proof_bytes() + memory.result_bytes()
     );
     assert_eq!(
-        memory.frontier_bytes(),
-        bucket_sum(&estimate, |memory| memory.frontier_bytes())
+        WorthQueryGraphReadBudget::bounded(
+            index_bytes,
+            memory.result_bytes(),
+            estimate.intrinsic().intermediate_set_size(),
+        )
+        .check_supported_cost(&estimate)
+        .class()
+        .kind(),
+        &WorthQueryGraphReadBudgetClassKind::InlineEphemeralCandidate
     );
     assert_eq!(
-        memory.visited_bytes(),
-        bucket_sum(&estimate, |memory| memory.visited_bytes())
-    );
-    assert_eq!(
-        memory.dedup_bytes(),
-        bucket_sum(&estimate, |memory| memory.dedup_bytes())
-    );
-    assert_eq!(
-        memory.predicate_bytes(),
-        bucket_sum(&estimate, |memory| memory.predicate_bytes())
-    );
-    assert_eq!(
-        memory.ordering_bytes(),
-        bucket_sum(&estimate, |memory| memory.ordering_bytes())
-    );
-    assert_eq!(
-        memory.proof_bytes(),
-        bucket_sum(&estimate, |memory| memory.proof_bytes())
-    );
-    assert_eq!(
-        memory.result_bytes(),
-        bucket_sum(&estimate, |memory| memory.result_bytes())
-    );
-
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency,
-        |memory| memory.adjacency_bytes(),
-        512,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::ReverseAdjacency,
-        |memory| memory.reverse_adjacency_bytes(),
-        512,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::TraversalWorkset,
-        |memory| memory.frontier_bytes(),
-        512,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::VisitedSet,
-        |memory| memory.visited_bytes(),
-        384,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::DedupSet,
-        |memory| memory.dedup_bytes(),
-        384,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::PredicateSupport,
-        |memory| memory.predicate_bytes(),
-        512,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::OrderingSupport,
-        |memory| memory.ordering_bytes(),
-        512,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::ProofSupport,
-        |memory| memory.proof_bytes(),
-        256,
-    );
-    assert_exact_bucket_contribution(
-        &estimate,
-        WorthQueryGraphReadAccessRequirementKind::ResultBuffer,
-        |memory| memory.result_bytes(),
-        1024,
+        WorthQueryGraphReadBudget::bounded(
+            index_bytes - 1,
+            memory.result_bytes(),
+            estimate.intrinsic().intermediate_set_size(),
+        )
+        .check_supported_cost(&estimate)
+        .class()
+        .kind(),
+        &WorthQueryGraphReadBudgetClassKind::ExceedsInlineEphemeralBudget
     );
 }
 
@@ -201,6 +241,13 @@ fn intermediate_set_pressure_marks_broad_even_when_index_bytes_fit() {
     assert_eq!(
         estimate.complexity_contract().kind(),
         &WorthQueryGraphReadComplexityContractKind::BroadTraversalCandidate
+    );
+    assert_eq!(
+        WorthQueryGraphReadBudget::inline_ephemeral_default()
+            .check_supported_cost(&estimate)
+            .class()
+            .kind(),
+        &WorthQueryGraphReadBudgetClassKind::ExceedsInlineEphemeralBudget
     );
 }
 

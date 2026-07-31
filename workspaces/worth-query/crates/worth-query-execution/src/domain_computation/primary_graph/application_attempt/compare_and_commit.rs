@@ -1,13 +1,25 @@
+use worth_query_installation::facade::WorthQueryCanonicalWorkPhases;
 use worth_relational::facade::history::CommitId;
+
+use super::WorthQueryMutationPreconditionComparisonEvidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationCommitReceipt {
+    provider_runtime_instance_id: u64,
     commit_id: CommitId,
     changed_record_count: usize,
     emitted_effect_count: usize,
+    precondition_comparison: WorthQueryMutationPreconditionComparisonEvidence,
+    canonical_work: WorthQueryCanonicalWorkPhases,
 }
 
 impl WorthQueryApplicationCommitReceipt {
+    pub(in crate::domain_computation::primary_graph) const fn provider_runtime_instance_id(
+        &self,
+    ) -> u64 {
+        self.provider_runtime_instance_id
+    }
+
     pub const fn commit_id(&self) -> CommitId {
         self.commit_id
     }
@@ -18,6 +30,16 @@ impl WorthQueryApplicationCommitReceipt {
 
     pub const fn emitted_effect_count(&self) -> usize {
         self.emitted_effect_count
+    }
+
+    pub const fn precondition_comparison(
+        &self,
+    ) -> &WorthQueryMutationPreconditionComparisonEvidence {
+        &self.precondition_comparison
+    }
+
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
+        self.canonical_work
     }
 }
 
@@ -99,15 +121,18 @@ impl WorthQueryApplicationCommitDenial {
 }
 
 impl WorthQueryApplicationCommitReceipt {
-    pub(in crate::domain_computation::primary_graph) const fn new(
-        commit_id: CommitId,
-        changed_record_count: usize,
-        emitted_effect_count: usize,
+    pub(in crate::domain_computation::primary_graph) const fn from_provider(
+        provider: super::super::provider::WorthQueryPrimaryGraphCommittedApplication,
+        precondition_comparison: WorthQueryMutationPreconditionComparisonEvidence,
+        canonical_work: WorthQueryCanonicalWorkPhases,
     ) -> Self {
         Self {
-            commit_id,
-            changed_record_count,
-            emitted_effect_count,
+            provider_runtime_instance_id: provider.runtime_instance_id(),
+            commit_id: provider.commit_id(),
+            changed_record_count: provider.changed_record_count(),
+            emitted_effect_count: provider.emitted_effect_count(),
+            precondition_comparison,
+            canonical_work,
         }
     }
 }

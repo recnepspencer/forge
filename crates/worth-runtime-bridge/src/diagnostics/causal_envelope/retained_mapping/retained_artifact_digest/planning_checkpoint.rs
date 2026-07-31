@@ -89,11 +89,11 @@ pub(crate) fn historical_evaluation_failure_digest(
 ) -> BridgeIdentityEvidence {
     let commit_identity = record
         .commit_identity()
-        .map(|identity| retained_mapping_bridge_identity_part(identity))
+        .map(retained_mapping_bridge_identity_part)
         .unwrap_or_else(|| retained_mapping_shape_part("none"));
     let snapshot_identity = record
         .snapshot_identity()
-        .map(|identity| retained_mapping_bridge_identity_part(identity))
+        .map(retained_mapping_bridge_identity_part)
         .unwrap_or_else(|| retained_mapping_shape_part("none"));
     let counters_digest = historical_evaluation_counters_digest(record.counters());
     compose_retained_causal_mapping_evidence_identity(

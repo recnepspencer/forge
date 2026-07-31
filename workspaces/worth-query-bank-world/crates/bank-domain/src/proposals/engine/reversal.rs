@@ -33,12 +33,11 @@ impl BankProposalEngine {
         }) {
             return Err(BankProposalDenial::ScopeInputMismatch);
         }
-        let payload = CanonicalProposalPayload::new()
-            .u64(input.institution.get())
-            .text(&input.journal.canonical_text())
-            .byte(reversal_reason_tag(input.reason));
-        let intent =
-            BankIdempotencyClaim::derive(binding, key, "reverse-journal", payload.as_bytes());
+        let payload = CanonicalProposalPayload::new("reverse-journal")
+            .u64("institution", input.institution.get())
+            .text("journal", &input.journal.canonical_text())
+            .byte("reason", reversal_reason_tag(input.reason));
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
 
         let mut proposed = snapshot.clone();
         let identity = intent.key().bytes();

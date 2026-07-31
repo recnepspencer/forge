@@ -1,3 +1,7 @@
+use crate::admission::WorthQueryInstallationAdmissionIdentity;
+use crate::authority_cryptography::{
+    AuthoritySeal, AuthoritySealDomain, AuthorityTranscript, PackageAuthorityKey,
+};
 use crate::domain_operation::{
     WorthQueryConditionalNodeLocation, WorthQueryPortableConditionalNodeDeclaration,
     WorthQueryPortableDomainOperationDefinition, WorthQuerySemanticTruthDependency,
@@ -5,7 +9,6 @@ use crate::domain_operation::{
 };
 use crate::generation::WorthQueryInstallationGeneration;
 use crate::package::WorthQueryPortableDomainPackageIdentity;
-use sha2::{Digest, Sha256};
 
 /// Opaque proof that one structured domain operation belongs to an exact
 /// installed package, runtime, and generation.
@@ -15,8 +18,8 @@ pub struct WorthQueryInstalledDomainOperationAuthority {
     pub(crate) generation: WorthQueryInstallationGeneration,
     pub(crate) owner: String,
     pub(crate) package_identity: WorthQueryPortableDomainPackageIdentity,
-    pub(crate) admission_identity: String,
-    pub(crate) package_authority_nonce: [u8; 32],
+    pub(crate) admission_identity: WorthQueryInstallationAdmissionIdentity,
+    pub(crate) package_authority_key: PackageAuthorityKey,
     pub(crate) validated: WorthQueryValidatedDomainOperation,
 }
 
@@ -60,17 +63,29 @@ impl WorthQueryInstalledDomainOperationAuthority {
             .get(dependency_ordinal)
             .cloned()
             .ok_or(WorthQueryConditionalDependencyLookupDenial::DependencyNotDeclared)?;
+        let operation_slot = self.operation_slot();
+        let operation_canonical_identity = self.definition().canonical_identity().to_string();
+        let authority_binding_identity = conditional_dependency_seal(
+            &self.package_authority_key,
+            self.runtime_ordinal,
+            self.generation,
+            &self.owner,
+            &operation_slot,
+            &operation_canonical_identity,
+            &location,
+            dependency_ordinal,
+        );
         Ok(WorthQueryInstalledConditionalDependencyAuthority {
             runtime_ordinal: self.runtime_ordinal,
             generation: self.generation,
             owner: self.owner.clone(),
-            operation_slot: self.operation_slot(),
-            operation_canonical_identity: self.definition().canonical_identity().to_string(),
-            package_authority_nonce: self.package_authority_nonce,
+            operation_slot,
+            operation_canonical_identity,
             location,
             node: node.clone(),
             dependency_ordinal,
             dependency,
+            authority_binding_identity,
         })
     }
 }
@@ -90,11 +105,11 @@ pub struct WorthQueryInstalledConditionalDependencyAuthority {
     owner: String,
     operation_slot: String,
     operation_canonical_identity: String,
-    package_authority_nonce: [u8; 32],
     location: WorthQueryConditionalNodeLocation,
     node: WorthQueryPortableConditionalNodeDeclaration,
     dependency_ordinal: usize,
     dependency: WorthQuerySemanticTruthDependency,
+    authority_binding_identity: AuthoritySeal,
 }
 
 impl WorthQueryInstalledConditionalDependencyAuthority {
@@ -134,24 +149,33 @@ impl WorthQueryInstalledConditionalDependencyAuthority {
         &self.dependency
     }
 
-    pub fn authority_binding_identity(&self) -> String {
-        let mut hash = Sha256::new();
-        hash.update(self.package_authority_nonce);
-        for field in [
-            self.owner.as_str(),
-            self.operation_slot.as_str(),
-            self.operation_canonical_identity.as_str(),
-            self.location.stage_identity().unwrap_or("operation"),
-            self.location.node_identity(),
-        ] {
-            hash.update(field.len().to_le_bytes());
-            hash.update(field.as_bytes());
-        }
-        hash.update(self.runtime_ordinal.to_le_bytes());
-        hash.update(self.generation.ordinal().to_le_bytes());
-        hash.update(self.dependency_ordinal.to_le_bytes());
-        format!("{:x}", hash.finalize())
+    pub fn authority_binding_identity(&self) -> &str {
+        self.authority_binding_identity.as_str()
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn conditional_dependency_seal(
+    key: &PackageAuthorityKey,
+    runtime_ordinal: u64,
+    generation: WorthQueryInstallationGeneration,
+    owner: &str,
+    operation_slot: &str,
+    operation_canonical_identity: &str,
+    location: &WorthQueryConditionalNodeLocation,
+    dependency_ordinal: usize,
+) -> AuthoritySeal {
+    let mut transcript =
+        AuthorityTranscript::new(key, AuthoritySealDomain::InstalledConditionalDependency);
+    transcript.u64("runtime", runtime_ordinal);
+    transcript.u64("generation", generation.ordinal());
+    transcript.text("owner", owner);
+    transcript.text("operation-slot", operation_slot);
+    transcript.text("operation-canonical-identity", operation_canonical_identity);
+    transcript.optional_text("stage", location.stage_identity());
+    transcript.text("node", location.node_identity());
+    transcript.usize("dependency-ordinal", dependency_ordinal);
+    transcript.finish()
 }
 
 fn resolve_node<'a>(

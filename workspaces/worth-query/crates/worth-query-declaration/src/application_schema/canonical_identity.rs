@@ -1,9 +1,15 @@
-use sha2::{Digest, Sha256};
+use worth_foundational::facade::{
+    prepare_canonical_basis_sequence, CanonicalBasisEntryKind, CanonicalizationRuleVersion,
+};
 
-use super::canonical_authorization_identity::hash_authorization_path;
-use super::canonical_decision_read_identity::hash_decision_read_target;
-use super::canonical_operation_identity::hash_operation_target;
+use super::canonical_authorization_identity::append_authorization_path;
+use super::canonical_basis::{ApplicationSchemaCanonicalBasis, APPLICATION_SCHEMA_DOMAIN};
+use super::canonical_capability_identity::append_capability_contract;
+use super::canonical_decision_read_identity::append_decision_read_target;
+use super::canonical_operation_identity::append_operation_target;
 use super::{ApplicationSchemaIdentity, ApplicationSchemaMember};
+
+const RULE_VERSION: &str = "worth-query-application-schema-v8";
 
 pub(super) struct ApplicationSchemaCanonicalHeader<'a> {
     pub owner: &'a str,
@@ -16,94 +22,128 @@ pub(super) fn canonical_identity(
     header: ApplicationSchemaCanonicalHeader<'_>,
     members: &[ApplicationSchemaMember],
 ) -> ApplicationSchemaIdentity {
-    let mut hash = Sha256::new();
-    hash_field(&mut hash, "scheme", "worth-query-application-schema-v4");
-    hash_field(&mut hash, "owner", header.owner);
-    hash_field(&mut hash, "name", header.name);
-    hash_field(&mut hash, "major", &header.major.to_string());
-    hash_field(&mut hash, "minor", &header.minor.to_string());
-    for member in members {
-        hash_member(&mut hash, member);
+    let mut canonical = ApplicationSchemaCanonicalBasis::with_member_capacity(members.len());
+    canonical.text("header.owner", header.owner);
+    canonical.text("header.name", header.name);
+    canonical.u32("header.major", header.major);
+    canonical.u32("header.minor", header.minor);
+    canonical.usize("member-count", members.len());
+    for (index, member) in members.iter().enumerate() {
+        append_member(&mut canonical, index, member);
     }
-    ApplicationSchemaIdentity::from_canonical_hash(format!("{:x}", hash.finalize()))
+    let version =
+        CanonicalizationRuleVersion::new(RULE_VERSION).expect("the schema identity rule is valid");
+    let basis = prepare_canonical_basis_sequence(
+        version,
+        APPLICATION_SCHEMA_DOMAIN,
+        canonical.into_entries(),
+    )
+    .into_result()
+    .expect("schema identity loci are unique and typed");
+    ApplicationSchemaIdentity::from_canonical_basis(basis)
 }
 
-fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
+fn append_member(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    index: usize,
+    member: &ApplicationSchemaMember,
+) {
+    let prefix = format!("member[{index}]");
     match member {
         ApplicationSchemaMember::Entity { entity } => {
-            hash_field(hash, "member-kind", "entity");
-            hash_field(hash, "entity", entity);
+            basis.text(format!("{prefix}.kind"), "entity");
+            basis.text(format!("{prefix}.entity"), entity);
         }
         ApplicationSchemaMember::Aspect { entity, aspect } => {
-            hash_field(hash, "member-kind", "aspect");
-            hash_field(hash, "entity", entity);
-            hash_field(hash, "aspect", aspect);
+            basis.text(format!("{prefix}.kind"), "aspect");
+            basis.text(format!("{prefix}.entity"), entity);
+            basis.text(format!("{prefix}.aspect"), aspect);
         }
-        ApplicationSchemaMember::Field { .. } => hash_schema_field(hash, member),
+        ApplicationSchemaMember::Field { .. } => append_schema_field(basis, &prefix, member),
         ApplicationSchemaMember::Relation { relation, from, to } => {
-            hash_field(hash, "member-kind", "relation");
-            hash_field(hash, "relation", relation);
-            hash_field(hash, "from", from);
-            hash_field(hash, "to", to);
+            basis.text(format!("{prefix}.kind"), "relation");
+            basis.text(format!("{prefix}.relation"), relation);
+            basis.text(format!("{prefix}.from"), from);
+            basis.text(format!("{prefix}.to"), to);
         }
         ApplicationSchemaMember::PrincipalBinding { .. } => {
-            hash_principal_binding(hash, member);
+            append_principal_binding(basis, &prefix, member);
+        }
+        ApplicationSchemaMember::ApplicationQuery { definition } => {
+            basis.text(format!("{prefix}.kind"), "application-query");
+            basis.extend(definition.canonical_basis().embedded_entries(
+                APPLICATION_SCHEMA_DOMAIN,
+                &format!("{prefix}.query-meaning"),
+                CanonicalBasisEntryKind::Identity,
+            ));
+        }
+        ApplicationSchemaMember::ApplicationCapability { contract } => {
+            basis.text(format!("{prefix}.kind"), "application-capability");
+            append_capability_contract(basis, &format!("{prefix}.contract"), contract);
         }
         ApplicationSchemaMember::Operation {
             operation,
             input_type,
         } => {
-            hash_field(hash, "member-kind", "operation");
-            hash_field(hash, "operation", operation);
-            hash_field(hash, "input-type", input_type);
+            basis.text(format!("{prefix}.kind"), "operation");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.text(format!("{prefix}.input-type"), input_type);
         }
         ApplicationSchemaMember::OperationProgram { operation, target } => {
-            hash_field(hash, "member-kind", "operation-program");
-            hash_field(hash, "operation", operation);
-            hash_operation_target(hash, target);
+            basis.text(format!("{prefix}.kind"), "operation-program");
+            basis.text(format!("{prefix}.operation"), operation);
+            append_operation_target(basis, &format!("{prefix}.target"), target);
         }
         ApplicationSchemaMember::OperationDecisionRead { operation, target } => {
-            hash_field(hash, "member-kind", "operation-decision-read");
-            hash_field(hash, "operation", operation);
-            hash_decision_read_target(hash, target);
+            basis.text(format!("{prefix}.kind"), "operation-decision-read");
+            basis.text(format!("{prefix}.operation"), operation);
+            append_decision_read_target(basis, &format!("{prefix}.target"), target);
+        }
+        ApplicationSchemaMember::OperationMutationPrecondition { operation, target } => {
+            basis.text(format!("{prefix}.kind"), "operation-mutation-precondition");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.text(format!("{prefix}.family"), target.family().canonical_name());
+            basis.text(format!("{prefix}.entity"), target.entity());
+            basis.text(format!("{prefix}.aspect"), target.aspect());
+            basis.text(format!("{prefix}.field"), target.field_name());
         }
         ApplicationSchemaMember::OperationDecisionFactBudget {
             operation,
             maximum_fact_count,
         } => {
-            hash_field(hash, "member-kind", "operation-decision-fact-budget");
-            hash_field(hash, "operation", operation);
-            hash_field(hash, "maximum-fact-count", &maximum_fact_count.to_string());
+            basis.text(format!("{prefix}.kind"), "operation-decision-fact-budget");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.usize(format!("{prefix}.maximum-fact-count"), *maximum_fact_count);
         }
         ApplicationSchemaMember::OperationProjectionWorkBudget {
             operation,
             maximum_work_units,
         } => {
-            hash_field(hash, "member-kind", "operation-projection-work-budget");
-            hash_field(hash, "operation", operation);
-            hash_field(hash, "maximum-work-units", &maximum_work_units.to_string());
+            basis.text(format!("{prefix}.kind"), "operation-projection-work-budget");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.usize(format!("{prefix}.maximum-work-units"), *maximum_work_units);
         }
         ApplicationSchemaMember::Policy { policy } => {
-            hash_field(hash, "member-kind", "policy");
-            hash_field(hash, "policy", policy);
+            basis.text(format!("{prefix}.kind"), "policy");
+            basis.text(format!("{prefix}.policy"), policy);
         }
         ApplicationSchemaMember::Ability {
             ability,
             scope_entity,
         } => {
-            hash_field(hash, "member-kind", "ability");
-            hash_field(hash, "ability", ability);
-            hash_field(hash, "scope-entity", scope_entity);
+            basis.text(format!("{prefix}.kind"), "ability");
+            basis.text(format!("{prefix}.ability"), ability);
+            basis.text(format!("{prefix}.scope-entity"), scope_entity);
         }
         ApplicationSchemaMember::OperationAbility {
             operation,
             ability,
             scope_entity,
         } => {
-            hash_field(hash, "member-kind", "operation-ability");
-            hash_field(hash, "operation", operation);
-            hash_field(hash, "ability", ability);
-            hash_field(hash, "scope-entity", scope_entity);
+            basis.text(format!("{prefix}.kind"), "operation-ability");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.text(format!("{prefix}.ability"), ability);
+            basis.text(format!("{prefix}.scope-entity"), scope_entity);
         }
         ApplicationSchemaMember::AbilityPolicy {
             ability,
@@ -111,30 +151,35 @@ fn hash_member(hash: &mut Sha256, member: &ApplicationSchemaMember) {
             policy,
             paths,
         } => {
-            hash_field(hash, "member-kind", "ability-policy");
-            hash_field(hash, "ability", ability);
-            hash_field(hash, "scope-entity", scope_entity);
-            hash_field(hash, "policy", policy);
-            for path in paths {
-                hash_authorization_path(hash, path);
+            basis.text(format!("{prefix}.kind"), "ability-policy");
+            basis.text(format!("{prefix}.ability"), ability);
+            basis.text(format!("{prefix}.scope-entity"), scope_entity);
+            basis.text(format!("{prefix}.policy"), policy);
+            basis.usize(format!("{prefix}.path-count"), paths.len());
+            for (path_index, path) in paths.iter().enumerate() {
+                append_authorization_path(basis, &format!("{prefix}.path[{path_index}]"), path);
             }
         }
         ApplicationSchemaMember::Currency { currency } => {
-            hash_field(hash, "member-kind", "currency");
-            hash_field(hash, "currency", currency);
+            basis.text(format!("{prefix}.kind"), "currency");
+            basis.text(format!("{prefix}.currency"), currency);
         }
         ApplicationSchemaMember::Effect {
             effect,
             payload_type,
         } => {
-            hash_field(hash, "member-kind", "effect");
-            hash_field(hash, "effect", effect);
-            hash_field(hash, "payload-type", payload_type);
+            basis.text(format!("{prefix}.kind"), "effect");
+            basis.text(format!("{prefix}.effect"), effect);
+            basis.text(format!("{prefix}.payload-type"), payload_type);
         }
     }
 }
 
-fn hash_principal_binding(hash: &mut Sha256, member: &ApplicationSchemaMember) {
+fn append_principal_binding(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    member: &ApplicationSchemaMember,
+) {
     let ApplicationSchemaMember::PrincipalBinding {
         binding,
         mapping_entity,
@@ -150,32 +195,40 @@ fn hash_principal_binding(hash: &mut Sha256, member: &ApplicationSchemaMember) {
         principal_identity_value_type,
     } = member
     else {
-        unreachable!("hash_principal_binding requires a principal binding")
+        unreachable!("principal-binding lowering requires a principal-binding member")
     };
-    hash_field(hash, "member-kind", "principal-binding");
-    hash_field(hash, "binding", binding);
-    hash_field(hash, "mapping-entity", mapping_entity);
-    hash_field(hash, "identity-aspect", identity_aspect);
-    hash_field(hash, "identity-field", identity_field);
-    hash_field(hash, "status-aspect", status_aspect);
-    hash_field(hash, "status-field", status_field);
-    hash_field(hash, "target-relation", target_relation);
-    hash_field(hash, "principal-entity", principal_entity);
-    hash_field(hash, "principal-identity-aspect", principal_identity_aspect);
-    hash_field(hash, "principal-identity-field", principal_identity_field);
-    hash_field(
-        hash,
-        "principal-identity-scalar-family",
+    basis.text(format!("{prefix}.kind"), "principal-binding");
+    basis.text(format!("{prefix}.binding"), binding);
+    basis.text(format!("{prefix}.mapping-entity"), mapping_entity);
+    basis.text(format!("{prefix}.identity-aspect"), identity_aspect);
+    basis.text(format!("{prefix}.identity-field"), identity_field);
+    basis.text(format!("{prefix}.status-aspect"), status_aspect);
+    basis.text(format!("{prefix}.status-field"), status_field);
+    basis.text(format!("{prefix}.target-relation"), target_relation);
+    basis.text(format!("{prefix}.principal-entity"), principal_entity);
+    basis.text(
+        format!("{prefix}.principal-identity-aspect"),
+        principal_identity_aspect,
+    );
+    basis.text(
+        format!("{prefix}.principal-identity-field"),
+        principal_identity_field,
+    );
+    basis.text(
+        format!("{prefix}.principal-identity-scalar-family"),
         principal_identity_scalar_family.canonical_name(),
     );
-    hash_field(
-        hash,
-        "principal-identity-value-type",
+    basis.text(
+        format!("{prefix}.principal-identity-value-type"),
         principal_identity_value_type,
     );
 }
 
-fn hash_schema_field(hash: &mut Sha256, member: &ApplicationSchemaMember) {
+fn append_schema_field(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    member: &ApplicationSchemaMember,
+) {
     let ApplicationSchemaMember::Field {
         entity,
         aspect,
@@ -187,44 +240,20 @@ fn hash_schema_field(hash: &mut Sha256, member: &ApplicationSchemaMember) {
         equality_queryable,
     } = member
     else {
-        unreachable!("hash_schema_field requires a field member")
+        unreachable!("field lowering requires a field member")
     };
-    hash_field(hash, "member-kind", "field");
-    hash_field(hash, "entity", entity);
-    hash_field(hash, "aspect", aspect);
-    hash_field(hash, "field", field);
-    hash_field(hash, "scalar-family", scalar_family.canonical_name());
-    hash_field(hash, "value-type", value_type);
-    hash_field(
-        hash,
-        "currency",
-        currency.as_deref().unwrap_or("no-application-currency"),
+    basis.text(format!("{prefix}.kind"), "field");
+    basis.text(format!("{prefix}.entity"), entity);
+    basis.text(format!("{prefix}.aspect"), aspect);
+    basis.text(format!("{prefix}.field"), field);
+    basis.text(
+        format!("{prefix}.scalar-family"),
+        scalar_family.canonical_name(),
     );
-    hash_field(hash, "writable", bool_identity(*writable));
-    hash_field(
-        hash,
-        "equality-queryable",
-        bool_identity(*equality_queryable),
-    );
-}
-
-const fn bool_identity(value: bool) -> &'static str {
-    if value {
-        "true"
-    } else {
-        "false"
-    }
-}
-
-pub(super) fn hash_field(hash: &mut Sha256, label: &str, value: &str) {
-    hash.update(canonical_length(label).to_le_bytes());
-    hash.update(label.as_bytes());
-    hash.update(canonical_length(value).to_le_bytes());
-    hash.update(value.as_bytes());
-}
-
-fn canonical_length(value: &str) -> u64 {
-    u64::try_from(value.len()).expect("application schema identifiers are bounded below u64::MAX")
+    basis.text(format!("{prefix}.value-type"), value_type);
+    basis.optional_text(format!("{prefix}.currency"), currency.as_deref());
+    basis.bool(format!("{prefix}.writable"), *writable);
+    basis.bool(format!("{prefix}.equality-queryable"), *equality_queryable);
 }
 
 #[cfg(test)]

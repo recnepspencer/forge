@@ -1,9 +1,10 @@
 use std::sync::atomic::AtomicUsize;
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
+use crate::authority_cryptography::InstallationAuthorityRootKey;
 
 use super::artifact_contract_admission::admit_artifact_contract;
-use super::index_identity::{authority_nonce, index_identity, IndexIdentityInput};
+use super::index_identity::{index_identity, IndexIdentityInput};
 use super::*;
 
 #[derive(Default)]
@@ -27,6 +28,35 @@ impl WorthQueryInstalledPackageIndex {
         generation: WorthQueryInstallationGeneration,
         packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
     ) -> Result<Self, WorthQueryInstalledPackageIndexDenial> {
+        Self::build_with_authority_root_result(
+            runtime,
+            generation,
+            packages,
+            InstallationAuthorityRootKey::generate(),
+        )
+    }
+
+    pub(super) fn build_with_authority_root_result(
+        runtime: WorthQueryInstallationRuntimeIdentity,
+        generation: WorthQueryInstallationGeneration,
+        packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
+        authority_root: Result<InstallationAuthorityRootKey, ()>,
+    ) -> Result<Self, WorthQueryInstalledPackageIndexDenial> {
+        let authority_root = authority_root.map_err(|()| {
+            WorthQueryInstalledPackageIndexDenial::new(
+                WorthQueryInstalledPackageIndexDenialKind::AuthorityEntropyUnavailable,
+                "installed-package-index",
+            )
+        })?;
+        Self::build_with_authority_root(runtime, generation, packages, authority_root)
+    }
+
+    pub(super) fn build_with_authority_root(
+        runtime: WorthQueryInstallationRuntimeIdentity,
+        generation: WorthQueryInstallationGeneration,
+        packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
+        authority_root: InstallationAuthorityRootKey,
+    ) -> Result<Self, WorthQueryInstalledPackageIndexDenial> {
         let mut construction = InstalledIndexConstruction::default();
         for package in packages {
             let owner = package.package().domain_identity().owner().to_string();
@@ -35,20 +65,21 @@ impl WorthQueryInstalledPackageIndex {
                 continue;
             }
             construction.admit_package_content(&owner, &package)?;
+            let authority_key = authority_root.derive_package_key(
+                runtime.ordinal(),
+                generation.ordinal(),
+                package.package().identity().bytes(),
+                package.admission_identity().bytes(),
+            );
             construction.records.insert(
                 owner,
                 WorthQueryInstalledPackageRecord {
-                    authority_nonce: authority_nonce(
-                        &runtime,
-                        generation,
-                        package.package().identity(),
-                        package.admission_identity(),
-                    ),
+                    authority_key,
                     package,
                 },
             );
         }
-        Ok(construction.finish(runtime, generation))
+        construction.finish(runtime, generation, authority_root)
     }
 }
 
@@ -57,13 +88,18 @@ impl InstalledIndexConstruction {
         mut self,
         runtime: WorthQueryInstallationRuntimeIdentity,
         generation: WorthQueryInstallationGeneration,
-    ) -> WorthQueryInstalledPackageIndex {
+        authority_root: InstallationAuthorityRootKey,
+    ) -> Result<WorthQueryInstalledPackageIndex, WorthQueryInstalledPackageIndexDenial> {
         self.counters.installed_package_count = self.records.len();
         self.counters.installed_definition_count = self.definitions.len();
         self.counters.installed_domain_operation_count = self.domain_operations.len();
         self.counters.installed_artifact_contract_count = self.artifact_contracts.len();
         self.counters.installed_application_schema_count = self.application_schemas.len();
-        let identity = index_identity(IndexIdentityInput {
+        let package_work = self.records.values().fold(
+            crate::canonical_work::WorthQueryCanonicalWorkEvidence::zero(),
+            |work, record| work.combine(record.package.canonical_work()),
+        );
+        let (identity, index_work) = index_identity(IndexIdentityInput {
             runtime: &runtime,
             generation,
             records: &self.records,
@@ -71,19 +107,33 @@ impl InstalledIndexConstruction {
             domain_operations: &self.domain_operations,
             artifact_contracts: &self.artifact_contracts,
             application_schemas: &self.application_schemas,
-        });
-        WorthQueryInstalledPackageIndex {
+        })
+        .map_err(|denial| {
+            let kind = match denial {
+                worth_foundational::facade::CanonicalDigestDerivationDenial::EntryLimitExceeded {
+                    ..
+                } => WorthQueryInstalledPackageIndexDenialKind::CanonicalEntryBudgetExceeded,
+                worth_foundational::facade::CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
+                    ..
+                } => WorthQueryInstalledPackageIndexDenialKind::CanonicalEncodedByteBudgetExceeded,
+                _ => WorthQueryInstalledPackageIndexDenialKind::CanonicalDigestSlotRejected,
+            };
+            WorthQueryInstalledPackageIndexDenial::new(kind, "installed-index-canonical-identity")
+        })?;
+        Ok(WorthQueryInstalledPackageIndex {
             runtime,
             generation,
+            authority_root,
             packages: self.records,
             definitions: self.definitions,
             domain_operations: self.domain_operations,
             artifact_contracts: self.artifact_contracts,
             application_schemas: self.application_schemas,
             identity,
+            installation_canonical_work: package_work.combine(index_work),
             counters: self.counters,
             indexed_operation_lookups: AtomicUsize::new(0),
-        }
+        })
     }
 
     fn admit_package_owner(

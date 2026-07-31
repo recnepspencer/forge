@@ -324,6 +324,106 @@ not commit authority.
 27. Generated or derived APIs expose only legal operators and writes for the
     referenced schema capability.
 
+### Foundational boundary law for Runtime Phases 6-8
+
+F1. Query remains the strongest owner of application-query installation,
+    planning, execution, authorization, disclosure, recovery, undo, redo, and
+    runtime-local receipts. Foundational vocabulary cannot mint, replace,
+    weaken, or reconstruct any of those authorities.
+F2. Meaning that crosses declaration, installation, execution, publication,
+    support, or adapter crates uses `worth-foundational` rather than a
+    Query-local duplicate: canonical basis and comparison, aspect contracts and
+    masks, boundary categories and roles, diagnostic vocabulary, provenance and
+    lineage posture, profile progression, and performance claim vocabulary.
+F3. Canonical basis is the semantic identity surface. A digest is derived
+    compression downstream of a ready canonical basis and never executable
+    authority. Debug formatting, joined strings, raw enum `Debug` output, or
+    independently maintained hash encodings cannot define cross-crate query,
+    capability, disclosure, or aftermath identity.
+F4. Query-specific canonical material uses one named
+    `CanonicalBasisDomain::Future(...)` constant and one explicit
+    `CanonicalizationRuleVersion` per semantic family until Foundational owns a
+    named general domain. Raw domain strings may not proliferate across
+    declaration, installation, execution, receipts, or tests.
+F5. Typed Query result selectors and hot runtime indices remain Query-owned and
+    must not rebuild canonical basis or derive digests during projection,
+    continuation, authorization, or delivery. Installation prepares canonical
+    meaning once; warm paths carry typed or indexed proof of that installed
+    meaning.
+F6. Foundational `ProjectionMask`, `MutationMask`, and `DiagnosticMask` express
+    contract-level field legality. Query capability and disclosure admission
+    decides who may compute, disclose, or mutate under that legal upper bound.
+    A mask alone opens no Query authority.
+F7. Query receipts remain the exact executed runtime evidence. Only an explicit
+    boundary, support, diagnostic, or performance adapter may lower them into
+    Foundational receipt, provenance, lineage, profile, or counter-backed
+    vocabulary; planning claims may not masquerade as executed evidence.
+F8. Foundational transition and lineage vocabulary may describe committed or
+    completed aftermath, but Query owns the actual recovery, inverse,
+    compensation, and fresh redo transitions. Foundational branch, merge, and
+    cherry-pick authority is not a hidden implementation path for linear
+    aftermath.
+F9. Canonical closure is family-local, not milestone-wide. Every later phase
+    that introduces new identity-bearing meaning -- including mutation
+    preconditions, capability and disclosure contracts, elevation, aftermath,
+    external-effect causality, and linear lineage -- prepares its own ready
+    Foundational canonical basis and proves structured comparison. An earlier
+    query-identity proof does not authorize a later private grammar.
+F10. When Query needs a compact key for cross-crate semantic meaning, it admits
+    the ready basis through Foundational's typed digest slot and then carries
+    the derived digest inside a stronger Query-owned installation or attempt
+    artifact. Query may not choose the digest input grammar, algorithm slot, or
+    comparison rule through a direct `sha2` call. Runtime-local opaque hashing
+    that does not define cross-crate meaning remains distinct and may not be
+    presented as canonical identity.
+F11. Foundational admits SHA-256 as its only digest algorithm. Runtime Phase 6
+    removes the former fixture hash and deferred cryptographic-debt surface,
+    freezes deterministic vectors and wrong-slot denial at the lower layer,
+    and proves no production or certification caller retains the deleted
+    algorithm. Runtime Phases 6-8 reuse that zero-debt lower-layer slot; they do
+    not add Query-local digest engines.
+F12. Every identity-bearing semantic family declares one derivation seam and
+    one cost lane. Installation-bound meaning prepares its ready basis and any
+    compact digest once when that meaning is installed or rebuilt.
+    Request-bound meaning may prepare and derive only once per fresh admission,
+    under installed limits for semantic-entry count and canonical encoded
+    bytes. Later planning, execution, provider commit, retry resolution,
+    recovery, publication, and live delivery carry the retained typed artifact;
+    they do not rediscover or rederive it. Each independently received retry
+    may prepare its request-bound identity once during fresh admission; retry
+    resolution thereafter carries it. Undo and redo may each derive one new
+    intent identity, but cannot rehash retained predecessor meaning.
+F13. Canonical-basis preparation and digest derivation are mechanically
+    observable work. Installation and admission evidence, Query execution
+    receipts, and certification counters distinguish installation, admission,
+    execution, and publication and count basis preparations, digest
+    derivations, canonical bytes encoded, and textual digest materializations.
+    Root selection, traversal, predicate and ordering evaluation, projection,
+    continuation delivery, live maintenance and delivery, authorization-fact
+    evaluation, provider recompare-and-commit, and recovery inspection perform
+    exactly zero basis preparations, digest derivations, and textual digest
+    materializations. Internal paths carry typed fixed-width digest bytes;
+    hexadecimal or other textual forms exist only at an explicit diagnostic,
+    publication, provider-wire, or support boundary. If a contiguous canonical
+    representation cannot remain within its declared cold or admission budget,
+    the Foundational owner must provide bounded incremental encoding; Query may
+    not compensate with a private hash grammar.
+F14. Descriptive digests and installation authority seals are different
+    cryptographic families. A semantic digest remains Foundational-owned and
+    carries no authority. An installation authority seal is Query-owned,
+    keyed HMAC-SHA-256 over one typed, domain-separated transcript and is
+    verified in constant time. The installed-index build obtains one secret
+    root key from the operating system's cryptographic random source through
+    its existing fallible boundary, derives generation- and package-scoped
+    child keys, and exposes none of those keys through public fields, textual
+    identities, serialization, or `Debug`. Exact rebuilds retain the same
+    root lineage; successor generations derive new package keys; an
+    independently created root is foreign authority even if descriptive
+    runtime ordinals and package meaning match. Secret-prefix hashing,
+    caller-reconstructible "nonces", untagged optional fields, ordinary string
+    equality for MAC verification, and raw secret byte arrays in
+    proof-carrying artifacts are forbidden.
+
 ### Monetary model
 
 28. Monetary effects are represented by immutable balanced postings. Account
@@ -1319,11 +1419,27 @@ collection, graph-read access-planning, cursor, history, live, and preview
 machinery so an application declares one query rather than hand-wiring
 parallel lane-specific projectors or access paths.
 
+Runtime Phase 6 is implemented through the ordered internal proof gates
+6.1-6.9 below. They are not parallel backlog categories: a later gate may
+consume only authority and guarantees already proved by every earlier gate.
+Discoveries reopen the earliest affected gate and its causal dependents rather
+than becoming ad hoc work inside the current gate.
+
+The durable requirement and finding states for these gates live in
+[`milestone-9.16-runtime-phase-6-closure-ledger.md`](milestone-9.16-runtime-phase-6-closure-ledger.md).
+The `R6.*` and `Q6.*` identifiers below have no closure meaning outside that
+ledger.
+
 **Must establish**
 
 - installed application-query identity with typed parameters, admitted root,
   result shape, cardinality, predicates, ordering, dependency ceiling,
   disclosure contract, basis support, and lane eligibility;
+- one ready Foundational canonical-basis artifact for that complete portable
+  query meaning, prepared under a named Query domain and rule version, with
+  application-query and installed-graph digests derived only from that basis;
+  the basis and digest remain descriptive inputs to Query's stronger installed
+  authority and never replace it;
 - one installed binding from that identity to the existing canonical
   `WorthQueryReadFamily` / `WorthQueryReadGraph` meaning and Milestone 9.10
   graph-read access-planning proof chain;
@@ -1352,7 +1468,11 @@ parallel lane-specific projectors or access paths.
   provider-recompared decision facts;
 - governed read-access receipts carrying the Milestone 9.10 plan,
   requirement-set, support, strategy, fallback, edge-scan, and
-  per-result-neighbor-lookup evidence alongside typed field omissions; and
+  per-result-neighbor-lookup evidence alongside typed field omissions;
+- explicit lowering of receipt work counters and allocation posture into
+  Foundational performance vocabulary only at inspection, support, or
+  publication boundaries; the ordinary receipt remains Query-owned and no
+  Foundational report materialization enters the execution path; and
 - deletion or migration of application-local cursor identity, lane-specific
   query meaning, host pagination, host-side post-read filtering or sorting,
   repeated child queries, per-result relation lookup, and duplicated
@@ -1362,35 +1482,81 @@ parallel lane-specific projectors or access paths.
 
 ```text
 worth-query-declaration/src/application_query/
+    canonical_basis/
+        mod.rs
+        definition.rs
+        result_shape.rs
+        entry.rs
     definition.rs
     parameters.rs
+    invocation.rs
     result_shape.rs
+    ordering.rs
+    authorization_requirement.rs
     basis_support.rs
     lane_eligibility.rs
+    continuation.rs
+    live_cause.rs
 
 worth-query-installation/src/application_query/
-    canonical_identity.rs
+    canonical_basis/
+        mod.rs
+        graph.rs
+        planning.rs
+        continuation.rs
+        installed_query.rs
+    authority_seal.rs
     installed_contract.rs
     read_family_binding.rs
+    planning_contract.rs
     graph_access_contract.rs
     disclosure_contract.rs
     continuation_contract.rs
+    live_contract.rs
+    lane_support.rs
+
+worth-query-admission/src/application_query/
+    parameter_binding.rs
+    parameter_canonical_basis.rs
+    requirements.rs
+    runtime_support_review.rs
 
 worth-query-execution/src/domain_computation/primary_graph/application_query/
+    request.rs
     admission.rs
     graph_read_plan_binding.rs
-    one_shot.rs
-    continuation.rs
-    historical.rs
-    live.rs
-    preview.rs
-    access_receipt.rs
+    access_context.rs
+    controls.rs
+    authorized_read.rs
+    read_execution/
+    projection/
+    one_shot/
+    continuation/
+    historical/
+    preview/
+    live/
+    access_receipt/
+    resource_lifecycle/
+
+worth-query-declaration/src/application_schema/
+    mutation_precondition.rs
+
+worth-query-installation/src/application_operation/
+    precondition_contract.rs
+
+worth-query-execution/src/domain_computation/primary_graph/application_attempt/
+    precondition_binding.rs
+    provider_recomparison.rs
 
 worth-query-bank-world/crates/bank-domain/src/queries/
-    account.rs
-    payment.rs
-    estate.rs
-    audit.rs
+    account/
+    payment/
+    estate/
+    audit/
+
+worth-query-bank-world/crates/bank-server/src/application_query/
+    request.rs
+    outcome.rs
 ```
 
 The lane files are committed sibling responsibilities with different lifecycle
@@ -1398,6 +1564,487 @@ and truth-basis posture. They bind lane progression to the existing canonical
 read graph and admitted graph-read access plan; they are not separate query
 engines. Implementation creates only populated responsibilities but may not
 flatten them into one mode-switched executor.
+
+`request.rs` owns the generic typed host progression from a domain invocation
+through installed resolution, mapped principal, typed scope, controls, and lane
+selection. Bank query-family modules adapt bank identities and result types but
+may not repeat the install-admit-execute sequence or dispatch through local
+markers. `read_execution/` owns the shared bounded non-live kernel;
+`access_receipt/` owns governed observations and never reusable authority; and
+`resource_lifecycle/` owns terminal release of admitted plan, basis, buffer,
+and lane resources. The mutation-precondition files are operation authority,
+not application-query meaning, and therefore remain outside
+`application_query/`.
+
+The current mature preview machinery does not authorize a second
+application-query preview engine. Runtime Phase 6 must bind the application
+query preview lane to the existing Runtime Bridge preview-session authority
+through a lower-layer contract consumed by `worth-query-execution`. If the
+required proof is currently monolith-owned, Phase 6 moves the minimum owning
+authority boundary downward; it may not copy the proof, import the monolith
+into execution, or substitute descriptive preview identity. The bank reference
+world must prove one admitted estate preview query. Queries or providers that
+do not declare or install preview support return typed unsupported posture
+before execution.
+
+#### Runtime Phase 6.1: Canonical Query Identity And Installed Authority
+
+Runtime Phase 6.1 closes the complete identity and installation boundary before
+later planning or lane work may rely on it.
+
+It must:
+
+- preserve one canonical query identity across declaration, schema, package,
+  installed read graph, installed query, and compatibility generation;
+- lower every identity-bearing semantic dimension into one ready Foundational
+  canonical basis before deriving any compact digest through Foundational's
+  admitted sequence-digest lane; use typed canonical values and stable loci
+  rather than debug formatting, joined strings, raw-byte hashing, or a second
+  hand-written hash grammar;
+- complete and consume Foundational's admitted production SHA-256 sequence
+  slot before any compact Query identity relies on it; the deleted fixture
+  digest and deferred cryptographic-debt surface must have zero source,
+  documentation, and compile-surface residue;
+- separate those descriptive digests from Query-owned installation authority:
+  the installed index owns a cryptographically random, redacted root secret;
+  derives generation/package authority keys through domain-separated
+  HMAC-SHA-256; seals installed application queries, operations, abilities,
+  principal bindings, and conditional dependencies with family-specific typed
+  transcripts; and verifies seals in constant time;
+- preserve exact authority lineage across a same-generation rebuild, rotate
+  derived package authority across a successor generation, and reject an
+  independently rooted index as foreign authority even when its public runtime
+  ordinal and installed meaning are otherwise equal;
+- keep the ready canonical basis and derived digest descriptive while only
+  Query's installed proof-carrying artifact authorizes resolution or
+  execution;
+- derive each newly installed or rebuilt query identity at the installation
+  seam exactly once, retain the typed fixed-width digest in the installed
+  artifact, and expose counters for basis preparations, digest derivations,
+  and canonical bytes encoded;
+- make query marker, parameter and result types, typed scope, result slots and
+  paths, cardinality, predicate and ordering meaning, dependency ceilings,
+  disclosure, basis support, authorization requirement, and lane eligibility
+  identity-bearing;
+- keep parameter values, request limits, deadline, cancellation, and chosen
+  supported basis outside canonical query identity;
+- reject undeclared or host-authored definitions, changed query/parameter/
+  result/scope types, foreign schema, foreign runtime, stale generation,
+  package drift, schema-meaning drift, and forged descriptive identity before
+  execution authority; and
+- preserve exact rebuilt authority without treating a rebuild as drift.
+
+Proof requires an independent one-axis identity inventory, structured
+Foundational canonical comparison for independently produced meaning,
+convergence twins for non-identity controls, typed digest-slot admission,
+a standard HMAC-SHA-256 vector, injected entropy-failure denial, secret
+redaction, wrong-key, cross-family, changed-field, optional-field collision,
+same-root rebuild, successor-key rotation, and independently rooted authority
+hostility,
+a mutation-sensitive residue check against direct SHA/debug-string identity
+construction, public compiler denial for cross-schema or host-definition
+substitution, same-runtime dynamic hostility for package and generation drift,
+and exact counter evidence showing one preparation and one digest derivation
+for each newly installed identity artifact and zero rederivation during
+resolution or execution. Runtime Phase 6.1 is complete only when ledger row
+R6.1 is `PROVED`; a collection of individually closed findings is not a
+substitute.
+
+#### Runtime Phase 6.2: Canonical Planning And Runtime Support Authority
+
+Runtime Phase 6.2 joins installed application queries to the one mature graph
+read planning chain. It must not stop at shared enum names or equivalent
+requirement rows.
+
+Both mature and application query sources must pass through:
+
+```text
+canonical graph meaning
+    -> requirement derivation
+    -> runtime-owned support inventory
+    -> cost estimate and budget
+    -> plan review
+    -> lower execution authority
+```
+
+Cross-source one-axis twins must cover relation presence, direction and depth,
+predicate posture, ordering, cardinality, fanout, result pressure, and lane
+lifecycle. Source-specific graph digest, schema authority, maximum-cardinality
+evidence, and installed mechanism may remain truthfully distinct.
+
+The runtime inventory is derived only from installed provider mechanisms.
+Caller-authored support rows, inventories, requirement digests, budgets, or
+plan reviews are descriptive and cannot mint or substitute executable
+authority. Deleting or mismatching an equality index, ordering mechanism,
+traversal mechanism, lifecycle mechanism, or work budget must deny at plan
+review rather than widen into scanning, host work, or local caching.
+Budget dimensions remain semantically disjoint: inline index bytes cover
+adjacency, workset, visited, deduplication, predicate, and ordering structures;
+proof bytes and result-buffer bytes remain separately estimated; total-memory
+evidence includes all three. Proof carriage cannot consume index capacity, and
+excluding proof from the index subtotal cannot remove it from total accounting.
+The execution-runtime installer owns a typed application-query resource
+profile for the operating world. The profile bounds inline index bytes,
+per-result buffer bytes, and intermediate-set capacity independently. Request
+controls may narrow result and work limits but cannot widen the installed
+profile; query declarations, packages, hosts, and callers cannot author a
+budget that substitutes for runtime policy. The selected profile and its
+intersection with request limits must be visible in plan-review evidence and
+must survive runtime-generation progression without becoming digest-only
+authority.
+
+Proof closes R6.2 and R6.3 plus every planning/support finding they reopen.
+Source and dependency residue must independently reject a second planner,
+copied requirement vocabulary, generic inventory substitution, or lane-local
+support engine.
+
+#### Runtime Phase 6.3: Shared Execution Kernel, Projection, Receipts, And Buffers
+
+Runtime Phase 6.3 establishes one lower non-live execution kernel consumed by
+one-shot, continuation, historical, and preview lanes.
+
+The kernel owns bounded root selection, batched forward and reverse traversal,
+optional-one/exactly-one/many cardinality enforcement, path-and-slot-keyed
+result construction, installed ordering consumption, exact work charging,
+projection integrity, result-buffer accounting, basis release, and receipt
+construction. Lane modules own lifecycle admission and legal next actions but
+may not reimplement those semantics.
+
+Canonicalization is cold installation work. The kernel and domain projection
+surface consume compact installed slot/path authority and must not derive a
+digest, prepare or compare canonical basis, format semantic identity, or
+materialize a Foundational report. Result-buffer capacity is charged before
+Query allocates or clones owned result material; a post-allocation overflow
+check is accounting evidence, not a bound.
+
+Missing truth, scalar incompatibility, cardinality violation, repeated branch
+identity, corrupted projection, result overflow, projection denial, abandoned
+plans, and nested-buffer failure must produce exact typed outcomes and release
+every owned resource. Phase 6 receipts identify the admitted plan,
+requirements, support, strategy, provider and basis generations, predicate,
+adjacency, ordering and continuation-seek work, total work, result and
+truncation counts, fallback count, per-result-neighbor lookup count, and typed
+`NoOmission` posture. Runtime Phase 7 later adds governed disclosure omissions;
+Phase 6 may not fabricate them.
+
+Proof closes the kernel, projection, receipt, buffer, and compiler-progression
+portions of R6.4, R6.9, R6.11, and R6.13. A permissive domain projector,
+flattened branch map, lane-local materializer, or unmeasured nested allocation
+must make the evidence fail. Deleting pre-allocation charging, adding selector
+hashing, or replacing executed Query counters with a Foundational planning
+claim must also make the evidence fail.
+A scale-sensitive twin that increases roots, edges, candidate rows, nested
+results, and projected fields independently must leave kernel basis-
+preparation, digest-derivation, and digest-text counters at exact zero.
+
+#### Runtime Phase 6.4: Access Context, Bases, Continuations, And Interruption
+
+Runtime Phase 6.4 completes the execution-owned access and continuation
+boundary.
+
+Every request carries the exact mapped principal, typed installed scope, fresh
+scoped authorization, coherent basis/consistency/freshness posture, deadline,
+cancellation, result bound, and work bound. Query owns the constructors that
+make incoherent control tuples unrepresentable.
+
+An opaque continuation retains descriptive query, parameter, scope, basis,
+ordering, result-shape, provider, and generation identity only. It is
+move-only, holds no authorization or runtime resource, and can be consumed only
+by the owning typed query runtime. Resume reacquires the exact basis and reruns
+installed-query, parameter, scope, provider, authentication, interruption, and
+authorization admission inside the same protected execution boundary used by
+ordinary reads.
+
+Request-bound parameter identity is itself a retained ready Foundational
+canonical-basis artifact with a named Query domain and rule version. Resume
+prepares one fresh artifact and compares the two ready artifacts once through
+Foundational structured comparison before support review or basis acquisition;
+it does not compare compact digest text, reconstruct query meaning, compare
+`Debug` strings, or canonicalize again after plan authority exists.
+The installed continuation contract bounds parameter-entry count before
+preparation and enforces the canonical encoded-byte budget during bounded
+preparation, rejecting before either budget can be exceeded. Resume evidence
+reports exactly one fresh parameter-basis preparation, the bytes encoded by
+that preparation, and zero digest derivations unless the installed contract
+explicitly requires a compact parameter key; any such key is derived once
+during the same admission and retained afterward.
+
+Proof includes changed-parameter, stale-installed-query, wrong-provider,
+cross-query, cross-scope, foreign-runtime, stale-principal, stale-scope,
+authorization-revocation, authentication-expiry, basis-expiry, cancellation,
+deadline, result-exhaustion, and work-exhaustion twins. Independent resource
+observation must show retained or disposed continuations consume no basis,
+provider reservation, buffer, or live capacity. Authoritative live counts and
+retained-byte observations use checked acquire/release transitions so overflow
+or underflow cannot wrap into a false baseline; lifetime-only diagnostic totals
+may saturate. This phase closes R6.5 and R6.6.
+
+#### Runtime Phase 6.5: Historical, Preview, And Live Lane Completion
+
+Runtime Phase 6.5 proves lifecycle parity after the shared planner, kernel, and
+access boundary are closed.
+
+Historical is a named installed lane with explicit support, basis, consistency,
+and receipt posture; it is not merely current one-shot execution with a
+different label. Preview consumes the Runtime Bridge preview-session authority
+described above and the same non-live kernel. Live consumes separately admitted
+maintenance support for the same canonical read meaning and uses targeted
+installed selection rather than a snapshot reread or host filter.
+
+The application runtime owns the Bridge-to-Relational authority join. Historical
+admission materializes a typed Bridge truth view through that runtime's installed
+Bridge, resolves the observed snapshot against that runtime's Relational source,
+and retains one exact move-only execution basis. Preview admission additionally
+requires an active typed preview session opened by the same application runtime
+before it may mint that exact Query basis. A branch identity, preview-session
+identity, truth-view digest, snapshot identity, copied version, foreign Bridge
+handle, or Foundational descriptive artifact is not Query basis authority and
+must open no historical or preview execution path. The resulting bounded basis
+may delegate the exact admitted snapshot into the shared kernel, but it cannot
+authorize another snapshot, lane, runtime, provider, schema generation, or
+query.
+
+Every supported lane preserves the same installed query, scope, result shape,
+membership, projection, ordering, authorization requirement, and disclosure
+contract. Every delivery or execution receives fresh current authorization.
+Cancellation, deadline, revocation, source closure, overflow, denial, explicit
+close, and abandoned disposal return every owned resource to baseline.
+
+Account activity is the primary bank historical-parity courtroom. A
+framework-owned query fixture proves admitted preview authority before any
+bank-specific preview workflow exists. Unsupported preview or advanced access posture denies
+explicitly and cannot silently use the current lane. The real estate preview
+courtroom is completed in Runtime Phase 6.7, where the estate query is first
+declared and migrated; Phase 6.5 must not invent an earlier host-local estate
+query merely to anticipate that proof. This phase closes the account-activity
+and generic lane portions of R6.7. The estate-preview portion remains
+explicitly open until Runtime Phase 6.7.
+
+#### Runtime Phase 6.6: Account And Payment Query Migration
+
+Runtime Phase 6.6 replaces the bank's application-local account and payment
+read authorities with installed domain queries.
+
+The migration includes account discovery, account summary, account detail,
+authorized account users, pending payments, payment detail, and the already
+started account activity family. `bank-domain` owns query definitions,
+parameters, typed scopes, result shapes, abilities, and domain projection.
+Query owns installed resolution, admission, planning, execution, pagination,
+ordering, and receipts. `bank-server` may adapt bank identities and public
+outcomes but may not dispatch through a local marker, repeat the generic
+install-admit-execute sequence, or become projection authority.
+
+Caller result count limits bound consumer-visible root rows or the explicitly
+continued collection. They must not be reused as a cumulative ceiling over
+internal nested dependency records needed to construct one result. Nested
+dependency expansion remains bounded by the admitted work limit, the installed
+dependency ceiling, and the Query-owned result-buffer reservation. A
+one-result account summary must therefore remain lawful when its balance
+depends on multiple postings, while insufficient work or buffer capacity still
+denies before an unbounded materialization can escape.
+
+Account discovery declares a typed union of bounded scope-to-root relation
+paths. Every hop preserves schema endpoints and direction at compile time;
+installation makes the complete path set, union/dedup posture, root ordering,
+and dependency ceiling identity-bearing. Execution begins only from the
+admitted principal scope, traverses those installed paths, deduplicates by
+entity identity, orders the combined root collection through the installed
+root ordering, and applies result/work bounds before broad materialization. A
+host or domain projector may not union, deduplicate, sort, truncate, enumerate,
+or redact account roots after Query execution.
+
+Pending payments strengthens the same substrate with typed equality guards on
+intermediate and terminal path entities. The declared path fixes
+`AuthorizationRole == Approver` before traversing from an authorization to its
+account and fixes `PaymentStatus == ApprovalRequired` after reaching a payment.
+Each guard carries its exact entity, aspect, field, scalar family, and typed
+literal value in canonical identity and schema closure. Planning derives its
+predicate support before execution. Query evaluates guards against the bounded
+frontier as a batch under the admitted work and result-buffer contracts; a
+host filter, caller-selectable role/status parameter, global unrelated index
+enumeration, or per-candidate field lookup is forbidden.
+
+Proof uses the public caller progression and deletes the corresponding legacy
+query declarations, executor branches, cursor identities, repeated child
+reads, post-read filtering and sorting, and duplicate projectors. Every nested
+account and payment view reports zero fallback and zero per-result neighbor
+lookups. A payment detail whose installed shape requires several relation
+indices plus one bounded proof artifact remains within the inline index budget
+when the index subtotal fits; the proof artifact remains present in exact
+proof-byte and total-memory evidence.
+
+#### Runtime Phase 6.7: Estate, Actor, And Audit Query Migration
+
+Runtime Phase 6.7 adds the complex reference queries needed to prove the front
+door is not specialized to account activity.
+
+Installed queries cover estate cases and accounts, estate documents and their
+relationships, relevant actor and employee assignments, capability and
+conflict context, and institution audit views. Phase 6 owns canonical result
+shape, scope, traversal, required ability, basis, lane support, and access
+receipt. Runtime Phase 7 owns purpose-bound capability composition, field
+disclosure, conflict resolution, elevation, and governed omission; Phase 6
+must leave an explicit typed strengthening boundary rather than anticipating
+those decisions.
+
+The complex estate and audit queries consume the Runtime Phase 6.2
+execution-runtime resource profile. Their admission must prove that the
+installed operating-world ceiling admits their exact graph-read estimate.
+Increasing request work or result limits cannot make an over-profile query
+executable, while a deliberately larger installer-owned profile may admit the
+same canonical query without changing query identity. Bank-local plan review,
+caller-supplied index bytes, or a query-specific budget bypass is forbidden.
+
+Proof executes nested account, payment, estate, actor, and audit views through
+public facades with exact admitted-plan evidence, zero fallback, and zero
+per-result neighbor lookups. The real estate query must also execute through an
+admitted preview session, completing the second bank lifecycle courtroom
+without changing its canonical query meaning. Adding Phase 7 authority must
+not change query identity or result selectors. Runtime Phases 6.6 and 6.7
+together close R6.10 and the remaining estate-preview portion of R6.7.
+
+#### Runtime Phase 6.8: Provider-Recompared Mutation Preconditions
+
+Runtime Phase 6.8 exposes typed expected-version and expected-fact controls on
+the public application operation contract and lowers them into the existing
+provider decision-fact comparison authority.
+
+The host supplies typed expectations but performs no read-check-write
+sequence. Installation binds the allowed fact family and scope. Admission
+binds caller values to the exact operation attempt. Provider execution
+recompares the fact atomically at commit and records comparison evidence in the
+mutation receipt.
+
+The declared precondition targets and the attempt-bound expected values use
+Foundational-native aspect locator and value meaning. Admission prepares one
+ready canonical basis for the exact precondition set under a named Query
+domain and rule version, then derives the compact idempotency-intent digest
+through Foundational's admitted sequence-digest lane. The ready basis and
+derived digest remain descriptive inputs retained by the stronger Query
+attempt artifact. Provider commit compares the already-bound typed locators and
+values directly; it performs no canonicalization, digest derivation, digest
+comparison, or semantic string formatting on the warm path.
+The installed operation contract bounds precondition count before preparation
+and enforces total canonical encoded bytes during bounded preparation, before
+unbounded allocation or hash work can escape. Admission reports one basis
+preparation and one digest derivation for the admitted precondition set.
+Idempotency resolution, response-loss retry, provider recomparison, and commit
+consume that retained result and report exact zero additional preparations,
+derivations, or digest-text materializations.
+
+Proof uses an ordinary bank mutation: a matching precondition commits,
+relevant drift denies atomically, unrelated drift remains admissible, and a
+lost response plus retry cannot move money twice. Removing provider
+recomparison, changing one precondition locus or value without changing
+structured canonical comparison, bypassing Foundational digest admission, or
+moving the check into `bank-server` must make the evidence fail. Residue
+evidence rejects a private precondition hash grammar and a digest-only provider
+comparison. This phase closes R6.8.
+
+#### Runtime Phase 6.9: Cutover, Residue, Warm Paths, And Certification
+
+Runtime Phase 6.9 is a proof and deletion phase, not a place to finish product
+behavior discovered late.
+
+It must:
+
+- inventory every bank query family and supported lane;
+- delete remaining local query markers, cursor identities, mode switches,
+  projectors, host filtering/sorting/pagination, repeated child reads, copied
+  support, and internal Query imports;
+- prove compiler-visible progression from package declaration through
+  installation, parameter binding, access admission, plan review, basis,
+  canonical execution, continuation, and governed receipt;
+- keep compiler certification consolidated rather than creating one target per
+  query or hostile dimension;
+- preserve narrow declaration, installation, admission, execution, and bank
+  consumer feedback paths;
+- prove the Foundational SHA-256 slot once at its owning lower layer and prove
+  Query's query, parameter, precondition, capability, disclosure, and
+  aftermath families consume that slot rather than cloning its mechanics;
+- prove the Query-owned HMAC-SHA-256 installation-authority family separately:
+  root entropy is fallible, secrets are typed and redacted, family transcripts
+  are domain-separated, verification is constant-time, rebuild continuity and
+  successor rotation are exact, and no secret-prefix SHA construction remains;
+- run exact formatting, patch hygiene, line-cap, strict changed-crate Clippy,
+  boundary-check, generated agent-context, public consumer, and cold courtroom
+  evidence; and
+- reject ad hoc application-query hashes, duplicate canonical grammars,
+  direct digest derivation for cross-crate semantic meaning even when its input
+  came from canonical material, warm-path basis/digest work, duplicate
+  aspect-mask vocabulary, and Foundational artifacts promoted into Query
+  execution authority;
+- reject deterministic or caller-reconstructible installation keys, raw
+  authority-key arrays in proof artifacts, secret-bearing `Debug`, direct
+  equality of MAC text, and family seals that can validate under another
+  family's transcript;
+- certify phase-separated canonical-work counters: bounded installation and
+  request-admission counts, exact-zero execution/provider/live/recovery counts,
+  canonical-byte budgets enforced before work escapes, and no textual digest
+  materialization outside an explicit boundary;
+- run independent scale-axis twins in which query roots, graph edges,
+  candidates, result rows, projected fields, policy facts, and live fan-out
+  grow while the number of installed or freshly admitted semantic identities
+  is held constant; canonical-basis and digest counts must remain constant, and
+  every fan-out lane must remain at exact zero;
+- measure canonical encoding/allocation separately from SHA-256 compression so
+  a cheap digest primitive cannot conceal an unbounded materialization cost;
+- reject wrapping lifecycle counters or debug-only underflow checks wherever
+  terminal resource-baseline evidence depends on those counters; and
+- revise the canonical Query AI README and its referenced feature documents so
+  the installed application-query front door, supported lanes, controls,
+  denials, receipts, and migration rules match production.
+
+Runtime Phase 6 is complete only when every R6 row is `PROVED`, every Q6 finding
+is `CLOSED`, the ledger survives a skeptical independent audit, and no high- or
+critical-impact finding remains. A green broad test command or a relabeled
+legacy path is not closure.
+
+#### Runtime Phase 6 Caller DX
+
+The generic public progression, not one bank-local hand-written wrapper per
+query, must support:
+
+```rust
+let first_page = bank
+    .query(queries::account_activity(account))
+    .as_principal(&principal)
+    .at(ReadBasis::Current)
+    .limits(QueryLimits::new(50, 10_000)?)
+    .run()?;
+
+let next_page = bank
+    .query(queries::account_activity(account))
+    .as_principal(&principal)
+    .resume(
+        first_page.continuation()?,
+        QueryLimits::new(50, 10_000)?,
+    )
+    .run()?;
+
+let historical = bank
+    .query(queries::estate_activity(estate))
+    .as_principal(&principal)
+    .at(ReadBasis::Historical(version))
+    .run()?;
+
+let preview = bank
+    .query(queries::estate_activity(estate))
+    .as_principal(&principal)
+    .at(ReadBasis::Preview(preview_session))
+    .run()?;
+
+let live = bank
+    .query(queries::account_activity(account))
+    .as_principal(&principal)
+    .live(LiveControls::bounded(64, 10_000)?)
+    .open()?;
+```
+
+The exact private mechanics may differ, but implementation may not require the
+caller to resolve an installed definition, construct support evidence, choose
+an executor, interpret a mode string, perform host sorting or filtering, or
+rebuild the projection for another lane.
 
 **Proof before Runtime Hardening Phase 7**
 
@@ -1421,6 +2068,17 @@ Make capability-based authorization powerful enough for medical-grade
 disclosure and emergency access while preserving exact graph authority,
 conflict-of-interest, currentness, and fail-closed phase progression.
 
+Runtime Phase 7 is implemented through the ordered internal proof gates
+7.1-7.7 below. They are not parallel policy features: each later gate consumes
+the installed meaning and authority proved by the earlier gates. A discovery
+reopens the earliest affected gate and every causal dependent rather than
+becoming a local exception in the gate currently under construction.
+
+The durable requirement and finding states for these gates live in
+[`milestone-9.16-runtime-phase-7-closure-ledger.md`](milestone-9.16-runtime-phase-7-closure-ledger.md).
+The `R7.*` and `Q7.*` identifiers below have no closure meaning outside that
+ledger.
+
 **Must establish**
 
 - typed semantic capability identity distinct from role, relationship,
@@ -1440,6 +2098,10 @@ conflict-of-interest, currentness, and fail-closed phase progression.
   or live membership without appearing in the result;
 - typed field disclosure and omission before consumer-visible projection or
   serialization, with no post-projection redaction path;
+- Foundational projection-mask admission against the installed aspect contract
+  as the legal field upper bound, with a separately admitted diagnostic mask
+  for explanation material; Query capability, purpose, noninterference, and
+  disclosure decisions remain the stronger authority that narrows those masks;
 - break-glass typestate from requested, approved, active, expired or revoked,
   and review-required to reviewed, with exact requester, approver, reason,
   scope, purpose, fields, actions, time, and audit identity;
@@ -1453,7 +2115,11 @@ conflict-of-interest, currentness, and fail-closed phase progression.
   identity or result meaning;
 - typed explanations that distinguish missing capability, scope mismatch,
   purpose mismatch, conflict, separation-of-duty, field omission, elevation
-  required, elevation denied, elevation expired, and review required.
+  required, elevation denied, elevation expired, and review required;
+- explicit publication lowering into Foundational diagnostic categories,
+  provenance, boundary-evidence receipt posture, and target-aware profile
+  materialization without replacing the exact Query denial, decision facts, or
+  executed receipt; and
 - installation of the Bank World Phase 4 estate and emergency-access commands
   only after their complete capability, disclosure, conflict, delegation, and
   elevation contracts are compiler-visible and fail closed.
@@ -1470,20 +2136,247 @@ worth-query-declaration/src/application_capability/
     elevation.rs
 
 worth-query-installation/src/application_capability/
+    canonical_basis.rs
     composition.rs
     conflict.rs
+    separation_of_duty.rs
+    distinct_actor.rs
     disclosure.rs
     delegation.rs
     elevation.rs
 
 worth-query-execution/src/domain_computation/authorization/
+    access_context.rs
     capability_admission.rs
     purpose_context.rs
+    decision_facts.rs
     disclosure_admission.rs
     delegation_admission.rs
+    conflict_admission.rs
     elevation_progression.rs
     currentness.rs
+
+worth-query-publication/src/application_authorization/
+    disclosed_result.rs
+    omission.rs
+    explanation.rs
+    boundary_evidence.rs
 ```
+
+These are semantic ownership boundaries, not permission-themed bags.
+`application_capability/` declares and installs application-defined authority
+meaning. `authorization/` consumes installed meaning and current graph truth to
+produce attempt-bound authority. `application_authorization/` can publish only
+the already-admitted disclosed shape and typed omissions; it cannot inspect
+protected values or make policy decisions.
+
+#### Runtime Phase 7.1: Capability Identity, Scope, And Installed Composition
+
+Runtime Phase 7.1 establishes the vocabulary and installed upper bounds that
+every later authorization transition consumes. Capability identity must remain
+distinct from a role name, authenticated principal, relationship, policy
+result, operation identity, or runtime proof.
+
+It must:
+
+- declare typed action, resource, relation, field, purpose, amount,
+  cardinality, workflow-stage, validity, delegation, provenance, and
+  application-defined constrained-context dimensions without omitted
+  dimensions silently becoming global;
+- install explicit allow, deny, conflict, separation-of-duty, distinct-actor,
+  delegation, and disclosure composition contracts as canonical application
+  meaning;
+- prepare that portable installed meaning through one Foundational canonical
+  basis and structured comparison lane before admitting digest derivation
+  through Foundational's typed sequence slot and retaining the derived digest
+  inside Query's compact identity; capability identity and digest evidence
+  remain non-authority until Query installation binds them to schema, package,
+  generation, and operation proof;
+- bound installed capability-contract entry count and canonical encoded bytes,
+  derive each newly installed capability identity once, and carry its compact
+  typed identity through current admission rather than canonicalizing or
+  hashing per grant, decision fact, disclosed field, result row, or live
+  payload;
+- bind those contracts to the same schema, package, generation, and operation
+  identities used by the installed operating world; and
+- make undeclared dimensions, incompatible scope composition, descriptive
+  role substitution, and host-authored policy fail before runtime authority
+  exists.
+
+Proof requires the Bank World Phase 4 declarations to install through the
+generic contracts, public compiler denial for authority-category substitution,
+structured Foundational comparison plus independent one-axis scope twins
+proving that every dimension participates in identity and narrowing, and
+residue denial for direct hash/debug-string identity grammars or raw digest
+derivation. Phase 7.1 is not complete while application meaning still lives
+only in bank-specific match statements or test oracles.
+
+#### Runtime Phase 7.2: Purpose-Bound Access Context And Current Admission
+
+Runtime Phase 7.2 turns an authenticated, mapped principal and explicit
+application purpose into attempt-bound authorization by consulting current
+relational truth and the installed contracts from Phase 7.1.
+
+It must:
+
+- introduce purpose and constrained request context at the governed entry
+  boundary and carry them through Query without thread-local, adapter-owned, or
+  ambient policy;
+- resolve current principal, relationship, grant, grant-validity, workflow,
+  denial, and negative-membership facts through the canonical touched graph;
+- emit exact typed decision facts and the corresponding authorization read set
+  so compare-and-commit, continuation, history, preview, and live progression
+  can revalidate the decision; and
+- deny a stale, revoked, foreign-runtime, foreign-operation, repurposed, or
+  copied access context before it can authorize execution.
+
+Proof requires independent relational and policy oracles, one-axis currentness
+drift attacks, and compile-fail evidence that neither authentication nor a
+descriptive capability value satisfies the admitted access-context input.
+
+#### Runtime Phase 7.3: Internal Computation, Disclosure, And Noninterference
+
+Runtime Phase 7.3 separates permission to use a protected fact inside governed
+computation from permission to disclose that fact to a consumer. The
+separation must occur before result projection and serialization.
+
+It must:
+
+- derive the legal field universe from Foundational `AspectContract` and
+  admitted `ProjectionMask` / `DiagnosticMask` artifacts rather than copied
+  field-name sets; those artifacts constrain legal fields but carry no
+  principal or Query execution authority;
+- admit protected inputs for predicates, ordering, cursors, counts,
+  aggregates, explanations, historical membership, preview results, and live
+  membership independently from consumer field disclosure;
+- construct a typed disclosed-or-omitted result shape without post-projection
+  redaction or publication-time policy;
+- ensure protected facts cannot be inferred through row presence, order,
+  pagination boundaries, counts, aggregates, explanations, or live changes
+  when the installed disclosure contract forbids that influence; and
+- carry the exact disclosure decision facts and omissions with the result
+  receipt while carrying no reusable authorization authority.
+
+Proof requires adversarial paired worlds that differ only in a protected fact
+and independently compare every observable consumer surface. Publication must
+accept only the admitted disclosed shape, making accidental serialization of
+an internal protected value unrepresentable. Mask-category substitution,
+contract-incompatible field requests, and using a diagnostic mask as projection
+authority must fail before result construction.
+
+#### Runtime Phase 7.4: Delegation Narrowing, Provenance, And Revocation
+
+Runtime Phase 7.4 installs delegation as a proof-carrying authority transition,
+not as a copied grant with a parent identifier.
+
+It must:
+
+- require every delegated dimension to be equal to or narrower than the
+  grantor's current scope, purpose, disclosure, validity, and downstream
+  delegation posture;
+- bind the delegated grant to the exact grantor, grantee, parent grant,
+  provenance chain, schema, runtime, and generation;
+- re-evaluate parent validity, revocation, relationship, and workflow truth
+  whenever delegated authority is admitted; and
+- make parent revocation or expiry invalidate every dependent admission without
+  scanning unrelated grants or trusting a cached positive decision.
+
+Proof requires depth and width attacks, copied-parent attacks, purpose and field
+widening, validity extension, provenance substitution, and revocation after a
+previously lawful admission. Warm admission work must depend on the declared
+delegation chain and touched evidence, not total grant population. Query owns
+the delegation transition; any portable provenance attachment lowers afterward
+through Foundational provenance vocabulary and cannot be promoted back into a
+grant or access context.
+
+#### Runtime Phase 7.5: Conflict, Separation Of Duty, And Distinct Actors
+
+Runtime Phase 7.5 enforces the installed combination rules that no individual
+grant can express. A set of individually valid capabilities must not become
+collectively authoritative when conflict or actor-separation meaning forbids
+the combination.
+
+It must:
+
+- evaluate allow, deny, conflict, separation-of-duty, and distinct-actor
+  predicates as one installed decision rather than ordered host checks;
+- include conflicting-beneficiary, case assignment, prior actor, negative
+  membership, and other relevant absence or presence facts in the decision
+  read set;
+- preserve exact actor identity across request, approval, mutation, disclosure,
+  and review transitions; and
+- make self-approval, conflicted benefit, role accumulation, and split-request
+  attempts fail at the earliest governed boundary.
+
+Proof requires complete combination-matrix coverage selected from the installed
+rules, plus hostile sequences where relevant relationships or conflicts change
+between admission and commit or delivery. The proof must avoid a Cartesian
+product by covering each independent predicate, each interaction declared by
+the contract, and each privileged transition boundary.
+
+#### Runtime Phase 7.6: Governed Emergency Elevation And Mandatory Review
+
+Runtime Phase 7.6 makes emergency elevation a narrow installed lifecycle whose
+states expose only their legal next transition.
+
+It must:
+
+- represent requested, approved, active, expired, revoked, review-required,
+  and reviewed posture with exact requester, approver, reviewer, reason, scope,
+  purpose, fields, actions, time, grant, and audit identity;
+- require a non-conflicted distinct approver and preserve the ordinary
+  capability, disclosure, invariant, irreversible-commit, and provider
+  boundaries underneath the elevated upper bound;
+- terminate delivery authority on expiry or revocation before the next page,
+  history result, preview result, or live payload; and
+- require and complete the exact mandatory review without allowing the active
+  elevation proof or review obligation to be copied, skipped, or reused.
+
+Published elevation and review outcomes use Foundational boundary category,
+diagnostic, provenance, and profile posture only after Query has produced the
+exact transition receipt. Requested/admitted/materialized profile progression
+may narrow descriptive richness or retention explicitly, but it cannot widen
+elevation scope, disclosure, purpose, or authority.
+
+Proof requires the lawful request-approve-use-close-review sequence and hostile
+self-approval, scope widening, purpose swapping, expired use, revoked use,
+conflicted approval, copied state, repeated review, and forbidden disbursement
+attempts.
+
+#### Runtime Phase 7.7: Bank Estate Cutover, Cross-Lane Re-admission, And Certification
+
+Runtime Phase 7.7 installs the Bank World Phase 4 estate and emergency commands
+only after Phases 7.1-7.6 have made their complete contracts enforceable.
+
+It must:
+
+- route ordinary, delegated, conflicted, disclosure-limited, and emergency
+  estate operations through the public installed Query progression with no
+  bank-local authorization executor;
+- re-admit the strengthened access context for one-shot, continuation,
+  historical, preview, and live lanes without changing canonical query
+  identity or result meaning;
+- preserve exact authorization and disclosure facts through commit,
+  continuation, history, preview, publication, and every live payload;
+- remove or privatize superseded monolith and application-owned authority
+  paths, then prove the destination dependency direction; and
+- preserve bounded warm authorization work as unrelated grants,
+  relationships, fields, cases, and consumers grow.
+
+Certification must compare the independently produced capability,
+disclosure-mask, and publication boundary meaning through Foundational
+canonical comparison and must admit any compact semantic digest through the
+matching Foundational digest slot, while compile and runtime evidence
+separately proves that no Foundational digest, profile, provenance row,
+diagnostic bundle, or boundary receipt opens Query authority.
+
+The complete estate courtroom, public consumer compilation, boundary checks,
+residue searches, lifecycle probes, and warm-path measurements must all close
+before Runtime Phase 8 begins. A green bank-specific oracle is insufficient if
+the public facade or another installed query lane can bypass the same meaning.
+The warm-path measurements must also prove exact-zero canonical-basis
+preparation, digest derivation, and digest-text materialization while unrelated
+grants, relationships, fields, cases, result rows, and live consumers grow.
 
 **Proof before Runtime Hardening Phase 8**
 
@@ -1502,6 +2395,12 @@ work.
 Expose actionable recovery and receipt-linked linear aftermath without
 rewriting history, importing certification replay, or pretending that a local
 commit proves an external effect.
+
+Runtime Phase 8 is implemented through the ordered internal proof gates
+8.1-8.6 below. They are not parallel aftermath conveniences: each gate may
+expose only next actions justified by the installed posture and authority
+proved before it. A discovery reopens the earliest affected gate and every
+causal dependent rather than adding an exceptional rollback path.
 
 **Must establish**
 
@@ -1525,19 +2424,28 @@ commit proves an external effect.
   divergent current-head operation; and
 - provider commit, emitted application causality, dispatch, external
   acknowledgement, external completion, compensation, and reconciliation as
-  distinct typed postures.
+  distinct typed postures; and
+- one Foundational canonical basis for portable aftermath meaning; explicit
+  lowering of completed Query outcomes into Foundational boundary categories,
+  executed/completed receipt posture, provenance, linear-lineage,
+  degraded-recovery, diagnostic, and performance vocabulary without making
+  any lowered artifact executable authority.
 
 **Destination module skeleton**
 
 ```text
 worth-query-installation/src/application_aftermath/
+    canonical_basis.rs
     posture.rs
+    next_action_contract.rs
     inverse_contract.rs
     compensation_contract.rs
     recovery_contract.rs
+    external_effect_contract.rs
 
 worth-query-execution/src/domain_computation/application_aftermath/
     recovery_handle.rs
+    recovery_progression.rs
     undo_admission.rs
     undo_progression.rs
     redo_intent.rs
@@ -1549,13 +2457,230 @@ worth-query-publication/src/application_aftermath/
     outcome.rs
     explanation.rs
     access_and_disclosure.rs
+    boundary_evidence.rs
 ```
+
+The installation package owns operation-specific aftermath meaning and legal
+next actions. Execution owns attempt-bound progression and consumes current
+runtime authority. Publication describes the resulting posture and available
+next actions but cannot manufacture a recovery, undo, reconciliation, or redo
+handle from identities carried over the wire.
 
 Branch-aware aftermath is intentionally absent from this topology. Its
 semantic-history, reference, inversion, merge, publication, recovery, and
 product-surface responsibilities belong to the cross-runtime
 merging-and-branching roadmap and do not enter through a dormant Query
-directory.
+directory. Foundational branch, merge, scoped-merge, and cherry-pick artifacts
+are likewise forbidden as implementation authority for this linear Query
+aftermath. Only completed Query-owned transitions may lower into the portable
+Foundational transition or lineage vocabulary appropriate to their boundary
+role.
+
+#### Runtime Phase 8.1: Installed Aftermath Classification And Legal Next Actions
+
+Runtime Phase 8.1 installs one canonical aftermath contract for every mutation
+before execution can advertise recovery or reversal behavior.
+
+It must:
+
+- classify each installed operation as reversible, compensatable,
+  reconcilable, or irreversible, with operation-specific typed next actions;
+- distinguish a semantic inverse, compensating operation, reconciliation
+  procedure, and terminal denial instead of representing them as one generic
+  rollback callback;
+- prepare the portable classification, next-action, inverse, compensation,
+  recovery, and external-effect contract through one Foundational canonical
+  basis and structured comparison lane before admitting compact digest
+  derivation through Foundational's typed slot and retaining that digest inside
+  Query's installed aftermath identity;
+- bound the installed aftermath contract's canonical entry count and encoded
+  bytes, derive each newly installed aftermath identity once, and carry the
+  resulting typed identity through recovery, undo, redo, and publication
+  without rederiving predecessor meaning;
+- bind classification and next-action meaning to the exact operation, schema,
+  package, compatibility generation, commit posture, and result contract; and
+- reject missing, contradictory, host-authored, or changed aftermath meaning at
+  installation rather than defaulting to irreversible or locally reversible.
+
+Proof requires a complete operation inventory, Foundational structured
+comparison plus one-axis contract drift attacks, residue denial for direct
+hash/debug-string identity grammars or raw digest derivation, and public type
+evidence that an outcome exposes only the next actions installed for its exact
+posture. The Bank World aftermath declarations must install through the generic
+contract instead of remaining descriptive enums.
+
+#### Runtime Phase 8.2: External-Effect Causality And Indeterminate Posture
+
+Runtime Phase 8.2 separates facts the local runtime can prove from facts owned
+by an external system. Local commit, application-causality emission, dispatch,
+external acknowledgement, external completion, compensation, and
+reconciliation are distinct typed postures.
+
+It must:
+
+- assign stable exact identities and causal links to the provider commit,
+  emitted application event, dispatch attempt, external acknowledgement, and
+  external completion;
+- classify timeout, disconnect, lost response, duplicated acknowledgement, and
+  unknown provider outcome without guessing whether the effect occurred;
+- preserve idempotency and provider correlation evidence required for later
+  inspection or safe retry; and
+- prevent local success, transport success, or receipt possession from
+  satisfying external-completion authority.
+
+A genuinely new dispatch or external-causality event may receive one newly
+admitted identity. Delivery, acknowledgement, timeout classification,
+inspection, retry resolution, and completion carry that identity and may not
+rehash the same semantic event at each transition.
+
+Query owns these exact effect postures and correlation authority. Publication
+may lower them into Foundational provenance, execution/completion receipt, and
+support-grade freshness vocabulary only after the Query boundary is known;
+Foundational completion wording cannot upgrade an indeterminate external
+effect.
+
+Proof requires a controllable real external-effect boundary that can commit
+then lose the response, acknowledge without completing, complete after timeout,
+and duplicate a message. An in-process fake that shares the runtime's truth
+source cannot prove this gate.
+
+#### Runtime Phase 8.3: Recovery Handle And Resolution Lifecycle
+
+Runtime Phase 8.3 mints a framework-owned linear recovery handle only for an
+installed outcome whose exact posture permits recovery work.
+
+It must:
+
+- bind the handle to runtime, schema, operation, attempt, principal scope,
+  idempotency identity, provider posture, correlation evidence, compatibility
+  generation, and expiry or disposal lifecycle;
+- expose only typed inspect, resolve, safe-retry, compensate, reconcile, or
+  dispose transitions admitted by the current outcome and installed contract;
+- re-establish current provider truth and current application authority before
+  a transition produces effect authority; and
+- consume, expire, or dispose the handle linearly so copying an identity,
+  repeating a transition, or crossing runtimes opens no door.
+
+Inspection and resolution use the retained typed recovery and correlation
+identities. Handle lookup, provider inquiry, and repeated inspection perform no
+canonical-basis preparation, digest derivation, or digest-text comparison.
+
+An unresolved or degraded recovery publication uses Foundational support-truth
+and basis-disclosure vocabulary while retaining the Query recovery handle as
+the sole next-action authority. A support artifact or opaque wire identity
+cannot be readmitted as a handle.
+
+Proof requires lost-response recovery, already-completed recovery, unresolved
+external posture, expiry, disposal, copied-handle, foreign-principal,
+foreign-runtime, and duplicate-transition attacks. The public wire boundary may
+carry opaque recovery identity and descriptive posture but never the runtime
+authority object.
+
+#### Runtime Phase 8.4: Fresh Undo, Inverse Operations, And Compensation
+
+Runtime Phase 8.4 implements undo as a new admitted operation derived from an
+exact committed receipt, never as history mutation or direct provider repair.
+
+It must:
+
+- consume the committed receipt and installed aftermath contract to derive the
+  exact inverse, compensation, or reconciliation request;
+- re-enter current capability, purpose, disclosure, conflict, touched-graph,
+  invariant, idempotency, provider, and compare-and-commit progression;
+- produce compensating debit and credit journal entries for money movement and
+  explicit inverse operations for eligible capability changes while preserving
+  the original operation and causality; and
+- deny irreversible legal, audit, approval, released-estate, escaped-effect,
+  stale, conflicted, or already-consumed outcomes without a fallback mutation.
+
+Undo is a fresh admission and may derive one new bounded intent identity for
+the inverse or compensation request. It carries the original committed and
+aftermath identities and cannot regenerate them per posting, decision fact, or
+lineage edge.
+
+The original, inverse or compensation request, and resulting Query receipts
+remain the authority chain. Foundational transition/provenance rows may
+describe the completed relationship afterward, but a Foundational committed
+artifact, transition bundle, or no-op cause cannot substitute for fresh Query
+admission.
+
+Proof requires one and only one compensating transfer with both original
+journals preserved, current-policy denial after drift, idempotent retry after a
+lost response, inverse capability progression, and rejection of copied,
+foreign, irreversible, or twice-consumed receipts.
+
+#### Runtime Phase 8.5: Fresh Redo Intent And Linear Lineage
+
+Runtime Phase 8.5 derives descriptive redo intent only from a proved undo and
+runs it as a fresh operation against current truth.
+
+It must:
+
+- bind redo intent to the original operation meaning, proved undo receipt,
+  current linear head, principal scope, and compatibility generation without
+  embedding runtime authority or replay state;
+- require fresh capability, policy, conflict, touched-graph, invariant,
+  idempotency, provider, and compare-and-commit admission;
+- append one parent-causality edge for every original, undo, and redo outcome;
+  and
+- invalidate redo when a divergent operation advances the current head, with
+  no branch object, merge placeholder, or hidden alternate lineage.
+
+Redo is likewise one fresh bounded admission identity. Current-head checks,
+lineage append, provider comparison, and publication carry the original, undo,
+and redo identities without rehashing them per edge or transition.
+
+The published chain lowers into Foundational attested-continuity or
+completed-receipt vocabulary only after each Query transition completes.
+Replayed, reconstructed, restored, branch-local, partial, or promoted lineage
+postures cannot be relabeled as the ordinary linear chain.
+
+Proof requires lawful redo, stale or newly unauthorized redo, copied intent,
+foreign principal, changed operation meaning, duplicate redo, and divergence
+attacks. Certification replay may verify evidence but must not be imported into
+the ordinary redo path.
+
+#### Runtime Phase 8.6: Bank Aftermath Cutover, Publication, And Certification
+
+Runtime Phase 8.6 moves the bank's real transfer and estate aftermath through
+the public installed progression after Phases 8.1-8.5 are proved.
+
+It must:
+
+- expose committed outcome, recovery, compensation, reconciliation, undo, and
+  redo through typed public facades and operation-specific legal next actions;
+- preserve authorization and disclosure when publishing outcome,
+  explanations, recovery posture, and receipt-linked lineage;
+- keep the temporary HTTP boundary descriptive, asynchronous, and incapable of
+  deserializing authority or making route-local recovery decisions;
+- remove or privatize superseded monolith, bank-local, and generic rollback
+  paths, then prove destination dependency direction; and
+- preserve bounded ordinary commit cost when no external or recovery work is
+  required, while measuring reconstructive inspection and compensation
+  separately.
+
+Query-owned counters prove execution. Publication and certification lower
+ordinary, recovery, inspection, compensation, and reconciliation costs into
+Foundational performance claims and counter-backed receipts with explicit
+temperature, included work, excluded work, freshness, fallback debt, and
+report-materialization boundaries. That lowering begins from the stronger
+Query receipt and its exact counters; it cannot remeasure execution, derive a
+parallel semantic digest, or make report materialization part of the ordinary
+commit path. A descriptive claim or policy-admission receipt cannot satisfy
+executed-cost evidence.
+
+Certification separately reports canonical-basis preparations, digest
+derivations, canonical bytes encoded, and textual digest materializations for
+installation, fresh admission, ordinary commit, external dispatch, recovery
+inspection, undo, redo, and publication. Ordinary commit and all fan-out work
+must remain at exact zero; a fresh undo or redo may pay only its one bounded
+admission derivation, independent of posting count, decision-fact count, and
+lineage length.
+
+The bank transfer and estate aftermath courtroom, real external-boundary fault
+matrix, public consumer compilation, boundary checks, residue searches,
+lifecycle probes, and ordinary-versus-reconstructive measurements must all
+close before Bank World Phase 5 begins.
 
 **Proof before Bank World Phase 5**
 
@@ -1564,7 +2689,11 @@ journals; an equivalent retry does not compensate twice. Redo after the proved
 undo is freshly authorized and can stale or deny after relevant drift. A copied
 receipt, foreign principal, expired capability, conflicted beneficiary,
 irreversible operation, lost response, or unresolved external effect cannot
-manufacture undo, redo, rollback, or completion authority.
+manufacture undo, redo, rollback, or completion authority. Independently
+produced aftermath contracts compare through Foundational canonical basis, and
+no Foundational digest, committed artifact, transition bundle, support report,
+lineage artifact, or boundary receipt can be promoted into a Query recovery,
+undo, or redo input.
 
 ### Bank World Track — Phase 5: Temporary HTTP Boundary And Per-User Async Nodes
 
@@ -1869,7 +2998,12 @@ callback, or result reinterpretation, the front door is not finished.
 - committed history preserved by inverse or compensation rather than erased by
   undo;
 - redo as fresh execution rather than replay or retained authority;
-- exact Foundational value meaning;
+- exact Foundational value, aspect-contract, mask, canonical-basis,
+  boundary-evidence, diagnostic, profile, lineage, and performance meaning at
+  the cross-crate boundaries where those vocabularies apply;
+- the strongest-owner rule: Foundational meaning can constrain or describe
+  Query work but cannot mint Query installation, execution, authorization,
+  disclosure, recovery, undo, redo, or receipt authority;
 - cert-only replay imports;
 - typed outcomes over exceptions or generic error strings; and
 - bounded ordinary warm paths with cold certification isolated.
@@ -1903,11 +3037,29 @@ Milestone 9.16 closes only when:
 - all actors and relationships are provisioned dynamically;
 - public consumer code contains no semantic aspect strings or internal Query
   imports;
+- Query/application/capability/aftermath identities are reproducible through
+  ready Foundational canonical bases and structured comparison, while residue
+  checks reject direct SHA/debug-string identity grammars and warm-path
+  canonicalization;
+- phase-separated structural counters prove bounded canonical entry and byte
+  work at installation or fresh admission, exact-zero basis preparation,
+  digest derivation, and digest-text materialization in execution, provider
+  commit, projection, authorization fan-out, live delivery, and recovery
+  inspection, and no rederivation during retry resolution;
+- independent fan-out twins grow roots, nodes, edges, candidates, result rows,
+  projected fields, policy facts, postings, lineage edges, and consumers while
+  holding installed and freshly admitted identities constant; canonical and
+  digest work must not grow, and SHA-256 compression measurements must remain
+  distinct from canonical encoding and allocation;
 - the Relational -> runtime-bridge -> Signal -> Query authorization chain is
   exercised and independently challenged;
 - capability scope, purpose, delegation, conflict-of-interest, field
   disclosure, break-glass approval, expiry, revocation, and review are
   exercised and independently challenged;
+- Foundational projection and diagnostic masks constrain field legality while
+  compile and runtime hostility proves masks, digests, profiles, diagnostics,
+  provenance rows, lineage artifacts, and boundary receipts open no Query
+  authority;
 - one installed application query preserves canonical identity, result shape,
   ordering, disclosure, and scope across every supported one-shot, continuation,
   historical, live, and preview lane;
@@ -1925,6 +3077,9 @@ Milestone 9.16 closes only when:
   divergent or relevant change can deny redo, and irreversible actions expose
   no fake inverse;
 - every indeterminate outcome exposes an actionable governed recovery posture;
+- Query-owned execution counters lower into honest Foundational
+  counter-backed performance evidence at explicit support/certification
+  boundaries, with ordinary and reconstructive work kept separate;
 - certification-only replay agrees with ordinary authorized result meaning;
 - all workaround deletions and permanent prohibitions are enforced; and
 - the closure ledger has no unresolved high- or critical-impact row.
@@ -1939,3 +3094,14 @@ capability, disclosure, basis, recovery, and aftermath contracts established
 here. It may extend that path; it may not reintroduce a specialist-only
 authority lane, a provider-owned cursor, a field-disclosure bypass, or replay
 disguised as redo.
+
+Geometry and other high-fan-out kernels consume installed typed slots, paths,
+masks, plans, and fixed-width semantic identities. Adding cells, features,
+nodes, edges, candidate pairs, traversal steps, projected fields, or result
+rows must not increase canonical-basis preparation, digest derivation, or
+digest-text materialization. New geometry-specific semantic families may
+prepare identity only at their declared installation or bounded request-
+admission seam and must carry that proof through execution. Any design that
+requires per-cell, per-feature, per-node, per-edge, per-candidate, or per-result
+semantic hashing is outside the ordinary contract and must be rejected before
+kernel execution rather than accepted as undocumented optimization debt.

@@ -15,6 +15,7 @@ use worth_relational::facade::storage::RecordLifecycleState;
 use super::schema_layout::WorthQueryPrimaryPrincipalBindingLayout;
 use super::{WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind};
 
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct WorthQueryPrincipalMappingObservation {
     pub(super) entity_id: EntityId,
     pub(super) kind_id: KindId,
@@ -22,6 +23,7 @@ pub(super) struct WorthQueryPrincipalMappingObservation {
     pub(super) enabled: bool,
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub(super) struct WorthQueryPrincipalTargetObservation {
     pub(super) relation_id: RelationId,
     pub(super) relation_kind: KindId,

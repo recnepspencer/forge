@@ -6,7 +6,7 @@ use crate::data::temporal::TemporalWakeId;
 
 use super::descriptor::ResourceDescriptorId;
 use super::lifecycle::{ResourceLifecycleClass, ResourceLifecycleOrdinal};
-use super::managed_queue::ResourceManagedQueueState;
+use super::managed_queue::{ResourceManagedQueueState, ResourceQueuePressureObservation};
 use super::policy::ResourceTimeoutOutcomeClass;
 use super::policy_registry::ResourcePolicyDigest;
 use super::request::{
@@ -222,6 +222,13 @@ impl InFlightResourceRequest {
 
     pub fn superseded_by(&self) -> Option<ResourceRequestHandle> {
         self.superseded_by
+    }
+
+    pub const fn managed_queue_pressure(&self) -> Option<ResourceQueuePressureObservation> {
+        match self.managed_queue {
+            Some(queue) => Some(queue.pressure()),
+            None => None,
+        }
     }
 
     pub(crate) const fn managed_queue(&self) -> Option<ResourceManagedQueueState> {

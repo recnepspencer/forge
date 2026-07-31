@@ -118,15 +118,39 @@ fn verify_bounded_index_entries(
     request: &BoundedEntityFieldLookupRequest,
     indexed_ids: &[crate::identity::data::EntityId],
 ) -> Result<Vec<crate::identity::data::EntityId>, BoundedEntityFieldLookupDenial> {
-    let state = runtime.storage_access().current_state();
+    let historical_read = if snapshot.version_id == runtime.current_version_id() {
+        None
+    } else {
+        Some(
+            runtime
+                .read_truth()
+                .read_snapshot(snapshot)
+                .ok_or_else(|| {
+                    lookup_denial(
+                        BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
+                        request,
+                    )
+                })?,
+        )
+    };
+    let current_state =
+        (historical_read.is_none()).then(|| runtime.storage_access().current_state());
     let expected = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
     let mut seen = BTreeSet::new();
     let mut candidates = Vec::with_capacity(indexed_ids.len().min(request.candidate_limit()));
     for entity_id in indexed_ids.iter().take(request.candidate_limit()) {
-        let record = runtime
-            .read_truth()
-            .authoritative_entity_record_for_id_at_version(&state, *entity_id, snapshot.version_id)
-            .ok_or_else(|| corrupt_index_denial(request))?;
+        let record = match (&historical_read, &current_state) {
+            (Some(read), None) => read.get_entity(*entity_id).cloned(),
+            (None, Some(state)) => runtime
+                .read_truth()
+                .authoritative_entity_record_for_id_at_version(
+                    state,
+                    *entity_id,
+                    snapshot.version_id,
+                ),
+            _ => unreachable!("one index verification source must match the snapshot version"),
+        }
+        .ok_or_else(|| corrupt_index_denial(request))?;
         if !seen.insert(record.entity_id)
             || entity_query_locus_comparison_key(&record, request.field_locator())
                 != Some(expected.clone())
@@ -147,21 +171,22 @@ fn certify_storage_parity(
     indexed: &BoundedEntityFieldLookupOutcome,
 ) -> Result<(), BoundedEntityFieldLookupDenial> {
     let expected = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
-    let view = runtime
+    let read = runtime
         .read_truth()
-        .project_snapshot(snapshot)
+        .read_snapshot(snapshot)
         .ok_or_else(|| {
             lookup_denial(
                 BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
                 request,
             )
         })?;
-    let mut storage_ids = view
-        .authoritative_entity_records(request.entity_kind())
-        .into_iter()
+    let mut storage_ids = read
+        .entities()
+        .iter()
         .filter(|record| {
-            entity_query_locus_comparison_key(record, request.field_locator())
-                == Some(expected.clone())
+            record.kind.kind_id == request.entity_kind()
+                && entity_query_locus_comparison_key(record, request.field_locator())
+                    == Some(expected.clone())
         })
         .map(|record| record.entity_id)
         .collect::<Vec<_>>();

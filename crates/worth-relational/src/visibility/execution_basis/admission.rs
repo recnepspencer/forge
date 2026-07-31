@@ -14,7 +14,7 @@ pub(crate) fn admit_execution_basis(
 ) -> Result<RelationalExecutionBasisLease, RelationalExecutionBasisDenial> {
     let mut counters = RelationalExecutionBasisCounters::default();
     counters.checked_version_availability();
-    if reconstruct_state(runtime, version_id, false).is_none() {
+    if reconstruct_state(runtime, version_id).is_none() {
         return Err(denial(
             RelationalExecutionBasisDenialKind::VersionUnavailable,
             "Relational execution basis requires a version reconstructible by this runtime",

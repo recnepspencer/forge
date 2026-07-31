@@ -53,8 +53,9 @@ impl SignalSelectedAspectRequestEntry {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum BranchMergeRequestScope {
+    #[default]
     FullBranch,
     SelectedNodes(Vec<NodeId>),
     SelectedAspects(Vec<SignalSelectedAspectRequestEntry>),
@@ -73,12 +74,6 @@ impl BranchMergeRequestScope {
         aspects: impl IntoIterator<Item = SignalSelectedAspectRequestEntry>,
     ) -> Self {
         Self::SelectedAspects(aspects.into_iter().collect())
-    }
-}
-
-impl Default for BranchMergeRequestScope {
-    fn default() -> Self {
-        Self::FullBranch
     }
 }
 

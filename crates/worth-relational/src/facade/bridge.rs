@@ -4,6 +4,6 @@ pub use crate::presentation::bridge::{
     RelationalBridgePublicationDenial, RelationalBridgePublicationFailure,
     RelationalBridgePublicationOutcome, RelationalBridgePublicationRebindRequired,
     RelationalBridgePublicationStale, RelationalBridgeSourceConfigurationError,
-    RelationalOpaqueAspectWideningAdmission, RelationalOpaqueAspectWideningAdmissionDenial,
-    RuntimeBridgeRelationalSource,
+    RelationalBridgeTruthViewBasisDenial, RelationalOpaqueAspectWideningAdmission,
+    RelationalOpaqueAspectWideningAdmissionDenial, RuntimeBridgeRelationalSource,
 };

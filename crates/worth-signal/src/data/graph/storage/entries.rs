@@ -98,13 +98,12 @@ impl SignalGraph {
 
     pub fn get_state(&self, id: NodeId) -> Result<NodeState, SignalError> {
         self.validate_handle(id)?;
-        Ok(self
-            .arena
+        self.arena
             .hot
             .get(id.index() as usize)
             .and_then(Option::as_ref)
             .map(|hot| hot.state)
-            .ok_or_else(|| stale_error(id, id.generation()))?)
+            .ok_or_else(|| stale_error(id, id.generation()))
     }
 
     pub(crate) fn node_dependency_ids(
@@ -1315,8 +1314,7 @@ fn merge_dirty_partition_scopes(
         && warm
             .dirty_partition_scope_payload
             .iter()
-            .filter(|(candidate_aspect, _)| *candidate_aspect == changed_aspect)
-            .next()
+            .find(|(candidate_aspect, _)| *candidate_aspect == changed_aspect)
             .is_none()
     {
         return false;

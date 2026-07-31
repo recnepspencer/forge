@@ -1485,10 +1485,10 @@ fn tier_matrix_public_observer_surfaces_preserve_truth_while_availability_change
         operational.provenance_availability,
         DiagnosticsAvailability::ReconstructedAvailable
     );
-    assert_eq!(development.explanation_availability.is_available(), true);
-    assert_eq!(development.provenance_availability.is_available(), true);
-    assert_eq!(forensic.explanation_availability.is_available(), true);
-    assert_eq!(forensic.provenance_availability.is_available(), true);
+    assert!(development.explanation_availability.is_available());
+    assert!(development.provenance_availability.is_available());
+    assert!(forensic.explanation_availability.is_available());
+    assert!(forensic.provenance_availability.is_available());
 }
 
 #[test]

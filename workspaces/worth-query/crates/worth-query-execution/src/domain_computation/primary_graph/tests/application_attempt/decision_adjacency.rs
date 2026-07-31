@@ -115,7 +115,7 @@ fn compile_capability_cannot_widen_the_installed_relation_manifest() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&actor, &account, &operation, &request)
+        .authorize_operation(&actor, &account, &operation, Default::default(), &request)
         .unwrap();
     let projected = world
         .invariant
@@ -147,7 +147,7 @@ fn capability_relation_traversal_does_not_enter_sealed_decision_dependencies() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&actor, &principal, &operation, &request)
+        .authorize_operation(&actor, &principal, &operation, Default::default(), &request)
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -230,7 +230,7 @@ fn link_program(
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(actor, principal, &operation, request)
+        .authorize_operation(actor, principal, &operation, Default::default(), request)
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -285,7 +285,7 @@ fn assert_membership_absent(
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(actor, principal, &operation, request)
+        .authorize_operation(actor, principal, &operation, Default::default(), request)
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -334,7 +334,7 @@ fn unlink_program(
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(actor, principal, &operation, request)
+        .authorize_operation(actor, principal, &operation, Default::default(), request)
         .unwrap();
     let (_, projection, _) = world
         .invariant

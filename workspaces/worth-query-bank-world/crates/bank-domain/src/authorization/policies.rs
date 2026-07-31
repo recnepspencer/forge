@@ -28,6 +28,11 @@ pub(crate) fn install_ability_policies(
             [employee_path(EmployeeRole::Auditor)],
         )
         .ability_policy(
+            ViewEstateCase::reference(),
+            EstateCapabilityScopePolicy::reference(),
+            estate_view_paths(),
+        )
+        .ability_policy(
             DiscoverOwnAccounts::reference(),
             AccountVisibilityPolicy::reference(),
             [
@@ -78,6 +83,19 @@ fn employee_path(role: EmployeeRole) -> ApplicationAuthorizationPath {
         .where_equal(AssignmentRole::reference(), role)
         .reverse(InstitutionEmployee::reference())
         .allow(Institution::reference())
+}
+
+fn estate_view_paths() -> Vec<ApplicationAuthorizationPath> {
+    vec![
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .forward(EstateExecutor::reference())
+            .allow(EstateCase::reference()),
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .reverse(AssignmentPrincipal::reference())
+            .where_equal(AssignmentRole::reference(), EmployeeRole::EstateSpecialist)
+            .forward(EstateAssignment::reference())
+            .allow(EstateCase::reference()),
+    ]
 }
 
 fn account_view_paths() -> Vec<ApplicationAuthorizationPath> {

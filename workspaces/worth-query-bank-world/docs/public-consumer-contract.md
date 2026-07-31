@@ -134,20 +134,42 @@ if let Some(pending) = initiation.continuation() {
     inspect(approval.explanation());
 }
 
+let page_request = request_scope();
 let first_page = runtime
-    .query(queries::account_activity_page(account))
+    .account_activity(account)
     .as_principal(&principal)
-    .controls(page_controls)
-    .execute();
+    .page(WorthQueryApplicationQueryControls::current_continuation_page(
+        NonZeroUsize::new(25).unwrap(),
+        NonZeroUsize::new(4_096).unwrap(),
+        &page_request,
+    ))?;
+let (rows, next, receipt) = first_page.into_parts();
+
+if let Some(next) = next {
+    let resume_request = request_scope();
+    let second_page = runtime
+        .account_activity(account)
+        .as_principal(&principal)
+        .resume(next, WorthQueryApplicationQueryResumeControls::new(
+            NonZeroUsize::new(25).unwrap(),
+            NonZeroUsize::new(4_096).unwrap(),
+            &resume_request,
+        ))?;
+}
 
 let mut activity = runtime
-    .query(queries::account_activity(account))
+    .account_activity(account)
     .as_principal(&principal)
-    .subscribe(live_controls)?;
+    .subscribe(WorthQueryApplicationLiveControls::bounded(
+        live_request,
+        16,
+        8,
+        2_048,
+    )?)?;
 match activity.poll() {
-    BankActivityLiveOutcome::Delivered(update) => publish(update),
-    BankActivityLiveOutcome::Overflow(missed) => resynchronize(missed),
-    BankActivityLiveOutcome::AuthorizationRevoked(_) => close_client(),
+    BankAccountActivityLiveOutcome::Delivered(update) => publish(update.result()),
+    BankAccountActivityLiveOutcome::Overflow(missed) => resynchronize(missed),
+    BankAccountActivityLiveOutcome::AuthorizationDenied(_) => close_client(),
     other => handle_terminal(other),
 }
 ```
@@ -156,14 +178,20 @@ A payment continuation is descriptive. It can cross a process boundary, but it
 does not retain the initiator's authority. Approval or rejection always starts
 again with a fresh authenticated principal and fresh controls.
 
-An activity cursor is bound to one account and one provider version. Continue
-with `queries::account_activity_page(account).after(cursor)`. If the graph
-changes between pages, the runtime reports a typed stale-cursor denial instead
-of silently mixing versions.
+An activity continuation is an opaque, move-only description of the next
+ordered page. It contains no permission or retained runtime resource. Each
+resume supplies a fresh authenticated principal, account scope, request
+deadline, cancellation token, page width, and work bound. Query reacquires the
+original provider version, rechecks current account permission, and seeks from
+the exact last-row boundary through the installed ordering index. A commit
+between pages therefore does not mix new rows into the sequence, while a
+permission revocation denies the next page.
 
 Live delivery is bounded. A slow consumer receives typed overflow and must
-resynchronize through an ordinary read. Permission is checked again before
-each payload, so queued data does not survive revocation as authority. A
+resynchronize through the same installed ordinary query. Permission is checked
+again before each payload, so queued data does not survive revocation as
+authority. One query-shaped result carries the exact posting targeted by the
+committed domain cause; the host neither filters nor reconstructs history. A
 delivered activity update contains the exact newly caused activity item, not a
 bounded snapshot that may omit it; the bank facade retains the typed cause
 until the fresh authorized one-item projection succeeds.
@@ -193,9 +221,10 @@ policy, or currency strings. A dynamic extension, if admitted later, uses an
 explicit dynamic key and schema-readmission result. Caller-cast values and raw
 `AspectValue` construction are not the ordinary bank API.
 
-Do not retain an authenticated principal or workflow continuation as a
-substitute for a new request. Do not page across a stale activity cursor. Do
-not retry overflow from the live cursor; resynchronize with an ordinary query.
+Do not retain an authenticated principal, workflow continuation, or activity
+continuation as a substitute for a new request. Do not copy pagination
+identity into an offset or rebuild it from result values. Do not retry overflow
+from the live cursor; resynchronize with an ordinary query.
 Do not interpret a successful proposal as a commit—the public mutation outcome
 is the authoritative terminal surface.
 

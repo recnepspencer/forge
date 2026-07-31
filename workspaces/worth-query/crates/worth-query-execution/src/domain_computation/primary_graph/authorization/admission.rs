@@ -1,9 +1,10 @@
-use sha2::{Digest, Sha256};
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
+use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
-    ApplicationSchema, TypedApplicationValue, WorthQueryInstalledApplicationOperation,
+    ApplicationSchema, ApplicationSchemaBindingIdentity, TypedApplicationValue,
+    WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperation,
 };
 use worth_relational::facade::authorization::{
     RelationalAuthorizationDecision, RelationalAuthorizationObservationPlan,
@@ -20,6 +21,7 @@ use super::super::{
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
+use super::scope_identity::derive_operation_scope_identity;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
@@ -34,6 +36,7 @@ where
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
         operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        preconditions: TypedMutationPreconditions<Schema, Operation, Scope>,
         request: &WorthQueryRequestScope,
     ) -> Result<
         WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
@@ -47,6 +50,20 @@ where
                 operation.operation(),
             )
         })?;
+        let preconditions =
+            super::super::application_attempt::precondition_binding::bind_mutation_preconditions(
+                preconditions,
+                operation.contracts(),
+                scope_identity.entity_name(),
+                scope_identity.entity_id(),
+                &graph.layout,
+            )
+            .map_err(|()| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
+                    operation.operation(),
+                )
+            })?;
         let principal_layout = graph
             .layout
             .principal_binding(principal.binding())
@@ -85,12 +102,13 @@ where
                         )
                     },
                 )?;
-                self.observe_requirements(
+                self.observe_authorization_requirements(
                     runtime,
                     snapshot.clone(),
                     principal,
                     scope_identity,
-                    operation,
+                    operation.binding_identity(),
+                    operation.contracts().ability_requirements(),
                 )
             })();
             runtime.snapshots().release_snapshot(&snapshot);
@@ -103,33 +121,45 @@ where
                 principal.binding(),
             ));
         }
-        Ok(WorthQueryAdmittedApplicationOperation::mint(
+        WorthQueryAdmittedApplicationOperation::mint(
             self.runtime.authority_identity(),
             operation.binding_identity().clone(),
             operation.operation().to_string(),
             operation.authority_identity().to_string(),
-            operation_scope_fingerprint(self, principal, scope_identity, operation),
+            operation_scope_fingerprint(self, principal, scope_identity, operation)?,
             scope_identity.entity_id(),
             scope_identity.entity_kind(),
             scope_identity.entity_name().to_string(),
             principal.valid_until(),
             request.clone(),
             operation.contracts().clone(),
+            preconditions,
             result,
-        ))
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
+                operation.operation(),
+            )
+        })
     }
 
-    fn observe_requirements<Principal, PrincipalIdentity, Operation, Input, Scope>(
+    pub(in crate::domain_computation::primary_graph) fn observe_authorization_requirements<
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >(
         &self,
         relational: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: worth_relational::facade::snapshots::SnapshotHandle,
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
-        operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+        requirements: &[WorthQueryInstalledAbilityRequirement],
     ) -> Result<Vec<WorthQueryAuthorizationCommitDependency>, WorthQueryOperationAuthorizationDenial>
     {
-        let mut admitted = Vec::with_capacity(operation.contracts().ability_requirements().len());
-        for requirement in operation.contracts().ability_requirements() {
+        let mut admitted = Vec::with_capacity(requirements.len());
+        for requirement in requirements {
             if requirement.scope_entity() != scope_identity.entity_name() {
                 return Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::ScopeMismatch,
@@ -145,7 +175,7 @@ where
             }
             if !self.authorization.bridge().matches_installed_policy(
                 installed.correspondence,
-                operation.binding_identity(),
+                binding_identity,
                 requirement.ability(),
                 requirement.scope_entity(),
                 requirement.policy(),
@@ -238,27 +268,21 @@ fn operation_scope_fingerprint<Schema, Principal, PrincipalIdentity, Operation, 
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     scope: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-) -> WorthQueryOperationScopeFingerprint {
-    let mut hash = Sha256::new();
-    hash.update(b"worth-query.operation-scope.v1");
-    hash.update(runtime.runtime.authority_identity().as_u64().to_le_bytes());
-    for value in [
-        operation.binding_identity().package_identity(),
-        operation.binding_identity().schema_identity().as_str(),
+) -> Result<WorthQueryOperationScopeFingerprint, WorthQueryOperationAuthorizationDenial> {
+    derive_operation_scope_identity(
+        runtime.runtime.authority_identity(),
+        operation.binding_identity(),
         operation.authority_identity(),
-    ] {
-        hash.update(value.len().to_le_bytes());
-        hash.update(value.as_bytes());
-    }
-    hash_entity(&mut hash, principal.principal_entity_id());
-    hash_entity(&mut hash, scope.entity_id());
-    WorthQueryOperationScopeFingerprint::mint(hash.finalize().into())
-}
-
-fn hash_entity(hash: &mut Sha256, entity: worth_relational::facade::identity::EntityId) {
-    hash.update(entity.partition_value().to_le_bytes());
-    hash.update(entity.local_slot_value().to_le_bytes());
-    hash.update(entity.generation_value().to_le_bytes());
+        principal.principal_entity_id(),
+        scope.entity_id(),
+    )
+    .map(WorthQueryOperationScopeFingerprint::mint)
+    .map_err(|_| {
+        denial(
+            WorthQueryOperationAuthorizationDenialKind::CanonicalWorkDenied,
+            operation.operation(),
+        )
+    })
 }
 
 fn validate_static_authority<Schema, Principal, PrincipalIdentity, Operation, Input, Scope>(

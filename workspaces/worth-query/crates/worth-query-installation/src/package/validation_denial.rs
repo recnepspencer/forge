@@ -15,6 +15,9 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     ApplicationSchemaIdentityMismatch,
     DuplicateApplicationSchema,
     ConflictingApplicationSchema,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -135,6 +138,30 @@ impl WorthQueryPortablePackageValidationDenial {
             WorthQueryPortablePackageValidationDenialKind::ConflictingApplicationSchema,
             None,
             subject,
+        )
+    }
+
+    pub(super) fn canonical_entry_budget_exceeded() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalEntryBudgetExceeded,
+            None,
+            "package-canonical-entry-budget",
+        )
+    }
+
+    pub(super) fn canonical_encoded_byte_budget_exceeded() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalEncodedByteBudgetExceeded,
+            None,
+            "package-canonical-encoded-byte-budget",
+        )
+    }
+
+    pub(super) fn canonical_digest_slot_rejected() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalDigestSlotRejected,
+            None,
+            "package-canonical-digest-slot",
         )
     }
 

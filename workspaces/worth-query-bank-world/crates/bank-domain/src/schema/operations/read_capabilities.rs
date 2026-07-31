@@ -2,8 +2,6 @@ use worth_query_decl::facade::worth_query_operation_reads;
 
 use super::*;
 
-mod ordinary_reads;
-
 worth_query_operation_reads!(
     CreatePersonalAccountOperation => [
         InstitutionIdentityField,

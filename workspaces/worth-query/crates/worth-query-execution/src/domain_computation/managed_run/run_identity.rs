@@ -5,7 +5,6 @@ use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 use crate::domain_computation::WorthQueryExecutionBoundOperationAuthority;
-use crate::execution_digest::hash_parts;
 
 static NEXT_MANAGED_LOGICAL_RUN: AtomicU64 = AtomicU64::new(1);
 
@@ -16,30 +15,16 @@ pub(super) struct WorthQueryManagedRunIdentity {
 
 impl WorthQueryManagedRunIdentity {
     pub(super) fn initial(
-        lane: &str,
-        operation: &WorthQueryExecutionBoundOperationAuthority,
+        _lane: &str,
+        _operation: &WorthQueryExecutionBoundOperationAuthority,
         resource_attempt_identity: &str,
-        bridge_basis: &BridgeBoundExecutionBasis,
-        relational_basis: &RelationalExecutionBasisLease,
+        _bridge_basis: &BridgeBoundExecutionBasis,
+        _relational_basis: &RelationalExecutionBasisLease,
     ) -> Self {
-        let ordinal = NEXT_MANAGED_LOGICAL_RUN.fetch_add(1, Ordering::Relaxed);
-        let logical = Arc::from(hash_parts(&[
-            "worth_query_managed_logical_run_v1".into(),
-            format!("ordinal:{ordinal}"),
-            format!("lane:{lane}"),
-            format!("operation:{}", operation.binding_identity()),
-        ]));
-        let attempt = Arc::from(hash_parts(&[
-            "worth_query_managed_run_attempt_v1".into(),
-            format!("logical:{logical}"),
-            format!("resources:{resource_attempt_identity}"),
-            format!("bridge:{}", bridge_basis.identity().as_str()),
-            format!(
-                "relational:{}:{}",
-                relational_basis.identity().runtime_instance_id(),
-                relational_basis.identity().lease_ordinal()
-            ),
-        ]));
+        let ordinal = next_managed_logical_run_ordinal(&NEXT_MANAGED_LOGICAL_RUN)
+            .expect("managed logical-run identity space must not be exhausted");
+        let logical = Arc::from(format!("managed-logical-run:{ordinal}"));
+        let attempt = Arc::from(resource_attempt_identity);
         Self { logical, attempt }
     }
 
@@ -48,24 +33,38 @@ impl WorthQueryManagedRunIdentity {
     }
 
     pub(super) fn resumed(
-        lane: &str,
+        _lane: &str,
         logical: Arc<str>,
         resource_attempt_identity: &str,
-        bridge_basis: &BridgeBoundExecutionBasis,
-        relational_basis: &RelationalExecutionBasisLease,
+        _bridge_basis: &BridgeBoundExecutionBasis,
+        _relational_basis: &RelationalExecutionBasisLease,
     ) -> Self {
-        let attempt = Arc::from(hash_parts(&[
-            "worth_query_managed_run_attempt_v1".into(),
-            format!("logical:{logical}"),
-            format!("lane:{lane}"),
-            format!("resources:{resource_attempt_identity}"),
-            format!("bridge:{}", bridge_basis.identity().as_str()),
-            format!(
-                "relational:{}:{}",
-                relational_basis.identity().runtime_instance_id(),
-                relational_basis.identity().lease_ordinal()
-            ),
-        ]));
+        let attempt = Arc::from(resource_attempt_identity);
         Self { logical, attempt }
+    }
+}
+
+fn next_managed_logical_run_ordinal(counter: &AtomicU64) -> Option<u64> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn managed_logical_run_ordinal_exhaustion_cannot_wrap() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+
+        assert_eq!(
+            next_managed_logical_run_ordinal(&counter),
+            Some(u64::MAX - 1)
+        );
+        assert_eq!(next_managed_logical_run_ordinal(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
     }
 }

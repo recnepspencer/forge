@@ -305,7 +305,7 @@ fn derive_canonical_retained_mapping_identity(
         }
     };
     let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(bundle, CanonicalDigestAlgorithmId::test_stable_fixture())
+        .for_bundle(bundle, CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(ready) => ready,
         outcome => panic!("retained causal mapping digest derivation should succeed: {outcome:?}"),

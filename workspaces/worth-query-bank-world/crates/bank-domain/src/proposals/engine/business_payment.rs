@@ -35,18 +35,13 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::SelfTransfer);
         }
 
-        let payload = CanonicalProposalPayload::new()
-            .u64(initiator.get())
-            .u64(input.business.get())
-            .text(&input.from.canonical_text())
-            .text(&destination.canonical_text())
-            .i64(input.amount.minor_units());
-        let intent = BankIdempotencyClaim::derive(
-            binding,
-            key,
-            "initiate-business-payment",
-            payload.as_bytes(),
-        );
+        let payload = CanonicalProposalPayload::new("initiate-business-payment")
+            .u64("initiator", initiator.get())
+            .u64("business", input.business.get())
+            .text("source", &input.from.canonical_text())
+            .text("destination", &destination.canonical_text())
+            .i64("amount-minor-units", input.amount.minor_units());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let mut proposed = snapshot.clone();
         let payment = BusinessPayment::pending(
             crate::model::PaymentId::from_operation(intent.key().bytes(), 0),
@@ -79,11 +74,10 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::UnknownPrincipal);
         }
 
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.payment.canonical_text())
-            .u64(input.approver.get());
-        let intent =
-            BankIdempotencyClaim::derive(binding, key, "approve-payment", payload.as_bytes());
+        let payload = CanonicalProposalPayload::new("approve-payment")
+            .text("payment", &input.payment.canonical_text())
+            .u64("approver", input.approver.get());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let mut proposed = snapshot.clone();
         let journal = append_balanced_transfer(
             &mut proposed,
@@ -120,11 +114,10 @@ impl BankProposalEngine {
         if !basis.is_known_principal(input.approver) {
             return Err(BankProposalDenial::UnknownPrincipal);
         }
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.payment.canonical_text())
-            .u64(input.approver.get());
-        let intent =
-            BankIdempotencyClaim::derive(binding, key, "approve-payment", payload.as_bytes());
+        let payload = CanonicalProposalPayload::new("approve-payment")
+            .text("payment", &input.payment.canonical_text())
+            .u64("approver", input.approver.get());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let mut proposed = basis.clone();
         let journal = append_balanced_transfer(
             &mut proposed,
@@ -167,11 +160,10 @@ impl BankProposalEngine {
             return Err(BankProposalDenial::UnknownPrincipal);
         }
 
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.payment.canonical_text())
-            .u64(input.rejecting_principal.get());
-        let intent =
-            BankIdempotencyClaim::derive(binding, key, "reject-payment", payload.as_bytes());
+        let payload = CanonicalProposalPayload::new("reject-payment")
+            .text("payment", &input.payment.canonical_text())
+            .u64("rejecting-principal", input.rejecting_principal.get());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let replacement = payment.with_decision(PaymentStatus::Rejected, input.rejecting_principal);
         let mut proposed = snapshot.clone();
         proposed.replace_payment(replacement.clone());
@@ -200,11 +192,10 @@ impl BankProposalEngine {
         if !basis.is_known_principal(input.rejecting_principal) {
             return Err(BankProposalDenial::UnknownPrincipal);
         }
-        let payload = CanonicalProposalPayload::new()
-            .text(&input.payment.canonical_text())
-            .u64(input.rejecting_principal.get());
-        let intent =
-            BankIdempotencyClaim::derive(binding, key, "reject-payment", payload.as_bytes());
+        let payload = CanonicalProposalPayload::new("reject-payment")
+            .text("payment", &input.payment.canonical_text())
+            .u64("rejecting-principal", input.rejecting_principal.get());
+        let intent = BankIdempotencyClaim::derive(binding, key, payload);
         let replacement = payment.with_decision(PaymentStatus::Rejected, input.rejecting_principal);
         let mut proposed = basis.clone();
         proposed.replace_payment(replacement.clone());

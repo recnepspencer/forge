@@ -145,7 +145,7 @@ fn comparison_export_digest_and_production_artifacts_carry_named_readiness_proof
     let digest = match admit_canonical_sequence_digest_derivation(
         ready_value_sequence(digest_version.clone(), "digest", 1),
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             CanonicalBasisDomain::Value,
             digest_version,
         ),

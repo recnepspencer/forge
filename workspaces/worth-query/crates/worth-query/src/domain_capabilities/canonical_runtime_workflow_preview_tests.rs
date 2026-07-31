@@ -12,6 +12,16 @@ use super::{
 };
 
 #[test]
+fn preview_digest_lowering_carries_foundational_identity_without_rehashing_text() {
+    let source = include_str!("canonical_runtime/workflow/preview_identity.rs");
+
+    assert!(source.contains("from_canonical_digest(identity.canonical_digest())"));
+    assert!(!source.contains("::from_parts"));
+    assert!(!source.contains("hash_parts"));
+    assert!(!source.contains("Sha256"));
+}
+
+#[test]
 fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
     let read_only = success(materialize_query_preview_workflow_artifact(ready_workflow(
         WorthQueryWorkflowContributionAuthoring::preview_only_query_inspection(

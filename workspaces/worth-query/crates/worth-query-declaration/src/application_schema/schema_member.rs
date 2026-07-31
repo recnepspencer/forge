@@ -1,6 +1,10 @@
 use worth_foundational::facade::ScalarAspectType;
 
+use crate::application_capability::ErasedApplicationCapabilityContract;
+use crate::application_query::ErasedApplicationQueryDefinition;
+
 use super::authorization_policy::ApplicationAuthorizationPath;
+use super::ApplicationMutationPreconditionTarget;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationOperationProgramTarget {
@@ -85,6 +89,12 @@ pub enum ApplicationSchemaMember {
         principal_identity_scalar_family: ScalarAspectType,
         principal_identity_value_type: String,
     },
+    ApplicationQuery {
+        definition: ErasedApplicationQueryDefinition,
+    },
+    ApplicationCapability {
+        contract: ErasedApplicationCapabilityContract,
+    },
     Operation {
         operation: String,
         input_type: String,
@@ -96,6 +106,10 @@ pub enum ApplicationSchemaMember {
     OperationDecisionRead {
         operation: String,
         target: ApplicationOperationDecisionReadTarget,
+    },
+    OperationMutationPrecondition {
+        operation: String,
+        target: ApplicationMutationPreconditionTarget,
     },
     OperationDecisionFactBudget {
         operation: String,

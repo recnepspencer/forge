@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use super::artifact::WorthQueryEvidenceIdentity;
-use super::foundational::{derive_evidence_identity, text_entry};
+use super::foundational::{derive_evidence_identity, digest_entry, text_entry};
 use super::scheme::WorthQueryEvidenceIdentityScheme;
 use super::scope::WorthQueryEvidenceScope;
 use super::tag::WorthQueryEvidenceTag;
 use worth_foundational::facade::{
-    CanonicalBasisEntry, CanonicalBasisEntryKind, FoundationalIdentityKind,
+    CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalDigestId, FoundationalIdentityKind,
 };
 use worth_runtime_bridge::facade::{BridgeIdentityEvidence, BridgeTruthBoundaryBridgedIdentity};
 
@@ -69,6 +69,19 @@ impl WorthQueryEvidenceIdentityEncoder {
         value: &WorthQueryEvidenceIdentity,
     ) -> Self {
         self.push_text(CanonicalBasisEntryKind::Identity, tag, value.as_str());
+        self
+    }
+
+    pub(crate) fn field_digest(
+        mut self,
+        tag: WorthQueryEvidenceTag,
+        value: &CanonicalDigestId,
+    ) -> Self {
+        self.entries.push(digest_entry(
+            field_locus(tag),
+            CanonicalBasisEntryKind::Identity,
+            value,
+        ));
         self
     }
 

@@ -43,8 +43,8 @@ impl WorthQueryInstalledPackageIndex {
             generation: self.generation,
             owner: owner.to_string(),
             package_identity: record.package.package().identity().clone(),
-            admission_identity: record.package.admission_identity().to_string(),
-            package_authority_nonce: record.authority_nonce,
+            admission_identity: record.package.admission_identity().clone(),
+            package_authority_key: record.authority_key.clone(),
             contract,
         })
     }

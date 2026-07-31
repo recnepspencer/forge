@@ -16,7 +16,13 @@ fn compile_capability_does_not_widen_the_installed_effect_program() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant
@@ -64,7 +70,13 @@ fn entity_from_another_admitted_scope_cannot_become_an_effect_target() {
         .unwrap();
     let admission = world
         .application
-        .authorize_operation(&principal, &account, &operation, &request)
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            Default::default(),
+            &request,
+        )
         .unwrap();
     let (_, projection, _) = world
         .invariant

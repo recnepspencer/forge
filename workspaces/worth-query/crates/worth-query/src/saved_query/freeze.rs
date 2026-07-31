@@ -153,7 +153,10 @@ fn build_saved_query_artifact(
             "identity_classification:{}",
             metadata.inspector_identity_classification_digest().as_str()
         ),
-        format!("schema_basis:{}", metadata.schema_basis_digest().as_str()),
+        format!(
+            "schema_basis:{}",
+            metadata.schema_basis_digest().render_support_hex()
+        ),
         format!("support:{}", metadata.support_profile_digest()),
         format!("capability:{}", metadata.capability_family_identity()),
         format!("template_slots:{}", metadata.template_slot_count()),

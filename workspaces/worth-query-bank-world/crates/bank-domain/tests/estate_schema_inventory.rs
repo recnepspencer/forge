@@ -22,20 +22,27 @@ fn required_estate_topology_and_policy_contributions_are_present() {
 }
 
 #[test]
-fn estate_commands_wait_for_runtime_capability_installation_without_local_workaround() {
+fn estate_capabilities_are_declared_without_premature_execution_authority() {
     let declaration = BankSchema::declaration().unwrap();
-    let operations = declaration
-        .erased()
-        .members()
+    let members = declaration.erased().members();
+    assert_required_subset_present(
+        members.iter().filter_map(operation_name).collect(),
+        estate_operations(),
+    );
+    assert_eq!(
+        members
+            .iter()
+            .filter_map(capability_name)
+            .collect::<BTreeSet<_>>(),
+        estate_capabilities()
+    );
+    let executable_operations = members
         .iter()
-        .filter_map(operation_name);
+        .filter_map(operation_program_name)
+        .collect::<BTreeSet<_>>();
     assert!(
-        operations.into_iter().all(|operation| {
-            !operation.contains("Estate")
-                && !operation.contains("Emergency")
-                && !operation.contains("Death")
-        }),
-        "estate commands must not become executable before Runtime Phase 7 enforcement"
+        executable_operations.is_disjoint(&estate_operations()),
+        "Phase 7.1 declares installed meaning but must not mint estate execution authority"
     );
 
     let sources = [
@@ -57,6 +64,8 @@ fn estate_commands_wait_for_runtime_capability_installation_without_local_workar
         include_str!("../src/schema/estate/mod.rs"),
         include_str!("../src/schema/estate/authority_relation_installation.rs"),
         include_str!("../src/schema/estate/capability_installation.rs"),
+        include_str!("../src/schema/estate/capability_contracts.rs"),
+        include_str!("../src/schema/estate/capability_contract_installation.rs"),
         include_str!("../src/schema/estate/entities.rs"),
         include_str!("../src/schema/estate/estate_relation_installation.rs"),
         include_str!("../src/schema/estate/fields.rs"),
@@ -120,6 +129,20 @@ fn operation_name(member: &ApplicationSchemaMember) -> Option<&str> {
     }
 }
 
+fn operation_program_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::OperationProgram { operation, .. } => Some(operation),
+        _ => None,
+    }
+}
+
+fn capability_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationCapability { contract } => Some(contract.name()),
+        _ => None,
+    }
+}
+
 fn estate_entities() -> BTreeSet<&'static str> {
     [
         "Branch",
@@ -174,8 +197,53 @@ fn estate_policies() -> BTreeSet<&'static str> {
         "EstateCapabilityScopePolicy",
         "EstateConflictOfInterestPolicy",
         "EstateDisclosurePolicy",
+        "EstateDelegationPolicy",
         "EstateDistinctActorPolicy",
         "EstateSeparationOfDutyPolicy",
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn estate_operations() -> BTreeSet<&'static str> {
+    [
+        "ApproveEstateEmergencyAccessOperation",
+        "CompleteEstateMandatoryReviewOperation",
+        "DelegateEstateCapabilityOperation",
+        "DisburseEstateOperation",
+        "FreezeEstateAccountOperation",
+        "NotifyDeathEstateOperation",
+        "OpenEstateCaseOperation",
+        "RecognizeEstateExecutorOperation",
+        "ReleaseEstateOperation",
+        "RequestEstateEmergencyAccessOperation",
+        "RevokeEstateCapabilityOperation",
+        "RevokeEstateEmergencyAccessOperation",
+        "ViewRestrictedEstateOperation",
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn estate_capabilities() -> BTreeSet<&'static str> {
+    [
+        "ApproveEstateEmergencyAccessCapability",
+        "CompleteEstateMandatoryReviewCapability",
+        "DelegateEstateCapability",
+        "DisburseEstateCapability",
+        "FreezeEstateAccountCapability",
+        "NotifyDeathEstateCapability",
+        "OpenEstateCaseCapability",
+        "RecognizeEstateExecutorCapability",
+        "ReleaseEstateCapability",
+        "RequestEstateEmergencyAccessCapability",
+        "RevokeEstateCapability",
+        "RevokeEstateEmergencyAccessCapability",
+        "ViewEstateAdministrationCapability",
+        "ViewEstateEmergencyProtectionCapability",
+        "ViewEstateIdentityVerificationCapability",
+        "ViewEstateLegalComplianceCapability",
+        "ViewEstateMandatoryReviewCapability",
     ]
     .into_iter()
     .collect()

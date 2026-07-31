@@ -1,6 +1,17 @@
-use sha2::{Digest, Sha256};
+use worth_foundational::facade::{
+    canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
+    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
+    CanonicalDigestId, CanonicalizationRuleVersion,
+};
 
-use super::BankProposalDenial;
+use super::{BankProposalDenial, CanonicalProposalPayload};
+
+const KEY_DOMAIN: CanonicalBasisDomain =
+    CanonicalBasisDomain::Future("worth-bank.idempotency-key-identity");
+const KEY_RULE_VERSION: &str = "worth-bank-idempotency-key-identity-v2";
+const INTENT_DOMAIN: CanonicalBasisDomain =
+    CanonicalBasisDomain::Future("worth-bank.idempotency-intent");
+const INTENT_RULE_VERSION: &str = "worth-bank-idempotency-intent-v2";
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct BankIdempotencyKey(String);
@@ -23,25 +34,25 @@ impl BankIdempotencyKey {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct BankOperationScopeBinding([u8; 32]);
+pub struct BankOperationScopeBinding(CanonicalDigestId);
 
 impl BankOperationScopeBinding {
     /// Carries a descriptive Query operation-scope fingerprint into pure bank
     /// proposal semantics. It is not itself an authorization proof.
     pub const fn from_fingerprint_bytes(bytes: [u8; 32]) -> Self {
-        Self(bytes)
+        Self(CanonicalDigestId::new(bytes))
     }
 
     pub const fn bytes(self) -> [u8; 32] {
-        self.0
+        *self.0.bytes()
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct BankIdempotencyIntent([u8; 32]);
+pub struct BankIdempotencyIntent(CanonicalDigestId);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct BankIdempotencyKeyIdentity([u8; 32]);
+pub struct BankIdempotencyKeyIdentity(CanonicalDigestId);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct BankIdempotencyClaim {
@@ -53,22 +64,29 @@ impl BankIdempotencyClaim {
     pub(crate) fn derive(
         binding: BankOperationScopeBinding,
         key: &BankIdempotencyKey,
-        operation: &'static str,
-        payload: &[u8],
+        payload: CanonicalProposalPayload,
     ) -> Self {
-        let mut key_hasher = Sha256::new();
-        hash_part(&mut key_hasher, b"WORTH.bank.idempotency-key-identity.v1");
-        hash_part(&mut key_hasher, &binding.0);
-        hash_part(&mut key_hasher, operation.as_bytes());
-        hash_part(&mut key_hasher, key.as_str().as_bytes());
-        let key = BankIdempotencyKeyIdentity(key_hasher.finalize().into());
-        let mut hasher = Sha256::new();
-        hash_part(&mut hasher, b"WORTH.bank.idempotency-intent.v1");
-        hash_part(&mut hasher, &key.0);
-        hash_part(&mut hasher, payload);
+        let operation = payload.operation();
+        let payload_identity = payload.derive_identity();
+        let key = BankIdempotencyKeyIdentity(derive_identity(
+            KEY_DOMAIN,
+            KEY_RULE_VERSION,
+            [
+                digest_entry(KEY_DOMAIN, "operation-scope", binding.0),
+                text_entry(KEY_DOMAIN, "operation", operation),
+                text_entry(KEY_DOMAIN, "client-key", key.as_str()),
+            ],
+        ));
         Self {
             key,
-            intent: BankIdempotencyIntent(hasher.finalize().into()),
+            intent: BankIdempotencyIntent(derive_identity(
+                INTENT_DOMAIN,
+                INTENT_RULE_VERSION,
+                [
+                    digest_entry(INTENT_DOMAIN, "key", key.0),
+                    digest_entry(INTENT_DOMAIN, "proposal", payload_identity),
+                ],
+            )),
         }
     }
 
@@ -83,35 +101,81 @@ impl BankIdempotencyClaim {
 
 impl BankIdempotencyIntent {
     pub const fn bytes(self) -> [u8; 32] {
-        self.0
+        *self.0.bytes()
     }
 
     pub(crate) fn canonical_text(self) -> String {
-        canonical_hex(self.0)
+        canonical_hex(*self.0.bytes())
     }
 
     pub(crate) fn from_canonical_text(value: &str) -> Option<Self> {
-        decode_hex(value).map(Self)
+        decode_hex(value).map(CanonicalDigestId::new).map(Self)
     }
 }
 
 impl BankIdempotencyKeyIdentity {
     pub const fn bytes(self) -> [u8; 32] {
-        self.0
+        *self.0.bytes()
     }
 
     pub(crate) fn canonical_text(self) -> String {
-        canonical_hex(self.0)
+        canonical_hex(*self.0.bytes())
     }
 
     pub(crate) fn from_canonical_text(value: &str) -> Option<Self> {
-        decode_hex(value).map(Self)
+        decode_hex(value).map(CanonicalDigestId::new).map(Self)
     }
 }
 
-fn hash_part(hasher: &mut Sha256, bytes: &[u8]) {
-    hasher.update((bytes.len() as u64).to_be_bytes());
-    hasher.update(bytes);
+fn derive_identity<const N: usize>(
+    domain: CanonicalBasisDomain,
+    rule_version: &'static str,
+    entries: [CanonicalBasisEntry; N],
+) -> CanonicalDigestId {
+    let version = CanonicalizationRuleVersion::new(rule_version)
+        .expect("the fixed bank identity rule is valid");
+    let basis = prepare_canonical_basis_sequence(version, domain, entries)
+        .into_result()
+        .expect("bank idempotency identity fields have unique typed loci");
+    let ready = canonicalization()
+        .digest()
+        .for_sequence(basis, CanonicalDigestAlgorithmId::sha256())
+        .into_result()
+        .expect("SHA-256 admits the typed bank idempotency basis");
+    CanonicalDigestId::new(*canonicalization().digest().derive(ready).value().bytes())
+}
+
+fn text_entry(
+    domain: CanonicalBasisDomain,
+    locus: &'static str,
+    value: &str,
+) -> CanonicalBasisEntry {
+    entry(
+        domain,
+        locus,
+        CanonicalBasisValue::ExactText(value.to_owned().into()),
+    )
+}
+
+fn digest_entry(
+    domain: CanonicalBasisDomain,
+    locus: &'static str,
+    value: CanonicalDigestId,
+) -> CanonicalBasisEntry {
+    entry(domain, locus, CanonicalBasisValue::BytesDigest(value))
+}
+
+fn entry(
+    domain: CanonicalBasisDomain,
+    locus: &'static str,
+    value: CanonicalBasisValue,
+) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        domain,
+        CanonicalBasisLocus::Named(locus.into()),
+        CanonicalBasisEntryKind::Identity,
+        value,
+    )
 }
 
 fn canonical_hex(bytes: [u8; 32]) -> String {

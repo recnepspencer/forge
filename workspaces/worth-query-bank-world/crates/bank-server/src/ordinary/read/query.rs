@@ -1,8 +1,7 @@
+mod application_execution;
 mod declarations;
-mod execution;
 
 pub use declarations::queries;
-pub(crate) use execution::map_admission_denial as map_read_admission_denial;
 
 use super::BankReadControls;
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
@@ -58,19 +57,5 @@ impl<'runtime, 'principal, Query> BankQueryForPrincipal<'runtime, 'principal, Qu
             principal: self.principal,
             controls,
         }
-    }
-
-    pub(crate) const fn runtime(&self) -> &'runtime BankIdentityRuntime {
-        self.runtime
-    }
-
-    pub(crate) const fn principal(&self) -> &'principal BankAuthenticatedPrincipal {
-        self.principal
-    }
-}
-
-impl BankQueryForPrincipal<'_, '_, queries::AccountActivity> {
-    pub(crate) const fn query_account(&self) -> bank_domain::model::AccountId {
-        self.query.account()
     }
 }

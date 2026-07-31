@@ -12,15 +12,12 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         Some(read_view)
     }
 
-    pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
-        let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
-            build_visibility_state(
-                self.runtime,
-                version_id,
-                crate::snapshots::data::SnapshotId(0),
-                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-            )
-        });
+    pub(crate) fn read_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> RelationalReadView {
+        let state = reconstruct_state(self.runtime, version_id)
+            .expect("internal version reads require retained relational truth");
         read_view_from_snapshot_state(self.runtime, &state)
     }
 

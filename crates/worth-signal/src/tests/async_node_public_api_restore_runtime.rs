@@ -81,10 +81,7 @@ fn async_capable_node_public_rediscovery_after_restore_preserves_parity_and_expl
         historical_from_attached.parity_digest(),
         historical_from_rediscovered.parity_digest()
     );
-    assert_eq!(
-        historical_from_attached.branch_restore_report().is_some(),
-        true
-    );
+    assert!(historical_from_attached.branch_restore_report().is_some());
     assert_eq!(
         historical_from_attached.explanation_availability(),
         historical_from_rediscovered.explanation_availability()

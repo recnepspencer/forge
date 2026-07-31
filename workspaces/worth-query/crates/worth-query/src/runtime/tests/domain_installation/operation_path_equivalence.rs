@@ -33,10 +33,13 @@ fn installed_operation_resolution_is_identical_across_public_runtime_paths() {
         .into_result()
         .expect("the installed operation must execute through ordinary read");
 
-    let expected_shape = admission.requirement_set().access_shape_digest();
+    let expected_shape = admission
+        .requirement_set()
+        .access_shape_digest()
+        .render_hex();
     assert_eq!(
         ordinary_explanation.access_shape().digest().as_str(),
-        expected_shape
+        expected_shape.as_str()
     );
     assert_eq!(live_plan.one_shot_access_shape_digest(), expected_shape);
     assert_eq!(
