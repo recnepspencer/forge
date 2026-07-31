@@ -4,7 +4,7 @@ struct CertificationDraftPayload;
 
 impl crate::capability::UiIntentPayload for CertificationDraftPayload {
     const SCHEMA: crate::capability::UiIntentSchema =
-        crate::capability::UiIntentSchema::stable("worth-ui.certification.draft", 1);
+        crate::capability::UiIntentSchema::stable("worth_ui.certification.draft", 1);
     const FIELDS: crate::capability::UiIntentPayloadFieldSet =
         crate::capability::UiIntentPayloadFieldSet::new(&[CERTIFICATION_DRAFT_FIELD.descriptor()]);
 

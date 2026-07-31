@@ -7,11 +7,21 @@ use crate::capability::{
     UiIntentUnsigned64, UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct UiIntentApplicationFact<K: UiIntentPayloadValueKind> {
     identity: Arc<str>,
     text_byte_budget: usize,
     kind: PhantomData<fn() -> K>,
+}
+
+impl<K: UiIntentPayloadValueKind> Clone for UiIntentApplicationFact<K> {
+    fn clone(&self) -> Self {
+        Self {
+            identity: Arc::clone(&self.identity),
+            text_byte_budget: self.text_byte_budget,
+            kind: PhantomData,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

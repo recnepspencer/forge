@@ -178,6 +178,20 @@ impl UiIntentApplicationFactState {
         })
     }
 
+    pub(crate) fn commit_generation_successor(
+        &mut self,
+        predecessor: &crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        successor: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+    ) {
+        assert_eq!(
+            &self.generation, predecessor,
+            "application-fact succession must consume its exact active generation"
+        );
+        self.generation = successor;
+    }
+
     fn require(
         &mut self,
         identity: &str,

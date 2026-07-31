@@ -23,7 +23,7 @@ struct DraftTestPayload;
 
 impl crate::capability::UiIntentPayload for DraftTestPayload {
     const SCHEMA: crate::capability::UiIntentSchema =
-        crate::capability::UiIntentSchema::stable("worth-ui.runtime.draft-test", 1);
+        crate::capability::UiIntentSchema::stable("worth_ui.runtime.draft_test", 1);
     const FIELDS: crate::capability::UiIntentPayloadFieldSet =
         crate::capability::UiIntentPayloadFieldSet::EMPTY;
 

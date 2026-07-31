@@ -230,7 +230,7 @@ where
     application
 }
 
-fn launch_mounted_components(
+pub(crate) fn launch_mounted_components(
     application: worth_ui::facade::app::WorthUiApp,
     component_nodes: Vec<UiGraphNodeIdentity>,
     mode: UiHostSurfacePresentationMode,
@@ -249,7 +249,7 @@ fn launch_mounted_components(
     session
 }
 
-fn component_graph_nodes(
+pub(crate) fn component_graph_nodes(
     application: &worth_ui::facade::app::WorthUiApp,
 ) -> Vec<UiGraphNodeIdentity> {
     assert_eq!(application.graph().node_count(), 6);
