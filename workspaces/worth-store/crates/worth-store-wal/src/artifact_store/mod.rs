@@ -1,3 +1,4 @@
+#[cfg(feature = "certification-authority")]
 mod append_planner;
 mod exact_frontier_prefix;
 mod frame_codec;
@@ -5,7 +6,7 @@ mod offline_segment_verification;
 mod prefix_scan;
 mod scan;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "certification-authority"))]
 mod append_planner_tests;
 #[cfg(test)]
 mod offline_segment_verification_tests;
@@ -13,6 +14,7 @@ mod offline_segment_verification_tests;
 use crate::AdmittedWalAppendReceipt;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "certification-authority")]
 pub use append_planner::WalAppendPlanner;
 pub use exact_frontier_prefix::{
     inspect_wal_exact_frontier_prefix, WalExactFrontierPrefix, WalExactFrontierPrefixDenial,
@@ -150,6 +152,32 @@ pub fn prepare_wal_frame_append(
     )
 }
 
+pub(crate) fn encode_wal_frame_at_frontier(
+    segment_id: u64,
+    generation: u64,
+    lsn_start: u64,
+    lsn_end: u64,
+    declared_digest: &str,
+    payload: &[u8],
+    valid_prefix_bytes: u64,
+    last_lsn_end: Option<u64>,
+) -> Result<WalFrameAppendPlan, WalArtifactStoreDenial> {
+    frame_codec::encode_append(
+        segment_id,
+        generation,
+        lsn_start,
+        lsn_end,
+        declared_digest,
+        payload,
+        prefix_scan::WalPrefixScan {
+            valid_prefix_bytes,
+            observed_file_bytes: valid_prefix_bytes,
+            last_lsn_end,
+            bytes_scanned: 0,
+        },
+    )
+}
+
 pub(crate) fn validate_persisted_wal_frame(
     path: &Path,
     encoded_offset: u64,
@@ -177,7 +205,7 @@ impl WalFrameAppendPlan {
     }
 
     /// Bytes read while establishing the pre-append durable prefix.
-    /// A reused [`WalAppendPlanner`] reports only newly observed suffix bytes.
+    /// A reused reconstructive planner reports only newly observed suffix bytes.
     pub const fn prefix_bytes_scanned(&self) -> u64 {
         self.prefix_bytes_scanned
     }

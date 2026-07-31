@@ -50,7 +50,8 @@ impl ForegroundArbitrationPolicy {
         match lane {
             ForegroundIoLaneKind::PointRead => ForegroundFairnessClass::PointRead,
             ForegroundIoLaneKind::RangeRead => ForegroundFairnessClass::RangeRead,
-            ForegroundIoLaneKind::CommitCriticalWalWrite => {
+            ForegroundIoLaneKind::CommitCriticalWalAppend
+            | ForegroundIoLaneKind::CommitCriticalWalWrite => {
                 ForegroundFairnessClass::CommitCriticalWalWrite
             }
             ForegroundIoLaneKind::OrdinaryPageWrite => ForegroundFairnessClass::OrdinaryPageWrite,

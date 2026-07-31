@@ -7,7 +7,7 @@ use worth_store_physical_backend::{
     SimulatedStrictDurableProfile,
 };
 
-use super::{execute_wal_durability, WalAppendPlan, WalDurabilityExecutionError};
+use super::{certify_wal_durability_mechanism, WalAppendPlan, WalDurabilityMechanismProbeError};
 use crate::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
 
 #[test]
@@ -57,7 +57,7 @@ fn noncontiguous_lsn_is_a_typed_append_denial() {
     execute(&planner, 20, 21, "first", b"alpha").unwrap();
     assert!(matches!(
         execute(&planner, 22, 23, "gap", b"beta"),
-        Err(WalDurabilityExecutionError::Artifact(
+        Err(WalDurabilityMechanismProbeError::Artifact(
             worth_store_wal::WalArtifactStoreDenial::NonContiguousLsn
         ))
     ));
@@ -73,7 +73,7 @@ fn corrupted_committed_frame_blocks_later_acknowledgment() {
     std::fs::write(first.execution().persisted_path(), bytes).unwrap();
     assert!(matches!(
         execute(&planner, 31, 32, "second", b"beta"),
-        Err(WalDurabilityExecutionError::Artifact(
+        Err(WalDurabilityMechanismProbeError::Artifact(
             worth_store_wal::WalArtifactStoreDenial::DigestMismatch
         ))
     ));
@@ -105,7 +105,7 @@ fn windows_wal_append_flushes_its_parent_namespace_without_rename_publication() 
         ))
         .unwrap();
 
-    let outcome = execute_wal_durability(&planner, payload, plan, &backend).unwrap();
+    let outcome = certify_wal_durability_mechanism(&planner, payload, plan, &backend).unwrap();
 
     assert!(outcome.execution().persisted_path().is_file());
     assert!(outcome.durability().counters().directory_syncs_completed() > 0);
@@ -134,7 +134,7 @@ fn injected_torn_frame_cannot_issue_acknowledgment_and_reopens_at_valid_prefix()
         4,
     )
     .unwrap();
-    let denial = super::execute_wal_durability_with_boundary_control(
+    let denial = super::certify_wal_durability_mechanism_with_boundary_control(
         &planner,
         b"beta",
         plan,
@@ -144,7 +144,7 @@ fn injected_torn_frame_cannot_issue_acknowledgment_and_reopens_at_valid_prefix()
     .unwrap_err();
     assert!(matches!(
         denial,
-        WalDurabilityExecutionError::PhysicalIo(error)
+        WalDurabilityMechanismProbeError::PhysicalIo(error)
             if error.kind() == std::io::ErrorKind::Interrupted
     ));
     assert_eq!(control.trace().injected().len(), 1);
@@ -178,14 +178,14 @@ fn dropped_flush_cannot_mint_a_durability_proof_or_acknowledgment() {
     )
     .unwrap();
     assert!(matches!(
-        super::execute_wal_durability_with_boundary_control(
+        super::certify_wal_durability_mechanism_with_boundary_control(
             &planner,
             b"value",
             plan,
             &backend(),
             &control,
         ),
-        Err(WalDurabilityExecutionError::PhysicalIo(error))
+        Err(WalDurabilityMechanismProbeError::PhysicalIo(error))
             if error.kind() == std::io::ErrorKind::Interrupted
     ));
     assert_eq!(
@@ -228,14 +228,16 @@ fn generated_torn_wal_prefixes_never_acknowledge_or_break_lsn_continuity() {
             4,
         )
         .unwrap();
-        assert!(super::execute_wal_durability_with_boundary_control(
-            &planner,
-            b"beta",
-            plan,
-            &backend(),
-            &control,
-        )
-        .is_err());
+        assert!(
+            super::certify_wal_durability_mechanism_with_boundary_control(
+                &planner,
+                b"beta",
+                plan,
+                &backend(),
+                &control,
+            )
+            .is_err()
+        );
 
         let retried = execute(&planner, 1, 2, "second", b"beta").unwrap();
         assert_eq!(
@@ -254,8 +256,8 @@ fn execute(
     digest: &str,
     payload: &[u8],
 ) -> Result<
-    super::ExecutedWalDurabilityOutcome<SimulatedStrictDurableProfile>,
-    WalDurabilityExecutionError,
+    super::CertifiedWalDurabilityMechanismObservation<SimulatedStrictDurableProfile>,
+    WalDurabilityMechanismProbeError,
 > {
     let plan = WalAppendPlan::new(
         WalSegmentId::new(1).unwrap(),
@@ -265,7 +267,7 @@ fn execute(
         payload.len() as u64,
     )
     .unwrap();
-    execute_wal_durability(planner, payload, plan, &backend())
+    certify_wal_durability_mechanism(planner, payload, plan, &backend())
 }
 
 fn open_planner(root: &std::path::Path) -> worth_store_wal::WalAppendPlanner {

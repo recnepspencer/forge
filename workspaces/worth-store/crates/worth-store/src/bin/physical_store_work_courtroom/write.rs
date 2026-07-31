@@ -37,8 +37,11 @@ pub(super) fn run(invocation: WriteInvocation) -> Result<(), String> {
 fn seed_prior_truth(root: &std::path::Path, payload: &[u8]) -> Result<(), String> {
     let (format, placement, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(root, None)?;
+    let durability = super::admission::admit_durability(&media)?;
     let serving = super::admission::require_serving(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+        media.initialize_record_store(PhysicalRecordInitialization::new(
+            format, placement, access, durability,
+        )),
         "record-store initialization",
     )?;
     let published = serving
@@ -146,7 +149,8 @@ fn open_with_profile(
 ) -> Result<ServingPhysicalRuntime, String> {
     let (format, _, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(root, schedule)?;
-    let mut request = PhysicalRecordOpen::new(format, access);
+    let durability = super::admission::admit_durability(&media)?;
+    let mut request = PhysicalRecordOpen::new(format, access, durability);
     if let Some(profile) = profile {
         request = request.with_physical_work_profile(profile);
     }

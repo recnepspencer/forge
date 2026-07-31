@@ -35,6 +35,8 @@ const PHYSICAL_RECORD: &[StoreCanonicalBasisSourceKind] =
 const PHYSICAL_INTEGRITY: &[StoreCanonicalBasisSourceKind] =
     &[StoreCanonicalBasisSourceKind::StorePhysicalIntegrityEvidence];
 const WAL: &[StoreCanonicalBasisSourceKind] = &[StoreCanonicalBasisSourceKind::StoreWalRecord];
+const PHYSICAL_MUTATION_REQUEST: &[StoreCanonicalBasisSourceKind] =
+    &[StoreCanonicalBasisSourceKind::StorePhysicalMutationRequest];
 const RECOVERY_RECEIPT: &[StoreCanonicalBasisSourceKind] =
     &[StoreCanonicalBasisSourceKind::StoreRecoveryReceipt];
 const RECOVERY_PERFORMANCE: &[StoreCanonicalBasisSourceKind] =
@@ -222,6 +224,13 @@ pub const STORE_CANONICAL_BASIS_SOURCE_OWNERS: &[StoreCanonicalBasisSourceOwner]
         "WAL record",
         WAL,
         StoreCanonicalBasisLane::Wal,
+    ),
+    owner(
+        StoreCanonicalBasisFamily::PhysicalMutationRequestFingerprint,
+        "worth-store",
+        "physical mutation request equivalence",
+        PHYSICAL_MUTATION_REQUEST,
+        StoreCanonicalBasisLane::PhysicalMutation,
     ),
     owner(
         StoreCanonicalBasisFamily::RecoveryIntegrityHandoff,

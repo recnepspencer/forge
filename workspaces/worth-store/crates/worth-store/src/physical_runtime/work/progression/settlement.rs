@@ -1,8 +1,9 @@
 use worth_signal::facade::{ResourceAttemptId, ResourceRequestHandle};
 use worth_store_physical_backend::{
-    ArtifactTreePublicationEffect, BackendQueueExecutionPlanBinding, CompletedArtifactMetadataRead,
-    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    ArtifactTreePublicationEffect, BackendQueueExecutionPlanBinding, CompletedArtifactAppend,
+    CompletedArtifactMetadataRead, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
+    CompletedArtifactRangeWrite, IndeterminateArtifactAppend, IndeterminateArtifactNewWrite,
+    IndeterminateArtifactRangeWrite,
 };
 use worth_store_physical_format::RecordFrameCoordinate;
 
@@ -130,6 +131,79 @@ impl DispatchedPhysicalWork {
             && physical.create_operation() != physical.write().operation()
     }
 
+    pub(in crate::physical_runtime) fn matches_wal_append(
+        &self,
+        physical: &CompletedArtifactAppend,
+    ) -> bool {
+        let Some(scope) = self.intent().scope().wal_append_target() else {
+            return false;
+        };
+        physical.store() == self.intent().identity().store()
+            && physical.owner() == self.admitted.authority().media_owner_observation().owner()
+            && physical.range().offset() == scope.offset()
+            && physical.range().byte_count() == scope.byte_count()
+            && self.payload_digest == Some(physical.payload_digest())
+            && self.intent().operation() == PhysicalWorkOperationFamily::WalAppend
+    }
+
+    pub(in crate::physical_runtime) fn matches_wal_append_indeterminate(
+        &self,
+        physical: &IndeterminateArtifactAppend,
+    ) -> bool {
+        let Some(scope) = self.intent().scope().wal_append_target() else {
+            return false;
+        };
+        physical.store() == self.intent().identity().store()
+            && physical.owner() == self.admitted.authority().media_owner_observation().owner()
+            && physical.range().offset() == scope.offset()
+            && physical.range().byte_count() == scope.byte_count()
+            && physical.completed_bytes() <= scope.byte_count()
+            && self.payload_digest == Some(physical.payload_digest())
+            && self.intent().operation() == PhysicalWorkOperationFamily::WalAppend
+    }
+
+    pub(in crate::physical_runtime) fn matches_wal_barrier(
+        &self,
+        physical: &crate::physical_runtime::work::CompletedPhysicalWalBarrier,
+    ) -> bool {
+        self.matches_wal_barrier_binding(
+            physical.physical().store(),
+            physical.physical().owner(),
+            physical.artifact(),
+            physical.physical().effect(),
+        )
+    }
+
+    pub(in crate::physical_runtime) fn matches_wal_barrier_indeterminate(
+        &self,
+        physical: &crate::physical_runtime::work::IndeterminatePhysicalWalBarrier,
+    ) -> bool {
+        self.matches_wal_barrier_binding(
+            physical.physical().store(),
+            physical.physical().owner(),
+            physical.artifact(),
+            physical.physical().effect(),
+        )
+    }
+
+    fn matches_wal_barrier_binding(
+        &self,
+        store: worth_store_physical_format::store_namespace::StableStoreIdentity,
+        owner: worth_store_physical_backend::MediaOwnerIdentity,
+        artifact: &worth_store_physical_backend::ArtifactTreeFile,
+        effect: &ArtifactTreePublicationEffect,
+    ) -> bool {
+        store == self.intent().identity().store()
+            && owner == self.admitted.authority().media_owner_observation().owner()
+            && self.intent().scope().wal_barrier_target().is_some()
+            && self.intent().operation() == PhysicalWorkOperationFamily::DurabilityBarrier
+            && matches!(
+                effect,
+                ArtifactTreePublicationEffect::FileSynchronization(observed)
+                    if observed == artifact
+            )
+    }
+
     pub(in crate::physical_runtime) fn matches_new_artifact_indeterminate(
         &self,
         physical: IndeterminateArtifactNewWrite,
@@ -210,6 +284,10 @@ impl SettledPhysicalWork {
                 physical.write().operation()
             }
             PhysicalWorkSettlementEvidence::PublicationEffect { physical, .. } => {
+                physical.physical().operation()
+            }
+            PhysicalWorkSettlementEvidence::WalAppend { physical, .. } => physical.operation(),
+            PhysicalWorkSettlementEvidence::WalBarrier { physical, .. } => {
                 physical.physical().operation()
             }
             PhysicalWorkSettlementEvidence::TerminalFailure(failure) => failure.backend_operation(),

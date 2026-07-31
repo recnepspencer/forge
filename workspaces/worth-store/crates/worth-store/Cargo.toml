@@ -23,6 +23,7 @@ worth-store-io-scheduler.workspace = true
 worth-store-physical-backend = { workspace = true, features = ["store-runtime-owner"] }
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
+worth-store-wal.workspace = true
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-signal = { path = "../../../../crates/worth-signal" }
 worth-foundational = { path = "../../../../crates/worth-foundational" }

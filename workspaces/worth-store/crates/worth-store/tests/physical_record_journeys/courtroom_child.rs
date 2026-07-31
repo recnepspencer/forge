@@ -12,10 +12,9 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
     let records = super::courtroom_oracle::read(&oracle);
     assert_eq!(records.len(), 1_402);
     let (format, placement, access) = super::scenario_configuration::courtroom_configuration();
-    let serving = super::success(
-        super::media(root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(super::media(root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let counters_before_workload = serving.media_counters();
     let first = serving
         .record_submission()
@@ -102,9 +101,9 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
 
 pub(super) fn reopener(root: &Path, evidence: std::path::PathBuf) {
     let (format, _, access) = super::scenario_configuration::courtroom_configuration();
-    let serving = super::success(
-        super::media(root).open_record_store(PhysicalRecordOpen::new(format, access)),
-    );
+    let serving = super::success(open_record_store!(super::media(root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let mut rows = std::fs::read_to_string(evidence)
         .unwrap()
         .lines()

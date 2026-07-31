@@ -64,7 +64,7 @@ pub struct PhysicalMutationWorkRequest {
     pub(super) semantic_basis: PhysicalWorkSemanticBasis,
     pub(super) security: StoreAuthorityBoundSecurityScopeReceipt,
     pub(super) effect: PhysicalWorkEffectClass,
-    pub(super) durability: ArtifactRangeWriteDurabilityRequirement,
+    pub(super) durability: super::PhysicalWorkDurabilityRequirement,
     pub(super) recovery: PhysicalWorkRecoveryDisposition,
 }
 
@@ -81,7 +81,7 @@ impl PhysicalMutationWorkRequest {
             semantic_basis,
             security,
             PhysicalWorkEffectClass::IdempotentExactWrite,
-            durability,
+            super::PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(durability),
             PhysicalWorkRecoveryDisposition::RetryExact,
         )
     }
@@ -98,7 +98,7 @@ impl PhysicalMutationWorkRequest {
             semantic_basis,
             security,
             PhysicalWorkEffectClass::PublicationBoundary,
-            durability,
+            super::PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(durability),
             PhysicalWorkRecoveryDisposition::ContinueSettlement,
         )
     }
@@ -110,7 +110,7 @@ impl PhysicalMutationWorkRequest {
         semantic_basis: PhysicalWorkSemanticBasis,
         security: StoreAuthorityBoundSecurityScopeReceipt,
         effect: PhysicalWorkEffectClass,
-        durability: ArtifactRangeWriteDurabilityRequirement,
+        durability: super::PhysicalWorkDurabilityRequirement,
         recovery: PhysicalWorkRecoveryDisposition,
     ) -> Result<Self, PhysicalWorkSubmissionDenial> {
         if semantic_basis.posture() != PhysicalWorkSemanticPosture::Mutation {
@@ -126,6 +126,38 @@ impl PhysicalMutationWorkRequest {
             durability,
             recovery,
         })
+    }
+
+    pub(in crate::physical_runtime) fn wal_append(
+        scope: super::PhysicalWalAppendScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::WalAppend,
+            PhysicalWorkScope::wal_append(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::ReversibleBeforePublication,
+            super::PhysicalWorkDurabilityRequirement::WalAppend,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn wal_durability_barrier(
+        scope: super::PhysicalWalBarrierScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::DurabilityBarrier,
+            PhysicalWorkScope::wal_barrier(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::PublicationBoundary,
+            super::PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
     }
 }
 

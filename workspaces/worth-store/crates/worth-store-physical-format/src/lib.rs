@@ -181,9 +181,9 @@ pub use page_record::{
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
 pub use placement::{RecordArtifactFile, RecordFrameCoordinate};
 pub use record_framing::{
-    durable_artifact_checksum, DurableFrameDenial, DurableFrameKind, FramedRecordPayload,
-    FramedRecordView, RecordPagePayload, RecordPlacementClass, RecordPlacementWitness,
-    DURABLE_FRAME_HEADER_BYTES,
+    decode_data_frame_page_lsn, durable_artifact_checksum, encode_data_frame_page_lsn,
+    DurableFrameDenial, DurableFrameKind, FramedRecordPayload, FramedRecordView, PhysicalPageLsn,
+    RecordPagePayload, RecordPlacementClass, RecordPlacementWitness, DURABLE_FRAME_HEADER_BYTES,
 };
 pub use record_identity::PersistedRecordIdentity;
 pub use reference::{

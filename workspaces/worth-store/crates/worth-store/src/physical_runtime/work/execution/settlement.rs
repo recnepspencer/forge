@@ -1,14 +1,14 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    ArtifactRangeWriteDurability, ArtifactTreeFailure, CompletedArtifactMetadataRead,
-    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    MediaOperationRole,
+    ArtifactRangeWriteDurability, ArtifactTreeFailure, CompletedArtifactAppend,
+    CompletedArtifactMetadataRead, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
+    CompletedArtifactRangeWrite, MediaOperationRole,
 };
 
 use super::super::{
     PhysicalWorkRecoveryDisposition, PhysicalWorkRecoveryTarget, SettledPhysicalWork,
 };
-use super::CompletedPhysicalPublicationEffect;
+use super::{CompletedPhysicalPublicationEffect, CompletedPhysicalWalBarrier};
 
 mod classification;
 
@@ -49,6 +49,14 @@ pub enum PhysicalWorkSettlementEvidence {
     },
     PublicationEffect {
         physical: CompletedPhysicalPublicationEffect,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalAppend {
+        physical: CompletedArtifactAppend,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalBarrier {
+        physical: CompletedPhysicalWalBarrier,
         scheduler: QueueExecutionOutcome,
     },
     TerminalFailure(PhysicalWorkTerminalFailure),
@@ -182,6 +190,8 @@ impl PhysicalWorkSettlementEvidence {
             Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
                 Some(MediaOperationRole::PositionedWrite)
             }
+            Self::WalAppend { .. } => Some(MediaOperationRole::PositionedWrite),
+            Self::WalBarrier { .. } => Some(MediaOperationRole::SynchronizeFileState),
             Self::PublicationEffect { physical, .. } => {
                 Some(publication_effect_role(physical.effect()))
             }
@@ -215,6 +225,20 @@ impl PhysicalWorkSettlementEvidence {
                     PhysicalWorkEffectFate::WrittenButSchedulerRejected
                 }
             }
+            Self::WalAppend { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::WriteCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
+            Self::WalBarrier { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::PublicationCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
             Self::TerminalFailure(failure) => failure.effect_fate,
             Self::StaleOrForeign => PhysicalWorkEffectFate::StaleOrForeignOutcome,
         }
@@ -228,6 +252,8 @@ impl PhysicalWorkSettlementEvidence {
                 physical.completed_bytes()
             }
             Self::NewArtifact { physical, .. } => physical.write().completed_bytes(),
+            Self::WalAppend { physical, .. } => physical.range().byte_count(),
+            Self::WalBarrier { .. } => 0,
             Self::PublicationEffect { .. } => 0,
             Self::TerminalFailure(failure) => failure.completed_bytes,
         }
@@ -245,7 +271,9 @@ impl PhysicalWorkSettlementEvidence {
             Self::Write { .. }
             | Self::Publication { .. }
             | Self::NewArtifact { .. }
-            | Self::PublicationEffect { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
+            | Self::PublicationEffect { .. }
+            | Self::WalAppend { .. }
+            | Self::WalBarrier { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
         }
     }
 }
@@ -336,6 +364,8 @@ pub(in crate::physical_runtime::work) fn durability_satisfies(
     use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
     match declared {
         PhysicalWorkDurabilityRequirement::ReadOnly => false,
+        PhysicalWorkDurabilityRequirement::WalAppend => false,
+        PhysicalWorkDurabilityRequirement::WalDurabilityBarrier => false,
         PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(requirement) => match requirement {
             ArtifactRangeWriteDurabilityRequirement::BufferedWrite => true,
             ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization => {

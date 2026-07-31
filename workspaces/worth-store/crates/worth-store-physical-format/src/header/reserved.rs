@@ -1,27 +1,27 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalHeaderReservedField {
     ChecksumSlot,
-    RecoveryLsn,
+    ReservedTail,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalHeaderReservedFields {
     checksum_slot: u32,
-    recovery_lsn: u64,
+    tail: [u8; 8],
 }
 
 impl PhysicalHeaderReservedFields {
-    pub const fn new(checksum_slot: u32, recovery_lsn: u64) -> Self {
+    pub const fn new(checksum_slot: u32, tail: [u8; 8]) -> Self {
         Self {
             checksum_slot,
-            recovery_lsn,
+            tail,
         }
     }
 
     pub const fn zeroed() -> Self {
         Self {
             checksum_slot: 0,
-            recovery_lsn: 0,
+            tail: [0; 8],
         }
     }
 
@@ -29,16 +29,20 @@ impl PhysicalHeaderReservedFields {
         self.checksum_slot
     }
 
-    pub const fn recovery_lsn(self) -> u64 {
-        self.recovery_lsn
-    }
-
     pub const fn misused_field(self) -> Option<PhysicalHeaderReservedField> {
         if self.checksum_slot != 0 {
             return Some(PhysicalHeaderReservedField::ChecksumSlot);
         }
-        if self.recovery_lsn != 0 {
-            return Some(PhysicalHeaderReservedField::RecoveryLsn);
+        if self.tail[0] != 0
+            || self.tail[1] != 0
+            || self.tail[2] != 0
+            || self.tail[3] != 0
+            || self.tail[4] != 0
+            || self.tail[5] != 0
+            || self.tail[6] != 0
+            || self.tail[7] != 0
+        {
+            return Some(PhysicalHeaderReservedField::ReservedTail);
         }
         None
     }

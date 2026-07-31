@@ -15,10 +15,9 @@ const FRAME_BYTES: u32 = 8;
 
 pub(super) fn initialize_store(root: &Path) {
     let (format, placement, access) = configuration();
-    let seeded = success(
-        media(root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let seeded = success(initialize_record_store!(media(root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert!(!seeded.close().residency().requires_inspection());
 }
 
@@ -37,16 +36,16 @@ pub(super) fn open_store_with_writebehind(
     writebehind_frames: u32,
 ) -> ServingPhysicalRuntime {
     let (format, _, access) = configuration();
-    success(media(root).open_record_store(
-        PhysicalRecordOpen::new(format, access).with_residency_policy(
+    success(open_record_store!(media(root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(
             residency_policy_with_writebehind(
                 format,
                 prefetch_frames,
                 read_ahead_frames,
                 writebehind_frames,
             ),
-        ),
-    ))
+        )
+    },))
 }
 
 pub(super) fn residency_policy(

@@ -22,6 +22,7 @@ mod abandonment;
 mod capacity_lease;
 mod effect_activity;
 mod in_flight_activity;
+mod mutation_identity;
 mod outcome;
 mod request;
 mod reservation;
@@ -35,6 +36,7 @@ pub(in crate::physical_runtime) use abandonment::{
 };
 pub(super) use capacity_lease::PhysicalWorkCapacityLease;
 pub(in crate::physical_runtime) use effect_activity::PhysicalEffectActivity;
+pub(in crate::physical_runtime) use mutation_identity::PhysicalMutationIdentityReservationError;
 pub use outcome::{
     PhysicalWorkCapacityDimension, PhysicalWorkSubmissionDeferred, PhysicalWorkSubmissionDenial,
     PhysicalWorkSubmissionFailure, PhysicalWorkSubmissionOutcome, PhysicalWorkSubmissionReceipt,

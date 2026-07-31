@@ -66,7 +66,9 @@ fn serving_with_schedule(
         _ => panic!("fault must target serving work"),
     };
     let (format, _, access) = configuration();
-    success(media.open_record_store(PhysicalRecordOpen::new(format, access)))
+    success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }))
 }
 
 #[test]

@@ -1,6 +1,7 @@
 mod backend_capability;
 mod capacity_binding;
 mod capacity_policy;
+mod capacity_shortfalls;
 mod foreground_case;
 mod outcomes;
 mod physical_instance;

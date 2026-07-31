@@ -32,29 +32,12 @@ impl PhysicalWorkAdmission {
         physical: &PhysicalWorkAdmissionAuthority,
         health: &ServingHealth,
     ) -> Result<AdmittedPhysicalWork, PhysicalWorkPreEffectDenial> {
-        let state = owner.state();
         let identity = receipt.identity();
-        require_physical_authority(state, physical)?;
-        require_current_identity(state, identity, receipt.signal_profile(), health)?;
-        let (intent, capacity) = state
-            .admit_declared(identity)
-            .ok_or(PhysicalWorkPreEffectDenial::CommandAbsent)?;
-        let signal_family = intent.operation().required_signal_family();
-        let binding = state
-            .bindings()
-            .binding_for_identity(intent.semantic_basis().aspect_identity())
-            .filter(|binding| {
-                binding.contract().binding_stamp() == intent.semantic_basis().binding_stamp()
-                    && binding.serves_family(signal_family)
-            })
-            .ok_or(PhysicalWorkPreEffectDenial::SignalProfileMismatch)?;
-        let physical_authority =
-            AdmittedPhysicalWorkAuthority::seal(&intent, binding.digest(), signal_family, physical);
-        Ok(AdmittedPhysicalWork::new(
-            intent,
-            physical_authority,
-            capacity,
-        ))
+        let admitted = admit_declared(owner, receipt, physical, health);
+        if admitted.is_err() {
+            owner.cancel_before_dispatch(identity);
+        }
+        admitted
     }
 
     pub(in crate::physical_runtime) fn require_current(
@@ -78,6 +61,37 @@ impl PhysicalWorkAdmission {
         Self::require_current(owner, ready.intent(), health)?;
         ready.require_consumer_active()
     }
+}
+
+fn admit_declared(
+    owner: &PhysicalWorkSubmissionOwner,
+    receipt: PhysicalWorkSubmissionReceipt,
+    physical: &PhysicalWorkAdmissionAuthority,
+    health: &ServingHealth,
+) -> Result<AdmittedPhysicalWork, PhysicalWorkPreEffectDenial> {
+    let state = owner.state();
+    let identity = receipt.identity();
+    require_physical_authority(state, physical)?;
+    require_current_identity(state, identity, receipt.signal_profile(), health)?;
+    let (intent, capacity) = state
+        .admit_declared(identity)
+        .ok_or(PhysicalWorkPreEffectDenial::CommandAbsent)?;
+    let signal_family = intent.operation().required_signal_family();
+    let binding = state
+        .bindings()
+        .binding_for_identity(intent.semantic_basis().aspect_identity())
+        .filter(|binding| {
+            binding.contract().binding_stamp() == intent.semantic_basis().binding_stamp()
+                && binding.serves_family(signal_family)
+        })
+        .ok_or(PhysicalWorkPreEffectDenial::SignalProfileMismatch)?;
+    let physical_authority =
+        AdmittedPhysicalWorkAuthority::seal(&intent, binding.digest(), signal_family, physical);
+    Ok(AdmittedPhysicalWork::new(
+        intent,
+        physical_authority,
+        capacity,
+    ))
 }
 
 fn require_physical_authority(

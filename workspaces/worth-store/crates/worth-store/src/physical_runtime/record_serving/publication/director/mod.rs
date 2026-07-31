@@ -14,6 +14,8 @@ use super::super::{
     RecordPublicationResidueObservation,
 };
 
+mod durable_data;
+mod durable_preparation;
 mod execution;
 mod lifecycle;
 mod submission;
@@ -22,6 +24,14 @@ pub use submission::{PhysicalRecordSubmission, PreparedRecordAppend};
 
 pub(in crate::physical_runtime) struct RecordPublicationDirector {
     runtime: Weak<PhysicalStoreWorkRuntime>,
+    mutation_identity: crate::physical_runtime::PhysicalMutationSubmission,
+    idempotency: crate::physical_runtime::durability::PhysicalMutationIdempotencyRuntimeAuthority,
+    durability: crate::physical_runtime::PhysicalDurabilityObservation,
+    signal_profile: crate::physical_runtime::PhysicalSignalProfileIdentity,
+    security_basis: [u8; 32],
+    durability_policy_basis: crate::physical_runtime::PhysicalWorkSemanticBasis,
+    wal: crate::physical_runtime::durability::PhysicalWalAppendPort,
+    wal_barrier: crate::physical_runtime::durability::PhysicalWalBarrierPort,
     residency: PhysicalResidencyWorkPort,
     mutation: CanonicalRecordMutationPort,
     generation: crate::physical_runtime::LifecycleGeneration,
@@ -40,6 +50,18 @@ pub(in crate::physical_runtime) struct RecordPublicationTerminalState {
 }
 
 pub(in crate::physical_runtime) struct RecordPublicationFoundation {
+    pub(in crate::physical_runtime) idempotency:
+        crate::physical_runtime::durability::PhysicalMutationIdempotencyRuntimeAuthority,
+    pub(in crate::physical_runtime) durability:
+        crate::physical_runtime::PhysicalDurabilityObservation,
+    pub(in crate::physical_runtime) signal_profile:
+        crate::physical_runtime::PhysicalSignalProfileIdentity,
+    pub(in crate::physical_runtime) security_basis: [u8; 32],
+    pub(in crate::physical_runtime) durability_policy_basis:
+        crate::physical_runtime::PhysicalWorkSemanticBasis,
+    pub(in crate::physical_runtime) wal: crate::physical_runtime::durability::PhysicalWalAppendPort,
+    pub(in crate::physical_runtime) wal_barrier:
+        crate::physical_runtime::durability::PhysicalWalBarrierPort,
     pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime) current_root: DurablePhysicalRootManifest,
@@ -80,6 +102,14 @@ impl RecordPublicationDirector {
         let writeback = mutation.frame_writeback_port(foundation.frame_ports.clone());
         Arc::new(Self {
             runtime: Arc::downgrade(runtime),
+            mutation_identity: runtime.submission.mutation_submission(),
+            idempotency: foundation.idempotency,
+            durability: foundation.durability,
+            signal_profile: foundation.signal_profile,
+            security_basis: foundation.security_basis,
+            durability_policy_basis: foundation.durability_policy_basis,
+            wal: foundation.wal,
+            wal_barrier: foundation.wal_barrier,
             residency: PhysicalResidencyWorkPort::new(
                 foundation.frame_ports,
                 CanonicalFrameReadSource::new(planning_read),

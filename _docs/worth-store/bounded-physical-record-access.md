@@ -27,6 +27,8 @@ limits.
 Most callers need these exports from `worth_store::physical_runtime`:
 
 - `PhysicalRecordResidencyPolicy::builder()` to declare the envelope;
+- `PhysicalDurabilityDeclaration::builder()` to declare durability after
+  filesystem-media admission;
 - `PhysicalRecordOpen::with_residency_policy(...)` or
   `PhysicalRecordInitialization::with_residency_policy(...)` to attach the
   admitted policy;
@@ -50,8 +52,9 @@ The supporting public types include `PhysicalRecordChunkView`,
 counter/allocation snapshots returned by that observation.
 
 `PhysicalRecordInitialization::new(...)` and `PhysicalRecordOpen::new(...)`
-already carry the canonical admitted policy. An explicit declaration replaces
-that policy; it does not create a second pool.
+require the admitted durability policy derived from the exact admitted
+filesystem media. There is no implicit durability policy and no constructor
+that lets a caller omit it.
 
 This guide starts after physical runtime and filesystem-media admission.
 `open_record_store` is the public handoff between the configured open request
@@ -136,7 +139,9 @@ Admission rejects:
 
 ## Small Example
 
-Use the canonical admitted policy by constructing the request normally:
+After filesystem-media admission, admit the deployment durability policy
+against that exact media. Pass the resulting move-owned `durability` value
+when constructing the request:
 
 ```rust
 use worth_store::physical_runtime::{
@@ -148,11 +153,12 @@ let format = AdmittedPhysicalRecordFormat::admit(
     PhysicalRecordFormatDeclaration::builder().admit().unwrap(),
 );
 let access = PhysicalRecordAccessPolicy::builder().admit(format).unwrap();
-let request = PhysicalRecordOpen::new(format, access);
+let request = PhysicalRecordOpen::new(format, access, durability);
 ```
 
-This is the minimal honest use because `PhysicalRecordOpen` already contains
-an admitted policy. There is no raw default policy that can bypass admission.
+This is the minimal honest request construction. A policy admitted for a
+different Store root or qualification basis is rejected before serving effects
+can begin. There is no raw default policy that can bypass admission.
 
 ## Real Example
 
@@ -202,7 +208,8 @@ let residency = PhysicalRecordResidencyPolicy::builder()
     .expect("deployment residency policy must fit the admitted format");
 
 let request =
-    PhysicalRecordOpen::new(format, access).with_residency_policy(residency);
+    PhysicalRecordOpen::new(format, access, durability)
+        .with_residency_policy(residency);
 
 fn inspect_residency(serving: &ServingPhysicalRuntime) {
     let observation = serving.residency_observation();
@@ -233,9 +240,11 @@ fn inspect_read_pressure(error: &RecordReadError) {
 ```
 
 The format remains authoritative for page size. The admitted residency value
-proves configuration completeness and consistency. The request retains that
-proof until Store consumes it to construct the pool. The application never
-receives frame-table, eviction, or allocation-grant authority.
+proves configuration completeness and consistency. The durability value proves
+that a complete durability declaration was admitted against this filesystem
+media. The request retains both proofs until Store consumes them. The
+application never receives frame-table, eviction, or allocation-grant
+authority.
 
 In production code, match the policy outcome and report
 `PhysicalRecordResidencyPolicyDenial` rather than using `expect`.
@@ -528,6 +537,7 @@ the unit classification without embedding evidence in the denial enum.
 
 ## Related Docs
 
+- [Physical WAL Append](./physical-wal-append.md)
 - [C.6 Buffer-Pool Runtime Join](./physical-reconstruction-c6-buffer-pool-runtime-join.md)
 - [C.5.1 Physical Store Work Runtime](./physical-reconstruction-c5-1-physical-store-work-runtime.md)
 - [Physical Foundation Reconstruction Roadmap](./physical-foundation-reconstruction-roadmap.md)

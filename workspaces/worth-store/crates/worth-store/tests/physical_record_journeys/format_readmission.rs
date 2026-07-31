@@ -15,8 +15,10 @@ fn current_version_reopens_and_every_unimplemented_version_fails_typed() {
     let (format, _, access) = configuration();
     let current = parent.path().join("current");
     serving_from_initialization(&current).close();
-    super::success(media(&current).open_record_store(PhysicalRecordOpen::new(format, access)))
-        .close();
+    super::success(open_record_store!(media(&current), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }))
+    .close();
 
     for (name, relative_path, expected_read_bytes) in [
         ("catalog", "families/records/bootstrap.catalog", 74),
@@ -41,9 +43,10 @@ fn current_version_reopens_and_every_unimplemented_version_fails_typed() {
 
         let media = media(&root);
         let before = media.media_counters();
-        let outcome = media
-            .open_record_store(PhysicalRecordOpen::new(format, access))
-            .into_raw();
+        let outcome = open_record_store!(media, |durability| PhysicalRecordOpen::new(
+            format, access, durability
+        ))
+        .into_raw();
         let TransitionOutcome::Denied(denial) = outcome else {
             panic!("{name} with an unimplemented version cannot open")
         };
@@ -115,9 +118,10 @@ fn unsupported_catalog_format_dimensions_localize_before_root_traversal() {
         std::fs::write(&catalog, bytes).unwrap();
         let media = media(&root);
         let before = media.media_counters();
-        let outcome = media
-            .open_record_store(PhysicalRecordOpen::new(format, access))
-            .into_raw();
+        let outcome = open_record_store!(media, |durability| PhysicalRecordOpen::new(
+            format, access, durability
+        ))
+        .into_raw();
         let TransitionOutcome::Denied(denial) = outcome else {
             panic!("{name} must be denied")
         };
@@ -157,9 +161,10 @@ fn selected_stale_root_and_foreign_store_use_distinct_proof_outcomes() {
     reseal(&mut bytes);
     std::fs::write(&catalog, bytes).unwrap();
     let (format, _, access) = configuration();
-    let outcome = media(&root)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw();
+    let outcome = open_record_store!(media(&root), |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Stale(stale) = outcome else {
         panic!("selected stale root must be stale")
     };
@@ -176,9 +181,10 @@ fn selected_stale_root_and_foreign_store_use_distinct_proof_outcomes() {
     bytes[40..56].copy_from_slice(&[0x77; 16]);
     reseal(&mut bytes);
     std::fs::write(&catalog, bytes).unwrap();
-    let outcome = media(&foreign_root)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw();
+    let outcome = open_record_store!(media(&foreign_root), |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::RebindRequired(rebind) = outcome else {
         panic!("foreign persisted Store identity must require rebind")
     };
@@ -203,9 +209,10 @@ fn caller_format_narrows_acceptance_without_authorizing_migration() {
     let access = PhysicalRecordAccessPolicy::builder()
         .admit(expected)
         .unwrap();
-    let outcome = media(&root)
-        .open_record_store(PhysicalRecordOpen::new(expected, access))
-        .into_raw();
+    let outcome = open_record_store!(media(&root), |durability| PhysicalRecordOpen::new(
+        expected, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = outcome else {
         panic!("format drift cannot migrate on open")
     };

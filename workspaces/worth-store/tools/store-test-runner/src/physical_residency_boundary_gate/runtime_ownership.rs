@@ -91,7 +91,6 @@ fn production_has_one_constructor_for_each_runtime_authority() {
 fn residency_composition_contains_no_local_work_runtime() {
     for relative in [
         "crates/worth-store/src/physical_runtime/record_serving/residency",
-        "crates/worth-store/src/physical_runtime/record_serving/c6_handoff",
         "crates/worth-store-buffer-pool/src/physical_residency/speculation",
     ] {
         let root = workspace_root().join(relative);

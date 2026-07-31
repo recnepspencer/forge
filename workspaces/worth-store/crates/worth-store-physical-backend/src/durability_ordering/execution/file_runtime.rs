@@ -21,6 +21,7 @@ pub struct StoreDurabilityRuntime {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[cfg(feature = "certification-test-authority")]
 pub struct StoreDurabilityAppendInput<'input> {
     relative_path: &'input Path,
     encoded_frame: &'input [u8],
@@ -53,6 +54,7 @@ impl StoreDurabilityRuntime {
         )
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub fn persist_append_and_execute<S: Clone>(
         &mut self,
         root: &Path,
@@ -67,6 +69,7 @@ impl StoreDurabilityRuntime {
         )
     }
 
+    #[cfg(feature = "certification-test-authority")]
     pub fn persist_append_and_execute_with_control<S: Clone>(
         &mut self,
         root: &Path,
@@ -140,6 +143,7 @@ impl StoreDurabilityRuntime {
     }
 }
 
+#[cfg(feature = "certification-test-authority")]
 impl<'input> StoreDurabilityAppendInput<'input> {
     pub const fn new(
         relative_path: &'input Path,

@@ -13,6 +13,8 @@ pub const fn admits_verification_pressure(class: BackgroundIoPressureClass) -> b
 pub const fn ingest_pressure_foreground_lane_admits(lane: ForegroundIoLaneKind) -> bool {
     matches!(
         lane,
-        ForegroundIoLaneKind::CommitCriticalWalWrite | ForegroundIoLaneKind::OrdinaryPageWrite
+        ForegroundIoLaneKind::CommitCriticalWalAppend
+            | ForegroundIoLaneKind::CommitCriticalWalWrite
+            | ForegroundIoLaneKind::OrdinaryPageWrite
     )
 }

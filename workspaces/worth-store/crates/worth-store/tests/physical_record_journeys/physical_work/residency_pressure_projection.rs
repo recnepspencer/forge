@@ -22,10 +22,9 @@ fn public_read_and_append_pressure_retains_exact_pre_effect_basis() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("public-residency-pressure");
     let (format, placement, access) = configuration();
-    let seeded = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let seeded = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = seeded
         .record_submission()
         .append_batch(
@@ -38,10 +37,9 @@ fn public_read_and_append_pressure_retains_exact_pre_effect_basis() {
     assert!(!seeded.close().residency().requires_inspection());
 
     let policy = one_page_operation_policy(format);
-    let serving =
-        success(media(&root).open_record_store(
-            PhysicalRecordOpen::new(format, access).with_residency_policy(policy),
-        ));
+    let serving = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(policy)
+    },));
     let store = serving.store_identity();
     let observation = serving.residency_observation();
     let generation = observation.store_generation();
@@ -134,10 +132,9 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("writebehind-pressure-cleanup");
     let (format, placement, access) = configuration();
-    let initialized = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let initialized = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert!(!initialized.close().residency().requires_inspection());
 
     let admission =
@@ -161,12 +158,10 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
         TransitionOutcome::Success(media) => media,
         _ => panic!("writebehind pressure media must admit"),
     };
-    let serving = success(
-        media.open_record_store(
-            PhysicalRecordOpen::new(format, access)
-                .with_residency_policy(two_append_writebehind_policy(format)),
-        ),
-    );
+    let serving = success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+            .with_residency_policy(two_append_writebehind_policy(format))
+    },));
     let payload = vec![73_u8; 1024 * 1024];
     let residency_before = serving.residency_observation().counters();
     let submission = serving.record_submission();

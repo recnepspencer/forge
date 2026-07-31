@@ -1,16 +1,22 @@
-use std::path::Path;
+use std::{
+    num::{NonZeroU32, NonZeroU64},
+    path::Path,
+};
 
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AbortedRuntime, AdmissionError, AdmittedRecordPlacementPolicy, ClosedRuntime,
-    FilesystemMediaAdmission, MediaAdmissionInspectionCause, PhysicalRecordInitialization,
-    PhysicalRuntimeAdmission, PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure,
-    RecordServingRebindReason, RecordServingStaleReason, ServingPhysicalRuntime,
-    ServingShutdownOutcome,
+    AbortedRuntime, AdmissionError, AdmittedPhysicalDurabilityPolicy,
+    AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, ClosedRuntime, FilesystemMediaAdmission,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
+    MediaAdmissionInspectionCause, MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit,
+    PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration, PhysicalDurabilityPolicyDenial,
+    PhysicalIdempotencyPolicy, PhysicalRecordInitialization, PhysicalRuntimeAdmission,
+    PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure, RecordServingRebindReason,
+    RecordServingStaleReason, RetainedWalTailLimit, ServingPhysicalRuntime, ServingShutdownOutcome,
 };
 use worth_store_physical_backend::{
-    FilesystemAccessPosture, MediaQualificationDeferred, MediaQualificationDenial,
-    MediaQualificationRebindRequired, MediaQualificationStale,
+    BackendCapabilityAdmissionDenial, FilesystemAccessPosture, MediaQualificationDeferred,
+    MediaQualificationDenial, MediaQualificationRebindRequired, MediaQualificationStale,
 };
 
 use crate::TemporaryDirectory;
@@ -26,6 +32,8 @@ pub enum PhysicalResidencyStoreWorldConstructionFailure {
     MediaStale(MediaQualificationStale),
     MediaRebindRequired(MediaQualificationRebindRequired),
     MediaInspectionRequired(MediaAdmissionInspectionCause),
+    DurabilityBasis(BackendCapabilityAdmissionDenial),
+    DurabilityPolicy(PhysicalDurabilityPolicyDenial),
     RecordDenied(RecordBootstrapDenial),
     RecordStale(RecordServingStaleReason),
     RecordRebindRequired(RecordServingRebindReason),
@@ -55,10 +63,12 @@ impl PhysicalResidencyStoreWorld {
         )
         .map_err(PhysicalResidencyStoreWorldConstructionFailure::Runtime)?;
         let media = admit_media(runtime)?;
+        let durability = admit_durability(&media)?;
         let request = PhysicalRecordInitialization::new(
             configuration.format,
             configuration.placement,
             configuration.access,
+            durability,
         )
         .with_residency_policy(configuration.residency);
         let serving = admit_record_store(media.initialize_record_store(request))?;
@@ -84,6 +94,39 @@ impl PhysicalResidencyStoreWorld {
             .take()
             .expect("a live fixture closes its serving runtime exactly once")
             .close()
+    }
+}
+
+fn admit_durability(
+    media: &MediaOwnedPhysicalRuntime,
+) -> Result<AdmittedPhysicalDurabilityPolicy, PhysicalResidencyStoreWorldConstructionFailure> {
+    let basis = media
+        .physical_durability_admission_basis()
+        .map_err(PhysicalResidencyStoreWorldConstructionFailure::DurabilityBasis)?;
+    match PhysicalDurabilityDeclaration::builder()
+        .group_commit(
+            GroupCommitLimit::new(NonZeroU32::new(32).unwrap()),
+            GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
+        )
+        .idempotency(PhysicalIdempotencyPolicy::new(
+            IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
+            PendingUnresolvedMutationLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ))
+        .checkpoint(PhysicalCheckpointPolicy::fuzzy(
+            CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
+            RetainedWalTailLimit::new(NonZeroU64::new(64 * 1024 * 1024).unwrap()),
+        ))
+        .admit(basis)
+        .into_raw()
+    {
+        TransitionOutcome::Success(policy) => Ok(policy),
+        TransitionOutcome::Denied(denial) => {
+            Err(PhysicalResidencyStoreWorldConstructionFailure::DurabilityPolicy(denial))
+        }
+        TransitionOutcome::Deferred(deferred) => match deferred {},
+        TransitionOutcome::Stale(stale) => match stale {},
+        TransitionOutcome::RebindRequired(rebind) => match rebind {},
+        TransitionOutcome::Failed(failure) => match failure {},
     }
 }
 

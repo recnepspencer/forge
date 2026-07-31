@@ -32,6 +32,7 @@ struct ShutdownProtocol<State, Terminate> {
     publication_residue: RecordPublicationResidueObservation,
     health: Option<ServingHealth>,
     residency_owner: Option<PhysicalResidencyOwner>,
+    durability_owner: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
     work_runtime: Option<Arc<PhysicalStoreWorkRuntime>>,
     work_cancellation: Option<PhysicalWorkSafeCancellation>,
     work: Option<PhysicalWorkShutdownObservation>,
@@ -97,6 +98,7 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             access: _access,
             publication,
             residency,
+            durability,
         } = parts;
         let publication =
             crate::physical_runtime::record_serving::RecordPublicationDirector::stop_and_extract(
@@ -113,6 +115,7 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             publication_residue,
             health: None,
             residency_owner: Some(residency),
+            durability_owner: durability,
             work_runtime: Some(work_runtime),
             work_cancellation: None,
             work: None,
@@ -216,6 +219,7 @@ impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
     where
         Terminate: FnOnce(PhysicalRuntimeCore) -> Terminal,
     {
+        drop(self.durability_owner);
         drop(self.termination);
         let residency = self.residency.expect("residency phase completed");
         let record_counters = self.record_owner.into_terminal_snapshot();
@@ -261,6 +265,7 @@ impl<State, Terminate> ShutdownProtocol<State, Terminate> {
             publication_residue: self.publication_residue,
             health: self.health,
             residency_owner: self.residency_owner,
+            durability_owner: self.durability_owner,
             work_runtime: self.work_runtime,
             work_cancellation: self.work_cancellation,
             work: self.work,

@@ -30,13 +30,10 @@ fn cross_format_configuration_is_denied_before_initialization_or_open_effects() 
     let access_64k = PhysicalRecordAccessPolicy::builder()
         .admit(format_64k())
         .unwrap();
-    let initialize = media(&root)
-        .initialize_record_store(PhysicalRecordInitialization::new(
-            format_16k,
-            placement_16k,
-            access_64k,
-        ))
-        .into_raw();
+    let initialize = initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format_16k, placement_16k, access_64k, durability)
+    })
+    .into_raw();
     let TransitionOutcome::Denied(denial) = initialize else {
         panic!("cross-format initialization must be denied");
     };
@@ -47,21 +44,19 @@ fn cross_format_configuration_is_denied_before_initialization_or_open_effects() 
     assert!(!root.join("families/records").exists());
     let runtime = denial.into_runtime();
 
-    let serving = match runtime
-        .initialize_record_store(PhysicalRecordInitialization::new(
-            format_16k,
-            placement_16k,
-            access_16k,
-        ))
-        .into_raw()
+    let serving = match initialize_record_store!(runtime, |durability| {
+        PhysicalRecordInitialization::new(format_16k, placement_16k, access_16k, durability)
+    })
+    .into_raw()
     {
         TransitionOutcome::Success(serving) => serving,
         _ => panic!("matching configuration must initialize"),
     };
     serving.close();
-    let open = media(&root)
-        .open_record_store(PhysicalRecordOpen::new(format_16k, access_64k))
-        .into_raw();
+    let open = open_record_store!(media(&root), |durability| PhysicalRecordOpen::new(
+        format_16k, access_64k, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = open else {
         panic!("cross-format open must be denied");
     };
@@ -110,13 +105,9 @@ fn extent_geometry_is_format_owned_and_survives_access_policy_narrowing() {
         .scratch_limit(RecordByteLimit::new(65_536).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-            format,
-            placement,
-            wide_access,
-        )),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, wide_access, durability)
+    }));
     let payload = vec![0x5a; 40_000];
     let published = serving
         .record_submission()
@@ -136,8 +127,9 @@ fn extent_geometry_is_format_owned_and_survives_access_policy_narrowing() {
     assert_eq!(manifest.maximum_frame_bytes(), 16_384);
 
     let (_, _, narrow_access) = configuration();
-    let reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, narrow_access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, narrow_access, durability)
+    }));
     let session = reopened
         .records()
         .open(

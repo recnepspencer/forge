@@ -17,10 +17,9 @@ fn mixed_batch_streams_extent_and_a_fresh_process_reads_with_seventeen_widths() 
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let logical_bytes = 1_048_613_u64;
     let batch = RecordAppendBatch::builder()
         .push_bytes(b"inline")

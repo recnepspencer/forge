@@ -27,6 +27,7 @@ default = []
 certification-test-authority = [
     "dep:tempfile",
     "worth-store-physical-backend/certification-test-authority",
+    "worth-store-wal/certification-authority",
 ]
 phase21-layout-rule-construction = []
 phase22-layout-rule-construction = []

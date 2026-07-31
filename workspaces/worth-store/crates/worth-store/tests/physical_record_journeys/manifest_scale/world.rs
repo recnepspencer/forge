@@ -144,8 +144,14 @@ fn seed_scale_world(record_count: u16) -> SeededScaleWorld {
     let format = super::super::scale_support::format();
     let placement = super::super::scale_support::placement(format, 2, 2, 50);
     let initial_access = super::super::scale_support::access(format, 17);
-    let serving = super::super::success(super::super::media(&root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, placement, initial_access),
+    let serving = super::super::success(initialize_record_store!(
+        super::super::media(&root),
+        |durability| PhysicalRecordInitialization::new(
+            format,
+            placement,
+            initial_access,
+            durability
+        ),
     ));
     let payloads = (0..record_count)
         .map(|ordinal| vec![(ordinal % 251) as u8; 100])
@@ -176,10 +182,10 @@ fn observe_runtime_world(
     seeded: &SeededScaleWorld,
     changed_access: AdmittedRecordAccessPolicy,
 ) -> RuntimeScaleWorld {
-    let serving = super::super::success(
-        super::super::media(&seeded.root)
-            .open_record_store(PhysicalRecordOpen::new(seeded.format, changed_access)),
-    );
+    let serving = super::super::success(open_record_store!(
+        super::super::media(&seeded.root),
+        |durability| PhysicalRecordOpen::new(seeded.format, changed_access, durability)
+    ));
     assert_eq!(
         serving
             .records()

@@ -14,10 +14,9 @@ fn batch_packing_matches_an_independent_page_oracle() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = [b"abc".as_slice(), b"12345".as_slice(), b"".as_slice()];
     let before = serving.media_counters();
     let published = serving
@@ -102,10 +101,9 @@ fn inline_source_and_delivery_copies_are_counted_at_the_actual_copy_seams() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = serving
         .record_submission()
         .append_batch(
@@ -138,10 +136,9 @@ fn pre_effect_inline_source_failure_keeps_the_writer_usable() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let before = serving.media_counters();
     let error = serving
         .record_submission()
@@ -198,10 +195,9 @@ fn published_tail_is_validated_before_an_inline_producer_is_consumed() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     serving
         .record_submission()
         .append_batch(

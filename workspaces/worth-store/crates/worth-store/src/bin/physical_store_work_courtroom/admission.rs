@@ -1,9 +1,15 @@
-use std::path::Path;
+use std::{
+    num::{NonZeroU32, NonZeroU64},
+    path::Path,
+};
 
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    FilesystemMediaAdmission, MediaOwnedPhysicalRuntime, PhysicalRuntimeAdmission, PhysicalStore,
-    RecordServingAdmissionOutcome, ServingPhysicalRuntime,
+    AdmittedPhysicalDurabilityPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations, MediaOwnedPhysicalRuntime,
+    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
+    PhysicalIdempotencyPolicy, PhysicalRuntimeAdmission, PhysicalStore,
+    RecordServingAdmissionOutcome, RetainedWalTailLimit, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{FilesystemAccessPosture, MediaFaultSchedule};
 
@@ -45,5 +51,44 @@ pub(super) fn require_serving<Denial>(
         TransitionOutcome::Stale(_) => Err(format!("{operation} was stale")),
         TransitionOutcome::RebindRequired(_) => Err(format!("{operation} required rebinding")),
         TransitionOutcome::Failed(_) => Err(format!("{operation} required inspection")),
+    }
+}
+
+pub(super) fn admit_durability(
+    media: &MediaOwnedPhysicalRuntime,
+) -> Result<AdmittedPhysicalDurabilityPolicy, String> {
+    let basis = media
+        .physical_durability_admission_basis()
+        .map_err(|denial| format!("courtroom durability basis denied: {denial:?}"))?;
+    match PhysicalDurabilityDeclaration::builder()
+        .group_commit(
+            GroupCommitLimit::new(NonZeroU32::new(32).unwrap()),
+            GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
+        )
+        .idempotency(PhysicalIdempotencyPolicy::new(
+            IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
+            PendingUnresolvedMutationLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ))
+        .checkpoint(PhysicalCheckpointPolicy::fuzzy(
+            CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
+            RetainedWalTailLimit::new(NonZeroU64::new(64 * 1024 * 1024).unwrap()),
+        ))
+        .admit(basis)
+        .into_raw()
+    {
+        TransitionOutcome::Success(policy) => Ok(policy),
+        TransitionOutcome::Denied(denial) => {
+            Err(format!("courtroom durability policy denied: {denial:?}"))
+        }
+        TransitionOutcome::Deferred(_) => {
+            Err("courtroom durability policy was deferred".to_owned())
+        }
+        TransitionOutcome::Stale(_) => Err("courtroom durability policy was stale".to_owned()),
+        TransitionOutcome::RebindRequired(_) => {
+            Err("courtroom durability policy required rebinding".to_owned())
+        }
+        TransitionOutcome::Failed(_) => {
+            Err("courtroom durability policy required inspection".to_owned())
+        }
     }
 }

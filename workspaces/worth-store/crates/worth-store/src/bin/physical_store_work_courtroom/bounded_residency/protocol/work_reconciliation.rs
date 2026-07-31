@@ -98,6 +98,10 @@ const fn signal_family(family: PhysicalWorkSignalFamily) -> &'static str {
         PhysicalWorkSignalFamily::ExactWriteback => "exact-writeback",
         PhysicalWorkSignalFamily::Publication => "publication",
         PhysicalWorkSignalFamily::Lifecycle => "lifecycle",
+        PhysicalWorkSignalFamily::WalAppend => "wal-append",
+        PhysicalWorkSignalFamily::DurabilityBarrier => "durability-barrier",
+        PhysicalWorkSignalFamily::CheckpointCapture => "checkpoint-capture",
+        PhysicalWorkSignalFamily::RootPublication => "root-publication",
     }
 }
 
@@ -173,6 +177,8 @@ const fn family(family: PhysicalWorkOperationFamily) -> &'static str {
         PhysicalWorkOperationFamily::ArtifactRangeRead => "artifact-range-read",
         PhysicalWorkOperationFamily::ArtifactRangeWrite => "artifact-range-write",
         PhysicalWorkOperationFamily::ArtifactPublication => "artifact-publication",
+        PhysicalWorkOperationFamily::WalAppend => "wal-append",
+        PhysicalWorkOperationFamily::DurabilityBarrier => "durability-barrier",
     }
 }
 

@@ -7,6 +7,7 @@ pub enum IoSchedulerBackendCapabilityRequirement {
     Mmap,
     AsyncIo,
     Fsync,
+    FilesystemAdmittedFsync,
     DirectorySync,
     DurableRename,
     SecureFrameIo,
@@ -19,7 +20,7 @@ impl IoSchedulerBackendCapabilityRequirement {
             Self::DirectIo => BackendCapabilityKind::DirectIo,
             Self::Mmap => BackendCapabilityKind::Mmap,
             Self::AsyncIo => BackendCapabilityKind::AsyncIo,
-            Self::Fsync => BackendCapabilityKind::Fsync,
+            Self::Fsync | Self::FilesystemAdmittedFsync => BackendCapabilityKind::Fsync,
             Self::DirectorySync => BackendCapabilityKind::DirectorySync,
             Self::DurableRename => BackendCapabilityKind::DurableRename,
             Self::SecureFrameIo => BackendCapabilityKind::SecureFrameIo,
@@ -29,6 +30,9 @@ impl IoSchedulerBackendCapabilityRequirement {
     pub const fn required_evidence(self) -> CapabilityEvidenceClass {
         match self {
             Self::BufferedFile => CapabilityEvidenceClass::DeclaredByConfig,
+            Self::FilesystemAdmittedFsync => {
+                CapabilityEvidenceClass::EstablishedByFilesystemAdmission
+            }
             Self::DirectIo
             | Self::Mmap
             | Self::AsyncIo

@@ -14,10 +14,9 @@ fn streamed_read_damage_retains_the_completed_logical_range() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = serving
         .record_submission()
         .append_batch(

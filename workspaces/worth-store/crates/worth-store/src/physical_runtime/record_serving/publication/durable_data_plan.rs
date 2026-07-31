@@ -1,0 +1,199 @@
+use std::collections::BTreeMap;
+
+use worth_store_physical_format::{
+    append_inline_records_owned, prepare_extent_chunk, ExtentChunkCoordinate, InlineRecordAppend,
+    PersistedRecordIdentity,
+};
+
+use super::{
+    extent_publication::ExtentDataPlan, plan::CandidateDataArtifact,
+    segment_publication::SegmentDataPlan,
+};
+use crate::physical_runtime::{
+    durability::{
+        PhysicalDataFrameIdentity, PhysicalDataFrameKind, PreparedPhysicalDataFrame,
+        PreparedPhysicalDataPlan,
+    },
+    record_serving::{
+        planning::prepared_payload::PreparedRecordPayloadPlan, AdmittedPhysicalRecordFormat,
+        RecordAppendDenial, RecordAppendError, RecordStreamFailure, RecordStreamFailureKind,
+    },
+};
+
+pub(in crate::physical_runtime::record_serving) fn materialize_durable_data(
+    mut payload: PreparedRecordPayloadPlan,
+    format: AdmittedPhysicalRecordFormat,
+) -> Result<(PreparedPhysicalDataPlan, PreparedRecordPayloadPlan), RecordAppendError> {
+    let ordinals = payload
+        .records
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(ordinal, record)| (record, ordinal as u32))
+        .collect::<BTreeMap<_, _>>();
+    let mut frames = Vec::new();
+    for data in std::mem::take(&mut payload.data) {
+        match data {
+            CandidateDataArtifact::Segment(segment) => {
+                materialize_segment(segment, format, &ordinals, &mut frames)?
+            }
+            CandidateDataArtifact::Extent(extent) => {
+                materialize_extent(extent, format, &ordinals, &mut frames)?
+            }
+        }
+    }
+    let plan = PreparedPhysicalDataPlan::new(frames, payload.records.len() as u32)
+        .map_err(|_| invalid_plan())?;
+    Ok((plan, payload))
+}
+
+fn materialize_segment(
+    segment: SegmentDataPlan,
+    format: AdmittedPhysicalRecordFormat,
+    ordinals: &BTreeMap<PersistedRecordIdentity, u32>,
+    frames: &mut Vec<PreparedPhysicalDataFrame>,
+) -> Result<(), RecordAppendError> {
+    let page_bytes = u64::from(format.declaration().page_size().bytes());
+    for (page_index, page) in segment.pages.into_iter().enumerate() {
+        let appends = page
+            .records
+            .iter()
+            .map(|(record, slot, bytes)| InlineRecordAppend::new(*record, *slot, bytes))
+            .collect::<Vec<_>>();
+        let (bytes, _) = append_inline_records_owned(
+            format.declaration(),
+            page.page,
+            page.existing_frame,
+            &appends,
+        )
+        .map_err(|_| invalid_plan())?;
+        let offset = (page_index as u64)
+            .checked_mul(page_bytes)
+            .ok_or_else(invalid_plan)?;
+        let length = u32::try_from(bytes.len()).map_err(|_| invalid_plan())?;
+        let target = PhysicalDataFrameIdentity::new(
+            PhysicalDataFrameKind::InlinePage,
+            segment.artifact,
+            offset,
+            length,
+        )
+        .ok_or_else(invalid_plan)?;
+        let mut redo_ordinals = page
+            .records
+            .iter()
+            .map(|(record, _, _)| ordinals.get(record).copied().ok_or_else(invalid_plan))
+            .collect::<Result<Vec<_>, _>>()?;
+        redo_ordinals.sort_unstable();
+        frames.push(
+            PreparedPhysicalDataFrame::new(target, redo_ordinals, bytes)
+                .map_err(|_| invalid_plan())?,
+        );
+    }
+    Ok(())
+}
+
+fn materialize_extent(
+    mut extent: ExtentDataPlan,
+    format: AdmittedPhysicalRecordFormat,
+    ordinals: &BTreeMap<PersistedRecordIdentity, u32>,
+    frames: &mut Vec<PreparedPhysicalDataFrame>,
+) -> Result<(), RecordAppendError> {
+    let redo_ordinal = ordinals
+        .get(&extent.manifest.record())
+        .copied()
+        .ok_or_else(invalid_plan)?;
+    let transfer = extent.manifest.chunk_payload_capacity() as usize;
+    let mut completed = 0_u64;
+    let mut artifact_offset = 0_u64;
+    for ordinal in 1..=extent.manifest.chunk_count() {
+        let expected =
+            usize::try_from((extent.manifest.logical_bytes() - completed).min(transfer as u64))
+                .map_err(|_| invalid_plan())?;
+        let coordinate = ExtentChunkCoordinate::new(
+            extent.manifest.record(),
+            extent.manifest.extent_cell(),
+            extent.manifest.logical_bytes(),
+            completed,
+            ordinal,
+        )
+        .ok_or_else(invalid_plan)?;
+        let mut frame = prepare_extent_chunk(format.declaration(), coordinate, expected)
+            .map_err(|_| invalid_plan())?;
+        read_exact_source(&mut *extent.source, frame.payload_mut(), completed)?;
+        let bytes = frame.seal();
+        let length = u32::try_from(bytes.len()).map_err(|_| invalid_plan())?;
+        let target = PhysicalDataFrameIdentity::new(
+            PhysicalDataFrameKind::ExtentChunk,
+            extent.artifact,
+            artifact_offset,
+            length,
+        )
+        .ok_or_else(invalid_plan)?;
+        frames.push(
+            PreparedPhysicalDataFrame::new(target, vec![redo_ordinal], bytes)
+                .map_err(|_| invalid_plan())?,
+        );
+        completed = completed.saturating_add(expected as u64);
+        artifact_offset = artifact_offset
+            .checked_add(u64::from(length))
+            .ok_or_else(invalid_plan)?;
+    }
+    reject_trailing_source(&mut *extent.source, completed)?;
+    Ok(())
+}
+
+fn read_exact_source(
+    source: &mut dyn super::streaming::RecordWriteSource,
+    target: &mut [u8],
+    completed_before: u64,
+) -> Result<(), RecordAppendError> {
+    let mut filled = 0_usize;
+    while filled < target.len() {
+        let count = source.read_next(&mut target[filled..]).map_err(|_| {
+            stream_failure(
+                RecordStreamFailureKind::ProducerRejected,
+                completed_before + filled as u64,
+            )
+        })?;
+        if count == 0 {
+            return Err(stream_failure(
+                RecordStreamFailureKind::SourceEndedEarly,
+                completed_before + filled as u64,
+            ));
+        }
+        if count > target.len() - filled {
+            return Err(stream_failure(
+                RecordStreamFailureKind::InvalidTransferCount,
+                completed_before + filled as u64,
+            ));
+        }
+        filled += count;
+    }
+    Ok(())
+}
+
+fn reject_trailing_source(
+    source: &mut dyn super::streaming::RecordWriteSource,
+    completed: u64,
+) -> Result<(), RecordAppendError> {
+    let mut extra = [0_u8; 1];
+    let count = source
+        .read_next(&mut extra)
+        .map_err(|_| stream_failure(RecordStreamFailureKind::ProducerRejected, completed))?;
+    if count == 0 {
+        Ok(())
+    } else {
+        Err(stream_failure(
+            RecordStreamFailureKind::SourceExceededDeclaredLength,
+            completed,
+        ))
+    }
+}
+
+fn stream_failure(kind: RecordStreamFailureKind, completed: u64) -> RecordAppendError {
+    RecordAppendError::StreamFailed(RecordStreamFailure::before_media_write(kind, completed))
+}
+
+fn invalid_plan() -> RecordAppendError {
+    RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged)
+}

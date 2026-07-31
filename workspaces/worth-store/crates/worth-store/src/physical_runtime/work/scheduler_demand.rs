@@ -102,7 +102,8 @@ const fn pressure_class(lane: ForegroundIoLaneKind) -> super::PhysicalWorkPressu
         ForegroundIoLaneKind::OrdinaryPageWrite => {
             super::PhysicalWorkPressureClass::ForegroundMutation
         }
-        ForegroundIoLaneKind::CommitCriticalWalWrite => {
+        ForegroundIoLaneKind::CommitCriticalWalAppend
+        | ForegroundIoLaneKind::CommitCriticalWalWrite => {
             super::PhysicalWorkPressureClass::ForegroundMutation
         }
     }
@@ -127,6 +128,55 @@ fn physical_locality(
             .expect("artifact-wide locality is nonempty");
         return QueueLocalityIdentity::from_ranges(identity, [range])
             .expect("one artifact-wide locality range is valid");
+    }
+    if let Some(wal) = scope.wal_append_target() {
+        digest.update(b"wal");
+        digest.update(wal.segment().to_le_bytes());
+        digest.update(wal.generation().to_le_bytes());
+        digest.update(wal.offset().to_le_bytes());
+        digest.update(wal.byte_count().to_le_bytes());
+        let identity = digest.finalize().into();
+        let mut artifact = Sha256::new();
+        artifact.update(b"worth-store.physical-queue-wal-artifact.v1");
+        artifact.update(store.bytes());
+        artifact.update(wal.segment().to_le_bytes());
+        artifact.update(wal.generation().to_le_bytes());
+        let range = QueueLocalityRange::new(
+            artifact.finalize().into(),
+            wal.offset(),
+            wal.offset().saturating_add(wal.byte_count()),
+        )
+        .expect("an admitted WAL append range is nonempty");
+        return QueueLocalityIdentity::from_ranges(identity, [range])
+            .expect("one WAL append locality range is valid");
+    }
+    if let Some(barrier) = scope.wal_barrier_target() {
+        digest.update(b"wal-barrier");
+        digest.update(barrier.member());
+        digest.update(barrier.segment().to_le_bytes());
+        digest.update(barrier.generation().to_le_bytes());
+        digest.update(barrier.lsn_start().to_le_bytes());
+        digest.update(barrier.lsn_end_exclusive().to_le_bytes());
+        digest.update(barrier.append_offset().to_le_bytes());
+        digest.update(barrier.append_byte_count().to_le_bytes());
+        let identity = digest.finalize().into();
+        let mut artifact = Sha256::new();
+        artifact.update(b"worth-store.physical-queue-wal-artifact.v1");
+        artifact.update(store.bytes());
+        artifact.update(barrier.segment().to_le_bytes());
+        artifact.update(barrier.generation().to_le_bytes());
+        let end_exclusive = barrier
+            .append_offset()
+            .checked_add(barrier.append_byte_count())
+            .expect("an admitted WAL barrier interval cannot overflow");
+        let range = QueueLocalityRange::new(
+            artifact.finalize().into(),
+            barrier.append_offset(),
+            end_exclusive,
+        )
+        .expect("an admitted WAL barrier interval is nonempty");
+        return QueueLocalityIdentity::from_ranges(identity, [range])
+            .expect("one WAL barrier locality range is valid");
     }
     for coordinate in scope.coordinates() {
         update_artifact(&mut digest, coordinate.artifact());
@@ -198,6 +248,12 @@ fn require_lane(
         | PhysicalWorkOperationFamily::ArtifactPublication => {
             lane == ForegroundIoLaneKind::OrdinaryPageWrite
         }
+        PhysicalWorkOperationFamily::WalAppend => {
+            lane == ForegroundIoLaneKind::CommitCriticalWalAppend
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            lane == ForegroundIoLaneKind::CommitCriticalWalWrite
+        }
     };
     compatible
         .then_some(())
@@ -230,6 +286,23 @@ fn physical_foreground_declaration(
 ) -> PhysicalForegroundWorkDeclaration {
     let resources = intent.resources();
     match (intent.operation(), intent.durability()) {
+        (PhysicalWorkOperationFamily::WalAppend, PhysicalWorkDurabilityRequirement::WalAppend) => {
+            PhysicalForegroundWorkDeclaration::wal_append(
+                reservation,
+                locality,
+                resources.queue_shape(),
+                resources.flush_epoch(),
+            )
+        }
+        (
+            PhysicalWorkOperationFamily::DurabilityBarrier,
+            PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
+        ) => PhysicalForegroundWorkDeclaration::durable_write(
+            reservation,
+            locality,
+            resources.queue_shape(),
+            resources.flush_epoch(),
+        ),
         (
             PhysicalWorkOperationFamily::ArtifactMetadataRead
             | PhysicalWorkOperationFamily::ArtifactRangeRead,

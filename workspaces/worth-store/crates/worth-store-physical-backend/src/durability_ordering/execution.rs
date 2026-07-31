@@ -10,9 +10,9 @@ use super::{
 
 mod file_runtime;
 
-pub use file_runtime::{
-    StoreDurabilityAppendInput, StoreDurabilityExecutionBoundary, StoreDurabilityRuntime,
-};
+#[cfg(feature = "certification-test-authority")]
+pub use file_runtime::StoreDurabilityAppendInput;
+pub use file_runtime::{StoreDurabilityExecutionBoundary, StoreDurabilityRuntime};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StoreDurabilityFileSyncKind {

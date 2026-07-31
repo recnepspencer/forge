@@ -20,7 +20,47 @@ pub(super) fn require_effect_contract(
         PhysicalWorkOperationFamily::ArtifactPublication => {
             require_publication_contract(effect, durability, recovery)
         }
+        PhysicalWorkOperationFamily::WalAppend => {
+            require_wal_append_contract(effect, durability, recovery)
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            require_wal_barrier_contract(effect, durability, recovery)
+        }
     }
+}
+
+fn require_wal_barrier_contract(
+    effect: PhysicalWorkEffectClass,
+    durability: PhysicalWorkDurabilityRequirement,
+    recovery: PhysicalWorkRecoveryDisposition,
+) -> Result<(), PhysicalWorkDeclarationDenial> {
+    matches!(
+        (effect, durability, recovery),
+        (
+            PhysicalWorkEffectClass::PublicationBoundary,
+            PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    )
+    .then_some(())
+    .ok_or(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
+}
+
+fn require_wal_append_contract(
+    effect: PhysicalWorkEffectClass,
+    durability: PhysicalWorkDurabilityRequirement,
+    recovery: PhysicalWorkRecoveryDisposition,
+) -> Result<(), PhysicalWorkDeclarationDenial> {
+    matches!(
+        (effect, durability, recovery),
+        (
+            PhysicalWorkEffectClass::ReversibleBeforePublication,
+            PhysicalWorkDurabilityRequirement::WalAppend,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    )
+    .then_some(())
+    .ok_or(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
 }
 
 fn require_read_contract(

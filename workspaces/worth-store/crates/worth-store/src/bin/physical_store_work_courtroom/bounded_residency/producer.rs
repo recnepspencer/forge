@@ -18,9 +18,10 @@ pub(super) fn run(
         .into_result()
         .map_err(|denial| format!("bounded-residency producer policy denied: {denial:?}"))?;
     let media = super::super::admission::admit_media(&invocation.root, None)?;
+    let durability = super::super::admission::admit_durability(&media)?;
     let serving = super::super::admission::require_serving(
         media.initialize_record_store(
-            PhysicalRecordInitialization::new(format, placement, access)
+            PhysicalRecordInitialization::new(format, placement, access, durability)
                 .with_residency_policy(policy),
         ),
         "bounded-residency producer initialization",

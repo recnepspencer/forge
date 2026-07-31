@@ -3,6 +3,7 @@ use std::sync::{
     Arc,
 };
 
+use sha2::Digest;
 use worth_store_buffer_pool::{
     CandidateFrameCleanAuthority, DirtyPhysicalFrame, PhysicalCandidateBatchReservation,
     PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyPool,
@@ -231,7 +232,7 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
         self: Box<Self>,
         settlement: CandidateFrameResidencySettlement,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
-        let _settlement = settlement.settlement();
+        let settlement = settlement.settlement();
         #[cfg(feature = "certification-test-authority")]
         if self.counters.take_reject_next_publication() {
             return Err(RecordAppendDenial::from_residency(
@@ -239,10 +240,31 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
             ));
         }
         let bytes = self.resident.bytes().len() as u64;
+        let length = u32::try_from(bytes).map_err(|_| {
+            RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+            )
+        })?;
+        let coordinate = RecordFrameCoordinate::new(
+            self.coordinate.artifact(),
+            self.coordinate.offset(),
+            length,
+        )
+        .ok_or_else(|| {
+            RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+            )
+        })?;
+        let payload_digest: [u8; 32] = sha2::Sha256::digest(self.resident.bytes()).into();
         self.resident
             .complete_candidate_publication(&self.candidate_clean)
             .map_err(RecordAppendDenial::from_residency)?;
-        Ok(CandidateFrameWriteCompletion::retained(bytes))
+        Ok(CandidateFrameWriteCompletion::canonical(
+            bytes,
+            coordinate,
+            payload_digest,
+            settlement,
+        ))
     }
 }
 

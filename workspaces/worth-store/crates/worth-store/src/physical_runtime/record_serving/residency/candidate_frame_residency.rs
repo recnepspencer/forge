@@ -1,6 +1,9 @@
 use worth_store_physical_format::RecordArtifactFile;
 
 pub use self::write_evidence::CandidateFrameContractViolation;
+pub(in crate::physical_runtime) use self::write_evidence::{
+    CandidateFrameEffectSettlement, CandidateFrameEffectSource,
+};
 pub(in crate::physical_runtime::record_serving) use self::write_evidence::{
     CandidateFramePhysicalWrite, CandidateFrameResidencySettlement, CandidateFrameWriteCompletion,
     CandidateFrameWriteFailure,

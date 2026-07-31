@@ -123,22 +123,24 @@ fn encode_record(
 ) -> [u8; RECOVERY_RECORD_BYTES] {
     let mut record = [0_u8; RECOVERY_RECORD_BYTES];
     record[..8].copy_from_slice(b"WPEFFECT");
-    record[8] = 3;
+    record[8] = 4;
     record[9] = match operation {
         PhysicalWorkOperationFamily::ArtifactRangeRead => 1,
         PhysicalWorkOperationFamily::ArtifactRangeWrite => 2,
         PhysicalWorkOperationFamily::ArtifactPublication => 3,
         PhysicalWorkOperationFamily::ArtifactMetadataRead => 4,
+        PhysicalWorkOperationFamily::WalAppend => 5,
+        PhysicalWorkOperationFamily::DurabilityBarrier => 6,
     };
     record[16..32].copy_from_slice(&identity.store().bytes());
     record[32..40].copy_from_slice(&identity.runtime().get().to_le_bytes());
     record[40..48].copy_from_slice(&identity.generation().lifecycle().get().to_le_bytes());
     record[48..56].copy_from_slice(&identity.operation().get().to_le_bytes());
-    encode_target(target, &mut record);
     if let Some(digest) = payload_digest {
         record[68] = 1;
         record[72..104].copy_from_slice(&digest);
     }
+    encode_target(target, &mut record);
     let checksum = Sha256::digest(&record[..128]);
     record[128..].copy_from_slice(&checksum);
     record

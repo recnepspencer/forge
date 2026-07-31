@@ -7,9 +7,9 @@ use super::{
 use tempfile::tempdir;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    PhysicalExecutorCommand, PhysicalStoreCloseOutcome, PhysicalWorkEffectFate,
-    PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition, PhysicalWorkRetryScheduleOutcome,
-    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence,
+    PhysicalExecutorCommand, PhysicalStoreCloseOutcome, PhysicalWorkCapacity,
+    PhysicalWorkEffectFate, PhysicalWorkPreEffectDenial, PhysicalWorkRecoveryDisposition,
+    PhysicalWorkRetryScheduleOutcome, PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence,
 };
 use worth_store_physical_backend::MediaFaultDirective;
 
@@ -143,6 +143,12 @@ fn indeterminate_write_obligation_survives_orderly_close_and_reopen() {
 fn partial_write_retains_exact_prefix_and_revokes_serving_health() {
     let root = tempdir().unwrap();
     let (profile, read_request, mutation_request) = work_fixture();
+    let profile = profile.with_capacity(
+        PhysicalWorkCapacity::new(1, 256, 256, 1024 * 1024, 1024 * 1024)
+            .unwrap()
+            .with_terminal_evidence_capacity(4)
+            .unwrap(),
+    );
     serving_from_initialization_with_work_profile(root.path(), profile.clone()).close();
     let catalog = root.path().join("families/records/bootstrap.catalog");
     let before = std::fs::read(&catalog).unwrap();
@@ -178,12 +184,13 @@ fn partial_write_retains_exact_prefix_and_revokes_serving_health() {
 
     let receipt = match serving
         .physical_read_submission()
-        .submit(read_request)
+        .submit(read_request.clone())
         .into_raw()
     {
         TransitionOutcome::Success(receipt) => receipt,
         other => panic!("submission remains separately observable: {other:?}"),
     };
+    let rejected_identity = receipt.identity();
     assert!(
         matches!(
             serving.admit_physical_work(receipt),
@@ -191,6 +198,19 @@ fn partial_write_retains_exact_prefix_and_revokes_serving_health() {
         ),
         "C5_PREDICATE:health-revocation: indeterminate physical truth must revoke later admission"
     );
+    let retry_receipt = match serving
+        .physical_read_submission()
+        .submit(read_request)
+        .into_raw()
+    {
+        TransitionOutcome::Success(receipt) => receipt,
+        other => panic!("denied admission must return its one-command capacity: {other:?}"),
+    };
+    let retry_identity = retry_receipt.identity();
+    assert!(matches!(
+        serving.admit_physical_work(retry_receipt),
+        Err(PhysicalWorkPreEffectDenial::UnhealthyServing)
+    ));
     let closed = serving.close_plan().execute();
     assert!(matches!(
         closed,
@@ -200,6 +220,11 @@ fn partial_write_retains_exact_prefix_and_revokes_serving_health() {
         closed.shutdown().work().drain().inspection_required(),
         &[identity]
     );
+    assert_eq!(
+        closed.shutdown().work().drain().cancelled_before_dispatch(),
+        &[rejected_identity, retry_identity]
+    );
+    assert!(closed.shutdown().work().drain().residual().is_empty());
 }
 
 #[test]

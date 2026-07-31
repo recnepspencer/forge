@@ -50,7 +50,31 @@ fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     cases
         .compile_fail("tests/physical_runtime_authority/raw_residency_policy_cannot_enter_open.rs");
     cases.compile_fail("tests/physical_runtime_authority/admitted_residency_policy_is_sealed.rs");
+    durability_policy_cases(&cases);
     record_chunk_view_cases(&cases);
+}
+
+fn durability_policy_cases(cases: &trybuild::TestCases) {
+    cases.pass("tests/physical_runtime_authority/physical_wal_append_examples.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/incomplete_durability_policy_cannot_admit.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/raw_backend_profile_cannot_admit_durability.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/physical_durability_basis_cannot_be_duplicated.rs",
+    );
+    cases.compile_fail("tests/physical_runtime_authority/admitted_durability_policy_is_sealed.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/durability_policy_cannot_be_omitted_from_open.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/physical_mutation_preparation_authority_is_sealed.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/wal_durable_authority_requires_completed_barrier.rs",
+    );
 }
 
 fn record_chunk_view_cases(cases: &trybuild::TestCases) {
@@ -77,16 +101,21 @@ fn record_chunk_view_cases(cases: &trybuild::TestCases) {
 }
 
 fn assert_bounded_physical_record_access_examples_are_compile_bound() {
+    assert_document_examples_are_compile_bound(
+        "../../../../_docs/worth-store/bounded-physical-record-access.md",
+        "tests/physical_runtime_authority/bounded_physical_record_access_examples.rs",
+        5,
+    );
+}
+
+fn assert_document_examples_are_compile_bound(
+    document_path: &str,
+    specimen_path: &str,
+    expected_blocks: usize,
+) {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let document = std::fs::read_to_string(
-        crate_root.join("../../../../_docs/worth-store/bounded-physical-record-access.md"),
-    )
-    .unwrap();
-    let specimen = std::fs::read_to_string(
-        crate_root
-            .join("tests/physical_runtime_authority/bounded_physical_record_access_examples.rs"),
-    )
-    .unwrap();
+    let document = std::fs::read_to_string(crate_root.join(document_path)).unwrap();
+    let specimen = std::fs::read_to_string(crate_root.join(specimen_path)).unwrap();
     let specimen = normalized_rust(&specimen);
     let blocks = document
         .split("```rust")
@@ -96,7 +125,7 @@ fn assert_bounded_physical_record_access_examples_are_compile_bound() {
 
     assert_eq!(
         blocks.len(),
-        5,
+        expected_blocks,
         "every public Rust block must be inventoried"
     );
     for block in blocks {

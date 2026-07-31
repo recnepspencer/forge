@@ -1221,6 +1221,7 @@ dependencies = [
  "worth-store-physical-backend",
  "worth-store-physical-format",
  "worth-store-security",
+ "worth-store-wal",
 ]
 
 [[package]]

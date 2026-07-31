@@ -25,7 +25,9 @@ pub(super) fn serving_from_open_with_schedule(
         _ => panic!("scheduled media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access)))
+    super::super::success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }))
 }
 
 pub(super) fn serving_from_open_with_positioned_write_fault(
@@ -61,9 +63,9 @@ pub(super) fn serving_from_open_with_positioned_write_fault_at(
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    super::super::success(media.open_record_store(
-        PhysicalRecordOpen::new(format, access).with_physical_work_profile(profile),
-    ))
+    super::super::success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_physical_work_profile(profile)
+    },))
 }
 
 pub(super) fn serving_from_open_with_positioned_read_fault(
@@ -108,7 +110,8 @@ fn serving_from_open_with_positioned_read_fault_policy(
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    let open = PhysicalRecordOpen::new(format, access);
+    let durability = super::super::durability(&media);
+    let open = PhysicalRecordOpen::new(format, access, durability);
     let open = match policy {
         Some(policy) => open.with_residency_policy(policy),
         None => open,
@@ -148,7 +151,9 @@ pub(super) fn serving_from_open_with_paused_positioned_read_failure(
     };
     let (format, _, access) = super::super::configuration();
     (
-        super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access))),
+        super::super::success(open_record_store!(media, |durability| {
+            PhysicalRecordOpen::new(format, access, durability)
+        })),
         gate,
     )
 }
@@ -223,9 +228,9 @@ pub(super) fn serving_from_open_with_two_write_pauses_and_profile(
     };
     let (format, _, access) = super::super::configuration();
     (
-        super::super::success(media.open_record_store(
-            PhysicalRecordOpen::new(format, access).with_physical_work_profile(profile),
-        )),
+        super::super::success(open_record_store!(media, |durability| {
+            PhysicalRecordOpen::new(format, access, durability).with_physical_work_profile(profile)
+        },)),
         first,
         second,
     )
@@ -273,9 +278,9 @@ pub(super) fn serving_from_open_with_one_write_pause_and_profile(
     };
     let (format, _, access) = super::super::configuration();
     (
-        super::super::success(media.open_record_store(
-            PhysicalRecordOpen::new(format, access).with_physical_work_profile(profile),
-        )),
+        super::super::success(open_record_store!(media, |durability| {
+            PhysicalRecordOpen::new(format, access, durability).with_physical_work_profile(profile)
+        },)),
         gate,
     )
 }

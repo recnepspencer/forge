@@ -31,9 +31,10 @@ pub(super) fn run(
         .into_result()
         .map_err(|denial| format!("bounded-residency serving policy denied: {denial:?}"))?;
     let media = super::super::admission::admit_media(&invocation.root, Some(schedule))?;
+    let durability = super::super::admission::admit_durability(&media)?;
     let serving = super::super::admission::require_serving(
         media.open_record_store(
-            PhysicalRecordOpen::new(format, access)
+            PhysicalRecordOpen::new(format, access, durability)
                 .with_residency_policy(policy)
                 .with_physical_work_profile(profile),
         ),

@@ -12,6 +12,8 @@ pub struct PhysicalRecordInitialization {
     pub(in crate::physical_runtime::record_serving) residency:
         AdmittedPhysicalRecordResidencyPolicy,
     pub(in crate::physical_runtime::record_serving) work_profile: PhysicalWorkProfileDeclaration,
+    pub(in crate::physical_runtime::record_serving) durability:
+        crate::physical_runtime::AdmittedPhysicalDurabilityPolicy,
 }
 
 impl PhysicalRecordInitialization {
@@ -19,6 +21,7 @@ impl PhysicalRecordInitialization {
         format: AdmittedPhysicalRecordFormat,
         placement: AdmittedRecordPlacementPolicy,
         access: AdmittedRecordAccessPolicy,
+        durability: crate::physical_runtime::AdmittedPhysicalDurabilityPolicy,
     ) -> Self {
         Self {
             format,
@@ -26,6 +29,7 @@ impl PhysicalRecordInitialization {
             access,
             residency: canonical_residency_policy(format),
             work_profile: PhysicalWorkProfileDeclaration::default(),
+            durability,
         }
     }
 
@@ -49,15 +53,22 @@ pub struct PhysicalRecordOpen {
     pub(in crate::physical_runtime::record_serving) residency:
         AdmittedPhysicalRecordResidencyPolicy,
     pub(in crate::physical_runtime::record_serving) work_profile: PhysicalWorkProfileDeclaration,
+    pub(in crate::physical_runtime::record_serving) durability:
+        crate::physical_runtime::AdmittedPhysicalDurabilityPolicy,
 }
 
 impl PhysicalRecordOpen {
-    pub fn new(format: AdmittedPhysicalRecordFormat, access: AdmittedRecordAccessPolicy) -> Self {
+    pub fn new(
+        format: AdmittedPhysicalRecordFormat,
+        access: AdmittedRecordAccessPolicy,
+        durability: crate::physical_runtime::AdmittedPhysicalDurabilityPolicy,
+    ) -> Self {
         Self {
             format,
             access,
             residency: canonical_residency_policy(format),
             work_profile: PhysicalWorkProfileDeclaration::default(),
+            durability,
         }
     }
 

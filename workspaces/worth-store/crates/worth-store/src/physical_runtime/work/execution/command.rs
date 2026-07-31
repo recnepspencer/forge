@@ -10,8 +10,11 @@ pub enum PhysicalExecutorCommandDenial {
     ExactCommandRequiresOneRange,
     PayloadLengthMismatch,
     RetryIdentityMismatch,
+    RetryRangeMismatch,
     ResidencyRetryRequiresClaim,
     ArtifactCommandRequiresArtifactScope,
+    WalAppendCommandRequiresWalScope,
+    WalBarrierCommandRequiresWalScope,
 }
 
 pub enum PhysicalExecutorCommand {
@@ -22,6 +25,8 @@ pub enum PhysicalExecutorCommand {
     NewArtifact(PhysicalWriteExecutorCommand),
     PublicationEffect(PhysicalPublicationExecutorCommand),
     ResidencyWriteback(PhysicalResidencyWritebackExecutorCommand),
+    WalAppend(PhysicalWalAppendExecutorCommand),
+    WalBarrier(PhysicalWalBarrierExecutorCommand),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +50,15 @@ pub(in crate::physical_runtime) enum PhysicalRetryPayload {
     NewArtifact(Box<[u8]>),
     PublicationEffect(PhysicalPublicationEffect),
     ResidencyWriteback,
+    WalAppend {
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+        range: worth_store_physical_backend::ArtifactAppendRange,
+        payload: Box<[u8]>,
+    },
+    WalBarrier {
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+        binding_digest: [u8; 32],
+    },
 }
 
 pub struct PhysicalMetadataExecutorCommand {
@@ -74,6 +88,20 @@ pub struct PhysicalPublicationExecutorCommand {
     pub(in crate::physical_runtime) work: ResourceAdmittedPhysicalWork,
     pub(in crate::physical_runtime) artifact: worth_store_physical_format::RecordArtifactFile,
     pub(in crate::physical_runtime) effect: PhysicalPublicationEffect,
+}
+
+pub struct PhysicalWalAppendExecutorCommand {
+    pub(in crate::physical_runtime) work: ResourceAdmittedPhysicalWork,
+    pub(in crate::physical_runtime) artifact: worth_store_physical_backend::ArtifactTreeFile,
+    pub(in crate::physical_runtime) range: worth_store_physical_backend::ArtifactAppendRange,
+    pub(in crate::physical_runtime) payload: Box<[u8]>,
+    pub(in crate::physical_runtime) payload_digest: [u8; 32],
+}
+
+pub struct PhysicalWalBarrierExecutorCommand {
+    pub(in crate::physical_runtime) work: ResourceAdmittedPhysicalWork,
+    pub(in crate::physical_runtime) artifact: worth_store_physical_backend::ArtifactTreeFile,
+    pub(in crate::physical_runtime) binding_digest: [u8; 32],
 }
 
 impl PhysicalExecutorCommand {
@@ -164,6 +192,53 @@ impl PhysicalExecutorCommand {
         ))
     }
 
+    pub(in crate::physical_runtime) fn wal_append(
+        work: ResourceAdmittedPhysicalWork,
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+        payload: impl Into<Box<[u8]>>,
+    ) -> Result<Self, PhysicalExecutorCommandDenial> {
+        require_family(&work, PhysicalWorkOperationFamily::WalAppend)?;
+        let scope = work
+            .intent()
+            .scope()
+            .wal_append_target()
+            .ok_or(PhysicalExecutorCommandDenial::WalAppendCommandRequiresWalScope)?;
+        let range = worth_store_physical_backend::ArtifactAppendRange::new(
+            scope.offset(),
+            scope.byte_count(),
+        )
+        .ok_or(PhysicalExecutorCommandDenial::WalAppendCommandRequiresWalScope)?;
+        let payload = payload.into();
+        if payload.len() as u64 != range.byte_count() {
+            return Err(PhysicalExecutorCommandDenial::PayloadLengthMismatch);
+        }
+        let payload_digest = Sha256::digest(&payload).into();
+        Ok(Self::WalAppend(PhysicalWalAppendExecutorCommand {
+            work,
+            artifact,
+            range,
+            payload,
+            payload_digest,
+        }))
+    }
+
+    pub(in crate::physical_runtime) fn wal_barrier(
+        work: ResourceAdmittedPhysicalWork,
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+        binding_digest: [u8; 32],
+    ) -> Result<Self, PhysicalExecutorCommandDenial> {
+        require_family(&work, PhysicalWorkOperationFamily::DurabilityBarrier)?;
+        work.intent()
+            .scope()
+            .wal_barrier_target()
+            .ok_or(PhysicalExecutorCommandDenial::WalBarrierCommandRequiresWalScope)?;
+        Ok(Self::WalBarrier(PhysicalWalBarrierExecutorCommand {
+            work,
+            artifact,
+            binding_digest,
+        }))
+    }
+
     pub const fn identity(&self) -> super::super::PhysicalWorkIdentity {
         match self {
             Self::Metadata(command) => command.work.intent().identity(),
@@ -174,6 +249,8 @@ impl PhysicalExecutorCommand {
             Self::NewArtifact(command) => command.work.intent().identity(),
             Self::PublicationEffect(command) => command.work.intent().identity(),
             Self::ResidencyWriteback(command) => command.work.intent().identity(),
+            Self::WalAppend(command) => command.work.intent().identity(),
+            Self::WalBarrier(command) => command.work.intent().identity(),
         }
     }
 
@@ -185,6 +262,8 @@ impl PhysicalExecutorCommand {
             Self::NewArtifact(command) => command.work.intent(),
             Self::PublicationEffect(command) => command.work.intent(),
             Self::ResidencyWriteback(command) => command.work.intent(),
+            Self::WalAppend(command) => command.work.intent(),
+            Self::WalBarrier(command) => command.work.intent(),
         }
     }
 
@@ -196,6 +275,34 @@ impl PhysicalExecutorCommand {
             Self::NewArtifact(command) => command.work.is_cancelled(),
             Self::PublicationEffect(command) => command.work.is_cancelled(),
             Self::ResidencyWriteback(command) => command.work.is_cancelled(),
+            Self::WalAppend(command) => command.work.is_cancelled(),
+            Self::WalBarrier(command) => command.work.is_cancelled(),
+        }
+    }
+
+    pub(in crate::physical_runtime) const fn wal_append_completion_binding(
+        &self,
+    ) -> Option<(worth_store_physical_backend::ArtifactAppendRange, [u8; 32])> {
+        match self {
+            Self::WalAppend(command) => Some((command.range, command.payload_digest)),
+            _ => None,
+        }
+    }
+
+    pub(in crate::physical_runtime) const fn wal_barrier_completion_binding(
+        &self,
+    ) -> Option<(super::super::PhysicalWalBarrierScope, [u8; 32])> {
+        match self {
+            Self::WalBarrier(command) => Some((
+                command
+                    .work
+                    .intent()
+                    .scope()
+                    .wal_barrier_target()
+                    .expect("WAL barrier commands retain exact WAL barrier scope"),
+                command.binding_digest,
+            )),
+            _ => None,
         }
     }
 
@@ -244,6 +351,30 @@ impl PhysicalRetryCommand {
             PhysicalRetryPayload::ResidencyWriteback => {
                 Err(PhysicalExecutorCommandDenial::ResidencyRetryRequiresClaim)
             }
+            PhysicalRetryPayload::WalAppend {
+                artifact,
+                range,
+                payload,
+            } => {
+                let scope = work
+                    .intent()
+                    .scope()
+                    .wal_append_target()
+                    .ok_or(PhysicalExecutorCommandDenial::WalAppendCommandRequiresWalScope)?;
+                let rebound_range = worth_store_physical_backend::ArtifactAppendRange::new(
+                    scope.offset(),
+                    scope.byte_count(),
+                )
+                .ok_or(PhysicalExecutorCommandDenial::WalAppendCommandRequiresWalScope)?;
+                if range != rebound_range {
+                    return Err(PhysicalExecutorCommandDenial::RetryRangeMismatch);
+                }
+                PhysicalExecutorCommand::wal_append(work, artifact, payload)
+            }
+            PhysicalRetryPayload::WalBarrier {
+                artifact,
+                binding_digest,
+            } => PhysicalExecutorCommand::wal_barrier(work, artifact, binding_digest),
         }
     }
 

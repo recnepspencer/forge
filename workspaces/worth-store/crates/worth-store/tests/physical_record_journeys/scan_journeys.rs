@@ -11,10 +11,9 @@ fn scan_batch_widths_converge_to_one_physical_sequence() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = (0_u8..13)
         .map(|ordinal| {
             let length = if ordinal % 4 == 0 {
@@ -71,10 +70,9 @@ fn whole_extent_materialization_mutant_is_replaced_by_deferred_scan_payload() {
         .scratch_limit(RecordByteLimit::new(131_072).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let logical_bytes = 17 * 65_536 + 7;
     let batch = RecordAppendBatch::builder()
         .push_source(super::stream_fixture::PatternSource::exact(logical_bytes))
@@ -129,10 +127,9 @@ fn stale_foreign_and_out_of_range_cursors_fail_before_payload_read() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     serving
         .record_submission()
         .append_batch(
@@ -177,10 +174,9 @@ fn scratch_retry_preserves_position_and_counts_manifest_discovery_once() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     serving
         .record_submission()
         .append_batch(

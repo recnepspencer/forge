@@ -8,6 +8,7 @@ use super::{
 pub enum ForegroundIoLaneKind {
     PointRead,
     RangeRead,
+    CommitCriticalWalAppend,
     CommitCriticalWalWrite,
     OrdinaryPageWrite,
     InteractiveRead,
@@ -23,6 +24,7 @@ impl ForegroundIoLaneKind {
             | Self::InteractiveRead
             | Self::InternalForegroundRead => IoSchedulerBackendCapabilityRequirement::DirectIo,
             Self::ArtifactMetadataRead => IoSchedulerBackendCapabilityRequirement::BufferedFile,
+            Self::CommitCriticalWalAppend => IoSchedulerBackendCapabilityRequirement::BufferedFile,
             Self::CommitCriticalWalWrite => IoSchedulerBackendCapabilityRequirement::Fsync,
             Self::OrdinaryPageWrite => IoSchedulerBackendCapabilityRequirement::BufferedFile,
         }
@@ -46,8 +48,29 @@ impl ForegroundLaneDeclaration {
         Self::new(ForegroundIoLaneKind::RangeRead)
     }
 
+    pub const fn commit_critical_wal_append() -> Self {
+        Self::new(ForegroundIoLaneKind::CommitCriticalWalAppend)
+    }
+
     pub const fn commit_critical_wal_write() -> Self {
         Self::new(ForegroundIoLaneKind::CommitCriticalWalWrite)
+    }
+
+    pub const fn filesystem_admitted_wal_barrier(
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        let lane = Self::commit_critical_wal_write().with_store_owned_backend_requirement(
+            IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+        );
+        if lane.backend_requirement_is_store_owned() {
+            Ok(lane)
+        } else {
+            Err(
+                ForegroundReservationAdmissionDenial::LaneBackendRequirementNotStoreOwned {
+                    lane: lane.lane,
+                    backend_requirement: lane.backend_requirement,
+                },
+            )
+        }
     }
 
     pub const fn ordinary_page_write() -> Self {
@@ -128,8 +151,12 @@ impl ForegroundLaneDeclaration {
                 ForegroundIoLaneKind::RangeRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
             ) | (
+                ForegroundIoLaneKind::CommitCriticalWalAppend,
+                IoSchedulerBackendCapabilityRequirement::BufferedFile,
+            ) | (
                 ForegroundIoLaneKind::CommitCriticalWalWrite,
-                IoSchedulerBackendCapabilityRequirement::Fsync,
+                IoSchedulerBackendCapabilityRequirement::Fsync
+                    | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
             ) | (
                 ForegroundIoLaneKind::OrdinaryPageWrite,
                 IoSchedulerBackendCapabilityRequirement::BufferedFile,

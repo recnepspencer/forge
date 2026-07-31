@@ -13,14 +13,17 @@ use super::super::{
         PhysicalRecordBootstrapOwner,
     },
     residency::artifact_tree::{RecordFamilyCreationFailure, RecordFamilyInventory},
-    PhysicalRecordInitialization, RecordBootstrapDenial, RecordBootstrapFailure,
+    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
+    RecordBootstrapDenial, RecordBootstrapFailure,
 };
 
 pub(in crate::physical_runtime::record_serving) fn initialize(
     media: &QualifiedFilesystemMedia,
-    request: PhysicalRecordInitialization,
+    format: AdmittedPhysicalRecordFormat,
+    placement: AdmittedRecordPlacementPolicy,
+    access: AdmittedRecordAccessPolicy,
 ) -> Result<PhysicalRecordBootstrapOwner, BootstrapTransitionFailure> {
-    if !request.placement.admits(request.format) || !request.access.admits(request.format) {
+    if !placement.admits(format) || !access.admits(format) {
         return Err(BootstrapTransitionFailure::Denied(
             RecordBootstrapDenial::ConfigurationMismatch,
         ));
@@ -39,7 +42,7 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
             ));
         }
     }
-    let format = request.format.declaration();
+    let declaration = format.declaration();
     let free_entry =
         RecordFreeSpaceManifestEntry::new(RecordAllocationClass::Extent, 1, 1, u64::MAX - 1, 1)
             .expect("initial allocatable extent range is nonempty");
@@ -49,16 +52,16 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         1,
         1,
         vec![free_entry],
-        request.placement.manifest_capacity().get(),
+        placement.manifest_capacity().get(),
     )
     .ok_or(BootstrapTransitionFailure::Failed(
         RecordBootstrapFailure::FormatEncoding,
     ))?;
-    let free_block_bytes = free_block.encode(format);
+    let free_block_bytes = free_block.encode(declaration);
     let free_space = DurableFreeSpaceManifestHeader::new(
         1,
         tree_identity,
-        request.placement.manifest_capacity().get(),
+        placement.manifest_capacity().get(),
         1,
         1,
         1,
@@ -69,11 +72,11 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
     .ok_or(BootstrapTransitionFailure::Failed(
         RecordBootstrapFailure::FormatEncoding,
     ))?;
-    let free_space_bytes = free_space.encode(format);
+    let free_space_bytes = free_space.encode(declaration);
     let current_root = DurablePhysicalRootManifest::builder(
         1,
         tree_identity,
-        request.placement.manifest_capacity().get(),
+        placement.manifest_capacity().get(),
         durable_artifact_checksum(&free_space_bytes),
     )
     .free_space_root(free_space.root())
@@ -86,7 +89,7 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
     )?;
     let catalog = BootstrapCatalog::new(
         media.store_identity(),
-        format,
+        declaration,
         CurrentRootCatalogEntry::new(root_generation),
     )
     .encode();
@@ -124,7 +127,7 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         .map_err(backend_after_effect)?;
     let root_artifact = RecordArtifactFile::RootManifest { generation: 1 };
     artifacts
-        .write_new(root_artifact, &current_root.encode(format))
+        .write_new(root_artifact, &current_root.encode(declaration))
         .map_err(backend_after_effect)?;
     artifacts
         .synchronize_artifact(root_artifact)
@@ -157,8 +160,8 @@ pub(in crate::physical_runtime::record_serving) fn initialize(
         .synchronize_record_family()
         .map_err(backend_after_effect)?;
     Ok(PhysicalRecordBootstrapOwner {
-        format: request.format,
-        access: request.access,
+        format,
+        access,
         current_root: CurrentRootCatalogEntry::new(root_generation),
         observed_staging_residue: false,
     })

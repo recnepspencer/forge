@@ -56,6 +56,10 @@ const fn family_code(family: super::PhysicalWorkSignalFamily) -> u8 {
         super::PhysicalWorkSignalFamily::ExactWriteback => 2,
         super::PhysicalWorkSignalFamily::Publication => 3,
         super::PhysicalWorkSignalFamily::Lifecycle => 4,
+        super::PhysicalWorkSignalFamily::WalAppend => 5,
+        super::PhysicalWorkSignalFamily::DurabilityBarrier => 6,
+        super::PhysicalWorkSignalFamily::CheckpointCapture => 7,
+        super::PhysicalWorkSignalFamily::RootPublication => 8,
     }
 }
 

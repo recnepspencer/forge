@@ -27,4 +27,6 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceParts {
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime) publication: std::sync::Arc<RecordPublicationDirector>,
     pub(in crate::physical_runtime) residency: PhysicalResidencyOwner,
+    pub(in crate::physical_runtime) durability:
+        crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
 }

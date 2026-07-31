@@ -101,6 +101,38 @@ impl RecordAppendBatch {
         }
         Ok(aggregate_bytes)
     }
+
+    pub(in crate::physical_runtime) fn into_prepared_record_bytes(self) -> Vec<Vec<u8>> {
+        self.records
+            .into_iter()
+            .map(|record| match record {
+                RecordAppendInput::Bytes(bytes) => bytes,
+                RecordAppendInput::Source { .. } => {
+                    unreachable!("durable preparation materializes every record source")
+                }
+            })
+            .collect()
+    }
+
+    pub(in crate::physical_runtime) fn duplicate_prepared(&self) -> Self {
+        Self::from_prepared_record_bytes(
+            self.records
+                .iter()
+                .map(|record| match record {
+                    RecordAppendInput::Bytes(bytes) => bytes.clone(),
+                    RecordAppendInput::Source { .. } => {
+                        unreachable!("durable preparation materializes every record source")
+                    }
+                })
+                .collect(),
+        )
+    }
+
+    pub(in crate::physical_runtime) fn from_prepared_record_bytes(records: Vec<Vec<u8>>) -> Self {
+        Self {
+            records: records.into_iter().map(RecordAppendInput::Bytes).collect(),
+        }
+    }
 }
 
 impl RecordAppendInput {

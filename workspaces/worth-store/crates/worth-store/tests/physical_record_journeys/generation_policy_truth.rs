@@ -16,10 +16,9 @@ fn multi_page_cow_preserves_untouched_page_generation_and_all_records() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let first_payloads = [vec![1_u8; 3_000], vec![2_u8; 3_000], vec![3_u8; 3_000]];
     let first = serving
         .record_submission()
@@ -94,7 +93,9 @@ fn multi_page_cow_preserves_untouched_page_generation_and_all_records() {
         )
         .exists());
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     for (index, payload) in first_payloads.iter().enumerate() {
         let session = reopened
             .records()
@@ -123,13 +124,9 @@ fn segment_target_drift_opens_a_new_policy_honest_segment() {
     let (format, _, access) = dense_configuration(2);
     let first_policy = placement(format, 2);
     let second_policy = placement(format, 3);
-    let serving = success(
-        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-            format,
-            first_policy,
-            access,
-        )),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, first_policy, access, durability)
+    }));
     let first = serving
         .record_submission()
         .append_batch(
@@ -139,7 +136,9 @@ fn segment_target_drift_opens_a_new_policy_honest_segment() {
         .unwrap();
     serving.close();
 
-    let serving = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let serving = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let second = serving
         .record_submission()
         .append_batch(
@@ -190,7 +189,9 @@ fn segment_target_drift_opens_a_new_policy_honest_segment() {
         .collect::<Vec<_>>();
     assert_eq!(inline_ranges, vec![(1, 2, 1, 1), (2, 2, 2, 1)]);
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     for (record, expected) in [
         (first.record_id(0).unwrap(), b"first".as_slice()),
         (second.record_id(0).unwrap(), b"second".as_slice()),
@@ -214,13 +215,9 @@ fn returning_to_an_older_policy_does_not_search_historical_segments() {
     let (format, _, access) = dense_configuration(2);
     let two_page_policy = placement(format, 2);
     let three_page_policy = placement(format, 3);
-    let serving = success(
-        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-            format,
-            two_page_policy,
-            access,
-        )),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, two_page_policy, access, durability)
+    }));
     let first = serving
         .record_submission()
         .append_batch(

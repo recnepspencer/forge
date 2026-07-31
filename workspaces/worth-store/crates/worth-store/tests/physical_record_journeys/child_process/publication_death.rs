@@ -36,8 +36,9 @@ pub(super) fn run(root: &Path) {
         _ => panic!("death writer must acquire media"),
     };
     let (format, placement, access) = super::super::configuration();
-    let serving =
-        super::super::success(media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let serving = super::super::success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     spawn_death_observer(gate);
     let payload = vec![0x5a; payload_bytes];
     super::super::scenario_evidence::emit_process("faulting-writer", &serving);

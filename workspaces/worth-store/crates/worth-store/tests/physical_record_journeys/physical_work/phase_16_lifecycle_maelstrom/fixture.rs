@@ -263,9 +263,9 @@ pub(super) fn open_with_maelstrom_faults(
         _ => panic!("Phase 16 faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    let serving = super::super::success(media.open_record_store(
-        PhysicalRecordOpen::new(format, access).with_physical_work_profile(profile),
-    ));
+    let serving = super::super::success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_physical_work_profile(profile)
+    },));
     (serving, gates)
 }
 

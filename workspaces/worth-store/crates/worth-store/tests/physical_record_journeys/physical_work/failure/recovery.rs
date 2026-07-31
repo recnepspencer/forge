@@ -99,12 +99,11 @@ pub(crate) fn crash_writer(root: &std::path::Path) {
 pub(crate) fn crash_reopener(root: &std::path::Path) {
     let (profile, _, _) = work_fixture();
     let (format, _, access) = super::super::super::configuration();
-    let serving = match super::super::super::media(root)
-        .open_record_store(
-            worth_store::physical_runtime::PhysicalRecordOpen::new(format, access)
-                .with_physical_work_profile(profile),
-        )
-        .into_raw()
+    let serving = match open_record_store!(super::super::super::media(root), |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+            .with_physical_work_profile(profile)
+    },)
+    .into_raw()
     {
         TransitionOutcome::Success(serving) => serving,
         TransitionOutcome::Denied(_) => panic!("recovery reopener admission denied"),

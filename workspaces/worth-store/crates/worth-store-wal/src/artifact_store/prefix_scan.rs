@@ -65,6 +65,7 @@ pub(super) fn scan_segment_path_observing(
     scan_segment_reader(&mut file, 0, None, segment_id, generation, buffer, observe)
 }
 
+#[cfg(feature = "certification-authority")]
 pub(super) fn scan_segment_suffix_with_buffer(
     root: &Path,
     segment_id: u64,

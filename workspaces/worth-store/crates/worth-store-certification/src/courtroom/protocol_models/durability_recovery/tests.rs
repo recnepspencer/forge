@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use worth_store_formal_models::{
-    map_executed_wal_durability, DurabilityRecoveryAction, DurabilityRecoveryDenial,
+    map_certified_wal_durability_mechanism, DurabilityRecoveryAction, DurabilityRecoveryDenial,
     DurabilityRecoveryFrontier,
 };
 use worth_store_physical_backend::{
@@ -14,7 +14,7 @@ use worth_store_recovery_physics::{
 };
 
 use super::scenario::{
-    admitted_backend, execute_ordinary_durability_recovery, execute_ordinary_wal,
+    admitted_backend, execute_certified_wal, execute_ordinary_durability_recovery,
 };
 
 #[test]
@@ -48,10 +48,10 @@ fn page_flush_policy_actions_are_explicitly_not_production_owned() {
 }
 
 #[test]
-fn real_wal_execution_maps_to_legal_acknowledgment() {
+fn certified_wal_mechanism_maps_to_legal_acknowledgment() {
     let directory = tempfile::tempdir().unwrap();
-    let outcome = execute_ordinary_wal(directory.path());
-    let actions = map_executed_wal_durability(&outcome);
+    let outcome = execute_certified_wal(directory.path());
+    let actions = map_certified_wal_durability_mechanism(&outcome);
     let mut frontier = DurabilityRecoveryFrontier::initial();
     for action in actions.iter().copied() {
         frontier.apply(action).expect("owner trace refines model");

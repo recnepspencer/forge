@@ -45,7 +45,9 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
         .set_len(16_385)
         .unwrap();
     let (format, access) = permissive_access();
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     reopened
         .certification_physical_residency()
         .drain_unpinned_clean_frames();
@@ -82,9 +84,10 @@ fn permissive_access_policy_cannot_expand_current_root_bootstrap() {
     let (format, access) = permissive_access();
     let open_media = media(&root);
     let before = open_media.media_counters();
-    let denied = open_media
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw();
+    let denied = open_record_store!(open_media, |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = denied else {
         panic!("oversized current root must be denied");
     };

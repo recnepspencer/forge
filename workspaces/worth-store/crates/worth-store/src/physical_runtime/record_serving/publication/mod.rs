@@ -5,6 +5,8 @@ mod candidate_data;
 mod catalog_candidate_progression;
 mod catalog_cutover_preflight;
 mod director;
+mod durable_data_plan;
+mod durable_preparation;
 pub(super) mod extent_publication;
 mod failure;
 mod manifest_progression;
@@ -23,6 +25,18 @@ pub(in crate::physical_runtime::record_serving) use candidate_data::write_candid
 pub use director::{PhysicalRecordSubmission, PreparedRecordAppend};
 pub(in crate::physical_runtime) use director::{
     RecordPublicationDirector, RecordPublicationFoundation,
+};
+pub(in crate::physical_runtime::record_serving) use durable_data_plan::materialize_durable_data;
+pub(in crate::physical_runtime) use durable_preparation::PreparedRecordPublicationContinuation;
+pub(in crate::physical_runtime::record_serving) use durable_preparation::{
+    prepare_canonical_payload, record_append_scope_identity, CanonicalPayloadPreparationError,
+    CanonicalRecordAppendPayload,
+};
+pub use durable_preparation::{
+    PhysicalMutationAdmissionDisposition, PhysicalMutationPreparationDeferred,
+    PhysicalMutationPreparationDenial, PhysicalMutationPreparationFailure,
+    PhysicalMutationPreparationOutcome, PhysicalMutationPreparationRebindRequired,
+    PhysicalMutationPreparationStale, PhysicalMutationResourceShape, PreparedPhysicalMutation,
 };
 pub(in crate::physical_runtime::record_serving) use failure::{
     indeterminate_physical_work, unpublished_candidate_frame_contract, unpublished_frame_writeback,

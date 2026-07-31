@@ -3,15 +3,15 @@ use worth_store_physical_backend::{
     StorageBoundaryFault, StorageBoundaryTrace, WindowsFlushFileBuffersProfile,
 };
 use worth_store_recovery_physics::{
-    CheckpointBaseAdmission, CheckpointCutoverReceipt, ExecutedWalDurabilityOutcome,
+    CertifiedWalDurabilityMechanismObservation, CheckpointBaseAdmission, CheckpointCutoverReceipt,
     RecoveryCompletion, RedoExecutionReceipt, RedoPlanningDenial, RedoPlanningDenialKind,
     ReopenedRecoveryArtifactAdmission,
 };
 
 use super::DurabilityRecoveryAction;
 
-pub fn map_executed_wal_durability<P: BackendDurabilityProfile>(
-    outcome: &ExecutedWalDurabilityOutcome<P>,
+pub fn map_certified_wal_durability_mechanism<P: BackendDurabilityProfile>(
+    outcome: &CertifiedWalDurabilityMechanismObservation<P>,
 ) -> Vec<DurabilityRecoveryAction> {
     let mut actions = vec![
         DurabilityRecoveryAction::WalAppendProposed,

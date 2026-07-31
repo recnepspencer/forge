@@ -23,10 +23,9 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let records = (0_u8..15)
         .map(|value| vec![value; 3_000])
         .collect::<Vec<_>>();
@@ -232,10 +231,9 @@ fn multi_block_manifest_lookup_has_logarithmic_path_and_exact_parity() {
         .manifest_capacity(ManifestEntryCapacity::new(2).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = (0_u8..9).map(|value| vec![value; 100]).collect::<Vec<_>>();
     let published = serving
         .record_submission()
@@ -286,10 +284,9 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let first = serving
         .record_submission()
         .append_batch(

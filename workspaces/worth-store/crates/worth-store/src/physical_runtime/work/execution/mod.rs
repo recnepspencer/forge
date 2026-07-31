@@ -10,16 +10,18 @@ pub use command::{
 pub(in crate::physical_runtime) use command::{
     PhysicalMetadataExecutorCommand, PhysicalPublicationExecutorCommand,
     PhysicalReadExecutorCommand, PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload,
+    PhysicalWalAppendExecutorCommand, PhysicalWalBarrierExecutorCommand,
     PhysicalWriteExecutorCommand,
 };
 pub use joined_outcome::{
     PhysicalSignalSettlementOutcome, PhysicalWorkBatchDenial, PhysicalWorkExecutionBatchOutcome,
     PhysicalWorkExecutionOutcome,
 };
-pub use outcome::CompletedPhysicalPublicationEffect;
+pub use outcome::{CompletedPhysicalPublicationEffect, CompletedPhysicalWalBarrier};
 pub(in crate::physical_runtime) use outcome::{
-    IndeterminatePhysicalPublicationEffect, PhysicalEffectRecoveryObligation,
-    PhysicalExecutorDispatch, PhysicalExecutorOutcome, PhysicalResidencyWritebackCompletion,
+    IndeterminatePhysicalPublicationEffect, IndeterminatePhysicalWalBarrier,
+    PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
+    PhysicalResidencyWritebackCompletion,
 };
 pub(in crate::physical_runtime) use settlement::PhysicalWorkSettlement;
 pub use settlement::{

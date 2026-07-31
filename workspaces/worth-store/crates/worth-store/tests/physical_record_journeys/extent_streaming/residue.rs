@@ -11,10 +11,9 @@ fn fresh_open_reports_known_unpublished_extent_residue_and_blocks_collision() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let error = serving
         .record_submission()
         .append_batch(
@@ -31,7 +30,9 @@ fn fresh_open_reports_known_unpublished_extent_residue_and_blocks_collision() {
     ));
     serving.abort();
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let residue = reopened.publication_residue();
     assert!(residue.next_extent_artifacts());
     assert!(!residue.successor_root());

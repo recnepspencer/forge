@@ -8,6 +8,8 @@ pub enum PhysicalWorkOperationFamily {
     ArtifactRangeRead,
     ArtifactRangeWrite,
     ArtifactPublication,
+    WalAppend,
+    DurabilityBarrier,
 }
 
 impl PhysicalWorkOperationFamily {
@@ -18,6 +20,8 @@ impl PhysicalWorkOperationFamily {
             }
             Self::ArtifactRangeWrite => PhysicalWorkSignalFamily::ExactWriteback,
             Self::ArtifactPublication => PhysicalWorkSignalFamily::Publication,
+            Self::WalAppend => PhysicalWorkSignalFamily::WalAppend,
+            Self::DurabilityBarrier => PhysicalWorkSignalFamily::DurabilityBarrier,
         }
     }
 }
@@ -42,4 +46,8 @@ pub enum PhysicalWorkRecoveryDisposition {
 pub enum PhysicalWorkDurabilityRequirement {
     ReadOnly,
     ArtifactRangeWrite(ArtifactRangeWriteDurabilityRequirement),
+    /// Complete WAL bytes are requested, without claiming a durability barrier.
+    WalAppend,
+    /// Exact admitted backend barrier for one already-appended WAL member.
+    WalDurabilityBarrier,
 }

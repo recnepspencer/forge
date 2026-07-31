@@ -16,10 +16,11 @@ pub(super) const RESIDENT_BYTES: u64 = 2 * FRAME_BYTES;
 
 pub(super) fn initialize(root: &Path) -> (ServingPhysicalRuntime, AdmittedRecordPlacementPolicy) {
     let (format, placement, access) = dense_configuration(4);
-    let outcome = media(root).initialize_record_store(
-        PhysicalRecordInitialization::new(format, placement, access)
-            .with_residency_policy(residency_policy(format)),
-    );
+    let outcome =
+        initialize_record_store!(media(root), |durability| PhysicalRecordInitialization::new(
+            format, placement, access, durability
+        )
+        .with_residency_policy(residency_policy(format)),);
     let serving = match outcome.into_raw() {
         TransitionOutcome::Success(serving) => serving,
         _ => panic!("the chunk-view fixture must admit a real physical Store"),

@@ -1,8 +1,8 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    ArtifactTreeFailureKind, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
-    CompletedArtifactRangeWrite, IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
-    MediaOperationRole,
+    ArtifactTreeFailureKind, CompletedArtifactAppend, CompletedArtifactNewWrite,
+    CompletedArtifactRangeRead, CompletedArtifactRangeWrite, IndeterminateArtifactAppend,
+    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite, MediaOperationRole,
 };
 
 use super::{
@@ -72,6 +72,18 @@ pub(super) fn classify(
         } if dispatched.matches_publication_effect(&physical) => {
             classify_completed_publication_effect(dispatched, physical, scheduler)
         }
+        PhysicalExecutorOutcome::WalAppendCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_wal_append(&physical) => {
+            classify_completed_wal_append(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::WalBarrierCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_wal_barrier(&physical) => {
+            classify_completed_wal_barrier(dispatched, physical, scheduler)
+        }
         PhysicalExecutorOutcome::Indeterminate(physical)
             if dispatched.matches_indeterminate(physical) =>
         {
@@ -87,7 +99,132 @@ pub(super) fn classify(
         {
             indeterminate_publication_effect(dispatched, physical)
         }
+        PhysicalExecutorOutcome::WalAppendIndeterminate(physical)
+            if dispatched.matches_wal_append_indeterminate(&physical) =>
+        {
+            indeterminate_wal_append(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::WalBarrierIndeterminate(physical)
+            if dispatched.matches_wal_barrier_indeterminate(&physical) =>
+        {
+            indeterminate_wal_barrier(dispatched, physical)
+        }
         _ => PhysicalWorkSettlementEvidence::StaleOrForeign,
+    }
+}
+
+fn classify_completed_wal_barrier(
+    dispatched: &DispatchedPhysicalWork,
+    physical: crate::physical_runtime::work::CompletedPhysicalWalBarrier,
+    scheduler: QueueExecutionOutcome,
+) -> PhysicalWorkSettlementEvidence {
+    if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+        return PhysicalWorkSettlementEvidence::WalBarrier {
+            physical,
+            scheduler,
+        };
+    }
+    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
+        identity: dispatched.intent().identity(),
+        effect_fate: PhysicalWorkEffectFate::WrittenButSchedulerRejected,
+        target: wal_barrier_recovery_target(dispatched),
+        completed_bytes: 0,
+        backend_operation: physical.physical().operation(),
+        backend_role: MediaOperationRole::SynchronizeFileState,
+        scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
+        publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
+        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
+        cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
+    })
+}
+
+fn indeterminate_wal_barrier(
+    dispatched: &DispatchedPhysicalWork,
+    physical: crate::physical_runtime::work::IndeterminatePhysicalWalBarrier,
+) -> PhysicalWorkSettlementEvidence {
+    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
+        identity: dispatched.intent().identity(),
+        effect_fate: PhysicalWorkEffectFate::Indeterminate,
+        target: wal_barrier_recovery_target(dispatched),
+        completed_bytes: 0,
+        backend_operation: physical.physical().operation(),
+        backend_role: MediaOperationRole::SynchronizeFileState,
+        scheduler: PhysicalWorkSchedulerPosture::NotObserved,
+        publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
+        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
+        cause: PhysicalWorkTerminalCause::Backend(physical.physical().failure()),
+    })
+}
+
+fn wal_barrier_recovery_target(dispatched: &DispatchedPhysicalWork) -> PhysicalWorkRecoveryTarget {
+    let scope = dispatched
+        .intent()
+        .scope()
+        .wal_barrier_target()
+        .expect("WAL barrier work carries WAL barrier scope");
+    PhysicalWorkRecoveryTarget::WalArtifactInterval {
+        segment: scope.segment(),
+        generation: scope.generation(),
+        offset: scope.append_offset(),
+        byte_count: scope.append_byte_count(),
+    }
+}
+
+fn classify_completed_wal_append(
+    dispatched: &DispatchedPhysicalWork,
+    physical: CompletedArtifactAppend,
+    scheduler: QueueExecutionOutcome,
+) -> PhysicalWorkSettlementEvidence {
+    if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+        return PhysicalWorkSettlementEvidence::WalAppend {
+            physical,
+            scheduler,
+        };
+    }
+    let target = wal_recovery_target(dispatched);
+    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
+        identity: dispatched.intent().identity(),
+        effect_fate: PhysicalWorkEffectFate::WrittenButSchedulerRejected,
+        target,
+        completed_bytes: physical.range().byte_count(),
+        backend_operation: physical.operation(),
+        backend_role: MediaOperationRole::PositionedWrite,
+        scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
+        publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
+        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
+        cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
+    })
+}
+
+fn indeterminate_wal_append(
+    dispatched: &DispatchedPhysicalWork,
+    physical: IndeterminateArtifactAppend,
+) -> PhysicalWorkSettlementEvidence {
+    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
+        identity: dispatched.intent().identity(),
+        effect_fate: PhysicalWorkEffectFate::Indeterminate,
+        target: wal_recovery_target(dispatched),
+        completed_bytes: physical.completed_bytes(),
+        backend_operation: physical.operation(),
+        backend_role: MediaOperationRole::PositionedWrite,
+        scheduler: PhysicalWorkSchedulerPosture::NotObserved,
+        publication_residue: PhysicalWorkPublicationResiduePosture::NotApplicable,
+        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
+        cause: PhysicalWorkTerminalCause::Backend(physical.failure()),
+    })
+}
+
+fn wal_recovery_target(dispatched: &DispatchedPhysicalWork) -> PhysicalWorkRecoveryTarget {
+    let scope = dispatched
+        .intent()
+        .scope()
+        .wal_append_target()
+        .expect("WAL append work carries WAL scope");
+    PhysicalWorkRecoveryTarget::WalArtifactInterval {
+        segment: scope.segment(),
+        generation: scope.generation(),
+        offset: scope.offset(),
+        byte_count: scope.byte_count(),
     }
 }
 

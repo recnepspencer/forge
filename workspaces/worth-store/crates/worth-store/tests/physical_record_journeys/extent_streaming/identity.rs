@@ -10,10 +10,9 @@ pub(super) fn prove_abandoned_candidate_non_reuse() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let error = serving
         .record_submission()
         .append_batch(
@@ -40,7 +39,9 @@ pub(super) fn prove_abandoned_candidate_non_reuse() {
     let abandoned_epoch: [u8; 16] = orphan_bytes[40..56].try_into().unwrap();
     std::fs::remove_file(orphan).unwrap();
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let published = reopened
         .record_submission()
         .append_batch(

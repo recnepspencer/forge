@@ -48,7 +48,9 @@ fn premature_identity_subset_and_success_mutants_fail_causally() {
         panic!("the controlled mutation must target publication")
     };
     let (format, placement, access) = configuration();
-    let serving = success(media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let serving = success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let store = serving.store_identity();
     let outcome = serving.record_submission().append_batch(
         RecordAppendBatch::try_from_iter([

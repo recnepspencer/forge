@@ -53,10 +53,11 @@ fn missing_catalog(
 ) -> bool {
     let world = clone_world(source, "missing-catalog");
     std::fs::remove_file(world.join("families/records/bootstrap.catalog")).unwrap();
-    let TransitionOutcome::Denied(denial) = super::media(&world)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw()
-    else {
+    let TransitionOutcome::Denied(denial) = open_record_store!(
+        super::media(&world),
+        |durability| PhysicalRecordOpen::new(format, access, durability)
+    )
+    .into_raw() else {
         return false;
     };
     let matched = denial.reason() == RecordBootstrapDenial::AmbiguousRecordFamilyResidue
@@ -80,10 +81,11 @@ fn checksum_damage(
     let last = bytes.len() - 1;
     bytes[last] ^= 1;
     std::fs::write(root, bytes).unwrap();
-    let TransitionOutcome::Denied(denial) = super::media(&world)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw()
-    else {
+    let TransitionOutcome::Denied(denial) = open_record_store!(
+        super::media(&world),
+        |durability| PhysicalRecordOpen::new(format, access, durability)
+    )
+    .into_raw() else {
         return false;
     };
     let matched = denial.reason() == RecordBootstrapDenial::CurrentRootDamaged
@@ -105,9 +107,10 @@ fn stale_manifest(
     let current = current_root_path(&world, format);
     let stale = world.join("families/records/roots/root-0000000000000001.manifest");
     std::fs::copy(stale, current).unwrap();
-    match super::media(&world)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw()
+    match open_record_store!(super::media(&world), |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw()
     {
         TransitionOutcome::Stale(stale) => {
             stale.into_runtime().close();
@@ -138,10 +141,11 @@ fn format_drift(source: &Path) -> bool {
             .unwrap(),
     );
     let access = PhysicalRecordAccessPolicy::builder().admit(format).unwrap();
-    let TransitionOutcome::Denied(denial) = super::media(&world)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw()
-    else {
+    let TransitionOutcome::Denied(denial) = open_record_store!(
+        super::media(&world),
+        |durability| PhysicalRecordOpen::new(format, access, durability)
+    )
+    .into_raw() else {
         return false;
     };
     let matched = matches!(
@@ -167,9 +171,9 @@ fn unpublished_residue(
     let candidate = world.join("staging/records/bootstrap-deadbeefdeadbeef.candidate");
     let candidate_bytes = std::fs::copy(&catalog, &candidate).unwrap();
     assert_eq!(candidate_bytes, std::fs::metadata(catalog).unwrap().len());
-    let reopened = super::success(
-        super::media(&world).open_record_store(PhysicalRecordOpen::new(format, access)),
-    );
+    let reopened = super::success(open_record_store!(super::media(&world), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let excluded = reopened.observed_staging_residue()
         && reopened.publication_residue().staging_catalog_candidate()
         && reopened.observed_non_authoritative_residue()

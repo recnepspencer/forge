@@ -15,10 +15,9 @@ fn fresh_open_detects_failed_reusable_segment_cow_and_blocks_writes() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = configuration();
-    let seeded = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let seeded = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     seeded
         .record_submission()
         .append_batch(
@@ -54,7 +53,9 @@ fn fresh_open_detects_failed_reusable_segment_cow_and_blocks_writes() {
         TransitionOutcome::Success(media) => media,
         _ => panic!("fault schedule must admit"),
     };
-    let faulted = success(faulted_media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let faulted = success(open_record_store!(faulted_media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let failure = match faulted.record_submission().append_batch(
         RecordAppendBatch::try_from_iter([b"candidate".as_slice()]).unwrap(),
         placement,

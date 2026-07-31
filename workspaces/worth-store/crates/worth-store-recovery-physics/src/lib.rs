@@ -258,14 +258,15 @@ pub use staged_wal_application::{
 };
 pub use staged_wal_replay_source::{StagedWalReplaySourceDenial, StagedWalReplaySourceReceipt};
 #[cfg(feature = "certification-test-authority")]
-pub use wal_durability::execute_wal_durability_with_boundary_control;
 pub use wal_durability::{
-    execute_wal_durability, AcknowledgmentPrecondition, DurableAckBasis, DurableAckReceipt,
-    ExecutedWalDurabilityOutcome, IllegalAcknowledgmentDenial, IllegalAcknowledgmentDenialKind,
-    WalAppendDurabilityScope, WalAppendPlan, WalAppendProgress, WalAppendReceipt,
-    WalDurabilityCrashBasis, WalDurabilityCrashPosture, WalDurabilityCrashRecord,
-    WalDurabilityExecutionError, WalDurabilityObservation, WalDurabilityObservationSequence,
-    WalFrameDigest,
+    certify_wal_durability_mechanism, certify_wal_durability_mechanism_with_boundary_control,
+    CertifiedWalDurabilityMechanismObservation, WalDurabilityMechanismProbeError,
+};
+pub use wal_durability::{
+    AcknowledgmentPrecondition, DurableAckBasis, DurableAckReceipt, IllegalAcknowledgmentDenial,
+    IllegalAcknowledgmentDenialKind, WalAppendDurabilityScope, WalAppendPlan, WalAppendProgress,
+    WalAppendReceipt, WalDurabilityCrashBasis, WalDurabilityCrashPosture, WalDurabilityCrashRecord,
+    WalDurabilityObservation, WalDurabilityObservationSequence, WalFrameDigest,
 };
 pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
 pub use worth_store_contracts::CorruptionHandoffDamageCase;

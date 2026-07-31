@@ -13,13 +13,9 @@ pub(super) fn prove() {
     let format = format();
     let initial = placement(format, 4, 2, 50);
     let admitted_access = access(format, 11);
-    let serving = success(
-        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-            format,
-            initial,
-            admitted_access,
-        )),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, initial, admitted_access, durability)
+    }));
     let first = serving
         .record_submission()
         .append_batch(
@@ -92,8 +88,9 @@ pub(super) fn prove() {
     serving.close();
 
     let changed_access = access(format, 3);
-    let reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, changed_access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, changed_access, durability)
+    }));
     assert_eq!(
         reopened
             .records()

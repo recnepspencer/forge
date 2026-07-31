@@ -20,10 +20,9 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
         .manifest_capacity(ManifestEntryCapacity::new(16).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = [vec![1_u8; 4_000], vec![2_u8; 4_000], vec![3_u8; 4_000]];
     let published = serving
         .record_submission()
@@ -44,7 +43,9 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
     )
     .unwrap();
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert!(matches!(
         reopened.records().open(
             first,
@@ -78,10 +79,9 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     serving
         .record_submission()
         .append_batch(
@@ -105,7 +105,9 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
         Err(worth_store_offline_verifier::OfflineDurableManifestDenial::InvalidTreeShape)
     );
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let before = reopened.media_counters();
     assert!(matches!(
         reopened.record_submission().append_batch(
@@ -159,10 +161,9 @@ enum RoutingCorruption {
 fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorruption) {
     let root = parent.join(format!("{corruption:?}"));
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = serving
         .record_submission()
         .append_batch(
@@ -223,7 +224,9 @@ fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorr
         ),
         Err(expected_offline)
     );
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let error = match reopened.records().open(
         record,
         RecordReadLimits::new(RecordByteLimit::new(8).unwrap()),

@@ -3,11 +3,38 @@ use worth_store::physical_runtime::{
     AdmittedPhysicalRecordFormat, ManifestEntryCapacity, PhysicalPageSizeClass,
     PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration, PhysicalRecordInitialization,
     PhysicalRecordOpen, PhysicalRecordPlacementPolicy, RecordBootstrapDenial, RecordByteLimit,
-    RecordStoreInitializationOutcome, RecordStoreOpenOutcome,
+    RecordServingRebindReason, RecordStoreInitializationOutcome, RecordStoreOpenOutcome,
 };
 use worth_store_physical_backend::MediaOperationRole;
 
-use super::{configuration, media, serving_from_initialization, serving_from_open, success};
+use super::{
+    configuration, durability, media, serving_from_initialization, serving_from_open, success,
+};
+
+#[test]
+fn foreign_durability_policy_rebinds_before_any_target_media_effect() {
+    let parent = tempfile::tempdir().unwrap();
+    let source = media(&parent.path().join("source"));
+    let target = media(&parent.path().join("target"));
+    let policy = durability(&source);
+    let (format, _, access) = configuration();
+    let before = target.media_counters();
+
+    let outcome = target
+        .open_record_store(PhysicalRecordOpen::new(format, access, policy))
+        .into_raw();
+    let TransitionOutcome::RebindRequired(rebind) = outcome else {
+        panic!("a durability policy from another Store must require rebinding");
+    };
+    assert_eq!(
+        rebind.reason(),
+        RecordServingRebindReason::PhysicalDurabilityStoreMismatch,
+    );
+    let target = rebind.into_runtime();
+    assert_eq!(target.media_counters(), before);
+    target.close();
+    source.close();
+}
 
 #[test]
 fn empty_bootstrap_create_and_reopen_converge() {
@@ -24,7 +51,9 @@ fn empty_bootstrap_create_and_reopen_converge() {
     let (format, _, access) = configuration();
     let open_media = media(&root);
     let before = open_media.media_counters();
-    let reopened = success(open_media.open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(open_media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let after = reopened.media_counters();
     assert_eq!(reopened.store_identity(), store);
     assert!(!reopened.observed_staging_residue());
@@ -49,20 +78,23 @@ fn initialize_and_open_never_substitute_for_each_other() {
     let (format, placement, access) = configuration();
     let absent = media(&root);
     let open_outcome: RecordStoreOpenOutcome =
-        absent.open_record_store(PhysicalRecordOpen::new(format, access));
+        open_record_store!(absent, |durability| PhysicalRecordOpen::new(
+            format, access, durability
+        ));
     let absent = match open_outcome.into_raw() {
         TransitionOutcome::Denied(denial) => denial.into_runtime(),
         _ => panic!("C5_PREDICATE:lifecycle open must not initialize an absent record family"),
     };
-    success(
-        absent
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    )
+    success(initialize_record_store!(absent, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }))
     .close();
 
     let existing = media(&root);
-    let existing: RecordStoreInitializationOutcome = existing
-        .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access));
+    let existing: RecordStoreInitializationOutcome = initialize_record_store!(
+        existing,
+        |durability| PhysicalRecordInitialization::new(format, placement, access, durability)
+    );
     assert!(matches!(existing.into_raw(), TransitionOutcome::Denied(_)));
 }
 
@@ -78,8 +110,9 @@ fn operational_policy_drift_reopens_but_format_drift_does_not() {
         .scratch_limit(RecordByteLimit::new(32_768).unwrap())
         .admit(format)
         .unwrap();
-    let reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, wider_access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, wider_access, durability)
+    }));
     let changed_placement = PhysicalRecordPlacementPolicy::builder()
         .manifest_capacity(ManifestEntryCapacity::new(128).unwrap())
         .admit(format)
@@ -107,9 +140,12 @@ fn operational_policy_drift_reopens_but_format_drift_does_not() {
         .unwrap();
     let wrong_media = media(&root);
     let replacements = wrong_media.media_counters().replacements();
-    let rejected = wrong_media
-        .open_record_store(PhysicalRecordOpen::new(changed_format, changed_access))
-        .into_raw();
+    let rejected = open_record_store!(wrong_media, |durability| PhysicalRecordOpen::new(
+        changed_format,
+        changed_access,
+        durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = rejected else {
         panic!("persisted format drift must be denied");
     };

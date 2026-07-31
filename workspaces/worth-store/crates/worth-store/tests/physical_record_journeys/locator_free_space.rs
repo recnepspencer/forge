@@ -17,10 +17,9 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = serving
         .record_submission()
         .append_batch(
@@ -37,7 +36,9 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
     assert_eq!(free.header.next_segment(), 2);
     assert_eq!(free.header.next_page(), 2);
     assert_eq!(free.entries.len(), 2);
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert_eq!(
         reopened
             .records()
@@ -76,9 +77,10 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
     let final_byte = damaged.len() - 1;
     damaged[final_byte] ^= 1;
     std::fs::write(&free_path, damaged).unwrap();
-    let outcome = media(&root)
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw();
+    let outcome = open_record_store!(media(&root), |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = outcome else {
         panic!("damaged free-space truth must deny open")
     };
@@ -94,10 +96,9 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let published = serving
         .record_submission()
         .append_batch(
@@ -118,7 +119,9 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
     damaged[final_byte] ^= 1;
     std::fs::write(&block_path, damaged).unwrap();
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let invalidations_before = reopened
         .physical_signal_observation()
         .unwrap()
@@ -159,7 +162,9 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
         RecordServingTerminalPosture::InspectionRequired
     );
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert_eq!(
         reopened.records().readmit_locator(locator).into_result(),
         Err(PhysicalLocatorReadmissionDenial::CurrentRootUnavailable)
@@ -191,10 +196,9 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     serving
         .record_submission()
         .append_batch(
@@ -212,7 +216,9 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     entries.sort_by_key(|entry| worth_store_physical_format::FreeSpaceKey::from(*entry));
     overwrite_free_space_root_block(&root, format.declaration(), &free.header, entries);
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert!(matches!(
         reopened.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([b"must inspect the tree".as_slice()]).unwrap(),
@@ -231,11 +237,9 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         let parent = tempfile::tempdir().unwrap();
         let root = parent.path().join(case);
         let (format, placement, access) = dense_configuration(4);
-        let serving = success(
-            media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-                format, placement, access,
-            )),
-        );
+        let serving = success(initialize_record_store!(media(&root), |durability| {
+            PhysicalRecordInitialization::new(format, placement, access, durability)
+        }));
         serving
             .record_submission()
             .append_batch(
@@ -262,8 +266,9 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         .unwrap();
         overwrite_free_space_root_block(&root, format.declaration(), &free.header, entries);
 
-        let reopened =
-            success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+        let reopened = success(open_record_store!(media(&root), |durability| {
+            PhysicalRecordOpen::new(format, access, durability)
+        }));
         assert!(
             matches!(
                 reopened.record_submission().append_batch(

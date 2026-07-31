@@ -5,6 +5,8 @@ mod catalog;
 mod classification;
 #[cfg(feature = "physical-work-evidence")]
 mod courtroom_campaign;
+#[cfg(test)]
+mod durable_publication_boundary_gate;
 mod execution;
 mod local_source_fingerprint;
 mod mutation_campaign;

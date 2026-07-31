@@ -32,3 +32,8 @@ worth-store-security = { path = "../worth-store-security", features = ["certific
 
 [lints]
 workspace = true
+
+[[test]]
+name = "layout_scenarios"
+path = "tests/layout_scenarios.rs"
+required-features = ["certification-authority"]

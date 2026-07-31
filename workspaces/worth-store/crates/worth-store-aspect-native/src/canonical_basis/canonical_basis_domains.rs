@@ -122,6 +122,9 @@ pub const fn store_native_basis_domain_for_family(
             CanonicalBasisDomain::Future("store.wal.frame.integrity.evidence")
         }
         StoreCanonicalBasisFamily::WalRecord => CanonicalBasisDomain::Future("store.wal.record"),
+        StoreCanonicalBasisFamily::PhysicalMutationRequestFingerprint => {
+            CanonicalBasisDomain::Future("store.physical.mutation.request-fingerprint.v1")
+        }
         StoreCanonicalBasisFamily::RecoveryIntegrityHandoff => {
             CanonicalBasisDomain::Future("store.recovery.integrity.handoff")
         }

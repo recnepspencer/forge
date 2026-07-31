@@ -1,5 +1,6 @@
 mod barrier;
 mod barrier_receipt;
+mod physical_admission_basis;
 mod profile;
 mod profiles;
 
@@ -13,6 +14,11 @@ pub use barrier_receipt::{
 };
 pub use barrier_receipt::{
     BackendDurabilityBarrierDenial, BackendDurabilityBarrierDenialKind, WalDurabilityBarrierReceipt,
+};
+#[cfg(feature = "store-runtime-owner")]
+pub(crate) use physical_admission_basis::QualifiedDurabilityBasisInput;
+pub use physical_admission_basis::{
+    PhysicalDurabilityAdmissionBasis, PhysicalDurabilityAdmissionIdentity,
 };
 pub use profile::{BackendDurabilityProfile, BackendDurabilityProfileId, BackendDurabilitySupport};
 pub use profiles::{

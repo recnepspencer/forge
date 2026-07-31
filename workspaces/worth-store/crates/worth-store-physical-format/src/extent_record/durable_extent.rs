@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub const EXTENT_CHUNK_METADATA_BYTES: usize = 64;
-pub const DURABLE_EXTENT_FRAME_HEADER_BYTES: usize = 40;
+pub const DURABLE_EXTENT_FRAME_HEADER_BYTES: usize = DURABLE_FRAME_HEADER_BYTES;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ExtentChunkCoordinate {

@@ -111,9 +111,9 @@ pub(super) fn extent_reader(root: &Path, encoded_locator: &str) {
 pub(super) fn scale_allocation_reader(root: &Path, encoded_locator: &str) {
     let format = super::scale_support::format();
     let access = super::scale_support::access(format, 7);
-    let serving = super::success(
-        super::media(root).open_record_store(PhysicalRecordOpen::new(format, access)),
-    );
+    let serving = super::success(open_record_store!(super::media(root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let locator = ExternalPhysicalRecordLocator::decode(unhex(encoded_locator)).unwrap();
     let record = serving
         .records()

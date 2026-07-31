@@ -1,3 +1,4 @@
+use sha2::{Digest, Sha256};
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::RecordFrameCoordinate;
 
@@ -37,6 +38,7 @@ impl StoreCandidateFramePublicationSession<'_> {
                 .expect("admitted candidate frame lengths are u32-bounded"),
         )
         .expect("admitted candidate frames are nonempty and offset-bounded");
+        let payload_digest: [u8; 32] = Sha256::digest(resident.bytes()).into();
         let dirty = AdmittedDirtyFrame::candidate(
             coordinate,
             resident
@@ -65,7 +67,12 @@ impl StoreCandidateFramePublicationSession<'_> {
         };
         match execution {
             PhysicalWritebackExecution::Clean(settlement) => {
-                let completion = CandidateFrameWriteCompletion::retained(expectation.frame_bytes());
+                let completion = CandidateFrameWriteCompletion::writeback(
+                    expectation.frame_bytes(),
+                    coordinate,
+                    payload_digest,
+                    settlement,
+                );
                 self.complete_frame(expectation, &completion)?;
                 Ok((completion, settlement))
             }

@@ -18,10 +18,10 @@ fn possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication
     let control_parent = tempfile::tempdir().unwrap();
     let control_root = control_parent.path().join("control");
     let (format, placement, access) = configuration();
-    let control = success(
-        media(&control_root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let control = success(initialize_record_store!(
+        media(&control_root),
+        |durability| PhysicalRecordInitialization::new(format, placement, access, durability)
+    ));
     control
         .record_submission()
         .append_batch(
@@ -70,11 +70,9 @@ fn possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication
             TransitionOutcome::Success(media) => media,
             _ => panic!("fault must target append publication"),
         };
-        let serving = success(
-            media.initialize_record_store(PhysicalRecordInitialization::new(
-                format, placement, access,
-            )),
-        );
+        let serving = success(initialize_record_store!(media, |durability| {
+            PhysicalRecordInitialization::new(format, placement, access, durability)
+        }));
         let error = serving
             .record_submission()
             .append_batch(
@@ -209,9 +207,9 @@ fn created_artifact_with_denied_write_seals_serving_authority() {
         _ => panic!("fault must target record publication"),
     };
     let (format, placement, access) = configuration();
-    let serving = success(media.open_record_store(
-        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access),
-    ));
+    let serving = success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+    },));
     let store_identity = serving.store_identity();
     let error = serving
         .record_submission()
@@ -287,10 +285,9 @@ fn incomplete_rollover_segment_never_replaces_prior_truth() {
         .manifest_capacity(ManifestEntryCapacity::new(16).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let prior = serving
         .record_submission()
         .append_batch(
@@ -327,9 +324,9 @@ fn incomplete_rollover_segment_never_replaces_prior_truth() {
         TransitionOutcome::Success(media) => media,
         _ => panic!("fault must target successor-segment data"),
     };
-    let serving = success(media.open_record_store(
-        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access),
-    ));
+    let serving = success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+    },));
     assert!(matches!(
         serving.record_submission().append_batch(
             RecordAppendBatch::try_from_iter([vec![0x22; 8_000]]).unwrap(),

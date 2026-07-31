@@ -47,6 +47,14 @@ impl ServingPhysicalRuntime {
             .store_identity()
     }
 
+    pub fn durability_observation(&self) -> crate::physical_runtime::PhysicalDurabilityObservation {
+        debug_assert_eq!(
+            self.parts.durability.runtime_identity(),
+            self.runtime_identity()
+        );
+        self.parts.durability.observation()
+    }
+
     pub fn observed_staging_residue(&self) -> bool {
         self.parts.publication.residue().staging_catalog_candidate()
     }

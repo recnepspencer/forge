@@ -10,9 +10,11 @@ mod state;
 pub use admission::{StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome};
 pub use counters::{StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength};
 pub use denial::{StoreDurabilityDenial, StoreDurabilityDenialKind};
+#[cfg(feature = "certification-test-authority")]
+pub use execution::StoreDurabilityAppendInput;
 pub use execution::{
-    StoreDurabilityAppendInput, StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof,
-    StoreDurabilityFileSyncKind, StoreDurabilityRuntime,
+    StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof, StoreDurabilityFileSyncKind,
+    StoreDurabilityRuntime,
 };
 pub use receipt::{
     StoreDurabilityBoundaryReached, StoreDurabilityOrderingBarrierDurable,

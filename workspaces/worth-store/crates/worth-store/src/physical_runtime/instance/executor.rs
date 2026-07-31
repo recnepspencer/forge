@@ -8,6 +8,8 @@ mod range_read;
 mod range_write;
 mod recovery_obligation;
 mod residency_writeback;
+mod wal_append;
+mod wal_barrier;
 #[cfg(feature = "certification-test-authority")]
 mod yieldpoint;
 
@@ -74,6 +76,8 @@ impl PhysicalWorkExecutor {
             PhysicalExecutorCommand::ResidencyWriteback(command) => {
                 self.dispatch_residency_writeback(command)
             }
+            PhysicalExecutorCommand::WalAppend(command) => self.dispatch_wal_append(command),
+            PhysicalExecutorCommand::WalBarrier(command) => self.dispatch_wal_barrier(command),
         }
     }
 

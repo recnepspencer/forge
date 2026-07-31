@@ -152,6 +152,8 @@ pub enum RecordServingStaleReason {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordServingRebindReason {
     StoreIdentityMismatch,
+    PhysicalDurabilityStoreMismatch,
+    PhysicalDurabilityAdmissionBasisMismatch,
 }
 
 pub(in crate::physical_runtime::record_serving) fn backend_before_effect(

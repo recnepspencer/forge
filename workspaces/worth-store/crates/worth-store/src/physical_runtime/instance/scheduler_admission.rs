@@ -16,6 +16,7 @@ pub(in crate::physical_runtime) enum RecordSchedulerReservationDenial {
 #[derive(Clone)]
 pub(in crate::physical_runtime) struct PhysicalSchedulerAdmissionOwner {
     buffered_file: IoSchedulerBackendCapabilityAdmission,
+    fsync: IoSchedulerBackendCapabilityAdmission,
     foreground:
         worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundCapacity,
 }
@@ -27,11 +28,65 @@ impl PhysicalSchedulerAdmissionOwner {
     ) -> Result<Self, IoSchedulerBackendCapabilityDenial> {
         let owner = Self {
             buffered_file: admit(media, IoSchedulerBackendCapabilityRequirement::BufferedFile)?,
+            fsync: admit(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+            )?,
             foreground: worth_store_io_scheduler::foreground_reservation::
                 PhysicalInstanceForegroundCapacity::new(foreground_capacity(capacity))
                 .expect("an admitted physical-work profile has nonzero scheduler capacity"),
         };
         Ok(owner)
+    }
+
+    pub(in crate::physical_runtime) fn wal_append(
+        &self,
+        security: &worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
+        bytes: u64,
+    ) -> Result<
+        (
+            worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundReservation,
+            IoSchedulerBackendCapabilityAdmission,
+        ),
+        RecordSchedulerReservationDenial,
+    > {
+        let lane = worth_store_io_scheduler::foreground_reservation::
+            ForegroundLaneDeclaration::commit_critical_wal_append()
+            .with_latency_envelope(
+                worth_store_io_scheduler::foreground_reservation::ForegroundLatencyEnvelope::
+                    bounded_interference("physical-wal-append", 2),
+            )
+            .with_budget(wal_append_budget(bytes));
+        let reservation = self
+            .foreground
+            .reserve(lane, &self.buffered_file, security)
+            .map_err(RecordSchedulerReservationDenial::Admission)?;
+        Ok((reservation, self.buffered_file))
+    }
+
+    pub(in crate::physical_runtime) fn wal_durability_barrier(
+        &self,
+        security: &worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
+    ) -> Result<
+        (
+            worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundReservation,
+            IoSchedulerBackendCapabilityAdmission,
+        ),
+        RecordSchedulerReservationDenial,
+    > {
+        let lane = worth_store_io_scheduler::foreground_reservation::
+            ForegroundLaneDeclaration::filesystem_admitted_wal_barrier()
+            .expect("filesystem-admitted WAL barrier is a Store-owned lane")
+            .with_latency_envelope(
+                worth_store_io_scheduler::foreground_reservation::ForegroundLatencyEnvelope::
+                    bounded_interference("physical-wal-durability-barrier", 2),
+            )
+            .with_budget(wal_barrier_budget());
+        let reservation = self
+            .foreground
+            .reserve(lane, &self.fsync, security)
+            .map_err(RecordSchedulerReservationDenial::Admission)?;
+        Ok((reservation, self.fsync))
     }
 
     pub(in crate::physical_runtime) fn admit(
@@ -227,6 +282,29 @@ fn publication_effect_budget(
     // range. One token is the scheduler's minimum bounded transfer unit; the
     // flush and publication flags carry the additional durability resources.
     write_budget(1, true, true)
+}
+
+fn wal_append_budget(
+    bytes: u64,
+) -> worth_store_io_scheduler::foreground_reservation::ForegroundResourceBudget {
+    use worth_store_io_scheduler::{BandwidthToken, QueueSlot, WorkerPermit};
+    worth_store_io_scheduler::foreground_reservation::ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).expect("one WAL append is nonzero"))
+        .with_bandwidth(BandwidthToken::bytes(bytes).expect("an admitted WAL frame is nonempty"))
+        .with_worker_permits(WorkerPermit::new(1).expect("one WAL append is nonzero"))
+}
+
+fn wal_barrier_budget() -> worth_store_io_scheduler::foreground_reservation::ForegroundResourceBudget
+{
+    use worth_store_io_scheduler::{
+        BandwidthToken, FlushPermit, QueueSlot, SyncDebt, WorkerPermit,
+    };
+    worth_store_io_scheduler::foreground_reservation::ForegroundResourceBudget::new()
+        .with_queue_slots(QueueSlot::new(1).expect("one WAL barrier is nonzero"))
+        .with_bandwidth(BandwidthToken::bytes(1).expect("one barrier accounting unit is nonzero"))
+        .with_flush_permits(FlushPermit::new(1).expect("one WAL barrier is nonzero"))
+        .with_sync_debt(SyncDebt::units(1).expect("one WAL barrier is nonzero"))
+        .with_worker_permits(WorkerPermit::new(1).expect("one WAL barrier is nonzero"))
 }
 
 fn foreground_capacity(

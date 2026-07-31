@@ -15,10 +15,9 @@ fn serving_admission_reads_cross_the_frame_port() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("frame-mediated-admission");
     let (format, placement, access) = configuration();
-    let initialized = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let initialized = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert_eq!(
         initialized
             .certification_frame_port_observer()
@@ -27,7 +26,9 @@ fn serving_admission_reads_cross_the_frame_port() {
         2
     );
     initialized.close();
-    let opened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let opened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert_eq!(
         opened
             .certification_frame_port_observer()
@@ -59,9 +60,9 @@ fn serving_observers_stale_before_media_release_can_block() {
         panic!("media admission must succeed")
     };
     let (format, placement, access) = configuration();
-    let serving = super::success(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(media, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let observer = serving.observer();
     let serving_generation = observer
         .acquisition_snapshot()
@@ -200,9 +201,9 @@ fn consuming_record_admission_stales_media_observation_and_advances_lifecycle() 
     let media = super::media(&root);
     let media_observer = media.observer();
     let media_generation = media_observer.snapshot().unwrap().generation();
-    let serving = super::success(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(media, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
 
     assert!(matches!(
         media_observer.snapshot(),
@@ -222,9 +223,9 @@ fn consuming_record_admission_stales_media_observation_and_advances_lifecycle() 
     let media = super::media(&root);
     let media_observer = media.observer();
     let media_generation = media_observer.snapshot().unwrap().generation();
-    let serving = super::success(media.open_record_store(
-        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access),
-    ));
+    let serving = super::success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+    },));
     assert!(matches!(
         media_observer.snapshot(),
         Err(ObservationError::Stale { .. })

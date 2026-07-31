@@ -135,16 +135,24 @@ pub use publication::streaming::{
 };
 pub use publication::RecordPublicationStage;
 pub use publication::{
-    PhysicalRecordSubmission, PreparedRecordAppend, RecordPublicationWorkEffect,
+    PhysicalMutationAdmissionDisposition, PhysicalMutationPreparationDeferred,
+    PhysicalMutationPreparationDenial, PhysicalMutationPreparationFailure,
+    PhysicalMutationPreparationOutcome, PhysicalMutationPreparationRebindRequired,
+    PhysicalMutationPreparationStale, PhysicalMutationResourceShape, PhysicalRecordSubmission,
+    PreparedPhysicalMutation, PreparedRecordAppend, RecordPublicationWorkEffect,
     RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
 };
 pub(in crate::physical_runtime) use publication::{
-    RecordPublicationDirector, RecordPublicationFoundation,
+    PreparedRecordPublicationContinuation, RecordPublicationDirector, RecordPublicationFoundation,
 };
 pub(in crate::physical_runtime) use read_work_port::{
     CanonicalRecordReadFailure, CanonicalRecordReadPort,
 };
+pub(in crate::physical_runtime) use record_queue_policy::admit_record_queue_policy;
 pub use residency::candidate_frame_residency::CandidateFrameContractViolation;
+pub(in crate::physical_runtime) use residency::candidate_frame_residency::{
+    CandidateFrameEffectSettlement, CandidateFrameEffectSource,
+};
 pub(in crate::physical_runtime) use residency::frame_ports::RecordFramePorts;
 #[cfg(feature = "certification-test-authority")]
 pub use residency::frame_ports::{FramePortCounterObserver, FramePortCounterSnapshot};

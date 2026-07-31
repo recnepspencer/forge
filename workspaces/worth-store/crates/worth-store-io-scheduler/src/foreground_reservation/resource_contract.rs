@@ -48,6 +48,11 @@ const fn required_units_for_lane(
             ForegroundResourceUnitKind::QueueSlot,
             ForegroundResourceUnitKind::WorkerPermit,
         ],
+        ForegroundIoLaneKind::CommitCriticalWalAppend => &[
+            ForegroundResourceUnitKind::QueueSlot,
+            ForegroundResourceUnitKind::BandwidthToken,
+            ForegroundResourceUnitKind::WorkerPermit,
+        ],
         ForegroundIoLaneKind::CommitCriticalWalWrite => &[
             ForegroundResourceUnitKind::QueueSlot,
             ForegroundResourceUnitKind::BandwidthToken,

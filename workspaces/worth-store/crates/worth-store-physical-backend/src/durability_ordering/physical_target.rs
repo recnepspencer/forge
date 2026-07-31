@@ -1,8 +1,13 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Seek, SeekFrom, Write};
-use std::path::{Path, PathBuf};
+use std::io::{self, Write};
+#[cfg(feature = "certification-test-authority")]
+use std::io::{Seek, SeekFrom};
+#[cfg(feature = "certification-test-authority")]
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[cfg(feature = "certification-test-authority")]
 use fs4::FileExt;
 
 use super::StoreDurabilityRequirement;
@@ -22,6 +27,7 @@ pub(crate) struct StoreDurabilityTarget {
 }
 
 impl StoreDurabilityTarget {
+    #[cfg(feature = "certification-test-authority")]
     pub(crate) fn append(
         root: &Path,
         relative_path: &Path,

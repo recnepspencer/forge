@@ -8,7 +8,7 @@ use worth_foundational::{
 };
 use worth_store_io_scheduler::{QueueDurabilityClass, QueueWorkDeclaration};
 
-pub(super) fn admit_record_queue_policy(
+pub(in crate::physical_runtime) fn admit_record_queue_policy(
     work: &QueueWorkDeclaration,
 ) -> FoundationalPolicyAdmissionReceipt {
     let budget = work.requested_budget();

@@ -54,9 +54,9 @@ fn joined_pressure_trace_covers_disjoint_io_blocking_scheduler_exhaustion_and_ef
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    let serving = super::super::success(media.open_record_store(
-        PhysicalRecordOpen::new(format, access).with_physical_work_profile(profile),
-    ));
+    let serving = super::super::success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_physical_work_profile(profile)
+    },));
     let first_read = admitted_read(&serving, first_read_request.clone());
     let second_read = admitted_read(&serving, second_read_request);
     let first_write = admitted_write(&serving, first_write_request);

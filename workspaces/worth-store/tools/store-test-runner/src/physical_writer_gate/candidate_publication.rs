@@ -96,16 +96,28 @@ fn inspect_write_evidence(source: &str) -> Result<(), String> {
             ));
         }
     }
+    let physical_write = struct_contract(source, "CandidateFramePhysicalWrite")?;
     for required in [
         "receipt: CompletedArtifactRangeWrite,",
         "settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,",
-        "receipt: CompletedArtifactRangeWrite,\n        settlement:",
     ] {
-        if !source.contains(required) {
+        if !physical_write.contains(required) {
             return Err(format!(
                 "C.6 candidate write evidence does not require complete receipt and settlement proof: missing {required}"
             ));
         }
+    }
+    let receipt = physical_write
+        .find("receipt: CompletedArtifactRangeWrite,")
+        .expect("required receipt was checked");
+    let settlement = physical_write
+        .find("settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,")
+        .expect("required settlement was checked");
+    if receipt >= settlement {
+        return Err(
+            "C.6 candidate write evidence must bind physical receipt before Store settlement"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -151,6 +163,19 @@ fn trait_contract<'source>(source: &'source str, name: &str) -> Result<&'source 
     Ok(&tail[..end])
 }
 
+fn struct_contract<'source>(source: &'source str, name: &str) -> Result<&'source str, String> {
+    let marker = format!("struct {name}");
+    let start = source
+        .find(&marker)
+        .ok_or_else(|| format!("C.6 `{name}` contract is missing"))?;
+    let tail = &source[start..];
+    let end = tail
+        .find('}')
+        .ok_or_else(|| format!("C.6 `{name}` contract is malformed"))?
+        + 1;
+    Ok(&tail[..end])
+}
+
 #[test]
 fn candidate_port_cannot_acquire_current_truth_authority() {
     let mutant = r#"
@@ -180,6 +205,17 @@ fn write_evidence_rejects_optional_or_test_forged_proof() {
         inspect_write_evidence(mutant)
             .expect_err("incomplete or test-forged physical proof must be rejected");
     }
+}
+
+#[test]
+fn write_evidence_accepts_semantic_fields_independent_of_indentation() {
+    let source = "
+        struct CandidateFramePhysicalWrite {
+          receipt: CompletedArtifactRangeWrite,
+            settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
+        }
+    ";
+    inspect_write_evidence(source).unwrap();
 }
 
 #[test]

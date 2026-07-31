@@ -155,10 +155,10 @@ fn second_candidate_write_ordinal() -> u64 {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("control");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        super::media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(
+        super::media(&root),
+        |durability| PhysicalRecordInitialization::new(format, placement, access, durability)
+    ));
     let before = serving
         .media_counters()
         .identified_operation_attempts_for(MediaOperationRole::PositionedWrite);
@@ -195,9 +195,9 @@ fn serving_with_fault(
         TransitionOutcome::Success(media) => media,
         _ => panic!("the ordinary writeback fault schedule must be admitted"),
     };
-    let serving = success(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert_eq!(
         serving
             .media_counters()

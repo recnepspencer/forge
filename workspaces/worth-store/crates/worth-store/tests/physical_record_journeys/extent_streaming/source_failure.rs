@@ -27,11 +27,9 @@ fn source_length_drift_reports_exact_completed_range_without_publishing() {
         let parent = tempfile::tempdir().unwrap();
         let root = parent.path().join("store");
         let (format, placement, access) = dense_configuration(4);
-        let serving = success(
-            media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-                format, placement, access,
-            )),
-        );
+        let serving = success(initialize_record_store!(media(&root), |durability| {
+            PhysicalRecordInitialization::new(format, placement, access, durability)
+        }));
         let catalog_before =
             std::fs::read(root.join("families/records/bootstrap.catalog")).unwrap();
         let error = serving
@@ -97,8 +95,9 @@ fn verify_retry_posture(
             serving.abort().records().posture(),
             RecordServingTerminalPosture::InspectionRequired
         );
-        let reopened =
-            success(media(root).open_record_store(PhysicalRecordOpen::new(format, access)));
+        let reopened = success(open_record_store!(media(root), |durability| {
+            PhysicalRecordOpen::new(format, access, durability)
+        }));
         assert!(reopened.observed_non_authoritative_residue());
         assert_eq!(
             reopened
@@ -124,8 +123,9 @@ fn verify_retry_posture(
             serving.abort().records().posture(),
             RecordServingTerminalPosture::NoInspectionRequired
         );
-        let reopened =
-            success(media(root).open_record_store(PhysicalRecordOpen::new(format, access)));
+        let reopened = success(open_record_store!(media(root), |durability| {
+            PhysicalRecordOpen::new(format, access, durability)
+        }));
         assert!(!reopened.observed_non_authoritative_residue());
         reopened.abort();
     }

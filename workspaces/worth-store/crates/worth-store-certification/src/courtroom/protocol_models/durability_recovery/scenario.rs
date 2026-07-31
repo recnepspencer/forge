@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use worth_store_formal_models::{
-    map_checkpoint_cutover, map_checkpoint_selection, map_directory_sync_failure,
-    map_executed_wal_durability, map_recovery_completion, map_redo_execution,
+    map_certified_wal_durability_mechanism, map_checkpoint_cutover, map_checkpoint_selection,
+    map_directory_sync_failure, map_recovery_completion, map_redo_execution,
     map_redo_generation_denial, map_reopened_recovery_artifact, DurabilityRecoveryAction,
 };
 #[cfg(not(windows))]
@@ -21,13 +21,13 @@ use worth_store_physical_backend::{
 };
 use worth_store_physical_format::PhysicalPageId;
 use worth_store_recovery_physics::{
-    execute_wal_durability, AcknowledgmentPrecondition, AdmittedRedoFrame,
-    CheckpointArtifactDurabilityCommitment, CheckpointBaseAdmission, CheckpointCutoverReceipt,
-    CheckpointDurabilityEvidenceSet, CheckpointPublicationPlan, DurableAckReceipt,
-    ExecutedWalDurabilityOutcome, LogSequenceNumber, RecoveryRedoPlan, RedoRecordGrammar,
-    RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding, RedoRecordOperationForm,
-    RedoRecordTargetGeneration, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId,
+    certify_wal_durability_mechanism, AcknowledgmentPrecondition, AdmittedRedoFrame,
+    CertifiedWalDurabilityMechanismObservation, CheckpointArtifactDurabilityCommitment,
+    CheckpointBaseAdmission, CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet,
+    CheckpointPublicationPlan, DurableAckReceipt, LogSequenceNumber, RecoveryRedoPlan,
+    RedoRecordGrammar, RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding,
+    RedoRecordOperationForm, RedoRecordTargetGeneration, WalAppendPlan,
+    WalDurabilityObservationSequence, WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
 use worth_store_test_support::harness::recovery::{
     checkpoint_basis, checkpoint_durability, closeout, redo_replay, source_precedence,
@@ -55,7 +55,7 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
 ) -> Vec<Vec<DurabilityRecoveryAction>> {
     let wal_directory = worth_store_test_support::TemporaryDirectory::create("protocol-wal")
         .expect("protocol WAL directory");
-    let wal = map_executed_wal_durability(&execute_ordinary_wal(wal_directory.path()));
+    let wal = map_certified_wal_durability_mechanism(&execute_certified_wal(wal_directory.path()));
     let checkpoint = execute_checkpoint();
     let directory_failure = execute_directory_sync_crash(61);
     let redo = execute_redo_traces();
@@ -101,15 +101,15 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
     ]
 }
 
-pub(in crate::courtroom::protocol_models) fn execute_ordinary_wal(
+pub(in crate::courtroom::protocol_models) fn execute_certified_wal(
     root: &Path,
-) -> ExecutedWalDurabilityOutcome<HostDurabilityProfile> {
+) -> CertifiedWalDurabilityMechanismObservation<HostDurabilityProfile> {
     let payload = b"checked-durability-frontier";
     let plan = wal_plan::<HostDurabilityProfile>(11, 40, 41, payload);
     let wal_root = unique_root(root, "wal");
     let planner = worth_store_wal::WalAppendPlanner::open(&wal_root, 11, 3)
         .expect("open ordinary WAL append planner");
-    execute_wal_durability(
+    certify_wal_durability_mechanism(
         &planner,
         payload,
         plan,

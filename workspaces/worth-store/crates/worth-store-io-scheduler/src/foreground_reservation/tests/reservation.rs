@@ -263,10 +263,11 @@ fn lane_specific_missing_resource_denies_before_capacity_accounting() {
 }
 
 #[test]
-fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
+fn every_foreground_lane_has_an_explicit_fairness_class_without_identity_laundering() {
     let lanes = [
         ForegroundIoLaneKind::PointRead,
         ForegroundIoLaneKind::RangeRead,
+        ForegroundIoLaneKind::CommitCriticalWalAppend,
         ForegroundIoLaneKind::CommitCriticalWalWrite,
         ForegroundIoLaneKind::OrdinaryPageWrite,
         ForegroundIoLaneKind::InteractiveRead,
@@ -281,11 +282,35 @@ fn every_foreground_lane_has_distinct_fairness_class_without_laundering() {
             ForegroundFairnessClass::PointRead,
             ForegroundFairnessClass::RangeRead,
             ForegroundFairnessClass::CommitCriticalWalWrite,
+            ForegroundFairnessClass::CommitCriticalWalWrite,
             ForegroundFairnessClass::OrdinaryPageWrite,
             ForegroundFairnessClass::InteractiveRead,
             ForegroundFairnessClass::InternalForegroundRead,
             ForegroundFairnessClass::ArtifactMetadataRead,
         ],
+    );
+
+    assert_eq!(
+        ForegroundIoLaneKind::CommitCriticalWalAppend.default_backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::BufferedFile,
+    );
+    assert_eq!(
+        ForegroundIoLaneKind::CommitCriticalWalWrite.default_backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::Fsync,
+    );
+    assert_ne!(
+        ForegroundIoLaneKind::CommitCriticalWalAppend,
+        ForegroundIoLaneKind::CommitCriticalWalWrite,
+    );
+    assert_eq!(
+        ForegroundArbitrationPolicy::reject_priority_laundering(
+            ForegroundIoLaneKind::CommitCriticalWalAppend,
+            ForegroundIoLaneKind::CommitCriticalWalWrite,
+        ),
+        Err(ForegroundFairnessDenial::PriorityLaundering {
+            declared: ForegroundIoLaneKind::CommitCriticalWalAppend,
+            attempted: ForegroundIoLaneKind::CommitCriticalWalWrite,
+        })
     );
 
     assert_eq!(

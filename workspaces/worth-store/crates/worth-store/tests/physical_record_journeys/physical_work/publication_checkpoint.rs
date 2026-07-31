@@ -11,10 +11,9 @@ use super::{configuration, media, success};
 fn catalog_replacement_checkpoint_blocks_publication_completion() {
     let root = tempfile::tempdir().unwrap();
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(root.path())
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(root.path()), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let gate = serving.certification_pause_physical_execution_at(
         CertificationPhysicalExecutionCheckpoint::AfterCatalogReplacementBeforeSchedulerSettlement,
     );

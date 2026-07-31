@@ -56,6 +56,12 @@ fn require_backend_role(
         PhysicalWorkOperationFamily::ArtifactRangeWrite => {
             role == PhysicalWorkBackendRoleEvidence::PositionedWrite
         }
+        PhysicalWorkOperationFamily::WalAppend => {
+            role == PhysicalWorkBackendRoleEvidence::PositionedWrite
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            role == PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+        }
         PhysicalWorkOperationFamily::ArtifactPublication => matches!(
             role,
             PhysicalWorkBackendRoleEvidence::PositionedWrite
@@ -88,6 +94,12 @@ fn require_signal_family(
         ) | (
             PhysicalWorkOperationFamily::ArtifactPublication,
             PhysicalWorkSignalFamily::Publication,
+        ) | (
+            PhysicalWorkOperationFamily::WalAppend,
+            PhysicalWorkSignalFamily::WalAppend,
+        ) | (
+            PhysicalWorkOperationFamily::DurabilityBarrier,
+            PhysicalWorkSignalFamily::DurabilityBarrier,
         )
     );
     if !exact {
@@ -116,11 +128,16 @@ fn require_successful_fate(record: PhysicalWorkCausalRecord) -> Result<(), Strin
             record.effect_fate() == PhysicalWorkEffectFate::ReadCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::NoEffect
         }
-        PhysicalWorkOperationFamily::ArtifactRangeWrite => {
+        PhysicalWorkOperationFamily::ArtifactRangeWrite
+        | PhysicalWorkOperationFamily::WalAppend => {
             record.effect_fate() == PhysicalWorkEffectFate::WriteCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }
         PhysicalWorkOperationFamily::ArtifactPublication => {
+            record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
             record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }

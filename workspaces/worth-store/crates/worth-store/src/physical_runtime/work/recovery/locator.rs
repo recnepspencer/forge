@@ -10,6 +10,12 @@ pub(super) const RECOVERY_RECORD_BYTES: usize = 160;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkRecoveryTarget {
     Range(RecordFrameCoordinate),
+    WalArtifactInterval {
+        segment: u64,
+        generation: u64,
+        offset: u64,
+        byte_count: u64,
+    },
     ArtifactFileSynchronization(RecordArtifactFile),
     ArtifactParentSynchronization(RecordArtifactFile),
     CatalogReplacement(RecordArtifactFile),
@@ -65,6 +71,7 @@ pub(super) fn decode_locator(
     let (target, payload_digest) = match record[8] {
         2 => decode_v2_target(record)?,
         3 => decode_v3_target(record)?,
+        4 => decode_v4_target(record)?,
         _ => return None,
     };
     Some(PhysicalWorkRecoveryLocator {
@@ -77,6 +84,32 @@ pub(super) fn decode_locator(
         payload_digest,
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
     })
+}
+
+fn decode_v4_target(record: &[u8]) -> Option<(PhysicalWorkRecoveryTarget, Option<[u8; 32]>)> {
+    if record[69] != 6 {
+        return decode_v3_target(record);
+    }
+    let segment = read_u64(record, 112)?;
+    let generation = read_u64(record, 120)?;
+    let offset = read_u64(record, 56)?;
+    let byte_count = read_u64(record, 64)?;
+    if segment == 0
+        || generation == 0
+        || byte_count == 0
+        || offset.checked_add(byte_count).is_none()
+    {
+        return None;
+    }
+    Some((
+        PhysicalWorkRecoveryTarget::WalArtifactInterval {
+            segment,
+            generation,
+            offset,
+            byte_count,
+        },
+        Some(record[72..104].try_into().ok()?),
+    ))
 }
 
 fn decode_v2_target(record: &[u8]) -> Option<(PhysicalWorkRecoveryTarget, Option<[u8; 32]>)> {
@@ -148,6 +181,19 @@ pub(super) fn encode_target(
             coordinate.offset(),
             coordinate.length(),
         ),
+        PhysicalWorkRecoveryTarget::WalArtifactInterval {
+            segment,
+            generation,
+            offset,
+            byte_count,
+        } => {
+            record[69] = 6;
+            record[56..64].copy_from_slice(&offset.to_le_bytes());
+            record[64..72].copy_from_slice(&byte_count.to_le_bytes());
+            record[112..120].copy_from_slice(&segment.to_le_bytes());
+            record[120..128].copy_from_slice(&generation.to_le_bytes());
+            return;
+        }
         PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(artifact) => (2, artifact, 0, 0),
         PhysicalWorkRecoveryTarget::ArtifactParentSynchronization(artifact) => (3, artifact, 0, 0),
         PhysicalWorkRecoveryTarget::CatalogReplacement(candidate) => (4, candidate, 0, 0),
@@ -194,6 +240,8 @@ const fn decode_family(value: u8) -> Option<PhysicalWorkOperationFamily> {
         2 => Some(PhysicalWorkOperationFamily::ArtifactRangeWrite),
         3 => Some(PhysicalWorkOperationFamily::ArtifactPublication),
         4 => Some(PhysicalWorkOperationFamily::ArtifactMetadataRead),
+        5 => Some(PhysicalWorkOperationFamily::WalAppend),
+        6 => Some(PhysicalWorkOperationFamily::DurabilityBarrier),
         _ => None,
     }
 }

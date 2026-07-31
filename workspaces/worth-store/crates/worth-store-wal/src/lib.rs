@@ -23,9 +23,14 @@ pub enum DurablePublicationPhase {
     Recovered,
 }
 
-pub use append::admit_durable_append;
+pub use append::{
+    admit_durable_append, plan_wal_frame_append, PlannedWalFrameAppend, WalAppendFrontier,
+    WalFramePlanningDenial,
+};
+#[cfg(feature = "certification-authority")]
+pub use artifact_store::WalAppendPlanner;
 pub use artifact_store::{
-    prepare_wal_frame_append, AdmittedWalArtifactStore, WalAppendPlanner, WalArtifactScanCounters,
+    prepare_wal_frame_append, AdmittedWalArtifactStore, WalArtifactScanCounters,
     WalArtifactStoreDenial, WalFrameAppendPlan, WalPersistedArtifact, WalPersistedArtifactRead,
     WalPersistedArtifactSet, WalStoreIdentity,
 };

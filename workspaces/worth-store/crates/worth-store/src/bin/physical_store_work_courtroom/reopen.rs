@@ -11,8 +11,9 @@ pub(super) fn run(invocation: ReopenInvocation) -> Result<(), String> {
     super::configuration::validate_supported(&invocation.configuration)?;
     let (format, _, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(&invocation.root, None)?;
+    let durability = super::admission::admit_durability(&media)?;
     let serving = super::admission::require_serving(
-        media.open_record_store(PhysicalRecordOpen::new(format, access)),
+        media.open_record_store(PhysicalRecordOpen::new(format, access, durability)),
         "record-store reopen",
     )?;
     let residue = serving.observed_non_authoritative_residue();

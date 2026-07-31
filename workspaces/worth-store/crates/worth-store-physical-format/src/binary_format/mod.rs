@@ -22,6 +22,8 @@ mod record_decode_fixtures;
 mod record_golden_bytes;
 #[cfg(test)]
 mod record_membership_golden_bytes;
+#[cfg(test)]
+mod record_page_lsn;
 mod reserved_fields;
 #[cfg(test)]
 mod tests;

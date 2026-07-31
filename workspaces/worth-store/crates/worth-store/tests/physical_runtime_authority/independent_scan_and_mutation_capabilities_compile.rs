@@ -7,6 +7,9 @@ use worth_store::physical_runtime::{
 use worth_proof::TransitionOutcome;
 use worth_store_physical_backend::FilesystemAccessPosture;
 
+#[path = "support/durability.rs"]
+mod durability;
+
 #[allow(dead_code)]
 fn capabilities_typecheck() {
     let format = AdmittedPhysicalRecordFormat::admit(
@@ -36,9 +39,13 @@ fn capabilities_typecheck() {
         TransitionOutcome::Success(media) => media,
         _ => unreachable!(),
     };
+    let durability = durability::admitted(&media);
     let runtime = match media
         .initialize_record_store(PhysicalRecordInitialization::new(
-            format, placement, access,
+            format,
+            placement,
+            access,
+            durability,
         ))
         .into_raw()
     {

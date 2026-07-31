@@ -1,7 +1,7 @@
 use sha2::{Digest, Sha256};
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
-use super::PhysicalWorkDeclarationDenial;
+use super::{PhysicalWalAppendScope, PhysicalWalBarrierScope, PhysicalWorkDeclarationDenial};
 
 const MAX_PHYSICAL_SCOPE_MEMBERS: usize = 256;
 
@@ -16,6 +16,8 @@ enum PhysicalWorkScopeMembers {
     Artifact(RecordArtifactFile),
     One(RecordFrameCoordinate),
     Batch(Box<[RecordFrameCoordinate]>),
+    WalAppend(PhysicalWalAppendScope),
+    WalBarrier(PhysicalWalBarrierScope),
 }
 
 impl PhysicalWorkScope {
@@ -54,9 +56,22 @@ impl PhysicalWorkScope {
         })
     }
 
+    pub(in crate::physical_runtime) const fn wal_append(scope: PhysicalWalAppendScope) -> Self {
+        Self {
+            members: PhysicalWorkScopeMembers::WalAppend(scope),
+        }
+    }
+
+    pub(in crate::physical_runtime) const fn wal_barrier(scope: PhysicalWalBarrierScope) -> Self {
+        Self {
+            members: PhysicalWorkScopeMembers::WalBarrier(scope),
+        }
+    }
+
     pub fn coordinates(&self) -> &[RecordFrameCoordinate] {
         match &self.members {
             PhysicalWorkScopeMembers::Artifact(_) => &[],
+            PhysicalWorkScopeMembers::WalAppend(_) | PhysicalWorkScopeMembers::WalBarrier(_) => &[],
             PhysicalWorkScopeMembers::One(coordinate) => std::slice::from_ref(coordinate),
             PhysicalWorkScopeMembers::Batch(coordinates) => coordinates,
         }
@@ -66,12 +81,32 @@ impl PhysicalWorkScope {
         match &self.members {
             PhysicalWorkScopeMembers::Artifact(artifact) => Some(*artifact),
             PhysicalWorkScopeMembers::One(_) | PhysicalWorkScopeMembers::Batch(_) => None,
+            PhysicalWorkScopeMembers::WalAppend(_) | PhysicalWorkScopeMembers::WalBarrier(_) => {
+                None
+            }
+        }
+    }
+
+    pub const fn wal_append_target(&self) -> Option<PhysicalWalAppendScope> {
+        match &self.members {
+            PhysicalWorkScopeMembers::WalAppend(scope) => Some(*scope),
+            _ => None,
+        }
+    }
+
+    pub const fn wal_barrier_target(&self) -> Option<PhysicalWalBarrierScope> {
+        match &self.members {
+            PhysicalWorkScopeMembers::WalBarrier(scope) => Some(*scope),
+            _ => None,
         }
     }
 
     pub const fn member_count(&self) -> usize {
         match &self.members {
-            PhysicalWorkScopeMembers::Artifact(_) | PhysicalWorkScopeMembers::One(_) => 1,
+            PhysicalWorkScopeMembers::Artifact(_)
+            | PhysicalWorkScopeMembers::One(_)
+            | PhysicalWorkScopeMembers::WalAppend(_)
+            | PhysicalWorkScopeMembers::WalBarrier(_) => 1,
             PhysicalWorkScopeMembers::Batch(coordinates) => coordinates.len(),
         }
     }
@@ -85,6 +120,25 @@ impl PhysicalWorkScope {
             let name = artifact.file_name();
             digest.update((name.len() as u64).to_le_bytes());
             digest.update(name.as_bytes());
+            return digest.finalize().into();
+        }
+        if let PhysicalWorkScopeMembers::WalAppend(scope) = &self.members {
+            digest.update(b"wal-append");
+            digest.update(scope.segment().to_le_bytes());
+            digest.update(scope.generation().to_le_bytes());
+            digest.update(scope.offset().to_le_bytes());
+            digest.update(scope.byte_count().to_le_bytes());
+            return digest.finalize().into();
+        }
+        if let PhysicalWorkScopeMembers::WalBarrier(scope) = &self.members {
+            digest.update(b"wal-barrier");
+            digest.update(scope.member());
+            digest.update(scope.segment().to_le_bytes());
+            digest.update(scope.generation().to_le_bytes());
+            digest.update(scope.lsn_start().to_le_bytes());
+            digest.update(scope.lsn_end_exclusive().to_le_bytes());
+            digest.update(scope.append_offset().to_le_bytes());
+            digest.update(scope.append_byte_count().to_le_bytes());
             return digest.finalize().into();
         }
         digest.update(b"ranges");

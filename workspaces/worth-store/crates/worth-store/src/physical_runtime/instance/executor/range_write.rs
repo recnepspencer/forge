@@ -125,6 +125,12 @@ fn write_durability(
         crate::physical_runtime::PhysicalWorkDurabilityRequirement::ReadOnly => {
             unreachable!("write commands admit mutation durability")
         }
+        crate::physical_runtime::PhysicalWorkDurabilityRequirement::WalAppend => {
+            unreachable!("WAL append commands use the dedicated WAL executor")
+        }
+        crate::physical_runtime::PhysicalWorkDurabilityRequirement::WalDurabilityBarrier => {
+            unreachable!("WAL barrier commands use the dedicated WAL barrier executor")
+        }
     }
 }
 

@@ -4,6 +4,10 @@ pub enum PhysicalWorkSignalFamily {
     ExactWriteback,
     Publication,
     Lifecycle,
+    WalAppend,
+    DurabilityBarrier,
+    CheckpointCapture,
+    RootPublication,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -15,7 +19,7 @@ impl PhysicalWorkSignalFamilySet {
     }
 
     pub const fn all() -> Self {
-        Self(0b1111)
+        Self(0b1111_1111)
     }
 
     pub const fn only(family: PhysicalWorkSignalFamily) -> Self {
@@ -46,6 +50,10 @@ const fn family_bit(family: PhysicalWorkSignalFamily) -> u8 {
         PhysicalWorkSignalFamily::ExactWriteback => 1 << 1,
         PhysicalWorkSignalFamily::Publication => 1 << 2,
         PhysicalWorkSignalFamily::Lifecycle => 1 << 3,
+        PhysicalWorkSignalFamily::WalAppend => 1 << 4,
+        PhysicalWorkSignalFamily::DurabilityBarrier => 1 << 5,
+        PhysicalWorkSignalFamily::CheckpointCapture => 1 << 6,
+        PhysicalWorkSignalFamily::RootPublication => 1 << 7,
     }
 }
 
@@ -69,7 +77,7 @@ impl PhysicalAsyncCapabilitySpec {
 }
 
 pub(in crate::physical_runtime) const PHYSICAL_ASYNC_CAPABILITIES: [PhysicalAsyncCapabilitySpec;
-    4] = [
+    8] = [
     PhysicalAsyncCapabilitySpec {
         family: PhysicalWorkSignalFamily::ReadFault,
         contract_id: 1,
@@ -89,5 +97,25 @@ pub(in crate::physical_runtime) const PHYSICAL_ASYNC_CAPABILITIES: [PhysicalAsyn
         family: PhysicalWorkSignalFamily::Lifecycle,
         contract_id: 4,
         max_payload_bytes: 32,
+    },
+    PhysicalAsyncCapabilitySpec {
+        family: PhysicalWorkSignalFamily::WalAppend,
+        contract_id: 5,
+        max_payload_bytes: 64,
+    },
+    PhysicalAsyncCapabilitySpec {
+        family: PhysicalWorkSignalFamily::DurabilityBarrier,
+        contract_id: 6,
+        max_payload_bytes: 64,
+    },
+    PhysicalAsyncCapabilitySpec {
+        family: PhysicalWorkSignalFamily::CheckpointCapture,
+        contract_id: 7,
+        max_payload_bytes: 64,
+    },
+    PhysicalAsyncCapabilitySpec {
+        family: PhysicalWorkSignalFamily::RootPublication,
+        contract_id: 8,
+        max_payload_bytes: 64,
     },
 ];

@@ -317,7 +317,11 @@ fn signal_observation_is_bounded_and_contains_no_runtime_handles() {
     let installed_binding_count = declared_binding_count + EXPECTED_NATIVE_RECORD_BINDING_COUNT;
     assert_eq!(observation.aspect_binding_count(), installed_binding_count);
     assert_eq!(observation.locality_owner_count(), installed_binding_count);
-    assert_eq!(observation.async_family_count(), 4);
+    assert_eq!(
+        observation.async_family_count(),
+        8,
+        "the bounded async capability table includes WAL append as one of eight exact families"
+    );
     assert_eq!(observation.clock().current_tick(), 0);
     serving.close();
 

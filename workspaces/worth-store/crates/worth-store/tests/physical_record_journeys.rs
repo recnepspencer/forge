@@ -1,4 +1,23 @@
-use std::path::Path;
+use std::{
+    num::{NonZeroU32, NonZeroU64},
+    path::Path,
+};
+
+macro_rules! initialize_record_store {
+    ($media:expr, |$policy:ident| $request:expr $(,)?) => {{
+        let media_owner = $media;
+        let $policy = $crate::durability(&media_owner);
+        media_owner.initialize_record_store($request)
+    }};
+}
+
+macro_rules! open_record_store {
+    ($media:expr, |$policy:ident| $request:expr $(,)?) => {{
+        let media_owner = $media;
+        let $policy = $crate::durability(&media_owner);
+        media_owner.open_record_store($request)
+    }};
+}
 
 #[path = "physical_record_journeys/allocation_probe.rs"]
 mod allocation_probe;
@@ -20,6 +39,8 @@ mod courtroom_child;
 mod courtroom_evidence_support;
 #[path = "c5/courtroom_oracle.rs"]
 mod courtroom_oracle;
+#[path = "physical_record_journeys/durability_admission.rs"]
+mod durability_admission;
 #[path = "c5/extent_child.rs"]
 mod extent_child;
 #[path = "physical_record_journeys/extent_streaming.rs"]
@@ -100,12 +121,16 @@ mod successor_scope_admission;
 use child_process::run_child;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    FilesystemMediaAdmission, ManifestEntryCapacity, MediaOwnedPhysicalRuntime,
-    PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration, PhysicalRecordInitialization,
-    PhysicalRecordOpen, PhysicalRecordPlacementPolicy, PhysicalRuntimeAdmission, PhysicalStore,
-    RecordBootstrapDenial, RecordReadObservation, RecordReadSession, RecordServingAdmissionOutcome,
-    RecordStoreInitializationDenial, RecordStoreOpenDenial, ServingPhysicalRuntime,
+    AdmittedPhysicalDurabilityPolicy, AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
+    AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations, ManifestEntryCapacity,
+    MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy,
+    PhysicalDurabilityDeclaration, PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy,
+    PhysicalRecordFormatDeclaration, PhysicalRecordInitialization, PhysicalRecordOpen,
+    PhysicalRecordPlacementPolicy, PhysicalRuntimeAdmission, PhysicalStore, RecordBootstrapDenial,
+    RecordReadObservation, RecordReadSession, RecordServingAdmissionOutcome,
+    RecordStoreInitializationDenial, RecordStoreOpenDenial, RetainedWalTailLimit,
+    ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::FilesystemAccessPosture;
 
@@ -138,17 +163,60 @@ fn media(root: &Path) -> MediaOwnedPhysicalRuntime {
     }
 }
 
+fn durability(media: &MediaOwnedPhysicalRuntime) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_group_limit(media, NonZeroU32::new(32).unwrap())
+}
+
+fn durability_with_group_limit(
+    media: &MediaOwnedPhysicalRuntime,
+    group_limit: NonZeroU32,
+) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_pending_limit(media, group_limit, NonZeroU32::new(1_024).unwrap())
+}
+
+fn durability_with_pending_limit(
+    media: &MediaOwnedPhysicalRuntime,
+    group_limit: NonZeroU32,
+    pending_limit: NonZeroU32,
+) -> AdmittedPhysicalDurabilityPolicy {
+    let basis = media.physical_durability_admission_basis().unwrap();
+    match PhysicalDurabilityDeclaration::builder()
+        .group_commit(
+            GroupCommitLimit::new(group_limit),
+            GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
+        )
+        .idempotency(PhysicalIdempotencyPolicy::new(
+            IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
+            PendingUnresolvedMutationLimit::new(pending_limit),
+        ))
+        .checkpoint(PhysicalCheckpointPolicy::fuzzy(
+            CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
+            RetainedWalTailLimit::new(NonZeroU64::new(64 * 1024 * 1024).unwrap()),
+        ))
+        .admit(basis)
+        .into_raw()
+    {
+        TransitionOutcome::Success(policy) => policy,
+        _ => panic!("qualified test media must admit the explicit durability policy"),
+    }
+}
+
 fn serving_from_initialization(root: &Path) -> ServingPhysicalRuntime {
     let (format, placement, access) = configuration();
+    let media = media(root);
+    let durability = durability(&media);
     success(
-        media(root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+        media.initialize_record_store(PhysicalRecordInitialization::new(
+            format, placement, access, durability,
+        )),
     )
 }
 
 fn serving_from_open(root: &Path) -> ServingPhysicalRuntime {
     let (format, _, access) = configuration();
-    success(media(root).open_record_store(PhysicalRecordOpen::new(format, access)))
+    let media = media(root);
+    let durability = durability(&media);
+    success(media.open_record_store(PhysicalRecordOpen::new(format, access, durability)))
 }
 
 trait BootstrapDenialReason {
@@ -179,7 +247,25 @@ where
                 denial.reason()
             )
         }
-        _ => panic!("record-serving progression must succeed; non-denial outcome"),
+        TransitionOutcome::Deferred(deferred) => match deferred {},
+        TransitionOutcome::Stale(stale) => {
+            panic!(
+                "record-serving progression must succeed; stale because {:?}",
+                stale.reason()
+            )
+        }
+        TransitionOutcome::RebindRequired(rebind) => {
+            panic!(
+                "record-serving progression must succeed; rebind required because {:?}",
+                rebind.reason()
+            )
+        }
+        TransitionOutcome::Failed(failure) => {
+            panic!(
+                "record-serving progression must succeed; inspection required because {:?}",
+                failure.cause()
+            )
+        }
     }
 }
 

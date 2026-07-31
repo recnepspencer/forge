@@ -30,12 +30,11 @@ fn reopen_ignores_external_state(prefix: &str, bytes: &[u8], predicate: &str) {
     std::fs::write(&probe, bytes).unwrap();
 
     let (format, _, access) = super::super::configuration();
-    let reopened = super::super::media(root.path())
-        .open_record_store(
-            worth_store::physical_runtime::PhysicalRecordOpen::new(format, access)
-                .with_physical_work_profile(profile),
-        )
-        .into_raw();
+    let reopened = open_record_store!(super::super::media(root.path()), |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+            .with_physical_work_profile(profile)
+    },)
+    .into_raw();
     let _ = std::fs::remove_file(&probe);
     let serving = match reopened {
         TransitionOutcome::Success(serving) => serving,

@@ -17,16 +17,14 @@ fn pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("pin-inheritance");
     let (format, placement, access) = configuration();
-    let seeded = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let seeded = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert!(!seeded.close().residency().requires_inspection());
     let policy = admitted_policy(format);
-    let serving =
-        success(media(&root).open_record_store(
-            PhysicalRecordOpen::new(format, access).with_residency_policy(policy),
-        ));
+    let serving = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(policy)
+    },));
     serving
         .certification_physical_residency()
         .drain_unpinned_clean_frames();
@@ -85,14 +83,14 @@ fn overlapping_pin_coalesces_without_second_media_work_or_signal_authority() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("coalesced-pin");
     let (format, placement, access) = configuration();
-    let seeded = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let seeded = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert!(!seeded.close().residency().requires_inspection());
-    let serving = success(media(&root).open_record_store(
-        PhysicalRecordOpen::new(format, access).with_residency_policy(admitted_policy(format)),
-    ));
+    let serving = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+            .with_residency_policy(admitted_policy(format))
+    },));
     serving
         .certification_physical_residency()
         .drain_unpinned_clean_frames();

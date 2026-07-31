@@ -179,6 +179,9 @@ fn backend_admission(
         crate::IoSchedulerBackendCapabilityRequirement::BufferedFile => {
             BackendCapabilityEvidenceBasis::declared_by_config(2)
         }
+        crate::IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync => {
+            BackendCapabilityEvidenceBasis::established_filesystem_admission_for_certification(1)
+        }
         _ => BackendCapabilityEvidenceBasis::externally_guaranteed(1),
     };
     let request = BackendCapabilityAdmissionRequest::new(

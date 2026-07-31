@@ -1,3 +1,5 @@
+mod artifact_append;
+mod artifact_append_outcome;
 mod directory_listing;
 mod exact_read_effect;
 mod exact_write_effect;
@@ -13,6 +15,10 @@ mod range_read;
 mod range_write;
 mod range_write_outcome;
 
+pub use artifact_append_outcome::{
+    ArtifactAppendOutcome, ArtifactAppendRange, CompletedArtifactAppend,
+    CompletedScheduledArtifactAppend, IndeterminateArtifactAppend, ScheduledArtifactAppendOutcome,
+};
 pub use failure::{ArtifactTreeFailure, ArtifactTreeFailureKind};
 pub use media::ArtifactTreeMedia;
 pub use metadata_read::{

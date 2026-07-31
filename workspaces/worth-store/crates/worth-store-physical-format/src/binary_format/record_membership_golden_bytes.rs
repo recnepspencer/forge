@@ -148,18 +148,22 @@ fn encode_free_key(target: &mut [u8], key: FreeSpaceKey) {
     target[8..16].copy_from_slice(&key.owner().to_le_bytes());
 }
 
+const INDEPENDENT_FRAME_HEADER_BYTES: usize = 48;
+const INDEPENDENT_CHECKSUM_OFFSET: usize = 44;
+
 fn independent_frame(kind: u8, identity: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = vec![0_u8; 40 + payload.len()];
+    let mut bytes = vec![0_u8; INDEPENDENT_FRAME_HEADER_BYTES + payload.len()];
     bytes[..8].copy_from_slice(b"WRC5FRM\0");
     bytes[8] = kind;
-    bytes[9] = 1;
+    bytes[9] = 2;
     bytes[10..20].copy_from_slice(&[1, 0, 0, 64, 0, 0, 1, 1, 1, 24]);
-    bytes[20..22].copy_from_slice(&40_u16.to_le_bytes());
+    bytes[20..22].copy_from_slice(&(INDEPENDENT_FRAME_HEADER_BYTES as u16).to_le_bytes());
     bytes[24..28].copy_from_slice(&(payload.len() as u32).to_le_bytes());
     bytes[28..36].copy_from_slice(&identity.to_le_bytes());
-    bytes[40..].copy_from_slice(payload);
-    let checksum = independent_crc32c(&[&bytes[..36], payload]);
-    bytes[36..40].copy_from_slice(&checksum.to_le_bytes());
+    bytes[INDEPENDENT_FRAME_HEADER_BYTES..].copy_from_slice(payload);
+    let checksum = independent_crc32c(&[&bytes[..INDEPENDENT_CHECKSUM_OFFSET], payload]);
+    bytes[INDEPENDENT_CHECKSUM_OFFSET..INDEPENDENT_FRAME_HEADER_BYTES]
+        .copy_from_slice(&checksum.to_le_bytes());
     bytes
 }
 

@@ -1,6 +1,7 @@
 use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 use crate::physical_runtime::{
+    durability::{PhysicalWalAppendPort, PhysicalWalBarrierPort, PhysicalWalRuntimeOwner},
     record_serving::{
         CanonicalRecordMutationPort, RecordAllocationFrontier, RecordPublicationDirector,
         RecordPublicationFoundation, RecordServingOwner, RecordServingState, RecordWorkAdmission,
@@ -29,6 +30,8 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceFoundation {
     pub(in crate::physical_runtime) residency: PhysicalResidencyOwner,
     pub(in crate::physical_runtime) work_profile:
         crate::physical_runtime::PhysicalWorkProfileDeclaration,
+    pub(in crate::physical_runtime) durability:
+        crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
 }
 
 pub(in crate::physical_runtime) struct PhysicalStoreInstanceConstructionFailure {
@@ -36,6 +39,7 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceConstructionFailure 
     media: QualifiedFilesystemMedia,
     core: PhysicalRuntimeCore,
     residency: PhysicalResidencyOwner,
+    durability: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
     cause: PhysicalSignalConstructionFailure,
 }
 
@@ -51,24 +55,28 @@ impl PhysicalStoreInstanceParts {
             allocation_frontier,
             residency,
             work_profile,
+            durability,
         } = foundation;
         let frame_ports = residency.ports().clone();
         let runtime_identity = core.runtime_identity();
         let lifecycle_generation = core.lifecycle_generation();
         let store_identity = media.store_identity();
         let record_owner = RecordServingOwner::new();
-        let (record_work, work_profile) = match RecordWorkAdmission::install(work_profile) {
-            Ok(installed) => installed,
-            Err(denial) => {
-                return Err(PhysicalStoreInstanceConstructionFailure {
-                    termination,
-                    media,
-                    core,
-                    residency,
-                    cause: PhysicalSignalConstructionFailure::ProfileRejected(denial),
-                })
-            }
-        };
+        let durability_observation = durability.observation();
+        let (record_work, work_profile) =
+            match RecordWorkAdmission::install(work_profile, durability_observation) {
+                Ok(installed) => installed,
+                Err(denial) => {
+                    return Err(PhysicalStoreInstanceConstructionFailure {
+                        termination,
+                        media,
+                        core,
+                        residency,
+                        durability,
+                        cause: PhysicalSignalConstructionFailure::ProfileRejected(denial),
+                    })
+                }
+            };
         let record_work = std::sync::Arc::new(record_work);
         let work_capacity = work_profile.capacity();
         let recovery = PhysicalWorkExecutor::inspect_recovery(&media, work_capacity.commands());
@@ -84,10 +92,12 @@ impl PhysicalStoreInstanceParts {
                         media,
                         core,
                         residency,
+                        durability,
                         cause,
                     })
                 }
             };
+        let signal_profile = signal_owner.profile();
         let work_submission = PhysicalWorkSubmissionOwner::new(PhysicalWorkSubmissionFoundation {
             store: store_identity,
             runtime: runtime_identity,
@@ -107,6 +117,7 @@ impl PhysicalStoreInstanceParts {
                     media,
                     core,
                     residency,
+                    durability,
                     cause: PhysicalSignalConstructionFailure::SchedulerCapabilityRejected(denial),
                 })
             }
@@ -116,6 +127,22 @@ impl PhysicalStoreInstanceParts {
             runtime_identity,
             lifecycle_generation,
         );
+        let wal_owner =
+            match PhysicalWalRuntimeOwner::initialize(&media, runtime_identity, signal_profile) {
+                Ok(owner) => owner,
+                Err(failure) => {
+                    return Err(PhysicalStoreInstanceConstructionFailure {
+                        termination,
+                        media,
+                        core,
+                        residency,
+                        durability,
+                        cause: PhysicalSignalConstructionFailure::WalArtifactInitializationRejected(
+                            failure,
+                        ),
+                    })
+                }
+            };
         let executor = PhysicalWorkExecutor::new(media);
         let work_runtime = PhysicalStoreWorkRuntime::new(
             work_submission,
@@ -138,11 +165,38 @@ impl PhysicalStoreInstanceParts {
             scheduler_admission.clone(),
             std::sync::Arc::clone(&record_work),
         );
+        let wal = PhysicalWalAppendPort::new(
+            &work_runtime,
+            lifecycle_generation,
+            work_admission,
+            scheduler_admission.clone(),
+            std::sync::Arc::clone(&record_work),
+            wal_owner,
+        );
+        let wal_barrier = PhysicalWalBarrierPort::new(
+            &work_runtime,
+            lifecycle_generation,
+            work_admission,
+            scheduler_admission.clone(),
+            std::sync::Arc::clone(&record_work),
+            durability_observation,
+        );
         let publication = RecordPublicationDirector::new(
             &work_runtime,
             planning_read,
             mutation,
             RecordPublicationFoundation {
+                idempotency: durability.idempotency_authority(),
+                durability: durability.observation(),
+                signal_profile,
+                security_basis: record_work
+                    .security()
+                    .receipt()
+                    .identity()
+                    .stable_fingerprint(),
+                durability_policy_basis: record_work.durability_policy_basis(),
+                wal,
+                wal_barrier,
                 format: bootstrap.format,
                 access: bootstrap.access,
                 current_root: bootstrap.current_root,
@@ -166,6 +220,7 @@ impl PhysicalStoreInstanceParts {
             access: bootstrap.access,
             publication,
             residency,
+            durability,
         })
     }
 }
@@ -181,6 +236,7 @@ impl PhysicalStoreInstanceConstructionFailure {
         let identity = self.core.runtime_identity();
         let _residency = self.residency.close();
         drop(self.termination);
+        drop(self.durability);
         let release = self.media.close();
         let terminal =
             crate::physical_runtime::MediaShutdownOutcome::new(self.core.abort(), release);

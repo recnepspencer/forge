@@ -8,8 +8,9 @@ use super::super::{
     admission::bootstrap::BootstrapTransitionFailure, PhysicalRecordInitialization,
     PhysicalRecordOpen, RecordAllocationFrontier, RecordBootstrapFailure,
     RecordServingAdmissionInspectionRequired, RecordServingAdmissionRebindRequired,
-    RecordServingAdmissionStale, RecordStoreInitializationDenial, RecordStoreInitializationOutcome,
-    RecordStoreOpenDenial, RecordStoreOpenOutcome, ServingPhysicalRuntime,
+    RecordServingAdmissionStale, RecordServingRebindReason, RecordStoreInitializationDenial,
+    RecordStoreInitializationOutcome, RecordStoreOpenDenial, RecordStoreOpenOutcome,
+    ServingPhysicalRuntime,
 };
 use super::{initialization, open as record_open};
 
@@ -17,10 +18,31 @@ pub(in crate::physical_runtime) fn initialize(
     runtime: MediaOwnedPhysicalRuntime,
     request: PhysicalRecordInitialization,
 ) -> RecordStoreInitializationOutcome {
-    let work_profile = request.work_profile.clone();
+    let PhysicalRecordInitialization {
+        format,
+        placement,
+        access,
+        residency: residency_policy,
+        work_profile,
+        durability,
+    } = request;
+    let durability = match crate::physical_runtime::durability::bind_policy_to_runtime(
+        durability,
+        runtime.record_serving_media(),
+        runtime.runtime_identity(),
+    ) {
+        Ok(owner) => owner,
+        Err(reason) => {
+            return TransitionOutcome::rebind_required(RecordServingAdmissionRebindRequired::new(
+                runtime,
+                durability_rebind_reason(reason),
+            ))
+            .into()
+        }
+    };
     let residency = match crate::physical_runtime::instance::PhysicalResidencyOwner::admit(
         runtime.store_identity(),
-        request.residency,
+        residency_policy,
     ) {
         Ok(owner) => owner,
         Err(reason) => {
@@ -32,7 +54,7 @@ pub(in crate::physical_runtime) fn initialize(
         }
     };
     let frame_ports = residency.ports().clone();
-    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, request.format) {
+    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, format) {
         Ok(allocation) => allocation,
         Err(reason) => {
             return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
@@ -41,37 +63,39 @@ pub(in crate::physical_runtime) fn initialize(
             .into();
         }
     };
-    let bootstrap = match initialization::initialize(runtime.record_serving_media(), request) {
-        Ok(bootstrap) => bootstrap,
-        Err(BootstrapTransitionFailure::Denied(reason)) => {
-            return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
-                runtime, reason,
-            ))
-            .into();
-        }
-        Err(BootstrapTransitionFailure::Failed(cause)) => {
-            return initialization_failed(runtime, cause)
-        }
-        Err(BootstrapTransitionFailure::Stale(reason)) => {
-            return initialization_failed(
-                runtime,
-                RecordBootstrapFailure::PublishedRootStale(reason),
-            );
-        }
-        Err(BootstrapTransitionFailure::RebindRequired(reason)) => {
-            return initialization_failed(
-                runtime,
-                RecordBootstrapFailure::PublishedRootRebindRequired(reason),
-            );
-        }
-    };
+    let bootstrap =
+        match initialization::initialize(runtime.record_serving_media(), format, placement, access)
+        {
+            Ok(bootstrap) => bootstrap,
+            Err(BootstrapTransitionFailure::Denied(reason)) => {
+                return TransitionOutcome::denied(RecordStoreInitializationDenial::new(
+                    runtime, reason,
+                ))
+                .into();
+            }
+            Err(BootstrapTransitionFailure::Failed(cause)) => {
+                return initialization_failed(runtime, cause)
+            }
+            Err(BootstrapTransitionFailure::Stale(reason)) => {
+                return initialization_failed(
+                    runtime,
+                    RecordBootstrapFailure::PublishedRootStale(reason),
+                );
+            }
+            Err(BootstrapTransitionFailure::RebindRequired(reason)) => {
+                return initialization_failed(
+                    runtime,
+                    RecordBootstrapFailure::PublishedRootRebindRequired(reason),
+                );
+            }
+        };
     match record_open::load_current_root(
         runtime.record_serving_media(),
         frame_ports.loader(),
         &bootstrap_allocation,
         bootstrap,
     ) {
-        Ok(state) => initialize_serving(runtime, state, residency, work_profile),
+        Ok(state) => initialize_serving(runtime, state, residency, work_profile, durability),
         Err(BootstrapTransitionFailure::Denied(reason)) => initialization_failed(
             runtime,
             RecordBootstrapFailure::PublishedRootReadmission(reason),
@@ -91,10 +115,30 @@ pub(in crate::physical_runtime) fn open(
     runtime: MediaOwnedPhysicalRuntime,
     request: PhysicalRecordOpen,
 ) -> RecordStoreOpenOutcome {
-    let work_profile = request.work_profile.clone();
+    let PhysicalRecordOpen {
+        format,
+        access,
+        residency: residency_policy,
+        work_profile,
+        durability,
+    } = request;
+    let durability = match crate::physical_runtime::durability::bind_policy_to_runtime(
+        durability,
+        runtime.record_serving_media(),
+        runtime.runtime_identity(),
+    ) {
+        Ok(owner) => owner,
+        Err(reason) => {
+            return TransitionOutcome::rebind_required(RecordServingAdmissionRebindRequired::new(
+                runtime,
+                durability_rebind_reason(reason),
+            ))
+            .into()
+        }
+    };
     let residency = match crate::physical_runtime::instance::PhysicalResidencyOwner::admit(
         runtime.store_identity(),
-        request.residency,
+        residency_policy,
     ) {
         Ok(owner) => owner,
         Err(reason) => {
@@ -106,7 +150,7 @@ pub(in crate::physical_runtime) fn open(
         }
     };
     let frame_ports = residency.ports().clone();
-    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, request.format) {
+    let bootstrap_allocation = match bootstrap_allocation(&frame_ports, format) {
         Ok(allocation) => allocation,
         Err(reason) => {
             return TransitionOutcome::denied(RecordStoreOpenDenial::new(runtime, reason)).into();
@@ -116,7 +160,8 @@ pub(in crate::physical_runtime) fn open(
         runtime.record_serving_media(),
         frame_ports.loader(),
         &bootstrap_allocation,
-        request,
+        format,
+        access,
     ) {
         Ok(bootstrap) => bootstrap,
         Err(failure) => return open_failure(runtime, failure),
@@ -127,7 +172,7 @@ pub(in crate::physical_runtime) fn open(
         &bootstrap_allocation,
         bootstrap,
     ) {
-        Ok(state) => open_serving(runtime, state, residency, work_profile),
+        Ok(state) => open_serving(runtime, state, residency, work_profile, durability),
         Err(failure) => open_failure(runtime, failure),
     }
 }
@@ -151,6 +196,7 @@ fn initialize_serving(
     state: super::super::RecordServingState,
     residency: crate::physical_runtime::instance::PhysicalResidencyOwner,
     work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
+    durability: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
 ) -> RecordStoreInitializationOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
@@ -163,6 +209,7 @@ fn initialize_serving(
         allocation_frontier: frontier,
         residency,
         work_profile,
+        durability,
     }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),
         Err(failure) => TransitionOutcome::failed(failure).into(),
@@ -174,6 +221,7 @@ fn open_serving(
     state: super::super::RecordServingState,
     residency: crate::physical_runtime::instance::PhysicalResidencyOwner,
     work_profile: crate::physical_runtime::PhysicalWorkProfileDeclaration,
+    durability: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
 ) -> RecordStoreOpenOutcome {
     let frontier = RecordAllocationFrontier::new(&state.free_space);
     let (termination, media, core) = runtime.into_record_serving_parts();
@@ -186,9 +234,23 @@ fn open_serving(
         allocation_frontier: frontier,
         residency,
         work_profile,
+        durability,
     }) {
         Ok(serving) => TransitionOutcome::success(serving).into(),
         Err(failure) => TransitionOutcome::failed(failure).into(),
+    }
+}
+
+fn durability_rebind_reason(
+    reason: crate::physical_runtime::durability::PhysicalDurabilityRuntimeRebind,
+) -> RecordServingRebindReason {
+    match reason {
+        crate::physical_runtime::durability::PhysicalDurabilityRuntimeRebind::StoreIdentityMismatch => {
+            RecordServingRebindReason::PhysicalDurabilityStoreMismatch
+        }
+        crate::physical_runtime::durability::PhysicalDurabilityRuntimeRebind::AdmissionBasisMismatch => {
+            RecordServingRebindReason::PhysicalDurabilityAdmissionBasisMismatch
+        }
     }
 }
 

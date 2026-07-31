@@ -13,7 +13,7 @@ use super::{
 };
 
 #[derive(Debug)]
-pub enum WalDurabilityExecutionError {
+pub enum WalDurabilityMechanismProbeError {
     BackendProfileMismatch {
         expected: BackendTargetProfile,
         actual: BackendTargetProfile,
@@ -26,14 +26,14 @@ pub enum WalDurabilityExecutionError {
 }
 
 #[derive(Debug)]
-pub struct ExecutedWalDurabilityOutcome<P: BackendDurabilityProfile> {
+pub struct CertifiedWalDurabilityMechanismObservation<P: BackendDurabilityProfile> {
     execution: StoreDurabilityExecutionProof<WalAppendDurabilityScope>,
     durability: StoreDurabilityOrderingBarrierDurable<WalAppendDurabilityScope>,
     append: WalAppendReceipt<P>,
     acknowledgment: DurableAckReceipt<P>,
 }
 
-impl<P: BackendDurabilityProfile> ExecutedWalDurabilityOutcome<P> {
+impl<P: BackendDurabilityProfile> CertifiedWalDurabilityMechanismObservation<P> {
     pub fn execution(&self) -> &StoreDurabilityExecutionProof<WalAppendDurabilityScope> {
         &self.execution
     }
@@ -51,15 +51,17 @@ impl<P: BackendDurabilityProfile> ExecutedWalDurabilityOutcome<P> {
     }
 }
 
-/// Executes the ordinary WAL durability chain from bytes to legal acknowledgment.
-/// Every barrier receipt is derived from the sealed physical execution proof.
-pub fn execute_wal_durability<P: BackendDurabilityProfile>(
+/// Certification-only probe for the pre-C.7 lower WAL durability mechanisms.
+///
+/// This is not an ordinary Store mutation route and cannot construct any C.7
+/// physical mutation progression type.
+pub fn certify_wal_durability_mechanism<P: BackendDurabilityProfile>(
     planner: &worth_store_wal::WalAppendPlanner,
     payload: &[u8],
     plan: WalAppendPlan<P>,
     backend: &AdmittedBackendCapabilityWitness,
-) -> Result<ExecutedWalDurabilityOutcome<P>, WalDurabilityExecutionError> {
-    execute_wal_durability_with_control(
+) -> Result<CertifiedWalDurabilityMechanismObservation<P>, WalDurabilityMechanismProbeError> {
+    probe_wal_durability_with_control(
         planner,
         payload,
         plan,
@@ -69,25 +71,25 @@ pub fn execute_wal_durability<P: BackendDurabilityProfile>(
 }
 
 #[cfg(feature = "certification-test-authority")]
-pub fn execute_wal_durability_with_boundary_control<P: BackendDurabilityProfile>(
+pub fn certify_wal_durability_mechanism_with_boundary_control<P: BackendDurabilityProfile>(
     planner: &worth_store_wal::WalAppendPlanner,
     payload: &[u8],
     plan: WalAppendPlan<P>,
     backend: &AdmittedBackendCapabilityWitness,
     control: &impl worth_store_physical_backend::ProductionStorageBoundaryControl,
-) -> Result<ExecutedWalDurabilityOutcome<P>, WalDurabilityExecutionError> {
-    execute_wal_durability_with_control(planner, payload, plan, backend, control)
+) -> Result<CertifiedWalDurabilityMechanismObservation<P>, WalDurabilityMechanismProbeError> {
+    probe_wal_durability_with_control(planner, payload, plan, backend, control)
 }
 
-fn execute_wal_durability_with_control<P: BackendDurabilityProfile>(
+fn probe_wal_durability_with_control<P: BackendDurabilityProfile>(
     planner: &worth_store_wal::WalAppendPlanner,
     payload: &[u8],
     plan: WalAppendPlan<P>,
     backend: &AdmittedBackendCapabilityWitness,
     control: &impl worth_store_physical_backend::ProductionStorageBoundaryControl,
-) -> Result<ExecutedWalDurabilityOutcome<P>, WalDurabilityExecutionError> {
+) -> Result<CertifiedWalDurabilityMechanismObservation<P>, WalDurabilityMechanismProbeError> {
     if backend.profile() != P::TARGET {
-        return Err(WalDurabilityExecutionError::BackendProfileMismatch {
+        return Err(WalDurabilityMechanismProbeError::BackendProfileMismatch {
             expected: P::TARGET,
             actual: backend.profile(),
         });
@@ -97,13 +99,13 @@ fn execute_wal_durability_with_control<P: BackendDurabilityProfile>(
     if planner.segment_id() != scope.segment_id().get()
         || planner.generation() != scope.generation().get()
     {
-        return Err(WalDurabilityExecutionError::Artifact(
+        return Err(WalDurabilityMechanismProbeError::Artifact(
             worth_store_wal::WalArtifactStoreDenial::StoreBindingMismatch,
         ));
     }
     let requirement = StoreDurabilityRequirement::wal_ordering_barrier(P::REQUIRED_BARRIERS);
     let admission = StoreDurabilityAdmission::admit(requirement, backend)
-        .map_err(WalDurabilityExecutionError::Admission)?;
+        .map_err(WalDurabilityMechanismProbeError::Admission)?;
     let accepted = admission.submit_write(scope.clone()).backend_accepted();
     let execution = execute_framed_append(planner, payload, &scope, &accepted, control)?;
 
@@ -112,16 +114,16 @@ fn execute_wal_durability_with_control<P: BackendDurabilityProfile>(
         if P::REQUIRED_BARRIERS.contains(barrier) {
             let receipt = execution
                 .certify_completed_barrier::<P>(barrier)
-                .map_err(WalDurabilityExecutionError::Barrier)?;
+                .map_err(WalDurabilityMechanismProbeError::Barrier)?;
             completed = completed
                 .complete_barrier(receipt)
-                .map_err(WalDurabilityExecutionError::Acknowledgment)?;
+                .map_err(WalDurabilityMechanismProbeError::Acknowledgment)?;
         }
     }
 
     let boundary = accepted
         .reach_durability_boundary(execution.clone())
-        .map_err(WalDurabilityExecutionError::Admission)?;
+        .map_err(WalDurabilityMechanismProbeError::Admission)?;
     let durability = if requirement.requires_parent_namespace_durable() {
         boundary
             .parent_namespace_durable()
@@ -129,15 +131,15 @@ fn execute_wal_durability_with_control<P: BackendDurabilityProfile>(
     } else {
         boundary.ordering_barrier_durable()
     }
-    .map_err(WalDurabilityExecutionError::Admission)?;
+    .map_err(WalDurabilityMechanismProbeError::Admission)?;
 
     let append = completed
         .finish()
-        .map_err(WalDurabilityExecutionError::Acknowledgment)?;
+        .map_err(WalDurabilityMechanismProbeError::Acknowledgment)?;
     let precondition = AcknowledgmentPrecondition::from_append_receipt(append.clone())
-        .map_err(WalDurabilityExecutionError::Acknowledgment)?;
+        .map_err(WalDurabilityMechanismProbeError::Acknowledgment)?;
     let acknowledgment = DurableAckReceipt::acknowledge(precondition);
-    Ok(ExecutedWalDurabilityOutcome {
+    Ok(CertifiedWalDurabilityMechanismObservation {
         execution,
         durability,
         append,
@@ -151,7 +153,7 @@ fn execute_framed_append<S: Clone>(
     scope: &WalAppendDurabilityScope,
     accepted: &worth_store_physical_backend::StoreDurabilityWriteAccepted<S>,
     control: &impl worth_store_physical_backend::ProductionStorageBoundaryControl,
-) -> Result<StoreDurabilityExecutionProof<S>, WalDurabilityExecutionError> {
+) -> Result<StoreDurabilityExecutionProof<S>, WalDurabilityMechanismProbeError> {
     const MAX_CONCURRENT_REPLANS: usize = 8;
     let mut runtime = StoreDurabilityRuntime::new();
     for _ in 0..MAX_CONCURRENT_REPLANS {
@@ -162,7 +164,7 @@ fn execute_framed_append<S: Clone>(
                 scope.frame_digest().as_str(),
                 payload,
             )
-            .map_err(WalDurabilityExecutionError::Artifact)?;
+            .map_err(WalDurabilityMechanismProbeError::Artifact)?;
         match runtime.persist_append_and_execute_with_control(
             planner.root(),
             StoreDurabilityAppendInput::new(
@@ -176,13 +178,15 @@ fn execute_framed_append<S: Clone>(
         ) {
             Ok(execution) => return Ok(execution),
             Err(error) if error.kind() == io::ErrorKind::WouldBlock => continue,
-            Err(error) => return Err(WalDurabilityExecutionError::PhysicalIo(error)),
+            Err(error) => return Err(WalDurabilityMechanismProbeError::PhysicalIo(error)),
         }
     }
-    Err(WalDurabilityExecutionError::PhysicalIo(io::Error::new(
-        io::ErrorKind::WouldBlock,
-        "WAL segment changed during every bounded append replan",
-    )))
+    Err(WalDurabilityMechanismProbeError::PhysicalIo(
+        io::Error::new(
+            io::ErrorKind::WouldBlock,
+            "WAL segment changed during every bounded append replan",
+        ),
+    ))
 }
 
 const ALL_WAL_BARRIERS: [WalDurabilityBarrier; 6] = [

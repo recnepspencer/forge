@@ -1,0 +1,39 @@
+lane,sequence,step,path,source_anchor,authority_owner,disposition
+ordinary-publication,1,publication-entry,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,execute_prepared_root,Store publication,narrow
+ordinary-publication,2,candidate-residency,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,StoreCandidateFramePublicationSession,Buffer pool candidate residency,preserve
+ordinary-publication,3,store-admission,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,PhysicalMutationWorkRequest::publication,Store physical work admission,narrow
+ordinary-publication,4,signal-readiness,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,.request(admitted),Worth Signal,preserve
+ordinary-publication,5,scheduler-admission,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,PhysicalWorkScheduler::admit,Store IO scheduler,preserve
+ordinary-publication,6,executor-dispatch,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/settlement.rs,execute_physical_work,Store physical executor,narrow
+ordinary-publication,7,backend-effect,crates/worth-store/src/physical_runtime/instance/executor/publication.rs,write_scheduled_new_exact,C4 media owner,narrow
+ordinary-publication,8,settlement,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/settlement.rs,CanonicalRecordMutationSettlement::from_settled,Store settlement,preserve
+ordinary-publication,9,root-eligibility,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,CatalogReplacementEligibility::join,Store root publication,narrow
+ordinary-publication,10,publication-completion,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,record_settled,Store publication evidence,replace
+ordinary-wal-append,1,submission-entry,crates/worth-store/src/physical_runtime/record_serving/publication/director/submission.rs,pub fn append_prepared_wal,Store record submission,preserve
+ordinary-wal-append,2,wal-reservation,crates/worth-store/src/physical_runtime/durability/wal/port.rs,self.owner.reserve(prepared),Store WAL owner,preserve
+ordinary-wal-append,3,wal-planning,crates/worth-store/src/physical_runtime/durability/wal/runtime_owner.rs,plan_wal_frame_append,WAL frame meaning,preserve
+ordinary-wal-append,4,signal-readiness,crates/worth-store/src/physical_runtime/durability/wal/port.rs,.request(admitted),Worth Signal,preserve
+ordinary-wal-append,5,scheduler-admission,crates/worth-store/src/physical_runtime/durability/wal/port.rs,.wal_append(,Store IO scheduler,preserve
+ordinary-wal-append,6,executor-dispatch,crates/worth-store/src/physical_runtime/durability/wal/port.rs,execute_physical_work(command),Store physical executor,preserve
+ordinary-wal-append,7,backend-effect,crates/worth-store/src/physical_runtime/instance/executor/wal_append.rs,append_scheduled_artifact_exact_at,C4 media owner,preserve
+ordinary-wal-append,8,settlement,crates/worth-store/src/physical_runtime/durability/wal/port.rs,PhysicalWalAppendSettlement::completed,Store WAL settlement,preserve
+ordinary-wal-append,9,typed-promotion,crates/worth-store/src/physical_runtime/durability/wal/port.rs,WalAppendedPhysicalMutation::new,Store WAL progression,preserve
+certification-wal-mechanism-probe,1,certification-entry,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,pub fn certify_wal_durability_mechanism,Recovery physics certification,narrow
+certification-wal-mechanism-probe,2,path-bound-planning,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,.prepare_append(,Certification WAL planner,narrow
+certification-wal-mechanism-probe,3,backend-admission,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,StoreDurabilityAdmission::admit,Backend durability mechanism,narrow
+certification-wal-mechanism-probe,4,certification-file-runtime,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,persist_append_and_execute_with_control,Certification file mechanism,narrow
+certification-wal-mechanism-probe,5,barrier-certification,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,.certify_completed_barrier,Backend barrier receipt,narrow
+certification-wal-mechanism-probe,6,ack-precondition,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,AcknowledgmentPrecondition::from_append_receipt,Certification WAL boundary,narrow
+certification-wal-mechanism-probe,7,mechanism-acknowledgment,crates/worth-store-recovery-physics/src/wal_durability/certification_probe.rs,DurableAckReceipt::acknowledge,Certification WAL boundary,narrow
+parallel-root-island,1,root-runtime-entry,crates/worth-store-physical-isolation/src/publication/runtime.rs,pub fn publish,Physical isolation root runtime,replace
+parallel-root-island,2,parallel-store,crates/worth-store-physical-isolation/src/publication/runtime.rs,.publish_with_boundary_control,Physical isolation root store,replace
+parallel-root-island,3,root-log,crates/worth-store-physical-isolation/src/publication/store.rs,publication_directory.join("root-publications.log"),Parallel root log,delete
+parallel-root-island,4,physical-sync,crates/worth-store-physical-isolation/src/publication/store.rs,log.sync_all(),Physical isolation filesystem effect,replace
+checkpoint-island,1,checkpoint-validation,crates/worth-store-recovery-physics/src/checkpoint_cutover/checkpoint_durability.rs,CheckpointArtifactDurabilityCommitment,Recovery checkpoint validation,preserve
+checkpoint-island,2,ack-derived-durability,crates/worth-store-recovery-physics/src/checkpoint_cutover/checkpoint_durability.rs,ack: &DurableAckReceipt,Recovery WAL acknowledgment,narrow
+checkpoint-island,3,publication-plan,crates/worth-store-recovery-physics/src/checkpoint_cutover/checkpoint_publication.rs,CheckpointPublicationPlan,Recovery checkpoint cutover,preserve
+checkpoint-island,4,cutover-receipt,crates/worth-store-recovery-physics/src/checkpoint_cutover/checkpoint_publication.rs,CheckpointCutoverReceipt,Recovery checkpoint cutover,narrow
+checkpoint-island,5,wal-retention,crates/worth-store-recovery-physics/src/checkpoint_cutover/wal_retention.rs,WalRetentionEligibility,Recovery retention meaning,preserve
+page-redo-island,1,page-lsn-meaning,crates/worth-store-recovery-physics/src/page_redo/page_lsn.rs,pub struct PageLsn,Recovery page ordering,preserve
+page-redo-island,2,redo-eligibility,crates/worth-store-recovery-physics/src/page_redo/eligibility.rs,PageRedoEligibility,Recovery redo admission,preserve
+page-redo-island,3,redo-application,crates/worth-store-recovery-physics/src/page_redo/application.rs,PageRedoApplicationBasis,Recovery redo application,preserve
