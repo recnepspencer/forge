@@ -4,10 +4,12 @@ mod evidence;
 mod runtime;
 
 pub use contract::{
+    BridgeAuthorizationClauseContract, BridgeAuthorizationClauseObservation,
     BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationDependencyCardinality,
     BridgeAuthorizationInstallationRequest, BridgeAuthorizationObservation,
-    BridgeAuthorizationPathContract, BridgeAuthorizationPathEffect,
-    BridgeAuthorizationPathObservation,
+    BridgeAuthorizationRequirementContract, BridgeAuthorizationRequirementObservation,
+    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
+    BridgeAuthorizationRuleObservation,
 };
 pub use denial::{BridgeAuthorizationDenial, BridgeAuthorizationDenialKind};
 pub use evidence::BridgeAuthorizationDecisionEvidence;

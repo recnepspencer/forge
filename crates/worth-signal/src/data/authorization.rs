@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::data::aspect::InstalledSignalGraphCapability;
-use crate::data::graph::SignalGraph;
+mod evaluation;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SignalAuthorizationPolicyIdentity([u8; 32]);
@@ -17,40 +16,71 @@ impl SignalAuthorizationPolicyIdentity {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SignalAuthorizationPathEffect {
-    Allow,
-    Deny,
+pub enum SignalAuthorizationRuleEffect {
+    Required,
+    Prohibited,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SignalAuthorizationPathContract {
-    effect: SignalAuthorizationPathEffect,
+pub struct SignalAuthorizationClauseContract;
+
+impl SignalAuthorizationClauseContract {
+    pub const fn new() -> Self {
+        Self
+    }
 }
 
-impl SignalAuthorizationPathContract {
-    pub const fn new(effect: SignalAuthorizationPathEffect) -> Self {
-        Self { effect }
+impl Default for SignalAuthorizationClauseContract {
+    fn default() -> Self {
+        Self::new()
     }
+}
 
-    pub const fn effect(&self) -> SignalAuthorizationPathEffect {
-        self.effect
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SignalAuthorizationRequirementContract {
+    clauses: Vec<SignalAuthorizationClauseContract>,
+}
+
+impl SignalAuthorizationRequirementContract {
+    pub fn any(clauses: impl IntoIterator<Item = SignalAuthorizationClauseContract>) -> Self {
+        Self {
+            clauses: clauses.into_iter().collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SignalAuthorizationRuleContract {
+    effect: SignalAuthorizationRuleEffect,
+    requirements: Vec<SignalAuthorizationRequirementContract>,
+}
+
+impl SignalAuthorizationRuleContract {
+    pub fn all(
+        effect: SignalAuthorizationRuleEffect,
+        requirements: impl IntoIterator<Item = SignalAuthorizationRequirementContract>,
+    ) -> Self {
+        Self {
+            effect,
+            requirements: requirements.into_iter().collect(),
+        }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SignalAuthorizationPolicyDefinition {
     identity: SignalAuthorizationPolicyIdentity,
-    paths: Vec<SignalAuthorizationPathContract>,
+    rules: Vec<SignalAuthorizationRuleContract>,
 }
 
 impl SignalAuthorizationPolicyDefinition {
     pub fn new(
         identity: SignalAuthorizationPolicyIdentity,
-        paths: impl IntoIterator<Item = SignalAuthorizationPathContract>,
+        rules: impl IntoIterator<Item = SignalAuthorizationRuleContract>,
     ) -> Self {
         Self {
             identity,
-            paths: paths.into_iter().collect(),
+            rules: rules.into_iter().collect(),
         }
     }
 }
@@ -64,22 +94,19 @@ pub struct SignalAuthorizationDependencyCardinality {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct SignalAuthorizationPathObservation {
-    effect: SignalAuthorizationPathEffect,
+pub struct SignalAuthorizationClauseObservation {
     matched: bool,
     exhaustive: bool,
     dependencies: SignalAuthorizationDependencyCardinality,
 }
 
-impl SignalAuthorizationPathObservation {
+impl SignalAuthorizationClauseObservation {
     pub const fn new(
-        effect: SignalAuthorizationPathEffect,
         matched: bool,
         exhaustive: bool,
         dependencies: SignalAuthorizationDependencyCardinality,
     ) -> Self {
         Self {
-            effect,
             matched,
             exhaustive,
             dependencies,
@@ -87,19 +114,50 @@ impl SignalAuthorizationPathObservation {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SignalAuthorizationRequirementObservation {
+    clauses: Vec<SignalAuthorizationClauseObservation>,
+}
+
+impl SignalAuthorizationRequirementObservation {
+    pub fn any(clauses: impl IntoIterator<Item = SignalAuthorizationClauseObservation>) -> Self {
+        Self {
+            clauses: clauses.into_iter().collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SignalAuthorizationRuleObservation {
+    effect: SignalAuthorizationRuleEffect,
+    requirements: Vec<SignalAuthorizationRequirementObservation>,
+}
+
+impl SignalAuthorizationRuleObservation {
+    pub fn all(
+        effect: SignalAuthorizationRuleEffect,
+        requirements: impl IntoIterator<Item = SignalAuthorizationRequirementObservation>,
+    ) -> Self {
+        Self {
+            effect,
+            requirements: requirements.into_iter().collect(),
+        }
+    }
+}
+
 pub struct SignalAuthorizationObservation {
     dependency_identity: [u8; 32],
-    paths: Vec<SignalAuthorizationPathObservation>,
+    rules: Vec<SignalAuthorizationRuleObservation>,
 }
 
 impl SignalAuthorizationObservation {
     pub fn new(
         dependency_identity: [u8; 32],
-        paths: impl IntoIterator<Item = SignalAuthorizationPathObservation>,
+        rules: impl IntoIterator<Item = SignalAuthorizationRuleObservation>,
     ) -> Self {
         Self {
             dependency_identity,
-            paths: paths.into_iter().collect(),
+            rules: rules.into_iter().collect(),
         }
     }
 }
@@ -111,7 +169,7 @@ struct SignalAuthorizationAuthority {
 pub struct InstalledSignalAuthorizationPolicy {
     graph_instance_id: u64,
     identity: SignalAuthorizationPolicyIdentity,
-    paths: Vec<SignalAuthorizationPathContract>,
+    rules: Vec<SignalAuthorizationRuleContract>,
     authority: Arc<SignalAuthorizationAuthority>,
 }
 
@@ -139,9 +197,13 @@ pub enum SignalAuthorizationDecision {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct SignalAuthorizationEvaluationCounters {
-    pub paths_evaluated: usize,
-    pub allow_paths_matched: usize,
-    pub deny_paths_matched: usize,
+    pub rules_evaluated: usize,
+    pub required_rules_matched: usize,
+    pub prohibited_rules_matched: usize,
+    pub requirements_evaluated: usize,
+    pub requirements_matched: usize,
+    pub clauses_evaluated: usize,
+    pub clauses_matched: usize,
     pub entities_depended_on: usize,
     pub relations_depended_on: usize,
     pub adjacency_lists_depended_on: usize,
@@ -179,98 +241,13 @@ impl SignalAuthorizationDecisionEvidence {
 pub enum SignalAuthorizationDenial {
     ForeignGraph,
     EmptyPolicy,
-    MissingAllowPath,
+    MissingRequiredRule,
+    EmptyRule,
+    EmptyRequirement,
     DuplicatePolicy,
     StalePolicy,
     ObservationShapeMismatch,
     NonExhaustiveObservation,
-}
-
-impl SignalGraph {
-    pub fn install_authorization_policy(
-        &mut self,
-        graph: &InstalledSignalGraphCapability,
-        definition: SignalAuthorizationPolicyDefinition,
-    ) -> Result<InstalledSignalAuthorizationPolicy, SignalAuthorizationDenial> {
-        if graph.graph_instance_id() != self.runtime_instance_id() {
-            return Err(SignalAuthorizationDenial::ForeignGraph);
-        }
-        if definition.paths.is_empty() {
-            return Err(SignalAuthorizationDenial::EmptyPolicy);
-        }
-        if !definition
-            .paths
-            .iter()
-            .any(|path| path.effect == SignalAuthorizationPathEffect::Allow)
-        {
-            return Err(SignalAuthorizationDenial::MissingAllowPath);
-        }
-        if !self
-            .authorization_policy_identities
-            .insert(*definition.identity.bytes())
-        {
-            return Err(SignalAuthorizationDenial::DuplicatePolicy);
-        }
-        Ok(InstalledSignalAuthorizationPolicy {
-            graph_instance_id: self.runtime_instance_id(),
-            identity: definition.identity,
-            paths: definition.paths,
-            authority: Arc::new(SignalAuthorizationAuthority { _seal: () }),
-        })
-    }
-
-    pub fn evaluate_authorization(
-        &self,
-        policy: &InstalledSignalAuthorizationPolicy,
-        observation: SignalAuthorizationObservation,
-    ) -> Result<SignalAuthorizationDecisionEvidence, SignalAuthorizationDenial> {
-        if policy.graph_instance_id != self.runtime_instance_id()
-            || !self
-                .authorization_policy_identities
-                .contains(policy.identity.bytes())
-        {
-            return Err(SignalAuthorizationDenial::StalePolicy);
-        }
-        if policy.paths.len() != observation.paths.len()
-            || policy
-                .paths
-                .iter()
-                .zip(&observation.paths)
-                .any(|(contract, observed)| contract.effect != observed.effect)
-        {
-            return Err(SignalAuthorizationDenial::ObservationShapeMismatch);
-        }
-        if observation.paths.iter().any(|path| !path.exhaustive) {
-            return Err(SignalAuthorizationDenial::NonExhaustiveObservation);
-        }
-        let mut counters = SignalAuthorizationEvaluationCounters::default();
-        for path in &observation.paths {
-            counters.paths_evaluated += 1;
-            counters.entities_depended_on += path.dependencies.entities;
-            counters.relations_depended_on += path.dependencies.relations;
-            counters.adjacency_lists_depended_on += path.dependencies.adjacency_lists;
-            counters.fields_depended_on += path.dependencies.fields;
-            if path.matched {
-                match path.effect {
-                    SignalAuthorizationPathEffect::Allow => counters.allow_paths_matched += 1,
-                    SignalAuthorizationPathEffect::Deny => counters.deny_paths_matched += 1,
-                }
-            }
-        }
-        let decision = if counters.allow_paths_matched > 0 && counters.deny_paths_matched == 0 {
-            SignalAuthorizationDecision::Allowed
-        } else {
-            SignalAuthorizationDecision::Denied
-        };
-        Ok(SignalAuthorizationDecisionEvidence {
-            graph_instance_id: self.runtime_instance_id(),
-            policy_identity: policy.identity,
-            dependency_identity: observation.dependency_identity,
-            decision,
-            counters,
-            authority: Arc::clone(&policy.authority),
-        })
-    }
 }
 
 #[cfg(test)]

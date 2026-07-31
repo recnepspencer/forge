@@ -3,12 +3,13 @@ use std::collections::BTreeMap;
 use worth_query_installation::facade::{
     ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect, ApplicationSchema,
     ApplicationSchemaMember, WorthQueryInstalledAbilityRequirement,
-    WorthQueryInstalledApplicationSchema,
+    WorthQueryInstalledApplicationSchema, WorthQueryInstalledAuthorizationPath,
 };
 use worth_relational::facade::authorization::RelationalAuthorizationPathPlan;
 use worth_runtime_bridge::facade::{
-    BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationPathContract, BridgeAuthorizationPathEffect, BridgeAuthorizationRuntime,
+    BridgeAuthorizationClauseContract, BridgeAuthorizationCorrespondenceIdentity,
+    BridgeAuthorizationInstallationRequest, BridgeAuthorizationRequirementContract,
+    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
 use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
@@ -24,10 +25,18 @@ struct PolicyKey {
 
 pub(super) struct WorthQueryInstalledAuthorizationPolicy {
     pub(super) correspondence: BridgeAuthorizationCorrespondenceIdentity,
-    pub(super) bridge_paths: Vec<BridgeAuthorizationPathContract>,
+    pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
+    pub(super) bridge_path_bindings: Vec<BridgePathBinding>,
+    pub(super) rule_path_indices: Vec<Vec<usize>>,
     pub(super) relational_paths: Vec<RelationalAuthorizationPathPlan>,
     pub(super) principal_kind: worth_relational::facade::identity::KindId,
     pub(super) scope_kind: worth_relational::facade::identity::KindId,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct BridgePathBinding {
+    pub(super) identity: [u8; 32],
+    rule_effect: BridgeAuthorizationRuleEffect,
 }
 
 pub(in crate::domain_computation::primary_graph) struct WorthQueryInstalledAuthorizationRegistry {
@@ -84,15 +93,15 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.policies
             .get(&key)
             .filter(|installed| {
-                installed.bridge_paths.len() == requirement.policy_paths().len()
+                installed.bridge_path_bindings.len() == requirement.policy_paths().len()
                     && installed
-                        .bridge_paths
+                        .bridge_path_bindings
                         .iter()
                         .zip(requirement.policy_paths())
-                        .all(|(compiled, installed_path)| {
-                            compiled.identity() == installed_path.identity().bytes()
-                                && compiled.effect()
-                                    == lower_bridge_effect(installed_path.path().effect())
+                        .all(|(binding, installed_path)| {
+                            &binding.identity == installed_path.identity().bytes()
+                                && binding.rule_effect
+                                    == lower_rule_effect(installed_path.path().effect())
                         })
             })
             .ok_or_else(|| {
@@ -140,16 +149,8 @@ where
                 "installed authorization path identity is unavailable",
             )
         })?;
-    let bridge_paths = installed_paths
-        .policy_paths()
-        .iter()
-        .map(|installed_path| {
-            BridgeAuthorizationPathContract::new(
-                *installed_path.identity().bytes(),
-                lower_bridge_effect(installed_path.path().effect()),
-            )
-        })
-        .collect::<Vec<_>>();
+    let (bridge_rules, bridge_path_bindings, rule_path_indices) =
+        compile_bridge_policy(installed_paths.policy_paths());
     let relational_paths = paths
         .iter()
         .map(|path| lower_authorization_path(layout, path))
@@ -161,23 +162,84 @@ where
             &key.ability,
             &key.scope_entity,
             &key.policy,
-            bridge_paths.iter().copied(),
+            bridge_rules.iter().cloned(),
         ))
         .map_err(|denial| authorization_denial(denial.subject(), "Bridge rejected policy"))?;
     Ok(WorthQueryInstalledAuthorizationPolicy {
         correspondence,
-        bridge_paths,
+        bridge_rules,
+        bridge_path_bindings,
+        rule_path_indices,
         relational_paths,
         principal_kind,
         scope_kind,
     })
 }
 
-const fn lower_bridge_effect(
+fn compile_bridge_policy(
+    paths: &[WorthQueryInstalledAuthorizationPath],
+) -> (
+    Vec<BridgeAuthorizationRuleContract>,
+    Vec<BridgePathBinding>,
+    Vec<Vec<usize>>,
+) {
+    let bindings = paths
+        .iter()
+        .map(|path| BridgePathBinding {
+            identity: *path.identity().bytes(),
+            rule_effect: lower_rule_effect(path.path().effect()),
+        })
+        .collect::<Vec<_>>();
+    let required = path_indices_for_effect(&bindings, BridgeAuthorizationRuleEffect::Required);
+    let prohibited = path_indices_for_effect(&bindings, BridgeAuthorizationRuleEffect::Prohibited);
+    let mut rules = vec![bridge_rule(
+        BridgeAuthorizationRuleEffect::Required,
+        &required,
+        &bindings,
+    )];
+    let mut rule_path_indices = vec![required];
+    if !prohibited.is_empty() {
+        rules.push(bridge_rule(
+            BridgeAuthorizationRuleEffect::Prohibited,
+            &prohibited,
+            &bindings,
+        ));
+        rule_path_indices.push(prohibited);
+    }
+    (rules, bindings, rule_path_indices)
+}
+
+fn path_indices_for_effect(
+    bindings: &[BridgePathBinding],
+    effect: BridgeAuthorizationRuleEffect,
+) -> Vec<usize> {
+    bindings
+        .iter()
+        .enumerate()
+        .filter_map(|(index, binding)| (binding.rule_effect == effect).then_some(index))
+        .collect()
+}
+
+fn bridge_rule(
+    effect: BridgeAuthorizationRuleEffect,
+    indices: &[usize],
+    bindings: &[BridgePathBinding],
+) -> BridgeAuthorizationRuleContract {
+    BridgeAuthorizationRuleContract::all(
+        effect,
+        [BridgeAuthorizationRequirementContract::any(
+            indices
+                .iter()
+                .map(|index| BridgeAuthorizationClauseContract::new(bindings[*index].identity)),
+        )],
+    )
+}
+
+const fn lower_rule_effect(
     effect: ApplicationAuthorizationPathEffect,
-) -> BridgeAuthorizationPathEffect {
+) -> BridgeAuthorizationRuleEffect {
     match effect {
-        ApplicationAuthorizationPathEffect::Allow => BridgeAuthorizationPathEffect::Allow,
-        ApplicationAuthorizationPathEffect::Deny => BridgeAuthorizationPathEffect::Deny,
+        ApplicationAuthorizationPathEffect::Allow => BridgeAuthorizationRuleEffect::Required,
+        ApplicationAuthorizationPathEffect::Deny => BridgeAuthorizationRuleEffect::Prohibited,
     }
 }

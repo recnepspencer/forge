@@ -1,3 +1,16 @@
+use super::super::entity_resolution::validate_entity_freshness_at_snapshot;
+use super::super::resolution::validate_freshness_at_snapshot;
+use super::super::{
+    WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
+    WorthQueryPrimaryGraphApplicationRuntime,
+};
+use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
+use super::bridge_observation::lower_bridge_observation;
+use super::scope_identity::derive_operation_scope_identity;
+use super::{
+    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
+};
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
@@ -8,23 +21,6 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::authorization::{
     RelationalAuthorizationDecision, RelationalAuthorizationObservationPlan,
-};
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationDependencyCardinality, BridgeAuthorizationObservation,
-    BridgeAuthorizationPathObservation,
-};
-
-use super::super::entity_resolution::validate_entity_freshness_at_snapshot;
-use super::super::resolution::validate_freshness_at_snapshot;
-use super::super::{
-    WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
-    WorthQueryPrimaryGraphApplicationRuntime,
-};
-use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
-use super::scope_identity::derive_operation_scope_identity;
-use super::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeFingerprint,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -179,7 +175,7 @@ where
                 requirement.ability(),
                 requirement.scope_entity(),
                 requirement.policy(),
-                &installed.bridge_paths,
+                &installed.bridge_rules,
             ) {
                 return Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
@@ -215,28 +211,12 @@ where
                 ));
             }
             let dependency_identity = *evidence.observation_identity().bytes();
-            let bridge_observation = BridgeAuthorizationObservation::new(
-                installed.correspondence,
+            let bridge_observation = lower_bridge_observation(
+                installed,
+                &evidence,
                 dependency_identity,
-                installed
-                    .bridge_paths
-                    .iter()
-                    .zip(evidence.paths())
-                    .map(|(contract, path)| {
-                        BridgeAuthorizationPathObservation::new(
-                            *contract.identity(),
-                            contract.effect(),
-                            path.matched(),
-                            path.exhaustive(),
-                            BridgeAuthorizationDependencyCardinality {
-                                entities: path.entities().len(),
-                                relations: path.relations().len(),
-                                adjacency_lists: path.adjacency_lists().len(),
-                                fields: path.fields().len(),
-                            },
-                        )
-                    }),
-            );
+                requirement.policy(),
+            )?;
             let bridge = self
                 .authorization
                 .bridge()

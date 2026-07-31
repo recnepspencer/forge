@@ -1,5 +1,6 @@
 mod admission;
 mod admitted_operation;
+mod bridge_observation;
 mod denial;
 mod installed_policy;
 mod lowering;

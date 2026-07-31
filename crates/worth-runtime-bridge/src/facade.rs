@@ -74,11 +74,13 @@ mod runtime;
 mod standard_path;
 
 pub use crate::authorization::{
+    BridgeAuthorizationClauseContract, BridgeAuthorizationClauseObservation,
     BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationDecisionEvidence,
     BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
     BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationObservation, BridgeAuthorizationPathContract, BridgeAuthorizationPathEffect,
-    BridgeAuthorizationPathObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
+    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
+    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 pub use crate::identity_authority::*;
 pub use exports_core::*;

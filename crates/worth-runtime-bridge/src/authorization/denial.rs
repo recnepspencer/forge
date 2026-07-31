@@ -1,7 +1,9 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BridgeAuthorizationDenialKind {
     EmptyPolicy,
-    MissingAllowPath,
+    MissingRequiredRule,
+    EmptyRule,
+    EmptyRequirement,
     DuplicateCorrespondence,
     UnknownCorrespondence,
     ObservationShapeMismatch,

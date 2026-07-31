@@ -3,9 +3,11 @@ use worth_query_declaration::facade::application_schema::ApplicationSchemaBindin
 use worth_query_declaration::{worth_query_application_schema, worth_query_entity};
 
 use super::{
+    BridgeAuthorizationClauseContract, BridgeAuthorizationClauseObservation,
     BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationObservation, BridgeAuthorizationPathContract, BridgeAuthorizationPathEffect,
-    BridgeAuthorizationPathObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
+    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
+    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 
 worth_query_application_schema! {
@@ -21,9 +23,9 @@ worth_query_application_schema! {
 worth_query_entity!(BridgePrincipal in BridgeAuthorizationSchema);
 
 #[test]
-fn installed_correspondence_retains_signal_decision_and_exact_dependency_identity() {
+fn installed_correspondence_retains_nested_signal_decision_and_dependency_identity() {
     let mut runtime = BridgeAuthorizationRuntime::new();
-    let paths = paths();
+    let rules = rules();
     let identity = runtime
         .install(BridgeAuthorizationInstallationRequest::new(
             &CanonicalDigestId::new([9; 32]),
@@ -31,19 +33,11 @@ fn installed_correspondence_retains_signal_decision_and_exact_dependency_identit
             "view_account",
             "Account",
             "account_membership",
-            paths.clone(),
+            rules.clone(),
         ))
         .unwrap();
-    assert_eq!(identity.bytes(), &[9; 32]);
     let evidence = runtime
-        .evaluate(BridgeAuthorizationObservation::new(
-            identity,
-            [8; 32],
-            [
-                observation(paths[0], true, true),
-                observation(paths[1], false, true),
-            ],
-        ))
+        .evaluate(observation(identity, &rules, [8; 32], true, false))
         .unwrap();
 
     assert!(runtime.retains(&evidence));
@@ -52,12 +46,13 @@ fn installed_correspondence_retains_signal_decision_and_exact_dependency_identit
         evidence.decision(),
         worth_signal::facade::SignalAuthorizationDecision::Allowed
     );
+    assert_eq!(evidence.counters().requirements_evaluated, 2);
 }
 
 #[test]
-fn correspondence_rejects_reordered_or_non_exhaustive_policy_facts() {
+fn correspondence_rejects_clause_reordering_and_non_exhaustive_facts() {
     let mut runtime = BridgeAuthorizationRuntime::new();
-    let paths = paths();
+    let rules = rules();
     let identity = runtime
         .install(BridgeAuthorizationInstallationRequest::new(
             &CanonicalDigestId::new([10; 32]),
@@ -65,44 +60,103 @@ fn correspondence_rejects_reordered_or_non_exhaustive_policy_facts() {
             "approve_payment",
             "PaymentIntent",
             "distinct_approver",
-            paths.clone(),
+            rules.clone(),
         ))
         .unwrap();
-    let reordered = runtime.evaluate(BridgeAuthorizationObservation::new(
-        identity,
-        [3; 32],
-        [
-            observation(paths[1], false, true),
-            observation(paths[0], true, true),
-        ],
-    ));
-    assert!(reordered.is_err());
-    let incomplete = runtime.evaluate(BridgeAuthorizationObservation::new(
-        identity,
-        [3; 32],
-        [
-            observation(paths[0], true, false),
-            observation(paths[1], false, true),
-        ],
-    ));
-    assert!(incomplete.is_err());
+
+    let mut reordered = observation(identity, &rules, [3; 32], true, false);
+    reordered.rules[0].requirements[0].clauses.swap(0, 1);
+    assert!(runtime.evaluate(reordered).is_err());
+
+    let incomplete = observation(identity, &rules, [4; 32], true, false);
+    let BridgeAuthorizationObservation {
+        correspondence,
+        dependency_identity,
+        mut rules,
+    } = incomplete;
+    rules[0].requirements[0].clauses[0] =
+        clause_observation(*rules[0].requirements[0].clauses[0].identity(), true, false);
+    assert!(runtime
+        .evaluate(BridgeAuthorizationObservation {
+            correspondence,
+            dependency_identity,
+            rules,
+        })
+        .is_err());
 }
 
-fn paths() -> Vec<BridgeAuthorizationPathContract> {
+fn rules() -> Vec<BridgeAuthorizationRuleContract> {
     vec![
-        BridgeAuthorizationPathContract::new([1; 32], BridgeAuthorizationPathEffect::Allow),
-        BridgeAuthorizationPathContract::new([2; 32], BridgeAuthorizationPathEffect::Deny),
+        BridgeAuthorizationRuleContract::all(
+            BridgeAuthorizationRuleEffect::Required,
+            [BridgeAuthorizationRequirementContract::any([
+                BridgeAuthorizationClauseContract::new([1; 32]),
+                BridgeAuthorizationClauseContract::new([2; 32]),
+            ])],
+        ),
+        BridgeAuthorizationRuleContract::all(
+            BridgeAuthorizationRuleEffect::Prohibited,
+            [BridgeAuthorizationRequirementContract::any([
+                BridgeAuthorizationClauseContract::new([3; 32]),
+            ])],
+        ),
     ]
 }
 
 fn observation(
-    contract: BridgeAuthorizationPathContract,
+    identity: super::BridgeAuthorizationCorrespondenceIdentity,
+    rules: &[BridgeAuthorizationRuleContract],
+    dependency_identity: [u8; 32],
+    allowed: bool,
+    prohibited: bool,
+) -> BridgeAuthorizationObservation {
+    BridgeAuthorizationObservation::new(
+        identity,
+        dependency_identity,
+        [
+            rule_observation(
+                &rules[0],
+                [requirement_observation(
+                    &rules[0].requirements()[0],
+                    [(allowed, true), (false, true)],
+                )],
+            ),
+            rule_observation(
+                &rules[1],
+                [requirement_observation(
+                    &rules[1].requirements()[0],
+                    [(prohibited, true)],
+                )],
+            ),
+        ],
+    )
+}
+
+fn rule_observation(
+    contract: &BridgeAuthorizationRuleContract,
+    requirements: impl IntoIterator<Item = BridgeAuthorizationRequirementObservation>,
+) -> BridgeAuthorizationRuleObservation {
+    BridgeAuthorizationRuleObservation::all(contract.effect(), requirements)
+}
+
+fn requirement_observation<const N: usize>(
+    contract: &BridgeAuthorizationRequirementContract,
+    states: [(bool, bool); N],
+) -> BridgeAuthorizationRequirementObservation {
+    BridgeAuthorizationRequirementObservation::any(contract.clauses().iter().zip(states).map(
+        |(clause, (matched, exhaustive))| {
+            clause_observation(*clause.identity(), matched, exhaustive)
+        },
+    ))
+}
+
+fn clause_observation(
+    identity: [u8; 32],
     matched: bool,
     exhaustive: bool,
-) -> BridgeAuthorizationPathObservation {
-    BridgeAuthorizationPathObservation::new(
-        *contract.identity(),
-        contract.effect(),
+) -> BridgeAuthorizationClauseObservation {
+    BridgeAuthorizationClauseObservation::new(
+        identity,
         matched,
         exhaustive,
         BridgeAuthorizationDependencyCardinality {

@@ -2,10 +2,12 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use worth_signal::facade::{
-    InstalledSignalAuthorizationPolicy, SignalAuthorizationDependencyCardinality,
-    SignalAuthorizationObservation, SignalAuthorizationPathContract, SignalAuthorizationPathEffect,
-    SignalAuthorizationPathObservation, SignalAuthorizationPolicyDefinition,
-    SignalAuthorizationPolicyIdentity, SignalGraph,
+    InstalledSignalAuthorizationPolicy, SignalAuthorizationClauseContract,
+    SignalAuthorizationClauseObservation, SignalAuthorizationDependencyCardinality,
+    SignalAuthorizationObservation, SignalAuthorizationPolicyDefinition,
+    SignalAuthorizationPolicyIdentity, SignalAuthorizationRequirementContract,
+    SignalAuthorizationRequirementObservation, SignalAuthorizationRuleContract,
+    SignalAuthorizationRuleEffect, SignalAuthorizationRuleObservation, SignalGraph,
 };
 
 use super::evidence::BridgeAuthorizationCorrespondenceAuthority;
@@ -13,7 +15,7 @@ use super::{
     BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationDecisionEvidence,
     BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
     BridgeAuthorizationInstallationRequest, BridgeAuthorizationObservation,
-    BridgeAuthorizationPathContract, BridgeAuthorizationPathEffect,
+    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
 };
 
 struct BridgeInstalledAuthorizationCorrespondence {
@@ -22,7 +24,7 @@ struct BridgeInstalledAuthorizationCorrespondence {
     ability: String,
     scope_entity: String,
     policy: String,
-    paths: Vec<BridgeAuthorizationPathContract>,
+    rules: Vec<BridgeAuthorizationRuleContract>,
     signal_policy: InstalledSignalAuthorizationPolicy,
     authority: Arc<BridgeAuthorizationCorrespondenceAuthority>,
 }
@@ -57,10 +59,7 @@ impl BridgeAuthorizationRuntime {
         }
         let signal_definition = SignalAuthorizationPolicyDefinition::new(
             SignalAuthorizationPolicyIdentity::new(*identity.bytes()),
-            request
-                .paths
-                .iter()
-                .map(|path| SignalAuthorizationPathContract::new(lower_effect(path.effect()))),
+            request.rules.iter().map(lower_rule_contract),
         );
         let graph_capability = self.graph.installed_graph_capability();
         let signal_policy = self
@@ -80,7 +79,7 @@ impl BridgeAuthorizationRuntime {
                 ability: request.ability,
                 scope_entity: request.scope_entity,
                 policy: request.policy,
-                paths: request.paths,
+                rules: request.rules,
                 signal_policy,
                 authority: Arc::new(BridgeAuthorizationCorrespondenceAuthority { _seal: () }),
             },
@@ -95,7 +94,7 @@ impl BridgeAuthorizationRuntime {
         ability: &str,
         scope_entity: &str,
         policy: &str,
-        paths: &[BridgeAuthorizationPathContract],
+        rules: &[BridgeAuthorizationRuleContract],
     ) -> bool {
         self.correspondences
             .get(&correspondence)
@@ -105,7 +104,7 @@ impl BridgeAuthorizationRuntime {
                     && installed.ability == ability
                     && installed.scope_entity == scope_entity
                     && installed.policy == policy
-                    && installed.paths == paths
+                    && installed.rules == rules
             })
     }
 
@@ -122,16 +121,7 @@ impl BridgeAuthorizationRuntime {
                     "unknown installed authorization correspondence",
                 )
             })?;
-        if installed.paths.len() != observation.paths.len()
-            || installed
-                .paths
-                .iter()
-                .zip(&observation.paths)
-                .any(|(contract, observed)| {
-                    contract.identity() != observed.identity()
-                        || contract.effect() != observed.effect()
-                })
-        {
+        if !same_shape(&installed.rules, &observation.rules) {
             return Err(denial(
                 BridgeAuthorizationDenialKind::ObservationShapeMismatch,
                 &installed.policy,
@@ -139,17 +129,26 @@ impl BridgeAuthorizationRuntime {
         }
         let signal_observation = SignalAuthorizationObservation::new(
             observation.dependency_identity,
-            observation.paths.iter().map(|path| {
-                SignalAuthorizationPathObservation::new(
-                    lower_effect(path.effect()),
-                    path.matched(),
-                    path.exhaustive(),
-                    SignalAuthorizationDependencyCardinality {
-                        entities: path.entity_dependencies(),
-                        relations: path.relation_dependencies(),
-                        adjacency_lists: path.adjacency_dependencies(),
-                        fields: path.field_dependencies(),
-                    },
+            observation.rules.iter().map(|rule| {
+                SignalAuthorizationRuleObservation::all(
+                    lower_effect(rule.effect),
+                    rule.requirements.iter().map(|requirement| {
+                        SignalAuthorizationRequirementObservation::any(
+                            requirement.clauses.iter().map(|clause| {
+                                let dependencies = clause.dependencies();
+                                SignalAuthorizationClauseObservation::new(
+                                    clause.matched(),
+                                    clause.exhaustive(),
+                                    SignalAuthorizationDependencyCardinality {
+                                        entities: dependencies.entities,
+                                        relations: dependencies.relations,
+                                        adjacency_lists: dependencies.adjacency_lists,
+                                        fields: dependencies.fields,
+                                    },
+                                )
+                            }),
+                        )
+                    }),
                 )
             }),
         );
@@ -190,29 +189,88 @@ impl Default for BridgeAuthorizationRuntime {
 fn validate_request(
     request: &BridgeAuthorizationInstallationRequest,
 ) -> Result<(), BridgeAuthorizationDenial> {
-    if request.paths.is_empty() {
+    if request.rules.is_empty() {
         return Err(denial(
             BridgeAuthorizationDenialKind::EmptyPolicy,
             &request.policy,
         ));
     }
     if !request
-        .paths
+        .rules
         .iter()
-        .any(|path| path.effect() == BridgeAuthorizationPathEffect::Allow)
+        .any(|rule| rule.effect() == BridgeAuthorizationRuleEffect::Required)
     {
         return Err(denial(
-            BridgeAuthorizationDenialKind::MissingAllowPath,
+            BridgeAuthorizationDenialKind::MissingRequiredRule,
+            &request.policy,
+        ));
+    }
+    if request
+        .rules
+        .iter()
+        .any(|rule| rule.requirements().is_empty())
+    {
+        return Err(denial(
+            BridgeAuthorizationDenialKind::EmptyRule,
+            &request.policy,
+        ));
+    }
+    if request
+        .rules
+        .iter()
+        .flat_map(BridgeAuthorizationRuleContract::requirements)
+        .any(|requirement| requirement.clauses().is_empty())
+    {
+        return Err(denial(
+            BridgeAuthorizationDenialKind::EmptyRequirement,
             &request.policy,
         ));
     }
     Ok(())
 }
 
-fn lower_effect(effect: BridgeAuthorizationPathEffect) -> SignalAuthorizationPathEffect {
+fn same_shape(
+    contracts: &[BridgeAuthorizationRuleContract],
+    observations: &[super::BridgeAuthorizationRuleObservation],
+) -> bool {
+    contracts.len() == observations.len()
+        && contracts
+            .iter()
+            .zip(observations)
+            .all(|(contract, observed)| {
+                contract.effect() == observed.effect
+                    && contract.requirements().len() == observed.requirements.len()
+                    && contract
+                        .requirements()
+                        .iter()
+                        .zip(&observed.requirements)
+                        .all(|(required, actual)| {
+                            required.clauses().len() == actual.clauses.len()
+                                && required.clauses().iter().zip(&actual.clauses).all(
+                                    |(expected, clause)| expected.identity() == clause.identity(),
+                                )
+                        })
+            })
+}
+
+fn lower_rule_contract(rule: &BridgeAuthorizationRuleContract) -> SignalAuthorizationRuleContract {
+    SignalAuthorizationRuleContract::all(
+        lower_effect(rule.effect()),
+        rule.requirements().iter().map(|requirement| {
+            SignalAuthorizationRequirementContract::any(
+                requirement
+                    .clauses()
+                    .iter()
+                    .map(|_| SignalAuthorizationClauseContract::new()),
+            )
+        }),
+    )
+}
+
+const fn lower_effect(effect: BridgeAuthorizationRuleEffect) -> SignalAuthorizationRuleEffect {
     match effect {
-        BridgeAuthorizationPathEffect::Allow => SignalAuthorizationPathEffect::Allow,
-        BridgeAuthorizationPathEffect::Deny => SignalAuthorizationPathEffect::Deny,
+        BridgeAuthorizationRuleEffect::Required => SignalAuthorizationRuleEffect::Required,
+        BridgeAuthorizationRuleEffect::Prohibited => SignalAuthorizationRuleEffect::Prohibited,
     }
 }
 
