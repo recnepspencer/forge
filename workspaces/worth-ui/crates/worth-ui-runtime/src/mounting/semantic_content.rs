@@ -15,14 +15,14 @@ pub(crate) enum UiMountedProjectionInputTransition {
         capacity: usize,
         inputs: BTreeMap<
             worth_ui_query_binding::UiProjectionInputSlot,
-            worth_ui_query_binding::UiProjectionInputFactReference,
+            worth_ui_query_binding::UiProjectionInputFactTransition,
         >,
     },
     Replace {
         capacity: usize,
         inputs: BTreeMap<
             worth_ui_query_binding::UiProjectionInputSlot,
-            worth_ui_query_binding::UiProjectionInputFactReference,
+            worth_ui_query_binding::UiProjectionInputFactTransition,
         >,
     },
 }
@@ -200,9 +200,9 @@ impl UiMountedSemanticContentInput {
         };
     }
 
-    pub(crate) fn insert_projection_input(
+    pub(crate) fn insert_projection_input_transition(
         &mut self,
-        input: worth_ui_query_binding::UiProjectionInputFactReference,
+        input: worth_ui_query_binding::UiProjectionInputFactTransition,
     ) -> Result<(), ()> {
         let slot = input.revision().slot();
         let (capacity, inputs) = match &mut self.projection_inputs {

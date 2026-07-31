@@ -1,3 +1,4 @@
+pub use crate::facade::entry::UiCurrentProjectionOptionStop;
 pub use crate::runtime::interaction::{
     UiActivateInteraction, UiActivateInteractionSource, UiDraftByteBudget, UiDraftByteBudgetDenial,
     UiDraftFieldIdentity, UiDraftMutationKind, UiDraftMutationReceipt,

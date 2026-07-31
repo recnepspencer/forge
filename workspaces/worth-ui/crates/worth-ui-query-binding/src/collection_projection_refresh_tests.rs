@@ -8,8 +8,9 @@ use crate::{
     UiCollectionProjectionBindingAdmission, UiCollectionProjectionBudget,
     UiCollectionProjectionChange, UiCollectionProjectionOpenOutcome,
     UiCollectionProjectionRefreshOutcome, UiPresentProjection, UiProjectionAvailability,
-    UiProjectionFactStopKind, UiProjectionFieldRequirement, WorthUiCollectionResetReason,
-    WorthUiQueryWorkspaceExt,
+    UiProjectionFactStopKind, UiProjectionFieldRequirement, UiProjectionInputFactReference,
+    UiProjectionInputPosture, UiProjectionInputSlot, UiProjectionInputTransitionStopKind,
+    WorthUiCollectionResetReason, WorthUiQueryWorkspaceExt,
 };
 
 #[test]
@@ -174,10 +175,85 @@ fn refresh_reports_empty_drain_without_inventing_semantic_delivery() {
     ));
 }
 
+#[test]
+fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows() {
+    let mut workspace = collection_projection_workspace();
+    let alpha = insert_collection_status(&mut workspace, "pulse.alpha", "Alpha");
+    let bravo = insert_collection_status(&mut workspace, "pulse.bravo", "Bravo");
+    let (mut live, snapshot) = open_with_snapshot(&mut workspace, 8);
+    let slot = UiProjectionInputSlot::from_index(0).expect("slot zero is representable");
+    let alpha_row = present(&snapshot).rows()[0].row().clone();
+    let mut input = snapshot.intent_input_transition(slot).apply(None);
+    assert_collection_input(&input, 2, 2, 0);
+    let original_alpha = collection_input(&input)
+        .current_option(&alpha_row)
+        .expect("snapshot retains alpha");
+
+    update_status(&mut workspace, bravo, "Bravo updated");
+    let update = applied(&mut live, &mut workspace);
+    let update_transition = update.fact().intent_input_transition(slot);
+    let orphan = update_transition.apply(None);
+    assert_eq!(
+        collection_input(&orphan).posture(),
+        UiProjectionInputPosture::TransitionStopped(
+            UiProjectionInputTransitionStopKind::MissingPredecessor
+        )
+    );
+    input = update_transition.apply(Some(&input));
+    assert_collection_input(&input, 2, 0, 1);
+
+    let between = insert_collection_status(&mut workspace, "pulse.between", "Between");
+    let insert = applied(&mut live, &mut workspace);
+    input = insert
+        .fact()
+        .intent_input_transition(slot)
+        .apply(Some(&input));
+    assert_collection_input(&input, 3, 0, insert.fact().changes().len());
+
+    workspace.delete(between).expect("delete inserted row");
+    let remove = applied(&mut live, &mut workspace);
+    input = remove
+        .fact()
+        .intent_input_transition(slot)
+        .apply(Some(&input));
+    assert_collection_input(&input, 2, 0, remove.fact().changes().len());
+
+    update_identity(&mut workspace, alpha, "pulse.zulu");
+    let moved = applied(&mut live, &mut workspace);
+    input = moved
+        .fact()
+        .intent_input_transition(slot)
+        .apply(Some(&input));
+    let moved_input = collection_input(&input);
+    assert_collection_input(&input, 2, 0, 2);
+    assert_eq!(moved_input.transition_work().node_copies(), 0);
+    let current_alpha = moved_input
+        .current_option(&alpha_row)
+        .expect("move retains exact alpha identity");
+    assert_eq!(
+        current_alpha.identity_for_reporting(),
+        original_alpha.identity_for_reporting()
+    );
+    assert_ne!(
+        current_alpha.owner_revision(),
+        original_alpha.owner_revision()
+    );
+}
+
 fn open(
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     rows: u32,
 ) -> crate::UiLiveCollectionProjection {
+    open_with_snapshot(workspace, rows).0
+}
+
+fn open_with_snapshot(
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    rows: u32,
+) -> (
+    crate::UiLiveCollectionProjection,
+    crate::UiCollectionProjectionFactReceipt,
+) {
     let installed = workspace.worth_ui().expect("Worth UI domain installed");
     let registration = crate::UiCollectionProjectionRegistration::text(
         installed
@@ -198,7 +274,7 @@ fn open(
     let UiCollectionProjectionOpenOutcome::Opened(opened) = binding.open(budget, workspace) else {
         panic!("canonical collection binding must open");
     };
-    opened.into_parts().0
+    opened.into_parts()
 }
 
 fn applied(
@@ -243,4 +319,29 @@ fn assert_changed_row_cost(
     assert_eq!(receipt.fact().work().unrelated_width_scans(), 0);
     assert_eq!(receipt.query_work().full_collection_scans(), 0);
     assert_eq!(receipt.query_work().unrelated_consumer_scans(), 0);
+}
+
+fn collection_input(
+    input: &UiProjectionInputFactReference,
+) -> &crate::UiCollectionProjectionInputFact {
+    let UiProjectionInputFactReference::Collection(collection) = input else {
+        panic!("collection projection retains collection input shape")
+    };
+    collection
+}
+
+fn assert_collection_input(
+    input: &UiProjectionInputFactReference,
+    rows: usize,
+    replaced_rows: usize,
+    change_operations: usize,
+) {
+    let input = collection_input(input);
+    assert_eq!(input.posture(), UiProjectionInputPosture::Current);
+    assert_eq!(input.row_count(), rows);
+    assert_eq!(input.transition_work().replaced_rows(), replaced_rows);
+    assert_eq!(
+        input.transition_work().change_operations(),
+        change_operations
+    );
 }
