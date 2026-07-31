@@ -1,12 +1,12 @@
 use crate::application_capability::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityDisclosureRule, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphRule,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityRule, ErasedApplicationCapabilityContract,
+    ApplicationCapabilityScopeGuard, ErasedApplicationCapabilityContract,
 };
 
-use super::{
-    identifier_validation::validate_simple_identifier, ApplicationSchemaDeclarationDenial,
-};
+use super::identifier_validation::{validate_authorization_path, validate_simple_identifier};
+use super::ApplicationSchemaDeclarationDenial;
 
 pub(super) fn validate_capability_identifiers(
     contract: &ErasedApplicationCapabilityContract,
@@ -33,10 +33,50 @@ pub(super) fn validate_capability_identifiers(
     validate_relation(contract.delegation().grantor())?;
     validate_relation(contract.delegation().grantee())?;
     validate_field(contract.delegation().limit())?;
-    for rule in rules(contract) {
-        if let Some(policy) = rule.policy_name() {
-            validate_simple_identifier(policy)?;
+    validate_composition(contract)
+}
+
+fn validate_composition(
+    contract: &ErasedApplicationCapabilityContract,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    let composition = contract.composition();
+    validate_graph_rule(composition.decision().allow().graph())?;
+    for rule in [
+        composition.decision().deny().graph(),
+        composition.decision().conflict().graph(),
+        composition.actors().separation_of_duty().graph(),
+        composition.actors().distinct_actor().graph(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        validate_graph_rule(rule)?;
+    }
+    if let ApplicationCapabilityDisclosureRule::Permit(guards) =
+        composition.propagation().disclosure()
+    {
+        for guard in guards {
+            validate_guard(guard)?;
         }
+    }
+    Ok(())
+}
+
+fn validate_graph_rule(
+    rule: &ApplicationCapabilityGraphRule,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    for clause in rule.clauses() {
+        validate_authorization_path(clause.path())?;
+        validate_guard(clause.guard())?;
+    }
+    Ok(())
+}
+
+fn validate_guard(
+    guard: &ApplicationCapabilityScopeGuard,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    for requirement in guard.requirements() {
+        validate_field(requirement.field())?;
     }
     Ok(())
 }
@@ -80,17 +120,4 @@ fn validate_relation_dimension(
         ApplicationCapabilityRelationDimension::NotApplicable => Ok(()),
         ApplicationCapabilityRelationDimension::Bound(relation) => validate_relation(relation),
     }
-}
-
-fn rules(contract: &ErasedApplicationCapabilityContract) -> [&ApplicationCapabilityRule; 7] {
-    let composition = contract.composition();
-    [
-        composition.decision().allow(),
-        composition.decision().deny(),
-        composition.decision().conflict(),
-        composition.actors().separation_of_duty(),
-        composition.actors().distinct_actor(),
-        composition.propagation().delegation(),
-        composition.propagation().disclosure(),
-    ]
 }

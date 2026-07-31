@@ -1,6 +1,6 @@
 use worth_foundational::facade::{
-    canonical_basis_value_for_aspect_value, AspectValue, CanonicalBasisDomain, CanonicalBasisEntry,
-    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalIntegerWidth,
+    CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus,
+    CanonicalBasisValue, CanonicalIntegerWidth,
 };
 
 pub(super) const APPLICATION_SCHEMA_DOMAIN: CanonicalBasisDomain =
@@ -55,10 +55,6 @@ impl ApplicationSchemaCanonicalBasis {
                 value: value as u128,
             },
         );
-    }
-
-    pub(super) fn aspect_value(&mut self, locus: impl Into<String>, value: &AspectValue) {
-        self.push(locus, canonical_basis_value_for_aspect_value(value));
     }
 
     pub(super) fn value(&mut self, locus: impl Into<String>, value: CanonicalBasisValue) {

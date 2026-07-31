@@ -1,40 +1,65 @@
-use crate::application_schema::ApplicationPolicyRef;
+use super::{
+    ApplicationCapabilityDelegationRule, ApplicationCapabilityDisclosureRule,
+    ApplicationCapabilityGraphRule,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum ApplicationCapabilityRule {
-    NotApplicable,
-    Policy(String),
+pub struct ApplicationCapabilityAllowRule(ApplicationCapabilityGraphRule);
+
+impl ApplicationCapabilityAllowRule {
+    pub const fn new(rule: ApplicationCapabilityGraphRule) -> Self {
+        Self(rule)
+    }
+
+    pub const fn graph(&self) -> &ApplicationCapabilityGraphRule {
+        &self.0
+    }
 }
 
-impl ApplicationCapabilityRule {
-    pub const fn not_applicable() -> Self {
-        Self::NotApplicable
-    }
-
-    pub fn policy<Schema, Policy>(policy: ApplicationPolicyRef<Schema, Policy>) -> Self {
-        Self::Policy(policy.name().to_string())
-    }
-
-    pub fn policy_name(&self) -> Option<&str> {
-        match self {
-            Self::NotApplicable => None,
-            Self::Policy(policy) => Some(policy),
+macro_rules! optional_graph_rule {
+    ($name:ident) => {
+        #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+        pub enum $name {
+            NotApplicable,
+            When(ApplicationCapabilityGraphRule),
         }
-    }
+
+        impl $name {
+            pub const fn not_applicable() -> Self {
+                Self::NotApplicable
+            }
+
+            pub const fn when(rule: ApplicationCapabilityGraphRule) -> Self {
+                Self::When(rule)
+            }
+
+            pub const fn graph(&self) -> Option<&ApplicationCapabilityGraphRule> {
+                match self {
+                    Self::NotApplicable => None,
+                    Self::When(rule) => Some(rule),
+                }
+            }
+        }
+    };
 }
+
+optional_graph_rule!(ApplicationCapabilityDenyRule);
+optional_graph_rule!(ApplicationCapabilityConflictRule);
+optional_graph_rule!(ApplicationCapabilitySeparationOfDutyRule);
+optional_graph_rule!(ApplicationCapabilityDistinctActorRule);
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityDecisionComposition {
-    allow: ApplicationCapabilityRule,
-    deny: ApplicationCapabilityRule,
-    conflict: ApplicationCapabilityRule,
+    allow: ApplicationCapabilityAllowRule,
+    deny: ApplicationCapabilityDenyRule,
+    conflict: ApplicationCapabilityConflictRule,
 }
 
 impl ApplicationCapabilityDecisionComposition {
-    pub fn new(
-        allow: ApplicationCapabilityRule,
-        deny: ApplicationCapabilityRule,
-        conflict: ApplicationCapabilityRule,
+    pub const fn new(
+        allow: ApplicationCapabilityAllowRule,
+        deny: ApplicationCapabilityDenyRule,
+        conflict: ApplicationCapabilityConflictRule,
     ) -> Self {
         Self {
             allow,
@@ -43,29 +68,29 @@ impl ApplicationCapabilityDecisionComposition {
         }
     }
 
-    pub const fn allow(&self) -> &ApplicationCapabilityRule {
+    pub const fn allow(&self) -> &ApplicationCapabilityAllowRule {
         &self.allow
     }
 
-    pub const fn deny(&self) -> &ApplicationCapabilityRule {
+    pub const fn deny(&self) -> &ApplicationCapabilityDenyRule {
         &self.deny
     }
 
-    pub const fn conflict(&self) -> &ApplicationCapabilityRule {
+    pub const fn conflict(&self) -> &ApplicationCapabilityConflictRule {
         &self.conflict
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityActorComposition {
-    separation_of_duty: ApplicationCapabilityRule,
-    distinct_actor: ApplicationCapabilityRule,
+    separation_of_duty: ApplicationCapabilitySeparationOfDutyRule,
+    distinct_actor: ApplicationCapabilityDistinctActorRule,
 }
 
 impl ApplicationCapabilityActorComposition {
-    pub fn new(
-        separation_of_duty: ApplicationCapabilityRule,
-        distinct_actor: ApplicationCapabilityRule,
+    pub const fn new(
+        separation_of_duty: ApplicationCapabilitySeparationOfDutyRule,
+        distinct_actor: ApplicationCapabilityDistinctActorRule,
     ) -> Self {
         Self {
             separation_of_duty,
@@ -73,25 +98,25 @@ impl ApplicationCapabilityActorComposition {
         }
     }
 
-    pub const fn separation_of_duty(&self) -> &ApplicationCapabilityRule {
+    pub const fn separation_of_duty(&self) -> &ApplicationCapabilitySeparationOfDutyRule {
         &self.separation_of_duty
     }
 
-    pub const fn distinct_actor(&self) -> &ApplicationCapabilityRule {
+    pub const fn distinct_actor(&self) -> &ApplicationCapabilityDistinctActorRule {
         &self.distinct_actor
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityPropagationComposition {
-    delegation: ApplicationCapabilityRule,
-    disclosure: ApplicationCapabilityRule,
+    delegation: ApplicationCapabilityDelegationRule,
+    disclosure: ApplicationCapabilityDisclosureRule,
 }
 
 impl ApplicationCapabilityPropagationComposition {
-    pub fn new(
-        delegation: ApplicationCapabilityRule,
-        disclosure: ApplicationCapabilityRule,
+    pub const fn new(
+        delegation: ApplicationCapabilityDelegationRule,
+        disclosure: ApplicationCapabilityDisclosureRule,
     ) -> Self {
         Self {
             delegation,
@@ -99,11 +124,11 @@ impl ApplicationCapabilityPropagationComposition {
         }
     }
 
-    pub const fn delegation(&self) -> &ApplicationCapabilityRule {
-        &self.delegation
+    pub const fn delegation(&self) -> ApplicationCapabilityDelegationRule {
+        self.delegation
     }
 
-    pub const fn disclosure(&self) -> &ApplicationCapabilityRule {
+    pub const fn disclosure(&self) -> &ApplicationCapabilityDisclosureRule {
         &self.disclosure
     }
 }
@@ -116,7 +141,7 @@ pub struct ApplicationCapabilityComposition {
 }
 
 impl ApplicationCapabilityComposition {
-    pub fn new(
+    pub const fn new(
         decision: ApplicationCapabilityDecisionComposition,
         actors: ApplicationCapabilityActorComposition,
         propagation: ApplicationCapabilityPropagationComposition,

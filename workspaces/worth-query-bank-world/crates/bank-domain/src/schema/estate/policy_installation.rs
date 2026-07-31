@@ -1,22 +1,10 @@
 use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBuilder;
 
-use super::{
-    EmergencyElevationPolicy, EstateBeneficiaryExclusionPolicy, EstateCapabilityScopePolicy,
-    EstateConflictOfInterestPolicy, EstateDelegationPolicy, EstateDisclosurePolicy,
-    EstateDistinctActorPolicy, EstateSeparationOfDutyPolicy,
-};
+use super::EstateCapabilityScopePolicy;
 use crate::schema::BankSchema;
 
 pub(super) fn install(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
-    schema
-        .policy(EstateCapabilityScopePolicy::reference())
-        .policy(EstateConflictOfInterestPolicy::reference())
-        .policy(EstateSeparationOfDutyPolicy::reference())
-        .policy(EstateDistinctActorPolicy::reference())
-        .policy(EstateBeneficiaryExclusionPolicy::reference())
-        .policy(EstateDisclosurePolicy::reference())
-        .policy(EstateDelegationPolicy::reference())
-        .policy(EmergencyElevationPolicy::reference())
+    schema.policy(EstateCapabilityScopePolicy::reference())
 }

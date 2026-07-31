@@ -93,15 +93,8 @@ pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchema
             "AccountMutationScopePolicy",
             "AccountVisibilityPolicy",
             "DistinctApproverPolicy",
-            "EmergencyElevationPolicy",
             "EmployeeScopePolicy",
-            "EstateBeneficiaryExclusionPolicy",
             "EstateCapabilityScopePolicy",
-            "EstateConflictOfInterestPolicy",
-            "EstateDelegationPolicy",
-            "EstateDisclosurePolicy",
-            "EstateDistinctActorPolicy",
-            "EstateSeparationOfDutyPolicy",
         ])
     );
     assert_eq!(names(members, currency_name), expected(&["UsdCurrency"]));

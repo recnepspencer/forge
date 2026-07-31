@@ -201,7 +201,7 @@ fn validate_query_identifiers<'a>(
     Ok(())
 }
 
-fn validate_authorization_path(
+pub(super) fn validate_authorization_path(
     path: &ApplicationAuthorizationPath,
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
     validate_simple_identifier(path.principal_entity())?;

@@ -1,13 +1,11 @@
 use worth_foundational::facade::{
-    canonical_basis_value_for_aspect_value, canonicalization, prepare_canonical_basis_sequence,
-    CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus,
-    CanonicalBasisValue, CanonicalDigestAlgorithmId, CanonicalDigestDerivationDenial,
-    CanonicalDigestId, CanonicalDigestWorkBudget, CanonicalIntegerWidth,
+    canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
+    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
     CanonicalizationRuleVersion,
 };
 use worth_query_declaration::facade::application_schema::{
-    ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
-    ApplicationAuthorizationTraversalDirection,
+    application_authorization_path_canonical_components, ApplicationAuthorizationPath,
 };
 
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
@@ -49,59 +47,17 @@ pub(super) fn prepare_authorization_path_identity(
 }
 
 fn path_entries(path: &ApplicationAuthorizationPath) -> Vec<CanonicalBasisEntry> {
-    let mut entries = vec![
-        text("family", "authorization-path"),
-        text("effect", effect_name(path.effect())),
-        text("principal", path.principal_entity()),
-        text("scope", path.scope_entity()),
-        unsigned("traversal-count", path.traversals().len()),
-    ];
-    for (ordinal, traversal) in path.traversals().iter().enumerate() {
-        let prefix = format!("traversal.{ordinal}");
-        entries.extend([
-            text(format!("{prefix}.relation"), traversal.relation()),
-            text(format!("{prefix}.from"), traversal.from()),
-            text(format!("{prefix}.to"), traversal.to()),
-            text(
-                format!("{prefix}.direction"),
-                direction_name(traversal.direction()),
-            ),
-        ]);
-    }
-    entries.push(unsigned("predicate-count", path.predicates().len()));
-    for (ordinal, predicate) in path.predicates().iter().enumerate() {
-        let prefix = format!("predicate.{ordinal}");
-        entries.extend([
-            unsigned(
-                format!("{prefix}.traversal-ordinal"),
-                predicate.traversal_ordinal(),
-            ),
-            text(format!("{prefix}.entity"), predicate.entity()),
-            text(format!("{prefix}.aspect"), predicate.aspect()),
-            text(format!("{prefix}.field"), predicate.field()),
-            entry(
-                format!("{prefix}.value"),
-                canonical_basis_value_for_aspect_value(predicate.value()),
-            ),
-        ]);
-    }
+    let mut entries = vec![text("family", "authorization-path")];
+    entries.extend(
+        application_authorization_path_canonical_components(path)
+            .into_iter()
+            .map(|component| entry(component.locus(), component.value().clone())),
+    );
     entries
 }
 
 fn text(locus: impl Into<String>, value: impl Into<String>) -> CanonicalBasisEntry {
     entry(locus, CanonicalBasisValue::ExactText(value.into().into()))
-}
-
-fn unsigned(locus: impl Into<String>, value: usize) -> CanonicalBasisEntry {
-    entry(
-        locus,
-        CanonicalBasisValue::UnsignedInteger {
-            width: CanonicalIntegerWidth::Bits64,
-            value: u64::try_from(value)
-                .expect("authorization path structural counts fit in u64")
-                .into(),
-        },
-    )
 }
 
 fn entry(locus: impl Into<String>, value: CanonicalBasisValue) -> CanonicalBasisEntry {
@@ -111,18 +67,4 @@ fn entry(locus: impl Into<String>, value: CanonicalBasisValue) -> CanonicalBasis
         CanonicalBasisEntryKind::Field,
         value,
     )
-}
-
-const fn effect_name(effect: ApplicationAuthorizationPathEffect) -> &'static str {
-    match effect {
-        ApplicationAuthorizationPathEffect::Allow => "allow",
-        ApplicationAuthorizationPathEffect::Deny => "deny",
-    }
-}
-
-const fn direction_name(direction: ApplicationAuthorizationTraversalDirection) -> &'static str {
-    match direction {
-        ApplicationAuthorizationTraversalDirection::Forward => "forward",
-        ApplicationAuthorizationTraversalDirection::Reverse => "reverse",
-    }
 }

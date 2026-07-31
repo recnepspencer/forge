@@ -3,9 +3,9 @@ use worth_foundational::facade::{
 };
 
 use super::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityRule, ApplicationCapabilityValueBinding,
+    canonical_composition_components::append_composition, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityRelationDimension, ApplicationCapabilityValueBinding,
     ErasedApplicationCapabilityContract,
 };
 
@@ -16,6 +16,13 @@ pub struct ApplicationCapabilityCanonicalComponent {
 }
 
 impl ApplicationCapabilityCanonicalComponent {
+    pub(super) fn new(locus: impl Into<String>, value: CanonicalBasisValue) -> Self {
+        Self {
+            locus: locus.into(),
+            value,
+        }
+    }
+
     pub fn locus(&self) -> &str {
         &self.locus
     }
@@ -106,37 +113,7 @@ fn append_delegation(
     text(components, "delegation.provenance", delegation.provenance());
 }
 
-fn append_composition(
-    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
-    contract: &ErasedApplicationCapabilityContract,
-) {
-    let composition = contract.composition();
-    for (locus, rule) in [
-        ("composition.allow", composition.decision().allow()),
-        ("composition.deny", composition.decision().deny()),
-        ("composition.conflict", composition.decision().conflict()),
-        (
-            "composition.separation-of-duty",
-            composition.actors().separation_of_duty(),
-        ),
-        (
-            "composition.distinct-actor",
-            composition.actors().distinct_actor(),
-        ),
-        (
-            "composition.delegation",
-            composition.propagation().delegation(),
-        ),
-        (
-            "composition.disclosure",
-            composition.propagation().disclosure(),
-        ),
-    ] {
-        append_rule(components, locus, rule);
-    }
-}
-
-fn append_field(
+pub(super) fn append_field(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     prefix: &str,
     field: &ApplicationCapabilityFieldBinding,
@@ -151,7 +128,7 @@ fn append_field(
     );
 }
 
-fn append_value_binding(
+pub(super) fn append_value_binding(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     prefix: &str,
     binding: &ApplicationCapabilityValueBinding,
@@ -213,23 +190,7 @@ fn append_relation_dimension(
     }
 }
 
-fn append_rule(
-    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
-    prefix: &str,
-    rule: &ApplicationCapabilityRule,
-) {
-    match rule {
-        ApplicationCapabilityRule::NotApplicable => {
-            text(components, format!("{prefix}.posture"), "not-applicable");
-        }
-        ApplicationCapabilityRule::Policy(policy) => {
-            text(components, format!("{prefix}.posture"), "policy");
-            text(components, format!("{prefix}.policy"), policy);
-        }
-    }
-}
-
-fn text(
+pub(super) fn text(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     locus: impl Into<String>,
     value: impl AsRef<str>,
@@ -240,7 +201,7 @@ fn text(
     ));
 }
 
-fn unsigned(
+pub(super) fn unsigned(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     locus: impl Into<String>,
     value: u32,
@@ -254,12 +215,25 @@ fn unsigned(
     ));
 }
 
+pub(super) fn structural_count(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    locus: impl Into<String>,
+    value: usize,
+) {
+    components.push(component(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: u64::try_from(value)
+                .expect("capability structural counts fit in u64")
+                .into(),
+        },
+    ));
+}
+
 fn component(
     locus: impl Into<String>,
     value: CanonicalBasisValue,
 ) -> ApplicationCapabilityCanonicalComponent {
-    ApplicationCapabilityCanonicalComponent {
-        locus: locus.into(),
-        value,
-    }
+    ApplicationCapabilityCanonicalComponent::new(locus, value)
 }

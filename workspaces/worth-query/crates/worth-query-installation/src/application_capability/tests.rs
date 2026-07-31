@@ -4,31 +4,35 @@ use worth_foundational::facade::{
 };
 use worth_query_declaration::facade::{
     application_capability::{
-        ApplicationCapabilityActorComposition, ApplicationCapabilityCardinalityDimension,
-        ApplicationCapabilityComposition, ApplicationCapabilityConstraintDefinition,
-        ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
-        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityRule,
+        ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
+        ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
+        ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
+        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextRef,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityDecisionComposition,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
+        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
         ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
         ApplicationCapabilityValueBinding, ErasedApplicationCapabilityContract,
     },
     application_schema::{
-        ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
-        ApplicationRelationRef, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+        ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
+        ApplicationFieldRef, ApplicationOperationRef, ApplicationRelationRef, EqualityPredicate,
+        NoApplicationCurrency, ReadOnly,
     },
 };
 
-use super::{
-    canonical_basis::prepare_capability_basis,
-    WorthQueryApplicationCapabilityInstallationDenialKind,
-};
+use super::canonical_basis::prepare_capability_basis;
 
+mod budgets;
 mod residue;
 
-struct Schema;
+pub(super) struct Schema;
 struct Capability;
 struct Operation;
 struct Grant;
@@ -45,15 +49,15 @@ struct ValidThrough;
 struct DelegationLimit;
 struct ResourceRelation;
 struct ScopedRelation;
+struct PrincipalResource;
 struct Parent;
 struct Grantor;
 struct Grantee;
 struct Context;
 struct Provenance;
-struct Policy;
 
 #[derive(Clone, Copy)]
-enum Axis {
+pub(super) enum Axis {
     Action,
     Resource,
     Relation,
@@ -67,6 +71,7 @@ enum Axis {
     Provenance,
     Context,
     Rule(usize),
+    OversizedComposition,
 }
 
 #[test]
@@ -107,24 +112,7 @@ fn every_scope_and_composition_axis_changes_structured_and_digest_identity() {
     }
 }
 
-#[test]
-fn capability_canonical_bytes_are_bounded_before_identity_derivation() {
-    struct LongContext;
-    let long_name = "x".repeat(25 * 1_024);
-    let context = ApplicationCapabilityContextRef::<Schema, LongContext>::from_schema_identifier(
-        Box::leak(long_name.into_boxed_str()),
-    );
-    let contract = contract_with_context(context);
-    let package = worth_foundational::facade::CanonicalDigestId::new([1; 32]);
-    let schema = worth_foundational::facade::CanonicalDigestId::new([2; 32]);
-    let denial = prepare_capability_basis(&package, &schema, &contract).unwrap_err();
-    assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationCapabilityInstallationDenialKind::CanonicalByteLimitExceeded
-    );
-}
-
-fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
+pub(super) fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
     let context_name = if matches!(axis, Some(Axis::Context)) {
         "ChangedContext"
     } else {
@@ -136,7 +124,7 @@ fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
     )
 }
 
-fn contract_with_context<ContextMarker>(
+pub(super) fn contract_with_context<ContextMarker>(
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
 ) -> ErasedApplicationCapabilityContract {
     contract_with_axis(None, context)
@@ -239,32 +227,101 @@ fn contract_with_axis<ContextMarker>(
 }
 
 fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {
-    let rules: [ApplicationCapabilityRule; 7] = std::array::from_fn(|index| {
-        if matches!(axis, Some(Axis::Rule(changed)) if changed == index) {
-            ApplicationCapabilityRule::not_applicable()
-        } else {
-            ApplicationCapabilityRule::policy(
-                ApplicationPolicyRef::<Schema, Policy>::from_schema_identifier(match index {
-                    0 => "Allow",
-                    1 => "Deny",
-                    2 => "Conflict",
-                    3 => "Separation",
-                    4 => "Distinct",
-                    5 => "Delegation",
-                    _ => "Disclosure",
-                }),
-            )
-        }
-    });
+    let changed = |index| matches!(axis, Some(Axis::Rule(candidate)) if candidate == index);
+    let allow = if matches!(axis, Some(Axis::OversizedComposition)) {
+        ApplicationCapabilityGraphRule::any((0..64).map(|ordinal| {
+            let relation_name = Box::leak(format!("PrincipalResource{ordinal}").into_boxed_str());
+            ApplicationCapabilityGraphClause::new(graph_path(true, relation_name))
+        }))
+    } else {
+        graph_rule(true, changed(0))
+    };
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
-            rules[0].clone(),
-            rules[1].clone(),
-            rules[2].clone(),
+            ApplicationCapabilityAllowRule::new(allow),
+            optional_deny_rule(changed(1)),
+            optional_conflict_rule(changed(2)),
         ),
-        ApplicationCapabilityActorComposition::new(rules[3].clone(), rules[4].clone()),
-        ApplicationCapabilityPropagationComposition::new(rules[5].clone(), rules[6].clone()),
+        ApplicationCapabilityActorComposition::new(
+            optional_separation_rule(changed(3)),
+            optional_distinct_actor_rule(changed(4)),
+        ),
+        ApplicationCapabilityPropagationComposition::new(
+            if changed(5) {
+                ApplicationCapabilityDelegationRule::forbidden()
+            } else {
+                ApplicationCapabilityDelegationRule::narrow_all_dimensions()
+            },
+            ApplicationCapabilityDisclosureRule::permit([
+                ApplicationCapabilityScopeGuard::requiring([
+                    ApplicationCapabilityAcceptedValues::one_of(
+                        field::<Field>("Field"),
+                        [if changed(6) { 2_u64 } else { 1_u64 }],
+                    ),
+                ]),
+            ]),
+        ),
     )
+}
+
+fn optional_deny_rule(changed: bool) -> ApplicationCapabilityDenyRule {
+    if changed {
+        ApplicationCapabilityDenyRule::not_applicable()
+    } else {
+        ApplicationCapabilityDenyRule::when(graph_rule(false, false))
+    }
+}
+
+fn optional_conflict_rule(changed: bool) -> ApplicationCapabilityConflictRule {
+    if changed {
+        ApplicationCapabilityConflictRule::not_applicable()
+    } else {
+        ApplicationCapabilityConflictRule::when(graph_rule(false, false))
+    }
+}
+
+fn optional_separation_rule(changed: bool) -> ApplicationCapabilitySeparationOfDutyRule {
+    if changed {
+        ApplicationCapabilitySeparationOfDutyRule::not_applicable()
+    } else {
+        ApplicationCapabilitySeparationOfDutyRule::when(graph_rule(false, false))
+    }
+}
+
+fn optional_distinct_actor_rule(changed: bool) -> ApplicationCapabilityDistinctActorRule {
+    if changed {
+        ApplicationCapabilityDistinctActorRule::not_applicable()
+    } else {
+        ApplicationCapabilityDistinctActorRule::when(graph_rule(false, false))
+    }
+}
+
+fn graph_rule(allow: bool, changed: bool) -> ApplicationCapabilityGraphRule {
+    ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(graph_path(
+        allow,
+        if changed {
+            "ChangedPrincipalResource"
+        } else {
+            "PrincipalResource"
+        },
+    ))])
+}
+
+fn graph_path(allow: bool, relation_name: &'static str) -> ApplicationAuthorizationPath {
+    let relation = ApplicationRelationRef::<Schema, PrincipalResource, Principal, Resource>::
+        from_schema_identifiers(relation_name, "Principal", "Resource");
+    let path = ApplicationAuthorizationPathBuilder::from_principal(ApplicationEntityRef::<
+        Schema,
+        Principal,
+    >::from_schema_identifier(
+        "Principal"
+    ))
+    .forward(relation);
+    if allow {
+        path.allow(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource"))
+    } else {
+        path.deny(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource"))
+    }
 }
 
 fn field<FieldMarker>(

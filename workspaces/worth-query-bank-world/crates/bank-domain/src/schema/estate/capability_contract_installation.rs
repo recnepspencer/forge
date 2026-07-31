@@ -1,14 +1,11 @@
 use worth_query_decl::facade::{
     application_capability::{
-        ApplicationCapabilityActorComposition, ApplicationCapabilityAmountDimension,
-        ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
+        ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValueBinding,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
     },
     application_schema::ApplicationSchemaDeclarationBuilder,
 };
@@ -70,7 +67,9 @@ macro_rules! install_contract {
         ))
         .constraints(constraints(amount_dimension!($amount)))
         .delegation(delegation())
-        .composition(composition())
+        .composition(super::capability_composition::composition(
+            $action, $purpose,
+        ))
         .build();
         $schema.capability(contract)
     }};
@@ -308,23 +307,5 @@ fn delegation() -> ApplicationCapabilityDelegationDefinition {
             CapabilityDelegationLimitField::reference(),
         ),
         EstateGrantChainProvenance::reference(),
-    )
-}
-
-fn composition() -> ApplicationCapabilityComposition {
-    ApplicationCapabilityComposition::new(
-        ApplicationCapabilityDecisionComposition::new(
-            ApplicationCapabilityRule::policy(EstateCapabilityScopePolicy::reference()),
-            ApplicationCapabilityRule::policy(EstateBeneficiaryExclusionPolicy::reference()),
-            ApplicationCapabilityRule::policy(EstateConflictOfInterestPolicy::reference()),
-        ),
-        ApplicationCapabilityActorComposition::new(
-            ApplicationCapabilityRule::policy(EstateSeparationOfDutyPolicy::reference()),
-            ApplicationCapabilityRule::policy(EstateDistinctActorPolicy::reference()),
-        ),
-        ApplicationCapabilityPropagationComposition::new(
-            ApplicationCapabilityRule::policy(EstateDelegationPolicy::reference()),
-            ApplicationCapabilityRule::policy(EstateDisclosurePolicy::reference()),
-        ),
     )
 }

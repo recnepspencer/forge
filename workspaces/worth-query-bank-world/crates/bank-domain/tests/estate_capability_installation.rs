@@ -1,5 +1,8 @@
 use std::collections::BTreeSet;
 
+#[path = "estate_capability_installation/composition_contracts.rs"]
+mod composition_contracts;
+
 use bank_domain::{estate::EstateAction, schema::*};
 use worth_query_host::facade::declaration::application_schema::ApplicationOperationRef;
 use worth_query_host::facade::domain::{
@@ -18,6 +21,10 @@ macro_rules! assert_installed {
         $bank.validate_installed_capability(&capability).unwrap();
         assert_eq!(capability.canonical_basis().basis_preparation_count(), 1);
         assert_eq!(capability.canonical_basis().digest_derivation_count(), 1);
+        assert!(
+            capability.canonical_basis().canonical_entry_count()
+                <= capability.canonical_basis().maximum_canonical_entry_count()
+        );
         assert!(capability.canonical_basis().canonical_encoded_bytes() > 0);
         assert!(
             capability.canonical_basis().canonical_encoded_bytes()

@@ -1,4 +1,5 @@
 mod authority_relation_installation;
+mod capability_composition;
 mod capability_contract_installation;
 mod capability_contracts;
 mod capability_installation;

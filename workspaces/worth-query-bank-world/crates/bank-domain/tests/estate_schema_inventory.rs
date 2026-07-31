@@ -191,18 +191,7 @@ fn estate_relations() -> BTreeSet<&'static str> {
 }
 
 fn estate_policies() -> BTreeSet<&'static str> {
-    [
-        "EmergencyElevationPolicy",
-        "EstateBeneficiaryExclusionPolicy",
-        "EstateCapabilityScopePolicy",
-        "EstateConflictOfInterestPolicy",
-        "EstateDisclosurePolicy",
-        "EstateDelegationPolicy",
-        "EstateDistinctActorPolicy",
-        "EstateSeparationOfDutyPolicy",
-    ]
-    .into_iter()
-    .collect()
+    ["EstateCapabilityScopePolicy"].into_iter().collect()
 }
 
 fn estate_operations() -> BTreeSet<&'static str> {

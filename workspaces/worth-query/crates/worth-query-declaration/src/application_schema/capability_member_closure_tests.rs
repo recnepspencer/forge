@@ -1,23 +1,28 @@
 use worth_foundational::facade::ScalarAspectType;
 
 use crate::application_capability::{
-    ApplicationCapabilityActorComposition, ApplicationCapabilityCardinalityDimension,
-    ApplicationCapabilityComposition, ApplicationCapabilityConstraintDefinition,
-    ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
-    ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
-    ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityRelationDimension, ApplicationCapabilityRule,
+    ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
+    ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
+    ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
+    ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextRef,
+    ApplicationCapabilityContractBuilder, ApplicationCapabilityDecisionComposition,
+    ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
+    ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+    ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
+    ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
+    ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+    ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
     ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
     ApplicationCapabilityValueBinding,
 };
 
 use super::{
-    capability_member_closure::validate_application_capability_members, ApplicationEntityRef,
-    ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef,
-    ApplicationSchemaDeclarationDenial, ApplicationSchemaMember, EqualityPredicate,
-    NoApplicationCurrency, ReadOnly,
+    capability_member_closure::validate_application_capability_members,
+    ApplicationAuthorizationPathBuilder, ApplicationEntityRef, ApplicationFieldRef,
+    ApplicationOperationRef, ApplicationRelationRef, ApplicationSchemaDeclarationDenial,
+    ApplicationSchemaMember, EqualityPredicate, NoApplicationCurrency, ReadOnly,
 };
 
 struct Schema;
@@ -38,44 +43,63 @@ struct DelegationLimit;
 struct ResourceRelation;
 struct WrongResourceRelation;
 struct ScopedRelation;
+struct PrincipalResource;
 struct Parent;
 struct Grantor;
 struct Grantee;
 struct Context;
 struct Provenance;
-struct Policy;
 
 #[test]
-fn capability_contract_requires_every_referenced_policy() {
-    let mut members = members(contract(false, false));
+fn capability_contract_requires_every_graph_rule_relation() {
+    let mut members = members(contract(false, false, true));
     members.retain(|member| {
-        !matches!(member, ApplicationSchemaMember::Policy { policy } if policy == "Disclosure")
+        !matches!(
+            member,
+            ApplicationSchemaMember::Relation { relation, .. }
+                if relation == "PrincipalResource"
+        )
     });
     assert_eq!(
-        validate_application_capability_members(&members),
-        Err(ApplicationSchemaDeclarationDenial::MissingApplicationCapabilityDependency)
+        build_from_members(members),
+        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
     );
 }
 
 #[test]
 fn capability_resource_must_begin_at_the_declared_grant_entity() {
-    let members = members(contract(true, false));
+    let members = members(contract(true, false, true));
     assert_eq!(
-        validate_application_capability_members(&members),
+        build_from_members(members),
         Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
     );
 }
 
 #[test]
 fn capability_names_are_unique_even_when_other_meaning_differs() {
-    let mut members = members(contract(false, false));
+    let mut members = members(contract(false, false, true));
     members.push(ApplicationSchemaMember::ApplicationCapability {
-        contract: contract(false, true),
+        contract: contract(false, true, true),
     });
     assert_eq!(
-        validate_application_capability_members(&members),
+        build_from_members(members),
         Err(ApplicationSchemaDeclarationDenial::DuplicateApplicationCapability)
     );
+}
+
+#[test]
+fn field_bound_capability_requires_an_explicit_disclosure_contract() {
+    let members = members(contract(false, false, false));
+    assert_eq!(
+        build_from_members(members),
+        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
+    );
+}
+
+fn build_from_members(
+    members: Vec<ApplicationSchemaMember>,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_application_capability_members(&members)
 }
 
 fn members(
@@ -95,6 +119,20 @@ fn members(
             entity: "Grant".to_string(),
             aspect: "Facts".to_string(),
         },
+        ApplicationSchemaMember::PrincipalBinding {
+            binding: "PrincipalBinding".to_string(),
+            mapping_entity: "Grant".to_string(),
+            identity_aspect: "Facts".to_string(),
+            identity_field: "Action".to_string(),
+            status_aspect: "Facts".to_string(),
+            status_field: "Purpose".to_string(),
+            target_relation: "Grantor".to_string(),
+            principal_entity: "Principal".to_string(),
+            principal_identity_aspect: "Facts".to_string(),
+            principal_identity_field: "Field".to_string(),
+            principal_identity_scalar_family: ScalarAspectType::UInt64,
+            principal_identity_value_type: std::any::type_name::<u64>().to_string(),
+        },
         ApplicationSchemaMember::Operation {
             operation: "Operation".to_string(),
             input_type: std::any::type_name::<()>().to_string(),
@@ -102,6 +140,7 @@ fn members(
         relation_member("ResourceRelation", "Grant", "Resource"),
         relation_member("WrongResourceRelation", "Principal", "Resource"),
         relation_member("ScopedRelation", "Grant", "Resource"),
+        relation_member("PrincipalResource", "Principal", "Resource"),
         relation_member("Parent", "Grant", "Grant"),
         relation_member("Grantor", "Principal", "Grant"),
         relation_member("Grantee", "Principal", "Grant"),
@@ -118,19 +157,6 @@ fn members(
     ] {
         members.push(field_member(field));
     }
-    for policy in [
-        "Allow",
-        "Deny",
-        "Conflict",
-        "Separation",
-        "Distinct",
-        "Delegation",
-        "Disclosure",
-    ] {
-        members.push(ApplicationSchemaMember::Policy {
-            policy: policy.to_string(),
-        });
-    }
     members.push(ApplicationSchemaMember::ApplicationCapability { contract });
     members
 }
@@ -138,6 +164,7 @@ fn members(
 fn contract(
     wrong_resource_topology: bool,
     changed_purpose: bool,
+    disclosure: bool,
 ) -> crate::application_capability::ErasedApplicationCapabilityContract {
     let resource = if wrong_resource_topology {
         relation::<WrongResourceRelation, Principal, Resource>(
@@ -189,27 +216,53 @@ fn contract(
     .target(target)
     .constraints(constraints)
     .delegation(delegation)
-    .composition(composition())
+    .composition(composition(disclosure))
     .build()
     .erased()
     .clone()
 }
 
-fn composition() -> ApplicationCapabilityComposition {
+fn composition(disclosure: bool) -> ApplicationCapabilityComposition {
+    let allow = ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(
+        ApplicationAuthorizationPathBuilder::from_principal(ApplicationEntityRef::<
+            Schema,
+            Principal,
+        >::from_schema_identifier(
+            "Principal"
+        ))
+        .forward(ApplicationRelationRef::<
+            Schema,
+            PrincipalResource,
+            Principal,
+            Resource,
+        >::from_schema_identifiers(
+            "PrincipalResource",
+            "Principal",
+            "Resource",
+        ))
+        .allow(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource")),
+    )]);
+    let disclosure = if disclosure {
+        ApplicationCapabilityDisclosureRule::permit([ApplicationCapabilityScopeGuard::requiring([
+            ApplicationCapabilityAcceptedValues::one_of(field::<Field>("Field"), [1_u64]),
+        ])])
+    } else {
+        ApplicationCapabilityDisclosureRule::not_applicable()
+    };
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
-            rule("Allow"),
-            rule("Deny"),
-            rule("Conflict"),
+            ApplicationCapabilityAllowRule::new(allow),
+            ApplicationCapabilityDenyRule::not_applicable(),
+            ApplicationCapabilityConflictRule::not_applicable(),
         ),
-        ApplicationCapabilityActorComposition::new(rule("Separation"), rule("Distinct")),
-        ApplicationCapabilityPropagationComposition::new(rule("Delegation"), rule("Disclosure")),
-    )
-}
-
-fn rule(name: &'static str) -> ApplicationCapabilityRule {
-    ApplicationCapabilityRule::policy(
-        ApplicationPolicyRef::<Schema, Policy>::from_schema_identifier(name),
+        ApplicationCapabilityActorComposition::new(
+            ApplicationCapabilitySeparationOfDutyRule::not_applicable(),
+            ApplicationCapabilityDistinctActorRule::not_applicable(),
+        ),
+        ApplicationCapabilityPropagationComposition::new(
+            ApplicationCapabilityDelegationRule::forbidden(),
+            disclosure,
+        ),
     )
 }
 

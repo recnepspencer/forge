@@ -23,6 +23,15 @@ pub enum RestrictedBankField {
 }
 
 impl RestrictedBankField {
+    pub const ALL: [Self; 6] = [
+        Self::CustomerIdentity,
+        Self::BeneficiaryIdentity,
+        Self::LegalDocument,
+        Self::AccountDetails,
+        Self::PostingHistory,
+        Self::AuditTrail,
+    ];
+
     pub const fn classification(self) -> BankDisclosureClassification {
         match self {
             Self::CustomerIdentity | Self::AccountDetails => {

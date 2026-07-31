@@ -4,9 +4,4 @@ error: cannot construct `WorthQueryInstalledApplicationSchema<Schema>` with stru
 6 |     let _ = WorthQueryInstalledApplicationSchema::<Schema> {};
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `package_authority`, `schema_name`, `schema_identity`, `schema` and `_schema` that were not provided
-help: you might have meant to use the `new` associated function
-  |
-6 -     let _ = WorthQueryInstalledApplicationSchema::<Schema> {};
-6 +     let _ = WorthQueryInstalledApplicationSchema::<Schema>::new(_, _);
-  |
+  = note: private fields that were not provided

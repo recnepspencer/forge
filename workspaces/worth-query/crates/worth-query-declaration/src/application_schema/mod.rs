@@ -1,5 +1,6 @@
 mod application_query_authoring;
 mod authoring_context;
+mod authorization_path_components;
 mod authorization_policy;
 mod binding_identity;
 mod canonical_authorization_identity;
@@ -43,6 +44,10 @@ mod capability_member_closure_tests;
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
     ApplicationSchemaAuthoringDenialKind,
+};
+pub use authorization_path_components::{
+    application_authorization_path_canonical_components,
+    ApplicationAuthorizationPathCanonicalComponent,
 };
 pub use authorization_policy::{
     ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder,

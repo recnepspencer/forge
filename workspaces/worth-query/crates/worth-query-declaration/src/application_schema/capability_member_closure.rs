@@ -1,18 +1,23 @@
 use std::collections::BTreeSet;
 
 use crate::application_capability::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityDisclosureRule, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphRule,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ApplicationCapabilityRule, ErasedApplicationCapabilityContract,
+    ApplicationCapabilityScopeGuard, ErasedApplicationCapabilityContract,
 };
 
-use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
+use super::member_closure::ClosureIndex;
+use super::{
+    ApplicationAuthorizationPathEffect, ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+};
 
 const MAXIMUM_CAPABILITY_CONTRACTS: usize = 1_024;
 
 pub(super) fn validate_application_capability_members(
     members: &[ApplicationSchemaMember],
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    let closure = ClosureIndex::new(members);
     let contracts = members
         .iter()
         .filter_map(|member| match member {
@@ -25,16 +30,17 @@ pub(super) fn validate_application_capability_members(
     }
     let mut names = BTreeSet::new();
     for contract in contracts {
-        if !names.insert(contract.name()) {
+        if !names.insert((contract.name(), contract.capability_type())) {
             return Err(ApplicationSchemaDeclarationDenial::DuplicateApplicationCapability);
         }
-        validate_contract(members, contract)?;
+        validate_contract(members, &closure, contract)?;
     }
     Ok(())
 }
 
 fn validate_contract(
     members: &[ApplicationSchemaMember],
+    closure: &ClosureIndex<'_>,
     contract: &ErasedApplicationCapabilityContract,
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
     if !operation_exists(members, contract)
@@ -52,21 +58,137 @@ fn validate_contract(
         || !relation_exists(members, contract.delegation().grantor())
         || !relation_exists(members, contract.delegation().grantee())
         || !field_exists(members, contract.delegation().limit())
-        || !rules_exist(members, contract)
     {
         return Err(ApplicationSchemaDeclarationDenial::MissingApplicationCapabilityDependency);
     }
-    if !topology_is_valid(contract)
-        || contract
-            .composition()
-            .decision()
-            .allow()
-            .policy_name()
-            .is_none()
-    {
+    if !topology_is_valid(contract) || !composition_is_closed(closure, contract) {
         return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability);
     }
     Ok(())
+}
+
+fn composition_is_closed(
+    closure: &ClosureIndex<'_>,
+    contract: &ErasedApplicationCapabilityContract,
+) -> bool {
+    let composition = contract.composition();
+    graph_rule_is_closed(
+        closure,
+        contract,
+        composition.decision().allow().graph(),
+        ApplicationAuthorizationPathEffect::Allow,
+    ) && optional_graph_rule_is_closed(closure, contract, composition.decision().deny().graph())
+        && optional_graph_rule_is_closed(
+            closure,
+            contract,
+            composition.decision().conflict().graph(),
+        )
+        && optional_graph_rule_is_closed(
+            closure,
+            contract,
+            composition.actors().separation_of_duty().graph(),
+        )
+        && optional_graph_rule_is_closed(
+            closure,
+            contract,
+            composition.actors().distinct_actor().graph(),
+        )
+        && disclosure_rule_is_closed(contract, composition.propagation().disclosure())
+}
+
+fn optional_graph_rule_is_closed(
+    closure: &ClosureIndex<'_>,
+    contract: &ErasedApplicationCapabilityContract,
+    rule: Option<&ApplicationCapabilityGraphRule>,
+) -> bool {
+    rule.is_none_or(|rule| {
+        graph_rule_is_closed(
+            closure,
+            contract,
+            rule,
+            ApplicationAuthorizationPathEffect::Deny,
+        )
+    })
+}
+
+fn graph_rule_is_closed(
+    closure: &ClosureIndex<'_>,
+    contract: &ErasedApplicationCapabilityContract,
+    rule: &ApplicationCapabilityGraphRule,
+    expected_effect: ApplicationAuthorizationPathEffect,
+) -> bool {
+    !rule.clauses().is_empty()
+        && rule.clauses().iter().all(|clause| {
+            clause.path().effect() == expected_effect
+                && closure
+                    .authorization_path_is_closed(contract.target().resource().to(), clause.path())
+                && guard_is_owned(contract, clause.guard())
+        })
+}
+
+fn disclosure_rule_is_closed(
+    contract: &ErasedApplicationCapabilityContract,
+    rule: &ApplicationCapabilityDisclosureRule,
+) -> bool {
+    match (contract.target().field(), rule) {
+        (
+            ApplicationCapabilityFieldDimension::NotApplicable,
+            ApplicationCapabilityDisclosureRule::NotApplicable,
+        ) => true,
+        (
+            ApplicationCapabilityFieldDimension::Bound(disclosed_field),
+            ApplicationCapabilityDisclosureRule::Permit(guards),
+        ) => {
+            !guards.is_empty()
+                && guards.iter().all(|guard| {
+                    guard_is_owned(contract, guard)
+                        && guard
+                            .requirements()
+                            .iter()
+                            .any(|requirement| requirement.field() == disclosed_field)
+                })
+        }
+        _ => false,
+    }
+}
+
+fn guard_is_owned(
+    contract: &ErasedApplicationCapabilityContract,
+    guard: &ApplicationCapabilityScopeGuard,
+) -> bool {
+    guard
+        .requirements()
+        .iter()
+        .all(|requirement| requirement_is_owned(contract, requirement))
+}
+
+fn requirement_is_owned(
+    contract: &ErasedApplicationCapabilityContract,
+    requirement: &crate::application_capability::ApplicationCapabilityAcceptedValues,
+) -> bool {
+    if requirement.values().is_empty() {
+        return false;
+    }
+    let target = contract.target();
+    let constraints = contract.constraints();
+    let delegation = contract.delegation();
+    requirement_matches_fixed(requirement, target.action())
+        || requirement_matches_fixed(requirement, target.purpose())
+        || field_dimension_owns(target.field(), requirement.field())
+        || field_dimension_owns(constraints.amount(), requirement.field())
+        || requirement.field() == constraints.workflow_stage()
+        || requirement.field() == constraints.validity().not_before()
+        || requirement.field() == constraints.validity().not_after()
+        || requirement.field() == delegation.limit()
+}
+
+fn requirement_matches_fixed(
+    requirement: &crate::application_capability::ApplicationCapabilityAcceptedValues,
+    fixed: &crate::application_capability::ApplicationCapabilityValueBinding,
+) -> bool {
+    requirement.field() == fixed.field()
+        && requirement.values().len() == 1
+        && requirement.values().first() == Some(fixed.value())
 }
 
 fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) -> bool {
@@ -178,27 +300,9 @@ fn field_dimension_belongs_to(
     }
 }
 
-fn rules_exist(
-    members: &[ApplicationSchemaMember],
-    contract: &ErasedApplicationCapabilityContract,
+fn field_dimension_owns(
+    dimension: &ApplicationCapabilityFieldDimension,
+    field: &ApplicationCapabilityFieldBinding,
 ) -> bool {
-    rules(contract).into_iter().all(|rule| match rule {
-        ApplicationCapabilityRule::NotApplicable => true,
-        ApplicationCapabilityRule::Policy(policy) => members.iter().any(
-            |member| matches!(member, ApplicationSchemaMember::Policy { policy: found } if found == policy),
-        ),
-    })
-}
-
-fn rules(contract: &ErasedApplicationCapabilityContract) -> [&ApplicationCapabilityRule; 7] {
-    let composition = contract.composition();
-    [
-        composition.decision().allow(),
-        composition.decision().deny(),
-        composition.decision().conflict(),
-        composition.actors().separation_of_duty(),
-        composition.actors().distinct_actor(),
-        composition.propagation().delegation(),
-        composition.propagation().disclosure(),
-    ]
+    matches!(dimension, ApplicationCapabilityFieldDimension::Bound(bound) if bound == field)
 }

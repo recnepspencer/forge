@@ -17,8 +17,8 @@ use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 const DOMAIN: CanonicalBasisDomain =
     CanonicalBasisDomain::Future("worth-query.application-capability-installation");
 const RULE_VERSION: &str = "worth-query-application-capability-installation-v1";
-const MAXIMUM_ENTRY_COUNT: u32 = 128;
-const MAXIMUM_CANONICAL_BYTES: usize = 24 * 1_024;
+const MAXIMUM_ENTRY_COUNT: u32 = 256;
+const MAXIMUM_CANONICAL_BYTES: usize = 64 * 1_024;
 const CAPABILITY_BUDGET: CanonicalDigestWorkBudget =
     match CanonicalDigestWorkBudget::new(MAXIMUM_ENTRY_COUNT, MAXIMUM_CANONICAL_BYTES) {
         Some(budget) => budget,
@@ -43,6 +43,10 @@ impl WorthQueryCapabilityCanonicalArtifact {
 
     pub const fn canonical_encoded_bytes(&self) -> usize {
         self.work.canonical_encoded_bytes()
+    }
+
+    pub const fn canonical_entry_count(&self) -> u32 {
+        self.work.canonical_entries()
     }
 
     pub const fn maximum_canonical_encoded_bytes(&self) -> usize {

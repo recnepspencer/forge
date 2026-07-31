@@ -1,0 +1,29 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/capability_rule_category_substitution.rs:14:9
+   |
+13 |     let _ = ApplicationCapabilityDecisionComposition::new(
+   |             --------------------------------------------- arguments to this function are incorrect
+14 |         ApplicationCapabilityDenyRule::not_applicable(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `ApplicationCapabilityAllowRule`, found `ApplicationCapabilityDenyRule`
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_capability/composition.rs
+   |
+   |     pub const fn new(
+   |                  ^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/capability_rule_category_substitution.rs:23:9
+   |
+22 |     let _ = ApplicationCapabilityDecisionComposition::new(
+   |             --------------------------------------------- arguments to this function are incorrect
+23 |         policy,
+   |         ^^^^^^ expected `ApplicationCapabilityAllowRule`, found `ApplicationPolicyRef<Schema, Policy>`
+   |
+   = note: expected struct `ApplicationCapabilityAllowRule`
+              found struct `ApplicationPolicyRef<Schema, Policy>`
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_capability/composition.rs
+   |
+   |     pub const fn new(
+   |                  ^^^

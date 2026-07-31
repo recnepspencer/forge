@@ -38,7 +38,7 @@ pub(super) fn validate_member_closure(
     Ok(())
 }
 
-struct ClosureIndex<'a> {
+pub(super) struct ClosureIndex<'a> {
     members: &'a [ApplicationSchemaMember],
     entities: BTreeSet<&'a str>,
     aspects: BTreeSet<(&'a str, &'a str)>,
@@ -53,7 +53,7 @@ struct ClosureIndex<'a> {
 }
 
 impl<'a> ClosureIndex<'a> {
-    fn new(members: &'a [ApplicationSchemaMember]) -> Self {
+    pub(super) fn new(members: &'a [ApplicationSchemaMember]) -> Self {
         Self {
             members,
             entities: collect_entities(members),
@@ -208,7 +208,7 @@ impl<'a> ClosureIndex<'a> {
                 .all(|path| self.authorization_path_is_closed(scope_entity, path))
     }
 
-    fn authorization_path_is_closed(
+    pub(super) fn authorization_path_is_closed(
         &self,
         scope_entity: &str,
         path: &ApplicationAuthorizationPath,
