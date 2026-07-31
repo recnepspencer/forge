@@ -167,6 +167,7 @@ fn phase_six_warm_consumers_cannot_hide_hashing_behind_a_helper() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     for relative in [
         "../worth-query-execution/src/domain_computation/primary_graph/application_query",
+        "../worth-query-execution/src/domain_computation/authorization",
         "../worth-query-execution/src/domain_computation/primary_graph/application_attempt/idempotency_resolution.rs",
         "../worth-query-execution/src/domain_computation/primary_graph/application_attempt/provider_recomparison.rs",
         "../worth-query-execution/src/domain_computation/primary_graph/application_attempt/provider_execution",
@@ -183,6 +184,7 @@ fn phase_six_warm_consumers_cannot_hide_hashing_behind_a_helper() {
         "../worth-query-execution/src/domain_computation/provider_session/provisional_attempt",
         "../../../../crates/worth-runtime-bridge/src/authorization",
         "../../../worth-query-bank-world/crates/bank-server/src/application_query",
+        "../../../worth-query-bank-world/crates/bank-server/src/estate_capability_admission",
         "../../../worth-query-bank-world/crates/bank-server/src/ordinary/mutation",
     ] {
         assert_warm_path_has_no_hashing(&manifest.join(relative));

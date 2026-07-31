@@ -14,10 +14,8 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
 
-use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
 use super::capability_request_resolution::WorthQueryResolvedCapabilityRequest;
-use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
-use super::WorthQueryRetainedAuthorizationDecisionFacts;
+use super::WorthQueryRetainedCapabilityAuthorization;
 
 /// Move-only Query authority proving that one exact capability request was
 /// admitted from current graph truth.
@@ -45,9 +43,8 @@ where
     >,
     pub(super) authentication_valid_until: Instant,
     pub(super) request_scope: WorthQueryRequestScope,
-    pub(super) currentness: WorthQueryCapabilityCurrentnessAuthority,
-    pub(super) revalidation: WorthQueryRetainedCapabilityRequest,
-    pub(super) authorization: WorthQueryRetainedAuthorizationDecisionFacts,
+    pub(super) canonical_work: WorthQueryCanonicalWorkEvidence,
+    pub(super) authorization: WorthQueryRetainedCapabilityAuthorization,
     _marker: PhantomData<fn() -> (Capability, Operation)>,
 }
 
@@ -74,9 +71,8 @@ where
         >,
         authentication_valid_until: Instant,
         request_scope: WorthQueryRequestScope,
-        currentness: WorthQueryCapabilityCurrentnessAuthority,
-        revalidation: WorthQueryRetainedCapabilityRequest,
-        authorization: WorthQueryRetainedAuthorizationDecisionFacts,
+        canonical_work: WorthQueryCanonicalWorkEvidence,
+        authorization: WorthQueryRetainedCapabilityAuthorization,
     ) -> Self {
         Self {
             runtime_authority,
@@ -88,8 +84,7 @@ where
             resolved,
             authentication_valid_until,
             request_scope,
-            currentness,
-            revalidation,
+            canonical_work,
             authorization,
             _marker: PhantomData,
         }
@@ -110,15 +105,15 @@ where
     }
 
     pub fn installed_capability_authority_identity(&self) -> &str {
-        self.currentness.capability_authority_identity()
+        self.authorization.capability_authority_identity()
     }
 
     pub const fn capability_time_timeline(&self) -> ApplicationCapabilityValidityTimeline {
-        self.currentness.timeline()
+        self.authorization.timeline()
     }
 
     pub const fn capability_time_sample(&self) -> &worth_foundational::facade::AspectValue {
-        self.currentness.sampled_value()
+        self.authorization.sampled_value()
     }
 
     pub fn authorization_decision_fact_count(&self) -> usize {
@@ -134,6 +129,6 @@ where
     }
 
     pub const fn admission_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
-        WorthQueryCanonicalWorkEvidence::zero()
+        self.canonical_work
     }
 }

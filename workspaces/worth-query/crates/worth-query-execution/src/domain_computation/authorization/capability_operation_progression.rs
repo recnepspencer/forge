@@ -17,9 +17,11 @@ use super::admitted_operation::WorthQueryOperationAuthorizationBasis;
 use super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationScopeBinding,
+    WorthQueryOperationScopeBinding, WorthQueryRetainedAuthorizationDecisionFacts,
 };
-use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
+use crate::domain_computation::primary_graph::{
+    bind_mutation_preconditions, WorthQueryPrimaryGraphApplicationRuntime,
+};
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -64,11 +66,7 @@ where
                 access.operation.as_ref(),
             ));
         }
-        self.refresh_capability_authorization(
-            &access.revalidation,
-            &mut access.currentness,
-            &mut access.authorization,
-        )?;
+        self.refresh_capability_authorization(&mut access.authorization)?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
@@ -76,12 +74,12 @@ where
             )
         })?;
         let preconditions =
-            crate::domain_computation::primary_graph::application_attempt::precondition_binding::bind_mutation_preconditions(
+            bind_mutation_preconditions(
                 preconditions,
                 operation.contracts(),
                 access.resolved.resource.entity_name(),
                 access.resolved.resource.entity_id(),
-                &graph.layout,
+                graph.layout(),
             )
             .map_err(|()| {
                 denial(
@@ -109,11 +107,10 @@ where
             access.request_scope,
             operation.contracts().clone(),
             preconditions,
-            access.authorization,
+            access.canonical_work,
+            WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization),
             WorthQueryOperationAuthorizationBasis::Capability {
                 input: access.input,
-                currentness: access.currentness,
-                revalidation: access.revalidation,
             },
         )
         .map_err(|_| {

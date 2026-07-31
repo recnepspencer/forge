@@ -10,6 +10,7 @@ use worth_query_declaration::facade::{
 
 use crate::{
     application_schema::WorthQueryInstalledApplicationSchema,
+    canonical_work::WorthQueryCanonicalWorkEvidence,
     installed_index::WorthQueryInstalledPackageAuthority,
 };
 
@@ -72,9 +73,7 @@ pub struct WorthQueryInstalledApplicationCapability<Schema, Capability, Operatio
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryCapabilityLookupEvidence {
     registry_probes: usize,
-    basis_preparations: usize,
-    digest_derivations: usize,
-    digest_text_materializations: usize,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
 }
 
 impl WorthQueryCapabilityLookupEvidence {
@@ -83,15 +82,19 @@ impl WorthQueryCapabilityLookupEvidence {
     }
 
     pub const fn basis_preparations(self) -> usize {
-        self.basis_preparations
+        self.canonical_work.basis_preparations() as usize
     }
 
     pub const fn digest_derivations(self) -> usize {
-        self.digest_derivations
+        self.canonical_work.digest_derivations() as usize
     }
 
     pub const fn digest_text_materializations(self) -> usize {
-        self.digest_text_materializations
+        self.canonical_work.digest_text_materializations() as usize
+    }
+
+    pub const fn canonical_work(self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
     }
 }
 
@@ -133,9 +136,7 @@ impl<Schema, Capability, Operation, Input>
             compiled,
             lookup_evidence: WorthQueryCapabilityLookupEvidence {
                 registry_probes: 1,
-                basis_preparations: 0,
-                digest_derivations: 0,
-                digest_text_materializations: 0,
+                canonical_work: WorthQueryCanonicalWorkEvidence::zero(),
             },
             _marker: PhantomData,
         })

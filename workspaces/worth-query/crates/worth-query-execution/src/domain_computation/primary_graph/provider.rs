@@ -33,6 +33,10 @@ pub(super) struct WorthQueryPrimaryGraphProvider {
     fail_next_index_publication: std::sync::atomic::AtomicBool,
 }
 
+pub(in crate::domain_computation) struct WorthQueryApplicationCommitSerialization<'provider> {
+    _guard: std::sync::MutexGuard<'provider, ()>,
+}
+
 #[derive(Default)]
 pub(super) struct WorthQueryPrimaryGraphProviderSessions {
     pub(super) overlays: BTreeMap<String, WorthQueryPrimaryGraphOverlay>,
@@ -134,10 +138,15 @@ impl WorthQueryPrimaryGraphProvider {
         Ok(())
     }
 
-    pub(super) fn serialize_application_commit(&self) -> std::sync::MutexGuard<'_, ()> {
-        self.commit_serialization
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    pub(super) fn serialize_application_commit(
+        &self,
+    ) -> WorthQueryApplicationCommitSerialization<'_> {
+        WorthQueryApplicationCommitSerialization {
+            _guard: self
+                .commit_serialization
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+        }
     }
 
     #[cfg(test)]

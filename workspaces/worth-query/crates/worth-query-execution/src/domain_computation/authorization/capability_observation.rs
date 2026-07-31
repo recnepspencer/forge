@@ -123,10 +123,10 @@ pub(super) fn observe_capability(
             installed.contract.name(),
         ));
     }
-    Ok(WorthQueryAuthorizationDecisionFact {
-        relational: evidence,
-        bridge: bridge_evidence,
-    })
+    Ok(WorthQueryAuthorizationDecisionFact::new(
+        evidence,
+        bridge_evidence,
+    ))
 }
 
 fn append_grant_predicates(

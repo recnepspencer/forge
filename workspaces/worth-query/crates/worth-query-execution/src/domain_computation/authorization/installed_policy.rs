@@ -12,7 +12,7 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
-use crate::domain_computation::primary_graph::schema_layout::WorthQueryPrimaryGraphLayout;
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_registry::{
     WorthQueryCapabilityPlanCompilationEvidence, WorthQueryInstalledCapabilityPlan,
     WorthQueryInstalledCapabilityRegistry,

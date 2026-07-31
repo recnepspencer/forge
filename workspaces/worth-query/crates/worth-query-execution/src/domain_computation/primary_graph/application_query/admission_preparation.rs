@@ -207,10 +207,12 @@ where
             result
         })?;
         let work = WorthQueryApplicationAuthorizationWorkEvidence::from_dependencies(&policy);
-        Ok((
-            WorthQueryRetainedAuthorizationDecisionFacts::new(principal_currentness, policy),
-            work,
-        ))
+        let authorization = if policy.is_empty() {
+            WorthQueryRetainedAuthorizationDecisionFacts::principal(principal_currentness)
+        } else {
+            WorthQueryRetainedAuthorizationDecisionFacts::abilities(principal_currentness, policy)
+        };
+        Ok((authorization, work))
     }
 }
 

@@ -29,22 +29,22 @@ pub struct WorthQueryApplicationEntityIdentity<Schema, Entity> {
     _marker: PhantomData<fn() -> (Schema, Entity)>,
 }
 
-pub(super) struct WorthQueryResolvedEntityEvidence {
-    pub(super) entity_id: EntityId,
-    pub(super) entity_kind: KindId,
-    pub(super) entity_name: String,
-    pub(super) binding_identity: ApplicationSchemaBindingIdentity,
-    pub(super) runtime_authority: WorthQueryRuntimeAuthorityIdentity,
-    pub(super) identity_index_id: DerivedIndexId,
-    pub(super) identity_index_generation: DerivedIndexGenerationId,
-    pub(super) identity_locator: AspectFieldLocator,
-    pub(super) identity_value: AspectValue,
-    pub(super) examined_candidate_count: usize,
-    pub(super) resolution_mode: WorthQueryPrincipalResolutionMode,
+pub(in crate::domain_computation) struct WorthQueryResolvedEntityEvidence {
+    pub(in crate::domain_computation) entity_id: EntityId,
+    pub(in crate::domain_computation) entity_kind: KindId,
+    pub(in crate::domain_computation) entity_name: String,
+    pub(in crate::domain_computation) binding_identity: ApplicationSchemaBindingIdentity,
+    pub(in crate::domain_computation) runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+    pub(in crate::domain_computation) identity_index_id: DerivedIndexId,
+    pub(in crate::domain_computation) identity_index_generation: DerivedIndexGenerationId,
+    pub(in crate::domain_computation) identity_locator: AspectFieldLocator,
+    pub(in crate::domain_computation) identity_value: AspectValue,
+    pub(in crate::domain_computation) examined_candidate_count: usize,
+    pub(in crate::domain_computation) resolution_mode: WorthQueryPrincipalResolutionMode,
 }
 
 impl<Schema, Entity> WorthQueryApplicationEntityIdentity<Schema, Entity> {
-    pub(super) fn mint(evidence: WorthQueryResolvedEntityEvidence) -> Self {
+    pub(in crate::domain_computation) fn mint(evidence: WorthQueryResolvedEntityEvidence) -> Self {
         Self {
             entity_id: evidence.entity_id,
             entity_kind: evidence.entity_kind,

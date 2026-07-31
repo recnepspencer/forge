@@ -166,7 +166,9 @@ impl<Schema, Principal, PrincipalIdentity>
         self.target_relation_id
     }
 
-    pub(super) const fn freshness(&self) -> &WorthQueryPrincipalFreshnessEvidence {
+    pub(in crate::domain_computation) const fn freshness(
+        &self,
+    ) -> &WorthQueryPrincipalFreshnessEvidence {
         &self.freshness
     }
 }

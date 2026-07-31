@@ -7,17 +7,16 @@ use worth_query_installation::facade::{
 };
 
 use super::admission::admit_request;
-use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
 use super::capability_observation::observe_capability;
 use super::capability_request_resolution::resolve_capability_request;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalCurrentnessDependency,
-    WorthQueryRetainedAuthorizationDecisionFacts,
+    WorthQueryRetainedCapabilityAuthorization,
 };
 use crate::domain_computation::primary_graph::{
-    resolution::validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
+    validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 
@@ -84,7 +83,7 @@ where
             )
         })?;
         let principal_layout = graph
-            .layout
+            .layout()
             .principal_binding(principal.binding())
             .cloned()
             .ok_or_else(|| {
@@ -119,7 +118,7 @@ where
                     let resolved = resolve_capability_request(
                         runtime,
                         &snapshot,
-                        &graph.layout,
+                        graph.layout(),
                         &self.installed_schema,
                         &projection,
                         self.runtime.authority_identity(),
@@ -160,15 +159,13 @@ where
             resolved,
             principal.valid_until(),
             request.clone(),
-            WorthQueryCapabilityCurrentnessAuthority::new(
-                installed.capability_authority_identity.clone(),
-                sample.timeline(),
-                sample.value().clone(),
-            ),
-            revalidation,
-            WorthQueryRetainedAuthorizationDecisionFacts::new(
+            capability.lookup_evidence().canonical_work(),
+            WorthQueryRetainedCapabilityAuthorization::new(
                 principal_currentness,
-                vec![authorization],
+                authorization,
+                installed.capability_authority_identity.clone(),
+                revalidation,
+                sample,
             ),
         ))
     }

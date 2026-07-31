@@ -25,7 +25,7 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryBoundMutationP
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::domain_computation::primary_graph) struct WorthQueryBoundMutationPreconditions {
+pub(in crate::domain_computation) struct WorthQueryBoundMutationPreconditions {
     entries: Vec<WorthQueryBoundMutationPrecondition>,
     canonical_digest: Option<CanonicalDigestId>,
     canonical_work: WorthQueryCanonicalWorkEvidence,
@@ -33,7 +33,7 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryBoundMutationP
     expected_fact_count: usize,
 }
 
-pub(in crate::domain_computation::primary_graph) fn bind_mutation_preconditions<
+pub(in crate::domain_computation) fn bind_mutation_preconditions<
     Schema,
     Operation,
     Scope,
@@ -123,23 +123,23 @@ impl WorthQueryBoundMutationPreconditions {
         })
     }
 
-    pub(in crate::domain_computation::primary_graph) fn identity(&self) -> Option<&[u8; 32]> {
+    pub(in crate::domain_computation) fn identity(&self) -> Option<&[u8; 32]> {
         self.canonical_digest.as_ref().map(CanonicalDigestId::bytes)
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn canonical_work(
+    pub(in crate::domain_computation) const fn canonical_work(
         &self,
     ) -> WorthQueryCanonicalWorkEvidence {
         self.canonical_work
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn expected_version_count(
+    pub(in crate::domain_computation) const fn expected_version_count(
         &self,
     ) -> usize {
         self.expected_version_count
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn expected_fact_count(&self) -> usize {
+    pub(in crate::domain_computation) const fn expected_fact_count(&self) -> usize {
         self.expected_fact_count
     }
 }

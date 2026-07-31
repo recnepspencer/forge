@@ -83,8 +83,29 @@ where
             return Err(WorthQueryApplicationIdempotencyResolutionDenial::foreign_admission());
         }
         let binding = binding.bind_preconditions(admission.mutation_preconditions().identity());
-        let _serialization = self.primary_provider.serialize_application_commit();
-        match self.primary_provider.resolve_idempotency_binding(binding) {
+        let serialization = self.primary_provider.serialize_application_commit();
+        let authorization = admission.authorization().ok_or_else(|| {
+            WorthQueryApplicationIdempotencyResolutionDenial::from_authorization(
+                WorthQueryOperationAuthorizationDenial::inconsistent(admission.operation()),
+            )
+        })?;
+        let proof = self
+            .authorize_idempotency_inspection(
+                authorization,
+                admission.admission_identity(),
+                &serialization,
+            )
+            .map_err(WorthQueryApplicationIdempotencyResolutionDenial::from_authorization)?;
+        let resolution = proof
+            .govern(admission.admission_identity(), || {
+                self.primary_provider.resolve_idempotency_binding(binding)
+            })
+            .map_err(|()| {
+                WorthQueryApplicationIdempotencyResolutionDenial::from_authorization(
+                    WorthQueryOperationAuthorizationDenial::inconsistent(admission.operation()),
+                )
+            })?;
+        match resolution {
             Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
                 Ok(WorthQueryApplicationIdempotencyResolution::Unseen)
             }

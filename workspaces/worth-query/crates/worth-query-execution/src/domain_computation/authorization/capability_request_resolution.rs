@@ -13,8 +13,8 @@ use worth_relational::facade::identity::EntityId;
 
 use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
 use crate::domain_computation::primary_graph::{
-    entity_identity::WorthQueryResolvedEntityEvidence, schema_layout::WorthQueryPrimaryGraphLayout,
-    WorthQueryApplicationEntityIdentity, WorthQueryPrincipalResolutionMode,
+    resolve_at_snapshot, WorthQueryApplicationEntityIdentity, WorthQueryPrimaryGraphLayout,
+    WorthQueryPrincipalResolutionMode, WorthQueryResolvedEntityEvidence,
 };
 
 pub(super) struct WorthQueryResolvedCapabilityRequest<Schema, Scope> {
@@ -179,7 +179,7 @@ where
     let field_layout = layout
         .equality_field(entity, aspect, field)
         .ok_or_else(|| denial(field))?;
-    crate::domain_computation::primary_graph::entity_resolution::resolve_at_snapshot(
+    resolve_at_snapshot(
         relational,
         snapshot,
         field_layout,

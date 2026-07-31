@@ -3,6 +3,15 @@ use std::time::{Duration, Instant};
 #[path = "fixture/authentication.rs"]
 mod authentication;
 use authentication::authenticate_external;
+#[path = "fixture/capability.rs"]
+mod capability;
+#[path = "fixture/capability_seed.rs"]
+mod capability_seed;
+pub(super) use capability::{
+    CapabilityAction, CapabilityGrant, CapabilityIdentity, CapabilityPurpose,
+    CapabilityStatus, CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
+    TouchAccountCapability,
+};
 #[path = "fixture/application_queries.rs"]
 mod application_queries;
 pub(in crate::domain_computation::primary_graph) use application_queries::AccountSummaryParameters;
@@ -69,7 +78,7 @@ worth_query_application_schema! {
         owner: identity_execution_test,
         version: (1, 0),
         members: |schema| {
-            schema
+            let schema = schema
                 .entity(ExternalMapping::reference())
                 .entity(Principal::reference())
                 .entity(Account::reference())
@@ -244,7 +253,8 @@ worth_query_application_schema! {
                 .application_query(application_queries::ordered_account_summary_definition())
                 .application_query(nested_account::nested_account_definition())
                 .application_query(forged_selector::forged_selector_definition())
-                .application_query(live_account_query::live_account_activity_definition())
+                .application_query(live_account_query::live_account_activity_definition());
+            capability::install(schema)
         }
     }
 }

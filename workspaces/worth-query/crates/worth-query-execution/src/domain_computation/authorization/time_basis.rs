@@ -5,6 +5,8 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation) enum WorthQueryAuthorizationTimeDenial {
+    #[cfg(test)]
+    SourceUnavailable,
     BeforeUnixEpoch,
     TimelineValueOverflow,
 }
@@ -27,15 +29,59 @@ impl WorthQueryAuthorizationTimeSample {
     }
 }
 
-#[derive(Default)]
-pub(in crate::domain_computation) struct WorthQueryAuthorizationClock;
+trait WorthQueryAuthorizationTimeSource: Send + Sync {
+    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial>;
+}
+
+struct WorthQuerySystemAuthorizationTimeSource;
+
+impl WorthQueryAuthorizationTimeSource for WorthQuerySystemAuthorizationTimeSource {
+    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial> {
+        Ok(SystemTime::now())
+    }
+}
+
+pub(in crate::domain_computation) struct WorthQueryAuthorizationClock {
+    source: Box<dyn WorthQueryAuthorizationTimeSource>,
+}
 
 impl WorthQueryAuthorizationClock {
+    pub(in crate::domain_computation) fn system() -> Self {
+        Self {
+            source: Box::new(WorthQuerySystemAuthorizationTimeSource),
+        }
+    }
+
     pub(in crate::domain_computation) fn sample(
         &self,
         timeline: ApplicationCapabilityValidityTimeline,
     ) -> Result<WorthQueryAuthorizationTimeSample, WorthQueryAuthorizationTimeDenial> {
-        sample_at(SystemTime::now(), timeline)
+        sample_at(self.source.current_time()?, timeline)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn scripted(samples: impl IntoIterator<Item = SystemTime>) -> Self {
+        Self {
+            source: Box::new(WorthQueryScriptedAuthorizationTimeSource {
+                samples: std::sync::Mutex::new(samples.into_iter().collect()),
+            }),
+        }
+    }
+}
+
+#[cfg(test)]
+struct WorthQueryScriptedAuthorizationTimeSource {
+    samples: std::sync::Mutex<std::collections::VecDeque<SystemTime>>,
+}
+
+#[cfg(test)]
+impl WorthQueryAuthorizationTimeSource for WorthQueryScriptedAuthorizationTimeSource {
+    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial> {
+        self.samples
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .pop_front()
+            .ok_or(WorthQueryAuthorizationTimeDenial::SourceUnavailable)
     }
 }
 
@@ -66,30 +112,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn trusted_clock_samples_the_installed_timeline_without_caller_input() {
-        let now = UNIX_EPOCH + Duration::from_millis(12_345);
-        let seconds =
-            sample_at(now, ApplicationCapabilityValidityTimeline::UnixEpochSeconds).unwrap();
-        let milliseconds = sample_at(
-            now,
-            ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds,
-        )
-        .unwrap();
+    fn scripted_clock_retains_exact_installed_timeline_samples() {
+        let clock = WorthQueryAuthorizationClock::scripted([
+            UNIX_EPOCH + Duration::from_millis(12_345),
+            UNIX_EPOCH + Duration::from_millis(12_345),
+        ]);
+        let seconds = clock
+            .sample(ApplicationCapabilityValidityTimeline::UnixEpochSeconds)
+            .unwrap();
+        let milliseconds = clock
+            .sample(ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds)
+            .unwrap();
         assert_eq!(seconds.value(), &AspectValue::UInt64(12));
         assert_eq!(milliseconds.value(), &AspectValue::UInt64(12_345));
     }
 
     #[test]
-    fn trusted_clock_rejects_pre_epoch_samples() {
+    fn scripted_clock_exhaustion_and_pre_epoch_samples_fail_closed() {
         let before_epoch = UNIX_EPOCH
             .checked_sub(Duration::from_secs(1))
             .expect("the platform supports a pre-epoch test time");
+        let clock = WorthQueryAuthorizationClock::scripted([before_epoch]);
         assert_eq!(
-            sample_at(
-                before_epoch,
-                ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
-            ),
+            clock.sample(ApplicationCapabilityValidityTimeline::UnixEpochSeconds),
             Err(WorthQueryAuthorizationTimeDenial::BeforeUnixEpoch)
+        );
+        assert_eq!(
+            clock.sample(ApplicationCapabilityValidityTimeline::UnixEpochSeconds),
+            Err(WorthQueryAuthorizationTimeDenial::SourceUnavailable)
         );
     }
 }

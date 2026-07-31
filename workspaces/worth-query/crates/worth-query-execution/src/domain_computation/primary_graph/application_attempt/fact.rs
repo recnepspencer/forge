@@ -9,10 +9,10 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationAdjac
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub(crate) struct WorthQueryApplicationObservedRelation {
-    pub(crate) relation_id: RelationId,
-    pub(crate) from: EntityId,
-    pub(crate) to: EntityId,
+pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationObservedRelation {
+    pub(in crate::domain_computation::primary_graph) relation_id: RelationId,
+    pub(in crate::domain_computation::primary_graph) from: EntityId,
+    pub(in crate::domain_computation::primary_graph) to: EntityId,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -40,7 +40,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationFactK
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum WorthQueryApplicationObservedFact {
+pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObservedFact {
     Entity {
         target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,

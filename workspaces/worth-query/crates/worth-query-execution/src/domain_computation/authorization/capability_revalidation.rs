@@ -2,12 +2,11 @@
 
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
 use super::capability_observation::observe_capability;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryRetainedAuthorizationDecisionFacts,
+    WorthQueryRetainedCapabilityAuthorization,
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
@@ -17,12 +16,11 @@ where
 {
     pub(in crate::domain_computation) fn refresh_capability_authorization(
         &self,
-        request: &WorthQueryRetainedCapabilityRequest,
-        currentness: &mut WorthQueryCapabilityCurrentnessAuthority,
-        authorization: &mut WorthQueryRetainedAuthorizationDecisionFacts,
+        authorization: &mut WorthQueryRetainedCapabilityAuthorization,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        let request = authorization.request();
         let installed = self.installed_capability_plan(request)?;
-        if currentness.capability_authority_identity()
+        if authorization.capability_authority_identity()
             != installed.capability_authority_identity.as_ref()
         {
             return Err(denial(
@@ -39,7 +37,7 @@ where
         })?;
         let fact = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let result = if authorization.principal_remains_current_in(runtime, &snapshot) {
+            let result = if authorization.principal().remains_current_in(runtime, &snapshot) {
                 observe_capability(
                     runtime,
                     snapshot.clone(),
@@ -57,50 +55,22 @@ where
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })?;
-        authorization.replace_single_policy(fact).map_err(|()| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                installed.contract.name(),
+        authorization
+            .replace_current_decision(
+                installed.capability_authority_identity.as_ref(),
+                sample,
+                fact,
             )
-        })?;
-        if !currentness.replace_sample(sample.timeline(), sample.value().clone()) {
-            return Err(denial(
+            .map_err(|()| {
+                denial(
                 WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
                 installed.contract.name(),
-            ));
-        }
+                )
+            })?;
         Ok(())
     }
 
-    pub(in crate::domain_computation) fn validate_capability_at_current_time(
-        &self,
-        request: &WorthQueryRetainedCapabilityRequest,
-    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-        let installed = self.installed_capability_plan(request)?;
-        let sample = self.sample_capability_time(installed)?;
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-                installed.contract.name(),
-            )
-        })?;
-        graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
-            let result = observe_capability(
-                runtime,
-                snapshot.clone(),
-                self.authorization.bridge(),
-                installed,
-                request,
-                &sample,
-            )
-            .map(drop);
-            runtime.snapshots().release_snapshot(&snapshot);
-            result
-        })
-    }
-
-    fn installed_capability_plan(
+    pub(super) fn installed_capability_plan(
         &self,
         request: &WorthQueryRetainedCapabilityRequest,
     ) -> Result<
@@ -117,7 +87,7 @@ where
             })
     }
 
-    fn sample_capability_time(
+    pub(super) fn sample_capability_time(
         &self,
         installed: &super::capability_registry::WorthQueryInstalledCapabilityPlan,
     ) -> Result<

@@ -38,11 +38,11 @@ use super::{
 /// }
 /// ```
 pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
-    pub(super) runtime: WorthQueryExecutionRuntime,
-    pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+    pub(in crate::domain_computation) runtime: WorthQueryExecutionRuntime,
+    pub(in crate::domain_computation) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
-    pub(super) authorization: WorthQueryInstalledAuthorizationRegistry,
-    pub(super) authorization_clock: WorthQueryAuthorizationClock,
+    pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
+    pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
@@ -117,7 +117,7 @@ where
             installed_schema,
             publication,
             authorization,
-            authorization_clock: WorthQueryAuthorizationClock,
+            authorization_clock: WorthQueryAuthorizationClock::system(),
             relational_source,
             bridge,
             primary_provider,

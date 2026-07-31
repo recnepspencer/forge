@@ -45,6 +45,13 @@ impl WorthQueryOperationAuthorizationDenial {
         }
     }
 
+    pub(in crate::domain_computation) fn inconsistent(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            subject,
+        )
+    }
+
     pub const fn kind(&self) -> WorthQueryOperationAuthorizationDenialKind {
         self.kind
     }

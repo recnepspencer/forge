@@ -1,10 +1,12 @@
 mod admission;
 mod admitted_capability_access;
 mod admitted_operation;
+mod application_commit_authorization;
+mod authorization_revalidation;
 mod bridge_observation;
 mod capability_admission;
 mod capability_binding_lowering;
-mod capability_currentness;
+mod capability_decision_fact;
 mod capability_lowering;
 mod capability_observation;
 mod capability_operation_progression;
@@ -22,9 +24,14 @@ mod time_basis;
 pub use admitted_capability_access::WorthQueryAdmittedApplicationCapabilityAccess;
 pub use admitted_operation::WorthQueryAdmittedApplicationOperation;
 pub(in crate::domain_computation) use admitted_operation::WorthQueryOperationAdmissionIdentity;
+pub(in crate::domain_computation) use application_commit_authorization::WorthQueryApplicationCommitAuthorization;
 pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
+pub(in crate::domain_computation) use capability_decision_fact::{
+    WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
+};
 pub(in crate::domain_computation) use decision_facts::{
-    WorthQueryAuthorizationDecisionFact, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryAuthorizationDecisionFact, WorthQueryCommitAuthorizationBasis,
+    WorthQueryPrincipalCurrentnessDependency, WorthQueryProviderAuthorizationDecisionFacts,
     WorthQueryRetainedAuthorizationDecisionFacts,
 };
 pub use denial::{

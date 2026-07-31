@@ -23,7 +23,7 @@ use continuation_ordering::{
     lower_continuation_orderings, WorthQueryPrimaryContinuationOrderingLayout,
 };
 use principal_binding::lower_principal_bindings;
-pub(super) use principal_binding::WorthQueryPrimaryPrincipalBindingLayout;
+pub(in crate::domain_computation) use principal_binding::WorthQueryPrimaryPrincipalBindingLayout;
 use provider_idempotency::lower_provider_idempotency;
 pub(super) use provider_idempotency::WorthQueryProviderIdempotencyLayout;
 use registry_lowering::{
@@ -32,7 +32,7 @@ use registry_lowering::{
 };
 
 #[derive(Debug)]
-pub(super) struct WorthQueryPrimaryGraphLayout {
+pub(in crate::domain_computation) struct WorthQueryPrimaryGraphLayout {
     principal_bindings: BTreeMap<String, WorthQueryPrimaryPrincipalBindingLayout>,
     entity_kinds: BTreeMap<String, KindId>,
     relation_kinds: BTreeMap<String, WorthQueryPrimaryRelationLayout>,
@@ -44,14 +44,14 @@ pub(super) struct WorthQueryPrimaryGraphLayout {
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct WorthQueryPrimaryRelationLayout {
-    pub(super) kind: KindId,
-    pub(super) from: KindId,
-    pub(super) to: KindId,
+pub(in crate::domain_computation) struct WorthQueryPrimaryRelationLayout {
+    pub(in crate::domain_computation) kind: KindId,
+    pub(in crate::domain_computation) from: KindId,
+    pub(in crate::domain_computation) to: KindId,
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct WorthQueryPrimaryFieldLayout {
+pub(in crate::domain_computation) struct WorthQueryPrimaryFieldLayout {
     pub(super) entity_kind: KindId,
     pub(super) locator: AspectFieldLocator,
     pub(super) equality_index_id: Option<DerivedIndexId>,
@@ -121,7 +121,7 @@ impl WorthQueryPrimaryGraphLayout {
         ))
     }
 
-    pub(super) fn principal_binding(
+    pub(in crate::domain_computation) fn principal_binding(
         &self,
         name: &str,
     ) -> Option<&WorthQueryPrimaryPrincipalBindingLayout> {
@@ -144,15 +144,18 @@ impl WorthQueryPrimaryGraphLayout {
             .map(|(name, layout)| (name.as_str(), layout))
     }
 
-    pub(super) fn entity_kind(&self, entity: &str) -> Option<KindId> {
+    pub(in crate::domain_computation) fn entity_kind(&self, entity: &str) -> Option<KindId> {
         self.entity_kinds.get(entity).copied()
     }
 
-    pub(super) fn relation(&self, relation: &str) -> Option<&WorthQueryPrimaryRelationLayout> {
+    pub(in crate::domain_computation) fn relation(
+        &self,
+        relation: &str,
+    ) -> Option<&WorthQueryPrimaryRelationLayout> {
         self.relation_kinds.get(relation)
     }
 
-    pub(super) fn field_locator(
+    pub(in crate::domain_computation) fn field_locator(
         &self,
         entity: &str,
         aspect: &str,
@@ -163,7 +166,7 @@ impl WorthQueryPrimaryGraphLayout {
             .map(|layout| &layout.locator)
     }
 
-    pub(super) fn equality_field(
+    pub(in crate::domain_computation) fn equality_field(
         &self,
         entity: &str,
         aspect: &str,

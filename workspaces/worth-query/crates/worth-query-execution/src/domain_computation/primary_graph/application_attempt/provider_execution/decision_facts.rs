@@ -1,6 +1,6 @@
 use super::super::super::provider::WorthQueryPrimaryGraphApplicationDecisionFact;
 use super::super::WorthQueryApplicationObservedFact;
-use crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts;
+use crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts;
 use crate::domain_computation::{WorthQueryDecisionFactLocator, WorthQueryDecisionFactRequest};
 use worth_query_installation::facade::{
     APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
@@ -8,7 +8,7 @@ use worth_query_installation::facade::{
 
 pub(super) fn bind_provider_decision_facts(
     application: Vec<WorthQueryApplicationObservedFact>,
-    authorization: WorthQueryRetainedAuthorizationDecisionFacts,
+    authorization: WorthQueryProviderAuthorizationDecisionFacts,
 ) -> Result<
     (
         Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,

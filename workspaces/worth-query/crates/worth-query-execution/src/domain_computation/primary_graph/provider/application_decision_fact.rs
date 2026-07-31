@@ -43,8 +43,8 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         let locator = format!("application-authorization:{requirement_ordinal}");
         Self::Authorization {
             locator: Arc::from(locator),
-            observation: Arc::new(observation),
-            bridge: Arc::new(bridge),
+            observation,
+            bridge,
         }
     }
 

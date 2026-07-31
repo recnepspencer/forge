@@ -81,7 +81,7 @@ where
     }
 }
 
-pub(super) fn resolve_at_snapshot(
+pub(in crate::domain_computation) fn resolve_at_snapshot(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     layout: &WorthQueryPrimaryFieldLayout,
@@ -178,7 +178,7 @@ pub(super) fn resolve_at_snapshot_with_work(
     (result, examined_candidate_count)
 }
 
-pub(super) fn validate_entity_freshness_at_snapshot<Schema, Entity>(
+pub(in crate::domain_computation) fn validate_entity_freshness_at_snapshot<Schema, Entity>(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     identity: &WorthQueryApplicationEntityIdentity<Schema, Entity>,

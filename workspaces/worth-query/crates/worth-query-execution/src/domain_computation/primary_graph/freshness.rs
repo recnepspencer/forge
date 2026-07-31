@@ -5,7 +5,7 @@ use super::observations::{
 use super::schema_layout::WorthQueryPrimaryPrincipalBindingLayout;
 
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct WorthQueryPrincipalFreshnessEvidence {
+pub(in crate::domain_computation) struct WorthQueryPrincipalFreshnessEvidence {
     mapping: WorthQueryPrincipalMappingObservation,
     target: WorthQueryPrincipalTargetObservation,
 }
@@ -26,7 +26,7 @@ impl WorthQueryPrincipalFreshnessEvidence {
         self.mapping == *mapping && self.target == *target
     }
 
-    pub(super) fn remains_current_in(
+    pub(in crate::domain_computation) fn remains_current_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,

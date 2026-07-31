@@ -29,7 +29,8 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
         Scope,
     >,
     prepared: WorthQueryPreparedApplicationProviderAttempt,
-    authorization: crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+    authorization: crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts,
+    commit_authorization: crate::domain_computation::authorization::WorthQueryCommitAuthorizationBasis,
     idempotency: WorthQueryApplicationIdempotencyBinding,
 ) -> WorthQueryApplicationCommitOutcome
 where
@@ -78,12 +79,27 @@ where
     let fresh = match staged.read_authority().compare_decision_read_set(receipt) {
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Fresh(fresh)) => fresh,
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Stale(stale)) => {
-            let resolution = {
-                let _serialization = provider.serialize_application_commit();
-                provider.resolve_application_idempotency(&session_identity)
+            let serialization = provider.serialize_application_commit();
+            let proof = match application.authorize_application_commit(
+                &commit_authorization,
+                admission.admission_identity(),
+                &serialization,
+            ) {
+                Ok(proof) => proof,
+                Err(_) => {
+                    let _ = staged.abort();
+                    return denied(DenialStage::DecisionReadSet);
+                }
             };
+            let resolution = proof.govern(admission.admission_identity(), || {
+                provider.resolve_application_idempotency(&session_identity)
+            });
             match resolution {
-                Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
+                Err(()) => {
+                    let _ = staged.abort();
+                    return denied(DenialStage::DecisionReadSet);
+                }
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt))) => {
                     let _ = staged.abort();
                     return WorthQueryApplicationCommitOutcome::AlreadyCommitted(
                         WorthQueryApplicationCommitReceipt::from_provider(
@@ -93,14 +109,14 @@ where
                         ),
                     );
                 }
-                Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Drift)) => {
                     let _ = staged.abort();
                     return WorthQueryApplicationCommitOutcome::Denied(
                         WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
                     );
                 }
-                Ok(WorthQueryProviderIdempotencyResolution::Absent) => {}
-                Err(_) => {
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Absent)) => {}
+                Ok(Err(_)) => {
                     let _ = staged.abort();
                     return denied(DenialStage::Idempotency);
                 }
@@ -163,46 +179,64 @@ where
             return denied(DenialStage::InvariantExecution);
         }
     };
-    let _serialization = provider.serialize_application_commit();
-    if admission
-        .capability_revalidation_request()
-        .is_some_and(|request| {
-            application
-                .validate_capability_at_current_time(request)
-                .is_err()
-        })
-    {
-        candidate.discard();
-        return denied(DenialStage::DecisionReadSet);
-    }
-    if admission.validate_current_authority().is_err() {
-        candidate.discard();
-        return WorthQueryApplicationCommitOutcome::Cancelled;
-    }
-    match provider.resolve_application_idempotency(&session_identity) {
-        Ok(WorthQueryProviderIdempotencyResolution::Absent) => {}
-        Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
-            candidate.discard();
-            return WorthQueryApplicationCommitOutcome::AlreadyCommitted(
-                WorthQueryApplicationCommitReceipt::from_provider(
-                    receipt,
-                    recover_equivalent_commit_evidence(admission.mutation_preconditions()),
-                    admission.canonical_work(),
-                ),
-            );
-        }
-        Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
-            candidate.discard();
-            return WorthQueryApplicationCommitOutcome::Denied(
-                WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
-            );
-        }
+    let serialization = provider.serialize_application_commit();
+    let proof = match application.authorize_application_commit(
+        &commit_authorization,
+        admission.admission_identity(),
+        &serialization,
+    ) {
+        Ok(proof) => proof,
         Err(_) => {
             candidate.discard();
-            return denied(DenialStage::Idempotency);
+            return denied(DenialStage::DecisionReadSet);
         }
-    }
-    match candidate.compare_and_commit() {
+    };
+    let outcome = proof.govern(admission.admission_identity(), || {
+        if admission.validate_current_authority().is_err() {
+            candidate.discard();
+            return WorthQueryApplicationCommitOutcome::Cancelled;
+        }
+        match provider.resolve_application_idempotency(&session_identity) {
+            Ok(WorthQueryProviderIdempotencyResolution::Absent) => finish_authorized_compare(
+                candidate.compare_and_commit(),
+                provider,
+                idempotency,
+                admission.mutation_preconditions(),
+                admission.canonical_work(),
+            ),
+            Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
+                candidate.discard();
+                WorthQueryApplicationCommitOutcome::AlreadyCommitted(
+                    WorthQueryApplicationCommitReceipt::from_provider(
+                        receipt,
+                        recover_equivalent_commit_evidence(admission.mutation_preconditions()),
+                        admission.canonical_work(),
+                    ),
+                )
+            }
+            Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
+                candidate.discard();
+                WorthQueryApplicationCommitOutcome::Denied(
+                    WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
+                )
+            }
+            Err(_) => {
+                candidate.discard();
+                denied(DenialStage::Idempotency)
+            }
+        }
+    });
+    outcome.unwrap_or_else(|()| denied(DenialStage::DecisionReadSet))
+}
+
+fn finish_authorized_compare(
+    compared: WorthQueryProviderCompareAndCommitOutcome,
+    provider: &super::super::super::provider::WorthQueryPrimaryGraphProvider,
+    idempotency: WorthQueryApplicationIdempotencyBinding,
+    preconditions: &super::super::precondition_binding::WorthQueryBoundMutationPreconditions,
+    canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
+) -> WorthQueryApplicationCommitOutcome {
+    match compared {
         WorthQueryProviderCompareAndCommitOutcome::Committed {
             provider_receipt, ..
         } => parse_provider_receipt(&provider_receipt).map_or_else(
@@ -211,8 +245,8 @@ where
                 WorthQueryApplicationCommitOutcome::Committed(
                     WorthQueryApplicationCommitReceipt::from_provider(
                         receipt,
-                        certify_provider_recomparison(admission.mutation_preconditions()),
-                        admission.canonical_work(),
+                        certify_provider_recomparison(preconditions),
+                        canonical_work,
                     ),
                 )
             },
@@ -227,8 +261,8 @@ where
             resolve_indeterminate_commit(
                 provider,
                 idempotency,
-                admission.mutation_preconditions(),
-                admission.canonical_work(),
+                preconditions,
+                canonical_work,
             )
         }
     }

@@ -264,7 +264,7 @@ where
     })
 }
 
-pub(super) fn validate_freshness_at_snapshot<Schema, Principal, PrincipalIdentity>(
+pub(in crate::domain_computation) fn validate_freshness_at_snapshot<Schema, Principal, PrincipalIdentity>(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,

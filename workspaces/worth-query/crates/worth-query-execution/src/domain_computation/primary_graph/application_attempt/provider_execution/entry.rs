@@ -46,14 +46,28 @@ where
         if admission.validate_current_authority().is_err() {
             return WorthQueryApplicationCommitOutcome::Cancelled;
         }
+        let admission_identity = admission.admission_identity();
         {
-            let _serialization = self.primary_provider.serialize_application_commit();
-            match self
-                .primary_provider
-                .resolve_idempotency_binding(idempotency)
-            {
-                Ok(WorthQueryProviderIdempotencyResolution::Absent) => {}
-                Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
+            let serialization = self.primary_provider.serialize_application_commit();
+            let Some(authorization) = admission.authorization_mut() else {
+                return denied(DenialStage::DecisionReadSet);
+            };
+            let proof = match self.authorize_retained_idempotency(
+                authorization,
+                admission_identity,
+                &serialization,
+            ) {
+                Ok(proof) => proof,
+                Err(_) => return denied(DenialStage::DecisionReadSet),
+            };
+            let resolution = proof.govern(admission_identity, || {
+                self.primary_provider
+                    .resolve_idempotency_binding(idempotency)
+            });
+            match resolution {
+                Err(()) => return denied(DenialStage::DecisionReadSet),
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Absent)) => {}
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt))) => {
                     return WorthQueryApplicationCommitOutcome::AlreadyCommitted(
                         WorthQueryApplicationCommitReceipt::from_provider(
                             receipt,
@@ -62,25 +76,15 @@ where
                         ),
                     );
                 }
-                Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
+                Ok(Ok(WorthQueryProviderIdempotencyResolution::Drift)) => {
                     return WorthQueryApplicationCommitOutcome::Denied(
                         WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
                     );
                 }
-                Err(_) => return denied(DenialStage::Idempotency),
+                Ok(Err(_)) => return denied(DenialStage::Idempotency),
             }
         }
-        if let Some((request, currentness, authorization)) =
-            admission.capability_authorization_parts_mut()
-        {
-            if self
-                .refresh_capability_authorization(request, currentness, authorization)
-                .is_err()
-            {
-                return denied(DenialStage::DecisionReadSet);
-            }
-        }
-        let authorization =
+        let (authorization, commit_authorization) =
             match admission.take_authorization_dependencies(self.authorization.bridge()) {
                 Ok(authorization) => authorization,
                 Err(_) => return denied(DenialStage::DecisionReadSet),
@@ -184,6 +188,7 @@ where
             &admission,
             prepared,
             authorization,
+            commit_authorization,
             idempotency,
         );
         let terminal = if matches!(

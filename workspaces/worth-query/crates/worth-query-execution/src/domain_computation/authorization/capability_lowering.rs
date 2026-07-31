@@ -18,7 +18,7 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
-use crate::domain_computation::primary_graph::schema_layout::WorthQueryPrimaryGraphLayout;
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_binding_lowering::{
     capability_principal, clause_identity, kind, lower_context_anchors, operand, predicate,
     relation, request_bindings,

@@ -83,6 +83,10 @@ impl WorthQueryPrimaryGraph {
         &self.binding_identity
     }
 
+    pub(in crate::domain_computation) fn layout(&self) -> &WorthQueryPrimaryGraphLayout {
+        &self.layout
+    }
+
     pub(crate) fn integration_handle(&self) -> WorthQueryPrimaryGraphIntegrationHandle {
         let principal_identity_index_ids = self
             .layout
