@@ -43,3 +43,15 @@ macro_rules! named_reference {
 named_reference!(ApplicationCapabilityRef, Schema, Capability);
 named_reference!(ApplicationCapabilityContextRef, Schema, Context);
 named_reference!(ApplicationCapabilityProvenanceRef, Schema, Provenance);
+
+impl<Schema, Context> ApplicationCapabilityContextRef<Schema, Context> {
+    pub fn marker_type(self) -> &'static str {
+        std::any::type_name::<Context>()
+    }
+}
+
+impl<Schema, Provenance> ApplicationCapabilityProvenanceRef<Schema, Provenance> {
+    pub fn marker_type(self) -> &'static str {
+        std::any::type_name::<Provenance>()
+    }
+}

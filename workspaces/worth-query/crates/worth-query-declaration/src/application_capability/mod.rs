@@ -1,6 +1,7 @@
 mod canonical_components;
 mod canonical_composition_components;
 mod composition;
+mod context;
 mod contract;
 mod delegation;
 mod disclosure;
@@ -22,6 +23,10 @@ pub use composition::{
     ApplicationCapabilityDistinctActorRule, ApplicationCapabilityPropagationComposition,
     ApplicationCapabilitySeparationOfDutyRule,
 };
+pub use context::{
+    ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityContextEntitySlotRef,
+    ApplicationCapabilityPathContextAnchor,
+};
 pub use contract::{
     ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
     ErasedApplicationCapabilityContract,
@@ -33,7 +38,8 @@ pub use reference::{
 };
 pub use rule_clause::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityGraphClause,
-    ApplicationCapabilityGraphRule, ApplicationCapabilityScopeGuard,
+    ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
+    ApplicationCapabilityScopeGuard,
 };
 pub use scope::{
     ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,

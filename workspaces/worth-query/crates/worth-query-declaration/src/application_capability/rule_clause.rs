@@ -4,7 +4,7 @@ use crate::application_schema::{
 };
 use worth_foundational::facade::AspectValue;
 
-use super::ApplicationCapabilityFieldBinding;
+use super::{ApplicationCapabilityFieldBinding, ApplicationCapabilityPathContextAnchor};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityAcceptedValues {
@@ -73,13 +73,15 @@ impl ApplicationCapabilityScopeGuard {
 pub struct ApplicationCapabilityGraphClause {
     path: ApplicationAuthorizationPath,
     guard: ApplicationCapabilityScopeGuard,
+    context_anchors: Vec<ApplicationCapabilityPathContextAnchor>,
 }
 
 impl ApplicationCapabilityGraphClause {
-    pub const fn new(path: ApplicationAuthorizationPath) -> Self {
+    pub fn new(path: ApplicationAuthorizationPath) -> Self {
         Self {
             path,
             guard: ApplicationCapabilityScopeGuard::unconditional(),
+            context_anchors: Vec::new(),
         }
     }
 
@@ -90,7 +92,26 @@ impl ApplicationCapabilityGraphClause {
         Self {
             path,
             guard: ApplicationCapabilityScopeGuard::requiring(requirements),
+            context_anchors: Vec::new(),
         }
+    }
+
+    pub fn requiring(
+        mut self,
+        requirements: impl IntoIterator<Item = ApplicationCapabilityAcceptedValues>,
+    ) -> Self {
+        self.guard = ApplicationCapabilityScopeGuard::requiring(requirements);
+        self
+    }
+
+    pub fn anchored(
+        mut self,
+        anchors: impl IntoIterator<Item = ApplicationCapabilityPathContextAnchor>,
+    ) -> Self {
+        self.context_anchors = anchors.into_iter().collect();
+        self.context_anchors.sort();
+        self.context_anchors.dedup();
+        self
     }
 
     pub const fn path(&self) -> &ApplicationAuthorizationPath {
@@ -100,14 +121,18 @@ impl ApplicationCapabilityGraphClause {
     pub const fn guard(&self) -> &ApplicationCapabilityScopeGuard {
         &self.guard
     }
+
+    pub fn context_anchors(&self) -> &[ApplicationCapabilityPathContextAnchor] {
+        &self.context_anchors
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct ApplicationCapabilityGraphRule {
+pub struct ApplicationCapabilityGraphRequirement {
     clauses: Vec<ApplicationCapabilityGraphClause>,
 }
 
-impl ApplicationCapabilityGraphRule {
+impl ApplicationCapabilityGraphRequirement {
     pub fn any(clauses: impl IntoIterator<Item = ApplicationCapabilityGraphClause>) -> Self {
         let mut clauses = clauses.into_iter().collect::<Vec<_>>();
         clauses.sort();
@@ -117,5 +142,31 @@ impl ApplicationCapabilityGraphRule {
 
     pub fn clauses(&self) -> &[ApplicationCapabilityGraphClause] {
         &self.clauses
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ApplicationCapabilityGraphRule {
+    requirements: Vec<ApplicationCapabilityGraphRequirement>,
+}
+
+impl ApplicationCapabilityGraphRule {
+    pub fn any(clauses: impl IntoIterator<Item = ApplicationCapabilityGraphClause>) -> Self {
+        Self {
+            requirements: vec![ApplicationCapabilityGraphRequirement::any(clauses)],
+        }
+    }
+
+    pub fn all(
+        requirements: impl IntoIterator<Item = ApplicationCapabilityGraphRequirement>,
+    ) -> Self {
+        let mut requirements = requirements.into_iter().collect::<Vec<_>>();
+        requirements.sort();
+        requirements.dedup();
+        Self { requirements }
+    }
+
+    pub fn requirements(&self) -> &[ApplicationCapabilityGraphRequirement] {
+        &self.requirements
     }
 }

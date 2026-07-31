@@ -242,6 +242,7 @@ pub struct ApplicationCapabilityConstraintDefinition {
     workflow_stage: ApplicationCapabilityFieldBinding,
     validity: ApplicationCapabilityValidityDefinition,
     context: String,
+    context_type: String,
 }
 
 impl ApplicationCapabilityConstraintDefinition {
@@ -258,6 +259,7 @@ impl ApplicationCapabilityConstraintDefinition {
             workflow_stage,
             validity,
             context: context.name().to_string(),
+            context_type: context.marker_type().to_string(),
         }
     }
 
@@ -280,6 +282,10 @@ impl ApplicationCapabilityConstraintDefinition {
     pub fn context(&self) -> &str {
         &self.context
     }
+
+    pub fn context_type(&self) -> &str {
+        &self.context_type
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -289,6 +295,7 @@ pub struct ApplicationCapabilityDelegationDefinition {
     grantee: ApplicationCapabilityRelationBinding,
     limit: ApplicationCapabilityFieldBinding,
     provenance: String,
+    provenance_type: String,
 }
 
 impl ApplicationCapabilityDelegationDefinition {
@@ -305,6 +312,7 @@ impl ApplicationCapabilityDelegationDefinition {
             grantee,
             limit,
             provenance: provenance.name().to_string(),
+            provenance_type: provenance.marker_type().to_string(),
         }
     }
 
@@ -326,5 +334,9 @@ impl ApplicationCapabilityDelegationDefinition {
 
     pub fn provenance(&self) -> &str {
         &self.provenance
+    }
+
+    pub fn provenance_type(&self) -> &str {
+        &self.provenance_type
     }
 }

@@ -65,9 +65,28 @@ fn validate_composition(
 fn validate_graph_rule(
     rule: &ApplicationCapabilityGraphRule,
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
-    for clause in rule.clauses() {
-        validate_authorization_path(clause.path())?;
-        validate_guard(clause.guard())?;
+    for requirement in rule.requirements() {
+        for clause in requirement.clauses() {
+            validate_authorization_path(clause.path())?;
+            validate_guard(clause.guard())?;
+            for anchor in clause.context_anchors() {
+                validate_relation(anchor.relation())?;
+                validate_identifiers([
+                    anchor.slot().context(),
+                    anchor.slot().slot(),
+                    anchor.slot().entity(),
+                ])?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_identifiers<'a>(
+    values: impl IntoIterator<Item = &'a str>,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    for value in values {
+        validate_simple_identifier(value)?;
     }
     Ok(())
 }

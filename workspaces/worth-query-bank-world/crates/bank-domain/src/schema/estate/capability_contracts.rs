@@ -1,12 +1,25 @@
 use worth_query_decl::facade::{
-    worth_query_capability, worth_query_capability_context, worth_query_capability_provenance,
+    worth_query_capability, worth_query_capability_context,
+    worth_query_capability_context_entity_slot, worth_query_capability_provenance,
     worth_query_operation,
 };
 
 use crate::estate::EstateAction;
-use crate::schema::BankSchema;
+use crate::schema::{BankSchema, EmergencyAccess, LegalAuthority, MandatoryReview};
 
-worth_query_capability_context!(pub EstateLegalAuthorityContext in BankSchema);
+worth_query_capability_context!(pub EstateActionContext in BankSchema);
+worth_query_capability_context_entity_slot!(
+    pub EstateLegalAuthoritySlot in BankSchema,
+    EstateActionContext => LegalAuthority
+);
+worth_query_capability_context_entity_slot!(
+    pub EstateEmergencyAccessSlot in BankSchema,
+    EstateActionContext => EmergencyAccess
+);
+worth_query_capability_context_entity_slot!(
+    pub EstateMandatoryReviewSlot in BankSchema,
+    EstateActionContext => MandatoryReview
+);
 worth_query_capability_provenance!(pub EstateGrantChainProvenance in BankSchema);
 
 worth_query_operation!(pub NotifyDeathEstateOperation(EstateAction) in BankSchema);

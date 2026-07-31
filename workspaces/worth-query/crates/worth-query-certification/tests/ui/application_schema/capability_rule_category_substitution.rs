@@ -1,7 +1,7 @@
 use worth_query_decl::facade::{
     application_capability::{
         ApplicationCapabilityConflictRule, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDenyRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityGraphRequirement,
     },
     application_schema::ApplicationPolicyRef,
 };
@@ -21,6 +21,16 @@ fn policy_name_cannot_become_allow_rule() {
     let policy = ApplicationPolicyRef::<Schema, Policy>::from_schema_identifier("Policy");
     let _ = ApplicationCapabilityDecisionComposition::new(
         policy,
+        ApplicationCapabilityDenyRule::not_applicable(),
+        ApplicationCapabilityConflictRule::not_applicable(),
+    );
+}
+
+fn graph_requirement_cannot_become_allow_rule(
+    requirement: ApplicationCapabilityGraphRequirement,
+) {
+    let _ = ApplicationCapabilityDecisionComposition::new(
+        requirement,
         ApplicationCapabilityDenyRule::not_applicable(),
         ApplicationCapabilityConflictRule::not_applicable(),
     );

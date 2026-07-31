@@ -268,19 +268,19 @@ fn repeated_typed_lookup_reuses_the_installed_basis_and_digest() {
             ViewRestrictedEstateOperation::reference(),
         )
         .unwrap();
-    let second = bank
-        .capability(
-            ViewEstateLegalComplianceCapability::reference(),
-            ViewRestrictedEstateOperation::reference(),
-        )
-        .unwrap();
-
-    assert_eq!(first.identity(), second.identity());
-    assert!(std::ptr::eq(
-        first.canonical_basis(),
-        second.canonical_basis()
-    ));
-    for evidence in [first.lookup_evidence(), second.lookup_evidence()] {
+    let retained_identity = first.identity().clone();
+    let retained_basis = first.canonical_basis() as *const _;
+    for _ in 0..4_096 {
+        let lookup = bank
+            .capability(
+                ViewEstateLegalComplianceCapability::reference(),
+                ViewRestrictedEstateOperation::reference(),
+            )
+            .unwrap();
+        assert_eq!(lookup.identity(), &retained_identity);
+        assert_eq!(lookup.canonical_basis() as *const _, retained_basis);
+        let evidence = lookup.lookup_evidence();
+        assert_eq!(evidence.registry_probes(), 1);
         assert_eq!(evidence.basis_preparations(), 0);
         assert_eq!(evidence.digest_derivations(), 0);
         assert_eq!(evidence.digest_text_materializations(), 0);

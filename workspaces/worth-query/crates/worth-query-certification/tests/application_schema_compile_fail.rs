@@ -33,6 +33,7 @@ fn application_schema_compiler_boundaries_hold() {
         "tests/ui/application_schema/legacy_live_effect_authority_is_unavailable.rs",
         "tests/ui/application_schema/application_query_live_lease_is_thread_affine.rs",
         "tests/ui/application_schema/capability_rule_category_substitution.rs",
+        "tests/ui/application_schema/capability_context_anchor_requires_matching_entity.rs",
         "tests/ui/application_schema/descriptive_capability_is_not_installed_authority.rs",
     ] {
         cases.compile_fail(fixture);

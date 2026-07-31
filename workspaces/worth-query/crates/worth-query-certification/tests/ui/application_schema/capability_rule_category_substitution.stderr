@@ -27,3 +27,17 @@ note: associated function defined here
    |
    |     pub const fn new(
    |                  ^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/capability_rule_category_substitution.rs:33:9
+   |
+32 |     let _ = ApplicationCapabilityDecisionComposition::new(
+   |             --------------------------------------------- arguments to this function are incorrect
+33 |         requirement,
+   |         ^^^^^^^^^^^ expected `ApplicationCapabilityAllowRule`, found `ApplicationCapabilityGraphRequirement`
+   |
+note: associated function defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_capability/composition.rs
+   |
+   |     pub const fn new(
+   |                  ^^^

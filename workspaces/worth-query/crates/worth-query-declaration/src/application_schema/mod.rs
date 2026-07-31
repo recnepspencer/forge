@@ -1,3 +1,4 @@
+mod application_capability_authoring;
 mod application_query_authoring;
 mod authoring_context;
 mod authorization_path_components;

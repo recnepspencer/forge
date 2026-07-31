@@ -1,7 +1,5 @@
 use std::marker::PhantomData;
 
-use crate::application_capability::ApplicationCapabilityContract;
-
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::capabilities::{ApplicationFieldCurrency, EqualityPosture, WritePosture};
@@ -235,17 +233,6 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
             operation: operation.name().to_string(),
             input_type: std::any::type_name::<Input>().to_string(),
         });
-        self
-    }
-
-    pub fn capability<Capability, Operation, Input>(
-        mut self,
-        contract: ApplicationCapabilityContract<Schema, Capability, Operation, Input>,
-    ) -> Self {
-        self.members
-            .push(ApplicationSchemaMember::ApplicationCapability {
-                contract: contract.into_erased(),
-            });
         self
     }
 

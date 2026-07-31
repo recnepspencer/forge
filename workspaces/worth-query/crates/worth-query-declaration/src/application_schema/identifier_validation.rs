@@ -87,6 +87,20 @@ pub(super) fn validate_member_identifiers(
             ApplicationSchemaMember::ApplicationCapability { contract } => {
                 validate_capability_identifiers(contract)?;
             }
+            ApplicationSchemaMember::ApplicationCapabilityContext { context, .. } => {
+                validate_simple_identifier(context)?;
+            }
+            ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
+                context,
+                slot,
+                entity,
+                ..
+            } => {
+                validate_identifiers([context, slot, entity])?;
+            }
+            ApplicationSchemaMember::ApplicationCapabilityProvenance { provenance, .. } => {
+                validate_simple_identifier(provenance)?;
+            }
             ApplicationSchemaMember::Operation { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }

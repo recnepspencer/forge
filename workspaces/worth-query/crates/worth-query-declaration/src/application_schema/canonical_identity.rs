@@ -9,7 +9,7 @@ use super::canonical_decision_read_identity::append_decision_read_target;
 use super::canonical_operation_identity::append_operation_target;
 use super::{ApplicationSchemaIdentity, ApplicationSchemaMember};
 
-const RULE_VERSION: &str = "worth-query-application-schema-v8";
+const RULE_VERSION: &str = "worth-query-application-schema-v9";
 
 pub(super) struct ApplicationSchemaCanonicalHeader<'a> {
     pub owner: &'a str,
@@ -80,6 +80,42 @@ fn append_member(
         ApplicationSchemaMember::ApplicationCapability { contract } => {
             basis.text(format!("{prefix}.kind"), "application-capability");
             append_capability_contract(basis, &format!("{prefix}.contract"), contract);
+        }
+        ApplicationSchemaMember::ApplicationCapabilityContext {
+            context,
+            context_type,
+        } => {
+            basis.text(format!("{prefix}.kind"), "application-capability-context");
+            basis.text(format!("{prefix}.context"), context);
+            basis.text(format!("{prefix}.context-type"), context_type);
+        }
+        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
+            context,
+            context_type,
+            slot,
+            slot_type,
+            entity,
+        } => {
+            basis.text(
+                format!("{prefix}.kind"),
+                "application-capability-context-entity-slot",
+            );
+            basis.text(format!("{prefix}.context"), context);
+            basis.text(format!("{prefix}.context-type"), context_type);
+            basis.text(format!("{prefix}.slot"), slot);
+            basis.text(format!("{prefix}.slot-type"), slot_type);
+            basis.text(format!("{prefix}.entity"), entity);
+        }
+        ApplicationSchemaMember::ApplicationCapabilityProvenance {
+            provenance,
+            provenance_type,
+        } => {
+            basis.text(
+                format!("{prefix}.kind"),
+                "application-capability-provenance",
+            );
+            basis.text(format!("{prefix}.provenance"), provenance);
+            basis.text(format!("{prefix}.provenance-type"), provenance_type);
         }
         ApplicationSchemaMember::Operation {
             operation,

@@ -50,6 +50,21 @@ fn every_application_schema_member_family_changes_identity() {
         },
         principal_binding("PrincipalBinding"),
         application_query("value"),
+        ApplicationSchemaMember::ApplicationCapabilityContext {
+            context: "Context".to_string(),
+            context_type: "ContextType".to_string(),
+        },
+        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
+            context: "Context".to_string(),
+            context_type: "ContextType".to_string(),
+            slot: "Slot".to_string(),
+            slot_type: "SlotType".to_string(),
+            entity: "Entity".to_string(),
+        },
+        ApplicationSchemaMember::ApplicationCapabilityProvenance {
+            provenance: "Provenance".to_string(),
+            provenance_type: "ProvenanceType".to_string(),
+        },
         ApplicationSchemaMember::Operation {
             operation: "Operation".to_string(),
             input_type: "Input".to_string(),
@@ -74,6 +89,55 @@ fn every_application_schema_member_family_changes_identity() {
     ] {
         assert_ne!(identity(&[member]), empty);
     }
+}
+
+#[test]
+fn capability_context_slot_and_provenance_axes_change_schema_identity() {
+    let context =
+        |name: &str, marker: &str| ApplicationSchemaMember::ApplicationCapabilityContext {
+            context: name.to_string(),
+            context_type: marker.to_string(),
+        };
+    assert_ne!(
+        identity(&[context("Context", "ContextType")]),
+        identity(&[context("OtherContext", "ContextType")])
+    );
+    assert_ne!(
+        identity(&[context("Context", "ContextType")]),
+        identity(&[context("Context", "OtherContextType")])
+    );
+
+    let slot = |name: &str, marker: &str, entity: &str| {
+        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
+            context: "Context".to_string(),
+            context_type: "ContextType".to_string(),
+            slot: name.to_string(),
+            slot_type: marker.to_string(),
+            entity: entity.to_string(),
+        }
+    };
+    let baseline = identity(&[slot("Slot", "SlotType", "Entity")]);
+    for changed in [
+        slot("OtherSlot", "SlotType", "Entity"),
+        slot("Slot", "OtherSlotType", "Entity"),
+        slot("Slot", "SlotType", "OtherEntity"),
+    ] {
+        assert_ne!(baseline, identity(&[changed]));
+    }
+
+    let provenance =
+        |name: &str, marker: &str| ApplicationSchemaMember::ApplicationCapabilityProvenance {
+            provenance: name.to_string(),
+            provenance_type: marker.to_string(),
+        };
+    assert_ne!(
+        identity(&[provenance("Provenance", "ProvenanceType")]),
+        identity(&[provenance("OtherProvenance", "ProvenanceType")])
+    );
+    assert_ne!(
+        identity(&[provenance("Provenance", "ProvenanceType")]),
+        identity(&[provenance("Provenance", "OtherProvenanceType")])
+    );
 }
 
 #[test]

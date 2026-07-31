@@ -3,6 +3,8 @@ use bank_domain::{
     schema::{
         ApproveEstateEmergencyAccessCapability, ApproveEstateEmergencyAccessOperation,
         CompleteEstateMandatoryReviewCapability, CompleteEstateMandatoryReviewOperation,
+        RecognizeEstateExecutorCapability, RecognizeEstateExecutorOperation,
+        RequestEstateEmergencyAccessCapability, RequestEstateEmergencyAccessOperation,
         ViewEstateAdministrationCapability, ViewRestrictedEstateOperation,
     },
 };
@@ -30,13 +32,10 @@ fn estate_view_contract_installs_exact_role_and_disclosure_composition() {
         .unwrap();
     let composition = capability.contract().composition();
 
-    assert_eq!(composition.decision().allow().graph().clauses().len(), 4);
+    let allow = composition.decision().allow().graph();
+    assert_eq!(requirement_widths(allow), vec![4]);
     assert_eq!(
-        composition
-            .decision()
-            .allow()
-            .graph()
-            .clauses()
+        all_clauses(allow)
             .iter()
             .map(|clause| clause.path().predicates().len())
             .sum::<usize>(),
@@ -83,7 +82,18 @@ fn emergency_approval_contract_installs_conflict_and_requester_separation() {
         .unwrap();
     let composition = capability.contract().composition();
 
-    assert_eq!(composition.decision().allow().graph().clauses().len(), 3);
+    let allow = composition.decision().allow().graph();
+    assert_eq!(requirement_widths(allow), vec![1, 3]);
+    assert_eq!(
+        all_clauses(allow)
+            .iter()
+            .filter(|clause| !clause.context_anchors().is_empty())
+            .count(),
+        1
+    );
+    assert!(all_clauses(allow)
+        .iter()
+        .any(|clause| anchor_relations(clause) == vec!["EmergencyApprover"]));
     assert_eq!(
         path_relations(
             composition
@@ -103,6 +113,18 @@ fn emergency_approval_contract_installs_conflict_and_requester_separation() {
                 .expect("approval declares requester separation"),
         ),
         vec!["CapabilityEstate", "EmergencyGrant", "EmergencyRequester"]
+    );
+    assert_eq!(
+        anchor_relations(
+            &composition
+                .actors()
+                .distinct_actor()
+                .graph()
+                .unwrap()
+                .requirements()[0]
+                .clauses()[0]
+        ),
+        vec!["EmergencyRequester"]
     );
     assert!(matches!(
         composition.propagation().disclosure(),
@@ -146,7 +168,10 @@ fn mandatory_review_contract_installs_every_actor_exclusion() {
         .distinct_actor()
         .graph()
         .expect("review declares requester and approver separation");
-    assert_eq!(distinct.clauses().len(), 2);
+    assert_eq!(requirement_widths(distinct), vec![2]);
+    assert!(all_clauses(distinct)
+        .iter()
+        .all(|clause| anchor_relations(clause) == vec!["EmergencyReview"]));
     assert_eq!(
         path_relations(distinct),
         vec![
@@ -156,11 +181,56 @@ fn mandatory_review_contract_installs_every_actor_exclusion() {
             "ReviewEstate"
         ]
     );
+    let allow = composition.decision().allow().graph();
+    assert_eq!(requirement_widths(allow), vec![1, 3]);
+    assert!(all_clauses(allow)
+        .iter()
+        .any(|clause| anchor_relations(clause) == vec!["ReviewPrincipal"]));
+}
+
+#[test]
+fn action_actor_rules_are_anchored_to_the_exact_request_entity() {
+    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
+    let recognition = bank
+        .capability(
+            RecognizeEstateExecutorCapability::reference(),
+            RecognizeEstateExecutorOperation::reference(),
+        )
+        .unwrap();
+    let separation = recognition
+        .contract()
+        .composition()
+        .actors()
+        .separation_of_duty()
+        .graph()
+        .expect("executor recognition declares exact legal-authority separation");
+    assert_eq!(
+        path_relations(separation),
+        vec!["LegalAuthorityEstate", "LegalAuthorityHolder"]
+    );
+    assert_eq!(
+        all_clauses(separation)
+            .iter()
+            .flat_map(|clause| anchor_relations(clause))
+            .collect::<Vec<_>>(),
+        vec!["LegalAuthorityHolder"]
+    );
+
+    let request = bank
+        .capability(
+            RequestEstateEmergencyAccessCapability::reference(),
+            RequestEstateEmergencyAccessOperation::reference(),
+        )
+        .unwrap();
+    let allow = request.contract().composition().decision().allow().graph();
+    assert_eq!(requirement_widths(allow), vec![1, 4]);
+    assert!(all_clauses(allow)
+        .iter()
+        .any(|clause| anchor_relations(clause) == vec!["EmergencyRequester"]));
 }
 
 fn path_relations(rule: &ApplicationCapabilityGraphRule) -> Vec<&str> {
-    let mut relations = rule
-        .clauses()
+    let mut relations = all_clauses(rule)
         .iter()
         .flat_map(|clause| clause.path().traversals())
         .map(|traversal| traversal.relation())
@@ -168,6 +238,36 @@ fn path_relations(rule: &ApplicationCapabilityGraphRule) -> Vec<&str> {
     relations.sort_unstable();
     relations.dedup();
     relations
+}
+
+fn all_clauses(
+    rule: &ApplicationCapabilityGraphRule,
+) -> Vec<&worth_query_host::facade::declaration::application_capability::ApplicationCapabilityGraphClause>
+{
+    rule.requirements()
+        .iter()
+        .flat_map(|requirement| requirement.clauses())
+        .collect()
+}
+
+fn requirement_widths(rule: &ApplicationCapabilityGraphRule) -> Vec<usize> {
+    let mut widths = rule
+        .requirements()
+        .iter()
+        .map(|requirement| requirement.clauses().len())
+        .collect::<Vec<_>>();
+    widths.sort_unstable();
+    widths
+}
+
+fn anchor_relations(
+    clause: &worth_query_host::facade::declaration::application_capability::ApplicationCapabilityGraphClause,
+) -> Vec<&str> {
+    clause
+        .context_anchors()
+        .iter()
+        .map(|anchor| anchor.relation().relation())
+        .collect()
 }
 
 fn expected_values(

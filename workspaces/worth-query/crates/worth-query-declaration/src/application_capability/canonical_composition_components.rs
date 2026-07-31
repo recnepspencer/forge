@@ -1,13 +1,16 @@
-use crate::application_schema::application_authorization_path_canonical_components;
+use crate::application_schema::{
+    application_authorization_path_canonical_components, ApplicationAuthorizationTraversalDirection,
+};
 use worth_foundational::facade::canonical_basis_value_for_aspect_value;
 
 use super::{
-    canonical_components::{append_field, structural_count, text},
+    canonical_components::{append_field, append_relation, structural_count, text},
     ApplicationCapabilityCanonicalComponent, ApplicationCapabilityConflictRule,
     ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
     ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-    ApplicationCapabilityGraphRule, ApplicationCapabilityScopeGuard,
-    ApplicationCapabilitySeparationOfDutyRule, ErasedApplicationCapabilityContract,
+    ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+    ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+    ErasedApplicationCapabilityContract,
 };
 
 pub(super) fn append_composition(
@@ -73,23 +76,95 @@ fn append_graph_rule(
 ) {
     structural_count(
         components,
-        format!("{prefix}.clause-count"),
-        rule.clauses().len(),
+        format!("{prefix}.requirement-count"),
+        rule.requirements().len(),
     );
-    for (clause_ordinal, clause) in rule.clauses().iter().enumerate() {
-        let clause_prefix = format!("{prefix}.clause[{clause_ordinal}]");
-        for component in application_authorization_path_canonical_components(clause.path()) {
-            components.push(ApplicationCapabilityCanonicalComponent::new(
-                format!("{clause_prefix}.path.{}", component.locus()),
-                component.value().clone(),
-            ));
-        }
-        append_guard(
+    for (requirement_ordinal, requirement) in rule.requirements().iter().enumerate() {
+        let requirement_prefix = format!("{prefix}.requirement[{requirement_ordinal}]");
+        structural_count(
             components,
-            &format!("{clause_prefix}.guard"),
-            clause.guard(),
+            format!("{requirement_prefix}.alternative-count"),
+            requirement.clauses().len(),
+        );
+        for (clause_ordinal, clause) in requirement.clauses().iter().enumerate() {
+            append_graph_clause(
+                components,
+                &format!("{requirement_prefix}.alternative[{clause_ordinal}]"),
+                clause,
+            );
+        }
+    }
+}
+
+fn append_graph_clause(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    clause_prefix: &str,
+    clause: &super::ApplicationCapabilityGraphClause,
+) {
+    for component in application_authorization_path_canonical_components(clause.path()) {
+        components.push(ApplicationCapabilityCanonicalComponent::new(
+            format!("{clause_prefix}.path.{}", component.locus()),
+            component.value().clone(),
+        ));
+    }
+    append_guard(
+        components,
+        &format!("{clause_prefix}.guard"),
+        clause.guard(),
+    );
+    structural_count(
+        components,
+        format!("{clause_prefix}.context-anchor-count"),
+        clause.context_anchors().len(),
+    );
+    for (anchor_ordinal, anchor) in clause.context_anchors().iter().enumerate() {
+        append_context_anchor(
+            components,
+            &format!("{clause_prefix}.context-anchor[{anchor_ordinal}]"),
+            anchor,
         );
     }
+}
+
+fn append_context_anchor(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    prefix: &str,
+    anchor: &ApplicationCapabilityPathContextAnchor,
+) {
+    append_relation(components, &format!("{prefix}.relation"), anchor.relation());
+    text(
+        components,
+        format!("{prefix}.direction"),
+        match anchor.direction() {
+            ApplicationAuthorizationTraversalDirection::Forward => "forward",
+            ApplicationAuthorizationTraversalDirection::Reverse => "reverse",
+        },
+    );
+    text(
+        components,
+        format!("{prefix}.slot.context"),
+        anchor.slot().context(),
+    );
+    text(
+        components,
+        format!("{prefix}.slot.context-type"),
+        anchor.slot().context_type(),
+    );
+    text(
+        components,
+        format!("{prefix}.slot.name"),
+        anchor.slot().slot(),
+    );
+    text(
+        components,
+        format!("{prefix}.slot.type"),
+        anchor.slot().slot_type(),
+    );
+    text(
+        components,
+        format!("{prefix}.slot.entity"),
+        anchor.slot().entity(),
+    );
 }
 
 fn append_guard(

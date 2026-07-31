@@ -95,6 +95,21 @@ pub enum ApplicationSchemaMember {
     ApplicationCapability {
         contract: ErasedApplicationCapabilityContract,
     },
+    ApplicationCapabilityContext {
+        context: String,
+        context_type: String,
+    },
+    ApplicationCapabilityContextEntitySlot {
+        context: String,
+        context_type: String,
+        slot: String,
+        slot_type: String,
+        entity: String,
+    },
+    ApplicationCapabilityProvenance {
+        provenance: String,
+        provenance_type: String,
+    },
     Operation {
         operation: String,
         input_type: String,

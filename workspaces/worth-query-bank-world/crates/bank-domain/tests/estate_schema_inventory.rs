@@ -19,6 +19,33 @@ fn required_estate_topology_and_policy_contributions_are_present() {
         members.iter().filter_map(policy_name).collect(),
         estate_policies(),
     );
+    assert_eq!(
+        members
+            .iter()
+            .filter_map(capability_context_name)
+            .collect::<BTreeSet<_>>(),
+        ["EstateActionContext"].into_iter().collect()
+    );
+    assert_eq!(
+        members
+            .iter()
+            .filter_map(capability_context_slot_name)
+            .collect::<BTreeSet<_>>(),
+        [
+            "EstateEmergencyAccessSlot",
+            "EstateLegalAuthoritySlot",
+            "EstateMandatoryReviewSlot",
+        ]
+        .into_iter()
+        .collect()
+    );
+    assert_eq!(
+        members
+            .iter()
+            .filter_map(capability_provenance_name)
+            .collect::<BTreeSet<_>>(),
+        ["EstateGrantChainProvenance"].into_iter().collect()
+    );
 }
 
 #[test]
@@ -192,6 +219,29 @@ fn estate_relations() -> BTreeSet<&'static str> {
 
 fn estate_policies() -> BTreeSet<&'static str> {
     ["EstateCapabilityScopePolicy"].into_iter().collect()
+}
+
+fn capability_context_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationCapabilityContext { context, .. } => Some(context),
+        _ => None,
+    }
+}
+
+fn capability_context_slot_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot { slot, .. } => Some(slot),
+        _ => None,
+    }
+}
+
+fn capability_provenance_name(member: &ApplicationSchemaMember) -> Option<&str> {
+    match member {
+        ApplicationSchemaMember::ApplicationCapabilityProvenance { provenance, .. } => {
+            Some(provenance)
+        }
+        _ => None,
+    }
 }
 
 fn estate_operations() -> BTreeSet<&'static str> {

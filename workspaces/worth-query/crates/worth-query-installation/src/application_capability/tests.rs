@@ -7,18 +7,20 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
         ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
-        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextRef,
-        ApplicationCapabilityContractBuilder, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
-        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
-        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValueBinding, ErasedApplicationCapabilityContract,
+        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextEntitySlotRef,
+        ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
+        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
+        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRequirement,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
+        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
+        ErasedApplicationCapabilityContract,
     },
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
@@ -54,7 +56,10 @@ struct Parent;
 struct Grantor;
 struct Grantee;
 struct Context;
+struct OtherContext;
 struct Provenance;
+struct OtherProvenance;
+struct ResourceSlot;
 
 #[derive(Clone, Copy)]
 pub(super) enum Axis {
@@ -71,46 +76,13 @@ pub(super) enum Axis {
     Provenance,
     Context,
     Rule(usize),
+    ContextAnchor,
+    AlternativeGrouping,
+    ConjunctiveGrouping,
     OversizedComposition,
 }
 
-#[test]
-fn every_scope_and_composition_axis_changes_structured_and_digest_identity() {
-    let package = worth_foundational::facade::CanonicalDigestId::new([1; 32]);
-    let schema = worth_foundational::facade::CanonicalDigestId::new([2; 32]);
-    let baseline = contract(None);
-    let baseline = prepare_capability_basis(&package, &schema, &baseline).unwrap();
-    let axes = [
-        Axis::Action,
-        Axis::Resource,
-        Axis::Relation,
-        Axis::Field,
-        Axis::Purpose,
-        Axis::Amount,
-        Axis::Cardinality,
-        Axis::Workflow,
-        Axis::Validity,
-        Axis::Delegation,
-        Axis::Provenance,
-        Axis::Context,
-        Axis::Rule(0),
-        Axis::Rule(1),
-        Axis::Rule(2),
-        Axis::Rule(3),
-        Axis::Rule(4),
-        Axis::Rule(5),
-        Axis::Rule(6),
-    ];
-    for axis in axes {
-        let changed = contract(Some(axis));
-        let changed = prepare_capability_basis(&package, &schema, &changed).unwrap();
-        assert_ne!(baseline.digest(), changed.digest());
-        assert!(matches!(
-            compare(baseline.basis(), changed.basis()),
-            CanonicalComparisonOutcome::Mismatched(_)
-        ));
-    }
-}
+mod identity_axes;
 
 pub(super) fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
     let context_name = if matches!(axis, Some(Axis::Context)) {
@@ -118,21 +90,43 @@ pub(super) fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContrac
     } else {
         "Context"
     };
+    let provenance_name = if matches!(axis, Some(Axis::Provenance)) {
+        "ChangedProvenance"
+    } else {
+        "Provenance"
+    };
     contract_with_axis(
         axis,
         ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier(context_name),
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
+            provenance_name,
+        ),
     )
 }
 
 pub(super) fn contract_with_context<ContextMarker>(
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
 ) -> ErasedApplicationCapabilityContract {
-    contract_with_axis(None, context)
+    contract_with_axis(
+        None,
+        context,
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
+            "Provenance",
+        ),
+    )
 }
 
-fn contract_with_axis<ContextMarker>(
+fn contract_with_markers<ContextMarker, ProvenanceMarker>(
+    context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
+    provenance: ApplicationCapabilityProvenanceRef<Schema, ProvenanceMarker>,
+) -> ErasedApplicationCapabilityContract {
+    contract_with_axis(None, context, provenance)
+}
+
+fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     axis: Option<Axis>,
     context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
+    provenance: ApplicationCapabilityProvenanceRef<Schema, ProvenanceMarker>,
 ) -> ErasedApplicationCapabilityContract {
     let action_value = if matches!(axis, Some(Axis::Action)) {
         2
@@ -163,11 +157,6 @@ fn contract_with_axis<ContextMarker>(
         "ChangedParent"
     } else {
         "Parent"
-    };
-    let provenance_name = if matches!(axis, Some(Axis::Provenance)) {
-        "ChangedProvenance"
-    } else {
-        "Provenance"
     };
     let target = ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(field::<Action>("Action"), action_value),
@@ -209,9 +198,7 @@ fn contract_with_axis<ContextMarker>(
         relation::<Grantor, Principal, Grant>("Grantor", "Principal", "Grant"),
         relation::<Grantee, Principal, Grant>("Grantee", "Principal", "Grant"),
         field_binding::<DelegationLimit>("DelegationLimit"),
-        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
-            provenance_name,
-        ),
+        provenance,
     );
     let contract = ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
@@ -233,6 +220,12 @@ fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {
             let relation_name = Box::leak(format!("PrincipalResource{ordinal}").into_boxed_str());
             ApplicationCapabilityGraphClause::new(graph_path(true, relation_name))
         }))
+    } else if matches!(axis, Some(Axis::ContextAnchor)) {
+        identity_axes::anchored_graph_rule()
+    } else if matches!(axis, Some(Axis::AlternativeGrouping)) {
+        identity_axes::grouped_graph_rule(false)
+    } else if matches!(axis, Some(Axis::ConjunctiveGrouping)) {
+        identity_axes::grouped_graph_rule(true)
     } else {
         graph_rule(true, changed(0))
     };

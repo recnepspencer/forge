@@ -93,7 +93,7 @@ macro_rules! install_view_contract {
 pub(super) fn install(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
-    let schema = install_operations(schema);
+    let schema = install_capability_dimensions(install_operations(schema));
     let schema = install_contract!(
         schema,
         NotifyDeathEstateCapability,
@@ -217,6 +217,17 @@ pub(super) fn install(
     install_view_contracts(schema)
 }
 
+fn install_capability_dimensions(
+    schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
+) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
+    schema
+        .capability_context(EstateActionContext::reference())
+        .capability_context_entity_slot(EstateLegalAuthoritySlot::reference())
+        .capability_context_entity_slot(EstateEmergencyAccessSlot::reference())
+        .capability_context_entity_slot(EstateMandatoryReviewSlot::reference())
+        .capability_provenance(EstateGrantChainProvenance::reference())
+}
+
 fn install_operations(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
@@ -294,7 +305,7 @@ fn constraints(
                 CapabilityValidThroughField::reference(),
             ),
         ),
-        EstateLegalAuthorityContext::reference(),
+        EstateActionContext::reference(),
     )
 }
 

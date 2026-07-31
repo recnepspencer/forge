@@ -34,6 +34,33 @@ macro_rules! worth_query_capability_context {
 }
 
 #[macro_export]
+macro_rules! worth_query_capability_context_entity_slot {
+    (
+        $vis:vis $Slot:ident in $Schema:ty,
+        $Context:ty => $Entity:ty
+    ) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        $vis struct $Slot;
+
+        impl $Slot {
+            pub const fn reference(
+            ) -> $crate::facade::application_capability::ApplicationCapabilityContextEntitySlotRef<
+                $Schema,
+                $Context,
+                Self,
+                $Entity,
+            > {
+                $crate::facade::application_capability::ApplicationCapabilityContextEntitySlotRef::from_schema_identifiers(
+                    <$Context>::reference(),
+                    stringify!($Slot),
+                    <$Entity>::reference(),
+                )
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! worth_query_capability_provenance {
     ($vis:vis $Provenance:ident in $Schema:ty) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]

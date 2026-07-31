@@ -99,6 +99,11 @@ fn append_constraints(
         constraints.validity().not_after(),
     );
     text(components, "constraints.context", constraints.context());
+    text(
+        components,
+        "constraints.context-type",
+        constraints.context_type(),
+    );
 }
 
 fn append_delegation(
@@ -111,6 +116,11 @@ fn append_delegation(
     append_relation(components, "delegation.grantee", delegation.grantee());
     append_field(components, "delegation.limit", delegation.limit());
     text(components, "delegation.provenance", delegation.provenance());
+    text(
+        components,
+        "delegation.provenance-type",
+        delegation.provenance_type(),
+    );
 }
 
 pub(super) fn append_field(
@@ -144,7 +154,7 @@ pub(super) fn append_value_binding(
     ));
 }
 
-fn append_relation(
+pub(super) fn append_relation(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     prefix: &str,
     relation: &ApplicationCapabilityRelationBinding,

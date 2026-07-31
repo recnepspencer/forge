@@ -4,13 +4,14 @@ use crate::application_capability::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
     ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
     ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
-    ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextRef,
-    ApplicationCapabilityContractBuilder, ApplicationCapabilityDecisionComposition,
-    ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
-    ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-    ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-    ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
+    ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextEntitySlotRef,
+    ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
+    ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+    ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
+    ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+    ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
     ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
@@ -49,6 +50,15 @@ struct Grantor;
 struct Grantee;
 struct Context;
 struct Provenance;
+struct ResourceSlot;
+struct MissingResourceSlot;
+struct OtherContext;
+struct OtherResourceSlot;
+
+#[path = "capability_member_closure_tests/context_anchors.rs"]
+mod context_anchors;
+#[path = "capability_member_closure_tests/declared_dimensions.rs"]
+mod declared_dimensions;
 
 #[test]
 fn capability_contract_requires_every_graph_rule_relation() {
@@ -137,6 +147,21 @@ fn members(
             operation: "Operation".to_string(),
             input_type: std::any::type_name::<()>().to_string(),
         },
+        ApplicationSchemaMember::ApplicationCapabilityContext {
+            context: "Context".to_string(),
+            context_type: std::any::type_name::<Context>().to_string(),
+        },
+        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
+            context: "Context".to_string(),
+            context_type: std::any::type_name::<Context>().to_string(),
+            slot: "ResourceSlot".to_string(),
+            slot_type: std::any::type_name::<ResourceSlot>().to_string(),
+            entity: "Resource".to_string(),
+        },
+        ApplicationSchemaMember::ApplicationCapabilityProvenance {
+            provenance: "Provenance".to_string(),
+            provenance_type: std::any::type_name::<Provenance>().to_string(),
+        },
         relation_member("ResourceRelation", "Grant", "Resource"),
         relation_member("WrongResourceRelation", "Principal", "Resource"),
         relation_member("ScopedRelation", "Grant", "Resource"),
@@ -165,6 +190,18 @@ fn contract(
     wrong_resource_topology: bool,
     changed_purpose: bool,
     disclosure: bool,
+) -> crate::application_capability::ErasedApplicationCapabilityContract {
+    contract_with_composition(
+        wrong_resource_topology,
+        changed_purpose,
+        composition(disclosure),
+    )
+}
+
+fn contract_with_composition(
+    wrong_resource_topology: bool,
+    changed_purpose: bool,
+    composition: ApplicationCapabilityComposition,
 ) -> crate::application_capability::ErasedApplicationCapabilityContract {
     let resource = if wrong_resource_topology {
         relation::<WrongResourceRelation, Principal, Resource>(
@@ -216,31 +253,54 @@ fn contract(
     .target(target)
     .constraints(constraints)
     .delegation(delegation)
-    .composition(composition(disclosure))
+    .composition(composition)
     .build()
     .erased()
     .clone()
 }
 
+fn resource_slot<ContextMarker, SlotMarker>(
+    context: &'static str,
+    slot: &'static str,
+) -> ApplicationCapabilityContextEntitySlotRef<Schema, ContextMarker, SlotMarker, Resource> {
+    ApplicationCapabilityContextEntitySlotRef::from_schema_identifiers(
+        ApplicationCapabilityContextRef::from_schema_identifier(context),
+        slot,
+        ApplicationEntityRef::from_schema_identifier("Resource"),
+    )
+}
+
+fn anchored_composition(
+    anchor: ApplicationCapabilityPathContextAnchor,
+) -> ApplicationCapabilityComposition {
+    let allow = ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(
+        principal_resource_path(),
+    )
+    .anchored([anchor])]);
+    ApplicationCapabilityComposition::new(
+        ApplicationCapabilityDecisionComposition::new(
+            ApplicationCapabilityAllowRule::new(allow),
+            ApplicationCapabilityDenyRule::not_applicable(),
+            ApplicationCapabilityConflictRule::not_applicable(),
+        ),
+        ApplicationCapabilityActorComposition::new(
+            ApplicationCapabilitySeparationOfDutyRule::not_applicable(),
+            ApplicationCapabilityDistinctActorRule::not_applicable(),
+        ),
+        ApplicationCapabilityPropagationComposition::new(
+            ApplicationCapabilityDelegationRule::forbidden(),
+            ApplicationCapabilityDisclosureRule::permit([
+                ApplicationCapabilityScopeGuard::requiring([
+                    ApplicationCapabilityAcceptedValues::one_of(field::<Field>("Field"), [1_u64]),
+                ]),
+            ]),
+        ),
+    )
+}
+
 fn composition(disclosure: bool) -> ApplicationCapabilityComposition {
     let allow = ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(
-        ApplicationAuthorizationPathBuilder::from_principal(ApplicationEntityRef::<
-            Schema,
-            Principal,
-        >::from_schema_identifier(
-            "Principal"
-        ))
-        .forward(ApplicationRelationRef::<
-            Schema,
-            PrincipalResource,
-            Principal,
-            Resource,
-        >::from_schema_identifiers(
-            "PrincipalResource",
-            "Principal",
-            "Resource",
-        ))
-        .allow(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource")),
+        principal_resource_path(),
     )]);
     let disclosure = if disclosure {
         ApplicationCapabilityDisclosureRule::permit([ApplicationCapabilityScopeGuard::requiring([
@@ -264,6 +324,23 @@ fn composition(disclosure: bool) -> ApplicationCapabilityComposition {
             disclosure,
         ),
     )
+}
+
+fn principal_resource_path() -> crate::application_schema::ApplicationAuthorizationPath {
+    ApplicationAuthorizationPathBuilder::from_principal(
+        ApplicationEntityRef::<Schema, Principal>::from_schema_identifier("Principal"),
+    )
+    .forward(ApplicationRelationRef::<
+        Schema,
+        PrincipalResource,
+        Principal,
+        Resource,
+    >::from_schema_identifiers(
+        "PrincipalResource",
+        "Principal",
+        "Resource",
+    ))
+    .allow(ApplicationEntityRef::<Schema, Resource>::from_schema_identifier("Resource"))
 }
 
 fn field<FieldMarker>(
