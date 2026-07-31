@@ -57,54 +57,12 @@ struct OtherResourceSlot;
 
 #[path = "capability_member_closure_tests/context_anchors.rs"]
 mod context_anchors;
+#[path = "capability_member_closure_tests/contract_validation.rs"]
+mod contract_validation;
 #[path = "capability_member_closure_tests/declared_dimensions.rs"]
 mod declared_dimensions;
-
-#[test]
-fn capability_contract_requires_every_graph_rule_relation() {
-    let mut members = members(contract(false, false, true));
-    members.retain(|member| {
-        !matches!(
-            member,
-            ApplicationSchemaMember::Relation { relation, .. }
-                if relation == "PrincipalResource"
-        )
-    });
-    assert_eq!(
-        build_from_members(members),
-        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
-    );
-}
-
-#[test]
-fn capability_resource_must_begin_at_the_declared_grant_entity() {
-    let members = members(contract(true, false, true));
-    assert_eq!(
-        build_from_members(members),
-        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
-    );
-}
-
-#[test]
-fn capability_names_are_unique_even_when_other_meaning_differs() {
-    let mut members = members(contract(false, false, true));
-    members.push(ApplicationSchemaMember::ApplicationCapability {
-        contract: contract(false, true, true),
-    });
-    assert_eq!(
-        build_from_members(members),
-        Err(ApplicationSchemaDeclarationDenial::DuplicateApplicationCapability)
-    );
-}
-
-#[test]
-fn field_bound_capability_requires_an_explicit_disclosure_contract() {
-    let members = members(contract(false, false, false));
-    assert_eq!(
-        build_from_members(members),
-        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability)
-    );
-}
+#[path = "capability_member_closure_tests/population_budget.rs"]
+mod population_budget;
 
 fn build_from_members(
     members: Vec<ApplicationSchemaMember>,
@@ -191,7 +149,8 @@ fn contract(
     changed_purpose: bool,
     disclosure: bool,
 ) -> crate::application_capability::ErasedApplicationCapabilityContract {
-    contract_with_composition(
+    contract_with_name_and_composition(
+        "Capability",
         wrong_resource_topology,
         changed_purpose,
         composition(disclosure),
@@ -199,6 +158,20 @@ fn contract(
 }
 
 fn contract_with_composition(
+    wrong_resource_topology: bool,
+    changed_purpose: bool,
+    composition: ApplicationCapabilityComposition,
+) -> crate::application_capability::ErasedApplicationCapabilityContract {
+    contract_with_name_and_composition(
+        "Capability",
+        wrong_resource_topology,
+        changed_purpose,
+        composition,
+    )
+}
+
+fn contract_with_name_and_composition(
+    capability_name: &'static str,
     wrong_resource_topology: bool,
     changed_purpose: bool,
     composition: ApplicationCapabilityComposition,
@@ -246,7 +219,7 @@ fn contract_with_composition(
         ),
     );
     ApplicationCapabilityContractBuilder::new(
-        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
+        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(capability_name),
         ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )

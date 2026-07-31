@@ -1,8 +1,10 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use worth_query_declaration::facade::{
-    application_capability::ErasedApplicationCapabilityContract,
-    application_schema::{ApplicationSchemaBindingIdentity, ApplicationSchemaMember},
+    application_capability::{ApplicationCapabilityRef, ErasedApplicationCapabilityContract},
+    application_schema::{
+        ApplicationOperationRef, ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
+    },
 };
 
 use crate::{
@@ -26,19 +28,26 @@ pub(crate) struct ApplicationCapabilityRegistryKey {
 }
 
 impl ApplicationCapabilityRegistryKey {
-    pub(crate) fn new(
-        name: &str,
-        capability_type: &str,
-        operation: &str,
-        operation_type: &str,
-        input_type: &str,
+    pub(crate) fn from_contract(contract: &ErasedApplicationCapabilityContract) -> Self {
+        Self {
+            name: contract.name().to_string(),
+            capability_type: contract.capability_type().to_string(),
+            operation: contract.operation().to_string(),
+            operation_type: contract.operation_type().to_string(),
+            input_type: contract.input_type().to_string(),
+        }
+    }
+
+    pub(crate) fn from_references<Schema, Capability, Operation, Input>(
+        capability: &ApplicationCapabilityRef<Schema, Capability>,
+        operation: &ApplicationOperationRef<Schema, Operation, Input>,
     ) -> Self {
         Self {
-            name: name.to_string(),
-            capability_type: capability_type.to_string(),
-            operation: operation.to_string(),
-            operation_type: operation_type.to_string(),
-            input_type: input_type.to_string(),
+            name: capability.name().to_string(),
+            capability_type: std::any::type_name::<Capability>().to_string(),
+            operation: operation.name().to_string(),
+            operation_type: std::any::type_name::<Operation>().to_string(),
+            input_type: std::any::type_name::<Input>().to_string(),
         }
     }
 
@@ -96,18 +105,9 @@ pub(crate) fn compile_capability_registry(
             &package.authority_key,
             binding,
             identity.bytes(),
-            contract.capability_type(),
-            contract.operation(),
-            contract.operation_type(),
-            contract.input_type(),
+            contract,
         );
-        let key = ApplicationCapabilityRegistryKey::new(
-            contract.name(),
-            contract.capability_type(),
-            contract.operation(),
-            contract.operation_type(),
-            contract.input_type(),
-        );
+        let key = ApplicationCapabilityRegistryKey::from_contract(contract);
         let compiled = Arc::new(CompiledApplicationCapability {
             canonical,
             identity,
