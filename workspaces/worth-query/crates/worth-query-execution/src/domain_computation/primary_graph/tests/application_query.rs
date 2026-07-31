@@ -15,6 +15,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationQueryControls, WorthQueryPrincipalResolutionMode,
 };
 mod identity_convergence;
+mod disclosure_noninterference;
 mod lane_hostility;
 mod lane_parity;
 mod lifecycle;

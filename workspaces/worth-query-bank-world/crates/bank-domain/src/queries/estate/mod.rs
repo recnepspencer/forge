@@ -1,3 +1,7 @@
+mod customer_disclosure;
+mod customer_disclosure_projection;
+mod customer_disclosure_selectors;
+mod customer_disclosure_shape;
 mod governance;
 mod governance_fields;
 mod governance_projection;
@@ -16,4 +20,9 @@ pub use governance::{
 pub use overview::{
     estate_case, estate_case_overview_definition, EstateCaseOverviewQuery,
     EstateCaseOverviewQueryParameters, EstateCaseOverviewRequest,
+};
+pub use customer_disclosure::{
+    estate_customer_disclosure_definition, estate_customer_identity, EstateCustomerDisclosure,
+    EstateCustomerDisclosureQuery, EstateCustomerDisclosureQueryParameters,
+    EstateCustomerDisclosureRequest,
 };

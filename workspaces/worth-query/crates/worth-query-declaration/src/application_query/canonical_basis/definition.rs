@@ -28,6 +28,7 @@ pub(in crate::application_query) fn prepare_definition_basis<
     append_ordering(&mut entries, definition);
     append_continuation(&mut entries, definition);
     append_authorization(&mut entries, definition);
+    append_disclosure(&mut entries, definition);
     append_live_cause(&mut entries, definition);
     append_controls(&mut entries, definition);
     prepare_artifact(entries)
@@ -216,6 +217,106 @@ fn append_authorization<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
+fn append_disclosure<Schema, Query, Parameters, QueryResult, Scope>(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
+) {
+    let disclosure = definition.disclosure();
+    entries.extend([
+        text(
+            "disclosure.posture",
+            disclosure_name(disclosure.posture()),
+        ),
+        text("disclosure.classification", disclosure.classification()),
+    ]);
+    match (disclosure.capability_name(), disclosure.capability_type()) {
+        (Some(name), Some(marker_type)) => entries.extend([
+            text("disclosure.capability-name", name),
+            text("disclosure.capability-type", marker_type),
+        ]),
+        (None, None) => entries.push(null("disclosure.capability")),
+        _ => unreachable!("typed disclosure capability identity is structurally complete"),
+    }
+    for (index, rule) in disclosure.rules().iter().enumerate() {
+        let path = format!("disclosure.rule[{index}]");
+        let selector = rule.selector();
+        entries.extend([
+            text(format!("{path}.query-type"), selector.query_type()),
+            text(format!("{path}.slot-type"), selector.slot_type()),
+            text(format!("{path}.output"), selector.output_name()),
+            text(
+                format!("{path}.value"),
+                worth_foundational::facade::prepare_aspect_value_identity_basis(
+                    rule.disclosure_value(),
+                )
+                .as_str(),
+            ),
+        ]);
+        if let Some((entity, aspect, field)) = selector.field_contract() {
+            entries.extend([
+                text(
+                    format!("{path}.kind"),
+                    if selector.is_internal_computation() {
+                        "internal-field"
+                    } else {
+                        "result-field"
+                    },
+                ),
+                text(format!("{path}.entity"), entity),
+                text(format!("{path}.aspect"), aspect),
+                text(format!("{path}.field"), field),
+            ]);
+            append_mask(entries, &path, "projection", selector.projection_mask());
+            append_mask(entries, &path, "diagnostic", selector.diagnostic_mask());
+        }
+        if let Some((relation, from, to, direction, cardinality)) = selector.relation_contract() {
+            entries.extend([
+                text(format!("{path}.kind"), "relation"),
+                text(format!("{path}.relation"), relation),
+                text(format!("{path}.from"), from),
+                text(format!("{path}.to"), to),
+                text(
+                    format!("{path}.direction"),
+                    traversal_direction_name(direction),
+                ),
+                text(
+                    format!("{path}.cardinality"),
+                    cardinality_name(cardinality),
+                ),
+            ]);
+        }
+        for (surface_index, surface) in rule.influence().permitted().enumerate() {
+            entries.push(text(
+                format!("{path}.influence[{surface_index}]"),
+                influence_name(surface),
+            ));
+        }
+    }
+}
+
+fn append_mask<Mode>(
+    entries: &mut Vec<CanonicalBasisEntry>,
+    rule_path: &str,
+    name: &str,
+    mask: Option<&worth_foundational::facade::AspectMask<Mode>>,
+) {
+    let Some(mask) = mask else {
+        return;
+    };
+    entries.push(boolean(
+        format!("{rule_path}.{name}.whole-aspect"),
+        mask.is_whole_aspect(),
+    ));
+    for (path_index, field_path) in mask.paths().iter().enumerate() {
+        for (field_index, field) in field_path.fields().iter().enumerate() {
+            entries.push(text(
+                format!("{rule_path}.{name}.path[{path_index}].field[{field_index}]"),
+                field.as_str(),
+            ));
+        }
+    }
+}
+
 fn append_live_cause<Schema, Query, Parameters, QueryResult, Scope>(
     entries: &mut Vec<CanonicalBasisEntry>,
     definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
@@ -315,6 +416,23 @@ const fn disclosure_name(value: ApplicationQueryDisclosurePosture) -> &'static s
     match value {
         ApplicationQueryDisclosurePosture::Public => "public",
         ApplicationQueryDisclosurePosture::InstalledPolicyRequired => "installed-policy",
-        ApplicationQueryDisclosurePosture::PhaseSevenGovernanceRequired => "phase-seven-governance",
+        ApplicationQueryDisclosurePosture::Governed => "governed",
+    }
+}
+
+const fn influence_name(
+    value: crate::application_query::ApplicationQueryObservableInfluence,
+) -> &'static str {
+    use crate::application_query::ApplicationQueryObservableInfluence as Influence;
+    match value {
+        Influence::RowPresence => "row-presence",
+        Influence::Ordering => "ordering",
+        Influence::Pagination => "pagination",
+        Influence::Count => "count",
+        Influence::Aggregate => "aggregate",
+        Influence::Explanation => "explanation",
+        Influence::HistoricalMembership => "historical-membership",
+        Influence::Preview => "preview",
+        Influence::LiveMembership => "live-membership",
     }
 }

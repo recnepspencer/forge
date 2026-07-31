@@ -4,12 +4,19 @@ use std::time::{Duration, Instant};
 mod authentication;
 use authentication::authenticate_external;
 #[path = "fixture/capability.rs"]
-mod capability;
+pub(super) mod capability;
 #[path = "fixture/capability_seed.rs"]
 mod capability_seed;
+#[path = "fixture/capability_access_fixture.rs"]
+mod capability_access_fixture;
+pub(in crate::domain_computation::primary_graph) use capability_access_fixture::admit_touch_account_capability;
+#[path = "fixture/capability_status_mutation.rs"]
+mod capability_status_mutation;
+pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
 pub(super) use capability::{
-    CapabilityAction, CapabilityIdentity, CapabilityPurpose, CapabilityStatus,
-    CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation, TouchAccountCapability,
+    CapabilityAction, CapabilityDisclosure, CapabilityIdentity, CapabilityPurpose,
+    CapabilityStatus, CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
+    TouchAccountCapability,
 };
 #[path = "fixture/application_queries.rs"]
 mod application_queries;
@@ -31,6 +38,22 @@ pub(in crate::domain_computation::primary_graph) use live_account_query::{
     live_account_parameters, LiveAccountActivityCause, LiveAccountActivityQuery,
     LiveAccountActivityResult, LiveActivityEffect, LiveActivityEvent,
 };
+#[path = "fixture/governed_live_query.rs"]
+mod governed_live_query;
+pub(in crate::domain_computation::primary_graph) use governed_live_query::{
+    governed_live_account_parameters, GovernedLiveAccountActivityCause,
+    GovernedLiveAccountActivityQuery, GovernedLiveAccountActivityResult,
+};
+#[path = "fixture/governed_omission_query.rs"]
+mod governed_omission_query;
+pub(in crate::domain_computation::primary_graph) use governed_omission_query::{
+    GovernedAccountOmissionQuery, GovernedAccountOmissionResult,
+};
+#[path = "fixture/invalid_disclosure_queries.rs"]
+mod invalid_disclosure_queries;
+pub(in crate::domain_computation::primary_graph) use invalid_disclosure_queries::{
+    ForbiddenInfluenceQuery, IncompleteDisclosureQuery,
+};
 #[path = "fixture/world_authentication.rs"]
 mod world_authentication;
 #[path = "fixture/world_installation.rs"]
@@ -38,7 +61,8 @@ mod world_installation;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
     installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
-    installed_capability_authorization_world, installed_capability_replacement_world,
+    installed_capability_authorization_world, installed_capability_live_world,
+    installed_capability_replacement_world, installed_capability_world_with_label,
     AuthorizationWorld,
 };
 pub(super) use world_installation::{
@@ -137,7 +161,7 @@ worth_query_application_schema! {
                 .effect(AccountActivityEffect::reference())
                 .effect(LiveActivityEffect::reference())
                 .operation(TouchAccountOperation::reference())
-                .operation_decision_fact_budget(TouchAccountOperation::reference(), 1)
+                .operation_decision_fact_budget(TouchAccountOperation::reference(), 2)
                 .operation_projection_work_budget(TouchAccountOperation::reference(), 32)
                 .operation_requires_ability(
                     TouchAccountOperation::reference(),
@@ -146,6 +170,10 @@ worth_query_application_schema! {
                 .operation_write(
                     TouchAccountOperation::reference(),
                     AccountStatus::reference(),
+                )
+                .operation_write(
+                    TouchAccountOperation::reference(),
+                    AccountLabel::reference(),
                 )
                 .operation_emit(
                     TouchAccountOperation::reference(),
@@ -158,6 +186,10 @@ worth_query_application_schema! {
                 .operation_read_field(
                     TouchAccountOperation::reference(),
                     AccountStatus::reference(),
+                )
+                .operation_read_field(
+                    TouchAccountOperation::reference(),
+                    AccountLabel::reference(),
                 )
                 .operation_expected_fact(
                     TouchAccountOperation::reference(),
@@ -253,7 +285,11 @@ worth_query_application_schema! {
                 .application_query(application_queries::ordered_account_summary_definition())
                 .application_query(nested_account::nested_account_definition())
                 .application_query(forged_selector::forged_selector_definition())
-                .application_query(live_account_query::live_account_activity_definition());
+                .application_query(live_account_query::live_account_activity_definition())
+                .application_query(governed_live_query::governed_live_account_definition())
+                .application_query(governed_omission_query::governed_account_omission_definition())
+                .application_query(invalid_disclosure_queries::incomplete_disclosure_definition())
+                .application_query(invalid_disclosure_queries::forbidden_influence_definition());
             capability::install(schema)
         }
     }

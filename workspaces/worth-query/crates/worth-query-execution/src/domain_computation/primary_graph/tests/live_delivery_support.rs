@@ -1,8 +1,8 @@
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 
 use super::fixture::{
-    Account, AccountStatus, AuthorizationWorld, IdentityExecutionSchema, LiveActivityEffect,
-    LiveActivityEvent, Principal, TouchAccountOperation,
+    Account, AccountLabel, AccountStatus, AuthorizationWorld, IdentityExecutionSchema,
+    LiveActivityEffect, LiveActivityEvent, Principal, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
@@ -60,6 +60,9 @@ fn live_activity_program(
             reader
                 .require_decision_field(projected, AccountStatus::reference())
                 .unwrap();
+            reader
+                .require_decision_field(projected, AccountLabel::reference())
+                .unwrap();
         })
         .unwrap()
         .into_parts();
@@ -75,7 +78,7 @@ fn live_activity_program(
     effects
         .write_field(
             &account,
-            AccountStatus::reference(),
+            AccountLabel::reference(),
             "live-delivered".to_owned(),
         )
         .unwrap();

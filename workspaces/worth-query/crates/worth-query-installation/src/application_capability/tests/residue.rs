@@ -17,9 +17,7 @@ fn warm_capability_lookup_contains_no_canonical_or_digest_work() {
     assert!(warm_lookup.contains(".capability_registry"));
     assert!(warm_lookup.contains(".get(&key)"));
     assert!(warm_lookup.contains(".cloned()"));
-    assert!(warm_lookup.contains("basis_preparations: 0"));
-    assert!(warm_lookup.contains("digest_derivations: 0"));
-    assert!(warm_lookup.contains("digest_text_materializations: 0"));
+    assert!(warm_lookup.contains("WorthQueryCanonicalWorkEvidence::zero()"));
 }
 
 #[test]

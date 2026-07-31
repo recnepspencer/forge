@@ -27,7 +27,7 @@ mod relation_distribution;
 mod work;
 
 use bounded_ordering::order_collection;
-use relation_attachment::attach_relation;
+use relation_attachment::{advance_omitted_relation, attach_relation};
 use work::ResultTreeWork;
 
 pub(super) struct MaterializedApplicationResultTree {
@@ -73,6 +73,7 @@ pub(super) fn materialize_result_tree(
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
     contract: &WorthQueryInstalledGraphReadContract,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     root_ids: &[EntityId],
     maximum_work: usize,
     collection_selection: ResultTreeCollectionSelection,
@@ -89,6 +90,7 @@ pub(super) fn materialize_result_tree(
         projection,
         graph,
         contract,
+        governance,
         "root",
         contract.root_entity(),
         root_ids,
@@ -159,6 +161,7 @@ fn project_nodes(
     projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
     contract: &WorthQueryInstalledGraphReadContract,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     result_path: &str,
     entity_name: &str,
     entity_ids: &[EntityId],
@@ -166,7 +169,7 @@ fn project_nodes(
     collection_selection: &mut ActiveResultTreeCollectionSelection,
     result_buffer: &mut WorthQueryApplicationResultBufferReservation,
 ) -> Result<Vec<WorthQueryApplicationProjectionNode>, WorthQueryApplicationReadExecutionDenial> {
-    let fields = direct_projections(contract, result_path);
+    let fields = direct_projections(contract, governance, result_path);
     let relations = direct_relations(contract, result_path);
     work.charge_projection(entity_ids.len(), fields.len(), result_path)?;
     let mut nodes = allocate_claimed_result_vector::<WorthQueryApplicationProjectionNode>(
@@ -204,11 +207,23 @@ fn project_nodes(
         ));
     }
     for relation in relations {
+        if !governance.is_disclosed(relation.slot_key_identity().as_ref()) {
+            advance_omitted_relation(
+                runtime,
+                graph,
+                relation,
+                &nodes,
+                work,
+                collection_selection,
+            )?;
+            continue;
+        }
         attach_relation(
             runtime,
             projection,
             graph,
             contract,
+            governance,
             relation,
             &mut nodes,
             work,
@@ -261,12 +276,16 @@ pub(super) fn allocate_claimed_result_vector<T>(
 
 fn direct_projections<'a>(
     contract: &'a WorthQueryInstalledGraphReadContract,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     parent: &str,
 ) -> Vec<&'a WorthQueryInstalledGraphProjection> {
     contract
         .projections()
         .iter()
-        .filter(|projection| parent_path(projection.result_path()) == Some(parent))
+        .filter(|projection| {
+            parent_path(projection.result_path()) == Some(parent)
+                && governance.is_disclosed(projection.slot_key_identity().as_ref())
+        })
         .collect()
 }
 

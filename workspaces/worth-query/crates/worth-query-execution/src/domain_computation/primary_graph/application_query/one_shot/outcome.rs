@@ -61,6 +61,7 @@ where
 
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         kernel,
+        &plan.governance,
         || admit_request(request, plan.query.name()),
         |projection: crate::domain_computation::primary_graph::WorthQueryApplicationProjectionDenial| {
             denial(
@@ -91,6 +92,7 @@ where
         plan.graph_read_plan,
         plan.canonical_work,
         authorization_work,
+        plan.governance.receipt(),
         kernel_receipt,
     );
     Ok(WorthQueryApplicationOneShotResult {

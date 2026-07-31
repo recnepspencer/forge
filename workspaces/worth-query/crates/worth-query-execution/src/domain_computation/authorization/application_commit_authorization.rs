@@ -2,33 +2,55 @@
 
 use std::marker::PhantomData;
 
-use super::WorthQueryOperationAdmissionIdentity;
-use crate::domain_computation::primary_graph::WorthQueryApplicationCommitSerialization;
+use crate::domain_computation::primary_graph::{
+    WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitSerialization,
+};
 
-pub(in crate::domain_computation) struct WorthQueryApplicationCommitAuthorization<'serialization> {
-    admission_identity: WorthQueryOperationAdmissionIdentity,
+pub(in crate::domain_computation) struct WorthQueryApplicationCommitAuthorization<
+    'serialization,
+    'admission,
+    Schema,
+    Operation,
+    Input,
+    Scope,
+> {
+    admission: &'admission WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
     _serialization: PhantomData<&'serialization ()>,
 }
 
-impl<'serialization> WorthQueryApplicationCommitAuthorization<'serialization> {
+impl<'serialization, 'admission, Schema, Operation, Input, Scope>
+    WorthQueryApplicationCommitAuthorization<
+        'serialization,
+        'admission,
+        Schema,
+        Operation,
+        Input,
+        Scope,
+    >
+{
     pub(super) fn mint(
         _serialization: &'serialization WorthQueryApplicationCommitSerialization<'_>,
-        admission_identity: WorthQueryOperationAdmissionIdentity,
+        admission: &'admission WorthQueryAdmittedApplicationOperation<
+            Schema,
+            Operation,
+            Input,
+            Scope,
+        >,
     ) -> Self {
         Self {
-            admission_identity,
+            admission,
             _serialization: PhantomData,
         }
     }
 
-    pub(in crate::domain_computation) fn govern<Outcome>(
+    pub(in crate::domain_computation) fn govern<Subject, Outcome>(
         self,
-        admission_identity: WorthQueryOperationAdmissionIdentity,
-        transition: impl FnOnce() -> Outcome,
-    ) -> Result<Outcome, ()> {
-        if self.admission_identity != admission_identity {
-            return Err(());
+        subject: Subject,
+        transition: impl FnOnce(Subject) -> Outcome,
+    ) -> Result<Outcome, Subject> {
+        if self.admission.validate_current_authority().is_err() {
+            return Err(subject);
         }
-        Ok(transition())
+        Ok(transition(subject))
     }
 }

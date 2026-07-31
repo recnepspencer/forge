@@ -65,4 +65,10 @@ impl<Query, QueryResult> WorthQueryApplicationPreviewResult<Query, QueryResult> 
     pub fn into_rows(self) -> Vec<QueryResult> {
         self.rows
     }
+
+    pub fn into_admitted_disclosed(
+        self,
+    ) -> super::WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult> {
+        super::WorthQueryAdmittedDisclosedApplicationResult::new(self.rows, self.receipt)
+    }
 }

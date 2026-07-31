@@ -81,6 +81,7 @@ pub(super) fn read_bounded_root_rows<
         plan.basis.snapshot_handle(),
         graph,
         contract,
+        &plan.governance,
         &selection.candidates,
         plan.controls
             .maximum_work()
@@ -173,6 +174,7 @@ pub(super) fn read_continuation_page<
         plan.basis.snapshot_handle(),
         graph,
         contract,
+        &plan.governance,
         &selection.candidates,
         plan.controls
             .maximum_work()

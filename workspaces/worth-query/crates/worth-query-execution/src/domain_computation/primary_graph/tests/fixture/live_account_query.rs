@@ -31,6 +31,14 @@ impl LiveActivityEvent {
             activity: activity.into(),
         }
     }
+
+    pub(super) fn account(&self) -> &str {
+        &self.account
+    }
+
+    pub(super) fn activity(&self) -> &str {
+        &self.activity
+    }
 }
 
 impl worth_query_declaration::facade::application_schema::ApplicationEffectPayload

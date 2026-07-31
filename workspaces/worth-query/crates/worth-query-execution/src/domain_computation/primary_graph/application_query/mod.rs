@@ -1,5 +1,6 @@
 mod access_context;
 mod access_receipt;
+mod admitted_result;
 mod admission;
 mod admission_preparation;
 mod authorization_observation;
@@ -11,6 +12,7 @@ mod continuation;
 mod control_validation;
 mod controls;
 mod denial;
+mod disclosure;
 mod execution_shape;
 mod execution_validation;
 mod graph_read_plan_binding;
@@ -53,6 +55,10 @@ pub use controls::{
 pub use denial::{
     WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
 };
+pub use admitted_result::WorthQueryAdmittedDisclosedApplicationResult;
+pub use disclosure::{
+    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
+};
 pub use graph_read_plan_binding::WorthQueryAdmittedApplicationQueryPlan;
 pub use historical::WorthQueryApplicationHistoricalResult;
 pub use live::{
@@ -68,6 +74,7 @@ pub use one_shot::{
 };
 pub use preview::WorthQueryApplicationPreviewResult;
 pub use projection::{
+    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission,
     WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
     WorthQueryApplicationProjectionDenialKind, WorthQueryApplicationProjectionRow,
     WorthQueryApplicationProjectionRows,

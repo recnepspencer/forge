@@ -32,10 +32,12 @@ pub use account_summary::{
     AccountSummaryQueryParameters, AccountSummaryRequest,
 };
 pub use estate::{
-    estate_case, estate_case_overview_definition, estate_governance_context,
-    estate_governance_definition, EstateCaseOverviewQuery, EstateCaseOverviewQueryParameters,
-    EstateCaseOverviewRequest, EstateGovernanceQuery, EstateGovernanceQueryParameters,
-    EstateGovernanceRequest,
+    estate_case, estate_case_overview_definition, estate_customer_disclosure_definition,
+    estate_customer_identity, estate_governance_context, estate_governance_definition,
+    EstateCaseOverviewQuery, EstateCaseOverviewQueryParameters, EstateCaseOverviewRequest,
+    EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
+    EstateCustomerDisclosureQueryParameters, EstateCustomerDisclosureRequest,
+    EstateGovernanceQuery, EstateGovernanceQueryParameters, EstateGovernanceRequest,
 };
 pub use institution_audit::{
     institution_audit, institution_audit_definition, InstitutionAuditQuery,

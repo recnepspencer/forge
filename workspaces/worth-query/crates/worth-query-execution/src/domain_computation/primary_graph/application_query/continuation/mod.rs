@@ -17,7 +17,10 @@ pub use denial::{
 };
 
 use super::{
-    authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial},
+    authorized_read::{
+        execute_authorized_read, refresh_governed_authorization,
+        WorthQueryAuthorizedApplicationReadDenial,
+    },
     execution_validation::{
         validate_execution_lifetimes, validate_execution_plan, validate_live_basis,
         WorthQueryApplicationQueryExecutionValidationDenial,
@@ -57,7 +60,7 @@ where
         Scope,
     >(
         &self,
-        plan: WorthQueryAdmittedApplicationQueryPlan<
+        mut plan: WorthQueryAdmittedApplicationQueryPlan<
             '_,
             Schema,
             Query,
@@ -86,6 +89,8 @@ where
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
         validate_live_basis(plan.basis.is_live())
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
+        refresh_governed_authorization(self, &mut plan)
+            .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
         let expected_generation = plan
             .continuation_state
             .as_ref()
@@ -151,6 +156,20 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
     ) {
         (self.rows, self.continuation, self.receipt)
     }
+
+    pub fn into_admitted_disclosed(
+        self,
+    ) -> (
+        super::WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
+        Option<
+            WorthQueryApplicationQueryContinuation<Schema, Query, Parameters, QueryResult, Scope>,
+        >,
+    ) {
+        (
+            super::WorthQueryAdmittedDisclosedApplicationResult::new(self.rows, self.receipt),
+            self.continuation,
+        )
+    }
 }
 
 fn map_authorized_read_denial(
@@ -158,6 +177,10 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryApplicationContinuationDenial {
     let (kind, subject) = match denial_value {
+        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => (
+            WorthQueryApplicationContinuationDenialKind::StalePrincipal,
+            subject.to_string(),
+        ),
         WorthQueryAuthorizedApplicationReadDenial::StaleScope
         | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => (
             WorthQueryApplicationContinuationDenialKind::StaleScope,

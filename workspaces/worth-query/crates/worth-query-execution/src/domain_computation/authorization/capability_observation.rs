@@ -54,6 +54,7 @@ pub(super) fn observe_capability(
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     validate_projection_shape(installed, request)?;
+    let grant_path_index = installed.grant_witness.path_index();
     let paths = installed
         .paths
         .iter()
@@ -61,7 +62,7 @@ pub(super) fn observe_capability(
         .map(|(index, template)| {
             let mut plan = template.plan.clone();
             let mut predicates = plan.predicates().to_vec();
-            if index == 0 {
+            if index == grant_path_index {
                 append_grant_predicates(installed, request, sample, &mut predicates);
                 if let (Some(traversal), Some(entity)) =
                     (&installed.request.related_relation, request.related)
@@ -94,7 +95,7 @@ pub(super) fn observe_capability(
                         .ok_or_else(|| projection_denial(&anchor.slot))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            if index == 0 {
+            if index == grant_path_index {
                 if let Some(grant) = exact_grant {
                     anchors.push(RelationalAuthorizationEntityAnchor::new(
                         1,
@@ -151,9 +152,9 @@ pub(super) fn observe_capability(
     }
     let grant = evidence
         .paths()
-        .first()
+        .get(installed.grant_witness.path_index())
         .and_then(|path| path.witness())
-        .and_then(|witness| witness.entity_at(1))
+        .and_then(|witness| witness.entity_at(installed.grant_witness.entity_ordinal()))
         .ok_or_else(|| invalid_policy(installed.contract.name()))?;
     if exact_grant.is_some_and(|expected| expected != grant) {
         return Err(WorthQueryOperationAuthorizationDenial::new(

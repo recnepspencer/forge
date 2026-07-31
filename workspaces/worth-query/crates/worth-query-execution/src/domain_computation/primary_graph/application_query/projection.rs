@@ -10,6 +10,9 @@ use worth_query_installation::facade::{
 };
 
 mod projected_tree;
+mod disclosed;
+
+pub use disclosed::{WorthQueryApplicationDisclosed, WorthQueryApplicationOmission};
 
 pub(super) use projected_tree::{
     WorthQueryApplicationProjectedField, WorthQueryApplicationProjectedRelation,
@@ -21,9 +24,11 @@ pub enum WorthQueryApplicationProjectionDenialKind {
     FieldNotProjected,
     FieldContractMismatch,
     FieldTypeMismatch,
+    FieldOmitted,
     RelationNotProjected,
     RelationContractMismatch,
     RelationCardinalityMismatch,
+    RelationOmitted,
     DomainProjectionRejected,
 }
 
@@ -40,11 +45,13 @@ pub struct WorthQueryApplicationProjectionDenial {
 /// installed application query.
 pub struct WorthQueryApplicationProjectionRow<'row, Schema, Query> {
     node: &'row WorthQueryApplicationProjectionNode,
+    governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
     _marker: PhantomData<fn() -> (Schema, Query)>,
 }
 
 pub struct WorthQueryApplicationProjectionRows<'row, Schema, Query> {
     rows: &'row [WorthQueryApplicationProjectionNode],
+    governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
     _marker: PhantomData<fn() -> (Schema, Query)>,
 }
 
@@ -95,24 +102,9 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Query: 'static,
         Slot: 'static,
     {
-        let projected = self.node.field(selector.slot_type()).ok_or_else(|| {
-            projection_denial(
-                WorthQueryApplicationProjectionDenialKind::FieldNotProjected,
-                selector.slot_type(),
-            )
-        })?;
-        if !projected.matches(&selector) {
-            return Err(projection_denial(
-                WorthQueryApplicationProjectionDenialKind::FieldContractMismatch,
-                projected.result_path(),
-            ));
-        }
-        Value::from_foundational_value(projected.value()).ok_or_else(|| {
-            projection_denial(
-                WorthQueryApplicationProjectionDenialKind::FieldTypeMismatch,
-                projected.result_path(),
-            )
-        })
+        self.disclosed_field(selector)?.into_required(
+            WorthQueryApplicationProjectionDenialKind::FieldOmitted,
+        )
     }
 
     pub fn optional<Slot, Relation, From, To, Direction>(
@@ -139,7 +131,10 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         let relation = self.relation(&selector)?;
         match relation.rows() {
             [] => Ok(None),
-            [row] => Ok(Some(WorthQueryApplicationProjectionRow::new(row))),
+            [row] => Ok(Some(WorthQueryApplicationProjectionRow::new(
+                row,
+                self.governance,
+            ))),
             _ => Err(relation_cardinality_denial(relation)),
         }
     }
@@ -167,7 +162,10 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     {
         let relation = self.relation(&selector)?;
         match relation.rows() {
-            [row] => Ok(WorthQueryApplicationProjectionRow::new(row)),
+            [row] => Ok(WorthQueryApplicationProjectionRow::new(
+                row,
+                self.governance,
+            )),
             _ => Err(relation_cardinality_denial(relation)),
         }
     }
@@ -196,6 +194,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         let relation = self.relation(&selector)?;
         Ok(WorthQueryApplicationProjectionRows {
             rows: relation.rows(),
+            governance: self.governance,
             _marker: PhantomData,
         })
     }
@@ -219,25 +218,18 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Query: 'static,
         Slot: 'static,
     {
-        let projected = self.node.relation(selector.slot_type()).ok_or_else(|| {
-            projection_denial(
-                WorthQueryApplicationProjectionDenialKind::RelationNotProjected,
-                selector.slot_type(),
-            )
-        })?;
-        if projected.matches(selector) {
-            Ok(projected)
-        } else {
-            Err(projection_denial(
-                WorthQueryApplicationProjectionDenialKind::RelationContractMismatch,
-                projected.result_path(),
-            ))
-        }
+        self.disclosed_relation(selector)?.into_required(
+            WorthQueryApplicationProjectionDenialKind::RelationOmitted,
+        )
     }
 
-    pub(super) const fn new(node: &'row WorthQueryApplicationProjectionNode) -> Self {
+    pub(super) const fn new(
+        node: &'row WorthQueryApplicationProjectionNode,
+        governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
+    ) -> Self {
         Self {
             node,
+            governance,
             _marker: PhantomData,
         }
     }
@@ -257,7 +249,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRows<'row, Schema, Quer
     ) -> impl ExactSizeIterator<Item = WorthQueryApplicationProjectionRow<'_, Schema, Query>> {
         self.rows
             .iter()
-            .map(WorthQueryApplicationProjectionRow::new)
+            .map(|row| WorthQueryApplicationProjectionRow::new(row, self.governance))
     }
 }
 

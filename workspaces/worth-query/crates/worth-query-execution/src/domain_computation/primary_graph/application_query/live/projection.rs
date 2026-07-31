@@ -36,7 +36,11 @@ pub(super) fn finalize_live_projection<
     kernel: RawLiveKernelOutcome,
     authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
 ) -> Result<
-    (QueryResult, WorthQueryApplicationQueryAccessReceipt),
+    (
+        QueryResult,
+        WorthQueryApplicationQueryAccessReceipt,
+        super::super::disclosure::WorthQueryApplicationQueryGovernance,
+    ),
     WorthQueryLiveProjectionFinalizationDenial,
 >
 where
@@ -53,7 +57,10 @@ where
     let [node] = raw.rows.as_slice() else {
         return Err(WorthQueryLiveProjectionFinalizationDenial::ResultShape);
     };
-    let result = QueryResult::project(&WorthQueryApplicationProjectionRow::new(node))
+    let result = QueryResult::project(&WorthQueryApplicationProjectionRow::new(
+        node,
+        &plan.governance,
+    ))
         .map_err(|denial| WorthQueryLiveProjectionFinalizationDenial::Projection(denial.kind()))?;
     drop(raw.rows);
     let result_buffer = result_buffer.release();
@@ -91,7 +98,8 @@ where
             total_work_units: raw.actual_work,
             result_buffer: Some(result_buffer),
             basis_released: released,
+            disclosure: plan.governance.receipt(),
         },
     );
-    Ok((result, receipt))
+    Ok((result, receipt, plan.governance))
 }

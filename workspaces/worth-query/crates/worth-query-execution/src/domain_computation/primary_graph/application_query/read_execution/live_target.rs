@@ -57,6 +57,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn read_live
         plan.basis.snapshot_handle(),
         graph,
         contract,
+        &plan.governance,
         &selection.candidates,
         plan.controls
             .maximum_work()

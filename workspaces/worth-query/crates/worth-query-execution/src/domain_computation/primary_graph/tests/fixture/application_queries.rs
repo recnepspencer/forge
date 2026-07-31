@@ -2,14 +2,16 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
     ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-    ApplicationQueryOrderingDirection, ApplicationQueryParameterRef, ApplicationQueryReference,
-    ApplicationQueryResultFieldRef, ApplicationQueryResultShapeBuilder, ApplicationQueryRootPath,
+    ApplicationQueryInfluenceContract, ApplicationQueryOrderingDirection,
+    ApplicationQueryParameterRef, ApplicationQueryReference, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultShapeBuilder, ApplicationQueryRootPath,
 };
 use worth_query_declaration::worth_query_application_query;
 
 use super::{
     Account, AccountAllActivity, AccountLabel, AccountPrimaryActivity, AccountSecondaryActivity,
     AccountStatus, Activity, ActivityFacts, ActivitySequence, IdentityExecutionSchema, ViewAccount,
+    TouchAccountCapability,
 };
 
 pub struct AccountSummaryParameters;
@@ -266,7 +268,25 @@ pub(super) fn governed_account_summary_definition() -> ApplicationQueryDefinitio
 > {
     definition(
         GovernedAccountSummaryQuery::reference(),
-        ApplicationQueryDisclosureContract::installed_policy("account-holder"),
+        ApplicationQueryDisclosureContract::governed_by(
+            "account-holder",
+            TouchAccountCapability::reference(),
+        )
+            .use_field_by(
+                AccountStatus::reference(),
+                super::CapabilityDisclosure::AccountActivity,
+                ApplicationQueryInfluenceContract::permit_all(),
+            )
+            .disclose_field_by(
+                status_result_field::<GovernedAccountSummaryQuery>(),
+                super::CapabilityDisclosure::AccountActivity,
+                ApplicationQueryInfluenceContract::forbid_all(),
+            )
+            .disclose_field_by(
+                label_result_field::<GovernedAccountSummaryQuery>(),
+                super::CapabilityDisclosure::AccountActivity,
+                ApplicationQueryInfluenceContract::forbid_all(),
+            ),
         false,
         false,
         false,

@@ -112,6 +112,8 @@ where
     pub(super) runtime_authority:
         crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
     pub(super) binding_identity: ApplicationSchemaBindingIdentity,
+    pub(super) capability: Arc<str>,
+    pub(super) capability_type: Arc<str>,
     pub(super) operation: Arc<str>,
     pub(super) principal_entity_id: worth_relational::facade::identity::EntityId,
     pub(super) input: Input,
@@ -140,6 +142,8 @@ where
     pub(super) fn mint(
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
+        capability: impl Into<Arc<str>>,
+        capability_type: impl Into<Arc<str>>,
         operation: impl Into<Arc<str>>,
         principal_entity_id: worth_relational::facade::identity::EntityId,
         input: Input,
@@ -160,6 +164,8 @@ where
         Self {
             runtime_authority,
             binding_identity,
+            capability: capability.into(),
+            capability_type: capability_type.into(),
             operation: operation.into(),
             principal_entity_id,
             input,
@@ -175,6 +181,58 @@ where
 
     pub fn operation(&self) -> &str {
         &self.operation
+    }
+
+    pub(in crate::domain_computation) fn capability_name(&self) -> &str {
+        &self.capability
+    }
+
+    pub(in crate::domain_computation) fn capability_type(&self) -> &str {
+        &self.capability_type
+    }
+
+    pub(in crate::domain_computation) const fn runtime_authority(
+        &self,
+    ) -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity {
+        self.runtime_authority
+    }
+
+    pub(in crate::domain_computation) const fn binding_identity(
+        &self,
+    ) -> &ApplicationSchemaBindingIdentity {
+        &self.binding_identity
+    }
+
+    pub(in crate::domain_computation) const fn principal_entity_id(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.principal_entity_id
+    }
+
+    pub(in crate::domain_computation) fn resource_entity_id(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.resolved.resource.entity_id()
+    }
+
+    pub(in crate::domain_computation) fn disclosure_value(
+        &self,
+    ) -> Option<&worth_foundational::facade::AspectValue> {
+        self.projection.field_value()
+    }
+
+    pub(in crate::domain_computation) const fn authentication_valid_until(&self) -> Instant {
+        self.authentication_valid_until
+    }
+
+    pub(in crate::domain_computation) const fn request_scope(&self) -> &WorthQueryRequestScope {
+        &self.request_scope
+    }
+
+    pub(in crate::domain_computation) fn into_query_authorization(
+        self,
+    ) -> WorthQueryRetainedCapabilityAuthorization {
+        self.authorization
     }
 
     pub const fn projected_request(

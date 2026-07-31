@@ -27,7 +27,10 @@ use crate::domain_computation::{
     managed_run::WorthQueryManagedLowerExecutionBasis,
     primary_graph::{
         application_query::{
-            authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial},
+            authorized_read::{
+                execute_authorized_read, refresh_governed_authorization,
+                WorthQueryAuthorizedApplicationReadDenial,
+            },
             read_execution::{read_live_target, WorthQueryApplicationReadExecutionDenialKind},
             WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
             WorthQueryApplicationQueryAdmissionDenial,
@@ -60,6 +63,7 @@ pub struct WorthQueryApplicationLiveLease<
     scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
     parameters: ApplicationQueryParameterSet<Query>,
     controls: WorthQueryApplicationLiveControls,
+    governance: super::super::disclosure::WorthQueryApplicationQueryGovernance,
     scope_identity: AspectValue,
     basis: Option<WorthQueryManagedLowerExecutionBasis>,
     queue: WorthQueryLiveCauseQueue<Binding::Payload>,
@@ -178,15 +182,24 @@ where
             self.controls.maximum_work_per_delivery(),
             self.controls.request(),
         );
-        let plan = match self.runtime.admit_application_query(
+        let governance = std::mem::replace(
+            &mut self.governance,
+            super::super::disclosure::WorthQueryApplicationQueryGovernance::Public,
+        );
+        let mut plan = match self.runtime.readmit_application_query_live(
             &self.query,
             &access,
+            governance,
             self.parameters.clone(),
             controls,
         ) {
             Ok(plan) => plan,
             Err(denial) => return self.handle_admission_denial(denial),
         };
+        if let Err(denial) = refresh_governed_authorization(self.runtime, &mut plan) {
+            let _ = plan.basis.release();
+            return self.handle_read_denial(denial);
+        }
         let Some(graph) = self.runtime.runtime.primary_graph() else {
             let _ = plan.basis.release();
             return WorthQueryApplicationLiveOutcome::Unavailable;
@@ -210,7 +223,8 @@ where
                 }
             };
         match finalize_live_projection(plan, raw, authorization_work) {
-            Ok((result, receipt)) => {
+            Ok((result, receipt, governance)) => {
+                self.governance = governance;
                 if !self.acknowledge_front() {
                     return WorthQueryApplicationLiveOutcome::Unavailable;
                 }
@@ -267,6 +281,12 @@ where
             | WorthQueryApplicationQueryAdmissionDenialKind::ScopeTypeMismatch => {
                 self.acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::StaleScope)
             }
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureGovernanceRequired
+            | WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch
+            | WorthQueryApplicationQueryAdmissionDenialKind::InternalComputationDenied => self
+                .acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::AuthorizationDenied(
+                    crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                )),
             _ => WorthQueryApplicationLiveOutcome::Unavailable,
         }
     }
@@ -276,6 +296,9 @@ where
         denial: WorthQueryAuthorizedApplicationReadDenial,
     ) -> WorthQueryApplicationLiveOutcome<Query, QueryResult> {
         match denial {
+            WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => {
+                self.acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::StalePrincipal)
+            }
             WorthQueryAuthorizedApplicationReadDenial::StaleScope
             | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => {
                 self.acknowledge_and_terminate(WorthQueryApplicationLiveOutcome::StaleScope)

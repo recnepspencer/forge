@@ -244,6 +244,28 @@ fn authority_identity(
     authority_transcript(key, identity, operation, input_type).finish()
 }
 
+fn authority_transcript(
+    key: &PackageAuthorityKey,
+    identity: &ApplicationSchemaBindingIdentity,
+    operation: &str,
+    input_type: &str,
+) -> AuthorityTranscript {
+    let mut transcript =
+        AuthorityTranscript::new(key, AuthoritySealDomain::InstalledApplicationOperation);
+    transcript.bytes("package", identity.package_identity().bytes());
+    transcript.bytes("schema", identity.schema_identity().bytes());
+    transcript.text("operation", operation);
+    transcript.text("input-type", input_type);
+    transcript
+}
+
+pub(super) fn operation_denial(
+    kind: WorthQueryApplicationOperationInstallationDenialKind,
+    operation: &str,
+) -> WorthQueryApplicationOperationInstallationDenial {
+    WorthQueryApplicationOperationInstallationDenial::new(kind, operation)
+}
+
 #[cfg(test)]
 mod authorization_mode_tests {
     use super::*;
@@ -268,26 +290,4 @@ mod authorization_mode_tests {
             WorthQueryApplicationOperationInstallationDenialKind::ConflictingAuthorizationContract
         );
     }
-}
-
-fn authority_transcript(
-    key: &PackageAuthorityKey,
-    identity: &ApplicationSchemaBindingIdentity,
-    operation: &str,
-    input_type: &str,
-) -> AuthorityTranscript {
-    let mut transcript =
-        AuthorityTranscript::new(key, AuthoritySealDomain::InstalledApplicationOperation);
-    transcript.bytes("package", identity.package_identity().bytes());
-    transcript.bytes("schema", identity.schema_identity().bytes());
-    transcript.text("operation", operation);
-    transcript.text("input-type", input_type);
-    transcript
-}
-
-pub(super) fn operation_denial(
-    kind: WorthQueryApplicationOperationInstallationDenialKind,
-    operation: &str,
-) -> WorthQueryApplicationOperationInstallationDenial {
-    WorthQueryApplicationOperationInstallationDenial::new(kind, operation)
 }

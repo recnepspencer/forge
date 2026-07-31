@@ -280,7 +280,7 @@ fn scope_authorization_revocation_after_admission_denies_under_the_execution_loc
     assert_eq!(
         denial.kind(),
         WorthQueryApplicationOneShotDenialKind::Authorization(
-            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
         )
     );
     assert!(!basis_is_live(&world, &basis));

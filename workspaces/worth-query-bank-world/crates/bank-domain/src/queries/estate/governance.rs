@@ -9,7 +9,7 @@ use crate::{
     authorization::ViewEstateCase,
     estate::EstateCaseId,
     reads::EstateGovernanceContext,
-    schema::{BankSchema, EstateCase},
+    schema::{BankSchema, EstateCase, ViewEstateAdministrationCapability},
 };
 
 use super::governance_shape::governance_shape;
@@ -54,7 +54,10 @@ pub fn estate_governance_definition() -> ApplicationQueryDefinition<
         governance_shape(),
         ApplicationQueryCardinality::ExactlyOne,
         ApplicationQueryDependencyCeiling::bounded(3, 9, 21),
-        ApplicationQueryDisclosureContract::phase_seven_required("estate-governance-context"),
+        ApplicationQueryDisclosureContract::governed_by(
+            "estate-governance-context",
+            ViewEstateAdministrationCapability::reference(),
+        ),
         ApplicationQueryBasisSupport::current_and_pinned(),
         ApplicationQueryLaneEligibility::one_shot(),
         ViewEstateCase::reference(),

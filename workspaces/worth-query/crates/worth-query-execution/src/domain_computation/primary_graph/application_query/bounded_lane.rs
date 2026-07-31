@@ -7,7 +7,10 @@ use worth_query_declaration::facade::application_schema::ApplicationSchema;
 use super::access_receipt::{
     WorthQueryApplicationQueryReceiptBasis, WorthQueryApplicationQueryReceiptIdentity,
 };
-use super::authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial};
+use super::authorized_read::{
+    execute_authorized_read, refresh_governed_authorization,
+    WorthQueryAuthorizedApplicationReadDenial,
+};
 use super::read_execution::{
     project_non_live_kernel, read_bounded_root_rows, WorthQueryApplicationReadExecutionDenialKind,
 };
@@ -94,7 +97,7 @@ pub(super) fn execute_bounded_lane<
     Scope,
 >(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    plan: WorthQueryAdmittedApplicationQueryPlan<
+    mut plan: WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
         Query,
@@ -117,8 +120,8 @@ where
             plan.query.name(),
         ));
     }
-    let request = plan.controls.request_scope();
-    admit_request(request, plan.query.name())?;
+    let request = plan.controls.request_scope().clone();
+    admit_request(&request, plan.query.name())?;
     if plan.controls.basis_is_expired() {
         return Err(denial(
             WorthQueryBoundedLaneDenialKind::ExpiredBasis,
@@ -132,6 +135,8 @@ where
             plan.query.name(),
         ));
     }
+    refresh_governed_authorization(application, &mut plan)
+        .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
     let preview_session_guard = if expected_lane == WorthQueryApplicationQueryLane::Preview {
         Some(
             plan.basis
@@ -174,11 +179,12 @@ where
             plan.query.name(),
         ));
     }
-    admit_request(request, plan.query.name())?;
+    admit_request(&request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         raw,
-        || admit_request(request, plan.query.name()),
+        &plan.governance,
+        || admit_request(&request, plan.query.name()),
         |projection| {
             denial(
                 WorthQueryBoundedLaneDenialKind::Projection(projection.kind()),
@@ -186,7 +192,7 @@ where
             )
         },
     )?;
-    admit_request(request, plan.query.name())?;
+    admit_request(&request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
     let receipt = WorthQueryApplicationQueryAccessReceipt::from_non_live_kernel(
@@ -208,6 +214,7 @@ where
         plan.graph_read_plan,
         plan.canonical_work,
         authorization_work,
+        plan.governance.receipt(),
         kernel_receipt,
     );
     Ok(WorthQueryBoundedLaneResult { rows, receipt })
@@ -299,6 +306,9 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryBoundedLaneDenial {
     match value {
+        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => {
+            denial(WorthQueryBoundedLaneDenialKind::StalePrincipal, subject)
+        }
         WorthQueryAuthorizedApplicationReadDenial::StaleScope => {
             denial(WorthQueryBoundedLaneDenialKind::StaleScope, subject)
         }

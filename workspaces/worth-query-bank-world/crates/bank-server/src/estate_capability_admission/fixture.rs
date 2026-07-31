@@ -81,6 +81,13 @@ impl GrantSpec {
         }
     }
 
+    pub(super) fn identity_verification() -> Self {
+        Self {
+            purpose: EstateCapabilityPurpose::IdentityVerification,
+            ..Self::view()
+        }
+    }
+
     pub(super) fn disburse(maximum_minor_units: i64) -> Self {
         Self {
             operation: EstateCapabilityOperation::DisburseEstate,

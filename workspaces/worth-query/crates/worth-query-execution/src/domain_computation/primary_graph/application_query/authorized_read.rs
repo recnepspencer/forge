@@ -9,6 +9,7 @@ use crate::domain_computation::primary_graph::{
 use worth_query_declaration::facade::application_schema::ApplicationSchema;
 
 pub(super) enum WorthQueryAuthorizedApplicationReadDenial {
+    StalePrincipal,
     StaleScope,
     StaleBasisScope(crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind),
     Authorization(
@@ -103,16 +104,76 @@ fn validate_current_authorization<
 where
     Schema: ApplicationSchema,
 {
-    if !plan
-        .authorization
-        .remains_current_in(runtime, current, application.authorization.bridge())
-    {
+    plan.authorization
+        .validate_currentness_in(runtime, current, application.authorization.bridge())
+        .map_err(|kind| match kind {
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::StalePrincipal => {
+                WorthQueryAuthorizedApplicationReadDenial::StalePrincipal
+            }
+            kind => WorthQueryAuthorizedApplicationReadDenial::Authorization(
+                kind, plan.query.name().to_string(),
+            ),
+        })?;
+    if let Some(authorization) = plan.governance.authorization() {
+        authorization
+            .validate_currentness_in(runtime, current, application.authorization.bridge())
+            .map_err(|kind| {
+                WorthQueryAuthorizedApplicationReadDenial::Authorization(
+                    kind,
+                    plan.query.name().to_string(),
+                )
+            })?;
+    }
+    if !plan.governance.computation_matches(
+        application.runtime.authority_identity(),
+        plan.query.identity(),
+        plan.parameters.identity(),
+        plan.principal.principal_entity_id(),
+        plan.scope.entity_id(),
+    ) {
         return Err(WorthQueryAuthorizedApplicationReadDenial::Authorization(
-            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
             plan.query.name().to_string(),
         ));
     }
     validate_entity_freshness_at_snapshot(runtime, current, plan.scope)
         .map_err(|_| WorthQueryAuthorizedApplicationReadDenial::StaleScope)?;
     Ok(plan.authorization_work)
+}
+
+pub(super) fn refresh_governed_authorization<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    plan: &mut WorthQueryAdmittedApplicationQueryPlan<
+        '_,
+        Schema,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >,
+) -> Result<(), WorthQueryAuthorizedApplicationReadDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let Some(authorization) = plan.governance.authorization_mut() else {
+        return Ok(());
+    };
+    application
+        .refresh_capability_authorization(authorization)
+        .map_err(|denial| {
+            WorthQueryAuthorizedApplicationReadDenial::Authorization(
+                denial.kind(),
+                plan.query.name().to_string(),
+            )
+        })
 }

@@ -1,7 +1,8 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 use worth_query_declaration::facade::{
     application_capability::{
-        ApplicationCapabilityActorComposition, ApplicationCapabilityAllowRule,
+        ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
+        ApplicationCapabilityAllowRule,
         ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContract,
@@ -15,7 +16,8 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
         ApplicationCapabilityRequest, ApplicationCapabilityRequestContext,
         ApplicationCapabilityRequestProjection, ApplicationCapabilityRequestProjectionDenial,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+        ApplicationCapabilityTargetDefinition,
         ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
         ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
@@ -51,6 +53,12 @@ pub enum CapabilityStatus {
     Revoked,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilityDisclosure {
+    AccountActivity,
+    PrivateLabel,
+}
+
 macro_rules! string_value {
     ($type:ty, {$($variant:path => $value:literal),+ $(,)?}) => {
         impl TypedApplicationValue for $type {
@@ -84,6 +92,10 @@ string_value!(CapabilityStatus, {
     CapabilityStatus::Active => "active",
     CapabilityStatus::Revoked => "revoked"
 });
+string_value!(CapabilityDisclosure, {
+    CapabilityDisclosure::AccountActivity => "account-activity",
+    CapabilityDisclosure::PrivateLabel => "private-label"
+});
 
 worth_query_entity!(pub CapabilityGrant in IdentityExecutionSchema);
 worth_query_aspect!(pub CapabilityFacts in IdentityExecutionSchema, CapabilityGrant);
@@ -98,6 +110,10 @@ worth_query_field!(
 worth_query_field!(
     pub CapabilityPurposeField in IdentityExecutionSchema, CapabilityGrant, CapabilityFacts:
     CapabilityPurpose, read_only, no_equality
+);
+worth_query_field!(
+    pub CapabilityDisclosureField in IdentityExecutionSchema, CapabilityGrant, CapabilityFacts:
+    CapabilityDisclosure, read_only, no_equality
 );
 worth_query_field!(
     pub CapabilityStatusField in IdentityExecutionSchema, CapabilityGrant, CapabilityFacts:
@@ -128,6 +144,10 @@ worth_query_relation!(
     Principal => CapabilityGrant
 );
 worth_query_relation!(
+    pub CapabilityCustodian in IdentityExecutionSchema,
+    Principal => CapabilityGrant
+);
+worth_query_relation!(
     pub CapabilityResource in IdentityExecutionSchema,
     CapabilityGrant => Account
 );
@@ -144,6 +164,7 @@ pub struct CapabilityTouchInput {
     pub account: String,
     pub action: CapabilityAction,
     pub purpose: CapabilityPurpose,
+    pub disclosure: CapabilityDisclosure,
     pub caller_time: u64,
 }
 
@@ -173,7 +194,8 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapabilit
             self.action,
             self.purpose,
             ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()),
-        ))
+        )
+        .field(self.disclosure))
     }
 }
 
@@ -194,6 +216,10 @@ pub(super) fn install(
         .field(
             CapabilityGrant::reference(),
             CapabilityPurposeField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityDisclosureField::reference(),
         )
         .field(
             CapabilityGrant::reference(),
@@ -222,6 +248,11 @@ pub(super) fn install(
         )
         .relation(
             CapabilityGrantor::reference(),
+            Principal::reference(),
+            CapabilityGrant::reference(),
+        )
+        .relation(
+            CapabilityCustodian::reference(),
             Principal::reference(),
             CapabilityGrant::reference(),
         )
@@ -269,7 +300,7 @@ fn capability_contract() -> ApplicationCapabilityContract<
         ),
         ApplicationCapabilityRelationBinding::from_reference(CapabilityResource::reference()),
         ApplicationCapabilityRelationDimension::not_applicable(),
-        ApplicationCapabilityFieldDimension::not_applicable(),
+        ApplicationCapabilityFieldDimension::bound(CapabilityDisclosureField::reference()),
         ApplicationCapabilityValueBinding::new(
             CapabilityPurposeField::reference(),
             CapabilityPurpose::AccountMaintenance,
@@ -315,14 +346,19 @@ fn capability_contract() -> ApplicationCapabilityContract<
 }
 
 fn capability_composition() -> ApplicationCapabilityComposition {
-    let allow = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
-        .forward(CapabilityGrantee::reference())
+    let grantor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityGrantor::reference())
+        .forward(CapabilityResource::reference())
+        .allow(Account::reference());
+    let custodian = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityCustodian::reference())
         .forward(CapabilityResource::reference())
         .allow(Account::reference());
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(ApplicationCapabilityGraphRule::any([
-                ApplicationCapabilityGraphClause::new(allow),
+                ApplicationCapabilityGraphClause::new(grantor),
+                ApplicationCapabilityGraphClause::new(custodian),
             ])),
             ApplicationCapabilityDenyRule::not_applicable(),
             ApplicationCapabilityConflictRule::not_applicable(),
@@ -333,7 +369,17 @@ fn capability_composition() -> ApplicationCapabilityComposition {
         ),
         ApplicationCapabilityPropagationComposition::new(
             ApplicationCapabilityDelegationRule::narrow_all_dimensions(),
-            ApplicationCapabilityDisclosureRule::not_applicable(),
+            ApplicationCapabilityDisclosureRule::permit([
+                ApplicationCapabilityScopeGuard::requiring([
+                    ApplicationCapabilityAcceptedValues::one_of(
+                        CapabilityDisclosureField::reference(),
+                        [
+                            CapabilityDisclosure::AccountActivity,
+                            CapabilityDisclosure::PrivateLabel,
+                        ],
+                    ),
+                ]),
+            ]),
         ),
     )
 }

@@ -8,7 +8,10 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuntime,
 };
 
-use super::{WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization};
+use super::{
+    WorthQueryCapabilityCommitBasis, WorthQueryOperationAdmissionIdentity,
+    WorthQueryRetainedCapabilityAuthorization,
+};
 use crate::domain_computation::primary_graph::{
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryPrincipalBindingLayout,
     WorthQueryPrincipalFreshnessEvidence,
@@ -179,14 +182,18 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         })
     }
 
-    pub(in crate::domain_computation) fn remains_current_in(
+    pub(in crate::domain_computation) fn validate_currentness_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &BridgeAuthorizationRuntime,
-    ) -> bool {
-        self.principal_remains_current_in(runtime, snapshot)
-            && self.decisions_remain_current_in(runtime, snapshot, bridge)
+    ) -> Result<(), super::WorthQueryOperationAuthorizationDenialKind> {
+        if !self.principal_remains_current_in(runtime, snapshot) {
+            return Err(super::WorthQueryOperationAuthorizationDenialKind::StalePrincipal);
+        }
+        self.decisions_remain_current_in(runtime, snapshot, bridge)
+            .then_some(())
+            .ok_or(super::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization)
     }
 
     pub(super) fn principal_remains_current_in(
@@ -208,6 +215,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
 
     pub(in crate::domain_computation) fn into_provider_parts(
         self,
+        admission_identity: WorthQueryOperationAdmissionIdentity,
     ) -> (
         WorthQueryProviderAuthorizationDecisionFacts,
         WorthQueryCommitAuthorizationBasis,
@@ -217,7 +225,10 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
                 let commit = WorthQueryObservedCommitBasis::new(principal.clone(), Vec::new());
                 (
                     WorthQueryProviderAuthorizationDecisionFacts::new(principal, Vec::new()),
-                    WorthQueryCommitAuthorizationBasis::Observed(commit),
+                    WorthQueryCommitAuthorizationBasis::Observed {
+                        admission_identity,
+                        authorization: commit,
+                    },
                 )
             }
             Self::Abilities {
@@ -228,14 +239,20 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
                     WorthQueryObservedCommitBasis::new(principal.clone(), decisions.clone());
                 (
                     WorthQueryProviderAuthorizationDecisionFacts::new(principal, decisions),
-                    WorthQueryCommitAuthorizationBasis::Observed(commit),
+                    WorthQueryCommitAuthorizationBasis::Observed {
+                        admission_identity,
+                        authorization: commit,
+                    },
                 )
             }
             Self::Capability(authorization) => {
                 let (principal, decision, commit) = authorization.into_parts();
                 (
                     WorthQueryProviderAuthorizationDecisionFacts::new(principal, vec![decision]),
-                    WorthQueryCommitAuthorizationBasis::Capability(commit),
+                    WorthQueryCommitAuthorizationBasis::Capability {
+                        admission_identity,
+                        authorization: commit,
+                    },
                 )
             }
         }
@@ -294,8 +311,27 @@ impl WorthQueryProviderAuthorizationDecisionFacts {
 }
 
 pub(in crate::domain_computation) enum WorthQueryCommitAuthorizationBasis {
-    Observed(WorthQueryObservedCommitBasis),
-    Capability(WorthQueryCapabilityCommitBasis),
+    Observed {
+        admission_identity: WorthQueryOperationAdmissionIdentity,
+        authorization: WorthQueryObservedCommitBasis,
+    },
+    Capability {
+        admission_identity: WorthQueryOperationAdmissionIdentity,
+        authorization: WorthQueryCapabilityCommitBasis,
+    },
+}
+
+impl WorthQueryCommitAuthorizationBasis {
+    pub(super) const fn admission_identity(&self) -> WorthQueryOperationAdmissionIdentity {
+        match self {
+            Self::Observed {
+                admission_identity, ..
+            }
+            | Self::Capability {
+                admission_identity, ..
+            } => *admission_identity,
+        }
+    }
 }
 
 pub(in crate::domain_computation) struct WorthQueryObservedCommitBasis {

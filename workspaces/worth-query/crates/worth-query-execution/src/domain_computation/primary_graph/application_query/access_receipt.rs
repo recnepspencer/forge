@@ -11,6 +11,7 @@ use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 use super::read_execution::NonLiveKernelReceiptEvidence;
 use super::WorthQueryApplicationResultBufferEvidence;
 use super::{
+    disclosure::WorthQueryApplicationDisclosureReceipt,
     WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationQueryBasisPosture,
     WorthQueryApplicationQueryConsistency, WorthQueryApplicationQueryFreshness,
 };
@@ -53,6 +54,7 @@ pub struct WorthQueryApplicationQueryAccessReceipt {
     truncation_count: usize,
     work: WorthQueryApplicationQueryWorkEvidence,
     omission_posture: WorthQueryApplicationQueryOmissionPosture,
+    disclosure: WorthQueryApplicationDisclosureReceipt,
     result_buffer: Option<WorthQueryApplicationResultBufferEvidence>,
     basis_released: bool,
 }
@@ -90,6 +92,7 @@ pub(super) struct WorthQueryApplicationQueryAccessReceiptParts {
     pub total_work_units: usize,
     pub result_buffer: Option<WorthQueryApplicationResultBufferEvidence>,
     pub basis_released: bool,
+    pub disclosure: WorthQueryApplicationDisclosureReceipt,
 }
 
 pub(super) struct WorthQueryApplicationQueryReceiptIdentity {
@@ -116,6 +119,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
         graph_read_plan: WorthQueryGraphReadPlanReview,
         canonical_work: WorthQueryCanonicalWorkPhases,
         authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
+        disclosure: WorthQueryApplicationDisclosureReceipt,
         kernel: NonLiveKernelReceiptEvidence,
     ) -> Self {
         let raw = kernel.read;
@@ -152,6 +156,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
             total_work_units: raw.actual_work,
             result_buffer: Some(kernel.result_buffer),
             basis_released: basis.released,
+            disclosure,
         })
     }
 
@@ -281,6 +286,10 @@ impl WorthQueryApplicationQueryAccessReceipt {
         self.omission_posture
     }
 
+    pub const fn disclosure(&self) -> &WorthQueryApplicationDisclosureReceipt {
+        &self.disclosure
+    }
+
     pub const fn result_buffer(&self) -> Option<WorthQueryApplicationResultBufferEvidence> {
         self.result_buffer
     }
@@ -331,7 +340,12 @@ impl WorthQueryApplicationQueryAccessReceipt {
                     .saturating_add(parts.projected_field_count),
                 parts.total_work_units,
             ),
-            omission_posture: WorthQueryApplicationQueryOmissionPosture::NoOmission,
+            omission_posture: if parts.disclosure.omitted().is_empty() {
+                WorthQueryApplicationQueryOmissionPosture::NoOmission
+            } else {
+                WorthQueryApplicationQueryOmissionPosture::GovernedOmission
+            },
+            disclosure: parts.disclosure,
             result_buffer: parts.result_buffer,
             basis_released: parts.basis_released,
         }

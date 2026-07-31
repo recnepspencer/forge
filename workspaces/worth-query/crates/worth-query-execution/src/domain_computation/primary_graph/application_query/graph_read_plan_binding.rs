@@ -50,6 +50,7 @@ pub struct WorthQueryAdmittedApplicationQueryPlan<
     pub(super) authorization:
         crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     pub(super) authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
+    pub(super) governance: super::disclosure::WorthQueryApplicationQueryGovernance,
 }
 
 pub(super) struct WorthQueryAdmittedContinuationState {
@@ -120,5 +121,14 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
         &self,
     ) -> super::WorthQueryApplicationAuthorizationWorkEvidence {
         self.authorization_work
+    }
+
+    pub(super) fn take_governance(
+        &mut self,
+    ) -> super::disclosure::WorthQueryApplicationQueryGovernance {
+        std::mem::replace(
+            &mut self.governance,
+            super::disclosure::WorthQueryApplicationQueryGovernance::Public,
+        )
     }
 }

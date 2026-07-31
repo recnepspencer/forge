@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_foundational::facade::{
-    AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
+    AspectContract, AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
 use worth_query_installation::facade::{
     ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
@@ -37,6 +37,7 @@ pub(in crate::domain_computation) struct WorthQueryPrimaryGraphLayout {
     entity_kinds: BTreeMap<String, KindId>,
     relation_kinds: BTreeMap<String, WorthQueryPrimaryRelationLayout>,
     fields: BTreeMap<(String, String, String), WorthQueryPrimaryFieldLayout>,
+    aspect_contracts: BTreeMap<(String, AspectKey), AspectContract>,
     equality_field_keys: BTreeMap<AspectKey, BTreeSet<FieldKey>>,
     projection_field_keys: BTreeMap<AspectKey, BTreeSet<FieldKey>>,
     continuation_orderings: Vec<WorthQueryPrimaryContinuationOrderingLayout>,
@@ -66,9 +67,16 @@ impl WorthQueryPrimaryGraphLayout {
         let (schema_id, schema_version_id) = relational_schema_basis(schema, existing_registry)?;
         let mut registry = RelationalSchemaRegistry::new();
         let mut contract_ordinal = 1_u64;
+        let mut aspect_contracts = BTreeMap::new();
 
         for (entity, kind_id) in &entity_kinds {
             let aspects = lower_entity_aspects(schema, entity, &mut contract_ordinal)?;
+            for binding in &aspects {
+                aspect_contracts.insert(
+                    (entity.clone(), binding.aspect_key()),
+                    binding.contract.clone(),
+                );
+            }
             registry = register_entity(
                 registry,
                 &schema_id,
@@ -112,6 +120,7 @@ impl WorthQueryPrimaryGraphLayout {
                 entity_kinds,
                 relation_kinds: relation_layouts,
                 fields,
+                aspect_contracts,
                 equality_field_keys,
                 projection_field_keys,
                 continuation_orderings,
@@ -164,6 +173,15 @@ impl WorthQueryPrimaryGraphLayout {
         self.fields
             .get(&(entity.to_string(), aspect.to_string(), field.to_string()))
             .map(|layout| &layout.locator)
+    }
+
+    pub(in crate::domain_computation) fn aspect_contract(
+        &self,
+        entity: &str,
+        aspect: &AspectKey,
+    ) -> Option<&AspectContract> {
+        self.aspect_contracts
+            .get(&(entity.to_string(), aspect.clone()))
     }
 
     pub(in crate::domain_computation) fn equality_field(

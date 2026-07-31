@@ -15,6 +15,7 @@ pub enum WorthQueryApplicationLiveOpenDenialKind {
     BufferCapacityExceedsInstalled,
     WorkLimitExceedsInstalled,
     Admission(WorthQueryApplicationQueryAdmissionDenialKind),
+    AuthorizationDenied(WorthQueryOperationAuthorizationDenialKind),
     ScopeIdentityUnavailable,
     BasisReleaseFailed,
     ProviderVersionUnavailable,
@@ -92,6 +93,21 @@ impl<Query, QueryResult> WorthQueryApplicationLiveUpdate<Query, QueryResult> {
         WorthQueryApplicationQueryAccessReceipt,
     ) {
         (self.commit_id, self.result, self.receipt)
+    }
+
+    pub fn into_admitted_disclosed(
+        self,
+    ) -> (
+        CommitId,
+        super::super::WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
+    ) {
+        (
+            self.commit_id,
+            super::super::WorthQueryAdmittedDisclosedApplicationResult::new(
+                vec![self.result],
+                self.receipt,
+            ),
+        )
     }
 }
 

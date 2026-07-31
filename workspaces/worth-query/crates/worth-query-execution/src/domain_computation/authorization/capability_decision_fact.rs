@@ -55,7 +55,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         self.grant
     }
 
-    pub(super) const fn exact_fact_count(&self) -> usize {
+    pub(in crate::domain_computation) const fn exact_fact_count(&self) -> usize {
         2
     }
 
@@ -71,8 +71,12 @@ impl WorthQueryRetainedCapabilityAuthorization {
             + counters.fields_depended_on
     }
 
-    pub(super) fn capability_authority_identity(&self) -> &str {
+    pub(in crate::domain_computation) fn capability_authority_identity(&self) -> &str {
         &self.capability_authority_identity
+    }
+
+    pub(in crate::domain_computation) fn decision_identity(&self) -> [u8; 32] {
+        *self.decision.relational.observation_identity().bytes()
     }
 
     pub(super) const fn timeline(&self) -> ApplicationCapabilityValidityTimeline {
@@ -101,6 +105,21 @@ impl WorthQueryRetainedCapabilityAuthorization {
         Ok(())
     }
 
+    pub(in crate::domain_computation) fn validate_currentness_in(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+        bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+    ) -> Result<(), super::WorthQueryOperationAuthorizationDenialKind> {
+        if !self.principal.remains_current_in(runtime, snapshot) {
+            return Err(super::WorthQueryOperationAuthorizationDenialKind::StalePrincipal);
+        }
+        if !self.decision.remains_current_in(runtime, snapshot, bridge) {
+            return Err(super::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization);
+        }
+        Ok(())
+    }
+
     pub(super) fn into_parts(
         self,
     ) -> (
@@ -110,6 +129,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
     ) {
         let commit = WorthQueryCapabilityCommitBasis {
             principal: self.principal.clone(),
+            decision: self.decision.clone(),
             capability_authority_identity: self.capability_authority_identity,
             grant: self.grant,
             request: self.request,
@@ -120,6 +140,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
 
 pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
     principal: WorthQueryPrincipalCurrentnessDependency,
+    decision: WorthQueryAuthorizationDecisionFact,
     capability_authority_identity: Arc<str>,
     grant: worth_relational::facade::identity::EntityId,
     request: WorthQueryRetainedCapabilityRequest,
@@ -128,6 +149,10 @@ pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
 impl WorthQueryCapabilityCommitBasis {
     pub(super) fn principal(&self) -> &WorthQueryPrincipalCurrentnessDependency {
         &self.principal
+    }
+
+    pub(super) fn decision(&self) -> &WorthQueryAuthorizationDecisionFact {
+        &self.decision
     }
 
     pub(super) fn capability_authority_identity(&self) -> &str {

@@ -296,7 +296,7 @@ fn phase_seven_one_declaration_does_not_install_estate_execution_authority() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryApplicationOperationInstallationDenialKind::MissingAbility
+        WorthQueryApplicationOperationInstallationDenialKind::MissingProgram
     );
 }
 

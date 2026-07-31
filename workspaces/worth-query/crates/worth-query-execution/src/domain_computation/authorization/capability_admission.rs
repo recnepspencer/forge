@@ -154,6 +154,8 @@ where
         Ok(WorthQueryAdmittedApplicationCapabilityAccess::mint(
             self.runtime.authority_identity(),
             capability.binding_identity().clone(),
+            capability.contract().name(),
+            std::any::type_name::<Capability>(),
             capability.contract().operation(),
             principal.principal_entity_id(),
             input,

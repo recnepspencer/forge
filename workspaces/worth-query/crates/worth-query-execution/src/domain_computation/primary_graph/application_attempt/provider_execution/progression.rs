@@ -81,8 +81,8 @@ where
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Stale(stale)) => {
             let serialization = provider.serialize_application_commit();
             let proof = match application.authorize_application_commit(
+                admission,
                 &commit_authorization,
-                admission.admission_identity(),
                 &serialization,
             ) {
                 Ok(proof) => proof,
@@ -91,7 +91,7 @@ where
                     return denied(DenialStage::DecisionReadSet);
                 }
             };
-            let resolution = proof.govern(admission.admission_identity(), || {
+            let resolution = proof.govern((), |()| {
                 provider.resolve_application_idempotency(&session_identity)
             });
             match resolution {
@@ -181,8 +181,8 @@ where
     };
     let serialization = provider.serialize_application_commit();
     let proof = match application.authorize_application_commit(
+        admission,
         &commit_authorization,
-        admission.admission_identity(),
         &serialization,
     ) {
         Ok(proof) => proof,
@@ -191,11 +191,7 @@ where
             return denied(DenialStage::DecisionReadSet);
         }
     };
-    let outcome = proof.govern(admission.admission_identity(), || {
-        if admission.validate_current_authority().is_err() {
-            candidate.discard();
-            return WorthQueryApplicationCommitOutcome::Cancelled;
-        }
+    let outcome = proof.govern(candidate, |candidate| {
         match provider.resolve_application_idempotency(&session_identity) {
             Ok(WorthQueryProviderIdempotencyResolution::Absent) => finish_authorized_compare(
                 candidate.compare_and_commit(),
@@ -226,7 +222,13 @@ where
             }
         }
     });
-    outcome.unwrap_or_else(|()| denied(DenialStage::DecisionReadSet))
+    match outcome {
+        Ok(outcome) => outcome,
+        Err(candidate) => {
+            candidate.discard();
+            WorthQueryApplicationCommitOutcome::Cancelled
+        }
+    }
 }
 
 fn finish_authorized_compare(

@@ -37,6 +37,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn project_n
     Denial,
 >(
     kernel: RawNonLiveKernelOutcome,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     mut validate: impl FnMut() -> Result<(), Denial>,
     map_projection_denial: impl Fn(WorthQueryApplicationProjectionDenial) -> Denial,
 ) -> Result<ProjectedNonLiveKernelOutcome<QueryResult>, Denial>
@@ -53,7 +54,10 @@ where
     for node in raw_rows {
         validate()?;
         rows.push(
-            QueryResult::project(&WorthQueryApplicationProjectionRow::new(&node))
+            QueryResult::project(&WorthQueryApplicationProjectionRow::new(
+                &node,
+                governance,
+            ))
                 .map_err(&map_projection_denial)?,
         );
     }

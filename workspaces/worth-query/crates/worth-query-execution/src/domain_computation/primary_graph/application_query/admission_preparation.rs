@@ -5,7 +5,7 @@ use worth_query_admission::facade::{
     authenticated_principal::{WorthQueryRequestInterruption, WorthQueryRequestScope},
 };
 use worth_query_declaration::facade::{
-    application_query::{ApplicationQueryDisclosurePosture, ApplicationQueryParameterSet},
+    application_query::ApplicationQueryParameterSet,
     application_schema::ApplicationSchema,
 };
 use worth_query_installation::facade::{
@@ -70,7 +70,6 @@ where
         let (authorization, authorization_work) =
             self.validate_access(query, access, controls.request_scope())?;
         validate_controls(query, &controls)?;
-        validate_disclosure(query)?;
         let parameters =
             admit_application_query_parameters(query, parameters).map_err(|denial| {
                 WorthQueryApplicationQueryAdmissionDenial::new(
@@ -223,19 +222,6 @@ fn map_authorization_denial(
         WorthQueryApplicationQueryAdmissionDenialKind::Authorization(authorization.kind()),
         authorization.subject(),
     )
-}
-
-fn validate_disclosure<Schema, Query, Parameters, QueryResult, Scope>(
-    query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
-) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
-    match query.disclosure().posture() {
-        ApplicationQueryDisclosurePosture::Public => Ok(()),
-        ApplicationQueryDisclosurePosture::InstalledPolicyRequired
-        | ApplicationQueryDisclosurePosture::PhaseSevenGovernanceRequired => Err(denial(
-            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureGovernanceRequired,
-            query.disclosure().classification(),
-        )),
-    }
 }
 
 pub(super) fn validate_admission_request(

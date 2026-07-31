@@ -18,8 +18,12 @@ use worth_query_declaration::facade::application_schema::{
 mod canonical_work_budgets;
 #[path = "authorization/capability_commit_revalidation.rs"]
 mod capability_commit_revalidation;
+#[path = "authorization/capability_path_revalidation.rs"]
+mod capability_path_revalidation;
 #[path = "authorization/capability_progression.rs"]
 mod capability_progression;
+#[path = "authorization/commit_authorization_lifecycle.rs"]
+mod commit_authorization_lifecycle;
 mod decision_ownership;
 
 impl OperationExpectsFact<TouchAccountOperation> for AccountLabel {}

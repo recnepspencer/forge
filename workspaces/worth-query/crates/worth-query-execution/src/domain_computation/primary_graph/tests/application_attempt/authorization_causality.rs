@@ -9,7 +9,10 @@ use super::{
 use crate::domain_computation::primary_graph::tests::fixture::{
     AccountOwner, AccountStatus, AuthorizationWorld, MultiTouchOperation,
 };
-use crate::domain_computation::primary_graph::WorthQueryApplicationCommitOutcome;
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome,
+};
 
 #[test]
 fn ownership_revocation_after_admission_stales_before_effect_commit() {
@@ -31,8 +34,9 @@ fn ownership_revocation_after_admission_stales_before_effect_commit() {
         world
             .application
             .compare_and_commit_application(program, idempotency(31, 31)),
-        WorthQueryApplicationCommitOutcome::Stale(stale)
-            if stale.stale_fact_count() == 1
+        WorthQueryApplicationCommitOutcome::Denied(denial)
+            if denial.kind() == WorthQueryApplicationCommitDenialKind::ProviderRejected
+                && denial.stage() == WorthQueryApplicationCommitDenialStage::DecisionReadSet
     ));
     let _still_open = resolved_account(&world, "open", &live_scope());
 }

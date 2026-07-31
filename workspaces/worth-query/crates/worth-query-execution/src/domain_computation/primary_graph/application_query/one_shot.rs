@@ -7,7 +7,10 @@ use worth_query_declaration::facade::application_schema::ApplicationSchema;
 
 mod outcome;
 
-use super::authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial};
+use super::authorized_read::{
+    execute_authorized_read, refresh_governed_authorization,
+    WorthQueryAuthorizedApplicationReadDenial,
+};
 use super::read_execution::{read_bounded_root_rows, WorthQueryApplicationReadExecutionDenialKind};
 use super::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
@@ -69,7 +72,7 @@ where
         Scope,
     >(
         &self,
-        plan: WorthQueryAdmittedApplicationQueryPlan<
+        mut plan: WorthQueryAdmittedApplicationQueryPlan<
             '_,
             Schema,
             Query,
@@ -105,6 +108,8 @@ where
                 plan.query.name(),
             ));
         }
+        refresh_governed_authorization(self, &mut plan)
+            .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
 
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
@@ -131,6 +136,10 @@ fn map_authorized_read_denial(
     subject: &str,
 ) -> WorthQueryApplicationOneShotDenial {
     let (kind, subject) = match denial_value {
+        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => (
+            WorthQueryApplicationOneShotDenialKind::StalePrincipal,
+            subject.to_string(),
+        ),
         WorthQueryAuthorizedApplicationReadDenial::StaleScope
         | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => (
             WorthQueryApplicationOneShotDenialKind::StaleScope,
@@ -309,6 +318,12 @@ impl<Query, QueryResult> WorthQueryApplicationOneShotResult<Query, QueryResult> 
 
     pub fn into_rows(self) -> Vec<QueryResult> {
         self.rows
+    }
+
+    pub fn into_admitted_disclosed(
+        self,
+    ) -> super::WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult> {
+        super::WorthQueryAdmittedDisclosedApplicationResult::new(self.rows, self.receipt)
     }
 }
 

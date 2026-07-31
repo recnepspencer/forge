@@ -240,7 +240,7 @@ fn preview_execution_revalidates_scope_ability_after_plan_admission() {
     assert_eq!(
         denial.kind(),
         crate::domain_computation::primary_graph::WorthQueryBoundedLaneDenialKind::Authorization(
-            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
         )
     );
     assert_eq!(observer.observe().active(), before.active());

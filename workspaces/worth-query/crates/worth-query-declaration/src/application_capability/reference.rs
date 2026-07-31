@@ -44,6 +44,12 @@ named_reference!(ApplicationCapabilityRef, Schema, Capability);
 named_reference!(ApplicationCapabilityContextRef, Schema, Context);
 named_reference!(ApplicationCapabilityProvenanceRef, Schema, Provenance);
 
+impl<Schema, Capability> ApplicationCapabilityRef<Schema, Capability> {
+    pub fn marker_type(self) -> &'static str {
+        std::any::type_name::<Capability>()
+    }
+}
+
 impl<Schema, Context> ApplicationCapabilityContextRef<Schema, Context> {
     pub fn marker_type(self) -> &'static str {
         std::any::type_name::<Context>()

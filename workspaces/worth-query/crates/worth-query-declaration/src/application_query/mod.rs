@@ -3,6 +3,7 @@ mod basis_support;
 mod canonical_basis;
 mod continuation;
 mod definition;
+mod disclosure_contract;
 mod erased_definition;
 mod lane_eligibility;
 mod live_cause;
@@ -18,15 +19,17 @@ mod root_selection;
 mod validation;
 
 pub use authorization_requirement::ApplicationQueryAuthorizationRequirement;
-pub use basis_support::{
-    ApplicationQueryBasisSupport, ApplicationQueryDisclosureContract,
-    ApplicationQueryDisclosurePosture,
-};
+pub use basis_support::ApplicationQueryBasisSupport;
 pub use canonical_basis::ApplicationQueryCanonicalArtifact;
 pub use continuation::ApplicationQueryContinuationTarget;
 pub use definition::{
     ApplicationQueryCardinality, ApplicationQueryDefinition, ApplicationQueryDefinitionBuilder,
     ApplicationQueryDependencyCeiling, ApplicationQueryPredicate,
+};
+pub use disclosure_contract::{
+    ApplicationQueryDisclosureContract, ApplicationQueryDisclosurePosture,
+    ApplicationQueryDisclosureRule, ApplicationQueryDisclosureSelector,
+    ApplicationQueryInfluenceContract, ApplicationQueryObservableInfluence,
 };
 pub use erased_definition::ErasedApplicationQueryDefinition;
 pub use lane_eligibility::ApplicationQueryLaneEligibility;

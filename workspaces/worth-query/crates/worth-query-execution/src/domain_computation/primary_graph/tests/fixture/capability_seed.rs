@@ -33,6 +33,10 @@ fn bind_grant_window(
                 CapabilityPurposeField::reference(),
                 CapabilityPurpose::AccountMaintenance,
             )
+            .field(
+                CapabilityDisclosureField::reference(),
+                CapabilityDisclosure::AccountActivity,
+            )
             .field(CapabilityStatusField::reference(), CapabilityStatus::Active)
             .field(CapabilityWorkflowField::reference(), "open".to_owned())
             .field(CapabilityNotBeforeField::reference(), not_before)

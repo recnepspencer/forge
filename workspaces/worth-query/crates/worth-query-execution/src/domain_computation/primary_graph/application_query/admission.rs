@@ -6,7 +6,9 @@ use worth_query_admission::facade::{
     graph_read_access::review_graph_read_access,
 };
 use worth_query_declaration::facade::{
-    application_query::ApplicationQueryParameterSet, application_schema::ApplicationSchema,
+    application_capability::ApplicationCapabilityRequest,
+    application_query::ApplicationQueryParameterSet,
+    application_schema::ApplicationSchema,
 };
 use worth_query_installation::facade::WorthQueryCanonicalWorkPhases;
 use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
@@ -15,6 +17,12 @@ use crate::domain_computation::execution_runtime::WorthQueryApplicationQueryReso
 
 use super::{
     admission_preparation::validate_admission_request, basis::admit_application_query_basis,
+    disclosure::{
+        admit_application_query_governance, compile_disclosure_contract,
+        WorthQueryApplicationGovernanceBinding, WorthQueryApplicationQueryGovernance,
+        WorthQueryApplicationQueryGovernanceDenialKind,
+        WorthQueryPendingApplicationQueryGovernance,
+    },
     execution_shape::validate_one_shot_shape, runtime_support::primary_graph_support_inventory,
     WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryAccessContext,
     WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
@@ -74,6 +82,73 @@ where
             controls,
             authorization,
             authorization_work,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn admit_governed_application_query<
+        'a,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Capability,
+        Operation,
+        Input,
+    >(
+        &'a self,
+        query: &'a WorthQueryInstalledApplicationQuery<
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Scope,
+        >,
+        access: &WorthQueryApplicationQueryAccessContext<
+            'a,
+            Schema,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+        capability: crate::domain_computation::authorization::WorthQueryAdmittedApplicationCapabilityAccess<
+            Schema,
+            Capability,
+            Operation,
+            Input,
+        >,
+        parameters: ApplicationQueryParameterSet<Query>,
+        controls: WorthQueryApplicationQueryControls<'a, Schema>,
+    ) -> Result<
+        WorthQueryAdmittedApplicationQueryPlan<
+            'a,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+        WorthQueryApplicationQueryAdmissionDenial,
+    >
+    where
+        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
+    {
+        let pending = prepare_governed_access(self, query, access, capability, &controls)?;
+        let (parameters, controls, authorization, authorization_work) =
+            self.prepare_application_query_admission(query, access, parameters, controls)?;
+        self.finish_application_query_admission(
+            query,
+            access,
+            parameters,
+            controls,
+            authorization,
+            authorization_work,
+            Some(pending),
         )
     }
 
@@ -105,6 +180,7 @@ where
         controls: WorthQueryApplicationQueryControls<'a, Schema>,
         authorization: crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
         authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
+        pending_governance: Option<WorthQueryPendingApplicationQueryGovernance>,
     ) -> Result<
         WorthQueryAdmittedApplicationQueryPlan<
             'a,
@@ -143,6 +219,24 @@ where
             query.live(),
             &requirements,
         );
+        let disclosure = compile_disclosure_contract(query, &graph.layout).map_err(|denial| {
+            WorthQueryApplicationQueryAdmissionDenial::new(
+                WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid,
+                denial.subject(),
+            )
+        })?;
+        let governance = admit_application_query_governance(
+            disclosure,
+            pending_governance,
+            WorthQueryApplicationGovernanceBinding::new(
+                self.runtime.authority_identity(),
+                query.identity().clone(),
+                parameters.identity().clone(),
+                access.principal().principal_entity_id(),
+                access.scope().entity_id(),
+            ),
+        )
+        .map_err(|kind| governance_denial(kind, query.name()))?;
         let graph_read_plan = review_graph_read_access(
             requirements,
             inventory,
@@ -205,8 +299,155 @@ where
             basis,
             authorization,
             authorization_work,
+            governance,
         })
     }
+
+    pub(super) fn readmit_application_query_live<
+        'a,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >(
+        &'a self,
+        query: &'a WorthQueryInstalledApplicationQuery<
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Scope,
+        >,
+        access: &WorthQueryApplicationQueryAccessContext<
+            'a,
+            Schema,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+        governance: WorthQueryApplicationQueryGovernance,
+        parameters: ApplicationQueryParameterSet<Query>,
+        controls: WorthQueryApplicationQueryControls<'a, Schema>,
+    ) -> Result<
+        WorthQueryAdmittedApplicationQueryPlan<
+            'a,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+        WorthQueryApplicationQueryAdmissionDenial,
+    > {
+        let (parameters, controls, authorization, authorization_work) =
+            self.prepare_application_query_admission(query, access, parameters, controls)?;
+        if !governance.computation_matches(
+            self.runtime.authority_identity(),
+            query.identity(),
+            parameters.identity(),
+            access.principal().principal_entity_id(),
+            access.scope().entity_id(),
+        ) {
+            return Err(denial(
+                WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch,
+                query.name(),
+            ));
+        }
+        let pending = governance.into_pending();
+        self.finish_application_query_admission(
+            query,
+            access,
+            parameters,
+            controls,
+            authorization,
+            authorization_work,
+            pending,
+        )
+    }
+}
+
+pub(in crate::domain_computation::primary_graph::application_query) fn prepare_governed_access<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+    Capability,
+    Operation,
+    Input,
+>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+    access: &WorthQueryApplicationQueryAccessContext<
+        '_,
+        Schema,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >,
+    capability: crate::domain_computation::authorization::WorthQueryAdmittedApplicationCapabilityAccess<
+        Schema,
+        Capability,
+        Operation,
+        Input,
+    >,
+    controls: &WorthQueryApplicationQueryControls<'_, Schema>,
+) -> Result<WorthQueryPendingApplicationQueryGovernance, WorthQueryApplicationQueryAdmissionDenial>
+where
+    Schema: ApplicationSchema,
+    Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
+{
+    validate_admission_request(capability.request_scope(), query.name())?;
+    if capability.runtime_authority() != runtime.runtime.authority_identity()
+        || capability.binding_identity() != query.binding_identity()
+        || capability.principal_entity_id() != access.principal().principal_entity_id()
+        || capability.resource_entity_id() != access.scope().entity_id()
+        || capability.authentication_valid_until() <= std::time::Instant::now()
+    {
+        return Err(denial(
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch,
+            query.name(),
+        ));
+    }
+    validate_admission_request(controls.request_scope(), query.name())?;
+    let capability_name = capability.capability_name().to_string();
+    let capability_type = capability.capability_type().to_string();
+    let disclosure_value = capability.disclosure_value().cloned().ok_or_else(|| {
+        denial(
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch,
+            query.name(),
+        )
+    })?;
+    Ok(WorthQueryPendingApplicationQueryGovernance::new(
+        capability_name,
+        capability_type,
+        disclosure_value,
+        capability.into_query_authorization(),
+    ))
+}
+
+fn governance_denial(
+    kind: WorthQueryApplicationQueryGovernanceDenialKind,
+    subject: &str,
+) -> WorthQueryApplicationQueryAdmissionDenial {
+    let kind = match kind {
+        WorthQueryApplicationQueryGovernanceDenialKind::Required => {
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureGovernanceRequired
+        }
+        WorthQueryApplicationQueryGovernanceDenialKind::CapabilityMismatch => {
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch
+        }
+        WorthQueryApplicationQueryGovernanceDenialKind::InternalComputationDenied => {
+            WorthQueryApplicationQueryAdmissionDenialKind::InternalComputationDenied
+        }
+    };
+    denial(kind, subject)
 }
 
 fn validate_work_limit<Schema>(

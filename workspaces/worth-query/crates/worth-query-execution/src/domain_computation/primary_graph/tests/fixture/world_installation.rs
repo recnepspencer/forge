@@ -81,7 +81,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
     include_owner_relation: bool,
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        include_owner_relation,
+        owner_bindings(include_owner_relation),
         false,
         1,
         "primary",
@@ -94,7 +94,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
     label: &str,
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        true,
+        &[("principal-0", "account-1"), ("principal-0", "account-2")],
         false,
         1,
         label,
@@ -107,7 +107,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
     profile: WorthQueryApplicationQueryResourceProfile,
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        true,
+        &[("principal-0", "account-1"), ("principal-0", "account-2")],
         false,
         1,
         "primary",
@@ -120,7 +120,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
     include_owner_relation: bool,
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        include_owner_relation,
+        owner_bindings(include_owner_relation),
         false,
         2,
         "primary",
@@ -132,7 +132,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
 pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorization_world(
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        true,
+        &[("principal-0", "account-1"), ("principal-0", "account-2")],
         true,
         1,
         "primary",
@@ -144,9 +144,34 @@ pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorizat
 pub(in crate::domain_computation::primary_graph) fn installed_capability_authorization_world(
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        false,
+        &[],
         false,
         1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::Current,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_world_with_label(
+    label: &str,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        &[],
+        false,
+        1,
+        label,
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::Current,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world(
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        &[("principal-1", "account-1")],
+        false,
+        2,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::Current,
@@ -156,7 +181,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_authori
 pub(in crate::domain_computation::primary_graph) fn installed_capability_replacement_world(
 ) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
-        false,
+        &[],
         false,
         1,
         "primary",
@@ -166,7 +191,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_replace
 }
 
 fn installed_authorization_world_with_principal_count(
-    include_owner_relation: bool,
+    owner_bindings: &[(&str, &str)],
     include_blocked_relation: bool,
     principal_count: usize,
     primary_label: &str,
@@ -256,17 +281,15 @@ fn installed_authorization_world_with_principal_count(
             ))
             .unwrap();
     }
-    if include_owner_relation {
-        for (relation, account) in [("owner-1", "account-1"), ("owner-2", "account-2")] {
+    for (ordinal, (principal, account)) in owner_bindings.iter().enumerate() {
             bootstrap
                 .bind_relation(WorthQueryApplicationRelationSeed::new(
                     AccountOwner::reference(),
-                    relation,
-                    WorthQueryApplicationEntityKey::new("principal-0").unwrap(),
-                    WorthQueryApplicationEntityKey::new(account).unwrap(),
+                    format!("owner-{}", ordinal + 1),
+                    WorthQueryApplicationEntityKey::new(*principal).unwrap(),
+                    WorthQueryApplicationEntityKey::new(*account).unwrap(),
                 ))
                 .unwrap();
-        }
     }
     if include_blocked_relation {
         bootstrap
@@ -295,6 +318,14 @@ fn installed_authorization_world_with_principal_count(
         application,
         binding,
         invariant,
+    }
+}
+
+fn owner_bindings(include: bool) -> &'static [(&'static str, &'static str)] {
+    if include {
+        &[("principal-0", "account-1"), ("principal-0", "account-2")]
+    } else {
+        &[]
     }
 }
 

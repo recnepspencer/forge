@@ -1,7 +1,8 @@
 use bank_domain::queries::{
     AccountAuthorizedUsersQuery, AccountAuthorizedUsersQueryResult, AccountAuthorizedUsersRequest,
     AccountDetailQuery, AccountDetailRequest, AccountDiscoveryQuery, AccountDiscoveryRequest,
-    EstateCaseOverviewQuery, EstateCaseOverviewRequest, EstateGovernanceQuery,
+    EstateCaseOverviewQuery, EstateCaseOverviewRequest, EstateCustomerDisclosure,
+    EstateCustomerDisclosureQuery, EstateCustomerDisclosureRequest, EstateGovernanceQuery,
     EstateGovernanceRequest, InstitutionAuditQuery, InstitutionAuditRequest, PaymentDetailQuery,
     PaymentDetailRequest, PendingPaymentsQuery, PendingPaymentsRequest,
 };
@@ -17,12 +18,13 @@ use bank_domain::schema::{
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
     primary_graph::{WorthQueryApplicationOneShotResult, WorthQueryApplicationPreviewResult},
+    publication::domain_computation::WorthQueryPublishedApplicationResult,
 };
 
 use super::BankReadyQuery;
 use crate::application_query::{
-    execute_one_shot, execute_preview, BankApplicationQueryDenial, BankApplicationQueryInvocation,
-    BankPreviewSession,
+    execute_estate_customer_disclosure, execute_one_shot, execute_preview,
+    BankApplicationQueryDenial, BankApplicationQueryInvocation, BankPreviewSession,
 };
 
 impl BankReadyQuery<'_, '_, AccountSummaryRequest> {
@@ -203,6 +205,25 @@ impl BankReadyQuery<'_, '_, EstateCaseOverviewRequest> {
                 ApplicationQueryParameterSet::<EstateCaseOverviewQuery>::new(),
                 controls,
             ),
+        )
+    }
+}
+
+impl BankReadyQuery<'_, '_, EstateCustomerDisclosureRequest> {
+    pub fn execute(
+        self,
+    ) -> Result<
+        WorthQueryPublishedApplicationResult<
+            EstateCustomerDisclosureQuery,
+            EstateCustomerDisclosure,
+        >,
+        BankApplicationQueryDenial,
+    > {
+        execute_estate_customer_disclosure(
+            self.runtime,
+            self.principal,
+            self.query.estate(),
+            self.controls.application_query_controls(),
         )
     }
 }

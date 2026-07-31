@@ -146,10 +146,34 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) principal_kind: KindId,
     pub(super) grant_kind: KindId,
     pub(super) scope_kind: KindId,
+    pub(super) grant_witness: WorthQueryCapabilityGrantWitnessBinding,
     pub(super) paths: Vec<WorthQueryCapabilityPathTemplate>,
     pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
     pub(super) rule_path_indices: Vec<Vec<Vec<usize>>>,
     pub(super) request: WorthQueryCapabilityRequestBindings,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct WorthQueryCapabilityGrantWitnessBinding {
+    path_index: usize,
+    entity_ordinal: usize,
+}
+
+impl WorthQueryCapabilityGrantWitnessBinding {
+    pub(super) const fn new(path_index: usize, entity_ordinal: usize) -> Self {
+        Self {
+            path_index,
+            entity_ordinal,
+        }
+    }
+
+    pub(super) const fn path_index(self) -> usize {
+        self.path_index
+    }
+
+    pub(super) const fn entity_ordinal(self) -> usize {
+        self.entity_ordinal
+    }
 }
 
 pub(super) struct WorthQueryCapabilityPathTemplate {

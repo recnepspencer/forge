@@ -46,21 +46,13 @@ where
         if admission.validate_current_authority().is_err() {
             return WorthQueryApplicationCommitOutcome::Cancelled;
         }
-        let admission_identity = admission.admission_identity();
         {
             let serialization = self.primary_provider.serialize_application_commit();
-            let Some(authorization) = admission.authorization_mut() else {
-                return denied(DenialStage::DecisionReadSet);
-            };
-            let proof = match self.authorize_retained_idempotency(
-                authorization,
-                admission_identity,
-                &serialization,
-            ) {
+            let proof = match self.authorize_retained_idempotency(&mut admission, &serialization) {
                 Ok(proof) => proof,
                 Err(_) => return denied(DenialStage::DecisionReadSet),
             };
-            let resolution = proof.govern(admission_identity, || {
+            let resolution = proof.govern((), |()| {
                 self.primary_provider
                     .resolve_idempotency_binding(idempotency)
             });

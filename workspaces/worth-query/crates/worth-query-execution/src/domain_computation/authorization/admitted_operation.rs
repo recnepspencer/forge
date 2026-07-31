@@ -307,7 +307,7 @@ impl<Schema, Operation, Input, Scope>
                 &self.operation,
             ));
         }
-        Ok(authorization.into_provider_parts())
+        Ok(authorization.into_provider_parts(self.admission_identity))
     }
 
     /// Descriptive fingerprint of the exact installed operation authority

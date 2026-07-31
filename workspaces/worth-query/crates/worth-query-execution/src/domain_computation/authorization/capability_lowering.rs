@@ -23,8 +23,9 @@ use super::capability_binding_lowering::{
     relation, request_bindings,
 };
 use super::capability_registry::{
-    field_binding, WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRequestGuard,
-    WorthQueryCapabilityRequestValueAxis, WorthQueryInstalledCapabilityPlan,
+    field_binding, WorthQueryCapabilityGrantWitnessBinding, WorthQueryCapabilityPathTemplate,
+    WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
+    WorthQueryInstalledCapabilityPlan,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
@@ -46,6 +47,7 @@ where
     let scope_entity = contract.target().resource().to();
     let scope_kind = kind(layout, scope_entity)?;
     let mut paths = Vec::new();
+    let grant_path_index = paths.len();
     paths.push(compile_grant_path(
         source.identity().bytes(),
         contract,
@@ -54,6 +56,7 @@ where
         grant_kind,
         scope_kind,
     )?);
+    let grant_witness = WorthQueryCapabilityGrantWitnessBinding::new(grant_path_index, 1);
     let mut rules = vec![bridge_rule(
         BridgeAuthorizationRuleEffect::Required,
         vec![vec![0]],
@@ -85,6 +88,7 @@ where
         principal_kind,
         grant_kind,
         scope_kind,
+        grant_witness,
         request: request_bindings(contract, layout)?,
         paths,
         bridge_rules: rules,
