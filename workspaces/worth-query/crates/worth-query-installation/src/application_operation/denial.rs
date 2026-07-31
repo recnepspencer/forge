@@ -7,6 +7,7 @@ pub enum WorthQueryApplicationOperationInstallationDenialKind {
     MissingProgram,
     MissingDecisionFactBudget,
     MissingProjectionWorkBudget,
+    ConflictingAuthorizationContract,
     InvalidMutationPreconditionContract,
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,

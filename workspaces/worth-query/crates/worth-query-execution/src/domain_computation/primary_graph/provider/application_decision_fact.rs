@@ -5,10 +5,13 @@ use worth_relational::facade::authorization::{
 };
 use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
+use super::super::authorization::WorthQueryPrincipalCurrentnessDependency;
+
 #[derive(Clone)]
 pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphApplicationDecisionFact
 {
     Application(super::super::application_attempt::WorthQueryApplicationObservedFact),
+    Principal(WorthQueryPrincipalCurrentnessDependency),
     Authorization {
         locator: Arc<str>,
         observation: Arc<RelationalAuthorizationObservationEvidence>,
@@ -21,6 +24,12 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         fact: super::super::application_attempt::WorthQueryApplicationObservedFact,
     ) -> Self {
         Self::Application(fact)
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn principal(
+        dependency: WorthQueryPrincipalCurrentnessDependency,
+    ) -> Self {
+        Self::Principal(dependency)
     }
 
     pub(in crate::domain_computation::primary_graph) fn authorization(
@@ -42,6 +51,7 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
     pub(in crate::domain_computation::primary_graph) fn locator_identity(&self) -> String {
         match self {
             Self::Application(fact) => fact.locator_identity(),
+            Self::Principal(_) => "application-principal-currentness".to_string(),
             Self::Authorization { locator, .. } => locator.to_string(),
         }
     }
@@ -53,6 +63,7 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
     ) -> bool {
         match self {
             Self::Application(fact) => fact.remains_equal_in(runtime, snapshot),
+            Self::Principal(dependency) => dependency.remains_current_in(runtime, snapshot),
             Self::Authorization {
                 observation,
                 bridge,

@@ -141,10 +141,6 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.capabilities.plan(capability)
     }
 
-    pub(super) fn operation_requires_capability<Input>(&self, operation: &str) -> bool {
-        self.capabilities.governs_operation::<Input>(operation)
-    }
-
     pub(in crate::domain_computation::primary_graph) const fn capability_compilation(
         &self,
     ) -> WorthQueryCapabilityPlanCompilationEvidence {

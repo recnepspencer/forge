@@ -10,13 +10,13 @@ use worth_query_installation::facade::{
     ApplicationSchemaBindingIdentity, WorthQueryCanonicalWorkPhases,
     WorthQueryCompiledApplicationOperationContracts,
 };
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
-};
-use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
+use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
 
 use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
-use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
+use super::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRetainedAuthorizationDecisionFacts,
+};
 
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
@@ -36,12 +36,6 @@ impl WorthQueryOperationAdmissionIdentity {
             .ok()
             .map(Self)
     }
-}
-
-pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationCommitDependency {
-    pub(in crate::domain_computation::primary_graph) relational:
-        RelationalAuthorizationObservationEvidence,
-    pub(in crate::domain_computation::primary_graph) bridge: BridgeAuthorizationDecisionEvidence,
 }
 
 use super::WorthQueryOperationScopeBinding;
@@ -76,7 +70,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     contracts: WorthQueryCompiledApplicationOperationContracts,
     mutation_preconditions:
         super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
-    requirements: Vec<WorthQueryAuthorizationCommitDependency>,
+    authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
     capability_input: Option<Input>,
     capability_currentness: Option<WorthQueryCapabilityCurrentnessAuthority>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
@@ -99,7 +93,7 @@ impl<Schema, Operation, Input, Scope>
         contracts: WorthQueryCompiledApplicationOperationContracts,
         mutation_preconditions:
             super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
-        requirements: Vec<WorthQueryAuthorizationCommitDependency>,
+        authorization: WorthQueryRetainedAuthorizationDecisionFacts,
     ) -> Result<Self, ()> {
         let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or(())?;
         let resource_binding_identity = Arc::<str>::from(format!(
@@ -126,7 +120,7 @@ impl<Schema, Operation, Input, Scope>
             request_scope,
             contracts,
             mutation_preconditions,
-            requirements,
+            authorization: Some(authorization),
             capability_input: None,
             capability_currentness: None,
             _marker: PhantomData,
@@ -223,7 +217,15 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub fn authorization_requirement_count(&self) -> usize {
-        self.requirements.len()
+        self.authorization
+            .as_ref()
+            .map_or(0, WorthQueryRetainedAuthorizationDecisionFacts::policy_count)
+    }
+
+    pub fn authorization_decision_fact_count(&self) -> usize {
+        self.authorization
+            .as_ref()
+            .map_or(0, WorthQueryRetainedAuthorizationDecisionFacts::exact_fact_count)
     }
 
     pub const fn capability_input(&self) -> Option<&Input> {
@@ -253,7 +255,12 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
-        self.requirements.iter().fold(
+        self.authorization
+            .as_ref()
+            .map(WorthQueryRetainedAuthorizationDecisionFacts::policy)
+            .unwrap_or_default()
+            .iter()
+            .fold(
             RelationalAuthorizationObservationCounters::default(),
             |mut total, requirement| {
                 let counters = requirement.relational.counters();
@@ -275,7 +282,10 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub fn signal_dependency_count(&self) -> usize {
-        self.requirements
+        self.authorization
+            .as_ref()
+            .map(WorthQueryRetainedAuthorizationDecisionFacts::policy)
+            .unwrap_or_default()
             .iter()
             .map(|requirement| {
                 let counters = requirement.bridge.counters();
@@ -290,20 +300,24 @@ impl<Schema, Operation, Input, Scope>
     pub(in crate::domain_computation::primary_graph) fn take_authorization_dependencies(
         &mut self,
         bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
-    ) -> Result<Vec<WorthQueryAuthorizationCommitDependency>, WorthQueryOperationAuthorizationDenial>
+    ) -> Result<
+        WorthQueryRetainedAuthorizationDecisionFacts,
+        WorthQueryOperationAuthorizationDenial,
+    >
     {
-        if self.requirements.iter().any(|requirement| {
-            !bridge.retains(&requirement.bridge)
-                || requirement.bridge.dependency_identity()
-                    != requirement.relational.observation_identity().bytes()
-                || !requirement.bridge.is_allowed()
-        }) {
+        let authorization = self.authorization.take().ok_or_else(|| {
+            WorthQueryOperationAuthorizationDenial::new(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                &self.operation,
+            )
+        })?;
+        if !authorization.bridge_is_retained(bridge) {
             return Err(WorthQueryOperationAuthorizationDenial::new(
                 WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
                 &self.operation,
             ));
         }
-        Ok(std::mem::take(&mut self.requirements))
+        Ok(authorization)
     }
 
     /// Descriptive fingerprint of the exact installed operation authority

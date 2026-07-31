@@ -9,7 +9,10 @@ use worth_query_declaration::facade::domain_computation::{
     WorthQueryResourceLimitRequest, WorthQuerySemanticScaleRequest,
 };
 
-use super::{WorthQueryInstalledAbilityRequirement, WorthQueryInstalledMutationPrecondition};
+use super::{
+    WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperationAuthorization,
+    WorthQueryInstalledMutationPrecondition,
+};
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
@@ -37,6 +40,7 @@ pub const APPLICATION_INVARIANT_SLOT: &str = "application-touched-graph";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryCompiledApplicationOperationContracts {
+    authorization: WorthQueryInstalledApplicationOperationAuthorization,
     ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
     graph_reads: WorthQueryOperationGraphReadContract,
     touches: WorthQueryOperationTouchContract,
@@ -54,6 +58,7 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
 
 impl WorthQueryCompiledApplicationOperationContracts {
     pub(crate) fn compile(
+        authorization: WorthQueryInstalledApplicationOperationAuthorization,
         mut ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
         mut program: Vec<ApplicationOperationProgramTarget>,
         mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
@@ -67,7 +72,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
         program.dedup();
         decision_reads.sort();
         decision_reads.dedup();
-        let authorization_fact_count = ability_requirements.len();
+        let authorization_fact_count = authorization.exact_fact_count(ability_requirements.len());
         let primary_role = "primary".to_string();
         let graph_reads = WorthQueryOperationGraphReadContract::Declared {
             roles: vec![WorthQueryOperationGraphReadRole {
@@ -106,6 +111,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
             program.len(),
         );
         Self {
+            authorization,
             ability_requirements,
             graph_reads,
             touches,
@@ -124,6 +130,10 @@ impl WorthQueryCompiledApplicationOperationContracts {
 
     pub fn mutation_preconditions(&self) -> &[WorthQueryInstalledMutationPrecondition] {
         &self.mutation_preconditions
+    }
+
+    pub const fn authorization(&self) -> WorthQueryInstalledApplicationOperationAuthorization {
+        self.authorization
     }
 
     pub fn precondition_canonical_work_budget(&self) -> Option<CanonicalDigestWorkBudget> {

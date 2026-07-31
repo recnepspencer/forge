@@ -8,21 +8,22 @@ mod capability_lowering;
 mod capability_observation;
 mod capability_registry;
 mod capability_request_resolution;
+mod decision_facts;
 mod denial;
 mod installed_policy;
 mod lowering;
 mod operation_scope_binding;
 
-pub use admitted_operation::{
-    WorthQueryAdmittedApplicationOperation,
-};
+pub use admitted_operation::WorthQueryAdmittedApplicationOperation;
 pub use operation_scope_binding::{
     WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
 };
-pub(in crate::domain_computation::primary_graph) use admitted_operation::{
-    WorthQueryAuthorizationCommitDependency, WorthQueryOperationAdmissionIdentity,
-};
+pub(in crate::domain_computation::primary_graph) use admitted_operation::WorthQueryOperationAdmissionIdentity;
 pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
+pub(in crate::domain_computation::primary_graph) use decision_facts::{
+    WorthQueryAuthorizationDecisionFact, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryRetainedAuthorizationDecisionFacts,
+};
 pub use denial::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };

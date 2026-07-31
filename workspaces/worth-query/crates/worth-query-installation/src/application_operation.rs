@@ -1,4 +1,5 @@
 mod authorization_path_artifact;
+mod authorization_mode;
 mod authorization_requirement;
 mod contract_resolution;
 mod contracts;
@@ -12,6 +13,7 @@ pub(crate) use authorization_requirement::{
 pub use authorization_requirement::{
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledAuthorizationPath,
 };
+pub use authorization_mode::WorthQueryInstalledApplicationOperationAuthorization;
 pub use contracts::{
     WorthQueryCompiledApplicationOperationContracts, APPLICATION_AUTHORIZATION_FACT_FAMILY,
     APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,

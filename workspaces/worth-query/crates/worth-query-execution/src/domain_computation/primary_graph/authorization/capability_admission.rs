@@ -14,7 +14,8 @@ use super::capability_observation::observe_capability;
 use super::capability_request_resolution::resolve_capability_request;
 use super::{
     WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
     resolution::validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
@@ -137,6 +138,8 @@ where
             .external_identity()
             .clone()
             .into_foundational_value();
+        let principal_currentness =
+            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
         let (resolved, authorization) = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
             let result = (|| {
@@ -211,7 +214,10 @@ where
             request.clone(),
             operation.contracts().clone(),
             preconditions,
-            vec![authorization],
+            WorthQueryRetainedAuthorizationDecisionFacts::new(
+                principal_currentness,
+                vec![authorization],
+            ),
         )
         .map_err(|_| {
             WorthQueryOperationAuthorizationDenial::new(

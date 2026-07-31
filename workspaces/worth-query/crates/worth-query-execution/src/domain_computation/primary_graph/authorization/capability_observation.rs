@@ -15,7 +15,6 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 
-use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
 use super::capability_registry::{
     WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
     WorthQueryInstalledCapabilityPlan,
@@ -23,7 +22,10 @@ use super::capability_registry::{
 use super::capability_request_resolution::{
     WorthQueryCapabilityContextKey, WorthQueryResolvedCapabilityRequest,
 };
-use super::{WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind};
+use super::{
+    WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind,
+};
 use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
 
 pub(super) fn observe_capability<Schema, Scope, Context>(
@@ -35,7 +37,7 @@ pub(super) fn observe_capability<Schema, Scope, Context>(
     projection: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
     resolved: &WorthQueryResolvedCapabilityRequest<Schema, Scope>,
     sample: &WorthQueryAuthorizationTimeSample,
-) -> Result<WorthQueryAuthorizationCommitDependency, WorthQueryOperationAuthorizationDenial> {
+) -> Result<WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial> {
     validate_projection_shape(installed, projection, resolved)?;
     let paths = installed
         .paths
@@ -126,7 +128,7 @@ pub(super) fn observe_capability<Schema, Scope, Context>(
             installed.contract.name(),
         ));
     }
-    Ok(WorthQueryAuthorizationCommitDependency {
+    Ok(WorthQueryAuthorizationDecisionFact {
         relational: evidence,
         bridge: bridge_evidence,
     })

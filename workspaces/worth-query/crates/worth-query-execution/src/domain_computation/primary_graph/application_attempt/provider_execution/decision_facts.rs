@@ -1,6 +1,6 @@
 use super::super::super::provider::WorthQueryPrimaryGraphApplicationDecisionFact;
 use super::super::WorthQueryApplicationObservedFact;
-use crate::domain_computation::primary_graph::authorization::WorthQueryAuthorizationCommitDependency;
+use crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts;
 use crate::domain_computation::{WorthQueryDecisionFactLocator, WorthQueryDecisionFactRequest};
 use worth_query_installation::facade::{
     APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
@@ -8,7 +8,7 @@ use worth_query_installation::facade::{
 
 pub(super) fn bind_provider_decision_facts(
     application: Vec<WorthQueryApplicationObservedFact>,
-    authorization: Vec<WorthQueryAuthorizationCommitDependency>,
+    authorization: WorthQueryRetainedAuthorizationDecisionFacts,
 ) -> Result<
     (
         Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,
@@ -17,9 +17,13 @@ pub(super) fn bind_provider_decision_facts(
     (),
 > {
     let application_count = application.len();
+    let (principal, authorization) = authorization.into_parts();
     let facts: Vec<WorthQueryPrimaryGraphApplicationDecisionFact> = application
         .into_iter()
         .map(WorthQueryPrimaryGraphApplicationDecisionFact::application)
+        .chain(std::iter::once(
+            WorthQueryPrimaryGraphApplicationDecisionFact::principal(principal),
+        ))
         .chain(
             authorization
                 .into_iter()

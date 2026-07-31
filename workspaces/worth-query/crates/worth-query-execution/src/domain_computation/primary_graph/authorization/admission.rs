@@ -4,11 +4,12 @@ use super::super::{
     WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
-use super::admitted_operation::WorthQueryAuthorizationCommitDependency;
 use super::bridge_observation::lower_bridge_observation;
 use super::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
+    WorthQueryAdmittedApplicationOperation, WorthQueryAuthorizationDecisionFact,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
@@ -36,10 +37,7 @@ where
         WorthQueryOperationAuthorizationDenial,
     > {
         admit_request(request, operation.operation())?;
-        if self
-            .authorization
-            .operation_requires_capability::<Input>(operation.operation())
-        {
+        if operation.contracts().authorization().requires_capability() {
             return Err(denial(
                 WorthQueryOperationAuthorizationDenialKind::CapabilityRequired,
                 operation.operation(),
@@ -80,6 +78,8 @@ where
             .external_identity()
             .clone()
             .into_foundational_value();
+        let principal_currentness =
+            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
         let result = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
             let result = (|| {
@@ -136,7 +136,7 @@ where
             request.clone(),
             operation.contracts().clone(),
             preconditions,
-            result,
+            WorthQueryRetainedAuthorizationDecisionFacts::new(principal_currentness, result),
         )
         .map_err(|_| {
             denial(
@@ -158,7 +158,7 @@ where
         scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
         binding_identity: &ApplicationSchemaBindingIdentity,
         requirements: &[WorthQueryInstalledAbilityRequirement],
-    ) -> Result<Vec<WorthQueryAuthorizationCommitDependency>, WorthQueryOperationAuthorizationDenial>
+    ) -> Result<Vec<WorthQueryAuthorizationDecisionFact>, WorthQueryOperationAuthorizationDenial>
     {
         let mut admitted = Vec::with_capacity(requirements.len());
         for requirement in requirements {
@@ -233,7 +233,7 @@ where
                 dependency_identity,
                 requirement.policy(),
             )?;
-            admitted.push(WorthQueryAuthorizationCommitDependency {
+            admitted.push(WorthQueryAuthorizationDecisionFact {
                 relational: evidence,
                 bridge,
             });

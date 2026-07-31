@@ -20,6 +20,7 @@ use super::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind,
     WorthQueryCompiledApplicationOperationContracts,
+    WorthQueryInstalledApplicationOperationAuthorization,
 };
 
 pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
@@ -62,6 +63,11 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             ));
         }
         let abilities = ability_requirements(schema, operation)?;
+        let authorization = operation_authorization(
+            operation,
+            abilities.len(),
+            schema.installed_capability_count_for_operation(operation, input_type),
+        )?;
         let program = operation_program(schema, operation);
         let decision_reads = operation_decision_reads(schema, operation);
         let mutation_preconditions = super::precondition_contract::compile_precondition_contract(
@@ -98,6 +104,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             )
             })?;
         let contracts = WorthQueryCompiledApplicationOperationContracts::compile(
+            authorization,
             abilities,
             program,
             decision_reads,
@@ -187,6 +194,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                     return false;
                 };
                 WorthQueryCompiledApplicationOperationContracts::compile(
+                    self.contracts.authorization(),
                     requirements,
                     operation_program_from_members(members, &self.operation),
                     decision_reads,
@@ -205,6 +213,25 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             &self.input_type,
         )
         .verifies(&self.authority_identity)
+    }
+}
+
+fn operation_authorization(
+    operation: &str,
+    ability_count: usize,
+    capability_count: usize,
+) -> Result<
+    WorthQueryInstalledApplicationOperationAuthorization,
+    WorthQueryApplicationOperationInstallationDenial,
+> {
+    match (ability_count > 0, capability_count > 0) {
+        (true, true) => Err(operation_denial(
+            WorthQueryApplicationOperationInstallationDenialKind::ConflictingAuthorizationContract,
+            operation,
+        )),
+        (true, false) => Ok(WorthQueryInstalledApplicationOperationAuthorization::Abilities),
+        (false, true) => Ok(WorthQueryInstalledApplicationOperationAuthorization::Capability),
+        (false, false) => Ok(WorthQueryInstalledApplicationOperationAuthorization::Principal),
     }
 }
 

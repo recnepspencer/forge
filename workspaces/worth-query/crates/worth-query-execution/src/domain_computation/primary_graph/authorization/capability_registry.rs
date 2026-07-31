@@ -127,13 +127,6 @@ impl WorthQueryInstalledCapabilityRegistry {
         self.plans.get(capability.identity().bytes())
     }
 
-    pub(super) fn governs_operation<Input>(&self, operation: &str) -> bool {
-        let input_type = std::any::type_name::<Input>();
-        self.plans.values().any(|plan| {
-            plan.contract.operation() == operation && plan.contract.input_type() == input_type
-        })
-    }
-
     pub(super) const fn compilation(&self) -> WorthQueryCapabilityPlanCompilationEvidence {
         self.compilation
     }

@@ -1,4 +1,4 @@
-use crate::domain_computation::primary_graph::authorization::WorthQueryAuthorizationCommitDependency;
+use crate::domain_computation::primary_graph::authorization::WorthQueryAuthorizationDecisionFact;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryApplicationAuthorizationWorkEvidence {
@@ -17,7 +17,7 @@ pub struct WorthQueryApplicationAuthorizationWorkEvidence {
 
 impl WorthQueryApplicationAuthorizationWorkEvidence {
     pub(super) fn from_dependencies(
-        dependencies: &[WorthQueryAuthorizationCommitDependency],
+        dependencies: &[WorthQueryAuthorizationDecisionFact],
     ) -> Self {
         dependencies.iter().fold(
             Self {
