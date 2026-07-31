@@ -294,6 +294,13 @@ pub(crate) fn require_current_target(
     mounted: &crate::mounting::WorthUiMountedSessionState,
     target: UiPresentedInteractionTargetView,
 ) -> Result<(), UiInteractionTargetingDenial> {
+    admit_current_target(mounted, target).map(|_| ())
+}
+
+pub(crate) fn admit_current_target(
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    target: UiPresentedInteractionTargetView,
+) -> Result<crate::mounting::UiCurrentInteractionAffinity, UiInteractionTargetingDenial> {
     mounted
         .admit_current_interaction_affinity(crate::mounting::UiMountedInteractionAffinityInput {
             surface: target.surface(),

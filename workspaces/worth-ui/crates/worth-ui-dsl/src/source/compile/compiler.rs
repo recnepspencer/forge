@@ -23,7 +23,7 @@ impl WorthUiDslCompiler {
         let source_package = loader.compile().map_err(source_package_report)?;
         let parsed = WorthUiSourceParser::parse_package(&source_package).map_err(parse_report)?;
         WorthUiSealedSemanticPackage::seal(
-            WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed),
+            WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed)?,
             WorthUiAuthoredMode::File,
         )
     }

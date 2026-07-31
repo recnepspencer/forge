@@ -5,6 +5,7 @@ use crate::source::{
     WorthUiProjectionDeclarationError, WorthUiProjectionLifecycle, WorthUiProjectionNativeFamily,
     WorthUiProjectionRequirement, WorthUiSemanticArtifactDeclaration,
 };
+use crate::{WorthUiIntentDeclarationSpec, WorthUiIntentInteractionRoute};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WorthUiRustAuthoredArtifactInputModule {
@@ -115,6 +116,28 @@ impl WorthUiRustAuthoredArtifactInputModule {
                 body_atoms: body_atoms.into_iter().collect(),
             });
         self
+    }
+
+    pub fn with_control_routes(
+        mut self,
+        name_text: impl Into<String>,
+        routes: impl IntoIterator<Item = WorthUiIntentInteractionRoute>,
+    ) -> Self {
+        let body_atoms = routes
+            .into_iter()
+            .flat_map(|route| route.body_atoms())
+            .collect();
+        self.declarations
+            .push(WorthUiRustAuthoredDeclaration::Component {
+                name_text: name_text.into(),
+                authored_identity: None,
+                body_atoms,
+            });
+        self
+    }
+
+    pub fn with_intent_declaration(self, declaration: WorthUiIntentDeclarationSpec) -> Self {
+        self.with_semantic_declaration(declaration.into_semantic_declaration())
     }
 
     pub fn with_surface(mut self, name_text: impl Into<String>) -> Self {

@@ -50,6 +50,10 @@ impl InteractionWorld {
         Self::launch(launch_native_world(host.clone()), Some(host))
     }
 
+    pub(super) fn from_session(session: WorthUiActiveApplicationSession) -> Self {
+        Self::launch(session, None)
+    }
+
     fn launch(
         mut session: WorthUiActiveApplicationSession,
         native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,

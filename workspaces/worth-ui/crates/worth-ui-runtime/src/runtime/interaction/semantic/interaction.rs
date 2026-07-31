@@ -13,4 +13,12 @@ impl UiSemanticInteraction {
             Self::Submit(_) => crate::capability::UiSemanticInteractionFamily::Submit,
         }
     }
+
+    pub const fn target(&self) -> super::super::UiPresentedInteractionTargetView {
+        match self {
+            Self::Activate(interaction) => interaction.target(),
+            Self::EditCommit(interaction) => interaction.target(),
+            Self::Submit(interaction) => interaction.target(),
+        }
+    }
 }

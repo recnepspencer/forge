@@ -7,3 +7,13 @@ pub use crate::capability::{
     UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
     UiSemanticInteractionFamily,
 };
+pub use crate::declaration::{
+    UiIntentCatalogMetrics, UiIntentCatalogPreparationDenial, UiIntentConfirmationRouteBinding,
+    UiIntentDeclaration, UiIntentDeclarationConstructionError, UiIntentDeclarationIdentity,
+    UiIntentRouteBinding,
+};
+pub use crate::runtime::intent::{
+    UiIntentRouteResolution, UiIntentRouteResolutionStop, UiResolvedConfirmationIntentRoute,
+    UiResolvedProductIntentRoute,
+};
+pub use crate::runtime::interaction::UiIntentRouteSource;

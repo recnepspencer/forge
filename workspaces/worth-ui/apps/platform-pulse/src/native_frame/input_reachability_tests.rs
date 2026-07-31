@@ -1,8 +1,6 @@
 use eframe::egui;
 
-use worth_ui_host_egui::{
-    UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStopReason,
-};
+use worth_ui_host_egui::{UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStopReason};
 
 use super::input::observe_egui_input;
 
@@ -43,7 +41,10 @@ fn production_native_frame_route_stops_exact_input_without_a_presented_surface()
     let UiEguiRawInputIngressOutcome::Stopped(stop) = outcome else {
         panic!("unpresented input must stop");
     };
-    assert_eq!(stop.reason(), UiEguiRawInputIngressStopReason::NoPresentedSurface);
+    assert_eq!(
+        stop.reason(),
+        UiEguiRawInputIngressStopReason::NoPresentedSurface
+    );
     let reachability = stop.reachability();
 
     assert_eq!(reachability.event_count(), 6);

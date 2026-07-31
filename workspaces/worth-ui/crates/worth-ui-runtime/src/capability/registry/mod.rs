@@ -62,7 +62,9 @@ pub use intent::{
     UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
     UiSemanticInteractionFamily,
 };
-pub(crate) use intent::{IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry};
+pub(crate) use intent::{
+    IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry, UiIntentDefinitionSlot,
+};
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,
     MosaicPlacementEligibility, MosaicPlacementPersistence, MosaicPlacementPolicyDescriptor,

@@ -6,6 +6,7 @@ pub enum WorthUiSemanticHandoffPreparationStop {
     CapabilityResolution,
     RuntimeStructuralAdmission,
     DeclarationProjection,
+    IntentDeclaration,
     BindingAdmission,
     IdentitySeeding,
     CanonicalAssembly,

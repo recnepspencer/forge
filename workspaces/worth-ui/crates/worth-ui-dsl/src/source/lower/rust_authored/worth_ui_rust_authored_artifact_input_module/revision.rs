@@ -108,6 +108,8 @@ fn fold_atom(digest: &mut u64, atom: &WorthUiArtifactInputBodyAtom) {
         }
         WorthUiArtifactInputBodyAtom::KeywordImport => "keyword-import",
         WorthUiArtifactInputBodyAtom::KeywordComponent => "keyword-component",
+        WorthUiArtifactInputBodyAtom::KeywordControl => "keyword-control",
+        WorthUiArtifactInputBodyAtom::KeywordIntent => "keyword-intent",
         WorthUiArtifactInputBodyAtom::KeywordSurface => "keyword-surface",
         WorthUiArtifactInputBodyAtom::KeywordBinding => "keyword-binding",
         WorthUiArtifactInputBodyAtom::KeywordQueryScalar => "keyword-query-scalar",

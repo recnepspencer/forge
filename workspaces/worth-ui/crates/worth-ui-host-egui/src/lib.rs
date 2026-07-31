@@ -6,8 +6,7 @@ pub use adapter::{
     UiEguiMountedParticipationPreparation, UiEguiMountedResourceHandle,
     UiEguiRawInputIngressOutcome, UiEguiRawInputIngressStop, UiEguiRawInputIngressStopReason,
     UiEguiRawInputReachability, UiEguiRetainedRawInput, UiEguiUnsupportedEventFamily,
-    WorthUiEguiMountedProjectionPreparation,
-    WorthUiEguiMountedResourceCache, WorthUiHostEgui,
+    WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache, WorthUiHostEgui,
 };
 pub use translation::{
     egui_dpi_scale_normalization_context, egui_font_metrics_normalization_context,

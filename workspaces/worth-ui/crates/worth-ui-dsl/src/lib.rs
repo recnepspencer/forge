@@ -8,7 +8,9 @@ pub use source::certification as certification_support;
 pub use semantic::{
     UiDslAspectName, UiDslLoweringReceipt, UiDslPostureToken, UiDslSemanticArtifact,
     UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance,
-    UiDslStructuralToken, UiDslSupportToken,
+    UiDslStructuralToken, UiDslSupportToken, WorthUiIntentDeclarationParseError,
+    WorthUiIntentDeclarationSpec, WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
+    WorthUiIntentInteractionRouteKind,
 };
 pub use source::{
     WorthUiArtifactInput, WorthUiArtifactInputBlockNode, WorthUiArtifactInputBodyAtom,

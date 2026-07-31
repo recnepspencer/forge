@@ -56,6 +56,12 @@ pub(crate) fn prepare_application_authority(
         .commit_initial_generation(graph_world_profile)
         .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
         .into_committed_snapshot();
+    let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
+        semantic_handoff.intent_material(),
+        capability_snapshot.intent_definitions(),
+        &graph_snapshot,
+    )
+    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
     let retained_measurement_inspection_evidence = measurement_inspection_evidence.clone();
     let lifecycle = WorthUiFacadeLifecycleBootstrap::bootstrap_with_inspection_scope_inventory(
         &declaration_artifacts,
@@ -72,6 +78,7 @@ pub(crate) fn prepare_application_authority(
             semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
+            intent_catalog,
             lifecycle,
             query_binding_plan,
             host_session_plan,
@@ -118,6 +125,12 @@ pub(crate) fn prepare_successor_application_authority(
         ))
         .map_err(WorthUiApplicationPreparationDenial::GraphCommit)?
         .into_committed_snapshot();
+    let intent_catalog = crate::declaration::UiIntentCatalog::prepare(
+        semantic_handoff.intent_material(),
+        current.capabilities().intent_definitions(),
+        &graph_snapshot,
+    )
+    .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
     let measurement_inspection_evidence = current
         .measurement_inspection_evidence()
         .to_vec()
@@ -139,6 +152,7 @@ pub(crate) fn prepare_successor_application_authority(
             semantic_handoff,
             declaration_artifacts,
             graph_snapshot,
+            intent_catalog,
             lifecycle,
             query_binding_plan: current.query_binding_plan().clone(),
             host_session_plan: current.host_session_plan().clone(),

@@ -10,6 +10,8 @@ pub(crate) struct WorthUiParsedSourceModule {
 pub(crate) enum WorthUiParsedSourceDeclaration {
     Import(WorthUiParsedImportDeclaration),
     Component(WorthUiParsedBlockDeclaration),
+    Control(WorthUiParsedBlockDeclaration),
+    Intent(WorthUiParsedBlockDeclaration),
     Surface(WorthUiParsedBlockDeclaration),
     Binding(WorthUiParsedBlockDeclaration),
     QueryScalar(WorthUiParsedBlockDeclaration),
@@ -161,6 +163,8 @@ impl WorthUiParsedSourceDeclaration {
         match (self, other) {
             (Self::Import(left), Self::Import(right)) => left.path_text == right.path_text,
             (Self::Component(left), Self::Component(right))
+            | (Self::Control(left), Self::Control(right))
+            | (Self::Intent(left), Self::Intent(right))
             | (Self::Surface(left), Self::Surface(right))
             | (Self::Binding(left), Self::Binding(right))
             | (Self::QueryScalar(left), Self::QueryScalar(right))

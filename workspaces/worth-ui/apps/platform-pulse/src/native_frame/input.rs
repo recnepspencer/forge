@@ -42,12 +42,13 @@ impl PlatformPulseNativeInputIngress {
             return Ok(());
         };
         match outcome {
-            UiEguiRawInputIngressOutcome::Retained(retained) => self.publish_discovered(
-                retained.reachability(),
-                PlatformPulseNativeInputIngressPosture::Retained,
-                publisher,
-            )
-            .map_err(PlatformPulseNativeInputIngressDenial::Publication),
+            UiEguiRawInputIngressOutcome::Retained(retained) => self
+                .publish_discovered(
+                    retained.reachability(),
+                    PlatformPulseNativeInputIngressPosture::Retained,
+                    publisher,
+                )
+                .map_err(PlatformPulseNativeInputIngressDenial::Publication),
             UiEguiRawInputIngressOutcome::NoMechanicalObservations(_) => Ok(()),
             UiEguiRawInputIngressOutcome::Stopped(stop) => {
                 let publication = self.publish_discovered(
@@ -75,9 +76,7 @@ impl PlatformPulseNativeInputIngress {
             || keyboard_discovered
             || posture == PlatformPulseNativeInputIngressPosture::Stopped
         {
-            publisher
-                .native_input_reached(reached, posture)
-                ?;
+            publisher.native_input_reached(reached, posture)?;
             self.pointer_published |= pointer_discovered;
             self.keyboard_published |= keyboard_discovered;
         }

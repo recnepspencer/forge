@@ -78,6 +78,8 @@ fn body_atom_key(body_atom: &crate::source::WorthUiArtifactInputBodyAtom) -> Str
         crate::source::WorthUiArtifactInputBodyAtom::StringLiteral(text) => format!("str:{text}"),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordImport => "kw:import".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordComponent => "kw:component".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordControl => "kw:control".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::KeywordIntent => "kw:intent".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordSurface => "kw:surface".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordBinding => "kw:binding".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::KeywordQueryScalar => {

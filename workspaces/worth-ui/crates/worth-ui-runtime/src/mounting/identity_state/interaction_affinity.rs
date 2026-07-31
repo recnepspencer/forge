@@ -20,6 +20,10 @@ pub(crate) struct UiCurrentHitTarget {
     row: UiMountedHitTestMechanic,
 }
 
+pub(crate) struct UiCurrentInteractionAffinity {
+    graph_node: crate::graph::UiGraphNodeIdentity,
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct UiMountedInteractionAffinityInput {
     pub(crate) surface: UiSemanticSurfaceIdentity,
@@ -53,7 +57,7 @@ impl UiMountedIdentityState {
     pub(crate) fn admit_current_interaction_affinity(
         &self,
         input: UiMountedInteractionAffinityInput,
-    ) -> Result<(), UiCurrentHitTargetAffinityDenial> {
+    ) -> Result<UiCurrentInteractionAffinity, UiCurrentHitTargetAffinityDenial> {
         let binding = self
             .bindings
             .get(&input.surface)
@@ -76,12 +80,20 @@ impl UiMountedIdentityState {
         if !receipt_is_current {
             return Err(UiCurrentHitTargetAffinityDenial::MountedInstanceNoLongerCurrent);
         }
-        Ok(())
+        Ok(UiCurrentInteractionAffinity {
+            graph_node: instance.basis.graph_node_identity(),
+        })
     }
 }
 
 impl UiCurrentHitTarget {
     pub(crate) const fn row(&self) -> UiMountedHitTestMechanic {
         self.row
+    }
+}
+
+impl UiCurrentInteractionAffinity {
+    pub(crate) const fn graph_node(&self) -> crate::graph::UiGraphNodeIdentity {
+        self.graph_node
     }
 }

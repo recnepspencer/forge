@@ -1,7 +1,5 @@
 use eframe::egui;
-use worth_ui::facade::app::{
-    UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationShell,
-};
+use worth_ui::facade::app::{UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationShell};
 use worth_ui::facade::source::WorthUiSourcePackageRevision;
 use worth_ui_host_egui::WorthUiHostEgui;
 

@@ -37,7 +37,7 @@ pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMoun
 pub(crate) use identity_overlay::UiMountedVisualOverlayProjectionInput;
 pub(crate) use identity_state::{
     UiAuthorityAdmittedMountedFrame, UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial,
-    UiMountedIdentityState, UiMountedInteractionAffinityInput,
+    UiCurrentInteractionAffinity, UiMountedIdentityState, UiMountedInteractionAffinityInput,
 };
 pub(crate) use identity_trace_basis::UiMountedIdentityTraceBasis;
 pub use identity_view::{
