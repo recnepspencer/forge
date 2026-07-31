@@ -29,6 +29,9 @@ use super::world::{
 };
 use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
+mod draft_input;
+mod selection_identity;
+
 #[test]
 fn ia_05_zero_one_and_sixty_four_fields_follow_declared_width_not_world_width() {
     assert_zero_field_file_world();
@@ -208,9 +211,16 @@ fn publish_scalar(
     observation: worth_ui_query_binding::UiScalarProjectionObservation,
     request: u64,
 ) {
+    publish_projection(world, UiProjectionObservation::Scalar(observation), request);
+}
+
+fn publish_projection(
+    world: &mut PayloadWorld,
+    observation: UiProjectionObservation,
+    request: u64,
+) {
     let mut turn = world.interaction.session.begin_observation_turn().unwrap();
-    turn.admit_projection_query(UiProjectionObservation::Scalar(observation))
-        .unwrap();
+    turn.admit_projection_query(observation).unwrap();
     let admitted = turn.seal().unwrap();
     let changed = match world
         .interaction

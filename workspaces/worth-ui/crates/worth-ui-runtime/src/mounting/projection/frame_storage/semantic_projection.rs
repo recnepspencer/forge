@@ -230,14 +230,38 @@ impl UiMountedSemanticProjection {
         &mut self,
         content: &super::super::super::UiMountedSemanticContentInput,
     ) {
-        if self.projection_input_capacity != content.projection_input_capacity() {
-            self.projection_input_capacity = content.projection_input_capacity();
-            self.projection_inputs = Default::default();
-        }
-        for (slot, input) in content.projection_inputs() {
-            debug_assert!(slot.index() < self.projection_input_capacity);
+        use crate::mounting::semantic_content::UiMountedProjectionInputTransition as Transition;
+
+        let (capacity, inputs) = match content.projection_input_transition() {
+            Transition::Retain => return,
+            Transition::Merge { capacity, inputs } => {
+                if self.projection_input_capacity != *capacity {
+                    self.projection_input_capacity = *capacity;
+                    self.projection_inputs = Default::default();
+                }
+                (*capacity, inputs)
+            }
+            Transition::Replace { capacity, inputs } => {
+                self.projection_input_capacity = *capacity;
+                self.projection_inputs = Default::default();
+                (*capacity, inputs)
+            }
+        };
+        for (slot, input) in inputs {
+            debug_assert!(slot.index() < capacity);
             self.projection_inputs.insert(slot.index(), input.clone());
         }
+    }
+
+    pub(in crate::mounting::projection) fn inherit_projection_inputs(
+        &mut self,
+        predecessor: Option<&Self>,
+    ) {
+        let Some(predecessor) = predecessor else {
+            return;
+        };
+        self.projection_input_capacity = predecessor.projection_input_capacity;
+        self.projection_inputs = predecessor.projection_inputs.clone();
     }
 
     pub(in crate::mounting) fn projection_input(
