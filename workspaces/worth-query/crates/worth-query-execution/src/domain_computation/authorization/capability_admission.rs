@@ -136,12 +136,14 @@ where
                         installed,
                         &revalidation,
                         &sample,
+                        None,
                     )?;
                     Ok((resolved, revalidation, authorization))
                 })();
                 runtime.snapshots().release_snapshot(&snapshot);
                 result
             })?;
+        let (authorization, grant) = authorization.into_parts();
         admit_request(request, capability.contract().operation())?;
         if principal.is_expired() {
             return Err(denial(
@@ -164,6 +166,7 @@ where
                 principal_currentness,
                 authorization,
                 installed.capability_authority_identity.clone(),
+                grant,
                 revalidation,
                 sample,
             ),

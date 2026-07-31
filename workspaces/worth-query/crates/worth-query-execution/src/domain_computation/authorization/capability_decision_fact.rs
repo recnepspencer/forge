@@ -5,16 +5,17 @@ use std::sync::Arc;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
 
+use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAuthorizationDecisionFact, WorthQueryAuthorizationTimeSample,
     WorthQueryPrincipalCurrentnessDependency,
 };
-use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 
 pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorization {
     principal: WorthQueryPrincipalCurrentnessDependency,
     decision: WorthQueryAuthorizationDecisionFact,
     capability_authority_identity: Arc<str>,
+    grant: worth_relational::facade::identity::EntityId,
     request: WorthQueryRetainedCapabilityRequest,
     sample: WorthQueryAuthorizationTimeSample,
 }
@@ -24,6 +25,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         principal: WorthQueryPrincipalCurrentnessDependency,
         decision: WorthQueryAuthorizationDecisionFact,
         capability_authority_identity: Arc<str>,
+        grant: worth_relational::facade::identity::EntityId,
         request: WorthQueryRetainedCapabilityRequest,
         sample: WorthQueryAuthorizationTimeSample,
     ) -> Self {
@@ -31,6 +33,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
             principal,
             decision,
             capability_authority_identity,
+            grant,
             request,
             sample,
         }
@@ -46,6 +49,10 @@ impl WorthQueryRetainedCapabilityAuthorization {
 
     pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {
         &self.request
+    }
+
+    pub(super) const fn grant(&self) -> worth_relational::facade::identity::EntityId {
+        self.grant
     }
 
     pub(super) const fn exact_fact_count(&self) -> usize {
@@ -79,10 +86,12 @@ impl WorthQueryRetainedCapabilityAuthorization {
     pub(super) fn replace_current_decision(
         &mut self,
         capability_authority_identity: &str,
+        grant: worth_relational::facade::identity::EntityId,
         sample: WorthQueryAuthorizationTimeSample,
         decision: WorthQueryAuthorizationDecisionFact,
     ) -> Result<(), ()> {
         if self.capability_authority_identity.as_ref() != capability_authority_identity
+            || self.grant != grant
             || self.sample.timeline() != sample.timeline()
         {
             return Err(());
@@ -102,6 +111,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         let commit = WorthQueryCapabilityCommitBasis {
             principal: self.principal.clone(),
             capability_authority_identity: self.capability_authority_identity,
+            grant: self.grant,
             request: self.request,
         };
         (self.principal, self.decision, commit)
@@ -111,6 +121,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
 pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
     principal: WorthQueryPrincipalCurrentnessDependency,
     capability_authority_identity: Arc<str>,
+    grant: worth_relational::facade::identity::EntityId,
     request: WorthQueryRetainedCapabilityRequest,
 }
 
@@ -121,6 +132,10 @@ impl WorthQueryCapabilityCommitBasis {
 
     pub(super) fn capability_authority_identity(&self) -> &str {
         &self.capability_authority_identity
+    }
+
+    pub(super) const fn grant(&self) -> worth_relational::facade::identity::EntityId {
+        self.grant
     }
 
     pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {

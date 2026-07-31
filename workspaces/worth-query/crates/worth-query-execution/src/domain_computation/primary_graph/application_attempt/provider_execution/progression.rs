@@ -258,12 +258,7 @@ fn finish_authorized_compare(
         }
         WorthQueryProviderCompareAndCommitOutcome::Denied(_) => denied(DenialStage::ProviderCommit),
         WorthQueryProviderCompareAndCommitOutcome::Indeterminate(_) => {
-            resolve_indeterminate_commit(
-                provider,
-                idempotency,
-                preconditions,
-                canonical_work,
-            )
+            resolve_indeterminate_commit(provider, idempotency, preconditions, canonical_work)
         }
     }
 }

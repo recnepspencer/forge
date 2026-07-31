@@ -29,6 +29,14 @@ mod typed_bootstrap;
 #[cfg(test)]
 mod tests;
 
+pub use crate::domain_computation::authorization::{
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
+};
+pub(in crate::domain_computation) use application_attempt::precondition_binding::{
+    bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
+};
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
@@ -78,27 +86,20 @@ pub use application_runtime::WorthQueryPrimaryGraphApplicationRuntime;
 pub use authenticated_principal::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryAuthenticatedPrincipal,
 };
-pub use crate::domain_computation::authorization::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
-};
-pub(in crate::domain_computation) use application_attempt::precondition_binding::{
-    bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
-};
 pub use bootstrap::{WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphPublication};
 pub use denial::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
 };
 pub use entity_identity::WorthQueryApplicationEntityIdentity;
 pub(in crate::domain_computation) use entity_identity::WorthQueryResolvedEntityEvidence;
+pub use entity_key::{WorthQueryApplicationEntityKey, WorthQueryApplicationEntityKeyDenial};
 pub(in crate::domain_computation) use entity_resolution::{
     resolve_at_snapshot, validate_entity_freshness_at_snapshot,
 };
-pub use entity_key::{WorthQueryApplicationEntityKey, WorthQueryApplicationEntityKeyDenial};
 pub use entity_resolution_denial::{
     WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
 };
+pub(in crate::domain_computation) use freshness::WorthQueryPrincipalFreshnessEvidence;
 pub use index_refresh::{
     WorthQueryPrimaryGraphIndexRefreshDenial, WorthQueryPrimaryGraphIndexRefreshDenialKind,
 };
@@ -124,15 +125,14 @@ pub use ordinary_read::{
 pub use principal_key::{
     WorthQueryApplicationPrincipalKey, WorthQueryApplicationPrincipalKeyDenial,
 };
-pub use resolution::WorthQueryPrincipalResolutionMode;
+pub(in crate::domain_computation) use provider::WorthQueryApplicationCommitSerialization;
 pub(in crate::domain_computation) use resolution::validate_freshness_at_snapshot;
+pub use resolution::WorthQueryPrincipalResolutionMode;
 pub use resolution_denial::{
     WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
 };
 pub use root::{WorthQueryPrimaryGraph, WorthQueryPrimaryGraphIntegrationHandle};
-pub use typed_bootstrap::{WorthQueryApplicationEntitySeed, WorthQueryApplicationRelationSeed};
-pub(in crate::domain_computation) use freshness::WorthQueryPrincipalFreshnessEvidence;
 pub(in crate::domain_computation) use schema_layout::{
     WorthQueryPrimaryGraphLayout, WorthQueryPrimaryPrincipalBindingLayout,
 };
-pub(in crate::domain_computation) use provider::WorthQueryApplicationCommitSerialization;
+pub use typed_bootstrap::{WorthQueryApplicationEntitySeed, WorthQueryApplicationRelationSeed};

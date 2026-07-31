@@ -18,3 +18,24 @@ impl WorthQueryInstalledApplicationOperationAuthorization {
         matches!(self, Self::Capability)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn authorization_mode_owns_its_exact_decision_fact_family() {
+        assert_eq!(
+            WorthQueryInstalledApplicationOperationAuthorization::Principal.exact_fact_count(0),
+            1
+        );
+        assert_eq!(
+            WorthQueryInstalledApplicationOperationAuthorization::Abilities.exact_fact_count(2),
+            3
+        );
+        assert_eq!(
+            WorthQueryInstalledApplicationOperationAuthorization::Capability.exact_fact_count(0),
+            2
+        );
+    }
+}

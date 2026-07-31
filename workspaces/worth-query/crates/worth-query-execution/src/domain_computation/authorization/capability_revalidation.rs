@@ -35,9 +35,27 @@ where
                 installed.contract.name(),
             )
         })?;
-        let fact = graph.integration_handle().with_runtime_mut(|runtime| {
+        let observed = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let result = if authorization.principal().remains_current_in(runtime, &snapshot) {
+            let principal_current = authorization
+                .principal()
+                .remains_current_in(runtime, &snapshot);
+            let decision_current = authorization.decision().remains_current_in(
+                runtime,
+                &snapshot,
+                self.authorization.bridge(),
+            );
+            let result = if !principal_current {
+                Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
+                    installed.contract.name(),
+                ))
+            } else if !decision_current {
+                Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+                    installed.contract.name(),
+                ))
+            } else {
                 observe_capability(
                     runtime,
                     snapshot.clone(),
@@ -45,26 +63,24 @@ where
                     installed,
                     request,
                     &sample,
+                    Some(authorization.grant()),
                 )
-            } else {
-                Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                    installed.contract.name(),
-                ))
             };
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })?;
+        let (fact, grant) = observed.into_parts();
         authorization
             .replace_current_decision(
                 installed.capability_authority_identity.as_ref(),
+                grant,
                 sample,
                 fact,
             )
             .map_err(|()| {
                 denial(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                installed.contract.name(),
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
                 )
             })?;
         Ok(())

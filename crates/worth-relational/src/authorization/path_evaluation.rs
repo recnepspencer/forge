@@ -12,8 +12,8 @@ use super::field_observation::{entity_is_live_kind, observed_field};
 use super::{
     RelationalAuthorizationAdjacencyDependency, RelationalAuthorizationObservationCounters,
     RelationalAuthorizationObservationPlan, RelationalAuthorizationPathObservation,
-    RelationalAuthorizationPathPlan, RelationalAuthorizationTraversal,
-    RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationPathPlan, RelationalAuthorizationPathWitness,
+    RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -88,10 +88,16 @@ pub(super) fn evaluate_path(
             break;
         }
     }
-    let matched = frontier
+    let witness = frontier
         .iter()
-        .any(|witness| witness.current() == plan.scope());
-    RelationalAuthorizationPathObservation::new(matched, state.dependencies.finish(), true)
+        .find(|witness| witness.current() == plan.scope())
+        .map(|witness| RelationalAuthorizationPathWitness::new(witness.entities.clone()));
+    RelationalAuthorizationPathObservation::new(
+        witness.is_some(),
+        witness,
+        state.dependencies.finish(),
+        true,
+    )
 }
 
 fn traverse_frontier(

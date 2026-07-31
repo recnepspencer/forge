@@ -244,6 +244,32 @@ fn authority_identity(
     authority_transcript(key, identity, operation, input_type).finish()
 }
 
+#[cfg(test)]
+mod authorization_mode_tests {
+    use super::*;
+
+    #[test]
+    fn operation_authorization_mode_is_an_exclusive_installed_lattice() {
+        assert_eq!(
+            operation_authorization("operation", 0, 0).unwrap(),
+            WorthQueryInstalledApplicationOperationAuthorization::Principal
+        );
+        assert_eq!(
+            operation_authorization("operation", 1, 0).unwrap(),
+            WorthQueryInstalledApplicationOperationAuthorization::Abilities
+        );
+        assert_eq!(
+            operation_authorization("operation", 0, 1).unwrap(),
+            WorthQueryInstalledApplicationOperationAuthorization::Capability
+        );
+        let denial = operation_authorization("operation", 1, 1).unwrap_err();
+        assert_eq!(
+            denial.kind(),
+            WorthQueryApplicationOperationInstallationDenialKind::ConflictingAuthorizationContract
+        );
+    }
+}
+
 fn authority_transcript(
     key: &PackageAuthorityKey,
     identity: &ApplicationSchemaBindingIdentity,

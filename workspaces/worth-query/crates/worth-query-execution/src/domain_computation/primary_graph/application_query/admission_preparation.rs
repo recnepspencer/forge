@@ -22,8 +22,8 @@ use crate::domain_computation::authorization::{
 };
 use crate::domain_computation::primary_graph::{
     entity_resolution::validate_entity_freshness_at_snapshot,
-    resolution::validate_freshness_at_snapshot,
-    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionDenialKind,
+    resolution::validate_freshness_at_snapshot, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryPrincipalResolutionDenialKind,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>

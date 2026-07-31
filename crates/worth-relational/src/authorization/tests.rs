@@ -45,6 +45,11 @@ fn actual_snapshot_observation_mints_exact_neutral_evidence() {
     assert_eq!(evidence.principal(), fixture.principal);
     assert_eq!(evidence.scope(), fixture.scope);
     assert!(evidence.paths()[0].matched());
+    let witness = evidence.paths()[0]
+        .witness()
+        .expect("a matched path retains one complete causal witness");
+    assert_eq!(witness.entity_at(0), Some(fixture.principal));
+    assert_eq!(witness.entity_at(2), Some(fixture.scope));
     assert!(evidence.paths()[0].exhaustive());
     assert_eq!(evidence.paths()[0].adjacency_lists().len(), 2);
     assert_eq!(

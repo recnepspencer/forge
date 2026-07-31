@@ -73,20 +73,19 @@ where
                 access.operation.as_ref(),
             )
         })?;
-        let preconditions =
-            bind_mutation_preconditions(
-                preconditions,
-                operation.contracts(),
-                access.resolved.resource.entity_name(),
-                access.resolved.resource.entity_id(),
-                graph.layout(),
+        let preconditions = bind_mutation_preconditions(
+            preconditions,
+            operation.contracts(),
+            access.resolved.resource.entity_name(),
+            access.resolved.resource.entity_id(),
+            graph.layout(),
+        )
+        .map_err(|()| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
+                operation.operation(),
             )
-            .map_err(|()| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
-                    operation.operation(),
-                )
-            })?;
+        })?;
         validate_access_lifecycle(&access)?;
         WorthQueryAdmittedApplicationOperation::mint(
             self.runtime.authority_identity(),

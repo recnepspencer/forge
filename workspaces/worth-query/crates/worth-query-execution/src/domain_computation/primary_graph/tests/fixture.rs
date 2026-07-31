@@ -8,9 +8,8 @@ mod capability;
 #[path = "fixture/capability_seed.rs"]
 mod capability_seed;
 pub(super) use capability::{
-    CapabilityAction, CapabilityGrant, CapabilityIdentity, CapabilityPurpose,
-    CapabilityStatus, CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
-    TouchAccountCapability,
+    CapabilityAction, CapabilityIdentity, CapabilityPurpose, CapabilityStatus,
+    CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation, TouchAccountCapability,
 };
 #[path = "fixture/application_queries.rs"]
 mod application_queries;
@@ -39,6 +38,7 @@ mod world_installation;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
     installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
+    installed_capability_authorization_world, installed_capability_replacement_world,
     AuthorizationWorld,
 };
 pub(super) use world_installation::{

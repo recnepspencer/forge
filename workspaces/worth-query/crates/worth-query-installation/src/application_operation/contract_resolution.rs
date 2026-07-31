@@ -136,14 +136,7 @@ pub(super) fn ability_requirements<Schema>(
 where
     Schema: ApplicationSchema,
 {
-    let requirements = ability_requirements_from_schema(schema, operation)?;
-    if requirements.is_empty() {
-        return Err(operation_denial(
-            WorthQueryApplicationOperationInstallationDenialKind::MissingAbility,
-            operation,
-        ));
-    }
-    Ok(requirements)
+    ability_requirements_from_schema(schema, operation)
 }
 
 fn ability_requirements_from_schema<Schema>(

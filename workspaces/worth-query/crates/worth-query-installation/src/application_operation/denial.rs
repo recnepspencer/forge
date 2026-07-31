@@ -2,7 +2,6 @@
 pub enum WorthQueryApplicationOperationInstallationDenialKind {
     OperationNotInstalled,
     OperationMeaningChanged,
-    MissingAbility,
     MissingAbilityPolicy,
     MissingProgram,
     MissingDecisionFactBudget,

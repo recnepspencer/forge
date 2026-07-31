@@ -8,9 +8,7 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuntime,
 };
 
-use super::{
-    WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
-};
+use super::{WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization};
 use crate::domain_computation::primary_graph::{
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryPrincipalBindingLayout,
     WorthQueryPrincipalFreshnessEvidence,
@@ -18,8 +16,7 @@ use crate::domain_computation::primary_graph::{
 
 #[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
-    pub(in crate::domain_computation) relational:
-        Arc<RelationalAuthorizationObservationEvidence>,
+    pub(in crate::domain_computation) relational: Arc<RelationalAuthorizationObservationEvidence>,
     pub(in crate::domain_computation) bridge: Arc<BridgeAuthorizationDecisionEvidence>,
 }
 
@@ -34,7 +31,7 @@ impl WorthQueryAuthorizationDecisionFact {
         }
     }
 
-    fn remains_current_in(
+    pub(super) fn remains_current_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
@@ -150,8 +147,9 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
                 total.relation_records_inspected += counters.relation_records_inspected;
                 total.entity_records_inspected += counters.entity_records_inspected;
                 total.predicate_fields_inspected += counters.predicate_fields_inspected;
-                total.maximum_frontier_width =
-                    total.maximum_frontier_width.max(counters.maximum_frontier_width);
+                total.maximum_frontier_width = total
+                    .maximum_frontier_width
+                    .max(counters.maximum_frontier_width);
                 total.reconstructive_graph_scans += counters.reconstructive_graph_scans;
                 total.reconstructive_relation_records_scanned +=
                     counters.reconstructive_relation_records_scanned;
@@ -187,8 +185,25 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &BridgeAuthorizationRuntime,
     ) -> bool {
+        self.principal_remains_current_in(runtime, snapshot)
+            && self.decisions_remain_current_in(runtime, snapshot, bridge)
+    }
+
+    pub(super) fn principal_remains_current_in(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) -> bool {
         principal(self).remains_current_in(runtime, snapshot)
-            && decisions(self).all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
+    }
+
+    pub(super) fn decisions_remain_current_in(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+        bridge: &BridgeAuthorizationRuntime,
+    ) -> bool {
+        decisions(self).all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
     }
 
     pub(in crate::domain_computation) fn into_provider_parts(
@@ -209,10 +224,8 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
                 principal,
                 decisions,
             } => {
-                let commit = WorthQueryObservedCommitBasis::new(
-                    principal.clone(),
-                    decisions.clone(),
-                );
+                let commit =
+                    WorthQueryObservedCommitBasis::new(principal.clone(), decisions.clone());
                 (
                     WorthQueryProviderAuthorizationDecisionFacts::new(principal, decisions),
                     WorthQueryCommitAuthorizationBasis::Observed(commit),
@@ -221,10 +234,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
             Self::Capability(authorization) => {
                 let (principal, decision, commit) = authorization.into_parts();
                 (
-                    WorthQueryProviderAuthorizationDecisionFacts::new(
-                        principal,
-                        vec![decision],
-                    ),
+                    WorthQueryProviderAuthorizationDecisionFacts::new(principal, vec![decision]),
                     WorthQueryCommitAuthorizationBasis::Capability(commit),
                 )
             }
@@ -304,16 +314,22 @@ impl WorthQueryObservedCommitBasis {
         }
     }
 
-    pub(super) fn remains_current_in(
+    pub(super) fn principal_remains_current_in(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) -> bool {
+        self.principal.remains_current_in(runtime, snapshot)
+    }
+
+    pub(super) fn decisions_remain_current_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &BridgeAuthorizationRuntime,
     ) -> bool {
-        self.principal.remains_current_in(runtime, snapshot)
-            && self
-                .decisions
-                .iter()
-                .all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
+        self.decisions
+            .iter()
+            .all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
     }
 }

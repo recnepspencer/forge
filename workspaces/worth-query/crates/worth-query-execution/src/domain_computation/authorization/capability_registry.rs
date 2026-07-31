@@ -19,9 +19,9 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuntime,
 };
 
-use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_lowering::compile_capability_plan;
 use super::WorthQueryOperationAuthorizationDenial;
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {

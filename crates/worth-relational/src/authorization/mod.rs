@@ -15,6 +15,7 @@ pub use evidence::{
     RelationalAuthorizationAdjacencyDependency, RelationalAuthorizationObservationCounters,
     RelationalAuthorizationObservationEvidence, RelationalAuthorizationObservationFreshness,
     RelationalAuthorizationObservationIdentity, RelationalAuthorizationPathObservation,
+    RelationalAuthorizationPathWitness,
 };
 pub use plan::{
     RelationalAuthorizationEffectTarget, RelationalAuthorizationObservationPlan,

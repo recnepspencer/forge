@@ -22,6 +22,89 @@ use super::WorthQueryRetainedCapabilityAuthorization;
 ///
 /// This proof opens no execution surface. A separately installed operation
 /// must consume it before an application attempt can begin.
+///
+/// Authentication is not admitted capability access:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
+/// use worth_query_execution::facade::primary_graph::{
+///     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthenticatedPrincipal,
+/// };
+///
+/// fn cannot_substitute_authentication<Schema, Capability, Operation, Input, Principal, Identity>(
+///     principal: WorthQueryAuthenticatedPrincipal<Schema, Principal, Identity>,
+/// ) where
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     let _: WorthQueryAdmittedApplicationCapabilityAccess<
+///         Schema, Capability, Operation, Input,
+///     > = principal;
+/// }
+/// ```
+///
+/// A descriptive capability reference is not admitted capability access:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::application_capability::{
+///     ApplicationCapabilityRef, ApplicationCapabilityRequest,
+/// };
+/// use worth_query_execution::facade::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess;
+///
+/// fn cannot_substitute_description<Schema, Capability, Operation, Input>(
+///     capability: ApplicationCapabilityRef<Schema, Capability>,
+/// ) where
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     let _: WorthQueryAdmittedApplicationCapabilityAccess<
+///         Schema, Capability, Operation, Input,
+///     > = capability;
+/// }
+/// ```
+///
+/// The access proof is move-only:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
+/// use worth_query_execution::facade::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess;
+///
+/// fn cannot_clone_access<Schema, Capability, Operation, Input>(
+///     access: WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+/// ) where
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     let _copied = access.clone();
+/// }
+/// ```
+///
+/// The operation marker is exact and cannot be repurposed:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::{
+///     application_capability::ApplicationCapabilityRequest,
+///     application_schema::TypedMutationPreconditions,
+/// };
+/// use worth_query_execution::facade::primary_graph::{
+///     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryPrimaryGraphApplicationRuntime,
+/// };
+/// use worth_query_installation::facade::{
+///     ApplicationSchema, WorthQueryInstalledApplicationOperation,
+/// };
+///
+/// fn cannot_change_operation<Schema, Capability, Granted, Other, Input>(
+///     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+///     access: WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Granted, Input>,
+///     other: &WorthQueryInstalledApplicationOperation<Schema, Other, Input>,
+/// ) where
+///     Schema: ApplicationSchema,
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     runtime.authorize_capability_operation(
+///         access,
+///         other,
+///         TypedMutationPreconditions::new(),
+///     );
+/// }
+/// ```
 pub struct WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>
 where
     Input: ApplicationCapabilityRequest<Schema, Capability>,

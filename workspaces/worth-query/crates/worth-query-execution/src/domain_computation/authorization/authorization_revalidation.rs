@@ -3,6 +3,7 @@
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::capability_observation::observe_capability;
+use super::decision_facts::WorthQueryObservedCommitBasis;
 use super::{
     WorthQueryApplicationCommitAuthorization, WorthQueryCommitAuthorizationBasis,
     WorthQueryOperationAdmissionIdentity, WorthQueryOperationAuthorizationDenial,
@@ -26,13 +27,14 @@ where
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let current = authorization.remains_current_in(
+            let current = validate_retained_currentness(
+                authorization,
                 runtime,
                 &snapshot,
                 self.authorization.bridge(),
             );
             runtime.snapshots().release_snapshot(&snapshot);
-            current.then_some(()).ok_or_else(stale_authorization)
+            current
         })
     }
 
@@ -93,13 +95,14 @@ where
                 let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
                 graph.integration_handle().with_runtime_mut(|runtime| {
                     let snapshot = runtime.snapshots().snapshot();
-                    let current = observed.remains_current_in(
+                    let current = validate_observed_currentness(
+                        observed,
                         runtime,
                         &snapshot,
                         self.authorization.bridge(),
                     );
                     runtime.snapshots().release_snapshot(&snapshot);
-                    current.then_some(()).ok_or_else(stale_authorization)
+                    current
                 })
             }
             WorthQueryCommitAuthorizationBasis::Capability(capability) => {
@@ -113,7 +116,9 @@ where
                 let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
                 graph.integration_handle().with_runtime_mut(|runtime| {
                     let snapshot = runtime.snapshots().snapshot();
-                    let current = capability.principal().remains_current_in(runtime, &snapshot);
+                    let current = capability
+                        .principal()
+                        .remains_current_in(runtime, &snapshot);
                     let result = if current {
                         observe_capability(
                             runtime,
@@ -122,10 +127,11 @@ where
                             installed,
                             capability.request(),
                             &sample,
+                            Some(capability.grant()),
                         )
                         .map(drop)
                     } else {
-                        Err(stale_authorization())
+                        Err(stale_principal())
                     };
                     runtime.snapshots().release_snapshot(&snapshot);
                     result
@@ -142,13 +148,14 @@ where
             let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
             return graph.integration_handle().with_runtime_mut(|runtime| {
                 let snapshot = runtime.snapshots().snapshot();
-                let current = authorization.remains_current_in(
+                let current = validate_retained_currentness(
+                    authorization,
                     runtime,
                     &snapshot,
                     self.authorization.bridge(),
                 );
                 runtime.snapshots().release_snapshot(&snapshot);
-                current.then_some(()).ok_or_else(stale_authorization)
+                current
             });
         };
         let installed = self.installed_capability_plan(capability.request())?;
@@ -161,7 +168,19 @@ where
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let result = if capability.principal().remains_current_in(runtime, &snapshot) {
+            let principal_current = capability
+                .principal()
+                .remains_current_in(runtime, &snapshot);
+            let decision_current = capability.decision().remains_current_in(
+                runtime,
+                &snapshot,
+                self.authorization.bridge(),
+            );
+            let result = if !principal_current {
+                Err(stale_principal())
+            } else if !decision_current {
+                Err(stale_authorization())
+            } else {
                 observe_capability(
                     runtime,
                     snapshot.clone(),
@@ -169,10 +188,9 @@ where
                     installed,
                     capability.request(),
                     &sample,
+                    Some(capability.grant()),
                 )
                 .map(drop)
-            } else {
-                Err(stale_authorization())
             };
             runtime.snapshots().release_snapshot(&snapshot);
             result
@@ -189,7 +207,44 @@ fn foreign_runtime() -> WorthQueryOperationAuthorizationDenial {
 
 fn stale_authorization() -> WorthQueryOperationAuthorizationDenial {
     WorthQueryOperationAuthorizationDenial::new(
+        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+        "application-authorization",
+    )
+}
+
+fn stale_principal() -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(
         WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
         "application-authorization",
     )
+}
+
+fn validate_retained_currentness(
+    authorization: &WorthQueryRetainedAuthorizationDecisionFacts,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+    if !authorization.principal_remains_current_in(runtime, snapshot) {
+        return Err(stale_principal());
+    }
+    authorization
+        .decisions_remain_current_in(runtime, snapshot, bridge)
+        .then_some(())
+        .ok_or_else(stale_authorization)
+}
+
+fn validate_observed_currentness(
+    authorization: &WorthQueryObservedCommitBasis,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+    if !authorization.principal_remains_current_in(runtime, snapshot) {
+        return Err(stale_principal());
+    }
+    authorization
+        .decisions_remain_current_in(runtime, snapshot, bridge)
+        .then_some(())
+        .ok_or_else(stale_authorization)
 }

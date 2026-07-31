@@ -28,6 +28,22 @@ use super::{
 };
 use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
 
+pub(super) struct WorthQueryObservedCapabilityDecision {
+    decision: WorthQueryAuthorizationDecisionFact,
+    grant: worth_relational::facade::identity::EntityId,
+}
+
+impl WorthQueryObservedCapabilityDecision {
+    pub(super) fn into_parts(
+        self,
+    ) -> (
+        WorthQueryAuthorizationDecisionFact,
+        worth_relational::facade::identity::EntityId,
+    ) {
+        (self.decision, self.grant)
+    }
+}
+
 pub(super) fn observe_capability(
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
@@ -35,7 +51,8 @@ pub(super) fn observe_capability(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
     sample: &WorthQueryAuthorizationTimeSample,
-) -> Result<WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial> {
+    exact_grant: Option<worth_relational::facade::identity::EntityId>,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     validate_projection_shape(installed, request)?;
     let paths = installed
         .paths
@@ -58,7 +75,7 @@ pub(super) fn observe_capability(
                     ]);
                 }
             }
-            let anchors = template
+            let mut anchors = template
                 .context_anchors
                 .iter()
                 .map(|anchor| {
@@ -77,6 +94,15 @@ pub(super) fn observe_capability(
                         .ok_or_else(|| projection_denial(&anchor.slot))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
+            if index == 0 {
+                if let Some(grant) = exact_grant {
+                    anchors.push(RelationalAuthorizationEntityAnchor::new(
+                        1,
+                        installed.grant_kind,
+                        grant,
+                    ));
+                }
+            }
             Ok(plan
                 .with_predicates(predicates)
                 .with_entity_anchors(anchors))
@@ -123,10 +149,22 @@ pub(super) fn observe_capability(
             installed.contract.name(),
         ));
     }
-    Ok(WorthQueryAuthorizationDecisionFact::new(
-        evidence,
-        bridge_evidence,
-    ))
+    let grant = evidence
+        .paths()
+        .first()
+        .and_then(|path| path.witness())
+        .and_then(|witness| witness.entity_at(1))
+        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+    if exact_grant.is_some_and(|expected| expected != grant) {
+        return Err(WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            installed.contract.name(),
+        ));
+    }
+    Ok(WorthQueryObservedCapabilityDecision {
+        decision: WorthQueryAuthorizationDecisionFact::new(evidence, bridge_evidence),
+        grant,
+    })
 }
 
 fn append_grant_predicates(

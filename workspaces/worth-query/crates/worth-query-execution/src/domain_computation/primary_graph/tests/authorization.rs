@@ -16,6 +16,10 @@ use worth_query_declaration::facade::application_schema::{
 };
 
 mod canonical_work_budgets;
+#[path = "authorization/capability_commit_revalidation.rs"]
+mod capability_commit_revalidation;
+#[path = "authorization/capability_progression.rs"]
+mod capability_progression;
 mod decision_ownership;
 
 impl OperationExpectsFact<TouchAccountOperation> for AccountLabel {}

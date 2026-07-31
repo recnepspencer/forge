@@ -25,10 +25,10 @@ pub use admitted_capability_access::WorthQueryAdmittedApplicationCapabilityAcces
 pub use admitted_operation::WorthQueryAdmittedApplicationOperation;
 pub(in crate::domain_computation) use admitted_operation::WorthQueryOperationAdmissionIdentity;
 pub(in crate::domain_computation) use application_commit_authorization::WorthQueryApplicationCommitAuthorization;
-pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
 pub(in crate::domain_computation) use capability_decision_fact::{
     WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
 };
+pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
 pub(in crate::domain_computation) use decision_facts::{
     WorthQueryAuthorizationDecisionFact, WorthQueryCommitAuthorizationBasis,
     WorthQueryPrincipalCurrentnessDependency, WorthQueryProviderAuthorizationDecisionFacts,

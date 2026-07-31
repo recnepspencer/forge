@@ -70,6 +70,15 @@ fn unrelated_grant_population_does_not_enter_warm_capability_work() {
         baseline_runtime.capability_plan_compilation_evidence(),
         expanded_runtime.capability_plan_compilation_evidence()
     );
+    let cold = baseline_runtime.capability_plan_compilation_evidence();
+    assert!(cold.capability_count() > 1);
+    assert!(cold.path_count() > 0);
+    assert!(cold.rule_count() > 0);
+    assert_eq!(cold.canonical_basis_preparations(), 0);
+    assert_eq!(cold.digest_derivations(), 0);
+    assert_eq!(cold.digest_text_materializations(), 0);
+    assert_eq!(baseline_capability.lookup_evidence().registry_probes(), 1);
+    assert_eq!(expanded_capability.lookup_evidence().registry_probes(), 1);
     for work in [
         baseline_access.admission_canonical_work(),
         expanded_access.admission_canonical_work(),

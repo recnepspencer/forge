@@ -12,13 +12,13 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
-use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_registry::{
     WorthQueryCapabilityPlanCompilationEvidence, WorthQueryInstalledCapabilityPlan,
     WorthQueryInstalledCapabilityRegistry,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct PolicyKey {
@@ -123,9 +123,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
             })
     }
 
-    pub(in crate::domain_computation) const fn bridge(
-        &self,
-    ) -> &BridgeAuthorizationRuntime {
+    pub(in crate::domain_computation) const fn bridge(&self) -> &BridgeAuthorizationRuntime {
         &self.bridge
     }
 

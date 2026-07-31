@@ -205,8 +205,7 @@ impl<Schema, Operation, Input, Scope>
 
     pub(in crate::domain_computation) const fn mutation_preconditions(
         &self,
-    ) -> &WorthQueryBoundMutationPreconditions
-    {
+    ) -> &WorthQueryBoundMutationPreconditions {
         &self.mutation_preconditions
     }
 
@@ -295,8 +294,7 @@ impl<Schema, Operation, Input, Scope>
             WorthQueryCommitAuthorizationBasis,
         ),
         WorthQueryOperationAuthorizationDenial,
-    >
-    {
+    > {
         let authorization = self.authorization.take().ok_or_else(|| {
             WorthQueryOperationAuthorizationDenial::new(
                 WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
@@ -318,15 +316,11 @@ impl<Schema, Operation, Input, Scope>
         &self.operation_authority_identity
     }
 
-    pub(in crate::domain_computation) fn retain_installed_operation_fingerprint(
-        &self,
-    ) -> Arc<str> {
+    pub(in crate::domain_computation) fn retain_installed_operation_fingerprint(&self) -> Arc<str> {
         Arc::clone(&self.operation_authority_identity)
     }
 
-    pub(in crate::domain_computation) fn retain_resource_binding_identity(
-        &self,
-    ) -> Arc<str> {
+    pub(in crate::domain_computation) fn retain_resource_binding_identity(&self) -> Arc<str> {
         Arc::clone(&self.resource_binding_identity)
     }
 

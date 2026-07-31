@@ -33,11 +33,7 @@ pub(in crate::domain_computation) struct WorthQueryBoundMutationPreconditions {
     expected_fact_count: usize,
 }
 
-pub(in crate::domain_computation) fn bind_mutation_preconditions<
-    Schema,
-    Operation,
-    Scope,
->(
+pub(in crate::domain_computation) fn bind_mutation_preconditions<Schema, Operation, Scope>(
     requested: TypedMutationPreconditions<Schema, Operation, Scope>,
     contracts: &WorthQueryCompiledApplicationOperationContracts,
     scope_entity_name: &str,
@@ -133,9 +129,7 @@ impl WorthQueryBoundMutationPreconditions {
         self.canonical_work
     }
 
-    pub(in crate::domain_computation) const fn expected_version_count(
-        &self,
-    ) -> usize {
+    pub(in crate::domain_computation) const fn expected_version_count(&self) -> usize {
         self.expected_version_count
     }
 

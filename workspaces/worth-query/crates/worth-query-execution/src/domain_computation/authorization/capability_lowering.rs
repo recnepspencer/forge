@@ -18,7 +18,6 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
-use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_binding_lowering::{
     capability_principal, clause_identity, kind, lower_context_anchors, operand, predicate,
     relation, request_bindings,
@@ -29,6 +28,7 @@ use super::capability_registry::{
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 pub(super) fn compile_capability_plan<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,

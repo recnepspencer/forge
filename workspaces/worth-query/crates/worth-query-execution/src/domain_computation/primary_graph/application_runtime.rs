@@ -12,7 +12,6 @@ use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
 };
 
-use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphBootstrap,
@@ -20,6 +19,7 @@ use super::{
     WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
     WorthQueryPrincipalResolutionMode,
 };
+use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 
 /// Purpose-scoped application runtime published from one typed primary graph.
 ///
@@ -39,7 +39,8 @@ use super::{
 /// ```
 pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) runtime: WorthQueryExecutionRuntime,
-    pub(in crate::domain_computation) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+    pub(in crate::domain_computation) installed_schema:
+        WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
     pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
@@ -157,6 +158,14 @@ where
         &self,
     ) -> crate::domain_computation::authorization::WorthQueryCapabilityPlanCompilationEvidence {
         self.authorization.capability_compilation()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn script_authorization_time(
+        &mut self,
+        samples: impl IntoIterator<Item = std::time::SystemTime>,
+    ) {
+        self.authorization_clock = WorthQueryAuthorizationClock::scripted(samples);
     }
 
     #[cfg(test)]

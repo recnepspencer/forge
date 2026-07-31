@@ -1,5 +1,12 @@
 use super::*;
 
+#[derive(Clone, Copy)]
+enum CapabilityGrantPopulation {
+    None,
+    Current,
+    CurrentAndFutureReplacement,
+}
+
 pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
     pub(in crate::domain_computation::primary_graph) application:
         crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
@@ -79,6 +86,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         1,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::None,
     )
 }
 
@@ -91,13 +99,21 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         1,
         label,
         WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::None,
     )
 }
 
 pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_with_resource_profile(
     profile: WorthQueryApplicationQueryResourceProfile,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(true, false, 1, "primary", profile)
+    installed_authorization_world_with_principal_count(
+        true,
+        false,
+        1,
+        "primary",
+        profile,
+        CapabilityGrantPopulation::None,
+    )
 }
 
 pub(in crate::domain_computation::primary_graph) fn installed_two_principal_authorization_world(
@@ -109,6 +125,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
         2,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::None,
     )
 }
 
@@ -120,6 +137,31 @@ pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorizat
         1,
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::None,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_authorization_world(
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        false,
+        false,
+        1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::Current,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_replacement_world(
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        false,
+        false,
+        1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::CurrentAndFutureReplacement,
     )
 }
 
@@ -129,6 +171,7 @@ fn installed_authorization_world_with_principal_count(
     principal_count: usize,
     primary_label: &str,
     resources: WorthQueryApplicationQueryResourceProfile,
+    capability_grants: CapabilityGrantPopulation,
 ) -> AuthorizationWorld {
     let declaration = IdentityExecutionSchema::declaration().unwrap();
     let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
@@ -234,6 +277,15 @@ fn installed_authorization_world_with_principal_count(
                 WorthQueryApplicationEntityKey::new("account-1").unwrap(),
             ))
             .unwrap();
+    }
+    if !matches!(capability_grants, CapabilityGrantPopulation::None) {
+        super::capability_seed::bind_grant(&mut bootstrap);
+    }
+    if matches!(
+        capability_grants,
+        CapabilityGrantPopulation::CurrentAndFutureReplacement
+    ) {
+        super::capability_seed::bind_future_replacement_grant(&mut bootstrap);
     }
     let invariant = bootstrap.retain_invariant_projection_authority();
     let application = bootstrap

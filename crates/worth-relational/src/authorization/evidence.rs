@@ -43,8 +43,33 @@ pub struct RelationalAuthorizationObservationCounters {
 #[derive(Debug, Eq, PartialEq)]
 pub struct RelationalAuthorizationPathObservation {
     matched: bool,
+    witness: Option<RelationalAuthorizationPathWitness>,
     dependencies: RelationalAuthorizationPathDependencies,
     exhaustive: bool,
+}
+
+/// One complete branch that independently satisfied an authorization path.
+///
+/// Ordinals preserve the installed traversal order, allowing a consumer to
+/// retain an exact graph fact without reconstructing it from flattened
+/// dependency sets.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationalAuthorizationPathWitness {
+    entities: Vec<EntityId>,
+}
+
+impl RelationalAuthorizationPathWitness {
+    pub(crate) const fn new(entities: Vec<EntityId>) -> Self {
+        Self { entities }
+    }
+
+    pub fn entities(&self) -> &[EntityId] {
+        &self.entities
+    }
+
+    pub fn entity_at(&self, traversal_ordinal: usize) -> Option<EntityId> {
+        self.entities.get(traversal_ordinal).copied()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -91,11 +116,13 @@ pub(crate) struct RelationalAuthorizationPathDependencies {
 impl RelationalAuthorizationPathObservation {
     pub(crate) fn new(
         matched: bool,
+        witness: Option<RelationalAuthorizationPathWitness>,
         dependencies: RelationalAuthorizationPathDependencies,
         exhaustive: bool,
     ) -> Self {
         Self {
             matched,
+            witness,
             dependencies,
             exhaustive,
         }
@@ -103,6 +130,10 @@ impl RelationalAuthorizationPathObservation {
 
     pub const fn matched(&self) -> bool {
         self.matched
+    }
+
+    pub const fn witness(&self) -> Option<&RelationalAuthorizationPathWitness> {
+        self.witness.as_ref()
     }
 
     pub fn entities(&self) -> &[EntityId] {

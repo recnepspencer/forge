@@ -16,11 +16,11 @@ use worth_relational::facade::{
     identity::KindId,
 };
 
-use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 use super::capability_registry::{
     field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityRequestBindings,
 };
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 pub(super) fn capability_principal(
     contract: &ErasedApplicationCapabilityContract,

@@ -1,8 +1,3 @@
-use crate::domain_computation::primary_graph::{
-    bind_mutation_preconditions, validate_entity_freshness_at_snapshot,
-    validate_freshness_at_snapshot, WorthQueryApplicationEntityIdentity,
-    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
-};
 use super::admitted_operation::WorthQueryOperationAuthorizationBasis;
 use super::bridge_observation::lower_bridge_observation;
 use super::{
@@ -10,6 +5,11 @@ use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryOperationScopeBinding, WorthQueryPrincipalCurrentnessDependency,
     WorthQueryRetainedAuthorizationDecisionFacts,
+};
+use crate::domain_computation::primary_graph::{
+    bind_mutation_preconditions, validate_entity_freshness_at_snapshot,
+    validate_freshness_at_snapshot, WorthQueryApplicationEntityIdentity,
+    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
 };
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
@@ -51,20 +51,19 @@ where
                 operation.operation(),
             )
         })?;
-        let preconditions =
-            bind_mutation_preconditions(
-                preconditions,
-                operation.contracts(),
-                scope_identity.entity_name(),
-                scope_identity.entity_id(),
-                graph.layout(),
+        let preconditions = bind_mutation_preconditions(
+            preconditions,
+            operation.contracts(),
+            scope_identity.entity_name(),
+            scope_identity.entity_id(),
+            graph.layout(),
+        )
+        .map_err(|()| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
+                operation.operation(),
             )
-            .map_err(|()| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
-                    operation.operation(),
-                )
-            })?;
+        })?;
         let principal_layout = graph
             .layout()
             .principal_binding(principal.binding())
@@ -125,7 +124,9 @@ where
             ));
         }
         let authorization = match operation.contracts().authorization() {
-            WorthQueryInstalledApplicationOperationAuthorization::Principal if result.is_empty() => {
+            WorthQueryInstalledApplicationOperationAuthorization::Principal
+                if result.is_empty() =>
+            {
                 WorthQueryRetainedAuthorizationDecisionFacts::principal(principal_currentness)
             }
             WorthQueryInstalledApplicationOperationAuthorization::Abilities => {

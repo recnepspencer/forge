@@ -3,21 +3,21 @@ use worth_query_declaration::facade::{
     application_capability::{
         ApplicationCapabilityActorComposition, ApplicationCapabilityAllowRule,
         ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
-        ApplicationCapabilityComposition, ApplicationCapabilityConstraintDefinition,
+        ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
+        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContract,
         ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
         ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
         ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-        ApplicationCapabilityDisclosureRule, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+        ApplicationCapabilityEntitySelector, ApplicationCapabilityFieldBinding,
         ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
         ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
         ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
         ApplicationCapabilityRequest, ApplicationCapabilityRequestContext,
         ApplicationCapabilityRequestProjection, ApplicationCapabilityRequestProjectionDenial,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityDistinctActorRule,
-        ApplicationCapabilityConflictRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
         ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
         ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
-        ApplicationCapabilityEntitySelector,
     },
     application_schema::{
         ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
@@ -36,17 +36,17 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum CapabilityAction {
+pub enum CapabilityAction {
     Touch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum CapabilityPurpose {
+pub enum CapabilityPurpose {
     AccountMaintenance,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum CapabilityStatus {
+pub enum CapabilityStatus {
     Active,
     Revoked,
 }
@@ -140,10 +140,11 @@ worth_query_capability_provenance!(pub CapabilityProvenance in IdentityExecution
 worth_query_capability!(pub TouchAccountCapability in IdentityExecutionSchema);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) struct CapabilityTouchInput {
-    pub(super) account: String,
-    pub(super) action: CapabilityAction,
-    pub(super) purpose: CapabilityPurpose,
+pub struct CapabilityTouchInput {
+    pub account: String,
+    pub action: CapabilityAction,
+    pub purpose: CapabilityPurpose,
+    pub caller_time: u64,
 }
 
 worth_query_operation!(
@@ -161,11 +162,7 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapabilit
     fn capability_request(
         &self,
     ) -> Result<
-        ApplicationCapabilityRequestProjection<
-            IdentityExecutionSchema,
-            Self::Scope,
-            Self::Context,
-        >,
+        ApplicationCapabilityRequestProjection<IdentityExecutionSchema, Self::Scope, Self::Context>,
         ApplicationCapabilityRequestProjectionDenial,
     > {
         Ok(ApplicationCapabilityRequestProjection::new(
@@ -186,13 +183,34 @@ pub(super) fn install(
     schema
         .entity(CapabilityGrant::reference())
         .aspect(CapabilityGrant::reference(), CapabilityFacts::reference())
-        .field(CapabilityGrant::reference(), CapabilityIdentity::reference())
-        .field(CapabilityGrant::reference(), CapabilityActionField::reference())
-        .field(CapabilityGrant::reference(), CapabilityPurposeField::reference())
-        .field(CapabilityGrant::reference(), CapabilityStatusField::reference())
-        .field(CapabilityGrant::reference(), CapabilityWorkflowField::reference())
-        .field(CapabilityGrant::reference(), CapabilityNotBeforeField::reference())
-        .field(CapabilityGrant::reference(), CapabilityNotAfterField::reference())
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityIdentity::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityActionField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityPurposeField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityStatusField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityWorkflowField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityNotBeforeField::reference(),
+        )
+        .field(
+            CapabilityGrant::reference(),
+            CapabilityNotAfterField::reference(),
+        )
         .field(
             CapabilityGrant::reference(),
             CapabilityDelegationLimitField::reference(),
@@ -233,8 +251,7 @@ pub(super) fn install(
         .capability(capability_contract())
 }
 
-fn capability_contract(
-) -> worth_query_declaration::facade::application_capability::ApplicationCapabilityContractDefinition<
+fn capability_contract() -> ApplicationCapabilityContract<
     IdentityExecutionSchema,
     TouchAccountCapability,
     CapabilityTouchOperation,
