@@ -14,7 +14,7 @@ use super::references::{
 };
 use super::schema_identity::ApplicationSchemaIdentity;
 use super::schema_member::ApplicationSchemaMember;
-use super::values::TypedApplicationValue;
+use super::values::{DeclaredApplicationFieldValue, TypedApplicationValue};
 
 pub trait ApplicationSchema: Sized + 'static {
     const OWNER: &'static str;
@@ -162,6 +162,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
     ) -> Self
     where
+        Field: DeclaredApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
         Write: WritePosture,
         Equality: EqualityPosture,
@@ -171,6 +172,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
             entity: entity.name().to_string(),
             aspect: field.aspect().to_string(),
             field: field.field().to_string(),
+            presence: Field::PRESENCE,
             scalar_family: field.scalar_family(),
             value_type: field.value_type_name().to_string(),
             currency: field.currency().map(str::to_string),

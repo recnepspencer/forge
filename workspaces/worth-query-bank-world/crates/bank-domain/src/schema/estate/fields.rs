@@ -73,11 +73,11 @@ worth_query_field!(
 );
 worth_query_field!(
     pub CapabilityDisclosureField in BankSchema, CapabilityGrant, CapabilityGrantRecord:
-    RestrictedBankField, read_write, equality
+    optional RestrictedBankField, read_write, equality
 );
 worth_query_field!(
     pub CapabilityAmountCeilingField in BankSchema, CapabilityGrant, CapabilityGrantRecord:
-    Money<USD>, currency crate::schema::UsdCurrency, read_write, no_equality
+    optional Money<USD>, currency crate::schema::UsdCurrency, read_write, no_equality
 );
 worth_query_field!(
     pub CapabilityValidFromField in BankSchema, CapabilityGrant, CapabilityGrantRecord:

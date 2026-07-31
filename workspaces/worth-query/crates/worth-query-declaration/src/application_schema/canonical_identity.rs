@@ -269,6 +269,7 @@ fn append_schema_field(
         entity,
         aspect,
         field,
+        presence,
         scalar_family,
         value_type,
         currency,
@@ -282,6 +283,7 @@ fn append_schema_field(
     basis.text(format!("{prefix}.entity"), entity);
     basis.text(format!("{prefix}.aspect"), aspect);
     basis.text(format!("{prefix}.field"), field);
+    basis.text(format!("{prefix}.presence"), presence.canonical_name());
     basis.text(
         format!("{prefix}.scalar-family"),
         scalar_family.canonical_name(),

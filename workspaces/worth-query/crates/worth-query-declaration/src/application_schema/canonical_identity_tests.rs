@@ -8,25 +8,12 @@ use crate::application_schema::ApplicationOperationProgramTarget;
 use crate::application_schema::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,
 };
-use crate::{
-    application_query::{
-        ApplicationQueryBasisSupport, ApplicationQueryCardinality,
-        ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
-        ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-        ApplicationQueryReference, ApplicationQueryResultFieldRef,
-        ApplicationQueryResultShapeBuilder,
-    },
-    application_schema::{ApplicationEntityRef, ApplicationFieldRef, EqualityPredicate, ReadOnly},
-};
+#[path = "canonical_identity_query_fixture.rs"]
+mod query_fixture;
 
-struct QuerySchema;
-struct QueryEntity;
-struct QueryAspect;
-struct QueryField;
-struct QueryMarker;
-struct QueryParameters;
-struct QueryResult;
-struct QueryFieldSlot;
+use query_fixture::{
+    application_query, QueryEntity, QueryMarker, QueryParameters, QueryResult, QuerySchema,
+};
 
 #[path = "canonical_identity_application_query_tests.rs"]
 mod application_query;
@@ -318,6 +305,7 @@ fn field(
         entity: "Entity".to_string(),
         aspect: "Aspect".to_string(),
         field: "Field".to_string(),
+        presence: crate::application_schema::ApplicationFieldPresence::Required,
         scalar_family,
         value_type: value_type.to_string(),
         currency: currency.map(str::to_string),
@@ -340,61 +328,5 @@ fn principal_binding(binding: &str) -> ApplicationSchemaMember {
         principal_identity_field: "PrincipalIdentityField".to_string(),
         principal_identity_scalar_family: ScalarAspectType::UInt64,
         principal_identity_value_type: "u64".to_string(),
-    }
-}
-
-fn application_query(output_name: &'static str) -> ApplicationSchemaMember {
-    let entity =
-        ApplicationEntityRef::<QuerySchema, QueryEntity>::from_schema_identifier("QueryEntity");
-    let field = ApplicationFieldRef::<
-        QuerySchema,
-        QueryEntity,
-        QueryAspect,
-        QueryField,
-        u64,
-        ReadOnly,
-        EqualityPredicate,
-    >::from_schema_identifiers("QueryEntity", "QueryAspect", "QueryField");
-    let result_field = ApplicationQueryResultFieldRef::<
-        QueryMarker,
-        QueryFieldSlot,
-        QuerySchema,
-        QueryEntity,
-        QueryAspect,
-        QueryField,
-        u64,
-        ReadOnly,
-        EqualityPredicate,
-        crate::application_schema::NoApplicationCurrency,
-    >::new(output_name, field);
-    let shape = ApplicationQueryResultShapeBuilder::<
-        QuerySchema,
-        QueryMarker,
-        QueryEntity,
-        QueryResult,
-    >::new(entity)
-    .field(result_field)
-    .build();
-    let definition = ApplicationQueryDefinitionBuilder::public(
-        ApplicationQueryReference::<
-            QuerySchema,
-            QueryMarker,
-            QueryParameters,
-            QueryResult,
-            QueryEntity,
-        >::from_schema_identifier("query"),
-        entity,
-        entity,
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 1),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .unwrap();
-    ApplicationSchemaMember::ApplicationQuery {
-        definition: definition.into_erased(),
     }
 }

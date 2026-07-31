@@ -1,9 +1,10 @@
 use crate::facade::application_schema::{
-    ApplicationAspectRef, ApplicationCurrencyMarker, ApplicationEntityRef, ApplicationFieldRef,
-    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
-    ApplicationSchemaAuthoringDenialKind, ApplicationSchemaBindingIdentity,
-    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
-    ApplicationSchemaDeclarationDenial, DeclaredApplicationCurrency, EqualityPredicate,
+    ApplicationAspectRef, ApplicationCurrencyMarker, ApplicationEntityRef,
+    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef, ApplicationSchema,
+    ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenialKind,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
+    DeclaredApplicationCurrency, DeclaredApplicationFieldValue, EqualityPredicate,
     OperationCreates, OperationExpectsFact, ReadOnly, TypedApplicationValue,
     TypedCurrencyApplicationValue, TypedOperationBuilder,
 };
@@ -26,6 +27,16 @@ struct NamespacedSchema;
 struct InvalidOwnerSchema;
 struct DottedMemberSchema;
 struct IdentifierEntity;
+
+impl DeclaredApplicationFieldValue for Field {
+    type Value = u64;
+    const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
+}
+
+impl DeclaredApplicationFieldValue for CurrencyField {
+    type Value = CurrencyValue;
+    const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
+}
 
 crate::worth_query_application_schema! {
     schema MacroNamespacedSchema {

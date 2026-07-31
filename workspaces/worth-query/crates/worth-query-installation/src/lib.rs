@@ -75,7 +75,7 @@ pub mod facade {
         ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
         ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
         ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
-        ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+        ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
         ApplicationOperationProgramTarget, ApplicationRelationRef, ApplicationSchema,
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
         EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,

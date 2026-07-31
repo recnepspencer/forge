@@ -2187,6 +2187,10 @@ It must:
   cardinality, workflow-stage, validity, delegation, provenance, and
   application-defined constrained-context dimensions without omitted
   dimensions silently becoming global;
+- preserve required-versus-optional application field presence through schema
+  identity and Foundational aspect lowering, so a capability dimension that is
+  not applicable is represented by lawful absence rather than a sentinel value
+  with different application meaning;
 - bind validity fields to an explicit installed timeline interpretation that
   Query can sample without application-name inference or a caller-authored
   `now` value;

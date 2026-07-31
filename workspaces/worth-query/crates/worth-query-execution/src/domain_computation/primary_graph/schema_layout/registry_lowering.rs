@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use worth_foundational::facade::{aspects, AspectIdentity};
 use worth_query_installation::facade::{
-    ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
+    ApplicationFieldPresence, ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
 };
 use worth_relational::facade::config::{CascadeDeletePolicy, CrossContextPolicy};
 use worth_relational::facade::identity::KindId;
@@ -149,21 +149,29 @@ pub(super) fn lower_entity_aspects(
     entity: &str,
     contract_ordinal: &mut u64,
 ) -> Result<Vec<DeclaredAspectContractBinding>, WorthQueryPrimaryGraphInstallationDenial> {
-    let mut fields_by_aspect =
-        BTreeMap::<String, Vec<(String, worth_foundational::facade::ScalarAspectType)>>::new();
+    let mut fields_by_aspect = BTreeMap::<
+        String,
+        Vec<(
+            String,
+            worth_foundational::facade::ScalarAspectType,
+            ApplicationFieldPresence,
+        )>,
+    >::new();
     for member in schema.members() {
         match member {
             ApplicationSchemaMember::Field {
                 entity: member_entity,
                 aspect,
                 field,
+                presence,
                 scalar_family,
                 ..
             } if member_entity == entity => {
-                fields_by_aspect
-                    .entry(aspect.clone())
-                    .or_default()
-                    .push((field.clone(), *scalar_family));
+                fields_by_aspect.entry(aspect.clone()).or_default().push((
+                    field.clone(),
+                    *scalar_family,
+                    *presence,
+                ));
             }
             _ => {}
         }
@@ -171,12 +179,21 @@ pub(super) fn lower_entity_aspects(
     let mut lowered = Vec::with_capacity(fields_by_aspect.len());
     for (aspect, fields) in fields_by_aspect {
         let mut fields = fields.into_iter();
-        let (first_field, first_family) = fields.next().ok_or_else(|| invalid_member(&aspect))?;
-        let mut shape = aspects()
-            .struct_fields()
-            .required(first_field, first_family);
-        for (field, scalar_family) in fields {
-            shape = shape.required(field, scalar_family);
+        let (first_field, first_family, first_presence) =
+            fields.next().ok_or_else(|| invalid_member(&aspect))?;
+        let mut shape = match first_presence {
+            ApplicationFieldPresence::Required => aspects()
+                .struct_fields()
+                .required(first_field, first_family),
+            ApplicationFieldPresence::Optional => aspects()
+                .struct_fields()
+                .optional(first_field, first_family),
+        };
+        for (field, scalar_family, presence) in fields {
+            shape = match presence {
+                ApplicationFieldPresence::Required => shape.required(field, scalar_family),
+                ApplicationFieldPresence::Optional => shape.optional(field, scalar_family),
+            };
         }
         let shape = shape.finish().map_err(|_| invalid_member(&aspect))?;
         let identity = AspectIdentity(*contract_ordinal);
@@ -197,4 +214,118 @@ pub(super) fn lower_entity_aspects(
         });
     }
     Ok(lowered)
+}
+
+#[cfg(test)]
+mod tests {
+    use worth_foundational::facade::{
+        aspects, validate_aspect_value, AspectShape, AspectValue, ContractValidationDenial,
+        ContractValidationInput, FieldRequirement,
+    };
+    use worth_query_declaration::facade::application_schema::{
+        ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+        ApplicationSchemaDeclarationDenial,
+    };
+    use worth_query_declaration::{worth_query_aspect, worth_query_entity, worth_query_field};
+
+    use super::lower_entity_aspects;
+
+    struct PresenceSchema;
+
+    impl ApplicationSchema for PresenceSchema {
+        const OWNER: &'static str = "worth.test";
+        const NAME: &'static str = "PresenceSchema";
+        const MAJOR: u32 = 1;
+        const MINOR: u32 = 0;
+
+        fn declaration(
+        ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial>
+        {
+            ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+                .entity(Record::reference())
+                .aspect(Record::reference(), Facts::reference())
+                .field(Record::reference(), RequiredValue::reference())
+                .field(Record::reference(), OptionalValue::reference())
+                .build()
+        }
+    }
+
+    worth_query_entity!(Record in PresenceSchema);
+    worth_query_aspect!(Facts in PresenceSchema, Record);
+    worth_query_field!(
+        RequiredValue in PresenceSchema, Record, Facts: u64, read_only, equality
+    );
+    worth_query_field!(
+        OptionalValue in PresenceSchema, Record, Facts: optional u64, read_only, equality
+    );
+
+    #[test]
+    fn application_field_presence_lowers_exactly_into_foundational() {
+        let contract = lowered_contract();
+        let AspectShape::Struct(shape) = contract.shape() else {
+            panic!("application fields must lower as a Foundational struct")
+        };
+        let requirements = shape
+            .fields()
+            .iter()
+            .map(|field| (field.key().as_str(), field.requirement()))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        assert_eq!(
+            requirements.get("RequiredValue"),
+            Some(&FieldRequirement::Required)
+        );
+        assert_eq!(
+            requirements.get("OptionalValue"),
+            Some(&FieldRequirement::Optional)
+        );
+    }
+
+    #[test]
+    fn lowered_presence_governs_absence_and_present_value_types() {
+        let contract = lowered_contract();
+        let optional_absent = aspects()
+            .vocabulary()
+            .struct_value()
+            .with_field("RequiredValue", AspectValue::UInt64(7))
+            .finish()
+            .unwrap();
+        assert!(
+            validate_aspect_value(&contract, ContractValidationInput::Struct(optional_absent))
+                .is_success()
+        );
+
+        let required_absent = aspects().vocabulary().struct_value().finish().unwrap();
+        assert!(matches!(
+            validate_aspect_value(&contract, ContractValidationInput::Struct(required_absent))
+                .into_result(),
+            Err(ContractValidationDenial::MissingRequiredField(_))
+        ));
+
+        let wrong_optional_type = aspects()
+            .vocabulary()
+            .struct_value()
+            .with_field("RequiredValue", AspectValue::UInt64(7))
+            .with_field("OptionalValue", AspectValue::Bool(true))
+            .finish()
+            .unwrap();
+        assert!(matches!(
+            validate_aspect_value(
+                &contract,
+                ContractValidationInput::Struct(wrong_optional_type)
+            )
+            .into_result(),
+            Err(ContractValidationDenial::FieldTypeMismatch { .. })
+        ));
+    }
+
+    fn lowered_contract() -> worth_foundational::facade::AspectContract {
+        let declaration = PresenceSchema::declaration().unwrap();
+        let mut next_contract = 1;
+        let bindings =
+            lower_entity_aspects(declaration.erased(), "Record", &mut next_contract).unwrap();
+        let [binding] = bindings.as_slice() else {
+            panic!("one declared aspect must lower to one Foundational contract")
+        };
+        binding.contract.clone()
+    }
 }

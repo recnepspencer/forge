@@ -4,7 +4,7 @@ use crate::application_capability::ErasedApplicationCapabilityContract;
 use crate::application_query::ErasedApplicationQueryDefinition;
 
 use super::authorization_policy::ApplicationAuthorizationPath;
-use super::ApplicationMutationPreconditionTarget;
+use super::{ApplicationFieldPresence, ApplicationMutationPreconditionTarget};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationOperationProgramTarget {
@@ -64,6 +64,7 @@ pub enum ApplicationSchemaMember {
         entity: String,
         aspect: String,
         field: String,
+        presence: ApplicationFieldPresence,
         scalar_family: ScalarAspectType,
         value_type: String,
         currency: Option<String>,

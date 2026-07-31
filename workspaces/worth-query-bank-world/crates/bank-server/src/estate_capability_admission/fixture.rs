@@ -1,13 +1,14 @@
 use std::future::Future;
 use std::pin::pin;
 use std::task::{Context, Poll, Waker};
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use bank_domain::estate::{
-    BankEstateWorld, BranchId, CapabilityGrantId, CapabilityGrantStatus, CapabilityValidity,
-    DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateBranch, EstateCapabilityGrant,
-    EstateCapabilityOperation, EstateCapabilityPurpose, EstateCapabilityScope, EstateCase,
-    EstateCaseId, EstateCaseStatus, EstateDeathNotice, EstateEmployeeAssignment,
+    BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityGrantStatus,
+    CapabilityValidity, DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction,
+    EstateActorContext, EstateBranch, EstateCapabilityGrant, EstateCapabilityOperation,
+    EstateCapabilityPurpose, EstateCapabilityScope, EstateCapabilityUse, EstateCase, EstateCaseId,
+    EstateCaseStatus, EstateDeathNotice, EstateDecision, EstateEmployeeAssignment,
     EstateLegalAuthority, EstateMoment, EstateWorkflowStage, LegalAuthorityId, LegalAuthorityKind,
     RestrictedBankField,
 };
@@ -41,6 +42,7 @@ pub(super) const EXECUTOR: BankPrincipalId = BankPrincipalId::new(8).unwrap();
 pub(super) const ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(9).unwrap();
 pub(super) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
 pub(super) const OTHER_AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(11).unwrap();
+pub(super) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();
 
 pub(super) struct GrantSpec {
     pub(super) operation: EstateCapabilityOperation,
@@ -61,7 +63,7 @@ impl GrantSpec {
             purpose: EstateCapabilityPurpose::EstateAdministration,
             account: None,
             field: Some(RestrictedBankField::CustomerIdentity),
-            amount_ceiling: Some(Money::from_minor(1).unwrap()),
+            amount_ceiling: None,
             status: CapabilityGrantStatus::Active,
             not_before: 0,
             not_after: u64::MAX,
@@ -74,6 +76,7 @@ impl GrantSpec {
             operation: EstateCapabilityOperation::FreezeAccount,
             purpose: EstateCapabilityPurpose::EstateAdministration,
             account: Some(ACCOUNT),
+            field: None,
             ..Self::view()
         }
     }
@@ -83,6 +86,7 @@ impl GrantSpec {
             operation: EstateCapabilityOperation::DisburseEstate,
             purpose: EstateCapabilityPurpose::EstateDisbursement,
             account: Some(ACCOUNT),
+            field: None,
             amount_ceiling: Some(Money::from_minor(maximum_minor_units).unwrap()),
             ..Self::view()
         }
@@ -93,6 +97,7 @@ impl GrantSpec {
             operation: EstateCapabilityOperation::RecognizeExecutor,
             purpose: EstateCapabilityPurpose::LegalCompliance,
             account: None,
+            field: None,
             ..Self::view()
         }
     }
@@ -100,6 +105,8 @@ impl GrantSpec {
 
 pub(super) struct CapabilityFixture {
     pub(super) runtime: BankIdentityRuntime,
+    estate_world: BankEstateWorld,
+    workflow_stage: EstateWorkflowStage,
     authentication: BankAuthenticationBoundary<TestAuthenticationAdapter>,
     specialist_identity: WorthQueryExternalPrincipalIdentity,
 }
@@ -113,6 +120,27 @@ impl CapabilityFixture {
             &request,
         ))
         .expect("the mapped specialist should authenticate")
+    }
+
+    pub(super) fn oracle_decision(&self, action: EstateAction) -> EstateDecision {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("the test clock is after the Unix epoch")
+            .as_secs();
+        BankEstateOracles::evaluate(
+            &self.estate_world,
+            EstateActorContext {
+                principal: SPECIALIST,
+                assignment: ASSIGNMENT,
+            },
+            action,
+            EstateCapabilityUse {
+                grant: GRANT,
+                workflow_stage: self.workflow_stage,
+                now: EstateMoment::from_epoch_seconds(now),
+                emergency_access: None,
+            },
+        )
     }
 }
 
@@ -158,11 +186,7 @@ pub(super) fn capability_world(
     } else {
         EXECUTOR
     };
-    let mut estate = base_estate(case_stage, holder).with_grant(grant(
-        CapabilityGrantId::new(20).unwrap(),
-        SPECIALIST,
-        spec,
-    ));
+    let mut estate = base_estate(case_stage, holder).with_grant(grant(GRANT, SPECIALIST, spec));
     for ordinal in 0..unrelated_grants {
         estate = estate.with_grant(grant(
             CapabilityGrantId::new(2_000 + ordinal as u64).unwrap(),
@@ -170,6 +194,7 @@ pub(super) fn capability_world(
             GrantSpec::view(),
         ));
     }
+    let estate_world = estate.clone();
     let mut seed = BankWorldSeed::new(snapshot)
         .principal(BankPrincipalSeed::enabled(DECEASED, identities[0].clone()))
         .principal(BankPrincipalSeed::enabled(
@@ -197,6 +222,8 @@ pub(super) fn capability_world(
         .expect("the causal test adapter should install");
     CapabilityFixture {
         runtime,
+        estate_world,
+        workflow_stage: case_stage,
         authentication,
         specialist_identity: identities[1].clone(),
     }

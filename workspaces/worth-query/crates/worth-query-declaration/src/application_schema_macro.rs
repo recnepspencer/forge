@@ -107,6 +107,72 @@ macro_rules! worth_query_aspect {
 macro_rules! worth_query_field {
     (
         $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:
+        optional $Value:ty, currency $Currency:ty, $write:ident, $equality:ident
+    ) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        $vis struct $Field;
+
+        impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
+            type Value = $Value;
+            const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
+                $crate::facade::application_schema::ApplicationFieldPresence::Optional;
+        }
+
+        impl $Field {
+            pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
+                $Schema,
+                $Entity,
+                $Aspect,
+                Self,
+                $Value,
+                $crate::worth_query_field!(@write $write),
+                $crate::worth_query_field!(@equality $equality),
+                $crate::facade::application_schema::DeclaredApplicationCurrency<
+                    $Currency,
+                    <$Value as $crate::facade::application_schema::TypedCurrencyApplicationValue>::Currency,
+                >,
+            > {
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
+                    stringify!($Entity),
+                    stringify!($Aspect),
+                    stringify!($Field),
+                )
+            }
+        }
+    };
+    (
+        $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:
+        optional $Value:ty, $write:ident, $equality:ident
+    ) => {
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        $vis struct $Field;
+
+        impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
+            type Value = $Value;
+            const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
+                $crate::facade::application_schema::ApplicationFieldPresence::Optional;
+        }
+
+        impl $Field {
+            pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
+                $Schema,
+                $Entity,
+                $Aspect,
+                Self,
+                $Value,
+                $crate::worth_query_field!(@write $write),
+                $crate::worth_query_field!(@equality $equality),
+            > {
+                $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
+                    stringify!($Entity),
+                    stringify!($Aspect),
+                    stringify!($Field),
+                )
+            }
+        }
+    };
+    (
+        $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:
         $Value:ty, currency $Currency:ty, $write:ident, $equality:ident
     ) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -114,6 +180,8 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
             type Value = $Value;
+            const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
+                $crate::facade::application_schema::ApplicationFieldPresence::Required;
         }
 
         impl $Field {
@@ -147,6 +215,8 @@ macro_rules! worth_query_field {
 
         impl $crate::facade::application_schema::DeclaredApplicationFieldValue for $Field {
             type Value = $Value;
+            const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
+                $crate::facade::application_schema::ApplicationFieldPresence::Required;
         }
 
         impl $Field {

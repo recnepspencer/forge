@@ -18,6 +18,7 @@ mod declaration;
 mod declaration_denial;
 mod effect_authoring;
 mod effect_payload;
+mod field_presence;
 mod identifier_validation;
 mod member_closure;
 mod mutation_authoring;
@@ -41,6 +42,8 @@ mod application_query_identity_tests;
 mod application_query_lifecycle_identity_tests;
 #[cfg(test)]
 mod capability_member_closure_tests;
+#[cfg(test)]
+mod field_presence_tests;
 
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
@@ -70,6 +73,7 @@ pub use declaration::{
 pub use declaration_denial::ApplicationSchemaDeclarationDenial;
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
 pub use effect_payload::ApplicationEffectPayload;
+pub use field_presence::ApplicationFieldPresence;
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
     TypedRelationMutation,

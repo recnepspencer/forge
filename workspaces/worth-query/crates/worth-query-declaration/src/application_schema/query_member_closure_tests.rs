@@ -110,6 +110,7 @@ fn dependencies() -> Vec<ApplicationSchemaMember> {
             entity: "Account".to_string(),
             aspect: "AccountFacts".to_string(),
             field: "AccountId".to_string(),
+            presence: crate::application_schema::ApplicationFieldPresence::Required,
             scalar_family: ScalarAspectType::UInt64,
             value_type: std::any::type_name::<u64>().to_string(),
             currency: None,

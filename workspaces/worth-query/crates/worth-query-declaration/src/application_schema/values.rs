@@ -1,5 +1,7 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 
+use super::ApplicationFieldPresence;
+
 /// Exact conversion between an application value and Foundational-native
 /// scalar meaning.
 ///
@@ -28,6 +30,7 @@ pub trait TypedApplicationSignedAggregateValue: TypedApplicationReadableValue {
 
 pub trait DeclaredApplicationFieldValue {
     type Value: TypedApplicationValue;
+    const PRESENCE: ApplicationFieldPresence;
 }
 
 /// A typed application value that can be recovered from an authoritative

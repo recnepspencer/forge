@@ -1,10 +1,10 @@
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationAspectRef, ApplicationAuthorizationPathBuilder,
-    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
-    ApplicationPrincipalBindingRef, ApplicationRelationRef, ApplicationSchema,
-    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, EqualityPredicate,
-    NoEqualityPredicate, OperationCreates, OperationExpectsFact, OperationReads,
-    OperationRequiresAbility, ReadOnly, ReadWrite,
+    ApplicationEntityRef, ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef,
+    ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationRelationRef,
+    ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
+    DeclaredApplicationFieldValue, EqualityPredicate, NoEqualityPredicate, OperationCreates,
+    OperationExpectsFact, OperationReads, OperationRequiresAbility, ReadOnly, ReadWrite,
 };
 use worth_query_declaration::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -36,6 +36,19 @@ struct PrincipalIdentityField;
 struct MappingTarget;
 struct PrincipalBinding;
 struct TestPolicy;
+
+macro_rules! required_field {
+    ($field:ty, $value:ty) => {
+        impl DeclaredApplicationFieldValue for $field {
+            type Value = $value;
+            const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
+        }
+    };
+}
+
+required_field!(ExternalIdentityField, WorthQueryExternalPrincipalIdentity);
+required_field!(MappingStatusField, WorthQueryPrincipalMappingStatus);
+required_field!(PrincipalIdentityField, u64);
 
 impl OperationCreates<TestOperation> for TestEntity {}
 impl OperationReads<TestOperation> for PrincipalIdentityField {}
