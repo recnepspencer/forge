@@ -198,6 +198,11 @@ impl WorthUiActiveApplicationSession {
             }
         };
         let publication = self.application.commit_application_activation(activation);
+        self.intent_application_facts =
+            crate::runtime::intent::UiIntentApplicationFactState::activate(
+                self.application.intent_application_fact_plan(),
+                self.application.generation_identity().clone(),
+            );
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.interaction.cancel_all(

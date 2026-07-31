@@ -42,6 +42,12 @@ impl WorthUiApplicationSessionState {
         self.app.capabilities()
     }
 
+    pub(crate) fn intent_application_fact_plan(
+        &self,
+    ) -> &crate::declaration::UiIntentApplicationFactPlan {
+        self.app.prepared_authority().intent_application_fact_plan()
+    }
+
     pub(crate) fn graph(&self) -> UiGraphAuthority<'_> {
         self.app.graph()
     }

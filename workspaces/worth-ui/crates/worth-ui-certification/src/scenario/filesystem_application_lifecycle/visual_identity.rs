@@ -14,6 +14,18 @@ use crate::scenario::application_authority_closure::visual_identity_application:
 };
 
 impl FilesystemApplicationLifecycleScenario {
+    /// Start the canonical visual-identity world compiler while allowing a
+    /// scenario to add the exact capability owners its claim requires.
+    pub fn visual_identity_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        visual_identity_application_builder_with_host(host)
+    }
+
     pub fn visual_identity_source_text() -> String {
         format!(
             "component {VISUAL_PAINT_ONLY_COMPONENT} {{}}\n\

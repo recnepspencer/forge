@@ -153,7 +153,11 @@ fn finish<'session>(
             let authored_generations = match publication {
                 WorthUiMountedContentPublication::RetainedGeneration => None,
                 WorthUiMountedContentPublication::AuthoredSuccessor(successor) => {
-                    Some(session.application.commit_evidence_only_rebind(successor))
+                    let generations = session.application.commit_evidence_only_rebind(successor);
+                    session
+                        .intent_application_facts
+                        .commit_generation_successor(&generations.0, generations.1.clone());
+                    Some(generations)
                 }
             };
             WorthUiMountedContentRebindOutcome::Published(WorthUiMountedContentPublicationReceipt {

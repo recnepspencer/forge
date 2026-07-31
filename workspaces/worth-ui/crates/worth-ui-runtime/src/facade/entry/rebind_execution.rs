@@ -4,7 +4,7 @@ use super::{
 };
 
 pub(crate) struct WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
-    application: &'session mut crate::runtime::session::WorthUiApplicationSessionState,
+    session: &'session mut WorthUiActiveApplicationSession,
     successor_authority:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
     _admitted_candidate: crate::runtime::WorthUiAdmittedReplacementCandidate,
@@ -13,7 +13,7 @@ pub(crate) struct WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
 
 impl<'session> WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
     fn new(
-        application: &'session mut crate::runtime::session::WorthUiApplicationSessionState,
+        session: &'session mut WorthUiActiveApplicationSession,
         succession: crate::runtime::observation::UiAuthoredSourceSuccession,
     ) -> Result<Self, crate::runtime::rebind::UiRebindPreparationDenial> {
         let crate::runtime::observation::UiAuthoredSourceSuccession::EvidenceOnly {
@@ -25,7 +25,7 @@ impl<'session> WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
             return Err(crate::runtime::rebind::UiRebindPreparationDenial::InvalidSemanticProof);
         };
         Ok(Self {
-            application,
+            session,
             successor_authority,
             _admitted_candidate: admitted_candidate,
             _comparison: comparison,
@@ -38,8 +38,14 @@ impl<'session> WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     ) {
-        self.application
-            .commit_evidence_only_rebind(self.successor_authority)
+        let generations = self
+            .session
+            .application
+            .commit_evidence_only_rebind(self.successor_authority);
+        self.session
+            .intent_application_facts
+            .commit_generation_successor(&generations.0, generations.1.clone());
+        generations
     }
 
     pub(crate) fn generation_identity(
@@ -77,10 +83,8 @@ impl WorthUiActiveApplicationSession {
                 self.prepare_authored_content_rebind(plan, reservation, *content)
             }
             crate::runtime::rebind::UiRebindSemanticProof::EvidenceOnly(succession) => {
-                let prepared = WorthUiPreparedEvidenceOnlyApplicationRebind::new(
-                    &mut self.application,
-                    *succession,
-                )?;
+                let prepared =
+                    WorthUiPreparedEvidenceOnlyApplicationRebind::new(self, *succession)?;
                 crate::runtime::rebind::UiPreparedRebind::evidence_only(plan, reservation, prepared)
             }
             crate::runtime::rebind::UiRebindSemanticProof::NonSource => {

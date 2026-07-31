@@ -59,7 +59,7 @@ impl UiIntent for AdvanceStatus {
         UiIntentAcceptedInteractions::new(&[UiSemanticInteractionFamily::Activate]);
 }
 
-pub(super) fn file_world() -> InteractionWorld {
+pub(crate) fn file_world() -> InteractionWorld {
     InteractionWorld::from_session(launch_file_intent_world::<AdvanceStatus>(
         &routed_file_source(),
     ))
