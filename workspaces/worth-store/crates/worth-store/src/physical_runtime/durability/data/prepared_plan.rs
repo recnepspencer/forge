@@ -19,6 +19,7 @@ pub enum PhysicalDataPlanBindingDenial {
 }
 
 pub(in crate::physical_runtime) struct PreparedPhysicalDataFrame {
+    target: PhysicalDataFrameIdentity,
     prior: CertifiedPriorPageBasis,
     redo_ordinals: CanonicalVec<u32>,
     bytes: Vec<u8>,
@@ -43,13 +44,15 @@ pub(in crate::physical_runtime) struct WalBoundPhysicalDataPlan {
 impl PreparedPhysicalDataFrame {
     pub(in crate::physical_runtime) fn new(
         target: PhysicalDataFrameIdentity,
+        prior: CertifiedPriorPageBasis,
         redo_ordinals: Vec<u32>,
         bytes: Vec<u8>,
     ) -> Result<Self, PhysicalDataPlanBindingDenial> {
         let kind = durable_kind(target.kind());
-        if bytes.len() != target.coordinate().length() as usize
+        if !prior.admits_target(target)
+            || bytes.len() != target.coordinate().length() as usize
             || worth_store_physical_format::decode_data_frame_page_lsn(&bytes, kind)
-                != Ok(PhysicalPageLsn::GENESIS)
+                != Ok(prior.page_lsn())
         {
             return Err(PhysicalDataPlanBindingDenial::InvalidFrame);
         }
@@ -59,7 +62,8 @@ impl PreparedPhysicalDataFrame {
             return Err(PhysicalDataPlanBindingDenial::EmptyRedoDelta);
         }
         Ok(Self {
-            prior: CertifiedPriorPageBasis::for_unmaterialized_target(target),
+            target,
+            prior,
             redo_ordinals,
             bytes,
         })
@@ -126,11 +130,12 @@ impl WalBoundPhysicalDataPlan {
             .map(|mut frame| {
                 encode_data_frame_page_lsn(
                     &mut frame.bytes,
-                    durable_kind(frame.basis.prior().target().kind()),
-                    PhysicalPageLsn::GENESIS,
+                    durable_kind(frame.basis.target().kind()),
+                    frame.basis.prior().page_lsn(),
                 )
                 .expect("a WAL-bound frame was admitted from this exact durable frame");
                 PreparedPhysicalDataFrame {
+                    target: frame.basis.target(),
                     prior: frame.basis.prior(),
                     redo_ordinals: CanonicalVec::try_from_sorted(
                         frame
@@ -186,7 +191,7 @@ fn bind_frames(
             .last()
             .expect("prepared frames have a nonempty redo delta")
             .lsn();
-        let kind = durable_kind(frame.prior.target().kind());
+        let kind = durable_kind(frame.target.kind());
         if encode_data_frame_page_lsn(
             &mut frame.bytes,
             kind,
@@ -200,7 +205,7 @@ fn bind_frames(
             ));
         }
         let digest: [u8; 32] = Sha256::digest(&frame.bytes).into();
-        let basis = match PageWalBasis::new(frame.prior, delta, digest) {
+        let basis = match PageWalBasis::new(frame.target, frame.prior, delta, digest) {
             Some(basis) => basis,
             None => {
                 return Err((
@@ -209,7 +214,7 @@ fn bind_frames(
                 ))
             }
         };
-        let claim = PhysicalRedoTargetClaim::new(frame.prior.target(), digest);
+        let claim = PhysicalRedoTargetClaim::new(frame.target, digest);
         for ordinal in frame.redo_ordinals.as_slice() {
             targets[*ordinal as usize].push(claim);
         }
@@ -276,11 +281,12 @@ fn restore(
 fn unbind_frame(mut frame: WalBoundPhysicalDataFrame) -> PreparedPhysicalDataFrame {
     encode_data_frame_page_lsn(
         &mut frame.bytes,
-        durable_kind(frame.basis.prior().target().kind()),
-        PhysicalPageLsn::GENESIS,
+        durable_kind(frame.basis.target().kind()),
+        frame.basis.prior().page_lsn(),
     )
     .expect("a WAL-bound frame was admitted from this exact durable frame");
     PreparedPhysicalDataFrame {
+        target: frame.basis.target(),
         prior: frame.basis.prior(),
         redo_ordinals: CanonicalVec::try_from_sorted(
             frame

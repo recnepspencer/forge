@@ -14,7 +14,8 @@ pub(in crate::physical_runtime) use prepared_plan::{
     WalBoundPhysicalDataFrame, WalBoundPhysicalDataPlan,
 };
 pub use prior_page_basis::{
-    CertifiedPriorPageBasis, PhysicalDataFrameIdentity, PhysicalDataFrameKind,
+    CertifiedPriorPageBasis, CertifiedPriorPageImage, PhysicalDataFrameIdentity,
+    PhysicalDataFrameKind,
 };
 pub(in crate::physical_runtime) use writeback_join::join_dispatched_data;
 pub use writeback_join::{

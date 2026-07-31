@@ -4,6 +4,7 @@ pub(super) mod batch;
 mod candidate_data;
 mod catalog_candidate_progression;
 mod catalog_cutover_preflight;
+mod data_image;
 mod director;
 mod durable_data_plan;
 mod durable_preparation;
@@ -22,6 +23,7 @@ pub(super) mod streaming;
 mod work_trace;
 
 pub(in crate::physical_runtime::record_serving) use candidate_data::write_candidate_data;
+pub(in crate::physical_runtime::record_serving) use data_image::ExistingDataFrameImage;
 pub use director::{PhysicalRecordSubmission, PreparedRecordAppend};
 pub(in crate::physical_runtime) use director::{
     RecordPublicationDirector, RecordPublicationFoundation,

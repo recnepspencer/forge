@@ -30,11 +30,11 @@ pub(in crate::physical_runtime) use data::{
     PreparedPhysicalDataPlan, WalBoundPhysicalDataFrame, WalBoundPhysicalDataPlan,
 };
 pub use data::{
-    CertifiedPriorPageBasis, IndeterminatePhysicalDataDispatch, PageWalBasis,
-    PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome, PhysicalDataEffectSettlement,
-    PhysicalDataEffectSource, PhysicalDataFrameIdentity, PhysicalDataFrameKind,
-    PhysicalDataSettlementFailureCause, PhysicalDataSettlementOutcome, PhysicalRedoLsn,
-    PhysicalRedoTargetClaim,
+    CertifiedPriorPageBasis, CertifiedPriorPageImage, IndeterminatePhysicalDataDispatch,
+    PageWalBasis, PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome,
+    PhysicalDataEffectSettlement, PhysicalDataEffectSource, PhysicalDataFrameIdentity,
+    PhysicalDataFrameKind, PhysicalDataSettlementFailureCause, PhysicalDataSettlementOutcome,
+    PhysicalRedoLsn, PhysicalRedoTargetClaim,
 };
 pub(in crate::physical_runtime) use mutation::{
     AdmittedPhysicalMutation, AllocatedPhysicalMutationAttemptBinding,

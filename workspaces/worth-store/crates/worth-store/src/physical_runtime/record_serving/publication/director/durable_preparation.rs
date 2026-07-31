@@ -179,7 +179,7 @@ impl RecordPublicationDirector {
                 residency: self.residency.clone(),
             },
             classified,
-            false,
+            true,
         )?;
         materialize_durable_data(payload, self.format)
     }

@@ -25,7 +25,8 @@ pub(super) fn append_to_last_page(
     inline: &mut VecDeque<MaterializedInlineInput>,
     placements: &mut BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
 ) -> Result<(), RecordAppendError> {
-    let LoadedPublishedTailPage { page, geometry } = loaded;
+    let LoadedPublishedTailPage { image, geometry } = loaded;
+    let page = image.bytes();
     let count = fitting_record_count(format, placement, &geometry, inline);
     if count == 0 {
         return Ok(());
@@ -34,7 +35,7 @@ pub(super) fn append_to_last_page(
     let candidate_page = PhysicalGenerationAuthority::for_canonical_physical_format()
         .page_cell(segment.segment.segment_id(), geometry.page())
         .with_page_generation(page_generation);
-    remap_existing_page_records(format, &page, segment, candidate_page, placements)?;
+    remap_existing_page_records(format, page, segment, candidate_page, placements)?;
     let candidate_frame_index = segment.data_pages.len() as u32;
     segment.last_published_page = None;
     segment
@@ -53,7 +54,7 @@ pub(super) fn append_to_last_page(
     )?;
     segment.data_pages.push(PageDataPlan {
         page: candidate_page,
-        existing_frame: Some(page),
+        existing_frame: Some(image),
         records,
     });
     Ok(())

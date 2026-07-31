@@ -68,7 +68,7 @@ impl RecordPublicationDirector {
         let mut effects = Vec::with_capacity(durable.data_frames().len());
         for frame in durable.data_frames() {
             let basis = frame.basis().clone();
-            let target = basis.prior().target();
+            let target = basis.target();
             let coordinate = target.coordinate();
             let candidate = CandidateFrame::new(
                 candidate_role(target.kind()),
@@ -148,7 +148,7 @@ fn candidate_declaration(
         .data_frames()
         .iter()
         .map(|frame| {
-            let target = frame.basis().prior().target();
+            let target = frame.basis().target();
             let coordinate = target.coordinate();
             CandidateFrameDeclaration::new(
                 candidate_role(target.kind()),

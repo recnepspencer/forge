@@ -142,7 +142,7 @@ fn validate(
         {
             return Err(PhysicalDataSettlementFailureCause::WalCoverageMismatch);
         }
-        let target = frame.basis().prior().target().coordinate();
+        let target = frame.basis().target().coordinate();
         if effect.coordinate() != target {
             return Err(PhysicalDataSettlementFailureCause::TargetSubstitution);
         }

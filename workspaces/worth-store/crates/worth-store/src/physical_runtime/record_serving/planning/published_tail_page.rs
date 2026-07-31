@@ -1,5 +1,6 @@
 use worth_store_physical_format::{
     inspect_inline_page, DurableInlineRecordPlacement, InlinePageGeometry, RecordArtifactFile,
+    RecordFrameCoordinate,
 };
 
 use super::super::{
@@ -9,7 +10,8 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct LoadedPublishedTailPage {
-    pub(in crate::physical_runtime::record_serving) page: Vec<u8>,
+    pub(in crate::physical_runtime::record_serving) image:
+        super::super::publication::ExistingDataFrameImage,
     pub(in crate::physical_runtime::record_serving) geometry: InlinePageGeometry,
 }
 
@@ -71,5 +73,16 @@ pub(in crate::physical_runtime::record_serving) fn load_published_tail_page(
             RecordAppendDenial::PublishedLayoutDamaged,
         ));
     }
-    Ok(LoadedPublishedTailPage { page, geometry })
+    let coordinate = RecordFrameCoordinate::new(
+        source,
+        u64::from(page_entry.frame_index()) * u64::from(page_bytes),
+        page_bytes,
+    )
+    .ok_or(RecordAppendError::Denied(
+        RecordAppendDenial::PublishedLayoutDamaged,
+    ))?;
+    let image = super::super::publication::ExistingDataFrameImage::new(coordinate, page).ok_or(
+        RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
+    )?;
+    Ok(LoadedPublishedTailPage { image, geometry })
 }

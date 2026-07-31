@@ -16,7 +16,8 @@ pub(in crate::physical_runtime::record_serving) struct SegmentDataPlan {
 
 pub(in crate::physical_runtime::record_serving) struct PageDataPlan {
     pub(in crate::physical_runtime::record_serving) page: PageGenerationCell,
-    pub(in crate::physical_runtime::record_serving) existing_frame: Option<Vec<u8>>,
+    pub(in crate::physical_runtime::record_serving) existing_frame:
+        Option<super::ExistingDataFrameImage>,
     pub(in crate::physical_runtime::record_serving) records:
         Vec<(PersistedRecordIdentity, SlotGenerationCell, Vec<u8>)>,
 }
@@ -41,7 +42,7 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
         let (candidate, _) = append_inline_records_owned(
             format.declaration(),
             page.page,
-            page.existing_frame.take(),
+            page.existing_frame.take().map(|image| image.into_bytes()),
             &records,
         )
         .map_err(|_| {

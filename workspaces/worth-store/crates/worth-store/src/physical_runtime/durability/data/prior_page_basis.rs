@@ -1,5 +1,8 @@
 use sha2::{Digest, Sha256};
-use worth_store_physical_format::{PhysicalPageLsn, RecordArtifactFile, RecordFrameCoordinate};
+use worth_store_physical_format::{
+    decode_data_frame_page_lsn, DurableFrameKind, PhysicalPageLsn, RecordArtifactFile,
+    RecordFrameCoordinate,
+};
 
 const ABSENT_PRIOR_IMAGE_DOMAIN: &[u8] = b"store.physical.data.certified-absent-prior-image.v1";
 
@@ -18,9 +21,15 @@ pub struct PhysicalDataFrameIdentity {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CertifiedPriorPageBasis {
-    target: PhysicalDataFrameIdentity,
+    image: CertifiedPriorPageImage,
     page_lsn: PhysicalPageLsn,
     payload_digest: [u8; 32],
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CertifiedPriorPageImage {
+    AbsentTarget(PhysicalDataFrameIdentity),
+    MaterializedSource(PhysicalDataFrameIdentity),
 }
 
 impl PhysicalDataFrameIdentity {
@@ -77,14 +86,29 @@ impl CertifiedPriorPageBasis {
         digest.update((identity.len() as u64).to_le_bytes());
         digest.update(identity);
         Self {
-            target,
+            image: CertifiedPriorPageImage::AbsentTarget(target),
             page_lsn: PhysicalPageLsn::GENESIS,
             payload_digest: digest.finalize().into(),
         }
     }
 
-    pub const fn target(self) -> PhysicalDataFrameIdentity {
-        self.target
+    pub(in crate::physical_runtime) fn for_materialized_source(
+        source: PhysicalDataFrameIdentity,
+        bytes: &[u8],
+    ) -> Option<Self> {
+        if bytes.len() != source.coordinate().length() as usize {
+            return None;
+        }
+        let page_lsn = decode_data_frame_page_lsn(bytes, durable_kind(source.kind())).ok()?;
+        Some(Self {
+            image: CertifiedPriorPageImage::MaterializedSource(source),
+            page_lsn,
+            payload_digest: Sha256::digest(bytes).into(),
+        })
+    }
+
+    pub const fn image(self) -> CertifiedPriorPageImage {
+        self.image
     }
 
     pub const fn page_lsn(self) -> PhysicalPageLsn {
@@ -93,6 +117,30 @@ impl CertifiedPriorPageBasis {
 
     pub const fn payload_digest(self) -> [u8; 32] {
         self.payload_digest
+    }
+
+    pub(in crate::physical_runtime) fn admits_target(
+        self,
+        target: PhysicalDataFrameIdentity,
+    ) -> bool {
+        match self.image {
+            CertifiedPriorPageImage::AbsentTarget(absent) => absent == target,
+            CertifiedPriorPageImage::MaterializedSource(source) => {
+                source.kind() as u8 == target.kind() as u8
+            }
+        }
+    }
+}
+
+impl CertifiedPriorPageImage {
+    pub const fn identity(self) -> PhysicalDataFrameIdentity {
+        match self {
+            Self::AbsentTarget(identity) | Self::MaterializedSource(identity) => identity,
+        }
+    }
+
+    pub const fn is_materialized(self) -> bool {
+        matches!(self, Self::MaterializedSource(_))
     }
 }
 
@@ -152,5 +200,12 @@ fn write_artifact(artifact: RecordArtifactFile, target: &mut Vec<u8>) {
             target.extend_from_slice(&generation.to_le_bytes());
             target.extend_from_slice(&block.to_le_bytes());
         }
+    }
+}
+
+const fn durable_kind(kind: PhysicalDataFrameKind) -> DurableFrameKind {
+    match kind {
+        PhysicalDataFrameKind::InlinePage => DurableFrameKind::InlinePage,
+        PhysicalDataFrameKind::ExtentChunk => DurableFrameKind::Extent,
     }
 }

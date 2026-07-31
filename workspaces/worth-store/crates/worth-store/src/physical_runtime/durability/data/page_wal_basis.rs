@@ -18,6 +18,7 @@ pub struct PhysicalRedoTargetClaim {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PageWalBasis {
+    target: PhysicalDataFrameIdentity,
     prior: CertifiedPriorPageBasis,
     delta: CanonicalVec<PhysicalRedoLsn>,
     resulting_page_lsn: PhysicalPageLsn,
@@ -60,20 +61,29 @@ impl PhysicalRedoTargetClaim {
 
 impl PageWalBasis {
     pub(in crate::physical_runtime) fn new(
+        target: PhysicalDataFrameIdentity,
         prior: CertifiedPriorPageBasis,
         delta: CanonicalVec<PhysicalRedoLsn>,
         resulting_payload_digest: [u8; 32],
     ) -> Option<Self> {
+        if !prior.admits_target(target) {
+            return None;
+        }
         let resulting = delta.as_slice().last()?.lsn();
         if resulting.get() <= prior.page_lsn().get() {
             return None;
         }
         Some(Self {
+            target,
             prior,
             delta,
             resulting_page_lsn: PhysicalPageLsn::new(resulting.get()),
             resulting_payload_digest,
         })
+    }
+
+    pub const fn target(&self) -> PhysicalDataFrameIdentity {
+        self.target
     }
 
     pub const fn prior(&self) -> CertifiedPriorPageBasis {

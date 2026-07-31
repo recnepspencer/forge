@@ -113,6 +113,7 @@ fn cleanup_gate_rejects_unguarded_duplicate_exports() {
 fn read(path: &Path) -> String {
     fs::read_to_string(path)
         .unwrap_or_else(|error| panic!("read production source {}: {error}", path.display()))
+        .replace("\r\n", "\n")
 }
 
 fn assert_single_owner(
@@ -147,7 +148,10 @@ fn rust_sources(root: &Path) -> Vec<(PathBuf, String)> {
             if path.is_dir() {
                 pending.push(path);
             } else if path.extension().is_some_and(|extension| extension == "rs") {
-                sources.push((path.clone(), fs::read_to_string(path).unwrap()));
+                sources.push((
+                    path.clone(),
+                    fs::read_to_string(path).unwrap().replace("\r\n", "\n"),
+                ));
             }
         }
     }

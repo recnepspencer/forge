@@ -11,8 +11,8 @@ use super::{
 };
 use crate::physical_runtime::{
     durability::{
-        PhysicalDataFrameIdentity, PhysicalDataFrameKind, PreparedPhysicalDataFrame,
-        PreparedPhysicalDataPlan,
+        CertifiedPriorPageBasis, PhysicalDataFrameIdentity, PhysicalDataFrameKind,
+        PreparedPhysicalDataFrame, PreparedPhysicalDataPlan,
     },
     record_serving::{
         planning::prepared_payload::PreparedRecordPayloadPlan, AdmittedPhysicalRecordFormat,
@@ -55,6 +55,7 @@ fn materialize_segment(
 ) -> Result<(), RecordAppendError> {
     let page_bytes = u64::from(format.declaration().page_size().bytes());
     for (page_index, page) in segment.pages.into_iter().enumerate() {
+        let prior = certify_inline_prior(page.existing_frame.as_ref())?;
         let appends = page
             .records
             .iter()
@@ -63,7 +64,7 @@ fn materialize_segment(
         let (bytes, _) = append_inline_records_owned(
             format.declaration(),
             page.page,
-            page.existing_frame,
+            page.existing_frame.map(|image| image.into_bytes()),
             &appends,
         )
         .map_err(|_| invalid_plan())?;
@@ -78,6 +79,8 @@ fn materialize_segment(
             length,
         )
         .ok_or_else(invalid_plan)?;
+        let prior =
+            prior.unwrap_or_else(|| CertifiedPriorPageBasis::for_unmaterialized_target(target));
         let mut redo_ordinals = page
             .records
             .iter()
@@ -85,7 +88,7 @@ fn materialize_segment(
             .collect::<Result<Vec<_>, _>>()?;
         redo_ordinals.sort_unstable();
         frames.push(
-            PreparedPhysicalDataFrame::new(target, redo_ordinals, bytes)
+            PreparedPhysicalDataFrame::new(target, prior, redo_ordinals, bytes)
                 .map_err(|_| invalid_plan())?,
         );
     }
@@ -130,8 +133,13 @@ fn materialize_extent(
         )
         .ok_or_else(invalid_plan)?;
         frames.push(
-            PreparedPhysicalDataFrame::new(target, vec![redo_ordinal], bytes)
-                .map_err(|_| invalid_plan())?,
+            PreparedPhysicalDataFrame::new(
+                target,
+                CertifiedPriorPageBasis::for_unmaterialized_target(target),
+                vec![redo_ordinal],
+                bytes,
+            )
+            .map_err(|_| invalid_plan())?,
         );
         completed = completed.saturating_add(expected as u64);
         artifact_offset = artifact_offset
@@ -140,6 +148,25 @@ fn materialize_extent(
     }
     reject_trailing_source(&mut *extent.source, completed)?;
     Ok(())
+}
+
+fn certify_inline_prior(
+    image: Option<&super::ExistingDataFrameImage>,
+) -> Result<Option<CertifiedPriorPageBasis>, RecordAppendError> {
+    let Some(image) = image else {
+        return Ok(None);
+    };
+    let coordinate = image.coordinate();
+    let source = PhysicalDataFrameIdentity::new(
+        PhysicalDataFrameKind::InlinePage,
+        coordinate.artifact(),
+        coordinate.offset(),
+        coordinate.length(),
+    )
+    .ok_or_else(invalid_plan)?;
+    CertifiedPriorPageBasis::for_materialized_source(source, image.bytes())
+        .map(Some)
+        .ok_or_else(invalid_plan)
 }
 
 fn read_exact_source(
