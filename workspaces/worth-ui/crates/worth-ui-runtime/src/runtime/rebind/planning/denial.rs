@@ -26,6 +26,9 @@ pub enum UiRebindPlanningDenial {
     AmbiguousProjectionContent {
         graph_node: crate::graph::UiGraphNodeIdentity,
     },
+    AmbiguousProjectionInput {
+        projection: worth_ui_query_binding::WorthUiQueryViewIdentity,
+    },
     ProjectionSchemaTransitionUncorrelated {
         component_identity: Box<str>,
     },

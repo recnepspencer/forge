@@ -39,6 +39,10 @@ impl UiProjectionFactReceipt {
         self.observation_order
     }
 
+    pub(crate) fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_world_identity
+    }
+
     pub(crate) fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.binding_identity
     }

@@ -12,6 +12,7 @@ pub(super) fn compile_content_plan(
     scope: &super::super::UiResolvedAffectedScope,
 ) -> Result<crate::mounting::UiMountedSemanticContentInput, super::UiRebindPlanningDenial> {
     let mut content = crate::mounting::UiMountedSemanticContentInput::empty();
+    content.set_projection_scope(candidate.query_binding_plan().projection_identities());
     let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
     for lookup in scope.lookups() {
         let Some(query) = scope
@@ -22,8 +23,20 @@ pub(super) fn compile_content_plan(
             continue;
         };
         let projection = match (query.scalar_projection(), query.collection_projection()) {
-            (Some(scalar), None) => UiProjectedSemanticContent::Scalar(project_scalar(scalar)),
+            (Some(scalar), None) => {
+                let input = scalar.intent_input_reference();
+                let projection = input.revision().projection_identity().clone();
+                content.insert_projection_input(input).map_err(|()| {
+                    super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection }
+                })?;
+                UiProjectedSemanticContent::Scalar(project_scalar(scalar))
+            }
             (None, Some(collection)) => {
+                let input = collection.intent_input_reference();
+                let projection = input.revision().projection_identity().clone();
+                content.insert_projection_input(input).map_err(|()| {
+                    super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection }
+                })?;
                 UiProjectedSemanticContent::Collection(collection::project_collection(collection)?)
             }
             (None, None) => continue,

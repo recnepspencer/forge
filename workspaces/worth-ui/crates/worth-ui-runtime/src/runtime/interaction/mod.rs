@@ -15,11 +15,11 @@ pub use batch::{
 };
 pub use draft::{
     UiDraftByteBudget, UiDraftByteBudgetDenial, UiDraftFieldIdentity, UiDraftMutationKind,
-    UiDraftMutationReceipt, UiDraftSessionIdentity, UiLocalInputRecipientAdmission,
-    UiLocalInputRecipientBindingReceipt, UiLocalInputRecipientBindingStop,
-    UiLocalInputRecipientBindingStopReason, UiLocalInputRecipientContract,
-    UiLocalInputRecipientFamily, UiLocalInputStop, UiLocalInputStopReason, UI_DRAFT_SESSION_LIMIT,
-    UI_DRAFT_UTF8_BYTE_LIMIT,
+    UiDraftMutationReceipt, UiDraftRecipientContractDenial, UiDraftSessionIdentity,
+    UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingReceipt,
+    UiLocalInputRecipientBindingStop, UiLocalInputRecipientBindingStopReason,
+    UiLocalInputRecipientContract, UiLocalInputRecipientFamily, UiLocalInputStop,
+    UiLocalInputStopReason, UI_DRAFT_SESSION_LIMIT, UI_DRAFT_UTF8_BYTE_LIMIT,
 };
 pub use gesture::{
     UiPointerGestureContinuityKind, UiPointerGesturePressReceipt, UiPointerGestureStop,
@@ -27,7 +27,8 @@ pub use gesture::{
 };
 pub use semantic::{
     UiActivateInteraction, UiActivateInteractionSource, UiEditCommitInteraction,
-    UiKeyboardActivationEvidence, UiSemanticInteraction, UiSubmitInteraction,
+    UiKeyboardActivationEvidence, UiSelectionCommitInteraction, UiSelectionCommitStop,
+    UiSelectionCommitStopReason, UiSemanticInteraction, UiSubmitInteraction,
 };
 pub(crate) use semantic::{UiEditCommitInput, UiKeyboardSemanticInput};
 pub use settlement::UiInteractionLifecycleSettlementReceipt;

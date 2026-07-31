@@ -19,6 +19,21 @@ struct DraftFixture {
     session: UiDraftSessionIdentity,
 }
 
+struct DraftTestPayload;
+
+impl crate::capability::UiIntentPayload for DraftTestPayload {
+    const SCHEMA: crate::capability::UiIntentSchema =
+        crate::capability::UiIntentSchema::stable("worth-ui.runtime.draft-test", 1);
+    const FIELDS: crate::capability::UiIntentPayloadFieldSet =
+        crate::capability::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut crate::capability::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, crate::capability::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
+}
+
 struct ExpectedDraftMutation {
     source_sequence: u64,
     draft_revision: u64,
@@ -228,12 +243,7 @@ fn interaction_draft_session_capacity_is_hard_bounded() {
     let budget = UiDraftByteBudget::new(1).expect("one byte is a valid draft budget");
     for slot in 0..UI_DRAFT_SESSION_LIMIT {
         state
-            .create_session(
-                target,
-                &generation,
-                UiDraftFieldIdentity::from_declared_slot(slot as u16),
-                budget,
-            )
+            .create_session(target, &generation, draft_field(slot as u8, 1), budget)
             .expect("capacity admits the declared bound");
     }
 
@@ -241,7 +251,7 @@ fn interaction_draft_session_capacity_is_hard_bounded() {
         .create_session(
             target,
             &generation,
-            UiDraftFieldIdentity::from_declared_slot(UI_DRAFT_SESSION_LIMIT as u16),
+            draft_field(UI_DRAFT_SESSION_LIMIT as u8, 1),
             budget,
         )
         .expect_err("the first session past the bound must stop");
@@ -264,7 +274,7 @@ fn draft_fixture(byte_budget: usize) -> DraftFixture {
         UiDraftSession {
             target,
             generation: generation(),
-            field: UiDraftFieldIdentity::from_declared_slot(1),
+            field: draft_field(1, byte_budget),
             budget: UiDraftByteBudget::new(byte_budget).expect("fixture budget is valid"),
             committed: String::new(),
             preedit: None,
@@ -287,6 +297,13 @@ fn generation(
     )
     .generation_identity()
     .clone()
+}
+
+fn draft_field(slot: u8, byte_budget: usize) -> UiDraftFieldIdentity {
+    UiDraftFieldIdentity::from_payload_field(crate::capability::UiIntentPayloadField::<
+        DraftTestPayload,
+        crate::capability::UiIntentText,
+    >::text(slot, "runtime.draft-test", byte_budget))
 }
 
 fn target_view() -> crate::runtime::interaction::UiPresentedInteractionTargetView {

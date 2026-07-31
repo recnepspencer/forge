@@ -9,6 +9,14 @@ struct AdvancePayload;
 
 impl UiIntentPayload for AdvancePayload {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("platform.pulse.advance_payload", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
 }
 
 struct AdvanceOutcome;
@@ -32,12 +40,28 @@ struct CollisionPayloadAb;
 
 impl UiIntentPayload for CollisionPayloadAb {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("bc", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
 }
 
 struct CollisionPayloadB;
 
 impl UiIntentPayload for CollisionPayloadB {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("c", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
 }
 
 struct CollisionOutcome;

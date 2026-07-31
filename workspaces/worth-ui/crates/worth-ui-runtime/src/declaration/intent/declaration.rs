@@ -2,11 +2,12 @@ use crate::capability::{UiIntentDefinitionSlot, UiSemanticInteractionFamily};
 
 use super::UiIntentDeclarationIdentity;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct UiCanonicalIntentDeclaration {
     identity: UiIntentDeclarationIdentity,
     definition: UiIntentDefinitionSlot,
     interaction: UiSemanticInteractionFamily,
+    payload: Box<[super::UiResolvedIntentPayloadBinding]>,
 }
 
 impl UiCanonicalIntentDeclaration {
@@ -14,11 +15,13 @@ impl UiCanonicalIntentDeclaration {
         identity: UiIntentDeclarationIdentity,
         definition: UiIntentDefinitionSlot,
         interaction: UiSemanticInteractionFamily,
+        payload: Box<[super::UiResolvedIntentPayloadBinding]>,
     ) -> Self {
         Self {
             identity,
             definition,
             interaction,
+            payload,
         }
     }
 
@@ -32,5 +35,9 @@ impl UiCanonicalIntentDeclaration {
 
     pub(crate) const fn interaction(&self) -> UiSemanticInteractionFamily {
         self.interaction
+    }
+
+    pub(crate) fn payload(&self) -> &[super::UiResolvedIntentPayloadBinding] {
+        &self.payload
     }
 }

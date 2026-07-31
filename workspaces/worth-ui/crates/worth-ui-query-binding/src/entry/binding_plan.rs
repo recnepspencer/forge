@@ -130,6 +130,18 @@ impl WorthUiQueryBindingPlan {
         }
     }
 
+    pub fn projection_identities(&self) -> Vec<WorthUiQueryViewIdentity> {
+        match self {
+            Self::QueryFree => Vec::new(),
+            Self::Installed(plan) => plan
+                .scalar_projections
+                .keys()
+                .chain(plan.collection_projections.keys())
+                .cloned()
+                .collect(),
+        }
+    }
+
     /// Resolve one compact lowering reference from this exact installed plan.
     pub fn resolve_definition(
         &self,

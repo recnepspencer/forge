@@ -57,13 +57,18 @@ pub use icon::{
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
 pub use intent::{
     FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent,
-    UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentDefinitionRegistrationError,
-    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
-    UiSemanticInteractionFamily,
+    UiIntentAcceptedInteractions, UiIntentBoolean, UiIntentDefinition,
+    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
+    UiIntentPayloadField, UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind,
+    UiIntentPayloadFieldSet, UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
+    UiIntentPayloadSchemaViolation, UiIntentPayloadValueKind, UiIntentProductOutcome,
+    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentSelection, UiIntentSelectionValue,
+    UiIntentText, UiIntentTransitionDestination, UiIntentUnsigned64, UiSemanticInteractionFamily,
+    UI_INTENT_PAYLOAD_FIELD_LIMIT, UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT,
 };
 pub(crate) use intent::{
     IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry, UiIntentDefinitionSlot,
+    UiIntentProjectedValue, UiSealedIntentPayload,
 };
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,

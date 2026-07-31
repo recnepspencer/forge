@@ -22,6 +22,7 @@ pub(crate) struct WorthUiApplicationPreparationInput {
         Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     pub(crate) measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
@@ -37,6 +38,7 @@ pub(crate) fn prepare_application_authority(
         runtime_instance_basis_admissions,
         measurement_inspection_evidence,
         query_binding_plan,
+        intent_application_facts,
         change_profile,
     } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
@@ -60,6 +62,8 @@ pub(crate) fn prepare_application_authority(
         semantic_handoff.intent_material(),
         capability_snapshot.intent_definitions(),
         &graph_snapshot,
+        &query_binding_plan,
+        &intent_application_facts,
     )
     .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
     let retained_measurement_inspection_evidence = measurement_inspection_evidence.clone();
@@ -81,6 +85,7 @@ pub(crate) fn prepare_application_authority(
             intent_catalog,
             lifecycle,
             query_binding_plan,
+            intent_application_facts,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -129,6 +134,8 @@ pub(crate) fn prepare_successor_application_authority(
         semantic_handoff.intent_material(),
         current.capabilities().intent_definitions(),
         &graph_snapshot,
+        current.query_binding_plan(),
+        current.intent_application_fact_plan(),
     )
     .map_err(WorthUiApplicationPreparationDenial::IntentCatalog)?;
     let measurement_inspection_evidence = current
@@ -155,6 +162,7 @@ pub(crate) fn prepare_successor_application_authority(
             intent_catalog,
             lifecycle,
             query_binding_plan: current.query_binding_plan().clone(),
+            intent_application_facts: current.intent_application_fact_plan().clone(),
             host_session_plan: current.host_session_plan().clone(),
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),

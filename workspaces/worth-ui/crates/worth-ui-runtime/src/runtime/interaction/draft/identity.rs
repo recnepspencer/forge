@@ -1,21 +1,35 @@
-/// Declaration-owned slot for one draft-backed payload field.
+/// Declaration-owned identity for one draft-backed payload field.
 ///
-/// The interaction runtime can carry this identity, but only the declaration
-/// compiler may mint it.
+/// The interaction runtime can carry this identity, but only a payload-typed
+/// field handle may mint it.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct UiDraftFieldIdentity(u16);
+pub struct UiDraftFieldIdentity {
+    schema: crate::capability::UiIntentSchema,
+    field: crate::capability::UiIntentPayloadFieldDescriptor,
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct UiDraftSessionIdentity(u64);
 
 impl UiDraftFieldIdentity {
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) const fn from_declared_slot(slot: u16) -> Self {
-        Self(slot)
+    pub(crate) const fn from_payload_field<
+        P: crate::capability::UiIntentPayload,
+        K: crate::capability::UiIntentPayloadValueKind,
+    >(
+        field: crate::capability::UiIntentPayloadField<P, K>,
+    ) -> Self {
+        Self {
+            schema: P::SCHEMA,
+            field: field.descriptor(),
+        }
     }
 
-    pub const fn declared_slot(self) -> u16 {
-        self.0
+    pub const fn schema(self) -> crate::capability::UiIntentSchema {
+        self.schema
+    }
+
+    pub const fn field(self) -> crate::capability::UiIntentPayloadFieldDescriptor {
+        self.field
     }
 }
 

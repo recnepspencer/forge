@@ -171,7 +171,7 @@ impl UiDraftRuntimeState {
                 source_sequence: sequence,
                 input_revision: draft.last_input_revision,
                 draft_revision: draft.draft_revision,
-                committed_text: draft.committed.into_boxed_str(),
+                committed_text: std::sync::Arc::from(draft.committed.into_boxed_str()),
             }),
         ))
     }

@@ -13,6 +13,14 @@ pub enum UiDraftByteBudgetDenial {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiDraftRecipientContractDenial {
+    InvalidPayloadSchema(crate::capability::UiIntentPayloadSchemaViolation),
+    FieldOutsidePayloadSchema { slot: u8 },
+    FieldHandleMismatch { slot: u8 },
+    ByteBudget(UiDraftByteBudgetDenial),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiLocalInputRecipientFamily {
     Activation,
     Draft,
@@ -62,10 +70,32 @@ impl UiLocalInputRecipientContract {
         }
     }
 
-    pub const fn draft(field: UiDraftFieldIdentity, budget: UiDraftByteBudget) -> Self {
-        Self {
-            kind: UiLocalInputRecipientContractKind::Draft { field, budget },
+    pub fn draft<P: crate::capability::UiIntentPayload>(
+        field: crate::capability::UiIntentPayloadField<P, crate::capability::UiIntentText>,
+    ) -> Result<Self, UiDraftRecipientContractDenial> {
+        let descriptor = field.descriptor();
+        P::FIELDS
+            .validate()
+            .map_err(UiDraftRecipientContractDenial::InvalidPayloadSchema)?;
+        let declared = P::FIELDS
+            .fields()
+            .get(usize::from(descriptor.slot()))
+            .ok_or(UiDraftRecipientContractDenial::FieldOutsidePayloadSchema {
+                slot: descriptor.slot(),
+            })?;
+        if declared != &descriptor {
+            return Err(UiDraftRecipientContractDenial::FieldHandleMismatch {
+                slot: descriptor.slot(),
+            });
         }
+        let budget = UiDraftByteBudget::new(descriptor.byte_budget())
+            .map_err(UiDraftRecipientContractDenial::ByteBudget)?;
+        Ok(Self {
+            kind: UiLocalInputRecipientContractKind::Draft {
+                field: UiDraftFieldIdentity::from_payload_field(field),
+                budget,
+            },
+        })
     }
 
     pub const fn submit() -> Self {

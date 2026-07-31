@@ -13,6 +13,7 @@ pub enum UiIntentDeclarationConstructionError {
 pub struct UiIntentDeclaration<I: UiIntent> {
     identity: Box<str>,
     interaction: UiSemanticInteractionFamily,
+    payload_sources: Vec<worth_ui_dsl::WorthUiIntentPayloadSourceSpec>,
     intent: PhantomData<fn() -> I>,
 }
 
@@ -44,7 +45,7 @@ impl<I: UiIntent> UiIntentDeclaration<I> {
     pub fn into_dsl_spec(self) -> worth_ui_dsl::WorthUiIntentDeclarationSpec {
         let payload = I::Payload::SCHEMA;
         let outcome = I::ProductOutcome::SCHEMA;
-        worth_ui_dsl::WorthUiIntentDeclarationSpec::new(
+        let declaration = worth_ui_dsl::WorthUiIntentDeclarationSpec::new(
             self.identity.to_string(),
             I::ID.as_str(),
             dsl_family(self.interaction),
@@ -54,7 +55,21 @@ impl<I: UiIntent> UiIntentDeclaration<I> {
             payload.version(),
             outcome.stable_identity(),
             outcome.version(),
+        );
+        self.payload_sources.into_iter().fold(
+            declaration,
+            worth_ui_dsl::WorthUiIntentDeclarationSpec::with_payload_source,
         )
+    }
+
+    pub fn bind_payload<K: crate::capability::UiIntentPayloadValueKind>(
+        mut self,
+        field: crate::capability::UiIntentPayloadField<I::Payload, K>,
+        source: super::UiIntentPayloadSource<K>,
+    ) -> Self {
+        self.payload_sources
+            .push(source.into_dsl(field.descriptor().stable_name()));
+        self
     }
 
     fn for_interaction(
@@ -71,6 +86,7 @@ impl<I: UiIntent> UiIntentDeclaration<I> {
         Ok(Self {
             identity,
             interaction,
+            payload_sources: Vec::new(),
             intent: PhantomData,
         })
     }

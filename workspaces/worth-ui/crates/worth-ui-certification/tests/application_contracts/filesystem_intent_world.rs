@@ -13,6 +13,14 @@ struct DecoyPayload;
 impl worth_ui::facade::intent::UiIntentPayload for DecoyPayload {
     const SCHEMA: worth_ui::facade::intent::UiIntentSchema =
         worth_ui::facade::intent::UiIntentSchema::stable("aaa.phase3.decoy.payload", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
 }
 
 struct DecoyOutcome;

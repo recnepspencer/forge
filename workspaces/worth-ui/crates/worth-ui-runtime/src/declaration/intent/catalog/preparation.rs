@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::capability::{FrozenIntentDefinitionCapabilities, UiSemanticInteractionFamily};
 
@@ -17,7 +18,7 @@ struct ResolvedIntentRoutes {
 }
 
 struct IntentRouteCatalogBuilder<'a> {
-    declarations: &'a [UiCanonicalIntentDeclaration],
+    declarations: &'a [Arc<UiCanonicalIntentDeclaration>],
     declaration_index: &'a BTreeMap<Box<str>, u32>,
     graph: &'a crate::graph::UiGraphSnapshot,
     product: Vec<UiIntentRouteBinding>,
@@ -30,8 +31,11 @@ pub(super) fn prepare(
     material: &crate::runtime::WorthUiAuthoredIntentMaterial,
     definitions: &FrozenIntentDefinitionCapabilities,
     graph: &crate::graph::UiGraphSnapshot,
+    query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+    application_facts: &super::super::UiIntentApplicationFactPlan,
 ) -> Result<UiIntentCatalog, UiIntentCatalogPreparationDenial> {
-    let (declarations, declaration_index) = resolve_declarations(material, definitions)?;
+    let (declarations, declaration_index) =
+        resolve_declarations(material, definitions, query, application_facts)?;
     let routes = bind_routes(material, &declarations, &declaration_index, graph)?;
     let product_index = routes
         .product
@@ -63,8 +67,13 @@ pub(super) fn prepare(
 fn resolve_declarations(
     material: &crate::runtime::WorthUiAuthoredIntentMaterial,
     definitions: &FrozenIntentDefinitionCapabilities,
+    query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+    application_facts: &super::super::UiIntentApplicationFactPlan,
 ) -> Result<
-    (Vec<UiCanonicalIntentDeclaration>, BTreeMap<Box<str>, u32>),
+    (
+        Vec<Arc<UiCanonicalIntentDeclaration>>,
+        BTreeMap<Box<str>, u32>,
+    ),
     UiIntentCatalogPreparationDenial,
 > {
     if material.declarations().len() > MAXIMUM_INTENT_DECLARATIONS {
@@ -99,11 +108,17 @@ fn resolve_declarations(
                 interaction,
             });
         }
-        declarations.push(UiCanonicalIntentDeclaration::new(
+        declarations.push(Arc::new(UiCanonicalIntentDeclaration::new(
             UiIntentDeclarationIdentity::new(authored.identity()),
             resolved.slot(),
             interaction,
-        ));
+            super::super::resolve_payload_sources(
+                authored,
+                resolved.descriptor().payload_fields(),
+                query,
+                application_facts,
+            )?,
+        )));
     }
     Ok((declarations, indexes))
 }
@@ -143,7 +158,7 @@ fn validate_schemas(
 
 fn bind_routes(
     material: &crate::runtime::WorthUiAuthoredIntentMaterial,
-    declarations: &[UiCanonicalIntentDeclaration],
+    declarations: &[Arc<UiCanonicalIntentDeclaration>],
     declaration_index: &BTreeMap<Box<str>, u32>,
     graph: &crate::graph::UiGraphSnapshot,
 ) -> Result<ResolvedIntentRoutes, UiIntentCatalogPreparationDenial> {
@@ -156,7 +171,7 @@ fn bind_routes(
 
 impl<'a> IntentRouteCatalogBuilder<'a> {
     fn new(
-        declarations: &'a [UiCanonicalIntentDeclaration],
+        declarations: &'a [Arc<UiCanonicalIntentDeclaration>],
         declaration_index: &'a BTreeMap<Box<str>, u32>,
         graph: &'a crate::graph::UiGraphSnapshot,
     ) -> Self {

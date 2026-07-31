@@ -1,6 +1,7 @@
 mod preparation;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::capability::UiSemanticInteractionFamily;
 
@@ -14,14 +15,14 @@ pub(super) type RouteKey = (
     UiSemanticInteractionFamily,
 );
 
-pub(crate) enum UiIntentCatalogResolvedRoute<'catalog> {
+pub(crate) enum UiIntentCatalogResolvedRoute {
     Product {
         route: UiIntentRouteBinding,
-        declaration: &'catalog UiCanonicalIntentDeclaration,
+        declaration: Arc<UiCanonicalIntentDeclaration>,
     },
     Confirmation {
         route: UiIntentConfirmationRouteBinding,
-        declaration: &'catalog UiCanonicalIntentDeclaration,
+        declaration: Arc<UiCanonicalIntentDeclaration>,
     },
 }
 
@@ -34,7 +35,7 @@ pub struct UiIntentCatalogMetrics {
 }
 
 pub(crate) struct UiIntentCatalog {
-    declarations: Box<[UiCanonicalIntentDeclaration]>,
+    declarations: Box<[Arc<UiCanonicalIntentDeclaration>]>,
     product_routes: Box<[UiIntentRouteBinding]>,
     confirmation_routes: Box<[UiIntentConfirmationRouteBinding]>,
     product_index: HashMap<RouteKey, usize>,
@@ -47,28 +48,30 @@ impl UiIntentCatalog {
         material: &crate::runtime::WorthUiAuthoredIntentMaterial,
         definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
         graph: &crate::graph::UiGraphSnapshot,
+        query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
+        application_facts: &super::UiIntentApplicationFactPlan,
     ) -> Result<Self, UiIntentCatalogPreparationDenial> {
-        preparation::prepare(material, definitions, graph)
+        preparation::prepare(material, definitions, graph, query, application_facts)
     }
 
     pub(crate) fn lookup(
         &self,
         graph_node: crate::graph::UiGraphNodeIdentity,
         interaction: UiSemanticInteractionFamily,
-    ) -> Option<UiIntentCatalogResolvedRoute<'_>> {
+    ) -> Option<UiIntentCatalogResolvedRoute> {
         let key = (graph_node, interaction);
         if let Some(index) = self.product_index.get(&key).copied() {
             let route = self.product_routes[index];
             return Some(UiIntentCatalogResolvedRoute::Product {
                 route,
-                declaration: &self.declarations[route.declaration_index() as usize],
+                declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
             });
         }
         self.confirmation_index.get(&key).copied().map(|index| {
             let route = self.confirmation_routes[index];
             UiIntentCatalogResolvedRoute::Confirmation {
                 route,
-                declaration: &self.declarations[route.declaration_index() as usize],
+                declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
             }
         })
     }

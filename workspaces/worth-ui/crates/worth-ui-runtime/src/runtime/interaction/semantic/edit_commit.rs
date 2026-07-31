@@ -14,7 +14,7 @@ pub struct UiEditCommitInteraction {
     source_sequence: UiHostObservationSequence,
     input_revision: Option<u64>,
     draft_revision: u64,
-    committed_text: Box<str>,
+    committed_text: std::sync::Arc<str>,
 }
 
 pub(crate) struct UiEditCommitInput {
@@ -26,7 +26,7 @@ pub(crate) struct UiEditCommitInput {
     pub(crate) source_sequence: UiHostObservationSequence,
     pub(crate) input_revision: Option<u64>,
     pub(crate) draft_revision: u64,
-    pub(crate) committed_text: Box<str>,
+    pub(crate) committed_text: std::sync::Arc<str>,
 }
 
 impl UiEditCommitInteraction {
@@ -78,5 +78,9 @@ impl UiEditCommitInteraction {
 
     pub fn committed_text(&self) -> &str {
         &self.committed_text
+    }
+
+    pub(crate) fn committed_text_reference(&self) -> std::sync::Arc<str> {
+        std::sync::Arc::clone(&self.committed_text)
     }
 }

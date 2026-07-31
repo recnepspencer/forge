@@ -4,6 +4,11 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedSemanticContentInput {
     by_graph_node: BTreeMap<crate::graph::UiGraphNodeIdentity, UiMountedSemanticTextContent>,
+    projection_scope: Option<Box<[worth_ui_query_binding::WorthUiQueryViewIdentity]>>,
+    projection_inputs: BTreeMap<
+        worth_ui_query_binding::WorthUiQueryViewIdentity,
+        worth_ui_query_binding::UiProjectionInputFactReference,
+    >,
     schema_transitions: Vec<crate::runtime::rebind::UiProjectionSchemaTransition>,
 }
 
@@ -69,6 +74,8 @@ impl UiMountedSemanticContentInput {
     pub(crate) fn empty() -> Self {
         Self {
             by_graph_node: BTreeMap::new(),
+            projection_scope: None,
+            projection_inputs: BTreeMap::new(),
             schema_transitions: Vec::new(),
         }
     }
@@ -129,6 +136,49 @@ impl UiMountedSemanticContentInput {
 
     pub(crate) fn is_empty(&self) -> bool {
         self.by_graph_node.is_empty()
+            && self.projection_inputs.is_empty()
+            && self.projection_scope.is_none()
+    }
+
+    pub(crate) fn set_projection_scope(
+        &mut self,
+        mut scope: Vec<worth_ui_query_binding::WorthUiQueryViewIdentity>,
+    ) {
+        scope.sort();
+        scope.dedup();
+        self.projection_scope = Some(scope.into_boxed_slice());
+    }
+
+    pub(crate) fn insert_projection_input(
+        &mut self,
+        input: worth_ui_query_binding::UiProjectionInputFactReference,
+    ) -> Result<(), ()> {
+        let identity = input.revision().projection_identity().clone();
+        match self.projection_inputs.get(&identity) {
+            Some(existing) if existing != &input => Err(()),
+            Some(_) => Ok(()),
+            None => {
+                self.projection_inputs.insert(identity, input);
+                Ok(())
+            }
+        }
+    }
+
+    pub(crate) fn projection_scope(
+        &self,
+    ) -> Option<&[worth_ui_query_binding::WorthUiQueryViewIdentity]> {
+        self.projection_scope.as_deref()
+    }
+
+    pub(crate) fn projection_inputs(
+        &self,
+    ) -> impl ExactSizeIterator<
+        Item = (
+            &worth_ui_query_binding::WorthUiQueryViewIdentity,
+            &worth_ui_query_binding::UiProjectionInputFactReference,
+        ),
+    > {
+        self.projection_inputs.iter()
     }
 
     pub(crate) fn record_schema_transition(

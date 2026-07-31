@@ -49,7 +49,17 @@ enum WorthUiSemanticDeclarationExactBasis {
         structural_tokens: Box<[String]>,
         posture_tokens: Box<[String]>,
         support_tokens: Box<[String]>,
+        intent: Option<WorthUiIntentDeclarationExactBasis>,
     },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct WorthUiIntentDeclarationExactBasis {
+    definition: String,
+    interaction: String,
+    payload_schema: Option<(String, u16)>,
+    outcome_schema: Option<(String, u16)>,
+    payload_sources: Box<[String]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -182,6 +192,9 @@ impl WorthUiSemanticDeclarationExactBasis {
                     structural_tokens: semantic_texts(declaration.structural_tokens()),
                     posture_tokens: semantic_texts(declaration.posture_tokens()),
                     support_tokens: semantic_texts(declaration.support_tokens()),
+                    intent: declaration
+                        .intent_declaration()
+                        .map(WorthUiIntentDeclarationExactBasis::from_meaning),
                 }
             }
         }
@@ -245,6 +258,7 @@ impl WorthUiSemanticDeclarationExactBasis {
                 structural_tokens,
                 posture_tokens,
                 support_tokens,
+                intent,
             } => {
                 fingerprint.fold_text("semantic-artifact");
                 fingerprint.fold_text(key);
@@ -254,8 +268,54 @@ impl WorthUiSemanticDeclarationExactBasis {
                 fingerprint.fold_texts(structural_tokens);
                 fingerprint.fold_texts(posture_tokens);
                 fingerprint.fold_texts(support_tokens);
+                match intent {
+                    Some(intent) => {
+                        fingerprint.fold_bool(true);
+                        intent.fold_into(fingerprint);
+                    }
+                    None => fingerprint.fold_bool(false),
+                }
             }
         }
+    }
+}
+
+impl WorthUiIntentDeclarationExactBasis {
+    fn from_meaning(meaning: &crate::WorthUiIntentDeclarationMeaning) -> Self {
+        Self {
+            definition: meaning.definition_reference().to_owned(),
+            interaction: meaning.interaction().as_str().to_owned(),
+            payload_schema: meaning
+                .expected_payload_schema()
+                .map(|schema| (schema.identity().to_owned(), schema.version())),
+            outcome_schema: meaning
+                .expected_outcome_schema()
+                .map(|schema| (schema.identity().to_owned(), schema.version())),
+            payload_sources: meaning
+                .payload_sources()
+                .iter()
+                .map(crate::WorthUiIntentPayloadSourceSpec::revision_token)
+                .collect(),
+        }
+    }
+
+    fn fold_into(&self, fingerprint: &mut Fingerprint) {
+        fingerprint.fold_text(&self.definition);
+        fingerprint.fold_text(&self.interaction);
+        fold_schema(fingerprint, self.payload_schema.as_ref());
+        fold_schema(fingerprint, self.outcome_schema.as_ref());
+        fingerprint.fold_texts(&self.payload_sources);
+    }
+}
+
+fn fold_schema(fingerprint: &mut Fingerprint, schema: Option<&(String, u16)>) {
+    match schema {
+        Some((identity, version)) => {
+            fingerprint.fold_bool(true);
+            fingerprint.fold_text(identity);
+            fingerprint.fold_u16(*version);
+        }
+        None => fingerprint.fold_bool(false),
     }
 }
 

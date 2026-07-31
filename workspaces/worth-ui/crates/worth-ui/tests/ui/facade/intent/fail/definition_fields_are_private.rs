@@ -9,6 +9,14 @@ struct Payload;
 
 impl UiIntentPayload for Payload {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("compile.payload", 1);
+    const FIELDS: worth_ui::facade::intent::UiIntentPayloadFieldSet =
+        worth_ui::facade::intent::UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut worth_ui::facade::intent::UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
 }
 
 struct Outcome;

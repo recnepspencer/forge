@@ -20,6 +20,7 @@ struct WorthUiPreparedApplicationGenerationIdentityInner {
     semantic_package: worth_ui_dsl::WorthUiSemanticPackageIdentity,
     graph_authority_digest: u64,
     query_binding: WorthUiPreparedQueryBindingPlanIdentity,
+    intent_application_fact_digest: u64,
     host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     change_profile: crate::runtime::rebind::UiChangeProfile,
@@ -51,6 +52,7 @@ pub(super) struct WorthUiPreparedGenerationIdentityInput<'plan> {
     pub(super) semantic_package: worth_ui_dsl::WorthUiSemanticPackageIdentity,
     pub(super) graph_authority_digest: u64,
     pub(super) query_binding_plan: &'plan worth_ui_query_binding::WorthUiQueryBindingPlan,
+    pub(super) intent_application_fact_digest: u64,
     pub(super) host_session_plan: &'plan WorthUiHostSessionPlan,
     pub(super) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(super) change_profile: crate::runtime::rebind::UiChangeProfile,
@@ -69,6 +71,7 @@ impl WorthUiPreparedApplicationGenerationIdentity {
                 query_binding: WorthUiPreparedQueryBindingPlanIdentity::derive(
                     input.query_binding_plan,
                 ),
+                intent_application_fact_digest: input.intent_application_fact_digest,
                 host_session_plan: input.host_session_plan.clone(),
                 visual_inspection_policy: input.visual_inspection_policy,
                 change_profile: input.change_profile,

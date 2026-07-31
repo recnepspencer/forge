@@ -1,5 +1,11 @@
 use crate::capability::{UiIntentSchema, UiSemanticInteractionFamily};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiIntentInteractionPayloadSourceKind {
+    CommittedDraft,
+    ProjectionSelection,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiIntentCatalogPreparationDenial {
     DuplicateDeclaration {
@@ -28,6 +34,72 @@ pub enum UiIntentCatalogPreparationDenial {
     InteractionNotAccepted {
         declaration: Box<str>,
         interaction: UiSemanticInteractionFamily,
+    },
+    DuplicatePayloadField {
+        declaration: Box<str>,
+        field: Box<str>,
+    },
+    MissingPayloadField {
+        declaration: Box<str>,
+        field: Box<str>,
+    },
+    UnknownPayloadField {
+        declaration: Box<str>,
+        field: Box<str>,
+    },
+    PayloadSourceKindMismatch {
+        declaration: Box<str>,
+        field: Box<str>,
+        field_kind: crate::capability::UiIntentPayloadFieldKind,
+        source_kind: crate::capability::UiIntentPayloadFieldKind,
+    },
+    PayloadConstantBudgetExceeded {
+        declaration: Box<str>,
+        field: Box<str>,
+        observed: usize,
+        maximum: usize,
+    },
+    InvalidPayloadProjectionIdentity {
+        declaration: Box<str>,
+        field: Box<str>,
+        projection: Box<str>,
+    },
+    UnknownPayloadProjection {
+        declaration: Box<str>,
+        field: Box<str>,
+        projection: Box<str>,
+        required_shape: &'static str,
+    },
+    PayloadProjectionShapeMismatch {
+        declaration: Box<str>,
+        field: Box<str>,
+        required_source: &'static str,
+    },
+    UnknownApplicationPayloadFact {
+        declaration: Box<str>,
+        field: Box<str>,
+        fact: Box<str>,
+    },
+    ApplicationPayloadFactKindMismatch {
+        declaration: Box<str>,
+        field: Box<str>,
+        fact: Box<str>,
+        field_kind: crate::capability::UiIntentPayloadFieldKind,
+        fact_kind: crate::capability::UiIntentPayloadFieldKind,
+    },
+    DuplicateInteractionPayloadSource {
+        declaration: Box<str>,
+        source: UiIntentInteractionPayloadSourceKind,
+    },
+    MissingInteractionPayloadSource {
+        declaration: Box<str>,
+        interaction: UiSemanticInteractionFamily,
+        source: UiIntentInteractionPayloadSourceKind,
+    },
+    InteractionPayloadSourceMismatch {
+        declaration: Box<str>,
+        interaction: UiSemanticInteractionFamily,
+        source: UiIntentInteractionPayloadSourceKind,
     },
     UnknownRouteDeclaration {
         declaration: Box<str>,
