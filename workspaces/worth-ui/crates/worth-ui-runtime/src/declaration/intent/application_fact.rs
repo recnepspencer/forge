@@ -39,10 +39,14 @@ pub(crate) struct UiIntentApplicationFactPlan {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiIntentApplicationFactDefinition {
+    slot: UiIntentApplicationFactSlot,
     kind: UiIntentPayloadFieldKind,
     text_byte_budget: usize,
     initial: UiIntentApplicationFactValue,
 }
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub(crate) struct UiIntentApplicationFactSlot(u32);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum UiIntentApplicationFactValue {
@@ -135,11 +139,9 @@ impl UiIntentApplicationFactPlan {
         }
         self.register(
             fact.identity,
-            UiIntentApplicationFactDefinition {
-                kind: UiIntentPayloadFieldKind::Text,
-                text_byte_budget: fact.text_byte_budget,
-                initial: UiIntentApplicationFactValue::Text(value),
-            },
+            UiIntentPayloadFieldKind::Text,
+            fact.text_byte_budget,
+            UiIntentApplicationFactValue::Text(value),
         )
     }
 
@@ -150,11 +152,9 @@ impl UiIntentApplicationFactPlan {
     ) -> Result<(), UiIntentApplicationFactRegistrationError> {
         self.register(
             fact.identity,
-            UiIntentApplicationFactDefinition {
-                kind: UiIntentPayloadFieldKind::Boolean,
-                text_byte_budget: 0,
-                initial: UiIntentApplicationFactValue::Boolean(value),
-            },
+            UiIntentPayloadFieldKind::Boolean,
+            0,
+            UiIntentApplicationFactValue::Boolean(value),
         )
     }
 
@@ -165,11 +165,9 @@ impl UiIntentApplicationFactPlan {
     ) -> Result<(), UiIntentApplicationFactRegistrationError> {
         self.register(
             fact.identity,
-            UiIntentApplicationFactDefinition {
-                kind: UiIntentPayloadFieldKind::Unsigned64,
-                text_byte_budget: 0,
-                initial: UiIntentApplicationFactValue::Unsigned64(value),
-            },
+            UiIntentPayloadFieldKind::Unsigned64,
+            0,
+            UiIntentApplicationFactValue::Unsigned64(value),
         )
     }
 
@@ -198,20 +196,37 @@ impl UiIntentApplicationFactPlan {
     fn register(
         &mut self,
         identity: Arc<str>,
-        definition: UiIntentApplicationFactDefinition,
+        kind: UiIntentPayloadFieldKind,
+        text_byte_budget: usize,
+        initial: UiIntentApplicationFactValue,
     ) -> Result<(), UiIntentApplicationFactRegistrationError> {
-        if self.entries.insert(identity.clone(), definition).is_some() {
+        if self.entries.contains_key(&identity) {
             return Err(
                 UiIntentApplicationFactRegistrationError::DuplicateIdentity {
                     identity: identity.as_ref().into(),
                 },
             );
         }
+        let slot = UiIntentApplicationFactSlot::from_index(self.entries.len())
+            .expect("the application fact plan cannot exceed addressable memory");
+        self.entries.insert(
+            identity,
+            UiIntentApplicationFactDefinition {
+                slot,
+                kind,
+                text_byte_budget,
+                initial,
+            },
+        );
         Ok(())
     }
 }
 
 impl UiIntentApplicationFactDefinition {
+    pub(crate) const fn slot(&self) -> UiIntentApplicationFactSlot {
+        self.slot
+    }
+
     pub(crate) const fn kind(&self) -> UiIntentPayloadFieldKind {
         self.kind
     }
@@ -222,6 +237,16 @@ impl UiIntentApplicationFactDefinition {
 
     pub(crate) const fn initial(&self) -> &UiIntentApplicationFactValue {
         &self.initial
+    }
+}
+
+impl UiIntentApplicationFactSlot {
+    fn from_index(index: usize) -> Option<Self> {
+        u32::try_from(index).ok().map(Self)
+    }
+
+    pub(crate) const fn index(self) -> usize {
+        self.0 as usize
     }
 }
 

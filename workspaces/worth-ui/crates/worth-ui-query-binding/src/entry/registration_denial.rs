@@ -5,6 +5,7 @@ pub enum WorthUiQueryBindingRegistrationDenialKind {
     ForeignInstalledDomain,
     DuplicateViewIdentity,
     DuplicateProjectionIdentity,
+    ProjectionCapacityExceeded,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

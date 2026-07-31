@@ -12,7 +12,8 @@ pub(super) fn compile_content_plan(
     scope: &super::super::UiResolvedAffectedScope,
 ) -> Result<crate::mounting::UiMountedSemanticContentInput, super::UiRebindPlanningDenial> {
     let mut content = crate::mounting::UiMountedSemanticContentInput::empty();
-    content.set_projection_scope(candidate.query_binding_plan().projection_identities());
+    content.set_projection_input_capacity(candidate.query_binding_plan().projection_input_count());
+    retain_projection_inputs(candidate, scope, &mut content)?;
     let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
     for lookup in scope.lookups() {
         let Some(query) = scope
@@ -23,20 +24,8 @@ pub(super) fn compile_content_plan(
             continue;
         };
         let projection = match (query.scalar_projection(), query.collection_projection()) {
-            (Some(scalar), None) => {
-                let input = scalar.intent_input_reference();
-                let projection = input.revision().projection_identity().clone();
-                content.insert_projection_input(input).map_err(|()| {
-                    super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection }
-                })?;
-                UiProjectedSemanticContent::Scalar(project_scalar(scalar))
-            }
+            (Some(scalar), None) => UiProjectedSemanticContent::Scalar(project_scalar(scalar)),
             (None, Some(collection)) => {
-                let input = collection.intent_input_reference();
-                let projection = input.revision().projection_identity().clone();
-                content.insert_projection_input(input).map_err(|()| {
-                    super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection }
-                })?;
                 UiProjectedSemanticContent::Collection(collection::project_collection(collection)?)
             }
             (None, None) => continue,
@@ -65,6 +54,55 @@ pub(super) fn compile_content_plan(
         }
     }
     Ok(content)
+}
+
+fn retain_projection_inputs(
+    candidate: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    scope: &super::super::UiResolvedAffectedScope,
+    content: &mut crate::mounting::UiMountedSemanticContentInput,
+) -> Result<(), super::UiRebindPlanningDenial> {
+    for fact in scope.facts() {
+        let Some(query) = fact.query() else {
+            continue;
+        };
+        let input = match (query.scalar_projection(), query.collection_projection()) {
+            (Some(scalar), None) => {
+                projection_input(candidate, scalar.core().projection_identity(), |slot| {
+                    scalar.intent_input_reference(slot)
+                })?
+            }
+            (None, Some(collection)) => {
+                projection_input(candidate, collection.core().projection_identity(), |slot| {
+                    collection.intent_input_reference(slot)
+                })?
+            }
+            (None, None) => continue,
+            (Some(_), Some(_)) => unreachable!("a Query projection fact has one sealed shape"),
+        };
+        let projection = input.revision().projection_identity().clone();
+        content
+            .insert_projection_input(input)
+            .map_err(|()| super::UiRebindPlanningDenial::AmbiguousProjectionInput { projection })?;
+    }
+    Ok(())
+}
+
+fn projection_input(
+    candidate: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+    materialize: impl FnOnce(
+        worth_ui_query_binding::UiProjectionInputSlot,
+    ) -> worth_ui_query_binding::UiProjectionInputFactReference,
+) -> Result<worth_ui_query_binding::UiProjectionInputFactReference, super::UiRebindPlanningDenial> {
+    let slot = candidate
+        .query_binding_plan()
+        .projection_input_slot(projection)
+        .ok_or_else(
+            || super::UiRebindPlanningDenial::ProjectionInputSlotUnavailable {
+                projection: projection.clone(),
+            },
+        )?;
+    Ok(materialize(slot))
 }
 
 enum UiProjectedSemanticContent {

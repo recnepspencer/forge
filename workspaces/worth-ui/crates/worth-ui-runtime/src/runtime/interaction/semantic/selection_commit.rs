@@ -46,11 +46,12 @@ fn selection_stop_reason(
     {
         return Some(UiSelectionCommitStopReason::TargetNoLongerCurrent(denial));
     }
-    let Some(current) =
-        mounted.current_projection_input(option.owner_revision().projection_identity())
-    else {
+    let Some(current) = mounted.current_projection_input(option.owner_revision().slot()) else {
         return Some(UiSelectionCommitStopReason::ProjectionUnavailable);
     };
+    if current.revision().projection_identity() != option.owner_revision().projection_identity() {
+        return Some(UiSelectionCommitStopReason::ProjectionUnavailable);
+    }
     let worth_ui_query_binding::UiProjectionInputFactReference::Collection(current) = current
     else {
         return Some(UiSelectionCommitStopReason::ProjectionShapeMismatch);

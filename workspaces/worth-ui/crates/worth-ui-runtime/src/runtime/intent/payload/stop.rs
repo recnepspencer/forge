@@ -8,6 +8,11 @@ pub enum UiIntentPayloadStop {
         field: &'static str,
         projection: worth_ui_query_binding::WorthUiQueryViewIdentity,
     },
+    ProjectionIdentityMismatch {
+        field: &'static str,
+        expected: worth_ui_query_binding::WorthUiQueryViewIdentity,
+        observed: worth_ui_query_binding::WorthUiQueryViewIdentity,
+    },
     ProjectionNotCurrent {
         field: &'static str,
         posture: worth_ui_query_binding::UiProjectionInputPosture,
@@ -41,6 +46,11 @@ pub enum UiIntentPayloadStop {
     ApplicationFactUnavailable {
         field: &'static str,
         fact: Box<str>,
+    },
+    ApplicationFactIdentityChanged {
+        field: &'static str,
+        expected: Box<str>,
+        observed: Box<str>,
     },
     ApplicationFactGenerationChanged {
         field: &'static str,

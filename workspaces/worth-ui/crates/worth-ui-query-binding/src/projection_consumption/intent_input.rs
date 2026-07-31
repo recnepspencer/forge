@@ -8,6 +8,9 @@ use super::{
     UiProjectionRetainedActivityKind, UiProjectionUnavailableKind, UiScalarProjectionFactReceipt,
 };
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UiProjectionInputSlot(u32);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiProjectionInputRevision {
     inner: Arc<UiProjectionInputRevisionInner>,
@@ -15,6 +18,7 @@ pub struct UiProjectionInputRevision {
 
 #[derive(Debug, Eq, PartialEq)]
 struct UiProjectionInputRevisionInner {
+    slot: UiProjectionInputSlot,
     projection: crate::WorthUiQueryViewIdentity,
     observation_order: u64,
     query_world: WorthQueryEvidenceIdentity,
@@ -65,9 +69,10 @@ pub struct UiProjectionInputCollectionRow {
 }
 
 impl UiProjectionInputRevision {
-    fn from_fact(fact: &UiProjectionFactReceipt) -> Self {
+    fn from_fact(slot: UiProjectionInputSlot, fact: &UiProjectionFactReceipt) -> Self {
         Self {
             inner: Arc::new(UiProjectionInputRevisionInner {
+                slot,
                 projection: fact.projection_identity().clone(),
                 observation_order: fact.observation_order(),
                 query_world: fact.query_world_identity().clone(),
@@ -76,6 +81,10 @@ impl UiProjectionInputRevision {
                 result_generation: fact.result_generation_identity().clone(),
             }),
         }
+    }
+
+    pub fn slot(&self) -> UiProjectionInputSlot {
+        self.inner.slot
     }
 
     pub fn projection_identity(&self) -> &crate::WorthUiQueryViewIdentity {
@@ -190,8 +199,11 @@ impl UiProjectionInputCollectionRow {
 }
 
 impl UiScalarProjectionFactReceipt {
-    pub fn intent_input_reference(&self) -> UiProjectionInputFactReference {
-        let revision = UiProjectionInputRevision::from_fact(self.core());
+    pub fn intent_input_reference(
+        &self,
+        slot: UiProjectionInputSlot,
+    ) -> UiProjectionInputFactReference {
+        let revision = UiProjectionInputRevision::from_fact(slot, self.core());
         let (posture, value) = scalar_input(self.availability());
         UiProjectionInputFactReference::Scalar(Arc::new(UiScalarProjectionInputFact {
             revision,
@@ -202,8 +214,11 @@ impl UiScalarProjectionFactReceipt {
 }
 
 impl UiCollectionProjectionFactReceipt {
-    pub fn intent_input_reference(&self) -> UiProjectionInputFactReference {
-        let revision = UiProjectionInputRevision::from_fact(self.core());
+    pub fn intent_input_reference(
+        &self,
+        slot: UiProjectionInputSlot,
+    ) -> UiProjectionInputFactReference {
+        let revision = UiProjectionInputRevision::from_fact(slot, self.core());
         let (posture, completeness, rows) = collection_input(self.availability(), &revision);
         UiProjectionInputFactReference::Collection(Arc::new(UiCollectionProjectionInputFact {
             revision,
@@ -211,6 +226,16 @@ impl UiCollectionProjectionFactReceipt {
             completeness,
             rows,
         }))
+    }
+}
+
+impl UiProjectionInputSlot {
+    pub(crate) fn from_index(index: usize) -> Option<Self> {
+        u32::try_from(index).ok().map(Self)
+    }
+
+    pub const fn index(self) -> usize {
+        self.0 as usize
     }
 }
 

@@ -12,6 +12,7 @@ pub struct UiIntentInputBasisReceipt {
     publication_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     cost: UiIntentPayloadProjectionCost,
+    owner_revisions: Box<[UiIntentInputOwnerRevision]>,
 }
 
 pub(crate) struct UiIntentInputBasis {
@@ -29,6 +30,7 @@ pub(crate) struct UiIntentInputBasisInput {
     pub(crate) interaction: crate::runtime::interaction::UiSemanticInteraction,
     pub(crate) query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
     pub(crate) application_inputs: Vec<super::UiIntentApplicationInputReference>,
+    pub(crate) owner_revisions: Vec<UiIntentInputOwnerRevision>,
     pub(crate) cost: UiIntentPayloadProjectionCost,
 }
 
@@ -40,6 +42,7 @@ impl UiIntentInputBasis {
                 publication_frame: input.publication_frame,
                 target: input.target,
                 cost: input.cost,
+                owner_revisions: input.owner_revisions.into_boxed_slice(),
             },
             interaction: input.interaction,
             query_inputs: input.query_inputs.into_boxed_slice(),
@@ -75,6 +78,10 @@ impl UiIntentInputBasisReceipt {
 
     pub const fn cost(&self) -> UiIntentPayloadProjectionCost {
         self.cost
+    }
+
+    pub fn owner_revisions(&self) -> &[UiIntentInputOwnerRevision] {
+        &self.owner_revisions
     }
 }
 
@@ -120,3 +127,11 @@ fn next(value: usize) -> usize {
         .checked_add(1)
         .expect("bounded payload field accounting exhausted")
 }
+mod owner_revision;
+mod view;
+
+pub use owner_revision::{
+    UiIntentApplicationFactRevision, UiIntentDraftInputRevision, UiIntentInputOwnerRevision,
+    UiIntentQueryInputRevision,
+};
+pub(crate) use view::UiIntentInputBasisView;

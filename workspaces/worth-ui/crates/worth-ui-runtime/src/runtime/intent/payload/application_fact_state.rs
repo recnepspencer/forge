@@ -11,10 +11,12 @@ use crate::declaration::{
 pub(crate) struct UiIntentApplicationFactState {
     generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
-    facts: BTreeMap<Arc<str>, UiIntentApplicationFactRecord>,
+    slots_by_identity: BTreeMap<Arc<str>, crate::declaration::UiIntentApplicationFactSlot>,
+    facts: Box<[UiIntentApplicationFactRecord]>,
 }
 
 struct UiIntentApplicationFactRecord {
+    identity: Arc<str>,
     revision: u64,
     text_byte_budget: usize,
     value: UiIntentApplicationFactValue,
@@ -76,20 +78,27 @@ impl UiIntentApplicationFactState {
         generation: crate::facade::prepared_application_authority::
             WorthUiPreparedApplicationGenerationIdentity,
     ) -> Self {
-        let facts = plan
-            .entries()
-            .map(|(identity, definition)| {
-                (
-                    Arc::clone(identity),
-                    UiIntentApplicationFactRecord {
-                        revision: 1,
-                        text_byte_budget: definition.text_byte_budget(),
-                        value: definition.initial().clone(),
-                    },
-                )
-            })
-            .collect();
-        Self { generation, facts }
+        let mut slots_by_identity = BTreeMap::new();
+        let mut facts = (0..plan.entries().len())
+            .map(|_| None)
+            .collect::<Vec<Option<UiIntentApplicationFactRecord>>>();
+        for (identity, definition) in plan.entries() {
+            slots_by_identity.insert(Arc::clone(identity), definition.slot());
+            facts[definition.slot().index()] = Some(UiIntentApplicationFactRecord {
+                identity: Arc::clone(identity),
+                revision: 1,
+                text_byte_budget: definition.text_byte_budget(),
+                value: definition.initial().clone(),
+            });
+        }
+        Self {
+            generation,
+            slots_by_identity,
+            facts: facts
+                .into_iter()
+                .map(|record| record.expect("application fact slots are dense"))
+                .collect(),
+        }
     }
 
     pub(crate) fn update_text(
@@ -141,12 +150,12 @@ impl UiIntentApplicationFactState {
 
     pub(crate) fn input_reference(
         &self,
-        identity: &str,
+        slot: crate::declaration::UiIntentApplicationFactSlot,
     ) -> Option<UiIntentApplicationInputReference> {
-        let record = self.facts.get(identity)?;
+        let record = self.facts.get(slot.index())?;
         let revision = UiIntentApplicationInputRevision {
             generation: self.generation.clone(),
-            identity: identity.into(),
+            identity: Arc::clone(&record.identity),
             revision: record.revision,
         };
         Some(match &record.value {
@@ -174,11 +183,17 @@ impl UiIntentApplicationFactState {
         identity: &str,
         submitted: UiIntentPayloadFieldKind,
     ) -> Result<&mut UiIntentApplicationFactRecord, UiIntentApplicationFactUpdateDenial> {
-        let record = self.facts.get_mut(identity).ok_or_else(|| {
-            UiIntentApplicationFactUpdateDenial::UnknownFact {
+        let slot = self
+            .slots_by_identity
+            .get(identity)
+            .copied()
+            .ok_or_else(|| UiIntentApplicationFactUpdateDenial::UnknownFact {
                 identity: identity.into(),
-            }
-        })?;
+            })?;
+        let record = self
+            .facts
+            .get_mut(slot.index())
+            .expect("registered application fact slot is present");
         let registered = value_kind(&record.value);
         if registered != submitted {
             return Err(UiIntentApplicationFactUpdateDenial::FactKindMismatch {

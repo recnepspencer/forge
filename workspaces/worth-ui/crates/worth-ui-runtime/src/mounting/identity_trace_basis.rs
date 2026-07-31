@@ -66,9 +66,9 @@ impl UiMountedIdentityTraceBasis {
 
     pub(crate) fn projection_input(
         &self,
-        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        slot: worth_ui_query_binding::UiProjectionInputSlot,
     ) -> Option<&worth_ui_query_binding::UiProjectionInputFactReference> {
-        self.semantic.projection_input(identity)
+        self.semantic.projection_input(slot)
     }
 
     pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {

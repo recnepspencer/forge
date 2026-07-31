@@ -19,9 +19,10 @@ pub use crate::declaration::{
     UiIntentInteractionPayloadSourceKind, UiIntentPayloadSource, UiIntentRouteBinding,
 };
 pub use crate::runtime::intent::{
-    UiIntentApplicationFactUpdateDenial, UiIntentApplicationFactUpdateReceipt,
-    UiIntentInputBasisReceipt, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
-    UiIntentRouteResolution, UiIntentRouteResolutionStop, UiPreparedIntentPayload,
-    UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
+    UiIntentApplicationFactRevision, UiIntentApplicationFactUpdateDenial,
+    UiIntentApplicationFactUpdateReceipt, UiIntentDraftInputRevision, UiIntentInputBasisReceipt,
+    UiIntentInputOwnerRevision, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
+    UiIntentQueryInputRevision, UiIntentRouteResolution, UiIntentRouteResolutionStop,
+    UiPreparedIntentPayload, UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
 };
 pub use crate::runtime::interaction::UiIntentRouteSource;

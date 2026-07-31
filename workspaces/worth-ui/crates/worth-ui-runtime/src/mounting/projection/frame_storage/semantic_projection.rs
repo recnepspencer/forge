@@ -43,8 +43,8 @@ pub(in crate::mounting) struct UiMountedSemanticProjection {
         UiSurfaceBindingGeneration,
         UiMountedProjectionSurface,
     >,
-    projection_inputs: crate::runtime::persistent_index::UiPersistentOrdMap<
-        worth_ui_query_binding::WorthUiQueryViewIdentity,
+    projection_input_capacity: usize,
+    projection_inputs: crate::runtime::persistent_index::UiPersistentSlotTrie<
         worth_ui_query_binding::UiProjectionInputFactReference,
     >,
 }
@@ -81,6 +81,7 @@ impl UiMountedSemanticProjection {
             semantic_surfaces,
             binding_by_surface,
             surfaces: surface_index,
+            projection_input_capacity: 0,
             projection_inputs: Default::default(),
         }
     }
@@ -229,31 +230,20 @@ impl UiMountedSemanticProjection {
         &mut self,
         content: &super::super::super::UiMountedSemanticContentInput,
     ) {
-        if let Some(scope) = content.projection_scope() {
-            let retired = self
-                .projection_inputs
-                .iter()
-                .filter_map(|(identity, _)| {
-                    scope
-                        .binary_search(identity)
-                        .is_err()
-                        .then_some(identity.clone())
-                })
-                .collect::<Vec<_>>();
-            for identity in retired {
-                self.projection_inputs.remove(&identity);
-            }
+        if self.projection_input_capacity != content.projection_input_capacity() {
+            self.projection_input_capacity = content.projection_input_capacity();
+            self.projection_inputs = Default::default();
         }
-        for (identity, input) in content.projection_inputs() {
-            self.projection_inputs
-                .insert(identity.clone(), input.clone());
+        for (slot, input) in content.projection_inputs() {
+            debug_assert!(slot.index() < self.projection_input_capacity);
+            self.projection_inputs.insert(slot.index(), input.clone());
         }
     }
 
     pub(in crate::mounting) fn projection_input(
         &self,
-        identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
+        slot: worth_ui_query_binding::UiProjectionInputSlot,
     ) -> Option<&worth_ui_query_binding::UiProjectionInputFactReference> {
-        self.projection_inputs.get(identity)
+        self.projection_inputs.get(slot.index())
     }
 }
