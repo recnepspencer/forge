@@ -1,3 +1,5 @@
+//! Current capability re-admission at privileged transitions.
+
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::capability_currentness::WorthQueryCapabilityCurrentnessAuthority;
@@ -13,7 +15,7 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub(in crate::domain_computation::primary_graph) fn refresh_capability_authorization(
+    pub(in crate::domain_computation) fn refresh_capability_authorization(
         &self,
         request: &WorthQueryRetainedCapabilityRequest,
         currentness: &mut WorthQueryCapabilityCurrentnessAuthority,
@@ -70,7 +72,7 @@ where
         Ok(())
     }
 
-    pub(in crate::domain_computation::primary_graph) fn validate_capability_at_current_time(
+    pub(in crate::domain_computation) fn validate_capability_at_current_time(
         &self,
         request: &WorthQueryRetainedCapabilityRequest,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {

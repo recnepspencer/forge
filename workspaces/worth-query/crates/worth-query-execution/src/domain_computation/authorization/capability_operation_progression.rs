@@ -1,3 +1,5 @@
+//! Capability-access progression into installed operation authority.
+
 use std::time::Instant;
 
 use worth_query_declaration::facade::{
@@ -74,7 +76,7 @@ where
             )
         })?;
         let preconditions =
-            super::super::application_attempt::precondition_binding::bind_mutation_preconditions(
+            crate::domain_computation::primary_graph::application_attempt::precondition_binding::bind_mutation_preconditions(
                 preconditions,
                 operation.contracts(),
                 access.resolved.resource.entity_name(),

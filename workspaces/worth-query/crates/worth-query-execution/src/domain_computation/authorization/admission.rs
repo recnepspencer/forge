@@ -1,6 +1,6 @@
-use super::super::entity_resolution::validate_entity_freshness_at_snapshot;
-use super::super::resolution::validate_freshness_at_snapshot;
-use super::super::{
+use crate::domain_computation::primary_graph::entity_resolution::validate_entity_freshness_at_snapshot;
+use crate::domain_computation::primary_graph::resolution::validate_freshness_at_snapshot;
+use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
@@ -52,7 +52,7 @@ where
             )
         })?;
         let preconditions =
-            super::super::application_attempt::precondition_binding::bind_mutation_preconditions(
+            crate::domain_computation::primary_graph::application_attempt::precondition_binding::bind_mutation_preconditions(
                 preconditions,
                 operation.contracts(),
                 scope_identity.entity_name(),
@@ -148,7 +148,7 @@ where
         })
     }
 
-    pub(in crate::domain_computation::primary_graph) fn observe_authorization_requirements<
+    pub(in crate::domain_computation) fn observe_authorization_requirements<
         Principal,
         PrincipalIdentity,
         Scope,

@@ -12,7 +12,7 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect, BridgeAuthorizationRuntime,
 };
 
-use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
+use crate::domain_computation::primary_graph::schema_layout::WorthQueryPrimaryGraphLayout;
 use super::capability_registry::{
     WorthQueryCapabilityPlanCompilationEvidence, WorthQueryInstalledCapabilityPlan,
     WorthQueryInstalledCapabilityRegistry,
@@ -43,14 +43,14 @@ pub(super) struct BridgePathBinding {
     rule_effect: BridgeAuthorizationRuleEffect,
 }
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryInstalledAuthorizationRegistry {
+pub(in crate::domain_computation) struct WorthQueryInstalledAuthorizationRegistry {
     bridge: BridgeAuthorizationRuntime,
     policies: BTreeMap<PolicyKey, WorthQueryInstalledAuthorizationPolicy>,
     capabilities: WorthQueryInstalledCapabilityRegistry,
 }
 
 impl WorthQueryInstalledAuthorizationRegistry {
-    pub(in crate::domain_computation::primary_graph) fn compile<Schema>(
+    pub(in crate::domain_computation) fn compile<Schema>(
         schema: &WorthQueryInstalledApplicationSchema<Schema>,
         layout: &WorthQueryPrimaryGraphLayout,
     ) -> Result<Self, WorthQueryOperationAuthorizationDenial>
@@ -123,7 +123,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
             })
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn bridge(
+    pub(in crate::domain_computation) const fn bridge(
         &self,
     ) -> &BridgeAuthorizationRuntime {
         &self.bridge
@@ -148,7 +148,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.capabilities.plan_by_identity(capability_identity)
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn capability_compilation(
+    pub(in crate::domain_computation) const fn capability_compilation(
         &self,
     ) -> WorthQueryCapabilityPlanCompilationEvidence {
         self.capabilities.compilation()

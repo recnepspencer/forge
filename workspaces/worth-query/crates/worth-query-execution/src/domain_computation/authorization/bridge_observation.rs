@@ -1,3 +1,5 @@
+//! Runtime Bridge observations derived from neutral Relational evidence.
+
 use worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence;
 use worth_runtime_bridge::facade::{
     BridgeAuthorizationClauseObservation, BridgeAuthorizationDependencyCardinality,

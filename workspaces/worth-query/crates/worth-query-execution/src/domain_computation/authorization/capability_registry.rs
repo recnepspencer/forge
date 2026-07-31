@@ -19,7 +19,7 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuntime,
 };
 
-use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
+use crate::domain_computation::primary_graph::schema_layout::WorthQueryPrimaryGraphLayout;
 use super::capability_lowering::compile_capability_plan;
 use super::WorthQueryOperationAuthorizationDenial;
 

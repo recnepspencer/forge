@@ -5,7 +5,7 @@ use worth_relational::facade::authorization::{
 };
 use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
 
-use super::super::authorization::WorthQueryPrincipalCurrentnessDependency;
+use crate::domain_computation::authorization::WorthQueryPrincipalCurrentnessDependency;
 
 #[derive(Clone)]
 pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphApplicationDecisionFact
@@ -34,9 +34,9 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
 
     pub(in crate::domain_computation::primary_graph) fn authorization(
         requirement_ordinal: usize,
-        dependency: super::super::authorization::WorthQueryAuthorizationDecisionFact,
+        dependency: crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact,
     ) -> Self {
-        let super::super::authorization::WorthQueryAuthorizationDecisionFact {
+        let crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact {
             relational: observation,
             bridge,
         } = dependency;

@@ -8,26 +8,26 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuntime,
 };
 
-use super::super::{
+use crate::domain_computation::primary_graph::{
     freshness::WorthQueryPrincipalFreshnessEvidence,
     schema_layout::WorthQueryPrimaryPrincipalBindingLayout, WorthQueryAuthenticatedPrincipal,
 };
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryAuthorizationDecisionFact {
-    pub(in crate::domain_computation::primary_graph) relational:
+pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
+    pub(in crate::domain_computation) relational:
         RelationalAuthorizationObservationEvidence,
-    pub(in crate::domain_computation::primary_graph) bridge: BridgeAuthorizationDecisionEvidence,
+    pub(in crate::domain_computation) bridge: BridgeAuthorizationDecisionEvidence,
 }
 
 #[derive(Clone)]
-pub(in crate::domain_computation::primary_graph) struct WorthQueryPrincipalCurrentnessDependency {
+pub(in crate::domain_computation) struct WorthQueryPrincipalCurrentnessDependency {
     binding: Arc<str>,
     layout: WorthQueryPrimaryPrincipalBindingLayout,
     freshness: WorthQueryPrincipalFreshnessEvidence,
 }
 
 impl WorthQueryPrincipalCurrentnessDependency {
-    pub(in crate::domain_computation::primary_graph) fn capture<
+    pub(in crate::domain_computation) fn capture<
         Schema,
         Principal,
         PrincipalIdentity,
@@ -42,7 +42,7 @@ impl WorthQueryPrincipalCurrentnessDependency {
         }
     }
 
-    pub(in crate::domain_computation::primary_graph) fn remains_current_in(
+    pub(in crate::domain_computation) fn remains_current_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
@@ -52,14 +52,14 @@ impl WorthQueryPrincipalCurrentnessDependency {
     }
 }
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryRetainedAuthorizationDecisionFacts
+pub(in crate::domain_computation) struct WorthQueryRetainedAuthorizationDecisionFacts
 {
     principal: WorthQueryPrincipalCurrentnessDependency,
     policy: Vec<WorthQueryAuthorizationDecisionFact>,
 }
 
 impl WorthQueryRetainedAuthorizationDecisionFacts {
-    pub(in crate::domain_computation::primary_graph) fn new(
+    pub(in crate::domain_computation) fn new(
         principal: WorthQueryPrincipalCurrentnessDependency,
         policy: Vec<WorthQueryAuthorizationDecisionFact>,
     ) -> Self {
@@ -70,7 +70,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         self.policy.len()
     }
 
-    pub(in crate::domain_computation::primary_graph) fn exact_fact_count(&self) -> usize {
+    pub(in crate::domain_computation) fn exact_fact_count(&self) -> usize {
         1usize.saturating_add(self.policy.len())
     }
 
@@ -137,7 +137,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         })
     }
 
-    pub(in crate::domain_computation::primary_graph) fn remains_current_in(
+    pub(in crate::domain_computation) fn remains_current_in(
         &self,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
@@ -151,7 +151,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
             })
     }
 
-    pub(in crate::domain_computation::primary_graph) fn into_parts(
+    pub(in crate::domain_computation) fn into_parts(
         self,
     ) -> (
         WorthQueryPrincipalCurrentnessDependency,

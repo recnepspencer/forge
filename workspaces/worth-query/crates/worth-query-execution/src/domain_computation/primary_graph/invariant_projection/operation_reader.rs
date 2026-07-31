@@ -14,7 +14,7 @@ pub use decision_plan::{
     WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
 };
 
-use super::super::authorization::WorthQueryOperationAdmissionIdentity;
+use crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity;
 use super::{
     WorthQueryApplicationInvariantProjectionAuthority,
     WorthQueryApplicationInvariantProjectionReader,

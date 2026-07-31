@@ -1,3 +1,5 @@
+//! Attempt-bound capability access authority.
+
 use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Instant;

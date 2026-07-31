@@ -29,7 +29,7 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
         Scope,
     >,
     prepared: WorthQueryPreparedApplicationProviderAttempt,
-    authorization: crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+    authorization: crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     idempotency: WorthQueryApplicationIdempotencyBinding,
 ) -> WorthQueryApplicationCommitOutcome
 where

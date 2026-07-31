@@ -1,3 +1,5 @@
+//! Exact typed capability-request resolution against the primary graph.
+
 use std::collections::BTreeMap;
 
 use worth_query_declaration::facade::{
@@ -177,7 +179,7 @@ where
     let field_layout = layout
         .equality_field(entity, aspect, field)
         .ok_or_else(|| denial(field))?;
-    super::super::entity_resolution::resolve_at_snapshot(
+    crate::domain_computation::primary_graph::entity_resolution::resolve_at_snapshot(
         relational,
         snapshot,
         field_layout,

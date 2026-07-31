@@ -1,3 +1,5 @@
+//! Capability observation across Relational and Runtime Bridge authority.
+
 use std::collections::BTreeSet;
 
 use worth_query_declaration::facade::application_capability::{

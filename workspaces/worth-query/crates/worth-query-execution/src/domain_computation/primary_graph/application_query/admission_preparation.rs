@@ -17,10 +17,10 @@ use super::{
     WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryAdmissionDenial,
     WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryControls,
 };
+use crate::domain_computation::authorization::{
+    WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
+};
 use crate::domain_computation::primary_graph::{
-    authorization::{
-        WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
-    },
     entity_resolution::validate_entity_freshness_at_snapshot,
     resolution::validate_freshness_at_snapshot,
     WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionDenialKind,

@@ -1,4 +1,4 @@
-use crate::domain_computation::primary_graph::authorization::WorthQueryAuthorizationDecisionFact;
+use crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryApplicationAuthorizationWorkEvidence {

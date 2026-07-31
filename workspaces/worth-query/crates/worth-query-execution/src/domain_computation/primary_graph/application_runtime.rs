@@ -12,7 +12,7 @@ use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
 };
 
-use super::authorization::WorthQueryInstalledAuthorizationRegistry;
+use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
     WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphBootstrap,
@@ -155,7 +155,7 @@ where
 
     pub fn capability_plan_compilation_evidence(
         &self,
-    ) -> super::authorization::WorthQueryCapabilityPlanCompilationEvidence {
+    ) -> crate::domain_computation::authorization::WorthQueryCapabilityPlanCompilationEvidence {
         self.authorization.capability_compilation()
     }
 

@@ -4,7 +4,6 @@ mod application_branch;
 mod application_query;
 mod application_runtime;
 mod authenticated_principal;
-mod authorization;
 mod bootstrap;
 mod bootstrap_publication;
 mod denial;
@@ -79,7 +78,7 @@ pub use application_runtime::WorthQueryPrimaryGraphApplicationRuntime;
 pub use authenticated_principal::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryAuthenticatedPrincipal,
 };
-pub use authorization::{
+pub use crate::domain_computation::authorization::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,

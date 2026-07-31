@@ -16,7 +16,7 @@ use worth_relational::facade::{
     identity::KindId,
 };
 
-use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
+use crate::domain_computation::primary_graph::schema_layout::WorthQueryPrimaryGraphLayout;
 use super::capability_registry::{
     field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityRequestBindings,
 };

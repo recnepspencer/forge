@@ -4,9 +4,9 @@ use worth_query_installation::facade::{
 };
 
 use super::WorthQueryApplicationQueryAccessContext;
+use crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact;
 use crate::domain_computation::primary_graph::{
-    authorization::WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
-    WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryOperationAuthorizationDenial, WorthQueryPrimaryGraphApplicationRuntime,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>

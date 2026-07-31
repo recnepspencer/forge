@@ -103,7 +103,7 @@ where
         >,
         parameters: WorthQueryAdmittedApplicationQueryParameters,
         controls: WorthQueryApplicationQueryControls<'a, Schema>,
-        authorization: crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+        authorization: crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
         authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
     ) -> Result<
         WorthQueryAdmittedApplicationQueryPlan<

@@ -1,3 +1,5 @@
+//! Stable typed binding between an operation admission and its exact scope.
+
 use std::sync::Arc;
 
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;

@@ -48,7 +48,7 @@ pub struct WorthQueryAdmittedApplicationQueryPlan<
     pub(super) continuation_state: Option<WorthQueryAdmittedContinuationState>,
     pub(super) basis: WorthQueryApplicationBasisLease,
     pub(super) authorization:
-        crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
+        crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     pub(super) authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
 }
 

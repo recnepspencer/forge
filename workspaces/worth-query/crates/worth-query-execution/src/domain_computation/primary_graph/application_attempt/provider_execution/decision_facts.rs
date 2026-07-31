@@ -1,6 +1,6 @@
 use super::super::super::provider::WorthQueryPrimaryGraphApplicationDecisionFact;
 use super::super::WorthQueryApplicationObservedFact;
-use crate::domain_computation::primary_graph::authorization::WorthQueryRetainedAuthorizationDecisionFacts;
+use crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts;
 use crate::domain_computation::{WorthQueryDecisionFactLocator, WorthQueryDecisionFactRequest};
 use worth_query_installation::facade::{
     APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,

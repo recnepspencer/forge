@@ -1,3 +1,5 @@
+//! Typed authorization denial topology.
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationAuthorizationDenialKind {
     Cancelled,

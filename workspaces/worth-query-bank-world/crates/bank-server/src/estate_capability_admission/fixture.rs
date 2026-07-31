@@ -311,7 +311,7 @@ fn extra_principal(ordinal: usize) -> BankPrincipalId {
 
 fn external_identity(scenario: &str, subject: &str) -> WorthQueryExternalPrincipalIdentity {
     WorthQueryExternalPrincipalIdentity::new(
-        &format!("https://{scenario}.bank.test.invalid"),
+        format!("https://{scenario}.bank.test.invalid"),
         subject,
     )
     .unwrap()

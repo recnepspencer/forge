@@ -10,7 +10,7 @@ use super::capability_request_resolution::{
     WorthQueryCapabilityContextKey, WorthQueryResolvedCapabilityRequest,
 };
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryRetainedCapabilityRequest {
+pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
     pub(super) capability_identity: [u8; 32],
     pub(super) principal: worth_relational::facade::identity::EntityId,
     pub(super) resource: worth_relational::facade::identity::EntityId,

@@ -1,3 +1,5 @@
+//! Move-only installed operation admission authority.
+
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -22,7 +24,7 @@ use super::{
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Eq, PartialEq)]
-pub(in crate::domain_computation::primary_graph) struct WorthQueryOperationAdmissionIdentity(u64);
+pub(in crate::domain_computation) struct WorthQueryOperationAdmissionIdentity(u64);
 
 impl WorthQueryOperationAdmissionIdentity {
     fn mint() -> Option<Self> {
@@ -79,7 +81,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     request_scope: WorthQueryRequestScope,
     contracts: WorthQueryCompiledApplicationOperationContracts,
     mutation_preconditions:
-        super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
+        crate::domain_computation::primary_graph::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
     authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
     authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
@@ -101,7 +103,7 @@ impl<Schema, Operation, Input, Scope>
         request_scope: WorthQueryRequestScope,
         contracts: WorthQueryCompiledApplicationOperationContracts,
         mutation_preconditions:
-            super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
+            crate::domain_computation::primary_graph::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions,
         authorization: WorthQueryRetainedAuthorizationDecisionFacts,
         authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
     ) -> Result<Self, ()> {
@@ -140,7 +142,7 @@ impl<Schema, Operation, Input, Scope>
         &self.binding_identity
     }
 
-    pub(in crate::domain_computation::primary_graph) fn belongs_to(
+    pub(in crate::domain_computation) fn belongs_to(
         &self,
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: &ApplicationSchemaBindingIdentity,
@@ -148,7 +150,7 @@ impl<Schema, Operation, Input, Scope>
         self.runtime_authority == runtime_authority && &self.binding_identity == binding_identity
     }
 
-    pub(in crate::domain_computation::primary_graph) fn validate_projection_authority(
+    pub(in crate::domain_computation) fn validate_projection_authority(
         &self,
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: &ApplicationSchemaBindingIdentity,
@@ -168,31 +170,31 @@ impl<Schema, Operation, Input, Scope>
         self.validate_current_authority()
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn runtime_authority(
+    pub(in crate::domain_computation) const fn runtime_authority(
         &self,
     ) -> crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity {
         self.runtime_authority
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn admission_identity(
+    pub(in crate::domain_computation) const fn admission_identity(
         &self,
     ) -> WorthQueryOperationAdmissionIdentity {
         self.admission_identity
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn scope_entity_id(
+    pub(in crate::domain_computation) const fn scope_entity_id(
         &self,
     ) -> worth_relational::facade::identity::EntityId {
         self.scope_entity_id
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn scope_entity_kind(
+    pub(in crate::domain_computation) const fn scope_entity_kind(
         &self,
     ) -> worth_relational::facade::identity::KindId {
         self.scope_entity_kind
     }
 
-    pub(in crate::domain_computation::primary_graph) fn scope_entity_name(&self) -> &str {
+    pub(in crate::domain_computation) fn scope_entity_name(&self) -> &str {
         &self.scope_entity_name
     }
 
@@ -204,9 +206,9 @@ impl<Schema, Operation, Input, Scope>
         &self.contracts
     }
 
-    pub(in crate::domain_computation::primary_graph) const fn mutation_preconditions(
+    pub(in crate::domain_computation) const fn mutation_preconditions(
         &self,
-    ) -> &super::super::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions
+    ) -> &crate::domain_computation::primary_graph::application_attempt::precondition_binding::WorthQueryBoundMutationPreconditions
     {
         &self.mutation_preconditions
     }
@@ -281,7 +283,7 @@ impl<Schema, Operation, Input, Scope>
             .unwrap_or(0)
     }
 
-    pub(in crate::domain_computation::primary_graph) fn capability_authorization_parts_mut(
+    pub(in crate::domain_computation) fn capability_authorization_parts_mut(
         &mut self,
     ) -> Option<(
         &WorthQueryRetainedCapabilityRequest,
@@ -299,7 +301,7 @@ impl<Schema, Operation, Input, Scope>
         }
     }
 
-    pub(in crate::domain_computation::primary_graph) fn capability_revalidation_request(
+    pub(in crate::domain_computation) fn capability_revalidation_request(
         &self,
     ) -> Option<&WorthQueryRetainedCapabilityRequest> {
         match &self.authorization_basis {
@@ -310,7 +312,7 @@ impl<Schema, Operation, Input, Scope>
         }
     }
 
-    pub(in crate::domain_computation::primary_graph) fn take_authorization_dependencies(
+    pub(in crate::domain_computation) fn take_authorization_dependencies(
         &mut self,
         bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
     ) -> Result<WorthQueryRetainedAuthorizationDecisionFacts, WorthQueryOperationAuthorizationDenial>
@@ -336,13 +338,13 @@ impl<Schema, Operation, Input, Scope>
         &self.operation_authority_identity
     }
 
-    pub(in crate::domain_computation::primary_graph) fn retain_installed_operation_fingerprint(
+    pub(in crate::domain_computation) fn retain_installed_operation_fingerprint(
         &self,
     ) -> Arc<str> {
         Arc::clone(&self.operation_authority_identity)
     }
 
-    pub(in crate::domain_computation::primary_graph) fn retain_resource_binding_identity(
+    pub(in crate::domain_computation) fn retain_resource_binding_identity(
         &self,
     ) -> Arc<str> {
         Arc::clone(&self.resource_binding_identity)

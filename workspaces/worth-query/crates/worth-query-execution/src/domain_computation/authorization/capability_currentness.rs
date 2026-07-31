@@ -3,7 +3,7 @@ use std::sync::Arc;
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryCapabilityCurrentnessAuthority {
+pub(in crate::domain_computation) struct WorthQueryCapabilityCurrentnessAuthority {
     capability_authority_identity: Arc<str>,
     timeline: ApplicationCapabilityValidityTimeline,
     sampled_value: AspectValue,
