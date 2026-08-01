@@ -39,7 +39,7 @@ impl WorthQueryDecisionFactProvider for Arc<WorthQueryPrimaryGraphProvider> {
         evidence: WorthQueryDecisionFactEvidenceView<'_>,
         admission: WorthQueryDecisionFactComparisonAdmission,
     ) -> Result<WorthQueryDecisionFactComparisonEvidence, WorthQueryDecisionReadSetFailure> {
-        let fact = {
+        let (fact, branch_id) = {
             let sessions = self
                 .sessions
                 .lock()
@@ -47,13 +47,19 @@ impl WorthQueryDecisionFactProvider for Arc<WorthQueryPrimaryGraphProvider> {
             sessions
                 .application_attempts
                 .get(session.identity())
-                .and_then(|attempt| attempt.facts.get(evidence.locator().identity()))
-                .cloned()
+                .and_then(|attempt| {
+                    attempt
+                        .facts
+                        .get(evidence.locator().identity())
+                        .cloned()
+                        .map(|fact| (fact, attempt.branch_id.clone()))
+                })
                 .ok_or_else(provider_rejected)?
         };
         let fresh = self.graph.with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let fresh = fact.remains_equal_in(runtime, &snapshot);
+            let fresh =
+                snapshot.branch_id == branch_id && fact.remains_equal_in(runtime, &snapshot);
             runtime.snapshots().release_snapshot(&snapshot);
             fresh
         });

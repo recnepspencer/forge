@@ -12,11 +12,10 @@ use super::read_phase::{
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
 };
 use super::read_scope::WorthQueryApplicationReadScope;
-use super::snapshot_lease::WorthQueryApplicationSnapshotLease;
 use super::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryApplicationEntityIdentity,
-    WorthQueryApplicationOperationInvariantProjectionSnapshot,
+    WorthQueryApplicationOperationInvariantProjectionEvidence,
     WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
 };
 
@@ -32,7 +31,6 @@ pub struct WorthQueryApplicationReadAttempt<
     Phase = WorthQueryOrdinaryApplicationRead,
 > {
     admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-    lease: WorthQueryApplicationSnapshotLease,
     layout: Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
     runtime_authority:
         crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
@@ -50,7 +48,6 @@ pub struct WorthQueryCompleteApplicationReadSet<
     Phase = WorthQueryOrdinaryApplicationRead,
 > {
     pub(super) admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-    pub(super) lease: WorthQueryApplicationSnapshotLease,
     pub(super) facts: Vec<WorthQueryApplicationObservedFact>,
     pub(super) _phase: PhantomData<fn() -> Phase>,
 }
@@ -97,20 +94,11 @@ where
                 admission.operation(),
             )
         })?;
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
-            denial(
-                WorthQueryApplicationAttemptDenialKind::ForeignApplication,
-                admission.operation(),
-            )
-        })?;
         let read_scope = WorthQueryApplicationReadScope::root_only(admission.scope_entity_id());
+        let layout = Arc::clone(&admission.graph_work_session().basis().layout);
         Ok(WorthQueryApplicationReadAttempt {
             admission,
-            lease: WorthQueryApplicationSnapshotLease::acquire(
-                graph.integration_handle(),
-                Arc::clone(&graph.layout),
-            ),
-            layout: Arc::clone(&graph.layout),
+            layout,
             runtime_authority: self.runtime.authority_identity(),
             read_scope,
             expected_facts: None,
@@ -119,7 +107,7 @@ where
         })
     }
 
-    /// Consumes a projection lease typed for this exact admitted operation.
+    /// Consumes projection evidence typed for this exact admitted operation.
     ///
     /// A same-schema projection for another operation cannot enter the
     /// application read-set progression:
@@ -127,7 +115,7 @@ where
     /// ```compile_fail
     /// use worth_query_execution::facade::primary_graph::{
     ///     WorthQueryAdmittedApplicationOperation,
-    ///     WorthQueryApplicationOperationInvariantProjectionSnapshot,
+    ///     WorthQueryApplicationOperationInvariantProjectionEvidence,
     ///     WorthQueryPrimaryGraphApplicationRuntime,
     /// };
     /// use worth_query_installation::facade::ApplicationSchema;
@@ -140,7 +128,7 @@ where
     ///     admission: WorthQueryAdmittedApplicationOperation<
     ///         Schema, FirstOperation, Input, Scope,
     ///     >,
-    ///     projection: WorthQueryApplicationOperationInvariantProjectionSnapshot<
+    ///     projection: WorthQueryApplicationOperationInvariantProjectionEvidence<
     ///         Schema, SecondOperation,
     ///     >,
     /// ) {
@@ -150,7 +138,7 @@ where
     pub fn begin_projected_application_read_attempt<Operation, Input, Scope>(
         &self,
         admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-        projection: WorthQueryApplicationOperationInvariantProjectionSnapshot<Schema, Operation>,
+        projection: WorthQueryApplicationOperationInvariantProjectionEvidence<Schema, Operation>,
     ) -> Result<
         WorthQueryApplicationReadAttempt<
             Schema,
@@ -171,9 +159,13 @@ where
             ));
         }
         if !projection.belongs_to(
-            self.runtime.authority_identity(),
-            &self.installed_schema.binding_identity(),
             admission.admission_identity(),
+            admission.graph_work_session().identity(),
+            admission
+                .graph_work_session()
+                .branch_affinity()
+                .relational_branch(),
+            admission.graph_work_session().basis().snapshot().version_id,
         ) {
             return Err(denial(
                 WorthQueryApplicationAttemptDenialKind::ProjectionAdmissionMismatch,
@@ -187,11 +179,10 @@ where
             )
         })?;
         let root = admission.scope_entity_id();
-        let (lease, projected_scope, expected_facts) = projection.into_lease_and_realized_scope();
-        let layout = Arc::clone(&lease.layout);
+        let (projected_scope, expected_facts) = projection.into_realized_scope();
+        let layout = Arc::clone(&admission.graph_work_session().basis().layout);
         Ok(WorthQueryApplicationReadAttempt {
             admission,
-            lease,
             layout,
             runtime_authority: self.runtime.authority_identity(),
             read_scope: WorthQueryApplicationReadScope::projected(root, projected_scope),
@@ -205,6 +196,10 @@ where
 impl<Schema, Operation, Input, Scope, Phase>
     WorthQueryApplicationReadAttempt<Schema, Operation, Input, Scope, Phase>
 {
+    pub(super) fn graph_lease(&self) -> &super::snapshot_lease::WorthQueryApplicationSnapshotLease {
+        self.admission.graph_work_session().basis()
+    }
+
     pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
         &self,
         field: ApplicationFieldRef<
@@ -238,12 +233,12 @@ impl<Schema, Operation, Input, Scope, Phase>
                 )
             })?;
         let evidence = self
-            .lease
+            .graph_lease()
             .handle()
             .with_runtime(|runtime| {
                 super::super::entity_resolution::resolve_at_snapshot(
                     runtime,
-                    self.lease.snapshot(),
+                    self.graph_lease().snapshot(),
                     layout,
                     value.into_foundational_value(),
                     WorthQueryPrincipalResolutionMode::Ordinary,
@@ -269,7 +264,7 @@ impl<Schema, Operation, Input, Scope, Phase>
     }
 
     pub fn complete(
-        self,
+        mut self,
     ) -> Result<
         WorthQueryCompleteApplicationReadSet<Schema, Operation, Input, Scope, Phase>,
         WorthQueryApplicationAttemptDenial,
@@ -323,9 +318,33 @@ impl<Schema, Operation, Input, Scope, Phase>
                     self.admission.operation(),
                 )
             })?;
+        let branch = self
+            .admission
+            .graph_work_session()
+            .branch_affinity()
+            .relational_branch();
+        if self.facts.values().any(|fact| fact.branch_id() != branch) {
+            return Err(denial(
+                WorthQueryApplicationAttemptDenialKind::DecisionDependencyMismatch,
+                self.admission.operation(),
+            ));
+        }
+        let graph_read = super::WorthQueryOperationGraphReadCompletion::mint(
+            *self.admission.graph_work_session().identity(),
+            branch.clone(),
+        );
+        crate::domain_computation::provider_session::record_operation_graph_read_completion(
+            self.admission.graph_work_session_mut(),
+            graph_read,
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryApplicationAttemptDenialKind::GraphWorkProgressionDenied,
+                self.admission.operation(),
+            )
+        })?;
         Ok(WorthQueryCompleteApplicationReadSet {
             admission: self.admission,
-            lease: self.lease,
             facts: self.facts.into_values().collect(),
             _phase: PhantomData,
         })

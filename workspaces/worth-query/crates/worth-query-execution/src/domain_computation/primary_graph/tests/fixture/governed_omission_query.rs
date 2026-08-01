@@ -3,8 +3,8 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
     ApplicationQueryDisclosureContract, ApplicationQueryInfluenceContract,
     ApplicationQueryLaneEligibility, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder,
-    ForwardResultTraversal, ManyResults,
+    ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder, ForwardResultTraversal,
+    ManyResults,
 };
 use worth_query_declaration::worth_query_application_query;
 

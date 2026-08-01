@@ -11,6 +11,12 @@ use super::{
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// Non-authoritative inspection of graph-read planning performed inside the
+/// sealed obligation progression.
+///
+/// ```compile_fail
+/// use worth_query_admission::facade::graph_read_access::review_graph_read_access;
+/// ```
 pub struct WorthQueryGraphReadPlanReview {
     digest: String,
     requirements: WorthQueryGraphReadAccessRequirementSet,

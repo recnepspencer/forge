@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use worth_query_installation::facade::TypedApplicationValue;
-use worth_relational::facade::history::BranchId;
+use worth_relational::facade::history::CommitReference;
 use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::indexes::{DerivedIndexBuildRequest, DerivedIndexId};
 use worth_relational::facade::symbols::ClientKey;
@@ -24,9 +24,10 @@ pub(super) fn commit_bootstrap_rows(
     rows: Vec<WorthQueryPrincipalBootstrapRow>,
     entity_rows: Vec<WorthQueryTypedEntityBootstrapRow>,
     relation_rows: Vec<WorthQueryTypedRelationBootstrapRow>,
-) -> Result<worth_relational::facade::history::CommitId, WorthQueryPrimaryGraphInstallationDenial> {
+) -> Result<CommitReference, WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let branch = runtime.config().history.main_branch.clone();
+        let mut transaction = runtime.begin_transaction(TransactionOptions::for_branch(branch));
         let mut batch = WorkerIntentBatch::new("application-principal-bootstrap");
         for (ordinal, row) in rows.into_iter().enumerate() {
             batch = append_principal_row(batch, ordinal, row);
@@ -40,7 +41,7 @@ pub(super) fn commit_bootstrap_rows(
         transaction.push_batch(batch);
         transaction
             .commit()
-            .map(|outcome| outcome.commit.commit_id)
+            .map(|outcome| outcome.commit.clone())
             .map_err(|error| {
                 primary_graph_denial(
                     WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
@@ -147,15 +148,15 @@ fn append_principal_row(
 
 pub(super) fn build_identity_indexes(
     graph: &WorthQueryPrimaryGraph,
-    source_commit_id: worth_relational::facade::history::CommitId,
+    source_commit: &CommitReference,
     index_ids: &[DerivedIndexId],
 ) -> Result<(), WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
         let build = runtime
             .index_authority()
             .build_for_commit(DerivedIndexBuildRequest {
-                source_commit_id,
-                branch_id: BranchId("main".to_string()),
+                source_commit_id: source_commit.commit_id,
+                branch_id: source_commit.branch_id.clone(),
                 index_ids: index_ids.to_vec(),
             });
         if build.failed_indexes.is_empty() && build.generations.len() == index_ids.len() {

@@ -89,7 +89,7 @@ fn traverse_path<Schema, Query, Parameters, QueryResult, Principal, PrincipalIde
                 .bounded_outgoing_relations_for_frontier_at_version(
                     &frontier,
                     layout.kind,
-                    plan.basis.version_id(),
+                    plan.basis().version_id(),
                     work.remaining(),
                 ),
             ApplicationQueryRootPathDirection::Reverse => runtime
@@ -97,7 +97,7 @@ fn traverse_path<Schema, Query, Parameters, QueryResult, Principal, PrincipalIde
                 .bounded_incoming_relations_for_frontier_at_version(
                     &frontier,
                     layout.kind,
-                    plan.basis.version_id(),
+                    plan.basis().version_id(),
                     work.remaining(),
                 ),
         }
@@ -170,7 +170,7 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
                 layout.entity_kind,
                 &layout.locator,
                 guard.expected(),
-                plan.basis.version_id(),
+                plan.basis().version_id(),
                 work.remaining(),
             )
             .map_err(|_| work_limit_denial(guard.field().as_str()))?;

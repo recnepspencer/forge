@@ -73,6 +73,20 @@ impl InstallationCanonicalIdentityBasis {
         )
     }
 
+    pub(crate) fn unsigned_u64(
+        &mut self,
+        locus: impl Into<String>,
+        value: u64,
+    ) -> Result<(), CanonicalDigestDerivationDenial> {
+        self.push(
+            locus,
+            CanonicalBasisValue::UnsignedInteger {
+                width: CanonicalIntegerWidth::Bits64,
+                value: value.into(),
+            },
+        )
+    }
+
     pub(crate) fn embedded_basis(
         &mut self,
         locus_prefix: &str,

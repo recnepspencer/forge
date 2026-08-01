@@ -1,5 +1,10 @@
 # Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
+> **Current execution posture:** Paused after Runtime Hardening Phase 7.2.
+> [Milestone 9.16.1](./milestone-9.16.1.md) must close before Runtime Phase 7.3
+> begins. Completed milestone and phase guarantees retain their recorded
+> status; 9.16.1 adds the stronger canonical graph-progression prerequisite.
+
 ## Goal
 
 Prove that a small team can build a legitimate authenticated, multi-user,
@@ -94,18 +99,20 @@ happened to expose it.
 Before implementing a discovered requirement, update the gap ledger and
 classify it:
 
-1. **Existing runtime guarantee is incomplete.** Reopen the affected Runtime
-   phase and every downstream ledger guarantee that depended on it.
+1. **A completed runtime guarantee needs stronger composition.** Add the next
+   corrective Runtime phase or an interstitial milestone and block unfinished
+   dependents on it. Do not reopen or rewrite completed milestone or ledger
+   history.
 2. **New generic Query behavior, API, authority, lifecycle, or performance
    capability is required.** Add the next appropriately sized phase to the
    Runtime Hardening Track before implementation.
-3. **Bank-domain meaning or behavior is missing.** Add or reopen the appropriate
-   Bank World phase. Banking semantics must not be generalized into Query.
+3. **Bank-domain meaning or behavior is missing.** Add the next appropriate Bank
+   World phase. Banking semantics must not be generalized into Query.
 4. **Authentik, HTTP, process-fixture, or user-node mechanism is missing.** Add
-   or reopen a Bank World adapter/fixture phase. Transport mechanics do not
+   a Bank World adapter/fixture phase. Transport mechanics do not
    become runtime authority.
 5. **The discovery changes public cutover, deletion, documentation, or the
-   decisive courtroom.** Add or reopen a Closure phase.
+   decisive courtroom.** Add the next Closure phase.
 6. **The discovery has an independent advanced-computation purpose.** Assign it
    to Milestone 9.17 rather than expanding the bank milestone.
 
@@ -114,9 +121,10 @@ not a ticket-sized patch. It states what proof it consumes, what architecture it
 establishes, what it mechanically forbids, what evidence closes it, and which
 later bank or runtime phase it unblocks.
 
-The bank phase that exposed a generic gap remains blocked until the corresponding
-Runtime Hardening phase closes. The application may not carry a local workaround
-forward to keep the demo moving.
+The unfinished bank or runtime phase that exposed a generic gap remains blocked
+until the corrective phase or milestone closes. Previously completed rows remain
+historical inputs rather than being relabeled. The application may not carry a
+local workaround forward to keep the demo moving.
 
 ## Why This Milestone Exists
 
@@ -1422,8 +1430,9 @@ parallel lane-specific projectors or access paths.
 Runtime Phase 6 is implemented through the ordered internal proof gates
 6.1-6.9 below. They are not parallel backlog categories: a later gate may
 consume only authority and guarantees already proved by every earlier gate.
-Discoveries reopen the earliest affected gate and its causal dependents rather
-than becoming ad hoc work inside the current gate.
+Discoveries that strengthen a completed gate become an append-only corrective
+phase or milestone and block unfinished dependents rather than becoming ad hoc
+work inside the current gate.
 
 The durable requirement and finding states for these gates live in
 [`milestone-9.16-runtime-phase-6-closure-ledger.md`](milestone-9.16-runtime-phase-6-closure-ledger.md).
@@ -1693,7 +1702,8 @@ intersection with request limits must be visible in plan-review evidence and
 must survive runtime-generation progression without becoming digest-only
 authority.
 
-Proof closes R6.2 and R6.3 plus every planning/support finding they reopen.
+Proof closes R6.2 and R6.3 plus every planning/support finding assigned to this
+gate.
 Source and dependency residue must independently reject a second planner,
 copied requirement vocabulary, generic inventory substitution, or lane-local
 support engine.
@@ -2071,8 +2081,9 @@ conflict-of-interest, currentness, and fail-closed phase progression.
 Runtime Phase 7 is implemented through the ordered internal proof gates
 7.1-7.7 below. They are not parallel policy features: each later gate consumes
 the installed meaning and authority proved by the earlier gates. A discovery
-reopens the earliest affected gate and every causal dependent rather than
-becoming a local exception in the gate currently under construction.
+that strengthens a completed gate becomes an append-only corrective phase or
+milestone and blocks unfinished dependents rather than relabeling completed
+history or becoming a local exception in the current gate.
 
 The durable requirement and finding states for these gates live in
 [`milestone-9.16-runtime-phase-7-closure-ledger.md`](milestone-9.16-runtime-phase-7-closure-ledger.md).
@@ -2373,6 +2384,11 @@ only after Phases 7.1-7.6 have made their complete contracts enforceable.
 
 It must:
 
+- complete the real Bank consumer front door for every installed estate
+  capability: the administration-governed estate query must supply and consume
+  its installed capability instead of entering the generic ungoverned query
+  executor, and every capability-governed mutation key must have a genuine
+  installed operation program before its policy is claimed as consumer-proved;
 - route ordinary, delegated, conflicted, disclosure-limited, and emergency
   estate operations through the public installed Query progression with no
   bank-local authorization executor;
@@ -2389,6 +2405,13 @@ It must:
   paths, then prove the destination dependency direction; and
 - preserve bounded warm authorization work as unrelated grants,
   relationships, fields, cases, and consumers grow.
+
+The hostile consumer evidence must exercise purpose, field, missing-resource,
+related-entity, amount-ceiling, and context-conflict attacks at their truthful
+boundary. Static request-shape mismatches may fail during non-observing
+preparation; every graph- or grant-dependent mismatch must prepare without
+authority and then fail only after the real read or mutation session consumes
+it. A preparation-only denial test does not prove capability enforcement.
 
 Certification must compare the independently produced capability,
 disclosure-mask, and publication boundary meaning through Foundational
@@ -2415,6 +2438,42 @@ capability, purpose, disclosure, and conflict meaning. Growing unrelated
 grants, relationships, fields, or cases does not widen warm authorization
 work.
 
+### Inherited Branch-Affinity Contract After Runtime Phase 7
+
+Milestone 9.16.1 makes typed branch identity part of the canonical provider
+session and branch-qualifies every snapshot and version basis. Runtime Phase 8,
+Bank World Phases 5-6, Runtime Phase 9, and closure inherit that identity
+without creating another branch-selection surface.
+
+From this point forward:
+
+- decision read sets, proposed state, invariants, compare-and-commit,
+  idempotency, recovery, undo/redo, continuation, history, preview, live
+  delivery, disclosure, receipts, and publication carry the exact branch from
+  the admitted session;
+- equal version or snapshot ordinals from different branches are never
+  equivalent and cannot satisfy currentness, retry, recovery, aftermath, or
+  publication affinity;
+- HTTP routes, Bank adapters, recovery callers, and publication code cannot
+  choose, default, replace, or deserialize branch authority;
+- a temporary global commit coordinator is permitted only as a conservative
+  implementation limit; it is not Query meaning, receipt meaning, or the
+  correctness contract, and it must be replaceable by branch-local
+  coordination without changing public authority types; and
+- no code introduced after Runtime Phase 7 may infer the ordinary branch from
+  the string `"main"`, treat a version as globally unique, or mint a
+  recovery-, aftermath-, disclosure-, transport-, or publication-local branch
+  identity.
+
+Milestone 9.16 still has one ordinary installed branch and does not implement
+multiple branch heads, branch-local version allocation, concurrent writers on
+different branches, branch creation, merge, rebase, or branch-local inversion.
+Per-branch MVCC and concurrent independent-branch writers begin in Milestone
+9.17. Semantic branch management, merge, and branch-shaped aftermath remain in
+the cross-runtime merging-and-branching roadmap. The prohibition on
+branch-shaped aftermath below does not permit branch affinity to be omitted
+from ordinary execution evidence.
+
 ### Runtime Hardening Track — Phase 8: Recovery, Linear Undo, And Redo
 
 **Requirement**
@@ -2426,16 +2485,17 @@ commit proves an external effect.
 Runtime Phase 8 is implemented through the ordered internal proof gates
 8.1-8.6 below. They are not parallel aftermath conveniences: each gate may
 expose only next actions justified by the installed posture and authority
-proved before it. A discovery reopens the earliest affected gate and every
-causal dependent rather than adding an exceptional rollback path.
+proved before it. A discovery that strengthens a completed gate becomes an
+append-only corrective phase or milestone and blocks unfinished dependents
+rather than adding an exceptional rollback path.
 
 **Must establish**
 
 - installed reversible, compensatable, reconcilable, and irreversible
   aftermath contracts with operation-specific next-action types;
 - a framework-owned recovery handle for indeterminate outcomes, bound to exact
-  runtime, operation, attempt, principal scope, idempotency identity, provider
-  posture, and expiry or disposal lifecycle;
+  runtime, branch, operation, attempt, principal scope, idempotency identity,
+  provider posture, and expiry or disposal lifecycle;
 - typed inspect, resolve, safe-retry, compensate, reconcile, and dispose
   transitions, exposing only those admitted by the outcome and installed
   contract;
@@ -2493,15 +2553,17 @@ runtime authority. Publication describes the resulting posture and available
 next actions but cannot manufacture a recovery, undo, reconciliation, or redo
 handle from identities carried over the wire.
 
-Branch-aware aftermath is intentionally absent from this topology. Its
+Branch-shaped aftermath is intentionally absent from this topology. Its
 semantic-history, reference, inversion, merge, publication, recovery, and
 product-surface responsibilities belong to the cross-runtime
 merging-and-branching roadmap and do not enter through a dormant Query
-directory. Foundational branch, merge, scoped-merge, and cherry-pick artifacts
-are likewise forbidden as implementation authority for this linear Query
-aftermath. Only completed Query-owned transitions may lower into the portable
-Foundational transition or lineage vocabulary appropriate to their boundary
-role.
+directory. Ordinary aftermath nevertheless retains the exact branch affinity
+of its Milestone 9.16.1 session; omitting that affinity or treating a version
+ordinal as global is forbidden. Foundational branch, merge, scoped-merge, and
+cherry-pick artifacts are likewise forbidden as implementation authority for
+this linear Query aftermath. Only completed Query-owned transitions may lower
+into the portable Foundational transition or lineage vocabulary appropriate to
+their boundary role.
 
 #### Runtime Phase 8.1: Installed Aftermath Classification And Legal Next Actions
 
@@ -2578,9 +2640,9 @@ installed outcome whose exact posture permits recovery work.
 
 It must:
 
-- bind the handle to runtime, schema, operation, attempt, principal scope,
-  idempotency identity, provider posture, correlation evidence, compatibility
-  generation, and expiry or disposal lifecycle;
+- bind the handle to runtime, schema, typed branch, operation, attempt,
+  principal scope, idempotency identity, provider posture, correlation
+  evidence, compatibility generation, and expiry or disposal lifecycle;
 - expose only typed inspect, resolve, safe-retry, compensate, reconcile, or
   dispose transitions admitted by the current outcome and installed contract;
 - re-establish current provider truth and current application authority before
@@ -2677,7 +2739,8 @@ It must:
 - expose committed outcome, recovery, compensation, reconciliation, undo, and
   redo through typed public facades and operation-specific legal next actions;
 - preserve authorization and disclosure when publishing outcome,
-  explanations, recovery posture, and receipt-linked lineage;
+  explanations, recovery posture, receipt-linked lineage, and exact inherited
+  branch affinity;
 - keep the temporary HTTP boundary descriptive, asynchronous, and incapable of
   deserializing authority or making route-local recovery decisions;
 - remove or privatize superseded monolith, bank-local, and generic rollback
@@ -2740,8 +2803,10 @@ network boundaries.
 - bounded request and stream queues, cancellation, deadlines, backpressure, and
   disconnect handling;
 - dynamic ports, health/readiness, deterministic teardown, and leak detection;
-- typed wire representations for semantic outcomes and legal next actions; and
-- no route-local banking policy or direct provider access.
+- typed wire representations for semantic outcomes and legal next actions;
+- no route-local banking policy or direct provider access; and
+- no route-local branch selection, defaulting, or reconstruction from wire
+  strings or version ordinals.
 
 **Proof before Runtime Hardening Phase 9**
 
@@ -2835,8 +2900,9 @@ enforcement.
 **Closure rule**
 
 A green suite does not close an unproved ledger row. Every high- or
-critical-impact finding reopens the guarantees it can invalidate and the
-downstream rows that depend on them.
+critical-impact finding blocks the unfinished guarantees it can invalidate and
+is assigned to an append-only corrective phase when its source guarantee has
+already closed.
 
 ## DX Target
 
@@ -3032,6 +3098,8 @@ callback, or result reinterpretation, the front door is not finished.
   Query work but cannot mint Query installation, execution, authorization,
   disclosure, recovery, undo, redo, or receipt authority;
 - cert-only replay imports;
+- typed branch affinity carried from admission through terminal publication,
+  with snapshot and version identity interpreted only within that branch;
 - typed outcomes over exceptions or generic error strings; and
 - bounded ordinary warm paths with cold certification isolated.
 
@@ -3047,6 +3115,8 @@ callback, or result reinterpretation, the front door is not finished.
 - branch- or tree-shaped undo/redo navigation, branch-local inversion, branch
   merge, or conflict resolution. Those are cross-runtime semantic-history
   capabilities, not a deferred Query-local extension of linear aftermath;
+- multiple branch heads, branch-local version allocation, and concurrent
+  writers on different branches before the Milestone 9.17 handoff;
 - durable recovery handles, restart-stable cursors, or restart-stable
   undo/redo history before the Store handoff;
 - advanced domain access products, correlated paths, conflict partitions, or
@@ -3099,6 +3169,9 @@ Milestone 9.16 closes only when:
 - monetary invariants and an independent double-entry oracle agree;
 - concurrency, stale detection, idempotent retry, response loss, and failure
   injection produce honest typed outcomes;
+- every post-Phase-7 authority and receipt retains the exact admitted branch,
+  rejects equal-version cross-branch substitution, and contains no hard-coded
+  ordinary-branch authority;
 - revocation prevents subsequent unauthorized live delivery;
 - compensating undo preserves original truth, redo requires fresh authority,
   divergent or relevant change can deny redo, and irreversible actions expose
@@ -3121,6 +3194,15 @@ capability, disclosure, basis, recovery, and aftermath contracts established
 here. It may extend that path; it may not reintroduce a specialist-only
 authority lane, a provider-owned cursor, a field-disclosure bypass, or replay
 disguised as redo.
+
+Milestone 9.17 also replaces the conservative single-branch/global-coordinator
+implementation limit with Relational-owned per-branch MVCC. Query continues to
+carry the branch-affine authority established here; it does not become the
+owner of branch truth, version allocation, or conflict mechanics. Writers on
+different branches must be able to progress concurrently, while writers on the
+same branch remain governed by that branch's MVCC comparison and commit laws.
+Semantic branch creation, merge, rebase, branch-shaped undo/redo, and conflict
+resolution remain governed by the cross-runtime merging-and-branching roadmap.
 
 Geometry and other high-fan-out kernels consume installed typed slots, paths,
 masks, plans, and fixed-width semantic identities. Adding cells, features,

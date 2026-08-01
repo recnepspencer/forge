@@ -162,14 +162,10 @@ pub(in crate::domain_computation::primary_graph::application_attempt) enum Worth
 }
 
 pub struct WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope> {
-    pub(in crate::domain_computation::primary_graph::application_attempt) read_set:
-        WorthQueryCompleteApplicationReadSet<
-            Schema,
-            Operation,
-            Input,
-            Scope,
-            WorthQueryProjectedApplicationMutation,
-        >,
+    pub(in crate::domain_computation::primary_graph::application_attempt) operation:
+        super::super::WorthQueryProgressingApplicationOperation<Schema, Operation, Input, Scope>,
+    pub(in crate::domain_computation::primary_graph::application_attempt) facts:
+        Vec<super::super::fact::WorthQueryApplicationObservedFact>,
     pub(in crate::domain_computation::primary_graph::application_attempt) effects:
         Vec<WorthQueryApplicationRealizedEffect>,
     pub(in crate::domain_computation::primary_graph::application_attempt) emission_retained_bytes:

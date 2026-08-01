@@ -13,10 +13,10 @@ pub(super) fn resolve_snapshot_version(
     let (snapshot_id, expected_version_id) = parse_bridge_snapshot_identity(identity)?;
     let active_version_id = runtime
         .active_snapshot_binding(snapshot_id)
-        .map(|(version_id, _)| version_id);
+        .map(|(_, version_id, _)| version_id);
     let execution_version_id = runtime
         .execution_basis_binding(snapshot_id)
-        .map(|(version_id, _)| version_id);
+        .map(|(_, version_id, _)| version_id);
     let observed_version_id = active_version_id
         .or(execution_version_id)
         .or_else(|| runtime.published_snapshot_version(snapshot_id))

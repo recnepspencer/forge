@@ -7,10 +7,7 @@ use worth_query_declaration::facade::application_schema::ApplicationSchema;
 
 mod outcome;
 
-use super::authorized_read::{
-    execute_authorized_read, refresh_governed_authorization,
-    WorthQueryAuthorizedApplicationReadDenial,
-};
+use super::authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial};
 use super::read_execution::{read_bounded_root_rows, WorthQueryApplicationReadExecutionDenialKind};
 use super::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
@@ -102,15 +99,12 @@ where
         admit_request(request, plan.query.name())?;
         validate_basis_lifetime(&plan.controls, plan.query.name())?;
         validate_authentication_lifetime(plan.principal, plan.query.name())?;
-        if !plan.basis.is_live() {
+        if !plan.basis().is_live() {
             return Err(denial(
                 WorthQueryApplicationOneShotDenialKind::BasisUnavailable,
                 plan.query.name(),
             ));
         }
-        refresh_governed_authorization(self, &mut plan)
-            .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
-
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryApplicationOneShotDenialKind::StaleInstalledQuery,
@@ -123,7 +117,7 @@ where
                 .max_inline_result_bytes(),
         );
         let (raw, authorization_work) =
-            execute_authorized_read(self, graph, &plan, |runtime, graph, plan| {
+            execute_authorized_read(self, graph, &mut plan, |runtime, graph, plan| {
                 read_bounded_root_rows(runtime, graph, plan, result_buffer)
             })
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;

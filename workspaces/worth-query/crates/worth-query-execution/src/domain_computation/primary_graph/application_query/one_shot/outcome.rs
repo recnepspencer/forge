@@ -45,10 +45,18 @@ where
     Schema: ApplicationSchema,
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
 {
-    let request = plan.controls.request_scope();
-    let basis_identity = plan.basis.identity().clone();
-    let basis_version = plan.basis.version_id();
-    let released = plan.basis.release().released();
+    let request = plan.controls.request_scope().clone();
+    let basis_identity = plan.basis().identity().clone();
+    let basis_version = plan.basis().version_id();
+    let completed = plan.complete_graph_read().map_err(|_| {
+        denial(
+            WorthQueryApplicationOneShotDenialKind::BasisReleaseFailed,
+            "graph-work owner progression",
+        )
+    })?;
+    let graph_work_release = completed.release;
+    let plan = completed.plan;
+    let released = graph_work_release.basis_released();
     if !released {
         return Err(denial(
             WorthQueryApplicationOneShotDenialKind::BasisReleaseFailed,
@@ -56,13 +64,13 @@ where
         ));
     }
     validate_basis_lifetime(&plan.controls, plan.query.name())?;
-    admit_request(request, plan.query.name())?;
+    admit_request(&request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
 
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         kernel,
         &plan.governance,
-        || admit_request(request, plan.query.name()),
+        || admit_request(&request, plan.query.name()),
         |projection: crate::domain_computation::primary_graph::WorthQueryApplicationProjectionDenial| {
             denial(
                 WorthQueryApplicationOneShotDenialKind::Projection(projection.kind()),
@@ -70,7 +78,7 @@ where
             )
         },
     )?;
-    admit_request(request, plan.query.name())?;
+    admit_request(&request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
     let receipt = WorthQueryApplicationQueryAccessReceipt::from_non_live_kernel(
@@ -87,7 +95,7 @@ where
             lane: plan.controls.lane(),
             consistency: plan.controls.consistency(),
             freshness: plan.controls.freshness(),
-            released,
+            graph_work_release,
         },
         plan.graph_read_plan,
         plan.canonical_work,

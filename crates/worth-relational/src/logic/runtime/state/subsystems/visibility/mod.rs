@@ -93,12 +93,13 @@ impl VisibilitySubsystem {
     pub(crate) fn admit_execution_basis(
         &self,
         snapshot_id: SnapshotId,
+        branch_id: crate::history::data::BranchId,
         version_id: crate::identity::data::VersionId,
         read_policy: crate::snapshots::data::SnapshotReadPolicy,
     ) -> (u64, Arc<ExecutionBasisRegistry>) {
-        let lease_ordinal = self
-            .execution_bases
-            .admit(snapshot_id, version_id, read_policy);
+        let lease_ordinal =
+            self.execution_bases
+                .admit(snapshot_id, branch_id, version_id, read_policy);
         (lease_ordinal, Arc::clone(&self.execution_bases))
     }
 

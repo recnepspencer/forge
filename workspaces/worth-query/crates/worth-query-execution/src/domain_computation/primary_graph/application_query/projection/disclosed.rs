@@ -43,9 +43,7 @@ impl<Value> WorthQueryApplicationDisclosed<Value> {
     ) -> Result<Value, WorthQueryApplicationProjectionDenial> {
         match self {
             Self::Disclosed(value) => Ok(value),
-            Self::Omitted(omission) => {
-                Err(projection_denial(kind, omission.classification))
-            }
+            Self::Omitted(omission) => Err(projection_denial(kind, omission.classification)),
         }
     }
 }
@@ -65,10 +63,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             Equality,
             Currency,
         >,
-    ) -> Result<
-        WorthQueryApplicationDisclosed<Value>,
-        WorthQueryApplicationProjectionDenial,
-    >
+    ) -> Result<WorthQueryApplicationDisclosed<Value>, WorthQueryApplicationProjectionDenial>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
@@ -120,7 +115,9 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             OptionalOneResult,
         >,
     ) -> Result<
-        WorthQueryApplicationDisclosed<Option<WorthQueryApplicationProjectionRow<'_, Schema, Query>>>,
+        WorthQueryApplicationDisclosed<
+            Option<WorthQueryApplicationProjectionRow<'_, Schema, Query>>,
+        >,
         WorthQueryApplicationProjectionDenial,
     >
     where
@@ -258,10 +255,12 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     ) -> Option<WorthQueryApplicationOmission> {
         self.governance
             .omission(slot)
-            .map(|(classification, required_disclosure)| WorthQueryApplicationOmission {
-                classification: classification.to_string(),
-                required_disclosure: required_disclosure.clone(),
-            })
+            .map(
+                |(classification, required_disclosure)| WorthQueryApplicationOmission {
+                    classification: classification.to_string(),
+                    required_disclosure: required_disclosure.clone(),
+                },
+            )
     }
 }
 
@@ -271,7 +270,9 @@ impl<Value> WorthQueryApplicationDisclosed<Value> {
         disclosed: impl FnOnce(Value) -> Result<Output, WorthQueryApplicationProjectionDenial>,
     ) -> Result<WorthQueryApplicationDisclosed<Output>, WorthQueryApplicationProjectionDenial> {
         match self {
-            Self::Disclosed(value) => disclosed(value).map(WorthQueryApplicationDisclosed::Disclosed),
+            Self::Disclosed(value) => {
+                disclosed(value).map(WorthQueryApplicationDisclosed::Disclosed)
+            }
             Self::Omitted(omission) => Ok(WorthQueryApplicationDisclosed::Omitted(omission)),
         }
     }

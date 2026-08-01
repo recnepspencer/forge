@@ -266,9 +266,9 @@ where
             .collect::<BTreeSet<_>>()
             .len();
         let index_ids = self.graph.integration_handle().primary_index_ids.to_vec();
-        let commit_id =
+        let commit =
             commit_bootstrap_rows(&self.graph, self.rows, self.entity_rows, self.relation_rows)?;
-        build_identity_indexes(&self.graph, commit_id, &index_ids)?;
+        build_identity_indexes(&self.graph, &commit, &index_ids)?;
         let binding_identity = self.graph.binding_identity().clone();
         runtime.install_primary_graph(self.graph);
         Ok(WorthQueryPrimaryGraphPublication {

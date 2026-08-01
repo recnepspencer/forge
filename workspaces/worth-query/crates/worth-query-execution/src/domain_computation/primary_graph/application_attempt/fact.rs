@@ -42,11 +42,13 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationFactK
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObservedFact {
     Entity {
+        branch_id: worth_relational::facade::history::BranchId,
         target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,
         kind: KindId,
     },
     Field {
+        branch_id: worth_relational::facade::history::BranchId,
         target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,
         kind: KindId,
@@ -54,6 +56,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObser
         value: AspectValue,
     },
     Relation {
+        branch_id: worth_relational::facade::history::BranchId,
         target: ApplicationOperationDecisionReadTarget,
         relation_kind: KindId,
         from: EntityId,
@@ -61,6 +64,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObser
         matching_relations: Vec<RelationId>,
     },
     Adjacency {
+        branch_id: worth_relational::facade::history::BranchId,
         target: ApplicationOperationDecisionReadTarget,
         relation_kind: KindId,
         anchor: EntityId,
@@ -71,6 +75,15 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationObser
 }
 
 impl WorthQueryApplicationObservedFact {
+    pub(super) const fn branch_id(&self) -> &worth_relational::facade::history::BranchId {
+        match self {
+            Self::Entity { branch_id, .. }
+            | Self::Field { branch_id, .. }
+            | Self::Relation { branch_id, .. }
+            | Self::Adjacency { branch_id, .. } => branch_id,
+        }
+    }
+
     pub(super) const fn observed_field_value(&self) -> Option<&AspectValue> {
         match self {
             Self::Field { value, .. } => Some(value),
@@ -165,6 +178,9 @@ impl WorthQueryApplicationObservedFact {
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     ) -> bool {
+        if self.branch_id() != &snapshot.branch_id {
+            return false;
+        }
         match self {
             Self::Entity {
                 entity_id, kind, ..

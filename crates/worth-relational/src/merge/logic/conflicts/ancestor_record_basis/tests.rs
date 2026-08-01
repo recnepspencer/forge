@@ -75,7 +75,7 @@ fn read_view(
     relations: Vec<RelationReadRecord>,
 ) -> RelationalReadView {
     RelationalReadView {
-        snapshot: SnapshotHandle::new(1, 1),
+        snapshot: SnapshotHandle::new(1, 1, crate::history::data::BranchId("main".into())),
         entities,
         relations,
     }

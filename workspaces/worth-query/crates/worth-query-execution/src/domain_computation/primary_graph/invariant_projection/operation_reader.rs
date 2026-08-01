@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_installation::facade::{
     ApplicationFieldCurrency, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
     ApplicationRelationRef, ApplicationSchema, EqualityPredicate, OperationReads,
@@ -16,11 +17,10 @@ pub use decision_plan::{
 
 use super::{
     WorthQueryApplicationInvariantProjectionAuthority,
-    WorthQueryApplicationInvariantProjectionReader,
-    WorthQueryApplicationInvariantProjectionSnapshot, WorthQueryCompletedInvariantProjection,
-    WorthQueryInvariantAggregateDenial, WorthQueryInvariantEntityIdentity,
-    WorthQueryInvariantProjectionTraversalDenial, WorthQueryInvariantProjectionWork,
-    WorthQueryInvariantRelation, WorthQueryOperationProjectionDenial,
+    WorthQueryApplicationInvariantProjectionReader, WorthQueryInvariantAggregateDenial,
+    WorthQueryInvariantEntityIdentity, WorthQueryInvariantProjectionTraversalDenial,
+    WorthQueryInvariantProjectionWork, WorthQueryInvariantRelation,
+    WorthQueryOperationProjectionDenial, WorthQueryRealizedProjectionScope,
 };
 use crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity;
 use crate::domain_computation::primary_graph::{
@@ -41,12 +41,16 @@ pub struct WorthQueryApplicationOperationInvariantProjectionReader<
 }
 
 pub struct WorthQueryCompletedOperationInvariantProjection<Schema, Operation, Output> {
-    completed: WorthQueryCompletedInvariantProjection<
-        Schema,
-        (Output, BTreeSet<WorthQueryApplicationFactKey>),
-    >,
+    output: Output,
+    work: WorthQueryInvariantProjectionWork,
+    branch_id: worth_relational::facade::history::BranchId,
+    version: worth_relational::facade::identity::VersionId,
+    realized_scope: WorthQueryRealizedProjectionScope,
+    decision_facts: BTreeSet<WorthQueryApplicationFactKey>,
     admission_identity: WorthQueryOperationAdmissionIdentity,
+    session_identity: CanonicalDigestId,
     _operation: PhantomData<fn() -> Operation>,
+    _schema: PhantomData<fn() -> Schema>,
 }
 
 pub struct WorthQueryInspectedOperationInvariantProjection<Operation, Output> {
@@ -55,11 +59,14 @@ pub struct WorthQueryInspectedOperationInvariantProjection<Operation, Output> {
     _operation: PhantomData<fn() -> Operation>,
 }
 
-pub struct WorthQueryApplicationOperationInvariantProjectionSnapshot<Schema, Operation> {
-    snapshot: WorthQueryApplicationInvariantProjectionSnapshot<Schema>,
+pub struct WorthQueryApplicationOperationInvariantProjectionEvidence<Schema, Operation> {
+    branch_id: worth_relational::facade::history::BranchId,
+    version: worth_relational::facade::identity::VersionId,
     admission_identity: WorthQueryOperationAdmissionIdentity,
+    session_identity: CanonicalDigestId,
+    realized_scope: WorthQueryRealizedProjectionScope,
     decision_facts: BTreeSet<WorthQueryApplicationFactKey>,
-    _operation: PhantomData<fn() -> Operation>,
+    _marker: PhantomData<fn() -> (Schema, Operation)>,
 }
 
 impl<Schema> WorthQueryApplicationInvariantProjectionAuthority<Schema>
@@ -122,8 +129,13 @@ where
         WorthQueryOperationProjectionDenial,
     > {
         admission.validate_projection_authority(self.runtime_authority, &self.binding_identity)?;
+        let session = admission.graph_work_session();
+        let session_identity = *session.identity();
+        let branch_id = session.branch_affinity().relational_branch().clone();
+        let version = session.basis().snapshot().version_id;
         let completed = self
-            .project_bounded(
+            .project_session_bounded(
+                session.basis(),
                 admission.allowed_graph_contract().projection_work_budget(),
                 |reader| {
                     let mut decision_facts = BTreeSet::new();
@@ -155,9 +167,16 @@ where
                 WorthQueryOperationProjectionDenial::work_budget_exceeded(admission.operation())
             })?;
         Ok(WorthQueryCompletedOperationInvariantProjection {
-            completed,
+            output: completed.output.0,
+            decision_facts: completed.output.1,
+            work: completed.work,
+            branch_id,
+            version,
+            realized_scope: completed.realized_scope,
             admission_identity: admission.admission_identity(),
+            session_identity,
             _operation: PhantomData,
+            _schema: PhantomData,
         })
     }
 }
@@ -180,30 +199,32 @@ impl<Schema, Operation, Output>
     WorthQueryCompletedOperationInvariantProjection<Schema, Operation, Output>
 {
     pub const fn output(&self) -> &Output {
-        &self.completed.output().0
+        &self.output
     }
 
     pub const fn work(&self) -> WorthQueryInvariantProjectionWork {
-        self.completed.work()
+        self.work
     }
 
     pub fn into_parts(
         self,
     ) -> (
         Output,
-        WorthQueryApplicationOperationInvariantProjectionSnapshot<Schema, Operation>,
+        WorthQueryApplicationOperationInvariantProjectionEvidence<Schema, Operation>,
         WorthQueryInvariantProjectionWork,
     ) {
-        let ((output, decision_facts), snapshot, work) = self.completed.into_parts();
         (
-            output,
-            WorthQueryApplicationOperationInvariantProjectionSnapshot {
-                snapshot,
+            self.output,
+            WorthQueryApplicationOperationInvariantProjectionEvidence {
+                branch_id: self.branch_id,
+                version: self.version,
                 admission_identity: self.admission_identity,
-                decision_facts,
-                _operation: PhantomData,
+                session_identity: self.session_identity,
+                realized_scope: self.realized_scope,
+                decision_facts: self.decision_facts,
+                _marker: PhantomData,
             },
-            work,
+            self.work,
         )
     }
 }
@@ -336,33 +357,33 @@ where
     }
 }
 
-impl<Schema, Operation> WorthQueryApplicationOperationInvariantProjectionSnapshot<Schema, Operation>
+impl<Schema, Operation> WorthQueryApplicationOperationInvariantProjectionEvidence<Schema, Operation>
 where
     Schema: ApplicationSchema,
 {
     pub fn version(&self) -> worth_relational::facade::identity::VersionId {
-        self.snapshot.version()
+        self.version
     }
 
     pub(in crate::domain_computation::primary_graph) fn belongs_to(
         &self,
-        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-        binding_identity: &worth_query_installation::facade::ApplicationSchemaBindingIdentity,
         admission_identity: WorthQueryOperationAdmissionIdentity,
+        session_identity: &CanonicalDigestId,
+        branch_id: &worth_relational::facade::history::BranchId,
+        version: worth_relational::facade::identity::VersionId,
     ) -> bool {
-        self.snapshot
-            .belongs_to(runtime_authority, binding_identity)
-            && self.admission_identity == admission_identity
+        self.admission_identity == admission_identity
+            && &self.session_identity == session_identity
+            && &self.branch_id == branch_id
+            && self.version == version
     }
 
-    pub(in crate::domain_computation::primary_graph) fn into_lease_and_realized_scope(
+    pub(in crate::domain_computation::primary_graph) fn into_realized_scope(
         self,
     ) -> (
-        super::super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease,
         super::WorthQueryRealizedProjectionScope,
         BTreeSet<WorthQueryApplicationFactKey>,
     ) {
-        let (lease, scope) = self.snapshot.into_lease_and_realized_scope();
-        (lease, scope, self.decision_facts)
+        (self.realized_scope, self.decision_facts)
     }
 }

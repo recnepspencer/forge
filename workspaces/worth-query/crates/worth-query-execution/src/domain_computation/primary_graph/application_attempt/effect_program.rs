@@ -61,7 +61,7 @@ impl<Schema, Operation, Input, Scope>
     pub fn begin_effect_program(
         self,
     ) -> WorthQueryApplicationEffectProgramBuilder<Schema, Operation, Input, Scope> {
-        let layout = Arc::clone(&self.lease.layout);
+        let layout = Arc::clone(&self.admission.graph_work_session().basis().layout);
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -268,7 +268,7 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub fn finish(
-        self,
+        mut self,
     ) -> Result<
         WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
         WorthQueryApplicationAttemptDenial,
@@ -282,8 +282,41 @@ impl<Schema, Operation, Input, Scope>
                     self.read_set.admission.operation(),
                 )
             })?;
+        let touch = super::WorthQueryOperationMutationTouchCompletion::mint(
+            *self.read_set.admission.graph_work_session().identity(),
+            self.read_set
+                .admission
+                .graph_work_session()
+                .branch_affinity()
+                .relational_branch()
+                .clone(),
+            self.effects.len(),
+        );
+        crate::domain_computation::provider_session::record_operation_mutation_touch_completion(
+            self.read_set.admission.graph_work_session_mut(),
+            touch,
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryApplicationAttemptDenialKind::GraphWorkProgressionDenied,
+                self.read_set.admission.operation(),
+            )
+        })?;
+        let super::WorthQueryCompleteApplicationReadSet {
+            admission,
+            facts,
+            _phase: _,
+        } = self.read_set;
+        let operation = super::WorthQueryProgressingApplicationOperation::advance(admission)
+            .map_err(|_| {
+                denial(
+                    WorthQueryApplicationAttemptDenialKind::GraphWorkProgressionDenied,
+                    "complete decision read set",
+                )
+            })?;
         Ok(WorthQueryApplicationEffectProgram {
-            read_set: self.read_set,
+            operation,
+            facts,
             effects: self.effects,
             emission_retained_bytes: self.emission_retained_bytes,
             emission_retained_bytes_ceiling: self.emission_retained_bytes_ceiling,

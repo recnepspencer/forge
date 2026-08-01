@@ -18,7 +18,13 @@ impl RelationalRuntime {
         else {
             return RelationalAuthorizationObservationFreshness::Stale;
         };
-        if current.paths == expected.paths() {
+        let semantically_equal = current.paths.len() == expected.paths().len()
+            && current
+                .paths
+                .iter()
+                .zip(expected.paths())
+                .all(|(current, expected)| current.has_same_decision_and_witness(expected));
+        if semantically_equal {
             RelationalAuthorizationObservationFreshness::Fresh
         } else {
             RelationalAuthorizationObservationFreshness::Stale

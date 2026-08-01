@@ -14,6 +14,7 @@ pub(crate) use authorization_requirement::{
 pub use authorization_requirement::{
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledAuthorizationPath,
 };
+pub(crate) use contracts::WorthQueryApplicationOperationCompilationSource;
 pub use contracts::{
     WorthQueryCompiledApplicationOperationContracts, APPLICATION_AUTHORIZATION_FACT_FAMILY,
     APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,

@@ -13,6 +13,10 @@ pub use account_activity::{
 pub use denial::BankApplicationQueryDenial;
 pub(crate) use execution::{execute_one_shot, execute_preview};
 pub(crate) use governed_execution::execute_estate_customer_disclosure;
+#[cfg(test)]
+pub(crate) use governed_execution::{
+    execute_estate_customer_disclosure_action_with, execute_estate_customer_disclosure_with,
+};
 pub(crate) use request::BankApplicationQueryInvocation;
 
 pub type BankPreviewSession =

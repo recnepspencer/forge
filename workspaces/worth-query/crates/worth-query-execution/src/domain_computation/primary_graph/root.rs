@@ -87,6 +87,10 @@ impl WorthQueryPrimaryGraph {
         &self.layout
     }
 
+    pub(in crate::domain_computation) fn retain_layout(&self) -> Arc<WorthQueryPrimaryGraphLayout> {
+        Arc::clone(&self.layout)
+    }
+
     pub(crate) fn integration_handle(&self) -> WorthQueryPrimaryGraphIntegrationHandle {
         let principal_identity_index_ids = self
             .layout
@@ -169,11 +173,14 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     pub(crate) fn ensure_primary_indexes_current(
         &self,
         runtime: &mut RelationalRuntime,
-    ) -> Result<(), &'static str> {
-        let Some(head) = runtime.history().latest_commit().cloned() else {
-            return Ok(());
+        branch: &worth_relational::facade::history::BranchId,
+    ) -> Result<worth_relational::facade::identity::VersionId, &'static str> {
+        let Some(head) = runtime.history().branch_head(branch).cloned() else {
+            return Ok(worth_relational::facade::identity::VersionId(0));
         };
-        self.ensure_primary_indexes_for_commit(runtime, head)
+        let version = head.version_id;
+        self.ensure_primary_indexes_for_commit(runtime, head)?;
+        Ok(version)
     }
 
     pub(crate) fn ensure_primary_indexes_for_version(

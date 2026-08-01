@@ -8,8 +8,7 @@ use worth_query_decl::facade::application_schema::{
 
 use crate::model::BankPrincipalId;
 use crate::schema::{
-    BankSchema, EstateCase, EstateDeceased, Principal, PrincipalIdentity,
-    PrincipalIdentityField,
+    BankSchema, EstateCase, EstateDeceased, Principal, PrincipalIdentity, PrincipalIdentityField,
 };
 
 use super::customer_disclosure::EstateCustomerDisclosureQuery;

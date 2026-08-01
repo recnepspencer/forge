@@ -75,12 +75,12 @@ impl<Schema, Operation, Input, Scope, Phase>
         entity: &str,
         identity: &WorthQueryApplicationEntityIdentity<Schema, Entity>,
     ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-        self.lease
+        self.graph_lease()
             .handle()
             .with_runtime(|runtime| {
                 super::super::super::entity_resolution::validate_entity_freshness_at_snapshot(
                     runtime,
-                    self.lease.snapshot(),
+                    self.graph_lease().snapshot(),
                     identity,
                 )
             })

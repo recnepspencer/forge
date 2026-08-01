@@ -1,37 +1,33 @@
-//! Current capability request admission.
+//! Non-observing preparation of a typed capability request.
 
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_installation::facade::{
-    ApplicationSchema, TypedApplicationValue, WorthQueryInstalledApplicationCapability,
+    ApplicationSchema, WorthQueryInstalledApplicationCapability,
 };
 
 use super::admission::admit_request;
-use super::capability_observation::observe_capability;
-use super::capability_request_resolution::resolve_capability_request;
-use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalCurrentnessDependency,
-    WorthQueryRetainedCapabilityAuthorization,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryPreparedApplicationCapabilityAccess,
 };
 use crate::domain_computation::primary_graph::{
-    validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
-    WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub fn admit_capability_access<Principal, PrincipalIdentity, Capability, Operation, Input>(
+    pub fn prepare_capability_access<Principal, PrincipalIdentity, Capability, Operation, Input>(
         &self,
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
         input: Input,
         request: &WorthQueryRequestScope,
     ) -> Result<
-        WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+        WorthQueryPreparedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
         WorthQueryOperationAuthorizationDenial,
     >
     where
@@ -67,83 +63,10 @@ where
                 projection_denial.subject(),
             )
         })?;
-        let sample = self
-            .authorization_clock
-            .sample(installed.request.timeline)
-            .map_err(|_| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::TrustedTimeUnavailable,
-                    capability.contract().name(),
-                )
-            })?;
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-                capability.contract().operation(),
-            )
-        })?;
-        let principal_layout = graph
-            .layout()
-            .principal_binding(principal.binding())
-            .cloned()
-            .ok_or_else(|| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                    principal.binding(),
-                )
-            })?;
-        let expected_external_identity = principal
-            .external_identity()
-            .clone()
-            .into_foundational_value();
-        let principal_currentness =
-            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
-        let (resolved, revalidation, authorization) =
-            graph.integration_handle().with_runtime_mut(|runtime| {
-                let snapshot = runtime.snapshots().snapshot();
-                let result = (|| {
-                    validate_freshness_at_snapshot(
-                        runtime,
-                        &snapshot,
-                        principal,
-                        &principal_layout,
-                        &expected_external_identity,
-                    )
-                    .map_err(|_| {
-                        denial(
-                            WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                            principal.binding(),
-                        )
-                    })?;
-                    let resolved = resolve_capability_request(
-                        runtime,
-                        &snapshot,
-                        graph.layout(),
-                        &self.installed_schema,
-                        &projection,
-                        self.runtime.authority_identity(),
-                    )?;
-                    let revalidation = WorthQueryRetainedCapabilityRequest::capture(
-                        *capability.identity().bytes(),
-                        principal.principal_entity_id(),
-                        &projection,
-                        &resolved,
-                    );
-                    let authorization = observe_capability(
-                        runtime,
-                        snapshot.clone(),
-                        self.authorization.bridge(),
-                        installed,
-                        &revalidation,
-                        &sample,
-                        None,
-                    )?;
-                    Ok((resolved, revalidation, authorization))
-                })();
-                runtime.snapshots().release_snapshot(&snapshot);
-                result
-            })?;
-        let (authorization, grant) = authorization.into_parts();
+        super::capability_projection_validation::validate_projected_capability_shape(
+            installed,
+            &projection,
+        )?;
         admit_request(request, capability.contract().operation())?;
         if principal.is_expired() {
             return Err(denial(
@@ -151,27 +74,22 @@ where
                 principal.binding(),
             ));
         }
-        Ok(WorthQueryAdmittedApplicationCapabilityAccess::mint(
+        Ok(WorthQueryPreparedApplicationCapabilityAccess::mint(
             self.runtime.authority_identity(),
             capability.binding_identity().clone(),
+            CanonicalDigestId::new(*capability.identity().bytes()),
+            installed.capability_authority_identity.clone(),
             capability.contract().name(),
             std::any::type_name::<Capability>(),
             capability.contract().operation(),
             principal.principal_entity_id(),
+            principal.binding(),
+            principal.freshness().clone(),
             input,
             projection,
-            resolved,
             principal.valid_until(),
             request.clone(),
             capability.lookup_evidence().canonical_work(),
-            WorthQueryRetainedCapabilityAuthorization::new(
-                principal_currentness,
-                authorization,
-                installed.capability_authority_identity.clone(),
-                grant,
-                revalidation,
-                sample,
-            ),
         ))
     }
 }

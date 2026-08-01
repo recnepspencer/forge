@@ -16,10 +16,7 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::{WorthQueryApplicationPreviewSession, WorthQueryApplicationPreviewSessionIdentity};
-use crate::domain_computation::primary_graph::{
-    application_branch::{primary_relational_branch_id, primary_truth_branch_identity},
-    WorthQueryPrimaryGraphApplicationRuntime,
-};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationPreviewSessionDenialKind {
@@ -110,7 +107,7 @@ where
         let head = graph.integration_handle().with_runtime(|runtime| {
             runtime
                 .history()
-                .branch_head(&primary_relational_branch_id())
+                .branch_head(self.branch_affinity.relational_branch())
                 .cloned()
         });
         let head = head.ok_or_else(current_truth_denial)?;
@@ -119,7 +116,7 @@ where
         let identity = WorthQueryApplicationPreviewSessionIdentity::mint(format!(
             "worth-query-application-preview-session:{identity_basis}"
         ));
-        let truth_branch = primary_truth_branch_identity();
+        let truth_branch = self.branch_affinity.truth_branch().clone();
         let declaration = BridgePreviewSessionDeclaration::new(
             BridgePreviewSessionDeclarationIdentity::from_stable_name(format!(
                 "worth-query-application-preview-declaration:{identity_basis}"

@@ -4962,6 +4962,7 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "worth-foundational",
+ "worth-proof",
  "worth-query-declaration",
  "worth-query-installation",
 ]

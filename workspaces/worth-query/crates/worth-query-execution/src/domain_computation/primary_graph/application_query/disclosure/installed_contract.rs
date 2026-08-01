@@ -11,7 +11,8 @@ use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 #[derive(Clone, Debug)]
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryInstalledApplicationDisclosureRule {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryInstalledApplicationDisclosureRule
+{
     disclosure_value: AspectValue,
     influence: ApplicationQueryInfluenceContract,
 }
@@ -27,22 +28,22 @@ impl WorthQueryInstalledApplicationDisclosureRule {
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryAdmittedApplicationDisclosureContract {
+pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryAdmittedApplicationDisclosureContract
+{
     Public,
     Governed {
         classification: String,
         capability_name: String,
         capability_type: String,
-        result_rules: BTreeMap<
-            ApplicationQueryResultSlotKey,
-            WorthQueryInstalledApplicationDisclosureRule,
-        >,
+        result_rules:
+            BTreeMap<ApplicationQueryResultSlotKey, WorthQueryInstalledApplicationDisclosureRule>,
         internal_rules: Vec<WorthQueryInstalledApplicationDisclosureRule>,
     },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationDisclosureContractDenial {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationDisclosureContractDenial
+{
     subject: String,
 }
 
@@ -52,7 +53,13 @@ impl WorthQueryApplicationDisclosureContractDenial {
     }
 }
 
-pub(in crate::domain_computation::primary_graph::application_query) fn compile_disclosure_contract<Schema, Query, Parameters, QueryResult, Scope>(
+pub(in crate::domain_computation::primary_graph::application_query) fn compile_disclosure_contract<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Scope,
+>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
     layout: &WorthQueryPrimaryGraphLayout,
 ) -> Result<
@@ -69,9 +76,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn compile_d
             }
         }
         ApplicationQueryDisclosurePosture::InstalledPolicyRequired => Err(denial(query.name())),
-        ApplicationQueryDisclosurePosture::Governed => {
-            compile_governed_contract(query, layout)
-        }
+        ApplicationQueryDisclosurePosture::Governed => compile_governed_contract(query, layout),
     }
 }
 
@@ -116,10 +121,8 @@ fn compile_governed_contract<Schema, Query, Parameters, QueryResult, Scope>(
     })
 }
 
-type GovernedFieldRules = BTreeMap<
-    (String, String, String),
-    Vec<(AspectValue, ApplicationQueryInfluenceContract)>,
->;
+type GovernedFieldRules =
+    BTreeMap<(String, String, String), Vec<(AspectValue, ApplicationQueryInfluenceContract)>>;
 
 fn admit_rule<Schema, Query, Parameters, QueryResult, Scope>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
@@ -142,10 +145,7 @@ fn admit_rule<Schema, Query, Parameters, QueryResult, Scope>(
         governed_fields
             .entry((entity.to_string(), aspect.to_string(), field.to_string()))
             .or_default()
-            .push((
-                rule.disclosure_value().clone(),
-                rule.influence().clone(),
-            ));
+            .push((rule.disclosure_value().clone(), rule.influence().clone()));
     }
     match selector {
         ApplicationQueryDisclosureSelector::InternalField { .. } => {
@@ -187,8 +187,8 @@ fn admit_field_masks(
     entity: &str,
     aspect: &str,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
-    let aspect_key = worth_foundational::facade::AspectKey::new(aspect)
-        .ok_or_else(|| denial(aspect))?;
+    let aspect_key =
+        worth_foundational::facade::AspectKey::new(aspect).ok_or_else(|| denial(aspect))?;
     let contract = layout
         .aspect_contract(entity, &aspect_key)
         .ok_or_else(|| denial(aspect))?;
@@ -210,10 +210,7 @@ fn admit_field_masks(
 
 fn require_complete_result_shape<Schema, Query, Parameters, QueryResult, Scope>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
-    rules: &BTreeMap<
-        ApplicationQueryResultSlotKey,
-        WorthQueryInstalledApplicationDisclosureRule,
-    >,
+    rules: &BTreeMap<ApplicationQueryResultSlotKey, WorthQueryInstalledApplicationDisclosureRule>,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
     let expected = query.read_graph().projections().len() + query.read_graph().relations().len();
     let exact = query
@@ -239,17 +236,10 @@ fn require_complete_result_shape<Schema, Query, Parameters, QueryResult, Scope>(
 fn validate_influence<Schema, Query, Parameters, QueryResult, Scope>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
     fields: &GovernedFieldRules,
-    results: &BTreeMap<
-        ApplicationQueryResultSlotKey,
-        WorthQueryInstalledApplicationDisclosureRule,
-    >,
+    results: &BTreeMap<ApplicationQueryResultSlotKey, WorthQueryInstalledApplicationDisclosureRule>,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
     for predicate in query.read_graph().predicates() {
-        require_field_influence(
-            fields,
-            predicate.field(),
-            membership_surfaces(query),
-        )?;
+        require_field_influence(fields, predicate.field(), membership_surfaces(query))?;
     }
     for ordering in query.read_graph().ordering() {
         require_field_influence(
@@ -331,10 +321,7 @@ fn require_field_influence(
 }
 
 fn require_result_influence(
-    rules: &BTreeMap<
-        ApplicationQueryResultSlotKey,
-        WorthQueryInstalledApplicationDisclosureRule,
-    >,
+    rules: &BTreeMap<ApplicationQueryResultSlotKey, WorthQueryInstalledApplicationDisclosureRule>,
     slot: &ApplicationQueryResultSlotKey,
     surface: ApplicationQueryObservableInfluence,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {

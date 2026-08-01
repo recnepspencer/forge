@@ -124,6 +124,9 @@ fn revoke_account_ownership(
             })),
         ));
         transaction.commit().unwrap();
-        graph.ensure_primary_indexes_current(runtime).unwrap();
+        let branch = runtime.config().history.main_branch.clone();
+        graph
+            .ensure_primary_indexes_current(runtime, &branch)
+            .unwrap();
     });
 }

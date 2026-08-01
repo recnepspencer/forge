@@ -47,28 +47,36 @@ where
     Schema: ApplicationSchema,
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
 {
-    let request = plan.controls.request_scope();
-    let continuation_contract = plan
-        .query
-        .continuation()
-        .expect("continuation plans retain an installed continuation contract");
+    let request = plan.controls.request_scope().clone();
     let index_id = plan
         .continuation_index_id
         .expect("continuation plans retain an installed ordered index");
-    let basis_identity = plan.basis.identity().clone();
-    let basis_version = plan.basis.version_id();
+    let basis_identity = plan.basis().identity().clone();
+    let basis_version = plan.basis().version_id();
     let next_page_ordinal = plan
         .continuation_state
         .as_ref()
         .map_or(2, |state| state.page_ordinal.saturating_add(1));
-    let released = plan.basis.release().released();
+    let completed = plan.complete_graph_read().map_err(|_| {
+        denial(
+            WorthQueryApplicationContinuationDenialKind::BasisReleaseFailed,
+            "graph-work owner progression",
+        )
+    })?;
+    let graph_work_release = completed.release;
+    let plan = completed.plan;
+    let continuation_contract = plan
+        .query
+        .continuation()
+        .expect("continuation plans retain an installed continuation contract");
+    let released = graph_work_release.basis_released();
     if !released {
         return Err(denial(
             WorthQueryApplicationContinuationDenialKind::BasisReleaseFailed,
             plan.query.name(),
         ));
     }
-    validate_request(request)
+    validate_request(&request)
         .map_err(|validation| denial(map_validation_denial(validation), plan.query.name()))?;
     if plan.principal.is_expired() {
         return Err(denial(
@@ -81,7 +89,7 @@ where
         kernel,
         &plan.governance,
         || {
-            validate_request(request).map_err(|validation| {
+            validate_request(&request).map_err(|validation| {
                 denial(map_validation_denial(validation), plan.query.name())
             })
         },
@@ -139,7 +147,7 @@ where
             lane: plan.controls.lane(),
             consistency: plan.controls.consistency(),
             freshness: plan.controls.freshness(),
-            released,
+            graph_work_release,
         },
         plan.graph_read_plan,
         plan.canonical_work,

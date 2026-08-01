@@ -3,6 +3,7 @@ use std::num::NonZeroU32;
 use worth_foundational::facade::CanonicalDigestWorkBudget;
 use worth_query_declaration::facade::application_schema::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
+    ApplicationSchemaBindingIdentity,
 };
 use worth_query_declaration::facade::domain_computation::{
     WorthQueryCancellationSafePointFamily, WorthQueryExecutionMode, WorthQueryResourceDimension,
@@ -29,6 +30,11 @@ use crate::domain_operation::{
     WorthQueryOperationGraphReadContract, WorthQueryOperationGraphReadRole,
     WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
 };
+use crate::graph_obligation::{
+    bind_operation_obligations, WorthQueryApplicationOperationObligationSource,
+    WorthQueryGraphObligationInstallationDenial, WorthQueryInstalledGraphCapabilityRequirement,
+    WorthQueryInstalledGraphObligationSet,
+};
 
 pub const APPLICATION_EXECUTION_PROVIDER_FAMILY: &str = "primary-relational-provider";
 pub const APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY: &str = "typed-primary-graph";
@@ -38,10 +44,33 @@ pub const APPLICATION_DECISION_FACT_FAMILY: &str = "application-operation-decisi
 pub const APPLICATION_AUTHORIZATION_FACT_FAMILY: &str = "application-operation-authorization-facts";
 pub const APPLICATION_INVARIANT_SLOT: &str = "application-touched-graph";
 
+pub(crate) struct WorthQueryApplicationOperationCompilationSource<'a> {
+    pub(crate) binding_identity: &'a ApplicationSchemaBindingIdentity,
+    pub(crate) operation: &'a str,
+    pub(crate) input_type: &'a str,
+    pub(crate) authorization: WorthQueryInstalledApplicationOperationAuthorization,
+    pub(crate) ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
+    pub(crate) capability_requirements: Vec<WorthQueryInstalledGraphCapabilityRequirement>,
+    pub(crate) program: Vec<ApplicationOperationProgramTarget>,
+    pub(crate) decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    pub(crate) decision_fact_budget: usize,
+    pub(crate) projection_work_budget: usize,
+    pub(crate) mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+}
+
+struct WorthQueryDerivedApplicationExecutionContracts {
+    graph_reads: WorthQueryOperationGraphReadContract,
+    touches: WorthQueryOperationTouchContract,
+    effects: WorthQueryOperationEffectContract,
+    invariants: WorthQueryOperationInvariantContract,
+    invariant_execution: WorthQueryInvariantExecutionContract,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryCompiledApplicationOperationContracts {
     authorization: WorthQueryInstalledApplicationOperationAuthorization,
     ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
+    capability_requirements: Vec<WorthQueryInstalledGraphCapabilityRequirement>,
     graph_reads: WorthQueryOperationGraphReadContract,
     touches: WorthQueryOperationTouchContract,
     effects: WorthQueryOperationEffectContract,
@@ -54,82 +83,70 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     decision_fact_budget: usize,
     projection_work_budget: usize,
     mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+    obligations: WorthQueryInstalledGraphObligationSet,
 }
 
 impl WorthQueryCompiledApplicationOperationContracts {
     pub(crate) fn compile(
-        authorization: WorthQueryInstalledApplicationOperationAuthorization,
-        mut ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
-        mut program: Vec<ApplicationOperationProgramTarget>,
-        mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
-        decision_fact_budget: usize,
-        projection_work_budget: usize,
-        mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
-    ) -> Self {
-        ability_requirements.sort();
-        ability_requirements.dedup();
-        program.sort();
-        program.dedup();
-        decision_reads.sort();
-        decision_reads.dedup();
-        let authorization_fact_count = authorization.exact_fact_count(ability_requirements.len());
-        let primary_role = "primary".to_string();
-        let graph_reads = WorthQueryOperationGraphReadContract::Declared {
-            roles: vec![WorthQueryOperationGraphReadRole {
-                role: primary_role.clone(),
-                participation: WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
-                access: WorthQueryOperationGraphAccess::Project,
-                semantic_reads: Vec::new(),
-            }],
-        };
-        let (touches, effects, invariants, invariant_execution) = if program.is_empty() {
-            (
-                WorthQueryOperationTouchContract::NotRequired,
-                WorthQueryOperationEffectContract::NotRequired,
-                WorthQueryOperationInvariantContract::NotRequired,
-                WorthQueryInvariantExecutionContract::NotRequired,
-            )
-        } else {
-            (
-                WorthQueryOperationTouchContract::Declared {
-                    graph_roles: vec![primary_role],
-                    scopes: program.iter().map(program_scope).collect(),
-                },
-                WorthQueryOperationEffectContract::Declared {
-                    effect_families: vec![WorthQueryOperationEffectFamily::Mutation],
-                },
-                WorthQueryOperationInvariantContract::Declared {
-                    invariant_slots: vec![APPLICATION_INVARIANT_SLOT.to_owned()],
-                },
-                application_invariant_execution_contract(decision_fact_budget, program.len()),
-            )
-        };
-        let decision_facts =
-            application_decision_fact_contract(decision_fact_budget, authorization_fact_count);
-        let resources = application_resource_contract(
-            decision_fact_budget.saturating_add(authorization_fact_count),
-            program.len(),
+        mut source: WorthQueryApplicationOperationCompilationSource<'_>,
+    ) -> Result<Self, WorthQueryGraphObligationInstallationDenial> {
+        normalize_compilation_source(&mut source);
+        let authorization_fact_count = source
+            .authorization
+            .exact_fact_count(source.ability_requirements.len());
+        let derived = derive_execution_contracts(&source.program, source.decision_fact_budget);
+        let decision_facts = application_decision_fact_contract(
+            source.decision_fact_budget,
+            authorization_fact_count,
         );
-        Self {
-            authorization,
-            ability_requirements,
-            graph_reads,
-            touches,
-            effects,
-            invariants,
+        let resources = application_resource_contract(
+            source
+                .decision_fact_budget
+                .saturating_add(authorization_fact_count),
+            source.program.len(),
+        );
+        let obligations = bind_operation_obligations(
+            source.binding_identity,
+            source.operation,
+            source.input_type,
+            WorthQueryApplicationOperationObligationSource {
+                authorization: source.authorization,
+                ability_requirements: &source.ability_requirements,
+                capability_requirements: &source.capability_requirements,
+                graph_reads: &derived.graph_reads,
+                touches: &derived.touches,
+                effects: &derived.effects,
+                invariants: &derived.invariants,
+                invariant_execution: &derived.invariant_execution,
+                resources: &resources,
+            },
+        )?;
+        Ok(Self {
+            authorization: source.authorization,
+            ability_requirements: source.ability_requirements,
+            capability_requirements: source.capability_requirements,
+            graph_reads: derived.graph_reads,
+            touches: derived.touches,
+            effects: derived.effects,
+            invariants: derived.invariants,
             decision_facts,
-            invariant_execution,
+            invariant_execution: derived.invariant_execution,
             resources,
-            program,
-            decision_reads,
-            decision_fact_budget,
-            projection_work_budget,
-            mutation_preconditions,
-        }
+            program: source.program,
+            decision_reads: source.decision_reads,
+            decision_fact_budget: source.decision_fact_budget,
+            projection_work_budget: source.projection_work_budget,
+            mutation_preconditions: source.mutation_preconditions,
+            obligations,
+        })
     }
 
     pub fn mutation_preconditions(&self) -> &[WorthQueryInstalledMutationPrecondition] {
         &self.mutation_preconditions
+    }
+
+    pub fn obligations(&self) -> &WorthQueryInstalledGraphObligationSet {
+        &self.obligations
     }
 
     pub const fn authorization(&self) -> WorthQueryInstalledApplicationOperationAuthorization {
@@ -151,6 +168,10 @@ impl WorthQueryCompiledApplicationOperationContracts {
 
     pub fn ability_requirements(&self) -> &[WorthQueryInstalledAbilityRequirement] {
         &self.ability_requirements
+    }
+
+    pub fn capability_requirements(&self) -> &[WorthQueryInstalledGraphCapabilityRequirement] {
+        &self.capability_requirements
     }
 
     pub fn graph_reads(&self) -> &WorthQueryOperationGraphReadContract {
@@ -202,6 +223,65 @@ impl WorthQueryCompiledApplicationOperationContracts {
 
     pub const fn projection_work_budget(&self) -> usize {
         self.projection_work_budget
+    }
+}
+
+fn normalize_compilation_source(source: &mut WorthQueryApplicationOperationCompilationSource<'_>) {
+    source.ability_requirements.sort();
+    source.ability_requirements.dedup();
+    source
+        .capability_requirements
+        .sort_by(|left, right| left.identity().bytes().cmp(right.identity().bytes()));
+    source
+        .capability_requirements
+        .dedup_by(|left, right| left.identity() == right.identity());
+    source.program.sort();
+    source.program.dedup();
+    source.decision_reads.sort();
+    source.decision_reads.dedup();
+}
+
+fn derive_execution_contracts(
+    program: &[ApplicationOperationProgramTarget],
+    decision_fact_budget: usize,
+) -> WorthQueryDerivedApplicationExecutionContracts {
+    let primary_role = "primary".to_string();
+    let graph_reads = WorthQueryOperationGraphReadContract::Declared {
+        roles: vec![WorthQueryOperationGraphReadRole {
+            role: primary_role.clone(),
+            participation: WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
+            access: WorthQueryOperationGraphAccess::Project,
+            semantic_reads: Vec::new(),
+        }],
+    };
+    let (touches, effects, invariants, invariant_execution) = if program.is_empty() {
+        (
+            WorthQueryOperationTouchContract::NotRequired,
+            WorthQueryOperationEffectContract::NotRequired,
+            WorthQueryOperationInvariantContract::NotRequired,
+            WorthQueryInvariantExecutionContract::NotRequired,
+        )
+    } else {
+        (
+            WorthQueryOperationTouchContract::Declared {
+                graph_roles: vec![primary_role],
+                scopes: program.iter().map(program_scope).collect(),
+            },
+            WorthQueryOperationEffectContract::Declared {
+                effect_families: vec![WorthQueryOperationEffectFamily::Mutation],
+            },
+            WorthQueryOperationInvariantContract::Declared {
+                invariant_slots: vec![APPLICATION_INVARIANT_SLOT.to_owned()],
+            },
+            application_invariant_execution_contract(decision_fact_budget, program.len()),
+        )
+    };
+    WorthQueryDerivedApplicationExecutionContracts {
+        graph_reads,
+        touches,
+        effects,
+        invariants,
+        invariant_execution,
     }
 }
 

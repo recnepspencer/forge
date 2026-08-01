@@ -5,7 +5,8 @@ use bank_domain::schema::{
 use worth_query_host::facade::domain::TypedApplicationValue;
 use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryApplicationQueryAdmissionDenialKind,
+    WorthQueryOperationAuthorizationDenialKind,
 };
 
 use super::fixture::{capability_world, request_scope, GrantSpec, DECEASED, ESTATE};
@@ -45,7 +46,10 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
         disclosure.posture(),
         WorthQueryApplicationDisclosureReceiptPosture::Governed
     );
-    assert_eq!(disclosure.classification(), Some("estate-customer-identity"));
+    assert_eq!(
+        disclosure.classification(),
+        Some("estate-customer-identity")
+    );
     assert_eq!(
         disclosure.disclosed(),
         &[RestrictedBankField::CustomerIdentity.into_foundational_value()]
@@ -91,11 +95,13 @@ fn bank_consumer_cannot_repurpose_an_administration_grant_for_identity_disclosur
         Err(denial) => denial,
     };
 
-    let BankApplicationQueryDenial::CapabilityAdmission(denial) = denial else {
-        panic!("wrong-purpose grant must fail at capability admission")
+    let BankApplicationQueryDenial::Admission(denial) = denial else {
+        panic!("wrong-purpose grant must fail inside governed query admission")
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryApplicationQueryAdmissionDenialKind::Authorization(
+            WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        )
     );
 }

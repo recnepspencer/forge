@@ -54,10 +54,7 @@ where
     for node in raw_rows {
         validate()?;
         rows.push(
-            QueryResult::project(&WorthQueryApplicationProjectionRow::new(
-                &node,
-                governance,
-            ))
+            QueryResult::project(&WorthQueryApplicationProjectionRow::new(&node, governance))
                 .map_err(&map_projection_denial)?,
         );
     }

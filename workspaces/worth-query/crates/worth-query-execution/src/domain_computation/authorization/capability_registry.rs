@@ -139,9 +139,9 @@ impl WorthQueryInstalledCapabilityRegistry {
     }
 }
 
-pub(super) struct WorthQueryInstalledCapabilityPlan {
+pub(in crate::domain_computation) struct WorthQueryInstalledCapabilityPlan {
     pub(super) correspondence: BridgeAuthorizationCorrespondenceIdentity,
-    pub(super) capability_authority_identity: Arc<str>,
+    pub(in crate::domain_computation) capability_authority_identity: Arc<str>,
     pub(super) contract: ErasedApplicationCapabilityContract,
     pub(super) principal_kind: KindId,
     pub(super) grant_kind: KindId,

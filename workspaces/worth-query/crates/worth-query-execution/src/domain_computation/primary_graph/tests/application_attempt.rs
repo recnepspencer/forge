@@ -1,11 +1,12 @@
 use std::time::Duration;
 
 use super::fixture::{
-    installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
+    installed_authorization_world, installed_authorization_world_on_branch, live_scope,
+    AccountStatus, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationHistoricalRead,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryPrincipalResolutionMode,
 };
 #[path = "application_attempt/authority_lifecycle.rs"]
 mod authority_lifecycle;
@@ -29,6 +30,32 @@ mod touched_graph_closure;
 use program_fixture::{
     admitted_program, admitted_program_with_emit, admitted_program_with_expected_status,
 };
+
+#[test]
+fn committed_receipt_reopens_historical_truth_on_its_exact_non_main_branch() {
+    let world = installed_authorization_world_on_branch(true, "tenant-blue");
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let program = admitted_program(&world, &principal, &account, &request, "committed");
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
+        .application
+        .compare_and_commit_application(program, idempotency(41, 41))
+    else {
+        panic!("the non-main application attempt must commit");
+    };
+    assert_eq!(receipt.branch_id().0, "tenant-blue");
+
+    let basis = world
+        .application
+        .admit_application_historical_basis(
+            WorthQueryApplicationHistoricalRead::at_application_commit(&receipt),
+            &request,
+        )
+        .expect("the commit receipt must reopen its own branch-qualified truth");
+    assert_eq!(basis.identity().branch_id(), receipt.branch_id());
+    assert!(basis.release().released());
+}
 
 #[test]
 fn same_fact_race_stales_loser_while_unrelated_drift_does_not_conflict() {
@@ -91,6 +118,25 @@ fn equivalent_retry_recovers_original_receipt_while_intent_drift_is_denied() {
         panic!("an equivalent retry must recover the original commit");
     };
     assert_eq!(recovered, original);
+    let original_graph = original
+        .graph_work()
+        .expect("the original commit retains its graph-work transcript");
+    let recovered_graph = recovered
+        .graph_work()
+        .expect("the equivalent retry retains its own graph-work transcript");
+    assert_ne!(
+        original_graph.session_identity(),
+        recovered_graph.session_identity(),
+        "equivalent commit meaning does not collapse distinct attempt sessions"
+    );
+    assert_eq!(
+        original_graph.provider_session_identity(),
+        original_graph.session_identity().render_hex(),
+    );
+    assert_eq!(
+        recovered_graph.provider_session_identity(),
+        recovered_graph.session_identity().render_hex(),
+    );
 
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application

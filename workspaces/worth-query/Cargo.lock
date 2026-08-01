@@ -648,6 +648,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "worth-foundational",
+ "worth-proof",
  "worth-query-declaration",
  "worth-query-installation",
 ]

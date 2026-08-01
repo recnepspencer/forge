@@ -8,6 +8,7 @@ pub enum WorthQueryApplicationOperationInstallationDenialKind {
     MissingProjectionWorkBudget,
     ConflictingAuthorizationContract,
     InvalidMutationPreconditionContract,
+    InvalidGraphObligationContract,
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,
     CanonicalDigestSlotRejected,
@@ -15,7 +16,6 @@ pub enum WorthQueryApplicationOperationInstallationDenialKind {
     StaleGeneration,
     SchemaMeaningChanged,
     PackageIdentityChanged,
-    AuthorityMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

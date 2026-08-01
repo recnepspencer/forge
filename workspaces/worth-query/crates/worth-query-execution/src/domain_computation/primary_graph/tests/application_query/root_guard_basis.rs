@@ -120,6 +120,9 @@ fn change_account_status(
             )),
         );
         transaction.commit().unwrap();
-        handle.ensure_primary_indexes_current(runtime).unwrap();
+        let branch = runtime.config().history.main_branch.clone();
+        handle
+            .ensure_primary_indexes_current(runtime, &branch)
+            .unwrap();
     });
 }

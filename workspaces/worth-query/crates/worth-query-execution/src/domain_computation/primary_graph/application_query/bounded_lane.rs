@@ -7,10 +7,7 @@ use worth_query_declaration::facade::application_schema::ApplicationSchema;
 use super::access_receipt::{
     WorthQueryApplicationQueryReceiptBasis, WorthQueryApplicationQueryReceiptIdentity,
 };
-use super::authorized_read::{
-    execute_authorized_read, refresh_governed_authorization,
-    WorthQueryAuthorizedApplicationReadDenial,
-};
+use super::authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial};
 use super::read_execution::{
     project_non_live_kernel, read_bounded_root_rows, WorthQueryApplicationReadExecutionDenialKind,
 };
@@ -129,18 +126,17 @@ where
         ));
     }
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
-    if !plan.basis.is_live() {
+    if !plan.basis().is_live() {
         return Err(denial(
             WorthQueryBoundedLaneDenialKind::BasisUnavailable,
             plan.query.name(),
         ));
     }
-    refresh_governed_authorization(application, &mut plan)
-        .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
+    let preview_session_liveness = plan.basis().preview_session_liveness().cloned();
     let preview_session_guard = if expected_lane == WorthQueryApplicationQueryLane::Preview {
         Some(
-            plan.basis
-                .preview_session_liveness()
+            preview_session_liveness
+                .as_ref()
                 .and_then(|liveness| liveness.admit_active_session())
                 .ok_or_else(|| {
                     denial(
@@ -164,15 +160,23 @@ where
             .max_inline_result_bytes(),
     );
     let (raw, authorization_work) =
-        execute_authorized_read(application, graph, &plan, |runtime, graph, plan| {
+        execute_authorized_read(application, graph, &mut plan, |runtime, graph, plan| {
             read_bounded_root_rows(runtime, graph, plan, result_buffer)
         })
         .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
     drop(preview_session_guard);
 
-    let basis_identity = plan.basis.identity().clone();
-    let basis_version = plan.basis.version_id();
-    let released = plan.basis.release().released();
+    let basis_identity = plan.basis().identity().clone();
+    let basis_version = plan.basis().version_id();
+    let completed = plan.complete_graph_read().map_err(|_| {
+        denial(
+            WorthQueryBoundedLaneDenialKind::BasisReleaseFailed,
+            "graph-work owner progression",
+        )
+    })?;
+    let graph_work_release = completed.release;
+    let plan = completed.plan;
+    let released = graph_work_release.basis_released();
     if !released {
         return Err(denial(
             WorthQueryBoundedLaneDenialKind::BasisReleaseFailed,
@@ -209,7 +213,7 @@ where
             lane: plan.controls.lane(),
             consistency: plan.controls.consistency(),
             freshness: plan.controls.freshness(),
-            released,
+            graph_work_release,
         },
         plan.graph_read_plan,
         plan.canonical_work,

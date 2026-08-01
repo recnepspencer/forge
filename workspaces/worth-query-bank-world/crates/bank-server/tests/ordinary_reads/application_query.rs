@@ -52,6 +52,17 @@ fn installed_account_activity_is_a_real_ordered_bank_query() {
     assert!(receipt.adjacency_list_read_count() >= 1);
     assert_eq!(receipt.fallback_count(), 0);
     assert_eq!(receipt.per_result_neighbor_lookup_count(), 0);
+    assert_eq!(receipt.branch_id(), receipt.basis_identity().branch_id());
+    assert!(receipt
+        .graph_work_session_identity()
+        .bytes()
+        .iter()
+        .any(|byte| *byte != 0));
+    assert_eq!(
+        receipt.provider_session_identity(),
+        receipt.graph_work_session_identity().render_hex()
+    );
+    assert_eq!(receipt.released_capacity_reservation_count(), 1);
     assert!(receipt.basis_released());
 }
 

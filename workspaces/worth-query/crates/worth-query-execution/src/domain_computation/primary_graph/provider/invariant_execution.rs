@@ -35,7 +35,8 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             .get(session.identity())
             .ok_or_else(|| closure_failure("provider session has no application attempt"))?;
         let expected = expected_locators(overlay)?;
-        if attempt.expected_steps.len() != overlay.facts.len()
+        if attempt.branch_id != overlay.branch_id
+            || attempt.expected_steps.len() != overlay.facts.len()
             || request.locators() != expected.as_slice()
         {
             return Err(closure_failure(
@@ -77,7 +78,8 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             .ok_or_else(|| closure_failure("invariant execution lost its application attempt"))?;
         let expected = expected_locators(overlay)?;
         let load_evidence = execution.state_load_evidence();
-        if attempt.expected_steps.len() != overlay.facts.len()
+        if attempt.branch_id != overlay.branch_id
+            || attempt.expected_steps.len() != overlay.facts.len()
             || execution.state_load_plan().locators() != expected.as_slice()
             || load_evidence.loaded_fact_locators() != expected.as_slice()
             || load_evidence.physical_load_evidence()

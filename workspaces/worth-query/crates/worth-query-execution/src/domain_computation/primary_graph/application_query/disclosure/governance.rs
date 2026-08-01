@@ -10,7 +10,8 @@ use super::receipt::WorthQueryApplicationDisclosureReceipt;
 use crate::domain_computation::authorization::WorthQueryRetainedCapabilityAuthorization;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryPendingApplicationQueryGovernance {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryPendingApplicationQueryGovernance
+{
     pub(super) capability_name: String,
     pub(super) capability_type: String,
     pub(super) disclosure_value: AspectValue,
@@ -31,9 +32,26 @@ impl WorthQueryPendingApplicationQueryGovernance {
             authorization,
         }
     }
+
+    pub(in crate::domain_computation::primary_graph::application_query) fn into_parts(
+        self,
+    ) -> (
+        String,
+        String,
+        AspectValue,
+        WorthQueryRetainedCapabilityAuthorization,
+    ) {
+        (
+            self.capability_name,
+            self.capability_type,
+            self.disclosure_value,
+            self.authorization,
+        )
+    }
 }
 
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationInternalComputationAuthority {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationInternalComputationAuthority
+{
     runtime: WorthQueryRuntimeAuthorityIdentity,
     query: WorthQueryInstalledApplicationQueryIdentity,
     parameters: CanonicalDigestId,
@@ -43,13 +61,15 @@ pub(in crate::domain_computation::primary_graph::application_query) struct Worth
 }
 
 #[derive(Clone, Debug)]
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationDisclosureDecision {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationDisclosureDecision
+{
     classification: String,
     disclosed: BTreeMap<ApplicationQueryResultSlotKey, AspectValue>,
     omitted: BTreeMap<ApplicationQueryResultSlotKey, AspectValue>,
 }
 
-pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryApplicationQueryGovernance {
+pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryApplicationQueryGovernance
+{
     Public,
     Governed {
         capability_name: String,
@@ -62,7 +82,8 @@ pub(in crate::domain_computation::primary_graph::application_query) enum WorthQu
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryApplicationQueryGovernanceDenialKind {
+pub(in crate::domain_computation::primary_graph::application_query) enum WorthQueryApplicationQueryGovernanceDenialKind
+{
     Required,
     CapabilityMismatch,
     InternalComputationDenied,
@@ -133,7 +154,8 @@ pub(in crate::domain_computation::primary_graph::application_query) fn admit_app
     }
 }
 
-pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationGovernanceBinding {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationGovernanceBinding
+{
     pub(super) runtime: WorthQueryRuntimeAuthorityIdentity,
     pub(super) query: WorthQueryInstalledApplicationQueryIdentity,
     pub(super) parameters: CanonicalDigestId,
@@ -205,15 +227,6 @@ impl WorthQueryApplicationQueryGovernance {
                 .omission(slot)
                 .map(|value| (disclosure.classification.as_str(), value))
         })
-    }
-
-    pub(in crate::domain_computation::primary_graph::application_query) fn authorization_mut(
-        &mut self,
-    ) -> Option<&mut WorthQueryRetainedCapabilityAuthorization> {
-        match self {
-            Self::Public => None,
-            Self::Governed { authorization, .. } => Some(authorization),
-        }
     }
 
     pub(in crate::domain_computation::primary_graph::application_query) fn authorization(

@@ -3,7 +3,7 @@ use super::super::{
     WorthQueryApplicationCommitOutcome,
 };
 
-pub(super) fn application_resource_request(
+pub(in crate::domain_computation) fn application_resource_request(
     contracts: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
 ) -> Option<worth_query_declaration::facade::domain_computation::WorthQueryExecutionResourceRequest>
 {
@@ -18,6 +18,7 @@ pub(super) fn application_resource_request(
 
 pub(super) fn parse_provider_receipt(
     value: &str,
+    branch_id: worth_relational::facade::history::BranchId,
 ) -> Option<
     crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication,
 > {
@@ -34,8 +35,9 @@ pub(super) fn parse_provider_receipt(
     }
     Some(
         crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication::new(
-        runtime,
-        worth_relational::facade::history::CommitId(commit),
+            runtime,
+            branch_id,
+            worth_relational::facade::history::CommitId(commit),
         changed,
         emitted,
     ))

@@ -9,10 +9,10 @@ use super::super::fixture::{
     CapabilityTouchOperation, IdentityExecutionSchema, TouchAccountCapability,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationEffectProgram,
-    WorthQueryAuthenticatedPrincipal, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationEffectProgram, WorthQueryAuthenticatedPrincipal,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryPreparedApplicationCapabilityAccess,
 };
 
 type World = super::super::fixture::AuthorizationWorld;
@@ -64,7 +64,17 @@ fn caller_time_cannot_substitute_for_the_query_owned_sample() {
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
-    let Err(denial) = admitted_capability_access(&world, &principal, &request, 100) else {
+    let prepared = admitted_capability_access(&world, &principal, &request, 100).unwrap();
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(CapabilityTouchOperation::reference())
+        .unwrap();
+    let Err(denial) =
+        world
+            .application
+            .authorize_capability_operation(prepared, &operation, Default::default())
+    else {
         panic!("a descriptive in-range caller time cannot revive an expired grant");
     };
 
@@ -137,7 +147,17 @@ fn missing_grant_membership_mints_no_access_authority() {
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
-    let Err(denial) = admitted_capability_access(&world, &principal, &request, 100) else {
+    let prepared = admitted_capability_access(&world, &principal, &request, 100).unwrap();
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(CapabilityTouchOperation::reference())
+        .unwrap();
+    let Err(denial) =
+        world
+            .application
+            .authorize_capability_operation(prepared, &operation, Default::default())
+    else {
         panic!("a principal without grant membership cannot receive capability access");
     };
     assert_eq!(
@@ -169,19 +189,19 @@ pub(super) fn admitted_capability_program(
         .unwrap();
     let access = admitted_capability_access(world, principal, request, 100).unwrap();
     let work = access.admission_canonical_work();
+    let admission = world
+        .application
+        .authorize_capability_operation(access, &operation, Default::default())
+        .unwrap();
     let evidence = AdmissionEvidence {
-        time_sample: access.capability_time_sample().clone(),
-        authorization_fact_count: access.authorization_decision_fact_count(),
+        time_sample: admission.capability_time_sample().unwrap().clone(),
+        authorization_fact_count: admission.authorization_decision_fact_count(),
         canonical_basis_preparations: work.basis_preparations(),
         canonical_digest_derivations: work.digest_derivations(),
         canonical_encoded_bytes: work.canonical_encoded_bytes(),
         requires_capability: operation.contracts().authorization().requires_capability(),
         ability_count: operation.contracts().ability_requirements().len(),
     };
-    let admission = world
-        .application
-        .authorize_capability_operation(access, &operation, Default::default())
-        .unwrap();
     let account = resolved_account(world, "open", request);
     let (_, projection, _) = world
         .invariant
@@ -213,7 +233,7 @@ pub(super) fn admitted_capability_access(
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
     caller_time: u64,
 ) -> Result<
-    WorthQueryAdmittedApplicationCapabilityAccess<
+    WorthQueryPreparedApplicationCapabilityAccess<
         IdentityExecutionSchema,
         TouchAccountCapability,
         CapabilityTouchOperation,
@@ -229,7 +249,7 @@ pub(super) fn admitted_capability_access(
             CapabilityTouchOperation::reference(),
         )
         .unwrap();
-    world.application.admit_capability_access(
+    world.application.prepare_capability_access(
         principal,
         &capability,
         CapabilityTouchInput {

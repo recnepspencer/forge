@@ -9,8 +9,8 @@ use worth_query_installation::facade::{
     ApplicationFieldCurrency, TypedApplicationReadableValue, WritePosture,
 };
 
-mod projected_tree;
 mod disclosed;
+mod projected_tree;
 
 pub use disclosed::{WorthQueryApplicationDisclosed, WorthQueryApplicationOmission};
 
@@ -102,9 +102,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Query: 'static,
         Slot: 'static,
     {
-        self.disclosed_field(selector)?.into_required(
-            WorthQueryApplicationProjectionDenialKind::FieldOmitted,
-        )
+        self.disclosed_field(selector)?
+            .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
     }
 
     pub fn optional<Slot, Relation, From, To, Direction>(
@@ -218,9 +217,8 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Query: 'static,
         Slot: 'static,
     {
-        self.disclosed_relation(selector)?.into_required(
-            WorthQueryApplicationProjectionDenialKind::RelationOmitted,
-        )
+        self.disclosed_relation(selector)?
+            .into_required(WorthQueryApplicationProjectionDenialKind::RelationOmitted)
     }
 
     pub(super) const fn new(

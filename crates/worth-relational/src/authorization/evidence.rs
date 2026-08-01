@@ -155,6 +155,10 @@ impl RelationalAuthorizationPathObservation {
     pub const fn exhaustive(&self) -> bool {
         self.exhaustive
     }
+
+    pub(crate) fn has_same_decision_and_witness(&self, other: &Self) -> bool {
+        self.matched == other.matched && self.witness == other.witness
+    }
 }
 
 /// Relational-owned evidence minted from one actual immutable snapshot read.

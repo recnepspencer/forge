@@ -29,7 +29,7 @@ use crate::domain_computation::primary_graph::{
 type World = super::super::fixture::AuthorizationWorld;
 
 #[test]
-fn revoked_access_cannot_progress_to_operation_authority() {
+fn revoked_between_preparation_and_admission_cannot_mint_operation_authority() {
     let mut world = installed_capability_authorization_world();
     world
         .application
@@ -49,12 +49,12 @@ fn revoked_access_cannot_progress_to_operation_authority() {
             .application
             .authorize_capability_operation(access, &operation, Default::default())
     else {
-        panic!("revoked retained access cannot become operation authority");
+        panic!("revoked prepared request cannot become operation authority");
     };
 
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
     );
 }
 
@@ -350,6 +350,9 @@ fn update_field(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
         )));
         transaction.commit().unwrap();
-        handle.ensure_primary_indexes_current(runtime).unwrap();
+        let branch = runtime.config().history.main_branch.clone();
+        handle
+            .ensure_primary_indexes_current(runtime, &branch)
+            .unwrap();
     });
 }

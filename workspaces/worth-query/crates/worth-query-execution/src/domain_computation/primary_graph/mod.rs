@@ -1,6 +1,5 @@
 mod aggregate_projection;
 mod application_attempt;
-mod application_branch;
 mod application_query;
 mod application_runtime;
 mod authenticated_principal;
@@ -30,12 +29,17 @@ mod typed_bootstrap;
 mod tests;
 
 pub use crate::domain_computation::authorization::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
+    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
+    WorthQueryOperationScopeEntityBinding, WorthQueryPreparedApplicationCapabilityAccess,
 };
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
+};
+pub(in crate::domain_computation) use application_attempt::{
+    application_resource_request, snapshot_lease::WorthQueryApplicationSnapshotLease,
+    WorthQueryOperationEffectApplicationCompletion, WorthQueryOperationGraphReadCompletion,
+    WorthQueryOperationInvariantExecutionCompletion, WorthQueryOperationMutationTouchCompletion,
 };
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
@@ -43,18 +47,22 @@ pub use application_attempt::{
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectEntity,
     WorthQueryApplicationEffectProgram, WorthQueryApplicationEffectProgramBuilder,
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationIdempotencyResolution,
-    WorthQueryApplicationIdempotencyResolutionDenial,
+    WorthQueryApplicationGraphWorkReceipt, WorthQueryApplicationIdempotencyBinding,
+    WorthQueryApplicationIdempotencyResolution, WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind, WorthQueryApplicationReadAttempt,
     WorthQueryApplicationStaleAttempt, WorthQueryCompleteApplicationReadSet,
     WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
 };
+pub(in crate::domain_computation) use application_query::graph_read_completion::WorthQueryApplicationQueryGraphReadCompletion;
+pub(in crate::domain_computation) use application_query::resource_lifecycle::WorthQueryApplicationBasisLease;
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
-    WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationBasisObservation,
-    WorthQueryApplicationBasisObserver, WorthQueryApplicationContinuationDenial,
-    WorthQueryApplicationContinuationDenialKind, WorthQueryApplicationContinuationPageResult,
+    WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
+    WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
+    WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
+    WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
+    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
     WorthQueryApplicationHistoricalBasis, WorthQueryApplicationHistoricalBasisReleaseReceipt,
     WorthQueryApplicationHistoricalRead, WorthQueryApplicationHistoricalResult,
     WorthQueryApplicationLiveCauseDenialKind, WorthQueryApplicationLiveCloseOutcome,
@@ -62,17 +70,14 @@ pub use application_query::{
     WorthQueryApplicationLiveLease, WorthQueryApplicationLiveOpenDenial,
     WorthQueryApplicationLiveOpenDenialKind, WorthQueryApplicationLiveOutcome,
     WorthQueryApplicationLiveOverflow, WorthQueryApplicationLiveUpdate,
-    WorthQueryApplicationOneShotDenial, WorthQueryApplicationOneShotDenialKind,
-    WorthQueryApplicationOneShotResult, WorthQueryApplicationPinnedBasis,
-    WorthQueryApplicationPinnedBasisDenial, WorthQueryApplicationPinnedBasisDenialKind,
-    WorthQueryApplicationPinnedBasisReleaseReceipt, WorthQueryApplicationPreviewBasis,
-    WorthQueryApplicationPreviewBasisReleaseReceipt, WorthQueryApplicationPreviewResult,
-    WorthQueryApplicationPreviewSession, WorthQueryApplicationPreviewSessionDenial,
-    WorthQueryApplicationPreviewSessionDenialKind,
+    WorthQueryApplicationOmission, WorthQueryApplicationOneShotDenial,
+    WorthQueryApplicationOneShotDenialKind, WorthQueryApplicationOneShotResult,
+    WorthQueryApplicationPinnedBasis, WorthQueryApplicationPinnedBasisDenial,
+    WorthQueryApplicationPinnedBasisDenialKind, WorthQueryApplicationPinnedBasisReleaseReceipt,
+    WorthQueryApplicationPreviewBasis, WorthQueryApplicationPreviewBasisReleaseReceipt,
+    WorthQueryApplicationPreviewResult, WorthQueryApplicationPreviewSession,
+    WorthQueryApplicationPreviewSessionDenial, WorthQueryApplicationPreviewSessionDenialKind,
     WorthQueryApplicationPreviewSessionDiscardReceipt, WorthQueryApplicationPreviewSessionIdentity,
-    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission,
-    WorthQueryAdmittedDisclosedApplicationResult,
-    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
     WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
     WorthQueryApplicationProjectionDenialKind, WorthQueryApplicationProjectionRow,
     WorthQueryApplicationProjectionRows, WorthQueryApplicationQueryAccessContext,
@@ -110,8 +115,8 @@ pub use invariant_projection::{
     WorthQueryApplicationInvariantProjectionAuthority,
     WorthQueryApplicationInvariantProjectionReader,
     WorthQueryApplicationInvariantProjectionSnapshot,
+    WorthQueryApplicationOperationInvariantProjectionEvidence,
     WorthQueryApplicationOperationInvariantProjectionReader,
-    WorthQueryApplicationOperationInvariantProjectionSnapshot,
     WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
     WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,

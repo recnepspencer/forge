@@ -3,7 +3,7 @@ mod cost_model;
 mod graph_index_inventory;
 mod graph_vocabulary;
 mod operation_capability;
-mod plan_review;
+pub(crate) mod plan_review;
 mod plan_review_denial;
 mod planning_derivation;
 mod planning_input;
@@ -53,9 +53,7 @@ pub use operation_capability::{
     WorthQueryGraphReadOperationUnsupportedDenialKind,
     WorthQueryGraphReadOperationUnsupportedShapeDeclaration,
 };
-pub use plan_review::{
-    review_graph_read_access, WorthQueryGraphReadPlanReview, WorthQueryGraphReadPlanReviewParts,
-};
+pub use plan_review::WorthQueryGraphReadPlanReview;
 pub use plan_review_denial::{
     WorthQueryGraphReadPlanReviewDenial, WorthQueryGraphReadPlanReviewDenialKind,
 };

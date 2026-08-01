@@ -10,6 +10,41 @@ use super::{allow_plan, authorization_fixture, role_and_direct_path_plan};
 use crate::authorization::RelationalAuthorizationObservationFreshness;
 
 #[test]
+fn dependency_collection_mechanism_does_not_change_authorization_meaning() {
+    use crate::authorization::evidence::RelationalAuthorizationPathDependencies;
+    use crate::authorization::{
+        RelationalAuthorizationPathObservation, RelationalAuthorizationPathWitness,
+    };
+
+    let fixture = authorization_fixture();
+    let witness = RelationalAuthorizationPathWitness::new(vec![fixture.principal, fixture.scope]);
+    let reconstructive = RelationalAuthorizationPathObservation::new(
+        true,
+        Some(witness.clone()),
+        RelationalAuthorizationPathDependencies {
+            entities: vec![fixture.principal, fixture.scope],
+            relations: vec![fixture.role_scope_relation],
+            adjacency_lists: Vec::new(),
+            fields: Vec::new(),
+        },
+        true,
+    );
+    let indexed = RelationalAuthorizationPathObservation::new(
+        true,
+        Some(witness),
+        RelationalAuthorizationPathDependencies {
+            entities: vec![fixture.scope],
+            relations: Vec::new(),
+            adjacency_lists: Vec::new(),
+            fields: Vec::new(),
+        },
+        true,
+    );
+
+    assert!(reconstructive.has_same_decision_and_witness(&indexed));
+}
+
+#[test]
 fn exact_authorization_observation_stales_after_membership_revocation() {
     let mut fixture = authorization_fixture();
     let admitted_snapshot = fixture.runtime.visibility_authority().snapshot();

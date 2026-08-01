@@ -24,9 +24,8 @@ use crate::domain_computation::{
     },
     primary_graph::{
         application_query::{
-            admission::prepare_governed_access,
-            authorized_read::{execute_authorized_read, refresh_governed_authorization},
-            disclosure::WorthQueryPendingApplicationQueryGovernance,
+            admission::{prepare_governed_access, WorthQueryGovernanceAdmission},
+            authorized_read::execute_authorized_read,
             WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
             WorthQueryApplicationQueryControls,
         },
@@ -121,7 +120,7 @@ where
             PrincipalIdentity,
         >,
         scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
-        capability: crate::domain_computation::authorization::WorthQueryAdmittedApplicationCapabilityAccess<
+        capability: crate::domain_computation::authorization::WorthQueryPreparedApplicationCapabilityAccess<
             Schema,
             Capability,
             Operation,
@@ -148,7 +147,9 @@ where
     where
         QueryResult: WorthQueryApplicationProjection<Schema, Query>,
         Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
-        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
+        Capability: 'static,
+        Operation: 'static,
+        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope> + 'static,
     {
         let access = WorthQueryApplicationQueryAccessContext::new(principal, &scope);
         let query_controls = WorthQueryApplicationQueryControls::current_live(
@@ -156,14 +157,8 @@ where
             controls.maximum_work_per_delivery(),
             controls.request(),
         );
-        let pending = prepare_governed_access(
-            self,
-            &query,
-            &access,
-            capability,
-            &query_controls,
-        )
-        .map_err(open_admission_denial)?;
+        let pending = prepare_governed_access(self, &query, &access, capability, &query_controls)
+            .map_err(open_admission_denial)?;
         self.open_application_query_live_with_governance::<
             Query,
             Parameters,
@@ -206,7 +201,9 @@ where
         scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
         parameters: ApplicationQueryParameterSet<Query>,
         controls: WorthQueryApplicationLiveControls,
-        pending_governance: Option<WorthQueryPendingApplicationQueryGovernance>,
+        pending_governance: Option<
+            WorthQueryGovernanceAdmission<Schema, Principal, PrincipalIdentity, Scope>,
+        >,
     ) -> Result<
         WorthQueryApplicationLiveLease<
             'runtime,
@@ -243,13 +240,8 @@ where
             controls.maximum_work_per_delivery(),
             controls.request(),
         );
-        let (admitted_parameters, query_controls, authorization, authorization_work) = self
-            .prepare_application_query_admission(
-                &query,
-                &access,
-                parameters.clone(),
-                query_controls,
-            )
+        let (admitted_parameters, query_controls) = self
+            .prepare_application_query_admission(&query, parameters.clone(), query_controls)
             .map_err(open_admission_denial)?;
         let mut plan = self
             .finish_application_query_admission(
@@ -257,21 +249,9 @@ where
                 &access,
                 admitted_parameters,
                 query_controls,
-                authorization,
-                authorization_work,
                 pending_governance,
             )
             .map_err(open_admission_denial)?;
-        refresh_governed_authorization(self, &mut plan).map_err(|denial| {
-            let kind = match denial {
-                crate::domain_computation::primary_graph::application_query::authorized_read::WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, _) => kind,
-                _ => crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-            };
-            open_denial(
-                WorthQueryApplicationLiveOpenDenialKind::AuthorizationDenied(kind),
-                query.name(),
-            )
-        })?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
@@ -279,15 +259,23 @@ where
             )
         })?;
         let (scope_identity, _) =
-            execute_authorized_read(self, graph, &plan, read_scope_identity)
-            .map_err(|_| {
+            execute_authorized_read(self, graph, &mut plan, read_scope_identity).map_err(|_| {
                 open_denial(
                     WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
                     query.name(),
                 )
             })?;
         let governance = plan.take_governance();
-        if !plan.basis.release().released() {
+        let release = plan
+            .complete_graph_read()
+            .map_err(|_| {
+                open_denial(
+                    WorthQueryApplicationLiveOpenDenialKind::BasisReleaseFailed,
+                    query.name(),
+                )
+            })?
+            .release;
+        if !release.basis_released() {
             return Err(open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::BasisReleaseFailed,
                 query.name(),
@@ -299,7 +287,7 @@ where
             .with_runtime(|runtime| {
                 runtime
                     .history()
-                    .latest_commit()
+                    .branch_head(self.branch_affinity.relational_branch())
                     .map(|head| head.version_id)
             })
             .ok_or_else(|| {
@@ -317,7 +305,7 @@ where
         );
         let request = WorthQueryManagedTruthReadRequest::new(
             version,
-            worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id("main"),
+            self.branch_affinity.truth_branch().clone(),
             worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
         );
         let request_bridge = self.bridge.fork_managed_request_lane();

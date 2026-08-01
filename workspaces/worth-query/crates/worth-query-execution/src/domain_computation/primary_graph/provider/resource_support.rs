@@ -68,7 +68,7 @@ fn component_support(component: &str) -> WorthQueryExecutionResourceSupport {
         Arc::new(
             WorthQueryFixedExecutionCapacity::new(
                 format!("primary-relational-provider:{component}"),
-                64,
+                super::PRIMARY_GRAPH_CONCURRENT_ATTEMPT_LIMIT,
             )
             .expect("static primary provider capacity is valid"),
         ),

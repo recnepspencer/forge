@@ -89,7 +89,13 @@ where
             .map_err(WorthQueryApplicationIdempotencyResolutionDenial::from_authorization)?;
         let resolution = proof
             .govern((), |()| {
-                self.primary_provider.resolve_idempotency_binding(binding)
+                self.primary_provider.resolve_idempotency_binding(
+                    binding,
+                    admission
+                        .graph_work_session()
+                        .branch_affinity()
+                        .relational_branch(),
+                )
             })
             .map_err(|()| {
                 WorthQueryApplicationIdempotencyResolutionDenial::from_authorization(

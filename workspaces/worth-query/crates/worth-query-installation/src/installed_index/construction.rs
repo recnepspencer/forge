@@ -36,6 +36,28 @@ impl WorthQueryInstalledPackageIndex {
         )
     }
 
+    /// Builds one installed index and the move-only graph-admission authority
+    /// for the execution runtime that consumes it.
+    #[doc(hidden)]
+    pub fn build_for_execution(
+        runtime: WorthQueryInstallationRuntimeIdentity,
+        generation: WorthQueryInstallationGeneration,
+        packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
+    ) -> Result<
+        (
+            Self,
+            crate::graph_obligation::WorthQueryInstalledGraphAdmissionAuthority,
+        ),
+        WorthQueryInstalledPackageIndexDenial,
+    > {
+        let index = Self::build(runtime, generation, packages)?;
+        let authority = crate::graph_obligation::WorthQueryInstalledGraphAdmissionAuthority::mint(
+            index.runtime.ordinal(),
+            index.generation.ordinal(),
+        );
+        Ok((index, authority))
+    }
+
     pub(super) fn build_with_authority_root_result(
         runtime: WorthQueryInstallationRuntimeIdentity,
         generation: WorthQueryInstallationGeneration,

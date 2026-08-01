@@ -209,20 +209,6 @@ where
             .and_then(|policies| policies.get(scope_entity))
     }
 
-    pub(crate) fn installed_capability_count_for_operation(
-        &self,
-        operation: &str,
-        input_type: &str,
-    ) -> usize {
-        self.capability_registry
-            .values()
-            .filter(|capability| {
-                let contract = capability.contract();
-                contract.operation() == operation && contract.input_type() == input_type
-            })
-            .count()
-    }
-
     pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
         self.installation_canonical_work
     }
@@ -382,12 +368,6 @@ where
         if let Some(kind) = kind {
             return Err(WorthQueryApplicationQueryInstallationDenial::new(
                 kind,
-                query.name(),
-            ));
-        }
-        if !query.authority_matches(&self.package_authority) {
-            return Err(WorthQueryApplicationQueryInstallationDenial::new(
-                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::AuthorityMismatch,
                 query.name(),
             ));
         }

@@ -35,13 +35,18 @@ pub(in crate::domain_computation::primary_graph) fn revoke_current_capability(
         )]));
         let mut transaction = runtime.begin_transaction(TransactionOptions::default());
         transaction.push_batch(WorkerIntentBatch::new("revoke-live-capability").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
-                entity_id: grant.entity_id(),
-                fields,
-            })),
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: grant.entity_id(),
+                    fields,
+                },
+            )),
         ));
         transaction.commit().unwrap();
-        handle.ensure_primary_indexes_current(runtime).unwrap();
+        let branch = runtime.config().history.main_branch.clone();
+        handle
+            .ensure_primary_indexes_current(runtime, &branch)
+            .unwrap();
     });
 }
 

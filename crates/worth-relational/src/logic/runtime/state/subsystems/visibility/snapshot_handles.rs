@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
+use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
 use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
 
@@ -113,13 +114,19 @@ impl SnapshotHandles {
 
 #[derive(Debug)]
 pub(crate) struct SnapshotHandleBinding {
+    pub(crate) branch_id: BranchId,
     pub(crate) version_id: VersionId,
     pub(crate) read_policy: SnapshotReadPolicy,
 }
 
 impl SnapshotHandleBinding {
-    pub(crate) fn new(version_id: VersionId, read_policy: SnapshotReadPolicy) -> Self {
+    pub(crate) fn new(
+        branch_id: BranchId,
+        version_id: VersionId,
+        read_policy: SnapshotReadPolicy,
+    ) -> Self {
         Self {
+            branch_id,
             version_id,
             read_policy,
         }
@@ -128,12 +135,13 @@ impl SnapshotHandleBinding {
 
 impl Clone for SnapshotHandleBinding {
     fn clone(&self) -> Self {
-        Self::new(self.version_id, self.read_policy)
+        Self::new(self.branch_id.clone(), self.version_id, self.read_policy)
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ExecutionBasisBinding {
+    pub(crate) branch_id: BranchId,
     pub(crate) version_id: VersionId,
     pub(crate) read_policy: SnapshotReadPolicy,
     lease_ordinal: u64,
@@ -162,6 +170,7 @@ impl ExecutionBasisRegistry {
     pub(crate) fn admit(
         &self,
         snapshot_id: SnapshotId,
+        branch_id: BranchId,
         version_id: VersionId,
         read_policy: SnapshotReadPolicy,
     ) -> u64 {
@@ -170,6 +179,7 @@ impl ExecutionBasisRegistry {
         state.bindings.insert(
             snapshot_id,
             ExecutionBasisBinding {
+                branch_id,
                 version_id,
                 read_policy,
                 lease_ordinal,
@@ -180,18 +190,20 @@ impl ExecutionBasisRegistry {
     }
 
     pub(crate) fn binding(&self, snapshot_id: SnapshotId) -> Option<ExecutionBasisBinding> {
-        self.lock_state().bindings.get(&snapshot_id).copied()
+        self.lock_state().bindings.get(&snapshot_id).cloned()
     }
 
     pub(crate) fn retains(
         &self,
         snapshot_id: SnapshotId,
+        branch_id: &BranchId,
         version_id: VersionId,
         read_policy: SnapshotReadPolicy,
         lease_ordinal: u64,
     ) -> bool {
         self.binding(snapshot_id).is_some_and(|binding| {
             binding.version_id == version_id
+                && &binding.branch_id == branch_id
                 && binding.read_policy == read_policy
                 && binding.lease_ordinal == lease_ordinal
         })

@@ -31,4 +31,3 @@ impl ApplicationQueryBasisSupport {
         self.preview
     }
 }
-

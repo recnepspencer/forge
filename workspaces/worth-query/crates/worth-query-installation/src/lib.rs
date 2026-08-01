@@ -20,6 +20,7 @@ mod canonical_work;
 mod domain_computation;
 mod domain_operation;
 mod generation;
+mod graph_obligation;
 mod installed_domain_operation;
 mod installed_graph_participation;
 mod installed_handle_denial;
@@ -150,6 +151,20 @@ pub mod facade {
     pub use crate::domain_operation::*;
     pub use crate::generation::{
         WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
+    };
+    pub use crate::graph_obligation::{
+        WorthQueryInstalledGraphAdmissionAuthority,
+        WorthQueryInstalledGraphAuthorizationRequirement,
+        WorthQueryInstalledGraphCapabilityRequirement, WorthQueryInstalledGraphObligation,
+        WorthQueryInstalledGraphObligationEffectPosture,
+        WorthQueryInstalledGraphObligationIdentity,
+        WorthQueryInstalledGraphObligationInstallationEvidence,
+        WorthQueryInstalledGraphObligationKind, WorthQueryInstalledGraphObligationLookup,
+        WorthQueryInstalledGraphObligationOwner, WorthQueryInstalledGraphObligationResourcePosture,
+        WorthQueryInstalledGraphObligationSelectionBasis, WorthQueryInstalledGraphObligationSet,
+        WorthQueryInstalledGraphObligationSetIdentity,
+        WorthQueryInstalledGraphObligationSubjectKind,
+        WorthQueryInstalledGraphObligationTerminalRequirement,
     };
     pub use crate::installed_domain_operation::{
         WorthQueryConditionalDependencyLookupDenial,

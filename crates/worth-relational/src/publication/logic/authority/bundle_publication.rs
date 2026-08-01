@@ -37,6 +37,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
         let snapshot = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
+            branch_id: commit_reference.branch_id.clone(),
             snapshot_id,
             version_id,
             read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
@@ -70,6 +71,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         self.runtime.visibility.insert_published_handle(
             snapshot_id,
             crate::logic::runtime::SnapshotHandleBinding::new(
+                bundle.snapshot.branch_id.clone(),
                 version_id,
                 bundle.snapshot.read_policy,
             ),

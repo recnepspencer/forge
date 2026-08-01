@@ -4,6 +4,7 @@ use worth_query_admission::facade::resource_admission::{
 };
 use worth_query_admission::integration::{
     reserve_execution_resource_plan, reserve_workflow_resource_plan,
+    WorthQueryCapacityReservedExecutionResourcePlan,
 };
 use worth_query_installation::facade::WorthQueryDomainHandleDenialKind;
 
@@ -13,6 +14,26 @@ use super::{
 };
 
 impl WorthQueryExecutionRuntime {
+    pub(crate) fn start_reserved_direct_graph_work_attempt(
+        &self,
+        authority: &WorthQueryExecutionBoundOperationAuthority,
+        resources: WorthQueryCapacityReservedExecutionResourcePlan,
+        session_identity: &worth_foundational::facade::CanonicalDigestId,
+    ) -> Result<WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionResourceAdmissionDenial>
+    {
+        self.validate_bound_authority(authority, resources.resources().counters())?;
+        if !authority.admits_direct_plan(resources.resources()) {
+            return Err(resource_plan_authority_mismatch(
+                resources.resources().counters(),
+            ));
+        }
+        Ok(WorthQueryDirectExecutionResourceAttempt::start_graph_work(
+            resources,
+            authority,
+            session_identity,
+        ))
+    }
+
     pub fn start_direct_resource_attempt(
         &self,
         authority: &WorthQueryExecutionBoundOperationAuthority,

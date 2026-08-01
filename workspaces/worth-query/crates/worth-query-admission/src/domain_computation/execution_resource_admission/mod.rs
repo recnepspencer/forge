@@ -17,6 +17,9 @@ pub use capacity_reservation::{
     WorthQueryCapacityReservedWorkflowResourcePlan, WorthQueryExecutionCapacityReleaseReceipt,
     WorthQueryExecutionCapacityReservationScope,
 };
+pub(crate) use capacity_reservation::{
+    reserve_graph_provider_capacity, WorthQueryReservedGraphProviderCapacity,
+};
 pub use lowering::admit_execution_resource_plan;
 
 #[cfg(test)]

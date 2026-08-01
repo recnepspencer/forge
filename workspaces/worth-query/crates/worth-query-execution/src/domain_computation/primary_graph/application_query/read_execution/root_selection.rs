@@ -190,7 +190,7 @@ fn select_indexed_root<
         )
     })?;
     let request = BoundedEntityFieldLookupRequest::new(
-        plan.basis.snapshot_handle().clone(),
+        plan.basis().snapshot_handle().clone(),
         equality_index_id,
         layout.entity_kind,
         layout.locator.clone(),

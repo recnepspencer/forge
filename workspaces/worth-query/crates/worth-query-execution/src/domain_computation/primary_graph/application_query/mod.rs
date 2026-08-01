@@ -1,8 +1,8 @@
 mod access_context;
 mod access_receipt;
-mod admitted_result;
 mod admission;
 mod admission_preparation;
+mod admitted_result;
 mod authorization_observation;
 mod authorization_work;
 mod authorized_read;
@@ -15,6 +15,7 @@ mod denial;
 mod disclosure;
 mod execution_shape;
 mod execution_validation;
+pub(in crate::domain_computation) mod graph_read_completion;
 mod graph_read_plan_binding;
 mod historical;
 mod live;
@@ -27,11 +28,18 @@ mod runtime_support;
 #[cfg(test)]
 pub(in crate::domain_computation::primary_graph) use runtime_support::primary_graph_support_inventory;
 
+pub(in crate::domain_computation) type WorthQueryApplicationQueryGraphWorkSession =
+    crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession<
+        crate::domain_computation::provider_session::WorthQueryReadGraphWorkLane,
+        resource_lifecycle::WorthQueryApplicationBasisLease,
+    >;
+
 pub use access_context::WorthQueryApplicationQueryAccessContext;
 pub use access_receipt::{
     WorthQueryApplicationQueryAccessReceipt, WorthQueryApplicationQueryOmissionPosture,
     WorthQueryApplicationQueryWorkEvidence,
 };
+pub use admitted_result::WorthQueryAdmittedDisclosedApplicationResult;
 pub use authorization_work::WorthQueryApplicationAuthorizationWorkEvidence;
 pub use basis::{
     WorthQueryApplicationHistoricalBasis, WorthQueryApplicationHistoricalBasisReleaseReceipt,
@@ -55,7 +63,6 @@ pub use controls::{
 pub use denial::{
     WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
 };
-pub use admitted_result::WorthQueryAdmittedDisclosedApplicationResult;
 pub use disclosure::{
     WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
 };
@@ -74,10 +81,9 @@ pub use one_shot::{
 };
 pub use preview::WorthQueryApplicationPreviewResult;
 pub use projection::{
-    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission,
-    WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
-    WorthQueryApplicationProjectionDenialKind, WorthQueryApplicationProjectionRow,
-    WorthQueryApplicationProjectionRows,
+    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission, WorthQueryApplicationProjection,
+    WorthQueryApplicationProjectionDenial, WorthQueryApplicationProjectionDenialKind,
+    WorthQueryApplicationProjectionRow, WorthQueryApplicationProjectionRows,
 };
 pub use resource_lifecycle::{
     WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,

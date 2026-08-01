@@ -3,6 +3,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
     ApplicationQueryDisclosureContract, ApplicationQueryInfluenceContract,
     ApplicationQueryLaneEligibility, ApplicationQueryResultShapeBuilder,
+    TypedApplicationQueryResultShape,
 };
 use worth_query_declaration::worth_query_application_query;
 
@@ -11,8 +12,7 @@ use super::application_queries::{
     AccountSummaryResult,
 };
 use super::{
-    Account, AccountStatus, CapabilityDisclosure, IdentityExecutionSchema,
-    TouchAccountCapability,
+    Account, AccountStatus, CapabilityDisclosure, IdentityExecutionSchema, TouchAccountCapability,
 };
 
 worth_query_application_query!(
@@ -91,7 +91,9 @@ pub(super) fn forbidden_influence_definition() -> ApplicationQueryDefinition<
     )
 }
 
-fn shape<Query: 'static>() -> worth_query_declaration::facade::application_query::ApplicationQueryResultShape {
+fn shape<Query: 'static>(
+) -> TypedApplicationQueryResultShape<IdentityExecutionSchema, Query, Account, AccountSummaryResult>
+{
     ApplicationQueryResultShapeBuilder::<
         IdentityExecutionSchema,
         Query,
@@ -111,7 +113,12 @@ fn definition<Query: 'static>(
         AccountSummaryResult,
         Account,
     >,
-    shape: worth_query_declaration::facade::application_query::ApplicationQueryResultShape,
+    shape: TypedApplicationQueryResultShape<
+        IdentityExecutionSchema,
+        Query,
+        Account,
+        AccountSummaryResult,
+    >,
     disclosure: ApplicationQueryDisclosureContract,
     predicate: bool,
 ) -> ApplicationQueryDefinition<

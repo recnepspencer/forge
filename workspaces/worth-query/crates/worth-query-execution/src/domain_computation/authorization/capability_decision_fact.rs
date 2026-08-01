@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
-use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
 
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
@@ -21,7 +20,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorizati
 }
 
 impl WorthQueryRetainedCapabilityAuthorization {
-    pub(super) fn new(
+    pub(in crate::domain_computation) fn new(
         principal: WorthQueryPrincipalCurrentnessDependency,
         decision: WorthQueryAuthorizationDecisionFact,
         capability_authority_identity: Arc<str>,
@@ -43,8 +42,27 @@ impl WorthQueryRetainedCapabilityAuthorization {
         &self.principal
     }
 
-    pub(super) fn decision(&self) -> &WorthQueryAuthorizationDecisionFact {
+    pub(in crate::domain_computation) fn decision(&self) -> &WorthQueryAuthorizationDecisionFact {
         &self.decision
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_branch(
+        &self,
+        branch_id: &worth_relational::facade::history::BranchId,
+    ) -> bool {
+        self.principal.branch_id() == branch_id && self.decision.branch_id() == branch_id
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_session(
+        &self,
+        session_identity: &worth_foundational::facade::CanonicalDigestId,
+    ) -> bool {
+        self.principal.session_identity() == session_identity
+            && self.decision.session_identity() == session_identity
+    }
+
+    pub(in crate::domain_computation) const fn capability_identity(&self) -> &[u8; 32] {
+        &self.request.capability_identity
     }
 
     pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {
@@ -59,18 +77,6 @@ impl WorthQueryRetainedCapabilityAuthorization {
         2
     }
 
-    pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
-        self.decision.relational.counters()
-    }
-
-    pub(super) fn signal_dependency_count(&self) -> usize {
-        let counters = self.decision.bridge.counters();
-        counters.entities_depended_on
-            + counters.relations_depended_on
-            + counters.adjacency_lists_depended_on
-            + counters.fields_depended_on
-    }
-
     pub(in crate::domain_computation) fn capability_authority_identity(&self) -> &str {
         &self.capability_authority_identity
     }
@@ -83,7 +89,9 @@ impl WorthQueryRetainedCapabilityAuthorization {
         self.sample.timeline()
     }
 
-    pub(super) const fn sampled_value(&self) -> &worth_foundational::facade::AspectValue {
+    pub(in crate::domain_computation) const fn sampled_value(
+        &self,
+    ) -> &worth_foundational::facade::AspectValue {
         self.sample.value()
     }
 
@@ -103,6 +111,29 @@ impl WorthQueryRetainedCapabilityAuthorization {
         self.sample = sample;
         self.decision = decision;
         Ok(())
+    }
+
+    pub(in crate::domain_computation) fn into_rebound_session(
+        self,
+        session_identity: worth_foundational::facade::CanonicalDigestId,
+        branch_id: worth_relational::facade::history::BranchId,
+        sample: WorthQueryAuthorizationTimeSample,
+        decision: WorthQueryAuthorizationDecisionFact,
+    ) -> Result<Self, ()> {
+        if self.sample.timeline() != sample.timeline()
+            || decision.session_identity() != &session_identity
+            || decision.branch_id() != &branch_id
+        {
+            return Err(());
+        }
+        Ok(Self {
+            principal: self.principal.rebind_session(session_identity, branch_id),
+            decision,
+            capability_authority_identity: self.capability_authority_identity,
+            grant: self.grant,
+            request: self.request,
+            sample,
+        })
     }
 
     pub(in crate::domain_computation) fn validate_currentness_in(
@@ -165,5 +196,20 @@ impl WorthQueryCapabilityCommitBasis {
 
     pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {
         &self.request
+    }
+
+    pub(super) fn belongs_to_session(
+        &self,
+        session_identity: &worth_foundational::facade::CanonicalDigestId,
+    ) -> bool {
+        self.principal.session_identity() == session_identity
+            && self.decision.session_identity() == session_identity
+    }
+
+    pub(super) fn belongs_to_branch(
+        &self,
+        branch_id: &worth_relational::facade::history::BranchId,
+    ) -> bool {
+        self.principal.branch_id() == branch_id && self.decision.branch_id() == branch_id
     }
 }

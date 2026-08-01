@@ -1,16 +1,13 @@
-use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission,
-    WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
-    WorthQueryApplicationProjectionRow,
-};
 use worth_query_decl::facade::application_schema::TypedApplicationReadableValue;
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationDisclosed, WorthQueryApplicationOmission, WorthQueryApplicationProjection,
+    WorthQueryApplicationProjectionDenial, WorthQueryApplicationProjectionRow,
+};
 
 use crate::estate::{BankDisclosure, RestrictedBankField};
 use crate::schema::BankSchema;
 
-use super::customer_disclosure::{
-    EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
-};
+use super::customer_disclosure::{EstateCustomerDisclosure, EstateCustomerDisclosureQuery};
 use super::customer_disclosure_selectors::{customer_identity, estate_customer};
 
 impl WorthQueryApplicationProjection<BankSchema, EstateCustomerDisclosureQuery>

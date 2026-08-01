@@ -1,3 +1,4 @@
+use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
 use crate::visibility::execution_basis::{
     RelationalExecutionBasisDenial, RelationalExecutionBasisLease,
@@ -18,10 +19,13 @@ impl RuntimeBridgeRelationalSource {
     /// a copied version or snapshot identity cannot substitute for it.
     pub fn admit_execution_basis(
         &self,
+        branch_id: &BranchId,
         version_id: VersionId,
     ) -> Result<RelationalExecutionBasisLease, RelationalExecutionBasisDenial> {
         self.runtime.with_runtime(|runtime| {
-            crate::visibility::execution_basis::admit_execution_basis(runtime, version_id)
+            crate::visibility::execution_basis::admit_execution_basis(
+                runtime, branch_id, version_id,
+            )
         })
     }
 
@@ -45,7 +49,18 @@ impl RuntimeBridgeRelationalSource {
             .map_err(|error| {
                 RelationalBridgeTruthViewBasisDenial::SnapshotAuthority(error.to_string())
             })?;
-        self.admit_execution_basis(version_id)
+        let branch_id = evaluation
+            .record()
+            .decision_log()
+            .branch_identity()
+            .relational_branch_id()
+            .map(|branch| BranchId(branch.to_owned()))
+            .ok_or_else(|| {
+                RelationalBridgeTruthViewBasisDenial::SnapshotAuthority(
+                    "Bridge truth-view branch is not a Relational branch identity".to_owned(),
+                )
+            })?;
+        self.admit_execution_basis(&branch_id, version_id)
             .map_err(RelationalBridgeTruthViewBasisDenial::ExecutionBasis)
     }
 }

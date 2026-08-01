@@ -16,9 +16,12 @@ pub(crate) fn resolve_snapshot_handle(
     runtime: &RelationalRuntime,
     handle: &SnapshotHandle,
 ) -> Option<SnapshotHandle> {
-    if let Some((version_id, read_policy)) = runtime.active_snapshot_binding(handle.snapshot_id) {
+    if let Some((branch_id, version_id, read_policy)) =
+        runtime.active_snapshot_binding(handle.snapshot_id)
+    {
         return Some(SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),
+            branch_id,
             snapshot_id: handle.snapshot_id,
             version_id,
             read_policy,
@@ -31,22 +34,22 @@ pub(crate) fn resolve_snapshot_handle(
     {
         return Some(SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),
+            branch_id: binding.branch_id,
             snapshot_id: handle.snapshot_id,
             version_id: binding.version_id,
             read_policy: binding.read_policy,
         });
     }
 
-    let version_id = runtime.published_snapshot_version(handle.snapshot_id)?;
-    let read_policy = runtime
+    let binding = runtime
         .visibility
-        .published_snapshot_binding(handle.snapshot_id)?
-        .read_policy;
+        .published_snapshot_binding(handle.snapshot_id)?;
     Some(SnapshotHandle {
         runtime_instance_id: runtime.runtime_instance_id(),
+        branch_id: binding.branch_id,
         snapshot_id: handle.snapshot_id,
-        version_id,
-        read_policy,
+        version_id: binding.version_id,
+        read_policy: binding.read_policy,
     })
 }
 
@@ -54,9 +57,12 @@ pub(crate) fn resolve_snapshot_state(
     runtime: &RelationalRuntime,
     handle: &SnapshotHandle,
 ) -> Option<ResolvedVisibilitySnapshot> {
-    if let Some((version_id, read_policy)) = runtime.active_snapshot_binding(handle.snapshot_id) {
+    if let Some((branch_id, version_id, read_policy)) =
+        runtime.active_snapshot_binding(handle.snapshot_id)
+    {
         let resolved_handle = SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),
+            branch_id,
             snapshot_id: handle.snapshot_id,
             version_id,
             read_policy,
@@ -75,6 +81,7 @@ pub(crate) fn resolve_snapshot_state(
     {
         let resolved_handle = SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),
+            branch_id: binding.branch_id,
             snapshot_id: handle.snapshot_id,
             version_id: binding.version_id,
             read_policy: binding.read_policy,
@@ -87,18 +94,17 @@ pub(crate) fn resolve_snapshot_state(
         });
     }
 
-    let version_id = runtime.published_snapshot_version(handle.snapshot_id)?;
-    let read_policy = runtime
+    let binding = runtime
         .visibility
-        .published_snapshot_binding(handle.snapshot_id)?
-        .read_policy;
+        .published_snapshot_binding(handle.snapshot_id)?;
     let resolved_handle = SnapshotHandle {
         runtime_instance_id: runtime.runtime_instance_id(),
+        branch_id: binding.branch_id,
         snapshot_id: handle.snapshot_id,
-        version_id,
-        read_policy,
+        version_id: binding.version_id,
+        read_policy: binding.read_policy,
     };
-    let state = reconstruct_state(runtime, version_id)?;
+    let state = reconstruct_state(runtime, binding.version_id)?;
     Some(ResolvedVisibilitySnapshot {
         handle: resolved_handle,
         state,

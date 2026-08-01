@@ -77,7 +77,10 @@ where
         WorthQueryApplicationQueryBasis::Continuation(version_id) => {
             let lease = application
                 .relational_source
-                .admit_execution_basis(version_id)
+                .admit_execution_basis(
+                    application.branch_affinity().relational_branch(),
+                    version_id,
+                )
                 .map_err(|basis| {
                     admission_denial(
                         WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
@@ -210,14 +213,10 @@ where
     let handle = graph.integration_handle();
     let version = handle
         .with_runtime_mut(|runtime| {
-            handle.ensure_primary_indexes_current(runtime).map(|()| {
-                runtime
-                    .history()
-                    .latest_commit()
-                    .map_or(worth_relational::facade::identity::VersionId(0), |commit| {
-                        commit.version_id
-                    })
-            })
+            handle.ensure_primary_indexes_current(
+                runtime,
+                application.branch_affinity().relational_branch(),
+            )
         })
         .map_err(|detail| {
             admission_denial(
@@ -227,7 +226,7 @@ where
         })?;
     let lease = application
         .relational_source
-        .admit_execution_basis(version)
+        .admit_execution_basis(application.branch_affinity().relational_branch(), version)
         .map_err(|basis| {
             admission_denial(
                 WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,

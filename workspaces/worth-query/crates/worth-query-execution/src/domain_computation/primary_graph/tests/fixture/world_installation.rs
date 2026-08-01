@@ -1,4 +1,13 @@
 use super::*;
+use worth_relational::facade::{
+    history::BranchId,
+    runtime::{RelationalRuntime, RelationalRuntimeConfig},
+};
+
+#[path = "world_installation/seeding.rs"]
+mod seeding;
+
+use seeding::{bind_account, bind_activity, owner_bindings, portable_package};
 
 #[derive(Clone, Copy)]
 enum CapabilityGrantPopulation {
@@ -87,6 +96,22 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::None,
+        None,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_on_branch(
+    include_owner_relation: bool,
+    branch: &str,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        owner_bindings(include_owner_relation),
+        false,
+        1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::None,
+        Some(branch),
     )
 }
 
@@ -100,6 +125,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         label,
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::None,
+        None,
     )
 }
 
@@ -113,6 +139,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         "primary",
         profile,
         CapabilityGrantPopulation::None,
+        None,
     )
 }
 
@@ -126,6 +153,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_two_principal_auth
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::None,
+        None,
     )
 }
 
@@ -138,6 +166,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorizat
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::None,
+        None,
     )
 }
 
@@ -150,6 +179,21 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_authori
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::Current,
+        None,
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_authorization_world_on_branch(
+    branch: &str,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        &[],
+        false,
+        1,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::Current,
+        Some(branch),
     )
 }
 
@@ -163,6 +207,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_world_w
         label,
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::Current,
+        None,
     )
 }
 
@@ -175,6 +220,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_live_wo
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::Current,
+        None,
     )
 }
 
@@ -187,6 +233,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_replace
         "primary",
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::CurrentAndFutureReplacement,
+        None,
     )
 }
 
@@ -197,6 +244,7 @@ fn installed_authorization_world_with_principal_count(
     primary_label: &str,
     resources: WorthQueryApplicationQueryResourceProfile,
     capability_grants: CapabilityGrantPopulation,
+    relational_branch: Option<&str>,
 ) -> AuthorizationWorld {
     let declaration = IdentityExecutionSchema::declaration().unwrap();
     let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
@@ -214,7 +262,19 @@ fn installed_authorization_world_with_principal_count(
     let binding = schema
         .principal_binding(IdentityBinding::reference())
         .unwrap();
-    let mut bootstrap = authority.prepare_primary_graph(&runtime, &schema).unwrap();
+    let mut bootstrap = if let Some(branch) = relational_branch {
+        let mut config = RelationalRuntimeConfig::default();
+        config.history.main_branch = BranchId(branch.to_owned());
+        authority
+            .prepare_primary_graph_with_relational_runtime(
+                &runtime,
+                &schema,
+                RelationalRuntime::new(config),
+            )
+            .unwrap()
+    } else {
+        authority.prepare_primary_graph(&runtime, &schema).unwrap()
+    };
     bootstrap
         .bind_principal(
             &binding,
@@ -282,14 +342,14 @@ fn installed_authorization_world_with_principal_count(
             .unwrap();
     }
     for (ordinal, (principal, account)) in owner_bindings.iter().enumerate() {
-            bootstrap
-                .bind_relation(WorthQueryApplicationRelationSeed::new(
-                    AccountOwner::reference(),
-                    format!("owner-{}", ordinal + 1),
-                    WorthQueryApplicationEntityKey::new(*principal).unwrap(),
-                    WorthQueryApplicationEntityKey::new(*account).unwrap(),
-                ))
-                .unwrap();
+        bootstrap
+            .bind_relation(WorthQueryApplicationRelationSeed::new(
+                AccountOwner::reference(),
+                format!("owner-{}", ordinal + 1),
+                WorthQueryApplicationEntityKey::new(*principal).unwrap(),
+                WorthQueryApplicationEntityKey::new(*account).unwrap(),
+            ))
+            .unwrap();
     }
     if include_blocked_relation {
         bootstrap
@@ -319,67 +379,4 @@ fn installed_authorization_world_with_principal_count(
         binding,
         invariant,
     }
-}
-
-fn owner_bindings(include: bool) -> &'static [(&'static str, &'static str)] {
-    if include {
-        &[("principal-0", "account-1"), ("principal-0", "account-2")]
-    } else {
-        &[]
-    }
-}
-
-fn portable_package(
-    declaration: worth_query_declaration::facade::application_schema::ApplicationSchemaDeclaration<
-        IdentityExecutionSchema,
-    >,
-) -> WorthQueryValidatedPortableDomainPackage {
-    WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
-        "identity_execution_test",
-        1,
-        0,
-    ))
-    .application_schema(declaration)
-    .validate()
-    .unwrap()
-}
-
-fn bind_account(
-    bootstrap: &mut crate::domain_computation::primary_graph::WorthQueryPrimaryGraphBootstrap<
-        IdentityExecutionSchema,
-    >,
-    key: &str,
-    status: &str,
-    label: &str,
-) {
-    bootstrap
-        .bind_entity(
-            WorthQueryApplicationEntitySeed::new(
-                Account::reference(),
-                WorthQueryApplicationEntityKey::new(key).unwrap(),
-            )
-            .field(AccountIdentity::reference(), key.to_owned())
-            .field(AccountStatus::reference(), status.to_string())
-            .field(AccountLabel::reference(), label.to_string()),
-        )
-        .unwrap();
-}
-
-fn bind_activity(
-    bootstrap: &mut crate::domain_computation::primary_graph::WorthQueryPrimaryGraphBootstrap<
-        IdentityExecutionSchema,
-    >,
-    key: &str,
-    sequence: u64,
-) {
-    bootstrap
-        .bind_entity(
-            WorthQueryApplicationEntitySeed::new(
-                Activity::reference(),
-                WorthQueryApplicationEntityKey::new(key).unwrap(),
-            )
-            .field(ActivityIdentity::reference(), key.to_owned())
-            .field(ActivitySequence::reference(), sequence),
-        )
-        .unwrap();
 }

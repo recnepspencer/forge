@@ -14,7 +14,11 @@ use worth_query_declaration::{
 
 use crate::facade::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
-    WorthQueryInstallationRuntimeIdentity, WorthQueryInstalledPackageIndex,
+    WorthQueryInstallationRuntimeIdentity, WorthQueryInstalledGraphObligationEffectPosture,
+    WorthQueryInstalledGraphObligationKind, WorthQueryInstalledGraphObligationOwner,
+    WorthQueryInstalledGraphObligationResourcePosture,
+    WorthQueryInstalledGraphObligationSelectionBasis,
+    WorthQueryInstalledGraphObligationTerminalRequirement, WorthQueryInstalledPackageIndex,
     WorthQueryPortableDefinition, WorthQueryPortableDomainIdentity,
     WorthQueryPortableDomainPackage,
 };
@@ -259,6 +263,71 @@ fn equivalent_installed_queries_converge_and_identity_dimensions_do_not_alias() 
     assert_eq!(
         left.read_graph().ordering()[0].slot_type(),
         std::any::type_name::<ActivitySequenceSlot>()
+    );
+}
+
+#[test]
+fn installed_public_query_owns_one_exact_graph_read_obligation() {
+    let schema = installed_schema();
+    let query = schema.application_query(query_reference()).unwrap();
+    let [read] = query.obligations().rows() else {
+        panic!("public query must install exactly one graph-read obligation");
+    };
+
+    assert_eq!(
+        read.kind(),
+        WorthQueryInstalledGraphObligationKind::GraphRead
+    );
+    assert_eq!(
+        read.owner_progression(),
+        [
+            WorthQueryInstalledGraphObligationOwner::Relational,
+            WorthQueryInstalledGraphObligationOwner::QueryExecution,
+        ]
+    );
+    assert!(matches!(
+        read.selection_basis(),
+        WorthQueryInstalledGraphObligationSelectionBasis::ApplicationQueryGraph(_)
+    ));
+    assert!(matches!(
+        read.resource_posture(),
+        WorthQueryInstalledGraphObligationResourcePosture::ApplicationQuery { .. }
+    ));
+    assert_eq!(
+        read.effect_posture(),
+        WorthQueryInstalledGraphObligationEffectPosture::Observational
+    );
+    assert_eq!(
+        read.terminal_requirement(),
+        WorthQueryInstalledGraphObligationTerminalRequirement::GraphReadProduct
+    );
+}
+
+#[test]
+fn installed_query_rejects_foreign_runtime_and_successor_generation_substitution() {
+    let index = installed_index();
+    let schema = index
+        .bind_application_schema(QueryTestSchema::declaration().unwrap())
+        .unwrap();
+    let query = schema.application_query(query_reference()).unwrap();
+
+    let foreign = installed_schema()
+        .validate_installed_query(&query)
+        .unwrap_err();
+    assert_eq!(
+        foreign.kind(),
+        WorthQueryApplicationQueryInstallationDenialKind::ForeignRuntime
+    );
+    let successor = index.successor_generation();
+    let successor_schema = successor
+        .bind_application_schema(QueryTestSchema::declaration().unwrap())
+        .unwrap();
+    let stale = successor_schema
+        .validate_installed_query(&query)
+        .unwrap_err();
+    assert_eq!(
+        stale.kind(),
+        WorthQueryApplicationQueryInstallationDenialKind::StaleGeneration
     );
 }
 

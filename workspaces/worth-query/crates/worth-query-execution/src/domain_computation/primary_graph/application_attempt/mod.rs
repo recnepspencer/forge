@@ -3,6 +3,8 @@ mod denial;
 mod effect_program;
 mod effect_validation;
 mod fact;
+mod graph_work_completion;
+mod graph_work_progression;
 mod idempotency;
 mod idempotency_resolution;
 mod observation;
@@ -18,7 +20,8 @@ pub(super) mod snapshot_lease;
 pub use compare_and_commit::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationStaleAttempt,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationGraphWorkReceipt,
+    WorthQueryApplicationStaleAttempt,
 };
 pub use denial::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
 pub(in crate::domain_computation::primary_graph) use effect_program::{
@@ -32,12 +35,18 @@ pub(super) use fact::WorthQueryApplicationObservedFact;
 pub(in crate::domain_computation::primary_graph) use fact::{
     WorthQueryApplicationAdjacencyDirection, WorthQueryApplicationFactKey,
 };
+pub(in crate::domain_computation) use graph_work_completion::{
+    WorthQueryOperationEffectApplicationCompletion, WorthQueryOperationGraphReadCompletion,
+    WorthQueryOperationInvariantExecutionCompletion, WorthQueryOperationMutationTouchCompletion,
+};
+pub(super) use graph_work_progression::WorthQueryProgressingApplicationOperation;
 pub use idempotency::WorthQueryApplicationIdempotencyBinding;
 pub use idempotency_resolution::{
     WorthQueryApplicationIdempotencyResolution, WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind,
 };
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
+pub(in crate::domain_computation) use provider_execution::application_resource_request;
 pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;
 pub use read_phase::{WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation};
 pub use read_set::{

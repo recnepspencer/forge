@@ -86,11 +86,21 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                 "injected rejection before the atomic application transaction",
             ));
         }
+        let branch_id = attempt.branch_id;
         let emissions = attempt.emissions;
         self.graph.with_runtime_mut(|runtime| {
             let before = runtime.snapshots().snapshot();
+            if before.branch_id != branch_id {
+                let _ = runtime.snapshots().release_snapshot(&before);
+                return Err(provider_failure(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    "provider commit snapshot belongs to another branch",
+                ));
+            }
             let mut transaction = runtime.begin_transaction(
-                worth_relational::facade::transactions::TransactionOptions::default(),
+                worth_relational::facade::transactions::TransactionOptions::for_branch(
+                    branch_id.clone(),
+                ),
             );
             transaction.push_batch(attempt.batch);
             let committed = match transaction.commit() {
@@ -103,9 +113,24 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                     ));
                 }
             };
+            if committed.envelope().commit.branch_id != branch_id {
+                let _ = runtime.snapshots().release_snapshot(&before);
+                return Err(provider_failure(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    "Relational committed the application transaction on another branch",
+                ));
+            }
             let commit_id = committed.envelope().commit.commit_id;
             let changed = committed.patch().len();
             let after = runtime.snapshots().snapshot();
+            if after.branch_id != branch_id {
+                let _ = runtime.snapshots().release_snapshot(&before);
+                let _ = runtime.snapshots().release_snapshot(&after);
+                return Err(provider_failure(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    "provider post-commit snapshot belongs to another branch",
+                ));
+            }
             let runtime_instance_id = after.runtime_instance_id;
             self.graph
                 .aggregate_projections
@@ -129,7 +154,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
             let indexes = runtime.index_authority().build_for_commit(
                 worth_relational::facade::indexes::DerivedIndexBuildRequest {
                     source_commit_id: commit_id,
-                    branch_id: worth_relational::facade::history::BranchId("main".to_owned()),
+                    branch_id,
                     index_ids: self.graph.primary_index_ids.to_vec(),
                 },
             );

@@ -231,8 +231,7 @@ impl WorthQueryInstalledPackageIndex {
                 installed,
             ));
         }
-        let schema = self
-            .application_schemas
+        self.application_schemas
             .get(&(
                 installed.owner().to_string(),
                 installed.schema_name().to_string(),
@@ -252,18 +251,6 @@ impl WorthQueryInstalledPackageIndex {
         if package.package_identity().digest() != identity.package_identity() {
             return Err(application_operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::PackageIdentityChanged,
-                installed,
-            ));
-        }
-        if !installed.authority_matches(&package) {
-            return Err(application_operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::AuthorityMismatch,
-                installed,
-            ));
-        }
-        if !installed.meaning_matches(schema.members()) {
-            return Err(application_operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::OperationMeaningChanged,
                 installed,
             ));
         }

@@ -243,9 +243,10 @@ fn execution_basis_lease_retains_historical_truth_until_independent_release() {
         .build();
     let created = create_entity_outcome(&mut runtime, "managed-execution-basis");
     let entity = changed_entities(&created)[0];
+    let branch_id = created.snapshot.branch_id.clone();
     let execution_basis = runtime
         .snapshots()
-        .admit_execution_basis(created.version_id)
+        .admit_execution_basis(&branch_id, created.version_id)
         .expect("committed version should admit managed execution retention");
     assert!(execution_basis.is_live());
     let execution_snapshot = execution_basis.snapshot_handle().clone();

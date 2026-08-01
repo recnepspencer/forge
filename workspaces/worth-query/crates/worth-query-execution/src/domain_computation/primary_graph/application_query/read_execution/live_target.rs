@@ -54,7 +54,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn read_live
     let admitted_before_materialization = selection.work_units.saturating_add(target_lookup_work);
     let tree = materialize_result_tree(
         runtime,
-        plan.basis.snapshot_handle(),
+        plan.basis().snapshot_handle(),
         graph,
         contract,
         &plan.governance,
@@ -156,7 +156,7 @@ fn resolve_live_target<
             )
         })?;
     let request = BoundedEntityFieldLookupRequest::new(
-        plan.basis.snapshot_handle().clone(),
+        plan.basis().snapshot_handle().clone(),
         layout.equality_index_id.ok_or_else(|| {
             read_execution_denial(
                 WorthQueryApplicationReadExecutionDenialKind::TargetIdentityIndexUnavailable,

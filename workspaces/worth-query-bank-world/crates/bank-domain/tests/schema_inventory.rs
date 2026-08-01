@@ -217,6 +217,7 @@ fn assert_application_query_inventory(members: &[ApplicationSchemaMember]) {
             "account_discovery",
             "account_summary",
             "estate_case_overview",
+            "estate_customer_identity",
             "estate_governance_context",
             "institution_audit",
             "payment_detail",

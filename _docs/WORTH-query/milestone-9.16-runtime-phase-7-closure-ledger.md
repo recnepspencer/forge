@@ -2,7 +2,8 @@
 
 **Owner:** Runtime Hardening Track, Phase 7
 **Canonical specification:** `milestone-9.16.md`
-**Status:** Open — Phase 7.1 proved; Phase 7.2 implementation in progress
+**Status:** Paused after Phase 7.2 — Milestone 9.16.1 must close before Phase
+7.3 begins
 **Policy:** A requirement is `PROVED` only when its production owner, public
 consumer evidence, adversarial evidence, performance posture, and residue
 posture agree. A finding is `CLOSED` only when the root cause and every
@@ -10,7 +11,13 @@ causally dependent guarantee have been rechecked.
 
 This ledger is the durable meaning of the `R7.*` and `Q7.*` identifiers used by
 the milestone. A green broad test does not change a row's status. New findings
-reopen the earliest affected gate and every causal dependent.
+that require stronger composition receive an append-only corrective phase or
+milestone and block unfinished dependents; they do not relabel completed rows.
+
+Milestone 9.16.1 adds the canonical graph-obligation and provider-session
+prerequisite discovered after Phase 7.2. The `R7.*` and `Q7.*` statuses below
+remain the historical Phase 7 record. Phase 7.3 cannot begin until the separate
+9.16.1 closure ledger is complete.
 
 ## Requirement ledger
 
@@ -33,7 +40,7 @@ reopen the earliest affected gate and every causal dependent.
 | R7.15 | 7.7 | Warm authorization work depends only on declared touched evidence, not unrelated grants, relationships, fields, cases, rows, or consumers. | **BLOCKED BY 7.6** | Growth measurements with exact-zero canonical preparation, hashing, digest text, and fallback. |
 | R7.16 | 7.2 | Relational owns current graph observation, Signal owns installed boolean composition, Runtime Bridge owns correspondence, and Query alone combines those proofs into attempt authority; no layer silently recreates another layer's decision. | **PROVED** | Relational's 11 authorization tests prove neutral complete witnesses; installed nested composition lowers through Signal and Bridge; prohibited-path precedence remains Bridge-owned; only top-level Query authorization combines current evidence into private move-only access/operation authority. No competing production authorization owner or legacy import remains. |
 | R7.17 | 7.2 | Capability plans compile at the cold application-runtime publication seam; warm admission performs typed lookup plus touched-graph work and cannot recompile or rehash installed meaning as unrelated graph population grows. | **PROVED** | Publication compiles and indexes each plan once; 4,096 retained installation lookups and Bank population-scale admission remain one registry probe with exact-zero basis, digest, SHA, and text work. The recursive source-cone oracle includes the complete authorization owner. |
-| R7.L | all | The ledger maps every normative Phase 7 requirement, causal dependency, relevant risk category, consumer boundary, and performance claim without duplicating tests into a Cartesian matrix. | **OPEN** | Skeptical ledger audit at every gate closure; discoveries append findings and reopen causal rows. |
+| R7.L | all | The ledger maps every normative Phase 7 requirement, causal dependency, relevant risk category, consumer boundary, and performance claim without duplicating tests into a Cartesian matrix. | **OPEN** | Skeptical ledger audit at every gate closure; discoveries append findings and block unfinished causal rows or create an append-only corrective phase. |
 
 ## Finding ledger
 

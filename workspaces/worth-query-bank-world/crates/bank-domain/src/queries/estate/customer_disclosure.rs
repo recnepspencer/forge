@@ -9,9 +9,7 @@ use worth_query_decl::facade::worth_query_application_query;
 use crate::authorization::ViewEstateCase;
 use crate::estate::{BankDisclosure, EstateCaseId};
 use crate::model::BankPrincipalId;
-use crate::schema::{
-    BankSchema, EstateCase, ViewEstateIdentityVerificationCapability,
-};
+use crate::schema::{BankSchema, EstateCase, ViewEstateIdentityVerificationCapability};
 
 use super::customer_disclosure_selectors::{customer_identity, estate_customer};
 use super::customer_disclosure_shape::customer_disclosure_shape;
@@ -45,9 +43,7 @@ impl EstateCustomerDisclosure {
     }
 }
 
-pub const fn estate_customer_identity(
-    estate: EstateCaseId,
-) -> EstateCustomerDisclosureRequest {
+pub const fn estate_customer_identity(estate: EstateCaseId) -> EstateCustomerDisclosureRequest {
     EstateCustomerDisclosureRequest { estate }
 }
 

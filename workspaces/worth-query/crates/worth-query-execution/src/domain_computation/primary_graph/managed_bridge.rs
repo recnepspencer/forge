@@ -25,6 +25,7 @@ struct WorthQueryApplicationInvalidationSink;
 pub(super) fn install_application_bridge<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     source: RuntimeBridgeRelationalSource,
+    truth_branch: worth_runtime_bridge::facade::TruthBranchIdentity,
 ) -> Result<RuntimeBridge, WorthQueryPrimaryGraphInstallationDenial>
 where
     Schema: ApplicationSchema,
@@ -41,9 +42,7 @@ where
         .with_signal_sink(WorthQueryApplicationInvalidationSink)
         .register_source(SourceDeclaration::new(
             SourceDeclarationIdentity::from_stable_name("primary-application-source"),
-            BridgeTruthViewSelector::branch_head(
-                super::application_branch::primary_truth_branch_identity(),
-            ),
+            BridgeTruthViewSelector::branch_head(truth_branch),
             BridgeSourceCapabilitySet::new(vec![
                 BridgeSourceCapability::SnapshotRead,
                 BridgeSourceCapability::BranchRead,

@@ -1,7 +1,10 @@
-use bank_domain::estate::{EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField};
+use bank_domain::estate::{
+    EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField,
+};
 use bank_domain::model::BankPrincipalId;
 use bank_domain::queries::{
     EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
+    EstateCustomerDisclosureQueryParameters,
 };
 use bank_domain::schema::{
     BankSchema, EstateCase, EstateCaseIdentityField, Principal,
@@ -9,8 +12,8 @@ use bank_domain::schema::{
 };
 use worth_query_host::facade::declaration::application_query::ApplicationQueryParameterSet;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryControls,
-    WorthQueryPrincipalResolutionMode,
+    WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryAccessContext,
+    WorthQueryApplicationQueryControls, WorthQueryPrincipalResolutionMode,
 };
 use worth_query_host::facade::publication::domain_computation::{
     publish_application_result, WorthQueryPublishedApplicationResult,
@@ -19,6 +22,17 @@ use worth_query_host::facade::publication::domain_computation::{
 use super::BankApplicationQueryDenial;
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
+type EstateCustomerDisclosurePlan<'a> = WorthQueryAdmittedApplicationQueryPlan<
+    'a,
+    BankSchema,
+    EstateCustomerDisclosureQuery,
+    EstateCustomerDisclosureQueryParameters,
+    EstateCustomerDisclosure,
+    Principal,
+    BankPrincipalId,
+    EstateCase,
+>;
+
 pub(crate) fn execute_estate_customer_disclosure(
     runtime: &BankIdentityRuntime,
     principal: &BankAuthenticatedPrincipal,
@@ -26,6 +40,57 @@ pub(crate) fn execute_estate_customer_disclosure(
     controls: WorthQueryApplicationQueryControls<'_, BankSchema>,
 ) -> Result<
     WorthQueryPublishedApplicationResult<EstateCustomerDisclosureQuery, EstateCustomerDisclosure>,
+    BankApplicationQueryDenial,
+> {
+    execute_estate_customer_disclosure_with(runtime, principal, estate, controls, |_| ())
+        .map(|(published, ())| published)
+}
+
+pub(crate) fn execute_estate_customer_disclosure_with<Observation>(
+    runtime: &BankIdentityRuntime,
+    principal: &BankAuthenticatedPrincipal,
+    estate: EstateCaseId,
+    controls: WorthQueryApplicationQueryControls<'_, BankSchema>,
+    observe: impl FnOnce(&EstateCustomerDisclosurePlan<'_>) -> Observation,
+) -> Result<
+    (
+        WorthQueryPublishedApplicationResult<
+            EstateCustomerDisclosureQuery,
+            EstateCustomerDisclosure,
+        >,
+        Observation,
+    ),
+    BankApplicationQueryDenial,
+> {
+    execute_estate_customer_disclosure_action_with(
+        runtime,
+        principal,
+        estate,
+        EstateAction::ViewRestrictedEstate {
+            estate,
+            field: RestrictedBankField::CustomerIdentity,
+            purpose: EstateCapabilityPurpose::IdentityVerification,
+        },
+        controls,
+        observe,
+    )
+}
+
+pub(crate) fn execute_estate_customer_disclosure_action_with<Observation>(
+    runtime: &BankIdentityRuntime,
+    principal: &BankAuthenticatedPrincipal,
+    estate: EstateCaseId,
+    action: EstateAction,
+    controls: WorthQueryApplicationQueryControls<'_, BankSchema>,
+    observe: impl FnOnce(&EstateCustomerDisclosurePlan<'_>) -> Observation,
+) -> Result<
+    (
+        WorthQueryPublishedApplicationResult<
+            EstateCustomerDisclosureQuery,
+            EstateCustomerDisclosure,
+        >,
+        Observation,
+    ),
     BankApplicationQueryDenial,
 > {
     let application = runtime.application_runtime();
@@ -40,13 +105,8 @@ pub(crate) fn execute_estate_customer_disclosure(
             ViewRestrictedEstateOperation::reference(),
         )
         .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
-    let action = EstateAction::ViewRestrictedEstate {
-        estate,
-        field: RestrictedBankField::CustomerIdentity,
-        purpose: EstateCapabilityPurpose::IdentityVerification,
-    };
     let capability_access = application
-        .admit_capability_access(
+        .prepare_capability_access(
             principal.query(),
             &capability,
             action,
@@ -76,9 +136,13 @@ pub(crate) fn execute_estate_customer_disclosure(
             controls,
         )
         .map_err(BankApplicationQueryDenial::Admission)?;
+    let observation = observe(&plan);
     let result = application
         .execute_application_query_one_shot(plan)
         .map_err(BankApplicationQueryDenial::Execution)?;
 
-    Ok(publish_application_result(result.into_admitted_disclosed()))
+    Ok((
+        publish_application_result(result.into_admitted_disclosed()),
+        observation,
+    ))
 }

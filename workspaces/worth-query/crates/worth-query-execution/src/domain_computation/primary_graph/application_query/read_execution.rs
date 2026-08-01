@@ -78,7 +78,7 @@ pub(super) fn read_bounded_root_rows<
     validate_cardinality_and_limit(contract.cardinality(), selection.candidates.len(), plan)?;
     let tree = materialize_result_tree(
         runtime,
-        plan.basis.snapshot_handle(),
+        plan.basis().snapshot_handle(),
         graph,
         contract,
         &plan.governance,
@@ -171,7 +171,7 @@ pub(super) fn read_continuation_page<
     validate_cardinality_and_limit(contract.cardinality(), selection.candidates.len(), plan)?;
     let tree = materialize_result_tree(
         runtime,
-        plan.basis.snapshot_handle(),
+        plan.basis().snapshot_handle(),
         graph,
         contract,
         &plan.governance,
@@ -181,7 +181,7 @@ pub(super) fn read_continuation_page<
             .get()
             .saturating_sub(selection.work_units),
         ResultTreeCollectionSelection::Ordered(OrderedCollectionWindow {
-            snapshot: plan.basis.snapshot_handle().clone(),
+            snapshot: plan.basis().snapshot_handle().clone(),
             collection_path: continuation.collection_path().to_string(),
             index_id,
             expected_generation: plan

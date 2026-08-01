@@ -30,6 +30,10 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
         let handle = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
+            branch_id: crate::visibility::branch_scope::authoritative_branch_for_version(
+                self.runtime,
+                version_id,
+            ),
             snapshot_id,
             version_id,
             read_policy,
@@ -47,7 +51,11 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         }
         self.runtime.visibility.insert_active_handle(
             handle.snapshot_id,
-            SnapshotHandleBinding::new(handle.version_id, handle.read_policy),
+            SnapshotHandleBinding::new(
+                handle.branch_id.clone(),
+                handle.version_id,
+                handle.read_policy,
+            ),
         );
         bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
         handle
@@ -106,12 +114,17 @@ impl<'runtime> VisibilityAuthority<'runtime> {
 
     pub fn admit_execution_basis(
         &mut self,
+        branch_id: &crate::history::data::BranchId,
         version_id: crate::identity::data::VersionId,
     ) -> Result<
         crate::visibility::execution_basis::RelationalExecutionBasisLease,
         crate::visibility::execution_basis::RelationalExecutionBasisDenial,
     > {
-        crate::visibility::execution_basis::admit_execution_basis(self.runtime, version_id)
+        crate::visibility::execution_basis::admit_execution_basis(
+            self.runtime,
+            branch_id,
+            version_id,
+        )
     }
 
     pub fn execution_basis_is_live(

@@ -4,9 +4,7 @@ use worth_query_decl::facade::application_query::{
 
 use crate::schema::{BankSchema, EstateCase, Principal};
 
-use super::customer_disclosure::{
-    EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
-};
+use super::customer_disclosure::{EstateCustomerDisclosure, EstateCustomerDisclosureQuery};
 use super::customer_disclosure_selectors::{customer_identity, estate_customer};
 
 pub(super) fn customer_disclosure_shape() -> TypedApplicationQueryResultShape<

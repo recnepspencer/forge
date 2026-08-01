@@ -69,10 +69,10 @@ impl<Schema, Operation, Input, Scope>
                         entity,
                     )
                 })?;
-                let exists = self.lease.handle().with_runtime(|runtime| {
+                let exists = self.graph_lease().handle().with_runtime(|runtime| {
                     runtime
                         .read_truth()
-                        .project_snapshot(self.lease.snapshot())
+                        .project_snapshot(self.graph_lease().snapshot())
                         .and_then(|view| {
                             view.entity_record_with_projection_scope(
                                 *entity_id,
@@ -94,6 +94,7 @@ impl<Schema, Operation, Input, Scope>
                     ));
                 }
                 Ok(WorthQueryApplicationObservedFact::Entity {
+                    branch_id: self.graph_lease().snapshot().branch_id.clone(),
                     target,
                     entity_id: *entity_id,
                     kind,
@@ -111,12 +112,12 @@ impl<Schema, Operation, Input, Scope>
                     )
                 })?;
                 let value = self
-                    .lease
+                    .graph_lease()
                     .handle()
                     .with_runtime(|runtime| {
                         super::super::observation::observe_field_value(
                             runtime,
-                            self.lease.snapshot(),
+                            self.graph_lease().snapshot(),
                             *entity_id,
                             kind,
                             locator,
@@ -129,6 +130,7 @@ impl<Schema, Operation, Input, Scope>
                         )
                     })?;
                 Ok(WorthQueryApplicationObservedFact::Field {
+                    branch_id: self.graph_lease().snapshot().branch_id.clone(),
                     target,
                     entity_id: *entity_id,
                     kind,
@@ -143,16 +145,17 @@ impl<Schema, Operation, Input, Scope>
                         relation,
                     )
                 })?;
-                let matching_relations = self.lease.handle().with_runtime(|runtime| {
+                let matching_relations = self.graph_lease().handle().with_runtime(|runtime| {
                     super::super::observation::exact_relations(
                         runtime,
-                        self.lease.snapshot(),
+                        self.graph_lease().snapshot(),
                         layout.kind,
                         *from,
                         *to,
                     )
                 })?;
                 Ok(WorthQueryApplicationObservedFact::Relation {
+                    branch_id: self.graph_lease().snapshot().branch_id.clone(),
                     target,
                     relation_kind: layout.kind,
                     from: *from,
@@ -172,10 +175,10 @@ impl<Schema, Operation, Input, Scope>
                         relation,
                     )
                 })?;
-                let relations = self.lease.handle().with_runtime(|runtime| {
+                let relations = self.graph_lease().handle().with_runtime(|runtime| {
                     observe_adjacency(
                         runtime,
-                        self.lease.snapshot(),
+                        self.graph_lease().snapshot(),
                         layout.kind,
                         *anchor,
                         *direction,
@@ -189,6 +192,7 @@ impl<Schema, Operation, Input, Scope>
                     )
                 })?;
                 Ok(WorthQueryApplicationObservedFact::Adjacency {
+                    branch_id: self.graph_lease().snapshot().branch_id.clone(),
                     target,
                     relation_kind: layout.kind,
                     anchor: *anchor,
@@ -240,12 +244,18 @@ impl<Schema, Operation, Input, Scope>
     where
         Relation: OperationReads<Operation>,
     {
-        let layout = self.lease.layout.relation(relation.name()).ok_or_else(|| {
-            denial(
-                WorthQueryApplicationAttemptDenialKind::UndeclaredDecisionRead,
-                relation.name(),
-            )
-        })?;
+        let layout = self
+            .admission
+            .graph_work_session()
+            .basis()
+            .layout
+            .relation(relation.name())
+            .ok_or_else(|| {
+                denial(
+                    WorthQueryApplicationAttemptDenialKind::UndeclaredDecisionRead,
+                    relation.name(),
+                )
+            })?;
         if from.runtime_authority() != self.admission.runtime_authority()
             || to.runtime_authority() != self.admission.runtime_authority()
             || from.binding_identity() != self.admission.binding_identity()

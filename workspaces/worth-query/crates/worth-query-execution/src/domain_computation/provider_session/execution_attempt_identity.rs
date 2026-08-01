@@ -19,6 +19,12 @@ impl WorthQueryExecutionAttemptIdentity {
         Self::mint()
     }
 
+    pub(super) fn graph_work(
+        session_identity: &worth_foundational::facade::CanonicalDigestId,
+    ) -> Self {
+        Self(Arc::from(session_identity.render_hex()))
+    }
+
     fn mint() -> Self {
         let ordinal = next_execution_attempt_ordinal(&NEXT_EXECUTION_ATTEMPT)
             .expect("execution attempt identity space must not be exhausted");

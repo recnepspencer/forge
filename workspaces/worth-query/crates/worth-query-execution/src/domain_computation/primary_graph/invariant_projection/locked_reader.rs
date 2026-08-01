@@ -22,16 +22,16 @@ pub struct WorthQueryApplicationInvariantProjectionReader<'runtime, Schema> {
     pub(super) runtime: &'runtime mut worth_relational::facade::runtime::RelationalRuntime,
     pub(super) layout: &'runtime super::super::schema_layout::WorthQueryPrimaryGraphLayout,
     pub(super) snapshot: &'runtime worth_relational::facade::snapshots::SnapshotHandle,
-    runtime_authority:
+    pub(super) runtime_authority:
         crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
-    binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    pub(super) binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
     pub(super) authority_identity: u64,
     pub(super) work: WorthQueryInvariantProjectionWork,
     pub(super) work_budget: WorthQueryInvariantProjectionWorkBudget,
     pub(super) realized_scope: WorthQueryRealizedProjectionScope,
     pub(super) aggregate_projections:
         Arc<std::sync::Mutex<super::super::aggregate_projection::WorthQueryAggregateProjections>>,
-    _schema: PhantomData<fn() -> Schema>,
+    pub(super) _schema: PhantomData<fn() -> Schema>,
 }
 
 pub struct WorthQueryCompletedInvariantProjection<Schema, Output> {
@@ -76,22 +76,6 @@ where
         }
     }
 
-    pub(super) fn project_bounded<Output>(
-        &self,
-        maximum_work: usize,
-        projection: impl FnOnce(
-            &mut WorthQueryApplicationInvariantProjectionReader<'_, Schema>,
-        ) -> Output,
-    ) -> Result<
-        WorthQueryCompletedInvariantProjection<Schema, Output>,
-        WorthQueryInvariantProjectionWorkLimitExceeded,
-    > {
-        self.project_with_work_budget(
-            WorthQueryInvariantProjectionWorkBudget::bounded(maximum_work),
-            projection,
-        )
-    }
-
     fn project_with_work_budget<Output>(
         &self,
         work_budget: WorthQueryInvariantProjectionWorkBudget,
@@ -119,20 +103,15 @@ where
                     _schema: PhantomData,
                 };
                 let output = projection(&mut reader);
-                (
-                    output,
-                    reader.work,
-                    reader.realized_scope,
-                    reader.work_budget.exceeded(),
-                )
+                (output, reader.work, reader.work_budget.exceeded())
             }));
             match projected {
-                Ok((output, work, realized_scope, exceeded)) => {
+                Ok((output, work, exceeded)) => {
                     if exceeded {
                         let _ = runtime.snapshots().release_snapshot(&snapshot);
                         Ok(Err(WorthQueryInvariantProjectionWorkLimitExceeded))
                     } else {
-                        Ok(Ok((output, snapshot, work, realized_scope)))
+                        Ok(Ok((output, snapshot, work)))
                     }
                 }
                 Err(payload) => {
@@ -141,7 +120,7 @@ where
                 }
             }
         });
-        let (output, snapshot, work, realized_scope) = match projected {
+        let (output, snapshot, work) = match projected {
             Ok(Ok(completed)) => completed,
             Ok(Err(denial)) => return Err(denial),
             Err(payload) => resume_unwind(payload),
@@ -152,10 +131,7 @@ where
                 graph: self.graph.clone(),
                 layout: Arc::clone(&self.layout),
                 snapshot: Some(snapshot),
-                runtime_authority: self.runtime_authority,
-                binding_identity: self.binding_identity.clone(),
                 authority_identity: self.authority_identity,
-                realized_scope,
                 _schema: PhantomData,
             },
             work,

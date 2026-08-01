@@ -5,8 +5,8 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryLaneEligibility, ApplicationQueryLiveCauseBinding,
     ApplicationQueryLiveResourceContract, ApplicationQueryOrderingDirection,
     ApplicationQueryParameterRef, ApplicationQueryParameterSet, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder,
-    ForwardResultTraversal, ManyResults,
+    ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder, ForwardResultTraversal,
+    ManyResults,
 };
 use worth_query_declaration::worth_query_application_query;
 

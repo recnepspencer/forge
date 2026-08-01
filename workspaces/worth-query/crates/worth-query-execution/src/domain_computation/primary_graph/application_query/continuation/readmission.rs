@@ -1,20 +1,16 @@
 use worth_query_declaration::facade::{
     application_capability::ApplicationCapabilityRequest,
-    application_query::ApplicationQueryParameterSet,
-    application_schema::ApplicationSchema,
+    application_query::ApplicationQueryParameterSet, application_schema::ApplicationSchema,
 };
 use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
 
 use super::{
-    affinity::{
-        validate_continuation_affinity, WorthQueryValidatedContinuationAffinity,
-    },
+    affinity::{validate_continuation_affinity, WorthQueryValidatedContinuationAffinity},
     authority::WorthQueryApplicationQueryContinuation,
 };
 use crate::domain_computation::primary_graph::{
     application_query::{
-        admission::prepare_governed_access,
-        disclosure::WorthQueryPendingApplicationQueryGovernance,
+        admission::{prepare_governed_access, WorthQueryGovernanceAdmission},
         graph_read_plan_binding::WorthQueryAdmittedContinuationState,
         WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationQueryAccessContext,
         WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
@@ -117,7 +113,7 @@ where
             PrincipalIdentity,
             Scope,
         >,
-        capability: crate::domain_computation::authorization::WorthQueryAdmittedApplicationCapabilityAccess<
+        capability: crate::domain_computation::authorization::WorthQueryPreparedApplicationCapabilityAccess<
             Schema,
             Capability,
             Operation,
@@ -146,7 +142,9 @@ where
         WorthQueryApplicationQueryAdmissionDenial,
     >
     where
-        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
+        Capability: 'static,
+        Operation: 'static,
+        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope> + 'static,
     {
         let affinity =
             validate_continuation_affinity(self, query, access.scope().entity_id(), continuation)?;
@@ -193,7 +191,7 @@ where
         parameters: ApplicationQueryParameterSet<Query>,
         query_controls: WorthQueryApplicationQueryControls<'a, Schema>,
         affinity: WorthQueryValidatedContinuationAffinity,
-        pending: Option<WorthQueryPendingApplicationQueryGovernance>,
+        pending: Option<WorthQueryGovernanceAdmission<Schema, Principal, PrincipalIdentity, Scope>>,
     ) -> Result<
         WorthQueryAdmittedApplicationQueryPlan<
             'a,
@@ -207,8 +205,8 @@ where
         >,
         WorthQueryApplicationQueryAdmissionDenial,
     > {
-        let (parameters, query_controls, authorization, authorization_work) =
-            self.prepare_application_query_admission(query, access, parameters, query_controls)?;
+        let (parameters, query_controls) =
+            self.prepare_application_query_admission(query, parameters, query_controls)?;
         if !parameters
             .canonical_basis()
             .is_equivalent_to(&affinity.parameter_basis)
@@ -223,8 +221,6 @@ where
             access,
             parameters,
             query_controls,
-            authorization,
-            authorization_work,
             pending,
         )?;
         plan.continuation_state = Some(WorthQueryAdmittedContinuationState {

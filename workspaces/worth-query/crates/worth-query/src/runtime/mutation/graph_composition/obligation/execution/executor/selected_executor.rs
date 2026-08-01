@@ -103,11 +103,10 @@ fn execute_supported_graph_obligation(
     ) {
         WorthQueryGraphObligationExecutorFamily::SelectionBackedDispatch
         | WorthQueryGraphObligationExecutorFamily::OperatingContextGate => {
-            WorthQueryGraphObligationExecutionResultRow::executed(
+            status_row_with_blocking_verdict(
                 input,
-                WorthQueryGraphObligationVerdict::allow_with_context("selected-for-execution")
-                    .expect("static allow context is non-empty"),
-                WorthQueryGraphObligationStateLoadCounters::none(),
+                WorthQueryGraphObligationExecutionStatus::Unsupported,
+                "selected-obligation-owner-execution-not-bound",
             )
         }
         WorthQueryGraphObligationExecutorFamily::AdvisoryObligation => {

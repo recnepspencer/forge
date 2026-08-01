@@ -44,6 +44,14 @@ fn authority_certification_status_for(
     kind: WorthQueryGraphObligationKind,
     lane: WorthQueryGraphObligationSupportLane,
 ) -> WorthQueryGraphObligationSupportStatus {
+    if matches!(
+        kind,
+        WorthQueryGraphObligationKind::BlockingInvariant
+            | WorthQueryGraphObligationKind::SchemaContractValidator
+            | WorthQueryGraphObligationKind::OperatingContextGate
+    ) {
+        return WorthQueryGraphObligationSupportStatus::Unsupported;
+    }
     match lane {
         WorthQueryGraphObligationSupportLane::GraphComposition
         | WorthQueryGraphObligationSupportLane::AuthoritativeCommandBatch
@@ -73,11 +81,6 @@ fn authority_certification_status_for(
             WorthQueryGraphObligationSupportStatus::Unsupported
         }
         WorthQueryGraphObligationSupportLane::PreviewMutation => match kind {
-            WorthQueryGraphObligationKind::BlockingInvariant
-            | WorthQueryGraphObligationKind::SchemaContractValidator
-            | WorthQueryGraphObligationKind::OperatingContextGate => {
-                WorthQueryGraphObligationSupportStatus::Supported
-            }
             WorthQueryGraphObligationKind::AdvisoryObligation => {
                 WorthQueryGraphObligationSupportStatus::DiagnosticOnly
             }
@@ -85,6 +88,11 @@ fn authority_certification_status_for(
             | WorthQueryGraphObligationKind::CapabilityGapScreen => {
                 WorthQueryGraphObligationSupportStatus::DeferredToBackstop
             }
+            WorthQueryGraphObligationKind::BlockingInvariant
+            | WorthQueryGraphObligationKind::SchemaContractValidator
+            | WorthQueryGraphObligationKind::OperatingContextGate => unreachable!(
+                "ownerless obligation kinds return unsupported before lane classification"
+            ),
         },
         WorthQueryGraphObligationSupportLane::AssemblyIndexSelection => {
             WorthQueryGraphObligationSupportStatus::Supported

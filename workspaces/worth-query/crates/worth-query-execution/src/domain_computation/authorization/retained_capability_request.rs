@@ -29,7 +29,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
 }
 
 impl WorthQueryRetainedCapabilityRequest {
-    pub(super) fn capture<Schema, Scope, Context>(
+    pub(in crate::domain_computation) fn capture<Schema, Scope, Context>(
         capability_identity: [u8; 32],
         principal: worth_relational::facade::identity::EntityId,
         projection: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,

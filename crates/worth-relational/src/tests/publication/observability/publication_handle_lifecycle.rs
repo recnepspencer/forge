@@ -147,6 +147,7 @@ fn pruned_publication_version_cannot_mint_historical_execution_authority() {
         })
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
+    let first_branch = first.snapshot.branch_id.clone();
     let entity = changed_entities(&first)[0];
     update_entity(&mut runtime, entity, "second");
     update_entity(&mut runtime, entity, "third");
@@ -156,7 +157,10 @@ fn pruned_publication_version_cannot_mint_historical_execution_authority() {
         .read_truth()
         .read_snapshot(&first.snapshot)
         .is_none());
-    let denial = match runtime.snapshots().admit_execution_basis(first.version_id) {
+    let denial = match runtime
+        .snapshots()
+        .admit_execution_basis(&first_branch, first.version_id)
+    {
         Ok(_) => panic!("pruned publication version admitted execution authority"),
         Err(denial) => denial,
     };

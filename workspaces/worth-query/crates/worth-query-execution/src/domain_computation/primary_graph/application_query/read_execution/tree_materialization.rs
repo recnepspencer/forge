@@ -208,14 +208,7 @@ fn project_nodes(
     }
     for relation in relations {
         if !governance.is_disclosed(relation.slot_key_identity().as_ref()) {
-            advance_omitted_relation(
-                runtime,
-                graph,
-                relation,
-                &nodes,
-                work,
-                collection_selection,
-            )?;
+            advance_omitted_relation(runtime, graph, relation, &nodes, work, collection_selection)?;
             continue;
         }
         attach_relation(

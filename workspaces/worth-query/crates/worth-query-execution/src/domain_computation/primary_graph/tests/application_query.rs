@@ -14,8 +14,9 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryAdmissionDenialKind,
     WorthQueryApplicationQueryControls, WorthQueryPrincipalResolutionMode,
 };
-mod identity_convergence;
+mod capacity_lifecycle;
 mod disclosure_noninterference;
+mod identity_convergence;
 mod lane_hostility;
 mod lane_parity;
 mod lifecycle;
@@ -171,6 +172,7 @@ fn execution_runtime_mints_plan_from_exact_mapped_principal_and_typed_scope() {
 
     assert_eq!(plan.query_identity(), query.identity());
     assert_eq!(plan.scope().binding_identity(), query.binding_identity());
+    let expected_branch = plan.basis_identity().branch_id().clone();
     assert!(plan.graph_read_plan().is_admitted());
     assert_eq!(
         plan.graph_read_plan()
@@ -192,6 +194,19 @@ fn execution_runtime_mints_plan_from_exact_mapped_principal_and_typed_scope() {
     assert_eq!(result.receipt().fallback_count(), 0);
     assert_eq!(result.receipt().edge_scan_count(), 0);
     assert_eq!(result.receipt().per_result_neighbor_lookup_count(), 0);
+    assert_eq!(result.receipt().branch_id(), &expected_branch);
+    assert!(result
+        .receipt()
+        .graph_work_session_identity()
+        .bytes()
+        .iter()
+        .any(|byte| *byte != 0));
+    assert_eq!(
+        result.receipt().provider_session_identity(),
+        result.receipt().graph_work_session_identity().render_hex(),
+        "the read receipt must expose the one canonical provider session",
+    );
+    assert_eq!(result.receipt().released_capacity_reservation_count(), 1);
     assert!(result.receipt().basis_released());
 }
 

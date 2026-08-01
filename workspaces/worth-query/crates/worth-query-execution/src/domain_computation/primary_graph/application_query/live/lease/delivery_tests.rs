@@ -7,9 +7,10 @@ use super::super::{
 use crate::domain_computation::primary_graph::tests::{
     fixture::{
         admit_touch_account_capability, governed_live_account_parameters,
-        installed_authorization_world, installed_capability_live_world, live_account_parameters,
-        live_scope, revoke_current_capability, Account, AccountIdentity, AccountSummaryParameters,
-        Activity, GovernedLiveAccountActivityCause, GovernedLiveAccountActivityQuery,
+        installed_authorization_world, installed_authorization_world_on_branch,
+        installed_capability_live_world, live_account_parameters, live_scope,
+        revoke_current_capability, Account, AccountIdentity, AccountSummaryParameters, Activity,
+        GovernedLiveAccountActivityCause, GovernedLiveAccountActivityQuery,
         GovernedLiveAccountActivityResult, LiveAccountActivityCause, LiveAccountActivityQuery,
         LiveAccountActivityResult,
     },
@@ -19,6 +20,60 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryPrincipalResolutionMode,
 };
+
+#[test]
+fn live_open_uses_the_installed_non_main_branch() {
+    let world = installed_authorization_world_on_branch(true, "tenant-blue");
+    let request = live_scope();
+    let external = world.authenticate("alice", Duration::from_secs(60), &request);
+    let principal = world
+        .application
+        .resolve_authenticated_principal(
+            &world.binding,
+            external,
+            &request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let query = world
+        .application
+        .installed_schema()
+        .application_query(LiveAccountActivityQuery::reference())
+        .unwrap();
+    let account = world
+        .application
+        .resolve_entity(
+            AccountIdentity::reference(),
+            "account-1".to_owned(),
+            &request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+
+    let lease = world
+        .application
+        .open_application_query_live::<
+            LiveAccountActivityQuery,
+            AccountSummaryParameters,
+            LiveAccountActivityResult,
+            _,
+            _,
+            Account,
+            Activity,
+            LiveAccountActivityCause,
+        >(
+            query,
+            &principal,
+            account,
+            live_account_parameters("account-1"),
+            WorthQueryApplicationLiveControls::bounded(request, 4, 16, 2_048).unwrap(),
+        )
+        .expect("the live basis must be admitted on the installed non-main branch");
+    assert_eq!(
+        lease.close(),
+        WorthQueryApplicationLiveCloseOutcome::Completed
+    );
+}
 
 #[test]
 fn committed_live_cause_projects_with_bounded_result_buffer_evidence() {
@@ -266,5 +321,8 @@ fn revoked_capability_stops_governed_live_delivery_before_projection() {
         };
         panic!("revoked governed live authority returned {posture}");
     };
-    assert_eq!(kind, WorthQueryOperationAuthorizationDenialKind::StaleAuthorization);
+    assert_eq!(
+        kind,
+        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+    );
 }

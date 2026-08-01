@@ -53,12 +53,18 @@ impl WorthQueryPrimaryGraphProvider {
     pub(in crate::domain_computation::primary_graph) fn resolve_idempotency_binding(
         &self,
         binding: WorthQueryApplicationIdempotencyBinding,
+        branch_id: &worth_relational::facade::history::BranchId,
     ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
         let layout = self.graph.layout.provider_idempotency().clone();
         self.graph.with_runtime_mut(|runtime| {
-            self.graph.ensure_primary_indexes_current(runtime)?;
+            self.graph
+                .ensure_primary_indexes_current(runtime, branch_id)?;
             let snapshot = runtime.snapshots().snapshot();
-            let resolution = resolve_at_snapshot(runtime, &snapshot, &layout, binding);
+            let resolution = if &snapshot.branch_id == branch_id {
+                resolve_at_snapshot(runtime, &snapshot, &layout, binding)
+            } else {
+                Err("provider idempotency snapshot belongs to another branch")
+            };
             runtime.snapshots().release_snapshot(&snapshot);
             resolution
         })
@@ -68,15 +74,15 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         session_identity: &str,
     ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
-        let binding = self
+        let (binding, branch_id) = self
             .sessions
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .application_attempts
             .get(session_identity)
-            .map(|attempt| attempt.idempotency)
+            .map(|attempt| (attempt.idempotency, attempt.branch_id.clone()))
             .ok_or("provider session lost its idempotency binding")?;
-        self.resolve_idempotency_binding(binding)
+        self.resolve_idempotency_binding(binding, &branch_id)
     }
 }
 
@@ -181,6 +187,7 @@ fn resolve_at_snapshot(
     Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
         WorthQueryPrimaryGraphCommittedApplication::new(
             snapshot.runtime_instance_id,
+            committed.commit().branch_id.clone(),
             committed.commit().commit_id,
             committed.changed_record_count(),
             emitted,

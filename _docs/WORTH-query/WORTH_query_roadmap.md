@@ -354,8 +354,10 @@ cross-feature proof gates before final certification:
   plans, public read/mutation/workflow/history/live facades, governed
   break-glass, actionable recovery, linear undo/redo, and separate user-node
   processes
-- `Milestone 9.17` adds advanced generic computation through that same front
-  door: query-bound search and access products, exact membership, verified
+- `Milestone 9.17` first replaces the conservative global commit coordinator
+  with Relational-owned per-branch MVCC and concurrent independent-branch
+  writers, then adds advanced generic computation through the same front door:
+  query-bound search and access products, exact membership, verified
   footprints, correlated paths, set-oriented conflict partitions, governed
   decision attachments, occurrence-safe reuse, capability-safe bank/compliance
   adoption, Milestone 9.10 filter/sort/traversal plan integration, and
@@ -4682,10 +4684,11 @@ The governing milestone spec is
   adapter, asynchronous topology, and complete consumer journeys
 - the Closure Track uses normal Phases 1–N for cross-cutting certification and
   permanent prohibitions
-- a discovered generic runtime gap reopens the affected Runtime Hardening phase
-  or adds the next phase in that track before implementation; bank-specific and
-  adapter-specific discoveries remain in the Bank World Track, and independent
-  advanced computation belongs to Milestone 9.17
+- a discovered generic runtime gap adds the next corrective phase or an
+  interstitial milestone before implementation; completed milestones and
+  ledger rows remain immutable history, bank-specific and adapter-specific
+  discoveries remain in the Bank World Track, and independent advanced
+  computation belongs to Milestone 9.17
 
 ### Must Ship
 
@@ -4748,15 +4751,87 @@ concurrency, conflict-of-interest, disclosure narrowing, break-glass expiry,
 revocation, retries, response loss, compensation, redo drift, and provider
 failures, and closes every high- or critical-impact ledger row.
 
-## Milestone 9.17: Advanced Domain Computation And Provider Certification
+## Milestone 9.16.1: Canonical Graph Obligation And Provider Session Convergence
+
+### Placement
+
+Milestone 9.16 pauses after Runtime Hardening Phase 7.2 while this corrective
+milestone is open. Milestones 9.9, 9.10, and 9.15 and the completed 9.16 rows
+retain their recorded historical statuses. After 9.16.1 closes, 9.16 resumes
+at Runtime Phase 7.3.
 
 ### Goal
 
-Extend the Milestone 9.16 public front door with installed-query-bound search
-and access products, membership and coverage, verified realized footprints,
-correlated paths, conflict-proof set execution, governed decisions,
-occurrence-safe reuse, capability-safe bank/compliance adoption, and
-provider-independent certification.
+Establish exactly one installed obligation, graph-read requirement, support
+inventory, cost, budget, capacity, sealed plan, managed provider session,
+lower-owner execution, decision read-set, terminal, and receipt progression for
+every ordinary Query read and mutation.
+
+### Adversarial Constraint
+
+A hostile external consumer attempts to construct planning or execution proof,
+invoke review as authority, execute raw Relational state, begin authorization
+before the provider session, report a selected invariant as executed, combine
+cross-runtime, cross-branch, or cross-basis products, and import every obsolete
+monolith path.
+A real Bank read and mutation must instead traverse one session-bound path,
+invoke the exact Relational/Runtime Bridge/Signal owners, release all resources,
+and preserve exact-zero warm canonical and SHA work as unrelated population and
+consumer fan-out grow.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.16.1.md](./milestone-9.16.1.md), with closure governed by
+[milestone-9.16.1-closure-ledger.md](./milestone-9.16.1-closure-ledger.md).
+
+### Must Ship
+
+- one destination-package installed graph-obligation set per query or operation
+- one sealed selection, planning, admission, capacity, and provider-session
+  progression
+- typed branch affinity carried by every plan, session, read set, proposal,
+  invariant, commit, retry, receipt, and publication transition
+- one graph-read planning authority consumed by every application-query lane
+- session-bound Relational observations, Runtime Bridge correspondence, Signal
+  decisions, Query decision facts, proposed state, invariants, and terminals
+- honest read-only and mutation branches with exact lifecycle release
+- receipts minted only from actual terminal owner evidence
+- deletion of the monolith obligation tree, parallel graph-read planners and
+  executors, manual invariant hooks, public proof constructors, and compatibility
+  residue
+- hostile consumer, dependency, mutation-sensitive, scale, documentation, and
+  residue evidence proving the single path
+
+### Must Preserve
+
+- every recorded historical milestone and phase status
+- Relational graph truth and mechanics, Runtime Bridge correspondence/lowering,
+  Signal policy evidence, and Query legal composition
+- Milestone 9.15 managed lifecycle, provider session, complete read-set,
+  proposed-state, and invariant guarantees
+- Milestone 9.16 Phase 6 query and warm-path guarantees and Phase 7.1-7.2 typed
+  capability, exact-grant, trusted-time, purpose, and currentness guarantees
+- cert-only replay and the boundary between ordinary and reconstructive work
+
+### Handoff
+
+Milestone 9.16 resumes at Runtime Phase 7.3 only after the 9.16.1 ledger closes.
+Disclosure and every later capability phase must consume the canonical
+session-bound decision and may not create another selector, planner, executor,
+or receipt path. Every later 9.16 phase carries the admitted branch unchanged;
+per-branch MVCC and concurrent independent-branch writers begin in 9.17.
+
+## Milestone 9.17: Branch-Affine MVCC, Advanced Domain Computation, And Provider Certification
+
+### Goal
+
+Replace the conservative global commit coordinator with Relational-owned
+per-branch MVCC, then extend the Milestone 9.16 public front door with
+installed-query-bound search and access products, membership and coverage,
+verified realized footprints, correlated paths, conflict-proof set execution,
+governed decisions, occurrence-safe reuse, capability-safe bank/compliance
+adoption, and provider-independent certification.
 
 ### Adversarial Constraint
 
@@ -4764,7 +4839,9 @@ Bank/compliance, geometry, chip/netlist, and research workloads challenge
 unauthorized search candidates, field-disclosure leaks, incomplete candidates,
 negative-space changes, lying footprints, quadratic partitioning, scalar loops,
 governance leaks, stale reuse, and provider receipts that disagree with
-independent semantic oracles.
+independent semantic oracles. Equal-version branches challenge affinity
+substitution; a blocked writer on one branch must not prevent another branch
+from committing, while same-branch races preserve exact MVCC conflict posture.
 
 ### Specification
 
@@ -4773,6 +4850,12 @@ The governing milestone spec is
 
 ### Must Ship
 
+- Relational-owned branch identities, heads, branch-local versions, snapshots,
+  conflict detection, retention, and atomic compare-and-commit
+- concurrent progress for writers on distinct branches with no ordinary global
+  commit lock, plus honest same-branch stale/conflict outcomes
+- Runtime Bridge correspondence and unchanged Query carriage of the typed
+  branch through every authority and receipt phase
 - provider-backed access-product lifecycle with honest memory and work evidence
 - typed search and advanced access strategies that retain canonical installed
   query, capability, purpose, basis, disclosure, cursor, and result meaning
@@ -4799,10 +4882,12 @@ The governing milestone spec is
 ### Must Preserve
 
 - the ordinary typed and authorized application boundary established by 9.16
+- the branch-affine provider-session contract established by 9.16.1
 - Milestone 9.10 graph-read access planning and receipt-backed no-N+1 proof
 - the installed application-query, capability, disclosure, elevation,
   recovery, and linear aftermath boundary established by 9.16
-- cross-runtime ownership of every branch-aware aftermath or history operation
+- cross-runtime ownership of semantic branch creation, merge, rebase,
+  branch-aware aftermath, and branch-shaped history operations
 - domain ownership of algorithms, vocabulary, comparison, and conflict meaning
 - provider ownership of physical strategies and mechanics
 - Query ownership of generic contracts, phase progression, lifecycle, evidence,
@@ -4810,9 +4895,12 @@ The governing milestone spec is
 
 ### Acceptance Evidence
 
-Independent oracles prove membership, footprint, path, partition, governance,
-reuse, occurrence, cost, and alternate-provider claims while all reference
-domains consume the same public facade and retain no replaced local workaround.
+Independent Relational probes first prove distinct equal-version branch
+authority, cross-branch writer progress, same-branch conflict, and exact
+lifecycle cleanup. Independent domain oracles then prove membership, footprint,
+path, partition, governance, reuse, occurrence, cost, and alternate-provider
+claims while all reference domains consume the same public facade and retain no
+replaced local workaround.
 
 ## Store-Gated Implementation Moved
 
@@ -5065,7 +5153,8 @@ answer is "store-gated" or "shared with another subsystem."
 | Installed operation semantics, semantic aspect correspondence, conditional Signal authority, and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, portable Query-authored semantic truth dependencies and conditional-node declarations, aspect-precise Relational publication, installed truth-to-Signal aspect correspondences, pair-bound runtime-bridge lowerings, installed Signal node contracts, Signal-minted decision evidence, Query re-entry receipts, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, semantic truth dependencies, aspect publication, installed aspect correspondence, entry authority, graph participation, workflow progression, conditional authoring, lowering, Signal decisions, Query re-entry, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; Query owns portable semantic dependency and conditional intent, Relational owns authoritative aspect-change meaning, the runtime bridge owns exact installed correspondence and lowering, and Signal owns local aspect slots and evaluation truth; node evaluation and effect conditions remain distinct; skipped, deferred, and reverted-clean outcomes cannot masquerade as new computed delivery; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, semantic-dependency canonicality, Relational publication precision, aspect-correspondence/slot-capacity admission, conditional-authoring canonicality, bridge-lowering admission, Signal-decision authority, conditional outcome/counter matrix, Query re-entry, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Managed pre-commit domain computation | Milestone 9.15 | Installed artifact/counter/decision/invariant contracts, occurrence and reproducibility identity, move-only managed artifacts, resource reservations, managed runs and continuations, sealed provider plans and sessions, basis-complete decision read-sets, provisional post-state attempts, and real invariant-execution results | Large products cross stages without blobs; actual provider work is bounded, cancellable, yieldable, resumable in memory, and backpressured; proposals remain isolated; selected obligations cannot masquerade as executed invariants; prepared work has no commit power | Milestone 9.15 artifact/occurrence, native-memory, resource-saturation, lifecycle, provider-session, read-set, proposed-state, invariant-execution, facade, residue, and hostile-provider certification |
 | Authenticated ordinary Query front door | Milestone 9.16 | Schema-derived typed references, installed application queries and Query-owned continuations, Authentik principal proof, capability/purpose/disclosure/conflict/elevation authority, Milestone 9.10-bound filter/sort/traversal access plans, touched-graph admission, double-entry and estate effects, provider compare-and-commit, actionable recovery, linear current-head undo/redo, ordinary read/mutation/workflow/history/live facades, and cross-process HTTP adaptation | Authentication cannot imply authorization; roles cannot imply unconstrained capability; entity visibility cannot imply field disclosure; break-glass cannot become superuser or self-benefit authority; policy composes through Relational facts, runtime-bridge lowering, Signal decision evidence, and Query admission; application queries cannot bypass graph-read planning or fabricate no-N+1 proof; cursors carry no authority; compensation preserves history; redo is fresh execution; branch-aware aftermath remains cross-runtime work; concurrent money movement commits once or returns an honest outcome | Milestone 9.16 OIDC, capability/touched-graph, conflict-of-interest, disclosure, break-glass, canonical-query/cursor/basis, graph-access/no-N+1, accounting, concurrency, idempotency, recovery, aftermath, live-revocation, cross-process consumer, facade, residue, and certification-only replay parity |
-| Advanced access and domain computation | Milestone 9.17 | Installed-query-bound search and managed access products, Milestone 9.10 requirement/inventory/plan extensions, coverage/membership witnesses, verified realized footprints, correlated path programs, verified conflict partitions, structural-cost evidence, governed decision attachments, incremental summaries, and reuse/eviction lifecycle artifacts | Search and advanced strategies preserve capability, purpose, basis, disclosure, cursor, recovery, and aftermath meaning; filters, sorts, nested expansions, and correlated paths consume the existing graph-read plan and prove exact-zero covered per-result lookup work; membership remains complete under negative-space change; footprints narrow but never widen authority; bulk work is set-oriented; reuse preserves occurrence and reproducibility; domain algorithms and vocabulary remain outside Query; branch-aware aftermath remains cross-runtime work | Milestone 9.17 bank/compliance search/disclosure/no-N+1, membership, footprint, correlated-path, partition-parity/slope, decision/privacy, aftermath, reuse/eviction, alternate-provider, reference-adoption, and permanent-prohibition certification + Milestone 13 provider-independent parity |
+| Per-branch runtime MVCC | Milestone 9.17, building on Milestone 9.16.1 branch affinity | Relational-owned typed branch identities, branch heads, branch-local versions, snapshots, transactions, conflict evidence, retention, and branch-local commit coordinators; Runtime Bridge correspondence; Query-carried branch affinity | Equal version ordinals on different branches remain non-equivalent; cross-branch substitutions fail before effects; distinct branches admit concurrent writers without a global commit lock; same-branch races produce exactly one head advance and one honest stale/conflict outcome; Query does not acquire branch-truth or merge authority | Milestone 9.17 independent-head, blocked-writer, same-branch race, substitution, lifecycle, boundary, and residue certification + later cross-runtime semantic branch/merge suites |
+| Advanced access and domain computation | Milestone 9.17 | Installed-query-bound search and managed access products, Milestone 9.10 requirement/inventory/plan extensions, coverage/membership witnesses, verified realized footprints, correlated path programs, verified conflict partitions, structural-cost evidence, governed decision attachments, incremental summaries, and reuse/eviction lifecycle artifacts | Search and advanced strategies preserve capability, purpose, branch-qualified basis, disclosure, cursor, recovery, and aftermath meaning; filters, sorts, nested expansions, and correlated paths consume the existing graph-read plan and prove exact-zero covered per-result lookup work; membership remains complete under negative-space change; footprints narrow but never widen authority; bulk work is set-oriented; reuse preserves occurrence and reproducibility; domain algorithms and vocabulary remain outside Query; branch-aware aftermath remains cross-runtime work | Milestone 9.17 bank/compliance search/disclosure/no-N+1, membership, footprint, correlated-path, partition-parity/slope, decision/privacy, aftermath, reuse/eviction, alternate-provider, reference-adoption, and permanent-prohibition certification + Milestone 13 provider-independent parity |
 | Occurrence-safe reuse and declared reproducibility | Milestones 9.15 and 9.17 | Distinct semantic artifact, production/acquisition occurrence, and independent-certification identities; installed substitution policy; exact, seeded, canonical-reduction, bound/comparator, distributional, and observational/non-replayable reproducibility contracts; purpose-aware stage reuse | Equal content cannot erase a required occurrence or manufacture independent evidence; cache reuse obeys consumer purpose; exact and byte-different executions converge or deny only through the installed comparison authority | Milestone 9.15 occurrence-substitution and reproducibility matrix + Milestone 9.17 research-reference, reuse, and permanent-prohibition certification + Milestone 13 provider-independent parity |
 | Honest candidate search, single-basis convergence, and transformation evidence | Milestone 9.15; durable resolution in cross-runtime Milestones 10-11 | Installed search-universe/completeness/optimality contracts, managed convergence epochs, transformation occurrences, correspondence cardinality, loss/disposition evidence, and basis-bound proposals | Heuristic or incomplete work cannot claim uniqueness or optimality; convergence, stability, feasibility, oscillation, and exhaustion remain distinct; derived evidence cannot become conflict, decision, approval, session, admission, or publication authority | Milestone 9.15 search-claim, convergence, transformation-authority, scale, and residue certification + cross-runtime Milestones 10-11 governed-resolution and session proof |
 | Aggregation queries | Milestone 4 | Aggregation descriptors, grouping metadata | Aggregates stay tied to declared basis | Milestone 13 execution parity |

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use worth_foundational::facade::CanonicalDigestId;
 
 use worth_relational::facade::authorization::{
     RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
@@ -19,19 +20,32 @@ use crate::domain_computation::primary_graph::{
 
 #[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
+    session_identity: CanonicalDigestId,
     pub(in crate::domain_computation) relational: Arc<RelationalAuthorizationObservationEvidence>,
     pub(in crate::domain_computation) bridge: Arc<BridgeAuthorizationDecisionEvidence>,
 }
 
 impl WorthQueryAuthorizationDecisionFact {
     pub(in crate::domain_computation) fn new(
+        session_identity: CanonicalDigestId,
         relational: RelationalAuthorizationObservationEvidence,
         bridge: BridgeAuthorizationDecisionEvidence,
     ) -> Self {
         Self {
+            session_identity,
             relational: Arc::new(relational),
             bridge: Arc::new(bridge),
         }
+    }
+
+    pub(in crate::domain_computation) const fn session_identity(&self) -> &CanonicalDigestId {
+        &self.session_identity
+    }
+
+    pub(in crate::domain_computation) fn branch_id(
+        &self,
+    ) -> &worth_relational::facade::history::BranchId {
+        &self.relational.snapshot().branch_id
     }
 
     pub(super) fn remains_current_in(
@@ -40,16 +54,22 @@ impl WorthQueryAuthorizationDecisionFact {
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &BridgeAuthorizationRuntime,
     ) -> bool {
-        bridge.retains(&self.bridge)
-            && self.bridge.is_allowed()
-            && self.bridge.dependency_identity() == self.relational.observation_identity().bytes()
-            && runtime.compare_authorization_observation(&self.relational, snapshot.clone())
-                == RelationalAuthorizationObservationFreshness::Fresh
+        let branch_matches = self.branch_id() == &snapshot.branch_id;
+        let bridge_retained = bridge.retains(&self.bridge);
+        let allowed = self.bridge.is_allowed();
+        let dependency_matches =
+            self.bridge.dependency_identity() == self.relational.observation_identity().bytes();
+        let relational_fresh = runtime
+            .compare_authorization_observation(&self.relational, snapshot.clone())
+            == RelationalAuthorizationObservationFreshness::Fresh;
+        branch_matches && bridge_retained && allowed && dependency_matches && relational_fresh
     }
 }
 
 #[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryPrincipalCurrentnessDependency {
+    session_identity: CanonicalDigestId,
+    branch_id: worth_relational::facade::history::BranchId,
     binding: Arc<str>,
     layout: WorthQueryPrimaryPrincipalBindingLayout,
     freshness: WorthQueryPrincipalFreshnessEvidence,
@@ -57,14 +77,54 @@ pub(in crate::domain_computation) struct WorthQueryPrincipalCurrentnessDependenc
 
 impl WorthQueryPrincipalCurrentnessDependency {
     pub(in crate::domain_computation) fn capture<Schema, Principal, PrincipalIdentity>(
+        session_identity: CanonicalDigestId,
         principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
         layout: &WorthQueryPrimaryPrincipalBindingLayout,
+        branch_id: worth_relational::facade::history::BranchId,
     ) -> Self {
         Self {
+            session_identity,
+            branch_id,
             binding: Arc::from(principal.binding()),
             layout: layout.clone(),
             freshness: principal.freshness().clone(),
         }
+    }
+
+    pub(in crate::domain_computation) fn capture_retained(
+        session_identity: CanonicalDigestId,
+        binding: Arc<str>,
+        layout: WorthQueryPrimaryPrincipalBindingLayout,
+        freshness: WorthQueryPrincipalFreshnessEvidence,
+        branch_id: worth_relational::facade::history::BranchId,
+    ) -> Self {
+        Self {
+            session_identity,
+            branch_id,
+            binding,
+            layout,
+            freshness,
+        }
+    }
+
+    pub(in crate::domain_computation) const fn session_identity(&self) -> &CanonicalDigestId {
+        &self.session_identity
+    }
+
+    pub(in crate::domain_computation) fn rebind_session(
+        mut self,
+        session_identity: CanonicalDigestId,
+        branch_id: worth_relational::facade::history::BranchId,
+    ) -> Self {
+        self.session_identity = session_identity;
+        self.branch_id = branch_id;
+        self
+    }
+
+    pub(in crate::domain_computation) const fn branch_id(
+        &self,
+    ) -> &worth_relational::facade::history::BranchId {
+        &self.branch_id
     }
 
     pub(in crate::domain_computation) fn remains_current_in(
@@ -72,8 +132,10 @@ impl WorthQueryPrincipalCurrentnessDependency {
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     ) -> bool {
-        self.freshness
-            .remains_current_in(runtime, snapshot, &self.layout, &self.binding)
+        self.branch_id == snapshot.branch_id
+            && self
+                .freshness
+                .remains_current_in(runtime, snapshot, &self.layout, &self.binding)
     }
 }
 
@@ -137,6 +199,22 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
 
     pub(in crate::domain_computation) fn exact_fact_count(&self) -> usize {
         1usize.saturating_add(self.policy_count())
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_session(
+        &self,
+        session_identity: &CanonicalDigestId,
+    ) -> bool {
+        principal(self).session_identity() == session_identity
+            && decisions(self).all(|fact| fact.session_identity() == session_identity)
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_branch(
+        &self,
+        branch_id: &worth_relational::facade::history::BranchId,
+    ) -> bool {
+        principal(self).branch_id() == branch_id
+            && decisions(self).all(|fact| fact.branch_id() == branch_id)
     }
 
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
@@ -284,88 +362,10 @@ fn decisions(
     slice.iter()
 }
 
-pub(in crate::domain_computation) struct WorthQueryProviderAuthorizationDecisionFacts {
-    principal: WorthQueryPrincipalCurrentnessDependency,
-    decisions: Vec<WorthQueryAuthorizationDecisionFact>,
-}
+#[path = "decision_facts/provider_commit.rs"]
+mod provider_commit;
 
-impl WorthQueryProviderAuthorizationDecisionFacts {
-    fn new(
-        principal: WorthQueryPrincipalCurrentnessDependency,
-        decisions: Vec<WorthQueryAuthorizationDecisionFact>,
-    ) -> Self {
-        Self {
-            principal,
-            decisions,
-        }
-    }
-
-    pub(in crate::domain_computation) fn into_parts(
-        self,
-    ) -> (
-        WorthQueryPrincipalCurrentnessDependency,
-        Vec<WorthQueryAuthorizationDecisionFact>,
-    ) {
-        (self.principal, self.decisions)
-    }
-}
-
-pub(in crate::domain_computation) enum WorthQueryCommitAuthorizationBasis {
-    Observed {
-        admission_identity: WorthQueryOperationAdmissionIdentity,
-        authorization: WorthQueryObservedCommitBasis,
-    },
-    Capability {
-        admission_identity: WorthQueryOperationAdmissionIdentity,
-        authorization: WorthQueryCapabilityCommitBasis,
-    },
-}
-
-impl WorthQueryCommitAuthorizationBasis {
-    pub(super) const fn admission_identity(&self) -> WorthQueryOperationAdmissionIdentity {
-        match self {
-            Self::Observed {
-                admission_identity, ..
-            }
-            | Self::Capability {
-                admission_identity, ..
-            } => *admission_identity,
-        }
-    }
-}
-
-pub(in crate::domain_computation) struct WorthQueryObservedCommitBasis {
-    principal: WorthQueryPrincipalCurrentnessDependency,
-    decisions: Vec<WorthQueryAuthorizationDecisionFact>,
-}
-
-impl WorthQueryObservedCommitBasis {
-    fn new(
-        principal: WorthQueryPrincipalCurrentnessDependency,
-        decisions: Vec<WorthQueryAuthorizationDecisionFact>,
-    ) -> Self {
-        Self {
-            principal,
-            decisions,
-        }
-    }
-
-    pub(super) fn principal_remains_current_in(
-        &self,
-        runtime: &worth_relational::facade::runtime::RelationalRuntime,
-        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    ) -> bool {
-        self.principal.remains_current_in(runtime, snapshot)
-    }
-
-    pub(super) fn decisions_remain_current_in(
-        &self,
-        runtime: &worth_relational::facade::runtime::RelationalRuntime,
-        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-        bridge: &BridgeAuthorizationRuntime,
-    ) -> bool {
-        self.decisions
-            .iter()
-            .all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
-    }
-}
+pub(in crate::domain_computation) use provider_commit::{
+    WorthQueryCommitAuthorizationBasis, WorthQueryObservedCommitBasis,
+    WorthQueryProviderAuthorizationDecisionFacts,
+};

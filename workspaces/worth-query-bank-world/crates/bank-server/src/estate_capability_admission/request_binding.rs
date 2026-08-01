@@ -8,24 +8,30 @@ use bank_domain::{
         DisburseEstateCapability, DisburseEstateOperation, FreezeEstateAccountCapability,
         FreezeEstateAccountOperation, RecognizeEstateExecutorCapability,
         RecognizeEstateExecutorOperation, ViewEstateAdministrationCapability,
-        ViewRestrictedEstateOperation,
+        ViewEstateIdentityVerificationCapability, ViewRestrictedEstateOperation,
     },
 };
-use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use worth_query_host::facade::domain::TypedApplicationValue;
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryOperationAuthorizationDenialKind,
+};
 
 use super::{
-    current_admission::view_action,
+    current_admission::{query_controls, view_action},
     fixture::{
         capability_world, request_scope, GrantSpec, ACCOUNT, AUTHORITY, ESTATE, EXECUTOR,
         OTHER_ACCOUNT,
     },
 };
+use crate::{
+    application_query::execute_estate_customer_disclosure_action_with, BankApplicationQueryDenial,
+};
 
 #[test]
-fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request() {
+fn static_and_graph_bound_values_cannot_understate_identity_disclosure() {
     let fixture = capability_world(
         "view-binding",
-        GrantSpec::view(),
+        GrantSpec::identity_verification(),
         EstateWorkflowStage::Administration,
         false,
         0,
@@ -35,7 +41,7 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
     let capability = application
         .installed_schema()
         .capability(
-            ViewEstateAdministrationCapability::reference(),
+            ViewEstateIdentityVerificationCapability::reference(),
             ViewRestrictedEstateOperation::reference(),
         )
         .unwrap();
@@ -48,7 +54,7 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
     };
     assert_eq!(
         application
-            .admit_capability_access(principal.query(), &capability, wrong_purpose, &request)
+            .prepare_capability_access(principal.query(), &capability, wrong_purpose, &request)
             .err()
             .expect("the wrong purpose must deny")
             .kind(),
@@ -57,32 +63,36 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
     let wrong_field = EstateAction::ViewRestrictedEstate {
         estate: ESTATE,
         field: RestrictedBankField::AccountDetails,
-        purpose: EstateCapabilityPurpose::EstateAdministration,
+        purpose: EstateCapabilityPurpose::IdentityVerification,
     };
-    assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, wrong_field, &request)
-            .err()
-            .expect("the wrong field must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+    application
+        .prepare_capability_access(principal.query(), &capability, wrong_field, &request)
+        .expect("field value is graph policy, not static request shape");
+    assert_governed_action_denial(
+        &fixture,
+        &principal,
+        &request,
+        wrong_field,
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
     );
     let missing_resource = EstateAction::ViewRestrictedEstate {
         estate: bank_domain::estate::EstateCaseId::new(99_999).unwrap(),
         field: RestrictedBankField::CustomerIdentity,
-        purpose: EstateCapabilityPurpose::EstateAdministration,
+        purpose: EstateCapabilityPurpose::IdentityVerification,
     };
-    assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, missing_resource, &request)
-            .err()
-            .expect("the missing resource must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected
+    application
+        .prepare_capability_access(principal.query(), &capability, missing_resource, &request)
+        .expect("entity existence is graph truth, not static request shape");
+    assert_governed_action_denial(
+        &fixture,
+        &principal,
+        &request,
+        missing_resource,
+        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
     );
     assert_eq!(
         application
-            .admit_capability_access(
+            .prepare_capability_access(
                 principal.query(),
                 &capability,
                 EstateAction::FreezeAccount {
@@ -98,11 +108,37 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
     );
 }
 
+fn assert_governed_action_denial(
+    fixture: &super::fixture::CapabilityFixture,
+    principal: &crate::BankAuthenticatedPrincipal,
+    request: &worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope,
+    action: EstateAction,
+    expected: WorthQueryOperationAuthorizationDenialKind,
+) {
+    let denial = execute_estate_customer_disclosure_action_with(
+        &fixture.runtime,
+        principal,
+        ESTATE,
+        action,
+        query_controls(request),
+        |_| (),
+    )
+    .err()
+    .expect("hostile disclosure input must deny inside the query session");
+    let BankApplicationQueryDenial::Admission(denial) = denial else {
+        panic!("hostile disclosure input must fail during governed admission")
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationQueryAdmissionDenialKind::Authorization(expected)
+    );
+}
+
 #[test]
-fn relation_amount_and_context_are_derived_from_the_exact_bank_action() {
-    assert_wrong_account_denied();
-    assert_amount_over_ceiling_denied();
-    assert_self_recognition_context_denied();
+fn relation_amount_and_context_are_retained_without_pre_session_authority() {
+    assert_related_account_retained();
+    assert_amount_retained();
+    assert_legal_authority_context_retained();
 }
 
 #[test]
@@ -134,7 +170,7 @@ fn installed_capability_authority_is_runtime_affine() {
     let denial = target
         .runtime
         .application_runtime()
-        .admit_capability_access(
+        .prepare_capability_access(
             principal.query(),
             &capability,
             view_action(),
@@ -149,7 +185,7 @@ fn installed_capability_authority_is_runtime_affine() {
     ));
 }
 
-fn assert_wrong_account_denied() {
+fn assert_related_account_retained() {
     let fixture = capability_world(
         "wrong-account",
         GrantSpec::freeze(),
@@ -170,17 +206,22 @@ fn assert_wrong_account_denied() {
         estate: ESTATE,
         account: OTHER_ACCOUNT,
     };
+    let prepared = application
+        .prepare_capability_access(principal.query(), &capability, action, &request_scope())
+        .expect("preparation retains relation input without evaluating the grant");
     assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, action, &request_scope())
-            .err()
-            .expect("the wrong related account must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        prepared
+            .projected_request()
+            .related()
+            .expect("freeze input carries its related account")
+            .selector()
+            .value(),
+        &OTHER_ACCOUNT.into_foundational_value()
     );
+    assert_zero_preparation_hashing(prepared.admission_canonical_work());
 }
 
-fn assert_amount_over_ceiling_denied() {
+fn assert_amount_retained() {
     let fixture = capability_world(
         "amount-ceiling",
         GrantSpec::disburse(1_000),
@@ -215,17 +256,17 @@ fn assert_amount_over_ceiling_denied() {
             },
         ],
     });
+    let prepared = application
+        .prepare_capability_access(principal.query(), &capability, action, &request_scope())
+        .expect("preparation retains amount input without evaluating the grant ceiling");
     assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, action, &request_scope())
-            .err()
-            .expect("an amount over the grant ceiling must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        prepared.projected_request().amount_value(),
+        Some(&amount.into_foundational_value())
     );
+    assert_zero_preparation_hashing(prepared.admission_canonical_work());
 }
 
-fn assert_self_recognition_context_denied() {
+fn assert_legal_authority_context_retained() {
     let fixture = capability_world(
         "context-anchor",
         GrantSpec::recognize(),
@@ -247,12 +288,23 @@ fn assert_self_recognition_context_denied() {
         executor: EXECUTOR,
         authority: AUTHORITY,
     };
+    let prepared = application
+        .prepare_capability_access(principal.query(), &capability, action, &request_scope())
+        .expect("preparation retains context input without evaluating conflict policy");
+    let context = prepared.projected_request().context_value().entities();
+    assert_eq!(context.len(), 1);
     assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, action, &request_scope())
-            .err()
-            .expect("self-recognition must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        context[0].selector().value(),
+        &AUTHORITY.into_foundational_value()
     );
+    assert_zero_preparation_hashing(prepared.admission_canonical_work());
+}
+
+fn assert_zero_preparation_hashing(
+    work: worth_query_host::facade::domain::WorthQueryCanonicalWorkEvidence,
+) {
+    assert_eq!(work.basis_preparations(), 0);
+    assert_eq!(work.digest_derivations(), 0);
+    assert_eq!(work.canonical_encoded_bytes(), 0);
+    assert_eq!(work.sha256_input_bytes(), 0);
 }

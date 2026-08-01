@@ -1,6 +1,5 @@
 use worth_query_host::facade::domain::{
-    WorthQueryApplicationCapabilityInstallationDenial,
-    WorthQueryApplicationQueryInstallationDenial,
+    WorthQueryApplicationCapabilityInstallationDenial, WorthQueryApplicationQueryInstallationDenial,
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationContinuationDenial, WorthQueryApplicationLiveOpenDenial,
