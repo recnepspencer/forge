@@ -7,6 +7,13 @@ const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 pub(super) fn close_recovered(
     recovered: PulseExecutableWorld<Published<FinalRecovered>>,
 ) -> PulseExecutableWorld<Closed> {
+    close_recovered_at_sequence(recovered, 25)
+}
+
+pub(super) fn close_recovered_at_sequence(
+    recovered: PulseExecutableWorld<Published<FinalRecovered>>,
+    expected_shutdown_sequence: u64,
+) -> PulseExecutableWorld<Closed> {
     let closed = recovered
         .close_native_window(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| {
@@ -14,7 +21,7 @@ pub(super) fn close_recovered(
         });
     let cleanup = closed.evidence();
     assert_eq!(cleanup.close_request_count(), 1);
-    assert_eq!(cleanup.shutdown_sequence(), 25);
+    assert_eq!(cleanup.shutdown_sequence(), expected_shutdown_sequence);
     assert!(cleanup.shutdown().host_session_released());
     assert!(cleanup.shutdown().query_watcher_joined());
     assert!(cleanup.shutdown().query_owner_terminal());

@@ -8,6 +8,7 @@ use super::PulseSourceDeltaIdentity;
 const BLUE_TOKEN: &[u8] = b"theme.platform_pulse.blue";
 const GREEN_TOKEN: &[u8] = b"theme.platform_pulse.green";
 const MALFORMED_SOURCE: &[u8] = b"component platform.pulse.component.seed {";
+const INTENT_ROUTE_BINDING: &[u8] = b"  interaction activate routes platform.pulse.action.route;\n";
 
 #[derive(Debug)]
 pub(crate) struct GreenPulseSourceDelta {
@@ -25,11 +26,18 @@ pub(crate) struct CanonicalBlueRecoverySourceDelta {
 }
 
 #[derive(Debug)]
+pub(crate) struct IntentRouteRemovalSourceDelta {
+    bytes: Box<[u8]>,
+}
+
+#[derive(Debug)]
 pub(crate) enum PulseSourceDeltaDefinitionFailure {
     BlueTokenMissing,
     BlueTokenAmbiguous(usize),
     StatusFieldMissing,
     StatusFieldAmbiguous(usize),
+    IntentRouteBindingMissing,
+    IntentRouteBindingAmbiguous(usize),
 }
 
 impl fmt::Display for PulseSourceDeltaDefinitionFailure {
@@ -42,6 +50,15 @@ impl fmt::Display for PulseSourceDeltaDefinitionFailure {
             Self::StatusFieldMissing => formatter.write_str("canonical pulse has no status field"),
             Self::StatusFieldAmbiguous(count) => {
                 write!(formatter, "canonical pulse has {count} status fields")
+            }
+            Self::IntentRouteBindingMissing => {
+                formatter.write_str("canonical pulse has no action route binding")
+            }
+            Self::IntentRouteBindingAmbiguous(count) => {
+                write!(
+                    formatter,
+                    "canonical pulse has {count} action route bindings"
+                )
             }
         }
     }
@@ -123,6 +140,42 @@ impl CanonicalBlueRecoverySourceDelta {
 
     pub(crate) fn source_bytes(self) -> &'static [u8] {
         self.canonical.source_bytes()
+    }
+}
+
+impl IntentRouteRemovalSourceDelta {
+    pub(crate) fn from_checked_in(
+        canonical: CanonicalPlatformPulse,
+    ) -> Result<Self, PulseSourceDeltaDefinitionFailure> {
+        let source = canonical.source_bytes();
+        let offsets = source
+            .windows(INTENT_ROUTE_BINDING.len())
+            .enumerate()
+            .filter_map(|(offset, candidate)| (candidate == INTENT_ROUTE_BINDING).then_some(offset))
+            .collect::<Vec<_>>();
+        let [offset] = offsets.as_slice() else {
+            return Err(match offsets.len() {
+                0 => PulseSourceDeltaDefinitionFailure::IntentRouteBindingMissing,
+                count => PulseSourceDeltaDefinitionFailure::IntentRouteBindingAmbiguous(count),
+            });
+        };
+        let mut bytes = Vec::with_capacity(source.len() - INTENT_ROUTE_BINDING.len());
+        bytes.extend_from_slice(&source[..*offset]);
+        bytes.extend_from_slice(&source[*offset + INTENT_ROUTE_BINDING.len()..]);
+        Ok(Self {
+            bytes: bytes.into_boxed_slice(),
+        })
+    }
+
+    pub(crate) fn apply(
+        self,
+        installation: &IsolatedPulseInstallation,
+    ) -> Result<AppliedPulseSourceDelta<Self>, PulseSourceActionFailure> {
+        atomic_replacement::apply(
+            installation,
+            PulseSourceDeltaIdentity::IntentRouteRemoved,
+            &self.bytes,
+        )
     }
 }
 

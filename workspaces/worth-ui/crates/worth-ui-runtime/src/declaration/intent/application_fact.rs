@@ -42,7 +42,7 @@ pub enum UiIntentApplicationFactRegistrationError {
     },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(crate) struct UiIntentApplicationFactPlan {
     entries: BTreeMap<Arc<str>, UiIntentApplicationFactDefinition>,
 }
@@ -120,14 +120,6 @@ impl<K: UiIntentPayloadValueKind> UiIntentApplicationFact<K> {
 
     pub const fn kind(&self) -> UiIntentPayloadFieldKind {
         K::KIND
-    }
-}
-
-impl Default for UiIntentApplicationFactPlan {
-    fn default() -> Self {
-        Self {
-            entries: BTreeMap::new(),
-        }
     }
 }
 

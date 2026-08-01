@@ -1,13 +1,13 @@
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 use worth_ui_host_contract::{
     UiHostKey, UiHostKeyboardModifiers, UiHostObservationPresentationBasis,
-    UiHostObservationSequence,
+    UiHostObservationSequence, UiHostObservationTimeBasis,
 };
 
 #[derive(Debug)]
 pub struct UiActivateInteraction {
     source: UiActivateInteractionSource,
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation: WorthUiActiveApplicationGenerationIdentity,
 }
 
 #[derive(Debug)]
@@ -20,9 +20,9 @@ pub enum UiActivateInteractionSource {
 pub struct UiKeyboardActivationEvidence {
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     presentation: UiHostObservationPresentationBasis,
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation: WorthUiActiveApplicationGenerationIdentity,
     sequence: UiHostObservationSequence,
+    time_basis: UiHostObservationTimeBasis,
     key: UiHostKey,
     modifiers: UiHostKeyboardModifiers,
 }
@@ -30,8 +30,7 @@ pub struct UiKeyboardActivationEvidence {
 impl UiActivateInteraction {
     pub(crate) fn from_pointer(
         gesture: super::super::UiTargetedPointerGesture,
-        generation: crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
+        generation: WorthUiActiveApplicationGenerationIdentity,
     ) -> Self {
         Self {
             source: UiActivateInteractionSource::Pointer(gesture),
@@ -58,11 +57,22 @@ impl UiActivateInteraction {
         }
     }
 
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &WorthUiActiveApplicationGenerationIdentity {
         &self.generation
+    }
+
+    pub const fn time_basis(&self) -> UiHostObservationTimeBasis {
+        match &self.source {
+            UiActivateInteractionSource::Pointer(gesture) => gesture.release_time_basis(),
+            UiActivateInteractionSource::Keyboard(evidence) => evidence.time_basis(),
+        }
+    }
+
+    pub const fn source_sequence(&self) -> UiHostObservationSequence {
+        match &self.source {
+            UiActivateInteractionSource::Pointer(gesture) => gesture.release_sequence(),
+            UiActivateInteractionSource::Keyboard(evidence) => evidence.sequence(),
+        }
     }
 }
 
@@ -73,6 +83,7 @@ impl UiKeyboardActivationEvidence {
             presentation: input.presentation,
             generation: input.generation,
             sequence: input.sequence,
+            time_basis: input.time_basis,
             key: input.key,
             modifiers: input.modifiers,
         }
@@ -86,15 +97,16 @@ impl UiKeyboardActivationEvidence {
         self.presentation
     }
 
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &WorthUiActiveApplicationGenerationIdentity {
         &self.generation
     }
 
     pub const fn sequence(&self) -> UiHostObservationSequence {
         self.sequence
+    }
+
+    pub const fn time_basis(&self) -> UiHostObservationTimeBasis {
+        self.time_basis
     }
 
     pub const fn key(&self) -> UiHostKey {

@@ -1,11 +1,11 @@
 use worth_ui::facade::app::WorthUiNativeApplicationShutdownReceipt;
 use worth_ui::facade::source::WorthUiFilesystemWatcherShutdownReceipt;
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
-    PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
-    PlatformPulseLiveQueryResidue, PlatformPulseQueryProjectionResidue,
-    PlatformPulseQueryShutdownEvidence, PlatformPulseQueryWatcherShutdownEvidence,
-    PlatformPulseReplacementDenialFamily,
+    PlatformPulseIntentWatcherShutdownEvidence, PlatformPulseLifecycleObservation,
+    PlatformPulseLifecycleObservationEnvelope, PlatformPulseLifecycleObservationProjectionDenial,
+    PlatformPulseLifecycleObservationStream, PlatformPulseLiveQueryResidue,
+    PlatformPulseQueryProjectionResidue, PlatformPulseQueryShutdownEvidence,
+    PlatformPulseQueryWatcherShutdownEvidence, PlatformPulseReplacementDenialFamily,
 };
 
 use super::real_watcher_world::{
@@ -112,7 +112,12 @@ impl ObservedPulseLifecycle {
     ) {
         let observed = self
             .stream
-            .project_shutdown(watcher, query_lifecycle_not_started(), application)
+            .project_shutdown(
+                watcher,
+                query_lifecycle_not_started(),
+                PlatformPulseIntentWatcherShutdownEvidence::new(false, 0),
+                application,
+            )
             .expect("real watcher and native-shell shutdown receipts project");
         self.assert_next_sequence(&observed);
         assert!(matches!(

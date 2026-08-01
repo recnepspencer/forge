@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
-    UiHostObservationSequence, UiHostPointerButton, UiHostPointerCaptureEpoch,
-    UiHostPointerIdentity,
+    UiHostObservationSequence, UiHostObservationTimeBasis, UiHostPointerButton,
+    UiHostPointerCaptureEpoch, UiHostPointerIdentity,
 };
 
 use super::model::{UiPointerGesturePressReceipt, UiTargetedPointerGesture};
@@ -25,6 +25,10 @@ impl UiPointerGesturePressReceipt {
         self.sequence
     }
 
+    pub const fn time_basis(&self) -> UiHostObservationTimeBasis {
+        self.time_basis
+    }
+
     pub const fn target(&self) -> UiPresentedInteractionTargetView {
         self.target
     }
@@ -47,8 +51,16 @@ impl UiTargetedPointerGesture {
         self.press_sequence
     }
 
+    pub const fn press_time_basis(&self) -> UiHostObservationTimeBasis {
+        self.press_time_basis
+    }
+
     pub const fn release_sequence(&self) -> UiHostObservationSequence {
         self.release_sequence
+    }
+
+    pub const fn release_time_basis(&self) -> UiHostObservationTimeBasis {
+        self.release_time_basis
     }
 
     pub const fn pressed_target(&self) -> UiPresentedInteractionTargetView {

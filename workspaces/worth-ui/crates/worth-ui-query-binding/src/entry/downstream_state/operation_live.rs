@@ -79,6 +79,84 @@ impl WorthUiInstalledDownstreamQueryState {
         operation_live.admit_collection_change(consequence)
     }
 
+    pub(crate) fn admit_operation_live_change_for_publication(
+        &mut self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiAdmittedCollectionChangePublication,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        if self
+            .references
+            .validate(consequence.installed_reference())
+            .is_err()
+        {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ForeignInstalledReference,
+                consequence,
+            ));
+        }
+        let Some(operation_live) = self.operation_live.as_mut() else {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ResourceNotRetained,
+                consequence,
+            ));
+        };
+        operation_live.admit_collection_change_for_publication(consequence)
+    }
+
+    pub(crate) fn publish_admitted_operation_live_change(
+        &mut self,
+        admission: crate::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        crate::WorthUiCollectionChangePublicationReceipt,
+        crate::WorthUiCollectionChangePublicationStop,
+    > {
+        if self
+            .references
+            .validate(admission.installed_reference())
+            .is_err()
+        {
+            return Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::ForeignInstalledReference,
+                admission,
+            ));
+        }
+        let Some(operation_live) = self.operation_live.as_mut() else {
+            return Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::ResourceNotRetained,
+                admission,
+            ));
+        };
+        operation_live.publish_admitted_collection_change(admission)
+    }
+
+    pub(crate) fn withdraw_admitted_operation_live_change(
+        &mut self,
+        admission: crate::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        crate::WorthUiCollectionChangeConsequence,
+        crate::WorthUiCollectionChangePublicationStop,
+    > {
+        if self
+            .references
+            .validate(admission.installed_reference())
+            .is_err()
+        {
+            return Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::ForeignInstalledReference,
+                admission,
+            ));
+        }
+        let Some(operation_live) = self.operation_live.as_mut() else {
+            return Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::ResourceNotRetained,
+                admission,
+            ));
+        };
+        operation_live.withdraw_admitted_collection_change(admission)
+    }
+
     pub(crate) fn validate_operation_live_change_observation(
         &self,
         consequence: crate::WorthUiCollectionChangeConsequence,

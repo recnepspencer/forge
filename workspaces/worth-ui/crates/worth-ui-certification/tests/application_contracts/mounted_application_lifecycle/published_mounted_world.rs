@@ -38,6 +38,31 @@ pub(crate) fn published_observation_world(label: &str) -> PublishedObservationWo
     published_observation_world_with_host(label, ScriptedPresentationHost::default())
 }
 
+pub(crate) fn published_observation_world_with_retention_budget(
+    label: &str,
+    budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
+) -> PublishedObservationWorld {
+    let host = ScriptedPresentationHost::default();
+    let (mut session, bindings) =
+        super::in_flight_presentation_world::mounted_session_with_retention_budget(
+            host.clone(),
+            label,
+            1,
+            budget,
+        );
+    let binding = bindings[0];
+    let instance = session.inspect_mounted_identity().mounted_instances()[0].identity();
+    let predecessor = publish(&mut session, &host, instance);
+    let current = publish(&mut session, &host, instance);
+    PublishedObservationWorld {
+        session,
+        host,
+        binding,
+        predecessor,
+        current,
+    }
+}
+
 pub(crate) fn published_observation_world_with_host(
     label: &str,
     host: ScriptedPresentationHost,

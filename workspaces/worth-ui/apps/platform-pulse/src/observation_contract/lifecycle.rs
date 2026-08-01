@@ -1,6 +1,6 @@
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
+
+use super::launch::PlatformPulseLaunchConfigurationDenialKind;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(tag = "kind", content = "payload")]
@@ -8,6 +8,11 @@ pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
     NativeInputReached(super::native_input::PlatformPulseNativeInputReached),
+    IntentInputAdmitted(super::intent::PlatformPulseIntentInputObservation),
+    IntentExecutorStarted(super::intent::PlatformPulseIntentExecutorStartedObservation),
+    IntentPosturePublished(super::intent::PlatformPulseIntentPosturePublished),
+    IntentCausalTrace(super::intent::PlatformPulseIntentCausalTraceObservation),
+    QueryAction(super::intent::PlatformPulseQueryActionObservation),
     QueryProjectionIssued(super::query::PlatformPulseQueryProjectionEvidence),
     QueryProjectionPublished(super::query::PlatformPulseQueryProjectionPublished),
     VisualSnapshotCaptured(super::visual::PlatformPulseVisualSnapshotCaptured),
@@ -93,6 +98,8 @@ pub struct PlatformPulseShutdownCompleted {
     pub(super) observed_notification_count: u64,
     pub(super) query_watcher_joined: bool,
     pub(super) pending_query_observation_count: u64,
+    pub(super) intent_watcher_joined: bool,
+    pub(super) pending_intent_input_count: u64,
     pub(super) query_owner_terminal: bool,
     pub(super) live_query_source_count: u64,
     pub(super) live_query_attempt_count: u64,
@@ -132,6 +139,7 @@ pub enum PlatformPulseTerminalFailureFamily {
     FilesystemWatcher,
     ApplicationPreparation,
     QueryPreparation,
+    IntentPreparation,
     QueryShutdown,
     CandidateSubmission,
     NativeSurfaceLaunch,
@@ -177,79 +185,6 @@ pub enum PlatformPulseNativeRebindPreparationDenial {
     InvalidSemanticProof,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum PlatformPulseLaunchConfigurationDenial {
-    UnexpectedArgument,
-    MissingSourceRootValue,
-    MissingQuerySourceRootValue,
-    SurplusArgument,
-    RelativeSourceRoot(PathBuf),
-    MissingSourceRoot(PathBuf),
-    SourceRootMetadataUnavailable(PathBuf),
-    SourceRootNotDirectory(PathBuf),
-    MissingEntrySource(PathBuf),
-    RelativeQuerySourceRoot(PathBuf),
-    QuerySourceRootMetadataUnavailable(PathBuf),
-    QuerySourceRootNotDirectory(PathBuf),
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum PlatformPulseLaunchConfigurationDenialKind {
-    UnexpectedArgument,
-    MissingSourceRootValue,
-    MissingQuerySourceRootValue,
-    SurplusArgument,
-    RelativeSourceRoot,
-    MissingSourceRoot,
-    SourceRootMetadataUnavailable,
-    SourceRootNotDirectory,
-    MissingEntrySource,
-    RelativeQuerySourceRoot,
-    QuerySourceRootMetadataUnavailable,
-    QuerySourceRootNotDirectory,
-}
-
-impl PlatformPulseLaunchConfigurationDenial {
-    pub fn kind(&self) -> PlatformPulseLaunchConfigurationDenialKind {
-        match self {
-            Self::UnexpectedArgument => {
-                PlatformPulseLaunchConfigurationDenialKind::UnexpectedArgument
-            }
-            Self::MissingSourceRootValue => {
-                PlatformPulseLaunchConfigurationDenialKind::MissingSourceRootValue
-            }
-            Self::MissingQuerySourceRootValue => {
-                PlatformPulseLaunchConfigurationDenialKind::MissingQuerySourceRootValue
-            }
-            Self::SurplusArgument => PlatformPulseLaunchConfigurationDenialKind::SurplusArgument,
-            Self::RelativeSourceRoot(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::RelativeSourceRoot
-            }
-            Self::MissingSourceRoot(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::MissingSourceRoot
-            }
-            Self::SourceRootMetadataUnavailable(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::SourceRootMetadataUnavailable
-            }
-            Self::SourceRootNotDirectory(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::SourceRootNotDirectory
-            }
-            Self::MissingEntrySource(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::MissingEntrySource
-            }
-            Self::RelativeQuerySourceRoot(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::RelativeQuerySourceRoot
-            }
-            Self::QuerySourceRootMetadataUnavailable(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::QuerySourceRootMetadataUnavailable
-            }
-            Self::QuerySourceRootNotDirectory(_) => {
-                PlatformPulseLaunchConfigurationDenialKind::QuerySourceRootNotDirectory
-            }
-        }
-    }
-}
-
 macro_rules! accessors {
     ($type:ty, $($name:ident : $return:ty),+ $(,)?) => {
         impl $type {
@@ -269,6 +204,16 @@ accessors!(
     semantic_package_fingerprint: u64,
 );
 accessors!(PlatformPulseMountedFrameObservation, diagnostic_value: u64);
+
+impl PlatformPulseMountedFrameObservation {
+    pub(super) fn from_publication(
+        publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+    ) -> Self {
+        Self {
+            diagnostic_value: publication.frame().diagnostic_value(),
+        }
+    }
+}
 accessors!(
     PlatformPulseFirstFramePublished,
     source: PlatformPulseSourceSnapshotObservation,
@@ -313,6 +258,8 @@ accessors!(
     observed_notification_count: u64,
     query_watcher_joined: bool,
     pending_query_observation_count: u64,
+    intent_watcher_joined: bool,
+    pending_intent_input_count: u64,
     query_owner_terminal: bool,
     live_query_source_count: u64,
     live_query_attempt_count: u64,

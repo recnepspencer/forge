@@ -72,6 +72,9 @@ impl UiChangeClassifier {
                 UiAdmittedObservationPayload::Query(observation) => {
                     push_bounded(&mut facts, owner::query::classify(observation), fact_limit)?;
                 }
+                UiAdmittedObservationPayload::IntentPosture(observation) => {
+                    push_bounded(&mut facts, owner::intent::classify(observation), fact_limit)?;
+                }
                 UiAdmittedObservationPayload::CommittedScrollExtent(observation) => {
                     push_bounded(
                         &mut facts,
@@ -97,6 +100,52 @@ impl UiChangeClassifier {
             predecessor_generation,
         );
         Ok(resolve_outcome(basis, facts, source_succession))
+    }
+
+    pub(crate) fn classify_intent_consequence(
+        set: UiAdmittedObservationSet,
+        expected_session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        expected_source_basis: u64,
+        predecessor_generation: crate::facade::prepared_application_authority::
+            WorthUiPreparedApplicationGenerationIdentity,
+        fact_limit: usize,
+    ) -> UiClassifiedChange {
+        assert_eq!(set.session(), expected_session);
+        assert_eq!(set.source_basis(), expected_source_basis);
+        assert!(set.summary().admitted_count() <= fact_limit);
+        assert!(set.summary().families().iter().all(|family| matches!(
+            family,
+            crate::runtime::observation::UiObservationFamily::Query
+                | crate::runtime::observation::UiObservationFamily::IntentPosture
+        )));
+        let turn = set.turn();
+        let observation_count = set.summary().admitted_count();
+        let facts = set
+            .into_observations()
+            .into_vec()
+            .into_iter()
+            .map(|observation| match observation.into_payload() {
+                UiAdmittedObservationPayload::Query(observation) => {
+                    owner::query::classify(observation)
+                }
+                UiAdmittedObservationPayload::IntentPosture(observation) => {
+                    owner::intent::classify(observation)
+                }
+                _ => unreachable!("intent consequence admission seals only declared families"),
+            })
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        UiClassifiedChange::new(
+            super::UiChangeClassificationBasis::new(
+                expected_session,
+                expected_source_basis,
+                turn,
+                observation_count,
+                predecessor_generation,
+            ),
+            facts,
+            None,
+        )
     }
 }
 

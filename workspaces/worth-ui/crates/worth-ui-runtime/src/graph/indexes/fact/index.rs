@@ -13,6 +13,7 @@ use super::{
 
 mod subsystem;
 
+use super::intent_posture::intent_posture_consumers;
 use subsystem::{build_subsystem_index, UiGraphSubsystemFactIndex};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +22,8 @@ pub struct UiGraphConsumedFactIndex {
     authored_by_declaration: BTreeMap<Box<str>, Box<[UiGraphFactIndexEntry]>>,
     query_by_projection:
         BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>>,
+    intent_posture_by_node:
+        BTreeMap<crate::graph::UiGraphNodeIdentity, Box<[UiGraphFactIndexEntry]>>,
     subsystem: UiGraphSubsystemFactIndex,
 }
 
@@ -53,6 +56,7 @@ impl UiGraphConsumedFactIndex {
             basis: UiGraphFactIndexBasis::from_generation(snapshot, capabilities),
             authored_by_declaration,
             query_by_projection: query_projection_consumers(snapshot, projection_contents),
+            intent_posture_by_node: intent_posture_consumers(snapshot),
             subsystem: build_subsystem_index(snapshot),
         }
     }
@@ -93,6 +97,11 @@ impl UiGraphConsumedFactIndex {
                     .unwrap_or_default(),
                 None => self.subsystem.entries_for(fact.family()),
             },
+            UiProducedFact::IntentPosture(posture) => self
+                .intent_posture_by_node
+                .get(&posture.graph_node())
+                .map(Box::as_ref)
+                .unwrap_or_default(),
             _ => self.subsystem.entries_for(fact.family()),
         };
         debug_assert!(entries

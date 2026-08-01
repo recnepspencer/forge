@@ -174,18 +174,15 @@ fn assert_collection_transcript(
             .map(|row| {
                 row.collection_row()
                     .expect("collection value retains row correlation")
-                    .identity_for_reporting()
-                    .to_owned()
+                    .correlation_digest()
             })
             .collect::<Vec<_>>(),
         entities
             .iter()
-            .map(|entity| {
-                entity
-                    .evidence_identity()
-                    .terminal_projection_for_reporting()
-                    .to_owned()
-            })
+            .map(|entity| entity
+                .evidence_identity()
+                .operational_key()
+                .correlation_digest())
             .collect::<Vec<_>>()
     );
     assert!(values
@@ -201,7 +198,7 @@ fn assert_collection_transcript(
     assert_eq!(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
-            filled_rect_count: 0,
+            filled_rect_count: 1,
             semantic_text_count: 3,
             preview_node_count: 0,
         }]

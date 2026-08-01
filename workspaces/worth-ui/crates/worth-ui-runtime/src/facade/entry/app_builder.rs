@@ -22,7 +22,10 @@ pub use registration_error::{
 };
 
 /// Builder for a Worth UI application definition.
-pub struct WorthUiApplicationBuilder<ChangeProfileState = UiChangeProfileInstalled> {
+pub struct WorthUiApplicationBuilder<
+    ChangeProfileState = UiChangeProfileInstalled,
+    IntentWiringState = UiIntentWiringSatisfied,
+> {
     inner: CapabilityRegistrationBuilder,
     preparation_source: WorthUiApplicationBuilderPreparationSource,
     host_session_plan: WorthUiHostSessionPlan,
@@ -32,7 +35,9 @@ pub struct WorthUiApplicationBuilder<ChangeProfileState = UiChangeProfileInstall
     measurement_inspection_evidence: Vec<UiMeasurementInspectionEvidenceBundle>,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
+    intent_execution_bindings: crate::runtime::intent_execution::UiIntentExecutionBindingPlan,
     change_profile: ChangeProfileState,
+    intent_wiring: IntentWiringState,
 }
 
 pub struct UiChangeProfileMissing {
@@ -41,6 +46,15 @@ pub struct UiChangeProfileMissing {
 
 pub struct UiChangeProfileInstalled {
     profile: crate::runtime::rebind::UiChangeProfile,
+}
+
+pub struct UiIntentWiringSatisfied {
+    _sealed: (),
+}
+
+pub struct UiIntentProviderRequired<I: crate::capability::UiIntent> {
+    definition:
+        crate::capability::UiIntentDefinition<I, crate::capability::UiApplicationEffectDestination>,
 }
 
 impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
@@ -64,19 +78,24 @@ impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
             measurement_inspection_evidence: Vec::new(),
             query_binding_plan: Default::default(),
             intent_application_facts: Default::default(),
+            intent_execution_bindings:
+                crate::runtime::intent_execution::UiIntentExecutionBindingPlan::new(),
             change_profile: UiChangeProfileMissing { _sealed: () },
+            intent_wiring: UiIntentWiringSatisfied { _sealed: () },
         }
     }
 
     pub fn with_change_profile(
         self,
         profile: crate::runtime::rebind::UiChangeProfile,
-    ) -> WorthUiApplicationBuilder<UiChangeProfileInstalled> {
+    ) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
         self.transition_change_profile(UiChangeProfileInstalled { profile })
     }
 }
 
-impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
+{
     pub fn with_rust_authored_input(
         mut self,
         input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
@@ -176,7 +195,7 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
     fn transition_change_profile<NextProfileState>(
         self,
         change_profile: NextProfileState,
-    ) -> WorthUiApplicationBuilder<NextProfileState> {
+    ) -> WorthUiApplicationBuilder<NextProfileState, IntentWiringState> {
         WorthUiApplicationBuilder {
             inner: self.inner,
             preparation_source: self.preparation_source,
@@ -187,12 +206,10 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
             measurement_inspection_evidence: self.measurement_inspection_evidence,
             query_binding_plan: self.query_binding_plan,
             intent_application_facts: self.intent_application_facts,
+            intent_execution_bindings: self.intent_execution_bindings,
             change_profile,
+            intent_wiring: self.intent_wiring,
         }
-    }
-
-    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
-        self.inner.freeze_with_registration_report()
     }
 
     pub fn with_minimal_registration_diagnostics(mut self) -> Self {
@@ -206,12 +223,22 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
     }
 }
 
-impl WorthUiApplicationBuilder<UiChangeProfileInstalled> {
+impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied> {
+    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
+        self.inner.freeze_with_registration_report()
+    }
+}
+
+impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
     pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
         let capability_snapshot = self
             .inner
             .freeze_with_registration_report()
             .into_accepted_snapshot();
+        let intent_execution_bindings = self
+            .intent_execution_bindings
+            .freeze(capability_snapshot.intent_definitions())
+            .map_err(WorthUiApplicationPreparationDenial::IntentExecutionBinding)?;
         let preparation_source = match self.preparation_source {
             WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
                 WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?
@@ -238,6 +265,7 @@ impl WorthUiApplicationBuilder<UiChangeProfileInstalled> {
                     .into_boxed_slice(),
                 query_binding_plan: self.query_binding_plan,
                 intent_application_facts: self.intent_application_facts,
+                intent_execution_bindings,
                 change_profile: self.change_profile.profile,
             })?,
         ))

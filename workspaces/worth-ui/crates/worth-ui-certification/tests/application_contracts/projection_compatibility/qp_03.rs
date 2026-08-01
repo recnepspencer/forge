@@ -18,11 +18,8 @@ fn compatible_scalar_and_collection_pairs_preserve_identity_only_with_query_proo
     ));
     assert_query_only_compatibility(scalar.proof());
     assert_eq!(
-        scalar
-            .into_successor()
-            .core()
-            .query_binding_identity_for_reporting(),
-        scalar_identity
+        scalar.into_successor().core().query_binding_reference(),
+        &scalar_identity
     );
 
     let collection_world = collection_projection_workspace();
@@ -30,19 +27,16 @@ fn compatible_scalar_and_collection_pairs_preserve_identity_only_with_query_proo
         collection_binding(&collection_world, "platform.pulse.statuses", false, true);
     let collection_identity = collection_predecessor
         .core()
-        .query_binding_identity_for_reporting()
-        .to_owned();
+        .query_binding_reference()
+        .clone();
     let collection = collection_admitted(collection_predecessor.replace_with(
         collection_binding(&collection_world, "platform.pulse.statuses", false, true),
         &collection_world,
     ));
     assert_query_only_compatibility(collection.proof());
     assert_eq!(
-        collection
-            .into_successor()
-            .core()
-            .query_binding_identity_for_reporting(),
-        collection_identity
+        collection.into_successor().core().query_binding_reference(),
+        &collection_identity
     );
 }
 
@@ -64,10 +58,7 @@ fn equal_looking_foreign_and_stale_generation_pairs_remain_distinct() {
             .replace_with(scalar_binding(&foreign, "platform.pulse.status"), &source),
     );
     assert_eq!(stop.stop().kind(), UiProjectionBindingStopKind::WrongWorld);
-    assert!(stop
-        .stop()
-        .predecessor_binding_identity_for_reporting()
-        .is_some());
+    assert!(stop.stop().predecessor_binding().is_some());
 
     let mut stale = collection_projection_workspace();
     let predecessor = collection_binding(&stale, "platform.pulse.statuses", false, true);
@@ -262,11 +253,10 @@ fn projection_view(
         .expect("valid installed view identity")
 }
 
-fn binding_identity(binding: &UiScalarProjectionBinding) -> String {
-    binding
-        .core()
-        .query_binding_identity_for_reporting()
-        .to_owned()
+fn binding_identity(
+    binding: &UiScalarProjectionBinding,
+) -> worth_ui_query_binding::UiQueryBindingReference {
+    binding.core().query_binding_reference().clone()
 }
 
 fn assert_query_only_compatibility(

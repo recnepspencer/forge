@@ -1,6 +1,23 @@
 use super::WorthUiActiveApplicationSession;
 
+/// Inspection evidence bound to the exact generation currently executing.
+pub struct WorthUiActiveInspectionReceipt {
+    generation_identity:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    receipt: crate::facade::inspection_bridge::UiInspectionReceipt,
+}
+
 impl WorthUiActiveApplicationSession {
+    pub fn inspect(
+        &self,
+        query: worth_ui_inspection::UiInspectionQuery,
+    ) -> WorthUiActiveInspectionReceipt {
+        WorthUiActiveInspectionReceipt {
+            generation_identity: self.generation_identity().clone(),
+            receipt: self.application.inspect(query),
+        }
+    }
+
     /// Expand evidence through the exact active generation's retained
     /// inspection authorities.
     pub fn expand_evidence_ref(
@@ -40,5 +57,18 @@ impl WorthUiActiveApplicationSession {
         &self,
     ) -> crate::facade::inspection_bridge::UiInspectionFacadeObservation {
         self.application.inspection_observation()
+    }
+}
+
+impl WorthUiActiveInspectionReceipt {
+    pub fn generation_identity(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
+    {
+        &self.generation_identity
+    }
+
+    pub fn receipt(&self) -> &crate::facade::inspection_bridge::UiInspectionReceipt {
+        &self.receipt
     }
 }

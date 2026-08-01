@@ -12,3 +12,10 @@ impl UiIntentDeclarationIdentity {
         &self.0
     }
 }
+
+pub(crate) fn valid_intent_identity(identity: &str) -> bool {
+    !identity.is_empty()
+        && identity
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'/'))
+}

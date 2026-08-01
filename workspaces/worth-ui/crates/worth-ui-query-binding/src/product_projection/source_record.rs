@@ -33,11 +33,8 @@ impl WorthUiScalarProjectionSourceRecord {
     }
 
     pub(crate) fn into_query_entity(self) -> WorthQueryEntity {
-        let identity = WorthQueryEntityIdentity::from_bridge_record_projection(
-            RelationalBridgeRecordIdentityParts::entity(313, 1, 1),
-        );
         WorthQueryEntity::from_native_field_values(
-            identity,
+            platform_pulse_entity_identity(),
             BTreeMap::from([
                 (
                     field_path("identity", "id"),
@@ -54,6 +51,12 @@ impl WorthUiScalarProjectionSourceRecord {
             ]),
         )
     }
+}
+
+pub(crate) fn platform_pulse_entity_identity() -> WorthQueryEntityIdentity {
+    WorthQueryEntityIdentity::from_bridge_record_projection(
+        RelationalBridgeRecordIdentityParts::entity(313, 1, 1),
+    )
 }
 
 fn field_path(aspect: &str, field: &str) -> CanonicalFieldPath {

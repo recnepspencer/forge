@@ -29,7 +29,10 @@ use super::world::{
 };
 use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
+mod application_coherence;
+mod basis_affinity;
 mod draft_input;
+mod projection_posture;
 mod selection_identity;
 
 #[test]
@@ -41,6 +44,25 @@ fn ia_05_zero_one_and_sixty_four_fields_follow_declared_width_not_world_width() 
 
 #[test]
 fn ia_05_application_facts_seal_exact_owner_revisions() {
+    let (mut world, text) = application_fact_world();
+    let prepared = prepare_application_payload(&mut world);
+    assert_initial_application_payload(&prepared);
+    let updated = world
+        .interaction
+        .session
+        .update_intent_text_fact(&text, "application-current")
+        .expect("the application owner advances one exact fact");
+    assert_eq!(updated.revision(), 2);
+    let successor = prepare_application_payload(&mut world);
+    assert_application_revisions(prepared.input_basis().owner_revisions(), [1, 1, 1]);
+    assert_application_revisions(successor.input_basis().owner_revisions(), [2, 1, 1]);
+    assert_application_revisions(prepared.input_basis().owner_revisions(), [1, 1, 1]);
+    drop(successor);
+    drop(prepared);
+    let _ = world.interaction.session.shutdown();
+}
+
+fn application_fact_world() -> (PayloadWorld, UiIntentApplicationFact<UiIntentText>) {
     let text = UiIntentApplicationFact::<UiIntentText>::text("phase3.fact.message", 32).unwrap();
     let boolean = UiIntentApplicationFact::<UiIntentBoolean>::boolean("phase3.fact.allowed")
         .expect("boolean fact identity");
@@ -60,18 +82,29 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
             APPLICATION_UNSIGNED_FIELD,
             UiIntentPayloadSource::<UiIntentUnsigned64>::application_fact(&unsigned),
         );
-    let mut world = launch::<ApplicationIntent>(
+    let world = launch::<ApplicationIntent>(
         routed_input(declaration, WorthUiIntentInteractionFamily::Activate),
         PayloadProjectionRegistration::None,
-        PayloadApplicationFacts::standard(text, boolean, unsigned),
+        PayloadApplicationFacts::standard(text.clone(), boolean, unsigned),
     );
-    let interaction = activation(&mut world, [10, 20]);
+    (world, text)
+}
+
+fn prepare_application_payload(
+    world: &mut PayloadWorld,
+) -> worth_ui::facade::intent::UiPreparedIntentPayload {
+    let interaction = activation(world, [10, 20]);
     let route = product_route(&world.interaction, interaction);
-    let prepared = world
+    world
         .interaction
         .session
         .prepare_intent_payload(route)
-        .expect("three exact application facts project");
+        .expect("three exact application facts project")
+}
+
+fn assert_initial_application_payload(
+    prepared: &worth_ui::facade::intent::UiPreparedIntentPayload,
+) {
     let cost = prepared.input_basis().cost();
     assert_eq!(cost.declared_fields(), 3);
     assert_eq!(cost.application_inputs_read(), 3);
@@ -93,8 +126,16 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
         assert_eq!(revision.identity(), expected.0);
         assert_eq!(revision.revision(), expected.1);
     }
-    drop(prepared);
-    let _ = world.interaction.session.shutdown();
+}
+
+fn assert_application_revisions(revisions: &[UiIntentInputOwnerRevision], expected: [u64; 3]) {
+    assert_eq!(revisions.len(), expected.len());
+    for (observed, expected) in revisions.iter().zip(expected) {
+        let UiIntentInputOwnerRevision::Application(observed) = observed else {
+            panic!("the application payload basis contains only application owners")
+        };
+        assert_eq!(observed.revision(), expected);
+    }
 }
 
 fn assert_zero_field_file_world() {
@@ -270,7 +311,7 @@ fn activation_interaction(
     let _ = world.button(1, 1, UiHostPointerButtonTransition::Pressed, point);
     let released = world.button(1, 1, UiHostPointerButtonTransition::Released, point);
     let UiHostInteractionIngressOutcome::Applied(receipt) = released else {
-        panic!("release reaches the production interaction compiler")
+        panic!("release reaches the production interaction compiler, got {released:?}")
     };
     receipt
         .into_transitions()
@@ -296,5 +337,18 @@ fn product_route(
         UiIntentRouteResolution::Confirmation(_) => {
             panic!("IA-05 payload route cannot cross into confirmation")
         }
+    }
+}
+
+fn expect_payload_stop(
+    result: Result<
+        worth_ui::facade::intent::UiPreparedIntentPayload,
+        worth_ui::facade::intent::UiIntentPayloadStop,
+    >,
+    claim: &str,
+) -> worth_ui::facade::intent::UiIntentPayloadStop {
+    match result {
+        Ok(_) => panic!("{claim}"),
+        Err(stop) => stop,
     }
 }

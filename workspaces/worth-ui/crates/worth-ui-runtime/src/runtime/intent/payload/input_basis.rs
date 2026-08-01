@@ -7,12 +7,13 @@ pub struct UiIntentPayloadProjectionCost {
 }
 
 pub struct UiIntentInputBasisReceipt {
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     publication_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+    route_resolution: crate::declaration::UiIntentRouteResolutionCost,
     cost: UiIntentPayloadProjectionCost,
     owner_revisions: Box<[UiIntentInputOwnerRevision]>,
+    evidence_reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,
 }
 
 pub(crate) struct UiIntentInputBasis {
@@ -20,18 +21,32 @@ pub(crate) struct UiIntentInputBasis {
     interaction: crate::runtime::interaction::UiSemanticInteraction,
     query_inputs: Box<[worth_ui_query_binding::UiProjectionInputFactReference]>,
     application_inputs: Box<[super::UiIntentApplicationInputReference]>,
+    operability: super::super::operability::UiIntentOperabilityBasis,
 }
 
 pub(crate) struct UiIntentInputBasisInput {
-    pub(crate) generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    pub(crate) generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(crate) publication_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     pub(crate) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+    pub(crate) route_resolution: crate::declaration::UiIntentRouteResolutionCost,
     pub(crate) interaction: crate::runtime::interaction::UiSemanticInteraction,
     pub(crate) query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
     pub(crate) application_inputs: Vec<super::UiIntentApplicationInputReference>,
     pub(crate) owner_revisions: Vec<UiIntentInputOwnerRevision>,
     pub(crate) cost: UiIntentPayloadProjectionCost,
+    pub(crate) operability: super::super::operability::UiIntentOperabilityBasis,
+    pub(crate) evidence_reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,
+}
+
+pub(crate) struct UiIntentInputBasisMaterial {
+    pub(crate) interaction: crate::runtime::interaction::UiSemanticInteraction,
+    pub(crate) query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
+    pub(crate) application_inputs: Vec<super::UiIntentApplicationInputReference>,
+    pub(crate) owner_revisions: Vec<UiIntentInputOwnerRevision>,
+    pub(crate) route_resolution: crate::declaration::UiIntentRouteResolutionCost,
+    pub(crate) cost: UiIntentPayloadProjectionCost,
+    pub(crate) operability: super::super::operability::UiIntentOperabilityBasis,
+    pub(crate) evidence_reference: Option<worth_ui_inspection::UiIntentEvidenceReference>,
 }
 
 impl UiIntentInputBasis {
@@ -41,12 +56,15 @@ impl UiIntentInputBasis {
                 generation: input.generation,
                 publication_frame: input.publication_frame,
                 target: input.target,
+                route_resolution: input.route_resolution,
                 cost: input.cost,
                 owner_revisions: input.owner_revisions.into_boxed_slice(),
+                evidence_reference: input.evidence_reference,
             },
             interaction: input.interaction,
             query_inputs: input.query_inputs.into_boxed_slice(),
             application_inputs: input.application_inputs.into_boxed_slice(),
+            operability: input.operability,
         }
     }
 
@@ -58,13 +76,37 @@ impl UiIntentInputBasis {
         let _ = &self.interaction;
         1 + self.query_inputs.len() + self.application_inputs.len()
     }
+
+    pub(crate) const fn operability(&self) -> &super::super::operability::UiIntentOperabilityBasis {
+        &self.operability
+    }
+
+    pub(crate) const fn interaction_time_basis(
+        &self,
+    ) -> worth_ui_host_contract::UiHostObservationTimeBasis {
+        self.interaction.time_basis()
+    }
+
+    pub(crate) fn payload_inputs_are_current(
+        &self,
+        mounted: &crate::mounting::WorthUiMountedSessionState,
+        application_facts: &super::UiIntentApplicationFactState,
+        generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
+    ) -> bool {
+        self.query_inputs.iter().all(|expected| {
+            mounted
+                .current_projection_input(expected.revision().slot())
+                .as_ref()
+                == Some(expected)
+        }) && self
+            .application_inputs
+            .iter()
+            .all(|expected| application_facts.is_current_reference(expected, generation))
+    }
 }
 
 impl UiIntentInputBasisReceipt {
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
         &self.generation
     }
 
@@ -80,8 +122,18 @@ impl UiIntentInputBasisReceipt {
         self.cost
     }
 
+    pub const fn route_resolution_cost(&self) -> crate::declaration::UiIntentRouteResolutionCost {
+        self.route_resolution
+    }
+
     pub fn owner_revisions(&self) -> &[UiIntentInputOwnerRevision] {
         &self.owner_revisions
+    }
+
+    pub const fn evidence_reference(
+        &self,
+    ) -> Option<worth_ui_inspection::UiIntentEvidenceReference> {
+        self.evidence_reference
     }
 }
 

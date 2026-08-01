@@ -75,8 +75,8 @@ impl PlatformPulseNativeFrame {
         let Some(mut shell) = self.shell.take() else {
             return;
         };
-        self.tick = self.tick.saturating_add(1);
-        let receipt = match publish_projection(&mut shell, observation, self.tick) {
+        self.presentation_tick = self.presentation_tick.saturating_add(1);
+        let receipt = match publish_projection(&mut shell, observation, self.presentation_tick) {
             Ok(receipt) => receipt,
             Err(denial) => {
                 self.shell = Some(shell);
@@ -135,7 +135,7 @@ impl PlatformPulseNativeFrame {
         true
     }
 
-    fn publish_query_projection_evidence(
+    pub(super) fn publish_query_projection_evidence(
         &mut self,
         evidence: &PlatformPulseQueryProjectionEvidence,
         mounted: &UiMountedFramePublicationReceipt,
@@ -152,7 +152,7 @@ impl PlatformPulseNativeFrame {
         }
     }
 
-    fn refresh_query_visual_identity(
+    pub(super) fn refresh_query_visual_identity(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
         evidence: &PlatformPulseQueryProjectionEvidence,
@@ -162,7 +162,7 @@ impl PlatformPulseNativeFrame {
         }
         self.visual_identity.refresh_after_content_rebind(
             shell,
-            self.tick,
+            self.presentation_tick,
             std::time::Instant::now(),
         )?;
         if evidence.owner_order() == 2 {

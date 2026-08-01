@@ -53,16 +53,29 @@ pub use family::{
 };
 pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
 pub(crate) use intent::{
-    UiCanonicalIntentDeclaration, UiIntentCatalog, UiIntentCatalogResolvedRoute,
-    UiResolvedIntentApplicationSource, UiResolvedIntentPayloadBinding,
-    UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
+    prepare_authored_intent_material, UiCanonicalIntentDeclaration, UiIntentCatalog,
+    UiIntentCatalogResolvedRoute, UiIntentCatalogSemanticComparison,
+    UiResolvedIntentApplicationSource, UiResolvedIntentConfirmationContract,
+    UiResolvedIntentConfirmationSource, UiResolvedIntentMutabilitySource,
+    UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource,
+    UiResolvedIntentProjectionSource, UiResolvedIntentReadinessSource,
+    WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
 };
 pub use intent::{
     UiIntentApplicationFact, UiIntentApplicationFactIdentityError,
     UiIntentApplicationFactRegistrationError, UiIntentCatalogMetrics,
-    UiIntentCatalogPreparationDenial, UiIntentConfirmationRouteBinding, UiIntentDeclaration,
-    UiIntentDeclarationConstructionError, UiIntentDeclarationIdentity,
-    UiIntentInteractionPayloadSourceKind, UiIntentPayloadSource, UiIntentRouteBinding,
+    UiIntentCatalogPreparationDenial, UiIntentConcurrencyScope, UiIntentConfirmationContract,
+    UiIntentConfirmationContractIdentityError, UiIntentConfirmationRouteBinding,
+    UiIntentConsequenceContract, UiIntentDeclaration, UiIntentDeclarationConcurrencyBound,
+    UiIntentDeclarationConcurrencyMissing, UiIntentDeclarationConfirmationBound,
+    UiIntentDeclarationConfirmationMissing, UiIntentDeclarationConsequencesBound,
+    UiIntentDeclarationConsequencesMissing, UiIntentDeclarationConstructionError,
+    UiIntentDeclarationIdentity, UiIntentDeclarationOperabilityBound,
+    UiIntentDeclarationOperabilityMissing, UiIntentInteractionPayloadSourceKind,
+    UiIntentMutabilitySource, UiIntentOperabilityContract,
+    UiIntentOperabilityContractIdentityError, UiIntentOperabilityDependencyAxis,
+    UiIntentPayloadSource, UiIntentPolicySource, UiIntentReadinessSource, UiIntentRouteBinding,
+    UiIntentRouteResolutionCost,
 };
 pub(crate) use intent::{
     UiIntentApplicationFactPlan, UiIntentApplicationFactSlot, UiIntentApplicationFactValue,

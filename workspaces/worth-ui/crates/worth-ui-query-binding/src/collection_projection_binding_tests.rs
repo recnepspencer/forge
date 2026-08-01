@@ -27,19 +27,13 @@ fn registered_collection_emits_affine_native_text_fact_and_closes_lease() {
         panic!("ready Query collection must produce a current fact");
     };
     let expected_identities = [
-        alpha
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-            .to_owned(),
-        bravo
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-            .to_owned(),
+        crate::UiQueryEvidenceReference::query_issued(&alpha.evidence_identity()),
+        crate::UiQueryEvidenceReference::query_issued(&bravo.evidence_identity()),
     ];
     let actual_identities = value
         .rows()
         .iter()
-        .map(|row| row.row().identity_for_reporting().to_owned())
+        .map(|row| row.row().identity())
         .collect::<Vec<_>>();
     let actual_values = value
         .rows()

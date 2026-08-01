@@ -7,7 +7,7 @@ use worth_ui_query_binding::{
 
 use super::support::{
     assert_current, assert_stop, assert_unavailable, assert_zero_native_work, completion_batch,
-    consume_batch, initial_fact, reporting_tuple, ScalarLifecycleWorld,
+    consume_batch, initial_fact, reporting_projection, ScalarLifecycleWorld,
 };
 
 const SHARED_VALUE: &str = "Authority Ready";
@@ -138,12 +138,12 @@ fn reporting_projections_remain_observations_not_operational_inputs() {
         BridgeMixedCauseOrderingInput::AsyncCompletion(completion),
         Some(pending),
     );
-    let reporting = reporting_tuple(&current);
+    let reporting = reporting_projection(&current);
 
-    assert!(!reporting.0.is_empty());
-    assert!(!reporting.1.is_empty());
-    assert!(!reporting.2.is_empty());
-    assert!(!reporting.3.is_empty());
+    assert!(!reporting.query_world().is_empty());
+    assert!(!reporting.binding().is_empty());
+    assert!(!reporting.source_generation().is_empty());
+    assert!(!reporting.result_generation().is_empty());
     assert_eq!(current.work().native_indexed_accesses(), 1);
 }
 

@@ -46,13 +46,42 @@ This is a state-change compiler, not an event callback. Each governed phase
 requires the concrete value issued by the previous owner. A watcher, pixel,
 digest, inspection receipt, or host result cannot construct a plan or publish.
 
+## Interaction To Consequence Flow
+
+```text
+loss-aware host observations
+-> presented-target gesture or bounded draft lifecycle
+-> semantic interaction
+-> typed route + coherent payload + operability proof
+-> optional affine confirmation
+-> move-only UI admission
+-> destination-specific provider execution
+-> separate product or Query admission
+-> declared consequence
+-> ordinary observation/rebind/mounted publication
+```
+
+Interaction state owns targeting and input continuity. Intent admission owns
+route, payload, operability, confirmation, concurrency, and bounded admission
+slots. Intent execution owns versioned providers, attempts, terminal posture,
+and recovery. None of those owners can mint Query or domain authority; the
+product action crosses that boundary separately and returns an owner-issued
+consequence receipt.
+
+Application effects use the exact registered `UiIntentExecutionProvider<I>`.
+UI transitions use their typed transition destination. Runtime-service
+destinations remain typed unsupported until Milestone 3.15 installs their
+service-specific providers. All three reuse the same upstream semantic
+interaction and admission contracts.
+
 ## Authority Owners
 
 - `worth-ui-dsl` owns syntax, source structure, diagnostics, normalization, and
   the sealed semantic package.
 - `worth-ui` owns the named product facades developers import.
 - `worth-ui-runtime` owns active application, observation, rebind planning,
-  mounted publication, host exchange, recovery, and runtime inspection.
+  semantic interaction, intent admission and managed execution, mounted
+  publication, host exchange, recovery, and runtime inspection.
 - `worth-ui-query-binding` translates installed Worth Query authority into
   shape-specific Worth UI registrations, observations, and affine facts.
   Runtime consumes those UI facts and does not recreate Query.
@@ -114,7 +143,8 @@ publication and exact recovery authority; it never reports optimistic rollback.
 `UiRebindRuntimeState` owns plan, receipt, completion, recovery, terminal
 decision, and causal-evidence capacity. Canonical cutover still occurs through
 the application and mounted publication owners—there is no watcher-owned or
-renderer-owned alternate.
+renderer-owned alternate. Intent outcomes enter this path only as declared,
+owner-admitted consequences; provider completion cannot publish by itself.
 
 ## Cost Posture
 
@@ -142,6 +172,7 @@ event bag, a second executor, or a host-adapter semantic lane.
 
 See [Runtime subsystems](./runtime-subsystems.md),
 [Authored composition](./authored-composition.md),
+[Interaction and intents](./interaction-and-intents.md),
 [Application lifecycle](./application-lifecycle.md),
 [Hot rebind](./hot-rebind.md), and
 [Application inspection](./inspection.md).

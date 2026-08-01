@@ -67,6 +67,18 @@ fn declaration_residue_audit_rejects_known_bad_source_reopening_fixture() {
         "worth-ui-inspection",
         "DSL semantic accessor `semantic_artifact()`",
     );
+    assert_has_violation(
+        &violations,
+        "source_admission_neighbor.rs",
+        "DSL semantic authority type `UiDslSemanticFamily`",
+    );
+    assert!(
+        violations
+            .iter()
+            .all(|violation| !violation.contains("declaration/intent/source_admission.rs")),
+        "the exact declaration admission owner should be admitted without admitting its sibling:\n{}",
+        violations.join("\n")
+    );
 }
 
 #[test]

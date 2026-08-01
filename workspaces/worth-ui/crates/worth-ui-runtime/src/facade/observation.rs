@@ -10,6 +10,8 @@ pub use crate::runtime::observation::{
     UiObservationCoalescingPolicy, UiObservationDuplicatePolicy, UiObservationFamily,
     UiObservationFamilyDefinition, UiObservationLossPolicy, UiObservationOwner,
     UiObservationProfile, UiObservationProfileConstructionDenial, UiObservationProfileInput,
-    UiObservationResetPolicy, UiObservationSetSummary, UiObservationTurn, UiObservationTurnDenial,
-    UiObservationTurnIdentity, UiObservedNoChangeReceipt, UiQueryObservationAdmissionStop,
+    UiObservationResetPolicy, UiObservationResourceRetirementCause,
+    UiObservationResourceRetirementReport, UiObservationResourceSnapshot, UiObservationSetSummary,
+    UiObservationTurn, UiObservationTurnDenial, UiObservationTurnIdentity,
+    UiObservedNoChangeReceipt, UiQueryObservationAdmissionStop,
 };

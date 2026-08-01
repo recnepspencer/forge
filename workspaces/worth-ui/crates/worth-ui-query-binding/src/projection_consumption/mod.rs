@@ -7,6 +7,7 @@ mod fact_receipt;
 mod intent_input;
 mod native_value;
 mod posture;
+mod reporting;
 mod scalar;
 mod scalar_derivation;
 mod work_counters;
@@ -41,6 +42,7 @@ pub use posture::{
     UiProjectionRetainedActivityReceipt, UiProjectionTransitionPosture,
     UiProjectionUnavailableKind, UiProjectionUnavailableReceipt,
 };
+pub use reporting::UiProjectionFactReportingProjection;
 pub use scalar::UiScalarProjectionFactReceipt;
 pub(crate) use scalar_derivation::derive_scalar_projection;
 pub use work_counters::UiScalarProjectionWorkCounters;

@@ -36,6 +36,30 @@ pub enum WorthUiCollectionChangeHandoffRetryDenial {
     AlreadyAdmittedToFrameworkTurn,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiCollectionChangePublicationDenial {
+    QueryNotInstalled,
+    ForeignInstalledReference,
+    ResourceNotRetained,
+    StaleOrForeignAdmission,
+    AdmissionNotActive,
+}
+
+/// Affine Query-owner authority for one exact admitted collection change.
+///
+/// Only Query binding admission can mint this token. It must be consumed by
+/// exact publication or withdrawal; possession alone does not publish state.
+#[must_use = "an admitted Query change must be published or withdrawn"]
+pub struct WorthUiAdmittedCollectionChangePublication {
+    consequence: crate::WorthUiCollectionChangeConsequence,
+    receipt: WorthUiCollectionChangeStagingReceipt,
+}
+
+pub struct WorthUiCollectionChangePublicationStop {
+    denial: WorthUiCollectionChangePublicationDenial,
+    admission: Box<WorthUiAdmittedCollectionChangePublication>,
+}
+
 pub struct WorthUiCollectionChangeAdmissionStop {
     denial: WorthUiCollectionChangeAdmissionDenial,
     consequence: crate::WorthUiCollectionChangeConsequence,
@@ -89,6 +113,86 @@ impl WorthUiCollectionChangeStagingReceipt {
 
     pub fn query_work(&self) -> crate::WorthUiCollectionQueryWorkInspection {
         self.query_work
+    }
+}
+
+impl WorthUiAdmittedCollectionChangePublication {
+    pub(crate) fn seal(
+        consequence: crate::WorthUiCollectionChangeConsequence,
+        receipt: WorthUiCollectionChangeStagingReceipt,
+    ) -> Self {
+        Self {
+            consequence,
+            receipt,
+        }
+    }
+
+    pub fn source(&self) -> &crate::WorthUiCollectionChangeSourceReference {
+        self.receipt.source()
+    }
+
+    pub fn change_order(&self) -> u64 {
+        self.receipt.change_order()
+    }
+
+    pub fn counters(&self) -> crate::WorthUiCollectionChangeCounters {
+        self.receipt.counters()
+    }
+
+    pub fn query_work(&self) -> crate::WorthUiCollectionQueryWorkInspection {
+        self.receipt.query_work()
+    }
+
+    pub(crate) fn installed_reference(&self) -> &crate::WorthUiInstalledQueryBindingReference {
+        self.consequence.installed_reference()
+    }
+
+    pub(crate) fn consequence(&self) -> &crate::WorthUiCollectionChangeConsequence {
+        &self.consequence
+    }
+
+    pub(crate) fn into_consequence(self) -> crate::WorthUiCollectionChangeConsequence {
+        self.consequence
+    }
+}
+
+impl WorthUiCollectionChangePublicationStop {
+    pub(crate) fn new(
+        denial: WorthUiCollectionChangePublicationDenial,
+        admission: WorthUiAdmittedCollectionChangePublication,
+    ) -> Self {
+        Self {
+            denial,
+            admission: Box::new(admission),
+        }
+    }
+
+    pub const fn denial(&self) -> WorthUiCollectionChangePublicationDenial {
+        self.denial
+    }
+
+    pub fn into_admission(self) -> WorthUiAdmittedCollectionChangePublication {
+        *self.admission
+    }
+}
+
+impl std::fmt::Debug for WorthUiAdmittedCollectionChangePublication {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthUiAdmittedCollectionChangePublication")
+            .field("receipt", &self.receipt)
+            .field("consequence", &"sealed Query consequence")
+            .finish()
+    }
+}
+
+impl std::fmt::Debug for WorthUiCollectionChangePublicationStop {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("WorthUiCollectionChangePublicationStop")
+            .field("denial", &self.denial)
+            .field("admission", &self.admission)
+            .finish()
     }
 }
 

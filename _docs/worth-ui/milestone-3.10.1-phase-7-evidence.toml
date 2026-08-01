@@ -3,11 +3,11 @@ milestone = "3.10.1"
 phase = 7
 integration_target_budget = 9
 compile_contract_cargo_sessions = 2
-# Milestone 3.11 Phase 3 adds target-construction, scoped-region, and distinct
-# index-identity denials. Phase 4 adds grant-family substitution and linear
-# clear-consumption denials without adding a Cargo session or fixture workspace.
-compile_fail_targets = 37
-compile_pass_targets = 14
+# Successor milestones through 3.14 add public-facade impossibility twins for
+# visual identity, Query publication, typed intent authority, and presentation/
+# execution clock-domain separation without adding a Cargo session or workspace.
+compile_fail_targets = 59
+compile_pass_targets = 16
 executable_fixture_manifests = [
   "crates/worth-ui-certification/tests/fixtures/compile_contracts/Cargo.toml",
   "crates/worth-ui-certification/tests/fixtures/host_contract_only_adapter/Cargo.toml",

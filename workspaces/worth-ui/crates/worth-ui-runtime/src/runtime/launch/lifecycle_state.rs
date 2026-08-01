@@ -125,6 +125,12 @@ pub struct WorthUiRuntimeShutdownReceipt {
     visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
     visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
     interaction: crate::runtime::interaction::UiInteractionShutdownReport,
+    intent_confirmation: crate::runtime::intent::UiIntentConfirmationShutdownReport,
+    intent_admission: crate::runtime::intent::UiIntentAdmissionShutdownReport,
+    intent_execution: crate::facade::intent::UiIntentExecutionShutdownReport,
+    observation_resources: crate::runtime::observation::UiObservationResourceRetirementReport,
+    intent_evidence: worth_ui_inspection::UiIntentEvidenceRetirementReport,
+    intent_resource_census: crate::runtime::session::UiIntentResourceCensus,
     rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
 }
@@ -142,6 +148,12 @@ impl WorthUiRuntimeShutdownReceipt {
             visual_capture: Default::default(),
             visual_overlay: Default::default(),
             interaction: Default::default(),
+            intent_confirmation: Default::default(),
+            intent_admission: Default::default(),
+            intent_execution: Default::default(),
+            observation_resources: Default::default(),
+            intent_evidence: Default::default(),
+            intent_resource_census: crate::runtime::session::UiIntentResourceCensus::EMPTY,
             rebind: Default::default(),
             host_session_release: None,
         }
@@ -179,6 +191,36 @@ impl WorthUiRuntimeShutdownReceipt {
 
     pub const fn interaction(&self) -> &crate::runtime::interaction::UiInteractionShutdownReport {
         &self.interaction
+    }
+
+    pub const fn intent_confirmation(
+        &self,
+    ) -> crate::runtime::intent::UiIntentConfirmationShutdownReport {
+        self.intent_confirmation
+    }
+
+    pub const fn intent_admission(
+        &self,
+    ) -> crate::runtime::intent::UiIntentAdmissionShutdownReport {
+        self.intent_admission
+    }
+
+    pub const fn intent_execution(&self) -> crate::facade::intent::UiIntentExecutionShutdownReport {
+        self.intent_execution
+    }
+
+    pub const fn intent_evidence(&self) -> worth_ui_inspection::UiIntentEvidenceRetirementReport {
+        self.intent_evidence
+    }
+
+    pub const fn observation_resources(
+        &self,
+    ) -> crate::runtime::observation::UiObservationResourceRetirementReport {
+        self.observation_resources
+    }
+
+    pub const fn intent_resource_census(&self) -> crate::runtime::session::UiIntentResourceCensus {
+        self.intent_resource_census
     }
 
     pub fn host_session_release(
@@ -232,6 +274,54 @@ impl WorthUiRuntimeShutdownReceipt {
         report: crate::runtime::interaction::UiInteractionShutdownReport,
     ) -> Self {
         self.interaction = report;
+        self
+    }
+
+    pub(crate) fn bind_intent_confirmation(
+        mut self,
+        report: crate::runtime::intent::UiIntentConfirmationShutdownReport,
+    ) -> Self {
+        self.intent_confirmation = report;
+        self
+    }
+
+    pub(crate) fn bind_intent_admission(
+        mut self,
+        report: crate::runtime::intent::UiIntentAdmissionShutdownReport,
+    ) -> Self {
+        self.intent_admission = report;
+        self
+    }
+
+    pub(crate) fn bind_intent_execution(
+        mut self,
+        report: crate::facade::intent::UiIntentExecutionShutdownReport,
+    ) -> Self {
+        self.intent_execution = report;
+        self
+    }
+
+    pub(crate) fn bind_intent_evidence(
+        mut self,
+        report: worth_ui_inspection::UiIntentEvidenceRetirementReport,
+    ) -> Self {
+        self.intent_evidence = report;
+        self
+    }
+
+    pub(crate) fn bind_observation_resources(
+        mut self,
+        report: crate::runtime::observation::UiObservationResourceRetirementReport,
+    ) -> Self {
+        self.observation_resources = report;
+        self
+    }
+
+    pub(crate) fn bind_intent_resource_census(
+        mut self,
+        census: crate::runtime::session::UiIntentResourceCensus,
+    ) -> Self {
+        self.intent_resource_census = census;
         self
     }
 

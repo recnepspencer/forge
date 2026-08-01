@@ -1,5 +1,6 @@
 mod manifest_contract;
 mod source_contract;
+mod source_topology;
 mod visual_identity_contract;
 
 use std::fs;

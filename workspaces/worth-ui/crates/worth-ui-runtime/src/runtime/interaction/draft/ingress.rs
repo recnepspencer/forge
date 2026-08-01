@@ -1,9 +1,10 @@
 use worth_ui_host_contract::{
     UiHostImeCompositionPhase, UiHostKey, UiHostKeyTransition, UiHostObservationCanonicalCore,
     UiHostObservationPayload, UiHostObservationReport, UiHostObservationSequence,
+    UiHostObservationTimeBasis,
 };
 
-use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 
 use super::model::{
     UiActiveLocalRecipient, UiDraftProcessingOutcome, UiDraftRuntimeState, UiRecipientContext,
@@ -19,8 +20,9 @@ use crate::runtime::interaction::{
 struct UiDraftReportContext<'world> {
     core: UiHostObservationCanonicalCore,
     sequence: UiHostObservationSequence,
+    time_basis: UiHostObservationTimeBasis,
     mounted: &'world crate::mounting::WorthUiMountedSessionState,
-    generation: &'world WorthUiPreparedApplicationGenerationIdentity,
+    generation: &'world WorthUiActiveApplicationGenerationIdentity,
 }
 
 impl UiDraftRuntimeState {
@@ -29,11 +31,12 @@ impl UiDraftRuntimeState {
         core: UiHostObservationCanonicalCore,
         report: &UiHostObservationReport,
         mounted: &crate::mounting::WorthUiMountedSessionState,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
     ) -> Vec<UiDraftProcessingOutcome> {
         let context = UiDraftReportContext {
             core,
             sequence: report.sequence(),
+            time_basis: report.time_basis(),
             mounted,
             generation,
         };
@@ -85,6 +88,7 @@ impl UiDraftRuntimeState {
                             presentation: context.core.presentation(),
                             generation: context.generation.clone(),
                             sequence: context.sequence,
+                            time_basis: context.time_basis,
                             key,
                             modifiers,
                         }),
@@ -99,6 +103,7 @@ impl UiDraftRuntimeState {
                             presentation: context.core.presentation(),
                             generation: context.generation.clone(),
                             sequence: context.sequence,
+                            time_basis: context.time_basis,
                             key,
                             modifiers,
                         },
@@ -115,7 +120,12 @@ impl UiDraftRuntimeState {
                 .into_iter()
                 .collect(),
             UiValidatedActiveRecipient::Draft(session) if key == UiHostKey::Enter => {
-                vec![self.commit(session, context.core.presentation(), context.sequence)]
+                vec![self.commit(
+                    session,
+                    context.core.presentation(),
+                    context.sequence,
+                    context.time_basis,
+                )]
             }
             _ => Vec::new(),
         }

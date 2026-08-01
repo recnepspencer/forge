@@ -101,7 +101,6 @@ def session_violations(
     inventory = read_compile_rows(inventory_path)
     execution = read_compile_rows(execution_path)
     violations = count_violations(session, config, inventory, execution)
-    violations.extend(physical_fixture_violations(session, inventory_path, inventory))
     inventory_by_path = unique_rows(session, "inventory", inventory, violations)
     execution_by_path = unique_rows(session, "execution", execution, violations)
     fixture_root = inventory_path.parent.parent.parent
@@ -112,6 +111,9 @@ def session_violations(
         execution_by_path,
         config,
         violations,
+    )
+    violations.extend(
+        physical_fixture_violations(session, inventory_path, inventory, covered_by)
     )
 
     for path, row in execution_by_path.items():
@@ -263,15 +265,23 @@ def aggregation_group(path: str, config: dict[str, Any]) -> str | None:
 
 
 def physical_fixture_violations(
-    session: str, inventory_path: Path, inventory: list[dict[str, str]]
+    session: str,
+    inventory_path: Path,
+    inventory: list[dict[str, str]],
+    covered_by: dict[str, str],
 ) -> list[Violation]:
     crate_root = inventory_path.parent.parent.parent
     fixture_root = crate_root / "tests/ui"
     expected_sources = {Path(row["path"]).as_posix() for row in inventory}
-    expected_diagnostics = {
+    allowed_diagnostics = {
         Path(row["path"]).with_suffix(".stderr").as_posix()
         for row in inventory
         if row["kind"] == "fail"
+    }
+    required_diagnostics = {
+        Path(row["path"]).with_suffix(".stderr").as_posix()
+        for row in inventory
+        if row["kind"] == "fail" and row["path"] not in covered_by
     }
     actual_sources = physical_paths(crate_root, fixture_root, "*.rs")
     actual_diagnostics = physical_paths(crate_root, fixture_root, "*.stderr")
@@ -290,14 +300,14 @@ def physical_fixture_violations(
                 f"{session}: inventoried Rust compile fixture is missing: {path}",
             )
         )
-    for path in sorted(actual_diagnostics - expected_diagnostics):
+    for path in sorted(actual_diagnostics - allowed_diagnostics):
         violations.append(
             Violation(
                 "compile-physical-fixture",
                 f"{session}: unlisted compile diagnostic: {path}",
             )
         )
-    for path in sorted(expected_diagnostics - actual_diagnostics):
+    for path in sorted(required_diagnostics - actual_diagnostics):
         violations.append(
             Violation(
                 "compile-physical-fixture",

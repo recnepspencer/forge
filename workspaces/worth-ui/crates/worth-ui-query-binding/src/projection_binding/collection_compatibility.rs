@@ -68,10 +68,8 @@ impl UiCollectionProjectionBinding {
             Ok(prepared) => prepared,
             Err((kind, summary)) => return stopped(self, candidate, kind, summary),
         };
-        let predecessor_identity: Arc<str> =
-            Arc::from(predecessor_prepared.binding_identity_for_reporting());
-        let successor_identity: Arc<str> =
-            Arc::from(candidate_prepared.binding_identity_for_reporting());
+        let predecessor_identity = predecessor_prepared.binding_reference();
+        let successor_identity = candidate_prepared.binding_reference();
         let query_witness = match predecessor_prepared.replacement_witness_for(&candidate_prepared)
         {
             Ok(witness) => witness,
@@ -216,7 +214,7 @@ fn stopped(
     let stop = UiProjectionBindingStopReceipt::replacement(
         kind,
         candidate.replacement_attempt_identity(),
-        predecessor.core().query_binding_identity(),
+        predecessor.core().retained_query_binding_reference(),
         summary,
     );
     UiCollectionProjectionReplacementOutcome::Stopped(Box::new(

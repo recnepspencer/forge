@@ -95,7 +95,7 @@ fn milestone_312_phase3_r12_has_one_canonical_rebind_planning_authority() {
 
     assert_eq!(
         production_locations("UiRebindPlan::new("),
-        vec![Path::new(PLAN_COMPILER)],
+        vec![PLAN_COMPILER.to_owned()],
         "only the canonical compiler may construct a rebind plan"
     );
     assert!(
@@ -110,12 +110,12 @@ fn milestone_312_phase3_r12_has_one_canonical_rebind_planning_authority() {
     );
 }
 
-fn production_locations(needle: &str) -> Vec<&Path> {
+fn production_locations(needle: &str) -> Vec<String> {
     workspace_source_inventory()
         .rust_files_under(RUNTIME_ROOT)
         .filter(|source| !is_test_source(source.relative_path()))
         .filter(|source| source.text().contains(needle))
-        .map(|source| source.relative_path())
+        .map(|source| source.relative_path().to_string_lossy().replace('\\', "/"))
         .collect()
 }
 

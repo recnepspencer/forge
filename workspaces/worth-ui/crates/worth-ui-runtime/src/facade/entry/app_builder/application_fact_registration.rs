@@ -5,7 +5,9 @@ use crate::declaration::{UiIntentApplicationFact, UiIntentApplicationFactRegistr
 
 use super::WorthUiApplicationBuilder;
 
-impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
+{
     pub fn register_intent_text_fact(
         mut self,
         fact: UiIntentApplicationFact<UiIntentText>,

@@ -189,7 +189,6 @@ class WorthUiTestTopologySourceTests(TestCase):
             )
             (fixture_root / "aggregate.stderr").write_text("errors\n", encoding="utf-8")
             (fixture_root / "covered.rs").write_text("compile_error!(\"covered\");\n", encoding="utf-8")
-            (fixture_root / "covered.stderr").write_text("covered error\n", encoding="utf-8")
             inventory = (
                 "kind,path,legacy_harness\n"
                 "fail,tests/ui/aggregate.rs,shared_owner\n"
@@ -212,7 +211,8 @@ class WorthUiTestTopologySourceTests(TestCase):
                     }
                 }
             }
-
+            self.assertEqual(compile_reconciliation_violations(root, config), [])
+            (fixture_root / "covered.stderr").write_text("optional covered error\n", encoding="utf-8")
             self.assertEqual(compile_reconciliation_violations(root, config), [])
 
     def test_inventoried_compile_pass_must_be_executed(self) -> None:

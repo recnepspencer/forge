@@ -60,6 +60,10 @@ fn family_definitions_preserve_closed_owner_and_framework_order() {
         ),
         (UiObservationFamily::Query, UiObservationOwner::QueryBinding),
         (
+            UiObservationFamily::IntentPosture,
+            UiObservationOwner::IntentRuntime,
+        ),
+        (
             UiObservationFamily::CommittedScrollExtent,
             UiObservationOwner::ScrollRuntimeState,
         ),
@@ -89,6 +93,19 @@ fn family_definitions_preserve_closed_owner_and_framework_order() {
         UiObservationFamily::AuthoredSource
             .definition()
             .coalescing_policy(),
+        UiObservationCoalescingPolicy::Forbidden
+    );
+    let intent_posture = UiObservationFamily::IntentPosture.definition();
+    assert_eq!(
+        intent_posture.loss_policy(),
+        UiObservationLossPolicy::Lossless
+    );
+    assert_eq!(
+        intent_posture.reset_policy(),
+        UiObservationResetPolicy::NoReset
+    );
+    assert_eq!(
+        intent_posture.coalescing_policy(),
         UiObservationCoalescingPolicy::Forbidden
     );
 }

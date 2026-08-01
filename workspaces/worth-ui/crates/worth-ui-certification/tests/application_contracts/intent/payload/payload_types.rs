@@ -24,6 +24,10 @@ pub(super) const DRAFT_FIELD: UiIntentPayloadField<DraftPayload, UiIntentText> =
     UiIntentPayloadField::text(0, "committed_text", 16);
 pub(super) const SELECTION_FIELD: UiIntentPayloadField<SelectionPayload, UiIntentSelection> =
     UiIntentPayloadField::selection(0, "selected_status");
+pub(in crate::intent) const BUDGET_TEXT_FIELD: UiIntentPayloadField<
+    BudgetTextPayload,
+    UiIntentText,
+> = UiIntentPayloadField::text(0, "bounded_text", 4);
 
 pub(super) struct QueryTextPayload;
 pub(super) struct ApplicationPayload;
@@ -31,14 +35,18 @@ pub(super) struct DraftPayload;
 pub(super) struct SelectionPayload {
     _selection: UiIntentSelectionValue,
 }
-pub(super) struct WidePayload;
-pub(super) struct PayloadOutcome;
+pub(in crate::intent) struct BudgetTextPayload {
+    _text: Arc<str>,
+}
+pub(in crate::intent) struct WidePayload;
+pub(in crate::intent) struct PayloadOutcome;
 
 pub(super) struct QueryTextIntent;
 pub(super) struct ApplicationIntent;
 pub(super) struct DraftIntent;
 pub(super) struct SelectionIntent;
-pub(super) struct WideIntent;
+pub(in crate::intent) struct BudgetTextIntent;
+pub(in crate::intent) struct WideIntent;
 
 macro_rules! intent {
     ($intent:ty, $payload:ty, $identity:literal, $family:ident) => {
@@ -125,6 +133,20 @@ impl UiIntentPayload for SelectionPayload {
     }
 }
 
+impl UiIntentPayload for BudgetTextPayload {
+    const SCHEMA: UiIntentSchema = UiIntentSchema::stable("phase3.payload.budget_text", 1);
+    const FIELDS: UiIntentPayloadFieldSet =
+        UiIntentPayloadFieldSet::new(&[BUDGET_TEXT_FIELD.descriptor()]);
+
+    fn project(
+        fields: &mut UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, UiIntentPayloadProjectionViolation> {
+        Ok(Self {
+            _text: fields.take(BUDGET_TEXT_FIELD)?,
+        })
+    }
+}
+
 impl UiIntentPayload for WidePayload {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("phase3.payload.wide", 1);
     const FIELDS: UiIntentPayloadFieldSet = UiIntentPayloadFieldSet::new(&WIDE_DESCRIPTORS);
@@ -143,6 +165,12 @@ impl UiIntentPayload for WidePayload {
 
 impl UiIntentProductOutcome for PayloadOutcome {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("phase3.payload.outcome", 1);
+    const CONSEQUENCE_FAMILIES: worth_ui::facade::intent::UiIntentProductConsequenceFamilies =
+        worth_ui::facade::intent::UiIntentProductConsequenceFamilies::NONE;
+
+    fn into_consequences(self) -> worth_ui::facade::intent::UiIntentProductConsequences {
+        worth_ui::facade::intent::UiIntentProductConsequences::none()
+    }
 }
 
 intent!(
@@ -163,6 +191,12 @@ intent!(
     SelectionPayload,
     "phase3.intent.selection",
     SelectionCommit
+);
+intent!(
+    BudgetTextIntent,
+    BudgetTextPayload,
+    "phase3.intent.budget_text",
+    Activate
 );
 intent!(WideIntent, WidePayload, "phase3.intent.wide", Activate);
 
@@ -186,8 +220,8 @@ const WIDE_NAMES: [&str; 64] = [
     "f52", "f53", "f54", "f55", "f56", "f57", "f58", "f59", "f60", "f61", "f62", "f63",
 ];
 
-pub(super) const WIDE_FIELDS: [UiIntentPayloadField<WidePayload, UiIntentUnsigned64>; 64] =
-    wide_fields();
+pub(in crate::intent) const WIDE_FIELDS: [UiIntentPayloadField<WidePayload, UiIntentUnsigned64>;
+    64] = wide_fields();
 const WIDE_DESCRIPTORS: [UiIntentPayloadFieldDescriptor; 64] = wide_descriptors();
 
 const fn wide_fields() -> [UiIntentPayloadField<WidePayload, UiIntentUnsigned64>; 64] {

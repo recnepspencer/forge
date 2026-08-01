@@ -10,10 +10,11 @@ use worth_ui::facade::source::{
 };
 
 use super::envelope::PlatformPulseLifecycleObservationEnvelope;
+use super::launch::PlatformPulseLaunchConfigurationDenial;
 use super::lifecycle::{
-    PlatformPulseLaunchConfigurationDenial, PlatformPulseLifecycleObservation,
-    PlatformPulseShutdownCompleted, PlatformPulseTerminalFailure,
-    PlatformPulseTerminalFailureFamily, PlatformPulseWatcherBackendObservation,
+    PlatformPulseLifecycleObservation, PlatformPulseShutdownCompleted,
+    PlatformPulseTerminalFailure, PlatformPulseTerminalFailureFamily,
+    PlatformPulseWatcherBackendObservation,
 };
 use super::projection::{
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
@@ -21,6 +22,15 @@ use super::projection::{
 };
 
 impl PlatformPulseLifecycleObservationStream {
+    pub fn project_intent_preparation_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::IntentPreparation)
+    }
+
     pub fn project_query_preparation_failure(
         &mut self,
     ) -> Result<
@@ -43,6 +53,7 @@ impl PlatformPulseLifecycleObservationStream {
         &mut self,
         watcher: &WorthUiFilesystemWatcherShutdownReceipt,
         query: super::query::PlatformPulseQueryShutdownEvidence,
+        intent: super::intent::PlatformPulseIntentWatcherShutdownEvidence,
         application: WorthUiNativeApplicationShutdownReceipt,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
@@ -60,6 +71,8 @@ impl PlatformPulseLifecycleObservationStream {
                 observed_notification_count: watcher.observed_notification_count(),
                 query_watcher_joined: query_watcher.worker_joined(),
                 pending_query_observation_count: query_watcher.pending_observation_count(),
+                intent_watcher_joined: intent.worker_joined(),
+                pending_intent_input_count: intent.pending_input_count(),
                 query_owner_terminal: query.owner_terminal(),
                 live_query_source_count: query_live.source_count(),
                 live_query_attempt_count: query_live.attempt_count(),

@@ -1,5 +1,3 @@
-use super::generation_identity::WorthUiPreparedGenerationIdentityInput;
-use super::lowering_authority::WorthUiPreparedApplicationLoweringInput;
 use super::{
     WorthUiHostSessionPlan, WorthUiPreparedApplicationArtifact,
     WorthUiPreparedApplicationArtifactPosture, WorthUiPreparedApplicationGenerationIdentity,
@@ -15,7 +13,9 @@ use crate::graph::{
 };
 use std::rc::Rc;
 
+mod derivation;
 mod graph_successor;
+use derivation::derive_prepared_application_authorities;
 pub(crate) use graph_successor::{
     WorthUiPreparedApplicationGraphSuccessor, WorthUiPreparedApplicationGraphSuccessorDenial,
 };
@@ -33,6 +33,8 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) lifecycle: WorthUiFacadeLifecycleBootstrap,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
+    pub(crate) intent_execution_bindings:
+        crate::runtime::intent_execution::FrozenIntentExecutionBindings,
     pub(crate) host_session_plan: WorthUiHostSessionPlan,
     pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(crate) runtime_instance_basis_admissions:
@@ -70,6 +72,7 @@ pub struct WorthUiPreparedApplicationAuthority {
     consumed_fact_index: UiGraphConsumedFactIndex,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
+    intent_execution_bindings: crate::runtime::intent_execution::FrozenIntentExecutionBindings,
     host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
@@ -94,6 +97,7 @@ impl WorthUiPreparedApplicationAuthority {
             lifecycle,
             query_binding_plan,
             intent_application_facts,
+            intent_execution_bindings,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -146,6 +150,7 @@ impl WorthUiPreparedApplicationAuthority {
             consumed_fact_index,
             query_binding_plan,
             intent_application_facts,
+            intent_execution_bindings,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -234,6 +239,12 @@ impl WorthUiPreparedApplicationAuthority {
         &self,
     ) -> &crate::declaration::UiIntentApplicationFactPlan {
         &self.intent_application_facts
+    }
+
+    pub(crate) const fn intent_execution_bindings(
+        &self,
+    ) -> &crate::runtime::intent_execution::FrozenIntentExecutionBindings {
+        &self.intent_execution_bindings
     }
 
     pub(crate) fn lowering_authority(&self) -> WorthUiPreparedApplicationLoweringAuthority {
@@ -353,40 +364,5 @@ impl WorthUiPreparedApplicationAuthority {
         crate::graph::UiAuthoredDeclarationLookup::from_entries(
             self.canonical_artifact.authored_provenance_entries(),
         )
-    }
-}
-
-fn derive_prepared_application_authorities(
-    input: &WorthUiPreparedApplicationAuthorityInput,
-) -> WorthUiPreparedApplicationAuthorities {
-    let generation_identity = WorthUiPreparedApplicationGenerationIdentity::derive(
-        WorthUiPreparedGenerationIdentityInput {
-            capability_snapshot: input.capability_snapshot.digest(),
-            canonical_artifact: input.canonical_artifact.identity(),
-            lineage: input.generation_lineage.clone(),
-            declaration_source: input.declaration_source_identity.clone(),
-            semantic_package: input.semantic_handoff.identity().clone(),
-            graph_authority_digest: input.graph_snapshot.authority_digest(),
-            query_binding_plan: &input.query_binding_plan,
-            intent_application_fact_digest: input.intent_application_facts.digest_basis(),
-            host_session_plan: &input.host_session_plan,
-            visual_inspection_policy: input.visual_inspection_policy,
-            change_profile: input.change_profile,
-        },
-    );
-    let lowering_authority = WorthUiPreparedApplicationLoweringAuthority::seal(
-        WorthUiPreparedApplicationLoweringInput {
-            generation_identity: generation_identity.clone(),
-            source_candidate_basis: input.canonical_artifact.candidate_basis(),
-            source_artifact_authority: input.canonical_artifact.runtime_artifact_authority().0,
-            graph_authority_identity: input.graph_snapshot.authority_identity(),
-            capability_snapshot: Rc::clone(&input.capability_snapshot),
-            query_binding_plan: input.query_binding_plan.clone(),
-            host_session_plan: input.host_session_plan.clone(),
-        },
-    );
-    WorthUiPreparedApplicationAuthorities {
-        generation_identity,
-        lowering_authority,
     }
 }

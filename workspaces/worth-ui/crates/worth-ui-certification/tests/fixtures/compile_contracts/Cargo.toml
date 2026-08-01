@@ -182,6 +182,14 @@ name = "product-reporting-projection-non-entry"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs"
 
 [[bin]]
+name = "product-collection-change-publication-token-private"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/collection_change_publication_token_fields_are_private.rs"
+
+[[bin]]
+name = "product-collection-change-publication-token-affine"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/collection_change_publication_token_is_affine.rs"
+
+[[bin]]
 name = "certification-second-host-adapter"
 path = "../../ui/host/second_adapter_implements_contract.rs"
 
@@ -246,12 +254,28 @@ name = "product-visual-overlay-consumed-clear"
 path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/published_overlay_cannot_clear_twice.rs"
 
 [[bin]]
-name = "product-intent-definition-valid"
-path = "../../../../worth-ui/tests/ui/facade/intent/pass/typed_definition_registration.rs"
+name = "product-intent-typed-valid"
+path = "../../../../worth-ui/tests/ui/facade/intent/pass/typed_intent_relationships.rs"
 
 [[bin]]
-name = "product-intent-definition-private"
-path = "../../../../worth-ui/tests/ui/facade/intent/fail/definition_fields_are_private.rs"
+name = "product-intent-type-boundaries"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/intent_type_boundaries_are_sealed.rs"
+
+[[bin]]
+name = "product-intent-provider-wiring-total"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/provider_wiring_is_type_total.rs"
+
+[[bin]]
+name = "product-intent-admitted-move-only"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/admitted_intent_is_move_only.rs"
+
+[[bin]]
+name = "product-intent-execution-affine"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/recovery_and_terminal_authority_are_affine.rs"
+
+[[bin]]
+name = "product-intent-execution-clock-domain"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/presentation_deadline_cannot_drive_intent_execution.rs"
 
 [[bin]]
 name = "product-intent-string-command-binding-absent"
@@ -264,3 +288,31 @@ path = "../../../../worth-ui/tests/ui/facade/intent/fail/static_command_readines
 [[bin]]
 name = "product-intent-accepted-interactions-canonical"
 path = "../../../../worth-ui/tests/ui/facade/intent/fail/accepted_interactions_require_canonical_order.rs"
+
+[[bin]]
+name = "product-intent-missing-operability-contracts"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/missing_operability_contracts_cannot_lower.rs"
+
+[[bin]]
+name = "product-intent-operability-proof-move-only"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/operability_proof_is_move_only.rs"
+
+[[bin]]
+name = "product-intent-operability-proof-private-fields"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/operability_proof_fields_are_private.rs"
+
+[[bin]]
+name = "product-intent-occupancy-reservation-private"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/occupancy_reservation_is_not_product_surface.rs"
+
+[[bin]]
+name = "product-intent-confirmation-challenge-sealed"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/confirmation_challenge_authority_is_sealed.rs"
+
+[[bin]]
+name = "product-intent-confirmation-challenge-private-fields"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/confirmation_challenge_fields_are_private.rs"
+
+[[bin]]
+name = "product-intent-confirmation-route-distinct"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/confirmation_and_product_routes_cannot_cross.rs"

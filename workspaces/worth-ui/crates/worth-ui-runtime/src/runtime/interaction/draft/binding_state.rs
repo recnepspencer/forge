@@ -1,4 +1,4 @@
-use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 
 use super::model::{
     next, UiActiveLocalRecipient, UiDraftRuntimeState, UiDraftSession, UiRecipientContext,
@@ -24,7 +24,7 @@ impl UiDraftRuntimeState {
     pub(crate) fn bind(
         &mut self,
         activation: UiActivateInteraction,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         contract: UiLocalInputRecipientContract,
         mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
@@ -52,7 +52,7 @@ impl UiDraftRuntimeState {
     fn prepare_binding(
         &mut self,
         target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         contract: UiLocalInputRecipientContract,
     ) -> Result<
         (UiActiveLocalRecipient, UiLocalInputRecipientBindingReceipt),
@@ -99,7 +99,7 @@ impl UiDraftRuntimeState {
     pub(super) fn create_session(
         &mut self,
         target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         field: UiDraftFieldIdentity,
         budget: super::UiDraftByteBudget,
     ) -> Result<UiDraftSessionIdentity, UiLocalInputRecipientBindingStopReason> {
@@ -133,7 +133,7 @@ impl UiDraftRuntimeState {
     fn find_session(
         &self,
         target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         field: UiDraftFieldIdentity,
     ) -> Option<UiDraftSessionIdentity> {
         self.sessions.iter().find_map(|(identity, session)| {

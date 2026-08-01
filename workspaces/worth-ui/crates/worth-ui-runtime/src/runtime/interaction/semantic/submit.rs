@@ -1,15 +1,16 @@
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 use worth_ui_host_contract::{
     UiHostKey, UiHostKeyboardModifiers, UiHostObservationPresentationBasis,
-    UiHostObservationSequence,
+    UiHostObservationSequence, UiHostObservationTimeBasis,
 };
 
 #[derive(Debug)]
 pub struct UiSubmitInteraction {
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     presentation: UiHostObservationPresentationBasis,
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation: WorthUiActiveApplicationGenerationIdentity,
     sequence: UiHostObservationSequence,
+    time_basis: UiHostObservationTimeBasis,
     key: UiHostKey,
     modifiers: UiHostKeyboardModifiers,
 }
@@ -21,6 +22,7 @@ impl UiSubmitInteraction {
             presentation: input.presentation,
             generation: input.generation,
             sequence: input.sequence,
+            time_basis: input.time_basis,
             key: input.key,
             modifiers: input.modifiers,
         }
@@ -34,15 +36,16 @@ impl UiSubmitInteraction {
         self.presentation
     }
 
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &WorthUiActiveApplicationGenerationIdentity {
         &self.generation
     }
 
     pub const fn sequence(&self) -> UiHostObservationSequence {
         self.sequence
+    }
+
+    pub const fn time_basis(&self) -> UiHostObservationTimeBasis {
+        self.time_basis
     }
 
     pub const fn key(&self) -> UiHostKey {

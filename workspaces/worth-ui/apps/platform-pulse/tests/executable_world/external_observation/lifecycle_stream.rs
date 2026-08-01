@@ -296,6 +296,15 @@ impl LifecycleTraceEntry {
             PlatformPulseLifecycleObservation::ProcessStarted(_) => "process_started",
             PlatformPulseLifecycleObservation::FirstFramePublished(_) => "first_frame_published",
             PlatformPulseLifecycleObservation::NativeInputReached(_) => "native_input_reached",
+            PlatformPulseLifecycleObservation::IntentInputAdmitted(_) => "intent_input_admitted",
+            PlatformPulseLifecycleObservation::IntentExecutorStarted(_) => {
+                "intent_executor_started"
+            }
+            PlatformPulseLifecycleObservation::IntentPosturePublished(_) => {
+                "intent_posture_published"
+            }
+            PlatformPulseLifecycleObservation::IntentCausalTrace(_) => "intent_causal_trace",
+            PlatformPulseLifecycleObservation::QueryAction(_) => "query_action",
             PlatformPulseLifecycleObservation::QueryProjectionIssued(_) => {
                 "query_projection_issued"
             }

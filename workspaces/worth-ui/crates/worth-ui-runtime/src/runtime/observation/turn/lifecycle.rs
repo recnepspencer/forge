@@ -17,6 +17,10 @@ pub struct UiObservationTurn<'state> {
     poisoned: bool,
 }
 
+pub(crate) struct UiPreparedObservationProgressCommit {
+    progress: Box<[super::super::progress::UiObservationProgress]>,
+}
+
 impl<'state> UiObservationTurn<'state> {
     pub(super) fn new(
         runtime: &'state mut crate::runtime::WorthUiRuntime,
@@ -41,6 +45,10 @@ impl<'state> UiObservationTurn<'state> {
         self.identity
     }
 
+    pub fn resource_snapshot(&self) -> super::super::UiObservationResourceSnapshot {
+        self.runtime.observation.resource_snapshot()
+    }
+
     pub(in crate::runtime::observation) fn admit(
         &mut self,
         observation: UiAdmittedObservation,
@@ -59,14 +67,25 @@ impl<'state> UiObservationTurn<'state> {
         &mut self,
         observations: Vec<UiAdmittedObservation>,
     ) -> Result<Box<[UiObservationAdmissionReceipt]>, UiObservationAdmissionDenial> {
+        self.admit_batch_recoverable(observations)
+            .map_err(UiObservationBatchAdmissionStop::into_denial)
+    }
+
+    pub(in crate::runtime::observation) fn admit_batch_recoverable(
+        &mut self,
+        observations: Vec<UiAdmittedObservation>,
+    ) -> Result<Box<[UiObservationAdmissionReceipt]>, UiObservationBatchAdmissionStop> {
         if self.poisoned {
-            return Err(UiObservationAdmissionDenial::PoisonedTurn);
+            return Err(UiObservationBatchAdmissionStop::new(
+                UiObservationAdmissionDenial::PoisonedTurn,
+                observations,
+            ));
         }
-        let result = self.admit_batch_unpoisoned(observations);
-        if result.is_err() {
+        if let Err(denial) = self.validate_batch(&observations) {
             self.poisoned = true;
+            return Err(UiObservationBatchAdmissionStop::new(denial, observations));
         }
-        result
+        Ok(self.commit_batch(observations))
     }
 
     pub(in crate::runtime::observation) fn reject(
@@ -112,13 +131,13 @@ impl<'state> UiObservationTurn<'state> {
         Ok(receipt)
     }
 
-    fn admit_batch_unpoisoned(
-        &mut self,
-        observations: Vec<UiAdmittedObservation>,
-    ) -> Result<Box<[UiObservationAdmissionReceipt]>, UiObservationAdmissionDenial> {
+    fn validate_batch(
+        &self,
+        observations: &[UiAdmittedObservation],
+    ) -> Result<(), UiObservationAdmissionDenial> {
         let mut families = std::collections::BTreeSet::new();
         let mut retained_bytes = 0usize;
-        for observation in &observations {
+        for observation in observations {
             if observation.session() != self.session {
                 return Err(UiObservationAdmissionDenial::ForeignSession);
             }
@@ -163,6 +182,13 @@ impl<'state> UiObservationTurn<'state> {
         {
             return Err(UiObservationAdmissionDenial::ByteCapacityExceeded);
         }
+        Ok(())
+    }
+
+    fn commit_batch(
+        &mut self,
+        observations: Vec<UiAdmittedObservation>,
+    ) -> Box<[UiObservationAdmissionReceipt]> {
         let receipts = observations
             .iter()
             .map(|observation| {
@@ -177,7 +203,7 @@ impl<'state> UiObservationTurn<'state> {
         for observation in observations {
             self.push_admitted(observation);
         }
-        Ok(receipts)
+        receipts
     }
 
     pub(in crate::runtime::observation) fn can_admit(
@@ -210,6 +236,9 @@ impl<'state> UiObservationTurn<'state> {
     ) {
         self.retained_bytes += observation.retained_bytes();
         self.observations.push(observation);
+        self.runtime
+            .observation
+            .update_active_resources(self.observations.len(), self.retained_bytes);
     }
 
     pub fn seal(mut self) -> Result<UiAdmittedObservationSet, UiObservationAdmissionDenial> {
@@ -230,6 +259,10 @@ impl<'state> UiObservationTurn<'state> {
                 .iter()
                 .filter_map(UiAdmittedObservation::progress),
         );
+        let lease = self
+            .runtime
+            .observation
+            .retain_set(self.observations.len(), self.retained_bytes);
         let observations = std::mem::take(&mut self.observations).into_boxed_slice();
         Ok(UiAdmittedObservationSet::seal(
             self.identity,
@@ -237,7 +270,76 @@ impl<'state> UiObservationTurn<'state> {
             self.source_basis,
             observations,
             self.retained_bytes,
+            lease,
         ))
+    }
+
+    pub(crate) fn prepare_seal(
+        mut self,
+    ) -> Result<
+        (
+            UiAdmittedObservationSet,
+            UiPreparedObservationProgressCommit,
+        ),
+        UiObservationAdmissionDenial,
+    > {
+        if self.poisoned {
+            return Err(UiObservationAdmissionDenial::PoisonedTurn);
+        }
+        if self.observations.is_empty() {
+            return Err(UiObservationAdmissionDenial::EmptyTurn);
+        }
+        self.observations.sort_by_key(|observation| {
+            (
+                observation.family().definition().framework_rank(),
+                observation.owner_order(),
+            )
+        });
+        let progress = self
+            .observations
+            .iter()
+            .filter_map(UiAdmittedObservation::progress)
+            .cloned()
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        let lease = self
+            .runtime
+            .observation
+            .retain_set(self.observations.len(), self.retained_bytes);
+        let observations = std::mem::take(&mut self.observations).into_boxed_slice();
+        let set = UiAdmittedObservationSet::seal(
+            self.identity,
+            self.session,
+            self.source_basis,
+            observations,
+            self.retained_bytes,
+            lease,
+        );
+        Ok((set, UiPreparedObservationProgressCommit { progress }))
+    }
+}
+
+pub(in crate::runtime::observation) struct UiObservationBatchAdmissionStop {
+    denial: UiObservationAdmissionDenial,
+    observations: Vec<UiAdmittedObservation>,
+}
+
+impl UiObservationBatchAdmissionStop {
+    fn new(denial: UiObservationAdmissionDenial, observations: Vec<UiAdmittedObservation>) -> Self {
+        Self {
+            denial,
+            observations,
+        }
+    }
+
+    fn into_denial(self) -> UiObservationAdmissionDenial {
+        self.denial
+    }
+
+    pub(in crate::runtime::observation) fn into_parts(
+        self,
+    ) -> (UiObservationAdmissionDenial, Vec<UiAdmittedObservation>) {
+        (self.denial, self.observations)
     }
 }
 
@@ -262,5 +364,16 @@ impl crate::runtime::WorthUiRuntime {
             identity,
             profile,
         ))
+    }
+
+    pub(in crate::runtime) fn commit_prepared_observation_progress(
+        &mut self,
+        commit: UiPreparedObservationProgressCommit,
+    ) {
+        debug_assert!(commit.progress.iter().all(|progress| matches!(
+            self.observation.order_posture(progress),
+            UiObservationOrderPosture::Fresh
+        )));
+        self.observation.finish_committed(commit.progress.iter());
     }
 }

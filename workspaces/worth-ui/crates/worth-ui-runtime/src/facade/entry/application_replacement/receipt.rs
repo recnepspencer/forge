@@ -19,6 +19,16 @@ impl WorthUiCandidateInspectionReceipt {
 }
 
 impl WorthUiApplicationCutoverReceipt {
+    pub const fn observation_resources(
+        &self,
+    ) -> crate::runtime::observation::UiObservationResourceRetirementReport {
+        self.observation_resources
+    }
+
+    pub const fn intent_evidence(&self) -> worth_ui_inspection::UiIntentEvidenceRetirementReport {
+        self.intent_evidence
+    }
+
     pub fn plan_decision(&self) -> crate::runtime::WorthUiExecutablePlanDecision {
         self.committed_parts().1
     }

@@ -45,7 +45,7 @@ error[E0616]: field `commands` of struct `CapabilitySnapshotIndex` is private
 error[E0599]: no method named `with_label` found for struct `CommandProjectionDescriptor` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/command_projection/construction/projection_command_meaning_methods_are_not_available.rs
 
-error: cannot construct `WorthUiApplicationBuilder<_>` with struct literal syntax due to private fields
+error: cannot construct `WorthUiApplicationBuilder<_, _>` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/sealed_lifecycle/direct_builder_construction_fails.rs
  help: you might have meant to use the `new` associated function
 
@@ -58,14 +58,17 @@ error[E0616]: field `total_width` of struct `RegisteredCapabilitySet` is private
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/family_interchange/same_text_different_id_families_are_not_interchangeable.rs
+ note: expected `ComponentId`, found `CommandId`
  note: function defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/family_interchange/same_text_different_id_families_are_not_interchangeable.rs
+ note: expected `CommandId`, found `ComponentId`
  note: function defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/identity/construction/raw_text_cannot_replace_validated_id.rs
+ note: expected `CommandId`, found `&str`
  note: function defined here
 
 error[E0308]: mismatched types
@@ -104,6 +107,7 @@ and $N others
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/diagnostics/construction/raw_strings_cannot_replace_diagnostic_codes.rs
+ note: expected `CapabilityDiagnosticCode`, found `&str`
  note: function defined here
 
 error[E0599]: no method named `with_readiness` found for struct `CommandDescriptor` in the current scope
@@ -111,14 +115,17 @@ error[E0599]: no method named `with_readiness` found for struct `CommandDescript
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/icon/construction/raw_asset_path_cannot_replace_icon_dependency.rs
+ note: expected `IconId`, found `&str`
  note: method defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/mosaic_sizing/construction/raw_number_cannot_replace_named_mosaic_sizing_measurement.rs
+ note: expected `NamedMeasurementDefinition`, found integer
  note: method defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/mosaic_state/construction/raw_text_cannot_replace_mosaic_state_owner_scope_id.rs
+ note: expected `MosaicStateOwnerScopeId`, found `&str`
  note: associated function defined here
 
 error[E0599]: no method named `with_ambient_host_check` found for struct `NativeCapabilityDescriptor` in the current scope
@@ -148,6 +155,7 @@ error[E0599]: no function or associated item named `opaque_callback` found for s
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/runtime_outcome_projection/construction/local_status_enum_cannot_replace_runtime_outcome_reference.rs
+ note: expected `RuntimeOutcomeSourceReference`, found `LocalStatus`
  note: associated function defined here
 
 error[E0308]: mismatched types
@@ -158,19 +166,21 @@ error[E0308]: mismatched types
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/task_presentation/construction/task_runtime_handle_cannot_replace_task_presentation_descriptor.rs
+ note: expected `TaskPresentationDescriptor`, found `TaskRuntimeHandle`
  note: method defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/theme_token/construction/raw_color_cannot_replace_theme_token_dependency.rs
+ note: expected `ThemeTokenId`, found `&str`
  note: method defined here
 
 error[E0277]: the trait bound `WorthUiQueryViewRegistration: From<WorthUiQueryViewDefinition>` is not satisfied
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/query_registration_requires_installed_view.rs
  help: the following other types implement trait `From<T>`
  note: required for `WorthUiQueryViewDefinition` to implement `Into<WorthUiQueryViewRegistration>`
- note: required by a bound in `entry::app_builder::query_registration::<impl WorthUiApplicationBuilder<ChangeProfileState>>::register_query_view`
+ note: required by a bound in `entry::app_builder::query_registration::<impl WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>>::register_query_view`
 
-error[E0599]: no method named `register_view_binding` found for struct `WorthUiApplicationBuilder<ChangeProfileState>` in the current scope
+error[E0599]: no method named `register_view_binding` found for struct `WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>` in the current scope
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/construction/direct_view_binding_registration_is_not_public.rs
  help: there is a method `register_setting` with a similar name
 

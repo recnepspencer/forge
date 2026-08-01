@@ -8,7 +8,8 @@ pub use worth_ui_runtime::facade::observation::{
     UiObservationAdmissionReceipt, UiObservationCoalescingPolicy, UiObservationDuplicatePolicy,
     UiObservationFamily, UiObservationFamilyDefinition, UiObservationLossPolicy,
     UiObservationOwner, UiObservationProfile, UiObservationProfileConstructionDenial,
-    UiObservationProfileInput, UiObservationResetPolicy, UiObservationSetSummary,
-    UiObservationTurn, UiObservationTurnDenial, UiObservationTurnIdentity,
-    UiObservedNoChangeReceipt, UiQueryObservationAdmissionStop,
+    UiObservationProfileInput, UiObservationResetPolicy, UiObservationResourceRetirementCause,
+    UiObservationResourceRetirementReport, UiObservationSetSummary, UiObservationTurn,
+    UiObservationTurnDenial, UiObservationTurnIdentity, UiObservedNoChangeReceipt,
+    UiQueryObservationAdmissionStop,
 };

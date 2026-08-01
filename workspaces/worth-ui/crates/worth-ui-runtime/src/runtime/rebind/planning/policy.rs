@@ -134,3 +134,14 @@ impl UiRebindExecutionPolicy {
         deadline_admits && cancellation_admits
     }
 }
+
+pub(super) fn require_policy_session(
+    session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    policy: UiRebindExecutionPolicy,
+) -> Result<(), super::UiRebindPlanningDenial> {
+    if policy.admits_session(session) {
+        Ok(())
+    } else {
+        Err(super::UiRebindPlanningDenial::ForeignExecutionPolicySession)
+    }
+}

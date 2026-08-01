@@ -39,6 +39,64 @@ class WorthUiCompileContractRunnerTests(TestCase):
         self.assertIn("help: use the public constructor", rendered)
         self.assertNotIn("private fields `one` and `two`", rendered)
 
+    def test_canonical_diagnostics_retain_primary_expected_found_evidence(self) -> None:
+        source = Path(
+            "workspaces/worth-ui/crates/worth-ui/tests/ui/example/fail.rs"
+        ).resolve()
+        case = Case("fail", "example", source, source.with_suffix(".stderr"), "product")
+        messages = [
+            {
+                "level": "error",
+                "code": {"code": "E0308"},
+                "message": "mismatched types",
+                "spans": [
+                    {
+                        "file_name": str(source),
+                        "is_primary": True,
+                        "label": "expected `SemanticIntent`, found `HostObservation`",
+                    }
+                ],
+                "children": [],
+            }
+        ]
+
+        rendered = canonical_diagnostics(messages, case)
+
+        self.assertIn(
+            "note: expected `SemanticIntent`, found `HostObservation`", rendered
+        )
+
+    def test_canonical_diagnostics_do_not_duplicate_expected_found_children(self) -> None:
+        source = Path(
+            "workspaces/worth-ui/crates/worth-ui/tests/ui/example/fail.rs"
+        ).resolve()
+        case = Case("fail", "example", source, source.with_suffix(".stderr"), "product")
+        messages = [
+            {
+                "level": "error",
+                "code": {"code": "E0308"},
+                "message": "mismatched types",
+                "spans": [
+                    {
+                        "file_name": str(source),
+                        "is_primary": True,
+                        "label": "expected `Admission`, found `Trace`",
+                    }
+                ],
+                "children": [
+                    {
+                        "level": "note",
+                        "message": "expected struct `Admission`\n   found struct `Trace`",
+                    },
+                ],
+            }
+        ]
+
+        rendered = canonical_diagnostics(messages, case)
+
+        self.assertEqual(rendered.count("expected"), 1)
+        self.assertEqual(rendered.count("found"), 1)
+
     def test_included_source_without_a_primary_error_is_observable(self) -> None:
         with TemporaryDirectory() as temporary:
             root = Path(temporary)

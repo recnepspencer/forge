@@ -20,6 +20,7 @@ pub(crate) fn evaluate_product_projection_support(
         WorthQueryRuntimeFacadeFamily::Live,
         WorthQueryRuntimeFacadeFamily::AsyncResource,
         WorthQueryRuntimeFacadeFamily::MixedCauseDelivery,
+        WorthQueryRuntimeFacadeFamily::Intent,
     ]
     .into_iter()
     .try_fold(

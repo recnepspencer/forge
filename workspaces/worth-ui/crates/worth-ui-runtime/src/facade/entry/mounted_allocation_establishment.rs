@@ -149,15 +149,10 @@ impl WorthUiActiveApplicationSession {
                     WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
                 )
             })?;
-        let predecessor_generation = self.application.generation_identity().clone();
         let committed = self
             .application
             .activate_initial_mounted_allocation_catalog(graph_successor, admitted, boundary)
             .map_err(map_initial_activation_denial)?;
-        self.intent_application_facts.commit_generation_successor(
-            &predecessor_generation,
-            self.application.generation_identity().clone(),
-        );
         Ok(WorthUiMountedAllocationEstablishmentReceipt { committed })
     }
 

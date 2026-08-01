@@ -8,11 +8,12 @@ Canonical reading order:
 
 1. [Architecture](./docs/architecture.md)
 2. [Authored composition](./docs/authored-composition.md)
-3. [Application lifecycle](./docs/application-lifecycle.md)
-4. [Application inspection](./docs/inspection.md)
-5. [Runtime subsystem map](./docs/runtime-subsystems.md)
-6. [Query-backed UI views](./docs/query-binding.md)
-7. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
+3. [Interaction and intents](./docs/interaction-and-intents.md)
+4. [Application lifecycle](./docs/application-lifecycle.md)
+5. [Application inspection](./docs/inspection.md)
+6. [Runtime subsystem map](./docs/runtime-subsystems.md)
+7. [Query-backed UI views](./docs/query-binding.md)
+8. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
 
 The longer contributor orientation remains in
 [worth-ui-readme.md](./docs/worth-ui-readme.md).
@@ -72,13 +73,30 @@ Availability, currency/activity, stop posture, compatibility, native value,
 and collection continuation are separate typed axes. Reporting identities and
 inspection projections explain this progression but cannot enter it.
 
+For human actions, keep this progression equally explicit:
+
+```text
+loss-aware native observations
+-> presentation-bound semantic interaction
+-> typed route, payload, and operability proof
+-> move-only UI admission
+-> exact typed provider execution
+-> separate product or Query admission
+-> declared consequence through ordinary rebind and mounted publication
+```
+
+Start with [Interaction and intents](./docs/interaction-and-intents.md). Native
+input is not intent authority, UI admission is not domain admission, and a
+diagnostic or visible posture cannot be promoted into either.
+
 ## Authority Boundaries
 
 - `worth-ui-dsl` owns authored syntax, source structure, language diagnostics,
   normalization, and the sealed semantic package.
 - `facade::source` owns file transport, watcher settlement, and runtime ingress.
 - `worth-ui-runtime` owns active application, graph, planning, execution,
-  mounting, publication, host exchange, and operational inspection state.
+  interaction and intent admission, mounting, publication, host exchange, and
+  operational inspection state.
 - `facade::query_binding` and `worth-ui-query-binding` are the only
   Query-to-UI product route.
 - `worth-ui-host-contract` and host adapters own native mechanics, not UI

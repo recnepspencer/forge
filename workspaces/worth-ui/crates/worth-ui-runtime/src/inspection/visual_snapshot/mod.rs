@@ -1,6 +1,7 @@
 mod capture_handle;
 mod capture_progression;
 mod comparison;
+mod coordinate_scope;
 mod grant;
 mod identity;
 mod identity_trace;
@@ -11,6 +12,7 @@ mod receipt;
 mod region_adjudication;
 mod region_occlusion;
 mod registry;
+mod retained_source;
 mod spatial;
 pub(crate) mod structural_reservation;
 mod target;
@@ -33,6 +35,10 @@ pub(crate) use comparison::{
 pub use comparison::{
     UiUnbudgetedVisualSnapshotComparisonRequest, UiVisualSnapshotComparisonRequest,
 };
+use coordinate_scope::UiVisualCoordinateScopeInput;
+pub use coordinate_scope::{
+    UiSnapshotClientPixel, UiSnapshotClientRegion, UiVisualCoordinateScope,
+};
 pub use grant::{
     UiVisualGeometryGrant, UiVisualGrantLifetime, UiVisualGrantScope, UiVisualGrantSurfaceScope,
     UiVisualOverlayGrant, UiVisualPixelCaptureGrant, UiVisualSnapshotComparisonGrant,
@@ -53,10 +59,9 @@ pub use overlay::{
 pub use overlay_registry::UiVisualOverlayShutdownReport;
 pub(crate) use overlay_registry::{UiPendingVisualOverlayRegistration, UiVisualOverlayRegistry};
 pub(crate) use point_adjudication::{adjudicate_point, UiPointAdjudicationInput};
-pub(crate) use receipt::{UiRetainedVisualSnapshotSource, UiVisualSnapshotSealInput};
+pub(crate) use receipt::UiVisualSnapshotSealInput;
 pub use receipt::{
-    UiSnapshotClientPixel, UiSnapshotClientRegion, UiVisualCoordinateScope,
-    UiVisualSnapshotDisposalReceipt, UiVisualSnapshotReceipt,
+    UiVisualSnapshotDisposalReceipt, UiVisualSnapshotReceipt, UiVisualSnapshotRelationDenial,
 };
 pub(crate) use region_adjudication::{adjudicate_region, UiRegionAdjudicationInput};
 pub use registry::UiVisualCaptureShutdownReport;
@@ -64,6 +69,7 @@ pub(crate) use registry::{
     UiVisualCaptureRegistrationDenial, UiVisualCaptureRegistrationLease, UiVisualCaptureRegistry,
     UiVisualResourceReservation, UiVisualRetainedResourceUsage, UiVisualSnapshotResourceLease,
 };
+pub(crate) use retained_source::UiRetainedVisualSnapshotSource;
 pub(crate) use spatial::{
     validate_and_index, UiHitTestRegionIndex, UiSpatialIndexBuildCost, UiSpatialValidationDenial,
     UiVisibleOpacity, UiVisibleRegionIndex, UiVisibleRegionRecord,

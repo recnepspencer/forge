@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use crate::adjudication::{
-    adjudicate_native_input_reachability, NativeInputFamilyObservation,
-    NativeInputReachabilityObservationSet,
+    adjudicate_native_input_reachability, native_input_background_point,
+    NativeInputFamilyObservation, NativeInputReachabilityObservationSet,
 };
 use crate::external_observation::NativeInputProbeKind;
 use crate::failure_teardown::{
@@ -27,10 +27,14 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
             mut world,
             stage: initial,
         } = self.state;
-        let result = observe_native_input(&mut world, deadline).and_then(|observations| {
-            adjudicate_native_input_reachability(&initial.evidence, observations)
-                .map_err(PulseExecutableWorldFailure::NativeInputReachability)
-        });
+        let point = native_input_background_point(&initial.evidence)
+            .map_err(PulseExecutableWorldFailure::NativeInputReachability);
+        let result = point
+            .and_then(|point| observe_native_input(&mut world, point, deadline))
+            .and_then(|observations| {
+                adjudicate_native_input_reachability(&initial.evidence, observations)
+                    .map_err(PulseExecutableWorldFailure::NativeInputReachability)
+            });
         match result {
             Ok(evidence) => Ok(PulseExecutableWorld {
                 state: Published {
@@ -51,11 +55,12 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
 
 fn observe_native_input(
     world: &mut NativeBoundExecutableWorld,
+    pointer_point: crate::external_observation::NativeClientPixelPoint,
     deadline: Instant,
 ) -> Result<NativeInputReachabilityObservationSet, PulseExecutableWorldFailure> {
     let pointer = world
         .platform
-        .deliver_input_reachability_probe(&world.native_client, NativeInputProbeKind::Pointer)
+        .deliver_pointer_activation(&world.native_client, pointer_point)
         .map_err(PulseExecutableWorldFailure::Native)?;
     let keyboard = world
         .platform

@@ -55,8 +55,12 @@ fn phase_1_closure_ledger_remains_exact_as_the_ia_portfolio_advances() {
     let (contract, ledger) = inputs();
     validate(&contract, &ledger).expect("Phase 1 closure ledger should be exact");
     let milestone = repository_document("_docs/worth-ui/milestone-3.14-proof-ledger.csv");
-    milestone_314_ledger::validate_at_phase(&contract, &milestone, 2)
-        .expect("current IA closures must remain legal under the frozen portfolio");
+    milestone_314_ledger::validate_at_phase(
+        &contract,
+        &milestone,
+        milestone_314_ledger::CURRENT_IMPLEMENTATION_PHASE,
+    )
+    .expect("current IA closures must remain legal under the frozen portfolio");
 }
 
 #[test]

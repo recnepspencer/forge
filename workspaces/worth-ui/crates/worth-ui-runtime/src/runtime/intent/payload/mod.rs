@@ -14,7 +14,9 @@ pub use input_basis::{
     UiIntentApplicationFactRevision, UiIntentDraftInputRevision, UiIntentInputBasisReceipt,
     UiIntentInputOwnerRevision, UiIntentPayloadProjectionCost, UiIntentQueryInputRevision,
 };
-pub(crate) use input_basis::{UiIntentInputBasis, UiIntentInputBasisView};
+pub(crate) use input_basis::{
+    UiIntentInputBasis, UiIntentInputBasisMaterial, UiIntentInputBasisView,
+};
 pub use prepared::UiPreparedIntentPayload;
 pub(crate) use projection::prepare_intent_payload;
 pub use stop::UiIntentPayloadStop;

@@ -38,14 +38,9 @@ impl<'session> WorthUiPreparedEvidenceOnlyApplicationRebind<'session> {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     ) {
-        let generations = self
-            .session
-            .application
-            .commit_evidence_only_rebind(self.successor_authority);
         self.session
-            .intent_application_facts
-            .commit_generation_successor(&generations.0, generations.1.clone());
-        generations
+            .application
+            .commit_evidence_only_rebind(self.successor_authority)
     }
 
     pub(crate) fn generation_identity(

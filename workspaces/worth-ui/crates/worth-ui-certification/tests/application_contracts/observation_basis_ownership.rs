@@ -93,6 +93,25 @@ fn cross_frame_coalescing_releases_the_replaced_frames_last_pin() {
     ));
 }
 
+#[test]
+fn default_observation_retention_does_not_deadlock_the_ninth_frame_transition() {
+    let (mut session, host, binding, instance) = observation_world(
+        "default-observation-basis-frame-capacity",
+        UiMountedFrameRetentionBudget::default(),
+        UiHostObservationCapacity::default(),
+    );
+
+    for sequence in 1..=9 {
+        let presented = publish(&mut session, &host, instance);
+        assert_validated(
+            &mut session,
+            binding,
+            ObservationEmission::new(presented, keyboard(sequence), sequence),
+        );
+    }
+    publish(&mut session, &host, instance);
+}
+
 fn observation_world(
     label: &str,
     retention_budget: UiMountedFrameRetentionBudget,

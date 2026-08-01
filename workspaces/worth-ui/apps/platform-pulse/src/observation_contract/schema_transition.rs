@@ -7,7 +7,6 @@ use worth_ui::facade::rebind::{
 use super::PlatformPulseLifecycleObservationProjectionDenial;
 
 const COMPONENT: &str = "component:platform.pulse.component.projected_status";
-const PROJECTION: &str = "platform.pulse.status";
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlatformPulseProjectionSchemaTransitionObservation {
@@ -35,8 +34,8 @@ impl PlatformPulseProjectionSchemaTransitionObservation {
         transition: &UiProjectionSchemaTransition,
     ) -> Result<Self, PlatformPulseLifecycleObservationProjectionDenial> {
         if transition.component_identity() != COMPONENT
-            || transition.declaration_identity() != PROJECTION
-            || transition.view_identity().as_str() != PROJECTION
+            || transition.declaration_identity() != crate::PLATFORM_PULSE_STATUS_QUERY_VIEW
+            || transition.view_identity().as_str() != crate::PLATFORM_PULSE_STATUS_QUERY_VIEW
         {
             return Err(
                 PlatformPulseLifecycleObservationProjectionDenial::

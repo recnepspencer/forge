@@ -7,6 +7,7 @@ mod set;
 pub use admitted::UiAdmittedObservation;
 pub use identity::UiObservationTurnIdentity;
 pub use lifecycle::UiObservationTurn;
+pub(crate) use lifecycle::UiPreparedObservationProgressCommit;
 pub use outcome::{
     UiObservationAdmissionDenial, UiObservationAdmissionReceipt, UiObservationSetSummary,
     UiObservationTurnDenial, UiQueryObservationAdmissionStop,

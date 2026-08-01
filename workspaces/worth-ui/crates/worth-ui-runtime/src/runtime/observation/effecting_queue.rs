@@ -16,7 +16,7 @@ pub struct UiEffectingObservationQueueCapacityStop {
     configured: usize,
     observed: usize,
     attempted: usize,
-    set: super::UiAdmittedObservationSet,
+    set: Box<super::UiAdmittedObservationSet>,
 }
 
 impl UiEffectingObservationQueue {
@@ -44,7 +44,7 @@ impl UiEffectingObservationQueue {
                 configured: self.capacity,
                 observed: self.admitted_observations,
                 attempted,
-                set,
+                set: Box::new(set),
             });
         }
         self.admitted_observations = attempted;
@@ -93,6 +93,6 @@ impl UiEffectingObservationQueueCapacityStop {
     }
 
     pub fn into_observation_set(self) -> super::UiAdmittedObservationSet {
-        self.set
+        *self.set
     }
 }

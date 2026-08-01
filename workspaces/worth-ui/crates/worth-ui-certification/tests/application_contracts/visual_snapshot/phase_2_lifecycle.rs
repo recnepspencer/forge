@@ -93,6 +93,38 @@ fn snapshot_and_overlay_leases_use_independent_retention_classes() {
 }
 
 #[test]
+fn retained_snapshot_reports_its_live_relation_without_a_hit_test_target() {
+    let host = pixel_host();
+    let (mut session, _) = mounted_session(host.clone(), "visual-live-relation", 1);
+    publish_one_frame(&mut session, &host);
+    let grant = session.visual_inspection_authority().issue_pixel_grant();
+    host.push_visual_capture(visual_transform(), Some(pixel_artifact()));
+    let pending = session
+        .begin_visual_pixel_snapshot(
+            &grant,
+            UiVisualSnapshotRequest::for_local_development_unredacted_frame(current_target(
+                &session,
+            ))
+            .artifacts(UiPixelsRequired::policy()),
+        )
+        .expect("current capture is admitted");
+    let receipt = match session.poll_visual_snapshot(pending, 0) {
+        UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Captured(receipt)) => receipt,
+        _ => panic!("scripted current capture completes"),
+    };
+    assert_eq!(
+        receipt.relation(),
+        Ok(worth_ui::facade::inspection::UiVisualSnapshotRelation::Current)
+    );
+
+    publish_one_frame(&mut session, &host);
+    assert_eq!(
+        receipt.relation(),
+        Ok(worth_ui::facade::inspection::UiVisualSnapshotRelation::RetainedPredecessor)
+    );
+}
+
+#[test]
 fn copied_predecessor_completes_with_retained_relation_after_successor_publication() {
     let host = pixel_host();
     let (mut session, _) = mounted_session(host.clone(), "visual-copy-before-successor", 1);

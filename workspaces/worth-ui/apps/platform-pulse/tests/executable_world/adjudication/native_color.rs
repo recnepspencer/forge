@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::external_observation::NativeClientPixelCapture;
+use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
 use worth_ui_platform_pulse::visual_identity_pulse::{
     PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT,
     PLATFORM_PULSE_TARGET_LOGICAL_POINT, PLATFORM_PULSE_TARGET_RGB,
@@ -38,6 +38,7 @@ pub(crate) enum NativeColorFailure {
         matching_target_pixels: usize,
         target_pixel_bounds: Option<([u32; 2], [u32; 2])>,
     },
+    BackgroundPointMissing(ExpectedNativeColor),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -91,6 +92,39 @@ pub(crate) fn adjudicate_native_color(
         matching_samples,
         sampled_pixels,
     })
+}
+
+pub(crate) fn adjudicate_native_background_point(
+    pixels: &NativeClientPixelCapture,
+    expected: ExpectedNativeColor,
+) -> Result<NativeClientPixelPoint, NativeColorFailure> {
+    let expected_rgb = expected.rgb();
+    let mut interior = Vec::new();
+    for y in 1..pixels.height().saturating_sub(1) {
+        for x in 1..pixels.width().saturating_sub(1) {
+            let matches = ((y - 1)..=(y + 1)).all(|sample_y| {
+                ((x - 1)..=(x + 1)).all(|sample_x| {
+                    pixel_at(pixels, [sample_x, sample_y]).is_some_and(|rgba| {
+                        rgba[..3]
+                            .iter()
+                            .zip(expected_rgb)
+                            .all(|(&observed, expected)| {
+                                observed.abs_diff(expected) <= CHANNEL_TOLERANCE
+                            })
+                    })
+                })
+            });
+            if matches {
+                interior.push((x, y));
+            }
+        }
+    }
+    let (x, y) = interior
+        .get(interior.len() / 2)
+        .copied()
+        .ok_or(NativeColorFailure::BackgroundPointMissing(expected))?;
+    NativeClientPixelPoint::interior(pixels, x, y, 1)
+        .ok_or(NativeColorFailure::BackgroundPointMissing(expected))
 }
 
 struct TargetPixelSummary {
@@ -198,6 +232,15 @@ impl NativeColorVerdict {
     }
 }
 
+impl ExpectedNativeColor {
+    fn rgb(self) -> [u8; 3] {
+        match self {
+            Self::Blue => EXPECTED_BLUE,
+            Self::Green => EXPECTED_GREEN,
+        }
+    }
+}
+
 impl fmt::Display for NativeColorFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -238,6 +281,10 @@ impl fmt::Display for NativeColorFailure {
                     point[0], point[1], capture_extent[0], capture_extent[1]
                 )
             }
+            Self::BackgroundPointMissing(expected) => write!(
+                formatter,
+                "native client capture had no interior {expected:?} background point"
+            ),
         }
     }
 }

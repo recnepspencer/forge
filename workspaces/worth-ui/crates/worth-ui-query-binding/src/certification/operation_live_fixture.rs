@@ -135,6 +135,10 @@ impl WorthUiOperationLiveTestFixture {
         self.plan.clone()
     }
 
+    pub fn view(&self) -> WorthUiInstalledLiveQueryView {
+        self.view.clone()
+    }
+
     pub fn reference(&self) -> &WorthUiInstalledQueryBindingReference {
         &self.reference
     }

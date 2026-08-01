@@ -38,10 +38,34 @@ where
     source_backed_component_app_from_builder(component_builder().with_host(host))
 }
 
+pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
+    host: Host,
+    registration: worth_ui_query_binding::UiScalarProjectionRegistration,
+) -> WorthUiApp
+where
+    Host: crate::facade::host::WorthUiHostAdapter + 'static,
+{
+    let capability_builder = component_builder()
+        .register_scalar_projection(registration.clone())
+        .expect("scalar projection should register in the source capability world");
+    let application_builder = component_builder()
+        .register_scalar_projection(registration)
+        .expect("scalar projection should register in the launched application")
+        .with_host(host);
+    source_backed_component_app_from_builders(application_builder, capability_builder)
+}
+
 fn source_backed_component_app_from_builder(
     builder: crate::facade::entry::WorthUiApplicationBuilder,
 ) -> WorthUiApp {
-    let snapshot = component_builder()
+    source_backed_component_app_from_builders(builder, component_builder())
+}
+
+fn source_backed_component_app_from_builders(
+    builder: crate::facade::entry::WorthUiApplicationBuilder,
+    capability_builder: crate::facade::entry::WorthUiApplicationBuilder,
+) -> WorthUiApp {
+    let snapshot = capability_builder
         .freeze()
         .expect("component snapshot should prepare");
     builder

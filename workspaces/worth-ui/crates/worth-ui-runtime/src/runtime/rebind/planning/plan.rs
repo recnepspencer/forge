@@ -192,6 +192,17 @@ impl UiRebindPlan {
         std::mem::replace(&mut self.semantic_proof, UiRebindSemanticProof::Transferred)
     }
 
+    pub(crate) const fn has_non_source_semantic_proof(&self) -> bool {
+        matches!(self.semantic_proof, UiRebindSemanticProof::NonSource)
+    }
+
+    pub(crate) fn into_retained_facts(self) -> Box<[crate::fact_contract::UiProducedFact]> {
+        self.scope.map_or_else(
+            || Box::new([]),
+            crate::runtime::rebind::UiResolvedAffectedScope::into_facts,
+        )
+    }
+
     #[cfg(test)]
     pub(crate) const fn semantic_proof(&self) -> &UiRebindSemanticProof {
         &self.semantic_proof

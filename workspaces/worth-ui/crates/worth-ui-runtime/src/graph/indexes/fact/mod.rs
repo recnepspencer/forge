@@ -5,6 +5,7 @@ mod consumer_key;
 mod denial;
 mod entry;
 mod index;
+mod intent_posture;
 mod lookup;
 
 pub(crate) use authored_declaration_lookup::UiAuthoredDeclarationLookup;

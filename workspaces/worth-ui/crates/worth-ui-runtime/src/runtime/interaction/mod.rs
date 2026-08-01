@@ -25,12 +25,14 @@ pub use gesture::{
     UiPointerGestureContinuityKind, UiPointerGesturePressReceipt, UiPointerGestureStop,
     UiPointerGestureStopReason, UiTargetedPointerGesture, UI_ACTIVE_POINTER_GESTURE_LIMIT,
 };
+pub(crate) use semantic::{
+    selection_evidence_input, semantic_evidence_input, UiEditCommitInput, UiKeyboardSemanticInput,
+};
 pub use semantic::{
     UiActivateInteraction, UiActivateInteractionSource, UiEditCommitInteraction,
     UiKeyboardActivationEvidence, UiSelectionCommitInteraction, UiSelectionCommitStop,
     UiSelectionCommitStopReason, UiSemanticInteraction, UiSubmitInteraction,
 };
-pub(crate) use semantic::{UiEditCommitInput, UiKeyboardSemanticInput};
 pub use settlement::UiInteractionLifecycleSettlementReceipt;
 pub use snapshot::{UiInteractionLifecycleCounters, UiInteractionStateSnapshot};
 pub use source::UiIntentRouteSource;

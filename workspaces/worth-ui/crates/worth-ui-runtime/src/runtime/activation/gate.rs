@@ -307,7 +307,11 @@ impl WorthUiRuntime {
                 );
             }
             crate::runtime::WorthUiExecutablePlanDecision::ExactSemanticNoOp(summary) => {
-                if prepared.operational_meaning_unchanged() {
+                let application_contract_unchanged = application_publication.as_ref().is_none_or(
+                    super::WorthUiPreparedApplicationPublication::
+                        permits_execution_plan_semantic_no_op,
+                );
+                if prepared.operational_meaning_unchanged() && application_contract_unchanged {
                     return Ok(WorthUiPreparedQueryAwarePlanOutcome::SemanticNoOp(
                         Box::new(crate::runtime::WorthUiSemanticNoOpReceipt::new(
                             candidate_bundle.generation_identity().clone(),

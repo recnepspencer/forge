@@ -54,7 +54,7 @@ fn project_row(
         );
     }
     Ok(UiMountedCollectionTextRow::new(
-        Arc::from(row.row().identity_for_reporting()),
+        row.row().identity(),
         row.selected_values()
             .iter()
             .map(|value| Arc::from(value.as_str()))
@@ -68,7 +68,7 @@ fn project_changes(
 ) -> Result<Box<[UiMountedCollectionTextChange]>, super::super::UiRebindPlanningDenial> {
     let mut changed_rows = BTreeMap::new();
     for row in rows {
-        let identity = row.row().identity_for_reporting();
+        let identity = row.row().identity();
         if changed_rows.insert(identity, row).is_some() {
             return Err(invalid(
                 super::super::UiCollectionProjectionContentDenial::DuplicateChangedRow,
@@ -89,7 +89,10 @@ fn project_changes(
 
 fn project_change(
     change: &worth_ui_query_binding::UiCollectionProjectionChange,
-    rows: &mut BTreeMap<&str, &worth_ui_query_binding::UiCollectionProjectionTextRow>,
+    rows: &mut BTreeMap<
+        worth_ui_query_binding::UiQueryEvidenceReference,
+        &worth_ui_query_binding::UiCollectionProjectionTextRow,
+    >,
 ) -> Result<UiMountedCollectionTextChange, super::super::UiRebindPlanningDenial> {
     use worth_ui_query_binding::UiCollectionProjectionChange as Change;
 
@@ -99,11 +102,11 @@ fn project_change(
             at: *at,
         },
         Change::Remove { row, from } => UiMountedCollectionTextChange::Remove {
-            identity: Arc::from(row.identity_for_reporting()),
+            identity: row.identity(),
             from: *from,
         },
         Change::Move { row, from, to } => UiMountedCollectionTextChange::Move {
-            identity: Arc::from(row.identity_for_reporting()),
+            identity: row.identity(),
             from: *from,
             to: *to,
         },
@@ -118,10 +121,13 @@ fn project_change(
 }
 
 fn take_row(
-    rows: &mut BTreeMap<&str, &worth_ui_query_binding::UiCollectionProjectionTextRow>,
+    rows: &mut BTreeMap<
+        worth_ui_query_binding::UiQueryEvidenceReference,
+        &worth_ui_query_binding::UiCollectionProjectionTextRow,
+    >,
     reference: &worth_ui_query_binding::UiCollectionProjectionRowReference,
 ) -> Result<UiMountedCollectionTextRow, super::super::UiRebindPlanningDenial> {
-    rows.remove(reference.identity_for_reporting())
+    rows.remove(&reference.identity())
         .ok_or_else(|| {
             invalid(super::super::UiCollectionProjectionContentDenial::MissingChangedRow)
         })

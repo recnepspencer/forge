@@ -118,4 +118,12 @@ impl WorthQueryEvidenceIdentity {
     pub fn canonical_digest(&self) -> &CanonicalDerivedDigest {
         &self.canonical_digest
     }
+
+    pub fn operational_key(&self) -> super::WorthQueryEvidenceIdentityKey {
+        super::WorthQueryEvidenceIdentityKey::new(
+            self.scope,
+            self.scheme,
+            *self.canonical_digest.value().bytes(),
+        )
+    }
 }

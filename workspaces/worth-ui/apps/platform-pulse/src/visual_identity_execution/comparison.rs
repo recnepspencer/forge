@@ -10,7 +10,9 @@ use worth_ui::facade::rebind::UiRebindReceipt;
 
 use crate::lifecycle_observation_publication::PlatformPulseObservationPublisher;
 
-use super::progression::{captured_receipt, retire_snapshot};
+use super::progression::{
+    begin_capture_before, resolve_capture, retire_snapshot, PlatformPulseVisualCaptureResolution,
+};
 use super::{
     PlatformPulseRetainedSnapshot, PlatformPulseVisualCapture, PlatformPulseVisualExecutionDenial,
     PlatformPulseVisualIdentityState,
@@ -51,17 +53,24 @@ pub(super) fn poll(
             Ok(PlatformPulseVisualIdentityState::Comparing(pending))
         }
         UiVisualCapturePoll::Completed(outcome) => {
-            let successor = captured_receipt(outcome)?;
-            publisher
-                .successor_visual_snapshot(&successor)
-                .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
-            compare_and_dispose(
-                pending.predecessor,
-                successor,
-                pending.rebind,
-                shell,
-                publisher,
-            )
+            match resolve_capture(outcome, pending.capture.deadline)? {
+                PlatformPulseVisualCaptureResolution::Captured(successor) => {
+                    publisher
+                        .successor_visual_snapshot(&successor)
+                        .map_err(PlatformPulseVisualExecutionDenial::Observation)?;
+                    compare_and_dispose(
+                        pending.predecessor,
+                        successor,
+                        pending.rebind,
+                        shell,
+                        publisher,
+                    )
+                }
+                PlatformPulseVisualCaptureResolution::RetryBefore { deadline } => {
+                    pending.capture = begin_capture_before(shell, *tick, deadline)?;
+                    Ok(PlatformPulseVisualIdentityState::Comparing(pending))
+                }
+            }
         }
     }
 }

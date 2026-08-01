@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use worth_ui::facade::app::WorthUiNativeApplicationShell;
 use worth_ui::facade::inspection::{
     UiCurrentPresentedSurfaceTarget, UiPendingVisualCapture, UiPixelsRequired,
-    UiPublishedVisualOverlay, UiVisualHitTestTarget, UiVisualOverlayDenial,
+    UiPublishedVisualOverlay, UiVisualOverlayDenial, UiVisualSnapshotDenial,
     UiVisualSnapshotReceipt,
 };
 
@@ -20,12 +20,20 @@ pub(crate) struct PlatformPulseVisualIdentityExecution {
     state: Option<PlatformPulseVisualIdentityState>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlatformPulseContentMutationReadiness {
+    Ready,
+    DeferredForVisualComparison,
+    TransitionInProgress,
+}
+
 enum PlatformPulseVisualIdentityState {
     AwaitingFirstFrame,
     Settling { begin_at: Instant },
     Capturing(PlatformPulseVisualCapture),
     OverlayVisible(PlatformPulseVisibleOverlay),
     ComparisonReady(PlatformPulseRetainedSnapshot),
+    Rebasing(PlatformPulseVisualCapture),
     Refreshing(PlatformPulseVisualRefreshCapture),
     Comparing(comparison::PlatformPulseVisualComparisonCapture),
     Transitioning,
@@ -44,7 +52,6 @@ struct PlatformPulseVisualRefreshCapture {
 
 struct PlatformPulseRetainedSnapshot {
     snapshot: UiVisualSnapshotReceipt<UiPixelsRequired>,
-    target: UiVisualHitTestTarget,
     overlay_clear: Option<worth_ui::facade::inspection::UiClearedVisualOverlayReceipt>,
 }
 
@@ -64,9 +71,8 @@ pub(crate) enum PlatformPulseVisualExecutionDenial {
     MountedVisualTarget,
     SnapshotAdmission(worth_ui::facade::inspection::UiVisualSnapshotDenial),
     SnapshotDeadline,
-    SnapshotSuperseded,
     SnapshotOmitted,
-    SnapshotDenied,
+    SnapshotDenied(UiVisualSnapshotDenial),
     SnapshotIndeterminate,
     PointCoordinate,
     PointOmitted,
@@ -78,7 +84,9 @@ pub(crate) enum PlatformPulseVisualExecutionDenial {
     OverlayPublication(UiVisualOverlayDenial),
     OverlayClear(UiVisualOverlayDenial),
     ReplacementBeforeOverlayClear,
-    SnapshotDidNotBecomeSuperseded(UiVisualOverlayDenial),
+    SnapshotRelation(worth_ui::facade::inspection::UiVisualSnapshotRelationDenial),
+    SnapshotStillCurrent,
+    ShutdownNotQuiescent,
     ComparisonOmitted(worth_ui::facade::inspection::UiVisualSnapshotComparisonOmission),
     ComparisonExpired(worth_ui::facade::inspection::UiVisualSnapshotComparisonExpiry),
     ComparisonIncompatible(worth_ui::facade::inspection::UiVisualSnapshotComparisonIncompatibility),
@@ -92,6 +100,7 @@ impl std::fmt::Display for PlatformPulseVisualExecutionDenial {
             Self::SnapshotAdmission(denial) => {
                 write!(formatter, "snapshot admission: {denial:?}")
             }
+            Self::SnapshotDenied(denial) => write!(formatter, "snapshot denied: {denial:?}"),
             Self::ComparisonOmitted(omission) => {
                 write!(formatter, "comparison omitted: {omission:?}")
             }
@@ -110,9 +119,7 @@ impl std::fmt::Display for PlatformPulseVisualExecutionDenial {
                 write!(formatter, "overlay publication: {denial:?}")
             }
             Self::OverlayClear(denial) => write!(formatter, "overlay clear: {denial:?}"),
-            Self::SnapshotDidNotBecomeSuperseded(denial) => {
-                write!(formatter, "snapshot retirement: {denial:?}")
-            }
+            Self::SnapshotRelation(denial) => write!(formatter, "snapshot relation: {denial:?}"),
             Self::Observation(denial) => write!(formatter, "observation publication: {denial:?}"),
             denial => write!(formatter, "{denial:?}"),
         }
@@ -123,6 +130,45 @@ impl PlatformPulseVisualIdentityExecution {
     pub(crate) fn new() -> Self {
         Self {
             state: Some(PlatformPulseVisualIdentityState::AwaitingFirstFrame),
+        }
+    }
+
+    pub(crate) fn content_mutation_readiness(&self) -> PlatformPulseContentMutationReadiness {
+        match self.state.as_ref() {
+            Some(PlatformPulseVisualIdentityState::Comparing(_)) => {
+                PlatformPulseContentMutationReadiness::DeferredForVisualComparison
+            }
+            Some(PlatformPulseVisualIdentityState::Transitioning) | None => {
+                PlatformPulseContentMutationReadiness::TransitionInProgress
+            }
+            Some(_) => PlatformPulseContentMutationReadiness::Ready,
+        }
+    }
+
+    pub(crate) fn shutdown_quiescent(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+    ) -> Result<(), PlatformPulseVisualExecutionDenial> {
+        let state = self
+            .state
+            .take()
+            .ok_or(PlatformPulseVisualExecutionDenial::ReentrantTransition)?;
+        match state {
+            PlatformPulseVisualIdentityState::ComparisonReady(retained) => {
+                shell.dispose_visual_snapshot(retained.snapshot);
+                self.state = Some(PlatformPulseVisualIdentityState::Retired);
+                Ok(())
+            }
+            PlatformPulseVisualIdentityState::AwaitingFirstFrame
+            | PlatformPulseVisualIdentityState::Settling { .. }
+            | PlatformPulseVisualIdentityState::Retired => {
+                self.state = Some(PlatformPulseVisualIdentityState::Retired);
+                Ok(())
+            }
+            state => {
+                self.state = Some(state);
+                Err(PlatformPulseVisualExecutionDenial::ShutdownNotQuiescent)
+            }
         }
     }
 
@@ -201,6 +247,11 @@ impl PlatformPulseVisualIdentityExecution {
         tick: u64,
         now: Instant,
     ) -> Result<(), PlatformPulseVisualExecutionDenial> {
+        if matches!(self.state, Some(PlatformPulseVisualIdentityState::Retired)) {
+            let capture = progression::begin_capture(shell, tick, now)?;
+            self.state = Some(PlatformPulseVisualIdentityState::Rebasing(capture));
+            return Ok(());
+        }
         if !matches!(
             self.state,
             Some(PlatformPulseVisualIdentityState::ComparisonReady(_))

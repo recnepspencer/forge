@@ -19,6 +19,10 @@ use super::journey_cost::{JourneyCostInputs, PlatformPulseJourneyCost};
 use super::platform_pulse_cleanup::close_recovered;
 use super::platform_pulse_input::reach_native_input;
 
+mod open;
+
+pub(super) use open::complete_open;
+
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 
 pub(super) struct PlatformPulseJourneyDeltas {
@@ -50,42 +54,7 @@ impl PlatformPulseJourneyDeltas {
 }
 
 pub(super) fn complete(deltas: PlatformPulseJourneyDeltas) -> CompletedPlatformPulseJourney {
-    let journey_started = Instant::now();
-    let initial = launch_initial(deltas.canonical);
-    let first_publication = initial.launch_to_first_publication();
-    let mut native_captures = initial.evidence().capture_count();
-    let window_lookups = initial.evidence().client_area().window_lookup_count();
-    let input_reached = reach_native_input(initial, Instant::now() + TRANSITION_DEADLINE);
-    native_captures += input_reached.evidence().capture_count();
-    let first_current = publish_first_current(input_reached);
-    native_captures += first_current.query_evidence().pixels().capture_count();
-    let (visualized, visual_captures) = publish_visual_identity(first_current);
-    native_captures += visual_captures;
-    let second_current = publish_second_current(visualized);
-    native_captures += second_current.query_evidence().pixels().capture_count();
-    let green = publish_green(second_current, deltas.green);
-    native_captures += green.evidence().capture_count();
-    let preserved = preserve_green(green, deltas.malformed);
-    native_captures += preserved.evidence().capture_count();
-    let recovered = recover_blue(preserved, deltas.recovery);
-    native_captures += recovered.evidence().capture_count();
-    let stopped = stop_on_revision_schema(recovered, deltas.revision_schema);
-    native_captures += stopped.evidence().replacement().capture_count();
-    let recovered = recover_status_schema(stopped, deltas.status_schema_recovery);
-    native_captures += recovered.evidence().replacement().capture_count();
-    let source_actions = recovered.source_action_count();
-    let closed = close_recovered(recovered);
-    let cost = PlatformPulseJourneyCost::from_completed(
-        JourneyCostInputs {
-            first_publication,
-            full_journey: journey_started.elapsed(),
-            source_actions,
-            native_captures,
-            window_lookups,
-        },
-        closed.evidence(),
-    );
-    CompletedPlatformPulseJourney { closed, cost }
+    complete_open(deltas).close()
 }
 
 fn publish_visual_identity(

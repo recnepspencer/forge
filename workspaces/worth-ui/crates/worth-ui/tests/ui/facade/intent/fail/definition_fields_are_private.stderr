@@ -1,2 +1,0 @@
-error[E0451]: fields `destination` and `intent` of struct `UiIntentDefinition` are private
- --> $WORKSPACE/crates/worth-ui/tests/ui/facade/intent/fail/definition_fields_are_private.rs

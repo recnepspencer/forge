@@ -2,6 +2,7 @@ mod authored;
 mod definition;
 mod fact;
 mod host;
+mod intent;
 mod measurement;
 mod query;
 mod runtime_state;
@@ -12,6 +13,7 @@ pub use definition::{
 };
 pub use fact::UiProducedFact;
 pub use host::{UiHostDeviceScaleChangedFact, UiHostViewportChangedFact};
+pub use intent::{UiIntentPostureChangedFact, UiIntentPostureKind, UiIntentPostureReference};
 pub use measurement::UiMeasurementChangedFact;
 pub use query::{
     UiQueryChangedFact, UiQueryChangedFactKind, UiQueryIncrementalChangedFact,

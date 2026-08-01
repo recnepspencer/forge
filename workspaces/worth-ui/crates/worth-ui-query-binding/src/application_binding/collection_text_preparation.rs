@@ -84,8 +84,8 @@ fn validate_collection_contract(
 }
 
 impl WorthUiPreparedCollectionTextConsumer {
-    pub(crate) fn binding_identity_for_reporting(&self) -> &str {
-        self.bound.binding_identity()
+    pub(crate) fn binding_reference(&self) -> crate::UiQueryBindingReference {
+        crate::UiQueryBindingReference::query_issued(self.bound.binding_identity())
     }
 
     #[allow(

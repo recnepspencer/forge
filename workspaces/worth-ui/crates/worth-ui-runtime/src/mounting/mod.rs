@@ -37,7 +37,8 @@ pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMoun
 pub(crate) use identity_overlay::UiMountedVisualOverlayProjectionInput;
 pub(crate) use identity_state::{
     UiAuthorityAdmittedMountedFrame, UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial,
-    UiCurrentInteractionAffinity, UiMountedIdentityState, UiMountedInteractionAffinityInput,
+    UiCurrentInteractionAffinity, UiMountedIdentityState, UiMountedIncarnationAffinityInput,
+    UiMountedInteractionAffinityInput,
 };
 pub(crate) use identity_trace_basis::UiMountedIdentityTraceBasis;
 pub use identity_view::{
@@ -59,8 +60,8 @@ pub(crate) use presentation::{
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
 };
 pub(crate) use projection::{
-    prepare_projection, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
-    UiPreparedMountedProjection,
+    prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
+    UiMountedPreviewProjectionInput, UiMountedProjectionInput, UiPreparedMountedProjection,
 };
 pub use projection::{
     UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame,
@@ -85,7 +86,7 @@ pub(crate) use retention::{
     UiMountedObservationBasisRetentionDenial, UiMountedRetentionUsageSnapshot,
     UiMountedVisualCaptureBasis, UiMountedVisualOverlayLease, UiMountedVisualRetentionDenial,
     UiMountedVisualSnapshotLease, UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
-    UiPresentedHitTestBasis, UiRetainedMountedDiagnostics,
+    UiPresentedHitTestBasis, UiRetainedMountedDiagnostics, DEFAULT_OBSERVATION_FRAME_CAPACITY,
 };
 pub use retention::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,

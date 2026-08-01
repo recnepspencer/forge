@@ -38,7 +38,7 @@ pub(crate) use identity::{UiIdentityLifecycleResolver, UiSourceIdentityLifecycle
 pub(crate) use planning::{
     UiAuthoredContentRebindSemanticProof, UiChangedRebindSemanticProof,
     UiProjectionSchemaTransitionInput, UiRebindPlanCompiler, UiRebindPlanningContext,
-    UiRebindSemanticProof,
+    UiRebindPlanningRecoveryStop, UiRebindSemanticProof,
 };
 pub use planning::{
     UiProjectionPredecessorValuePolicy, UiProjectionSchemaRequirement,

@@ -6,6 +6,7 @@ pub struct UiSelectionCommitInteraction {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiSelectionCommitStopReason {
+    ApplicationGenerationChanged,
     TargetNoLongerCurrent(super::super::UiInteractionTargetingDenial),
     ProjectionUnavailable,
     ProjectionNotCurrent(worth_ui_query_binding::UiProjectionInputPosture),
@@ -15,7 +16,7 @@ pub enum UiSelectionCommitStopReason {
 
 #[derive(Debug)]
 pub struct UiSelectionCommitStop {
-    activation: super::UiActivateInteraction,
+    activation: Box<super::UiActivateInteraction>,
     option: worth_ui_query_binding::UiProjectionOptionReference,
     reason: UiSelectionCommitStopReason,
 }
@@ -23,12 +24,13 @@ pub struct UiSelectionCommitStop {
 pub(crate) fn commit_selection(
     activation: super::UiActivateInteraction,
     option: worth_ui_query_binding::UiProjectionOptionReference,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     mounted: &crate::mounting::WorthUiMountedSessionState,
 ) -> Result<UiSelectionCommitInteraction, UiSelectionCommitStop> {
-    let reason = selection_stop_reason(&activation, &option, mounted);
+    let reason = selection_stop_reason(&activation, &option, generation, mounted);
     match reason {
         Some(reason) => Err(UiSelectionCommitStop {
-            activation,
+            activation: Box::new(activation),
             option,
             reason,
         }),
@@ -39,8 +41,12 @@ pub(crate) fn commit_selection(
 fn selection_stop_reason(
     activation: &super::UiActivateInteraction,
     option: &worth_ui_query_binding::UiProjectionOptionReference,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     mounted: &crate::mounting::WorthUiMountedSessionState,
 ) -> Option<UiSelectionCommitStopReason> {
+    if activation.generation() != generation {
+        return Some(UiSelectionCommitStopReason::ApplicationGenerationChanged);
+    }
     if let Err(denial) =
         super::super::targeting::require_current_target(mounted, activation.target())
     {
@@ -74,10 +80,7 @@ impl UiSelectionCommitInteraction {
         self.activation.target()
     }
 
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
         self.activation.generation()
     }
 
@@ -105,6 +108,6 @@ impl UiSelectionCommitStop {
         super::UiActivateInteraction,
         worth_ui_query_binding::UiProjectionOptionReference,
     ) {
-        (self.activation, self.option)
+        (*self.activation, self.option)
     }
 }

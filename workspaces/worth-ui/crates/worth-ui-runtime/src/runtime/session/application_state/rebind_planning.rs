@@ -16,6 +16,25 @@ impl WorthUiApplicationSessionState {
         crate::runtime::rebind::UiRebindPlanCompiler::compile(context, lifecycle, policy)
     }
 
+    pub(crate) fn compile_non_source_rebind_recoverable(
+        &self,
+        session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        lifecycle: crate::runtime::rebind::UiResolvedIdentityLifecycle,
+        policy: crate::runtime::rebind::UiRebindExecutionPolicy,
+    ) -> Result<
+        crate::runtime::rebind::UiRebindPlan,
+        crate::runtime::rebind::UiRebindPlanningRecoveryStop,
+    > {
+        let context = crate::runtime::rebind::UiRebindPlanningContext::new(
+            &self.runtime,
+            session,
+            self.app.prepared_authority(),
+        );
+        crate::runtime::rebind::UiRebindPlanCompiler::compile_non_source_recoverable(
+            context, lifecycle, policy,
+        )
+    }
+
     pub(crate) fn compile_preservation_rebind(
         &self,
         session: crate::facade::WorthUiActiveApplicationSessionIdentity,

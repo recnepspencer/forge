@@ -1,4 +1,6 @@
-use worth_ui_host_contract::{UiHostObservationPresentationBasis, UiHostObservationSequence};
+use worth_ui_host_contract::{
+    UiHostObservationPresentationBasis, UiHostObservationSequence, UiHostObservationTimeBasis,
+};
 
 use super::model::{next, UiDraftProcessingOutcome, UiDraftRuntimeState};
 use super::{
@@ -145,6 +147,7 @@ impl UiDraftRuntimeState {
         session: UiDraftSessionIdentity,
         presentation: UiHostObservationPresentationBasis,
         sequence: UiHostObservationSequence,
+        time_basis: UiHostObservationTimeBasis,
     ) -> UiDraftProcessingOutcome {
         if self
             .sessions
@@ -169,6 +172,7 @@ impl UiDraftRuntimeState {
                 session,
                 field: draft.field,
                 source_sequence: sequence,
+                time_basis,
                 input_revision: draft.last_input_revision,
                 draft_revision: draft.draft_revision,
                 committed_text: std::sync::Arc::from(draft.committed.into_boxed_str()),

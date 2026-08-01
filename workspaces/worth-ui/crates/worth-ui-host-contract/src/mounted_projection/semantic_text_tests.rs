@@ -122,7 +122,7 @@ fn collection_slot_and_row_correlation_are_atomic() {
 
     let mut scalar_with_identity = fixture();
     scalar_with_identity.collection_row = Some(
-        UiMountedCollectionRowCorrelation::from_runtime_mounting(Arc::from("row-a")),
+        UiMountedCollectionRowCorrelation::from_runtime_mounting([0xA1; 32]),
     );
     assert_denial(
         scalar_with_identity,
@@ -134,12 +134,12 @@ fn collection_slot_and_row_correlation_are_atomic() {
         selected_field_ordinal: 0,
     };
     collection.collection_row = Some(UiMountedCollectionRowCorrelation::from_runtime_mounting(
-        Arc::from("row-a"),
+        [0xA1; 32],
     ));
     let row = complete(collection);
     assert_eq!(
-        row.collection_row().unwrap().identity_for_reporting(),
-        "row-a"
+        row.collection_row().unwrap().correlation_digest(),
+        [0xA1; 32]
     );
 }
 

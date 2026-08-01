@@ -24,7 +24,7 @@ pub(super) struct CollectionProjectionWorld {
     workspace: WorthQueryWorkspace,
     live: Option<UiLiveCollectionProjection>,
     entities: Vec<WorthQueryEntityIdentity>,
-    identities: Vec<String>,
+    identities: Vec<[u8; 32]>,
     expected: ExpectedKeyedRows,
 }
 
@@ -105,8 +105,8 @@ impl CollectionProjectionWorld {
             .iter()
             .zip(authored.iter())
             .map(|(entity, (_, value))| {
-                let identity = reporting_identity(entity);
-                expected.insert(identity.clone(), value.clone());
+                let identity = correlation_identity(entity);
+                expected.insert(identity, value.clone());
                 identity
             })
             .collect();
@@ -127,7 +127,7 @@ impl CollectionProjectionWorld {
         &self.expected
     }
 
-    pub(super) fn identities(&self) -> &[String] {
+    pub(super) fn identities(&self) -> &[[u8; 32]] {
         &self.identities
     }
 
@@ -135,7 +135,7 @@ impl CollectionProjectionWorld {
         self.entities.len()
     }
 
-    pub(super) fn update_first(&mut self, count: usize) -> Vec<String> {
+    pub(super) fn update_first(&mut self, count: usize) -> Vec<[u8; 32]> {
         let selected = self.identities[..count].to_vec();
         let updates = self.entities[..count]
             .iter()
@@ -151,16 +151,16 @@ impl CollectionProjectionWorld {
         selected
     }
 
-    pub(super) fn insert(&mut self, authored_identity: &str, value: &str) -> String {
+    pub(super) fn insert(&mut self, authored_identity: &str, value: &str) -> [u8; 32] {
         let entity = insert_projection_status(&mut self.workspace, authored_identity, value);
-        let identity = reporting_identity(&entity);
+        let identity = correlation_identity(&entity);
         self.entities.push(entity);
-        self.identities.push(identity.clone());
-        self.expected.insert(identity.clone(), value);
+        self.identities.push(identity);
+        self.expected.insert(identity, value);
         identity
     }
 
-    pub(super) fn remove(&mut self, index: usize) -> String {
+    pub(super) fn remove(&mut self, index: usize) -> [u8; 32] {
         let entity = self.entities.remove(index);
         let identity = self.identities.remove(index);
         self.workspace
@@ -170,9 +170,9 @@ impl CollectionProjectionWorld {
         identity
     }
 
-    pub(super) fn reorder(&mut self, index: usize, authored_identity: &str) -> String {
+    pub(super) fn reorder(&mut self, index: usize, authored_identity: &str) -> [u8; 32] {
         let entity = self.entities[index].clone();
-        let identity = self.identities[index].clone();
+        let identity = self.identities[index];
         update_projection_identity(&mut self.workspace, entity, authored_identity);
         identity
     }
@@ -213,11 +213,11 @@ fn authored_rows(row_count: usize) -> Vec<(String, String)> {
         .collect()
 }
 
-fn reporting_identity(entity: &WorthQueryEntityIdentity) -> String {
+fn correlation_identity(entity: &WorthQueryEntityIdentity) -> [u8; 32] {
     entity
         .evidence_identity()
-        .terminal_projection_for_reporting()
-        .to_owned()
+        .operational_key()
+        .correlation_digest()
 }
 
 fn open_live(

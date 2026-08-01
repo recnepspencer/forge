@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 pub(crate) fn resolve_payload_sources(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     fields: UiIntentPayloadFieldSet,
     query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
     application_facts: &super::UiIntentApplicationFactPlan,
@@ -54,7 +54,7 @@ pub(crate) fn resolve_payload_sources(
 }
 
 fn validate_interaction_sources(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     resolved: &[UiResolvedIntentPayloadBinding],
 ) -> Result<(), super::UiIntentCatalogPreparationDenial> {
     use super::UiIntentInteractionPayloadSourceKind as Shape;
@@ -96,7 +96,7 @@ fn validate_interaction_sources(
 }
 
 fn require_unique_shape_source(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     count: usize,
     source: super::UiIntentInteractionPayloadSourceKind,
 ) -> Result<(), super::UiIntentCatalogPreparationDenial> {
@@ -112,7 +112,7 @@ fn require_unique_shape_source(
 }
 
 fn require_shape_affinity(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     interaction: crate::capability::UiSemanticInteractionFamily,
     count: usize,
     owner: crate::capability::UiSemanticInteractionFamily,
@@ -157,7 +157,7 @@ fn runtime_interaction(
 }
 
 fn resolve_source(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     authored: &worth_ui_dsl::WorthUiIntentPayloadSource,
     query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
@@ -259,7 +259,7 @@ fn resolve_source(
 }
 
 fn resolve_application_fact(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     identity: &str,
     facts: &super::UiIntentApplicationFactPlan,
@@ -289,7 +289,7 @@ fn resolve_application_fact(
 }
 
 fn require_kind(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     expected: UiIntentPayloadFieldKind,
 ) -> Result<(), super::UiIntentCatalogPreparationDenial> {
@@ -307,7 +307,7 @@ fn require_kind(
 }
 
 fn projection_identity(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     authored: &str,
 ) -> Result<worth_ui_query_binding::WorthUiQueryViewIdentity, super::UiIntentCatalogPreparationDenial>
@@ -322,7 +322,7 @@ fn projection_identity(
 }
 
 fn resolve_projection_slot(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
     identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
@@ -339,7 +339,7 @@ fn resolve_projection_slot(
 }
 
 fn unknown_projection(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     projection: &str,
     required_shape: &'static str,
@@ -353,7 +353,7 @@ fn unknown_projection(
 }
 
 fn source_mismatch(
-    declaration: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    declaration: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     field: UiIntentPayloadFieldDescriptor,
     required_source: &'static str,
 ) -> super::UiIntentCatalogPreparationDenial {

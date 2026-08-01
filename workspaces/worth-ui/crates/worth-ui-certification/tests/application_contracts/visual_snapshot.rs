@@ -96,7 +96,7 @@ fn phase_1_request_and_product_scenario_preserve_explicit_inputs() {
     );
     assert_eq!(scenario.logical_extent(), [160, 96]);
     assert_eq!(scenario.background_logical_point(), [16, 16]);
-    assert_eq!(scenario.target_logical_point(), [80, 48]);
+    assert_eq!(scenario.target_logical_point(), [52, 28]);
     assert_eq!(PLATFORM_PULSE_TARGET_RGB, [242, 204, 96]);
 }
 

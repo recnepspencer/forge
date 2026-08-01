@@ -12,10 +12,7 @@ fn query_witness_is_required_before_scalar_replacement_preserves_identity() {
     let workspace = projection_workspace(true);
     let predecessor = scalar_binding(&workspace);
     let candidate = scalar_binding(&workspace);
-    let logical_identity = predecessor
-        .core()
-        .query_binding_identity_for_reporting()
-        .to_owned();
+    let logical_identity = predecessor.core().query_binding_reference().clone();
 
     let replacement = match predecessor.replace_with(candidate, &workspace) {
         UiScalarProjectionReplacementOutcome::Admitted(replacement) => *replacement,
@@ -27,18 +24,8 @@ fn query_witness_is_required_before_scalar_replacement_preserves_identity() {
         }
     };
 
-    assert_eq!(
-        replacement
-            .proof()
-            .predecessor_binding_identity_for_reporting(),
-        logical_identity
-    );
-    assert_eq!(
-        replacement
-            .proof()
-            .successor_binding_identity_for_reporting(),
-        logical_identity
-    );
+    assert_eq!(replacement.proof().predecessor_binding(), &logical_identity);
+    assert_eq!(replacement.proof().successor_binding(), &logical_identity);
     let counters = replacement.proof().query_counters();
     assert!(counters.canonical_comparisons > 0);
     assert!(counters.portable_contract_comparisons > 0);
@@ -46,8 +33,8 @@ fn query_witness_is_required_before_scalar_replacement_preserves_identity() {
     assert_eq!(counters.maintenance_calls, 0);
     let successor = replacement.into_successor();
     assert_eq!(
-        successor.core().query_binding_identity_for_reporting(),
-        logical_identity
+        successor.core().query_binding_reference(),
+        &logical_identity
     );
 }
 
@@ -69,10 +56,7 @@ fn equal_looking_foreign_binding_stops_and_returns_usable_predecessor() {
         denial.stop().kind(),
         UiProjectionBindingStopKind::WrongWorld
     );
-    assert!(denial
-        .stop()
-        .predecessor_binding_identity_for_reporting()
-        .is_some());
+    assert!(denial.stop().predecessor_binding().is_some());
     let (predecessor, _foreign_candidate) = denial.into_bindings();
     let valid_candidate = scalar_binding(&source);
     match predecessor.replace_with(valid_candidate, &source) {
@@ -91,10 +75,7 @@ fn query_witness_is_required_before_collection_replacement_preserves_identity() 
     let workspace = collection_projection_workspace();
     let predecessor = collection_binding(&workspace, false, true);
     let candidate = collection_binding(&workspace, false, true);
-    let logical_identity = predecessor
-        .core()
-        .query_binding_identity_for_reporting()
-        .to_owned();
+    let logical_identity = predecessor.core().query_binding_reference().clone();
 
     let replacement = match predecessor.replace_with(candidate, &workspace) {
         UiCollectionProjectionReplacementOutcome::Admitted(replacement) => *replacement,
@@ -114,8 +95,8 @@ fn query_witness_is_required_before_collection_replacement_preserves_identity() 
         replacement
             .into_successor()
             .core()
-            .query_binding_identity_for_reporting(),
-        logical_identity
+            .query_binding_reference(),
+        &logical_identity
     );
 }
 

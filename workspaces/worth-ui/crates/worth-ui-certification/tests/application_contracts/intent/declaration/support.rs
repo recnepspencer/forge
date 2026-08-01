@@ -4,8 +4,10 @@ use worth_ui::facade::declaration::{
     ComponentStateOwnership,
 };
 use worth_ui::facade::intent::{
-    UiIntent, UiIntentAcceptedInteractions, UiIntentDeclaration, UiIntentId, UiIntentPayload,
-    UiIntentProductOutcome, UiIntentSchema, UiSemanticInteractionFamily,
+    UiIntent, UiIntentAcceptedInteractions, UiIntentConcurrencyScope, UiIntentConfirmationContract,
+    UiIntentConsequenceContract, UiIntentDeclaration, UiIntentId, UiIntentMutabilitySource,
+    UiIntentOperabilityContract, UiIntentPayload, UiIntentPolicySource, UiIntentProductOutcome,
+    UiIntentReadinessSource, UiIntentSchema, UiSemanticInteractionFamily,
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_dsl::{
@@ -14,12 +16,15 @@ use worth_ui_dsl::{
 };
 
 use super::super::super::filesystem_mounted_world::{
-    launch_file_intent_world, launch_rust_intent_world,
+    intent_world_operability_fact, launch_file_intent_world, launch_rust_intent_world,
+    INTENT_WORLD_OPERABILITY_FACT,
 };
 use super::super::interaction_world::InteractionWorld;
 
 pub(super) const DECLARATION: &str = "platform.pulse.advance.route";
 pub(super) const DEFINITION: &str = "platform.pulse.advance";
+const OPERABILITY: &str = "platform.pulse.advance.operability";
+const CONFIRMATION: &str = "platform.pulse.advance.confirmation";
 const PAINT_ONLY: &str = "visual.identity.component.paint_only";
 const HIT_ONLY: &str = "visual.identity.component.hit_only";
 const PAINT_AND_HIT: &str = "visual.identity.component.paint_and_hit";
@@ -46,6 +51,12 @@ pub(super) struct AdvanceOutcome;
 
 impl UiIntentProductOutcome for AdvanceOutcome {
     const SCHEMA: UiIntentSchema = UiIntentSchema::stable("platform.pulse.advance_outcome", 1);
+    const CONSEQUENCE_FAMILIES: worth_ui::facade::intent::UiIntentProductConsequenceFamilies =
+        worth_ui::facade::intent::UiIntentProductConsequenceFamilies::NONE;
+
+    fn into_consequences(self) -> worth_ui::facade::intent::UiIntentProductConsequences {
+        worth_ui::facade::intent::UiIntentProductConsequences::none()
+    }
 }
 
 pub(super) struct AdvanceStatus;
@@ -75,15 +86,16 @@ pub(super) fn confirmation_file_world() -> InteractionWorld {
     let source = FilesystemApplicationLifecycleScenario::visual_identity_source_text();
     let source = attach_file_confirmation_route(source, HIT_ONLY);
     let source = format!(
-        "{source}intent {DECLARATION} {{ definition {DEFINITION}; interaction activate; }}\n"
+        "{source}{}\n",
+        file_declaration(DECLARATION, DEFINITION, "activate")
     );
     InteractionWorld::from_session(launch_file_intent_world::<AdvanceStatus>(&source))
 }
 
 pub(super) fn confirmation_rust_world() -> InteractionWorld {
     let declaration = UiIntentDeclaration::<AdvanceStatus>::activate(DECLARATION)
-        .expect("typed declaration accepts activation")
-        .into_dsl_spec();
+        .expect("typed declaration accepts activation");
+    let declaration = bind_operability(declaration);
     let module = WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
         .with_component(PAINT_ONLY)
         .with_control_routes(
@@ -104,7 +116,10 @@ pub(super) fn routed_file_source() -> String {
     let source = FilesystemApplicationLifecycleScenario::visual_identity_source_text();
     let source = attach_file_route(source, HIT_ONLY);
     let source = attach_file_route(source, PAINT_AND_HIT);
-    format!("{source}intent {DECLARATION} {{ definition {DEFINITION}; interaction activate; }}\n")
+    format!(
+        "{source}{}\n",
+        file_declaration(DECLARATION, DEFINITION, "activate")
+    )
 }
 
 fn attach_file_route(source: String, component: &str) -> String {
@@ -138,8 +153,8 @@ pub(super) fn routed_rust_input() -> WorthUiRustAuthoredArtifactInput {
         )
     };
     let declaration = UiIntentDeclaration::<AdvanceStatus>::activate(DECLARATION)
-        .expect("typed declaration accepts activation")
-        .into_dsl_spec();
+        .expect("typed declaration accepts activation");
+    let declaration = bind_operability(declaration);
     let module = WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
         .with_component(PAINT_ONLY)
         .with_control_routes(HIT_ONLY, [route()])
@@ -167,6 +182,13 @@ pub(super) fn freeze_module(
             worth_ui::facade::intent::UiIntentDefinition::<AdvanceStatus>::application_effect(),
         )
         .expect("test definition should register")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<AdvanceStatus>::new(
+            ),
+        )
+        .expect("test provider should register")
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("test operability fact should register")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
 }
@@ -176,7 +198,26 @@ pub(super) fn declaration(
     definition: &str,
     family: WorthUiIntentInteractionFamily,
 ) -> WorthUiIntentDeclarationSpec {
-    WorthUiIntentDeclarationSpec::new(identity, definition, family)
+    WorthUiIntentDeclarationSpec::new(
+        identity,
+        definition,
+        family,
+        worth_ui_dsl::WorthUiIntentOperabilityContractSpec::new(
+            OPERABILITY,
+            worth_ui_dsl::WorthUiIntentMutabilitySourceSpec::application_boolean(
+                INTENT_WORLD_OPERABILITY_FACT,
+            ),
+            worth_ui_dsl::WorthUiIntentReadinessSourceSpec::application_boolean(
+                INTENT_WORLD_OPERABILITY_FACT,
+            ),
+            worth_ui_dsl::WorthUiIntentPolicySourceSpec::application_boolean(
+                INTENT_WORLD_OPERABILITY_FACT,
+            ),
+        ),
+        worth_ui_dsl::WorthUiIntentConfirmationContractSpec::not_required(CONFIRMATION),
+        worth_ui_dsl::WorthUiIntentConcurrencyScope::TargetRouteSingleFlight,
+        worth_ui_dsl::WorthUiIntentConsequenceContractSpec::none(),
+    )
 }
 
 pub(super) fn component_with_routes(
@@ -184,4 +225,38 @@ pub(super) fn component_with_routes(
 ) -> WorthUiRustAuthoredArtifactInputModule {
     WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
         .with_control_routes("routed.control", routes)
+}
+
+fn bind_operability<I: UiIntent>(
+    declaration: UiIntentDeclaration<I>,
+) -> WorthUiIntentDeclarationSpec {
+    let fact = intent_world_operability_fact();
+    declaration
+        .operability_from(
+            UiIntentOperabilityContract::new(
+                OPERABILITY,
+                UiIntentMutabilitySource::application_fact(&fact),
+                UiIntentReadinessSource::application_fact(&fact),
+                UiIntentPolicySource::application_fact(&fact),
+            )
+            .expect("test operability identity is valid"),
+        )
+        .confirmation(
+            UiIntentConfirmationContract::not_required(CONFIRMATION)
+                .expect("test confirmation identity is valid"),
+        )
+        .concurrency(UiIntentConcurrencyScope::TargetRouteSingleFlight)
+        .consequences(UiIntentConsequenceContract::none())
+        .into_dsl_spec()
+}
+
+fn file_declaration(identity: &str, definition: &str, interaction: &str) -> String {
+    format!(
+        "intent {identity} {{ definition {definition}; interaction {interaction}; \
+         operability {OPERABILITY} mutability-application-boolean {INTENT_WORLD_OPERABILITY_FACT} \
+         readiness-application-boolean {INTENT_WORLD_OPERABILITY_FACT} \
+         policy-application-boolean {INTENT_WORLD_OPERABILITY_FACT}; \
+         confirmation {CONFIRMATION} not-required; \
+         concurrency target-route-single-flight; consequences none; }}"
+    )
 }

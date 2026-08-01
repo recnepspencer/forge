@@ -1,7 +1,7 @@
 schema = "worth-ui.milestone-3.14.phase-3-contract.v1"
 milestone = "3.14"
 phase = 3
-status = "implementation"
+status = "closed"
 ledger = "_docs/worth-ui/milestone-3.14-phase-3-proof-ledger.csv"
 predecessor_contract = "_docs/worth-ui/milestone-3.14-phase-2-contract.toml"
 closure_claim = "one exact semantic interaction can become a coherent payload-and-operability-checked admitted UI routing attempt without gaining execution or effect authority"
@@ -70,7 +70,7 @@ command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui
 [[phase_gate]]
 id = "P3-03"
 owner = "coherent typed payload"
-claim = "declared payload fields project from one immutable owner-revision basis and reject mixed, stale, malformed, readonly, preedit, positional, and over-budget input"
+claim = "declared payload fields project from one immutable owner-revision basis and reject mixed, stale, malformed, preedit, positional, and over-budget input"
 command = "cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts intent::payload::ia_05 -- --nocapture"
 
 [[phase_gate]]

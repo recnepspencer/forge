@@ -56,19 +56,22 @@ pub use icon::{
 };
 pub(crate) use icon::{IconAcceptedRegistrationProof, IconRegistry};
 pub use intent::{
-    FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiIntent,
-    UiIntentAcceptedInteractions, UiIntentBoolean, UiIntentDefinition,
-    UiIntentDefinitionRegistrationError, UiIntentExecutionDestination, UiIntentId, UiIntentPayload,
-    UiIntentPayloadField, UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind,
-    UiIntentPayloadFieldSet, UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
-    UiIntentPayloadSchemaViolation, UiIntentPayloadValueKind, UiIntentProductOutcome,
-    UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentSelection, UiIntentSelectionValue,
-    UiIntentText, UiIntentTransitionDestination, UiIntentUnsigned64, UiSemanticInteractionFamily,
-    UI_INTENT_PAYLOAD_FIELD_LIMIT, UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT,
+    FrozenIntentDefinitionCapabilities, IntentDefinitionDescriptor, UiApplicationEffectDestination,
+    UiIntent, UiIntentAcceptedInteractions, UiIntentBoolean, UiIntentDefinition,
+    UiIntentDefinitionDestination, UiIntentDefinitionRegistrationError,
+    UiIntentExecutionDestination, UiIntentId, UiIntentPayload, UiIntentPayloadField,
+    UiIntentPayloadFieldDescriptor, UiIntentPayloadFieldKind, UiIntentPayloadFieldSet,
+    UiIntentPayloadProjection, UiIntentPayloadProjectionViolation, UiIntentPayloadSchemaViolation,
+    UiIntentPayloadValueKind, UiIntentProductConsequenceFamilies, UiIntentProductConsequences,
+    UiIntentProductOutcome, UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentSelection,
+    UiIntentSelectionValue, UiIntentText, UiIntentTransitionDestination, UiIntentTransitionOutcome,
+    UiIntentUnsigned64, UiRuntimeServiceDefinitionDestination, UiSemanticInteractionFamily,
+    UiTransitionDefinitionDestination, UI_INTENT_PAYLOAD_FIELD_LIMIT,
+    UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT,
 };
 pub(crate) use intent::{
     IntentDefinitionAcceptedRegistrationProof, IntentDefinitionRegistry, UiIntentDefinitionSlot,
-    UiIntentProjectedValue, UiSealedIntentPayload,
+    UiIntentProjectedValue, UiIntentSemanticDigest,
 };
 pub use mosaic_placement::{
     FrozenMosaicPlacementCapabilities, MosaicPlacementAction, MosaicPlacementConflictBehavior,

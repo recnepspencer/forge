@@ -1,7 +1,7 @@
 use worth_ui_host_contract::{
-    UiHostObservationPresentationBasis, UiHostObservationSequence, UiHostPresentationEpoch,
-    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiHostObservationPresentationBasis, UiHostObservationSequence, UiHostObservationTimeBasis,
+    UiHostPresentationEpoch, UiMountedFrameIdentity, UiMountedInstanceIdentity,
+    UiMountedNodeReceiptIdentity, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
 
 use super::model::{
@@ -94,6 +94,7 @@ fn interaction_preedit_stays_out_of_commit_and_blocks_keyboard_mutation() {
         fixture.session,
         presentation,
         sequence(3),
+        monotonic_time(3),
     ));
     assert_eq!(fixture.state.snapshot().active_sessions, 1);
 
@@ -108,9 +109,12 @@ fn interaction_preedit_stays_out_of_commit_and_blocks_keyboard_mutation() {
             preedit_bytes: 0,
         },
     );
-    let committed = fixture
-        .state
-        .commit(fixture.session, presentation, sequence(5));
+    let committed = fixture.state.commit(
+        fixture.session,
+        presentation,
+        sequence(5),
+        monotonic_time(5),
+    );
     let UiDraftProcessingOutcome::Semantic(UiSemanticInteraction::EditCommit(commit)) = committed
     else {
         panic!("declared commit gesture must seal one edit interaction")
@@ -291,12 +295,10 @@ fn draft_fixture(byte_budget: usize) -> DraftFixture {
     DraftFixture { state, session }
 }
 
-fn generation(
-) -> crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity {
+fn generation() -> crate::runtime::WorthUiActiveApplicationGenerationIdentity {
     crate::runtime::tests::active_application_session_test_support::source_backed_component_session(
     )
-    .generation_identity()
-    .clone()
+    .active_generation_identity()
 }
 
 fn draft_field(slot: u8, byte_budget: usize) -> UiDraftFieldIdentity {
@@ -328,6 +330,10 @@ fn target_view() -> crate::runtime::interaction::UiPresentedInteractionTargetVie
 
 fn sequence(value: u64) -> UiHostObservationSequence {
     UiHostObservationSequence::new(value)
+}
+
+fn monotonic_time(value: u64) -> UiHostObservationTimeBasis {
+    UiHostObservationTimeBasis::HostMonotonicTick(value)
 }
 
 fn append_text(

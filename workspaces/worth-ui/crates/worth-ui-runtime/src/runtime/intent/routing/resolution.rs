@@ -6,8 +6,7 @@ use super::{
 pub(crate) fn resolve_intent_route(
     catalog: &crate::declaration::UiIntentCatalog,
     definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
-    generation: &crate::facade::prepared_application_authority::
-        WorthUiPreparedApplicationGenerationIdentity,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     mounted: &crate::mounting::WorthUiMountedSessionState,
     source: crate::runtime::interaction::UiIntentRouteSource,
 ) -> Result<UiIntentRouteResolution, UiIntentRouteResolutionStop> {
@@ -20,7 +19,7 @@ pub(crate) fn resolve_intent_route(
         crate::runtime::interaction::targeting::admit_current_target(mounted, interaction.target())
             .map_err(UiIntentRouteResolutionStop::Targeting)?;
     let graph_node = affinity.graph_node();
-    let route =
+    let (route, cost) =
         catalog
             .lookup(graph_node, family)
             .ok_or(UiIntentRouteResolutionStop::Unrouted {
@@ -30,19 +29,25 @@ pub(crate) fn resolve_intent_route(
     Ok(match route {
         crate::declaration::UiIntentCatalogResolvedRoute::Product { route, declaration } => {
             UiIntentRouteResolution::Product(UiResolvedProductIntentRoute::new(
-                route.graph_node(),
-                route.interaction(),
-                definitions.definition_at(declaration.definition()).id(),
-                declaration,
-                interaction,
+                super::UiResolvedProductIntentRouteInput {
+                    graph_node: route.graph_node(),
+                    interaction: route.interaction(),
+                    definition_id: definitions.definition_at(declaration.definition()).id(),
+                    declaration,
+                    source: interaction,
+                    cost,
+                },
             ))
         }
         crate::declaration::UiIntentCatalogResolvedRoute::Confirmation { route, declaration } => {
             UiIntentRouteResolution::Confirmation(UiResolvedConfirmationIntentRoute::new(
-                route.graph_node(),
-                definitions.definition_at(declaration.definition()).id(),
-                declaration,
-                interaction,
+                super::UiResolvedConfirmationIntentRouteInput {
+                    graph_node: route.graph_node(),
+                    definition_id: definitions.definition_at(declaration.definition()).id(),
+                    declaration,
+                    source: interaction,
+                    cost,
+                },
             ))
         }
     })

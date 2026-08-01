@@ -6,6 +6,7 @@ pub struct UiAdmittedObservationSet {
     source_basis: u64,
     observations: Box<[UiAdmittedObservation]>,
     summary: UiObservationSetSummary,
+    _lease: super::super::resource_ledger::UiObservationSetLease,
 }
 
 impl UiAdmittedObservationSet {
@@ -15,6 +16,7 @@ impl UiAdmittedObservationSet {
         source_basis: u64,
         observations: Box<[UiAdmittedObservation]>,
         retained_bytes: usize,
+        lease: super::super::resource_ledger::UiObservationSetLease,
     ) -> Self {
         debug_assert!(!observations.is_empty());
         let families = observations
@@ -29,6 +31,7 @@ impl UiAdmittedObservationSet {
             source_basis,
             observations,
             summary,
+            _lease: lease,
         }
     }
 

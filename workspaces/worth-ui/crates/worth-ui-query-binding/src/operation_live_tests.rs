@@ -159,6 +159,107 @@ fn dropped_pre_admission_handoff_is_recoverable_from_its_binding_owner() {
 }
 
 #[test]
+fn exact_publication_token_commits_only_its_query_owned_change() {
+    let mut fixture = LiveBindingFixture::new("worth-ui-exact-publication-token");
+    fixture.owner.update_measurement();
+    let consequence = applied(fixture.refresh().unwrap());
+
+    let admission = fixture
+        .binding
+        .admit_operation_live_change_for_publication(consequence)
+        .expect("exact staged consequence admits for publication");
+    assert_eq!(admission.change_order(), 1);
+    let receipt = fixture
+        .binding
+        .publish_admitted_operation_live_change(admission)
+        .expect("the issuing Query owner publishes its exact admission");
+
+    assert_eq!(receipt.published_change_count(), 1);
+    let observed = fixture
+        .binding
+        .operation_live_change_observation_for(&fixture.reference)
+        .unwrap();
+    assert_eq!(observed.staged_change_count(), 0);
+    assert_eq!(observed.admitted_change_count(), 1);
+    fixture.close();
+}
+
+#[test]
+fn withdrawn_publication_token_recovers_consequence_without_repeating_query_effect() {
+    let mut fixture = LiveBindingFixture::new("worth-ui-withdrawn-publication-token");
+    fixture.owner.update_measurement();
+    let consequence = applied(fixture.refresh().unwrap());
+    let admission = fixture
+        .binding
+        .admit_operation_live_change_for_publication(consequence)
+        .unwrap();
+
+    let consequence = fixture
+        .binding
+        .withdraw_admitted_operation_live_change(admission)
+        .expect("pre-effect withdrawal returns the same consequence authority");
+    let withdrawn = fixture
+        .binding
+        .operation_live_change_observation_for(&fixture.reference)
+        .unwrap();
+    assert_eq!(withdrawn.staged_change_count(), 1);
+    assert_eq!(withdrawn.admitted_change_count(), 0);
+
+    let retry = fixture
+        .binding
+        .admit_operation_live_change_for_publication(consequence)
+        .expect("consequence-only retry re-enters exact admission");
+    fixture
+        .binding
+        .publish_admitted_operation_live_change(retry)
+        .unwrap();
+    let published = fixture
+        .binding
+        .operation_live_change_observation_for(&fixture.reference)
+        .unwrap();
+    assert_eq!(published.staged_change_count(), 0);
+    assert_eq!(published.admitted_change_count(), 1);
+    assert_eq!(published.next_change_order(), 1);
+    fixture.close();
+}
+
+#[test]
+fn publication_stop_is_compact_while_retaining_affine_admission() {
+    assert!(
+        std::mem::size_of::<crate::WorthUiCollectionChangePublicationStop>()
+            <= 2 * std::mem::size_of::<usize>()
+    );
+}
+
+#[test]
+fn foreign_binding_cannot_publish_an_exact_admission_token() {
+    let mut subject = LiveBindingFixture::new("worth-ui-publication-token-subject");
+    let mut foreign = LiveBindingFixture::new("worth-ui-publication-token-foreign");
+    subject.owner.update_measurement();
+    let consequence = applied(subject.refresh().unwrap());
+    let admission = subject
+        .binding
+        .admit_operation_live_change_for_publication(consequence)
+        .unwrap();
+
+    let stopped = foreign
+        .binding
+        .publish_admitted_operation_live_change(admission)
+        .expect_err("a foreign Query world cannot publish the token");
+    assert_eq!(
+        stopped.denial(),
+        crate::WorthUiCollectionChangePublicationDenial::ForeignInstalledReference
+    );
+    subject
+        .binding
+        .publish_admitted_operation_live_change(stopped.into_admission())
+        .expect("the issuing Query owner still accepts the unconsumed token");
+
+    subject.close();
+    foreign.close();
+}
+
+#[test]
 fn wrong_workspace_stops_before_consuming_the_real_pending_delivery() {
     let mut subject = LiveBindingFixture::new("worth-ui-wrong-workspace-subject");
     let mut foreign = LiveBindingFixture::new("worth-ui-wrong-workspace-foreign");

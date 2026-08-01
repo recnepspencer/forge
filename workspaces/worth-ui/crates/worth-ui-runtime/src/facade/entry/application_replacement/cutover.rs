@@ -130,27 +130,29 @@ impl WorthUiActiveApplicationSession {
         let pending = input.pending;
         let reload_cost_seed = pending.reload_cost_seed;
         let visual_trace_source = pending.next_app.visual_trace_source();
-        let prepared =
-            self.application
-                .prepare_admitted_allocation_catalog_delta(
-                    pending.pending_activation,
-                    crate::runtime::UiAllocationCatalogDeltaActivationInput {
-                        admitted_delta: input.admitted_delta,
-                        active_graph: self.application.graph_snapshot().clone(),
-                        graph_changed_nodes: pending.candidate_graph_changed_nodes,
-                        boundary: input.boundary,
-                        lane_parity_report: input.lane_parity_report,
-                        candidate_query_binding: pending.candidate_query_binding,
-                        successor_planning_authority: std::rc::Rc::clone(
-                            pending.next_app.retained_planning_authority(),
-                        ),
-                        application_publication:
-                            crate::runtime::WorthUiPreparedApplicationPublication::new(
-                                pending.next_app,
-                            ),
-                    },
-                )
-                .map_err(WorthUiApplicationCutoverDenial::Activation)?;
+        let successor_planning_authority =
+            std::rc::Rc::clone(pending.next_app.retained_planning_authority());
+        let application_publication =
+            crate::runtime::WorthUiPreparedApplicationPublication::replacement(
+                self.application.prepared_authority(),
+                pending.next_app,
+            );
+        let prepared = self
+            .application
+            .prepare_admitted_allocation_catalog_delta(
+                pending.pending_activation,
+                crate::runtime::UiAllocationCatalogDeltaActivationInput {
+                    admitted_delta: input.admitted_delta,
+                    active_graph: self.application.graph_snapshot().clone(),
+                    graph_changed_nodes: pending.candidate_graph_changed_nodes,
+                    boundary: input.boundary,
+                    lane_parity_report: input.lane_parity_report,
+                    candidate_query_binding: pending.candidate_query_binding,
+                    successor_planning_authority,
+                    application_publication,
+                },
+            )
+            .map_err(WorthUiApplicationCutoverDenial::Activation)?;
         Ok(WorthUiPreparedCatalogActivation {
             prepared,
             reload_cost_seed,
@@ -201,13 +203,26 @@ impl WorthUiActiveApplicationSession {
         self.intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 self.application.intent_application_fact_plan(),
-                self.application.generation_identity().clone(),
             );
+        self.intent_confirmation.cancel_all(
+            crate::runtime::intent::UiIntentConfirmationCancellationReason::ApplicationRebound,
+        );
+        self.intent_admission.cancel_all(
+            &mut self.intent_execution,
+            crate::runtime::intent::UiIntentAdmissionCancellationReason::ApplicationRebound,
+        );
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.interaction.cancel_all(
             crate::runtime::interaction::UiInteractionLifecycleStopReason::ApplicationRebound,
         );
+        let observation_resources = self.application.retire_observation_resources(
+            crate::runtime::observation::UiObservationResourceRetirementCause::
+                ApplicationReplacement,
+        );
+        let intent_evidence = self
+            .intent_evidence
+            .retire(worth_ui_inspection::UiIntentEvidenceRetirementCause::ApplicationReplacement);
         let (plan_swap, query_retirement, plan_decision, allocation_catalog_successor) =
             publication.into_parts();
         prepared.transition = Some(WorthUiApplicationCutoverTransition::Committed {
@@ -218,6 +233,8 @@ impl WorthUiActiveApplicationSession {
         });
         WorthUiApplicationCutoverReceipt {
             transition: prepared,
+            observation_resources,
+            intent_evidence,
         }
     }
 

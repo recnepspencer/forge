@@ -1,25 +1,18 @@
 use crate::runtime::rebind::{UiProjectionRebindRequest, UiRebindOutcome, UiRebindReceipt};
-use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host;
+use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host_and_scalar_projection;
 
 use super::native_identity_trace_host::NativeIdentityTraceHost;
 
 #[test]
 fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
-    let mut shell = source_backed_component_app_with_host(NativeIdentityTraceHost::default())
-        .launch_native_surface()
-        .expect("source-backed application should launch through the native lifecycle");
-    let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
-        .expect("product Query plan prepares");
-    let (request, completion) = plan.into_parts();
-    let installation =
-        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
-            .install(request.generation(), request.into_packages())
-            .expect("host installs the exact product Query packages");
-    let installed = completion
-        .complete(installation)
-        .expect("binding completion opens the product Query owner");
+    let (registration, initial) = product_projection_installation().into_parts();
+    let mut shell = source_backed_component_app_with_host_and_scalar_projection(
+        NativeIdentityTraceHost::default(),
+        registration,
+    )
+    .launch_native_surface()
+    .expect("source-backed application should launch through the native lifecycle");
 
-    let initial = installed.into_initial_advance();
     let (pending, pending_completion) = initial.into_parts();
     let pending_receipt = published(
         shell
@@ -62,6 +55,20 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
     let shutdown = shell.shutdown();
     assert!(shutdown.host_session_released());
     assert_eq!(shutdown.released_surface_count(), 1);
+}
+
+fn product_projection_installation() -> worth_ui_query_binding::WorthUiScalarProjectionInstallation
+{
+    let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
+        .expect("product Query plan prepares");
+    let (request, completion) = plan.into_parts();
+    let installation =
+        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
+            .install(request.generation(), request.into_packages())
+            .expect("host installs the exact product Query packages");
+    completion
+        .complete(installation)
+        .expect("binding completion opens the product Query owner")
 }
 
 fn published(outcome: UiRebindOutcome<'_>, tick: u64) -> UiRebindReceipt {

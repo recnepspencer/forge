@@ -84,6 +84,74 @@ impl WorthUiApplicationSessionState {
         self.runtime.begin_observation_turn(session, source_basis)
     }
 
+    pub(crate) fn observation_resource_snapshot(
+        &self,
+    ) -> crate::runtime::observation::UiObservationResourceSnapshot {
+        self.runtime.observation.resource_snapshot()
+    }
+
+    pub(crate) fn retire_observation_resources(
+        &mut self,
+        cause: crate::runtime::observation::UiObservationResourceRetirementCause,
+    ) -> crate::runtime::observation::UiObservationResourceRetirementReport {
+        self.runtime.observation.retire_resources(cause)
+    }
+
+    pub(crate) fn commit_prepared_observation_progress(
+        &mut self,
+        commit: crate::runtime::observation::UiPreparedObservationProgressCommit,
+    ) {
+        self.runtime.commit_prepared_observation_progress(commit);
+    }
+
+    pub(crate) fn prepare_exact_query_change_publication(
+        &mut self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication,
+        crate::runtime::intent_execution::UiIntentConsequenceStopReason,
+    > {
+        let consequence = self
+            .runtime
+            .query_binding
+            .retry_operation_live_change_handoff(reference)
+            .map_err(
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::QueryHandoff,
+            )?;
+        self.runtime
+            .query_binding
+            .admit_operation_live_change_for_publication(consequence)
+            .map_err(|stop| {
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::QueryAdmission(
+                    stop.denial(),
+                )
+            })
+    }
+
+    pub(crate) fn publish_exact_query_change(
+        &mut self,
+        admission: worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiCollectionChangePublicationReceipt,
+        worth_ui_query_binding::WorthUiCollectionChangePublicationStop,
+    > {
+        self.runtime
+            .query_binding
+            .publish_admitted_operation_live_change(admission)
+    }
+
+    pub(crate) fn withdraw_exact_query_change(
+        &mut self,
+        admission: worth_ui_query_binding::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiCollectionChangeConsequence,
+        worth_ui_query_binding::WorthUiCollectionChangePublicationStop,
+    > {
+        self.runtime
+            .query_binding
+            .withdraw_admitted_operation_live_change(admission)
+    }
+
     pub(crate) fn admission(&self) -> crate::admission::UiAdmissionBoundary<'_> {
         self.app.admission()
     }
@@ -111,6 +179,19 @@ impl WorthUiApplicationSessionState {
         worth_ui_query_binding::WorthUiOperationLiveRefreshError,
     > {
         self.runtime.query_binding.refresh_operation_live(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn query_change_state_for_certification(
+        &self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveChangeObservation,
+        worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        self.runtime
+            .query_binding
+            .operation_live_change_observation_for(reference)
     }
 
     #[cfg(any(test, feature = "certification-support"))]

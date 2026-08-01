@@ -12,6 +12,12 @@ fn live_phase4_watched_replacement_satisfies_the_runner_contract() {
 }
 
 #[test]
+fn live_phase4_visual_identity_sources_satisfy_the_runner_contract() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    visual_identity_contract::audit(&inventory).expect("live Phase 4 visual identity runner");
+}
+
+#[test]
 fn event_only_and_pixel_only_replacements_are_rejected() {
     let inventory = WorkspaceSourceInventory::capture(workspace_root());
     let sources = Phase4RunnerSources::capture(&inventory);
@@ -104,6 +110,16 @@ fn forced_close_hidden_teardown_and_non_atomic_actions_are_rejected() {
     let error = runner_contract::audit_sources(&forced_close).expect_err("forced close must fail");
     assert!(error.contains("close_native_window"));
 
+    let mut detached_close = sources.clone();
+    detached_close.courtroom = mutate_required_edge(
+        &detached_close.courtroom,
+        "close_recovered(self.recovered)",
+        "drop(self.recovered)",
+    );
+    let error =
+        runner_contract::audit_sources(&detached_close).expect_err("detached close must fail");
+    assert!(error.contains("close_recovered(self.recovered)"));
+
     let mut hidden_teardown = sources.clone();
     hidden_teardown.source_action = mutate_required_edge(
         &hidden_teardown.source_action,
@@ -158,7 +174,7 @@ fn sole_node_and_wrong_target_visual_proofs_are_rejected() {
     let mut sole_node = sources.clone();
     sole_node.identity_trace = mutate_required_edge(
         &sole_node.identity_trace,
-        "snapshot.visible_region_count() != 2",
+        "snapshot.visible_region_count() != PLATFORM_PULSE_VISIBLE_REGION_COUNT",
         "snapshot.visible_region_count() == 0",
     );
     let error = visual_identity_contract::audit_sources(&sole_node)

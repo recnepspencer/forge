@@ -9,8 +9,6 @@ use crate::declaration::{
 };
 
 pub(crate) struct UiIntentApplicationFactState {
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     slots_by_identity: BTreeMap<Arc<str>, crate::declaration::UiIntentApplicationFactSlot>,
     facts: Box<[UiIntentApplicationFactRecord]>,
 }
@@ -50,8 +48,7 @@ pub enum UiIntentApplicationFactUpdateDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiIntentApplicationInputRevision {
-    generation:
-        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     identity: Arc<str>,
     revision: u64,
 }
@@ -73,11 +70,7 @@ pub(crate) enum UiIntentApplicationInputReference {
 }
 
 impl UiIntentApplicationFactState {
-    pub(crate) fn activate(
-        plan: &UiIntentApplicationFactPlan,
-        generation: crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
-    ) -> Self {
+    pub(crate) fn activate(plan: &UiIntentApplicationFactPlan) -> Self {
         let mut slots_by_identity = BTreeMap::new();
         let mut facts = (0..plan.entries().len())
             .map(|_| None)
@@ -92,7 +85,6 @@ impl UiIntentApplicationFactState {
             });
         }
         Self {
-            generation,
             slots_by_identity,
             facts: facts
                 .into_iter()
@@ -151,10 +143,11 @@ impl UiIntentApplicationFactState {
     pub(crate) fn input_reference(
         &self,
         slot: crate::declaration::UiIntentApplicationFactSlot,
+        generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     ) -> Option<UiIntentApplicationInputReference> {
         let record = self.facts.get(slot.index())?;
         let revision = UiIntentApplicationInputRevision {
-            generation: self.generation.clone(),
+            generation: generation.clone(),
             identity: Arc::clone(&record.identity),
             revision: record.revision,
         };
@@ -178,18 +171,19 @@ impl UiIntentApplicationFactState {
         })
     }
 
-    pub(crate) fn commit_generation_successor(
-        &mut self,
-        predecessor: &crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
-        successor: crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
-    ) {
-        assert_eq!(
-            &self.generation, predecessor,
-            "application-fact succession must consume its exact active generation"
-        );
-        self.generation = successor;
+    pub(crate) fn is_current_reference(
+        &self,
+        expected: &UiIntentApplicationInputReference,
+        generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
+    ) -> bool {
+        let Some(slot) = self
+            .slots_by_identity
+            .get(expected.revision().identity())
+            .copied()
+        else {
+            return false;
+        };
+        self.input_reference(slot, generation).as_ref() == Some(expected)
     }
 
     fn require(
@@ -295,10 +289,7 @@ impl UiIntentApplicationInputReference {
 }
 
 impl UiIntentApplicationInputRevision {
-    pub(crate) fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub(crate) fn generation(&self) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
         &self.generation
     }
 

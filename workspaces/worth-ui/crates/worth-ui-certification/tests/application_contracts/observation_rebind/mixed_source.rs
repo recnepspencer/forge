@@ -59,7 +59,7 @@ struct ExpectedFamily {
     rank: u8,
 }
 
-const EXPECTED_FAMILIES: [ExpectedFamily; 7] = [
+const EXPECTED_FAMILIES: [ExpectedFamily; 8] = [
     expected(
         UiObservationFamily::AuthoredSource,
         UiObservationOwner::SourceIngress,
@@ -86,14 +86,19 @@ const EXPECTED_FAMILIES: [ExpectedFamily; 7] = [
         4,
     ),
     expected(
+        UiObservationFamily::IntentPosture,
+        UiObservationOwner::IntentRuntime,
+        5,
+    ),
+    expected(
         UiObservationFamily::CommittedScrollExtent,
         UiObservationOwner::ScrollRuntimeState,
-        5,
+        6,
     ),
     expected(
         UiObservationFamily::CommittedPortalAnchor,
         UiObservationOwner::PortalRuntimeState,
-        6,
+        7,
     ),
 ];
 

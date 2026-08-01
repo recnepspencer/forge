@@ -1,4 +1,8 @@
+mod lookup_cost;
 mod preparation;
+mod semantic_comparison;
+
+pub use lookup_cost::UiIntentRouteResolutionCost;
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -43,9 +47,15 @@ pub(crate) struct UiIntentCatalog {
     definition_count: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiIntentCatalogSemanticComparison {
+    Equivalent,
+    Different,
+}
+
 impl UiIntentCatalog {
     pub(crate) fn prepare(
-        material: &crate::runtime::WorthUiAuthoredIntentMaterial,
+        material: &crate::declaration::WorthUiAuthoredIntentMaterial,
         definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
         graph: &crate::graph::UiGraphSnapshot,
         query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
@@ -58,21 +68,27 @@ impl UiIntentCatalog {
         &self,
         graph_node: crate::graph::UiGraphNodeIdentity,
         interaction: UiSemanticInteractionFamily,
-    ) -> Option<UiIntentCatalogResolvedRoute> {
+    ) -> Option<(UiIntentCatalogResolvedRoute, UiIntentRouteResolutionCost)> {
         let key = (graph_node, interaction);
         if let Some(index) = self.product_index.get(&key).copied() {
             let route = self.product_routes[index];
-            return Some(UiIntentCatalogResolvedRoute::Product {
-                route,
-                declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
-            });
+            return Some((
+                UiIntentCatalogResolvedRoute::Product {
+                    route,
+                    declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
+                },
+                UiIntentRouteResolutionCost::product_route(),
+            ));
         }
         self.confirmation_index.get(&key).copied().map(|index| {
             let route = self.confirmation_routes[index];
-            UiIntentCatalogResolvedRoute::Confirmation {
-                route,
-                declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
-            }
+            (
+                UiIntentCatalogResolvedRoute::Confirmation {
+                    route,
+                    declaration: Arc::clone(&self.declarations[route.declaration_index() as usize]),
+                },
+                UiIntentRouteResolutionCost::confirmation_route(),
+            )
         })
     }
 
@@ -83,6 +99,13 @@ impl UiIntentCatalog {
             product_routes: self.product_routes.len(),
             confirmation_routes: self.confirmation_routes.len(),
         }
+    }
+
+    pub(crate) fn compare_semantic_contract(
+        &self,
+        candidate: &Self,
+    ) -> UiIntentCatalogSemanticComparison {
+        semantic_comparison::compare(self, candidate)
     }
 }
 

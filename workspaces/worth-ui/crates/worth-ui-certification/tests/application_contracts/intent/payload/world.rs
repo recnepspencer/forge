@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use worth_ui::facade::intent::{
-    UiIntent, UiIntentApplicationFact, UiIntentBoolean, UiIntentDeclaration, UiIntentDefinition,
-    UiIntentText, UiIntentUnsigned64,
+    UiIntent, UiIntentApplicationFact, UiIntentBoolean, UiIntentConcurrencyScope,
+    UiIntentConfirmationContract, UiIntentConsequenceContract, UiIntentDeclaration,
+    UiIntentDefinition, UiIntentMutabilitySource, UiIntentOperabilityContract,
+    UiIntentPolicySource, UiIntentReadinessSource, UiIntentText, UiIntentUnsigned64,
 };
 use worth_ui_dsl::{
     WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
@@ -12,7 +14,9 @@ use worth_ui_query_binding::{
     UiCollectionProjectionRegistration, UiProjectionInputSlot, UiScalarProjectionRegistration,
     WorthUiQueryBindingPlan,
 };
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_runtime::facade::host::{
+    UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder, WorthUiOperationalHostAdapter,
+};
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 use worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode;
 
@@ -22,7 +26,7 @@ use super::super::super::filesystem_mounted_world::{
 use super::super::interaction_world::InteractionWorld;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 
-pub(super) const DECLARATION: &str = "phase3.payload.route";
+pub(in crate::intent) const DECLARATION: &str = "phase3.payload.route";
 const PAINT_ONLY: &str = "visual.identity.component.paint_only";
 const HIT_ONLY: &str = "visual.identity.component.hit_only";
 const PAINT_AND_HIT: &str = "visual.identity.component.paint_and_hit";
@@ -30,21 +34,25 @@ const NEITHER: &str = "visual.identity.component.neither";
 const SURFACE: &str = "visual.identity.surface.main";
 const PAINT_ONLY_TOKEN: &str = "theme.visual_identity.paint_only";
 const PAINT_AND_HIT_TOKEN: &str = "theme.visual_identity.paint_and_hit";
+const OPERABILITY_FACT: &str = "phase3.payload.operable";
+const OPERABILITY_CONTRACT: &str = "phase3.payload.operability";
+const CONFIRMATION_POLICY: &str = "phase3.payload.confirmation";
 
-pub(super) struct PayloadWorld {
-    pub(super) interaction: InteractionWorld,
+pub(in crate::intent) struct PayloadWorld {
+    pub(in crate::intent) interaction: InteractionWorld,
     pub(super) projection_slot: Option<UiProjectionInputSlot>,
 }
 
 #[derive(Clone)]
-pub(super) enum PayloadProjectionRegistration {
+pub(in crate::intent) enum PayloadProjectionRegistration {
     None,
     Scalar(UiScalarProjectionRegistration),
     Collection(UiCollectionProjectionRegistration),
 }
 
-#[derive(Clone, Default)]
-pub(super) struct PayloadApplicationFacts {
+#[derive(Clone)]
+pub(in crate::intent) struct PayloadApplicationFacts {
+    operability: (UiIntentApplicationFact<UiIntentBoolean>, bool),
     text: Option<(UiIntentApplicationFact<UiIntentText>, Arc<str>)>,
     boolean: Option<(UiIntentApplicationFact<UiIntentBoolean>, bool)>,
     unsigned64: Option<(UiIntentApplicationFact<UiIntentUnsigned64>, u64)>,
@@ -60,15 +68,51 @@ impl PayloadApplicationFacts {
             text: Some((text, Arc::from("application-current"))),
             boolean: Some((boolean, true)),
             unsigned64: Some((unsigned64, 42)),
+            ..Self::default()
+        }
+    }
+
+    pub(in crate::intent) fn text(
+        fact: UiIntentApplicationFact<UiIntentText>,
+        initial: impl Into<Arc<str>>,
+    ) -> Self {
+        Self {
+            text: Some((fact, initial.into())),
+            ..Self::default()
         }
     }
 }
 
-pub(super) fn launch<I: UiIntent>(
+impl Default for PayloadApplicationFacts {
+    fn default() -> Self {
+        Self {
+            operability: (operability_fact(), true),
+            text: None,
+            boolean: None,
+            unsigned64: None,
+        }
+    }
+}
+
+pub(in crate::intent) fn launch<I: UiIntent>(
     input: WorthUiRustAuthoredArtifactInput,
     projection: PayloadProjectionRegistration,
     facts: PayloadApplicationFacts,
 ) -> PayloadWorld {
+    let projection_slot = projection_slot(&projection);
+    let application = prepare::<I>(input, projection, facts)
+        .expect("payload world compiles through production application preparation");
+    launch_prepared(application, projection_slot)
+}
+
+pub(super) fn prepare<I: UiIntent>(
+    input: WorthUiRustAuthoredArtifactInput,
+    projection: PayloadProjectionRegistration,
+    facts: PayloadApplicationFacts,
+) -> Result<
+    worth_ui::facade::app::WorthUiApp,
+    worth_ui::facade::app::WorthUiApplicationPreparationDenial,
+> {
     let host = WorthUiHeadlessRecorder::with_viewport_extent(
         UiHeadlessRecorderCapacity::production_default(),
         UiViewportExtentObservation {
@@ -76,18 +120,79 @@ pub(super) fn launch<I: UiIntent>(
             height: 96.0,
         },
     );
-    let scenario = FilesystemApplicationLifecycleScenario::new("phase-3-payload-world");
+    prepare_with_host::<I, _>(input, projection, facts, host)
+}
+
+pub(super) fn launch_native<I: UiIntent>(
+    input: WorthUiRustAuthoredArtifactInput,
+    projection: PayloadProjectionRegistration,
+    facts: PayloadApplicationFacts,
+) -> PayloadWorld {
+    let context = egui::Context::default();
+    let _ = context.run_ui(egui::RawInput::default(), |_| {});
+    let host = worth_ui_host_egui::WorthUiHostEgui::new(context);
     let projection_slot = projection_slot(&projection);
+    let application = prepare_with_host::<I, _>(input, projection, facts, host.clone())
+        .expect("native payload world compiles through production application preparation");
+    let component_nodes = component_graph_nodes(&application);
+    let session = launch_mounted_components(
+        application,
+        component_nodes,
+        UiHostSurfacePresentationMode::NativeDisplay,
+    );
+    PayloadWorld {
+        interaction: InteractionWorld::from_native_session(session, host),
+        projection_slot,
+    }
+}
+
+pub(super) fn launch_with_host<I, Host>(
+    input: WorthUiRustAuthoredArtifactInput,
+    projection: PayloadProjectionRegistration,
+    facts: PayloadApplicationFacts,
+    host: Host,
+) -> PayloadWorld
+where
+    I: UiIntent,
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    let projection_slot = projection_slot(&projection);
+    let application = prepare_with_host::<I, _>(input, projection, facts, host)
+        .expect("payload world compiles through production application preparation");
+    launch_prepared(application, projection_slot)
+}
+
+fn prepare_with_host<I, Host>(
+    input: WorthUiRustAuthoredArtifactInput,
+    projection: PayloadProjectionRegistration,
+    facts: PayloadApplicationFacts,
+    host: Host,
+) -> Result<
+    worth_ui::facade::app::WorthUiApp,
+    worth_ui::facade::app::WorthUiApplicationPreparationDenial,
+>
+where
+    I: UiIntent,
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
+    let scenario = FilesystemApplicationLifecycleScenario::new("phase-3-payload-world");
     let builder = scenario
         .visual_identity_application_builder(host)
         .register_intent_definition(UiIntentDefinition::<I>::application_effect())
-        .expect("typed payload definition registers");
+        .expect("typed payload definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<I>::new(),
+        )
+        .expect("typed payload provider registers");
     let builder = register_projection(builder, projection);
     let builder = register_facts(builder, facts);
-    let application = builder
-        .with_rust_authored_input(input)
-        .freeze()
-        .expect("payload world compiles through production application preparation");
+    builder.with_rust_authored_input(input).freeze()
+}
+
+fn launch_prepared(
+    application: worth_ui::facade::app::WorthUiApp,
+    projection_slot: Option<UiProjectionInputSlot>,
+) -> PayloadWorld {
     let component_nodes = component_graph_nodes(&application);
     let session = launch_mounted_components(
         application,
@@ -100,7 +205,7 @@ pub(super) fn launch<I: UiIntent>(
     }
 }
 
-pub(super) fn routed_input<I: UiIntent>(
+pub(in crate::intent) fn routed_input<I: UiIntent>(
     declaration: UiIntentDeclaration<I>,
     family: WorthUiIntentInteractionFamily,
 ) -> WorthUiRustAuthoredArtifactInput {
@@ -115,7 +220,7 @@ pub(super) fn routed_input<I: UiIntent>(
         .with_surface(SURFACE)
         .with_token(PAINT_ONLY_TOKEN, "theme.visual_identity.red")
         .with_token(PAINT_AND_HIT_TOKEN, "theme.visual_identity.purple")
-        .with_intent_declaration(declaration.into_dsl_spec());
+        .with_intent_declaration(bind_operability(declaration));
     WorthUiRustAuthoredArtifactInput::from_modules([module])
 }
 
@@ -158,6 +263,9 @@ fn register_facts(
     mut builder: worth_ui::facade::app::WorthUiApplicationBuilder,
     facts: PayloadApplicationFacts,
 ) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+    builder = builder
+        .register_intent_boolean_fact(facts.operability.0, facts.operability.1)
+        .expect("payload operability fact registers");
     if let Some((fact, initial)) = facts.text {
         builder = builder
             .register_intent_text_fact(fact, initial)
@@ -174,4 +282,32 @@ fn register_facts(
             .expect("scenario unsigned fact registers");
     }
     builder
+}
+
+fn operability_fact() -> UiIntentApplicationFact<UiIntentBoolean> {
+    UiIntentApplicationFact::boolean(OPERABILITY_FACT)
+        .expect("payload operability fact identity is valid")
+}
+
+fn bind_operability<I: UiIntent>(
+    declaration: UiIntentDeclaration<I>,
+) -> worth_ui_dsl::WorthUiIntentDeclarationSpec {
+    let fact = operability_fact();
+    declaration
+        .operability_from(
+            UiIntentOperabilityContract::new(
+                OPERABILITY_CONTRACT,
+                UiIntentMutabilitySource::application_fact(&fact),
+                UiIntentReadinessSource::application_fact(&fact),
+                UiIntentPolicySource::application_fact(&fact),
+            )
+            .expect("payload operability contract identity is valid"),
+        )
+        .confirmation(
+            UiIntentConfirmationContract::not_required(CONFIRMATION_POLICY)
+                .expect("payload confirmation policy identity is valid"),
+        )
+        .concurrency(UiIntentConcurrencyScope::TargetRouteSingleFlight)
+        .consequences(UiIntentConsequenceContract::none())
+        .into_dsl_spec()
 }

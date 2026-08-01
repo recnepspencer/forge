@@ -303,9 +303,14 @@ absolute directory containing `main.wui`:
 ```powershell
 $sourceRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/app).Path
 $queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
+$intentRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-intent"
 New-Item -ItemType Directory -Force -Path $queryRoot | Out-Null
+New-Item -ItemType Directory -Force -Path $intentRoot | Out-Null
 Remove-Item -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -ErrorAction SilentlyContinue
-cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot --query-source-root $queryRoot
+Copy-Item workspaces/worth-ui/apps/platform-pulse/intent_samples/ready.json `
+  (Join-Path $intentRoot "platform-pulse-intent.json") -Force
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- `
+  --source-root $sourceRoot --query-source-root $queryRoot --intent-source-root $intentRoot
 ```
 
 The process watches
@@ -323,7 +328,7 @@ After first publication, the application captures that exact mounted frame,
 resolves both points, and temporarily publishes a magenta identity border
 around the inset target. The border remains visible for two seconds and then
 clears through another successor mounted frame. The console emits this initial
-visual sequence inside the current version-3 lifecycle protocol:
+visual sequence inside the current version-9 lifecycle protocol:
 
 ```text
 VisualSnapshotCaptured
@@ -367,6 +372,80 @@ cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pu
 
 This projection is for reading the receipt stream. It does not create visual
 truth or grant authority back to the console.
+
+### Native Actions And Intent Postures
+
+The same page contains a yellow action control and, while confirmation is
+pending, a distinct purple confirmation control. Their authored route is a
+typed `activate` declaration; the native shell reports pointer observations
+and does not own a callback or product effect.
+
+The third launch root watches `platform-pulse-intent.json`. It is a deliberately
+small external product boundary that controls operability and the provider
+gate. To drive it from another PowerShell window, retain the `$intentRoot` from
+the launch command and use:
+
+```powershell
+function Set-PulseIntent([int]$Revision, [string]$Operability, [string]$Gate) {
+  @{
+    protocol = "worth-ui.platform-pulse.intent-source"
+    schema_version = 1
+    revision = $Revision
+    operability = $Operability
+    executor_gate = $Gate
+  } | ConvertTo-Json | Set-Content `
+    -LiteralPath (Join-Path $intentRoot "platform-pulse-intent.json") `
+    -Encoding utf8
+}
+```
+
+With revision 1 `ready` and `held`, click the yellow action. The real native
+input crosses presented-frame targeting and produces `IntentPosturePublished`
+with `Admitted`, then `IntentExecutorStarted`; the attempt remains held. Release
+the external gate without clicking again:
+
+```powershell
+Set-PulseIntent 2 ready released
+```
+
+The existing attempt completes once. `QueryAction` reports `Executed`, the
+separate Query owner issues the fact, `IntentPosturePublished` reports
+`Completed`, and mounted text becomes `ACTION 1`. `IntentCausalTrace` ties the
+input revision, host sequence, mounted target, route, payload, operability,
+admission, attempt, Query fact, successor frame, and independently observed
+pixels together without becoming authority.
+
+The confirmation journey is intentionally freshness-sensitive:
+
+```powershell
+Set-PulseIntent 3 confirmation_required held
+```
+
+Click yellow to issue a `ConfirmationRequired` posture and reveal the purple
+control. Then change the product input before accepting it:
+
+```powershell
+Set-PulseIntent 4 confirmation_required released
+```
+
+Clicking the old purple control reports `StaleConfirmation`; it cannot execute.
+Click yellow again to obtain a fresh challenge, then click the newly published
+purple control. The admitted attempt completes and mounted text becomes
+`ACTION 4`.
+
+Denial is equally visible and effect-free. `Set-PulseIntent 5 disabled released`
+or `Set-PulseIntent 6 denied released`, followed by a yellow click, publishes
+`Denied` without starting a provider or changing Query. To prove replacement
+cancellation, set revision 7 to `ready` and `held`, click yellow, then remove
+the `interaction activate routes platform.pulse.action.route;` line from the
+identity-target component. The ordinary source rebind publishes a successor
+without that route and the predecessor attempt publishes `Cancelled`; restoring
+the checked-in source does not resurrect it.
+
+Every admitted product-input revision emits `IntentInputAdmitted`. Malformed,
+non-monotonic, missing, relative, or non-directory intent roots stop at their
+typed source or launch boundary. They do not silently retain a permissive
+boolean or reread the file on each frame.
 
 ### Projected Product Data
 
@@ -447,9 +526,12 @@ checked-in source exactly:
 
 ```text
 component platform.pulse.component.seed {}
-component platform.pulse.component.identity_target {}
+component platform.pulse.component.identity_target {
+  interaction activate routes platform.pulse.action.route;
+}
 component platform.pulse.component.projected_status {
   content projection platform.pulse.status
+  interaction activate confirms platform.pulse.action.route;
 }
 surface platform.pulse.surface.main {}
 query_scalar platform.pulse.status {
@@ -458,20 +540,38 @@ query_scalar platform.pulse.status {
   require text
   lifecycle live
 }
+intent platform.pulse.action.route {
+  definition platform.pulse.action;
+  interaction activate;
+  payload action_input_revision application-unsigned64 platform.pulse.action.input-revision;
+  operability platform.pulse.action.operability
+    mutability-application-boolean platform.pulse.action.mutable
+    readiness-application-boolean platform.pulse.action.ready
+    policy-application-boolean platform.pulse.action.policy-allowed;
+  confirmation platform.pulse.action.confirmation
+    application-boolean platform.pulse.action.confirmation-required;
+  concurrency target-route-single-flight;
+  consequences mounted-posture-and-query platform.pulse.status;
+}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
 token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
+token theme.platform_pulse.confirmation_fill = "theme.platform_pulse.purple";
 token theme.platform_pulse.projected_status.text = "theme.platform_pulse.white";
 ```
 
 The same process and window then publish the recovered blue successor through
 the same rebind path. Close the native window normally to shut down both
-operating-system watchers, close the Query live owner and consumer lease,
-release the registered host surface, and consume the active application
-shutdown path. The terminal `Shutdown` observation must report zero live Query
-sources, attempts, resources, consumer leases, retained projections, and
+operating-system watchers, settle pending intent input, close the Query live
+owner and consumer lease, release the registered host surface, and consume the
+active application shutdown path. The terminal `ShutdownCompleted` observation
+must report joined Query and intent watchers, zero pending input, and zero live
+Query sources, attempts, resources, consumer leases, retained projections, and
 projection receipts, alongside zero live captures, snapshots, comparison
 projections, rebind handles, pixel bytes, structural bytes, pending overlays,
-published overlays, and clearing overlays. The visual fields include
+published overlays, and clearing overlays. The ordinary lifecycle certification
+separately proves zero live gesture, draft, admission, confirmation, execution,
+recovery, and consequence resources from framework-owned census receipts. The
+visual fields include
 `cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
 `disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
 `cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and
@@ -532,6 +632,7 @@ composition root or universal fixture.
 
 - [Worth UI architecture](./architecture.md)
 - [Authored composition](./authored-composition.md)
+- [Interaction and intents](./interaction-and-intents.md)
 - [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Query-backed UI views](./query-binding.md)

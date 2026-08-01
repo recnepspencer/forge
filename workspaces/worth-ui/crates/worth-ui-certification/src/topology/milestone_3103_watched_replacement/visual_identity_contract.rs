@@ -38,6 +38,7 @@ fn audit_required_files(inventory: &WorkspaceSourceInventory) -> Result<(), Stri
         "apps/platform-pulse/tests/executable_world/native_platform/windows.rs",
         "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         "apps/platform-pulse/tests/executable_world/product_process/native_desktop_lease.rs",
+        "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
     ] {
         if inventory.source(path).is_none() {
             return Err(format!("visual identity courtroom lost `{path}`"));
@@ -56,14 +57,14 @@ fn audit_typestate(progression: &str, visual: &str) -> Result<(), String> {
         require(progression, edge, "visual executable typestate")?;
     }
     for edge in [
-        "impl PulseExecutableWorld<Published<InitialBlue>>",
-        "PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>>",
-        "PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>>",
-        "PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>>",
-        "PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
+        "impl PulseExecutableWorld<Published<FirstCurrent>>",
+        "PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>>",
     ] {
         require(visual, edge, "visual executable progression")?;
     }
@@ -86,8 +87,8 @@ fn audit_event_pixel_join(source: &str) -> Result<(), String> {
 
 fn audit_identity_oracle(source: &str) -> Result<(), String> {
     for edge in [
-        "snapshot.visible_region_count() != 2",
-        "snapshot.hit_test_region_count() != 2",
+        "snapshot.visible_region_count() != PLATFORM_PULSE_VISIBLE_REGION_COUNT",
+        "snapshot.hit_test_region_count() != PLATFORM_PULSE_HIT_TEST_REGION_COUNT",
         "PLATFORM_PULSE_TARGET_LOGICAL_POINT",
         "PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT",
         "trace.target().visible_region() != snapshot.expected_target_region()?",
@@ -153,6 +154,7 @@ fn audit_courtroom(source: &str) -> Result<(), String> {
     }
     for edge in [
         "assert!(matching * 4 >= sampled * 3)",
+        "close_recovered(self.recovered)",
         "cancelled_visual_capture_count(), 0",
         "disposed_published_overlay_count(), 0",
     ] {
@@ -272,9 +274,11 @@ impl VisualIdentityRunnerSources {
             lifecycle_cleanup: text(
                 "apps/platform-pulse/tests/executable_world/adjudication/lifecycle_cleanup.rs",
             ),
-            courtroom: text(
-                "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
-            ),
+            courtroom: inventory
+                .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
+                .map(|source| source.text())
+                .collect::<Vec<_>>()
+                .join("\n"),
             windows_capture: text(
                 "apps/platform-pulse/tests/executable_world/native_platform/windows.rs",
             ),

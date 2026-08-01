@@ -1,6 +1,8 @@
-use worth_ui_host_contract::{UiHostObservationPresentationBasis, UiHostObservationSequence};
+use worth_ui_host_contract::{
+    UiHostObservationPresentationBasis, UiHostObservationSequence, UiHostObservationTimeBasis,
+};
 
-use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 
 use super::super::{UiDraftFieldIdentity, UiDraftSessionIdentity};
 
@@ -8,10 +10,11 @@ use super::super::{UiDraftFieldIdentity, UiDraftSessionIdentity};
 pub struct UiEditCommitInteraction {
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     presentation: UiHostObservationPresentationBasis,
-    generation: WorthUiPreparedApplicationGenerationIdentity,
+    generation: WorthUiActiveApplicationGenerationIdentity,
     session: UiDraftSessionIdentity,
     field: UiDraftFieldIdentity,
     source_sequence: UiHostObservationSequence,
+    time_basis: UiHostObservationTimeBasis,
     input_revision: Option<u64>,
     draft_revision: u64,
     committed_text: std::sync::Arc<str>,
@@ -20,10 +23,11 @@ pub struct UiEditCommitInteraction {
 pub(crate) struct UiEditCommitInput {
     pub(crate) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     pub(crate) presentation: UiHostObservationPresentationBasis,
-    pub(crate) generation: WorthUiPreparedApplicationGenerationIdentity,
+    pub(crate) generation: WorthUiActiveApplicationGenerationIdentity,
     pub(crate) session: UiDraftSessionIdentity,
     pub(crate) field: UiDraftFieldIdentity,
     pub(crate) source_sequence: UiHostObservationSequence,
+    pub(crate) time_basis: UiHostObservationTimeBasis,
     pub(crate) input_revision: Option<u64>,
     pub(crate) draft_revision: u64,
     pub(crate) committed_text: std::sync::Arc<str>,
@@ -38,6 +42,7 @@ impl UiEditCommitInteraction {
             session: input.session,
             field: input.field,
             source_sequence: input.source_sequence,
+            time_basis: input.time_basis,
             input_revision: input.input_revision,
             draft_revision: input.draft_revision,
             committed_text: input.committed_text,
@@ -52,7 +57,7 @@ impl UiEditCommitInteraction {
         self.presentation
     }
 
-    pub const fn generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
+    pub const fn generation(&self) -> &WorthUiActiveApplicationGenerationIdentity {
         &self.generation
     }
 
@@ -66,6 +71,10 @@ impl UiEditCommitInteraction {
 
     pub const fn source_sequence(&self) -> UiHostObservationSequence {
         self.source_sequence
+    }
+
+    pub const fn time_basis(&self) -> UiHostObservationTimeBasis {
+        self.time_basis
     }
 
     pub const fn input_revision(&self) -> Option<u64> {

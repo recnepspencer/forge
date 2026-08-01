@@ -1,12 +1,11 @@
-use crate::facade::inspection_bridge::UiInspectionReceipt;
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 #[cfg(any(test, feature = "certification-support"))]
 use crate::runtime::WorthUiActiveRuntimeObservation;
 use crate::runtime::{WorthUiFrameworkTurn, WorthUiRuntime, WorthUiRuntimeShutdownReceipt};
-use worth_ui_inspection::UiInspectionQuery;
 
 use super::{
-    WorthUiActiveApplicationSessionIdentity, WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
+    WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSessionIdentity,
+    WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
 };
 
 /// The one ordinary owner of a running Worth UI application generation.
@@ -17,7 +16,12 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
     pub(super) interaction: crate::runtime::interaction::UiInteractionRuntimeState,
+    pub(super) intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry,
     pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
+    pub(super) intent_execution: crate::runtime::intent_execution::UiIntentExecutionState,
+    pub(super) intent_admission: crate::runtime::intent::UiIntentAdmissionState,
+    pub(super) intent_confirmation: crate::runtime::intent::UiIntentConfirmationState,
+    pub(super) intent_postures: crate::mounting::UiIntentPostureTable,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -25,12 +29,6 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry,
     pub(super) visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry,
     pub(super) rebind: crate::runtime::rebind::UiRebindRuntimeState,
-}
-
-/// Inspection evidence bound to the exact generation currently executing.
-pub struct WorthUiActiveInspectionReceipt {
-    generation_identity: WorthUiPreparedApplicationGenerationIdentity,
-    receipt: UiInspectionReceipt,
 }
 
 impl WorthUiActiveApplicationSession {
@@ -49,7 +47,6 @@ impl WorthUiActiveApplicationSession {
         let intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 app.prepared_authority().intent_application_fact_plan(),
-                app.generation_identity().clone(),
             );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
@@ -72,7 +69,14 @@ impl WorthUiActiveApplicationSession {
                 host_observation_capacity,
             ),
             interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
+            intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry::new(
+                identity.as_u64(),
+            ),
             intent_application_facts,
+            intent_execution: crate::runtime::intent_execution::UiIntentExecutionState::new(),
+            intent_admission: crate::runtime::intent::UiIntentAdmissionState::new(),
+            intent_confirmation: crate::runtime::intent::UiIntentConfirmationState::new(),
+            intent_postures: crate::mounting::UiIntentPostureTable::new(),
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
@@ -90,6 +94,13 @@ impl WorthUiActiveApplicationSession {
 
     pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
         self.application.generation_identity()
+    }
+
+    pub fn active_generation_identity(&self) -> WorthUiActiveApplicationGenerationIdentity {
+        WorthUiActiveApplicationGenerationIdentity::current(
+            self.identity,
+            self.application.generation_identity(),
+        )
     }
 
     pub const fn rebind_deadline_at(
@@ -172,13 +183,6 @@ impl WorthUiActiveApplicationSession {
         self.application.source_event_ingress(provider)
     }
 
-    pub fn inspect(&self, query: UiInspectionQuery) -> WorthUiActiveInspectionReceipt {
-        WorthUiActiveInspectionReceipt {
-            generation_identity: self.generation_identity().clone(),
-            receipt: self.application.inspect(query),
-        }
-    }
-
     #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation {
         self.application.inspect_active_runtime()
@@ -201,6 +205,18 @@ impl WorthUiActiveApplicationSession {
     > {
         self.application
             .refresh_query_change_for_certification(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn query_change_state_for_certification(
+        &self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveChangeObservation,
+        worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        self.application
+            .query_change_state_for_certification(reference)
     }
 
     #[cfg(any(test, feature = "certification-support"))]
@@ -345,6 +361,16 @@ impl WorthUiActiveApplicationSession {
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
         let interaction = self.interaction.shutdown();
+        let confirmation = self.intent_confirmation.shutdown();
+        let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
+        let observation_resources = self.application.retire_observation_resources(
+            crate::runtime::observation::UiObservationResourceRetirementCause::ApplicationShutdown,
+        );
+        let intent_evidence = self
+            .intent_evidence
+            .retire(worth_ui_inspection::UiIntentEvidenceRetirementCause::ApplicationShutdown);
+        let final_intent_resource_census = self.intent_resource_census();
+        debug_assert!(final_intent_resource_census.is_empty());
         let (mounted_presentation, outcomes) =
             self.mounted.shutdown_presentation(&self.host_session);
         for outcome in outcomes {
@@ -360,16 +386,12 @@ impl WorthUiActiveApplicationSession {
             .bind_mounted_presentation(mounted_presentation)
             .bind_host_session_release(host_session_release)
             .bind_interaction(interaction)
+            .bind_intent_confirmation(confirmation)
+            .bind_intent_admission(admission)
+            .bind_intent_execution(execution)
+            .bind_observation_resources(observation_resources)
+            .bind_intent_evidence(intent_evidence)
+            .bind_intent_resource_census(final_intent_resource_census)
             .bind_rebind(rebind)
-    }
-}
-
-impl WorthUiActiveInspectionReceipt {
-    pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.generation_identity
-    }
-
-    pub fn receipt(&self) -> &UiInspectionReceipt {
-        &self.receipt
     }
 }

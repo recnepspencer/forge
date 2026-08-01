@@ -1,7 +1,7 @@
 use worth_ui::facade::inspection::{
     UiClearedVisualOverlayReceipt, UiPixelsRequired, UiPublishedVisualOverlay,
-    UiVisualOverlayDenial, UiVisualSnapshotDisposalReceipt, UiVisualSnapshotIdentity,
-    UiVisualSnapshotReceipt,
+    UiVisualSnapshotDisposalReceipt, UiVisualSnapshotIdentity, UiVisualSnapshotReceipt,
+    UiVisualSnapshotRelation,
 };
 
 use crate::lifecycle_observation_publication::{
@@ -55,11 +55,11 @@ impl PlatformPulseObservationPublisher {
     pub(crate) fn visual_snapshot_retired(
         &self,
         snapshot: UiVisualSnapshotIdentity,
-        denial: UiVisualOverlayDenial,
+        relation: UiVisualSnapshotRelation,
         disposal: UiVisualSnapshotDisposalReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.project_observation(|stream| {
-            stream.project_visual_snapshot_retired(snapshot, denial, disposal)
+            stream.project_visual_snapshot_retired(snapshot, relation, disposal)
         })
     }
 

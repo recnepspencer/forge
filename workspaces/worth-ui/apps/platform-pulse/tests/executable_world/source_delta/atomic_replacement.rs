@@ -15,6 +15,13 @@ pub(crate) enum PulseSourceDeltaIdentity {
     CanonicalBlueRecovery,
     RevisionSchema,
     StatusSchemaRecovery,
+    IntentReadyReleased,
+    IntentConfirmationHeld,
+    IntentConfirmationReleased,
+    IntentDisabled,
+    IntentDenied,
+    IntentFinalHeld,
+    IntentRouteRemoved,
 }
 
 #[derive(Debug)]

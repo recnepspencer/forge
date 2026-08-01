@@ -26,6 +26,29 @@ struct ComparedAuthoredSource {
 }
 
 impl WorthUiApplicationSessionState {
+    pub(crate) fn intent_consequence_fact_capacity(&self) -> usize {
+        self.app
+            .prepared_authority()
+            .change_profile()
+            .rebind()
+            .budget()
+            .changed_facts
+    }
+
+    pub(crate) fn classify_intent_consequence(
+        &self,
+        session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+        set: crate::runtime::observation::UiAdmittedObservationSet,
+    ) -> crate::runtime::observation::UiClassifiedChange {
+        UiChangeClassifier::classify_intent_consequence(
+            set,
+            session,
+            self.app.capabilities().digest().as_u64(),
+            self.app.generation_identity().clone(),
+            self.intent_consequence_fact_capacity(),
+        )
+    }
+
     pub(crate) fn classify_observations(
         &self,
         session: crate::facade::WorthUiActiveApplicationSessionIdentity,

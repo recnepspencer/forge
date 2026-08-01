@@ -26,6 +26,10 @@ pub(crate) enum PulseInstallationFailure {
         primary: PulseEntrySourcePreparationFailure,
         rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
     },
+    PrepareIntentSource {
+        primary: PulseEntrySourcePreparationFailure,
+        rollback: Result<PulseInstallationCleanupEvidence, PulseInstallationCleanupFailure>,
+    },
 }
 
 #[derive(Debug)]
@@ -54,6 +58,16 @@ impl fmt::Display for PulseInstallationFailure {
                     Ok(evidence) => {
                         write!(formatter, "released={}", evidence.removed_owned_root)
                     }
+                    Err(failure) => write!(formatter, "failed({failure})"),
+                }
+            }
+            Self::PrepareIntentSource { primary, rollback } => {
+                write!(
+                    formatter,
+                    "prepare isolated intent source: {primary}; rollback: "
+                )?;
+                match rollback {
+                    Ok(evidence) => write!(formatter, "released={}", evidence.removed_owned_root),
                     Err(failure) => write!(formatter, "failed({failure})"),
                 }
             }
@@ -106,13 +120,18 @@ impl IsolatedPulseInstallation {
             root,
             cleanup_required: true,
         };
-        match installation.write_entry_source(canonical.source_bytes()) {
-            Ok(()) => Ok(installation),
-            Err(primary) => {
-                let rollback = installation.close();
-                Err(PulseInstallationFailure::PrepareEntrySource { primary, rollback })
-            }
+        if let Err(primary) = installation.write_source("main.wui", canonical.source_bytes()) {
+            let rollback = installation.close();
+            return Err(PulseInstallationFailure::PrepareEntrySource { primary, rollback });
         }
+        if let Err(primary) = installation.write_source(
+            "platform-pulse-intent.json",
+            canonical.intent_source_bytes(),
+        ) {
+            let rollback = installation.close();
+            return Err(PulseInstallationFailure::PrepareIntentSource { primary, rollback });
+        }
+        Ok(installation)
     }
 
     pub(crate) fn source_root(&self) -> &Path {
@@ -121,6 +140,10 @@ impl IsolatedPulseInstallation {
 
     pub(crate) fn entry_source(&self) -> PathBuf {
         self.root.join("main.wui")
+    }
+
+    pub(crate) fn intent_source(&self) -> PathBuf {
+        self.root.join("platform-pulse-intent.json")
     }
 
     pub(crate) fn failure_source_snapshot(&self) -> Option<Box<[u8]>> {
@@ -142,11 +165,15 @@ impl IsolatedPulseInstallation {
         })
     }
 
-    fn write_entry_source(&self, source: &[u8]) -> Result<(), PulseEntrySourcePreparationFailure> {
+    fn write_source(
+        &self,
+        name: &str,
+        source: &[u8],
+    ) -> Result<(), PulseEntrySourcePreparationFailure> {
         let mut file = OpenOptions::new()
             .create_new(true)
             .write(true)
-            .open(self.root.join("main.wui"))
+            .open(self.root.join(name))
             .map_err(PulseEntrySourcePreparationFailure::Create)?;
         file.write_all(source)
             .map_err(PulseEntrySourcePreparationFailure::Write)?;

@@ -29,9 +29,6 @@ fn complete_static_filled_rect(
     semantic: &UiMountedSemanticProjection,
     node: &super::super::frame_storage::UiMountedProjectionNodeRecord,
 ) -> Result<Option<UiMountedFilledRectMechanic>, UiMountedProjectionDenial> {
-    if node.semantic_text.is_some() {
-        return Ok(None);
-    }
     let Some(seed) = node.static_paint else {
         return Ok(None);
     };

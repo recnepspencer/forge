@@ -1,6 +1,7 @@
 pub use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceIdentityComparisonError,
-    WorthQueryEvidenceIdentityScheme, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
+    WorthQueryEvidenceIdentityKey, WorthQueryEvidenceIdentityScheme, WorthQueryEvidenceScope,
+    WorthQueryEvidenceTag,
 };
 pub use crate::intent_admission::{
     WorthQueryIntentAdmissionMutationProofCase, WorthQueryIntentAdmissionSlopeLane,
@@ -79,9 +80,9 @@ pub use crate::runtime::{
     WorthQueryAspectContractRegistrationDenial, WorthQueryAspectContractRegistrationDenialKind,
     WorthQueryAspectMutationBuilder, WorthQueryAspectMutationOperation,
     WorthQueryAspectMutationOperationKind, WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
-    WorthQueryAuthoredAspectValue, WorthQueryAuthoritativeIntentExecutionBinding,
-    WorthQueryAuthoritativeIntentExecutionHandoff, WorthQueryAuthoritativeIntentExecutionPlan,
-    WorthQueryAuthoritativeMutationEvidenceSupport,
+    WorthQueryAuthoredAspectValue, WorthQueryAuthoredMutationAdmissionDenial,
+    WorthQueryAuthoritativeIntentExecutionBinding, WorthQueryAuthoritativeIntentExecutionHandoff,
+    WorthQueryAuthoritativeIntentExecutionPlan, WorthQueryAuthoritativeMutationEvidenceSupport,
     WorthQueryAuthoritativeMutationObligationDispatchProjection,
     WorthQueryAuthoritativeMutationObligationDispatchProjectionRow, WorthQueryAuthorityLane,
     WorthQueryBackendAdmissibleMutation, WorthQueryBasisAdmissionEvidenceRow,

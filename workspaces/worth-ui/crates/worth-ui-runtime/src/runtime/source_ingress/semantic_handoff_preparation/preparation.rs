@@ -1,4 +1,5 @@
 use crate::capability::CapabilitySnapshot;
+use crate::declaration::prepare_authored_intent_material;
 use crate::source::{
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
@@ -7,9 +8,9 @@ use crate::source::{
 use worth_ui_dsl::WorthUiSealedSemanticPackage;
 
 use super::{
-    prepare_authored_intent_material, prepare_declaration_material,
-    WorthUiPreparedSemanticHandoffMaterial, WorthUiSemanticHandoffEvidence,
-    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
+    prepare_declaration_material, WorthUiPreparedSemanticHandoffMaterial,
+    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
+    WorthUiSemanticHandoffPreparationStop,
 };
 
 pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(

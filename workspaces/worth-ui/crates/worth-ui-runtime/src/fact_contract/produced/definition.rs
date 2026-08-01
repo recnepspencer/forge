@@ -5,6 +5,7 @@ pub enum UiProducedFactOwner {
     HostDeviceScale,
     MeasurementExchange,
     QueryBinding,
+    IntentRuntime,
     ScrollRuntimeState,
     PortalRuntimeState,
 }
@@ -16,6 +17,7 @@ pub enum UiProducedFactFamily {
     HostDeviceScale,
     Measurement,
     Query,
+    IntentPosture,
     CommittedScrollExtent,
     CommittedPortalAnchor,
 }
@@ -50,6 +52,9 @@ impl UiProducedFactContract {
             }
             UiProducedFactOwner::QueryBinding => {
                 Self::new(owner, UiProducedFactFamily::Query, true)
+            }
+            UiProducedFactOwner::IntentRuntime => {
+                Self::new(owner, UiProducedFactFamily::IntentPosture, false)
             }
             UiProducedFactOwner::ScrollRuntimeState => {
                 Self::new(owner, UiProducedFactFamily::CommittedScrollExtent, false)

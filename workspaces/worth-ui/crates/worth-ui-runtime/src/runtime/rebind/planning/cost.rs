@@ -44,3 +44,30 @@ impl UiRebindPlanCost {
         self.effects
     }
 }
+
+pub(super) fn compile_cost(
+    decisions: &[super::super::UiIdentityLifecycleEntry],
+    subsystems: &[super::UiRebindSubsystemPlan],
+    effects: &super::UiRebindEffectSet,
+) -> UiRebindPlanCost {
+    UiRebindPlanCost::new(
+        decisions.len(),
+        subsystem_target_count(subsystems, super::UiRebindSubsystemKind::Graph)
+            + subsystem_target_count(subsystems, super::UiRebindSubsystemKind::Mount),
+        subsystem_target_count(subsystems, super::UiRebindSubsystemKind::Measurement)
+            + subsystem_target_count(subsystems, super::UiRebindSubsystemKind::Allocation),
+        subsystem_target_count(subsystems, super::UiRebindSubsystemKind::Binding),
+        effects.effects().len(),
+    )
+}
+
+fn subsystem_target_count(
+    subsystems: &[super::UiRebindSubsystemPlan],
+    kind: super::UiRebindSubsystemKind,
+) -> usize {
+    subsystems
+        .binary_search_by_key(&kind, super::UiRebindSubsystemPlan::kind)
+        .ok()
+        .map(|index| subsystems[index].targets().len())
+        .unwrap_or(0)
+}

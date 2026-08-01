@@ -35,9 +35,9 @@ impl PlatformPulseNativeFrame {
             return;
         };
         let source = snapshot.source_revision().clone();
-        self.tick = self.tick.saturating_add(1);
-        let deadline = self.tick.saturating_add(1);
-        let action = normalize_rebind(&mut shell, *snapshot, deadline, self.tick);
+        self.presentation_tick = self.presentation_tick.saturating_add(1);
+        let deadline = self.presentation_tick.saturating_add(1);
+        let action = normalize_rebind(&mut shell, *snapshot, deadline, self.presentation_tick);
         self.shell = Some(shell);
         match action {
             PlatformPulseRebindAction::SourceDenied(denial) => {
@@ -72,7 +72,7 @@ impl PlatformPulseNativeFrame {
                 if let Err(denial) = self.visual_identity.compare_after_rebind(
                     shell,
                     receipt,
-                    self.tick,
+                    self.presentation_tick,
                     std::time::Instant::now(),
                 ) {
                     self.fail_visual_identity(denial);

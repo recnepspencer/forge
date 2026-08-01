@@ -8,6 +8,10 @@ pub(crate) struct UiCanonicalIntentDeclaration {
     definition: UiIntentDefinitionSlot,
     interaction: UiSemanticInteractionFamily,
     payload: Box<[super::UiResolvedIntentPayloadBinding]>,
+    operability: super::UiResolvedIntentOperabilityContract,
+    confirmation: super::UiResolvedIntentConfirmationContract,
+    concurrency: super::UiIntentConcurrencyScope,
+    consequences: super::UiResolvedIntentConsequenceContract,
 }
 
 impl UiCanonicalIntentDeclaration {
@@ -16,12 +20,20 @@ impl UiCanonicalIntentDeclaration {
         definition: UiIntentDefinitionSlot,
         interaction: UiSemanticInteractionFamily,
         payload: Box<[super::UiResolvedIntentPayloadBinding]>,
+        operability: super::UiResolvedIntentOperabilityContract,
+        confirmation: super::UiResolvedIntentConfirmationContract,
+        concurrency: super::UiIntentConcurrencyScope,
+        consequences: super::UiResolvedIntentConsequenceContract,
     ) -> Self {
         Self {
             identity,
             definition,
             interaction,
             payload,
+            operability,
+            confirmation,
+            concurrency,
+            consequences,
         }
     }
 
@@ -39,5 +51,21 @@ impl UiCanonicalIntentDeclaration {
 
     pub(crate) fn payload(&self) -> &[super::UiResolvedIntentPayloadBinding] {
         &self.payload
+    }
+
+    pub(crate) const fn operability(&self) -> &super::UiResolvedIntentOperabilityContract {
+        &self.operability
+    }
+
+    pub(crate) const fn confirmation(&self) -> &super::UiResolvedIntentConfirmationContract {
+        &self.confirmation
+    }
+
+    pub(crate) const fn concurrency(&self) -> super::UiIntentConcurrencyScope {
+        self.concurrency
+    }
+
+    pub(crate) const fn consequences(&self) -> &super::UiResolvedIntentConsequenceContract {
+        &self.consequences
     }
 }
