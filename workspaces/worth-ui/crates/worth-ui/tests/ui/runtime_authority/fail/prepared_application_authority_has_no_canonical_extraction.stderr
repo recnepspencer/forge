@@ -49,4 +49,5 @@ error[E0624]: associated function `from_owner_consequence` is private
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/runtime_authority/fail/prepared_application_authority_has_no_canonical_extraction.rs
+ note: expected `WorthUiCollectionChangeConsequence`, found `()`
  note: associated function defined here

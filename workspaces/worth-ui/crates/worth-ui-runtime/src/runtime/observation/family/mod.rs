@@ -5,6 +5,7 @@ pub enum UiObservationFamily {
     HostDeviceScale,
     Measurement,
     Query,
+    IntentPosture,
     CommittedScrollExtent,
     CommittedPortalAnchor,
 }
@@ -16,6 +17,7 @@ pub enum UiObservationOwner {
     HostDeviceScale,
     MeasurementExchange,
     QueryBinding,
+    IntentRuntime,
     ScrollRuntimeState,
     PortalRuntimeState,
 }
@@ -83,6 +85,7 @@ impl UiObservationFamily {
             Self::HostDeviceScale => crate::fact_contract::UiProducedFactOwner::HostDeviceScale,
             Self::Measurement => crate::fact_contract::UiProducedFactOwner::MeasurementExchange,
             Self::Query => crate::fact_contract::UiProducedFactOwner::QueryBinding,
+            Self::IntentPosture => crate::fact_contract::UiProducedFactOwner::IntentRuntime,
             Self::CommittedScrollExtent => {
                 crate::fact_contract::UiProducedFactOwner::ScrollRuntimeState
             }
@@ -127,10 +130,19 @@ impl UiObservationFamily {
                 UiObservationResetPolicy::OwnerIssuedReset,
                 UiObservationCoalescingPolicy::Forbidden,
             ),
+            Self::IntentPosture => definition(
+                self,
+                UiObservationOwner::IntentRuntime,
+                5,
+                UiObservationDuplicatePolicy::Reject,
+                UiObservationLossPolicy::Lossless,
+                UiObservationResetPolicy::NoReset,
+                UiObservationCoalescingPolicy::Forbidden,
+            ),
             Self::CommittedScrollExtent => definition(
                 self,
                 UiObservationOwner::ScrollRuntimeState,
-                5,
+                6,
                 UiObservationDuplicatePolicy::OwnerEquivalentMayCoalesce,
                 UiObservationLossPolicy::Lossless,
                 UiObservationResetPolicy::NoReset,
@@ -139,7 +151,7 @@ impl UiObservationFamily {
             Self::CommittedPortalAnchor => definition(
                 self,
                 UiObservationOwner::PortalRuntimeState,
-                6,
+                7,
                 UiObservationDuplicatePolicy::OwnerEquivalentMayCoalesce,
                 UiObservationLossPolicy::Lossless,
                 UiObservationResetPolicy::NoReset,

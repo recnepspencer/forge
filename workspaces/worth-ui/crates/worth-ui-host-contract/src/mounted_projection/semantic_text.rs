@@ -33,8 +33,8 @@ pub enum UiSemanticTextSlot {
     Posture,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiMountedCollectionRowCorrelation(Arc<str>);
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiMountedCollectionRowCorrelation([u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiMountedSemanticTextReference(u16);
@@ -162,12 +162,12 @@ impl UiMountedSemanticTextReference {
 
 impl UiMountedCollectionRowCorrelation {
     #[doc(hidden)]
-    pub fn from_runtime_mounting(identity: Arc<str>) -> Self {
+    pub const fn from_runtime_mounting(identity: [u8; 32]) -> Self {
         Self(identity)
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        &self.0
+    pub const fn correlation_digest(self) -> [u8; 32] {
+        self.0
     }
 }
 
@@ -293,7 +293,7 @@ impl UiMountedSemanticTextTable {
                 total.checked_add(
                     row.collection_row
                         .as_ref()
-                        .map_or(0, |identity| identity.0.len()),
+                        .map_or(0, |_| std::mem::size_of::<[u8; 32]>()),
                 )
             })
         });

@@ -14,16 +14,21 @@ impl WorthUiActiveApplicationSession {
         crate::facade::intent::UiIntentRouteResolution,
         crate::facade::intent::UiIntentRouteResolutionStop,
     > {
+        let evidence_reference = self
+            .intent_evidence
+            .reference_for_input(source.evidence_input());
+        let generation = self.active_generation_identity();
         crate::runtime::intent::resolve_intent_route(
             self.application.prepared_authority().intent_catalog(),
             self.application
                 .prepared_authority()
                 .capabilities()
                 .intent_definitions(),
-            self.application.generation_identity(),
+            &generation,
             &self.mounted,
             source,
         )
+        .map(|resolution| resolution.with_evidence_reference(evidence_reference))
     }
 
     pub fn update_intent_text_fact(

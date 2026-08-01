@@ -33,7 +33,7 @@ fn audit_execution(source: &str) -> Result<(), String> {
         "AwaitingFirstFrame",
         "Capturing(PlatformPulseVisualCapture)",
         "OverlayVisible(PlatformPulseVisibleOverlay)",
-        "OverlayCleared(PlatformPulseRetainedSnapshot)",
+        "ComparisonReady(PlatformPulseRetainedSnapshot)",
         "issue_pixel_grant()",
         "begin_visual_pixel_snapshot(&grant, request)",
         "poll_visual_snapshot(capture.pending, *tick)",
@@ -47,8 +47,25 @@ fn audit_execution(source: &str) -> Result<(), String> {
     ] {
         require(source, edge, "ordinary product visual execution")?;
     }
+    let syntax = syn::parse_file(source)
+        .map_err(|error| format!("visual execution sources should parse: {error}"))?;
+    let allowed_test_modules = syntax
+        .items
+        .iter()
+        .filter(|item| match item {
+            Item::Mod(module) if module.ident == "tests" => {
+                module.attrs.iter().any(is_cfg_test_attribute)
+            }
+            _ => false,
+        })
+        .count();
+    if source.matches("#[cfg(test)]").count() != allowed_test_modules {
+        return Err(
+            "ordinary product visual execution reopened shortcut `#[cfg(test)]` outside a tests module"
+                .to_owned(),
+        );
+    }
     for shortcut in [
-        "#[cfg(test)]",
         "cfg!(test)",
         "executable_world",
         "egui::",
@@ -61,16 +78,29 @@ fn audit_execution(source: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn is_cfg_test_attribute(attribute: &syn::Attribute) -> bool {
+    let mut found = false;
+    attribute.path().is_ident("cfg")
+        && attribute
+            .parse_nested_meta(|meta| {
+                found |= meta.path.is_ident("test");
+                Ok(())
+            })
+            .is_ok()
+        && found
+}
+
 fn audit_adjudication(source: &str) -> Result<(), String> {
     let source = compact(source);
     for edge in [
         "PLATFORM_PULSE_TARGET_LOGICAL_POINT",
         "PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT",
         "scope.adjudicate_point(point)",
-        "target_visible.identity_trace().mounted_node()!=target_node",
-        "background_visible.identity_trace().mounted_node()",
+        "target_visible.identity_trace().mounted_node()!=target_hit.identity_trace().mounted_node()",
+        "background_visible.identity_trace().mounted_node()!=background_hit.identity_trace().mounted_node()",
         "background_hit.identity_trace().mounted_node()==target_node",
-        "!=PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME",
+        "validate_target_authored_name(target_hit)?",
+        "authored_semantic_name()==PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME",
     ] {
         require(&source, edge, "nondegenerate product point adjudication")?;
     }
@@ -273,7 +303,11 @@ impl ProductVisualIdentitySources {
             publication: source("visual_observation_publication.rs"),
             wire: source("observation_contract/visual.rs"),
             projection: source("observation_contract/visual_projection.rs"),
-            native_frame: source("native_frame.rs"),
+            native_frame: [
+                source("native_frame.rs"),
+                source("native_frame/source_rebind.rs"),
+            ]
+            .join("\n"),
             main: source("main.rs"),
         }
     }

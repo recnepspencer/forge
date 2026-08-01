@@ -3,6 +3,8 @@ use crate::fact_contract::{
 };
 use crate::source::{WorthUiArtifactDifference, WorthUiArtifactSemanticDelta};
 
+mod intent;
+
 #[derive(Clone, Copy)]
 struct UiAuthoredFactWorlds<'authority> {
     predecessor:
@@ -30,16 +32,17 @@ pub(crate) fn lower_differences(
     let mut facts = Vec::new();
     for difference in comparison.artifact_equivalence().differences() {
         lower_difference(difference, worlds, &mut facts)?;
-        if facts.len() > fact_limit {
-            return Err(
-                super::super::UiChangeClassificationDenial::ChangedFactCapacityExceeded {
-                    limit: fact_limit,
-                    observed: facts.len(),
-                },
-            );
-        }
+        enforce_fact_capacity(&facts, fact_limit)?;
     }
-    lower_projection_requirement_differences(worlds, &mut facts);
+    lower_projection_requirement_differences(worlds, &mut facts, fact_limit)?;
+    intent::lower_differences(predecessor, candidate, &mut facts, fact_limit)?;
+    Ok(facts.into_boxed_slice())
+}
+
+pub(super) fn enforce_fact_capacity(
+    facts: &[UiProducedFact],
+    fact_limit: usize,
+) -> Result<(), super::super::UiChangeClassificationDenial> {
     if facts.len() > fact_limit {
         return Err(
             super::super::UiChangeClassificationDenial::ChangedFactCapacityExceeded {
@@ -48,13 +51,14 @@ pub(crate) fn lower_differences(
             },
         );
     }
-    Ok(facts.into_boxed_slice())
+    Ok(())
 }
 
 fn lower_projection_requirement_differences(
     worlds: UiAuthoredFactWorlds<'_>,
     facts: &mut Vec<UiProducedFact>,
-) {
+    fact_limit: usize,
+) -> Result<(), super::super::UiChangeClassificationDenial> {
     let predecessor = worlds.predecessor.semantic_handoff();
     let candidate = worlds.candidate.semantic_handoff();
     let mut changed_views = std::collections::BTreeSet::new();
@@ -80,7 +84,9 @@ fn lower_projection_requirement_differences(
     }
     for component in changed_components {
         push_node(facts, component, UiAuthoredFactKind::SemanticsChanged);
+        enforce_fact_capacity(facts, fact_limit)?;
     }
+    Ok(())
 }
 
 fn lower_difference(

@@ -1,3 +1,4 @@
+mod action_contract;
 mod backend;
 mod bridge;
 mod installation;
@@ -10,6 +11,11 @@ pub use installation::{
     WorthUiScalarProjectionHostPlan, WorthUiScalarProjectionInstallationError,
 };
 pub use source_lifecycle::{
+    WorthUiScalarProjectionActionAdvance, WorthUiScalarProjectionActionDenied,
+    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
+    WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
+    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
     WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
     WorthUiScalarProjectionInstallation, WorthUiScalarProjectionLiveOwner,
     WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
@@ -18,7 +24,7 @@ pub use source_lifecycle::{
 pub use source_record::WorthUiScalarProjectionSourceRecord;
 
 pub(crate) use backend::{
-    shared_source_state, SharedSourceState, WorthUiExternalScalarSourceBackend,
+    configure_product_projection_backend, shared_source_state, SharedSourceState,
 };
 pub(crate) use bridge::platform_pulse_bridge;
 #[cfg(any(test, feature = "certification-construction"))]

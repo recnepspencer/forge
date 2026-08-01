@@ -32,6 +32,11 @@ pub(super) enum UiEguiPendingAdmission {
     CapacityExceeded,
 }
 
+pub(super) enum UiEguiPresentationAffinity {
+    Exact(UiEguiPresentedSurface),
+    Superseded,
+}
+
 impl UiEguiVisualCaptureState {
     pub(super) fn record_presentation(
         &mut self,
@@ -58,6 +63,19 @@ impl UiEguiVisualCaptureState {
             .get(&request.binding())
             .filter(|presentation| presentation.matches(request))
             .cloned()
+    }
+
+    pub(super) fn presentation_affinity(
+        &mut self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> UiEguiPresentationAffinity {
+        match self.exact_presentation(request) {
+            Some(presented) => UiEguiPresentationAffinity::Exact(presented),
+            None => {
+                self.cancel(request);
+                UiEguiPresentationAffinity::Superseded
+            }
+        }
     }
 
     pub(super) fn admit_pending(

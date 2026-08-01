@@ -41,11 +41,11 @@ use worth_ui_test_support::{
 
 use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
-pub(super) const ACTIVE_COMPONENT: &str = "platform.pulse.projected_status";
+pub(crate) const ACTIVE_COMPONENT: &str = "platform.pulse.projected_status";
 pub(super) const CANDIDATE_COMPONENT: &str = "platform.pulse.projected_status_candidate";
 pub(super) const PROJECTION: &str = "platform.pulse.status";
-pub(super) const TEXT_COLOR: &str = "theme.platform_pulse.projected_status.text";
-pub(super) const STATUS_REGION: &str = "platform.pulse.region.status_shell";
+pub(crate) const TEXT_COLOR: &str = "theme.platform_pulse.projected_status.text";
+pub(crate) const STATUS_REGION: &str = "platform.pulse.region.status_shell";
 
 #[test]
 fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() {
@@ -142,7 +142,7 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
     assert_eq!(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
-            filled_rect_count: 0,
+            filled_rect_count: 1,
             semantic_text_count: 2,
             preview_node_count: 0,
         }]
@@ -235,7 +235,7 @@ fn projection_module_with_body<const N: usize>(
         .unwrap()
 }
 
-pub(super) fn component_descriptor(identity: &str) -> ComponentDescriptor {
+pub(crate) fn component_descriptor(identity: &str) -> ComponentDescriptor {
     ComponentDescriptor::new(
         ComponentId::new(identity).unwrap(),
         ComponentPropSchema::named(format!("{identity}.props")),
@@ -255,7 +255,7 @@ pub(super) fn component_descriptor(identity: &str) -> ComponentDescriptor {
     ))
 }
 
-pub(super) fn status_region_descriptor() -> MosaicRegionKindDescriptor {
+pub(crate) fn status_region_descriptor() -> MosaicRegionKindDescriptor {
     MosaicRegionKindDescriptor::new(
         MosaicRegionKindId::new(STATUS_REGION).unwrap(),
         MosaicRegionRole::status(),
@@ -269,7 +269,7 @@ pub(super) fn status_region_descriptor() -> MosaicRegionKindDescriptor {
     .with_hit_test(MosaicHitTestPosture::participates())
 }
 
-pub(super) fn text_token_descriptor() -> ThemeTokenDescriptor {
+pub(crate) fn text_token_descriptor() -> ThemeTokenDescriptor {
     ThemeTokenDescriptor::define(
         ThemeTokenId::new(TEXT_COLOR).unwrap(),
         ThemeTokenFamily::surface(),

@@ -1,5 +1,10 @@
 use std::marker::PhantomData;
 
+use super::{
+    UiRetainedVisualSnapshotSource, UiSnapshotClientRegion, UiVisualCoordinateScope,
+    UiVisualCoordinateScopeInput,
+};
+
 mod comparison_access;
 
 pub struct UiVisualSnapshotReceipt<ArtifactPosture: worth_ui_inspection::UiVisualArtifactPolicy> {
@@ -17,6 +22,21 @@ pub struct UiVisualSnapshotReceipt<ArtifactPosture: worth_ui_inspection::UiVisua
     _snapshot_lease: crate::mounting::UiMountedVisualSnapshotLease,
     resource_lease: super::UiVisualSnapshotResourceLease,
     _artifact_posture: PhantomData<ArtifactPosture>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiVisualSnapshotRelationDenial {
+    ExpiredFrame,
+    UnknownFrame,
+    CapacityExceeded {
+        class: crate::mounting::UiMountedRetentionClass,
+        required_leases: usize,
+        required_structural_bytes: usize,
+        budget: crate::mounting::UiMountedRetentionClassBudget,
+    },
+    AccountingOverflow {
+        class: crate::mounting::UiMountedRetentionClass,
+    },
 }
 
 pub(crate) struct UiVisualSnapshotSealInput {
@@ -37,41 +57,6 @@ pub(crate) struct UiVisualSnapshotSealInput {
     pub(crate) identity_trace_basis: crate::mounting::UiMountedIdentityTraceBasis,
     pub(crate) snapshot_lease: crate::mounting::UiMountedVisualSnapshotLease,
     pub(crate) resource_lease: super::UiVisualSnapshotResourceLease,
-}
-
-pub(crate) struct UiRetainedVisualSnapshotSource {
-    pub(crate) session: crate::lifecycle::WorthUiActiveApplicationSessionIdentity,
-    pub(crate) identity: super::UiVisualSnapshotIdentity,
-    pub(crate) captured_client_extent: worth_ui_inspection::UiClientPhysicalRect,
-    pub(crate) presentation: super::UiVisualSurfaceCaptureBasis,
-    pub(crate) host_coordinate_transform: worth_ui_host_contract::UiHostCoordinateTransform,
-    pub(crate) pixel_artifact: Option<worth_ui_inspection::UiVisualPixelArtifact>,
-    pub(crate) evidence: worth_ui_inspection::UiVisualSnapshotEvidence,
-    pub(crate) visible_index: super::UiVisibleRegionIndex,
-    pub(crate) hit_test_index: super::UiHitTestRegionIndex,
-    pub(crate) identity_trace_basis: crate::mounting::UiMountedIdentityTraceBasis,
-    pub(crate) snapshot_lease: crate::mounting::UiMountedVisualSnapshotLease,
-    pub(crate) resource_lease: super::UiVisualSnapshotResourceLease,
-}
-
-pub struct UiVisualCoordinateScope<'snapshot> {
-    snapshot: super::UiVisualSnapshotIdentity,
-    captured_client_extent: worth_ui_inspection::UiClientPhysicalRect,
-    visible_index: &'snapshot super::UiVisibleRegionIndex,
-    hit_test_index: &'snapshot super::UiHitTestRegionIndex,
-    trace_basis: &'snapshot crate::mounting::UiMountedIdentityTraceBasis,
-    query_budget: worth_ui_inspection::UiVisualQueryBudget,
-    _invariant: PhantomData<&'snapshot mut &'snapshot ()>,
-}
-
-pub struct UiSnapshotClientPixel<'snapshot> {
-    point: worth_ui_inspection::UiClientPhysicalPixel,
-    _invariant: PhantomData<&'snapshot mut &'snapshot ()>,
-}
-
-pub struct UiSnapshotClientRegion<'snapshot> {
-    region: worth_ui_inspection::UiClientPhysicalRect,
-    _invariant: PhantomData<&'snapshot mut &'snapshot ()>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -159,6 +144,35 @@ impl<Posture: worth_ui_inspection::UiVisualArtifactPolicy> UiVisualSnapshotRecei
         self.evidence
     }
 
+    pub fn relation(
+        &self,
+    ) -> Result<worth_ui_inspection::UiVisualSnapshotRelation, UiVisualSnapshotRelationDenial> {
+        self._snapshot_lease
+            .relation()
+            .map_err(|denial| match denial {
+                crate::mounting::UiMountedVisualRetentionDenial::ExpiredFrame => {
+                    UiVisualSnapshotRelationDenial::ExpiredFrame
+                }
+                crate::mounting::UiMountedVisualRetentionDenial::UnknownFrame => {
+                    UiVisualSnapshotRelationDenial::UnknownFrame
+                }
+                crate::mounting::UiMountedVisualRetentionDenial::CapacityExceeded {
+                    class,
+                    required_leases,
+                    required_structural_bytes,
+                    budget,
+                } => UiVisualSnapshotRelationDenial::CapacityExceeded {
+                    class,
+                    required_leases,
+                    required_structural_bytes,
+                    budget,
+                },
+                crate::mounting::UiMountedVisualRetentionDenial::AccountingOverflow { class } => {
+                    UiVisualSnapshotRelationDenial::AccountingOverflow { class }
+                }
+            })
+    }
+
     pub fn overlay_target(
         &self,
         target: &worth_ui_inspection::UiVisualHitTestTarget,
@@ -205,16 +219,15 @@ impl<Posture: worth_ui_inspection::UiVisualArtifactPolicy> UiVisualSnapshotRecei
         ) -> UiSnapshotClientRegion<'scope>,
     ) -> Result<super::UiClientRegionVisualTarget, worth_ui_inspection::UiVisualSnapshotDenial>
     {
-        let region = select(UiVisualCoordinateScope {
+        let region = select(UiVisualCoordinateScope::new(UiVisualCoordinateScopeInput {
             snapshot: self.identity,
             captured_client_extent: self.captured_client_extent,
             visible_index: &self.visible_index,
             hit_test_index: &self.hit_test_index,
             trace_basis: &self.retained_identity_trace_basis,
             query_budget: self.evidence.query_budget(),
-            _invariant: PhantomData,
-        })
-        .region;
+        }))
+        .region();
         let extent = self.captured_client_extent;
         if region.left() < extent.left()
             || region.top() < extent.top()
@@ -253,15 +266,14 @@ impl<Posture: worth_ui_inspection::UiVisualArtifactPolicy> UiVisualSnapshotRecei
         &self,
         use_scope: impl for<'scope> FnOnce(UiVisualCoordinateScope<'scope>) -> Result,
     ) -> Result {
-        use_scope(UiVisualCoordinateScope {
+        use_scope(UiVisualCoordinateScope::new(UiVisualCoordinateScopeInput {
             snapshot: self.identity,
             captured_client_extent: self.captured_client_extent,
             visible_index: &self.visible_index,
             hit_test_index: &self.hit_test_index,
             trace_basis: &self.retained_identity_trace_basis,
             query_budget: self.evidence.query_budget(),
-            _invariant: PhantomData,
-        })
+        }))
     }
 
     pub(crate) fn dispose(self) -> UiVisualSnapshotDisposalReceipt {
@@ -289,20 +301,6 @@ impl<Posture: worth_ui_inspection::UiVisualArtifactPolicy> UiVisualSnapshotRecei
     }
 }
 
-impl UiRetainedVisualSnapshotSource {
-    pub(crate) fn replace_registered_resource(
-        mut self,
-        identity: super::UiVisualSnapshotIdentity,
-        usage: super::UiVisualRetainedResourceUsage,
-    ) -> (Self, worth_ui_inspection::UiVisualPixelArtifactValidity) {
-        self.resource_lease = self
-            .resource_lease
-            .replace(identity.diagnostic_value(), usage);
-        let validity = self.resource_lease.pixel_validity();
-        (self, validity)
-    }
-}
-
 impl UiVisualSnapshotDisposalReceipt {
     pub const fn identity(self) -> super::UiVisualSnapshotIdentity {
         self.identity
@@ -326,74 +324,5 @@ impl UiVisualSnapshotReceipt<worth_ui_inspection::UiPixelsOptional> {
         &self,
     ) -> Option<&worth_ui_inspection::UiVisualPixelArtifact> {
         self.pixel_artifact.as_ref()
-    }
-}
-
-impl<'snapshot> UiVisualCoordinateScope<'snapshot> {
-    pub const fn snapshot(&self) -> super::UiVisualSnapshotIdentity {
-        self.snapshot
-    }
-
-    pub fn client_pixel(
-        &self,
-        point: worth_ui_inspection::UiClientPhysicalPixel,
-    ) -> Result<UiSnapshotClientPixel<'snapshot>, worth_ui_inspection::UiVisualSnapshotDenial> {
-        if !self.captured_client_extent.contains(point) {
-            return Err(worth_ui_inspection::UiVisualSnapshotDenial::OutsideCapturedPixelExtent);
-        }
-        Ok(UiSnapshotClientPixel {
-            point,
-            _invariant: PhantomData,
-        })
-    }
-
-    pub const fn client_region(
-        &self,
-        region: worth_ui_inspection::UiClientPhysicalRect,
-    ) -> UiSnapshotClientRegion<'snapshot> {
-        UiSnapshotClientRegion {
-            region,
-            _invariant: PhantomData,
-        }
-    }
-
-    pub fn adjudicate_point(
-        &self,
-        point: UiSnapshotClientPixel<'snapshot>,
-    ) -> Result<
-        worth_ui_inspection::UiVisualPointAdjudication,
-        worth_ui_inspection::UiVisualSnapshotOmission,
-    > {
-        Ok(super::adjudicate_point(super::UiPointAdjudicationInput {
-            point: point.point,
-            visible_index: self.visible_index,
-            hit_test_index: self.hit_test_index,
-            trace_basis: self.trace_basis,
-            budget: self.query_budget,
-        }))
-    }
-
-    pub fn adjudicate_region(
-        &self,
-        region: UiSnapshotClientRegion<'snapshot>,
-    ) -> worth_ui_inspection::UiVisualRegionAdjudication {
-        super::adjudicate_region(super::UiRegionAdjudicationInput {
-            region: region.region,
-            visible_index: self.visible_index,
-            trace_basis: self.trace_basis,
-            budget: self.query_budget,
-        })
-    }
-}
-
-impl UiSnapshotClientPixel<'_> {
-    pub const fn point(&self) -> worth_ui_inspection::UiClientPhysicalPixel {
-        self.point
-    }
-}
-
-impl UiSnapshotClientRegion<'_> {
-    pub const fn region(&self) -> worth_ui_inspection::UiClientPhysicalRect {
-        self.region
     }
 }

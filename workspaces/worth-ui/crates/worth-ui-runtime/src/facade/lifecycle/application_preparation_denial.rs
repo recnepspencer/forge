@@ -15,6 +15,9 @@ pub enum WorthUiApplicationPreparationDenial {
     RuntimePreparation(crate::runtime::WorthUiSemanticHandoffPreparationDenial),
     Candidate(crate::runtime::WorthUiReplacementCandidateDenial),
     IntentCatalog(crate::declaration::UiIntentCatalogPreparationDenial),
+    IntentExecutionBinding(
+        crate::runtime::intent_execution::UiIntentExecutionBindingPreparationDenial,
+    ),
     CandidateSnapshotMismatch {
         candidate_snapshot_digest: u64,
         prepared_snapshot_digest: u64,
@@ -30,7 +33,8 @@ impl WorthUiApplicationPreparationDenial {
             Self::DslCompilation(_)
             | Self::RuntimePreparation(_)
             | Self::Candidate(_)
-            | Self::IntentCatalog(_) => WorthUiApplicationPreparationPhase::CandidateBasis,
+            | Self::IntentCatalog(_)
+            | Self::IntentExecutionBinding(_) => WorthUiApplicationPreparationPhase::CandidateBasis,
             Self::CandidateSnapshotMismatch { .. } => {
                 WorthUiApplicationPreparationPhase::CandidateBasis
             }

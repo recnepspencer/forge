@@ -163,3 +163,40 @@ fn evidence_identity_exports_explicit_bridge_boundary_categories() {
         identity.scope().as_str()
     );
 }
+
+#[test]
+fn operational_keys_preserve_identity_without_exposing_terminal_text() {
+    let left =
+        worth_query_evidence_identity(WorthQueryEvidenceScope::ProjectionConsumptionIdentity)
+            .field_value(WorthQueryEvidenceTag::new("row"), "alpha")
+            .seal();
+    let same =
+        worth_query_evidence_identity(WorthQueryEvidenceScope::ProjectionConsumptionIdentity)
+            .field_value(WorthQueryEvidenceTag::new("row"), "alpha")
+            .seal();
+    let changed =
+        worth_query_evidence_identity(WorthQueryEvidenceScope::ProjectionConsumptionIdentity)
+            .field_value(WorthQueryEvidenceTag::new("row"), "beta")
+            .seal();
+
+    assert_eq!(left.operational_key(), same.operational_key());
+    assert_ne!(left.operational_key(), changed.operational_key());
+    assert!(!format!("{:?}", left.operational_key()).contains(left.as_str()));
+}
+
+#[test]
+fn operational_keys_are_hashable_and_keep_scope_and_scheme() {
+    let identity =
+        worth_query_evidence_identity(WorthQueryEvidenceScope::ProjectionConsumptionIdentity)
+            .field_value(WorthQueryEvidenceTag::new("row"), "alpha")
+            .seal();
+    let key = identity.operational_key();
+    let mut hash = std::collections::HashSet::new();
+    let mut ordered = std::collections::BTreeSet::new();
+
+    assert!(hash.insert(key));
+    assert!(ordered.insert(key));
+    assert_eq!(key.scope(), identity.scope());
+    assert_eq!(key.scheme(), identity.scheme());
+    assert_eq!(key.correlation_digest().len(), 32);
+}

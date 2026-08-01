@@ -86,6 +86,18 @@ impl WorthUiCollectionChangeConsequence {
         &self.inner.source
     }
 
+    pub fn query_view_identity(&self) -> &crate::WorthUiQueryViewIdentity {
+        self.inner.installed_reference.definition().identity()
+    }
+
+    /// Exact installed operation-live owner that minted this consequence.
+    ///
+    /// The reference identifies Query authority but grants no mutation by
+    /// itself; publication still requires a Query-issued affine admission.
+    pub fn operation_live_reference(&self) -> &crate::WorthUiInstalledQueryBindingReference {
+        &self.inner.installed_reference
+    }
+
     pub fn change_order(&self) -> u64 {
         self.inner.change_order
     }

@@ -8,6 +8,8 @@ use worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode;
 
 use super::{component_graph_nodes, launch_mounted_components, FilesystemContractWorkspace};
 
+pub(crate) const INTENT_WORLD_OPERABILITY_FACT: &str = "phase3.intent.world.operable";
+
 struct DecoyPayload;
 
 impl worth_ui::facade::intent::UiIntentPayload for DecoyPayload {
@@ -28,6 +30,12 @@ struct DecoyOutcome;
 impl worth_ui::facade::intent::UiIntentProductOutcome for DecoyOutcome {
     const SCHEMA: worth_ui::facade::intent::UiIntentSchema =
         worth_ui::facade::intent::UiIntentSchema::stable("aaa.phase3.decoy.outcome", 1);
+    const CONSEQUENCE_FAMILIES: worth_ui::facade::intent::UiIntentProductConsequenceFamilies =
+        worth_ui::facade::intent::UiIntentProductConsequenceFamilies::NONE;
+
+    fn into_consequences(self) -> worth_ui::facade::intent::UiIntentProductConsequences {
+        worth_ui::facade::intent::UiIntentProductConsequences::none()
+    }
 }
 
 struct DecoyIntent;
@@ -55,21 +63,55 @@ pub(crate) fn launch_file_intent_world<I: worth_ui::facade::intent::UiIntent>(
     let snapshot = WorthUiFilesystemSourceProvider::new(workspace.root())
         .read()
         .expect("production filesystem provider reads routed source");
-    let capabilities = scenario.visual_identity_capability_application_with_intents(
-        host.clone(),
-        worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
-        worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
-    );
+    let capabilities = scenario
+        .visual_identity_application_builder(host.clone())
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("intent-world operability fact registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
+        )
+        .expect("decoy intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<DecoyIntent>::new(),
+        )
+        .expect("decoy intent provider registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
+        )
+        .expect("scenario intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<I>::new(),
+        )
+        .expect("scenario intent provider registers")
+        .freeze()
+        .expect("intent-world capabilities prepare");
     let submission = FilesystemApplicationLifecycleScenario::lower_snapshot(
         snapshot,
         capabilities.capabilities(),
     );
-    let application = scenario.prepare_visual_identity_application_with_intents_and_host(
-        submission,
-        worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
-        worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
-        host,
-    );
+    let application = scenario
+        .visual_identity_application_builder(host)
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("intent-world operability fact registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
+        )
+        .expect("decoy intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<DecoyIntent>::new(),
+        )
+        .expect("decoy intent provider registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
+        )
+        .expect("scenario intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<I>::new(),
+        )
+        .expect("scenario intent provider registers")
+        .with_candidate_submission(submission)
+        .freeze()
+        .expect("filesystem-authored intent world prepares");
     workspace.close();
     launch_intent_application(application)
 }
@@ -78,13 +120,36 @@ pub(crate) fn launch_rust_intent_world<I: worth_ui::facade::intent::UiIntent>(
     input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession {
     let scenario = FilesystemApplicationLifecycleScenario::new("phase-3-intent-rust-route");
-    let application = scenario.prepare_visual_identity_rust_application_with_intents_and_host(
-        input,
-        worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
-        worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
-        intent_host(),
-    );
+    let application = scenario
+        .visual_identity_application_builder(intent_host())
+        .register_intent_boolean_fact(intent_world_operability_fact(), true)
+        .expect("intent-world operability fact registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<DecoyIntent>::application_effect(),
+        )
+        .expect("decoy intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<DecoyIntent>::new(),
+        )
+        .expect("decoy intent provider registers")
+        .register_intent_definition(
+            worth_ui::facade::intent::UiIntentDefinition::<I>::application_effect(),
+        )
+        .expect("scenario intent definition registers")
+        .register_intent_provider(
+            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<I>::new(),
+        )
+        .expect("scenario intent provider registers")
+        .with_rust_authored_input(input)
+        .freeze()
+        .expect("Rust-authored intent world prepares");
     launch_intent_application(application)
+}
+
+pub(crate) fn intent_world_operability_fact(
+) -> worth_ui::facade::intent::UiIntentApplicationFact<worth_ui::facade::intent::UiIntentBoolean> {
+    worth_ui::facade::intent::UiIntentApplicationFact::boolean(INTENT_WORLD_OPERABILITY_FACT)
+        .expect("intent-world operability fact identity is valid")
 }
 
 fn intent_host() -> WorthUiHeadlessRecorder {

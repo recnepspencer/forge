@@ -39,38 +39,39 @@ impl UiProjectionFactReceipt {
         self.observation_order
     }
 
-    pub(crate) fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(crate) fn query_world_authority(&self) -> &WorthQueryEvidenceIdentity {
         &self.query_world_identity
     }
 
-    pub(crate) fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(crate) fn binding_authority(&self) -> &WorthQueryEvidenceIdentity {
         &self.binding_identity
     }
 
-    pub(crate) fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(crate) fn source_generation_authority(&self) -> &WorthQueryEvidenceIdentity {
         &self.source_generation_identity
     }
 
-    pub(crate) fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(crate) fn result_generation_authority(&self) -> &WorthQueryEvidenceIdentity {
         &self.result_generation_identity
     }
 
-    pub fn query_world_identity_for_reporting(&self) -> &str {
-        self.query_world_identity
-            .terminal_projection_for_reporting()
+    pub fn query_world_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_world_identity)
     }
 
-    pub fn binding_identity_for_reporting(&self) -> &str {
-        self.binding_identity.terminal_projection_for_reporting()
+    pub fn binding_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.binding_identity)
     }
 
-    pub fn source_generation_for_reporting(&self) -> &str {
-        self.source_generation_identity
-            .terminal_projection_for_reporting()
+    pub fn source_generation_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.source_generation_identity)
     }
 
-    pub fn result_generation_for_reporting(&self) -> &str {
-        self.result_generation_identity
-            .terminal_projection_for_reporting()
+    pub fn result_generation_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.result_generation_identity)
+    }
+
+    pub fn reporting_projection(&self) -> super::UiProjectionFactReportingProjection {
+        super::reporting::project(self)
     }
 }

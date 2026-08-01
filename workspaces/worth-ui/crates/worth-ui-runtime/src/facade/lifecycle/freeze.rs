@@ -23,6 +23,8 @@ pub(crate) struct WorthUiApplicationPreparationInput {
     pub(crate) measurement_inspection_evidence: Box<[UiMeasurementInspectionEvidenceBundle]>,
     pub(crate) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
+    pub(crate) intent_execution_bindings:
+        crate::runtime::intent_execution::FrozenIntentExecutionBindings,
     pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
@@ -39,6 +41,7 @@ pub(crate) fn prepare_application_authority(
         measurement_inspection_evidence,
         query_binding_plan,
         intent_application_facts,
+        intent_execution_bindings,
         change_profile,
     } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
@@ -86,6 +89,7 @@ pub(crate) fn prepare_application_authority(
             lifecycle,
             query_binding_plan,
             intent_application_facts,
+            intent_execution_bindings,
             host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
@@ -163,6 +167,7 @@ pub(crate) fn prepare_successor_application_authority(
             lifecycle,
             query_binding_plan: current.query_binding_plan().clone(),
             intent_application_facts: current.intent_application_fact_plan().clone(),
+            intent_execution_bindings: current.intent_execution_bindings().clone(),
             host_session_plan: current.host_session_plan().clone(),
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),

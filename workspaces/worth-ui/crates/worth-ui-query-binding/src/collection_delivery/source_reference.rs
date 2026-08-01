@@ -47,8 +47,8 @@ impl WorthUiCollectionRowReference {
         &self.source
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_row_identity.terminal_projection_for_reporting()
+    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_row_identity)
     }
 }
 
@@ -86,10 +86,7 @@ impl std::fmt::Debug for WorthUiCollectionRowReference {
         formatter
             .debug_struct("WorthUiCollectionRowReference")
             .field("source", &self.source)
-            .field(
-                "query_row_identity",
-                &self.query_row_identity.terminal_projection_for_reporting(),
-            )
+            .field("query_row_identity", &"sealed Query evidence")
             .finish()
     }
 }

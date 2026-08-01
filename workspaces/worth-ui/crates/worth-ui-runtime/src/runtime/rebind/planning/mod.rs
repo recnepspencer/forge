@@ -11,6 +11,7 @@ mod effect_compiler;
 mod effects;
 mod plan;
 mod policy;
+mod recoverable;
 mod safe_point;
 mod schema_transition;
 mod session_policy;
@@ -37,6 +38,7 @@ pub use policy::{
     UiRebindArtifactPolicy, UiRebindCancellationPolicy, UiRebindDeadlinePolicy,
     UiRebindDisclosurePolicy, UiRebindExecutionPolicy, UiRebindIdempotency, UiRebindRetryTolerance,
 };
+pub(crate) use recoverable::UiRebindPlanningRecoveryStop;
 pub use safe_point::{UiRebindSafePoint, UiRebindSafePointPolicy};
 pub(crate) use schema_transition::UiProjectionSchemaTransitionInput;
 pub use schema_transition::{

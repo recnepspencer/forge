@@ -4,6 +4,7 @@ mod encoder;
 mod foundational;
 mod graph_application_scope_strings;
 mod installed_domain_scope_strings;
+mod key;
 mod scheme;
 mod scope;
 mod scope_strings;
@@ -15,6 +16,7 @@ mod tests;
 
 pub use artifact::{WorthQueryEvidenceIdentity, WorthQueryEvidenceIdentityComparisonError};
 pub(crate) use encoder::WorthQueryEvidenceIdentityEncoder;
+pub use key::WorthQueryEvidenceIdentityKey;
 pub use scheme::WorthQueryEvidenceIdentityScheme;
 pub use scope::WorthQueryEvidenceScope;
 pub use tag::WorthQueryEvidenceTag;

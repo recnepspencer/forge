@@ -4,6 +4,8 @@ use std::path::Path;
 
 use serde_json::Value;
 
+use crate::topology::WorkspaceSourceInventory;
+
 const EVIDENCE_PATH: &str = "_docs/worth-ui/milestone-3.10.2-phase-4-closing-cost-evidence.json";
 const LIFECYCLE_DOC: &str = "workspaces/worth-ui/docs/application-lifecycle.md";
 const PHASE3_LEDGER: &str = "_docs/worth-ui/milestone-3.10.2-phase-3-proof-ledger.csv";
@@ -12,7 +14,10 @@ const SPEC: &str = "_docs/worth-ui/milestone-3.10.2.md";
 const SUCCESSOR_SPEC: &str = "_docs/worth-ui/milestone-3.10.3.md";
 const ROADMAP: &str = "_docs/worth-ui/worth_ui_roadmap.md";
 
-pub(super) fn audit(repository_root: &Path) -> Result<(), String> {
+pub(super) fn audit(
+    inventory: &WorkspaceSourceInventory,
+    repository_root: &Path,
+) -> Result<(), String> {
     let evidence = super::evidence_document::load_json(&repository_root.join(EVIDENCE_PATH))?;
     audit_header(&evidence)?;
     audit_budgets(&evidence)?;
@@ -21,7 +26,7 @@ pub(super) fn audit(repository_root: &Path) -> Result<(), String> {
     audit_lifecycle(&evidence)?;
     audit_documentation(repository_root)?;
     audit_ledgers(repository_root)?;
-    audit_source_witnesses(repository_root)
+    audit_source_witnesses(inventory, repository_root)
 }
 
 fn audit_header(evidence: &Value) -> Result<(), String> {
@@ -208,7 +213,10 @@ fn audit_ledgers(repository_root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
+fn audit_source_witnesses(
+    inventory: &WorkspaceSourceInventory,
+    repository_root: &Path,
+) -> Result<(), String> {
     let courtroom = read(
         repository_root,
         "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs",
@@ -217,18 +225,30 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         repository_root,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/framework_turn/scheduler.rs",
     )?;
-    let native = read(
+    let first_frame = read(
         repository_root,
-        "workspaces/worth-ui/apps/platform-pulse/src/native_frame.rs",
+        "workspaces/worth-ui/apps/platform-pulse/src/native_frame/first_frame.rs",
     )?;
-    let native_rebind = read(
+    let source_rebind = read(
+        repository_root,
+        "workspaces/worth-ui/apps/platform-pulse/src/native_frame/source_rebind.rs",
+    )?;
+    let rebind = read(
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/native_frame/rebind.rs",
+    )?;
+    let replacement_projection = read(
+        repository_root,
+        "workspaces/worth-ui/apps/platform-pulse/src/observation_contract/projection/replacement_projection.rs",
     )?;
     let protocol = read(
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/observation_contract/envelope.rs",
     )?;
+    let pulse_sources = inventory
+        .rust_files_under("apps/platform-pulse/src")
+        .map(|source| source.text())
+        .collect::<String>();
     for required in [
         "adapter_cost.translated_rows(), 8",
         "std::mem::size_of::<UiMountedNodeProjectionView>()",
@@ -243,15 +263,15 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         || !scheduler.contains("512 * 1024")
         || !protocol.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
         || !protocol.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
-        || !native.contains("self.publisher.first_frame(&source, &publication)")
-        || !native.contains("self.publisher.replacement(")
-        || !native.contains(".application_publication()")
-        || !native.contains(".mounted_publication()")
-        || !native.contains(".compare_after_rebind(")
-        || !native_rebind.contains(".begin_source_rebind(")
-        || native.contains("WORTH_UI_PLATFORM_PULSE_PUBLISHED")
-        || native.contains("WORTH_UI_PLATFORM_PULSE_REPLACED")
-        || native.contains("pulse-checkpoint")
+        || !first_frame.contains("self.publisher.first_frame(source, publication)?")
+        || !source_rebind.contains("self.publisher.replacement(&source, &receipt)")
+        || !replacement_projection.contains(".application_publication()")
+        || !replacement_projection.contains(".mounted_publication()")
+        || !source_rebind.contains(".compare_after_rebind(")
+        || !rebind.contains(".begin_source_rebind(")
+        || pulse_sources.contains("WORTH_UI_PLATFORM_PULSE_PUBLISHED")
+        || pulse_sources.contains("WORTH_UI_PLATFORM_PULSE_REPLACED")
+        || pulse_sources.contains("pulse-checkpoint")
     {
         return Err("pulse stack or publication source witness drifted".to_owned());
     }

@@ -45,8 +45,8 @@ fn bridge_current_stale_revalidating_current_consumes_native_query_text() {
     ));
     assert_current(current.fact(), "Ready");
     assert_eq!(
-        current.fact().core().binding_identity_for_reporting(),
-        current_batch_identity.terminal_projection_for_reporting()
+        current.fact().core().binding_identity(),
+        crate::UiQueryEvidenceReference::query_issued(&current_batch_identity)
     );
     assert!(current.retained_predecessor().is_none());
     assert_eq!(current.work().native_key_declaration_checks(), 1);
@@ -107,8 +107,8 @@ fn bridge_current_stale_revalidating_current_consumes_native_query_text() {
     ));
     assert_current(refreshed.fact(), "Updated");
     assert_eq!(
-        refreshed.fact().core().binding_identity_for_reporting(),
-        current_batch_identity.terminal_projection_for_reporting()
+        refreshed.fact().core().binding_identity(),
+        crate::UiQueryEvidenceReference::query_issued(&current_batch_identity)
     );
     assert_eq!(refreshed.work().native_indexed_accesses(), 1);
 }

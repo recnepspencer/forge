@@ -10,6 +10,9 @@ should start with [Application lifecycle](./application-lifecycle.md).
 | application | `WorthUiApplicationSessionState` | active generation, framework transitions, source basis, application cutover |
 | graph | `UiGraphSnapshot` and graph indexes | graph truth, produced-fact consumers, and mutation successors |
 | planning | allocation and rebind plan compilers | admitted inputs, affected scope, identity lifecycle, and sealed plans |
+| interaction | gesture, draft, targeting, and semantic-interaction registries | presented-frame continuity, capture/loss, bounded local input, and interaction receipts |
+| intent admission | route, payload, operability, confirmation, and admission registries | typed candidates, affine challenges, concurrency, bounded admission slots, and settlement |
+| intent execution | definition/provider bindings and attempt registries | destination dispatch, versioned providers, polling, cancellation, terminal posture, and recovery |
 | mounting | `WorthUiMountedSessionState` | mounted identities, frame assembly, retention, reconciliation, and mounted publication |
 | host exchange | `WorthUiHostExchangeSessionState` | structural host reports, measurement exchange, quarantine, and transport evidence |
 | visual inspection | `WorthUiVisualInspectionAuthority` plus capture/overlay registries | grants, retained snapshots, comparison, overlays, and visual resource bounds |
@@ -26,11 +29,22 @@ resource; `worth-ui-query-binding` converts Query-issued authority into
 shape-specific UI observations and affine facts; the existing observation,
 planning, mounting, and publication owners consume the resulting UI meaning.
 
+Product intent effects follow the same rule. UI admission owns no product or
+Query mutation authority. The exact typed provider calls a separately admitted
+product action; only that owner-issued result may become a declared consequence
+for ordinary rebind and mounted publication.
+
 ## Allowed Dependency Direction
 
 ```text
 graph
   -> planning
+host observation + mounting identity
+  -> interaction
+interaction + declarations + application facts
+  -> intent admission
+intent admission + definition/provider bindings
+  -> intent execution
 application + graph + planning
   -> mounting
 mounting
@@ -48,6 +62,12 @@ More exactly:
 - graph depends on none of the mounted, host-exchange, visual, rebind, or
   inspection owners;
 - planning may read graph and sealed application meaning;
+- interaction may consume admitted host observations and exact presented
+  targets but cannot route, execute, or publish product effects;
+- intent admission may consume semantic interactions, declarations, and
+  application facts but cannot call providers or mutate product domains;
+- intent execution consumes one move-only admission and the exact typed
+  destination binding; provider completion still cannot publish directly;
 - mounting may consume application, graph, and sealed planning output;
 - host exchange may observe mounted transport but cannot publish;
 - rebind may coordinate owner-issued observation, plan, application, mounting,
@@ -122,7 +142,8 @@ whole-graph scan, universal remount, or unbounded queue.
 | Capability family | Existing owner to extend | Forbidden alternate |
 | --- | --- | --- |
 | projected product data | Query binding consequence plus owner-specific observation facts | session data cache |
-| admitted user intents and services | dedicated admission/service facade feeding declared consequences | host callback mutation |
+| semantic interactions and product intents | interaction, intent admission, and intent execution owners feeding declared consequences | host callback or session executor |
+| portal, focus, and command services | Milestone 3.15 providers behind typed runtime-service destinations | reopening generic intent admission or using renderer state |
 | portals, focus, motion, appearance | typed produced facts and consumed aspects feeding rebind planning | renderer-local state |
 | expression evaluation | planning over sealed DSL expression artifacts | runtime reparsing |
 | authored modules and composition | `worth-ui-dsl` before sealed semantic handoff | session composition |
@@ -141,6 +162,7 @@ second data path.
 ## Related Docs
 
 - [Worth UI architecture](./architecture.md)
+- [Interaction and intents](./interaction-and-intents.md)
 - [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Visual inspection](./visual-inspection.md)

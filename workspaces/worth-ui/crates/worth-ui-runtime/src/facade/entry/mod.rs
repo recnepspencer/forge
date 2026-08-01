@@ -8,7 +8,16 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+mod intent_admission;
+mod intent_confirmation;
+mod intent_consequence;
+mod intent_consequence_observation;
+mod intent_consequence_publication;
+mod intent_consequence_rebind;
+mod intent_evidence;
+mod intent_execution;
 mod intent_payload;
+mod intent_resource_census;
 mod intent_routing;
 mod interaction;
 mod local_interaction_recipient;
@@ -32,6 +41,11 @@ mod native_application_shell;
 mod native_identity_trace_audit;
 #[cfg(test)]
 mod native_identity_trace_host;
+mod native_intent;
+mod native_intent_evidence;
+mod native_intent_execution;
+mod native_intent_posture;
+mod native_intent_terminal_posture;
 mod native_projection_rebind;
 #[cfg(test)]
 mod native_projection_rebind_tests;
@@ -46,9 +60,9 @@ mod visual_overlay;
 mod visual_snapshot;
 pub use crate::lifecycle::WorthUiActiveApplicationSessionIdentity;
 pub use crate::runtime::exports::WorthUiAllocationCatalogActivationDenial;
-pub use active_application_session::{
-    WorthUiActiveApplicationSession, WorthUiActiveInspectionReceipt,
-};
+pub use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
+pub use active_application_inspection::WorthUiActiveInspectionReceipt;
+pub use active_application_session::WorthUiActiveApplicationSession;
 pub use active_framework_turn::{
     WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
     WorthUiActiveFrameworkTurnExecution, WorthUiActiveOrdinaryFrameCompletion,
@@ -57,8 +71,9 @@ pub use active_framework_turn::{
 };
 pub use app::{WorthUi, WorthUiApp};
 pub use app_builder::{
-    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUiApplicationBuilder,
-    WorthUiProjectionRegistrationError, WorthUiQueryViewRegistrationError,
+    UiChangeProfileInstalled, UiChangeProfileMissing, UiIntentProviderRequired,
+    UiIntentWiringSatisfied, WorthUiApplicationBuilder, WorthUiProjectionRegistrationError,
+    WorthUiQueryViewRegistrationError,
 };
 pub use application_replacement::{
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
@@ -75,6 +90,10 @@ pub use application_replacement::{
     WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
+pub use intent_consequence_publication::{
+    UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
+    UiIntentConsequencePublicationRecovery,
+};
 #[cfg(any(test, feature = "certification-support"))]
 pub use local_interaction_recipient::WorthUiLocalInputRecipientCertificationExt;
 pub use mounted_allocation_denial::{
@@ -112,6 +131,17 @@ pub use native_application_shell::{
     WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
     WorthUiNativeApplicationShutdownReceipt,
 };
+pub use native_intent::{
+    WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
+    WorthUiNativeIntentIngress, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTransition,
+    WorthUiNativeInteractionIngressStop,
+};
+pub use native_intent_posture::{
+    WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
+    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
+};
+pub use native_intent_terminal_posture::WorthUiNativeIntentTerminalPostureOutcome;
 pub use native_projection_rebind::WorthUiNativeProjectionRebindDenial;
 pub use native_source_rebind::WorthUiNativeSourceRebindDenial;
 pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;

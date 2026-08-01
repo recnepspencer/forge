@@ -1,16 +1,26 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
-    UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureAdmissionDenial,
-    UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture,
-    UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
+    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind,
+    UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
+};
+use worth_ui::facade::intent::{
+    UiIntent, UiIntentAcceptedInteractions, UiIntentApplicationFact, UiIntentBoolean,
+    UiIntentConcurrencyScope, UiIntentConfirmationContract, UiIntentConsequenceContract,
+    UiIntentDeclaration, UiIntentDefinition, UiIntentId, UiIntentMutabilitySource,
+    UiIntentOperabilityContract, UiIntentPayload, UiIntentPayloadFieldSet,
+    UiIntentPayloadProjection, UiIntentPayloadProjectionViolation, UiIntentPolicySource,
+    UiIntentProductConsequenceFamilies, UiIntentProductConsequences, UiIntentProductOutcome,
+    UiIntentReadinessSource, UiIntentRuntimeServiceDestination, UiIntentSchema,
+    UiSemanticInteractionFamily,
 };
 use worth_ui_certification::{
     WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
 };
 use worth_ui_dsl::{
     UiDslPostureToken, UiDslSemanticArtifactSpec, UiDslSemanticFamily, UiDslSemanticKey,
-    UiDslSourceProvenance, UiDslStructuralToken,
+    UiDslSourceProvenance, UiDslStructuralToken, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_host_contract::WorthUiHostCapability;
 use worth_ui_test_support::UiDeclaredMeasurementMode;
@@ -120,37 +130,47 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         ],
     );
 
-    let query_binding_denial = freeze_denial(
+    let query_binding_fixture = WorthUiRustAuthoredDeclarationFixture::named(
         "worth-ui.certification.declared-posture.classification.query-binding",
-        query_binding_spec(),
+    )
+    .with_semantic_artifact_spec(query_binding_spec());
+    let query_binding_provenance =
+        query_binding_fixture.admitted_provenance_for("workflow_editor.query.selection");
+    let query_binding_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(query_binding_fixture)
+        .freeze()
+        .expect("standalone Query posture survives non-structural handoff");
+    let query_binding =
+        artifact_from_compiler_provenance(&query_binding_app, &query_binding_provenance);
+    assert_applicability_vector(
+        query_binding,
+        [
+            UiDeclaredPostureApplicability::Required,
+            UiDeclaredPostureApplicability::NotApplicable,
+            UiDeclaredPostureApplicability::NotApplicable,
+            UiDeclaredPostureApplicability::NotApplicable,
+            UiDeclaredPostureApplicability::NotApplicable,
+        ],
     );
     assert_eq!(
-        query_binding_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::QueryBinding,
-                    },
-            },
-        )
+        query_binding
+            .declared_posture()
+            .expect("standalone Query posture admits")
+            .query_binding()
+            .admitted(),
+        Some(&UiDeclaredQueryBindingPosture::StandaloneBinding)
     );
 
-    let intent_denial = freeze_denial(
-        "worth-ui.certification.declared-posture.classification.intent",
-        intent_spec(),
-    );
-    assert_eq!(
-        intent_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::Intent,
-                    },
-            },
-        )
-    );
+    let intent_app = representative_intent_app();
+    let intent = intent_app
+        .declaration_artifacts()
+        .iter()
+        .find(|artifact| {
+            artifact.identity().authored_semantic_name() == REPRESENTATIVE_INTENT_DECLARATION
+        })
+        .expect("typed intent declaration should produce its compiler-owned artifact");
+    assert_applicability_vector(intent, [UiDeclaredPostureApplicability::NotApplicable; 5]);
 }
 
 #[test]
@@ -240,15 +260,6 @@ fn classification_control_spec() -> UiDslSemanticArtifactSpec {
     .with_structural_token(UiDslStructuralToken::new("control:save"))
 }
 
-fn intent_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.intent.selection"),
-        UiDslSemanticFamily::Intent,
-        UiDslSourceProvenance::file_authored("app/declared_posture_classification.wui", 3),
-    )
-    .with_posture_token(UiDslPostureToken::new("intent:standalone"))
-}
-
 fn artifact_from_file_provenance<'a>(
     app: &'a worth_ui::facade::app::WorthUiApp,
     module_path: &str,
@@ -266,6 +277,93 @@ fn artifact_from_file_provenance<'a>(
                 "expected declaration artifact for {module_path}#{declaration_index} on freeze path"
             )
         })
+}
+
+const REPRESENTATIVE_INTENT_DEFINITION: &str = "workflow_editor.intent.selection";
+const REPRESENTATIVE_INTENT_DECLARATION: &str = "workflow_editor.intent.selection.route";
+const REPRESENTATIVE_INTENT_OPERABILITY: &str = "workflow_editor.intent.selection.operability";
+const REPRESENTATIVE_INTENT_FACT: &str = "workflow_editor.intent.selection.available";
+
+struct RepresentativeIntentPayload;
+
+impl UiIntentPayload for RepresentativeIntentPayload {
+    const SCHEMA: UiIntentSchema =
+        UiIntentSchema::stable("workflow_editor.intent.selection_payload", 1);
+    const FIELDS: UiIntentPayloadFieldSet = UiIntentPayloadFieldSet::EMPTY;
+
+    fn project(
+        _fields: &mut UiIntentPayloadProjection<Self>,
+    ) -> Result<Self, UiIntentPayloadProjectionViolation> {
+        Ok(Self)
+    }
+}
+
+struct RepresentativeIntentOutcome;
+
+impl UiIntentProductOutcome for RepresentativeIntentOutcome {
+    const SCHEMA: UiIntentSchema =
+        UiIntentSchema::stable("workflow_editor.intent.selection_outcome", 1);
+    const CONSEQUENCE_FAMILIES: UiIntentProductConsequenceFamilies =
+        UiIntentProductConsequenceFamilies::NONE;
+
+    fn into_consequences(self) -> UiIntentProductConsequences {
+        UiIntentProductConsequences::none()
+    }
+}
+
+struct RepresentativeIntent;
+
+impl UiIntent for RepresentativeIntent {
+    type Payload = RepresentativeIntentPayload;
+    type ProductOutcome = RepresentativeIntentOutcome;
+
+    const ID: UiIntentId = UiIntentId::stable(REPRESENTATIVE_INTENT_DEFINITION);
+    const ACCEPTED_INTERACTIONS: UiIntentAcceptedInteractions =
+        UiIntentAcceptedInteractions::new(&[UiSemanticInteractionFamily::Activate]);
+}
+
+fn representative_intent_app() -> worth_ui::facade::app::WorthUiApp {
+    let fact = UiIntentApplicationFact::<UiIntentBoolean>::boolean(REPRESENTATIVE_INTENT_FACT)
+        .expect("representative intent fact identity is valid");
+    let declaration =
+        UiIntentDeclaration::<RepresentativeIntent>::activate(REPRESENTATIVE_INTENT_DECLARATION)
+            .expect("representative intent accepts activation")
+            .operability_from(
+                UiIntentOperabilityContract::new(
+                    REPRESENTATIVE_INTENT_OPERABILITY,
+                    UiIntentMutabilitySource::application_fact(&fact),
+                    UiIntentReadinessSource::application_fact(&fact),
+                    UiIntentPolicySource::application_fact(&fact),
+                )
+                .expect("representative operability identity is valid"),
+            )
+            .confirmation(
+                UiIntentConfirmationContract::not_required(
+                    "workflow_editor.intent.selection.confirmation",
+                )
+                .expect("representative confirmation identity is valid"),
+            )
+            .concurrency(UiIntentConcurrencyScope::TargetRouteSingleFlight)
+            .consequences(UiIntentConsequenceContract::none())
+            .into_dsl_spec();
+    let input = WorthUiRustAuthoredArtifactInput::from_modules([
+        WorthUiRustAuthoredArtifactInputModule::new("app/declared_posture_intent.wui")
+            .with_intent_declaration(declaration),
+    ]);
+
+    WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_intent_boolean_fact(fact, true)
+        .expect("representative intent fact registers")
+        .register_unsupported_intent_definition(
+            UiIntentDefinition::<RepresentativeIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
+        .expect("representative intent definition registers")
+        .with_rust_authored_input(input)
+        .freeze()
+        .expect("typed standalone intent posture survives non-structural handoff")
 }
 
 fn artifact_from_compiler_provenance<'a>(

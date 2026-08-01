@@ -14,14 +14,20 @@ pub(super) enum UiObservationOrderPosture {
 pub(crate) struct UiObservationRuntimeState {
     next_turn: u64,
     active_turn: bool,
+    active_retained_observations: usize,
+    active_retained_bytes: usize,
+    resources: super::resource_ledger::UiObservationResourceLedger,
     last_owner_orders: BTreeMap<UiObservationProgressKey, u64>,
 }
 
 impl UiObservationRuntimeState {
-    pub(crate) const fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             next_turn: 1,
             active_turn: false,
+            active_retained_observations: 0,
+            active_retained_bytes: 0,
+            resources: Default::default(),
             last_owner_orders: BTreeMap::new(),
         }
     }
@@ -39,6 +45,8 @@ impl UiObservationRuntimeState {
             .checked_add(1)
             .ok_or(UiObservationTurnDenial::IdentityExhausted)?;
         self.active_turn = true;
+        self.active_retained_observations = 0;
+        self.active_retained_bytes = 0;
         Ok((identity, profile))
     }
 
@@ -62,10 +70,49 @@ impl UiObservationRuntimeState {
                 .insert(item.key().clone(), item.owner_order());
         }
         self.active_turn = false;
+        self.active_retained_observations = 0;
+        self.active_retained_bytes = 0;
     }
 
     pub(super) fn abandon(&mut self) {
         self.active_turn = false;
+        self.active_retained_observations = 0;
+        self.active_retained_bytes = 0;
+    }
+
+    pub(super) fn update_active_resources(
+        &mut self,
+        retained_observations: usize,
+        retained_bytes: usize,
+    ) {
+        debug_assert!(self.active_turn);
+        self.active_retained_observations = retained_observations;
+        self.active_retained_bytes = retained_bytes;
+    }
+
+    pub(crate) fn resource_snapshot(&self) -> super::UiObservationResourceSnapshot {
+        super::UiObservationResourceSnapshot::from_active_turn(
+            self.active_turn,
+            self.active_retained_observations,
+            self.active_retained_bytes,
+        )
+        .combine(self.resources.snapshot())
+    }
+
+    pub(super) fn retain_set(
+        &self,
+        observations: usize,
+        bytes: usize,
+    ) -> super::resource_ledger::UiObservationSetLease {
+        self.resources.retain_set(observations, bytes)
+    }
+
+    pub(crate) fn retire_resources(
+        &mut self,
+        cause: super::UiObservationResourceRetirementCause,
+    ) -> super::UiObservationResourceRetirementReport {
+        debug_assert!(!self.active_turn);
+        self.resources.retire(cause)
     }
 }
 

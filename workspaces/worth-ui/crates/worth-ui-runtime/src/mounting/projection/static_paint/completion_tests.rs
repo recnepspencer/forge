@@ -31,7 +31,8 @@ fn missing_and_unsupported_allocation_deny_with_the_exact_graph_node() {
             UiMountedProjectionDenial::UnsupportedStaticPaintAllocation(node),
         ),
     ] {
-        let fixture = CompletionFixture::new(node, allocation, admitted_participation(), true);
+        let fixture =
+            CompletionFixture::new(node, allocation, admitted_participation(), true, false);
         assert_eq!(fixture.complete(), Err(expected));
     }
 }
@@ -47,6 +48,7 @@ fn withheld_participation_and_foreign_receipt_basis_deny_before_completion() {
         },
         withheld_paint_participation(),
         true,
+        false,
     );
     assert_eq!(
         fixture.complete(),
@@ -63,11 +65,32 @@ fn withheld_participation_and_foreign_receipt_basis_deny_before_completion() {
         },
         admitted_participation(),
         false,
+        false,
     );
     assert_eq!(
         fixture.complete(),
         Err(UiMountedProjectionDenial::StaticPaintNodeReceiptMismatch)
     );
+}
+
+#[test]
+fn semantic_text_does_not_suppress_a_declared_static_fill() {
+    let fixture = CompletionFixture::new(
+        crate::graph::UiGraphNodeIdentity::new(43),
+        UiMountedAllocationProjection::Known {
+            bounds: canonical_bounds(),
+            basis: allocation_basis(),
+        },
+        admitted_participation(),
+        true,
+        true,
+    );
+
+    let rows = fixture
+        .complete()
+        .expect("paint and text complete independently");
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].color(), UiMountedRgba8::new(47, 129, 247, 255));
 }
 
 struct CompletionFixture {
@@ -82,6 +105,7 @@ impl CompletionFixture {
         allocation: UiMountedAllocationProjection,
         participation: UiMountedParticipation,
         include_instance_in_receipt_basis: bool,
+        include_semantic_text: bool,
     ) -> Self {
         let frame = UiMountedFrameIdentity::mint_unbound().unwrap();
         let mounted_instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
@@ -104,7 +128,8 @@ impl CompletionFixture {
                 static_paint: Some(UiMountedStaticPaintSeed::for_test(UiMountedRgba8::new(
                     47, 129, 247, 255,
                 ))),
-                semantic_text: None,
+                semantic_text: include_semantic_text
+                    .then(super::super::semantic_text::UiMountedSemanticTextSeed::scalar_for_test),
                 hit_test: None,
             }],
             vec![UiMountedProjectionSurface {

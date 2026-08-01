@@ -31,6 +31,14 @@ pub enum UiIntentCatalogPreparationDenial {
         expected_version: u16,
         registered: UiIntentSchema,
     },
+    ConsequenceFamilyNotPermitted {
+        declaration: Box<str>,
+        family: crate::capability::UiIntentProductConsequenceFamilies,
+    },
+    UnknownConsequenceQuery {
+        declaration: Box<str>,
+        query: Box<str>,
+    },
     InteractionNotAccepted {
         declaration: Box<str>,
         interaction: UiSemanticInteractionFamily,
@@ -100,6 +108,41 @@ pub enum UiIntentCatalogPreparationDenial {
         declaration: Box<str>,
         interaction: UiSemanticInteractionFamily,
         source: UiIntentInteractionPayloadSourceKind,
+    },
+    UnknownOperabilityApplicationFact {
+        declaration: Box<str>,
+        axis: super::UiIntentOperabilityDependencyAxis,
+        fact: Box<str>,
+    },
+    OperabilityApplicationFactKindMismatch {
+        declaration: Box<str>,
+        axis: super::UiIntentOperabilityDependencyAxis,
+        fact: Box<str>,
+        observed: crate::capability::UiIntentPayloadFieldKind,
+    },
+    InvalidOperabilityProjectionIdentity {
+        declaration: Box<str>,
+        axis: super::UiIntentOperabilityDependencyAxis,
+        projection: Box<str>,
+    },
+    UnknownOperabilityProjection {
+        declaration: Box<str>,
+        axis: super::UiIntentOperabilityDependencyAxis,
+        projection: Box<str>,
+    },
+    OperabilityDraftSourceMismatch {
+        declaration: Box<str>,
+        axis: super::UiIntentOperabilityDependencyAxis,
+        interaction: UiSemanticInteractionFamily,
+    },
+    UnknownConfirmationApplicationFact {
+        declaration: Box<str>,
+        fact: Box<str>,
+    },
+    ConfirmationApplicationFactKindMismatch {
+        declaration: Box<str>,
+        fact: Box<str>,
+        observed: crate::capability::UiIntentPayloadFieldKind,
     },
     UnknownRouteDeclaration {
         declaration: Box<str>,

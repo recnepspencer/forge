@@ -20,11 +20,11 @@ impl WorthUiActiveApplicationSession {
         let binding = core.binding();
         match self.validate_host_observation_batch(batch) {
             UiHostObservationReportOutcome::Validated(batch) => {
-                UiHostInteractionIngressOutcome::Applied(self.interaction.ingest(
-                    batch,
-                    &self.mounted,
-                    self.application.generation_identity(),
-                ))
+                let generation = self.active_generation_identity();
+                let receipt = self.interaction.ingest(batch, &self.mounted, &generation);
+                self.intent_evidence
+                    .retain_transitions(receipt.transitions());
+                UiHostInteractionIngressOutcome::Applied(receipt)
             }
             UiHostObservationReportOutcome::Duplicate(duplicate) => {
                 UiHostInteractionIngressOutcome::Duplicate(duplicate)

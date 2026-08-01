@@ -133,12 +133,19 @@ pub fn audit_public_surfaces_do_not_recreate_query_owned_lanes(
         "crates/worth-ui-runtime/src/facade/mod.rs",
         "crates/worth-ui-inspection/src/lib.rs",
     ];
+    let canonical_query_binding_surfaces = [
+        inventory.absolute_path("crates/worth-ui/src/facade/query_binding.rs"),
+        inventory.absolute_path("crates/worth-ui-runtime/src/facade/query_binding.rs"),
+    ];
     let mut violations = Vec::new();
 
     for relative_path in entrypoints {
         let path = inventory.absolute_path(relative_path);
         let names = collect_query_lane_public_surface_names(&path);
         for (name, surface_path) in names {
+            if canonical_query_binding_surfaces.contains(&surface_path) {
+                continue;
+            }
             if public_name_recreates_query_owned_lane(&name) {
                 violations.push(format!(
                     "{} publicly exposes `{name}`, which recreates a Query-owned support/async-result/inspection/causal-explanation/projection-fact lane on a Worth-local surface",

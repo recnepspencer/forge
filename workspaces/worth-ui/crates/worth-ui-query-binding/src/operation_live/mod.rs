@@ -12,11 +12,12 @@ pub(crate) use open::open_operation_live_resource;
 pub(crate) use open::settle_once;
 pub use open::{WorthUiOperationLiveOpenError, WorthUiOperationLiveOpenRequest};
 pub use publication::{
-    WorthUiCollectionChangeAdmissionDenial, WorthUiCollectionChangeAdmissionStop,
-    WorthUiCollectionChangeHandoffRetryDenial, WorthUiCollectionChangePublicationReceipt,
-    WorthUiCollectionChangeStagingReceipt, WorthUiOperationLiveChangeObservation,
-    WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
-    WorthUiValidatedCollectionChangeObservation,
+    WorthUiAdmittedCollectionChangePublication, WorthUiCollectionChangeAdmissionDenial,
+    WorthUiCollectionChangeAdmissionStop, WorthUiCollectionChangeHandoffRetryDenial,
+    WorthUiCollectionChangePublicationDenial, WorthUiCollectionChangePublicationReceipt,
+    WorthUiCollectionChangePublicationStop, WorthUiCollectionChangeStagingReceipt,
+    WorthUiOperationLiveChangeObservation, WorthUiOperationLiveSourceRefreshOutcome,
+    WorthUiOperationLiveSourceRefreshStop, WorthUiValidatedCollectionChangeObservation,
 };
 pub use refresh_request::WorthUiOperationLiveRefreshRequest;
 #[cfg(any(test, feature = "certification-construction"))]

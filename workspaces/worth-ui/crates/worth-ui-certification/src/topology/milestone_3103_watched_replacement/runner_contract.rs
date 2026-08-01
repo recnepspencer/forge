@@ -51,7 +51,9 @@ fn audit_required_files(inventory: &WorkspaceSourceInventory) -> Result<(), Stri
         "apps/platform-pulse/tests/executable_world/product_process/preservation_progression.rs",
         "apps/platform-pulse/tests/executable_world/product_process/watched_observation.rs",
         "apps/platform-pulse/tests/executable_world/product_process/watched_native_observation.rs",
+        "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
         "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+        "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey/open.rs",
     ] {
         if inventory.source(path).is_none() {
             return Err(format!("Phase 4 executable world lost `{path}`"));
@@ -99,11 +101,13 @@ fn audit_typestate(progression: &str, source_action: &str) -> Result<(), String>
         "pub(crate) struct PreservedPredecessor",
         "pub(crate) struct AwaitingRecovery",
         "pub(crate) struct RecoveredBlue",
+        "pub(crate) type SecondCurrent = ComparisonBasisRefreshed<SecondQueryCurrent>",
+        "pub(crate) struct FinalRecovered",
     ] {
         require(progression, required, "Phase 4 typestate")?;
     }
     for required in [
-        "impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
+        "impl PulseExecutableWorld<Published<SecondCurrent>>",
         "fn apply_green(",
         "impl PulseExecutableWorld<Published<GreenSuccessor>>",
         "fn apply_malformed(",
@@ -194,7 +198,7 @@ fn audit_atomic_action(source: &str) -> Result<(), String> {
         "winsafe::ReplaceFile(",
         "winsafe::co::REPLACEFILE::WRITE_THROUGH",
         "temporary_cleanup: fs::remove_file(replacement)",
-        "let observed = fs::read(&entry_source)",
+        "let observed = fs::read(&destination)",
         "ReadBackMismatch",
     ] {
         require(source, required, "atomic source replacement")?;
@@ -205,7 +209,7 @@ fn audit_atomic_action(source: &str) -> Result<(), String> {
 fn audit_close_and_failure(normal_close: &str, failure: &str) -> Result<(), String> {
     require(
         normal_close,
-        "impl PulseExecutableWorld<Published<RecoveredBlue>>",
+        "impl PulseExecutableWorld<Published<FinalRecovered>>",
         "recovered-only normal close",
     )?;
     for required in [
@@ -228,6 +232,7 @@ fn audit_courtroom(source: &str) -> Result<(), String> {
         ".await_preserved_predecessor(",
         ".restore_canonical(",
         ".await_recovered_blue(",
+        "close_recovered(self.recovered)",
         ".close_native_window(",
         "matching_color_samples() * 4",
         "matching_green_samples() * 4",
@@ -302,15 +307,11 @@ impl Phase4RunnerSources {
             failure_report: text(
                 "apps/platform-pulse/tests/executable_world/failure_teardown/report.rs",
             ),
-            courtroom: format!(
-                "{}\n{}",
-                text(
-                    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
-                ),
-                text(
-                    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
-                ),
-            ),
+            courtroom: inventory
+                .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
+                .map(|source| source.text())
+                .collect::<Vec<_>>()
+                .join("\n"),
         }
     }
 }

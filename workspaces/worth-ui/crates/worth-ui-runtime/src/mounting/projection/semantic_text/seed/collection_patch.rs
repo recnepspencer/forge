@@ -33,7 +33,7 @@ fn insert(
     row: &UiMountedCollectionTextRow,
     at: usize,
 ) -> Result<(), UiMountedProjectionDenial> {
-    if at > rows.len() || find(rows, row.identity()).is_some() {
+    if at > rows.len() || find(rows, &row.identity()).is_some() {
         return Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch);
     }
     rows.insert(at, row.clone());
@@ -42,7 +42,7 @@ fn insert(
 
 fn remove(
     rows: &mut Vec<UiMountedCollectionTextRow>,
-    identity: &str,
+    identity: &worth_ui_query_binding::UiQueryEvidenceReference,
     from: usize,
 ) -> Result<(), UiMountedProjectionDenial> {
     if find(rows, identity) != Some(from) {
@@ -54,7 +54,7 @@ fn remove(
 
 fn move_row(
     rows: &mut Vec<UiMountedCollectionTextRow>,
-    identity: &str,
+    identity: &worth_ui_query_binding::UiQueryEvidenceReference,
     from: usize,
     to: usize,
 ) -> Result<(), UiMountedProjectionDenial> {
@@ -70,16 +70,18 @@ fn update(
     rows: &mut [UiMountedCollectionTextRow],
     replacement: &UiMountedCollectionTextRow,
 ) -> Result<(), UiMountedProjectionDenial> {
-    let Some(index) = find(rows, replacement.identity()) else {
+    let Some(index) = find(rows, &replacement.identity()) else {
         return Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch);
     };
     rows[index] = replacement.clone();
     Ok(())
 }
 
-fn find(rows: &[UiMountedCollectionTextRow], identity: &str) -> Option<usize> {
-    rows.iter()
-        .position(|row| row.identity().as_ref() == identity)
+fn find(
+    rows: &[UiMountedCollectionTextRow],
+    identity: &worth_ui_query_binding::UiQueryEvidenceReference,
+) -> Option<usize> {
+    rows.iter().position(|row| row.identity() == *identity)
 }
 
 #[cfg(test)]
@@ -90,16 +92,17 @@ mod tests {
 
     #[test]
     fn keyed_patch_preserves_identity_across_update_move_and_remove() {
-        let predecessor = [row("a", "Alpha"), row("b", "Bravo"), row("c", "Charlie")];
+        let [a, b, c] = identities(["a", "b", "c"]);
+        let predecessor = [row(a, "Alpha"), row(b, "Bravo"), row(c, "Charlie")];
         let changes = [
-            UiMountedCollectionTextChange::Update(row("b", "Bravo updated")),
+            UiMountedCollectionTextChange::Update(row(b, "Bravo updated")),
             UiMountedCollectionTextChange::Move {
-                identity: Arc::from("c"),
+                identity: c,
                 from: 2,
                 to: 0,
             },
             UiMountedCollectionTextChange::Remove {
-                identity: Arc::from("a"),
+                identity: a,
                 from: 1,
             },
         ];
@@ -109,17 +112,18 @@ mod tests {
         assert_eq!(
             applied
                 .iter()
-                .map(|row| (row.identity().as_ref(), row.selected_values()[0].as_ref()))
+                .map(|row| (row.identity(), row.selected_values()[0].as_ref()))
                 .collect::<Vec<_>>(),
-            [("c", "Charlie"), ("b", "Bravo updated")]
+            [(c, "Charlie"), (b, "Bravo updated")]
         );
     }
 
     #[test]
     fn positional_twin_with_wrong_identity_is_rejected() {
-        let predecessor = [row("a", "Alpha"), row("b", "Bravo")];
+        let [a, b] = identities(["a", "b"]);
+        let predecessor = [row(a, "Alpha"), row(b, "Bravo")];
         let changes = [UiMountedCollectionTextChange::Remove {
-            identity: Arc::from("b"),
+            identity: b,
             from: 0,
         }];
 
@@ -129,7 +133,16 @@ mod tests {
         );
     }
 
-    fn row(identity: &str, value: &str) -> UiMountedCollectionTextRow {
-        UiMountedCollectionTextRow::new(Arc::from(identity), [Arc::from(value)])
+    fn row(
+        identity: worth_ui_query_binding::UiQueryEvidenceReference,
+        value: &str,
+    ) -> UiMountedCollectionTextRow {
+        UiMountedCollectionTextRow::new(identity, [Arc::from(value)])
+    }
+
+    fn identities<const N: usize>(
+        seeds: [&str; N],
+    ) -> [worth_ui_query_binding::UiQueryEvidenceReference; N] {
+        worth_ui_query_binding::certification::query_evidence_references(seeds)
     }
 }

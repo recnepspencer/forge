@@ -1,8 +1,8 @@
 use worth_query::facade::{domain, runtime};
 
 use super::{
-    evaluate_product_projection_support, platform_pulse_bridge, shared_source_state,
-    SharedSourceState, WorthUiExternalScalarSourceBackend,
+    configure_product_projection_backend, evaluate_product_projection_support,
+    platform_pulse_bridge, shared_source_state, SharedSourceState,
 };
 
 pub struct WorthUiQueryHostInstallationRequest {
@@ -39,7 +39,7 @@ impl WorthUiScalarProjectionHostPlan {
         let source = shared_source_state();
         let bridge =
             platform_pulse_bridge().map_err(WorthUiScalarProjectionInstallationError::Bridge)?;
-        let builder = projection_runtime_builder(source.clone())?;
+        let builder = projection_runtime_builder(source.clone(), bridge.clone())?;
         let plan = builder.prepare_host_installation();
         let (request, completion) = plan.into_parts();
         Ok(Self {
@@ -104,15 +104,17 @@ pub enum WorthUiScalarProjectionInstallationError {
 )]
 pub(crate) fn projection_runtime_builder(
     source: SharedSourceState,
+    bridge: worth_runtime_bridge::facade::RuntimeBridge,
 ) -> Result<runtime::WorthQueryRuntimeBuilder, WorthUiScalarProjectionInstallationError> {
     let builder = runtime::WorthQueryRuntime::builder()
-        .backend(WorthUiExternalScalarSourceBackend::new(source))
         .domain_package(crate::worth_ui_domain_package())
         .map_err(WorthUiScalarProjectionInstallationError::DomainPackage)?;
     let builder = crate::install_worth_ui_operation_executors(builder)
         .aspect_contracts(crate::worth_ui_native_aspect_contracts())
         .map_err(WorthUiScalarProjectionInstallationError::AspectContract)?;
-    Ok(projection_consumer_support(builder))
+    Ok(projection_consumer_support(
+        configure_product_projection_backend(builder, bridge, source),
+    ))
 }
 
 fn projection_consumer_support(

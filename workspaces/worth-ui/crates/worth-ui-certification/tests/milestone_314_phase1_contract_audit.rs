@@ -18,10 +18,14 @@ fn assert_rejected(contract: &toml::Value, ledger: &str, phase: i64, label: &str
 }
 
 #[test]
-fn milestone_314_contract_and_current_phase_2_ledger_are_exact() {
+fn milestone_314_contract_and_current_implementation_ledger_are_exact() {
     let (contract, ledger) = phase_1_inputs();
-    milestone_314_ledger::validate_at_phase(&contract, &ledger, 2)
-        .expect("the frozen portfolio and current Phase 2 closures should agree");
+    milestone_314_ledger::validate_at_phase(
+        &contract,
+        &ledger,
+        milestone_314_ledger::CURRENT_IMPLEMENTATION_PHASE,
+    )
+    .expect("the frozen portfolio and current milestone closures should agree");
 }
 
 #[test]

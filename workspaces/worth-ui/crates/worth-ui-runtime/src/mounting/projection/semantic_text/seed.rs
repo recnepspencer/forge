@@ -145,4 +145,14 @@ impl UiMountedSemanticTextSeed {
     pub(in crate::mounting::projection) const fn layer_semantic_order(&self) -> u32 {
         self.layer_semantic_order
     }
+
+    #[cfg(test)]
+    pub(in crate::mounting::projection) fn scalar_for_test() -> Self {
+        Self {
+            content: UiMountedSemanticTextSeedContent::Scalar(Some(Arc::from("value"))),
+            posture: Arc::from("CURRENT"),
+            color: worth_ui_host_contract::UiMountedRgba8::new(255, 255, 255, 255),
+            layer_semantic_order: 1,
+        }
+    }
 }

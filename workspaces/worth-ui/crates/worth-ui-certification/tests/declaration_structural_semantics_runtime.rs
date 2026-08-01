@@ -265,21 +265,30 @@ fn unsupported_structural_tokens_deny_through_public_freeze_path() {
 
 #[test]
 fn non_structural_families_cannot_smuggle_graph_handoff_authority() {
-    let denial = freeze_denial(
-        "worth-ui.certification.structural.non_structural",
-        standalone_query_binding_spec(),
-    );
-    assert_eq!(
-        denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::QueryBinding,
-                    },
-            },
+    let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.structural.non_structural",
+            )
+            .with_semantic_artifact_spec(standalone_query_binding_spec()),
         )
+        .freeze()
+        .expect("non-structural declarations coexist without graph authority");
+    let artifact = artifact_from_file_provenance(&app, "app/structural_non_structural.wui", 0);
+    assert_eq!(
+        artifact.structural_semantics().unwrap_err(),
+        &UiDeclarationStructuralSemanticsAdmissionDenial::FamilyDoesNotProjectStructuralSemantics {
+            family: UiDeclarationFamilyKind::QueryBinding,
+        }
     );
+    assert!(artifact.graph_handoff().is_err());
+    assert!(app
+        .graph()
+        .lookup()
+        .declaration_instances(artifact.identity())
+        .value()
+        .is_empty());
 }
 
 fn freeze_denial(

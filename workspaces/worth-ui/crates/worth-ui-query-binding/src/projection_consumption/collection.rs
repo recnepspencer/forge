@@ -29,9 +29,8 @@ impl UiCollectionContinuation {
         }
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_continuation_identity
-            .terminal_projection_for_reporting()
+    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_continuation_identity)
     }
 }
 
@@ -45,8 +44,8 @@ impl UiCollectionProjectionRowReference {
         Self { query_row_identity }
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_row_identity.terminal_projection_for_reporting()
+    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_row_identity)
     }
 
     pub(crate) fn query_row_identity(&self) -> &WorthQueryEvidenceIdentity {

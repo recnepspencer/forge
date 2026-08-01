@@ -98,9 +98,8 @@ impl UiProjectionUnavailableReceipt {
         self.kind
     }
 
-    pub fn query_transition_identity_for_reporting(&self) -> &str {
-        self.query_transition_identity
-            .terminal_projection_for_reporting()
+    pub fn query_transition_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_transition_identity)
     }
 }
 
@@ -131,9 +130,8 @@ impl UiProjectionRetainedActivityReceipt {
         self.kind
     }
 
-    pub fn query_transition_identity_for_reporting(&self) -> &str {
-        self.query_transition_identity
-            .terminal_projection_for_reporting()
+    pub fn query_transition_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_transition_identity)
     }
 }
 
@@ -179,14 +177,14 @@ impl UiProjectionFactStopReceipt {
         self.kind
     }
 
-    pub fn attempt_identity_for_reporting(&self) -> &str {
-        self.attempt_identity.terminal_projection_for_reporting()
+    pub fn attempt_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.attempt_identity)
     }
 
-    pub fn predecessor_fact_identity_for_reporting(&self) -> Option<&str> {
+    pub fn predecessor_fact_identity(&self) -> Option<crate::UiQueryEvidenceReference> {
         self.predecessor_fact_identity
             .as_ref()
-            .map(WorthQueryEvidenceIdentity::terminal_projection_for_reporting)
+            .map(crate::UiQueryEvidenceReference::query_issued)
     }
 
     pub fn summary(&self) -> &str {

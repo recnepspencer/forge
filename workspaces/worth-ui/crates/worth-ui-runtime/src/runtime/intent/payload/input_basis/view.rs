@@ -1,6 +1,5 @@
 pub(crate) struct UiIntentInputBasisView<'state> {
-    generation: &'state crate::facade::prepared_application_authority::
-        WorthUiPreparedApplicationGenerationIdentity,
+    generation: &'state crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     publication_frame: worth_ui_host_contract::UiMountedFrameIdentity,
     target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     mounted: &'state crate::mounting::WorthUiMountedSessionState,
@@ -10,8 +9,7 @@ pub(crate) struct UiIntentInputBasisView<'state> {
 impl<'state> UiIntentInputBasisView<'state> {
     pub(crate) fn observe(
         interaction: &crate::runtime::interaction::UiSemanticInteraction,
-        generation: &'state crate::facade::prepared_application_authority::
-            WorthUiPreparedApplicationGenerationIdentity,
+        generation: &'state crate::runtime::WorthUiActiveApplicationGenerationIdentity,
         mounted: &'state crate::mounting::WorthUiMountedSessionState,
         application_facts: &'state super::super::UiIntentApplicationFactState,
     ) -> Result<Self, super::super::UiIntentPayloadStop> {
@@ -41,8 +39,7 @@ impl<'state> UiIntentInputBasisView<'state> {
 
     pub(crate) const fn generation(
         &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    ) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
         self.generation
     }
 
@@ -57,26 +54,32 @@ impl<'state> UiIntentInputBasisView<'state> {
         &self,
         slot: crate::declaration::UiIntentApplicationFactSlot,
     ) -> Option<super::super::UiIntentApplicationInputReference> {
-        self.application_facts.input_reference(slot)
+        self.application_facts
+            .input_reference(slot, self.generation)
+    }
+
+    pub(crate) const fn target(
+        &self,
+    ) -> crate::runtime::interaction::UiPresentedInteractionTargetView {
+        self.target
     }
 
     pub(crate) fn seal(
         self,
-        interaction: crate::runtime::interaction::UiSemanticInteraction,
-        query_inputs: Vec<worth_ui_query_binding::UiProjectionInputFactReference>,
-        application_inputs: Vec<super::super::UiIntentApplicationInputReference>,
-        owner_revisions: Vec<super::UiIntentInputOwnerRevision>,
-        cost: super::UiIntentPayloadProjectionCost,
+        material: super::UiIntentInputBasisMaterial,
     ) -> super::UiIntentInputBasis {
         super::UiIntentInputBasis::seal(super::UiIntentInputBasisInput {
             generation: self.generation.clone(),
             publication_frame: self.publication_frame,
             target: self.target,
-            interaction,
-            query_inputs,
-            application_inputs,
-            owner_revisions,
-            cost,
+            interaction: material.interaction,
+            query_inputs: material.query_inputs,
+            application_inputs: material.application_inputs,
+            owner_revisions: material.owner_revisions,
+            route_resolution: material.route_resolution,
+            cost: material.cost,
+            operability: material.operability,
+            evidence_reference: material.evidence_reference,
         })
     }
 }

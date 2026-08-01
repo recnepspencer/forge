@@ -3,6 +3,7 @@ pub enum UiConsumedFactSelector {
     AuthoredDeclarationIdentity(Box<str>),
     Aspect(crate::declaration::UiAspectName),
     QueryProjection(worth_ui_query_binding::WorthUiQueryViewIdentity),
+    IntentPostureGraphNode(crate::graph::UiGraphNodeIdentity),
 }
 
 impl UiConsumedFactSelector {
@@ -18,5 +19,11 @@ impl UiConsumedFactSelector {
         identity: worth_ui_query_binding::WorthUiQueryViewIdentity,
     ) -> Self {
         Self::QueryProjection(identity)
+    }
+
+    pub(crate) const fn intent_posture_graph_node(
+        identity: crate::graph::UiGraphNodeIdentity,
+    ) -> Self {
+        Self::IntentPostureGraphNode(identity)
     }
 }

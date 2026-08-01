@@ -845,6 +845,7 @@ dependencies = [
  "worth-foundational",
  "worth-query",
  "worth-query-decl",
+ "worth-relational",
  "worth-runtime-bridge",
  "worth-signal",
 ]

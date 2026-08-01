@@ -26,6 +26,7 @@ impl UiGraphSubsystemFactIndex {
             UiProducedFactFamily::HostDeviceScale => &self.host_device_scale,
             UiProducedFactFamily::Measurement => &self.measurement,
             UiProducedFactFamily::Query => &self.query,
+            UiProducedFactFamily::IntentPosture => &[],
             UiProducedFactFamily::CommittedScrollExtent => &self.committed_scroll_extent,
             UiProducedFactFamily::CommittedPortalAnchor => &self.committed_portal_anchor,
         }

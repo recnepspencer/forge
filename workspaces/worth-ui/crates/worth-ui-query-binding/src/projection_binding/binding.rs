@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::declaration::{UiCollectionSchemaRequirement, UiScalarSchemaRequirement};
 
 pub(super) struct UiProjectionBindingAuthority<R> {
@@ -38,22 +36,22 @@ impl<R> UiProjectionBindingAuthority<R> {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiProjectionBinding {
-    query_binding_identity: Arc<str>,
+    query_binding_reference: crate::UiQueryBindingReference,
 }
 
 impl UiProjectionBinding {
-    pub fn query_binding_identity_for_reporting(&self) -> &str {
-        self.query_binding_identity.as_ref()
+    pub fn query_binding_reference(&self) -> &crate::UiQueryBindingReference {
+        &self.query_binding_reference
     }
 
-    pub(crate) fn from_query_binding_identity(identity: impl Into<Arc<str>>) -> Self {
+    pub(crate) fn query_issued(reference: crate::UiQueryBindingReference) -> Self {
         Self {
-            query_binding_identity: identity.into(),
+            query_binding_reference: reference,
         }
     }
 
-    pub(crate) fn query_binding_identity(&self) -> Arc<str> {
-        Arc::clone(&self.query_binding_identity)
+    pub(crate) fn retained_query_binding_reference(&self) -> crate::UiQueryBindingReference {
+        self.query_binding_reference.clone()
     }
 }
 
@@ -91,9 +89,7 @@ impl UiScalarProjectionBinding {
         prepared: crate::application_binding::WorthUiPreparedScalarTextConsumer,
     ) -> Self {
         let (query_world_identity, runtime_provenance, reference) = authority.into_parts();
-        let core = UiProjectionBinding::from_query_binding_identity(
-            prepared.binding_identity_for_reporting(),
-        );
+        let core = UiProjectionBinding::query_issued(prepared.binding_reference());
         Self {
             core,
             requirement,
@@ -221,9 +217,7 @@ impl UiCollectionProjectionBinding {
         prepared: crate::application_binding::WorthUiPreparedCollectionTextConsumer,
     ) -> Self {
         let (query_world_identity, runtime_provenance, reference) = authority.into_parts();
-        let core = UiProjectionBinding::from_query_binding_identity(
-            prepared.binding_identity_for_reporting(),
-        );
+        let core = UiProjectionBinding::query_issued(prepared.binding_reference());
         Self {
             core,
             requirement,

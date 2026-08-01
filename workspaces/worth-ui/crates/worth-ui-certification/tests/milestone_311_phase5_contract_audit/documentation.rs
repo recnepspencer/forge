@@ -149,7 +149,7 @@ fn assert_human_pulse_workflow() {
         "VisualOverlayCleared",
         "VisualSnapshotRetired",
         "component:platform.pulse.component.identity_target",
-        "component platform.pulse.component.identity_target {}",
+        "component platform.pulse.component.identity_target {",
         "token theme.platform_pulse.identity_target_fill = \"theme.platform_pulse.yellow\";",
         "disposed_visual_structural_bytes",
         "--features executable-world --test executable_world -- --nocapture",

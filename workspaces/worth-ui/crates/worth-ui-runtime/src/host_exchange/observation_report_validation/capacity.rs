@@ -21,7 +21,7 @@ pub struct UiHostObservationCapacityInput {
 impl Default for UiHostObservationCapacity {
     fn default() -> Self {
         Self {
-            local_reports: 64,
+            local_reports: crate::mounting::DEFAULT_OBSERVATION_FRAME_CAPACITY,
             local_bytes: 16 * 1024,
             global_reports: 512,
             global_bytes: 128 * 1024,

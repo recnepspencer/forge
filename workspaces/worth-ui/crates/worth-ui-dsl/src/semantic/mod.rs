@@ -6,10 +6,14 @@ mod ui_dsl_semantic_atoms;
 mod ui_dsl_source_provenance;
 
 pub use intent::{
+    WorthUiIntentConcurrencyScope, WorthUiIntentConfirmationContractSpec,
+    WorthUiIntentConfirmationSourceSpec, WorthUiIntentConsequenceContractSpec,
     WorthUiIntentDeclarationMeaning, WorthUiIntentDeclarationParseError,
     WorthUiIntentDeclarationSpec, WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
-    WorthUiIntentInteractionRouteKind, WorthUiIntentPayloadSource, WorthUiIntentPayloadSourceSpec,
-    WorthUiIntentSchemaExpectation,
+    WorthUiIntentInteractionRouteKind, WorthUiIntentMutabilitySourceSpec,
+    WorthUiIntentOperabilityContractSpec, WorthUiIntentPayloadSource,
+    WorthUiIntentPayloadSourceSpec, WorthUiIntentPolicySourceSpec,
+    WorthUiIntentReadinessSourceSpec, WorthUiIntentSchemaExpectation,
 };
 pub use ui_dsl_lowering_receipt::UiDslLoweringReceipt;
 pub use ui_dsl_semantic_artifact::UiDslSemanticArtifact;

@@ -41,4 +41,16 @@ impl fmt::Debug for UiIntentSchema {
 /// Typed product outcomes declare the schema that consequence mapping accepts.
 pub trait UiIntentProductOutcome: Send + 'static {
     const SCHEMA: UiIntentSchema;
+    const CONSEQUENCE_FAMILIES: super::UiIntentProductConsequenceFamilies;
+
+    fn into_consequences(self) -> super::UiIntentProductConsequences;
+}
+
+/// Product outcome construction admitted only for a WUI-owned transition.
+///
+/// Requiring this trait at definition construction keeps `Completed(O)` typed:
+/// the transition owner never invents, casts, or deserializes a product
+/// outcome after the intent type has been erased into the frozen registry.
+pub trait UiIntentTransitionOutcome: UiIntentProductOutcome {
+    fn from_completed_transition(destination: super::UiIntentTransitionDestination) -> Self;
 }

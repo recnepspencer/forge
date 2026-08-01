@@ -8,7 +8,9 @@ use crate::facade::registry::descriptor::{
 
 use super::WorthUiApplicationBuilder;
 
-impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
+{
     pub fn register_command(mut self, descriptor: CommandDescriptor) -> Self {
         self.inner = self.inner.register_command(descriptor);
         self

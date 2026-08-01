@@ -56,6 +56,7 @@ impl UiSubsystemConsumedFactRule {
             UiProducedFactFamily::HostDeviceScale => &Self::HOST_DEVICE_SCALE,
             UiProducedFactFamily::Measurement => &Self::MEASUREMENT,
             UiProducedFactFamily::Query => &Self::QUERY,
+            UiProducedFactFamily::IntentPosture => &[],
             UiProducedFactFamily::CommittedScrollExtent => &Self::COMMITTED_SCROLL_EXTENT,
             UiProducedFactFamily::CommittedPortalAnchor => &Self::COMMITTED_PORTAL_ANCHOR,
         }

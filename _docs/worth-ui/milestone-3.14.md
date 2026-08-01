@@ -2,7 +2,8 @@
 
 ## Status and Placement
 
-Status: Planned.
+Status: Closed on 2026-08-01. Phases 1 through 5 and all thirteen interaction
+and intent proof rows are closed on final source.
 
 Milestone 3.13 closed the honest path from Query-owned projection truth to
 mounted pixels. Milestone 3.14 adds the reverse product path: native human
@@ -175,7 +176,7 @@ target.
 | `IA-02` | Press/release on the same target, different targets, drag out/back, overlap, clip/occlusion, stale frame/binding/receipt, foreign surface, and compatible/incompatible remount. | Activation requires press/release continuity for one mounted incarnation across exact presented frames. Only an owner-issued continuity witness may cross a newer presentation; coordinates, current lookup, or equal IDs cannot retarget it. |
 | `IA-03` | Duplicate, reordered, skipped, and delayed observations; coalesced motion; lossless button/key/text/IME transitions; capture-epoch change; active-pointer capacity minus one/at/plus one; overflow before and during a gesture; repeat and double activation. | An independent gesture model agrees. Loss or exhaustion cancels/stops exactly; two complete press/release pairs produce two interactions, while repeat metadata alone produces none. |
 | `IA-04` | Exhaust the small operability lattice and pairwise coupled axes: support, mutability, readiness, target/declaration/definition/application occupancy, policy, freshness/affinity, and confirmation. | Only the exact operable proof advances. Target-scoped work does not disable peer routes; displayed enabledness and static command readiness have no authority. |
-| `IA-05` | Payloads with 0, 1, and 64 fields; empty/exact/over-budget Unicode text; IME preedit/commit/cancel and native-coordinate conversion; missing, readonly, malformed, stale, and reordered projection/draft inputs; selection reorder; Query change during assembly. | One sealed input basis produces the typed payload. Only committed text and exact current option identity enter it; no JSON, `Any`, string bag, renderer scan, positional selection, or mixed revision enters admission. |
+| `IA-05` | Payloads with 0, 1, and 64 fields; empty/exact/over-budget Unicode text; IME preedit/commit/cancel and native-coordinate conversion; impossible source shape at catalog formation; missing, malformed, stale, and reordered runtime inputs; selection reorder; Query change across predecessor/successor bases; attempted assembly during publication transition. | One sealed input basis produces the typed payload. Only committed text and exact current option identity enter it; no JSON, `Any`, string bag, renderer scan, positional selection, or mixed revision enters admission. |
 | `IA-06` | Duplicate confirm, simultaneous confirm, changed payload/control/intent/world/application generation/policy, expiry, cancellation, and replay. | One affine challenge opens at most one exact continuation. All stale or foreign challenges stop before execution. |
 | `IA-07` | Interrupt at host retention, target resolution, gesture completion, payload projection, operability evaluation, admission, reservation, before/after the external effect, completion, consequence admission, and publication. Cross relevant points with compatible/incompatible declaration/provider-schema replacement, unmount, and shutdown. | Each phase owns a typed terminal posture. Pre-effect work cancels or rebinds exactly; effecting work retains its bounded predecessor owner/version until settlement. Escaped effects are never called rollback and late evidence cannot transfer authority. |
 | `IA-08` | Unsupported destination, destination-local/global reservation exhaustion, one blocked provider beside an unrelated ready provider, rejection/cancel/timeout before effect, success, downstream domain denial, partial effect, indeterminate effect, duplicate/late settlement, and retry from clean/indeterminate posture. | The framework owns every attempt, exhaustion stays at its declared scope, and one provider cannot create global head-of-line blocking. UI routing admission and domain mutation admission remain separate; partial/indeterminate outcomes retain recovery. |
@@ -328,6 +329,11 @@ not take separate snapshots. The resulting `UiIntentInputBasis` records that
 publication plus the exact revision of every consumed owner. It does not lock,
 copy, or rescan unrelated owners. Assembly completes before admission and
 provider reservation.
+
+Readonly is not a payload-shape or value failure. Payload projection preserves
+the shared basis; Phase 3 operability alone derives and denies the mutability
+axis from that basis. Payload code may not independently grant or re-evaluate
+writability.
 
 The executor receives the sealed admitted payload by value. It cannot add
 fields, reread UI state, query the renderer, or reinterpret a field name.

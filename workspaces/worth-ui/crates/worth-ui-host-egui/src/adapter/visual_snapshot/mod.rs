@@ -3,6 +3,8 @@ use std::sync::{Arc, Mutex};
 
 mod observation;
 mod state;
+#[cfg(test)]
+mod state_tests;
 
 pub(super) use state::UiEguiVisualCaptureState;
 
@@ -48,9 +50,9 @@ pub(super) fn capture(
     if !registration_matches(registrations, request) {
         return worth_ui_host_contract::UiHostCaptureObservationOutcome::Unsupported;
     }
-    let presented = match state.lock().unwrap().exact_presentation(request) {
-        Some(presented) => presented,
-        None => {
+    let presented = match state.lock().unwrap().presentation_affinity(request) {
+        state::UiEguiPresentationAffinity::Exact(presented) => presented,
+        state::UiEguiPresentationAffinity::Superseded => {
             return worth_ui_host_contract::UiHostCaptureObservationOutcome::SupersededBeforeReadback;
         }
     };

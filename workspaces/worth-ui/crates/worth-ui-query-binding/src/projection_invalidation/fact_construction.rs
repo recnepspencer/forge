@@ -92,5 +92,5 @@ fn fact_core(context: &StateFactContext<'_>) -> UiProjectionFactReceipt {
 fn predecessor_identity(
     predecessor: &UiScalarProjectionFactReceipt,
 ) -> worth_query::facade::runtime::WorthQueryEvidenceIdentity {
-    predecessor.core().result_generation_identity().clone()
+    predecessor.core().result_generation_authority().clone()
 }

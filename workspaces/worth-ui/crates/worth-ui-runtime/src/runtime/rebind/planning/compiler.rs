@@ -1,7 +1,10 @@
 use super::{
     budget::{require_compiled_plan_budget, require_terminal_decision_budget},
+    cost::compile_cost,
     currentness::{require_classification_currentness, require_scope_currentness},
     effect_compiler::{compile_conflicts, compile_effects, compile_parallel_admission},
+    policy::require_policy_session,
+    recoverable::{prepare_non_source, UiRebindPlanningRecoveryStop},
     subsystem_compiler::compile_subsystems,
     UiAuthoredContentRebindSemanticProof, UiChangedRebindSemanticProof,
     UiRebindCandidatePreparationDenial, UiRebindConflictFootprint, UiRebindEffectSet,
@@ -60,6 +63,37 @@ impl UiRebindPlanCompiler {
         }))
     }
 
+    pub(crate) fn compile_non_source_recoverable(
+        context: UiRebindPlanningContext<'_>,
+        lifecycle: UiResolvedIdentityLifecycle,
+        policy: UiRebindExecutionPolicy,
+    ) -> Result<UiRebindPlan, UiRebindPlanningRecoveryStop> {
+        let prepared = match prepare_non_source(&context, &lifecycle, policy) {
+            Ok(prepared) => prepared,
+            Err(denial) => return Err(UiRebindPlanningRecoveryStop::new(denial, lifecycle)),
+        };
+        let (scope, identity_decisions) = lifecycle.into_parts();
+        let basis = UiRebindPlanBasis::new(
+            scope.basis().classification().clone(),
+            scope.basis().candidate_generation().clone(),
+        );
+        Ok(UiRebindPlan::new(UiRebindPlanInput {
+            basis,
+            scope: Some(scope),
+            identity_decisions,
+            subsystems: prepared.subsystems,
+            effects: prepared.effects,
+            conflicts: prepared.conflicts,
+            parallel: prepared.parallel,
+            content: prepared.content,
+            policy,
+            budget: context.budget(),
+            effecting_observation_capacity: context.effecting_observation_capacity(),
+            cost: prepared.cost,
+            semantic_proof: UiRebindSemanticProof::NonSource,
+        }))
+    }
+
     pub(crate) fn compile_preservation(
         context: UiRebindPlanningContext<'_>,
         evidence: crate::runtime::observation::UiEvidenceOnlySourceChange,
@@ -101,17 +135,6 @@ impl UiRebindPlanCompiler {
             cost: UiRebindPlanCost::new(0, 0, 0, 0, 0),
             semantic_proof: UiRebindSemanticProof::EvidenceOnly(Box::new(succession)),
         }))
-    }
-}
-
-fn require_policy_session(
-    session: crate::facade::WorthUiActiveApplicationSessionIdentity,
-    policy: UiRebindExecutionPolicy,
-) -> Result<(), UiRebindPlanningDenial> {
-    if policy.admits_session(session) {
-        Ok(())
-    } else {
-        Err(UiRebindPlanningDenial::ForeignExecutionPolicySession)
     }
 }
 
@@ -218,33 +241,6 @@ fn semantic_proof_candidate_authority(
         UiRebindSemanticProof::EvidenceOnly(succession) => Some(succession.successor_authority()),
         UiRebindSemanticProof::NonSource | UiRebindSemanticProof::Transferred => None,
     }
-}
-
-fn compile_cost(
-    decisions: &[super::super::UiIdentityLifecycleEntry],
-    subsystems: &[UiRebindSubsystemPlan],
-    effects: &UiRebindEffectSet,
-) -> UiRebindPlanCost {
-    UiRebindPlanCost::new(
-        decisions.len(),
-        subsystem_target_count(subsystems, UiRebindSubsystemKind::Graph)
-            + subsystem_target_count(subsystems, UiRebindSubsystemKind::Mount),
-        subsystem_target_count(subsystems, UiRebindSubsystemKind::Measurement)
-            + subsystem_target_count(subsystems, UiRebindSubsystemKind::Allocation),
-        subsystem_target_count(subsystems, UiRebindSubsystemKind::Binding),
-        effects.effects().len(),
-    )
-}
-
-fn subsystem_target_count(
-    subsystems: &[UiRebindSubsystemPlan],
-    kind: UiRebindSubsystemKind,
-) -> usize {
-    subsystems
-        .binary_search_by_key(&kind, UiRebindSubsystemPlan::kind)
-        .ok()
-        .map(|index| subsystems[index].targets().len())
-        .unwrap_or(0)
 }
 
 impl UiRebindSubsystemKind {

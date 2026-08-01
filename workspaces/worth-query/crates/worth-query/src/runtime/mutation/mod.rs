@@ -1,5 +1,6 @@
 mod aspect;
 mod assertion;
+mod authored_admission_denial;
 mod backend_admissible;
 mod batch;
 mod binding;
@@ -23,6 +24,7 @@ pub use assertion::{
     WorthQueryExistingTruthAssertionDenial, WorthQueryExistingTruthAssertionDenialKind,
     WorthQueryExistingTruthAssertionMode, WorthQueryVerifiedExistingTruthAssertion,
 };
+pub use authored_admission_denial::WorthQueryAuthoredMutationAdmissionDenial;
 pub use backend_admissible::WorthQueryBackendAdmissibleMutation;
 pub use batch::WorthQueryMutationBatchBuilder;
 pub use binding::{

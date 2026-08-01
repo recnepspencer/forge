@@ -1,3 +1,5 @@
+pub(crate) const DEFAULT_OBSERVATION_FRAME_CAPACITY: usize = 64;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiMountedRetentionClassBudget {
     frame_limit: usize,
@@ -127,8 +129,14 @@ impl Default for UiMountedFrameRetentionBudget {
         Self::new(UiMountedFrameRetentionBudgetInput {
             current: UiMountedRetentionClassBudget::new(1, 64 * MIB),
             in_flight: UiMountedRetentionClassBudget::new(1, 64 * MIB),
-            observation_basis: UiMountedRetentionClassBudget::new(64, 256 * MIB),
-            predecessor_inspection: UiMountedRetentionClassBudget::new(8, 256 * MIB),
+            observation_basis: UiMountedRetentionClassBudget::new(
+                DEFAULT_OBSERVATION_FRAME_CAPACITY,
+                256 * MIB,
+            ),
+            predecessor_inspection: UiMountedRetentionClassBudget::new(
+                DEFAULT_OBSERVATION_FRAME_CAPACITY,
+                256 * MIB,
+            ),
             diagnostic: UiMountedRetentionClassBudget::new(8, 16 * MIB),
             visual_snapshot: UiMountedRetentionClassBudget::new(4, 128 * MIB),
             visual_overlay: UiMountedRetentionClassBudget::new(4, 32 * MIB),

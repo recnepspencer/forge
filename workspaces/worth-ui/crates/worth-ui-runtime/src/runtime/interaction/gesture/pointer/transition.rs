@@ -1,7 +1,7 @@
 use worth_ui_host_contract::{
     UiHostObservationCanonicalCore, UiHostObservationPayload, UiHostObservationSequence,
-    UiHostPointerButton, UiHostPointerButtonTransition, UiHostPointerCaptureEpoch,
-    UiHostPointerIdentity,
+    UiHostObservationTimeBasis, UiHostPointerButton, UiHostPointerButtonTransition,
+    UiHostPointerCaptureEpoch, UiHostPointerIdentity,
 };
 
 use super::model::{
@@ -18,6 +18,7 @@ use crate::runtime::interaction::targeting::{
 struct UiPointerButtonReport<'world> {
     core: UiHostObservationCanonicalCore,
     sequence: UiHostObservationSequence,
+    time_basis: UiHostObservationTimeBasis,
     pointer: UiHostPointerIdentity,
     capture_epoch: UiHostPointerCaptureEpoch,
     button: UiHostPointerButton,
@@ -44,6 +45,7 @@ impl UiPointerGestureRuntimeState {
                 let input = UiPointerButtonReport {
                     core,
                     sequence: report.sequence(),
+                    time_basis: report.time_basis(),
                     pointer: *pointer,
                     capture_epoch: *capture_epoch,
                     button: *button,
@@ -102,6 +104,7 @@ impl UiPointerGestureRuntimeState {
             capture_epoch: input.capture_epoch,
             button: input.button,
             press_sequence: input.sequence,
+            press_time_basis: input.time_basis,
             target,
         };
         self.active.insert(input.pointer, active);
@@ -111,6 +114,7 @@ impl UiPointerGestureRuntimeState {
             capture_epoch: input.capture_epoch,
             button: input.button,
             sequence: input.sequence,
+            time_basis: input.time_basis,
             target: target_view,
         })
     }
@@ -162,7 +166,9 @@ impl UiPointerGestureRuntimeState {
             capture_epoch: input.capture_epoch,
             button: input.button,
             press_sequence: active.press_sequence,
+            press_time_basis: active.press_time_basis,
             release_sequence: input.sequence,
+            release_time_basis: input.time_basis,
             pressed: active.target,
             released,
             continuity: witness.kind(),

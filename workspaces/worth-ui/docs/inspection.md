@@ -29,6 +29,7 @@ posture. A completed rebind also exposes a compact terminal decision record.
 - `WorthUiActiveApplicationSession::inspect(...)`
 - `WorthUiApp::inspection_support_report_for(...)`
 - `WorthUiApp::expand_evidence_ref(...)`
+- `WorthUiActiveApplicationSession::lookup_intent_causal_trace(...)`
 - `UiRebindReceipt::decision_record()`
 - `UiRebindReceipt::decision_index()`
 - `UiRebindDecisionLookup`
@@ -48,6 +49,36 @@ the exact decision key, source basis, observation/fact/aspect/consumer counts,
 changed-versus-evidence-only disposition, published stop point, and structural
 cost. A bounded decision index reports `Found`, `Expired`, or `Unavailable`;
 absence is never silently relabeled as an empty decision.
+
+### Intent causal evidence
+
+Each admitted semantic intent may carry one `UiIntentEvidenceReference` from
+its presentation-bound interaction into routing, payload projection,
+operability, admission, managed attempt, and product outcome. Resolve it with
+`lookup_intent_causal_trace`. The result is explicit:
+
+- `Found(UiIntentCausalTraceEvidence)` for the exact live session, slot, and
+  generation;
+- `Expired` after replacement or for a stale/wrong generation;
+- `ForeignSession` when the reference names another active session.
+
+The runtime retains at most
+`UI_INTENT_INTERACTION_EVIDENCE_ENTRY_CAPACITY` (64) semantic causal records in
+one fixed replacement ring. Its semantic byte bound is
+`UI_INTENT_CAUSAL_TRACE_EVIDENCE_BYTE_CAPACITY`. Pointer motion and preedit
+volume do not enter this ring. Admission and attempt updates use fixed
+generational slot indexes; lookup does not scan runtime history.
+
+The runtime record ends honestly at the product outcome, including whether
+consequence handoff was pending at completion. Platform Pulse correlates that
+owner-issued reference with consequence publication, the exact Query
+projection, and the mounted publication frame. The executable client observes
+the final pixel change independently; the producer does not certify its own
+pixels.
+
+These records are immutable reporting data. Copying a reference, digest, trace,
+or serialized Pulse projection cannot construct an interaction, operability
+proof, admitted intent, attempt, consequence, Query fact, or mounted authority.
 
 ## How It Executes
 
@@ -167,12 +198,14 @@ Not every future scope is admitted. Deferred and diagnostic-only rows are
 intentional public truth, not incomplete success responses.
 
 Compact rebind decision records are available now. Rich causal-neighborhood
-materialization and replay/reconstruction remain deferred. They must extend
+materialization, intent-detail disclosure, and replay/reconstruction remain
+deferred. They must extend
 the inspection projection and certification authority; ordinary inspection
 must not retain hidden runtime state or import replay.
 
 ## Related Docs
 
+- [Interaction and intents](./interaction-and-intents.md)
 - [Application lifecycle](./application-lifecycle.md)
 - [Hot rebind](./hot-rebind.md)
 - [Runtime subsystems](./runtime-subsystems.md)

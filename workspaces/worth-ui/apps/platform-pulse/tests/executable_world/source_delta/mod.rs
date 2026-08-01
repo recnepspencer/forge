@@ -1,5 +1,6 @@
 mod atomic_replacement;
 mod canonical_deltas;
+mod intent_values;
 mod query_values;
 mod schema_deltas;
 
@@ -7,8 +8,12 @@ pub(crate) use atomic_replacement::{
     AppliedPulseSourceDelta, PulseSourceActionFailure, PulseSourceDeltaIdentity,
 };
 pub(crate) use canonical_deltas::{
-    CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, MalformedPulseSourceDelta,
-    PulseSourceDeltaDefinitionFailure,
+    CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, IntentRouteRemovalSourceDelta,
+    MalformedPulseSourceDelta, PulseSourceDeltaDefinitionFailure,
+};
+pub(crate) use intent_values::{
+    ConfirmationHeldIntentDelta, ConfirmationReleasedIntentDelta, DeniedIntentDelta,
+    DisabledIntentDelta, FinalHeldIntentDelta, ReadyReleasedIntentDelta,
 };
 pub(crate) use query_values::{QueryStatusV1, QueryStatusV2};
 pub(crate) use schema_deltas::{RevisionSchemaSourceDelta, StatusSchemaRecoverySourceDelta};

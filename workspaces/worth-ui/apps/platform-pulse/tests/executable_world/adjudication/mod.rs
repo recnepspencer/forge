@@ -1,6 +1,8 @@
 #[cfg(target_os = "windows")]
 mod identity_trace;
 #[cfg(target_os = "windows")]
+mod intent_control_points;
+#[cfg(target_os = "windows")]
 mod lifecycle_cleanup;
 #[cfg(target_os = "windows")]
 mod native_color;
@@ -29,19 +31,27 @@ pub(crate) use identity_trace::{
     ExecutableVisualTraceEvidence,
 };
 #[cfg(target_os = "windows")]
+pub(crate) use intent_control_points::{
+    adjudicate_action_control_point, adjudicate_confirmation_control_point,
+    adjudicate_visible_control_change, require_distinct_control_points, IntentControlPointFailure,
+    NativeControlPixelRegion, PlatformPulseActionControlPoint,
+    PlatformPulseConfirmationControlPoint, VisibleControlPixelChange,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{
     adjudicate_lifecycle_cleanup, CausalLifecycleCleanupObservationSet,
     ExecutableLifecycleCleanupEvidence, ExecutableLifecycleCleanupFailure,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use native_color::{
-    adjudicate_native_color, ExpectedNativeColor, NativeColorFailure, NativeColorVerdict,
+    adjudicate_native_background_point, adjudicate_native_color, ExpectedNativeColor,
+    NativeColorFailure, NativeColorVerdict,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use native_input_reachability::{
-    adjudicate_native_input_reachability, ExecutableNativeInputReachabilityEvidence,
-    ExecutableNativeInputReachabilityFailure, NativeInputFamilyObservation,
-    NativeInputReachabilityObservationSet,
+    adjudicate_native_input_reachability, native_input_background_point,
+    ExecutableNativeInputReachabilityEvidence, ExecutableNativeInputReachabilityFailure,
+    NativeInputFamilyObservation, NativeInputReachabilityObservationSet,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use predecessor_preservation::{

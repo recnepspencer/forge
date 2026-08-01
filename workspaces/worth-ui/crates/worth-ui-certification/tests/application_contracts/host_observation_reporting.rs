@@ -5,13 +5,17 @@ use worth_ui::facade::observation_report::{
     UiHostObservationReport, UiHostObservationReportDenial, UiHostObservationReportOutcome,
     UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
 };
-use worth_ui_runtime::facade::mounted::{UiMountedFrameOutcome, UiPresentationDeadline};
+use worth_ui_runtime::facade::mounted::{
+    UiMountedFrameOutcome, UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
+    UiMountedRetentionClassBudget, UiPresentationDeadline,
+};
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::host_observation_fixture::{batch, report, source};
 use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;
 use super::mounted_application_lifecycle::published_mounted_world::{
-    publish, published_observation_world, PresentedObservationBasis,
+    publish, published_observation_world, published_observation_world_with_retention_budget,
+    PresentedObservationBasis,
 };
 use super::mounted_protocol_model::{model_terminal_state, AuthoredMechanicalReport};
 
@@ -153,11 +157,12 @@ fn current_retained_expired_rejected_never_presented_and_indeterminate_bases_are
         UiHostObservationFrameRelation::CurrentPresented
     );
 
-    let mut expired = published_observation_world("observation-basis-expired");
-    for _ in 0..9 {
-        let instance = expired.current.instance;
-        expired.current = publish(&mut expired.session, &expired.host, instance);
-    }
+    let mut expired = published_observation_world_with_retention_budget(
+        "observation-basis-expired",
+        one_predecessor_budget(),
+    );
+    let instance = expired.current.instance;
+    expired.current = publish(&mut expired.session, &expired.host, instance);
     let expired_batch = batch(
         source(&expired.session, expired.binding, &expired.predecessor),
         (1, 1),
@@ -186,6 +191,20 @@ fn current_retained_expired_rejected_never_presented_and_indeterminate_bases_are
         UiHostObservationReportDenial::NeverPresentedFrame,
     );
     assert_indeterminate_quarantine();
+}
+
+fn one_predecessor_budget() -> UiMountedFrameRetentionBudget {
+    let defaults = UiMountedFrameRetentionBudget::default();
+    UiMountedFrameRetentionBudget::new(UiMountedFrameRetentionBudgetInput {
+        current: defaults.current(),
+        in_flight: defaults.in_flight(),
+        observation_basis: defaults.observation_basis(),
+        predecessor_inspection: UiMountedRetentionClassBudget::new(1, 256 * 1024 * 1024),
+        diagnostic: defaults.diagnostic(),
+        visual_snapshot: defaults.visual_snapshot(),
+        visual_overlay: defaults.visual_overlay(),
+        expired_identity_limit: defaults.expired_identity_limit(),
+    })
 }
 
 #[derive(Clone, Copy)]

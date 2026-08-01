@@ -28,7 +28,7 @@ struct IntentRouteCatalogBuilder<'a> {
 }
 
 pub(super) fn prepare(
-    material: &crate::runtime::WorthUiAuthoredIntentMaterial,
+    material: &crate::declaration::WorthUiAuthoredIntentMaterial,
     definitions: &FrozenIntentDefinitionCapabilities,
     graph: &crate::graph::UiGraphSnapshot,
     query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
@@ -65,7 +65,7 @@ pub(super) fn prepare(
 }
 
 fn resolve_declarations(
-    material: &crate::runtime::WorthUiAuthoredIntentMaterial,
+    material: &crate::declaration::WorthUiAuthoredIntentMaterial,
     definitions: &FrozenIntentDefinitionCapabilities,
     query: &worth_ui_query_binding::WorthUiQueryBindingPlan,
     application_facts: &super::super::UiIntentApplicationFactPlan,
@@ -118,13 +118,32 @@ fn resolve_declarations(
                 query,
                 application_facts,
             )?,
+            super::super::resolve_operability_contract(
+                authored.identity(),
+                authored.operability(),
+                interaction,
+                query,
+                application_facts,
+            )?,
+            super::super::resolve_confirmation_contract(
+                authored.identity(),
+                authored.confirmation(),
+                application_facts,
+            )?,
+            super::super::UiIntentConcurrencyScope::from_dsl(authored.concurrency()),
+            super::super::resolve_consequence_contract(
+                authored.identity(),
+                authored.consequences(),
+                resolved.descriptor(),
+                query,
+            )?,
         )));
     }
     Ok((declarations, indexes))
 }
 
 fn validate_schemas(
-    authored: &crate::runtime::WorthUiAuthoredIntentDeclaration,
+    authored: &crate::declaration::WorthUiAuthoredIntentDeclaration,
     definition: &crate::capability::IntentDefinitionDescriptor,
 ) -> Result<(), UiIntentCatalogPreparationDenial> {
     if let Some(expected) = authored.expected_payload_schema() {
@@ -157,7 +176,7 @@ fn validate_schemas(
 }
 
 fn bind_routes(
-    material: &crate::runtime::WorthUiAuthoredIntentMaterial,
+    material: &crate::declaration::WorthUiAuthoredIntentMaterial,
     declarations: &[Arc<UiCanonicalIntentDeclaration>],
     declaration_index: &BTreeMap<Box<str>, u32>,
     graph: &crate::graph::UiGraphSnapshot,
@@ -188,7 +207,7 @@ impl<'a> IntentRouteCatalogBuilder<'a> {
 
     fn bind_authored_route(
         &mut self,
-        authored: &crate::runtime::WorthUiAuthoredIntentRoute,
+        authored: &crate::declaration::WorthUiAuthoredIntentRoute,
     ) -> Result<(), UiIntentCatalogPreparationDenial> {
         let reference = authored.route().declaration_identity();
         let declaration_index =

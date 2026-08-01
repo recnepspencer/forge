@@ -62,7 +62,7 @@ pub(crate) enum UiMountedCollectionTextDirective {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedCollectionTextRow {
-    identity: Arc<str>,
+    identity: worth_ui_query_binding::UiQueryEvidenceReference,
     selected_values: Box<[Arc<str>]>,
 }
 
@@ -73,11 +73,11 @@ pub(crate) enum UiMountedCollectionTextChange {
         at: usize,
     },
     Remove {
-        identity: Arc<str>,
+        identity: worth_ui_query_binding::UiQueryEvidenceReference,
         from: usize,
     },
     Move {
-        identity: Arc<str>,
+        identity: worth_ui_query_binding::UiQueryEvidenceReference,
         from: usize,
         to: usize,
     },
@@ -264,15 +264,18 @@ impl UiMountedCollectionSemanticTextContent {
 }
 
 impl UiMountedCollectionTextRow {
-    pub(crate) fn new(identity: Arc<str>, selected_values: impl Into<Box<[Arc<str>]>>) -> Self {
+    pub(crate) fn new(
+        identity: worth_ui_query_binding::UiQueryEvidenceReference,
+        selected_values: impl Into<Box<[Arc<str>]>>,
+    ) -> Self {
         Self {
             identity,
             selected_values: selected_values.into(),
         }
     }
 
-    pub(crate) fn identity(&self) -> &Arc<str> {
-        &self.identity
+    pub(crate) const fn identity(&self) -> worth_ui_query_binding::UiQueryEvidenceReference {
+        self.identity
     }
 
     pub(crate) fn selected_values(&self) -> &[Arc<str>] {

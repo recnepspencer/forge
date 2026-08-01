@@ -11,12 +11,9 @@ impl WorthUiActiveApplicationSession {
         activation: UiActivateInteraction,
         contract: UiLocalInputRecipientContract,
     ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
-        self.interaction.bind_local_recipient(
-            activation,
-            self.application.generation_identity(),
-            contract,
-            &self.mounted,
-        )
+        let generation = self.active_generation_identity();
+        self.interaction
+            .bind_local_recipient(activation, &generation, contract, &self.mounted)
     }
 }
 

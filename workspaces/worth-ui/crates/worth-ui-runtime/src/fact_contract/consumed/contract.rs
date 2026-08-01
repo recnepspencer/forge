@@ -40,6 +40,13 @@ impl UiConsumedFactContract {
         }
     }
 
+    pub(crate) const fn intent_posture(graph_node: crate::graph::UiGraphNodeIdentity) -> Self {
+        Self {
+            fact_family: UiProducedFactFamily::IntentPosture,
+            selector: UiConsumedFactSelector::intent_posture_graph_node(graph_node),
+        }
+    }
+
     pub(crate) fn matches(&self, fact: &UiProducedFact) -> bool {
         if self.fact_family != fact.family() {
             return false;
@@ -61,6 +68,10 @@ impl UiConsumedFactContract {
             ) => observed
                 .projection_identity()
                 .is_some_and(|identity| identity == expected),
+            (
+                UiConsumedFactSelector::IntentPostureGraphNode(expected),
+                UiProducedFact::IntentPosture(observed),
+            ) => *expected == observed.graph_node(),
             _ => false,
         }
     }

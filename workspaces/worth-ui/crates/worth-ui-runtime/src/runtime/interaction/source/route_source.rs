@@ -23,4 +23,12 @@ impl UiIntentRouteSource {
             UiIntentRouteSourceKind::MountedInteraction(interaction) => interaction,
         }
     }
+
+    pub(crate) fn evidence_input(&self) -> worth_ui_inspection::UiIntentInteractionEvidenceInput {
+        match &self.source {
+            UiIntentRouteSourceKind::MountedInteraction(interaction) => {
+                super::super::semantic_evidence_input(interaction)
+            }
+        }
+    }
 }

@@ -43,11 +43,11 @@ impl UiProjectionInputTransitionWork {
     }
 
     pub(super) fn record_key_probe(&mut self) {
-        self.key_probes = self.key_probes.checked_add(1).unwrap_or(usize::MAX);
+        self.key_probes = self.key_probes.saturating_add(1);
     }
 
     pub(super) fn record_node_copy(&mut self) {
-        self.node_copies = self.node_copies.checked_add(1).unwrap_or(usize::MAX);
+        self.node_copies = self.node_copies.saturating_add(1);
     }
 
     fn merge_index_work(&mut self, mutation: Self) -> Result<(), ()> {

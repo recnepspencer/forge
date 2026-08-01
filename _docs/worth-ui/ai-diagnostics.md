@@ -236,6 +236,7 @@ The inspection substrate should own typed evidence families such as:
 - execution-plan lowering, equivalence, activation, and frame-cost evidence
 - mounted receipt evidence
 - host-observation evidence
+- semantic interaction and admitted-intent causal evidence
 - rebind and preservation evidence
 - diagnostic evidence
 - visual snapshot evidence
@@ -305,9 +306,33 @@ Important indexes include:
 - diagnostic identity -> attached evidence neighborhood
 - screen point or region -> mounted receipt identity
 - frame identity -> visible snapshot / mounted receipts / replay step
+- semantic interaction input -> exact intent evidence reference
+- admission or attempt generational slot -> exact intent causal record
 
 Without these indexes, inspection drifts back toward scans, dumps, and
 hand-built explanations.
+
+### Implemented intent causal index
+
+Milestone 3.14 implements one compact ordinary-lane intent evidence index. A
+presentation-bound semantic interaction receives an opaque
+`UiIntentEvidenceReference`; the runtime carries it through route, payload
+owner revisions, operability, admission, attempt, and product outcome. Stable
+lookup returns `Found`, `Expired`, or `ForeignSession` and never reconstructs a
+missing record.
+
+The index is a 64-entry semantic-only replacement ring with an exact byte
+capacity. Input correlation and admission/attempt updates are preindexed; they
+do not scan retained evidence, renderer state, motion history, or logs. Platform
+Pulse adds consequence publication, exact Query projection, and mounted frame
+to the same reference. Its executable world supplies the independent visible
+pixel oracle.
+
+This is compact causal evidence, not the final rich neighborhood system. Lazy
+detail materialization, disclosure-controlled payload detail, arbitrary causal
+graph traversal, replay, and reconstruction remain later work. Ordinary
+inspection cannot turn copied references, equal digests, serialized reporting
+projections, or expired records back into admission or execution authority.
 
 ## AI Inspection Protocol
 

@@ -9,8 +9,8 @@ use crate::capability::{
     RuntimeOutcomeProjectionDescriptor, RuntimeOutcomeProjectionRegistry, SettingDescriptor,
     SettingsRegistry, SurfaceDescriptor, SurfaceRegistry, TaskPresentationDescriptor,
     TaskPresentationRegistry, ThemeTokenDescriptor, ThemeTokenRegistry, UiIntent,
-    UiIntentDefinition, UiIntentDefinitionRegistrationError, ViewBindingDescriptor,
-    ViewBindingRegistry,
+    UiIntentDefinition, UiIntentDefinitionDestination, UiIntentDefinitionRegistrationError,
+    ViewBindingDescriptor, ViewBindingRegistry,
 };
 
 mod snapshot_freeze;
@@ -101,9 +101,9 @@ impl CapabilityRegistrationBuilder {
         self
     }
 
-    pub fn register_intent_definition<I: UiIntent>(
+    pub fn register_intent_definition<I: UiIntent, D: UiIntentDefinitionDestination>(
         mut self,
-        definition: UiIntentDefinition<I>,
+        definition: UiIntentDefinition<I, D>,
     ) -> Result<Self, UiIntentDefinitionRegistrationError> {
         let candidate = self.intent_definition_registry.push(definition.erase())?;
         self.registration_candidates.push(candidate);

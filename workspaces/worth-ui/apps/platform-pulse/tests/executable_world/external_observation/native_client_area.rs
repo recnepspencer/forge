@@ -27,6 +27,15 @@ pub(crate) struct NativeClientPixelCapture {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeClientPixelPoint {
+    x: u32,
+    y: u32,
+    capture_width: u32,
+    capture_height: u32,
+    landing_tolerance: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct NormalNativeCloseRequestObservation {
     process_id: u32,
     request_count: u32,
@@ -137,6 +146,41 @@ impl NativeClientPixelCapture {
 
     pub(crate) fn capture_count(&self) -> u32 {
         self.capture_count
+    }
+}
+
+impl NativeClientPixelPoint {
+    pub(crate) fn interior(
+        capture: &NativeClientPixelCapture,
+        x: u32,
+        y: u32,
+        landing_tolerance: u32,
+    ) -> Option<Self> {
+        let right = x.checked_add(landing_tolerance)?;
+        let bottom = y.checked_add(landing_tolerance)?;
+        (x >= landing_tolerance
+            && y >= landing_tolerance
+            && right < capture.width()
+            && bottom < capture.height())
+        .then_some(Self {
+            x,
+            y,
+            capture_width: capture.width(),
+            capture_height: capture.height(),
+            landing_tolerance,
+        })
+    }
+
+    pub(crate) fn coordinates(self) -> (u32, u32) {
+        (self.x, self.y)
+    }
+
+    pub(crate) fn capture_extent(self) -> (u32, u32) {
+        (self.capture_width, self.capture_height)
+    }
+
+    pub(crate) fn landing_tolerance(self) -> u32 {
+        self.landing_tolerance
     }
 }
 

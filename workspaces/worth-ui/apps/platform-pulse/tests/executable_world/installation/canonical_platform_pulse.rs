@@ -1,5 +1,9 @@
 const CANONICAL_SOURCE: &[u8] =
     include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/app/main.wui"));
+const CANONICAL_INTENT_SOURCE: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/intent_samples/platform-pulse-intent.json"
+));
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct CanonicalPlatformPulse {
@@ -14,6 +18,10 @@ impl CanonicalPlatformPulse {
     pub(crate) fn source_bytes(self) -> &'static [u8] {
         CANONICAL_SOURCE
     }
+
+    pub(crate) fn intent_source_bytes(self) -> &'static [u8] {
+        CANONICAL_INTENT_SOURCE
+    }
 }
 
 #[cfg(test)]
@@ -25,6 +33,13 @@ mod tests {
         assert_eq!(
             CanonicalPlatformPulse::checked_in().source_bytes(),
             include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/app/main.wui"))
+        );
+        assert_eq!(
+            CanonicalPlatformPulse::checked_in().intent_source_bytes(),
+            include_bytes!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/intent_samples/platform-pulse-intent.json"
+            ))
         );
     }
 }

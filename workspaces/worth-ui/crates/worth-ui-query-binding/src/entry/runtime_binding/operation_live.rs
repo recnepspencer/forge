@@ -62,6 +62,56 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
+    pub fn admit_operation_live_change_for_publication(
+        &mut self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiAdmittedCollectionChangePublication,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        match self {
+            Self::QueryFree => Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::QueryNotInstalled,
+                consequence,
+            )),
+            Self::Installed(binding) => {
+                binding.admit_operation_live_change_for_publication(consequence)
+            }
+        }
+    }
+
+    pub fn publish_admitted_operation_live_change(
+        &mut self,
+        admission: crate::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        crate::WorthUiCollectionChangePublicationReceipt,
+        crate::WorthUiCollectionChangePublicationStop,
+    > {
+        match self {
+            Self::QueryFree => Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::QueryNotInstalled,
+                admission,
+            )),
+            Self::Installed(binding) => binding.publish_admitted_operation_live_change(admission),
+        }
+    }
+
+    pub fn withdraw_admitted_operation_live_change(
+        &mut self,
+        admission: crate::WorthUiAdmittedCollectionChangePublication,
+    ) -> Result<
+        crate::WorthUiCollectionChangeConsequence,
+        crate::WorthUiCollectionChangePublicationStop,
+    > {
+        match self {
+            Self::QueryFree => Err(crate::WorthUiCollectionChangePublicationStop::new(
+                crate::WorthUiCollectionChangePublicationDenial::QueryNotInstalled,
+                admission,
+            )),
+            Self::Installed(binding) => binding.withdraw_admitted_operation_live_change(admission),
+        }
+    }
+
     pub fn validate_operation_live_change_observation(
         &self,
         consequence: crate::WorthUiCollectionChangeConsequence,

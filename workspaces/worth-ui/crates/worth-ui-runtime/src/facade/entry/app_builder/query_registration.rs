@@ -5,7 +5,9 @@ use super::{
     WorthUiQueryViewRegistrationError,
 };
 
-impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState> {
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
+{
     /// Register an installed Query view as one coherent definition and
     /// runtime-affine authority. Query posture cannot be assembled piecemeal.
     pub fn register_query_view(

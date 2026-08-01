@@ -26,6 +26,14 @@ pub trait WorthUiActiveSessionCertificationExt {
         worth_ui_query_binding::WorthUiOperationLiveRefreshError,
     >;
 
+    fn query_change_state(
+        &self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveChangeObservation,
+        worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceDenial,
+    >;
+
     fn measurement_basis_sources(
         &self,
     ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]>;
@@ -89,6 +97,16 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
         worth_ui_query_binding::WorthUiOperationLiveRefreshError,
     > {
         WorthUiActiveApplicationSession::refresh_query_change_for_certification(self, request)
+    }
+
+    fn query_change_state(
+        &self,
+        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveChangeObservation,
+        worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceDenial,
+    > {
+        WorthUiActiveApplicationSession::query_change_state_for_certification(self, reference)
     }
 
     fn measurement_basis_sources(

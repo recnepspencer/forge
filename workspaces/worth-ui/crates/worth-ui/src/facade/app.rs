@@ -17,7 +17,8 @@ pub use worth_ui_runtime::facade::mounted::{
 };
 pub use worth_ui_runtime::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 pub use worth_ui_runtime::facade::{
-    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi, WorthUiActiveApplicationSession,
+    UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi,
+    WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSession,
     WorthUiActiveApplicationSessionIdentity, WorthUiApp, WorthUiApplicationBuilder,
     WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
     WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
@@ -29,8 +30,15 @@ pub use worth_ui_runtime::facade::{
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
     WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
     WorthUiNativeApplicationShell, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt, WorthUiNativeProjectionRebindDenial,
-    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
-    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
-    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiNativeApplicationShutdownReceipt, WorthUiNativeIntentAttemptPrepared,
+    WorthUiNativeIntentConfirmationRequired, WorthUiNativeIntentIngress,
+    WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
+    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
+    WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,
+    WorthUiNativeIntentTransition, WorthUiNativeInteractionIngressStop,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
+    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
+    WorthUiReplacementPlannedCostEnvelope,
 };

@@ -146,8 +146,8 @@ impl UiCollectionProjectionOpenStop {
         self.kind
     }
 
-    pub fn attempt_identity_for_reporting(&self) -> &str {
-        self.attempt_identity.terminal_projection_for_reporting()
+    pub fn attempt_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.attempt_identity)
     }
 }
 
@@ -213,7 +213,7 @@ impl std::fmt::Debug for UiCollectionProjectionOpenStop {
         formatter
             .debug_struct("UiCollectionProjectionOpenStop")
             .field("kind", &self.kind)
-            .field("attempt_identity", &self.attempt_identity_for_reporting())
+            .field("attempt_identity", &self.attempt_identity())
             .finish()
     }
 }

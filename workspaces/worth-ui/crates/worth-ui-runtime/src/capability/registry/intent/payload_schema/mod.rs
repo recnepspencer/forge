@@ -1,7 +1,5 @@
 mod field;
 mod projection;
-mod projector;
-mod sealed;
 
 pub use field::{
     UiIntentBoolean, UiIntentPayloadField, UiIntentPayloadFieldDescriptor,
@@ -12,8 +10,6 @@ pub use field::{
 pub use projection::{
     UiIntentPayloadProjection, UiIntentPayloadProjectionViolation, UiIntentProjectedValue,
 };
-pub(crate) use projector::{UiRegisteredIntentPayloadProjector, UiTypedIntentPayloadProjector};
-pub(crate) use sealed::UiSealedIntentPayload;
 
 use super::UiIntentSchema;
 

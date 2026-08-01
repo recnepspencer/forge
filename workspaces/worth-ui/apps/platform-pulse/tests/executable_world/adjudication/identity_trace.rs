@@ -8,8 +8,9 @@ use worth_ui_platform_pulse::observation_contract::{
 };
 use worth_ui_platform_pulse::visual_identity_pulse::{
     PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT,
-    PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME, PLATFORM_PULSE_MAXIMUM_CAPTURE_SCALE,
-    PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES, PLATFORM_PULSE_TARGET_LOGICAL_POINT,
+    PLATFORM_PULSE_HIT_TEST_REGION_COUNT, PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME,
+    PLATFORM_PULSE_MAXIMUM_CAPTURE_SCALE, PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
+    PLATFORM_PULSE_TARGET_LOGICAL_POINT, PLATFORM_PULSE_VISIBLE_REGION_COUNT,
 };
 
 mod evidence;
@@ -62,7 +63,12 @@ pub(crate) enum ExecutableVisualIdentityFailure {
     },
     SnapshotExtent,
     SnapshotPixelBudget,
-    SnapshotIndexCardinality,
+    SnapshotIndexCardinality {
+        expected_visible: u64,
+        observed_visible: u64,
+        expected_hit_test: u64,
+        observed_hit_test: u64,
+    },
     SnapshotCost,
     PointContract,
     TargetIdentity,
@@ -140,8 +146,15 @@ fn adjudicate_snapshot_at_sequence(
     {
         return Err(ExecutableVisualIdentityFailure::SnapshotPixelBudget);
     }
-    if snapshot.visible_region_count() != 2 || snapshot.hit_test_region_count() != 2 {
-        return Err(ExecutableVisualIdentityFailure::SnapshotIndexCardinality);
+    if snapshot.visible_region_count() != PLATFORM_PULSE_VISIBLE_REGION_COUNT
+        || snapshot.hit_test_region_count() != PLATFORM_PULSE_HIT_TEST_REGION_COUNT
+    {
+        return Err(ExecutableVisualIdentityFailure::SnapshotIndexCardinality {
+            expected_visible: PLATFORM_PULSE_VISIBLE_REGION_COUNT,
+            observed_visible: snapshot.visible_region_count(),
+            expected_hit_test: PLATFORM_PULSE_HIT_TEST_REGION_COUNT,
+            observed_hit_test: snapshot.hit_test_region_count(),
+        });
     }
     let cost = snapshot.cost_counters();
     if cost[4] != expected_bytes

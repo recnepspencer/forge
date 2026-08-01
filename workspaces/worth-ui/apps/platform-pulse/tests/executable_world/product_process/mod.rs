@@ -1,5 +1,7 @@
 #[cfg(target_os = "windows")]
 mod first_frame_progression;
+#[cfg(target_os = "windows")]
+mod intent_progression;
 mod launch;
 mod native_desktop_lease;
 #[cfg(target_os = "windows")]
@@ -27,6 +29,8 @@ mod visual_snapshot_progression;
 mod watched_native_observation;
 mod watched_observation;
 
+#[cfg(target_os = "windows")]
+pub(crate) use intent_progression::PlatformPulseIntentJourneyFailure;
 pub(crate) use launch::{
     CargoBuiltPlatformPulse, EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure,
     LivePlatformPulseProcess, PlatformPulseProcessLaunchFailure,

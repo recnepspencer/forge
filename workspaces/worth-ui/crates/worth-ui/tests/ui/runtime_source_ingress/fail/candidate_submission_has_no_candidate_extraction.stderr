@@ -32,4 +32,5 @@ error: cannot construct `UiAdmittedObservation` with struct literal syntax due t
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/observation/fail/raw_host_batch_cannot_enter_semantic_admission.rs
+ note: expected `UiValidatedHostObservationBatch`, found `UiHostObservationBatch`
  note: method defined here

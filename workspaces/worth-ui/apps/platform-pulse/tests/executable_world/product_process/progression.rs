@@ -207,7 +207,11 @@ impl PulseExecutableWorld<Installed> {
         binary: CargoBuiltPlatformPulse,
     ) -> Result<PulseExecutableWorld<AwaitingFirstFrame>, PulseExecutableWorldFailureReport> {
         let installation = self.state.installation;
-        let launch = match binary.launch(installation.source_root(), installation.source_root()) {
+        let launch = match binary.launch(
+            installation.source_root(),
+            installation.source_root(),
+            installation.source_root(),
+        ) {
             Ok(launch) => launch,
             Err(failure) => {
                 return Err(teardown_installed_world(

@@ -10,5 +10,6 @@ pub use crate::inspection::visual_snapshot::{
     UiVisualOverlayPublicationFailure, UiVisualOverlayShutdownReport, UiVisualOverlayTarget,
     UiVisualPixelCaptureGrant, UiVisualSnapshotComparisonGrant, UiVisualSnapshotComparisonRequest,
     UiVisualSnapshotDisposalReceipt, UiVisualSnapshotIdentity, UiVisualSnapshotOutcome,
-    UiVisualSnapshotReceipt, UiVisualTarget, WorthUiVisualInspectionAuthority,
+    UiVisualSnapshotReceipt, UiVisualSnapshotRelationDenial, UiVisualTarget,
+    WorthUiVisualInspectionAuthority,
 };

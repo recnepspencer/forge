@@ -95,6 +95,8 @@ pub struct WorthUiApplicationCutoverRetry {
 #[must_use = "application cutover receipts may carry Query resources requiring explicit retirement"]
 pub struct WorthUiApplicationCutoverReceipt {
     transition: Box<WorthUiPreparedApplicationActivation>,
+    observation_resources: crate::runtime::observation::UiObservationResourceRetirementReport,
+    intent_evidence: worth_ui_inspection::UiIntentEvidenceRetirementReport,
 }
 
 enum WorthUiApplicationCutoverTransition {

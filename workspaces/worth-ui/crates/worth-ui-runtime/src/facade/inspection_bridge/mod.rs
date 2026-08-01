@@ -26,6 +26,7 @@ pub use visual_snapshot::{
     UiVisualOverlayPublicationFailure, UiVisualOverlayShutdownReport, UiVisualOverlayTarget,
     UiVisualPixelCaptureGrant, UiVisualSnapshotComparisonGrant, UiVisualSnapshotComparisonRequest,
     UiVisualSnapshotDisposalReceipt, UiVisualSnapshotIdentity, UiVisualSnapshotOutcome,
-    UiVisualSnapshotReceipt, UiVisualTarget, WorthUiVisualInspectionAuthority,
+    UiVisualSnapshotReceipt, UiVisualSnapshotRelationDenial, UiVisualTarget,
+    WorthUiVisualInspectionAuthority,
 };
 pub use worth_ui_inspection::UiInspectionClosureReport;

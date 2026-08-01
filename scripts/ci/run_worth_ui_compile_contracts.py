@@ -158,6 +158,20 @@ def is_incidental_private_field_enumeration(message: str) -> bool:
     return "private field" in message and message.endswith("not provided")
 
 
+def primary_expected_found_evidence(
+    primary: dict[str, object] | None, children: list[dict[str, object]]
+) -> str | None:
+    if primary is None:
+        return None
+    label = str(primary.get("label") or "")
+    if "expected" not in label or "found" not in label:
+        return None
+    child_evidence = "\n".join(str(child.get("message", "")) for child in children)
+    if "expected" in child_evidence and "found" in child_evidence:
+        return None
+    return label
+
+
 def canonical_diagnostics(messages: list[dict[str, object]], case: Case) -> str:
     lines: list[str] = []
     for message in messages:
@@ -173,7 +187,11 @@ def canonical_diagnostics(messages: list[dict[str, object]], case: Case) -> str:
         )
         if primary is not None:
             lines.append(f" --> {display_path(source_path(primary['file_name']), case)}")
-        for child in message.get("children", []):
+        children = message.get("children", [])
+        expected_found = primary_expected_found_evidence(primary, children)
+        if expected_found is not None:
+            lines.append(f" note: {stable_message(expected_found)}")
+        for child in children:
             child_message = str(child.get("message", ""))
             if "full name for the type has been written to" in child_message:
                 continue

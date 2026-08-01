@@ -123,21 +123,41 @@ impl UiQueryChangedFact {
         }
     }
 
-    #[allow(
-        clippy::result_large_err,
-        reason = "shape mismatch returns the exact affine Query fact unchanged"
-    )]
     pub(crate) fn into_scalar_projection(
         self,
-    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
+    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Box<Self>> {
         match self.payload {
             UiQueryChangedFactPayload::Projection(
                 worth_ui_query_binding::UiProjectionObservation::Scalar(observation),
             ) => Ok(observation.into_fact()),
-            payload => Err(Self {
+            payload => Err(Box::new(Self {
                 kind: self.kind,
                 payload,
-            }),
+            })),
+        }
+    }
+
+    pub(crate) fn into_owner_consequence(
+        self,
+    ) -> Result<worth_ui_query_binding::WorthUiCollectionChangeConsequence, Box<Self>> {
+        match self.payload {
+            UiQueryChangedFactPayload::OperationLive(consequence) => Ok(consequence),
+            payload => Err(Box::new(Self {
+                kind: self.kind,
+                payload,
+            })),
+        }
+    }
+
+    pub(crate) fn into_projection_observation(
+        self,
+    ) -> Result<worth_ui_query_binding::UiProjectionObservation, Box<Self>> {
+        match self.payload {
+            UiQueryChangedFactPayload::Projection(observation) => Ok(observation),
+            payload => Err(Box::new(Self {
+                kind: self.kind,
+                payload,
+            })),
         }
     }
 }

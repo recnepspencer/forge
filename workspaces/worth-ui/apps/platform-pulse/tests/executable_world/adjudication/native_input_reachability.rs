@@ -6,8 +6,8 @@ use worth_ui_platform_pulse::observation_contract::{
 };
 
 use crate::external_observation::{
-    NativeClientPixelCapture, NativeInputDeliveryObservation, NativeInputProbeKind,
-    ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
+    NativeInputProbeKind, ProcessBoundNativeClientAreaObservation,
 };
 
 use super::{
@@ -55,7 +55,15 @@ pub(crate) enum ExecutableNativeInputReachabilityFailure {
     },
     RetainedPostureMissing,
     InputFamilyMissing(NativeInputProbeKind),
+    BackgroundPoint(NativeColorFailure),
     NativeColor(NativeColorFailure),
+}
+
+pub(crate) fn native_input_background_point(
+    first_frame: &ExecutableFirstFrameEvidence,
+) -> Result<NativeClientPixelPoint, ExecutableNativeInputReachabilityFailure> {
+    super::adjudicate_native_background_point(first_frame.pixels(), ExpectedNativeColor::Blue)
+        .map_err(ExecutableNativeInputReachabilityFailure::BackgroundPoint)
 }
 
 pub(crate) fn adjudicate_native_input_reachability(
@@ -237,6 +245,9 @@ impl fmt::Display for ExecutableNativeInputReachabilityFailure {
             }
             Self::InputFamilyMissing(kind) => {
                 write!(formatter, "{kind:?} input did not reach the adapter")
+            }
+            Self::BackgroundPoint(failure) => {
+                write!(formatter, "native input background point: {failure}")
             }
             Self::NativeColor(failure) => {
                 write!(

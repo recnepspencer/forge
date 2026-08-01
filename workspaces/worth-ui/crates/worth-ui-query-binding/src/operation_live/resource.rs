@@ -11,6 +11,7 @@ use crate::{
 };
 
 mod opening;
+mod publication;
 
 type QueryLease = observation::WorthQuerySharedLiveProjectionLease<
     crate::WorthUiDomainEntry,
@@ -187,115 +188,6 @@ impl WorthUiOperationLiveResource {
         self.staged_change = Some(consequence.retain());
         self.staged_change_admitted = false;
         Ok(WorthUiOperationLiveRefreshOutcome::Applied(consequence))
-    }
-
-    pub(crate) fn admit_collection_change(
-        &mut self,
-        consequence: WorthUiCollectionChangeConsequence,
-    ) -> Result<
-        crate::WorthUiCollectionChangeStagingReceipt,
-        crate::WorthUiCollectionChangeAdmissionStop,
-    > {
-        let receipt = self
-            .validate_collection_change(&consequence)
-            .map_err(|denial| {
-                crate::WorthUiCollectionChangeAdmissionStop::new(denial, consequence)
-            })?;
-        self.staged_change_admitted = true;
-        Ok(receipt)
-    }
-
-    pub(crate) fn validate_collection_change_observation(
-        &self,
-        consequence: WorthUiCollectionChangeConsequence,
-    ) -> Result<
-        crate::WorthUiValidatedCollectionChangeObservation,
-        crate::WorthUiCollectionChangeAdmissionStop,
-    > {
-        let receipt = match self.validate_collection_change(&consequence) {
-            Ok(receipt) => receipt,
-            Err(denial) => {
-                return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
-                    denial,
-                    consequence,
-                ));
-            }
-        };
-        Ok(crate::WorthUiValidatedCollectionChangeObservation::seal(
-            consequence,
-            receipt,
-        ))
-    }
-
-    fn validate_collection_change(
-        &self,
-        consequence: &WorthUiCollectionChangeConsequence,
-    ) -> Result<
-        crate::WorthUiCollectionChangeStagingReceipt,
-        crate::WorthUiCollectionChangeAdmissionDenial,
-    > {
-        let belongs_to_resource = consequence.installed_reference() == &self.installed_reference
-            && self
-                .collection_source
-                .as_ref()
-                .is_some_and(|source| source == consequence.source())
-            && consequence.change_order() == self.next_change_order
-            && self
-                .staged_change
-                .as_ref()
-                .is_some_and(|staged| staged.matches(consequence));
-        if !belongs_to_resource {
-            return Err(crate::WorthUiCollectionChangeAdmissionDenial::StaleOrForeignConsequence);
-        }
-        if self.staged_change_admitted {
-            return Err(crate::WorthUiCollectionChangeAdmissionDenial::AlreadyAdmitted);
-        }
-        Ok(crate::WorthUiCollectionChangeStagingReceipt::from_consequence(consequence))
-    }
-
-    pub(crate) fn publish_staged_collection_change(&mut self) -> bool {
-        if !self.staged_change_admitted {
-            return false;
-        }
-        let Some(consequence) = self.staged_change.take() else {
-            return false;
-        };
-        self.staged_change_admitted = false;
-        self.admitted_changes.push_back(consequence);
-        true
-    }
-
-    pub(crate) fn retry_collection_change_handoff(
-        &self,
-    ) -> Result<WorthUiCollectionChangeConsequence, crate::WorthUiCollectionChangeHandoffRetryDenial>
-    {
-        if self.staged_change_admitted {
-            return Err(
-                crate::WorthUiCollectionChangeHandoffRetryDenial::AlreadyAdmittedToFrameworkTurn,
-            );
-        }
-        self.staged_change
-            .as_ref()
-            .map(crate::collection_delivery::WorthUiRetainedCollectionChangeConsequence::handoff)
-            .ok_or(crate::WorthUiCollectionChangeHandoffRetryDenial::NoUnpublishedChange)
-    }
-
-    pub fn admitted_collection_change_count(&self) -> usize {
-        self.admitted_changes.len()
-    }
-
-    pub fn staged_collection_change_count(&self) -> usize {
-        usize::from(self.staged_change.is_some())
-    }
-
-    pub(crate) fn collection_change_observation(
-        &self,
-    ) -> crate::WorthUiOperationLiveChangeObservation {
-        crate::WorthUiOperationLiveChangeObservation::new(
-            self.staged_collection_change_count(),
-            self.admitted_collection_change_count(),
-            self.next_change_order,
-        )
     }
 
     pub fn close(

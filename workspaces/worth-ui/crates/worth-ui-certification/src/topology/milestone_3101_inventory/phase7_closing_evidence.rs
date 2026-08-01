@@ -7,9 +7,11 @@ use serde_json::Value;
 
 const CLOSING_PATH: &str = "_docs/worth-ui/milestone-3.10.1-phase-7-closing-evidence.json";
 const OPENING_PATH: &str = "_docs/worth-ui/milestone-3.10.1-opening-baseline.json";
-const PHASE8_CLOSEOUT_SOURCES: [&str; 2] = [
+const EXACT_SOURCE_EXCLUSIONS: [&str; 4] = [
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout.rs",
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout_tests.rs",
+    "crates/worth-ui-certification/src/intent_execution_provider.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/scaled_canvas.rs",
 ];
 const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 15] = [
     "crates/worth-ui-certification/src/scenario/application_authority_closure/platform_pulse_application.rs",
@@ -28,7 +30,6 @@ const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 15] = [
     "crates/worth-ui-certification/src/topology/milestone_3103_watched_replacement/",
     "crates/worth-ui-certification/src/topology/milestone_3103_cost_closure/",
 ];
-
 const REQUIRED_OPERATION_CATEGORIES: &[&str] = &[
     "initial_file_acquisition_and_dsl_lowering",
     "rust_authored_canonicalization",
@@ -327,7 +328,7 @@ fn validate_inventory_budget(
 }
 
 fn belongs_to_phase7_inventory(path: &str) -> bool {
-    !PHASE8_CLOSEOUT_SOURCES.contains(&path)
+    !EXACT_SOURCE_EXCLUSIONS.contains(&path)
         && !SUCCESSOR_MILESTONE_SOURCE_PREFIXES
             .iter()
             .any(|prefix| path.starts_with(prefix))

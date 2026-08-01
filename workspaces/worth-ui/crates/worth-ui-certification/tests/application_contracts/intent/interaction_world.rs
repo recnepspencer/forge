@@ -19,6 +19,7 @@ use super::super::filesystem_mounted_world::{
     establish_allocation, launch_clipped_world, launch_native_world, launch_world, prepare_frame,
     HitOrderProfile,
 };
+use super::super::mounted_application_lifecycle::published_mounted_world::presented_epoch;
 
 pub(super) struct InteractionWorld {
     pub(super) session: WorthUiActiveApplicationSession,
@@ -52,6 +53,13 @@ impl InteractionWorld {
 
     pub(super) fn from_session(session: WorthUiActiveApplicationSession) -> Self {
         Self::launch(session, None)
+    }
+
+    pub(super) fn from_native_session(
+        session: WorthUiActiveApplicationSession,
+        host: worth_ui_host_egui::WorthUiHostEgui,
+    ) -> Self {
+        Self::launch(session, Some(host))
     }
 
     fn launch(
@@ -94,6 +102,35 @@ impl InteractionWorld {
                 transition,
                 position: position(point),
             }],
+        )
+    }
+
+    pub(super) fn button_with_time_basis(
+        &mut self,
+        pointer: u64,
+        capture_epoch: u64,
+        transition: UiHostPointerButtonTransition,
+        point: [i64; 2],
+        time_basis: UiHostObservationTimeBasis,
+    ) -> UiHostInteractionIngressOutcome {
+        let sequence = UiHostObservationSequence::new(self.next_sequence);
+        self.next_sequence += 1;
+        let report = UiHostObservationReport::new(
+            sequence,
+            time_basis,
+            UiHostObservationPayload::PointerButton {
+                pointer: UiHostPointerIdentity::new(pointer),
+                capture_epoch: UiHostPointerCaptureEpoch::new(capture_epoch),
+                button: UiHostPointerButton::Primary,
+                transition,
+                position: position(point),
+            },
+        );
+        self.admit_range(
+            self.presentation,
+            (sequence, sequence),
+            UiHostObservationLoss::Complete,
+            vec![report],
         )
     }
 
@@ -310,13 +347,8 @@ fn publish(
         _ => panic!("gesture world must publish"),
     };
     let binding = publication.bindings()[0];
-    let presentation = UiHostObservationPresentationBasis::new(
-        publication.frame(),
-        binding,
-        worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
-            publication.attempt().diagnostic_value(),
-        ),
-    );
+    let epoch = presented_epoch(session, publication.frame(), binding);
+    let presentation = UiHostObservationPresentationBasis::new(publication.frame(), binding, epoch);
     (presentation, binding, hit_rows)
 }
 

@@ -6,6 +6,7 @@ pub(super) enum UiObservationProgressKey {
     Measurement(u64),
     Query(worth_ui_query_binding::WorthUiCollectionChangeSourceReference),
     QueryProjection(worth_ui_query_binding::WorthUiQueryViewIdentity),
+    IntentPosture,
     CommittedScrollExtent,
     CommittedPortalAnchor,
 }
@@ -61,6 +62,13 @@ impl UiObservationProgress {
     ) -> Self {
         Self {
             key: UiObservationProgressKey::QueryProjection(projection.clone()),
+            owner_order,
+        }
+    }
+
+    pub(super) const fn intent_posture(owner_order: u64) -> Self {
+        Self {
+            key: UiObservationProgressKey::IntentPosture,
             owner_order,
         }
     }

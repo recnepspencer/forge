@@ -16,6 +16,7 @@ pub(in crate::runtime::observation) enum UiAdmittedObservationPayload {
     Host(super::super::admission::UiHostObservation),
     Measurement(crate::host_exchange::measurement_admission::UiSolicitedHostMeasurementResult),
     Query(UiAdmittedQueryObservation),
+    IntentPosture(crate::mounting::UiIntentPostureObservation),
     CommittedScrollExtent(super::super::admission::UiCommittedScrollExtentObservation),
     CommittedPortalAnchor(super::super::admission::UiCommittedPortalAnchorObservation),
 }
@@ -87,6 +88,7 @@ impl UiAdmittedObservation {
             UiAdmittedObservationPayload::Host(_)
             | UiAdmittedObservationPayload::Measurement(_)
             | UiAdmittedObservationPayload::Query(_)
+            | UiAdmittedObservationPayload::IntentPosture(_)
             | UiAdmittedObservationPayload::CommittedScrollExtent(_)
             | UiAdmittedObservationPayload::CommittedPortalAnchor(_) => None,
         }
@@ -103,6 +105,7 @@ impl UiAdmittedObservation {
             UiAdmittedObservationPayload::Source(_)
             | UiAdmittedObservationPayload::Host(_)
             | UiAdmittedObservationPayload::Measurement(_)
+            | UiAdmittedObservationPayload::IntentPosture(_)
             | UiAdmittedObservationPayload::CommittedScrollExtent(_)
             | UiAdmittedObservationPayload::CommittedPortalAnchor(_) => None,
         }
@@ -114,6 +117,7 @@ impl UiAdmittedObservation {
             UiAdmittedObservationPayload::Source(_)
             | UiAdmittedObservationPayload::Measurement(_)
             | UiAdmittedObservationPayload::Query(_)
+            | UiAdmittedObservationPayload::IntentPosture(_)
             | UiAdmittedObservationPayload::CommittedScrollExtent(_)
             | UiAdmittedObservationPayload::CommittedPortalAnchor(_) => None,
         }

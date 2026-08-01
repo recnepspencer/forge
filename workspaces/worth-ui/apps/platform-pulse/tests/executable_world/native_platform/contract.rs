@@ -3,8 +3,9 @@ use std::time::Instant;
 
 #[cfg(target_os = "windows")]
 use crate::external_observation::{
-    NativeClientPixelCapture, NativeInputDeliveryObservation, NativeInputProbeKind,
-    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
+    NativeInputProbeKind, NormalNativeCloseRequestObservation,
+    ProcessBoundNativeClientAreaObservation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,6 +117,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         &self,
         bound: &Self::BoundClientArea,
         kind: NativeInputProbeKind,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
+
+    fn deliver_pointer_activation(
+        &self,
+        bound: &Self::BoundClientArea,
+        point: NativeClientPixelPoint,
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
 
     fn request_normal_close(

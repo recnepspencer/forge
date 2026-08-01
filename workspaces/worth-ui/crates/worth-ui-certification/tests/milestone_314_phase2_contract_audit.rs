@@ -73,13 +73,22 @@ fn milestone_314_phase2_contract_and_owned_ia_rows_close_together() {
     ))
     .expect("Phase 1 contract should parse");
     let main_ledger = repository_document("_docs/worth-ui/milestone-3.14-proof-ledger.csv");
-    milestone_314_ledger::validate_at_phase(&phase_1, &main_ledger, 2)
-        .expect("main IA ledger should close only Phase 2-owned rows");
+    milestone_314_ledger::validate_at_phase(
+        &phase_1,
+        &main_ledger,
+        milestone_314_ledger::CURRENT_IMPLEMENTATION_PHASE,
+    )
+    .expect("main IA ledger should close only rows owned through the current phase");
     let ia_rows =
         milestone_314_ledger::parse_ledger(&main_ledger).expect("main ledger should parse");
     assert_eq!(ia_rows[1][8], "PROVED");
     assert_eq!(ia_rows[2][8], "PROVED");
-    assert_eq!(ia_rows[10][8], "OPEN");
+    let expected_ia_11 = if milestone_314_ledger::CURRENT_IMPLEMENTATION_PHASE >= 5 {
+        "PROVED"
+    } else {
+        "OPEN"
+    };
+    assert_eq!(ia_rows[10][8], expected_ia_11);
     assert_eq!(
         contract["known_broad_topology_debt"]["failures"]
             .as_array()

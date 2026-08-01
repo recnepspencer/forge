@@ -1,4 +1,6 @@
 mod envelope;
+mod intent;
+mod launch;
 mod lifecycle;
 mod native_input;
 mod projection;
@@ -22,9 +24,23 @@ pub use envelope::{
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION,
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX,
 };
+pub use intent::{
+    PlatformPulseIntentAdmissionTrace, PlatformPulseIntentAttemptObservationReference,
+    PlatformPulseIntentCausalTraceObservation, PlatformPulseIntentEvidenceReferenceObservation,
+    PlatformPulseIntentExecutorGateObservation, PlatformPulseIntentExecutorStartedObservation,
+    PlatformPulseIntentInputObservation, PlatformPulseIntentInteractionFamily,
+    PlatformPulseIntentOperabilityObservation, PlatformPulseIntentOperabilityTrace,
+    PlatformPulseIntentOutcomeTrace, PlatformPulseIntentPayloadTrace,
+    PlatformPulseIntentPostureObservation, PlatformPulseIntentPosturePublished,
+    PlatformPulseIntentRouteTrace, PlatformPulseIntentSourceTrace,
+    PlatformPulseIntentTraceProjectionDenial, PlatformPulseIntentWatcherShutdownEvidence,
+    PlatformPulseQueryActionObservation,
+};
+pub use launch::{
+    PlatformPulseLaunchConfigurationDenial, PlatformPulseLaunchConfigurationDenialKind,
+};
 pub use lifecycle::{
     PlatformPulseApplicationGenerationObservation, PlatformPulseFirstFramePublished,
-    PlatformPulseLaunchConfigurationDenial, PlatformPulseLaunchConfigurationDenialKind,
     PlatformPulseLifecycleObservation, PlatformPulseMountedFrameObservation,
     PlatformPulseNativeRebindDenialStage, PlatformPulseNativeRebindPreparationDenial,
     PlatformPulseProcessStarted, PlatformPulseReplacementDenialFamily,

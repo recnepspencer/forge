@@ -9,9 +9,9 @@ use winsafe::{self as win, co, HwndPlace, HWND, POINT, SIZE};
 use xcap::{Monitor, Window};
 
 use crate::external_observation::{
-    NativeClientAreaBounds, NativeClientPixelCapture, NativeInputDeliveryObservation,
-    NativeInputProbeKind, NativeWindowIdentity, NormalNativeCloseRequestObservation,
-    ProcessBoundNativeClientAreaObservation,
+    NativeClientAreaBounds, NativeClientPixelCapture, NativeClientPixelPoint,
+    NativeInputDeliveryObservation, NativeInputProbeKind, NativeWindowIdentity,
+    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
 };
 
 use super::contract::sealed::Sealed;
@@ -211,6 +211,15 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
         let observed = self.observe_bound_client_area(bound)?;
         input_delivery::deliver(&bound.window, observed, kind)
+    }
+
+    fn deliver_pointer_activation(
+        &self,
+        bound: &Self::BoundClientArea,
+        point: NativeClientPixelPoint,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
+        let observed = self.observe_bound_client_area(bound)?;
+        input_delivery::deliver_pointer(&bound.window, observed, point)
     }
 
     fn request_normal_close(

@@ -699,7 +699,8 @@ pub(crate) use mutation::{
 pub use mutation::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectMutationOperation,
     WorthQueryAspectMutationOperationKind, WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
-    WorthQueryAuthoredAspectValue, WorthQueryAuthoritativeMutationObligationDispatch,
+    WorthQueryAuthoredAspectValue, WorthQueryAuthoredMutationAdmissionDenial,
+    WorthQueryAuthoritativeMutationObligationDispatch,
     WorthQueryAuthoritativeMutationObligationDispatchProjection,
     WorthQueryAuthoritativeMutationObligationDispatchProjectionRow,
     WorthQueryBackendAdmissibleMutation, WorthQueryContinuityMutationDenial,

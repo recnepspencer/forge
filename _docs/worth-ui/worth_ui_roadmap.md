@@ -1732,6 +1732,9 @@ evidence, and stable control pixels jointly prove the result.
 
 Detailed spec: [milestone-3.14.md](./milestone-3.14.md)
 
+Status: Closed on 2026-08-01. Phases 1 through 5 and all thirteen interaction
+and intent proof rows are complete on the permanent executable Platform Pulse.
+
 This slice turns native host observations into presentation-bound semantic
 interactions and then into runtime-admitted product intents. Pointer
 press/release observations may compile into `activate`; neither the observations
@@ -1815,7 +1818,9 @@ reopened finding against the owning milestone, not a migration convenience.
 The custody boundary moves down, not sideways. The new host owns a retained
 draw list in which every quad and glyph run carries its mounted node receipt,
 frame generation, surface generation, and binding generation. Damage-scoped
-presentation derives from admitted 3.12 plans; an unchanged turn performs
+presentation derives from an owner-issued, compiler-total
+`Initial | Delta | Unchanged` work contract and a runtime-issued total paint
+order, not host-side projection comparison. An unchanged turn performs
 zero draw-list, atlas, and surface work, provable by named counters rather
 than elapsed time. Text shaping and glyph rasterization are consumed as
 narrow pinned mechanics dependencies in the same trust posture as the OS
@@ -1846,10 +1851,13 @@ retained dual-host fallback does not close the pulse.
 
 **Must ship**
 
-- a Worth-owned host platform crate owning the native event loop, surface and
-  device lifecycle, DPI posture, window close path, and lifecycle stream
+- a contract-only Worth native host-mechanics crate owning the event loop,
+  surface/device/DPI/close lifecycle, plus a higher application-platform crate
+  that composes it only through the public Worth UI facade
 - a retained, receipt-keyed aspect-native draw list with layer order, clip
   bounds, and damage-scoped presentation derived from admitted plans
+- a host-neutral initial/delta/unchanged presentation-work protocol and unique
+  total paint order that make host-side semantic diffing unnecessary
 - filled-rectangle and `BodyDefault` glyph-run presentation with atlas
   ownership and measurement-contract metrics derived from the shaping
   dependency, never from adapter-local font defaults
@@ -1860,7 +1868,8 @@ retained dual-host fallback does not close the pulse.
 - pinned, audited mechanics dependencies for shaping and rasterization with a
   recorded trust posture
 - removal of `egui` and `eframe` from every workspace dependency edge, with
-  the boundary gate permanently denying their return
+  the boundary gate permanently denying their return; isolated egui-era
+  theme/component crates are retired rather than prematurely ported
 - named platform qualification for the certified native lane
 
 **Acceptance evidence**

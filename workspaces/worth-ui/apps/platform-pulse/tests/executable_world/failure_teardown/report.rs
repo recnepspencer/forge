@@ -42,6 +42,7 @@ pub(crate) enum PulseExecutableWorldFailure {
     Replacement(ExecutableReplacementFailure),
     SchemaTransition(ExecutableSchemaTransitionFailure),
     Preservation(ExecutablePredecessorPreservationFailure),
+    IntentJourney(crate::product_process::PlatformPulseIntentJourneyFailure),
     ProcessExit(PlatformPulseProcessExitFailure),
     Cleanup(ExecutableLifecycleCleanupFailure),
 }
@@ -273,6 +274,7 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::Preservation(failure) => {
                 write!(formatter, "predecessor preservation: {failure}")
             }
+            Self::IntentJourney(failure) => write!(formatter, "intent journey: {failure}"),
             Self::ProcessExit(failure) => write!(formatter, "process exit: {failure}"),
             Self::Cleanup(failure) => write!(formatter, "lifecycle cleanup: {failure}"),
         }

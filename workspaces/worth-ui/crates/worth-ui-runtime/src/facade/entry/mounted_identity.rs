@@ -129,6 +129,12 @@ impl WorthUiActiveApplicationSession {
         let semantic_surface = self
             .mounted
             .deregister_host_surface(&self.host_session, binding)?;
+        self.intent_confirmation.cancel_binding(
+            binding,
+            crate::runtime::intent::UiIntentConfirmationCancellationReason::SurfaceRebound,
+        );
+        self.intent_admission
+            .cancel_binding(&mut self.intent_execution, binding);
         self.interaction.cancel_binding(
             binding,
             crate::runtime::interaction::UiInteractionLifecycleStopReason::SurfaceRebound,

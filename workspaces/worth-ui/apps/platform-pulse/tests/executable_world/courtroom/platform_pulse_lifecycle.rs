@@ -11,6 +11,7 @@ use crate::product_process::{
 };
 use crate::source_delta::{GreenPulseSourceDelta, QueryStatusV1, QueryStatusV2};
 
+use super::exclusive_native_courtroom::enter_exclusive_native_courtroom;
 use super::platform_pulse_journey::{self, PlatformPulseJourneyDeltas};
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
@@ -18,6 +19,7 @@ const JOURNEY_BUDGET: Duration = Duration::from_secs(30);
 
 #[test]
 fn canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown() {
+    let _courtroom = enter_exclusive_native_courtroom();
     assert_eq!(
         current_platform_posture(),
         NativePlatformPosture::CertifiedExecutable
@@ -34,6 +36,7 @@ fn canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutd
 
 #[test]
 fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_disposition() {
+    let _courtroom = enter_exclusive_native_courtroom();
     let installed: PulseExecutableWorld<Installed> =
         PulseExecutableWorld::install(CanonicalPlatformPulse::checked_in())
             .unwrap_or_else(|failure| panic!("install hostile world: {failure}"));
@@ -64,6 +67,7 @@ fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_dispositi
 
 #[test]
 fn expired_green_observation_preserves_action_failure_and_teardown_disposition() {
+    let _courtroom = enter_exclusive_native_courtroom();
     let canonical = CanonicalPlatformPulse::checked_in();
     let green_delta = GreenPulseSourceDelta::from_checked_in(canonical)
         .unwrap_or_else(|failure| panic!("derive hostile green delta: {failure}"));

@@ -109,6 +109,15 @@ fn phase7_inventory_excludes_only_named_successor_sources() {
     assert!(!belongs_to_phase7_inventory(
         "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_identity.rs"
     ));
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/intent_execution_provider.rs"
+    ));
+    assert!(!belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/scaled_canvas.rs"
+    ));
+    assert!(belongs_to_phase7_inventory(
+        "crates/worth-ui-certification/src/intent_execution_provider_neighbor.rs"
+    ));
     assert!(belongs_to_phase7_inventory(
         "crates/worth-ui-certification/src/topology/unadjudicated_future.rs"
     ));

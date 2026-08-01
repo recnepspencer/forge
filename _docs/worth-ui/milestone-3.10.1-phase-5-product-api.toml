@@ -11,6 +11,11 @@ audience = "app"
 path = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
 
 [[journey]]
+id = "platform-pulse-native-intent"
+audience = "app"
+path = "apps/platform-pulse/src/native_frame/intent/native_ingress.rs"
+
+[[journey]]
 id = "governed-visual-snapshot-app"
 audience = "app"
 path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
@@ -21,9 +26,24 @@ audience = "inspection"
 path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 
 [[journey]]
+id = "platform-pulse-intent-causal-trace"
+audience = "inspection"
+path = "apps/platform-pulse/src/observation_contract/intent/causal_trace.rs"
+
+[[journey]]
 id = "authored-application"
 audience = "declaration"
 path = "crates/worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs"
+
+[[journey]]
+id = "typed-product-intent"
+audience = "intent"
+path = "crates/worth-ui/tests/ui/facade/intent/pass/typed_intent_relationships.rs"
+
+[[journey]]
+id = "presentation-bound-interaction"
+audience = "interaction"
+path = "crates/worth-ui-certification/tests/application_contracts/intent/interaction_world.rs"
 
 [[journey]]
 id = "capability-diagnostics"
@@ -61,6 +81,11 @@ audience = "observation"
 path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
 
 [[journey]]
+id = "intent-resource-retirement"
+audience = "observation"
+path = "crates/worth-ui-certification/tests/application_contracts/intent/lifecycle/ia_11/census_foundation.rs"
+
+[[journey]]
 id = "affected-scope-planning"
 audience = "rebind"
 path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_affected_scope.rs"
@@ -69,6 +94,31 @@ path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_
 id = "installed-query-view"
 audience = "query_binding"
 path = "crates/worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
+
+[[journey]]
+id = "shape-specific-projection-contract"
+audience = "query_binding"
+path = "crates/worth-ui/tests/ui/facade/query_binding/pass/projection_contract_is_shape_specific.rs"
+
+[[journey]]
+id = "platform-pulse-query-installation"
+audience = "query_binding"
+path = "apps/platform-pulse/src/query_source/installation.rs"
+
+[[journey]]
+id = "platform-pulse-query-lifecycle"
+audience = "query_binding"
+path = "apps/platform-pulse/src/query_source/lifecycle.rs"
+
+[[journey]]
+id = "platform-pulse-projection-schema-transition"
+audience = "rebind"
+path = "apps/platform-pulse/src/observation_contract/schema_transition.rs"
+
+[[journey]]
+id = "platform-pulse-projection-rebind"
+audience = "rebind"
+path = "apps/platform-pulse/src/native_frame/projection.rs"
 
 [[journey]]
 id = "authored-source-ingress"
@@ -128,6 +178,7 @@ symbols = [
   "UiMountedRejectedFrame",
   "UiPresentationDeadline",
   "WorthUi",
+  "WorthUiActiveApplicationGenerationIdentity",
   "WorthUiActiveApplicationSession",
   "WorthUiActiveApplicationSessionIdentity",
   "WorthUiApp",
@@ -157,6 +208,7 @@ symbols = [
   "WorthUiNativeApplicationShell",
   "WorthUiNativeApplicationShellLaunchDenial",
   "WorthUiNativeApplicationShutdownReceipt",
+  "WorthUiNativeProjectionRebindDenial",
   "WorthUiNativeSourceRebindDenial",
   "WorthUiPendingApplicationCutover",
   "WorthUiPreparedApplicationGenerationIdentity",
@@ -167,6 +219,29 @@ symbols = [
   "WorthUiVisibleRange",
   "WorthUiVisibleRangeDenial",
   "WorthUiVisibleRangeDenialReason",
+]
+
+[[export_group]]
+audience = "app"
+source = "facade/app.rs"
+stability = "evolving-product-contract"
+authority = "native interaction ingress, typed UI intent transition, posture publication, and terminal settlement without product effect authority"
+caller = "platform-pulse-native-intent"
+symbols = [
+  "WorthUiNativeIntentAttemptPrepared",
+  "WorthUiNativeIntentConfirmationRequired",
+  "WorthUiNativeIntentIngress",
+  "WorthUiNativeIntentPosture",
+  "WorthUiNativeIntentPostureKind",
+  "WorthUiNativeIntentPosturePublicationCompletion",
+  "WorthUiNativeIntentPosturePublicationOutcome",
+  "WorthUiNativeIntentPosturePublicationRecovery",
+  "WorthUiNativeIntentPosturePublicationStop",
+  "WorthUiNativeIntentStop",
+  "WorthUiNativeIntentStopped",
+  "WorthUiNativeIntentTerminalPostureOutcome",
+  "WorthUiNativeIntentTransition",
+  "WorthUiNativeInteractionIngressStop",
 ]
 
 [[export_group]]
@@ -205,9 +280,6 @@ symbols = [
   "CommandProjectionReadinessDisplayPolicy",
   "CommandProjectionShortcutVisibility",
   "CommandProjectionSurface",
-  "CommandReadinessBinding",
-  "CommandReadinessStatus",
-  "CommandRuntimeIntentBinding",
   "ComponentAccessibilitySupport",
   "ComponentAllocationMeasurementContract",
   "ComponentCanvasSpatialContract",
@@ -215,7 +287,9 @@ symbols = [
   "ComponentDescriptor",
   "ComponentExecutionLane",
   "ComponentFocusSupport",
+  "ComponentHitTestClipContract",
   "ComponentHitTestContract",
+  "ComponentHitTestInset",
   "ComponentHitTestOrder",
   "ComponentId",
   "ComponentPropSchema",
@@ -223,6 +297,7 @@ symbols = [
   "ComponentRealtimeOverlayContractDenial",
   "ComponentRealtimeOverlayContractDenialReason",
   "ComponentRealtimeOverlayPriority",
+  "ComponentSemanticTextContract",
   "ComponentStateOwnership",
   "ComponentStaticPaintContract",
   "ComponentStaticPaintOrder",
@@ -406,6 +481,248 @@ symbols = [
   "VisibleStateBindingDeclaration",
   "WorthUiHostCapability",
   "WorthUiViewBindingIdentity",
+]
+
+[[export_group]]
+audience = "intent"
+source = "facade/intent.rs"
+stability = "evolving-product-contract"
+authority = "typed intent definition, declaration, UI admission, managed execution, and declared consequence contracts without domain mutation authority"
+caller = "typed-product-intent"
+symbols = [
+  "FrozenIntentDefinitionCapabilities",
+  "IntentDefinitionDescriptor",
+  "UI_INTENT_ADMISSION_CAPACITY",
+  "UI_INTENT_CONFIRMATION_TTL_TICKS",
+  "UI_INTENT_MAXIMUM_APPLICATION_ATTEMPTS",
+  "UI_INTENT_MAXIMUM_DESTINATION_ATTEMPTS",
+  "UI_INTENT_MAXIMUM_INTENT_ATTEMPTS",
+  "UI_INTENT_MAXIMUM_PROVIDER_ATTEMPTS",
+  "UI_INTENT_MAXIMUM_RETAINED_PAYLOAD_BYTES",
+  "UI_INTENT_PAYLOAD_FIELD_LIMIT",
+  "UI_INTENT_PAYLOAD_TEXT_BYTE_LIMIT",
+  "UI_PENDING_INTENT_CONFIRMATION_LIMIT",
+  "UiAdmittedIntent",
+  "UiApplicationEffectDestination",
+  "UiConfirmedIntentCandidate",
+  "UiInoperableIntentCandidate",
+  "UiIntent",
+  "UiIntentAcceptedInteractions",
+  "UiIntentAdmissionCancellationReason",
+  "UiIntentAdmissionCost",
+  "UiIntentAdmissionDecision",
+  "UiIntentAdmissionMetrics",
+  "UiIntentAdmissionSettlementPosture",
+  "UiIntentAdmissionSettlementReceipt",
+  "UiIntentAdmissionShutdownReport",
+  "UiIntentAdmissionSlotIdentity",
+  "UiIntentAdmissionStop",
+  "UiIntentAdmissionStopReason",
+  "UiIntentAffinityPosture",
+  "UiIntentApplicationFact",
+  "UiIntentApplicationFactIdentityError",
+  "UiIntentApplicationFactRegistrationError",
+  "UiIntentApplicationFactRevision",
+  "UiIntentApplicationFactUpdateDenial",
+  "UiIntentApplicationFactUpdateReceipt",
+  "UiIntentAttemptLineage",
+  "UiIntentBoolean",
+  "UiIntentCatalogMetrics",
+  "UiIntentCatalogPreparationDenial",
+  "UiIntentConcurrencyScope",
+  "UiIntentConfirmationCancellationReason",
+  "UiIntentConfirmationChallenge",
+  "UiIntentConfirmationContinuation",
+  "UiIntentConfirmationContract",
+  "UiIntentConfirmationContractIdentityError",
+  "UiIntentConfirmationIssueOutcome",
+  "UiIntentConfirmationLookupCost",
+  "UiIntentConfirmationMetrics",
+  "UiIntentConfirmationPosture",
+  "UiIntentConfirmationRouteBinding",
+  "UiIntentConfirmationSettlementReceipt",
+  "UiIntentConfirmationShutdownReport",
+  "UiIntentConfirmationSlotIdentity",
+  "UiIntentConfirmationStop",
+  "UiIntentConfirmationStopReason",
+  "UiIntentConfirmationTimeBasisKind",
+  "UiIntentConsequenceCompletionReceipt",
+  "UiIntentConsequenceContract",
+  "UiIntentConsequenceHandle",
+  "UiIntentConsequencePublicationCompletion",
+  "UiIntentConsequencePublicationOutcome",
+  "UiIntentConsequencePublicationRecovery",
+  "UiIntentConsequenceRecovery",
+  "UiIntentConsequenceStop",
+  "UiIntentConsequenceStopReason",
+  "UiIntentDeclaration",
+  "UiIntentDeclarationConcurrencyBound",
+  "UiIntentDeclarationConcurrencyMissing",
+  "UiIntentDeclarationConfirmationBound",
+  "UiIntentDeclarationConfirmationMissing",
+  "UiIntentDeclarationConsequencesBound",
+  "UiIntentDeclarationConsequencesMissing",
+  "UiIntentDeclarationConstructionError",
+  "UiIntentDeclarationIdentity",
+  "UiIntentDeclarationOperabilityBound",
+  "UiIntentDeclarationOperabilityMissing",
+  "UiIntentDefinition",
+  "UiIntentDefinitionDestination",
+  "UiIntentDefinitionRegistrationError",
+  "UiIntentDraftInputRevision",
+  "UiIntentExecutionAdvanceOutcome",
+  "UiIntentExecutionAdvanceReport",
+  "UiIntentExecutionAdvanceStop",
+  "UiIntentExecutionAttempt",
+  "UiIntentExecutionAttemptIdentity",
+  "UiIntentExecutionBindingPreparationDenial",
+  "UiIntentExecutionCancellationContext",
+  "UiIntentExecutionCancellationReason",
+  "UiIntentExecutionClockReading",
+  "UiIntentExecutionCurrentnessStop",
+  "UiIntentExecutionDeadline",
+  "UiIntentExecutionDeadlineBasis",
+  "UiIntentExecutionDeadlineOverflow",
+  "UiIntentExecutionDestination",
+  "UiIntentExecutionDispatchOutcome",
+  "UiIntentExecutionDispatchReceipt",
+  "UiIntentExecutionDispatchStop",
+  "UiIntentExecutionDispatchStopReason",
+  "UiIntentExecutionIdempotencyIdentity",
+  "UiIntentExecutionPollContext",
+  "UiIntentExecutionProvider",
+  "UiIntentExecutionRecovery",
+  "UiIntentExecutionRequest",
+  "UiIntentExecutionReservationDenial",
+  "UiIntentExecutionShutdownReport",
+  "UiIntentExecutionTransition",
+  "UiIntentExecutionTransitionPosture",
+  "UiIntentId",
+  "UiIntentInoperableCause",
+  "UiIntentInoperableCauseIter",
+  "UiIntentInputBasisReceipt",
+  "UiIntentInputOwnerRevision",
+  "UiIntentInteractionPayloadSourceKind",
+  "UiIntentMutabilityPosture",
+  "UiIntentMutabilitySource",
+  "UiIntentOccupancyPosture",
+  "UiIntentOperabilityContract",
+  "UiIntentOperabilityContractIdentityError",
+  "UiIntentOperabilityCost",
+  "UiIntentOperabilityDecision",
+  "UiIntentOperabilityDependencyAxis",
+  "UiIntentOperabilityOutcome",
+  "UiIntentOperabilityProof",
+  "UiIntentPartialEffect",
+  "UiIntentPayload",
+  "UiIntentPayloadField",
+  "UiIntentPayloadFieldDescriptor",
+  "UiIntentPayloadFieldKind",
+  "UiIntentPayloadFieldSet",
+  "UiIntentPayloadProjection",
+  "UiIntentPayloadProjectionCost",
+  "UiIntentPayloadProjectionViolation",
+  "UiIntentPayloadSchemaViolation",
+  "UiIntentPayloadSource",
+  "UiIntentPayloadStop",
+  "UiIntentPayloadValueKind",
+  "UiIntentPolicyPosture",
+  "UiIntentPolicySource",
+  "UiIntentProductConsequenceFamilies",
+  "UiIntentProductConsequences",
+  "UiIntentProductOutcome",
+  "UiIntentProviderPoll",
+  "UiIntentProviderRecoveryPoll",
+  "UiIntentProviderSettlement",
+  "UiIntentProviderStart",
+  "UiIntentProviderStop",
+  "UiIntentProviderVersion",
+  "UiIntentQueryInputRevision",
+  "UiIntentReadinessPosture",
+  "UiIntentReadinessSource",
+  "UiIntentRecoveryHandle",
+  "UiIntentRecoveryProgressOutcome",
+  "UiIntentRecoveryProgressPosture",
+  "UiIntentRecoveryProgressReceipt",
+  "UiIntentRecoveryProgressStop",
+  "UiIntentResourceCensus",
+  "UiIntentRouteBinding",
+  "UiIntentRouteResolution",
+  "UiIntentRouteResolutionStop",
+  "UiIntentRouteSource",
+  "UiIntentRuntimeServiceDestination",
+  "UiIntentSchema",
+  "UiIntentSelection",
+  "UiIntentSelectionValue",
+  "UiIntentSupportPosture",
+  "UiIntentText",
+  "UiIntentTransitionDestination",
+  "UiIntentTransitionOutcome",
+  "UiIntentUnsigned64",
+  "UiPendingIntentConfirmation",
+  "UiPreparedIntentPayload",
+  "UiResolvedConfirmationIntentRoute",
+  "UiResolvedProductIntentRoute",
+  "UiRuntimeServiceDefinitionDestination",
+  "UiSemanticInteractionFamily",
+  "UiTransitionDefinitionDestination",
+  "WorthUiCollectionChangeConsequence",
+]
+
+[[export_group]]
+audience = "interaction"
+source = "facade/interaction.rs"
+stability = "evolving-product-contract"
+authority = "presentation-bound semantic interaction, targeting, gesture, draft, and local-input contracts without product effect authority"
+caller = "presentation-bound-interaction"
+symbols = [
+  "UI_ACTIVE_POINTER_GESTURE_LIMIT",
+  "UI_DRAFT_SESSION_LIMIT",
+  "UI_DRAFT_UTF8_BYTE_LIMIT",
+  "UiActivateInteraction",
+  "UiActivateInteractionSource",
+  "UiCurrentProjectionOptionStop",
+  "UiDraftByteBudget",
+  "UiDraftByteBudgetDenial",
+  "UiDraftFieldIdentity",
+  "UiDraftMutationKind",
+  "UiDraftMutationReceipt",
+  "UiDraftRecipientContractDenial",
+  "UiDraftSessionIdentity",
+  "UiEditCommitInteraction",
+  "UiHostInteractionIngressOutcome",
+  "UiInteractionBatchReceipt",
+  "UiInteractionLifecycleCounters",
+  "UiInteractionLifecycleSettlementReceipt",
+  "UiInteractionObservationDenial",
+  "UiInteractionShutdownReport",
+  "UiInteractionStateSnapshot",
+  "UiInteractionStop",
+  "UiInteractionTargetingDenial",
+  "UiInteractionTransition",
+  "UiKeyboardActivationEvidence",
+  "UiLocalInputRecipientAdmission",
+  "UiLocalInputRecipientBindingReceipt",
+  "UiLocalInputRecipientBindingStop",
+  "UiLocalInputRecipientBindingStopReason",
+  "UiLocalInputRecipientContract",
+  "UiLocalInputRecipientFamily",
+  "UiLocalInputStop",
+  "UiLocalInputStopReason",
+  "UiPointerGestureContinuityKind",
+  "UiPointerGesturePressReceipt",
+  "UiPointerGestureStop",
+  "UiPointerGestureStopReason",
+  "UiPresentedInteractionTarget",
+  "UiPresentedInteractionTargetView",
+  "UiPresentedTargetFrameRelation",
+  "UiQuarantinedHostInteractionBatch",
+  "UiSelectionCommitInteraction",
+  "UiSelectionCommitStop",
+  "UiSelectionCommitStopReason",
+  "UiSemanticInteraction",
+  "UiSubmitInteraction",
+  "UiTargetedPointerGesture",
 ]
 
 [[export_group]]
@@ -767,6 +1084,7 @@ symbols = [
   "UiVisualSnapshotOutcome",
   "UiVisualSnapshotReceipt",
   "UiVisualSnapshotRelation",
+  "UiVisualSnapshotRelationDenial",
   "UiVisualSnapshotRequest",
   "UiVisualSnapshotSuperseded",
   "UiVisualTarget",
@@ -816,6 +1134,31 @@ symbols = [
   "UiVisualOverlayIdentity",
   "UiVisualOverlayPublicationFailure",
   "UiVisualOverlayShutdownReport",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "bounded immutable interaction and intent causal evidence without operational construction authority"
+caller = "platform-pulse-intent-causal-trace"
+symbols = [
+  "UI_INTENT_CAUSAL_TRACE_EVIDENCE_BYTE_CAPACITY",
+  "UI_INTENT_INTERACTION_EVIDENCE_ENTRY_CAPACITY",
+  "UiIntentCausalTraceAdmissionEvidence",
+  "UiIntentCausalTraceAttemptEvidence",
+  "UiIntentCausalTraceAttemptPosture",
+  "UiIntentCausalTraceCompletionEvidence",
+  "UiIntentCausalTraceEvidence",
+  "UiIntentCausalTraceOperabilityEvidence",
+  "UiIntentCausalTraceOperabilityPosture",
+  "UiIntentCausalTracePayloadEvidence",
+  "UiIntentCausalTraceRouteEvidence",
+  "UiIntentEvidenceLookup",
+  "UiIntentEvidenceReference",
+  "UiIntentInteractionEvidenceFamily",
+  "UiIntentInteractionEvidenceInput",
+  "UiIntentInteractionEvidenceTargetInput",
 ]
 
 [[export_group]]
@@ -899,7 +1242,16 @@ caller = "host-observation"
 symbols = [
   "UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT",
   "UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT",
+  "UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT",
   "UiDuplicateHostObservationBatch",
+  "UiHostImeCompositionPhase",
+  "UiHostImePreedit",
+  "UiHostImePreeditConstructionDenial",
+  "UiHostImePreeditSelection",
+  "UiHostImeRangeConversionReceipt",
+  "UiHostKey",
+  "UiHostKeyTransition",
+  "UiHostKeyboardModifiers",
   "UiHostObservationBatch",
   "UiHostObservationBatchConstructionDenial",
   "UiHostObservationBatchDisposition",
@@ -917,6 +1269,7 @@ symbols = [
   "UiHostObservationLoss",
   "UiHostObservationMountedBasis",
   "UiHostObservationPayload",
+  "UiHostObservationPresentationBasis",
   "UiHostObservationReport",
   "UiHostObservationReportDenial",
   "UiHostObservationReportOutcome",
@@ -924,9 +1277,20 @@ symbols = [
   "UiHostObservationSequenceRange",
   "UiHostObservationTimeBasis",
   "UiHostObservationWorkReport",
+  "UiHostPointerButton",
+  "UiHostPointerButtonTransition",
+  "UiHostPointerCaptureEpoch",
+  "UiHostPointerIdentity",
+  "UiHostPressedPointerButtons",
   "UiHostProtocolAgreement",
   "UiHostProtocolContract",
   "UiHostProtocolNegotiation",
+  "UiHostSurfaceCoordinateSpace",
+  "UiHostSurfaceCoordinateUnit",
+  "UiHostSurfacePosition",
+  "UiHostSurfacePositionBasis",
+  "UiHostUnicodeScalarRange",
+  "UiHostUtf8ByteRange",
   "UiQuarantinedHostObservationBatch",
   "UiValidatedHostObservationBatch",
   "UiValidatedHostObservationReport",
@@ -976,6 +1340,17 @@ symbols = [
 ]
 
 [[export_group]]
+audience = "observation"
+source = "facade/observation.rs"
+stability = "evolving-product-contract"
+authority = "read-only observation resource retirement evidence without observation-state ownership"
+caller = "intent-resource-retirement"
+symbols = [
+  "UiObservationResourceRetirementCause",
+  "UiObservationResourceRetirementReport",
+]
+
+[[export_group]]
 audience = "query_binding"
 source = "facade/query_binding.rs"
 stability = "evolving-product-contract"
@@ -995,6 +1370,109 @@ symbols = [
   "WorthUiQueryViewRegistration",
   "WorthUiQueryViewRegistrationError",
   "WorthUiQueryViewShape",
+]
+
+[[export_group]]
+audience = "query_binding"
+source = "facade/query_binding.rs"
+stability = "evolving-product-contract"
+authority = "shape-specific projection declaration, registration, observation, affine fact contracts, opaque Query references, and explicit reporting projection"
+caller = "shape-specific-projection-contract"
+symbols = [
+  "UiCollectionCompleteness",
+  "UiCollectionContinuation",
+  "UiCollectionProjectionBinding",
+  "UiCollectionProjectionBindingAdmission",
+  "UiCollectionProjectionFactReceipt",
+  "UiCollectionProjectionObservation",
+  "UiCollectionProjectionRegistration",
+  "UiCollectionProjectionRowReference",
+  "UiCollectionProjectionTextRow",
+  "UiCollectionProjectionValue",
+  "UiCollectionSchemaRequirement",
+  "UiInstalledProjectionView",
+  "UiNativeTextValue",
+  "UiPresentProjection",
+  "UiProjectionAvailability",
+  "UiProjectionBinding",
+  "UiProjectionBindingCompatibilityProof",
+  "UiProjectionBindingStopKind",
+  "UiProjectionBindingStopReceipt",
+  "UiProjectionConsumptionBudget",
+  "UiProjectionConsumptionBudgetError",
+  "UiProjectionConsumptionLimits",
+  "UiProjectionFactReceipt",
+  "UiProjectionFactReportingProjection",
+  "UiProjectionFactStopKind",
+  "UiProjectionFactStopReceipt",
+  "UiProjectionFieldRequirement",
+  "UiProjectionFieldRequirementError",
+  "UiProjectionLifecycleRequirement",
+  "UiProjectionNativeFamily",
+  "UiProjectionObservation",
+  "UiProjectionRetainedActivityKind",
+  "UiProjectionRetainedActivityReceipt",
+  "UiProjectionShape",
+  "UiProjectionUnavailableKind",
+  "UiProjectionUnavailableReceipt",
+  "UiQueryBindingReference",
+  "UiQueryEvidenceReference",
+  "UiScalarProjectionBinding",
+  "UiScalarProjectionBindingAdmission",
+  "UiScalarProjectionFactReceipt",
+  "UiScalarProjectionObservation",
+  "UiScalarProjectionRegistration",
+  "UiScalarSchemaRequirement",
+  "WorthUiProjectionRegistrationError",
+]
+
+[[export_group]]
+audience = "query_binding"
+source = "facade/query_binding.rs"
+stability = "evolving-product-contract"
+authority = "sealed Query host installation request, completion, and installed scalar projection authority"
+caller = "platform-pulse-query-installation"
+symbols = [
+  "WorthUiQueryHostInstallationRequest",
+  "WorthUiScalarProjectionHostCompletion",
+  "WorthUiScalarProjectionHostPlan",
+  "WorthUiScalarProjectionInstallation",
+  "WorthUiScalarProjectionInstallationError",
+]
+
+[[export_group]]
+audience = "query_binding"
+source = "facade/query_binding.rs"
+stability = "evolving-product-contract"
+authority = "affine scalar projection publication, advancement, live ownership, and terminal source settlement"
+caller = "platform-pulse-query-lifecycle"
+symbols = [
+  "WorthUiScalarProjectionAdvance",
+  "WorthUiScalarProjectionAdvanceError",
+  "WorthUiScalarProjectionLiveOwner",
+  "WorthUiScalarProjectionPublicationCompletion",
+  "WorthUiScalarProjectionSourceCloseError",
+  "WorthUiScalarProjectionSourceCloseReceipt",
+  "WorthUiScalarProjectionSourceRecord",
+]
+
+[[export_group]]
+audience = "query_binding"
+source = "facade/query_binding.rs"
+stability = "evolving-product-contract"
+authority = "affine scalar projection action request, separate Query admission, publication, evidence, and recovery without UI-owned Query mutation authority"
+caller = "platform-pulse-query-lifecycle"
+symbols = [
+  "WorthUiScalarProjectionActionAdvance",
+  "WorthUiScalarProjectionActionDenied",
+  "WorthUiScalarProjectionActionEvidence",
+  "WorthUiScalarProjectionActionExecution",
+  "WorthUiScalarProjectionActionIndeterminate",
+  "WorthUiScalarProjectionActionInstallation",
+  "WorthUiScalarProjectionActionLiveOwner",
+  "WorthUiScalarProjectionActionOutcome",
+  "WorthUiScalarProjectionActionPublicationCompletion",
+  "WorthUiScalarProjectionActionRequest",
 ]
 
 [[export_group]]
@@ -1100,6 +1578,29 @@ symbols = [
   "UiRebindTimeoutReceipt",
   "UiRebindValidNextAction",
   "UiSourceRebindRequest",
+]
+
+[[export_group]]
+audience = "rebind"
+source = "facade/rebind.rs"
+stability = "evolving-product-contract"
+authority = "projection schema transition meaning and explicit predecessor-value policy"
+caller = "platform-pulse-projection-schema-transition"
+symbols = [
+  "UiProjectionPredecessorValuePolicy",
+  "UiProjectionSchemaRequirement",
+  "UiProjectionSchemaTransition",
+  "UiProjectionSchemaTransitionKind",
+]
+
+[[export_group]]
+audience = "rebind"
+source = "facade/rebind.rs"
+stability = "evolving-product-contract"
+authority = "observation-bound projection rebind request without direct mounting mutation authority"
+caller = "platform-pulse-projection-rebind"
+symbols = [
+  "UiProjectionRebindRequest",
 ]
 
 [[export_group]]

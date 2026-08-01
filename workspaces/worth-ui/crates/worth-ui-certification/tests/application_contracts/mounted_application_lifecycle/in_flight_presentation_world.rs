@@ -69,6 +69,25 @@ pub(crate) fn mounted_session_with_visual_policy(
     )
 }
 
+pub(crate) fn mounted_session_with_retention_budget(
+    host: ScriptedPresentationHost,
+    label: &str,
+    surface_count: usize,
+    budget: worth_ui_runtime::facade::mounted::UiMountedFrameRetentionBudget,
+) -> (
+    worth_ui::facade::app::WorthUiActiveApplicationSession,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
+) {
+    mount_surfaces(
+        super::known_empty_surface_world::mounted_application_with_host_and_retention_budget(
+            label, host, budget,
+        )
+        .launch()
+        .unwrap(),
+        surface_count,
+    )
+}
+
 fn mount_surfaces(
     mut session: worth_ui::facade::app::WorthUiActiveApplicationSession,
     surface_count: usize,

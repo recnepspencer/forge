@@ -50,7 +50,7 @@ pub(super) fn semantic_digest(input: &UiMountedSemanticTextCompletionInput) -> u
         digest = fold(digest, u64::from(byte));
     }
     if let Some(row) = &input.collection_row {
-        for byte in row.0.bytes() {
+        for byte in row.0 {
             digest = fold(digest, u64::from(byte));
         }
     }

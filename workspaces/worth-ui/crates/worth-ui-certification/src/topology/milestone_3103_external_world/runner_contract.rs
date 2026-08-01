@@ -33,15 +33,11 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
             "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         ),
     )?;
-    let courtroom = format!(
-        "{}\n{}",
-        inventory.text(
-            "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
-        ),
-        inventory.text(
-            "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
-        ),
-    );
+    let courtroom = inventory
+        .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
+        .map(|source| source.text())
+        .collect::<Vec<_>>()
+        .join("\n");
     audit_courtroom(&courtroom)
 }
 
@@ -52,6 +48,9 @@ fn audit_required_topology(inventory: &WorkspaceSourceInventory) -> Result<(), S
         "executable_world/adjudication/mod.rs",
         "executable_world/adjudication/source_to_pixel.rs",
         "executable_world/courtroom/mod.rs",
+        "executable_world/courtroom/platform_pulse_cleanup.rs",
+        "executable_world/courtroom/platform_pulse_journey.rs",
+        "executable_world/courtroom/platform_pulse_journey/open.rs",
         "executable_world/courtroom/platform_pulse_lifecycle.rs",
         "executable_world/external_observation/lifecycle_stream.rs",
         "executable_world/external_observation/lifecycle_teardown.rs",
@@ -276,11 +275,12 @@ fn audit_wgc_capture(source: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn audit_courtroom(source: &str) -> Result<(), String> {
+pub(super) fn audit_courtroom(source: &str) -> Result<(), String> {
     for required in [
         "canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown",
         "CargoBuiltPlatformPulse::exact()",
         ".await_first_frame(",
+        "close_recovered(self.recovered)",
         ".close_native_window(",
         "host_session_released()",
         "installation_removed()",

@@ -21,6 +21,8 @@ pub(crate) mod execution;
 pub(crate) mod exports;
 pub(crate) mod host_observation;
 pub(crate) mod intent;
+pub use intent::WorthUiActiveApplicationGenerationIdentity;
+pub(crate) mod intent_execution;
 pub(crate) mod interaction;
 mod invalidation_narrowing;
 pub(crate) use invalidation_narrowing::{
@@ -49,9 +51,6 @@ pub(crate) use source_ingress::WorthUiProjectionContentEdge;
 pub use source_ingress::{
     UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
     UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,
-};
-pub(crate) use source_ingress::{
-    WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
 };
 mod stream_policy;
 mod viewport_resize;

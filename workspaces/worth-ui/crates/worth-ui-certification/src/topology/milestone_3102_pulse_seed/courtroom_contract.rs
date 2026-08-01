@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use super::destination_topology::{EFRAME_VERSION, PULSE_EFRAME_FEATURES};
 use super::evidence_document::{require_exact_ids, toml_rows, toml_text, toml_texts};
 
 const MUTATION_IDS: &[&str] = &[
@@ -113,21 +114,22 @@ fn audit_native_shell(document: &toml::Value) -> Result<(), String> {
         .get("native_shell")
         .ok_or_else(|| "Phase 1 evidence should freeze [native_shell]".to_owned())?;
     if toml_text(shell, "package")? != "eframe"
-        || toml_text(shell, "version_requirement")? != "=0.31.1"
+        || toml_text(shell, "version_requirement")? != EFRAME_VERSION
         || shell
             .get("uses_default_features")
             .and_then(toml::Value::as_bool)
             != Some(false)
     {
-        return Err(
-            "native shell should remain eframe =0.31.1 with default features disabled".to_owned(),
-        );
+        return Err(format!(
+            "native shell should remain eframe {EFRAME_VERSION} with default features disabled"
+        ));
     }
     let actual = toml_texts(shell, "features")?
         .into_iter()
         .collect::<BTreeSet<_>>();
-    let expected = ["default_fonts", "glow", "wayland", "x11"]
-        .into_iter()
+    let expected = PULSE_EFRAME_FEATURES
+        .iter()
+        .copied()
         .collect::<BTreeSet<_>>();
     if actual != expected {
         return Err(format!(

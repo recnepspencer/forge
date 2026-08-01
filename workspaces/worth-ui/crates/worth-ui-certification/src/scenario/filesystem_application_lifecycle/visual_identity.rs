@@ -5,6 +5,8 @@ use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::visual_identity_application::{
+    clipped_semantic_text_action_application_builder_with_host,
+    clipped_semantic_text_action_application_builder_with_host_and_profile,
     clipped_visual_identity_application_builder_with_host,
     duplicate_hit_order_application_builder_with_host,
     region_identity_application_builder_with_host, visual_identity_application_builder_with_host,
@@ -24,6 +26,41 @@ impl FilesystemApplicationLifecycleScenario {
         Host: WorthUiOperationalHostAdapter + 'static,
     {
         visual_identity_application_builder_with_host(host)
+    }
+
+    /// Start the visual-identity compiler with a clipped hit-only region so
+    /// the separately allocated paint-and-hit control is independently targetable.
+    pub fn clipped_visual_identity_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_visual_identity_application_builder_with_host(host)
+    }
+
+    /// Start a clipped visual world whose action control carries the existing
+    /// host-neutral BodyDefault semantic-text contract.
+    pub fn semantic_text_action_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_semantic_text_action_application_builder_with_host(host)
+    }
+
+    pub fn semantic_text_action_application_builder_with_change_profile<Host>(
+        &self,
+        host: Host,
+        profile: worth_ui::facade::rebind::UiChangeProfile,
+    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_semantic_text_action_application_builder_with_host_and_profile(host, profile)
     }
 
     pub fn visual_identity_source_text() -> String {
@@ -59,6 +96,8 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(definition)
             .expect("typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("typed certification provider should register")
             .freeze()
             .expect("visual identity and intent capabilities should prepare")
     }
@@ -77,8 +116,12 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(first)
             .expect("first typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("first typed certification provider should register")
             .register_intent_definition(second)
             .expect("second typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<J>::new())
+            .expect("second typed certification provider should register")
             .freeze()
             .expect("visual identity and intent capabilities should prepare")
     }
@@ -137,6 +180,8 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(definition)
             .expect("typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("typed certification provider should register")
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored routed application should prepare")
@@ -157,8 +202,12 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(first)
             .expect("first typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("first typed certification provider should register")
             .register_intent_definition(second)
             .expect("second typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<J>::new())
+            .expect("second typed certification provider should register")
             .with_candidate_submission(submission)
             .freeze()
             .expect("filesystem-authored routed application should prepare")
@@ -177,6 +226,8 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(definition)
             .expect("typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("typed certification provider should register")
             .with_rust_authored_input(input)
             .freeze()
             .expect("Rust-authored routed application should prepare")
@@ -197,8 +248,12 @@ impl FilesystemApplicationLifecycleScenario {
         visual_identity_application_builder_with_host(host)
             .register_intent_definition(first)
             .expect("first typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<I>::new())
+            .expect("first typed certification provider should register")
             .register_intent_definition(second)
             .expect("second typed intent definition should register")
+            .register_intent_provider(crate::WorthUiCertificationBeforeEffectProvider::<J>::new())
+            .expect("second typed certification provider should register")
             .with_rust_authored_input(input)
             .freeze()
             .expect("Rust-authored routed application should prepare")

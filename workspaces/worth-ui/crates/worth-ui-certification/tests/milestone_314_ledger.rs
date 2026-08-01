@@ -1,6 +1,8 @@
 const HEADER: &str = "id,production_claim,fixture_provenance,typed_result,mutation_control,\
 structural_cost,teardown,evidence_command,status,evidence";
 
+pub(super) const CURRENT_IMPLEMENTATION_PHASE: i64 = 5;
+
 pub(super) fn validate_at_phase(
     contract: &toml::Value,
     ledger: &str,

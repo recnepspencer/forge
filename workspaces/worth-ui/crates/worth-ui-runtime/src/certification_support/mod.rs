@@ -10,6 +10,13 @@ mod application_graph;
 mod application_replacement;
 mod framework_turn_execution;
 mod identity_overlay_projection;
+mod intent_evidence;
+mod intent_execution_binding;
+mod intent_execution_reservation;
+mod intent_occupancy;
+mod intent_operability_decision;
+mod intent_resource_census;
+mod intent_route_resolution;
 mod layout_admission;
 mod local_interaction_recipient;
 mod mounted_frame_execution;
@@ -49,6 +56,24 @@ pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 pub use identity_overlay_projection::{
     identity_overlay_projection_for_certification, UiIdentityOverlayProjectionCertificationMutation,
 };
+pub use intent_evidence::WorthUiIntentEvidenceCertificationExt;
+pub use intent_execution_binding::{
+    UiIntentExecutionBindingRegistrationMetrics, WorthUiIntentExecutionBindingCertificationExt,
+};
+pub use intent_execution_reservation::{
+    UiIntentExecutionCapacityCertificationProfile,
+    UiIntentExecutionReservationCertificationMetrics,
+    WorthUiIntentExecutionReservationCertificationExt,
+};
+pub use intent_occupancy::{
+    UiIntentOccupancyReleasePosture, UiIntentOccupancyReservation,
+    UiIntentOccupancyReservationDenial, WorthUiIntentOccupancyCertificationExt,
+};
+pub use intent_operability_decision::{
+    classify_intent_operability_for_certification, UiIntentOperabilityDecisionCertificationInput,
+};
+pub use intent_resource_census::WorthUiIntentResourceCensusCertificationExt;
+pub use intent_route_resolution::WorthUiIntentRouteResolutionCertificationExt;
 #[cfg(test)]
 pub(crate) use layout_admission::snapshot_after_layout_admission_support;
 pub use local_interaction_recipient::draft_recipient_contract_for_certification;

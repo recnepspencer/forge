@@ -132,6 +132,29 @@ fn runner_rejects_owner_drift_and_non_native_close() {
     assert!(error.contains("pattern.close()"), "{error}");
 }
 
+#[test]
+fn runner_rejects_a_journey_detached_from_typed_native_close() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let courtroom = [
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
+        ),
+        inventory
+            .text("apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs"),
+        inventory
+            .text("apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs"),
+    ]
+    .join("\n");
+    let detached = mutate_required(
+        &courtroom,
+        "close_recovered(self.recovered)",
+        "drop(self.recovered)",
+    );
+    let error = runner_contract::audit_courtroom(&detached)
+        .expect_err("the success journey must consume recovered state through native close");
+    assert!(error.contains("close_recovered(self.recovered)"), "{error}");
+}
+
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()

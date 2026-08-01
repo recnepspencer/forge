@@ -180,6 +180,10 @@ impl UiClassifiedChange {
         &self.facts
     }
 
+    pub(crate) fn source_succession(&self) -> Option<&UiAuthoredSourceSuccession> {
+        self.source_succession.as_ref()
+    }
+
     pub(crate) fn into_parts(
         self,
     ) -> (

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 
 use super::{
     UiDraftByteBudget, UiDraftFieldIdentity, UiDraftMutationReceipt, UiDraftSessionIdentity,
@@ -39,7 +39,7 @@ pub(crate) struct UiDraftRuntimeState {
 
 pub(super) struct UiDraftSession {
     pub(super) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-    pub(super) generation: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) generation: WorthUiActiveApplicationGenerationIdentity,
     pub(super) field: UiDraftFieldIdentity,
     pub(super) budget: UiDraftByteBudget,
     pub(super) committed: String,
@@ -57,7 +57,7 @@ pub(super) enum UiActiveLocalRecipient {
 #[derive(Clone)]
 pub(super) struct UiRecipientContext {
     pub(super) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
-    pub(super) generation: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) generation: WorthUiActiveApplicationGenerationIdentity,
 }
 
 pub(super) enum UiValidatedActiveRecipient {

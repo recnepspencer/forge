@@ -16,29 +16,29 @@ use crate::WorthUiQueryWorkspaceExt;
 #[must_use = "a compatibility proof carries Query's pair-bound replacement witness"]
 pub struct UiProjectionBindingCompatibilityProof {
     query_witness: WorthQueryReplacementWitness,
-    predecessor_binding_identity: Arc<str>,
-    successor_binding_identity: Arc<str>,
+    predecessor_binding: crate::UiQueryBindingReference,
+    successor_binding: crate::UiQueryBindingReference,
 }
 
 impl UiProjectionBindingCompatibilityProof {
     pub(super) fn query_issued(
         query_witness: WorthQueryReplacementWitness,
-        predecessor_binding_identity: impl Into<Arc<str>>,
-        successor_binding_identity: impl Into<Arc<str>>,
+        predecessor_binding: crate::UiQueryBindingReference,
+        successor_binding: crate::UiQueryBindingReference,
     ) -> Self {
         Self {
             query_witness,
-            predecessor_binding_identity: predecessor_binding_identity.into(),
-            successor_binding_identity: successor_binding_identity.into(),
+            predecessor_binding,
+            successor_binding,
         }
     }
 
-    pub fn predecessor_binding_identity_for_reporting(&self) -> &str {
-        self.predecessor_binding_identity.as_ref()
+    pub fn predecessor_binding(&self) -> &crate::UiQueryBindingReference {
+        &self.predecessor_binding
     }
 
-    pub fn successor_binding_identity_for_reporting(&self) -> &str {
-        self.successor_binding_identity.as_ref()
+    pub fn successor_binding(&self) -> &crate::UiQueryBindingReference {
+        &self.successor_binding
     }
 
     pub fn query_counters(&self) -> WorthQueryCompatibilityCounters {
@@ -51,14 +51,8 @@ impl std::fmt::Debug for UiProjectionBindingCompatibilityProof {
         formatter
             .debug_struct("UiProjectionBindingCompatibilityProof")
             .field("query_witness", &self.query_witness)
-            .field(
-                "predecessor_binding_identity",
-                &self.predecessor_binding_identity,
-            )
-            .field(
-                "successor_binding_identity",
-                &self.successor_binding_identity,
-            )
+            .field("predecessor_binding", &self.predecessor_binding)
+            .field("successor_binding", &self.successor_binding)
             .finish()
     }
 }
@@ -154,10 +148,8 @@ impl UiScalarProjectionBinding {
             Ok(prepared) => prepared,
             Err((kind, summary)) => return stopped(self, candidate, kind, summary),
         };
-        let predecessor_identity: Arc<str> =
-            Arc::from(predecessor_prepared.binding_identity_for_reporting());
-        let successor_identity: Arc<str> =
-            Arc::from(candidate_prepared.binding_identity_for_reporting());
+        let predecessor_identity = predecessor_prepared.binding_reference();
+        let successor_identity = candidate_prepared.binding_reference();
         let query_witness = match predecessor_prepared.replacement_witness_for(&candidate_prepared)
         {
             Ok(witness) => witness,
@@ -287,7 +279,7 @@ fn stopped(
     let stop = UiProjectionBindingStopReceipt::replacement(
         kind,
         candidate.replacement_attempt_identity(),
-        predecessor.core().query_binding_identity(),
+        predecessor.core().retained_query_binding_reference(),
         summary,
     );
     UiScalarProjectionReplacementOutcome::Stopped(Box::new(UiScalarProjectionReplacementStop {

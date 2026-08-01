@@ -1,28 +1,28 @@
-pub(super) struct UiIntentSemanticDigest {
+pub(crate) struct UiIntentSemanticDigest {
     accumulator: u64,
 }
 
 impl UiIntentSemanticDigest {
-    pub(super) const fn new(seed: u64) -> Self {
+    pub(crate) const fn new(seed: u64) -> Self {
         Self { accumulator: seed }
     }
 
-    pub(super) fn field(mut self, name: &'static str, value: &[u8]) -> Self {
+    pub(crate) fn field(mut self, name: &'static str, value: &[u8]) -> Self {
         self.fold_framed(name.as_bytes());
         self.fold_framed(value);
         self
     }
 
-    pub(super) fn u16(self, name: &'static str, value: u16) -> Self {
+    pub(crate) fn u16(self, name: &'static str, value: u16) -> Self {
         self.field(name, &value.to_le_bytes())
     }
 
-    pub(super) fn usize(self, name: &'static str, value: usize) -> Self {
+    pub(crate) fn usize(self, name: &'static str, value: usize) -> Self {
         let value = u64::try_from(value).expect("intent semantic width exceeds u64");
         self.field(name, &value.to_le_bytes())
     }
 
-    pub(super) const fn finish(self) -> u64 {
+    pub(crate) const fn finish(self) -> u64 {
         self.accumulator
     }
 

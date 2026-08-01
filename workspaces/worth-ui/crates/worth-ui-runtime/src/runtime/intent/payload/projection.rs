@@ -8,20 +8,22 @@ use crate::declaration::{UiResolvedIntentApplicationSource, UiResolvedIntentProj
 use crate::declaration::{UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource};
 
 use super::{
-    UiIntentApplicationFactState, UiIntentApplicationInputReference, UiIntentInputBasisView,
-    UiIntentInputOwnerRevision, UiIntentPayloadProjectionCost, UiIntentPayloadStop,
-    UiPreparedIntentPayload,
+    UiIntentApplicationFactState, UiIntentApplicationInputReference, UiIntentInputBasisMaterial,
+    UiIntentInputBasisView, UiIntentInputOwnerRevision, UiIntentPayloadProjectionCost,
+    UiIntentPayloadStop, UiPreparedIntentPayload,
 };
 
 pub(crate) fn prepare_intent_payload(
     route: super::super::UiResolvedProductIntentRoute,
     definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
-    generation: &crate::facade::prepared_application_authority::
-        WorthUiPreparedApplicationGenerationIdentity,
+    execution_bindings: &crate::runtime::intent_execution::FrozenIntentExecutionBindings,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     mounted: &crate::mounting::WorthUiMountedSessionState,
     application_facts: &UiIntentApplicationFactState,
+    occupancy: &super::super::operability::UiIntentOccupancyState,
 ) -> Result<UiPreparedIntentPayload, UiIntentPayloadStop> {
-    let (declaration, interaction) = route.into_parts();
+    let (graph_node, declaration, interaction, route_resolution, evidence_reference) =
+        route.into_parts();
     let basis_view =
         UiIntentInputBasisView::observe(&interaction, generation, mounted, application_facts)?;
     let definition = definitions.definition_at(declaration.definition());
@@ -31,22 +33,31 @@ pub(crate) fn prepare_intent_payload(
         projection.project(binding)?;
     }
     let (values, query_inputs, application_inputs, owner_revisions, cost) = projection.finish();
-    let payload = definitions
-        .projector_at(declaration.definition())
-        .project(values)
+    let execution = execution_bindings
+        .project_at(declaration.definition(), values)
         .map_err(UiIntentPayloadStop::PayloadProjection)?;
-    let basis = basis_view.seal(
+    let operability = super::super::operability::observe_operability_basis(
+        &basis_view,
+        &declaration,
+        definition,
+        occupancy,
+    );
+    let basis = basis_view.seal(UiIntentInputBasisMaterial {
         interaction,
         query_inputs,
         application_inputs,
         owner_revisions,
+        route_resolution,
         cost,
-    );
+        operability,
+        evidence_reference,
+    });
     Ok(UiPreparedIntentPayload::new(
+        graph_node,
         definition.id(),
         declaration,
         basis,
-        payload,
+        execution,
     ))
 }
 

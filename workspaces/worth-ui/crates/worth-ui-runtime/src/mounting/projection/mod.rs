@@ -3,6 +3,7 @@ mod denial;
 mod frame_storage;
 mod geometry;
 mod hit_test;
+mod intent_posture;
 mod lowering;
 mod mechanical_role;
 mod node_receipt;
@@ -17,6 +18,9 @@ pub(in crate::mounting) use frame_storage::UiMountedSemanticProjection;
 pub use node_receipt::UiMountedNodeReceipt;
 pub use prepared_projection::UiProjectedMountedFrameCandidate;
 
+pub(crate) use intent_posture::{
+    UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
+};
 pub(crate) use lowering::{
     prepare_projection, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
 };

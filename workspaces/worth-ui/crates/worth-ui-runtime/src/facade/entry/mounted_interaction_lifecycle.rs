@@ -45,6 +45,12 @@ impl WorthUiActiveApplicationSession {
         identity: UiMountedInstanceIdentity,
     ) -> Result<UiInteractionLifecycleSettlementReceipt, UiMountedIdentityDenial> {
         self.mounted.unmount_instance(identity)?;
+        self.intent_confirmation.cancel_instance(
+            identity,
+            crate::runtime::intent::UiIntentConfirmationCancellationReason::MountedInstanceRemoved,
+        );
+        self.intent_admission
+            .cancel_instance(&mut self.intent_execution, identity);
         Ok(self.interaction.cancel_instance(
             identity,
             UiInteractionLifecycleStopReason::MountedInstanceRemoved,
@@ -64,6 +70,12 @@ impl WorthUiActiveApplicationSession {
         let interaction = self
             .interaction
             .cancel_binding(binding, UiInteractionLifecycleStopReason::SurfaceRebound);
+        self.intent_confirmation.cancel_binding(
+            binding,
+            crate::runtime::intent::UiIntentConfirmationCancellationReason::SurfaceRebound,
+        );
+        self.intent_admission
+            .cancel_binding(&mut self.intent_execution, binding);
         match self.mounted.register_host_surface(
             &self.host_session,
             semantic_surface,

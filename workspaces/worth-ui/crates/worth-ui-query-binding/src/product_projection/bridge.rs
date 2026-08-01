@@ -1,15 +1,18 @@
 use worth_runtime_bridge::facade::{
-    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, CoarseRoutingMode,
+    BridgeDeliveryReceipt, BridgeMappingId, BridgeMappingRegistration, BridgeWritebackEffectClass,
+    BridgeWritebackFamilyKind, BridgeWritebackOutcomeClass, CoarseRoutingMode,
     CommittedPatchSource, InvalidationSink, MappingSelector, RelationalBridgeSourceError,
     RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
     SignalInvalidationScope, SnapshotReadContract, SnapshotReadSource, TruthPatchScope,
-    TruthSnapshotIdentity, TruthSnapshotReader,
+    TruthSnapshotIdentity, TruthSnapshotReader, TruthWritebackAuthority,
+    TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 
 pub(crate) fn platform_pulse_bridge() -> Result<RuntimeBridge, String> {
     RuntimeBridgeBuilder::new()
         .with_relational_source(ExternalScalarTruthSource)
         .with_signal_sink(ExternalScalarSignalSink)
+        .with_writeback_authority(ExternalScalarWritebackAuthority)
         .register_mapping(BridgeMappingRegistration::new(
             BridgeMappingId::from_stable_name("worth-ui-external-scalar"),
             TruthPatchScope::for_entity_field(
@@ -70,6 +73,28 @@ impl InvalidationSink for ExternalScalarSignalSink {
         Ok(BridgeDeliveryReceipt::new(
             delivery.invalidation_targets().len(),
             delivery.source_snapshot().clone(),
+        ))
+    }
+}
+
+#[derive(Clone, Copy)]
+struct ExternalScalarWritebackAuthority;
+
+impl TruthWritebackAuthority for ExternalScalarWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: TruthWritebackRequest,
+    ) -> Result<TruthWritebackReceipt, TruthWritebackAuthorityError> {
+        if request.family_kind() != BridgeWritebackFamilyKind::AspectReconciliation
+            || request.effect_class() != BridgeWritebackEffectClass::AspectReconciliation
+        {
+            return Err(TruthWritebackAuthorityError::new(
+                "Worth UI product authority admits only aspect-reconciliation writeback",
+            ));
+        }
+        Ok(TruthWritebackReceipt::new(
+            BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            &request,
         ))
     }
 }

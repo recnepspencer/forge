@@ -3,8 +3,8 @@ use worth_ui::facade::app::UiMountedFramePublicationReceipt;
 use super::{
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
     PlatformPulseLifecycleObservationProjectionDenial, PlatformPulseLifecycleObservationStream,
-    PlatformPulseMountedFrameObservation, PlatformPulseQueryProjectionEvidence,
-    PlatformPulseQueryProjectionPosture, PlatformPulseQueryProjectionPublished,
+    PlatformPulseQueryProjectionEvidence, PlatformPulseQueryProjectionPosture,
+    PlatformPulseQueryProjectionPublished,
 };
 
 impl PlatformPulseLifecycleObservationStream {
@@ -34,57 +34,25 @@ impl PlatformPulseLifecycleObservationStream {
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
-        if matches!(
-            self.state,
-            super::projection::PlatformPulseObservationState::Terminal
-        ) {
-            return Err(PlatformPulseLifecycleObservationProjectionDenial::StreamTerminated);
-        }
-        let frame = PlatformPulseMountedFrameObservation {
-            diagnostic_value: publication.frame().diagnostic_value(),
-        };
-        match &mut self.state {
-            super::projection::PlatformPulseObservationState::Published {
-                generation,
-                frame: active_frame,
-                ..
-            } if publication.generation() == generation => {
-                *active_frame = frame;
-            }
-            super::projection::PlatformPulseObservationState::Published { .. } => {
-                return Err(
-                    PlatformPulseLifecycleObservationProjectionDenial::ActiveGenerationMismatch,
-                )
-            }
-            super::projection::PlatformPulseObservationState::Started => return Err(
-                PlatformPulseLifecycleObservationProjectionDenial::PublishedPredecessorUnavailable,
-            ),
-            super::projection::PlatformPulseObservationState::Terminal => unreachable!(),
-        }
-        if projection.posture() == PlatformPulseQueryProjectionPosture::Current
-            && projection.owner_order() == 2
-        {
-            self.visual_state =
+        let validated = self.validate_content_publication(publication)?;
+        let frame = validated.frame();
+        let next_visual_state = match (projection.posture(), projection.owner_order()) {
+            (PlatformPulseQueryProjectionPosture::Current, 2) => {
                 super::projection::PlatformPulseVisualObservationState::AwaitingSnapshot {
-                    frame: frame.diagnostic_value,
-                };
-        } else if projection.posture() == PlatformPulseQueryProjectionPosture::Current {
-            if let super::projection::PlatformPulseVisualObservationState::OverlayCleared {
-                snapshot,
-                snapshot_frame,
-                ..
-            } = self.visual_state
-            {
-                self.visual_state = super::projection::PlatformPulseVisualObservationState::
-                    AwaitingRefreshRetirement {
-                        snapshot,
-                        snapshot_frame,
-                        refresh_frame: frame.diagnostic_value,
-                    };
+                    frame: frame.diagnostic_value(),
+                }
             }
-        }
-        self.next_envelope(PlatformPulseLifecycleObservation::QueryProjectionPublished(
-            PlatformPulseQueryProjectionPublished::new(projection.clone(), frame),
-        ))
+            (PlatformPulseQueryProjectionPosture::Current, _) => self
+                .visual_state
+                .after_content_publication(frame.diagnostic_value())?,
+            _ => self.visual_state,
+        };
+        let envelope =
+            self.next_envelope(PlatformPulseLifecycleObservation::QueryProjectionPublished(
+                PlatformPulseQueryProjectionPublished::new(projection.clone(), frame),
+            ))?;
+        self.commit_content_publication(validated);
+        self.visual_state = next_visual_state;
+        Ok(envelope)
     }
 }

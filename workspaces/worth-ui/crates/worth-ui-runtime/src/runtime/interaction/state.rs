@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{UiHostObservationFamily, UiSurfaceBindingGeneration};
 
-use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
+use crate::runtime::WorthUiActiveApplicationGenerationIdentity;
 
 use super::draft::{UiDraftProcessingOutcome, UiDraftRuntimeState};
 use super::gesture::{
@@ -46,7 +46,7 @@ impl UiInteractionRuntimeState {
         &mut self,
         batch: crate::facade::observation_report::UiValidatedHostObservationBatch,
         mounted: &crate::mounting::WorthUiMountedSessionState,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
     ) -> UiInteractionBatchReceipt {
         let core = batch.canonical_core();
         let mut transitions = Vec::new();
@@ -98,7 +98,7 @@ impl UiInteractionRuntimeState {
     pub(crate) fn bind_local_recipient(
         &mut self,
         activation: UiActivateInteraction,
-        generation: &WorthUiPreparedApplicationGenerationIdentity,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         contract: UiLocalInputRecipientContract,
         mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
@@ -109,9 +109,11 @@ impl UiInteractionRuntimeState {
         &mut self,
         activation: UiActivateInteraction,
         option: worth_ui_query_binding::UiProjectionOptionReference,
+        generation: &WorthUiActiveApplicationGenerationIdentity,
         mounted: &crate::mounting::WorthUiMountedSessionState,
     ) -> Result<super::UiSelectionCommitInteraction, super::UiSelectionCommitStop> {
-        let interaction = super::semantic::commit_selection(activation, option, mounted)?;
+        let interaction =
+            super::semantic::commit_selection(activation, option, generation, mounted)?;
         self.record_semantic();
         Ok(interaction)
     }

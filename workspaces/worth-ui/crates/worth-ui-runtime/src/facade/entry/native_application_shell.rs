@@ -68,6 +68,32 @@ impl WorthUiApp {
 }
 
 impl WorthUiNativeApplicationShell {
+    pub fn update_intent_boolean_fact(
+        &mut self,
+        fact: &crate::facade::intent::UiIntentApplicationFact<
+            crate::facade::intent::UiIntentBoolean,
+        >,
+        value: bool,
+    ) -> Result<
+        crate::facade::intent::UiIntentApplicationFactUpdateReceipt,
+        crate::facade::intent::UiIntentApplicationFactUpdateDenial,
+    > {
+        self.session.update_intent_boolean_fact(fact, value)
+    }
+
+    pub fn update_intent_unsigned64_fact(
+        &mut self,
+        fact: &crate::facade::intent::UiIntentApplicationFact<
+            crate::facade::intent::UiIntentUnsigned64,
+        >,
+        value: u64,
+    ) -> Result<
+        crate::facade::intent::UiIntentApplicationFactUpdateReceipt,
+        crate::facade::intent::UiIntentApplicationFactUpdateDenial,
+    > {
+        self.session.update_intent_unsigned64_fact(fact, value)
+    }
+
     pub const fn rebind_deadline_at(
         &self,
         tick: u64,

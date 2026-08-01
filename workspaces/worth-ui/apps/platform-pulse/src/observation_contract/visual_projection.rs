@@ -1,7 +1,7 @@
 use worth_ui::facade::inspection::{
     UiClearedVisualOverlayReceipt, UiClientPhysicalPixel, UiPixelsRequired,
-    UiPublishedVisualOverlay, UiVisualOverlayDenial, UiVisualPointAdjudication,
-    UiVisualSnapshotDisposalReceipt, UiVisualSnapshotIdentity, UiVisualSnapshotReceipt,
+    UiPublishedVisualOverlay, UiVisualPointAdjudication, UiVisualSnapshotDisposalReceipt,
+    UiVisualSnapshotIdentity, UiVisualSnapshotReceipt,
 };
 
 use super::envelope::PlatformPulseLifecycleObservationEnvelope;
@@ -286,7 +286,7 @@ impl PlatformPulseLifecycleObservationStream {
     pub fn project_visual_snapshot_retired(
         &mut self,
         snapshot: UiVisualSnapshotIdentity,
-        denial: UiVisualOverlayDenial,
+        relation: worth_ui::facade::inspection::UiVisualSnapshotRelation,
         disposal: UiVisualSnapshotDisposalReceipt,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
@@ -310,7 +310,7 @@ impl PlatformPulseLifecycleObservationStream {
             };
         if snapshot.diagnostic_value() != expected
             || disposal.identity() != snapshot
-            || denial != UiVisualOverlayDenial::Superseded
+            || relation == worth_ui::facade::inspection::UiVisualSnapshotRelation::Current
         {
             return Err(
                 PlatformPulseLifecycleObservationProjectionDenial::VisualRetirementMismatch,

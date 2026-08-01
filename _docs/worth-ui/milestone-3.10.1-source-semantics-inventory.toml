@@ -26,9 +26,13 @@ forbidden_parallel_progressions = [
 id = "dsl"
 root = "crates/worth-ui-dsl/src"
 exclude = ["tests"]
-expected_files = 67
-path_set_fingerprint = "618f082cdf1f15cd"
-content_fingerprint = "1e8b1349f8e05fc3"
+expected_files = 89
+path_set_fingerprint = "ca26bc08d4f54ccc"
+# Milestone 3.13 adds one DSL-owned authored projection-requirement schema
+# shared by file and Rust authoring. Milestone 3.14 adds typed intent meaning
+# under the existing semantic/compiler owners; neither creates runtime language
+# authority.
+content_fingerprint = "97eaec5e10edca13"
 
 [[scope]]
 id = "runtime-source"
@@ -40,7 +44,9 @@ path_set_fingerprint = "9583dfaa351f4519"
 # both participate in source equivalence without creating a parallel lane.
 # Milestone 3.12 adds the typed bounded-comparison denial beside exhaustive
 # artifact equivalence; comparison remains in the existing semantic-identity owner.
-content_fingerprint = "abe08f75c84fd5d9"
+# Milestones 3.13-3.14 extend the existing runtime admission artifacts with
+# typed projection and intent dependencies without reopening authored source.
+content_fingerprint = "3a0cc84ef3968f6d"
 
 [[scope]]
 id = "runtime-source-ingress"
@@ -51,7 +57,9 @@ path_set_fingerprint = "c5b45bb3db29679a"
 # handoff beside FillViewport without creating a parallel ingress lane.
 # Milestone 3.12 retains exact watched/Rust origin beside candidate composition
 # in one typed authored-source basis under the existing runtime-candidate owner.
-content_fingerprint = "809b80b868873ef1"
+# Milestones 3.13-3.14 carry projection and authored-intent material through the
+# sealed handoff while declaration interpretation remains in declaration owners.
+content_fingerprint = "b6aa45f53a11154b"
 
 [[scope]]
 id = "runtime-replacement"
@@ -184,6 +192,23 @@ cost = "input bounded"
 destination = "worth-ui-dsl/source/legality"
 disposition = "retain"
 forbidden_shortcut = "consult filesystem, watcher, query, or runtime capability state"
+
+[[classification]]
+id = "dsl-source-projection-declaration"
+scope = "dsl"
+match = "directory"
+path = "source/projection"
+current_owner = "worth-ui-dsl"
+responsibility = "define and validate one canonical authored projection requirement shared by file-authored and Rust-authored source"
+capabilities = ["semantic-model", "authored-normalization", "authored-legality"]
+authority_in = ["file-authored or Rust-authored projection clauses"]
+authority_out = ["WorthUiProjectionRequirement"]
+lifecycle = "authored projection declaration"
+failure_owner = "DSL language legality"
+cost = "declaration-width bounded"
+destination = "worth-ui-dsl/source/projection"
+disposition = "retain"
+forbidden_shortcut = "let runtime, Query, or an authoring adapter parse or reconstruct projection declaration meaning"
 
 [[classification]]
 id = "dsl-source-compiler"

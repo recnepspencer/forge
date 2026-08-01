@@ -27,15 +27,21 @@ impl UiSemanticInteraction {
         }
     }
 
-    pub const fn generation(
-        &self,
-    ) -> &crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity
-    {
+    pub const fn generation(&self) -> &crate::runtime::WorthUiActiveApplicationGenerationIdentity {
         match self {
             Self::Activate(interaction) => interaction.generation(),
             Self::EditCommit(interaction) => interaction.generation(),
             Self::SelectionCommit(interaction) => interaction.generation(),
             Self::Submit(interaction) => interaction.generation(),
+        }
+    }
+
+    pub const fn time_basis(&self) -> worth_ui_host_contract::UiHostObservationTimeBasis {
+        match self {
+            Self::Activate(interaction) => interaction.time_basis(),
+            Self::EditCommit(interaction) => interaction.time_basis(),
+            Self::SelectionCommit(interaction) => interaction.activation().time_basis(),
+            Self::Submit(interaction) => interaction.time_basis(),
         }
     }
 }

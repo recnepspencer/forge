@@ -3,9 +3,10 @@ use worth_ui::facade::app::{
 };
 use worth_ui::facade::source::WorthUiFilesystemWatcherShutdownReceipt;
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseLifecycleObservationStream, PlatformPulseLiveQueryResidue,
-    PlatformPulseQueryProjectionEvidence, PlatformPulseQueryProjectionResidue,
-    PlatformPulseQueryShutdownEvidence, PlatformPulseQueryWatcherShutdownEvidence,
+    PlatformPulseIntentWatcherShutdownEvidence, PlatformPulseLifecycleObservationStream,
+    PlatformPulseLiveQueryResidue, PlatformPulseQueryProjectionEvidence,
+    PlatformPulseQueryProjectionResidue, PlatformPulseQueryShutdownEvidence,
+    PlatformPulseQueryWatcherShutdownEvidence,
 };
 
 use super::{PlatformPulseObservationPublicationDenial, PlatformPulseObservationPublisher};
@@ -58,6 +59,7 @@ impl PlatformPulseObservationPublisher {
         watcher: &WorthUiFilesystemWatcherShutdownReceipt,
         query: crate::query_source::PlatformPulseQueryShutdownReceipt,
         query_watcher: crate::query_source::PlatformPulseExternalValueWatchShutdownReceipt,
+        intent_watcher: worth_ui_platform_pulse::intent::PlatformPulseIntentInputWatchShutdownReceipt,
         application: WorthUiNativeApplicationShutdownReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         let query = PlatformPulseQueryShutdownEvidence::new(
@@ -77,8 +79,12 @@ impl PlatformPulseObservationPublisher {
                 query.projection_receipt_count() as u64,
             ),
         );
+        let intent = PlatformPulseIntentWatcherShutdownEvidence::new(
+            intent_watcher.worker_joined(),
+            intent_watcher.pending_event_count() as u64,
+        );
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_shutdown(watcher, query, application))
+            publisher.project(|stream| stream.project_shutdown(watcher, query, intent, application))
         })
     }
 }

@@ -26,7 +26,7 @@ pub fn audit_milestone_3102_pulse_seed(inventory: &WorkspaceSourceInventory) -> 
     courtroom_contract::audit(&contract)?;
     destination_topology::audit(inventory, repository_root, &contract)?;
     opening_cost_budget::audit(inventory, &baseline)?;
-    closing_evidence::audit(repository_root)
+    closing_evidence::audit(inventory, repository_root)
 }
 
 #[cfg(test)]

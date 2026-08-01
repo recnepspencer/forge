@@ -14,6 +14,7 @@ mod successor_admission;
 mod visual_capture_basis;
 mod visual_lease;
 
+pub(crate) use budget::DEFAULT_OBSERVATION_FRAME_CAPACITY;
 pub use budget::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
     UiMountedFrameRetentionDenial, UiMountedRetentionClass, UiMountedRetentionClassBudget,

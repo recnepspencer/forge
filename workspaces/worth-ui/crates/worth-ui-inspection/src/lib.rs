@@ -4,6 +4,7 @@
 mod allocation;
 mod evidence_contract;
 mod facade;
+mod intent;
 mod posture;
 mod query;
 mod receipt;
@@ -39,6 +40,20 @@ pub use evidence_contract::{
     UiInspectionForeignEvidenceCitation, UiInspectionForeignEvidenceRef,
     UiInspectionQueryForeignEvidenceArtifactKind, UiInspectionQueryForeignEvidenceCitation,
     UiInspectionQueryForeignEvidenceKind, UiInspectionQueryForeignEvidenceRef,
+};
+
+// Intent evidence lane
+pub use intent::{
+    UiIntentCausalTraceAdmissionEvidence, UiIntentCausalTraceAttemptEvidence,
+    UiIntentCausalTraceAttemptPosture, UiIntentCausalTraceCompletionEvidence,
+    UiIntentCausalTraceEvidence, UiIntentCausalTraceOperabilityEvidence,
+    UiIntentCausalTraceOperabilityPosture, UiIntentCausalTracePayloadEvidence,
+    UiIntentCausalTraceRouteEvidence, UiIntentEvidenceLookup, UiIntentEvidenceReference,
+    UiIntentEvidenceRetentionOmission, UiIntentEvidenceRetentionOutcome,
+    UiIntentEvidenceRetirementCause, UiIntentEvidenceRetirementReport, UiIntentInteractionEvidence,
+    UiIntentInteractionEvidenceFamily, UiIntentInteractionEvidenceInput,
+    UiIntentInteractionEvidenceTargetInput, UI_INTENT_CAUSAL_TRACE_EVIDENCE_BYTE_CAPACITY,
+    UI_INTENT_INTERACTION_EVIDENCE_ENTRY_CAPACITY,
 };
 
 // Posture lane

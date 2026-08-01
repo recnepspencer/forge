@@ -20,6 +20,34 @@ pub struct WorthQueryBackendAdmissibleMutation {
 }
 
 impl WorthQueryBackendAdmissibleMutation {
+    /// Construct and validate one native field update without exposing
+    /// Query's authored-command constructors or mutable contract registry.
+    ///
+    /// The returned mutation has crossed the same contract boundary used by
+    /// runtime-authored writes, but it carries no write or bridge authority.
+    pub fn admit_native_field_update(
+        entity_identity: WorthQueryEntityIdentity,
+        aspect_key: worth_foundational::facade::AspectKey,
+        field_path: worth_foundational::facade::CanonicalFieldPath,
+        value: worth_foundational::facade::AspectValue,
+        contracts: impl IntoIterator<Item = worth_foundational::facade::AspectContract>,
+    ) -> Result<Self, crate::runtime::WorthQueryAuthoredMutationAdmissionDenial> {
+        let contracts =
+            crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry::from_contracts(
+                contracts,
+            )?;
+        let aspect = WorthQueryAuthoredAspectMutation::new_set(
+            WorthQueryAspectTouch::aspect_field_path(aspect_key, field_path),
+            value,
+        )
+        .expect("typed native field updates are infallible before contract admission");
+        let command = WorthQueryWriteCommand::UpdateAspect {
+            entity_identity,
+            aspect,
+        };
+        Self::from_authored_command(command, &contracts).map_err(Into::into)
+    }
+
     pub(crate) fn from_authored_command(
         command: WorthQueryWriteCommand,
         contracts: &crate::runtime::native_aspect_contracts::WorthQueryNativeAspectContractRegistry,

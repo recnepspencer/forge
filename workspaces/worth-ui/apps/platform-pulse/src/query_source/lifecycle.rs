@@ -1,20 +1,40 @@
 use worth_ui::facade::query_binding::{
-    UiProjectionObservation, UiScalarProjectionFactReceipt, WorthUiScalarProjectionAdvance,
-    WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionLiveOwner,
-    WorthUiScalarProjectionPublicationCompletion, WorthUiScalarProjectionSourceCloseError,
+    UiProjectionObservation, UiScalarProjectionFactReceipt, WorthUiScalarProjectionActionAdvance,
+    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionIndeterminate,
+    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
+    WorthUiScalarProjectionAdvanceError, WorthUiScalarProjectionSourceCloseError,
     WorthUiScalarProjectionSourceCloseReceipt, WorthUiScalarProjectionSourceRecord,
 };
 
 pub(crate) struct PlatformPulseQueryLifecycle {
-    initial: Option<WorthUiScalarProjectionAdvance>,
+    initial: Option<WorthUiScalarProjectionActionAdvance>,
     state: PlatformPulseQueryOwnerState,
 }
 
 enum PlatformPulseQueryOwnerState {
     BeforeInitial,
-    AwaitingPublication(WorthUiScalarProjectionPublicationCompletion),
-    Live(WorthUiScalarProjectionLiveOwner),
+    AwaitingPublication(WorthUiScalarProjectionActionPublicationCompletion),
+    Live(WorthUiScalarProjectionActionLiveOwner),
+    Indeterminate(WorthUiScalarProjectionActionIndeterminate),
     Closed,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct PlatformPulseQuerySourceRevision(u64);
+
+pub(crate) enum PlatformPulseQueryActionOutcome {
+    Executed {
+        evidence: WorthUiScalarProjectionActionEvidence,
+        observation: UiProjectionObservation,
+    },
+    Denied {
+        active_query_source_revision: u64,
+        submitted_query_source_revision: u64,
+    },
+    Indeterminate {
+        detail: String,
+    },
 }
 
 #[derive(Debug)]
@@ -23,6 +43,7 @@ pub(crate) enum PlatformPulseQueryLifecycleDenial {
     PublicationAlreadyPending,
     PublicationNotPending,
     OwnerNotLive,
+    ActionRequest(&'static str),
     Advance(WorthUiScalarProjectionAdvanceError),
     ForeignPublication,
     Close(Box<WorthUiScalarProjectionSourceCloseError>),
@@ -35,6 +56,7 @@ impl std::fmt::Display for PlatformPulseQueryLifecycleDenial {
             Self::PublicationAlreadyPending => formatter.write_str("publication already pending"),
             Self::PublicationNotPending => formatter.write_str("publication is not pending"),
             Self::OwnerNotLive => formatter.write_str("live owner unavailable"),
+            Self::ActionRequest(denial) => write!(formatter, "action request: {denial}"),
             Self::Advance(denial) => write!(formatter, "advance: {denial:?}"),
             Self::ForeignPublication => formatter.write_str("foreign publication fact"),
             Self::Close(denial) => write!(formatter, "close: {denial:?}"),
@@ -54,7 +76,7 @@ pub(crate) struct PlatformPulseQueryShutdownReceipt {
 }
 
 impl PlatformPulseQueryLifecycle {
-    pub(crate) fn new(initial: WorthUiScalarProjectionAdvance) -> Self {
+    pub(crate) fn new(initial: WorthUiScalarProjectionActionAdvance) -> Self {
         Self {
             initial: Some(initial),
             state: PlatformPulseQueryOwnerState::BeforeInitial,
@@ -80,22 +102,56 @@ impl PlatformPulseQueryLifecycle {
         &mut self,
         record: WorthUiScalarProjectionSourceRecord,
     ) -> Result<UiProjectionObservation, PlatformPulseQueryLifecycleDenial> {
-        let state = std::mem::replace(&mut self.state, PlatformPulseQueryOwnerState::Closed);
-        let PlatformPulseQueryOwnerState::Live(owner) = state else {
-            self.state = state;
-            return Err(match self.state {
-                PlatformPulseQueryOwnerState::AwaitingPublication(_) => {
-                    PlatformPulseQueryLifecycleDenial::PublicationAlreadyPending
-                }
-                _ => PlatformPulseQueryLifecycleDenial::OwnerNotLive,
-            });
-        };
+        let owner = self.take_live_owner()?;
         let advance = owner
-            .advance(record)
+            .advance_source(record)
             .map_err(PlatformPulseQueryLifecycleDenial::Advance)?;
-        let (observation, completion) = advance.into_parts();
-        self.state = PlatformPulseQueryOwnerState::AwaitingPublication(completion);
-        Ok(observation)
+        Ok(self.retain_advance(advance))
+    }
+
+    pub(crate) fn execute_current_action(
+        &mut self,
+        status: impl Into<String>,
+    ) -> Result<PlatformPulseQueryActionOutcome, PlatformPulseQueryLifecycleDenial> {
+        let source_revision = self.current_source_revision()?;
+        let request = WorthUiScalarProjectionActionRequest::new(source_revision.value(), status)
+            .map_err(PlatformPulseQueryLifecycleDenial::ActionRequest)?;
+        let owner = self.take_live_owner()?;
+        Ok(match owner.execute_action(request) {
+            WorthUiScalarProjectionActionOutcome::Executed(execution) => {
+                let (evidence, advance) = execution.into_parts();
+                let observation = self.retain_advance(advance);
+                PlatformPulseQueryActionOutcome::Executed {
+                    evidence,
+                    observation,
+                }
+            }
+            WorthUiScalarProjectionActionOutcome::Denied(denied) => {
+                let active_query_source_revision = denied.active_revision();
+                let submitted_query_source_revision = denied.submitted_revision();
+                self.state = PlatformPulseQueryOwnerState::Live(denied.into_owner());
+                PlatformPulseQueryActionOutcome::Denied {
+                    active_query_source_revision,
+                    submitted_query_source_revision,
+                }
+            }
+            WorthUiScalarProjectionActionOutcome::Indeterminate(indeterminate) => {
+                let detail = indeterminate.detail().to_owned();
+                self.state = PlatformPulseQueryOwnerState::Indeterminate(indeterminate);
+                PlatformPulseQueryActionOutcome::Indeterminate { detail }
+            }
+        })
+    }
+
+    fn current_source_revision(
+        &self,
+    ) -> Result<PlatformPulseQuerySourceRevision, PlatformPulseQueryLifecycleDenial> {
+        match &self.state {
+            PlatformPulseQueryOwnerState::Live(owner) => {
+                Ok(PlatformPulseQuerySourceRevision(owner.source_revision()))
+            }
+            _ => Err(PlatformPulseQueryLifecycleDenial::OwnerNotLive),
+        }
     }
 
     pub(crate) fn admit_publication(
@@ -120,13 +176,45 @@ impl PlatformPulseQueryLifecycle {
         mut self,
     ) -> Result<PlatformPulseQueryShutdownReceipt, PlatformPulseQueryLifecycleDenial> {
         let state = std::mem::replace(&mut self.state, PlatformPulseQueryOwnerState::Closed);
-        match state {
-            PlatformPulseQueryOwnerState::Live(owner) => owner
-                .close()
-                .map(PlatformPulseQueryShutdownReceipt::from)
-                .map_err(|denial| PlatformPulseQueryLifecycleDenial::Close(Box::new(denial))),
-            _ => Err(PlatformPulseQueryLifecycleDenial::OwnerNotLive),
-        }
+        let receipt = match state {
+            PlatformPulseQueryOwnerState::Live(owner) => owner.close(),
+            PlatformPulseQueryOwnerState::Indeterminate(owner) => owner.close(),
+            _ => return Err(PlatformPulseQueryLifecycleDenial::OwnerNotLive),
+        };
+        receipt
+            .map(PlatformPulseQueryShutdownReceipt::from)
+            .map_err(|denial| PlatformPulseQueryLifecycleDenial::Close(Box::new(denial)))
+    }
+
+    fn take_live_owner(
+        &mut self,
+    ) -> Result<WorthUiScalarProjectionActionLiveOwner, PlatformPulseQueryLifecycleDenial> {
+        let state = std::mem::replace(&mut self.state, PlatformPulseQueryOwnerState::Closed);
+        let PlatformPulseQueryOwnerState::Live(owner) = state else {
+            self.state = state;
+            return Err(match self.state {
+                PlatformPulseQueryOwnerState::AwaitingPublication(_) => {
+                    PlatformPulseQueryLifecycleDenial::PublicationAlreadyPending
+                }
+                _ => PlatformPulseQueryLifecycleDenial::OwnerNotLive,
+            });
+        };
+        Ok(owner)
+    }
+
+    fn retain_advance(
+        &mut self,
+        advance: WorthUiScalarProjectionActionAdvance,
+    ) -> UiProjectionObservation {
+        let (observation, completion) = advance.into_parts();
+        self.state = PlatformPulseQueryOwnerState::AwaitingPublication(completion);
+        observation
+    }
+}
+
+impl PlatformPulseQuerySourceRevision {
+    const fn value(self) -> u64 {
+        self.0
     }
 }
 
@@ -145,31 +233,25 @@ impl From<WorthUiScalarProjectionSourceCloseReceipt> for PlatformPulseQueryShutd
 }
 
 impl PlatformPulseQueryShutdownReceipt {
-    pub(crate) fn owner_terminal(self) -> bool {
+    pub(crate) const fn owner_terminal(self) -> bool {
         self.owner_terminal
     }
-
-    pub(crate) fn live_source_count(self) -> usize {
+    pub(crate) const fn live_source_count(self) -> usize {
         self.live_source_count
     }
-
-    pub(crate) fn live_attempt_count(self) -> usize {
+    pub(crate) const fn live_attempt_count(self) -> usize {
         self.live_attempt_count
     }
-
-    pub(crate) fn live_resource_count(self) -> usize {
+    pub(crate) const fn live_resource_count(self) -> usize {
         self.live_resource_count
     }
-
-    pub(crate) fn live_consumer_lease_count(self) -> usize {
+    pub(crate) const fn live_consumer_lease_count(self) -> usize {
         self.live_consumer_lease_count
     }
-
-    pub(crate) fn retained_projection_count(self) -> usize {
+    pub(crate) const fn retained_projection_count(self) -> usize {
         self.retained_projection_count
     }
-
-    pub(crate) fn projection_receipt_count(self) -> usize {
+    pub(crate) const fn projection_receipt_count(self) -> usize {
         self.projection_receipt_count
     }
 }

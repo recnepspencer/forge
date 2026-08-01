@@ -98,10 +98,10 @@ impl UiProjectionInputRevision {
                 slot,
                 projection: fact.projection_identity().clone(),
                 observation_order: fact.observation_order(),
-                query_world: fact.query_world_identity().clone(),
-                binding: fact.binding_identity().clone(),
-                source_generation: fact.source_generation_identity().clone(),
-                result_generation: fact.result_generation_identity().clone(),
+                query_world: fact.query_world_authority().clone(),
+                binding: fact.binding_authority().clone(),
+                source_generation: fact.source_generation_authority().clone(),
+                result_generation: fact.result_generation_authority().clone(),
             }),
         }
     }
@@ -118,24 +118,20 @@ impl UiProjectionInputRevision {
         self.inner.observation_order
     }
 
-    pub fn query_world_identity_for_reporting(&self) -> &str {
-        self.inner.query_world.terminal_projection_for_reporting()
+    pub fn query_world_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.inner.query_world)
     }
 
-    pub fn binding_identity_for_reporting(&self) -> &str {
-        self.inner.binding.terminal_projection_for_reporting()
+    pub fn binding_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.inner.binding)
     }
 
-    pub fn source_generation_for_reporting(&self) -> &str {
-        self.inner
-            .source_generation
-            .terminal_projection_for_reporting()
+    pub fn source_generation_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.inner.source_generation)
     }
 
-    pub fn result_generation_for_reporting(&self) -> &str {
-        self.inner
-            .result_generation
-            .terminal_projection_for_reporting()
+    pub fn result_generation_identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.inner.result_generation)
     }
 
     pub(super) fn has_same_projection_owner(&self, other: &Self) -> bool {
@@ -235,8 +231,8 @@ impl UiProjectionOptionReference {
         &self.owner_revision
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_row_identity.terminal_projection_for_reporting()
+    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
+        crate::UiQueryEvidenceReference::query_issued(&self.query_row_identity)
     }
 }
 

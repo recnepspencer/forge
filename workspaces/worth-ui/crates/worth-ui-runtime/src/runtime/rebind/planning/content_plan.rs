@@ -20,6 +20,7 @@ pub(super) fn compile_content_plan(
     }
     retain_projection_inputs(candidate, scope, &mut content)?;
     let governed_nodes = schema_transition::compile(predecessor, candidate, scope, &mut content)?;
+    project_intent_postures(scope, &governed_nodes, &mut content)?;
     for lookup in scope.lookups() {
         let Some(query) = scope
             .facts()
@@ -59,6 +60,52 @@ pub(super) fn compile_content_plan(
         }
     }
     Ok(content)
+}
+
+fn project_intent_postures(
+    scope: &super::super::UiResolvedAffectedScope,
+    governed_nodes: &std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+    content: &mut crate::mounting::UiMountedSemanticContentInput,
+) -> Result<(), super::UiRebindPlanningDenial> {
+    for lookup in scope.lookups() {
+        let Some(posture) = scope
+            .facts()
+            .get(lookup.fact_ordinal())
+            .and_then(crate::fact_contract::UiProducedFact::intent_posture)
+        else {
+            continue;
+        };
+        for entry in lookup.candidate().entries() {
+            let UiGraphFactConsumerIdentity::GraphNode(graph_node) = entry.consumer() else {
+                continue;
+            };
+            if graph_node != posture.graph_node() || governed_nodes.contains(&graph_node) {
+                continue;
+            }
+            let label: Arc<str> = match posture.posture() {
+                crate::fact_contract::UiIntentPostureKind::Admitted => Arc::from("ADMITTED"),
+                crate::fact_contract::UiIntentPostureKind::ConfirmationRequired => {
+                    Arc::from("CONFIRMATION REQUIRED")
+                }
+                crate::fact_contract::UiIntentPostureKind::Completed => Arc::from("COMPLETED"),
+                crate::fact_contract::UiIntentPostureKind::Denied => Arc::from("DENIED"),
+                crate::fact_contract::UiIntentPostureKind::StaleConfirmation => {
+                    Arc::from("STALE CONFIRMATION")
+                }
+                crate::fact_contract::UiIntentPostureKind::Cancelled => Arc::from("CANCELLED"),
+            };
+            content
+                .insert_scalar(
+                    graph_node,
+                    crate::mounting::UiMountedSemanticTextValueDirective::Preserve,
+                    label,
+                )
+                .map_err(
+                    |()| super::UiRebindPlanningDenial::AmbiguousProjectionContent { graph_node },
+                )?;
+        }
+    }
+    Ok(())
 }
 
 fn retain_projection_inputs(

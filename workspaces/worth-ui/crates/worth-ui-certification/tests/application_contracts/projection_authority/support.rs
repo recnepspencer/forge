@@ -76,14 +76,8 @@ pub(super) fn assert_zero_native_work(work: UiScalarProjectionWorkCounters) {
     assert_eq!(work.native_access_scan_work(), 0);
 }
 
-pub(super) fn reporting_tuple(
+pub(super) fn reporting_projection(
     receipt: &UiScalarProjectionTransitionReceipt,
-) -> (&str, &str, &str, &str) {
-    let core = receipt.fact().core();
-    (
-        core.query_world_identity_for_reporting(),
-        core.binding_identity_for_reporting(),
-        core.source_generation_for_reporting(),
-        core.result_generation_for_reporting(),
-    )
+) -> worth_ui_query_binding::UiProjectionFactReportingProjection {
+    receipt.fact().core().reporting_projection()
 }

@@ -243,16 +243,20 @@ impl CurrentDocumentation {
 }
 
 fn assert_topics(path: &str, document: &str, topics: &[&str]) {
+    let document = normalized_whitespace(document);
     for topic in topics {
         assert!(
-            document.contains(topic),
+            document.contains(&normalized_whitespace(topic)),
             "`{path}` misses required topic `{topic}`"
         );
     }
 }
 
 fn has_all(document: &str, topics: &[&str]) -> bool {
-    topics.iter().all(|topic| document.contains(topic))
+    let document = normalized_whitespace(document);
+    topics
+        .iter()
+        .all(|topic| document.contains(&normalized_whitespace(topic)))
 }
 
 fn contains_predecessor_claim(document: &str) -> bool {
@@ -318,4 +322,8 @@ fn fenced_rust_after<'a>(document: &'a str, marker: &str) -> &'a str {
 
 fn normalized_source(text: &str) -> String {
     text.replace("\r\n", "\n").trim_end_matches('\n').to_owned()
+}
+
+fn normalized_whitespace(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }

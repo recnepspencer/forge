@@ -26,7 +26,7 @@ pub(crate) mod surface_lifecycle;
 
 pub(crate) use interaction_affinity::{
     UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial, UiCurrentInteractionAffinity,
-    UiMountedInteractionAffinityInput,
+    UiMountedIncarnationAffinityInput, UiMountedInteractionAffinityInput,
 };
 
 #[derive(Clone, Debug)]

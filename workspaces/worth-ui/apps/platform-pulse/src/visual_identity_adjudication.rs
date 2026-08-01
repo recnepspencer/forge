@@ -55,15 +55,7 @@ fn validate_point_identity(
     target: &UiVisualPointAdjudication,
     background: &UiVisualPointAdjudication,
 ) -> Result<UiVisualHitTestTarget, PlatformPulseVisualExecutionDenial> {
-    let UiVisualVisibleOutcome::Contributors(target_visible) = target.visible() else {
-        return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
-    };
-    let target_visible = target_visible
-        .frontmost()
-        .ok_or(PlatformPulseVisualExecutionDenial::PointUnsupported)?;
-    let UiVisualHitTestOutcome::Target(target_hit) = target.hit_test() else {
-        return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
-    };
+    let target_hit = validate_target_identity(target)?;
     let UiVisualVisibleOutcome::Contributors(background_visible) = background.visible() else {
         return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
     };
@@ -74,22 +66,48 @@ fn validate_point_identity(
         return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
     };
     let target_node = target_hit.identity_trace().mounted_node();
-    if target_visible.identity_trace().mounted_node() != target_node
-        || background_visible.identity_trace().mounted_node()
-            != background_hit.identity_trace().mounted_node()
+    if background_visible.identity_trace().mounted_node()
+        != background_hit.identity_trace().mounted_node()
         || background_hit.identity_trace().mounted_node() == target_node
     {
         return Err(PlatformPulseVisualExecutionDenial::PointIdentityMismatch);
     }
-    if target_hit
+    Ok(target_hit)
+}
+
+fn validate_target_identity(
+    target: &UiVisualPointAdjudication,
+) -> Result<UiVisualHitTestTarget, PlatformPulseVisualExecutionDenial> {
+    let UiVisualVisibleOutcome::Contributors(target_visible) = target.visible() else {
+        return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
+    };
+    let target_visible = target_visible
+        .frontmost()
+        .ok_or(PlatformPulseVisualExecutionDenial::PointUnsupported)?;
+    let UiVisualHitTestOutcome::Target(target_hit) = target.hit_test() else {
+        return Err(PlatformPulseVisualExecutionDenial::PointUnsupported);
+    };
+    if target_visible.identity_trace().mounted_node() != target_hit.identity_trace().mounted_node()
+    {
+        return Err(PlatformPulseVisualExecutionDenial::PointIdentityMismatch);
+    }
+    validate_target_authored_name(target_hit)?;
+    Ok(target_hit.clone())
+}
+
+fn validate_target_authored_name(
+    target: &UiVisualHitTestTarget,
+) -> Result<(), PlatformPulseVisualExecutionDenial> {
+    if target
         .identity_trace()
         .declaration()
         .authored_semantic_name()
-        != PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
+        == PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
     {
-        return Err(PlatformPulseVisualExecutionDenial::AuthoredNameMismatch);
+        Ok(())
+    } else {
+        Err(PlatformPulseVisualExecutionDenial::AuthoredNameMismatch)
     }
-    Ok(target_hit.clone())
 }
 
 fn scenario_point(

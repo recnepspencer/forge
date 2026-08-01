@@ -1,6 +1,4 @@
-use worth_ui::facade::app::{
-    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
-};
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationFamily, UiDeclarationFamilyAdmissionDenial,
     UiDeclarationFamilyCatalog, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
@@ -98,25 +96,52 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
         Some(&UiDeclaredQueryBindingPosture::AttachedViewBinding)
     );
 
-    let denial = freeze_denial(
+    let standalone_fixture = WorthUiRustAuthoredDeclarationFixture::named(
         "worth-ui.certification.family.freeze-path.standalone",
-        standalone_query_binding_spec(),
+    )
+    .with_semantic_artifact_spec(standalone_query_binding_spec());
+    let standalone_provenance =
+        standalone_fixture.admitted_provenance_for("workflow_editor.query.selection");
+    let standalone_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(standalone_fixture)
+        .freeze()
+        .expect("standalone Query declarations coexist without graph authority");
+    let standalone = artifact_from_file_provenance(
+        &standalone_app,
+        standalone_provenance.module_path(),
+        standalone_provenance.declaration_index(),
+    );
+    match standalone
+        .family()
+        .expect("standalone Query declaration should admit")
+    {
+        UiDeclarationFamily::QueryBinding(binding) => assert!(binding.is_standalone_family()),
+        other => panic!("expected standalone Query family, got {other:?}"),
+    }
+    let posture = standalone
+        .declared_posture()
+        .expect("standalone Query posture should admit");
+    assert_eq!(
+        posture.query_binding().applicability(),
+        UiDeclaredPostureApplicability::Required
     );
     assert_eq!(
-        denial.phase(),
-        WorthUiApplicationPreparationPhase::GraphHandoff
+        posture.query_binding().admitted(),
+        Some(&UiDeclaredQueryBindingPosture::StandaloneBinding)
     );
     assert_eq!(
-        denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::QueryBinding,
-                    },
-            },
-        )
+        standalone.structural_semantics().unwrap_err(),
+        &UiDeclarationStructuralSemanticsAdmissionDenial::FamilyDoesNotProjectStructuralSemantics {
+            family: UiDeclarationFamilyKind::QueryBinding,
+        }
     );
+    assert!(standalone_app
+        .graph()
+        .lookup()
+        .declaration_instances(standalone.identity())
+        .value()
+        .is_empty());
 }
 
 #[test]

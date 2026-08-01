@@ -8,7 +8,7 @@ use crate::topology::WorkspaceSourceInventory;
 const SOURCE_ROOT: &str = "apps/platform-pulse/src";
 
 pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
-    audit_exact_source_topology(inventory)?;
+    super::source_topology::audit(inventory)?;
     let source = |path: &str| inventory.text(Path::new(SOURCE_ROOT).join(path));
     audit_library_surface(source("lib.rs"))?;
     audit_product_imports_and_features(inventory)?;
@@ -17,60 +17,19 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
         source("observation_contract/envelope.rs"),
         source("observation_contract/lifecycle.rs"),
     )?;
-    audit_projection_contract(
+    let live_projection = format!(
+        "{}\n{}",
         source("observation_contract/projection.rs"),
+        source("observation_contract/projection/replacement_projection.rs"),
+    );
+    audit_projection_contract(
+        &live_projection,
         source("observation_contract/terminal_projection.rs"),
         source("observation_contract/lifecycle.rs"),
     )?;
     audit_publication_bounds(source("lifecycle_observation_publication.rs"))?;
     audit_unchanged_frame(source("native_frame.rs"))?;
     audit_product_entry(source("main.rs"))
-}
-
-fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
-    let expected = [
-        "application.rs",
-        "launch_configuration.rs",
-        "lib.rs",
-        "lifecycle_observation_publication.rs",
-        "main.rs",
-        "native_frame/rebind.rs",
-        "native_frame.rs",
-        "observation_contract/envelope.rs",
-        "observation_contract/lifecycle.rs",
-        "observation_contract/mod.rs",
-        "observation_contract/projection.rs",
-        "observation_contract/terminal_projection.rs",
-        "observation_contract/visual.rs",
-        "observation_contract/visual_projection.rs",
-        "observation_contract/visual_tests.rs",
-        "observation_contract/visual_value_projection.rs",
-        "source_watch.rs",
-        "visual_identity_adjudication.rs",
-        "visual_identity_execution.rs",
-        "visual_identity_execution/comparison.rs",
-        "visual_identity_execution/progression.rs",
-        "visual_identity_pulse.rs",
-        "visual_observation_publication.rs",
-    ]
-    .into_iter()
-    .map(|path| {
-        Path::new("apps")
-            .join("platform-pulse")
-            .join("src")
-            .join(path)
-    })
-    .collect::<BTreeSet<_>>();
-    let observed = inventory
-        .rust_files_under(SOURCE_ROOT)
-        .map(|source| source.relative_path().to_path_buf())
-        .collect::<BTreeSet<_>>();
-    if observed != expected {
-        return Err(format!(
-            "pulse product source topology drifted: {observed:?} != {expected:?}"
-        ));
-    }
-    Ok(())
 }
 
 pub(super) fn audit_library_surface(source: &str) -> Result<(), String> {
@@ -89,13 +48,41 @@ pub(super) fn audit_library_surface(source: &str) -> Result<(), String> {
         })
         .collect::<BTreeSet<_>>();
     let expected = BTreeSet::from([
+        "intent".to_owned(),
         "observation_contract".to_owned(),
         "visual_identity_pulse".to_owned(),
     ]);
-    if public_modules != expected || syntax.items.len() != expected.len() {
-        return Err(format!(
-            "pulse library exports {public_modules:?}; expected only lifecycle observation and permanent visual pulse contracts"
-        ));
+    let public_constants = syntax
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Const(item) if matches!(item.vis, Visibility::Public(_)) => {
+                Some(item.ident.to_string())
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    let expected_constants = BTreeSet::from(["PLATFORM_PULSE_STATUS_QUERY_VIEW".to_owned()]);
+    let public_item_count = syntax
+        .items
+        .iter()
+        .filter(|item| match item {
+            Item::Const(item) => matches!(item.vis, Visibility::Public(_)),
+            Item::Mod(item) => matches!(item.vis, Visibility::Public(_)),
+            _ => false,
+        })
+        .count();
+    if public_modules != expected
+        || public_constants != expected_constants
+        || public_item_count != expected.len() + expected_constants.len()
+        || !source.contains(
+            "pub const PLATFORM_PULSE_STATUS_QUERY_VIEW: &str = \"platform.pulse.status\";",
+        )
+    {
+        return Err(
+            "Pulse public modules or constants escaped the adjudicated lifecycle, visual, Query-view, and intent surfaces"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -142,23 +129,47 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     let launch = compact(launch);
     require_contains(
         &launch,
-        "pub(crate)structAdmittedPlatformPulseLaunchConfiguration{source_root:PathBuf,}",
+        "pub(crate)structAdmittedPlatformPulseLaunchConfiguration{source_root:PathBuf,query_source_root:PathBuf,intent_source_root:PathBuf,}",
         "private admitted launch type",
     )?;
+    for (edge, owner) in [
+        (
+            "option==OsStr::new(\"--source-root\")&&source_root.is_none()",
+            "explicit source-root argument",
+        ),
+        (
+            "option==OsStr::new(\"--query-source-root\")&&query_source_root.is_none()",
+            "explicit Query source-root argument",
+        ),
+        (
+            "option==OsStr::new(\"--intent-source-root\")&&intent_source_root.is_none()",
+            "explicit intent source-root argument",
+        ),
+    ] {
+        require_contains(&launch, edge, owner)?;
+    }
+    if launch.matches("if!root.is_absolute()").count() != 3 {
+        return Err("all three launch roots require absolute-path admission".to_owned());
+    }
     require_contains(
         &launch,
-        "Some(option)ifoption==OsStr::new(\"--source-root\")",
-        "explicit source-root argument",
-    )?;
-    require_contains(
-        &launch,
-        "if!source_root.is_absolute()",
-        "absolute source-root admission",
-    )?;
-    require_contains(
-        &launch,
-        "letentry_source=source_root.join(\"main.wui\")",
+        "constENTRY_SOURCE:&str=\"main.wui\"",
         "canonical entry source",
+    )?;
+    require_contains(
+        &launch,
+        "constINTENT_SOURCE:&str=\"platform-pulse-intent.json\"",
+        "canonical intent source",
+    )?;
+    require_contains(
+        &launch,
+        "letentry=root.join(ENTRY_SOURCE)",
+        "entry admission",
+    )?;
+    require_contains(
+        &launch,
+        "letinput=root.join(INTENT_SOURCE)",
+        "intent admission",
     )?;
     let application = compact(application);
     require_contains(
@@ -178,6 +189,16 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     )?;
     require_contains(
         &application,
+        "crate::query_source::install(launch.query_source_root())",
+        "production Query source installation",
+    )?;
+    require_contains(
+        &application,
+        "PlatformPulseIntentInputInstallation::open(launch.intent_source_root())",
+        "production intent source installation",
+    )?;
+    require_contains(
+        &application,
         "attempt_source_rebind(capability_app.capabilities())",
         "source lowering",
     )?;
@@ -185,8 +206,16 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
 }
 
 pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), String> {
+    let current = envelope
+        .lines()
+        .find(|line| line.contains("LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 ="))
+        .and_then(|line| line.rsplit_once('='))
+        .and_then(|(_, value)| value.trim().trim_end_matches(';').parse::<u16>().ok())
+        .ok_or_else(|| "lifecycle schema version should remain explicit".to_owned())?;
     if !envelope.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
-        || !envelope.contains("SCHEMA_VERSION: u16 = 3")
+        || current < 5
+        || !envelope.contains(&format!("CompleteV{current}"))
+        || !envelope.contains(&format!("schema_version @ 2..={}", current - 1))
         || !envelope.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !envelope.contains("MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576")
     {
@@ -210,6 +239,9 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
     let expected = [
         "ProcessStarted",
         "FirstFramePublished",
+        "NativeInputReached",
+        "QueryProjectionIssued",
+        "QueryProjectionPublished",
         "VisualSnapshotCaptured",
         "VisualPointTrace",
         "VisualOverlayPublished",
@@ -221,9 +253,18 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
         "ShutdownCompleted",
         "TerminalFailure",
     ];
-    if variants != expected {
+    let mut required_index = 0;
+    for variant in &variants {
+        if expected
+            .get(required_index)
+            .is_some_and(|required| variant == required)
+        {
+            required_index += 1;
+        }
+    }
+    if required_index != expected.len() {
         return Err(format!(
-            "lifecycle outcome variants drifted: {variants:?} != {expected:?}"
+            "lifecycle outcomes lost or reordered a required 3.10.3 variant: {variants:?}"
         ));
     }
     audit_payload_privacy(&syntax)
@@ -269,7 +310,7 @@ pub(super) fn audit_projection_contract(
     let live = compact(live);
     for required in [
         "pubfnproject_first_frame(&mutself,source:&WorthUiSourcePackageRevision,publication:&UiMountedFramePublicationReceipt,)",
-        "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,application:&WorthUiApplicationCutoverReceipt,mounted:&UiMountedFramePublicationReceipt,)",
+        "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,receipt:&UiRebindReceipt,)",
         "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&UiSourceRebindAttemptFailure,)",
         "actual_native_effect_count:publication.cost_report().adapter().translated_rows()",
         "actual_native_effect_count:mounted.cost_report().adapter().translated_rows()",
@@ -282,9 +323,11 @@ pub(super) fn audit_projection_contract(
     }
     let terminal = compact(terminal);
     if !terminal.contains(
-        "pubfnproject_shutdown(&mutself,watcher:&WorthUiFilesystemWatcherShutdownReceipt,application:WorthUiNativeApplicationShutdownReceipt,)",
-    ) {
-        return Err("shutdown observation must consume both real shutdown receipts".to_owned());
+        "pubfnproject_shutdown(&mutself,watcher:&WorthUiFilesystemWatcherShutdownReceipt,query:super::query::PlatformPulseQueryShutdownEvidence,intent:super::intent::PlatformPulseIntentWatcherShutdownEvidence,application:WorthUiNativeApplicationShutdownReceipt,)",
+    ) || !terminal.contains("intent_watcher_joined:intent.worker_joined()")
+        || !terminal.contains("pending_intent_input_count:intent.pending_input_count()")
+    {
+        return Err("shutdown observation must consume the complete real shutdown receipt set".to_owned());
     }
     if lifecycle.contains("pub fn new(") || lifecycle.contains("pub(crate) fn new(") {
         return Err("observation payload constructors cannot be public or crate-public".to_owned());

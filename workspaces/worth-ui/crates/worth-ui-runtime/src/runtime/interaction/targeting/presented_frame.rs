@@ -145,7 +145,7 @@ fn seal_target(
     }
 }
 
-fn map_current_affinity_denial(
+pub(super) fn map_current_affinity_denial(
     denial: crate::mounting::UiCurrentHitTargetAffinityDenial,
 ) -> UiInteractionTargetingDenial {
     match denial {
@@ -308,6 +308,21 @@ pub(crate) fn admit_current_target(
             mounted_instance: target.mounted_instance(),
             node_receipt: target.node_receipt(),
         })
+        .map_err(map_current_affinity_denial)
+}
+
+pub(crate) fn admit_current_target_incarnation(
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    target: UiPresentedInteractionTargetView,
+) -> Result<crate::mounting::UiCurrentInteractionAffinity, UiInteractionTargetingDenial> {
+    mounted
+        .admit_current_mounted_incarnation_affinity(
+            crate::mounting::UiMountedIncarnationAffinityInput {
+                surface: target.surface(),
+                binding: target.binding(),
+                mounted_instance: target.mounted_instance(),
+            },
+        )
         .map_err(map_current_affinity_denial)
 }
 

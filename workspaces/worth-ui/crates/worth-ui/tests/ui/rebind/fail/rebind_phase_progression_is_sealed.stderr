@@ -6,10 +6,12 @@ error[E0624]: associated function `new` is private
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/rebind/fail/rebind_phase_progression_is_sealed.rs
+ note: expected `UiResolvedAffectedScopeInput`, found `()`
  note: associated function defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/rebind/fail/rebind_phase_progression_is_sealed.rs
+ note: expected `UiResolvedIdentityLifecycle`, found `UiClassifiedChange`
  note: method defined here
 
 error[E0599]: no method named `set_effects` found for mutable reference `&mut UiRebindPlan` in the current scope

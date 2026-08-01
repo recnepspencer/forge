@@ -25,6 +25,13 @@ pub(crate) struct UiCurrentInteractionAffinity {
 }
 
 #[derive(Clone, Copy)]
+pub(crate) struct UiMountedIncarnationAffinityInput {
+    pub(crate) surface: UiSemanticSurfaceIdentity,
+    pub(crate) binding: UiSurfaceBindingGeneration,
+    pub(crate) mounted_instance: UiMountedInstanceIdentity,
+}
+
+#[derive(Clone, Copy)]
 pub(crate) struct UiMountedInteractionAffinityInput {
     pub(crate) surface: UiSemanticSurfaceIdentity,
     pub(crate) binding: UiSurfaceBindingGeneration,
@@ -58,6 +65,27 @@ impl UiMountedIdentityState {
         &self,
         input: UiMountedInteractionAffinityInput,
     ) -> Result<UiCurrentInteractionAffinity, UiCurrentHitTargetAffinityDenial> {
+        let affinity =
+            self.admit_current_mounted_incarnation_affinity(UiMountedIncarnationAffinityInput {
+                surface: input.surface,
+                binding: input.binding,
+                mounted_instance: input.mounted_instance,
+            })?;
+        let receipt_is_current = self
+            .current_receipt_basis
+            .as_ref()
+            .and_then(|basis| basis.receipt_for(input.mounted_instance))
+            .is_some_and(|receipt| receipt == input.node_receipt);
+        if !receipt_is_current {
+            return Err(UiCurrentHitTargetAffinityDenial::MountedInstanceNoLongerCurrent);
+        }
+        Ok(affinity)
+    }
+
+    pub(crate) fn admit_current_mounted_incarnation_affinity(
+        &self,
+        input: UiMountedIncarnationAffinityInput,
+    ) -> Result<UiCurrentInteractionAffinity, UiCurrentHitTargetAffinityDenial> {
         let binding = self
             .bindings
             .get(&input.surface)
@@ -71,14 +99,6 @@ impl UiMountedIdentityState {
             .ok_or(UiCurrentHitTargetAffinityDenial::MountedInstanceNoLongerCurrent)?;
         if instance.basis.semantic_surface_identity() != input.surface {
             return Err(UiCurrentHitTargetAffinityDenial::MountedSurfaceAffinityChanged);
-        }
-        let receipt_is_current = self
-            .current_receipt_basis
-            .as_ref()
-            .and_then(|basis| basis.receipt_for(input.mounted_instance))
-            .is_some_and(|receipt| receipt == input.node_receipt);
-        if !receipt_is_current {
-            return Err(UiCurrentHitTargetAffinityDenial::MountedInstanceNoLongerCurrent);
         }
         Ok(UiCurrentInteractionAffinity {
             graph_node: instance.basis.graph_node_identity(),

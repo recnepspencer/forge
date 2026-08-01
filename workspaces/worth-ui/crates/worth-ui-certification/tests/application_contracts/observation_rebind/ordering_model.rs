@@ -10,6 +10,7 @@ enum ModelFamily {
     HostDeviceScale,
     Measurement,
     Query,
+    IntentPosture,
     Scroll,
     Portal,
 }
@@ -48,7 +49,7 @@ struct ModelLaw {
     coalescing: ModelCoalescing,
 }
 
-const LAWS: [ModelLaw; 7] = [
+const LAWS: [ModelLaw; 8] = [
     law(
         ModelFamily::Source,
         0,
@@ -90,8 +91,16 @@ const LAWS: [ModelLaw; 7] = [
         ModelCoalescing::Forbidden,
     ),
     law(
-        ModelFamily::Scroll,
+        ModelFamily::IntentPosture,
         5,
+        ModelDuplicate::Reject,
+        ModelLoss::Lossless,
+        ModelReset::NoReset,
+        ModelCoalescing::Forbidden,
+    ),
+    law(
+        ModelFamily::Scroll,
+        6,
         ModelDuplicate::OwnerEquivalentMayCoalesce,
         ModelLoss::Lossless,
         ModelReset::NoReset,
@@ -99,7 +108,7 @@ const LAWS: [ModelLaw; 7] = [
     ),
     law(
         ModelFamily::Portal,
-        6,
+        7,
         ModelDuplicate::OwnerEquivalentMayCoalesce,
         ModelLoss::Lossless,
         ModelReset::NoReset,
@@ -178,6 +187,7 @@ fn production_family(family: ModelFamily) -> UiObservationFamily {
         ModelFamily::HostDeviceScale => UiObservationFamily::HostDeviceScale,
         ModelFamily::Measurement => UiObservationFamily::Measurement,
         ModelFamily::Query => UiObservationFamily::Query,
+        ModelFamily::IntentPosture => UiObservationFamily::IntentPosture,
         ModelFamily::Scroll => UiObservationFamily::CommittedScrollExtent,
         ModelFamily::Portal => UiObservationFamily::CommittedPortalAnchor,
     }

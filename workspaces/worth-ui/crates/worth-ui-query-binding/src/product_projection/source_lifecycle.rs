@@ -12,18 +12,29 @@ use crate::{
 use super::{SharedSourceState, WorthUiScalarProjectionSourceRecord};
 
 mod declaration;
+mod installed_view;
+mod product_action;
 mod projection_shutdown;
+mod revalidation;
 
-use declaration::{
-    admitted_completion, async_request, declare_scalar_view, scalar_binding, truth_basis,
+pub use product_action::{
+    WorthUiScalarProjectionActionAdvance, WorthUiScalarProjectionActionDenied,
+    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
+    WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
+    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
 };
+
+use declaration::{admitted_completion, async_request, declare_scalar_view, scalar_binding};
 use projection_shutdown::WorthUiScalarProjectionShutdownOwners;
+use revalidation::revalidate;
 
 type ScalarLiveView = runtime::WorthQueryLiveView<runtime::WorthQueryUnrefinedLiveShape>;
 
 pub struct WorthUiScalarProjectionInstallation {
     registration: UiScalarProjectionRegistration,
     initial: WorthUiScalarProjectionAdvance,
+    installed_domain: crate::WorthUiInstalledQueryDomain,
 }
 
 pub struct WorthUiScalarProjectionLiveOwner {
@@ -35,6 +46,7 @@ pub struct WorthUiScalarProjectionLiveOwner {
     request: AdmittedBridgeAsyncRequestIdentity,
     predecessor: UiScalarProjectionFactReceipt,
     revision: u64,
+    basis_revision: u64,
 }
 
 pub struct WorthUiScalarProjectionAdvance {
@@ -56,6 +68,7 @@ struct WorthUiScalarProjectionUnpublishedOwner {
     binding: UiScalarProjectionBinding,
     request: AdmittedBridgeAsyncRequestIdentity,
     revision: u64,
+    basis_revision: u64,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,6 +105,12 @@ impl WorthUiScalarProjectionInstallation {
         bridge: RuntimeBridge,
         source: SharedSourceState,
     ) -> Result<Self, super::WorthUiScalarProjectionInstallationError> {
+        let installed_domain =
+            crate::WorthUiQueryWorkspaceExt::worth_ui(&workspace).map_err(|error| {
+                super::WorthUiScalarProjectionInstallationError::SourceLifecycle(format!(
+                    "Worth UI domain discovery failed: {error:?}"
+                ))
+            })?;
         let request = async_request(&bridge, 0)
             .map_err(super::WorthUiScalarProjectionInstallationError::SourceLifecycle)?;
         let view = declare_scalar_view(&mut workspace, &request).map_err(|error| {
@@ -113,6 +132,7 @@ impl WorthUiScalarProjectionInstallation {
         debug_assert!(retained.is_none());
         Ok(Self {
             registration,
+            installed_domain,
             initial: issue_advance(
                 WorthUiScalarProjectionUnpublishedOwner {
                     workspace,
@@ -122,6 +142,7 @@ impl WorthUiScalarProjectionInstallation {
                     binding,
                     request,
                     revision: 0,
+                    basis_revision: 0,
                 },
                 fact,
                 retained,
@@ -181,6 +202,7 @@ impl WorthUiScalarProjectionPublicationCompletion {
             request: owner.request,
             predecessor,
             revision: owner.revision,
+            basis_revision: owner.basis_revision,
         })
     }
 }
@@ -199,18 +221,21 @@ impl WorthUiScalarProjectionLiveOwner {
         let revision = record.revision();
         let payload_bytes = record.status().len().saturating_add(8) as u64;
         self.source.borrow_mut().publish(record);
-        let (request, predecessor) = if self.revision == 0 {
-            (self.request.clone(), self.predecessor)
+        let (request, predecessor, basis_revision) = if self.revision == 0 {
+            (self.request.clone(), self.predecessor, self.basis_revision)
         } else {
-            revalidate(
+            let basis_revision = revision.max(self.basis_revision.saturating_add(1));
+            let (request, predecessor) = revalidate(
                 &self.bridge,
                 &mut self.workspace,
                 &self.view,
                 &mut self.binding,
                 &self.request,
                 self.predecessor,
-                revision,
-            )?
+                basis_revision,
+            )
+            .map_err(|stop| stop.into_error())?;
+            (request, predecessor, basis_revision)
         };
 
         let completion = admitted_completion(&self.bridge, &request, payload_bytes)?;
@@ -243,6 +268,7 @@ impl WorthUiScalarProjectionLiveOwner {
                 binding: self.binding,
                 request,
                 revision,
+                basis_revision,
             },
             fact,
             retained,
@@ -266,6 +292,7 @@ impl WorthUiScalarProjectionLiveOwner {
             request,
             predecessor,
             revision: _,
+            basis_revision: _,
         } = self;
         let query = workspace
             .close_bridge_async_live_view(view)
@@ -290,47 +317,6 @@ impl WorthUiScalarProjectionLiveOwner {
             projection_receipt_count: projection.projection_receipt_count(),
         })
     }
-}
-
-fn revalidate(
-    bridge: &RuntimeBridge,
-    workspace: &mut runtime::WorthQueryWorkspace,
-    view: &ScalarLiveView,
-    binding: &mut UiScalarProjectionBinding,
-    request: &AdmittedBridgeAsyncRequestIdentity,
-    predecessor: UiScalarProjectionFactReceipt,
-    revision: u64,
-) -> Result<
-    (
-        AdmittedBridgeAsyncRequestIdentity,
-        UiScalarProjectionFactReceipt,
-    ),
-    WorthUiScalarProjectionAdvanceError,
-> {
-    let revalidation = bridge
-        .revalidate_async_request(request, truth_basis(revision))
-        .map_err(|error| WorthUiScalarProjectionAdvanceError::Bridge(format!("{error:?}")))?;
-    let request = revalidation.newer_request().clone();
-    let ordering = bridge.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
-        BridgeMixedCauseOrderingLaneKind::Authoritative,
-        vec![BridgeMixedCauseOrderingInput::AsyncRevalidationLineage(
-            revalidation,
-        )],
-    ));
-    let batch = workspace
-        .admit_bridge_async_result_transitions(view, &ordering)
-        .map_err(WorthUiScalarProjectionAdvanceError::Query)?;
-    let UiScalarProjectionBatchOutcome::Advanced(transition) = binding.consume_async_result_batch(
-        workspace,
-        batch,
-        Some(predecessor),
-        UiProjectionConsumptionBudget::platform_pulse(),
-    ) else {
-        return Err(WorthUiScalarProjectionAdvanceError::UnexpectedUnchanged);
-    };
-    let (fact, retained) = transition.into_fact_and_predecessor();
-    debug_assert!(retained.is_none());
-    Ok((request, fact))
 }
 
 impl WorthUiScalarProjectionSourceCloseReceipt {

@@ -6,7 +6,6 @@ use super::semantic_digest::UiIntentSemanticDigest;
 use super::{
     IntentDefinitionAcceptedRegistrationProof, IntentDefinitionDescriptor,
     UiIntentPayloadSchemaViolation, UiRegisteredIntentDefinition,
-    UiRegisteredIntentPayloadProjector,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,14 +95,12 @@ impl IntentDefinitionRegistry {
 
 pub struct FrozenIntentDefinitionCapabilities {
     definitions: Vec<IntentDefinitionDescriptor>,
-    projectors: Vec<std::sync::Arc<dyn UiRegisteredIntentPayloadProjector>>,
 }
 
 impl Clone for FrozenIntentDefinitionCapabilities {
     fn clone(&self) -> Self {
         Self {
             definitions: self.definitions.clone(),
-            projectors: self.projectors.clone(),
         }
     }
 }
@@ -128,6 +125,12 @@ impl Eq for FrozenIntentDefinitionCapabilities {}
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub(crate) struct UiIntentDefinitionSlot(usize);
 
+impl UiIntentDefinitionSlot {
+    pub(crate) const fn index(self) -> usize {
+        self.0
+    }
+}
+
 pub(crate) struct UiResolvedIntentDefinition<'registry> {
     slot: UiIntentDefinitionSlot,
     descriptor: &'registry IntentDefinitionDescriptor,
@@ -138,7 +141,6 @@ impl FrozenIntentDefinitionCapabilities {
     pub(crate) fn empty() -> Self {
         Self {
             definitions: Vec::new(),
-            projectors: Vec::new(),
         }
     }
 
@@ -151,13 +153,11 @@ impl FrozenIntentDefinitionCapabilities {
             .filter(|definition| accepted.admits(definition.descriptor()))
             .collect::<Vec<_>>();
         definitions.sort_by_key(|definition| definition.descriptor().id());
-        let (descriptors, projectors): (Vec<_>, Vec<_>) = definitions
-            .into_iter()
-            .map(UiRegisteredIntentDefinition::into_parts)
-            .unzip();
         Self {
-            definitions: descriptors,
-            projectors,
+            definitions: definitions
+                .into_iter()
+                .map(UiRegisteredIntentDefinition::into_descriptor)
+                .collect(),
         }
     }
 
@@ -198,13 +198,6 @@ impl FrozenIntentDefinitionCapabilities {
         slot: UiIntentDefinitionSlot,
     ) -> &IntentDefinitionDescriptor {
         &self.definitions[slot.0]
-    }
-
-    pub(crate) fn projector_at(
-        &self,
-        slot: UiIntentDefinitionSlot,
-    ) -> &dyn UiRegisteredIntentPayloadProjector {
-        self.projectors[slot.0].as_ref()
     }
 
     pub(crate) fn digest_basis(&self) -> u64 {

@@ -52,7 +52,11 @@ impl WorthUiActiveApplicationSession {
         crate::facade::interaction::UiSelectionCommitInteraction,
         crate::facade::interaction::UiSelectionCommitStop,
     > {
-        self.interaction
-            .commit_selection(activation, option, &self.mounted)
+        let generation = self.active_generation_identity();
+        let interaction =
+            self.interaction
+                .commit_selection(activation, option, &generation, &self.mounted)?;
+        let _ = self.intent_evidence.retain_selection(&interaction);
+        Ok(interaction)
     }
 }

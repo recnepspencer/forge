@@ -11,7 +11,12 @@ use super::{
     WorthQueryAspectContractRegistrationDenialKind, WorthQueryMutationContractDenialKind,
     WorthQueryNativeAspectContractRegistry,
 };
-use crate::runtime::{WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation};
+use crate::memory_workspace::WorthQueryEntityIdentity;
+use crate::runtime::{
+    WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
+    WorthQueryAuthoredMutationAdmissionDenial, WorthQueryBackendAdmissibleMutation,
+    WorthQueryMutationFamily,
+};
 
 #[test]
 fn equivalent_contracts_converge_to_one_runtime_entry() {
@@ -42,6 +47,72 @@ fn conflicting_contracts_deny_the_entire_registry() {
         WorthQueryAspectContractRegistrationDenialKind::ConflictingContract
     );
     assert_eq!(denial.aspect_key(), string_contract.key());
+}
+
+#[test]
+fn public_native_field_update_admission_returns_a_contract_validated_update() {
+    let entity_identity = WorthQueryEntityIdentity::from_bridge_record_projection(
+        worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 42, 1),
+    );
+    let admitted = WorthQueryBackendAdmissibleMutation::admit_native_field_update(
+        entity_identity.clone(),
+        AspectKey::new("identity").unwrap(),
+        CanonicalFieldPath::single(field("id")),
+        text("task-2"),
+        [required_struct_contract()],
+    )
+    .expect("a contract-valid authored update should admit");
+
+    assert_eq!(admitted.mutation_family(), WorthQueryMutationFamily::Update);
+    assert_eq!(admitted.declared_entity_identity(), Some(entity_identity));
+    assert_eq!(admitted.declared_aspect_operations().len(), 1);
+}
+
+#[test]
+fn public_native_field_update_admission_preserves_registry_conflict_denial() {
+    let denial = WorthQueryBackendAdmissibleMutation::admit_native_field_update(
+        WorthQueryEntityIdentity::from_bridge_record_projection(
+            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 42, 1),
+        ),
+        AspectKey::new("task.title").unwrap(),
+        CanonicalFieldPath::single(field("value")),
+        text("task-2"),
+        [
+            scalar_contract("task.title", ScalarAspectType::String),
+            scalar_contract("task.title", ScalarAspectType::Bool),
+        ],
+    )
+    .expect_err("conflicting contracts must deny before command admission");
+
+    let WorthQueryAuthoredMutationAdmissionDenial::AspectContracts(denial) = denial else {
+        panic!("registry conflicts must retain their typed denial lane");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryAspectContractRegistrationDenialKind::ConflictingContract
+    );
+}
+
+#[test]
+fn public_native_field_update_admission_preserves_mutation_contract_denial() {
+    let denial = WorthQueryBackendAdmissibleMutation::admit_native_field_update(
+        WorthQueryEntityIdentity::from_bridge_record_projection(
+            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(1, 42, 1),
+        ),
+        AspectKey::new("identity").unwrap(),
+        CanonicalFieldPath::single(field("id")),
+        text("task-2"),
+        std::iter::empty(),
+    )
+    .expect_err("an authored update without its native contract must deny");
+
+    let WorthQueryAuthoredMutationAdmissionDenial::MutationContract(denial) = denial else {
+        panic!("mutation contract failures must retain their typed denial lane");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryMutationContractDenialKind::MissingContract
+    );
 }
 
 #[test]

@@ -12,28 +12,28 @@ use crate::runtime::rebind::{UiRebindBudgetInput, UiRebindLimit};
 use super::{
     UiAffectedConsumer, UiAffectedFactLookup, UiAffectedScopeBasis, UiAffectedScopeCost,
     UiAffectedScopeCostInput, UiAffectedScopeDenial, UiAffectedScopeGeneration,
-    UiResolvedAffectedScope, UiResolvedAffectedScopeInput,
+    UiAffectedScopeRecoveryStop, UiResolvedAffectedScope, UiResolvedAffectedScopeInput,
 };
 
 pub(crate) struct UiAffectedScopeResolver;
 
-struct ConsumerAccumulator {
+pub(super) struct ConsumerAccumulator {
     predecessor: Option<UiGraphFactConsumerIdentity>,
     candidate: Option<UiGraphFactConsumerIdentity>,
     aspects: BTreeSet<UiAspectName>,
 }
 
-struct FinishScopeInput {
-    classification: crate::runtime::observation::UiChangeClassificationBasis,
-    facts: Box<[UiProducedFact]>,
-    source_succession: Option<crate::runtime::observation::UiAuthoredSourceSuccession>,
-    predecessor_graph: UiGraphFactIndexBasis,
-    candidate_generation:
+pub(super) struct FinishScopeInput {
+    pub(super) classification: crate::runtime::observation::UiChangeClassificationBasis,
+    pub(super) facts: Box<[UiProducedFact]>,
+    pub(super) source_succession: Option<crate::runtime::observation::UiAuthoredSourceSuccession>,
+    pub(super) predecessor_graph: UiGraphFactIndexBasis,
+    pub(super) candidate_generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
-    candidate_graph: UiGraphFactIndexBasis,
-    lookups: Vec<UiAffectedFactLookup>,
-    consumers: BTreeMap<UiGraphFactConsumerKey, ConsumerAccumulator>,
-    aspects: BTreeSet<UiAspectName>,
+    pub(super) candidate_graph: UiGraphFactIndexBasis,
+    pub(super) lookups: Vec<UiAffectedFactLookup>,
+    pub(super) consumers: BTreeMap<UiGraphFactConsumerKey, ConsumerAccumulator>,
+    pub(super) aspects: BTreeSet<UiAspectName>,
 }
 
 struct DualGenerationLookupInput<'world> {
@@ -58,10 +58,10 @@ struct ScopeLookupInput<'world> {
     budget: UiRebindBudgetInput,
 }
 
-struct ScopeAccumulation {
-    lookups: Vec<UiAffectedFactLookup>,
-    consumers: BTreeMap<UiGraphFactConsumerKey, ConsumerAccumulator>,
-    aspects: BTreeSet<UiAspectName>,
+pub(super) struct ScopeAccumulation {
+    pub(super) lookups: Vec<UiAffectedFactLookup>,
+    pub(super) consumers: BTreeMap<UiGraphFactConsumerKey, ConsumerAccumulator>,
+    pub(super) aspects: BTreeSet<UiAspectName>,
 }
 
 impl UiAffectedScopeResolver {
@@ -71,48 +71,59 @@ impl UiAffectedScopeResolver {
         predecessor: &crate::facade::prepared_application_authority::
             WorthUiPreparedApplicationAuthority,
     ) -> Result<UiResolvedAffectedScope, UiAffectedScopeDenial> {
-        let (classification, facts, source_succession) = change.into_parts();
-        require_current_basis(&classification, session, predecessor)?;
-        let candidate = source_succession
-            .as_ref()
-            .map_or(predecessor, |succession| succession.successor_authority());
-        let predecessor_graph = UiGraphFactIndexBasis::from_generation(
-            predecessor.graph_snapshot(),
-            predecessor.capabilities(),
-        );
-        let candidate_graph = UiGraphFactIndexBasis::from_generation(
-            candidate.graph_snapshot(),
-            candidate.capabilities(),
-        );
-        let candidate_generation = candidate.generation_identity().clone();
-        let budget = predecessor.change_profile().rebind().budget();
-        enforce_limit(
-            UiRebindLimit::ChangedFacts,
-            budget.changed_facts,
-            facts.len(),
-        )?;
-
-        let accumulation = accumulate_scope(ScopeLookupInput {
-            facts: &facts,
-            predecessor,
-            candidate,
-            predecessor_basis: predecessor_graph,
-            candidate_basis: candidate_graph,
-            budget,
-        })?;
-
-        finish_scope(FinishScopeInput {
-            classification,
-            facts,
-            source_succession,
-            predecessor_graph,
-            candidate_generation,
-            candidate_graph,
-            lookups: accumulation.lookups,
-            consumers: accumulation.consumers,
-            aspects: accumulation.aspects,
-        })
+        Self::resolve_recoverable(change, session, predecessor)
+            .map_err(UiAffectedScopeRecoveryStop::into_denial)
     }
+}
+
+pub(super) struct PreparedScopeResolution {
+    pub(super) predecessor_graph: UiGraphFactIndexBasis,
+    pub(super) candidate_generation:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) candidate_graph: UiGraphFactIndexBasis,
+    pub(super) accumulation: ScopeAccumulation,
+}
+
+pub(super) fn prepare_resolution(
+    change: &UiClassifiedChange,
+    session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    predecessor: &crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+) -> Result<PreparedScopeResolution, UiAffectedScopeDenial> {
+    require_current_basis(change.basis(), session, predecessor)?;
+    let candidate = change
+        .source_succession()
+        .map_or(predecessor, |succession| succession.successor_authority());
+    let predecessor_graph = UiGraphFactIndexBasis::from_generation(
+        predecessor.graph_snapshot(),
+        predecessor.capabilities(),
+    );
+    let candidate_graph = UiGraphFactIndexBasis::from_generation(
+        candidate.graph_snapshot(),
+        candidate.capabilities(),
+    );
+    let candidate_generation = candidate.generation_identity().clone();
+    let budget = predecessor.change_profile().rebind().budget();
+    enforce_limit(
+        UiRebindLimit::ChangedFacts,
+        budget.changed_facts,
+        change.facts().len(),
+    )?;
+
+    let accumulation = accumulate_scope(ScopeLookupInput {
+        facts: change.facts(),
+        predecessor,
+        candidate,
+        predecessor_basis: predecessor_graph,
+        candidate_basis: candidate_graph,
+        budget,
+    })?;
+
+    Ok(PreparedScopeResolution {
+        predecessor_graph,
+        candidate_generation,
+        candidate_graph,
+        accumulation,
+    })
 }
 
 fn accumulate_scope(
@@ -304,7 +315,9 @@ fn selected_entry_count(
         .sum()
 }
 
-fn finish_scope(input: FinishScopeInput) -> Result<UiResolvedAffectedScope, UiAffectedScopeDenial> {
+pub(super) fn finish_scope(
+    input: FinishScopeInput,
+) -> Result<UiResolvedAffectedScope, UiAffectedScopeDenial> {
     let FinishScopeInput {
         classification,
         facts,

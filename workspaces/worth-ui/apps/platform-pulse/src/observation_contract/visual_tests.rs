@@ -68,6 +68,63 @@ fn cleared_overlay_advances_to_exact_successor_snapshot_basis() {
     );
 }
 
+#[test]
+fn retired_visual_pulse_rebases_without_inventing_a_predecessor_retirement() {
+    assert_eq!(
+        PlatformPulseVisualObservationState::Retired.after_content_publication(21),
+        Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 21 })
+    );
+}
+
+#[test]
+fn refreshed_visual_pulse_requires_retirement_before_its_next_capture() {
+    let awaiting = PlatformPulseVisualObservationState::Refreshed {
+        snapshot: 17,
+        frame: 19,
+    }
+    .after_content_publication(23)
+    .expect("a current retained snapshot can enter refresh retirement");
+    assert_eq!(
+        awaiting,
+        PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+            snapshot: 17,
+            snapshot_frame: 19,
+            refresh_frame: 23,
+        }
+    );
+    assert_eq!(awaiting.after_content_publication(23), Ok(awaiting));
+}
+
+#[test]
+fn in_flight_refresh_coalesces_only_monotonically_newer_content_frames() {
+    let retained = PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+        snapshot: 17,
+        snapshot_frame: 19,
+        refresh_frame: 23,
+    };
+    assert_eq!(
+        retained.after_content_publication(29),
+        Ok(
+            PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+                snapshot: 17,
+                snapshot_frame: 19,
+                refresh_frame: 29,
+            }
+        )
+    );
+    assert_eq!(
+        retained.after_content_publication(22),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
+    );
+
+    let rebasing =
+        PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 31 };
+    assert_eq!(
+        rebasing.after_content_publication(37),
+        Ok(PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 37 })
+    );
+}
+
 fn snapshot_observation() -> PlatformPulseVisualSnapshotCaptured {
     PlatformPulseVisualSnapshotCaptured {
         affinity: PlatformPulseVisualSnapshotAffinityObservation {

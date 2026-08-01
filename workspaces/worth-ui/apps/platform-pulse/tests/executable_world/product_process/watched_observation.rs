@@ -28,6 +28,14 @@ pub(crate) enum WatchedPulseTransition {
     StatusSchemaRecovered,
     QueryProjectionIssued,
     QueryProjectionPublished,
+    IntentInputAdmitted,
+    IntentPosturePublished,
+    IntentCausalTrace,
+    IntentExecutorStarted,
+    IntentQueryAction,
+    IntentVisualRefreshRetired,
+    IntentVisualRefreshCaptured,
+    IntentCancellationRebind,
 }
 
 #[derive(Debug)]
