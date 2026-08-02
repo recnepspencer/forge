@@ -148,3 +148,17 @@ fn cross_settlement_authority(
     let _ = claim.complete_writeback(candidate);
 }
 ```
+
+A generic operation grant cannot authorize dirty-generation capture:
+
+```compile_fail
+use worth_store_buffer_pool::{OperationAllocationGrant, PhysicalResidencyPool};
+
+fn capture_with_generic_grant(
+    pool: &PhysicalResidencyPool,
+    grant: OperationAllocationGrant,
+) {
+    let session = pool.begin_dirty_generation_capture().unwrap();
+    let _ = pool.capture_next_dirty_generation_slice(session, grant);
+}
+```

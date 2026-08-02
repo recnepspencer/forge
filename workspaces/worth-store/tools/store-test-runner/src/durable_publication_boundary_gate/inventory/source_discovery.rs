@@ -47,18 +47,13 @@ pub(super) const TRACKED_FAMILIES: &[TrackedFamily] = &[
     ),
     TrackedFamily::new(
         "ordinary-record-mutation-entry",
-        &[
-            "PhysicalRecordSubmission",
-            "record_submission()",
-            "prepare_append",
-            "append_batch",
-        ],
+        &["PhysicalRecordSubmission", "record_submission()"],
     ),
     TrackedFamily::new("store-durability-runtime", &["StoreDurabilityRuntime"]),
     TrackedFamily::new("wal-direct-execution", &["execute_wal_durability"]),
     TrackedFamily::new(
         "durable-publication-declaration",
-        &["DurablePublicationDeclaration"],
+        &["PublicationDeclaration"],
     ),
     TrackedFamily::new("wal-acknowledgment", &["DurableAckReceipt"]),
     TrackedFamily::new(
@@ -76,8 +71,6 @@ pub(super) const TRACKED_FAMILIES: &[TrackedFamily] = &[
     TrackedFamily::new("page-lsn", &["PageLsn"]),
     TrackedFamily::new("wal-commit", &["WalCommit"]),
     TrackedFamily::new("writeback-settlement", &["PhysicalWritebackSettlement"]),
-    TrackedFamily::new("published-record-batch", &["PublishedRecordBatch"]),
-    TrackedFamily::new("append-batch-api", &["append_batch"]),
     TrackedFamily::new(
         "checkpoint-publication",
         &[

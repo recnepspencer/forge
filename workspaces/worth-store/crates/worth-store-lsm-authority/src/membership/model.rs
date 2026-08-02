@@ -1,7 +1,7 @@
 use crate::{
-    AdmittedWalAppendReceipt, BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
-    CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity,
-    WalFrameDurablePublicationScope, WalSecurityMetadataCarrier,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, CheckpointPublicationScope,
+    StoreCheckpointRecordIdentity, WalFrameArtifactObservation, WalFramePublicationScope,
+    WalSecurityMetadataCarrier,
 };
 use worth_store_security::{StoreKeyScope, StoreTenantScope};
 
@@ -108,7 +108,7 @@ impl LsmMembershipReadmissionAuthority {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LsmMembershipRecord {
     pub(crate) envelope: BlobWalRecordEnvelope,
-    pub(crate) durable_scope: WalFrameDurablePublicationScope,
+    pub(crate) durable_scope: WalFramePublicationScope,
     pub(crate) key: LsmMembershipKey,
     pub(crate) persisted_path: std::path::PathBuf,
     pub(crate) persisted_offset: u64,
@@ -118,19 +118,18 @@ pub struct LsmMembershipRecord {
 impl LsmMembershipRecord {
     pub fn admit(
         envelope: BlobWalRecordEnvelope,
-        durable: &AdmittedWalAppendReceipt,
+        observation: &WalFrameArtifactObservation,
         key: LsmMembershipKey,
     ) -> Option<Self> {
-        let crate::DurablePublicationScope::WalFrame(scope) =
-            envelope.durable_publication().scope()
+        let crate::PublicationScope::WalFrame(scope) = envelope.publication_declaration().scope()
         else {
             return None;
         };
-        if scope != durable.scope()
+        if scope != observation.scope()
             || !super::durable_artifact::persisted_artifact_range_matches(
-                durable.persisted_path(),
-                durable.persisted_offset(),
-                durable.persisted_bytes(),
+                observation.path(),
+                observation.payload_offset(),
+                observation.payload_bytes(),
                 &super::durable_artifact::lsm_membership_record_bytes(&envelope, key),
             )
         {
@@ -141,9 +140,9 @@ impl LsmMembershipRecord {
             envelope,
             durable_scope,
             key,
-            persisted_path: durable.persisted_path().to_path_buf(),
-            persisted_offset: durable.persisted_offset(),
-            persisted_bytes: durable.persisted_bytes(),
+            persisted_path: observation.path().to_path_buf(),
+            persisted_offset: observation.payload_offset(),
+            persisted_bytes: observation.payload_bytes(),
         })
     }
 
@@ -167,7 +166,7 @@ impl LsmMembershipRecord {
         &self.envelope
     }
 
-    pub const fn durable_scope(&self) -> &WalFrameDurablePublicationScope {
+    pub const fn durable_scope(&self) -> &WalFramePublicationScope {
         &self.durable_scope
     }
 }
@@ -247,9 +246,9 @@ impl LsmCompactionMembership {
         checkpoint: StoreCheckpointRecordIdentity,
         covered_lsn_start: u64,
         covered_lsn_end: u64,
-    ) -> Option<CheckpointDurablePublicationScope> {
+    ) -> Option<CheckpointPublicationScope> {
         let output = self.expected_output_identity()?;
-        CheckpointDurablePublicationScope::new(
+        CheckpointPublicationScope::new(
             checkpoint,
             super::durable_artifact::lsm_membership_replacement_digest(
                 self.key,

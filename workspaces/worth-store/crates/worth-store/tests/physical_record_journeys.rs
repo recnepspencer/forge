@@ -41,6 +41,10 @@ mod courtroom_evidence_support;
 mod courtroom_oracle;
 #[path = "physical_record_journeys/durability_admission.rs"]
 mod durability_admission;
+#[path = "physical_record_journeys/durable_frame_oracle.rs"]
+mod durable_frame_oracle;
+#[path = "physical_record_journeys/durable_publication/mod.rs"]
+mod durable_publication;
 #[path = "c5/extent_child.rs"]
 mod extent_child;
 #[path = "physical_record_journeys/extent_streaming.rs"]
@@ -61,22 +65,12 @@ mod manifest_fixture;
 mod manifest_scale;
 #[path = "c5/observer.rs"]
 mod observer;
-#[path = "physical_record_journeys/ordinary_writeback_failures.rs"]
-mod ordinary_writeback_failures;
 #[path = "physical_record_journeys/page_packing_oracle.rs"]
 mod page_packing_oracle;
 #[path = "physical_record_journeys/physical_work/mod.rs"]
 mod physical_work;
 #[path = "c5/courtrooms.rs"]
 mod production_courtrooms;
-#[path = "physical_record_journeys/publication_failure_topology.rs"]
-mod publication_failure_topology;
-#[path = "physical_record_journeys/publication_faults.rs"]
-mod publication_faults;
-#[path = "physical_record_journeys/publication_mutants.rs"]
-mod publication_mutants;
-#[path = "physical_record_journeys/publication_recovery_faults.rs"]
-mod publication_recovery_faults;
 #[path = "physical_record_journeys/publication_reopener.rs"]
 mod publication_reopener;
 #[path = "physical_record_journeys/read_boundaries.rs"]
@@ -87,10 +81,6 @@ mod record_chunk_views;
 mod residency_pressure_processes;
 #[path = "physical_record_journeys/residency_writeback_fresh_reopen.rs"]
 mod residency_writeback_fresh_reopen;
-#[path = "physical_record_journeys/residue_safety.rs"]
-mod residue_safety;
-#[path = "physical_record_journeys/reusable_segment_residue.rs"]
-mod reusable_segment_residue;
 #[path = "c5/scale_invalid_worlds.rs"]
 mod scale_invalid_worlds;
 #[path = "c5/scale_policy_evolution.rs"]
@@ -123,14 +113,15 @@ use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     AdmittedPhysicalDurabilityPolicy, AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
     AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
-    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations, ManifestEntryCapacity,
-    MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy,
-    PhysicalDurabilityDeclaration, PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy,
-    PhysicalRecordFormatDeclaration, PhysicalRecordInitialization, PhysicalRecordOpen,
-    PhysicalRecordPlacementPolicy, PhysicalRuntimeAdmission, PhysicalStore, RecordBootstrapDenial,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
+    LiveIdempotencyBindingLimit, ManifestEntryCapacity, MediaOwnedPhysicalRuntime,
+    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
+    PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
+    PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalRecordPlacementPolicy,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalPolicy, RecordBootstrapDenial,
     RecordReadObservation, RecordReadSession, RecordServingAdmissionOutcome,
     RecordStoreInitializationDenial, RecordStoreOpenDenial, RetainedWalTailLimit,
-    ServingPhysicalRuntime,
+    ServingPhysicalRuntime, WalSegmentByteLimit, WalSegmentInventoryLimit,
 };
 use worth_store_physical_backend::FilesystemAccessPosture;
 
@@ -179,15 +170,79 @@ fn durability_with_pending_limit(
     group_limit: NonZeroU32,
     pending_limit: NonZeroU32,
 ) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_limits(
+        media,
+        group_limit,
+        pending_limit,
+        PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ),
+    )
+}
+
+fn durability_with_wal_policy(
+    media: &MediaOwnedPhysicalRuntime,
+    wal: PhysicalWalPolicy,
+) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_limits(
+        media,
+        NonZeroU32::new(32).unwrap(),
+        NonZeroU32::new(1_024).unwrap(),
+        wal,
+    )
+}
+
+fn durability_with_limits(
+    media: &MediaOwnedPhysicalRuntime,
+    group_limit: NonZeroU32,
+    pending_limit: NonZeroU32,
+    wal: PhysicalWalPolicy,
+) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_idempotency_and_wal_limits(
+        media,
+        group_limit,
+        pending_limit,
+        NonZeroU32::new(4_096).unwrap(),
+        wal,
+    )
+}
+
+fn durability_with_idempotency_limits(
+    media: &MediaOwnedPhysicalRuntime,
+    pending_limit: NonZeroU32,
+    live_limit: NonZeroU32,
+) -> AdmittedPhysicalDurabilityPolicy {
+    durability_with_idempotency_and_wal_limits(
+        media,
+        NonZeroU32::new(32).unwrap(),
+        pending_limit,
+        live_limit,
+        PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ),
+    )
+}
+
+fn durability_with_idempotency_and_wal_limits(
+    media: &MediaOwnedPhysicalRuntime,
+    group_limit: NonZeroU32,
+    pending_limit: NonZeroU32,
+    live_limit: NonZeroU32,
+    wal: PhysicalWalPolicy,
+) -> AdmittedPhysicalDurabilityPolicy {
     let basis = media.physical_durability_admission_basis().unwrap();
     match PhysicalDurabilityDeclaration::builder()
         .group_commit(
             GroupCommitLimit::new(group_limit),
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
+        .wal(wal)
         .idempotency(PhysicalIdempotencyPolicy::new(
             IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
             PendingUnresolvedMutationLimit::new(pending_limit),
+            LiveIdempotencyBindingLimit::new(live_limit),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
             CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),

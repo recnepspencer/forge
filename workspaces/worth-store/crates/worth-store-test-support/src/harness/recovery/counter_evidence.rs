@@ -1,12 +1,10 @@
-use super::compaction_observation as compaction_interlock_trace;
-
 use crate::{admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture};
 use worth_store_io_scheduler::IoQueueExecutionRecorder;
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan, physical_scenario,
-    CompactionInterlockObservation, CounterContractKind, CounterExpectationKind,
-    CounterStrengthJustification, CounterStrengthPosture, ForbiddenShortcutSet,
-    HostileCounterEvidenceRow, HostileResourceEnvelopeObservation, PhysicalCounterEvidenceReceipt,
+    CounterContractKind, CounterExpectationKind, CounterStrengthJustification,
+    CounterStrengthPosture, ForbiddenShortcutSet, HostileCounterEvidenceRow,
+    HostileResourceEnvelopeObservation, PhysicalCounterEvidenceReceipt,
     PhysicalCounterExecutionSources, PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule,
     PhysicalScenarioActor, PhysicalScenarioExpectation, PhysicalScenarioIntent,
     PhysicalScenarioSchedule, PhysicalSimulationBoundaryObservation,
@@ -147,22 +145,6 @@ pub fn observed_trace(
     PhysicalSimulationObserver::independent_physical_trace()
         .observe_boundary_observation(plan, &execution)
         .unwrap()
-        .with_compaction_interlock_observation(compaction_observation())
-        .complete()
-        .unwrap()
-}
-
-pub fn publication_only_trace(
-    plan: &PhysicalSimulationPlan,
-) -> worth_store_physical_certification::ObservedPhysicalTrace {
-    let execution =
-        PhysicalSimulationBoundaryObservation::from_declared_driver_shape_probe(plan).unwrap();
-    PhysicalSimulationObserver::independent_physical_trace()
-        .observe_boundary_observation(plan, &execution)
-        .unwrap()
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::publication_only_compaction_observation(),
-        )
         .complete()
         .unwrap()
 }
@@ -175,7 +157,6 @@ pub fn shortcut_trace(
     PhysicalSimulationObserver::shortcut_rejection()
         .observe_boundary_observation(plan, &execution)
         .unwrap()
-        .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
         .complete()
         .unwrap()
@@ -189,14 +170,9 @@ pub fn json_shortcut_trace(
     PhysicalSimulationObserver::shortcut_rejection()
         .observe_boundary_observation(plan, &execution)
         .unwrap()
-        .with_compaction_interlock_observation(compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::json_authority_denied())
         .complete()
         .unwrap()
-}
-
-pub fn compaction_observation() -> CompactionInterlockObservation {
-    compaction_interlock_trace::store_compaction_observation()
 }
 
 pub fn lower_physical_isolation_plan() -> PhysicalSimulationPlan {

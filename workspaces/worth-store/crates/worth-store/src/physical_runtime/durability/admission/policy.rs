@@ -1,20 +1,23 @@
 use std::num::{NonZeroU32, NonZeroU64};
 
-use sha2::{Digest, Sha256};
 use worth_proof::{ProofOutcome, TransitionOutcome};
+use worth_signal::facade::TemporalDuration;
 use worth_store_physical_backend::{
     BackendCapabilityKind, BackendTargetProfile, CapabilityEvidenceClass,
     PhysicalDurabilityAdmissionBasis, PhysicalDurabilityAdmissionIdentity,
 };
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
+use super::PhysicalWalPolicy;
 use super::{
     PhysicalDurabilityPolicyDeferred, PhysicalDurabilityPolicyDenial,
     PhysicalDurabilityPolicyFailure, PhysicalDurabilityPolicyRebindRequired,
     PhysicalDurabilityPolicyStale,
 };
 
-const POLICY_IDENTITY_DOMAIN: &[u8] = b"worth.store.physical.durability.policy.v1";
+mod identity;
+
+use identity::policy_identity;
 
 pub type PhysicalDurabilityPolicyAdmissionOutcome = ProofOutcome<
     AdmittedPhysicalDurabilityPolicy,
@@ -43,26 +46,46 @@ macro_rules! nonzero_limit {
 }
 
 nonzero_limit!(GroupCommitLimit, NonZeroU32);
-nonzero_limit!(GroupCommitDelay, NonZeroU64);
 nonzero_limit!(IdempotencyRetentionGenerations, NonZeroU64);
 nonzero_limit!(PendingUnresolvedMutationLimit, NonZeroU32);
+nonzero_limit!(LiveIdempotencyBindingLimit, NonZeroU32);
 nonzero_limit!(CheckpointMemoryLimit, NonZeroU64);
 nonzero_limit!(RetainedWalTailLimit, NonZeroU64);
+
+/// Maximum authoritative Signal-clock time a mutation may wait for grouping.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct GroupCommitDelay(TemporalDuration);
+
+impl GroupCommitDelay {
+    pub fn new(milliseconds: NonZeroU64) -> Self {
+        Self(
+            TemporalDuration::temporal_duration(milliseconds.get())
+                .expect("a nonzero group delay is a valid Signal duration"),
+        )
+    }
+
+    pub const fn signal_duration(self) -> TemporalDuration {
+        self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PhysicalIdempotencyPolicy {
     retention: IdempotencyRetentionGenerations,
     pending_unresolved: PendingUnresolvedMutationLimit,
+    live_bindings: LiveIdempotencyBindingLimit,
 }
 
 impl PhysicalIdempotencyPolicy {
     pub const fn new(
         retention: IdempotencyRetentionGenerations,
         pending_unresolved: PendingUnresolvedMutationLimit,
+        live_bindings: LiveIdempotencyBindingLimit,
     ) -> Self {
         Self {
             retention,
             pending_unresolved,
+            live_bindings,
         }
     }
 
@@ -72,6 +95,10 @@ impl PhysicalIdempotencyPolicy {
 
     pub const fn pending_unresolved_limit(self) -> PendingUnresolvedMutationLimit {
         self.pending_unresolved
+    }
+
+    pub const fn live_binding_limit(self) -> LiveIdempotencyBindingLimit {
+        self.live_bindings
     }
 }
 
@@ -105,11 +132,15 @@ impl PhysicalCheckpointPolicy {
 pub struct PhysicalDurabilityDeclaration;
 
 impl PhysicalDurabilityDeclaration {
-    pub const fn builder(
-    ) -> PhysicalDurabilityDeclarationBuilder<GroupMissing, IdempotencyMissing, CheckpointMissing>
-    {
+    pub const fn builder() -> PhysicalDurabilityDeclarationBuilder<
+        GroupMissing,
+        WalMissing,
+        IdempotencyMissing,
+        CheckpointMissing,
+    > {
         PhysicalDurabilityDeclarationBuilder {
             group: GroupMissing,
+            wal: WalMissing,
             idempotency: IdempotencyMissing,
             checkpoint: CheckpointMissing,
         }
@@ -118,6 +149,8 @@ impl PhysicalDurabilityDeclaration {
 
 #[doc(hidden)]
 pub struct GroupMissing;
+#[doc(hidden)]
+pub struct WalMissing;
 #[doc(hidden)]
 pub struct IdempotencyMissing;
 #[doc(hidden)]
@@ -132,56 +165,78 @@ struct GroupPolicy {
 #[doc(hidden)]
 pub struct GroupConfigured(GroupPolicy);
 #[doc(hidden)]
+pub struct WalConfigured(PhysicalWalPolicy);
+#[doc(hidden)]
 pub struct IdempotencyConfigured(PhysicalIdempotencyPolicy);
 #[doc(hidden)]
 pub struct CheckpointConfigured(PhysicalCheckpointPolicy);
 
-pub struct PhysicalDurabilityDeclarationBuilder<Group, Idempotency, Checkpoint> {
+pub struct PhysicalDurabilityDeclarationBuilder<Group, Wal, Idempotency, Checkpoint> {
     group: Group,
+    wal: Wal,
     idempotency: Idempotency,
     checkpoint: Checkpoint,
 }
 
-impl<Idempotency, Checkpoint>
-    PhysicalDurabilityDeclarationBuilder<GroupMissing, Idempotency, Checkpoint>
+impl<Wal, Idempotency, Checkpoint>
+    PhysicalDurabilityDeclarationBuilder<GroupMissing, Wal, Idempotency, Checkpoint>
 {
     pub fn group_commit(
         self,
         limit: GroupCommitLimit,
         delay: GroupCommitDelay,
-    ) -> PhysicalDurabilityDeclarationBuilder<GroupConfigured, Idempotency, Checkpoint> {
+    ) -> PhysicalDurabilityDeclarationBuilder<GroupConfigured, Wal, Idempotency, Checkpoint> {
         PhysicalDurabilityDeclarationBuilder {
             group: GroupConfigured(GroupPolicy { limit, delay }),
+            wal: self.wal,
             idempotency: self.idempotency,
             checkpoint: self.checkpoint,
         }
     }
 }
 
-impl<Group, Checkpoint>
-    PhysicalDurabilityDeclarationBuilder<Group, IdempotencyMissing, Checkpoint>
+impl<Group, Idempotency, Checkpoint>
+    PhysicalDurabilityDeclarationBuilder<Group, WalMissing, Idempotency, Checkpoint>
+{
+    pub fn wal(
+        self,
+        policy: PhysicalWalPolicy,
+    ) -> PhysicalDurabilityDeclarationBuilder<Group, WalConfigured, Idempotency, Checkpoint> {
+        PhysicalDurabilityDeclarationBuilder {
+            group: self.group,
+            wal: WalConfigured(policy),
+            idempotency: self.idempotency,
+            checkpoint: self.checkpoint,
+        }
+    }
+}
+
+impl<Group, Wal, Checkpoint>
+    PhysicalDurabilityDeclarationBuilder<Group, Wal, IdempotencyMissing, Checkpoint>
 {
     pub fn idempotency(
         self,
         policy: PhysicalIdempotencyPolicy,
-    ) -> PhysicalDurabilityDeclarationBuilder<Group, IdempotencyConfigured, Checkpoint> {
+    ) -> PhysicalDurabilityDeclarationBuilder<Group, Wal, IdempotencyConfigured, Checkpoint> {
         PhysicalDurabilityDeclarationBuilder {
             group: self.group,
+            wal: self.wal,
             idempotency: IdempotencyConfigured(policy),
             checkpoint: self.checkpoint,
         }
     }
 }
 
-impl<Group, Idempotency>
-    PhysicalDurabilityDeclarationBuilder<Group, Idempotency, CheckpointMissing>
+impl<Group, Wal, Idempotency>
+    PhysicalDurabilityDeclarationBuilder<Group, Wal, Idempotency, CheckpointMissing>
 {
     pub fn checkpoint(
         self,
         policy: PhysicalCheckpointPolicy,
-    ) -> PhysicalDurabilityDeclarationBuilder<Group, Idempotency, CheckpointConfigured> {
+    ) -> PhysicalDurabilityDeclarationBuilder<Group, Wal, Idempotency, CheckpointConfigured> {
         PhysicalDurabilityDeclarationBuilder {
             group: self.group,
+            wal: self.wal,
             idempotency: self.idempotency,
             checkpoint: CheckpointConfigured(policy),
         }
@@ -191,6 +246,7 @@ impl<Group, Idempotency>
 impl
     PhysicalDurabilityDeclarationBuilder<
         GroupConfigured,
+        WalConfigured,
         IdempotencyConfigured,
         CheckpointConfigured,
     >
@@ -236,6 +292,7 @@ impl
         TransitionOutcome::success(AdmittedPhysicalDurabilityPolicy::new(
             basis,
             self.group.0,
+            self.wal.0,
             self.idempotency.0,
             self.checkpoint.0,
         ))
@@ -258,6 +315,7 @@ pub struct AdmittedPhysicalDurabilityPolicy {
     store: StableStoreIdentity,
     profile: BackendTargetProfile,
     group: GroupPolicy,
+    wal: PhysicalWalPolicy,
     idempotency: PhysicalIdempotencyPolicy,
     checkpoint: PhysicalCheckpointPolicy,
 }
@@ -266,16 +324,18 @@ impl AdmittedPhysicalDurabilityPolicy {
     fn new(
         basis: PhysicalDurabilityAdmissionBasis,
         group: GroupPolicy,
+        wal: PhysicalWalPolicy,
         idempotency: PhysicalIdempotencyPolicy,
         checkpoint: PhysicalCheckpointPolicy,
     ) -> Self {
-        let identity = policy_identity(basis.identity(), group, idempotency, checkpoint);
+        let identity = policy_identity(basis.identity(), group, wal, idempotency, checkpoint);
         Self {
             identity,
             basis: basis.identity(),
             store: basis.store_identity(),
             profile: basis.target_profile(),
             group,
+            wal,
             idempotency,
             checkpoint,
         }
@@ -305,6 +365,10 @@ impl AdmittedPhysicalDurabilityPolicy {
         self.group.delay
     }
 
+    pub const fn wal_policy(&self) -> PhysicalWalPolicy {
+        self.wal
+    }
+
     pub const fn idempotency_policy(&self) -> PhysicalIdempotencyPolicy {
         self.idempotency
     }
@@ -312,23 +376,4 @@ impl AdmittedPhysicalDurabilityPolicy {
     pub const fn checkpoint_policy(&self) -> PhysicalCheckpointPolicy {
         self.checkpoint
     }
-}
-
-fn policy_identity(
-    basis: PhysicalDurabilityAdmissionIdentity,
-    group: GroupPolicy,
-    idempotency: PhysicalIdempotencyPolicy,
-    checkpoint: PhysicalCheckpointPolicy,
-) -> PhysicalDurabilityPolicyIdentity {
-    let mut digest = Sha256::new();
-    digest.update((POLICY_IDENTITY_DOMAIN.len() as u64).to_le_bytes());
-    digest.update(POLICY_IDENTITY_DOMAIN);
-    digest.update(basis.bytes());
-    digest.update(group.limit.get().get().to_le_bytes());
-    digest.update(group.delay.get().get().to_le_bytes());
-    digest.update(idempotency.retention.get().get().to_le_bytes());
-    digest.update(idempotency.pending_unresolved.get().get().to_le_bytes());
-    digest.update(checkpoint.memory.get().get().to_le_bytes());
-    digest.update(checkpoint.retained_wal_tail.get().get().to_le_bytes());
-    PhysicalDurabilityPolicyIdentity(digest.finalize().into())
 }

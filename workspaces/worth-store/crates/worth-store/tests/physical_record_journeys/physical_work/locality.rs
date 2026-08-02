@@ -67,7 +67,7 @@ fn disjoint_read_bindings_progress_through_one_graph_and_independent_bounded_rou
     assert_eq!(
         topology.aspect_binding_count(),
         installed_binding_count,
-        "caller bindings and all eight native record/WAL bindings must share one graph"
+        "caller bindings and all twelve native record/durability bindings must share one graph"
     );
     assert_eq!(
         topology.locality_owner_count(),

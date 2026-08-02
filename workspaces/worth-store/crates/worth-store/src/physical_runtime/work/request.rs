@@ -159,6 +159,54 @@ impl PhysicalMutationWorkRequest {
             PhysicalWorkRecoveryDisposition::InspectionRequired,
         )
     }
+
+    pub(in crate::physical_runtime) fn checkpoint_capture(
+        scope: super::PhysicalCheckpointWorkScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::CheckpointCapture,
+            PhysicalWorkScope::checkpoint(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::PublicationBoundary,
+            super::PhysicalWorkDurabilityRequirement::CheckpointCapture,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn wal_reclamation(
+        scope: super::PhysicalWalReclamationScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::WalReclamation,
+            PhysicalWorkScope::wal_reclamation(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::PublicationBoundary,
+            super::PhysicalWorkDurabilityRequirement::WalReclamation,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
+
+    pub(in crate::physical_runtime) fn root_publication(
+        scope: super::PhysicalRootPublicationWorkScope,
+        semantic_basis: PhysicalWorkSemanticBasis,
+        security: StoreAuthorityBoundSecurityScopeReceipt,
+    ) -> Result<Self, PhysicalWorkSubmissionDenial> {
+        Self::new(
+            PhysicalWorkOperationFamily::RootPublication,
+            PhysicalWorkScope::root_publication(scope),
+            semantic_basis,
+            security,
+            PhysicalWorkEffectClass::PublicationBoundary,
+            super::PhysicalWorkDurabilityRequirement::RootPublication,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    }
 }
 
 fn require_security_witness(

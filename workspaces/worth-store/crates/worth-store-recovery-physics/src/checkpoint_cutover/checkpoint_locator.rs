@@ -5,7 +5,7 @@ use super::{
     CheckpointId, CheckpointManifest, CheckpointRecoveryCounterSnapshot, CheckpointRedoBoundary,
     CheckpointValidationDenial, CheckpointValidationDenialKind,
 };
-use crate::DurableAckReceipt;
+use crate::WalDurabilityObservation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CheckpointCandidateDiscoverySource {
@@ -174,10 +174,10 @@ pub struct StoreOwnedCheckpointLocator {
 impl StoreOwnedCheckpointLocator {
     pub fn admit<P: BackendDurabilityProfile>(
         commitment: CheckpointLocatorArtifactCommitment,
-        ack: &DurableAckReceipt<P>,
+        ack: &WalDurabilityObservation<P>,
     ) -> Result<Self, CheckpointValidationDenial> {
         if !ack
-            .ack_basis()
+            .basis()
             .lsn_range()
             .contains(commitment.redo_boundary().lsn())
         {
@@ -187,10 +187,10 @@ impl StoreOwnedCheckpointLocator {
             )
             .with_lsn_pair(
                 commitment.redo_boundary().lsn(),
-                ack.ack_basis().lsn_range().start(),
+                ack.basis().lsn_range().start(),
             ));
         }
-        if ack.ack_basis().frame_digest().as_str() != commitment.digest() {
+        if ack.basis().frame_digest().as_str() != commitment.digest() {
             return Err(CheckpointValidationDenial::new(
                 CheckpointValidationDenialKind::CutoverDurabilityArtifactMismatch,
                 CheckpointRecoveryCounterSnapshot::new().with_locator_check(),

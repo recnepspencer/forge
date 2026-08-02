@@ -517,8 +517,10 @@ The milestone must mechanically reject:
 15. Every physical idempotency identity includes a Store-issued
     `PhysicalMutationIdempotencyLease` whose expiry is expressed in durable
     checkpoint generations. The admitted policy fixes one nonzero finite
-    retention-generation count. Attempt deadlines and ambient time do not alter
-    that lease. Unresolved bindings never expire; terminal bindings remain
+    retention-generation count, one nonzero pending-unresolved bound, and one
+    independent nonzero total-live-binding bound. Attempt deadlines and ambient
+    time do not alter that lease. Unresolved bindings never expire; terminal
+    bindings remain
     authoritative until lease expiry and at least one later namespace-durable
     checkpoint compacts their fate. An expired identity is denied and requires
     a newly issued key; it never silently creates another attempt.
@@ -613,9 +615,14 @@ let durability_basis: PhysicalDurabilityAdmissionBasis =
 
 let durability = match PhysicalDurabilityDeclaration::builder()
     .group_commit(GroupCommitLimit::new(32)?, GroupCommitDelay::new(...)?)
+    .wal(PhysicalWalPolicy::segmented(
+        WalSegmentByteLimit::new(...)?,
+        WalSegmentInventoryLimit::new(...)?,
+    ))
     .idempotency(PhysicalIdempotencyPolicy::new(
         IdempotencyRetentionGenerations::new(...)?,
         PendingUnresolvedMutationLimit::new(...)?,
+        LiveIdempotencyBindingLimit::new(...)?,
     ))
     .checkpoint(PhysicalCheckpointPolicy::fuzzy(
         CheckpointMemoryLimit::new(...)?,
@@ -687,11 +694,10 @@ The common path requests the strongest admitted ordinary physical boundary:
 let idempotency = serving
     .record_submission()
     .issue_idempotency_key(caller_key)?;
+let deadline = PhysicalMutationDeadline::after_milliseconds(deadline_ms)
+    .ok_or(InvalidMutationDeadline)?;
 
-let request = PhysicalMutationRequest::platform_durable(
-    idempotency,
-    PhysicalMutationDeadline::at(deadline),
-);
+let request = PhysicalMutationRequest::platform_durable(idempotency, deadline);
 
 let prepared = match serving
     .record_submission()
@@ -897,7 +903,8 @@ let checkpoint = match serving
     .checkpoints()
     .start(PhysicalCheckpointRequest::fuzzy(
         PhysicalCheckpointIdempotencyKey::new(key)?,
-        PhysicalCheckpointDeadline::at(deadline),
+        PhysicalCheckpointDeadline::after_milliseconds(deadline_ms)
+            .ok_or(InvalidCheckpointDeadline)?,
     ))
     .into_raw()
 {
@@ -949,6 +956,9 @@ Observation exposes bounded, read-only facts:
 - WAL frames, bytes, ranges, rotations, and barriers;
 - page/extent writes and pageLSN bindings;
 - checkpoint captures, covered ranges, retained tails, and denials;
+- fresh-process checkpoint artifact bytes, exact bytes read, skipped dirty-body
+  bytes, binding records read, retained WAL members read, and peak WAL reopen
+  buffer bytes;
 - root replacements, file syncs, directory syncs, and retained generations;
 - completed, proven-no-effect, indeterminate, cancelled, timed-out, stale, and
   completed-but-unobserved mutation counts;
@@ -1140,6 +1150,30 @@ Checkpoint capture does not freeze all mutation authority. A short,
 responsibility-named cutover fence may protect the final publication boundary;
 it cannot span full capture or whole-Store traversal.
 
+Binding compaction and reopen are incremental. Publication encodes one retained
+binding record at a time from the locked registry; it does not retain a second
+encoded record set. Fresh-process admission reads only the fixed checkpoint
+header, compaction header, footer, and one bounded binding record at a time,
+skipping the dirty-record body. Total rebuild memory is bounded by the admitted
+total-live-binding count plus one checkpoint record and one WAL segment buffer,
+not by historical WAL or checkpoint dirty cardinality.
+
+The latest namespace-durable compaction and retained WAL suffix after its exact
+cutoff are one `PhysicalDurabilityReopenBasis`. WAL framing and integrity
+are verified once; idempotency consumes borrowed verified payload views and is
+the only owner that interprets attempt-binding meaning. The pre-reopen policy
+owner exposes observation only. A distinct post-reopen owner is required to
+obtain idempotency, grouping, binding-compaction, WAL, or checkpoint authority,
+making authority distribution before rebuild unavailable by type.
+
+Compaction preserves `ReopenedUnresolved` obligations without granting them
+fresh cancellation or group-sealing authority. Retained WAL may upgrade only
+the exact matching obligation. Persisted terminal outcomes live behind the
+closed `idempotency/fate/` seam; the registry stores that fate but does not own
+its encoding vocabulary. Reopen rejects noncanonical order or encoding,
+duplicates, foreign Store/policy, invalid leases, discontinuous WAL, incomplete
+or substituted groups, and either admitted registry bound being exceeded.
+
 WAL deletion or recycling requires:
 
 - a namespace-durable checkpoint publication;
@@ -1157,6 +1191,13 @@ WAL deletion or recycling requires:
 
 WAL age, file count, disk pressure, checkpoint existence, or a copied tail
 range is not eligibility.
+
+`physical_runtime/durability/wal/reclamation/` is the sole owner of eligibility,
+proof-bearing deletion authority, C.4 removal execution, and the resulting WAL
+inventory transition. Inventory reports physical facts; checkpoint reports its
+namespace-durable compaction and tail; neither may delete on its own. Failed or
+indeterminate removal remains explicit residue and does not advance inventory
+as if the segment disappeared.
 
 `ContiguousRetainedWalTail` is constructed from Worth Proof
 `NonEmpty<RetainedWalSegment>` and admitted only after the owner-defined order
@@ -1284,17 +1325,28 @@ Foundational owns stable aspect meaning, contract admission, validated values,
 authoritative state, patches, and distinct projection/mutation/diagnostic mask
 laws.
 
-C.7 installs these exact derived work-basis contracts:
+C.7 installs these exact derived work-basis contracts. The fifth mutation
+contract, WAL reclamation, was populated with the Phase 6 retention boundary;
+it is part of the final C.7 contract rather than a generic durability aspect.
 
 | Store aspect-native contract key | Basis posture and role | Masks | Signal family | Exact partition |
 | --- | --- | --- | --- | --- |
-| `store.physical.durability.policy-binding-basis` | projection; `Dependency` | projection only | `WalAppend`, `DurabilityBarrier`, `CheckpointCapture`, and `RootPublication` | admitted durability-policy basis identity |
-| `store.physical.durability.wal-append-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalAppend` only | writable WAL segment plus Store/runtime generation |
-| `store.physical.durability.barrier-basis` | mutation; `DependencyAndOutput` | projection and mutation | `DurabilityBarrier` only | exact WAL, file, or parent-namespace barrier scope and artifact identity |
-| `store.physical.durability.checkpoint-capture-basis` | mutation; `DependencyAndOutput` | projection and mutation | `CheckpointCapture` only | checkpoint identity and admitted capture range |
-| `store.physical.durability.root-publication-basis` | mutation; `DependencyAndOutput` | projection and mutation | `RootPublication` only | candidate-root publication identity and Store/runtime generation |
+| `store.physical.durability.policy-binding-basis` | projection; `Dependency` | projection only | `WalAppend`, `DurabilityBarrier`, `CheckpointCapture`, `RootPublication`, and `WalReclamation` | exact admitted durability-policy identity |
+| `store.physical.durability.wal-append-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalAppend` only | exact stable Store identity |
+| `store.physical.durability.wal-barrier-basis` | mutation; `DependencyAndOutput` | projection and mutation | `DurabilityBarrier` only | exact stable Store identity |
+| `store.physical.durability.checkpoint-capture-basis` | mutation; `DependencyAndOutput` | projection and mutation | `CheckpointCapture` only | exact stable Store identity |
+| `store.physical.durability.root-publication-basis` | mutation; `DependencyAndOutput` | projection and mutation | `RootPublication` only | exact stable Store identity |
+| `store.physical.durability.wal-reclamation-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalReclamation` only | exact stable Store identity |
 
-These are derived routing and invalidation bases. They are not authoritative
+These are derived routing and invalidation bases. Artifact-specific WAL range,
+barrier, checkpoint, root-candidate, and reclaim identities remain in the
+typed Store work declaration and executor command; copying them into an aspect
+partition would create a second physical truth lane. The stable Store
+partition prevents cross-Store invalidation. Each installed Signal graph is
+already owned by one runtime incarnation; adding that ephemeral identity to
+the partition would destabilize the semantic profile across lawful reopen.
+Exact runtime identity remains in typed Store work and progression authority.
+These contracts are not authoritative
 “WAL generation,” “durability-profile generation,” “current-root generation,”
 or “checkpoint generation” state. In particular,
 `root-publication-basis` does not name or advance the current root.
@@ -1484,6 +1536,35 @@ The dominant axis of `physical_runtime/durability/` is Store-owned physical
 durability authority. It contains cross-owner ordering and settlement only. WAL
 grammar, media mechanics, residency mechanics, recovery decisions, integrity,
 stable-reader policy, semantic commit, and certification are excluded.
+
+Phase 6 refines the required destination with these populated or immediately
+required semantic owners:
+
+```text
+physical_runtime/
+  durability/mutation/idempotency/
+    bootstrap.rs
+    binding_compaction.rs
+    binding_compaction/{encoding.rs,decoding.rs}
+    persisted_binding.rs
+    persisted_binding/decoding.rs
+    fate/persisted.rs
+  durability/checkpoint/
+    reopen.rs
+    reopen/binding_compaction.rs
+  durability/wal/
+    inventory/{reopen.rs,reopened_member.rs}
+    reclamation/{eligibility.rs,authority.rs,execution.rs,inventory_transition.rs}
+  instance/
+    durability_bootstrap.rs
+    construction/{work_runtime.rs,record_serving.rs}
+```
+
+`reclamation/` may begin with one populated file if only one of those
+responsibilities is implemented in the first coherent slice; the directory is
+still correct because eligibility, authority, execution, and inventory
+transition are committed distinct growth points. A one-file directory is not
+an excuse to combine them into a WAL or checkpoint god file.
 
 `mutation/`, `grouping/`, `checkpoint/`, `publication/`, `settlement/`, and
 `observation/` are distinct because they have different identity,
@@ -1894,7 +1975,7 @@ Revise:
   declarations, not ordinary execution or final acknowledgment;
 - the C.6 bounded access guide to link dirty/writeback settlement to the C.7
   durability guide without claiming dirty implies durable;
-- `storage-foundation-aspect-native-gate.md` to name the five exact C.7 derived
+- `storage-foundation-aspect-native-gate.md` to name the six exact C.7 derived
   work-basis contracts, roles, masks, families, and partitions, and to state
   that none owns physical truth;
 - the physical reality audit rows for WAL execution, backend durability,
@@ -2078,27 +2159,49 @@ and proof-gated retention.
 **Consumes:** WAL/data progression, C.6 scoped allocations and pressure,
 checkpoint artifact semantics, scheduler resources.
 
-**Establishes:** checkpoint `ProofOutcome`, handle, exact checkpoint-capture
-work basis and policy receipt, capture progress, publication candidate,
-covered range, canonical nonempty `ContiguousRetainedWalTail`, authoritative
+**Establishes:** admitted nonzero WAL segment-byte and segment-inventory limits,
+bounded rotation and reopen, checkpoint `ProofOutcome`, handle, exact
+checkpoint-capture work basis and policy receipt, capture progress,
+publication candidate, covered range, canonical nonempty
+`ContiguousRetainedWalTail`, authoritative
 `PhysicalMutationBindingCompaction`, and retention eligibility proving that no
-WAL deletion removes the last live attempt binding.
+WAL deletion removes the last live attempt binding. The exact checkpoint,
+compaction cutoff, retained suffix, and live inventory mint a private
+per-segment no-last-copy proof; no individual input can mint it alone. Eligible
+deletion uses the dedicated `WalReclamation` Signal family, Store semantic
+basis, Foundational background policy, scheduled C4 removal, and exact recovery
+locator. Only the completed removal receipt advances the oldest inventory
+entry. WAL segment sizing and inventory breadth are WAL policy; neither is
+inferred from checkpoint memory or retained-tail limits. Binding compaction and
+reopen stream one bounded record at a time, and the idempotency policy
+independently bounds pending unresolved bindings and total live bindings. One
+checkpoint-plus-retained-WAL reopen basis must install the post-reopen
+durability owner before mutation authority is available.
 
 **Mechanically forbids:** stop-the-world capture, whole-Store materialization,
 fire-and-forget checkpoint work, tail-budget escape, and checkpoint-existence
 deletion, all-history idempotency retention, and reclamation before binding
-compaction.
+compaction. It also forbids an in-memory encoded compaction copy, authority
+distribution from the pre-reopen owner, terminal-fate encoding embedded in the
+registry, and WAL deletion outside `wal/reclamation/`.
 
 **Evidence:** 32-times-resident checkpoint pressure siege, exact allocation and
-I/O counters, continued foreground progress, tail-bound denial, reopen from
-compaction plus retained WAL, unresolved-binding retention, expired terminal
-binding reclamation, and premature-retention/last-binding-deletion mutants.
+I/O counters, continued foreground progress, tail-bound denial, fresh-process
+reopen from compaction plus the post-reclamation retained WAL, deterministic
+fail-before and indeterminate-after-effect delete seams, unresolved-binding
+retention, expired terminal binding reclamation, and partial-authority,
+premature-retention, last-binding-deletion, receipt-substitution, and unsafe-
+reopen mutants.
 
 **Next may trust:** a published checkpoint can later bound recovery without
 having claimed recovery.
 
 **Cleanup:** remove sharp/demo checkpoint execution, duplicate retention
-decisions, and unbounded capture helpers not used by the canonical path.
+decisions, unbounded capture helpers, generation-zero production shortcuts,
+direct WAL initialization that bypasses durability reopen, and every deletion
+decision outside the canonical reclamation owner. Preserve no copied deletion
+inventory, direct filesystem helper, compatibility recovery record, or
+duplicate reclamation queue.
 
 ### Phase 7: Join Root Replacement To Namespace Durability
 

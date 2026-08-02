@@ -125,40 +125,6 @@ pub(crate) enum PersistedOperationalControlRecordKind {
         execution_plan_fingerprint: [u8; 32],
         staged_media_identity: [u8; 32],
     },
-    RecoveryPublicationPrepared {
-        operation_tag: u8,
-        cutover_plan_fingerprint: [u8; 32],
-        publication_plan_fingerprint: [u8; 32],
-        publication_identity: [u8; 32],
-        candidate_media_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        authority_posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
-        admission_policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-    },
-    RecoveryPublicationPending {
-        operation_tag: u8,
-        cutover_plan_fingerprint: [u8; 32],
-        publication_plan_fingerprint: [u8; 32],
-        publication_identity: [u8; 32],
-        candidate_media_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        authority_posture: worth_store_authority::RecoveryAuthorityAdmissionPosture,
-        admission_policy: worth_store_authority::RecoveryAuthorityAdmissionPolicy,
-    },
-    RecoveryPublicationDisposition {
-        publication_identity: [u8; 32],
-        disposition_tag: u8,
-        disposition_basis: [u8; 32],
-        observed_authority: [u8; 32],
-    },
-    RecoveryPublicationFenceReleased {
-        publication_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        disposition_tag: u8,
-    },
 }
 
 #[derive(Clone, Copy)]

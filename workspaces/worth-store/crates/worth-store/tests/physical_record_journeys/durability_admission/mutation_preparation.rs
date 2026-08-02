@@ -10,8 +10,9 @@ use worth_store::physical_runtime::{
     PhysicalMutationIdempotencyMaterial, PhysicalMutationPreparationDeferred,
     PhysicalMutationPreparationDenial, PhysicalMutationPreparationFailure,
     PhysicalMutationPreparationRebindRequired, PhysicalMutationPreparationStale,
-    PhysicalMutationRequest, PhysicalRecordInitialization, PhysicalRecordOpen, RecordAppendBatch,
-    RecordStreamFailureKind, RecordWriteSource, RecordWriteSourceError,
+    PhysicalMutationPreparationSuccess, PhysicalMutationRequest, PhysicalRecordInitialization,
+    PhysicalRecordOpen, RecordAppendBatch, RecordStreamFailureKind, RecordWriteSource,
+    RecordWriteSourceError,
 };
 
 #[test]
@@ -38,7 +39,9 @@ fn durable_preparation_binds_once_without_media_effect_or_duplicate_identity_all
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("fresh durable preparation must succeed"),
     };
     assert_eq!(
@@ -71,7 +74,9 @@ fn durable_preparation_binds_once_without_media_effect_or_duplicate_identity_all
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("same-key same-fingerprint retry must deduplicate"),
     };
     assert_eq!(
@@ -102,7 +107,9 @@ fn durable_preparation_binds_once_without_media_effect_or_duplicate_identity_all
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("next fresh durable preparation must succeed"),
     };
     assert_eq!(
@@ -151,7 +158,7 @@ fn source_failure_and_released_or_foreign_authority_remain_pre_effect() {
                 request(key.clone()),
             )
             .into_raw(),
-        TransitionOutcome::Success(_)
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(_))
     ));
 
     let foreign_parent = tempfile::tempdir().unwrap();
@@ -219,7 +226,9 @@ fn admitted_pending_bound_and_reopened_policy_identity_are_enforced_before_effec
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("first pending mutation must admit"),
     };
     let before_bound = serving.media_counters();
@@ -294,7 +303,9 @@ fn streamed_and_owned_payloads_share_equivalence_despite_key_and_deadline_change
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("owned payload must prepare"),
     };
     let streamed_batch = RecordAppendBatch::builder()
@@ -305,7 +316,9 @@ fn streamed_and_owned_payloads_share_equivalence_despite_key_and_deadline_change
         .prepare_durable_append(streamed_batch, placement, request_at(streamed_key, 2_000))
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("streamed payload must prepare"),
     };
     assert_eq!(

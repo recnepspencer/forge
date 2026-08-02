@@ -4,7 +4,9 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 use crate::physical_runtime::{
     durability::{
-        PhysicalMutationIdempotencyRuntimeAuthority, PhysicalMutationIdempotencyRuntimeOwner,
+        PhysicalDurabilityGroupingRuntimeAuthority, PhysicalDurabilityGroupingRuntimeOwner,
+        PhysicalDurabilityReopenObservation, PhysicalMutationIdempotencyRuntimeAuthority,
+        PhysicalMutationIdempotencyRuntimeOwner, RebuiltPhysicalMutationIdempotency,
     },
     RuntimeIdentity,
 };
@@ -14,7 +16,13 @@ use super::AdmittedPhysicalDurabilityPolicy;
 pub(in crate::physical_runtime) struct PhysicalDurabilityRuntimeOwner {
     policy: AdmittedPhysicalDurabilityPolicy,
     runtime: RuntimeIdentity,
+    grouping: Arc<PhysicalDurabilityGroupingRuntimeOwner>,
+}
+
+pub(in crate::physical_runtime) struct ReopenedPhysicalDurabilityRuntimeOwner {
+    bound: PhysicalDurabilityRuntimeOwner,
     idempotency: Arc<PhysicalMutationIdempotencyRuntimeOwner>,
+    reopen: PhysicalDurabilityReopenObservation,
 }
 
 impl PhysicalDurabilityRuntimeOwner {
@@ -28,10 +36,54 @@ impl PhysicalDurabilityRuntimeOwner {
         crate::physical_runtime::PhysicalDurabilityObservation::new(self.runtime, &self.policy)
     }
 
+    pub(in crate::physical_runtime) fn install_rebuilt_idempotency(
+        self,
+        rebuilt: RebuiltPhysicalMutationIdempotency,
+    ) -> ReopenedPhysicalDurabilityRuntimeOwner {
+        let checkpoint = rebuilt.checkpoint_counters();
+        let reopen = PhysicalDurabilityReopenObservation::new(
+            checkpoint.checkpoint_artifact_bytes(),
+            checkpoint.checkpoint_bytes_read(),
+            checkpoint.dirty_body_bytes_skipped(),
+            checkpoint.binding_records_read(),
+            rebuilt.wal_members_read(),
+        );
+        ReopenedPhysicalDurabilityRuntimeOwner {
+            bound: self,
+            idempotency: rebuilt.into_owner(),
+            reopen,
+        }
+    }
+}
+
+impl ReopenedPhysicalDurabilityRuntimeOwner {
+    pub(in crate::physical_runtime) const fn runtime_identity(&self) -> RuntimeIdentity {
+        self.bound.runtime_identity()
+    }
+
+    pub(in crate::physical_runtime) fn observation(
+        &self,
+    ) -> crate::physical_runtime::PhysicalDurabilityObservation {
+        self.bound.observation().with_reopen(self.reopen)
+    }
+
     pub(in crate::physical_runtime) fn idempotency_authority(
         &self,
     ) -> PhysicalMutationIdempotencyRuntimeAuthority {
         PhysicalMutationIdempotencyRuntimeOwner::authority(&self.idempotency)
+    }
+
+    pub(in crate::physical_runtime) fn binding_compaction_authority(
+        &self,
+    ) -> crate::physical_runtime::durability::PhysicalMutationBindingCompactionRuntimeAuthority
+    {
+        PhysicalMutationIdempotencyRuntimeOwner::binding_compaction_authority(&self.idempotency)
+    }
+
+    pub(in crate::physical_runtime) fn grouping_authority(
+        &self,
+    ) -> PhysicalDurabilityGroupingRuntimeAuthority {
+        PhysicalDurabilityGroupingRuntimeOwner::authority(&self.bound.grouping)
     }
 }
 
@@ -55,16 +107,14 @@ pub(in crate::physical_runtime) fn bind_policy_to_runtime(
     if policy.admission_basis_identity() != current {
         return Err(PhysicalDurabilityRuntimeRebind::AdmissionBasisMismatch);
     }
-    let idempotency_policy = policy.idempotency_policy();
-    let idempotency = PhysicalMutationIdempotencyRuntimeOwner::generation_zero(
+    let grouping = PhysicalDurabilityGroupingRuntimeOwner::new(
         policy.store_identity(),
         runtime,
         policy.identity(),
-        idempotency_policy,
     );
     Ok(PhysicalDurabilityRuntimeOwner {
         policy,
         runtime,
-        idempotency,
+        grouping,
     })
 }

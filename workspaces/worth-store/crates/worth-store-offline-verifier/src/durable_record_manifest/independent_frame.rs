@@ -2,8 +2,9 @@ use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
 use super::OfflineDurableManifestDenial;
 
-const FRAME_HEADER_BYTES: usize = 40;
-const CHECKSUM_OFFSET: usize = 36;
+const FRAME_HEADER_BYTES: usize = 48;
+const PAGE_LSN_OFFSET: usize = 36;
+const CHECKSUM_OFFSET: usize = 44;
 const FRAME_MAGIC: &[u8; 8] = b"WRC5FRM\0";
 
 pub(super) struct IndependentFrame<'bytes> {
@@ -21,9 +22,12 @@ pub(super) fn decode_frame(
     }
     if &bytes[..8] != FRAME_MAGIC
         || bytes[8] != expected_kind
-        || bytes[9] != 1
+        || bytes[9] != 2
         || bytes[10..20] != expected_format.canonical_identity_bytes()
         || bytes[22..24] != [0; 2]
+        || (expected_kind != 3
+            && expected_kind != 4
+            && bytes[PAGE_LSN_OFFSET..CHECKSUM_OFFSET] != [0; 8])
     {
         return Err(OfflineDurableManifestDenial::FrameDeclarationMismatch);
     }

@@ -6,8 +6,9 @@ use super::super::model::{
 };
 use crate::membership::LsmMembershipDenial;
 use crate::{
-    BlobWalRecordIdentity, CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity,
-    WalFrameDurablePublicationScope,
+    BlobWalRecordIdentity, CheckpointPublicationScope, LogSequenceNumber,
+    StoreCheckpointRecordIdentity, WalFramePublicationScope, WalLsnRange, WalSegmentGeneration,
+    WalSegmentId,
 };
 use std::path::PathBuf;
 
@@ -18,18 +19,18 @@ pub(crate) struct PersistedMembershipActivation {
     pub(crate) selected_identities: [BlobWalRecordIdentity; 3],
     pub(crate) selected_base: Option<BlobWalRecordIdentity>,
     pub(crate) output_identity: BlobWalRecordIdentity,
-    pub(crate) output_scope: WalFrameDurablePublicationScope,
+    pub(crate) output_scope: WalFramePublicationScope,
     pub(crate) output_path: PathBuf,
     pub(crate) output_offset: u64,
     pub(crate) output_bytes: u64,
-    pub(crate) scope: CheckpointDurablePublicationScope,
+    pub(crate) scope: CheckpointPublicationScope,
 }
 
 impl PersistedMembershipActivation {
     pub(crate) fn from_publication(
         selected: &LsmCompactionMembership,
         output: &crate::AdmittedLsmReplacementOutput,
-        scope: CheckpointDurablePublicationScope,
+        scope: CheckpointPublicationScope,
     ) -> Self {
         Self {
             key: selected.key(),
@@ -108,29 +109,11 @@ impl PersistedMembershipActivation {
             _ => return Err(LsmMembershipDenial::PersistedMembershipArtifactInvalid),
         };
         let output_identity = decode_identity(&mut reader)?;
-        let output_scope = WalFrameDurablePublicationScope::new(
-            reader.u64()?,
-            reader.u64()?,
-            reader.u64()?,
-            reader.u64()?,
-            text(reader.bytes()?)?,
-            reader.u64()?,
-        )
-        .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+        let output_scope = decode_wal_publication_scope(&mut reader)?;
         let output_path = reader.path()?;
         let output_offset = reader.u64()?;
         let output_bytes = reader.u64()?;
-        let checkpoint = StoreCheckpointRecordIdentity::new(reader.u64()?);
-        let covered_lsn_start = reader.u64()?;
-        let covered_lsn_end = reader.u64()?;
-        let manifest_digest = text(reader.bytes()?)?;
-        let scope = CheckpointDurablePublicationScope::new(
-            checkpoint,
-            manifest_digest,
-            covered_lsn_start,
-            covered_lsn_end,
-        )
-        .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+        let scope = decode_checkpoint_publication_scope(&mut reader)?;
         reader.finish()?;
         Ok(Self {
             key,
@@ -145,6 +128,44 @@ impl PersistedMembershipActivation {
             scope,
         })
     }
+}
+
+fn decode_wal_publication_scope(
+    reader: &mut EventReader<'_>,
+) -> Result<WalFramePublicationScope, LsmMembershipDenial> {
+    let segment = WalSegmentId::new(reader.u64()?)
+        .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    let generation = WalSegmentGeneration::new(reader.u64()?)
+        .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    let lsn_range = WalLsnRange::new(
+        LogSequenceNumber::new(reader.u64()?),
+        LogSequenceNumber::new(reader.u64()?),
+    )
+    .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    WalFramePublicationScope::new(
+        segment,
+        generation,
+        lsn_range,
+        text(reader.bytes()?)?,
+        reader.u64()?,
+    )
+    .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)
+}
+
+fn decode_checkpoint_publication_scope(
+    reader: &mut EventReader<'_>,
+) -> Result<CheckpointPublicationScope, LsmMembershipDenial> {
+    let checkpoint = StoreCheckpointRecordIdentity::new(reader.u64()?);
+    let covered_lsn_start = reader.u64()?;
+    let covered_lsn_end = reader.u64()?;
+    let manifest_digest = text(reader.bytes()?)?;
+    CheckpointPublicationScope::new(
+        checkpoint,
+        manifest_digest,
+        covered_lsn_start,
+        covered_lsn_end,
+    )
+    .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)
 }
 
 fn decode_identity(

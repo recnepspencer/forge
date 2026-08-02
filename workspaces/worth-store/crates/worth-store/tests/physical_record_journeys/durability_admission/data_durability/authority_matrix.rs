@@ -3,8 +3,8 @@ use super::mutation_world::{append, synchronize};
 use super::oracle::artifact_path;
 use worth_store::physical_runtime::{
     PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome, PhysicalDataSettlementOutcome,
-    PhysicalMutationIdempotencyMaterial, PhysicalWalBarrierFailureCause, PhysicalWalBarrierOutcome,
-    RecordAppendBatch,
+    PhysicalMutationIdempotencyMaterial, PhysicalWalGroupBarrierDeclarationDenial,
+    PhysicalWalGroupBarrierFailureCause, PhysicalWalGroupBarrierOutcome, RecordAppendBatch,
 };
 use worth_store_physical_backend::MediaOperationRole;
 
@@ -16,29 +16,35 @@ fn foreign_store_cannot_synchronize_an_appended_member_or_spend_its_authority() 
     let owner = serving_from_initialization(&owner_root);
     let foreign = serving_from_initialization(&foreign_root);
     let (_, placement, _) = configuration();
-    let owner_submission = owner.record_submission();
+    let owner_submission = owner.certification_record_submission();
     let appended = append(
         &owner_submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([119; 32]),
         RecordAppendBatch::try_from_iter([b"foreign-barrier-authority".as_slice()]).unwrap(),
     );
-    let identity = appended.mutation_identity();
+    let identity = appended.members()[0].mutation().mutation_identity();
     let before = foreign
         .media_counters()
         .identified_operation_attempts_for(MediaOperationRole::SynchronizeFileState);
 
     let preserved = match foreign
-        .record_submission()
-        .synchronize_appended_wal(appended)
+        .certification_record_submission()
+        .synchronize_appended_wal_group(appended)
     {
-        PhysicalWalBarrierOutcome::BarrierNotStarted {
+        PhysicalWalGroupBarrierOutcome::BarrierNotStarted {
             appended,
-            cause: PhysicalWalBarrierFailureCause::PolicyOrRuntimeMismatch,
+            cause:
+                PhysicalWalGroupBarrierFailureCause::Declaration(
+                    PhysicalWalGroupBarrierDeclarationDenial::PolicyOrRuntimeMismatch,
+                ),
         } => appended,
         _ => panic!("a foreign Store must reject before synchronization"),
     };
-    assert_eq!(preserved.mutation_identity(), identity);
+    assert_eq!(
+        preserved.members()[0].mutation().mutation_identity(),
+        identity
+    );
     assert_eq!(
         foreign
             .media_counters()
@@ -59,12 +65,12 @@ fn reopened_runtime_cannot_synchronize_a_stale_appended_member() {
     let initial = serving_from_initialization(&store_root);
     let (_, placement, _) = configuration();
     let appended = append(
-        &initial.record_submission(),
+        &initial.certification_record_submission(),
         placement,
         PhysicalMutationIdempotencyMaterial::new([120; 32]),
         RecordAppendBatch::try_from_iter([b"stale-barrier-authority".as_slice()]).unwrap(),
     );
-    let identity = appended.mutation_identity();
+    let identity = appended.members()[0].mutation().mutation_identity();
     initial.close();
 
     let reopened = serving_from_open(&store_root);
@@ -72,16 +78,22 @@ fn reopened_runtime_cannot_synchronize_a_stale_appended_member() {
         .media_counters()
         .identified_operation_attempts_for(MediaOperationRole::SynchronizeFileState);
     let preserved = match reopened
-        .record_submission()
-        .synchronize_appended_wal(appended)
+        .certification_record_submission()
+        .synchronize_appended_wal_group(appended)
     {
-        PhysicalWalBarrierOutcome::BarrierNotStarted {
+        PhysicalWalGroupBarrierOutcome::BarrierNotStarted {
             appended,
-            cause: PhysicalWalBarrierFailureCause::PolicyOrRuntimeMismatch,
+            cause:
+                PhysicalWalGroupBarrierFailureCause::Declaration(
+                    PhysicalWalGroupBarrierDeclarationDenial::PolicyOrRuntimeMismatch,
+                ),
         } => appended,
         _ => panic!("a reopened runtime must reject stale barrier authority"),
     };
-    assert_eq!(preserved.mutation_identity(), identity);
+    assert_eq!(
+        preserved.members()[0].mutation().mutation_identity(),
+        identity
+    );
     assert_eq!(
         reopened
             .media_counters()
@@ -99,19 +111,20 @@ fn foreign_store_rejection_preserves_durable_authority_for_its_exact_owner() {
     let owner = serving_from_initialization(&owner_root);
     let foreign = serving_from_initialization(&foreign_root);
     let (_, placement, _) = configuration();
-    let owner_submission = owner.record_submission();
-    let foreign_submission = foreign.record_submission();
+    let owner_submission = owner.certification_record_submission();
+    let foreign_submission = foreign.certification_record_submission();
     let appended = append(
         &owner_submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([121; 32]),
         RecordAppendBatch::try_from_iter([b"foreign-dispatch-authority".as_slice()]).unwrap(),
     );
-    let target = appended.reserved().redo().records()[0].targets()[0]
+    let appended_member = appended.members()[0].mutation();
+    let target = appended_member.reserved().redo().records()[0].targets()[0]
         .target()
         .coordinate()
         .artifact();
-    let identity = appended.mutation_identity();
+    let identity = appended_member.mutation_identity();
     let durable = synchronize(&owner_submission, appended);
 
     let preserved = match foreign_submission.dispatch_wal_durable_data(durable) {
@@ -143,18 +156,19 @@ fn reopened_runtime_rejects_stale_durable_authority_before_data_effect() {
     let store_root = parent.path().join("store");
     let initial = serving_from_initialization(&store_root);
     let (_, placement, _) = configuration();
-    let initial_submission = initial.record_submission();
+    let initial_submission = initial.certification_record_submission();
     let appended = append(
         &initial_submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([122; 32]),
         RecordAppendBatch::try_from_iter([b"stale-dispatch-authority".as_slice()]).unwrap(),
     );
-    let target = appended.reserved().redo().records()[0].targets()[0]
+    let appended_member = appended.members()[0].mutation();
+    let target = appended_member.reserved().redo().records()[0].targets()[0]
         .target()
         .coordinate()
         .artifact();
-    let identity = appended.mutation_identity();
+    let identity = appended_member.mutation_identity();
     let durable = synchronize(&initial_submission, appended);
     initial.close();
 
@@ -162,7 +176,7 @@ fn reopened_runtime_rejects_stale_durable_authority_before_data_effect() {
     assert_eq!(identity.store_identity(), reopened.store_identity());
     assert_ne!(identity.runtime_identity(), reopened.runtime_identity());
     let preserved = match reopened
-        .record_submission()
+        .certification_record_submission()
         .dispatch_wal_durable_data(durable)
     {
         PhysicalDataDispatchOutcome::NotStarted {

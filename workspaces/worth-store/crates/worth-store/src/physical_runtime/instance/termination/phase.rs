@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalStoreClosePhase {
+    CheckpointDrained,
     AdmissionStopped,
     SafeCancellationComplete,
     DispatchSettlementComplete,
@@ -8,7 +9,8 @@ pub enum PhysicalStoreClosePhase {
     MediaReleased,
 }
 
-pub(super) const CLOSE_PHASES: [PhysicalStoreClosePhase; 6] = [
+pub(super) const CLOSE_PHASES: [PhysicalStoreClosePhase; 7] = [
+    PhysicalStoreClosePhase::CheckpointDrained,
     PhysicalStoreClosePhase::AdmissionStopped,
     PhysicalStoreClosePhase::SafeCancellationComplete,
     PhysicalStoreClosePhase::DispatchSettlementComplete,
@@ -20,12 +22,13 @@ pub(super) const CLOSE_PHASES: [PhysicalStoreClosePhase; 6] = [
 impl PhysicalStoreClosePhase {
     pub(super) const fn sequence_number(self) -> u8 {
         match self {
-            Self::AdmissionStopped => 1,
-            Self::SafeCancellationComplete => 2,
-            Self::DispatchSettlementComplete => 3,
-            Self::SignalDisposed => 4,
-            Self::ResidencyClosed => 5,
-            Self::MediaReleased => 6,
+            Self::CheckpointDrained => 1,
+            Self::AdmissionStopped => 2,
+            Self::SafeCancellationComplete => 3,
+            Self::DispatchSettlementComplete => 4,
+            Self::SignalDisposed => 5,
+            Self::ResidencyClosed => 6,
+            Self::MediaReleased => 7,
         }
     }
 }

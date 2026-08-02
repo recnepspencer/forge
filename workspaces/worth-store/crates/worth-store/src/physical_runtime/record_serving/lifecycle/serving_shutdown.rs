@@ -64,6 +64,8 @@ impl RecordServingTerminalObservation {
 pub struct ServingShutdownOutcome<Terminal> {
     media: MediaShutdownOutcome<Terminal>,
     records: RecordServingTerminalObservation,
+    mutation: crate::physical_runtime::PhysicalMutationShutdown,
+    checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
     residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
     work: crate::physical_runtime::PhysicalWorkShutdownObservation,
     signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
@@ -75,6 +77,8 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
     pub(in crate::physical_runtime) const fn new(
         media: MediaShutdownOutcome<Terminal>,
         records: RecordServingTerminalObservation,
+        mutation: crate::physical_runtime::PhysicalMutationShutdown,
+        checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
         residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
         work: crate::physical_runtime::PhysicalWorkShutdownObservation,
         signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
@@ -84,6 +88,8 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
         Self {
             media,
             records,
+            mutation,
+            checkpoint,
             residency,
             work,
             signal,
@@ -102,6 +108,14 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
 
     pub const fn records(&self) -> RecordServingTerminalObservation {
         self.records
+    }
+
+    pub const fn mutations(&self) -> crate::physical_runtime::PhysicalMutationShutdown {
+        self.mutation
+    }
+
+    pub const fn checkpoint(&self) -> crate::physical_runtime::PhysicalCheckpointShutdown {
+        self.checkpoint
     }
 
     pub const fn residency(&self) -> worth_store_buffer_pool::PhysicalResidencyShutdown {

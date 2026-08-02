@@ -3,14 +3,18 @@ use std::{
     time::{Duration, Instant},
 };
 
+use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    PhysicalSignalAspectBindingDigest, PhysicalSignalAspectBindingObservation,
-    PhysicalWorkEffectFate, PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition,
-    RecordAppendBatch, RecordAppendDenial, RecordAppendError, RecordCountLimit, RecordReadDenial,
-    RecordScanDenial, RecordScanOutcome, RecordScanRequest, ServingPhysicalRuntime,
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, PhysicalSignalAspectBindingDigest,
+    PhysicalSignalAspectBindingObservation, PhysicalWorkEffectFate, PhysicalWorkOperationFamily,
+    PhysicalWorkRecoveryDisposition, RecordAppendBatch, RecordAppendDenial, RecordCountLimit,
+    RecordReadDenial, RecordScanDenial, RecordScanOutcome, RecordScanRequest,
+    ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{MediaCounterSnapshot, MediaFaultDirective, MediaOperationRole};
 
+use super::super::durable_publication;
 use super::{configuration, serving_from_initialization};
 
 const PAYLOAD: &[u8] = b"scan continuation damage";
@@ -144,11 +148,15 @@ fn assert_mutation_fenced(serving: &ServingPhysicalRuntime) {
     let (_, placement, _) = configuration();
     let before_blocked_append = serving.media_counters();
     assert!(matches!(
-        serving.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"must remain unfired"]).unwrap(),
+        durable_publication::prepare_single(
+            &serving.record_submission(),
             placement,
-        ),
-        Err(RecordAppendError::Denied(
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([215; 32]),
+            RecordAppendBatch::try_from_iter([b"must remain unfired"]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
             RecordAppendDenial::ServingRequiresInspection
         ))
     ));
@@ -191,13 +199,12 @@ fn calibrate() -> ScanCalibration {
 fn seed(root: &Path) {
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(root);
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("scan-continuation-damage", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
     serving.close();
 }
 

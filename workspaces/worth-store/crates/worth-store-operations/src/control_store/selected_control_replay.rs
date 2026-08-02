@@ -1,5 +1,4 @@
 use super::authorization_control_replay::observe_authorization_consumption;
-use super::recovery_publication_control_replay::ReplayedRecoveryPublication;
 use super::recovery_staging_control_replay::{
     observe_authorized_staging, observe_staging_completed, ReplayedRecoveryStaging,
 };
@@ -30,7 +29,6 @@ pub(crate) struct SelectedControlReplay {
     pub(super) active_recovery_object_bytes: u64,
     pub(super) consumed_authorizations: HashMap<[u8; 32], ([u8; 32], OperationalOperationId)>,
     pub(super) repair_journals: HashMap<OperationalOperationId, ReplayedRepairJournal>,
-    pub(super) recovery_publications: HashMap<OperationalOperationId, ReplayedRecoveryPublication>,
     pub(super) recovery_staging: HashMap<OperationalOperationId, ReplayedRecoveryStaging>,
     pub(super) replica_bootstraps: HashMap<OperationalOperationId, ReplayedReplicaBootstrap>,
     pub(super) replica_promotions: HashMap<OperationalOperationId, ReplayedReplicaPromotion>,
@@ -47,7 +45,6 @@ impl SelectedControlReplay {
             active_recovery_object_bytes: 0,
             consumed_authorizations: HashMap::new(),
             repair_journals: HashMap::new(),
-            recovery_publications: HashMap::new(),
             recovery_staging: HashMap::new(),
             replica_bootstraps: HashMap::new(),
             replica_promotions: HashMap::new(),
@@ -62,14 +59,6 @@ impl SelectedControlReplay {
         let authority_identity = record.authority_identity();
         let (operation, kind) = record.into_replay_parts();
         if self.observe_replica_transition(record_index, &operation, &kind)? {
-            return Ok(());
-        }
-        if self.observe_recovery_publication_transition(
-            record_index,
-            &operation,
-            authority_identity,
-            &kind,
-        )? {
             return Ok(());
         }
         match kind {
@@ -364,12 +353,6 @@ impl SelectedControlReplay {
             )
             .map_err(|kind| SelectedControlReplayDenial::Invalid(
                 super::OperationalControlHistoryViolation::new(record_index, operation, kind)))?,
-            OperationalControlRecordKind::RecoveryPublicationPrepared { .. }
-            | OperationalControlRecordKind::RecoveryPublicationPending { .. }
-            | OperationalControlRecordKind::RecoveryPublicationDisposition { .. }
-            | OperationalControlRecordKind::RecoveryPublicationFenceReleased { .. } => {
-                unreachable!("publication transitions are consumed before general replay")
-            }
         }
         Ok(())
     }

@@ -285,8 +285,7 @@ mod tests {
         assert!(panic.is_err());
         let after_panic = PhysicalStore::diagnostics();
         assert!(
-            after_panic.admission_panics_before_return()
-                >= before.admission_panics_before_return() + 1,
+            after_panic.admission_panics_before_return() > before.admission_panics_before_return(),
             "the process-global panic counter must include this controlled unwind"
         );
 

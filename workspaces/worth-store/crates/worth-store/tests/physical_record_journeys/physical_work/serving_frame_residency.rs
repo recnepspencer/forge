@@ -9,6 +9,7 @@ use worth_store_physical_backend::{ArtifactTreeFailureKind, MediaOperationRole};
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
 use super::{configuration, media, success};
+use crate::durable_publication;
 
 const FRAME_BYTES: u32 = 8;
 
@@ -163,15 +164,13 @@ fn coalesced_transient_read_preserves_terminal_truth_and_store_health() {
     let root = parent.path().join("coalesced-transient-read");
     let (_, placement, _) = configuration();
     let initial = super::serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("serving-frame-coalesced-transient", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     assert!(!initial.close().residency().requires_inspection());
 
     let calibration = super::super::serving_from_open(&root);

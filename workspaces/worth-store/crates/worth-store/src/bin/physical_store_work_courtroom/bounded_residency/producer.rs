@@ -1,5 +1,6 @@
 use sha2::{Digest, Sha256};
 use worth_store::physical_runtime::{
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
     PhysicalRecordInitialization, RecordAppendBatch, ServingPhysicalRuntime,
 };
 
@@ -71,13 +72,18 @@ fn publish_workload(
         let batch = batch
             .build()
             .map_err(|denial| format!("bounded-residency producer batch denied: {denial:?}"))?;
-        let result = serving
-            .record_submission()
-            .append_batch(batch, placement)
-            .map_err(|failure| {
-                format!("bounded-residency producer publication failed: {failure:?}")
-            })?;
-        if result.record_ids().len() != end - published {
+        let result = serving.certification_publish_single_durable_mutation(
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            mutation_material(published, end),
+            batch,
+        );
+        let published_records = result
+            .settled_members()
+            .iter()
+            .map(|member| member.persisted_records().len())
+            .sum::<usize>();
+        if published_records != end - published {
             return Err("bounded-residency producer omitted published identities".to_owned());
         }
         published = end;
@@ -87,6 +93,14 @@ fn publish_workload(
         update_digest(&mut digest, &payload);
     }
     Ok((published, digest.finalize().into()))
+}
+
+fn mutation_material(start: usize, end: usize) -> PhysicalMutationIdempotencyMaterial {
+    let mut digest = Sha256::new();
+    digest.update(b"worth-store.bounded-residency.producer.v1");
+    digest.update((start as u64).to_le_bytes());
+    digest.update((end as u64).to_le_bytes());
+    PhysicalMutationIdempotencyMaterial::new(digest.finalize().into())
 }
 
 fn batch_width(configuration: BoundedResidencyConfiguration, ordinal: usize) -> usize {

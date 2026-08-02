@@ -5,9 +5,9 @@ use worth_proof::TransitionOutcome;
 use worth_signal::facade::TemporalDuration;
 use worth_store::physical_runtime::{
     AdmittedRecordPlacementPolicy, PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial,
-    PhysicalMutationPreparationFailure, PhysicalMutationRequest, PhysicalRecordInitialization,
-    RecordAppendBatch, RecordStreamFailureKind, RecordWriteSource, RecordWriteSourceError,
-    ServingPhysicalRuntime,
+    PhysicalMutationPreparationFailure, PhysicalMutationPreparationSuccess,
+    PhysicalMutationRequest, PhysicalRecordInitialization, RecordAppendBatch,
+    RecordStreamFailureKind, RecordWriteSource, RecordWriteSourceError, ServingPhysicalRuntime,
 };
 
 #[test]
@@ -88,7 +88,7 @@ fn assert_source_failure(
                 request(key),
             )
             .into_raw(),
-        TransitionOutcome::Success(_)
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(_))
     ));
 }
 

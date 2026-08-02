@@ -11,7 +11,7 @@ use worth_store_recovery_physics::{
 };
 
 #[test]
-fn retained_authority_rollback_stages_forward_then_completes_its_own_cutover() {
+fn retained_authority_rollback_stages_forward_without_mutating_current_media() {
     let world = restore_world("phase-10-retained-rollback");
     let target = world.restore_directory.path().join("rollback-target");
     let leases = RecoverySourceLeaseRegistry::open(
@@ -100,75 +100,5 @@ fn retained_authority_rollback_stages_forward_then_completes_its_own_cutover() {
         crate::RecoveryStagingOperationKind::Rollback
     );
 
-    let verified = executed.post_verify(verification_budget()).unwrap();
-    let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
-        world.authority.identity().clone(),
-    );
-    let roots = worth_store_test_support::harness::physical_isolation::publication::publication_inputs_for_store(
-        &store,
-        111,
-    );
-    let publication_directory = tempfile::tempdir().unwrap();
-    let current_frontier = crate::RecoveryAuthorityFrontier::observed(
-        &world.authority,
-        10,
-        12,
-        20,
-        19,
-        18,
-        [0xb1; 32],
-    )
-    .unwrap();
-    let current = crate::CurrentRecoveryAuthoritySnapshot::observe(
-        &world.authority,
-        publication_directory.path(),
-        roots.old_candidate,
-        roots.old_reachability,
-        current_frontier,
-    )
-    .unwrap();
-    let policy = worth_store_authority::RecoveryAuthorityAdmissionPolicy::admit_exact_declared_residual_posture(
-        verified.authority_posture(),
-        [0xb2; 32],
-    )
-    .unwrap();
-    let readmitted = verified
-        .resolve_cutover(current, policy)
-        .unwrap()
-        .lower_cutover(&world.authority)
-        .unwrap()
-        .authorize(
-            &ExactAuthorizationPort {
-                substitute_plan: None,
-            },
-            &operator_assertion(),
-            30,
-            80,
-            AuthorizationReplayPolicy::SingleUse,
-            AuthorizationRevocationObservation::NotRevoked { observed_at: 30 },
-        )
-        .unwrap()
-        .establish_write_fence(
-            &world.control,
-            OperationalTransitionId::new("consume-rollback-cutover").unwrap(),
-            &world.authority,
-            &ExactRecoveryFencePort,
-            31,
-            AuthorizationRevocationObservation::NotRevoked { observed_at: 31 },
-        )
-        .unwrap()
-        .publish(
-            &world.control,
-            OperationalTransitionId::new("publish-rollback-root").unwrap(),
-        )
-        .unwrap()
-        .readmit(
-            &world.control,
-            OperationalTransitionId::new("readmit-rollback-root").unwrap(),
-            &world.authority,
-            &ExactRecoveryFencePort,
-        )
-        .unwrap();
-    readmitted.release_source_lease().unwrap();
-    assert!(leases.recover_active().unwrap().is_empty());
+    assert_eq!(leases.recover_active().unwrap().len(), 1);
 }

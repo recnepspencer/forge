@@ -8,6 +8,7 @@ use worth_store_physical_format::store_namespace::{
 };
 
 use super::*;
+use crate::physical_runtime::durability::mutation::idempotency::test_support::RegistryFixture;
 use crate::physical_runtime::{
     durability::mutation::{
         request::PhysicalMutationDurabilityRequest, PhysicalMutationFingerprintInput,
@@ -15,23 +16,13 @@ use crate::physical_runtime::{
         PhysicalMutationRequestScope, PhysicalMutationSecurityBasis,
     },
     CheckpointMemoryLimit, FilesystemMediaAdmission, GroupCommitDelay, GroupCommitLimit,
-    IdempotencyRetentionGenerations, LifecycleGeneration, PhysicalCheckpointPolicy,
+    IdempotencyRetentionGenerations, LiveIdempotencyBindingLimit, PhysicalCheckpointPolicy,
     PhysicalDurabilityDeclaration, PhysicalDurabilityPolicyIdentity, PhysicalIdempotencyPolicy,
     PhysicalMutationIdempotencyMaterial, PhysicalMutationIdentity, PhysicalOperationIdentity,
-    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWorkGeneration, PhysicalWorkIdentity,
-    RetainedWalTailLimit, RuntimeIdentity,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalPolicy, PhysicalWorkGeneration,
+    PhysicalWorkIdentity, RetainedWalTailLimit, RuntimeIdentity, WalSegmentByteLimit,
+    WalSegmentInventoryLimit,
 };
-
-struct RegistryFixture {
-    _root: tempfile::TempDir,
-    media: crate::physical_runtime::MediaOwnedPhysicalRuntime,
-    registry: PhysicalMutationIdempotencyRegistry,
-    store: StableStoreIdentity,
-    runtime: RuntimeIdentity,
-    generation: LifecycleGeneration,
-    policy: PhysicalDurabilityPolicyIdentity,
-    foreign_policy: PhysicalDurabilityPolicyIdentity,
-}
 
 #[test]
 fn unresolved_duplicate_and_conflict_remain_authoritative_after_expiry() {
@@ -61,9 +52,9 @@ fn unresolved_duplicate_and_conflict_remain_authoritative_after_expiry() {
             .registry
             .admit_unallocated(key.clone(), first_fingerprint, retry_mutation),
         Ok(PhysicalMutationIdempotencyRegistryAdmission::DuplicateUnresolved(existing))
-            if existing.key == key.identity()
-                && existing.fingerprint == first_fingerprint
-                && existing.mutation == first_mutation
+            if existing.key() == key.identity()
+                && existing.fingerprint() == first_fingerprint
+                && existing.mutation() == first_mutation
     ));
     let conflicting_fingerprint = fingerprint(&fixture, 2);
     assert!(matches!(
@@ -253,12 +244,9 @@ fn fixture(pending: u32) -> RegistryFixture {
     let generation = media.observer().snapshot().unwrap().generation();
     let policy = admitted_policy_identity(&media, 32);
     let foreign_policy = admitted_policy_identity(&media, 64);
-    let registry = PhysicalMutationIdempotencyRegistry::generation_zero(
-        store,
-        runtime,
-        policy,
-        idempotency_policy(pending),
-    );
+    let idempotency = idempotency_policy(pending);
+    let registry =
+        PhysicalMutationIdempotencyRegistry::generation_zero(store, runtime, policy, idempotency);
     RegistryFixture {
         _root: root,
         media,
@@ -268,6 +256,7 @@ fn fixture(pending: u32) -> RegistryFixture {
         generation,
         policy,
         foreign_policy,
+        idempotency,
     }
 }
 
@@ -281,9 +270,14 @@ fn admitted_policy_identity(
             GroupCommitLimit::new(NonZeroU32::new(group_limit).unwrap()),
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
+        .wal(PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(NonZeroU64::new(1024).unwrap()),
+            WalSegmentInventoryLimit::new(NonZeroU32::new(64).unwrap()),
+        ))
         .idempotency(PhysicalIdempotencyPolicy::new(
             retention(),
             pending_limit(2),
+            live_limit(16),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
             CheckpointMemoryLimit::new(NonZeroU64::new(1024).unwrap()),
@@ -338,8 +332,12 @@ fn pending_limit(value: u32) -> PendingUnresolvedMutationLimit {
     PendingUnresolvedMutationLimit::new(NonZeroU32::new(value).unwrap())
 }
 
+fn live_limit(value: u32) -> LiveIdempotencyBindingLimit {
+    LiveIdempotencyBindingLimit::new(NonZeroU32::new(value).unwrap())
+}
+
 fn idempotency_policy(pending: u32) -> PhysicalIdempotencyPolicy {
-    PhysicalIdempotencyPolicy::new(retention(), pending_limit(pending))
+    PhysicalIdempotencyPolicy::new(retention(), pending_limit(pending), live_limit(16))
 }
 
 fn published_store(bytes: [u8; 16]) -> StableStoreIdentity {

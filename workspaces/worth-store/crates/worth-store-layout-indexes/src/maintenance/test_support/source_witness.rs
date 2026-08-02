@@ -4,8 +4,8 @@ use worth_store_physical_format::{
 };
 use worth_store_wal::{
     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, BlobWalReplayRebuildWitness,
-    DurablePublicationDeclaration, WalFrameDurablePublicationScope, WalSecurityMetadataCarrier,
-    WalSecurityMetadataEnvelope,
+    LogSequenceNumber, PublicationDeclaration, WalFramePublicationScope, WalLsnRange,
+    WalSecurityMetadataCarrier, WalSecurityMetadataEnvelope, WalSegmentGeneration, WalSegmentId,
 };
 
 pub(crate) fn root_manifest_source_witness(
@@ -104,8 +104,15 @@ pub(crate) fn wal_replay_source_witness_for_identity(
 ) -> BlobWalReplayRebuildWitness {
     let record = BlobWalRecordEnvelope::new(
         identity,
-        DurablePublicationDeclaration::wal_frame(
-            WalFrameDurablePublicationScope::new(1, 1, 10, 20, "sha256:wal-frame", 4096).unwrap(),
+        PublicationDeclaration::wal_frame(
+            WalFramePublicationScope::new(
+                WalSegmentId::new(1).unwrap(),
+                WalSegmentGeneration::new(1).unwrap(),
+                WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(20)).unwrap(),
+                "sha256:wal-frame",
+                4096,
+            )
+            .unwrap(),
         ),
         "sha256:payload",
     )

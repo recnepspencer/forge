@@ -1,6 +1,6 @@
 use worth_store::physical_runtime::{RecordAppendBatch, RecordByteLimit, RecordReadLimits};
 
-use super::super::{read_record, serving_from_open};
+use super::super::{durable_publication, read_record, serving_from_open};
 use super::record_read_signal_cleanup::await_read_signal_cleanup;
 use super::{configuration, serving_from_initialization};
 
@@ -12,15 +12,13 @@ fn cancelling_a_read_session_reports_unread_delivery_and_releases_its_leases() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("physical-work-read-cancellation", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let serving = serving_from_open(&root);

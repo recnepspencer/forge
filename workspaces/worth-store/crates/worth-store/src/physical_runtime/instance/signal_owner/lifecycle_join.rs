@@ -199,6 +199,15 @@ impl PhysicalWorkSignalOwner {
         self.route(route).ok_or(())?.advance_clock(request)
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime) fn advance_clock_for_certification(
+        &self,
+        request: worth_signal::facade::ClockAdvanceRequest,
+    ) -> Result<worth_signal::facade::ValidatedClockAdvance, ()> {
+        let route = self.bindings.bindings().first().ok_or(())?.digest();
+        self.advance_clock(route, request)
+    }
+
     pub(in crate::physical_runtime) fn timeout(
         &self,
         consumer: PhysicalWorkConsumerHandle,

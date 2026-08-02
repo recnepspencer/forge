@@ -1,46 +1,59 @@
 use std::ops::Range;
 
-use worth_store::physical_runtime::{
-    PhysicalDataFrameIdentity, PhysicalDataFrameSubject, PhysicalRedoTargetClaim,
-};
-use worth_store_physical_format::RecordArtifactFile;
-
 const FRAME_HEADER_BYTES: usize = 116;
 const FRAME_FOOTER_BYTES: usize = 32;
 const BINDING_DOMAIN: &[u8] = b"store.physical.mutation-attempt-binding.v1";
 const REDO_DOMAIN: &[u8] = b"store.physical.wal.canonical-redo.v1";
 
+#[path = "independent_wal_oracle/segment_inventory.rs"]
+mod segment_inventory;
+#[path = "independent_wal_oracle/target_claim.rs"]
+mod target_claim;
+
+pub(super) use segment_inventory::inspect_wal_inventory;
+pub(super) use target_claim::{independent_target_claim, IndependentRedoTargetClaim};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ExpectedAttemptBinding {
     pub(super) key: [u8; 32],
+    pub(super) lease_store: [u8; 16],
+    pub(super) policy: [u8; 32],
     pub(super) issuance: u64,
     pub(super) expiry: u64,
+    pub(super) material: [u8; 32],
     pub(super) fingerprint: [u8; 32],
     pub(super) store: [u8; 16],
     pub(super) runtime: u64,
+    pub(super) lifecycle_generation: u64,
     pub(super) operation: u64,
+    pub(super) group: [u8; 32],
+    pub(super) ordinal: u32,
+    pub(super) member_count: u32,
+    pub(super) membership: [u8; 32],
     pub(super) member: [u8; 32],
     pub(super) lsn_start: u64,
     pub(super) lsn_end: u64,
     pub(super) redo_digest: [u8; 32],
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct IndependentRedoTargetClaim {
-    target: Vec<u8>,
-    digest: [u8; 32],
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum BindingField {
     Domain,
     Key,
+    LeaseStore,
+    Policy,
     Issuance,
     Expiry,
+    Material,
     Fingerprint,
     Store,
     Runtime,
+    LifecycleGeneration,
     Operation,
+    Group,
+    Ordinal,
+    MemberCount,
+    Membership,
     Member,
     LsnStart,
     LsnEnd,
@@ -97,15 +110,6 @@ pub(super) fn independent_frame_payload(bytes: &[u8]) -> Result<&[u8], BindingIn
     Ok(&bytes[FRAME_HEADER_BYTES..payload_end])
 }
 
-pub(super) fn independent_target_claim(
-    claim: PhysicalRedoTargetClaim,
-) -> IndependentRedoTargetClaim {
-    IndependentRedoTargetClaim {
-        target: independent_target_identity(claim.target()),
-        digest: claim.resulting_payload_digest(),
-    }
-}
-
 pub(super) fn independent_canonical_redo(
     records: &[&[u8]],
     lsn_start: u64,
@@ -134,49 +138,6 @@ pub(super) fn independent_canonical_redo(
         write_field(&mut encoded, record);
     }
     encoded
-}
-
-fn independent_target_identity(target: PhysicalDataFrameIdentity) -> Vec<u8> {
-    let coordinate = target.coordinate();
-    let mut bytes = Vec::with_capacity(96);
-    match target.subject() {
-        PhysicalDataFrameSubject::InlinePage(page) => {
-            bytes.push(target.kind() as u8);
-            bytes.extend_from_slice(&page.segment_id().get().to_le_bytes());
-            bytes.extend_from_slice(&page.page_id().get().to_le_bytes());
-            bytes.extend_from_slice(&page.generation().get().to_le_bytes());
-        }
-        PhysicalDataFrameSubject::ExtentChunk(chunk) => {
-            bytes.push(target.kind() as u8);
-            let record = chunk.record();
-            bytes.extend_from_slice(&record.allocation_epoch());
-            bytes.extend_from_slice(&record.ordinal().to_le_bytes());
-            bytes.extend_from_slice(&chunk.extent_cell().extent_id().get().to_le_bytes());
-            bytes.extend_from_slice(&chunk.extent_cell().generation().get().to_le_bytes());
-            bytes.extend_from_slice(&chunk.logical_bytes().to_le_bytes());
-            bytes.extend_from_slice(&chunk.logical_offset().to_le_bytes());
-            bytes.extend_from_slice(&chunk.ordinal().to_le_bytes());
-        }
-    }
-    match coordinate.artifact() {
-        RecordArtifactFile::Segment {
-            segment,
-            generation,
-        } => {
-            bytes.push(5);
-            bytes.extend_from_slice(&segment.to_le_bytes());
-            bytes.extend_from_slice(&generation.to_le_bytes());
-        }
-        RecordArtifactFile::Extent { extent, generation } => {
-            bytes.push(8);
-            bytes.extend_from_slice(&extent.to_le_bytes());
-            bytes.extend_from_slice(&generation.to_le_bytes());
-        }
-        _ => panic!("redo targets are data artifacts only"),
-    }
-    bytes.extend_from_slice(&coordinate.offset().to_le_bytes());
-    bytes.extend_from_slice(&coordinate.length().to_le_bytes());
-    bytes
 }
 
 pub(super) fn split_member_payload(
@@ -213,12 +174,20 @@ pub(super) fn inspect_attempt_binding(
         return Err(BindingInspectionDenial::DomainMismatch);
     }
     let key = array(cursor.fixed_field(BindingField::Key, 32)?);
+    let lease_store = array(cursor.fixed_field(BindingField::LeaseStore, 16)?);
+    let policy = array(cursor.fixed_field(BindingField::Policy, 32)?);
     let issuance = cursor.u64(BindingField::Issuance)?;
     let expiry = cursor.u64(BindingField::Expiry)?;
+    let material = array(cursor.fixed_field(BindingField::Material, 32)?);
     let fingerprint = array(cursor.fixed_field(BindingField::Fingerprint, 32)?);
     let store = array(cursor.fixed_field(BindingField::Store, 16)?);
     let runtime = cursor.u64(BindingField::Runtime)?;
+    let lifecycle_generation = cursor.u64(BindingField::LifecycleGeneration)?;
     let operation = cursor.u64(BindingField::Operation)?;
+    let group = array(cursor.fixed_field(BindingField::Group, 32)?);
+    let ordinal = cursor.u32(BindingField::Ordinal)?;
+    let member_count = cursor.u32(BindingField::MemberCount)?;
+    let membership = array(cursor.fixed_field(BindingField::Membership, 32)?);
     let member = array(cursor.fixed_field(BindingField::Member, 32)?);
     let lsn_start = cursor.u64(BindingField::LsnStart)?;
     let lsn_end = cursor.u64(BindingField::LsnEnd)?;
@@ -226,12 +195,20 @@ pub(super) fn inspect_attempt_binding(
     cursor.finish()?;
     let value = ExpectedAttemptBinding {
         key,
+        lease_store,
+        policy,
         issuance,
         expiry,
+        material,
         fingerprint,
         store,
         runtime,
+        lifecycle_generation,
         operation,
+        group,
+        ordinal,
+        member_count,
+        membership,
         member,
         lsn_start,
         lsn_end,
@@ -250,8 +227,14 @@ fn require_expected_fields(
 ) -> Result<(), BindingInspectionDenial> {
     for (field, equal) in [
         (BindingField::Key, value.key == expected.key),
+        (
+            BindingField::LeaseStore,
+            value.lease_store == expected.lease_store,
+        ),
+        (BindingField::Policy, value.policy == expected.policy),
         (BindingField::Issuance, value.issuance == expected.issuance),
         (BindingField::Expiry, value.expiry == expected.expiry),
+        (BindingField::Material, value.material == expected.material),
         (
             BindingField::Fingerprint,
             value.fingerprint == expected.fingerprint,
@@ -259,8 +242,22 @@ fn require_expected_fields(
         (BindingField::Store, value.store == expected.store),
         (BindingField::Runtime, value.runtime == expected.runtime),
         (
+            BindingField::LifecycleGeneration,
+            value.lifecycle_generation == expected.lifecycle_generation,
+        ),
+        (
             BindingField::Operation,
             value.operation == expected.operation,
+        ),
+        (BindingField::Group, value.group == expected.group),
+        (BindingField::Ordinal, value.ordinal == expected.ordinal),
+        (
+            BindingField::MemberCount,
+            value.member_count == expected.member_count,
+        ),
+        (
+            BindingField::Membership,
+            value.membership == expected.membership,
         ),
         (BindingField::Member, value.member == expected.member),
         (
@@ -317,6 +314,11 @@ impl<'a> ByteCursor<'a> {
     fn u64(&mut self, field: BindingField) -> Result<u64, BindingInspectionDenial> {
         let bytes = self.take(field, 8)?;
         Ok(u64::from_le_bytes(bytes.try_into().expect("fixed u64")))
+    }
+
+    fn u32(&mut self, field: BindingField) -> Result<u32, BindingInspectionDenial> {
+        let bytes = self.take(field, 4)?;
+        Ok(u32::from_le_bytes(bytes.try_into().expect("fixed u32")))
     }
 
     fn read_u64(&mut self) -> Result<u64, BindingInspectionDenial> {

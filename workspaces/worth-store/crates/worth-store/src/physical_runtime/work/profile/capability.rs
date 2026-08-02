@@ -8,10 +8,11 @@ pub enum PhysicalWorkSignalFamily {
     DurabilityBarrier,
     CheckpointCapture,
     RootPublication,
+    WalReclamation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PhysicalWorkSignalFamilySet(u8);
+pub struct PhysicalWorkSignalFamilySet(u16);
 
 impl PhysicalWorkSignalFamilySet {
     pub const fn none() -> Self {
@@ -19,7 +20,7 @@ impl PhysicalWorkSignalFamilySet {
     }
 
     pub const fn all() -> Self {
-        Self(0b1111_1111)
+        Self(0b1_1111_1111)
     }
 
     pub const fn only(family: PhysicalWorkSignalFamily) -> Self {
@@ -39,12 +40,12 @@ impl PhysicalWorkSignalFamilySet {
         self.0 == 0
     }
 
-    pub(super) const fn bits(self) -> u8 {
+    pub(super) const fn bits(self) -> u16 {
         self.0
     }
 }
 
-const fn family_bit(family: PhysicalWorkSignalFamily) -> u8 {
+const fn family_bit(family: PhysicalWorkSignalFamily) -> u16 {
     match family {
         PhysicalWorkSignalFamily::ReadFault => 1 << 0,
         PhysicalWorkSignalFamily::ExactWriteback => 1 << 1,
@@ -54,6 +55,7 @@ const fn family_bit(family: PhysicalWorkSignalFamily) -> u8 {
         PhysicalWorkSignalFamily::DurabilityBarrier => 1 << 5,
         PhysicalWorkSignalFamily::CheckpointCapture => 1 << 6,
         PhysicalWorkSignalFamily::RootPublication => 1 << 7,
+        PhysicalWorkSignalFamily::WalReclamation => 1 << 8,
     }
 }
 
@@ -77,7 +79,7 @@ impl PhysicalAsyncCapabilitySpec {
 }
 
 pub(in crate::physical_runtime) const PHYSICAL_ASYNC_CAPABILITIES: [PhysicalAsyncCapabilitySpec;
-    8] = [
+    9] = [
     PhysicalAsyncCapabilitySpec {
         family: PhysicalWorkSignalFamily::ReadFault,
         contract_id: 1,
@@ -116,6 +118,11 @@ pub(in crate::physical_runtime) const PHYSICAL_ASYNC_CAPABILITIES: [PhysicalAsyn
     PhysicalAsyncCapabilitySpec {
         family: PhysicalWorkSignalFamily::RootPublication,
         contract_id: 8,
+        max_payload_bytes: 64,
+    },
+    PhysicalAsyncCapabilitySpec {
+        family: PhysicalWorkSignalFamily::WalReclamation,
+        contract_id: 9,
         max_payload_bytes: 64,
     },
 ];

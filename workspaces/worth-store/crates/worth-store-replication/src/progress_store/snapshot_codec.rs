@@ -3,7 +3,7 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 use worth_store_authority::StoreCurrentAuthorityIdentity;
-use worth_store_physical_backend::{BackendTargetProfile, StoreDurabilityPublicationKind};
+use worth_store_physical_backend::BackendTargetProfile;
 use worth_store_recovery_physics::{DurabilityReplayIdentity, DurabilityReplayKind};
 
 use super::{ReplicationProgressStoreError, Snapshot, StoredReplicationPeerProgress};
@@ -194,7 +194,8 @@ fn decode_records(
                     text(&record[digest_start..])?,
                     first_lsn,
                     last_lsn,
-                ),
+                )
+                .map_err(|_| ReplicationProgressStoreError::Io)?,
             },
         );
         offset = record_end;
@@ -239,13 +240,11 @@ const fn replay_kind_code(kind: DurabilityReplayKind) -> u8 {
     }
 }
 
-fn decode_publication(
-    code: u8,
-) -> Result<StoreDurabilityPublicationKind, ReplicationProgressStoreError> {
+fn decode_publication(code: u8) -> Result<DurabilityReplayKind, ReplicationProgressStoreError> {
     match code {
-        1 => Ok(StoreDurabilityPublicationKind::WalFrame),
-        2 => Ok(StoreDurabilityPublicationKind::Checkpoint),
-        3 => Ok(StoreDurabilityPublicationKind::Manifest),
+        1 => Ok(DurabilityReplayKind::WalFrame),
+        2 => Ok(DurabilityReplayKind::Checkpoint),
+        3 => Ok(DurabilityReplayKind::Manifest),
         _ => Err(ReplicationProgressStoreError::Io),
     }
 }

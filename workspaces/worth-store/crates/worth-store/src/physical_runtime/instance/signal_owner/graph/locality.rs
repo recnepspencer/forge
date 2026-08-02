@@ -8,10 +8,6 @@ use crate::physical_runtime::work::{
     PhysicalWorkScope,
 };
 
-use super::publication_dependency::PhysicalPublicationDependencyLocality;
-#[cfg(feature = "certification-test-authority")]
-use super::publication_dependency::PhysicalPublicationDependencyObservation;
-
 pub(super) struct PhysicalSignalLocalityIndex {
     entries: HashMap<PhysicalWorkIdentity, PhysicalSignalLocalityEntry>,
     by_artifact: HashMap<RecordArtifactFile, HashSet<PhysicalWorkIdentity>>,
@@ -23,7 +19,6 @@ struct PhysicalSignalLocalityEntry {
     binding: PhysicalSignalAspectBindingDigest,
     signal: Option<ResourceRequestHandle>,
     invalidated: bool,
-    publication_dependency: Option<PhysicalPublicationDependencyLocality>,
 }
 
 impl PhysicalSignalLocalityIndex {
@@ -62,7 +57,6 @@ impl PhysicalSignalLocalityIndex {
                 binding: admitted.authority().binding(),
                 signal: None,
                 invalidated: false,
-                publication_dependency: None,
             },
         );
         true
@@ -108,50 +102,14 @@ impl PhysicalSignalLocalityIndex {
         }
     }
 
-    pub(super) fn attach_publication_dependency(
-        &mut self,
-        identity: PhysicalWorkIdentity,
-        dependency: PhysicalPublicationDependencyLocality,
-    ) -> Result<(), PhysicalPublicationDependencyLocality> {
-        let Some(entry) = self.entries.get_mut(&identity) else {
-            return Err(dependency);
-        };
-        if entry.publication_dependency.is_some() {
-            return Err(dependency);
-        }
-        entry.publication_dependency = Some(dependency);
-        Ok(())
-    }
-
-    pub(super) fn publication_dependency(
-        &self,
-        identity: PhysicalWorkIdentity,
-    ) -> Option<&PhysicalPublicationDependencyLocality> {
-        self.entries
-            .get(&identity)
-            .and_then(|entry| entry.publication_dependency.as_ref())
-    }
-
     pub(super) fn signal(&self, identity: PhysicalWorkIdentity) -> Option<ResourceRequestHandle> {
         self.entries.get(&identity).and_then(|entry| entry.signal)
     }
 
-    #[cfg(feature = "certification-test-authority")]
-    pub(super) fn publication_dependency_observations(
-        &self,
-    ) -> Vec<PhysicalPublicationDependencyObservation> {
-        self.entries
-            .values()
-            .filter_map(|entry| entry.publication_dependency.as_ref())
-            .map(PhysicalPublicationDependencyLocality::observation)
-            .collect()
-    }
-
-    pub(super) fn release_identity(
-        &mut self,
-        identity: PhysicalWorkIdentity,
-    ) -> Option<PhysicalPublicationDependencyLocality> {
-        let entry = self.entries.remove(&identity)?;
+    pub(super) fn release_identity(&mut self, identity: PhysicalWorkIdentity) {
+        let Some(entry) = self.entries.remove(&identity) else {
+            return;
+        };
         for coordinate in entry.scope.coordinates() {
             let artifact = coordinate.artifact();
             let remove_artifact = self
@@ -165,24 +123,19 @@ impl PhysicalSignalLocalityIndex {
                 self.by_artifact.remove(&artifact);
             }
         }
-        entry.publication_dependency
     }
 
-    pub(super) fn release_signal(
-        &mut self,
-        signal: ResourceRequestHandle,
-    ) -> Option<PhysicalPublicationDependencyLocality> {
+    pub(super) fn release_signal(&mut self, signal: ResourceRequestHandle) {
         let identity = self
             .entries
             .iter()
             .find_map(|(identity, entry)| (entry.signal == Some(signal)).then_some(*identity));
-        identity.and_then(|identity| self.release_identity(identity))
+        if let Some(identity) = identity {
+            self.release_identity(identity);
+        }
     }
 
-    pub(super) fn release_envelope(
-        &mut self,
-        envelope: &RawCompletionEnvelope,
-    ) -> Option<PhysicalPublicationDependencyLocality> {
+    pub(super) fn release_envelope(&mut self, envelope: &RawCompletionEnvelope) {
         let identity = self.entries.iter().find_map(|(identity, entry)| {
             entry
                 .signal
@@ -193,7 +146,9 @@ impl PhysicalSignalLocalityIndex {
                 })
                 .then_some(*identity)
         });
-        identity.and_then(|identity| self.release_identity(identity))
+        if let Some(identity) = identity {
+            self.release_identity(identity);
+        }
     }
 }
 

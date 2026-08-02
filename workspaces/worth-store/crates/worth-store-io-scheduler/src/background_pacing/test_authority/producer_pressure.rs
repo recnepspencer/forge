@@ -60,7 +60,11 @@ fn foreground_lane_for_pressure(pressure: BackgroundIoPressureShape) -> Foregrou
             point_read_budget(),
             "certification-producer-secure-read",
         ),
-        unsupported @ (Backend::Mmap | Backend::DirectorySync | Backend::DurableRename) => {
+        unsupported @ (Backend::Mmap
+        | Backend::DirectorySync
+        | Backend::FilesystemAdmittedDirectorySync
+        | Backend::DurableRename
+        | Backend::FilesystemAdmittedDurableRename) => {
             panic!(
                 "certification pressure declares {unsupported:?}, which has no foreground preservation lane"
             )

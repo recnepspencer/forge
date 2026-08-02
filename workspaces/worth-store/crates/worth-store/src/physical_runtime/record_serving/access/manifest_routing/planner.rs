@@ -14,7 +14,7 @@ pub(in crate::physical_runtime::record_serving) struct ManifestPublicationPlan {
     pub(in crate::physical_runtime::record_serving) discovery: ManifestDiscoveryCounterSnapshot,
 }
 
-pub(in crate::physical_runtime::record_serving) struct RootManifestUpdateRequest {
+pub(in crate::physical_runtime::record_serving) struct RootManifestUpdateRequest<'updates> {
     pub(in crate::physical_runtime::record_serving) successor_generation: u64,
     pub(in crate::physical_runtime::record_serving) successor_capacity: u16,
     pub(in crate::physical_runtime::record_serving) free_space_checksum: u32,
@@ -24,7 +24,7 @@ pub(in crate::physical_runtime::record_serving) struct RootManifestUpdateRequest
         Option<SegmentManifestBlockReference>,
     pub(in crate::physical_runtime::record_serving) next_segment_block: u64,
     pub(in crate::physical_runtime::record_serving) placements:
-        BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
+        &'updates BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
     pub(in crate::physical_runtime::record_serving) last_inline_record:
         Option<PersistedRecordIdentity>,
     pub(in crate::physical_runtime::record_serving) last_inline_segment:
@@ -35,7 +35,7 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
     reader: &ManifestReader<'_>,
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
     current: &DurablePhysicalRootManifest,
-    request: RootManifestUpdateRequest,
+    request: RootManifestUpdateRequest<'_>,
 ) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
     ManifestUpdatePlanning {
         reader,
@@ -46,14 +46,14 @@ pub(in crate::physical_runtime::record_serving) fn plan_manifest_updates(
     .plan()
 }
 
-struct ManifestUpdatePlanning<'context, 'media> {
+struct ManifestUpdatePlanning<'context, 'media, 'updates> {
     reader: &'context ManifestReader<'media>,
     allocation: &'context worth_store_buffer_pool::OperationAllocationGrant,
     current: &'context DurablePhysicalRootManifest,
-    request: RootManifestUpdateRequest,
+    request: RootManifestUpdateRequest<'updates>,
 }
 
-impl ManifestUpdatePlanning<'_, '_> {
+impl ManifestUpdatePlanning<'_, '_, '_> {
     fn plan(self) -> Result<ManifestPublicationPlan, ManifestLookupFailure> {
         self.require_branchable_capacities()?;
         if self.request.successor_capacity != self.current.node_capacity() {
@@ -110,7 +110,10 @@ impl ManifestUpdatePlanning<'_, '_> {
                 successor_generation,
                 successor_capacity,
                 next_block: current.next_block(),
-                updates,
+                updates: updates
+                    .iter()
+                    .map(|(record, placement)| (*record, *placement))
+                    .collect(),
             },
         )?;
         let record_count = current
@@ -172,10 +175,10 @@ impl ManifestUpdatePlanning<'_, '_> {
             inserted: 0,
         };
         let mut roots = match current.routing_root() {
-            Some(root) => planner.rewrite(root, &updates)?,
+            Some(root) => planner.rewrite(root, updates)?,
             None => {
                 planner.inserted = updates.len() as u64;
-                planner.write_leaves(updates.into_values().collect())?
+                planner.write_leaves(updates.values().copied().collect())?
             }
         };
         while roots.len() > 1 {

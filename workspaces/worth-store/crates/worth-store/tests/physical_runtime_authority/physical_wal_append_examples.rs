@@ -1,62 +1,74 @@
+use worth_proof::NonEmpty;
+use worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission;
 use worth_store::physical_runtime::{
-    PhysicalRecordSubmission, PhysicalWalAppendFailureCause, PhysicalWalAppendOutcome,
-    PhysicalWalReservationDenial, PreparedPhysicalMutation, WalAppendedPhysicalMutation,
-    WalRangeReservedPhysicalMutation,
+    IndeterminatePhysicalWalGroupAppend, PhysicalWalAppendFailureCause,
+    PhysicalWalGroupAppendContinuation, PhysicalWalGroupAppendFailureCause,
+    PhysicalWalGroupAppendOutcome, PreparedPhysicalMutation, RejectedPhysicalDurabilityGroup,
+    SealedPhysicalDurabilityGroupMembers, WalAppendedPhysicalMutation,
 };
-enum WalAppendDecision {
-    Appended(WalAppendedPhysicalMutation),
-    ReservationDenied {
-        prepared: PreparedPhysicalMutation,
-        cause: PhysicalWalReservationDenial,
+enum WalGroupAppendDecision {
+    Appended(SealedPhysicalDurabilityGroupMembers),
+    NotAdmitted {
+        members: NonEmpty<PreparedPhysicalMutation>,
+        cause: PhysicalWalGroupAppendFailureCause,
     },
-    ProvenNoEffect {
-        prepared: PreparedPhysicalMutation,
-        cause: PhysicalWalAppendFailureCause,
-    },
-    Inspect(WalRangeReservedPhysicalMutation),
+    AdmissionRejected(RejectedPhysicalDurabilityGroup),
+    Continue(PhysicalWalGroupAppendContinuation),
+    Inspect(IndeterminatePhysicalWalGroupAppend),
 }
 
-fn append_one_wal_member(
-    submission: &PhysicalRecordSubmission,
-    prepared: PreparedPhysicalMutation,
-) -> WalAppendDecision {
-    match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => WalAppendDecision::Appended(appended),
-        PhysicalWalAppendOutcome::ReservationDenied { prepared, cause } => {
-            WalAppendDecision::ReservationDenied { prepared, cause }
+fn append_wal_group(
+    submission: &CertificationPhysicalRecordSubmission,
+    members: NonEmpty<PreparedPhysicalMutation>,
+) -> WalGroupAppendDecision {
+    match submission.append_prepared_wal_group(members) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => {
+            WalGroupAppendDecision::Appended(appended)
         }
-        PhysicalWalAppendOutcome::ProvenNoEffect { prepared, cause } => {
-            WalAppendDecision::ProvenNoEffect { prepared, cause }
+        PhysicalWalGroupAppendOutcome::NotAdmitted { members, cause } => {
+            WalGroupAppendDecision::NotAdmitted { members, cause }
         }
-        PhysicalWalAppendOutcome::Indeterminate { reserved } => {
-            WalAppendDecision::Inspect(reserved)
+        PhysicalWalGroupAppendOutcome::AdmissionRejected(rejected) => {
+            WalGroupAppendDecision::AdmissionRejected(rejected)
+        }
+        PhysicalWalGroupAppendOutcome::NotStarted(continuation)
+        | PhysicalWalGroupAppendOutcome::PartiallyAppended(continuation) => {
+            WalGroupAppendDecision::Continue(continuation)
+        }
+        PhysicalWalGroupAppendOutcome::Indeterminate(indeterminate) => {
+            WalGroupAppendDecision::Inspect(indeterminate)
         }
     }
 }
 
 use worth_store::physical_runtime::{
-    PhysicalWalBarrierFailureCause, PhysicalWalBarrierOutcome, WalDurablePhysicalMutation,
+    IndeterminatePhysicalWalGroupBarrier, PhysicalWalGroupBarrierFailureCause,
+    PhysicalWalGroupBarrierOutcome, WalDurablePhysicalMutationMembers,
 };
 
-enum WalBarrierDecision {
-    Durable(WalDurablePhysicalMutation),
+enum WalGroupBarrierDecision {
+    Durable(WalDurablePhysicalMutationMembers),
     Retry {
-        appended: WalAppendedPhysicalMutation,
-        cause: PhysicalWalBarrierFailureCause,
+        appended: SealedPhysicalDurabilityGroupMembers,
+        cause: PhysicalWalGroupBarrierFailureCause,
     },
-    Inspect,
+    Inspect(IndeterminatePhysicalWalGroupBarrier),
 }
 
-fn synchronize_one_wal_member(
-    submission: &PhysicalRecordSubmission,
-    appended: WalAppendedPhysicalMutation,
-) -> WalBarrierDecision {
-    match submission.synchronize_appended_wal(appended) {
-        PhysicalWalBarrierOutcome::Durable(durable) => WalBarrierDecision::Durable(durable),
-        PhysicalWalBarrierOutcome::BarrierNotStarted { appended, cause } => {
-            WalBarrierDecision::Retry { appended, cause }
+fn synchronize_wal_group(
+    submission: &CertificationPhysicalRecordSubmission,
+    appended: SealedPhysicalDurabilityGroupMembers,
+) -> WalGroupBarrierDecision {
+    match submission.synchronize_appended_wal_group(appended) {
+        PhysicalWalGroupBarrierOutcome::Durable(durable) => {
+            WalGroupBarrierDecision::Durable(durable)
         }
-        PhysicalWalBarrierOutcome::Indeterminate(_) => WalBarrierDecision::Inspect,
+        PhysicalWalGroupBarrierOutcome::BarrierNotStarted { appended, cause } => {
+            WalGroupBarrierDecision::Retry { appended, cause }
+        }
+        PhysicalWalGroupBarrierOutcome::Indeterminate(indeterminate) => {
+            WalGroupBarrierDecision::Inspect(indeterminate)
+        }
     }
 }
 
@@ -71,6 +83,8 @@ fn blocked_dependency_keeps_its_signal_classification(
         _ => false,
     }
 }
+
+use worth_store::physical_runtime::PhysicalRecordSubmission;
 
 fn inspect_wal_append(
     submission: &PhysicalRecordSubmission,
@@ -100,8 +114,8 @@ fn inspect_wal_append(
 
 fn main() {
     let _ = (
-        append_one_wal_member,
-        synchronize_one_wal_member,
+        append_wal_group,
+        synchronize_wal_group,
         blocked_dependency_keeps_its_signal_classification,
         inspect_wal_append,
     );

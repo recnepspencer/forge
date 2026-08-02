@@ -6,17 +6,15 @@ use worth_store_compatibility::{
 };
 use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_layout_indexes::evolution::migration::{
-    layout_evolution_binding, layout_migration_execution, layout_migration_operation,
-    LayoutBindingRequest, LayoutBindingWitness, LayoutCompatibilityWindow,
-    LayoutEvolutionDeclaration, LayoutInterruptionPolicy, LayoutMigrationExecutionRequest,
-    LayoutMigrationPlan, LayoutMigrationReceipt, LayoutMigrationRequest,
+    layout_evolution_binding, LayoutBindingRequest, LayoutBindingWitness,
+    LayoutCompatibilityWindow, LayoutEvolutionDeclaration, LayoutInterruptionPolicy,
     LayoutReadCompatibilityPosture, LayoutVersion, LayoutWriteCompatibilityPosture,
 };
 use worth_store_layout_indexes::{
     declarations::{layout_declarations, PhysicalArtifactFamilyDeclaration},
     AdmittedPhysicalArtifactFamily,
 };
-use worth_store_physical_isolation::{CopyOnWritePublicationPlan, PublicationRootCandidate};
+use worth_store_physical_isolation::PublicationRootCandidate;
 use worth_store_security::{
     admit_store_security_scope, StoreAuthenticityRequirement, StoreCustodyPosture, StoreKeyScope,
     StoreKeyVersionPosture, StoreSecurityScopeAdmissionExpectation,
@@ -153,25 +151,6 @@ pub(super) fn physical_inputs(
     publication::publication_inputs_for_store(&store, generation)
 }
 
-pub(super) fn publication_plan(
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> CopyOnWritePublicationPlan {
-    publication::admitted_copy_on_write_plan(&physical_inputs(authority, generation))
-}
-
-pub(super) fn successor_publication_plan(
-    prior: &worth_store_physical_isolation::PhysicalPublicationReceipt,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> CopyOnWritePublicationPlan {
-    let store = worth_store_physical_format::PhysicalStoreIdentity::from_aspect_identity(
-        authority.identity().clone(),
-    );
-    let successor = publication::successor_publication_inputs_for_store(prior, &store, generation);
-    publication::admitted_copy_on_write_plan(&successor)
-}
-
 pub(super) fn binding_outcome(
     declaration: LayoutEvolutionDeclaration,
     family: AdmittedPhysicalArtifactFamily,
@@ -207,45 +186,20 @@ pub(super) fn source_binding(
     .unwrap()
 }
 
-pub(super) fn migration_plan(
+pub(super) fn source_binding_at_version(
     declaration: LayoutEvolutionDeclaration,
     authority: &StoreCurrentAuthorityWitness,
-) -> LayoutMigrationPlan {
-    let binding = source_binding(declaration, authority);
-    layout_migration_operation()
-        .plan(
-            LayoutMigrationRequest::new(declaration, binding.clone(), binding.admitted_family()),
-            authority,
-        )
-        .into_ready()
-        .unwrap()
-}
-
-pub(super) fn execute_migration(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> LayoutMigrationReceipt {
-    execute_migration_with_inputs(declaration, authority, generation).0
-}
-
-pub(super) fn execute_migration_with_inputs(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> (LayoutMigrationReceipt, publication::PublicationInputs) {
-    let inputs = physical_inputs(authority, generation);
-    let request = LayoutMigrationExecutionRequest::new(
-        migration_plan(declaration, authority),
-        publication::admitted_copy_on_write_plan(&inputs),
+    version: LayoutVersion,
+) -> LayoutBindingWitness {
+    let observation_declaration = LayoutEvolutionDeclaration::from_admitted_family(
+        admitted_family(declaration.family_declaration(), authority),
+        declaration.layout_version(),
+        declaration.compatibility_window(),
+        version,
+        version,
+        declaration.rollback_source(),
+        declaration.rollback_target(),
+        declaration.interruption_policy(),
     );
-    let mut runtime = crate::harness::physical_isolation::PhysicalRootPublicationFixture::open(
-        request.publication_source_root(),
-    )
-    .unwrap();
-    let receipt = layout_migration_execution(&mut runtime)
-        .execute(request)
-        .into_published()
-        .unwrap();
-    (receipt, inputs)
+    source_binding(observation_declaration, authority)
 }

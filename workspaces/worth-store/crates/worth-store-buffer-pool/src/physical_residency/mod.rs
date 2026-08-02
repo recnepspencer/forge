@@ -1,4 +1,5 @@
 mod denial;
+mod dirty_generation;
 mod frame_access;
 mod lease;
 mod limits;
@@ -12,6 +13,11 @@ mod work_kind;
 mod writeback_range_posture;
 
 pub use denial::PhysicalResidencyDenial;
+pub use dirty_generation::{
+    PhysicalDirtyFrameBasis, PhysicalDirtyGeneration, PhysicalDirtyGenerationCaptureCompletion,
+    PhysicalDirtyGenerationCaptureSession, PhysicalDirtyGenerationCaptureStep,
+    PhysicalDirtyGenerationSlice,
+};
 pub use frame_access::{
     PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
     PhysicalFrameAccess, PhysicalFrameFaultError, PhysicalFrameFaultOwner,
@@ -39,8 +45,8 @@ pub use observation::{
     PhysicalResidencyAllocationTrace, PhysicalResidencyCounters, PhysicalResidencyShutdown,
 };
 pub use operation_allocation::{
-    ForegroundReadAllocationGrant, ForegroundWriteAllocationGrant, OperationAllocationGrant,
-    OperationAllocationObservation,
+    ForegroundReadAllocationGrant, ForegroundWriteAllocationGrant, MaintenanceAllocationGrant,
+    OperationAllocationGrant, OperationAllocationObservation,
 };
 pub use pool::{
     PhysicalBoundedFrameKey, PhysicalCandidateFrameKey, PhysicalFrameKey,

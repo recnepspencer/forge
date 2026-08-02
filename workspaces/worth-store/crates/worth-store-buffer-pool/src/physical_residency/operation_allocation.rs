@@ -12,9 +12,11 @@ use super::{
 
 mod foreground_read;
 mod foreground_write;
+mod maintenance;
 
 pub use foreground_read::ForegroundReadAllocationGrant;
 pub use foreground_write::ForegroundWriteAllocationGrant;
+pub use maintenance::MaintenanceAllocationGrant;
 
 #[derive(Debug)]
 pub struct OperationAllocationGrant {

@@ -13,7 +13,7 @@ pub(crate) fn commit_visible(
         chunk_tree_root: intent.chunk_tree_root().clone(),
         logical_content_digest: intent.logical_content_digest().clone(),
         classification: intent.classification(),
-        durable_publication: wal_commit.durable_publication().clone(),
+        publication_declaration: wal_commit.publication_declaration().clone(),
         replay_classification_digest: wal_commit.replay_classification_digest().to_owned(),
         replay_counters: wal_commit.replay_counters(),
         staging_identity: wal_commit.staging_identity().clone(),

@@ -1,6 +1,4 @@
-pub(crate) use super::control_record_kind::{
-    OperationalControlRecordKind, RecoveryPublicationControlBinding,
-};
+pub(crate) use super::control_record_kind::OperationalControlRecordKind;
 use super::{BackupMaterializationRecoveryPlan, OperationalOperationId, OperationalTransitionId};
 use worth_store_authority::StoreCurrentAuthorityIdentity;
 use worth_store_physical_backend::ControlRecoveryObjectHandle;
@@ -268,77 +266,6 @@ impl OperationalControlRecord {
                 plan_fingerprint,
                 disposition_tag,
                 disposition_basis,
-            },
-        }
-    }
-
-    pub(crate) fn recovery_publication_prepared(
-        authority_identity: StoreCurrentAuthorityIdentity,
-        operation_id: OperationalOperationId,
-        transition_id: OperationalTransitionId,
-        binding: RecoveryPublicationControlBinding,
-    ) -> Self {
-        Self {
-            authority_identity,
-            operation_id,
-            transition_id,
-            kind: OperationalControlRecordKind::RecoveryPublicationPrepared { binding },
-        }
-    }
-
-    pub(crate) fn recovery_publication_pending(
-        authority_identity: StoreCurrentAuthorityIdentity,
-        operation_id: OperationalOperationId,
-        transition_id: OperationalTransitionId,
-        binding: RecoveryPublicationControlBinding,
-    ) -> Self {
-        Self {
-            authority_identity,
-            operation_id,
-            transition_id,
-            kind: OperationalControlRecordKind::RecoveryPublicationPending { binding },
-        }
-    }
-
-    pub(crate) fn recovery_publication_disposition(
-        authority_identity: StoreCurrentAuthorityIdentity,
-        operation_id: OperationalOperationId,
-        transition_id: OperationalTransitionId,
-        publication_identity: [u8; 32],
-        disposition_tag: u8,
-        disposition_basis: [u8; 32],
-        observed_authority: StoreCurrentAuthorityIdentity,
-    ) -> Self {
-        Self {
-            authority_identity,
-            operation_id,
-            transition_id,
-            kind: OperationalControlRecordKind::RecoveryPublicationDisposition {
-                publication_identity,
-                disposition_tag,
-                disposition_basis,
-                observed_authority,
-            },
-        }
-    }
-
-    pub(crate) fn recovery_publication_fence_released(
-        authority_identity: StoreCurrentAuthorityIdentity,
-        operation_id: OperationalOperationId,
-        publication_identity: [u8; 32],
-        fence_identity: [u8; 32],
-        fence_plan_fingerprint: [u8; 32],
-        disposition_tag: u8,
-    ) -> Self {
-        Self {
-            authority_identity,
-            operation_id,
-            transition_id: OperationalTransitionId::recovery_publication_fence_released(),
-            kind: OperationalControlRecordKind::RecoveryPublicationFenceReleased {
-                publication_identity,
-                fence_identity,
-                fence_plan_fingerprint,
-                disposition_tag,
             },
         }
     }

@@ -38,16 +38,15 @@ pub(super) fn writer(root: &Path) {
     let serving =
         super::physical_work::serving_from_initialization_with_work_profile(root, profile);
     let (_, placement, _) = super::configuration();
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([REOPENED_PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = super::durable_publication::publish_single(
+        &serving,
+        placement,
+        super::durable_publication::certification_material("fresh-reopen-writeback", 1),
+        RecordAppendBatch::try_from_iter([REOPENED_PAYLOAD]).unwrap(),
+    );
     let locator = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        published.record_id(0).unwrap(),
+        published.settled_members()[0].record_id(0).unwrap(),
     );
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 8, 8).unwrap();

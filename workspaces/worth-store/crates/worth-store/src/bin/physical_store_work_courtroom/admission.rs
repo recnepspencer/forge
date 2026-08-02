@@ -6,10 +6,11 @@ use std::{
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     AdmittedPhysicalDurabilityPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
-    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations, MediaOwnedPhysicalRuntime,
-    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
-    PhysicalIdempotencyPolicy, PhysicalRuntimeAdmission, PhysicalStore,
-    RecordServingAdmissionOutcome, RetainedWalTailLimit, ServingPhysicalRuntime,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
+    LiveIdempotencyBindingLimit, MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit,
+    PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration, PhysicalIdempotencyPolicy,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalPolicy, RecordServingAdmissionOutcome,
+    RetainedWalTailLimit, ServingPhysicalRuntime, WalSegmentByteLimit, WalSegmentInventoryLimit,
 };
 use worth_store_physical_backend::{FilesystemAccessPosture, MediaFaultSchedule};
 
@@ -65,9 +66,14 @@ pub(super) fn admit_durability(
             GroupCommitLimit::new(NonZeroU32::new(32).unwrap()),
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
+        .wal(PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ))
         .idempotency(PhysicalIdempotencyPolicy::new(
             IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
             PendingUnresolvedMutationLimit::new(NonZeroU32::new(1_024).unwrap()),
+            LiveIdempotencyBindingLimit::new(NonZeroU32::new(4_096).unwrap()),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
             CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),

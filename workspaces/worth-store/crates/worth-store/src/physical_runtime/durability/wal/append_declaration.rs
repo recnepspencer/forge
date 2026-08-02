@@ -1,6 +1,8 @@
 use worth_store_physical_backend::ArtifactAppendRange;
 use worth_store_wal::{WalLsnRange, WalSegmentGeneration, WalSegmentId};
 
+use crate::physical_runtime::PhysicalWalFrameWriteDisposition;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalWalAppendDeclaration {
     segment: WalSegmentId,
@@ -8,6 +10,7 @@ pub struct PhysicalWalAppendDeclaration {
     lsn_range: WalLsnRange,
     artifact_range: ArtifactAppendRange,
     payload_digest: [u8; 32],
+    disposition: PhysicalWalFrameWriteDisposition,
 }
 
 impl PhysicalWalAppendDeclaration {
@@ -17,6 +20,7 @@ impl PhysicalWalAppendDeclaration {
         lsn_range: WalLsnRange,
         artifact_range: ArtifactAppendRange,
         payload_digest: [u8; 32],
+        disposition: PhysicalWalFrameWriteDisposition,
     ) -> Self {
         Self {
             segment,
@@ -24,6 +28,7 @@ impl PhysicalWalAppendDeclaration {
             lsn_range,
             artifact_range,
             payload_digest,
+            disposition,
         }
     }
 
@@ -45,5 +50,9 @@ impl PhysicalWalAppendDeclaration {
 
     pub const fn payload_digest(self) -> [u8; 32] {
         self.payload_digest
+    }
+
+    pub const fn disposition(self) -> PhysicalWalFrameWriteDisposition {
+        self.disposition
     }
 }

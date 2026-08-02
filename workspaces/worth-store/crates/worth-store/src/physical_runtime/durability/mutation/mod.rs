@@ -1,29 +1,50 @@
 mod admission;
+mod handle;
 mod idempotency;
 mod identity;
+mod outcome;
 mod progression;
 mod request;
 mod request_fingerprint;
 
+pub(in crate::physical_runtime) use handle::PhysicalMutationAttempt;
+pub use handle::PhysicalMutationHandle;
 pub use idempotency::{
+    PhysicalIdempotencyReopenFailure, PhysicalMutationBindingCompaction,
     PhysicalMutationIdempotencyIssuanceDenial, PhysicalMutationIdempotencyKey,
     PhysicalMutationIdempotencyKeyIdentity, PhysicalMutationIdempotencyLease,
     PhysicalMutationIdempotencyMaterial, PhysicalNamespaceDurableCheckpointGeneration,
 };
 pub use identity::PhysicalMutationIdentity;
+pub(in crate::physical_runtime) use outcome::PhysicalMutationTerminalFact;
+pub use outcome::{
+    PhysicalMutationCancellationOutcome, PhysicalMutationOutcome, PhysicalMutationPoll,
+    PhysicalMutationProgress, PhysicalMutationProgressPhase, PhysicalMutationTerminalObservation,
+};
 pub use progression::{
-    DataDispatchedPhysicalMutation, DataSettledPhysicalMutation, WalAppendedPhysicalMutation,
-    WalDurablePhysicalMutation, WalRangeReservedPhysicalMutation,
+    CompletedPhysicalMutation, DataDispatchedPhysicalMutation, DataSettledPhysicalMutation,
+    RootNamespaceDurablePhysicalMutationMembers, RootPublicationPhysicalMutationMember,
+    RootPublicationPreparedPhysicalMutationMembers, RootReplacedPhysicalMutationMembers,
+    WalAppendedPhysicalMutation, WalDurablePhysicalMutation, WalRangeReservedPhysicalMutation,
+};
+pub(in crate::physical_runtime) use progression::{
+    CompletedPhysicalMutationFact, RootPublicationPreparedCore, SettledPhysicalMutationBasis,
+    WalRangeReservedPhysicalMutationBasis,
 };
 pub use request::{PhysicalMutationDeadline, PhysicalMutationRequest};
 pub use request_fingerprint::PhysicalMutationRequestFingerprint;
 
 pub(in crate::physical_runtime) use admission::AdmittedPhysicalMutation;
 pub(in crate::physical_runtime) use idempotency::{
-    AllocatedPhysicalMutationAttemptBinding, PhysicalMutationIdempotencyRegistryAdmission,
+    rebuild_idempotency, AllocatedPhysicalMutationAttemptBinding,
+    PersistedPhysicalMutationAttemptBinding, PhysicalMutationBindingCompactionCutover,
+    PhysicalMutationBindingCompactionRuntimeAuthority, PhysicalMutationGroupSealingBinding,
+    PhysicalMutationIdempotencyGroupSealDenial, PhysicalMutationIdempotencyRegistryAdmission,
     PhysicalMutationIdempotencyRegistryAdmissionError, PhysicalMutationIdempotencyRegistryDenial,
     PhysicalMutationIdempotencyRuntimeAuthority, PhysicalMutationIdempotencyRuntimeOwner,
-    PhysicalMutationUnresolvedBindingObservation, UnallocatedPhysicalMutationAttemptBinding,
+    PhysicalMutationPreSealCancellationDenial, PhysicalMutationTerminalizationDenial,
+    PhysicalMutationUnresolvedBindingObservation, RebuiltPhysicalMutationIdempotency,
+    UnallocatedPhysicalMutationAttemptBinding,
 };
 pub(in crate::physical_runtime) use request::PhysicalMutationDurabilityRequest;
 pub(in crate::physical_runtime) use request_fingerprint::{

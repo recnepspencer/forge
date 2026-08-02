@@ -1,11 +1,12 @@
 use std::{num::NonZeroU32, path::Path};
 
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_store::physical_runtime::certification::MediaFaultDirective;
 use worth_store::physical_runtime::{
     FilesystemMediaAdmission, PhysicalMutationIdempotencyMaterial, PhysicalRecordOpen,
-    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalAppendOutcome,
-    PhysicalWalBarrierFailureCause, PhysicalWalBarrierOutcome,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalGroupAppendOutcome,
+    PhysicalWalGroupBarrierFailureCause, PhysicalWalGroupBarrierOutcome,
+    SealedPhysicalDurabilityGroupMembers,
 };
 use worth_store_physical_backend::{
     ArtifactTreeFailureKind, BackendTargetProfile, CertificationMediaFaultActivation,
@@ -20,20 +21,25 @@ fn exact_appended_member_crosses_the_scheduled_barrier_into_wal_durable_authorit
     let store_root = parent.path().join("store");
     let serving = super::super::serving_from_initialization(&store_root);
     let (_, placement, _) = configuration();
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let appended = append(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([91; 32]),
     );
-    let mutation = appended.mutation_identity();
-    let member = appended.reserved().member_basis();
-    let append_work = appended.settlement().work_identity();
-    let append_operation = appended.settlement().backend_operation();
+    let appended_member = appended.members()[0].mutation();
+    let mutation = appended_member.mutation_identity();
+    let member = appended_member.reserved().member_basis();
+    let append_work = appended_member.settlement().work_identity();
+    let append_operation = appended_member.settlement().backend_operation();
     let durability = serving.durability_observation();
 
-    let durable = match submission.synchronize_appended_wal(appended) {
-        PhysicalWalBarrierOutcome::Durable(durable) => durable,
+    let durable = match submission.synchronize_appended_wal_group(appended) {
+        PhysicalWalGroupBarrierOutcome::Durable(durable) => durable
+            .into_members()
+            .into_vec()
+            .pop()
+            .expect("one sealed member derives one durable member"),
         _ => panic!("the canonical scheduled barrier must mint WAL-durable authority"),
     };
     let settlement = durable.barrier_settlement();
@@ -72,31 +78,41 @@ fn denied_before_barrier_effect_returns_the_exact_append_and_retries_canonically
     let serving = super::super::success(
         media.open_record_store(PhysicalRecordOpen::new(format, access, policy)),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let appended = append(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([92; 32]),
     );
-    let mutation = appended.mutation_identity();
-    let member = appended.reserved().member_basis();
+    let mutation = appended.members()[0].mutation().mutation_identity();
+    let member = appended.members()[0].mutation().reserved().member_basis();
 
     activation.arm().unwrap();
-    let preserved = match submission.synchronize_appended_wal(appended) {
-        PhysicalWalBarrierOutcome::BarrierNotStarted {
+    let preserved = match submission.synchronize_appended_wal_group(appended) {
+        PhysicalWalGroupBarrierOutcome::BarrierNotStarted {
             appended,
-            cause: PhysicalWalBarrierFailureCause::MediaDeniedBeforeEffect(failure),
+            cause: PhysicalWalGroupBarrierFailureCause::MediaDeniedBeforeEffect(failure),
         } => {
             assert_eq!(failure.kind(), ArtifactTreeFailureKind::DeniedBeforeEffect);
             appended
         }
         _ => panic!("a pre-effect synchronization denial must preserve the exact append"),
     };
-    assert_eq!(preserved.mutation_identity(), mutation);
-    assert_eq!(preserved.reserved().member_basis(), member);
+    assert_eq!(
+        preserved.members()[0].mutation().mutation_identity(),
+        mutation
+    );
+    assert_eq!(
+        preserved.members()[0].mutation().reserved().member_basis(),
+        member
+    );
 
-    let durable = match submission.synchronize_appended_wal(preserved) {
-        PhysicalWalBarrierOutcome::Durable(durable) => durable,
+    let durable = match submission.synchronize_appended_wal_group(preserved) {
+        PhysicalWalGroupBarrierOutcome::Durable(durable) => durable
+            .into_members()
+            .into_vec()
+            .pop()
+            .expect("one sealed member derives one durable member"),
         _ => panic!("one-shot barrier denial must retry through the canonical route"),
     };
     assert_eq!(durable.mutation_identity(), mutation);
@@ -118,33 +134,32 @@ fn post_effect_uncertainty_never_mints_wal_durable_authority_or_returns_retry_au
     let serving = super::super::success(
         media.open_record_store(PhysicalRecordOpen::new(format, access, policy)),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let appended = append(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([93; 32]),
     );
-    let mutation = appended.mutation_identity();
-    let member = appended.reserved().member_basis();
+    let basis = appended.basis();
 
     activation.arm().unwrap();
-    let uncertain = match submission.synchronize_appended_wal(appended) {
-        PhysicalWalBarrierOutcome::Indeterminate(uncertain) => uncertain,
+    let uncertain = match submission.synchronize_appended_wal_group(appended) {
+        PhysicalWalGroupBarrierOutcome::Indeterminate(uncertain) => uncertain,
         _ => panic!("post-effect uncertainty must remain inspection-only"),
     };
-    assert_eq!(uncertain.mutation_identity(), mutation);
-    assert_eq!(uncertain.member_basis(), member);
+    assert_eq!(uncertain.basis(), basis);
+    assert_eq!(uncertain.member_count(), 1);
     serving.close();
 }
 
 fn append(
-    submission: &worth_store::physical_runtime::PhysicalRecordSubmission,
+    submission: &worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission,
     placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
     material: PhysicalMutationIdempotencyMaterial,
-) -> worth_store::physical_runtime::WalAppendedPhysicalMutation {
+) -> SealedPhysicalDurabilityGroupMembers {
     let prepared = super::wal_append::prepared(submission, placement, material, b"barrier-redo");
-    match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    match submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("barrier evidence requires one canonical appended WAL member"),
     }
 }

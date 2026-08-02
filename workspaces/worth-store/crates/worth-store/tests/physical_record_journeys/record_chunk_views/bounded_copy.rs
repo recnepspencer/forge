@@ -1,5 +1,6 @@
 use worth_store::physical_runtime::{RecordAppendBatch, RecordByteLimit, RecordReadLimits};
 
+use super::super::durable_publication::publish_single;
 use super::fixture;
 
 #[derive(Default)]
@@ -24,14 +25,13 @@ fn bounded_copy_streams_the_complete_larger_than_memory_record_with_exact_eviden
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(7 * fixture::CHUNK_PAYLOAD_BYTES + 53);
     assert!(expected.len() as u64 > fixture::RESIDENT_BYTES);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([170; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     let copies_before = serving.residency_observation().counters();
     let mut session = serving
         .records()
@@ -86,14 +86,13 @@ fn bounded_copies_and_views_share_one_cursor_with_exact_copy_evidence() {
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(5 * fixture::CHUNK_PAYLOAD_BYTES + 37);
     assert!(expected.len() as u64 > fixture::RESIDENT_BYTES);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([170; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     let copies_before = serving.residency_observation().counters();
     let mut session = serving
         .records()

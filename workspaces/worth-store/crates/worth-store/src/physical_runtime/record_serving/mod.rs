@@ -105,11 +105,8 @@ pub use lifecycle::serving_shutdown::{
     RecordServingOwnerDisposition, RecordServingTerminalObservation, RecordServingTerminalPosture,
     ServingShutdownOutcome,
 };
-pub(in crate::physical_runtime::record_serving) use mutation_work_port::CanonicalRecordPublicationEffect;
-pub(in crate::physical_runtime::record_serving) use mutation_work_port::PreparedCatalogReplacement;
 pub(in crate::physical_runtime) use mutation_work_port::{
-    CanonicalRecordMutationCompletion, CanonicalRecordMutationFailure, CanonicalRecordMutationPort,
-    CanonicalRecordMutationSettlement, PreparedCanonicalRecordMutation,
+    CanonicalRecordMutationFailure, CanonicalRecordMutationPort, CanonicalRecordMutationSettlement,
 };
 pub use mutation_work_port::{
     PhysicalRecordMutationFailureCause, PhysicalRecordMutationFailureEvidence,
@@ -121,34 +118,45 @@ pub use planning::placement_policy::{
 pub use planning::policy_units::{
     ManifestEntryCapacity, PageFillPercent, RecordByteLimit, RecordCountLimit, SegmentPageCount,
 };
-pub use publication::append::{RecordAppendDenial, RecordAppendError, RecordPlacementClass};
-pub use publication::append_observation::{PublishedRecordBatch, RecordAppendObservation};
-pub use publication::batch::{RecordAppendBatch, RecordAppendBatchBuilder};
-pub use publication::publication_outcome::{
-    IndeterminateRecordPublication, IndeterminateRecordPublicationCause, RecordPublicationOutcome,
-    RecordPublicationRecoveryBasis, RecordPublicationRecoveryLocator, UnpublishedRecordBatchCause,
-    UnpublishedRecordBatchFailure, UnpublishedRecordEffectFate, UnpublishedRecordWorldFate,
+pub use planning::SettledRootProjectionMergeDenial;
+pub(in crate::physical_runtime) use planning::{
+    PreparedPhysicalRootProjection, RejectedSettledRootProjections,
 };
+pub use publication::append::{RecordAppendDenial, RecordAppendError, RecordPlacementClass};
+pub use publication::append_observation::{RecordAppendObservation, RecordRootPlanningObservation};
+pub use publication::batch::{RecordAppendBatch, RecordAppendBatchBuilder};
 pub use publication::publication_residue::RecordPublicationResidueObservation;
 pub use publication::streaming::{
     RecordStreamFailure, RecordStreamFailureKind, RecordWriteSource, RecordWriteSourceError,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use publication::CertificationPhysicalRecordSubmission;
 pub use publication::RecordPublicationStage;
 pub use publication::{
-    PhysicalMutationAdmissionDisposition, PhysicalMutationPreparationDeferred,
-    PhysicalMutationPreparationDenial, PhysicalMutationPreparationFailure,
-    PhysicalMutationPreparationOutcome, PhysicalMutationPreparationRebindRequired,
-    PhysicalMutationPreparationStale, PhysicalMutationResourceShape, PhysicalRecordSubmission,
-    PreparedPhysicalMutation, PreparedRecordAppend, RecordPublicationWorkEffect,
-    RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
+    PhysicalManifestCapacityTransition, PhysicalMutationAdmissionDisposition,
+    PhysicalMutationPreparationDeferred, PhysicalMutationPreparationDenial,
+    PhysicalMutationPreparationFailure, PhysicalMutationPreparationOutcome,
+    PhysicalMutationPreparationRebindRequired, PhysicalMutationPreparationStale,
+    PhysicalMutationPreparationSuccess, PhysicalMutationResourceShape,
+    PhysicalPreSealCancellationDenial, PhysicalPreSealCancellationOutcome,
+    PhysicalRecordSubmission, PreparedPhysicalMutation, RootPublicationCandidatePlan,
+    RootPublicationPlanningMembers,
 };
 pub(in crate::physical_runtime) use publication::{
-    PreparedRecordPublicationContinuation, RecordPublicationDirector, RecordPublicationFoundation,
+    PlannedPhysicalMutationParts, PreparedPhysicalMutationContext, PreparedPhysicalRootCandidate,
+    PreparedRecordCompletionProjection, RecordPublicationDirector, RecordPublicationFoundation,
+    WrittenRootPublicationCandidate,
+};
+pub(in crate::physical_runtime) use publication::{
+    RootCandidateWriteFailureKind, RootCandidateWriteFailurePosture,
 };
 pub(in crate::physical_runtime) use read_work_port::{
     CanonicalRecordReadFailure, CanonicalRecordReadPort,
 };
-pub(in crate::physical_runtime) use record_queue_policy::admit_record_queue_policy;
+pub(in crate::physical_runtime) use record_queue_policy::{
+    admit_checkpoint_background_policy, admit_record_queue_policy,
+    admit_wal_reclamation_background_policy,
+};
 pub use residency::candidate_frame_residency::CandidateFrameContractViolation;
 pub(in crate::physical_runtime) use residency::candidate_frame_residency::{
     CandidateFrameEffectSettlement, CandidateFrameEffectSource,

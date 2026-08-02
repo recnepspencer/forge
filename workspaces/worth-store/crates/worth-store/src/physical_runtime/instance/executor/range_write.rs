@@ -131,6 +131,15 @@ fn write_durability(
         crate::physical_runtime::PhysicalWorkDurabilityRequirement::WalDurabilityBarrier => {
             unreachable!("WAL barrier commands use the dedicated WAL barrier executor")
         }
+        crate::physical_runtime::PhysicalWorkDurabilityRequirement::CheckpointCapture => {
+            unreachable!("checkpoint commands use the dedicated checkpoint executor")
+        }
+        crate::physical_runtime::PhysicalWorkDurabilityRequirement::WalReclamation => {
+            unreachable!("WAL reclamation commands use the dedicated reclamation executor")
+        }
+        crate::physical_runtime::PhysicalWorkDurabilityRequirement::RootPublication => {
+            unreachable!("root publication commands use the dedicated root executor")
+        }
     }
 }
 

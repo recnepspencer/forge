@@ -1,7 +1,7 @@
 use std::path::Path;
 
 #[test]
-fn public_wal_examples_are_exact_external_compile_specimens() {
+fn documented_wal_examples_are_exact_external_compile_specimens() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let document = std::fs::read_to_string(
         crate_root.join("../../../../_docs/worth-store/physical-wal-append.md"),
@@ -18,11 +18,15 @@ fn public_wal_examples_are_exact_external_compile_specimens() {
         .map(|tail| tail.split("```").next().unwrap())
         .collect::<Vec<_>>();
 
-    assert_eq!(blocks.len(), 2, "every public Rust block is inventoried");
+    assert_eq!(
+        blocks.len(),
+        2,
+        "every documented Rust block is inventoried"
+    );
     for block in blocks {
         assert!(
             specimen.contains(&normalized_rust(block)),
-            "a public WAL example drifted from its external compile specimen:\n{block}",
+            "a documented WAL example drifted from its external compile specimen:\n{block}",
         );
     }
 }

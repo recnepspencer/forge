@@ -1,4 +1,4 @@
-use worth_store_physical_backend::{BackendTargetProfile, StoreDurabilityPublicationKind};
+use worth_store_physical_backend::BackendTargetProfile;
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalRecordSlot,
     PhysicalReferenceAuthority, PhysicalSegmentId,
@@ -9,11 +9,13 @@ use worth_store_physical_isolation::{
 };
 use worth_store_recovery_physics::{
     BlobReplaySourceAdmission, BlobResumeReplayReadmission, DurabilityReplayIdentity,
+    DurabilityReplayKind,
 };
 use worth_store_security::StoreTenantScope;
 use worth_store_wal::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, DurablePublicationDeclaration,
-    WalFrameDurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, LogSequenceNumber,
+    PublicationDeclaration, WalFramePublicationScope, WalLsnRange, WalSegmentGeneration,
+    WalSegmentId,
 };
 
 use crate::lifecycle::generation_registry_test_support::current_authority;
@@ -121,13 +123,17 @@ fn stale_wrong_scope_wrong_authority_and_missing_tail_checkpoints_cannot_resume(
 }
 
 #[test]
-fn replay_reports_distinct_session_lifecycle_outcomes() {
-    let lane = resume_lane("phase12-distinct", b"aaaabbbbcccc", 12, 12);
+fn replay_reports_distinct_active_session_lifecycle_outcomes() {
+    let lane = resume_lane("phase12-distinct-active", b"aaaabbbbcccc", 12, 12);
     assert_unfinished(
         lane.declaration
             .export_checkpoint(
                 lane.store_authority.clone(),
-                wal_record(BlobWalRecordKind::SessionCheckpoint, 10, "phase12-distinct"),
+                wal_record(
+                    BlobWalRecordKind::SessionCheckpoint,
+                    10,
+                    "phase12-distinct-active",
+                ),
             )
             .unwrap(),
         &lane,
@@ -138,7 +144,7 @@ fn replay_reports_distinct_session_lifecycle_outcomes() {
             .export_checkpoint(wal_record(
                 BlobWalRecordKind::SessionCheckpoint,
                 11,
-                "phase12-distinct",
+                "phase12-distinct-active",
             ))
             .unwrap(),
         &lane,
@@ -149,7 +155,7 @@ fn replay_reports_distinct_session_lifecycle_outcomes() {
             .export_checkpoint(wal_record(
                 BlobWalRecordKind::SessionCheckpoint,
                 12,
-                "phase12-distinct",
+                "phase12-distinct-active",
             ))
             .unwrap(),
         &lane,
@@ -162,13 +168,18 @@ fn replay_reports_distinct_session_lifecycle_outcomes() {
         &lane,
         BlobResumeUnfinishedState::BlobPublishedAwaitingSessionCloseout,
     );
+}
+
+#[test]
+fn replay_reports_distinct_terminal_session_lifecycle_outcomes() {
+    let lane = resume_lane("phase12-distinct-terminal", b"aaaabbbbcccc", 12, 12);
     let closed = lane
         .ready
         .clone()
         .close_session(wal_record(
             BlobWalRecordKind::SessionCloseout,
             13,
-            "phase12-distinct",
+            "phase12-distinct-terminal",
         ))
         .unwrap();
     assert_unfinished(
@@ -338,23 +349,34 @@ fn readmission_authority_for_digest(
 
 fn replay_source_for_checkpoint_digest(checkpoint_digest: &str) -> BlobReplaySourceAdmission {
     let identity = DurabilityReplayIdentity::new(
-        StoreDurabilityPublicationKind::Checkpoint,
+        DurabilityReplayKind::Checkpoint,
         BackendTargetProfile::SimulatedStrictDurable,
         checkpoint_digest,
         1,
         2,
-    );
+    )
+    .unwrap();
     BlobReplaySourceAdmission::from_checkpoint_replay_identity(&identity)
         .expect("checkpoint replay source")
 }
 
 fn wal_record(kind: BlobWalRecordKind, sequence: u64, case: &str) -> BlobWalRecordEnvelope {
     let payload = format!("{case}:{kind:?}:{sequence}");
-    let scope = WalFrameDurablePublicationScope::new(9, 1, sequence, sequence + 1, &payload, 64)
-        .expect("wal scope");
+    let scope = WalFramePublicationScope::new(
+        WalSegmentId::new(9).unwrap(),
+        WalSegmentGeneration::new(1).unwrap(),
+        WalLsnRange::new(
+            LogSequenceNumber::new(sequence),
+            LogSequenceNumber::new(sequence + 1),
+        )
+        .unwrap(),
+        &payload,
+        64,
+    )
+    .expect("wal scope");
     BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(sequence, kind).expect("wal identity"),
-        DurablePublicationDeclaration::wal_frame(scope),
+        PublicationDeclaration::wal_frame(scope),
         payload,
     )
     .expect("wal envelope")

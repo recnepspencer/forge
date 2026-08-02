@@ -1,23 +1,25 @@
-use sha2::{Digest, Sha256};
 use worth_store_io_scheduler::foreground_reservation::{
     ForegroundIoLaneKind, ForegroundReservationReceipt, PhysicalInstanceForegroundCapacityLease,
     PhysicalInstanceForegroundReservation,
 };
 use worth_store_io_scheduler::{
-    admit_queue_execution_plan, admit_queue_policy_receipt, lower_physical_foreground_work,
+    admit_queue_execution_plan, admit_queue_policy_receipt, lower_background_queue_lease,
+    lower_physical_foreground_work, BackgroundIdleCapacityLease,
     IoSchedulerBackendCapabilityAdmission, PhysicalForegroundWorkDeclaration,
     QueueExecutionAdmissionDenial, QueueExecutionAdmissionRequest, QueueLocalityIdentity,
-    QueueLocalityRange, QueueWorkDeclaration, SecureIoPreservationReceipt,
+    QueueWorkDeclaration, SecureIoPreservationReceipt,
 };
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
-use worth_store_physical_format::RecordArtifactFile;
 
 use super::{
     PhysicalWorkDurabilityRequirement, PhysicalWorkOperationFamily, ReadyPhysicalWork,
     ResourceAdmittedPhysicalWork,
 };
 
+mod locality;
 mod residency;
+
+use locality::physical_locality;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalSchedulerDenial {
@@ -26,6 +28,7 @@ pub enum PhysicalSchedulerDenial {
         operation: PhysicalWorkOperationFamily,
         lane: ForegroundIoLaneKind,
     },
+    BackgroundOperationMismatch(PhysicalWorkOperationFamily),
     Queue(QueueExecutionAdmissionDenial),
     ResidencyWorkMismatch,
     Residency(worth_store_buffer_pool::PhysicalResidencyDenial),
@@ -34,7 +37,7 @@ pub enum PhysicalSchedulerDenial {
 pub struct PhysicalSchedulerDemand {
     ready: ReadyPhysicalWork,
     work: QueueWorkDeclaration,
-    capacity: PhysicalInstanceForegroundCapacityLease,
+    capacity: Option<PhysicalInstanceForegroundCapacityLease>,
 }
 
 pub struct PhysicalWorkScheduler;
@@ -68,7 +71,53 @@ impl PhysicalSchedulerDemand {
         Ok(Self {
             ready,
             work,
-            capacity,
+            capacity: Some(capacity),
+        })
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_background(
+        ready: ReadyPhysicalWork,
+        lease: BackgroundIdleCapacityLease,
+    ) -> Result<Self, PhysicalSchedulerDenial> {
+        ready
+            .require_consumer_active()
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
+        let operation = ready.intent().operation();
+        if operation != PhysicalWorkOperationFamily::CheckpointCapture {
+            return Err(PhysicalSchedulerDenial::BackgroundOperationMismatch(
+                operation,
+            ));
+        }
+        ready
+            .admit_scheduler_pressure(super::PhysicalWorkPressureClass::BackgroundCheckpoint)
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
+        Ok(Self {
+            ready,
+            work: lower_background_queue_lease(lease),
+            capacity: None,
+        })
+    }
+
+    pub(in crate::physical_runtime) fn wal_reclamation_background(
+        ready: ReadyPhysicalWork,
+        lease: BackgroundIdleCapacityLease,
+    ) -> Result<Self, PhysicalSchedulerDenial> {
+        ready
+            .require_consumer_active()
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
+        let operation = ready.intent().operation();
+        if operation != PhysicalWorkOperationFamily::WalReclamation {
+            return Err(PhysicalSchedulerDenial::BackgroundOperationMismatch(
+                operation,
+            ));
+        }
+        ready
+            .admit_scheduler_pressure(super::PhysicalWorkPressureClass::BackgroundCheckpoint)
+            .map_err(PhysicalSchedulerDenial::PreEffect)?;
+        Ok(Self {
+            ready,
+            work: lower_background_queue_lease(lease),
+            capacity: None,
         })
     }
 
@@ -103,130 +152,11 @@ const fn pressure_class(lane: ForegroundIoLaneKind) -> super::PhysicalWorkPressu
             super::PhysicalWorkPressureClass::ForegroundMutation
         }
         ForegroundIoLaneKind::CommitCriticalWalAppend
-        | ForegroundIoLaneKind::CommitCriticalWalWrite => {
+        | ForegroundIoLaneKind::CommitCriticalWalWrite
+        | ForegroundIoLaneKind::RootPublication => {
             super::PhysicalWorkPressureClass::ForegroundMutation
         }
     }
-}
-
-fn physical_locality(
-    store: worth_store_physical_format::store_namespace::StableStoreIdentity,
-    scope: &super::PhysicalWorkScope,
-) -> QueueLocalityIdentity {
-    let mut digest = Sha256::new();
-    digest.update(b"worth-store.physical-queue-locality.v1");
-    digest.update(store.bytes());
-    digest.update((scope.member_count() as u64).to_le_bytes());
-    if let Some(artifact) = scope.artifact_target() {
-        update_artifact(&mut digest, artifact);
-        let identity = digest.finalize().into();
-        let mut artifact_identity = Sha256::new();
-        artifact_identity.update(b"worth-store.physical-queue-artifact.v1");
-        artifact_identity.update(store.bytes());
-        update_artifact(&mut artifact_identity, artifact);
-        let range = QueueLocalityRange::new(artifact_identity.finalize().into(), 0, u64::MAX)
-            .expect("artifact-wide locality is nonempty");
-        return QueueLocalityIdentity::from_ranges(identity, [range])
-            .expect("one artifact-wide locality range is valid");
-    }
-    if let Some(wal) = scope.wal_append_target() {
-        digest.update(b"wal");
-        digest.update(wal.segment().to_le_bytes());
-        digest.update(wal.generation().to_le_bytes());
-        digest.update(wal.offset().to_le_bytes());
-        digest.update(wal.byte_count().to_le_bytes());
-        let identity = digest.finalize().into();
-        let mut artifact = Sha256::new();
-        artifact.update(b"worth-store.physical-queue-wal-artifact.v1");
-        artifact.update(store.bytes());
-        artifact.update(wal.segment().to_le_bytes());
-        artifact.update(wal.generation().to_le_bytes());
-        let range = QueueLocalityRange::new(
-            artifact.finalize().into(),
-            wal.offset(),
-            wal.offset().saturating_add(wal.byte_count()),
-        )
-        .expect("an admitted WAL append range is nonempty");
-        return QueueLocalityIdentity::from_ranges(identity, [range])
-            .expect("one WAL append locality range is valid");
-    }
-    if let Some(barrier) = scope.wal_barrier_target() {
-        digest.update(b"wal-barrier");
-        digest.update(barrier.member());
-        digest.update(barrier.segment().to_le_bytes());
-        digest.update(barrier.generation().to_le_bytes());
-        digest.update(barrier.lsn_start().to_le_bytes());
-        digest.update(barrier.lsn_end_exclusive().to_le_bytes());
-        digest.update(barrier.append_offset().to_le_bytes());
-        digest.update(barrier.append_byte_count().to_le_bytes());
-        let identity = digest.finalize().into();
-        let mut artifact = Sha256::new();
-        artifact.update(b"worth-store.physical-queue-wal-artifact.v1");
-        artifact.update(store.bytes());
-        artifact.update(barrier.segment().to_le_bytes());
-        artifact.update(barrier.generation().to_le_bytes());
-        let end_exclusive = barrier
-            .append_offset()
-            .checked_add(barrier.append_byte_count())
-            .expect("an admitted WAL barrier interval cannot overflow");
-        let range = QueueLocalityRange::new(
-            artifact.finalize().into(),
-            barrier.append_offset(),
-            end_exclusive,
-        )
-        .expect("an admitted WAL barrier interval is nonempty");
-        return QueueLocalityIdentity::from_ranges(identity, [range])
-            .expect("one WAL barrier locality range is valid");
-    }
-    for coordinate in scope.coordinates() {
-        update_artifact(&mut digest, coordinate.artifact());
-        digest.update(coordinate.offset().to_le_bytes());
-        digest.update(coordinate.length().to_le_bytes());
-    }
-    let identity = digest.finalize().into();
-    let ranges = scope.coordinates().iter().map(|coordinate| {
-        let mut artifact = Sha256::new();
-        artifact.update(b"worth-store.physical-queue-artifact.v1");
-        artifact.update(store.bytes());
-        update_artifact(&mut artifact, coordinate.artifact());
-        QueueLocalityRange::new(
-            artifact.finalize().into(),
-            coordinate.offset(),
-            coordinate
-                .offset()
-                .saturating_add(u64::from(coordinate.length())),
-        )
-        .expect("admitted physical scope ranges are nonempty")
-    });
-    QueueLocalityIdentity::from_ranges(identity, ranges)
-        .expect("admitted physical scope ranges are sorted and disjoint")
-}
-
-fn update_artifact(digest: &mut Sha256, artifact: RecordArtifactFile) {
-    let (tag, first, second): (u8, u64, u64) = match artifact {
-        RecordArtifactFile::BootstrapCatalog => (1, 0, 0),
-        RecordArtifactFile::CatalogCandidate { publication } => (2, publication, 0),
-        RecordArtifactFile::RootManifest { generation } => (3, generation, 0),
-        RecordArtifactFile::RootRoutingBlock { generation, block } => (4, generation, block),
-        RecordArtifactFile::Segment {
-            segment,
-            generation,
-        } => (5, segment, generation),
-        RecordArtifactFile::SegmentManifest {
-            segment,
-            generation,
-        } => (6, segment, generation),
-        RecordArtifactFile::SegmentMembershipBlock { generation, block } => (7, generation, block),
-        RecordArtifactFile::Extent { extent, generation } => (8, extent, generation),
-        RecordArtifactFile::ExtentManifest { extent, generation } => (9, extent, generation),
-        RecordArtifactFile::FreeSpaceManifest { generation } => (10, generation, 0),
-        RecordArtifactFile::FreeSpaceMembershipBlock { generation, block } => {
-            (11, generation, block)
-        }
-    };
-    digest.update([tag]);
-    digest.update(first.to_le_bytes());
-    digest.update(second.to_le_bytes());
 }
 
 fn require_lane(
@@ -254,6 +184,11 @@ fn require_lane(
         PhysicalWorkOperationFamily::DurabilityBarrier => {
             lane == ForegroundIoLaneKind::CommitCriticalWalWrite
         }
+        PhysicalWorkOperationFamily::RootPublication => {
+            lane == ForegroundIoLaneKind::RootPublication
+        }
+        PhysicalWorkOperationFamily::CheckpointCapture
+        | PhysicalWorkOperationFamily::WalReclamation => false,
     };
     compatible
         .then_some(())
@@ -297,6 +232,15 @@ fn physical_foreground_declaration(
         (
             PhysicalWorkOperationFamily::DurabilityBarrier,
             PhysicalWorkDurabilityRequirement::WalDurabilityBarrier,
+        ) => PhysicalForegroundWorkDeclaration::durable_write(
+            reservation,
+            locality,
+            resources.queue_shape(),
+            resources.flush_epoch(),
+        ),
+        (
+            PhysicalWorkOperationFamily::RootPublication,
+            PhysicalWorkDurabilityRequirement::RootPublication,
         ) => PhysicalForegroundWorkDeclaration::durable_write(
             reservation,
             locality,

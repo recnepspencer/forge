@@ -10,7 +10,7 @@ use super::super::lifecycle::record_observation::PhysicalRecordObserver;
 use super::super::{PhysicalRecordReader, RecordPublicationResidueObservation};
 
 #[cfg(feature = "certification-test-authority")]
-#[path = "serving_runtime/certification.rs"]
+#[path = "serving_runtime/certification/mod.rs"]
 mod certification;
 mod physical_work;
 
@@ -65,6 +65,12 @@ impl ServingPhysicalRuntime {
 
     pub fn publication_residue(&self) -> RecordPublicationResidueObservation {
         self.parts.publication.residue()
+    }
+
+    pub fn physical_mutation_observation(
+        &self,
+    ) -> crate::physical_runtime::PhysicalMutationObservation {
+        self.parts.publication.mutation_observation()
     }
 
     pub fn media_counters(&self) -> worth_store_physical_backend::MediaCounterSnapshot {
@@ -135,6 +141,13 @@ impl ServingPhysicalRuntime {
 
     pub fn record_submission(&self) -> super::super::PhysicalRecordSubmission {
         super::super::RecordPublicationDirector::submission(&self.parts.publication)
+    }
+
+    /// Returns the managed checkpoint submission facade for this Store generation.
+    pub fn checkpoints(&self) -> crate::physical_runtime::PhysicalCheckpointSubmission {
+        crate::physical_runtime::durability::PhysicalCheckpointRuntimeOwner::submission(
+            &self.parts.checkpoint,
+        )
     }
 
     pub fn observer(&self) -> PhysicalRecordObserver {

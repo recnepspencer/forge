@@ -141,6 +141,8 @@ pub enum PhysicalWorkEffectFateEvidence {
     ReadIncomplete,
     WriteCompleted,
     PublicationCompleted,
+    CheckpointCompleted,
+    WalReclamationCompleted,
     WrittenButSchedulerRejected,
     Indeterminate,
     StaleOrForeignOutcome,

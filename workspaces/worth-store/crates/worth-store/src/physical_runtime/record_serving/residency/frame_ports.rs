@@ -5,17 +5,20 @@ use worth_store_buffer_pool::{
     ForegroundReadAllocationGrant, PrefetchResidencyGrant, ReadAheadResidencyGrant,
 };
 use worth_store_buffer_pool::{
-    ForegroundWriteAllocationGrant, FrameWritebackCleanAuthority, OperationAllocationGrant,
-    PhysicalOperationAllocationScope, PhysicalResidencyCounters, PhysicalResidencyDenial,
-    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalResidencyPoolOwner,
-    PhysicalResidencyShutdown, PhysicalWritebackClaim,
+    ForegroundWriteAllocationGrant, FrameWritebackCleanAuthority, MaintenanceAllocationGrant,
+    OperationAllocationGrant, PhysicalDirtyGenerationCaptureSession,
+    PhysicalDirtyGenerationCaptureStep, PhysicalOperationAllocationScope,
+    PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyLimits,
+    PhysicalResidencyPool, PhysicalResidencyPoolOwner, PhysicalResidencyShutdown,
+    PhysicalWritebackClaim,
 };
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
 
 pub(in crate::physical_runtime::record_serving) use super::candidate_frame_residency::{
     CandidateFrame, CandidateFrameCoordinate, CandidateFrameDeclaration,
     CandidateFrameFailurePosture, CandidateFramePublicationPort, CandidateFrameRole,
-    CandidateFrameSet, CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
+    CandidateFrameSet, CandidateFrameWriteFailure, RecoverableCandidateFrameWriteFailure,
+    StoreCandidateFramePublicationSession,
 };
 pub(in crate::physical_runtime::record_serving) use super::frame_loading::FrameLoadPort;
 
@@ -87,6 +90,28 @@ impl RecordFramePorts {
         bytes: std::num::NonZeroU64,
     ) -> Result<ForegroundWriteAllocationGrant, PhysicalResidencyDenial> {
         self.pool.begin_foreground_write_operation(bytes)
+    }
+
+    pub(in crate::physical_runtime) fn begin_checkpoint_capture(
+        &self,
+    ) -> Result<PhysicalDirtyGenerationCaptureSession, PhysicalResidencyDenial> {
+        self.pool.begin_dirty_generation_capture()
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_capture_allocation(
+        &self,
+        bytes: std::num::NonZeroU64,
+    ) -> Result<MaintenanceAllocationGrant, PhysicalResidencyDenial> {
+        self.pool.begin_maintenance_operation(bytes)
+    }
+
+    pub(in crate::physical_runtime) fn capture_checkpoint_slice(
+        &self,
+        session: PhysicalDirtyGenerationCaptureSession,
+        allocation: MaintenanceAllocationGrant,
+    ) -> Result<PhysicalDirtyGenerationCaptureStep, PhysicalResidencyDenial> {
+        self.pool
+            .capture_next_dirty_generation_slice(session, allocation)
     }
 
     #[cfg(feature = "certification-test-authority")]
@@ -232,6 +257,11 @@ impl RecordFramePorts {
     pub(in crate::physical_runtime::record_serving) fn reject_next_candidate_publication(&self) {
         self.candidate_counters.reject_next_publication();
     }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn reject_next_candidate_retention(&self) {
+        self.candidate_counters.reject_next_retention();
+    }
 }
 
 #[cfg(feature = "certification-test-authority")]
@@ -269,9 +299,6 @@ pub struct FramePortCounterSnapshot {
 impl FramePortCounterSnapshot {
     pub const fn loads(self) -> u64 {
         self.residency.source_loads()
-    }
-    pub const fn wrapper_loads(self) -> u64 {
-        0
     }
     pub const fn candidate_submissions(self) -> u64 {
         self.candidate_submissions

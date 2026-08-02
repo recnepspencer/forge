@@ -67,9 +67,13 @@ impl ArtifactTreeMedia<'_> {
         directory: &ArtifactTreeDirectory,
     ) -> Result<Option<Dir>, ArtifactTreeFailure> {
         let Some((first, remaining)) = directory.components.split_first() else {
-            return Err(ArtifactTreeFailure::structural(
-                ArtifactTreeFailureKind::Damaged,
-            ));
+            return self
+                .root(directory.root)
+                .try_clone()
+                .map(Some)
+                .map_err(|error| {
+                    ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
+                });
         };
         let Some(mut current) =
             open_optional_directory(self.owner, self.root(directory.root), first)?
@@ -97,9 +101,11 @@ impl ArtifactTreeMedia<'_> {
         root: ArtifactTreeRoot,
         components: &[String],
     ) -> Result<Dir, ArtifactTreeFailure> {
-        let (first, remaining) = components
-            .split_first()
-            .ok_or_else(|| ArtifactTreeFailure::structural(ArtifactTreeFailureKind::Damaged))?;
+        let Some((first, remaining)) = components.split_first() else {
+            return self.root(root).try_clone().map_err(|error| {
+                ArtifactTreeFailure::io(ArtifactTreeFailureKind::DeniedBeforeEffect, &error)
+            });
+        };
         let mut current = open_directory(self.owner, self.root(root), first)?;
         for component in remaining {
             current = open_directory(self.owner, &current, component)?;

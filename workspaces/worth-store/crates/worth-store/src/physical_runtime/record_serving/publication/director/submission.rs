@@ -1,16 +1,16 @@
 use std::sync::Weak;
 
+use worth_proof::NonEmpty;
 use worth_proof::TransitionOutcome;
 
 use super::RecordPublicationDirector;
 use crate::physical_runtime::{
     record_serving::{
         publication::{
-            append::ManifestCapacityTransition, PhysicalMutationPreparationOutcome,
+            PhysicalManifestCapacityTransition, PhysicalMutationPreparationOutcome,
             PhysicalMutationPreparationStale,
         },
-        AdmittedRecordPlacementPolicy, PublishedRecordBatch, RecordAppendBatch, RecordAppendDenial,
-        RecordAppendError,
+        AdmittedRecordPlacementPolicy, RecordAppendBatch,
     },
     PhysicalMutationIdempotencyIssuanceDenial, PhysicalMutationIdempotencyKey,
     PhysicalMutationIdempotencyMaterial, PhysicalMutationRequest,
@@ -21,13 +21,7 @@ pub struct PhysicalRecordSubmission {
     director: Weak<RecordPublicationDirector>,
 }
 
-pub struct PreparedRecordAppend {
-    director: Weak<RecordPublicationDirector>,
-    batch: RecordAppendBatch,
-    placement: AdmittedRecordPlacementPolicy,
-    capacity_transition: ManifestCapacityTransition,
-}
-
+#[cfg_attr(not(feature = "certification-test-authority"), allow(dead_code))]
 impl PhysicalRecordSubmission {
     pub(super) const fn new(director: Weak<RecordPublicationDirector>) -> Self {
         Self { director }
@@ -42,18 +36,6 @@ impl PhysicalRecordSubmission {
             .upgrade()
             .ok_or(PhysicalMutationIdempotencyIssuanceDenial::DurabilityAuthorityReleased)?;
         director.idempotency.issue_key(material)
-    }
-
-    pub fn prepare_append(
-        &self,
-        batch: RecordAppendBatch,
-        placement: AdmittedRecordPlacementPolicy,
-    ) -> Result<PreparedRecordAppend, RecordAppendError> {
-        self.prepare_with_capacity_transition(
-            batch,
-            placement,
-            ManifestCapacityTransition::PreserveCurrent,
-        )
     }
 
     pub fn prepare_durable_append(
@@ -71,32 +53,79 @@ impl PhysicalRecordSubmission {
                 .into()
             }
         };
-        director.prepare_durable_append(batch, placement, request)
+        director.prepare_durable_append(
+            batch,
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            request,
+        )
     }
 
-    pub fn append_prepared_wal(
+    pub fn prepare_durable_append_with_manifest_capacity_transition(
+        &self,
+        batch: RecordAppendBatch,
+        placement: AdmittedRecordPlacementPolicy,
+        manifest_capacity_transition: PhysicalManifestCapacityTransition,
+        request: PhysicalMutationRequest,
+    ) -> PhysicalMutationPreparationOutcome {
+        let director = match self.director.upgrade() {
+            Some(director) => director,
+            None => {
+                return TransitionOutcome::stale(
+                    PhysicalMutationPreparationStale::PublicationAuthorityReleased,
+                )
+                .into()
+            }
+        };
+        director.prepare_durable_append(batch, placement, manifest_capacity_transition, request)
+    }
+
+    pub(in crate::physical_runtime) fn cancel_prepared_before_group_seal(
         &self,
         prepared: crate::physical_runtime::PreparedPhysicalMutation,
-    ) -> crate::physical_runtime::PhysicalWalAppendOutcome {
+    ) -> crate::physical_runtime::PhysicalPreSealCancellationOutcome {
         let Some(director) = self.director.upgrade() else {
-            return crate::physical_runtime::PhysicalWalAppendOutcome::ReservationDenied {
+            return crate::physical_runtime::PhysicalPreSealCancellationOutcome::NotCancelled {
                 prepared,
-                cause:
-                    crate::physical_runtime::PhysicalWalReservationDenial::PublicationAuthorityReleased,
+                cause: crate::physical_runtime::PhysicalPreSealCancellationDenial::
+                    DurabilityAuthorityReleased,
             };
         };
-        let prepared = match director.plan_prepared_data_for_wal(prepared) {
-            Ok(prepared) => prepared,
-            Err((prepared, denial)) => {
-                return crate::physical_runtime::PhysicalWalAppendOutcome::ReservationDenied {
-                    prepared,
-                    cause: crate::physical_runtime::PhysicalWalReservationDenial::DataPlanning(
-                        denial,
+        director.cancel_prepared_before_group_seal(prepared)
+    }
+
+    pub(in crate::physical_runtime) fn append_prepared_wal_group(
+        &self,
+        members: NonEmpty<crate::physical_runtime::PreparedPhysicalMutation>,
+    ) -> crate::physical_runtime::PhysicalWalGroupAppendOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalWalGroupAppendOutcome::NotAdmitted {
+                members,
+                cause: crate::physical_runtime::PhysicalWalGroupAppendFailureCause::RuntimeReleased,
+            };
+        };
+        let members = match director.plan_prepared_group_for_wal(members) {
+            Ok(members) => members,
+            Err((members, denial)) => {
+                return crate::physical_runtime::PhysicalWalGroupAppendOutcome::NotAdmitted {
+                    members,
+                    cause: crate::physical_runtime::PhysicalWalGroupAppendFailureCause::Reservation(
+                        crate::physical_runtime::PhysicalWalReservationDenial::DataPlanning(denial),
                     ),
                 }
             }
         };
-        director.wal.append_prepared(prepared)
+        director.wal.append_prepared_group(members)
+    }
+
+    pub(in crate::physical_runtime) fn continue_prepared_wal_group(
+        &self,
+        continuation: crate::physical_runtime::PhysicalWalGroupAppendContinuation,
+    ) -> crate::physical_runtime::PhysicalWalGroupAppendOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return continuation.runtime_released();
+        };
+        director.wal.continue_prepared_group(continuation)
     }
 
     pub fn wal_observation(&self) -> Option<crate::physical_runtime::PhysicalWalObservation> {
@@ -105,20 +134,21 @@ impl PhysicalRecordSubmission {
             .map(|director| director.wal.observation())
     }
 
-    pub fn synchronize_appended_wal(
+    pub(in crate::physical_runtime) fn synchronize_appended_wal_group(
         &self,
-        appended: crate::physical_runtime::WalAppendedPhysicalMutation,
-    ) -> crate::physical_runtime::PhysicalWalBarrierOutcome {
+        appended: crate::physical_runtime::SealedPhysicalDurabilityGroupMembers,
+    ) -> crate::physical_runtime::PhysicalWalGroupBarrierOutcome {
         let Some(director) = self.director.upgrade() else {
-            return crate::physical_runtime::PhysicalWalBarrierOutcome::BarrierNotStarted {
+            return crate::physical_runtime::PhysicalWalGroupBarrierOutcome::BarrierNotStarted {
                 appended,
-                cause: crate::physical_runtime::PhysicalWalBarrierFailureCause::RuntimeReleased,
+                cause:
+                    crate::physical_runtime::PhysicalWalGroupBarrierFailureCause::RuntimeReleased,
             };
         };
-        director.wal_barrier.synchronize_appended(appended)
+        director.wal_barrier.synchronize_appended_group(appended)
     }
 
-    pub fn dispatch_wal_durable_data(
+    pub(in crate::physical_runtime) fn dispatch_wal_durable_data(
         &self,
         durable: crate::physical_runtime::WalDurablePhysicalMutation,
     ) -> crate::physical_runtime::PhysicalDataDispatchOutcome {
@@ -132,55 +162,116 @@ impl PhysicalRecordSubmission {
         director.dispatch_wal_durable_data(durable)
     }
 
-    pub fn append_batch(
+    pub(in crate::physical_runtime) fn join_data_settled_group(
         &self,
-        batch: RecordAppendBatch,
-        placement: AdmittedRecordPlacementPolicy,
-    ) -> Result<PublishedRecordBatch, RecordAppendError> {
-        self.prepare_append(batch, placement)?.publish()
+        basis: crate::physical_runtime::PhysicalDurabilityGroupBasis,
+        members: NonEmpty<crate::physical_runtime::DataSettledPhysicalMutation>,
+    ) -> crate::physical_runtime::PhysicalDataSettledGroupAdmissionOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return Err(
+                crate::physical_runtime::RejectedDataSettledPhysicalMutationMembers::
+                    runtime_released(members),
+            );
+        };
+        let identity = members.as_slice()[0].mutation_identity();
+        if identity.store_identity() != director.durability.store_identity() {
+            return Err(
+                crate::physical_runtime::RejectedDataSettledPhysicalMutationMembers::foreign_store(
+                    members,
+                ),
+            );
+        }
+        if identity.runtime_identity() != director.durability.runtime_identity() {
+            return Err(
+                crate::physical_runtime::RejectedDataSettledPhysicalMutationMembers::stale_runtime(
+                    members,
+                ),
+            );
+        }
+        crate::physical_runtime::DataSettledPhysicalMutationMembers::admit(basis, members)
     }
 
-    pub fn append_batch_reconstructing_manifest_capacity(
+    pub(in crate::physical_runtime) fn prepare_root_publication(
         &self,
-        batch: RecordAppendBatch,
-        placement: AdmittedRecordPlacementPolicy,
-    ) -> Result<PublishedRecordBatch, RecordAppendError> {
-        self.prepare_with_capacity_transition(
-            batch,
-            placement,
-            ManifestCapacityTransition::ReconstructToRequested,
-        )?
-        .publish()
+        settled: crate::physical_runtime::DataSettledPhysicalMutationMembers,
+    ) -> crate::physical_runtime::PhysicalRootPublicationPreparationOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::
+                runtime_released(settled);
+        };
+        crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::from_result(
+            director.prepare_settled_root_publication(settled),
+        )
     }
 
-    fn prepare_with_capacity_transition(
+    pub(in crate::physical_runtime) fn continue_root_publication_preparation(
         &self,
-        batch: RecordAppendBatch,
-        placement: AdmittedRecordPlacementPolicy,
-        capacity_transition: ManifestCapacityTransition,
-    ) -> Result<PreparedRecordAppend, RecordAppendError> {
-        let director = self.director.upgrade().ok_or(RecordAppendError::Denied(
-            RecordAppendDenial::PublicationAuthorityReleased,
-        ))?;
-        director
-            .preflight(&batch, placement, capacity_transition)
-            .map_err(|error| director.project_pressure(error))?;
-        Ok(PreparedRecordAppend {
-            director: self.director.clone(),
-            batch,
-            placement,
-            capacity_transition,
-        })
+        planning: crate::physical_runtime::RootPublicationPlanningMembers,
+    ) -> crate::physical_runtime::PhysicalRootPublicationPreparationOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::from_result(
+                Err(
+                    crate::physical_runtime::durability::PhysicalRootPublicationPreparationFailure::
+                        PlanningAuthorityReleased { planning },
+                ),
+            );
+        };
+        crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::from_result(
+            director.continue_root_publication_preparation(planning),
+        )
     }
-}
 
-impl PreparedRecordAppend {
-    pub fn publish(self) -> Result<PublishedRecordBatch, RecordAppendError> {
-        let director = self.director.upgrade().ok_or(RecordAppendError::Denied(
-            RecordAppendDenial::PublicationAuthorityReleased,
-        ))?;
-        director
-            .publish(self.batch, self.placement, self.capacity_transition)
-            .map_err(|error| director.project_pressure(error))
+    pub(in crate::physical_runtime) fn continue_root_publication_candidate(
+        &self,
+        candidate: crate::physical_runtime::RootPublicationCandidatePlan,
+    ) -> crate::physical_runtime::PhysicalRootPublicationPreparationOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::from_result(
+                Err(
+                    crate::physical_runtime::durability::PhysicalRootPublicationPreparationFailure::
+                        CandidateAuthorityReleased { candidate },
+                ),
+            );
+        };
+        crate::physical_runtime::PhysicalRootPublicationPreparationOutcome::from_result(
+            director.continue_root_publication_candidate(candidate),
+        )
+    }
+
+    pub(in crate::physical_runtime) fn replace_prepared_root(
+        &self,
+        prepared: crate::physical_runtime::RootPublicationPreparedPhysicalMutationMembers,
+    ) -> crate::physical_runtime::PhysicalRootReplacementOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalRootReplacementOutcome::runtime_released(
+                prepared,
+            );
+        };
+        director.replace_prepared_root(prepared)
+    }
+
+    pub(in crate::physical_runtime) fn synchronize_replaced_root_namespace(
+        &self,
+        replaced: crate::physical_runtime::RootReplacedPhysicalMutationMembers,
+    ) -> crate::physical_runtime::PhysicalRootNamespaceDurabilityOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalRootNamespaceDurabilityOutcome::
+                runtime_released(replaced);
+        };
+        director.synchronize_replaced_root_namespace(replaced)
+    }
+
+    pub(in crate::physical_runtime) fn advance_namespace_durable_root(
+        &self,
+        durable: crate::physical_runtime::RootNamespaceDurablePhysicalMutationMembers,
+    ) -> crate::physical_runtime::PhysicalCurrentRootAdvanceOutcome {
+        let Some(director) = self.director.upgrade() else {
+            return crate::physical_runtime::PhysicalCurrentRootAdvanceOutcome::
+                InspectionRequired(
+                    crate::physical_runtime::IndeterminatePhysicalCurrentRootAdvance::
+                        publication_authority_released(durable),
+                );
+        };
+        director.advance_namespace_durable_root(durable)
     }
 }

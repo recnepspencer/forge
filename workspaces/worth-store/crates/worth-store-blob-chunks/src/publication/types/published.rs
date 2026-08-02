@@ -1,6 +1,6 @@
 use worth_store_authority::StoreCurrentAuthorityWitness;
 use worth_store_recovery_physics::PartialPublicationCounterSnapshot;
-use worth_store_wal::DurablePublicationDeclaration;
+use worth_store_wal::PublicationDeclaration;
 
 use crate::{
     BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectClassification, BlobObjectId,
@@ -22,7 +22,7 @@ pub struct BlobGenerationPublished {
     pub(crate) chunk_tree_root: ChunkTreeRoot,
     pub(crate) logical_content_digest: LogicalContentDigest,
     pub(crate) classification: BlobObjectClassification,
-    pub(crate) durable_publication: DurablePublicationDeclaration,
+    pub(crate) publication_declaration: PublicationDeclaration,
     pub(crate) replay_classification_digest: String,
     pub(crate) replay_counters: PartialPublicationCounterSnapshot,
     pub(crate) staging_identity: BlobReachabilityStagingIdentity,
@@ -80,8 +80,8 @@ impl BlobGenerationPublished {
         self.classification
     }
 
-    pub const fn durable_publication(&self) -> &DurablePublicationDeclaration {
-        &self.durable_publication
+    pub const fn publication_declaration(&self) -> &PublicationDeclaration {
+        &self.publication_declaration
     }
 
     pub fn replay_classification_digest(&self) -> &str {

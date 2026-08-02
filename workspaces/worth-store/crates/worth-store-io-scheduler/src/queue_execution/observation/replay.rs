@@ -167,6 +167,7 @@ const fn tag_foreground_lane(lane: crate::foreground_reservation::ForegroundIoLa
         crate::foreground_reservation::ForegroundIoLaneKind::InternalForegroundRead => 6,
         crate::foreground_reservation::ForegroundIoLaneKind::ArtifactMetadataRead => 7,
         crate::foreground_reservation::ForegroundIoLaneKind::CommitCriticalWalAppend => 8,
+        crate::foreground_reservation::ForegroundIoLaneKind::RootPublication => 9,
     }
 }
 
@@ -195,6 +196,8 @@ const fn tag_backend_requirement(requirement: IoSchedulerBackendCapabilityRequir
         IoSchedulerBackendCapabilityRequirement::DurableRename => 7,
         IoSchedulerBackendCapabilityRequirement::SecureFrameIo => 8,
         IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync => 9,
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync => 10,
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename => 11,
     }
 }
 

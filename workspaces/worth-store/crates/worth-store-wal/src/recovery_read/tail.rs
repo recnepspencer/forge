@@ -1,6 +1,6 @@
 use crate::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
-    BlobWalRecordIdentity, DurablePublicationPhase, DurablePublicationScope, ReplayCursor,
+    BlobWalRecordIdentity, DurablePublicationPhase, PublicationScope, ReplayCursor,
     WalFrameOrderingProof, WalSegmentGeneration, WalTopologyScan,
 };
 
@@ -87,7 +87,7 @@ pub struct WalReplayTailRecordReport {
 
 impl WalReplayTailRecordReport {
     fn from_record(cursor: &AdmittedReplayTailCursor, record: &BlobWalRecordEnvelope) -> Self {
-        let DurablePublicationScope::WalFrame(scope) = record.durable_publication().scope() else {
+        let PublicationScope::WalFrame(scope) = record.publication_declaration().scope() else {
             unreachable!("blob wal records only admit wal-frame publication scopes")
         };
         debug_assert!(cursor.first_lsn().get() <= scope.lsn_start());

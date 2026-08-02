@@ -64,7 +64,7 @@ fn canonical_media_admission_is_the_only_runtime_backend_constructor() {
                 if source.contains("qualify_filesystem_media(request)") {
                     constructor_sites.push(path.clone());
                 }
-                for forbidden in ["StoreDurabilityRuntime", "InMemoryPhysicalFormatModel"] {
+                for forbidden in ["InMemoryPhysicalFormatModel"] {
                     assert!(
                         !source.contains(forbidden),
                         "{} reaches {forbidden}",

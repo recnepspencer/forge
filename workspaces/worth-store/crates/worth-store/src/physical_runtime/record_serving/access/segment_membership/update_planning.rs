@@ -33,7 +33,7 @@ pub(in crate::physical_runtime::record_serving) struct SegmentMembershipUpdateCo
 
 pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updates(
     context: SegmentMembershipUpdateContext<'_>,
-    updates: BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
+    updates: &BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
 ) -> Result<SegmentMembershipPublicationPlan, ManifestLookupFailure> {
     let SegmentMembershipUpdateContext {
         allocation,
@@ -67,10 +67,10 @@ pub(in crate::physical_runtime::record_serving) fn plan_segment_membership_updat
             vec![root]
         }
         Some(root) if successor_capacity != current.node_capacity() => {
-            planner.rewrite_all(root, &updates)?
+            planner.rewrite_all(root, updates)?
         }
-        Some(root) => planner.rewrite(root, &updates)?,
-        None => planner.write_leaves(updates.into_values().collect())?,
+        Some(root) => planner.rewrite(root, updates)?,
+        None => planner.write_leaves(updates.values().copied().collect())?,
     };
     while roots.len() > 1 {
         roots = planner.write_branch_level(roots)?;

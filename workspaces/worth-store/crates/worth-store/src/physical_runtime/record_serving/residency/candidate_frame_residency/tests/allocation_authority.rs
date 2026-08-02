@@ -32,12 +32,11 @@ fn owned_test_pool(
 fn test_store(
     identity_byte: u8,
 ) -> worth_store_physical_format::store_namespace::StableStoreIdentity {
-    let store = StoreNamespaceIdentityRecord::new(
+    StoreNamespaceIdentityRecord::new(
         StoreNamespaceVersion::CURRENT,
         ProposedStoreIdentity::from_nonzero_bytes([identity_byte; 16]).unwrap(),
     )
-    .published_identity();
-    store
+    .published_identity()
 }
 
 pub(super) fn publication_allocation(

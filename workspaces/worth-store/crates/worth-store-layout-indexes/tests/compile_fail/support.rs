@@ -68,11 +68,6 @@ fn dependency(root: &Path, rust_name: &str) -> DependencyDeclaration {
         "worth_store_blob_chunks" | "worth_store_io_scheduler" => {
             vec!["certification-test-authority"]
         }
-        "worth_store_physical_isolation" => vec!["phase20-layout-rule-construction"],
-        "worth_store_recovery_physics" => vec![
-            "phase21-layout-rule-construction",
-            "phase22-layout-rule-construction",
-        ],
         "worth_store_security" => vec!["certification-test-authority"],
         "worth_store_test_support" => vec!["boundary-fixtures"],
         "worth_store_wal" => vec!["certification-authority"],

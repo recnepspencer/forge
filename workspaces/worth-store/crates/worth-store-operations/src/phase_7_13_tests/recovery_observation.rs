@@ -12,9 +12,3 @@ pub(crate) fn media_snapshot(root: &std::path::Path) -> Vec<(String, Vec<u8>)> {
     rows.sort_by(|left, right| left.0.cmp(&right.0));
     rows
 }
-
-pub(crate) fn verification_budget() -> worth_store_offline_verifier::BackupVerificationBudget {
-    worth_store_offline_verifier::BackupVerificationBudget::from_inspection(
-        worth_store_offline_verifier::OfflineInspectionBudget::bounded(4 * 1024, u64::MAX).unwrap(),
-    )
-}

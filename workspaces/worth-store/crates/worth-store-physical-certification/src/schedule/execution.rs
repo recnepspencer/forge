@@ -1,10 +1,8 @@
+use crate::PhysicalStorageFaultInjection;
 use worth_store_physical_backend::{
     ProductionStorageBoundaryControl, ProductionStorageBoundarySeam,
     ScriptedStorageBoundaryControl, StorageBoundaryExecutionIdentity, StorageBoundaryTrace,
 };
-use worth_store_physical_isolation::PhysicalRootPublicationAttempt;
-
-use crate::PhysicalStorageFaultInjection;
 
 use super::{PhysicalActorStep, PhysicalInterleavingSchedule, ScheduleReplayIdentity};
 
@@ -15,20 +13,9 @@ pub struct PhysicalActorStorageExecution {
     owner_execution: PhysicalScheduleOwnerExecution,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalScheduleOwnerKind {
-    RootPublication,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalScheduleOwnerExecution {
-    kind: PhysicalScheduleOwnerKind,
     storage_boundary_execution: StorageBoundaryExecutionIdentity,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalScheduleOwnerEvidenceDenial {
-    PublicationWasNotExecutedThroughActorControl,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +29,7 @@ pub struct PhysicalScheduleExecution {
 pub enum PhysicalScheduleExecutionError<E> {
     ActorExecution(E),
     ActorDidNotReachStorageSeam { actor_id: String },
+    OwnerDidNotExecuteThroughActorControl { actor_id: String },
     OwnerExecutionReused { actor_id: String },
 }
 
@@ -52,7 +40,7 @@ pub fn execute_physical_schedule<E>(
     mut execute_actor: impl FnMut(
         &PhysicalActorStep,
         &ScriptedStorageBoundaryControl,
-    ) -> Result<PhysicalScheduleOwnerExecution, E>,
+    ) -> Result<StorageBoundaryExecutionIdentity, E>,
 ) -> Result<PhysicalScheduleExecution, PhysicalScheduleExecutionError<E>> {
     let mut completed_steps = Vec::with_capacity(schedule.actor_steps().len());
     let mut owner_execution_identities = std::collections::BTreeSet::new();
@@ -61,7 +49,7 @@ pub fn execute_physical_schedule<E>(
             || ScriptedStorageBoundaryControl::observe(storage_seam),
             |fault| fault.control_for_step(step, storage_seam),
         );
-        let owner_execution = execute_actor(step, &control)
+        let owner_execution_identity = execute_actor(step, &control)
             .map_err(PhysicalScheduleExecutionError::ActorExecution)?;
         let storage_trace = control.trace();
         if !storage_trace.reached().contains(&storage_seam) {
@@ -71,8 +59,14 @@ pub fn execute_physical_schedule<E>(
                 },
             );
         }
-        if !owner_execution_identities.insert(owner_execution.storage_boundary_execution_identity())
-        {
+        if control.execution_identity() != Some(owner_execution_identity) {
+            return Err(
+                PhysicalScheduleExecutionError::OwnerDidNotExecuteThroughActorControl {
+                    actor_id: step.actor_id().to_owned(),
+                },
+            );
+        }
+        if !owner_execution_identities.insert(owner_execution_identity) {
             return Err(PhysicalScheduleExecutionError::OwnerExecutionReused {
                 actor_id: step.actor_id().to_owned(),
             });
@@ -80,7 +74,9 @@ pub fn execute_physical_schedule<E>(
         completed_steps.push(PhysicalActorStorageExecution {
             step: step.clone(),
             storage_trace,
-            owner_execution,
+            owner_execution: PhysicalScheduleOwnerExecution {
+                storage_boundary_execution: owner_execution_identity,
+            },
         });
     }
     Ok(PhysicalScheduleExecution {
@@ -105,30 +101,6 @@ impl PhysicalActorStorageExecution {
 }
 
 impl PhysicalScheduleOwnerExecution {
-    pub fn from_root_publication_attempt(
-        attempt: &PhysicalRootPublicationAttempt,
-        control: &ScriptedStorageBoundaryControl,
-    ) -> Result<Self, PhysicalScheduleOwnerEvidenceDenial> {
-        let Some(control_identity) = control.execution_identity() else {
-            return Err(
-                PhysicalScheduleOwnerEvidenceDenial::PublicationWasNotExecutedThroughActorControl,
-            );
-        };
-        if attempt.storage_boundary_execution_identity() != Some(control_identity) {
-            return Err(
-                PhysicalScheduleOwnerEvidenceDenial::PublicationWasNotExecutedThroughActorControl,
-            );
-        }
-        Ok(Self {
-            kind: PhysicalScheduleOwnerKind::RootPublication,
-            storage_boundary_execution: control_identity,
-        })
-    }
-
-    pub const fn kind(&self) -> PhysicalScheduleOwnerKind {
-        self.kind
-    }
-
     pub const fn storage_boundary_execution_identity(&self) -> StorageBoundaryExecutionIdentity {
         self.storage_boundary_execution
     }

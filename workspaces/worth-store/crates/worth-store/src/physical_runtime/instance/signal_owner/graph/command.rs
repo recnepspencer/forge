@@ -21,12 +21,6 @@ impl PhysicalSignalGraph {
             PhysicalSignalRouteCommand::Request(admitted, reply) => {
                 let _ = reply.send(self.request(route, admitted));
             }
-            PhysicalSignalRouteCommand::BeginPublicationDependency(admitted, reply) => {
-                let _ = reply.send(self.begin_publication_dependency(route, admitted));
-            }
-            PhysicalSignalRouteCommand::AdvancePublicationDependency(blocked, reply) => {
-                let _ = reply.send(self.advance_publication_dependency(route, blocked));
-            }
             PhysicalSignalRouteCommand::RevalidateReady(ready, reply) => {
                 let _ = reply.send(self.revalidate_ready(route, ready));
             }
@@ -109,10 +103,6 @@ impl PhysicalSignalGraph {
             }
             PhysicalSignalRouteCommand::Observation(reply) => {
                 let _ = reply.send(self.observation());
-            }
-            #[cfg(feature = "certification-test-authority")]
-            PhysicalSignalRouteCommand::PublicationDependencies(reply) => {
-                let _ = reply.send(self.publication_dependency_observations());
             }
         }
         self.healthy

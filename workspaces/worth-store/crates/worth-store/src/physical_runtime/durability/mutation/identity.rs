@@ -26,4 +26,8 @@ impl PhysicalMutationIdentity {
     pub const fn operation_identity(self) -> PhysicalOperationIdentity {
         self.0.operation()
     }
+
+    pub const fn lifecycle_generation(self) -> u64 {
+        self.0.generation().lifecycle().get()
+    }
 }

@@ -19,9 +19,9 @@
 //! Copied durable publication declarations cannot append blob publication WAL records:
 //! ```compile_fail
 //! use worth_store_blob_chunks::BlobPublicationWalRecord;
-//! use worth_store_wal::DurablePublicationDeclaration;
+//! use worth_store_wal::PublicationDeclaration;
 //!
-//! let declaration: DurablePublicationDeclaration = todo!();
+//! let declaration: PublicationDeclaration = todo!();
 //! let _record = BlobPublicationWalRecord::append(declaration);
 //! ```
 //! Raw crash labels cannot drive blob publication recovery:
@@ -221,7 +221,7 @@
 //!     chunk_tree_root: todo!(),
 //!     logical_content_digest: todo!(),
 //!     classification: todo!(),
-//!     durable_publication: todo!(),
+//!     publication_declaration: todo!(),
 //!     replay_classification_digest: todo!(),
 //!     replay_counters: todo!(),
 //!     staging_identity: todo!(),

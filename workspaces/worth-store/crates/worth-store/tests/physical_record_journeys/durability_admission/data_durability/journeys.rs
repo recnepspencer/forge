@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use std::fs;
 
-use super::super::super::{configuration, serving_from_initialization};
+use super::super::super::{configuration, durable_publication, serving_from_initialization};
 use super::mutation_world::{append, synchronize};
 use super::oracle::{
     assert_encoded_wal_matches_claims, assert_targets_absent, frame_page_lsn_matches_basis,
@@ -20,13 +20,13 @@ fn materialized_inline_prior_advances_through_exact_wal_bound_copy_on_write() {
     let store_root = parent.path().join("store");
     let serving = serving_from_initialization(&store_root);
     let (format, placement, _) = configuration();
-    let submission = serving.record_submission();
-    submission
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"published-prior".as_slice()]).unwrap(),
-            placement,
-        )
-        .expect("the real ordinary path must seed one published prior page");
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("data-durability-materialized-prior", 1),
+        RecordAppendBatch::try_from_iter([b"published-prior".as_slice()]).unwrap(),
+    );
+    let submission = serving.certification_record_submission();
     let source_path = only_data_artifact(&store_root, "segments");
     let source_before = fs::read(&source_path).unwrap();
 
@@ -36,9 +36,10 @@ fn materialized_inline_prior_advances_through_exact_wal_bound_copy_on_write() {
         PhysicalMutationIdempotencyMaterial::new([101; 32]),
         RecordAppendBatch::try_from_iter([b"copy-on-write-delta".as_slice()]).unwrap(),
     );
-    assert_encoded_wal_matches_claims(&store_root, &appended);
-    assert_targets_absent(&store_root, &appended);
-    let member = appended.reserved().member_basis();
+    let appended_member = appended.members()[0].mutation();
+    assert_encoded_wal_matches_claims(&store_root, appended_member);
+    assert_targets_absent(&store_root, appended_member);
+    let member = appended_member.reserved().member_basis();
     let durable = synchronize(&submission, appended);
     let dispatched = match submission.dispatch_wal_durable_data(durable) {
         PhysicalDataDispatchOutcome::Dispatched(dispatched) => dispatched,
@@ -79,12 +80,12 @@ fn materialized_inline_prior_advances_through_exact_wal_bound_copy_on_write() {
 }
 
 #[test]
-fn multi_chunk_extent_uses_one_new_artifact_effect_then_real_c6_writebacks() {
+fn multi_chunk_extent_uses_one_new_artifact_effect_then_existing_artifact_writebacks() {
     let parent = tempfile::tempdir().unwrap();
     let store_root = parent.path().join("store");
     let serving = serving_from_initialization(&store_root);
     let (format, placement, _) = configuration();
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let payload = vec![0x5a; format.declaration().page_size().bytes() as usize * 3];
     let appended = append(
         &submission,
@@ -95,9 +96,10 @@ fn multi_chunk_extent_uses_one_new_artifact_effect_then_real_c6_writebacks() {
             .build()
             .unwrap(),
     );
-    assert_encoded_wal_matches_claims(&store_root, &appended);
-    assert_targets_absent(&store_root, &appended);
-    let member = appended.reserved().member_basis();
+    let appended_member = appended.members()[0].mutation();
+    assert_encoded_wal_matches_claims(&store_root, appended_member);
+    assert_targets_absent(&store_root, appended_member);
+    let member = appended_member.reserved().member_basis();
     let durable = synchronize(&submission, appended);
     let dispatched = match submission.dispatch_wal_durable_data(durable) {
         PhysicalDataDispatchOutcome::Dispatched(dispatched) => dispatched,
@@ -105,7 +107,7 @@ fn multi_chunk_extent_uses_one_new_artifact_effect_then_real_c6_writebacks() {
     };
     assert!(
         dispatched.effects().len() >= 3,
-        "the fixture must cross the real multi-chunk C6 join"
+        "the fixture must cross the real multi-chunk existing-artifact join"
     );
     let mut artifacts = BTreeSet::new();
     for (index, effect) in dispatched.effects().iter().enumerate() {
@@ -114,7 +116,7 @@ fn multi_chunk_extent_uses_one_new_artifact_effect_then_real_c6_writebacks() {
             if index == 0 {
                 PhysicalDataEffectSource::NewArtifact
             } else {
-                PhysicalDataEffectSource::C6Writeback
+                PhysicalDataEffectSource::ExistingArtifactWriteback
             }
         );
         assert!(matches!(
@@ -136,7 +138,7 @@ fn multi_chunk_extent_uses_one_new_artifact_effect_then_real_c6_writebacks() {
             assert_eq!(settled.mutation_identity(), member.mutation_identity())
         }
         PhysicalDataSettlementOutcome::InspectionRequired { cause, .. } => {
-            panic!("exact C6 writeback effects must settle: {cause:?}")
+            panic!("exact existing-artifact writeback effects must settle: {cause:?}")
         }
     }
     serving.close();

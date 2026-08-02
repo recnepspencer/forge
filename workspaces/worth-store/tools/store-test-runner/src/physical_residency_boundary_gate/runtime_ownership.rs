@@ -14,11 +14,11 @@ const CONSTRUCTION_AUTHORITIES: &[(&str, &str)] = &[
     ),
     (
         "PhysicalStoreWorkRuntime::new",
-        "crates/worth-store/src/physical_runtime/instance/construction.rs",
+        "crates/worth-store/src/physical_runtime/instance/construction/work_runtime.rs",
     ),
     (
         "PhysicalSchedulerAdmissionOwner::new",
-        "crates/worth-store/src/physical_runtime/instance/construction.rs",
+        "crates/worth-store/src/physical_runtime/instance/construction/work_runtime.rs",
     ),
     (
         "SignalRuntime::build_for",

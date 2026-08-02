@@ -45,3 +45,55 @@ fn phase_two_populates_the_destination_with_admission_and_runtime_owners() {
         "the populated durability destination must retain its stable facade topology"
     );
 }
+
+#[test]
+fn phase_five_replaces_scalar_barrier_with_group_owned_barrier_and_member_derivation() {
+    let durability_root = repository_root()
+        .join("workspaces/worth-store/crates/worth-store/src/physical_runtime/durability");
+    for relative in [
+        "grouping/wal_barrier/declaration.rs",
+        "grouping/wal_barrier/outcome.rs",
+        "grouping/wal_barrier/port.rs",
+        "grouping/wal_barrier/settlement.rs",
+        "grouping/member_settlement.rs",
+        "data/dispatch_outcome.rs",
+        "data/frame_identity.rs",
+        "data/page_wal_basis.rs",
+        "data/prepared_plan.rs",
+        "data/prior_page_basis.rs",
+        "data/writeback_join.rs",
+        "mutation/progression/data_dispatched.rs",
+        "mutation/progression/data_settled.rs",
+        "mutation/progression/wal_durable.rs",
+    ] {
+        assert!(
+            durability_root.join(relative).is_file(),
+            "Phase 4 durability destination lost `{relative}`"
+        );
+    }
+
+    let durability = read_repository_document(
+        "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/mod.rs",
+    )
+    .expect("read durability facade");
+    for module in ["mod grouping;", "mod data;", "mod mutation;"] {
+        assert!(
+            durability.contains(module),
+            "Phase 4 durability facade lost `{module}`"
+        );
+    }
+    for surface in [
+        "PhysicalWalGroupBarrierDeclaration",
+        "PhysicalWalGroupBarrierOutcome",
+        "WalDurablePhysicalMutationMembers",
+        "PageWalBasis",
+        "WalDurablePhysicalMutation",
+        "DataDispatchedPhysicalMutation",
+        "DataSettledPhysicalMutation",
+    ] {
+        assert!(
+            durability.contains(surface),
+            "Phase 4 durability facade lost `{surface}`"
+        );
+    }
+}

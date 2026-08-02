@@ -6,12 +6,35 @@ use super::PhysicalMutationIdempotencyKey;
 pub struct PhysicalMutationDeadline(TemporalDuration);
 
 impl PhysicalMutationDeadline {
+    pub fn after_milliseconds(milliseconds: u64) -> Option<Self> {
+        TemporalDuration::temporal_duration(milliseconds)
+            .ok()
+            .map(Self)
+    }
+
     pub const fn at(deadline: TemporalDuration) -> Self {
         Self(deadline)
     }
 
     pub const fn signal_deadline(self) -> TemporalDuration {
         self.0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PhysicalMutationDeadline;
+
+    #[test]
+    fn millisecond_deadline_rejects_zero_and_preserves_positive_duration() {
+        assert_eq!(PhysicalMutationDeadline::after_milliseconds(0), None);
+        assert_eq!(
+            PhysicalMutationDeadline::after_milliseconds(1_000)
+                .unwrap()
+                .signal_deadline()
+                .get(),
+            1_000
+        );
     }
 }
 

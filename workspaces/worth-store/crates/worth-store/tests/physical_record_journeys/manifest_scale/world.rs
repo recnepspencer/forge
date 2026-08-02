@@ -2,12 +2,14 @@ use std::path::PathBuf;
 
 use worth_store::physical_runtime::{
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    ExternalPhysicalRecordLocator, PhysicalRecordId, PhysicalRecordInitialization,
-    PhysicalRecordOpen, PhysicalResidencyCounterSnapshot, RecordAppendBatch, RecordByteLimit,
-    RecordReadLimits, RecordReadObservation, RecordScanCounterSnapshot,
+    ExternalPhysicalRecordLocator, PhysicalMutationIdempotencyMaterial, PhysicalRecordId,
+    PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalResidencyCounterSnapshot,
+    RecordAppendBatch, RecordByteLimit, RecordReadLimits, RecordReadObservation,
+    RecordScanCounterSnapshot,
 };
 use worth_store_offline_verifier::OfflineDurableManifestWalk;
 use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
+use worth_store_physical_format::RecordArtifactFile;
 
 use super::super::scenario_evidence::ScenarioProcessEvidence;
 use super::evidence::ScaleCourtroomEvidence;
@@ -156,16 +158,24 @@ fn seed_scale_world(record_count: u16) -> SeededScaleWorld {
     let payloads = (0..record_count)
         .map(|ordinal| vec![(ordinal % 251) as u8; 100])
         .collect::<Vec<_>>();
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
-            placement,
-        )
+    let published = super::super::durable_publication::publish_single(
+        &serving,
+        placement,
+        PhysicalMutationIdempotencyMaterial::new([record_count as u8; 32]),
+        RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
+    );
+    let last = published.settled_members()[0]
+        .record_id(usize::from(record_count - 1))
         .unwrap();
-    let last = published.record_id(usize::from(record_count - 1)).unwrap();
     let locator = ExternalPhysicalRecordLocator::new(serving.store_identity(), last);
-    let publication_identity = published.publication_identity();
+    let publication_identity = published
+        .current_artifacts()
+        .iter()
+        .find_map(|artifact| match artifact {
+            RecordArtifactFile::CatalogCandidate { publication } => Some(*publication),
+            _ => None,
+        })
+        .expect("a completed root owns its exact catalog candidate");
     serving.close();
     SeededScaleWorld {
         _parent: parent,

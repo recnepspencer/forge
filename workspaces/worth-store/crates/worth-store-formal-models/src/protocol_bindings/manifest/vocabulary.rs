@@ -99,16 +99,11 @@ pub enum ModelActionFamily {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum OwnerOperationFamily {
-    WalAppendAdmission,
-    CheckpointPublicationAdmission,
-    DurablePublicationDeclaration,
+    PublicationDeclaration,
     WalReplayTailInspection,
-    WalAppendPlanning,
-    WalAppendProgress,
-    WalAppendExecution,
-    DurableAcknowledgement,
+    WalAppendObservation,
+    WalDurabilityObservation,
     PageFlushRecovery,
-    BackendDurabilityExecution,
     RecoveryCandidateDiscovery,
     RecoverySourceSelection,
     RecoverySourceAdmission,
@@ -163,16 +158,10 @@ pub enum OwnerOperationFamily {
 impl OwnerOperationFamily {
     pub const fn model_action_family(self) -> ModelActionFamily {
         match self {
-            Self::WalAppendAdmission | Self::CheckpointPublicationAdmission => {
-                ModelActionFamily::DurabilityAdmission
-            }
-            Self::DurablePublicationDeclaration
-            | Self::WalAppendPlanning
-            | Self::WalAppendProgress
-            | Self::WalAppendExecution
-            | Self::DurableAcknowledgement
-            | Self::PageFlushRecovery
-            | Self::BackendDurabilityExecution => ModelActionFamily::DurabilityFrontier,
+            Self::PublicationDeclaration
+            | Self::WalAppendObservation
+            | Self::WalDurabilityObservation
+            | Self::PageFlushRecovery => ModelActionFamily::DurabilityFrontier,
             Self::WalReplayTailInspection
             | Self::RecoveryCandidateDiscovery
             | Self::RecoverySourceSelection

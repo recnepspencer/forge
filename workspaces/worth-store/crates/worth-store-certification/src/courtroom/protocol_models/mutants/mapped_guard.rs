@@ -18,7 +18,9 @@ fn mapped_guard_is_present(
     let actions = transcript.actions();
     match mutant {
         ControlledProtocolMutant::DurabilityAcknowledgmentBeforeFence => {
-            ordered(actions, directory_sync_failed(), durability_crashed())
+            actions.iter().any(wal_fence_requested)
+                && !actions.iter().any(wal_fence_completed)
+                && !actions.iter().any(physical_mutation_acknowledged)
         }
         ControlledProtocolMutant::RecoveryQuarantinedSourceSelected => {
             actions.iter().any(source_quarantined)
@@ -42,15 +44,30 @@ fn mapped_guard_is_present(
     }
 }
 
-fn directory_sync_failed() -> CanonicalProtocolAction {
-    CanonicalProtocolAction::DurabilityRecovery(
-        worth_store_formal_models::DurabilityRecoveryAction::DirectorySyncFailed,
+fn wal_fence_requested(action: &CanonicalProtocolAction) -> bool {
+    matches!(
+        action,
+        CanonicalProtocolAction::DurabilityRecovery(
+            worth_store_formal_models::DurabilityRecoveryAction::WalFenceRequested
+        )
     )
 }
 
-fn durability_crashed() -> CanonicalProtocolAction {
-    CanonicalProtocolAction::DurabilityRecovery(
-        worth_store_formal_models::DurabilityRecoveryAction::Crash,
+fn wal_fence_completed(action: &CanonicalProtocolAction) -> bool {
+    matches!(
+        action,
+        CanonicalProtocolAction::DurabilityRecovery(
+            worth_store_formal_models::DurabilityRecoveryAction::WalFenceCompleted
+        )
+    )
+}
+
+fn physical_mutation_acknowledged(action: &CanonicalProtocolAction) -> bool {
+    matches!(
+        action,
+        CanonicalProtocolAction::DurabilityRecovery(
+            worth_store_formal_models::DurabilityRecoveryAction::PhysicalMutationAcknowledged
+        )
     )
 }
 

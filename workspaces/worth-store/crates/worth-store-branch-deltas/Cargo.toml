@@ -13,7 +13,6 @@ worth-store-live-query.workspace = true
 
 [features]
 default = []
-phase23-layout-rule-construction = []
 
 [lints]
 workspace = true

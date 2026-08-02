@@ -1,8 +1,9 @@
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, ManifestEntryCapacity, PhysicalPageSizeClass,
-    PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration, PhysicalRecordInitialization,
-    PhysicalRecordOpen, PhysicalRecordPlacementPolicy, RecordBootstrapDenial, RecordByteLimit,
+    AdmittedPhysicalRecordFormat, ManifestEntryCapacity, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalPageSizeClass, PhysicalRecordAccessPolicy,
+    PhysicalRecordFormatDeclaration, PhysicalRecordInitialization, PhysicalRecordOpen,
+    PhysicalRecordPlacementPolicy, RecordAppendBatch, RecordBootstrapDenial, RecordByteLimit,
     RecordServingRebindReason, RecordStoreInitializationOutcome, RecordStoreOpenOutcome,
 };
 use worth_store_physical_backend::MediaOperationRole;
@@ -46,6 +47,14 @@ fn empty_bootstrap_create_and_reopen_converge() {
     assert!(root
         .join("families/records/roots/root-0000000000000001.manifest")
         .is_file());
+    let expected_reopen_bytes = super::durable_frame_oracle::artifact_bytes(
+        &root,
+        &[
+            "families/records/bootstrap.catalog",
+            "families/records/roots/root-0000000000000001.manifest",
+            "families/records/free-space/free-space-0000000000000001.manifest",
+        ],
+    );
     serving.close();
 
     let (format, _, access) = configuration();
@@ -65,7 +74,7 @@ fn empty_bootstrap_create_and_reopen_converge() {
     assert_eq!(
         after.completed_bytes_for(MediaOperationRole::PositionedRead)
             - before.completed_bytes_for(MediaOperationRole::PositionedRead),
-        602
+        expected_reopen_bytes
     );
     assert_eq!(after.replacements(), before.replacements());
     reopened.close();
@@ -117,16 +126,15 @@ fn operational_policy_drift_reopens_but_format_drift_does_not() {
         .manifest_capacity(ManifestEntryCapacity::new(128).unwrap())
         .admit(format)
         .unwrap();
-    reopened
-        .record_submission()
-        .append_batch_reconstructing_manifest_capacity(
-            worth_store::physical_runtime::RecordAppendBatch::try_from_iter([
-                b"policy drift".as_slice()
-            ])
-            .unwrap(),
-            changed_placement,
-        )
-        .unwrap();
+    let completed = super::durable_publication::publish_single_with_manifest_capacity_transition(
+        &reopened,
+        changed_placement,
+        PhysicalManifestCapacityTransition::ReconstructToRequested,
+        PhysicalMutationIdempotencyMaterial::new([165; 32]),
+        RecordAppendBatch::try_from_iter([b"policy drift".as_slice()]).unwrap(),
+    );
+    assert_eq!(completed.current_root().generation(), 2);
+    assert_eq!(completed.current_root().node_capacity(), 128);
     reopened.close();
 
     let changed_format = AdmittedPhysicalRecordFormat::admit(

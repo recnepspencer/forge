@@ -28,6 +28,7 @@ fn durability_policy_installs_the_exact_dependency_signal_families() {
             .with(PhysicalWorkSignalFamily::DurabilityBarrier)
             .with(PhysicalWorkSignalFamily::CheckpointCapture)
             .with(PhysicalWorkSignalFamily::RootPublication)
+            .with(PhysicalWorkSignalFamily::WalReclamation)
     );
 
     let policy_digest = serving

@@ -8,11 +8,13 @@ use worth_store::physical_runtime::{
     AbortedRuntime, AdmissionError, AdmittedPhysicalDurabilityPolicy,
     AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, ClosedRuntime, FilesystemMediaAdmission,
     GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
-    MediaAdmissionInspectionCause, MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit,
-    PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration, PhysicalDurabilityPolicyDenial,
-    PhysicalIdempotencyPolicy, PhysicalRecordInitialization, PhysicalRuntimeAdmission,
-    PhysicalStore, RecordBootstrapDenial, RecordBootstrapFailure, RecordServingRebindReason,
-    RecordServingStaleReason, RetainedWalTailLimit, ServingPhysicalRuntime, ServingShutdownOutcome,
+    LiveIdempotencyBindingLimit, MediaAdmissionInspectionCause, MediaOwnedPhysicalRuntime,
+    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
+    PhysicalDurabilityPolicyDenial, PhysicalIdempotencyPolicy, PhysicalRecordInitialization,
+    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalPolicy, RecordBootstrapDenial,
+    RecordBootstrapFailure, RecordServingRebindReason, RecordServingStaleReason,
+    RetainedWalTailLimit, ServingPhysicalRuntime, ServingShutdownOutcome, WalSegmentByteLimit,
+    WalSegmentInventoryLimit,
 };
 use worth_store_physical_backend::{
     BackendCapabilityAdmissionDenial, FilesystemAccessPosture, MediaQualificationDeferred,
@@ -108,9 +110,14 @@ fn admit_durability(
             GroupCommitLimit::new(NonZeroU32::new(32).unwrap()),
             GroupCommitDelay::new(NonZeroU64::new(1).unwrap()),
         )
+        .wal(PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(NonZeroU64::new(8 * 1024 * 1024).unwrap()),
+            WalSegmentInventoryLimit::new(NonZeroU32::new(1_024).unwrap()),
+        ))
         .idempotency(PhysicalIdempotencyPolicy::new(
             IdempotencyRetentionGenerations::new(NonZeroU64::new(4).unwrap()),
             PendingUnresolvedMutationLimit::new(NonZeroU32::new(1_024).unwrap()),
+            LiveIdempotencyBindingLimit::new(NonZeroU32::new(4_096).unwrap()),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
             CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),

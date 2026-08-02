@@ -22,6 +22,12 @@ impl LifecycleGeneration {
         self.0
     }
 
+    pub(in crate::physical_runtime) const fn from_reopened(
+        generation: std::num::NonZeroU64,
+    ) -> Self {
+        Self(generation.get())
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(crate) fn certification_predecessor(self) -> Self {
         Self(

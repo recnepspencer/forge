@@ -190,5 +190,10 @@ fn family_set(family: BoundedResidencySignalFamily) -> BoundedResidencySignalFam
         exact_writeback: family == BoundedResidencySignalFamily::ExactWriteback,
         publication: family == BoundedResidencySignalFamily::Publication,
         lifecycle: family == BoundedResidencySignalFamily::Lifecycle,
+        wal_append: false,
+        durability_barrier: false,
+        checkpoint_capture: false,
+        root_publication: false,
+        wal_reclamation: false,
     }
 }

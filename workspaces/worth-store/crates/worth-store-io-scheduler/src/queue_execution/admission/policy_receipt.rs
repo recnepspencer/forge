@@ -57,8 +57,8 @@ pub fn admit_queue_policy_receipt(
 pub(super) const fn expected_work_class(
     work: &QueueWorkDeclaration,
 ) -> FoundationalPerformanceWorkClass {
-    if matches!(work.class(), QueueWorkClass::Background(_)) {
-        return FoundationalPerformanceWorkClass::ValidationPlanning;
+    if let QueueWorkClass::Background(class) = work.class() {
+        return expected_background_work_class(class);
     }
     match work.durability_class() {
         QueueDurabilityClass::ReadOnly => FoundationalPerformanceWorkClass::AuthoritativeRead,
@@ -68,5 +68,43 @@ pub(super) const fn expected_work_class(
         QueueDurabilityClass::PlatformDurable => {
             FoundationalPerformanceWorkClass::PublicationDelivery
         }
+    }
+}
+
+const fn expected_background_work_class(
+    class: crate::BackgroundIoPressureClass,
+) -> FoundationalPerformanceWorkClass {
+    match class {
+        crate::BackgroundIoPressureClass::CheckpointFlush => {
+            FoundationalPerformanceWorkClass::AuthoritativeMutation
+        }
+        crate::BackgroundIoPressureClass::CompactionRewrite
+        | crate::BackgroundIoPressureClass::ScrubScan
+        | crate::BackgroundIoPressureClass::ReplicationPrepRead
+        | crate::BackgroundIoPressureClass::IngestPressure
+        | crate::BackgroundIoPressureClass::MigrationPressure
+        | crate::BackgroundIoPressureClass::BackupPrepRead
+        | crate::BackgroundIoPressureClass::RepairScan
+        | crate::BackgroundIoPressureClass::VerificationPressure => {
+            FoundationalPerformanceWorkClass::ValidationPlanning
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{expected_background_work_class, FoundationalPerformanceWorkClass};
+    use crate::BackgroundIoPressureClass;
+
+    #[test]
+    fn checkpoint_is_authoritative_mutation_not_validation_planning() {
+        assert_eq!(
+            expected_background_work_class(BackgroundIoPressureClass::CheckpointFlush),
+            FoundationalPerformanceWorkClass::AuthoritativeMutation
+        );
+        assert_eq!(
+            expected_background_work_class(BackgroundIoPressureClass::VerificationPressure),
+            FoundationalPerformanceWorkClass::ValidationPlanning
+        );
     }
 }

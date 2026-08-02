@@ -6,18 +6,27 @@ use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::ArtifactTreeFailure;
 
 use super::PhysicalWalRuntimeOwner;
+use crate::physical_runtime::durability::PhysicalDurabilityGroupingRuntimeAuthority;
+use crate::physical_runtime::durability::PhysicalMutationIdempotencyRuntimeAuthority;
 use crate::physical_runtime::work::PhysicalWorkAdmissionAuthority;
 use crate::physical_runtime::{
     instance::{
         PhysicalSchedulerAdmissionOwner, PhysicalStoreWorkRuntime, RecordSchedulerReservationDenial,
     },
-    record_serving::{PreparedPhysicalMutation, RecordWorkAdmission},
-    PhysicalExecutorCommand, PhysicalExecutorCommandDenial, PhysicalMutationWorkRequest,
-    PhysicalSchedulerDemand, PhysicalSchedulerDenial, PhysicalWalAppendScope,
-    PhysicalWalAppendSettlement, PhysicalWalReservationDenial, PhysicalWorkAdmission,
+    record_serving::RecordWorkAdmission,
+    PhysicalDurabilityObservation, PhysicalExecutorCommand, PhysicalExecutorCommandDenial,
+    PhysicalMutationWorkRequest, PhysicalSchedulerDemand, PhysicalSchedulerDenial,
+    PhysicalWalAppendScope, PhysicalWalAppendSettlement, PhysicalWorkAdmission,
     PhysicalWorkExecution, PhysicalWorkPreEffectDenial, PhysicalWorkReadiness,
     PhysicalWorkScheduler, PhysicalWorkSettlementEvidence, WalAppendedPhysicalMutation,
-    WalRangeReservedPhysicalMutation,
+    WalBarrierMember, WalRangeReservedPhysicalMutation,
+};
+
+mod group;
+
+pub use group::{
+    IndeterminatePhysicalWalGroupAppend, PhysicalWalGroupAppendContinuation,
+    PhysicalWalGroupAppendFailureCause, PhysicalWalGroupAppendOutcome,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,19 +49,13 @@ pub enum PhysicalWalAppendFailureCause {
     MediaDeniedBeforeEffect(ArtifactTreeFailure),
 }
 
-pub enum PhysicalWalAppendOutcome {
-    Appended(WalAppendedPhysicalMutation),
-    ReservationDenied {
-        prepared: PreparedPhysicalMutation,
-        cause: PhysicalWalReservationDenial,
-    },
-    ProvenNoEffect {
-        prepared: PreparedPhysicalMutation,
+pub(super) enum PhysicalWalGroupMemberAppendOutcome {
+    Appended(WalBarrierMember<WalAppendedPhysicalMutation>),
+    NotStarted {
+        member: WalBarrierMember<WalRangeReservedPhysicalMutation>,
         cause: PhysicalWalAppendFailureCause,
     },
-    Indeterminate {
-        reserved: WalRangeReservedPhysicalMutation,
-    },
+    Indeterminate(WalBarrierMember<WalRangeReservedPhysicalMutation>),
 }
 
 #[derive(Clone)]
@@ -63,6 +66,9 @@ pub(in crate::physical_runtime) struct PhysicalWalAppendPort {
     scheduler: PhysicalSchedulerAdmissionOwner,
     record: Arc<RecordWorkAdmission>,
     owner: PhysicalWalRuntimeOwner,
+    grouping: PhysicalDurabilityGroupingRuntimeAuthority,
+    idempotency: PhysicalMutationIdempotencyRuntimeAuthority,
+    durability: PhysicalDurabilityObservation,
 }
 
 impl PhysicalWalAppendPort {
@@ -73,6 +79,9 @@ impl PhysicalWalAppendPort {
         scheduler: PhysicalSchedulerAdmissionOwner,
         record: Arc<RecordWorkAdmission>,
         owner: PhysicalWalRuntimeOwner,
+        grouping: PhysicalDurabilityGroupingRuntimeAuthority,
+        idempotency: PhysicalMutationIdempotencyRuntimeAuthority,
+        durability: PhysicalDurabilityObservation,
     ) -> Self {
         Self {
             runtime: Arc::downgrade(runtime),
@@ -81,39 +90,40 @@ impl PhysicalWalAppendPort {
             scheduler,
             record,
             owner,
+            grouping,
+            idempotency,
+            durability,
         }
     }
 
-    pub(in crate::physical_runtime) fn append_prepared(
+    pub(super) fn append_group_member(
         &self,
-        prepared: PreparedPhysicalMutation,
-    ) -> PhysicalWalAppendOutcome {
-        let prepared = match self.owner.admit_preparation(prepared) {
-            Ok(prepared) => prepared,
-            Err((prepared, cause)) => {
-                return PhysicalWalAppendOutcome::ReservationDenied { prepared, cause }
-            }
-        };
-        let reserved = match self.owner.reserve(prepared) {
-            Ok(reserved) => reserved,
-            Err((prepared, cause)) => {
-                return PhysicalWalAppendOutcome::ReservationDenied { prepared, cause }
-            }
-        };
+        member: WalBarrierMember<WalRangeReservedPhysicalMutation>,
+    ) -> PhysicalWalGroupMemberAppendOutcome {
+        let (binding, reserved) = member.into_parts();
         match self.prepare_command(&reserved) {
-            Ok(command) => self.execute(reserved, command),
-            Err(cause) => {
-                self.owner.release_before_effect();
-                PhysicalWalAppendOutcome::ProvenNoEffect {
-                    prepared: reserved.into_prepared_after_no_effect(),
-                    cause,
-                }
-            }
+            Ok(command) => self.execute_group_member(reserved, command),
+            Err(cause) => PhysicalWalGroupMemberAppendOutcome::NotStarted {
+                member: WalBarrierMember::new(binding, reserved),
+                cause,
+            },
         }
     }
 
     pub(in crate::physical_runtime) fn observation(&self) -> super::PhysicalWalObservation {
         self.owner.observation()
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_source_range(
+        &self,
+    ) -> Option<worth_store_physical_format::CheckpointWalSourceRange> {
+        self.owner.checkpoint_source_range()
+    }
+
+    pub(in crate::physical_runtime::durability) fn checkpoint_cutover(
+        &self,
+    ) -> Option<super::PhysicalWalCheckpointCutover<'_>> {
+        self.owner.checkpoint_cutover()
     }
 
     fn prepare_command(
@@ -131,6 +141,7 @@ impl PhysicalWalAppendPort {
             declaration.generation().get(),
             artifact_range.offset(),
             artifact_range.byte_count(),
+            declaration.disposition(),
         )
         .expect("reserved WAL declarations carry one valid append scope");
         let request = PhysicalMutationWorkRequest::wal_append(
@@ -203,7 +214,7 @@ impl PhysicalWalAppendPort {
             crate::physical_runtime::record_serving::admit_record_queue_policy(demand.queue_work());
         let work = PhysicalWorkScheduler::admit(demand, &backend, policy)
             .map_err(PhysicalWalAppendFailureCause::Scheduler)?;
-        PhysicalExecutorCommand::wal_append(
+        PhysicalExecutorCommand::wal_frame_write(
             work,
             reserved.artifact().clone(),
             reserved.encoded_frame().to_vec().into_boxed_slice(),
@@ -211,21 +222,21 @@ impl PhysicalWalAppendPort {
         .map_err(PhysicalWalAppendFailureCause::Command)
     }
 
-    fn execute(
+    fn execute_group_member(
         &self,
         reserved: WalRangeReservedPhysicalMutation,
         command: PhysicalExecutorCommand,
-    ) -> PhysicalWalAppendOutcome {
+    ) -> PhysicalWalGroupMemberAppendOutcome {
+        let binding = reserved.group_binding();
         let expected_work = command.identity();
-        let (expected_range, expected_digest) = command
-            .wal_append_completion_binding()
-            .expect("the WAL port can execute only WAL append commands");
+        let expected_binding = command
+            .wal_frame_completion_binding()
+            .expect("the WAL port can execute only a typed WAL frame command");
         let outcome = match self.execution.execute_physical_work(command) {
             Ok(outcome) => outcome,
             Err(cause) => {
-                self.owner.release_before_effect();
-                return PhysicalWalAppendOutcome::ProvenNoEffect {
-                    prepared: reserved.into_prepared_after_no_effect(),
+                return PhysicalWalGroupMemberAppendOutcome::NotStarted {
+                    member: WalBarrierMember::new(binding, reserved),
                     cause: PhysicalWalAppendFailureCause::PreEffect(cause),
                 };
             }
@@ -236,24 +247,28 @@ impl PhysicalWalAppendPort {
             PhysicalWorkSettlementEvidence::WalAppend {
                 physical,
                 scheduler: QueueExecutionOutcome::Executed(_),
-            } => {
-                let settlement = PhysicalWalAppendSettlement::completed(work, &physical);
-                let Some(settlement) =
-                    settlement.bind_completion(expected_work, expected_range, expected_digest)
-                else {
-                    self.owner.seal_for_inspection();
-                    return PhysicalWalAppendOutcome::Indeterminate { reserved };
-                };
-                self.owner
-                    .complete(reserved.resulting_frontier(), physical.range().byte_count());
-                PhysicalWalAppendOutcome::Appended(WalAppendedPhysicalMutation::new(
-                    reserved, settlement,
-                ))
-            }
+            } => self.complete_group_member(
+                binding,
+                reserved,
+                expected_work,
+                expected_binding,
+                PhysicalWalAppendSettlement::completed_append(work, &physical),
+                physical.range().byte_count(),
+            ),
+            PhysicalWorkSettlementEvidence::WalSegmentCreate {
+                physical,
+                scheduler: QueueExecutionOutcome::Executed(_),
+            } => self.complete_group_member(
+                binding,
+                reserved,
+                expected_work,
+                expected_binding,
+                PhysicalWalAppendSettlement::completed_segment_create(work, &physical),
+                physical.completed_bytes(),
+            ),
             PhysicalWorkSettlementEvidence::NoEffect(evidence) => {
-                self.owner.release_before_effect();
-                PhysicalWalAppendOutcome::ProvenNoEffect {
-                    prepared: reserved.into_prepared_after_no_effect(),
+                PhysicalWalGroupMemberAppendOutcome::NotStarted {
+                    member: WalBarrierMember::new(binding, reserved),
                     cause: PhysicalWalAppendFailureCause::MediaDeniedBeforeEffect(
                         evidence.failure(),
                     ),
@@ -261,8 +276,50 @@ impl PhysicalWalAppendPort {
             }
             _ => {
                 self.owner.seal_for_inspection();
-                PhysicalWalAppendOutcome::Indeterminate { reserved }
+                PhysicalWalGroupMemberAppendOutcome::Indeterminate(WalBarrierMember::new(
+                    binding, reserved,
+                ))
             }
         }
+    }
+
+    fn complete_group_member(
+        &self,
+        binding: crate::physical_runtime::PhysicalDurabilityGroupMemberBinding,
+        reserved: WalRangeReservedPhysicalMutation,
+        expected_work: crate::physical_runtime::PhysicalWorkIdentity,
+        expected_binding: crate::physical_runtime::PhysicalWalFrameCompletionBinding,
+        settlement: PhysicalWalAppendSettlement,
+        completed_bytes: u64,
+    ) -> PhysicalWalGroupMemberAppendOutcome {
+        let Some(settlement) =
+            settlement.bind_completion(expected_work, reserved.artifact(), expected_binding)
+        else {
+            self.owner.seal_for_inspection();
+            return PhysicalWalGroupMemberAppendOutcome::Indeterminate(WalBarrierMember::new(
+                binding, reserved,
+            ));
+        };
+        let persisted = reserved.persisted_attempt_binding();
+        if self
+            .owner
+            .complete_member(
+                reserved.resulting_frontier(),
+                reserved.artifact().clone(),
+                reserved.declaration(),
+                completed_bytes,
+                &self.idempotency,
+                persisted,
+            )
+            .is_err()
+        {
+            return PhysicalWalGroupMemberAppendOutcome::Indeterminate(WalBarrierMember::new(
+                binding, reserved,
+            ));
+        }
+        PhysicalWalGroupMemberAppendOutcome::Appended(WalBarrierMember::new(
+            binding,
+            WalAppendedPhysicalMutation::new(reserved, settlement),
+        ))
     }
 }

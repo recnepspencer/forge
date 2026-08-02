@@ -32,8 +32,8 @@ fn root_manifest_artifact(
     (logical, physical)
 }
 
-fn coordinate(artifact: RecordArtifactFile, bytes: &[u8]) -> RecordFrameCoordinate {
-    RecordFrameCoordinate::new(artifact, 0, bytes.len() as u32).unwrap()
+fn new_write_range(bytes: &[u8]) -> ArtifactNewWriteRange {
+    ArtifactNewWriteRange::new(bytes.len() as u64).unwrap()
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn new_artifact_write_retains_distinct_create_and_write_identities() {
     let completed =
         match media
             .artifact_tree()
-            .write_new_exact(&physical, coordinate(logical, bytes), bytes)
+            .write_new_exact(&physical, new_write_range(bytes), bytes)
         {
             ArtifactNewWriteOutcome::Completed(completed) => completed,
             outcome => panic!("new artifact write did not complete: {outcome:?}"),
@@ -57,10 +57,11 @@ fn new_artifact_write_retains_distinct_create_and_write_identities() {
 
     assert_ne!(
         completed.create_operation(),
-        completed.write().operation(),
+        completed.write_operation(),
         "create and exact write are separate backend effects"
     );
-    assert_eq!(completed.write().coordinate(), coordinate(logical, bytes));
+    assert_eq!(completed.artifact(), &physical);
+    assert_eq!(completed.range(), new_write_range(bytes));
     assert_eq!(
         std::fs::read(
             parent
@@ -75,20 +76,48 @@ fn new_artifact_write_retains_distinct_create_and_write_identities() {
 }
 
 #[test]
+fn admitted_artifact_roots_support_exact_files_without_synthetic_child_directories() {
+    let parent = tempfile::tempdir().unwrap();
+    let media = qualified(
+        &parent.path().join("root-files"),
+        MediaFaultSchedule::default(),
+    );
+    let tree = media.artifact_tree();
+    for (directory, relative) in [
+        (ArtifactTreeDirectory::families(), "families/current"),
+        (ArtifactTreeDirectory::staging(), "staging/candidate"),
+    ] {
+        let artifact = directory
+            .file(relative.rsplit('/').next().unwrap())
+            .unwrap();
+        let bytes = relative.as_bytes();
+        assert!(matches!(
+            tree.write_new_exact(&artifact, new_write_range(bytes), bytes),
+            ArtifactNewWriteOutcome::Completed(_)
+        ));
+        assert_eq!(
+            std::fs::read(parent.path().join("root-files").join(relative)).unwrap(),
+            bytes
+        );
+    }
+    media.close();
+}
+
+#[test]
 fn existing_new_artifact_target_is_denied_before_effect() {
     let parent = tempfile::tempdir().unwrap();
     let media = qualified(
         &parent.path().join("existing"),
         MediaFaultSchedule::default(),
     );
-    let (logical, physical) = root_manifest_artifact(&media, 2);
+    let (_logical, physical) = root_manifest_artifact(&media, 2);
     let bytes = b"unchanged";
     media.artifact_tree().write_new(&physical, bytes).unwrap();
 
     assert!(matches!(
         media
             .artifact_tree()
-            .write_new_exact(&physical, coordinate(logical, bytes), bytes),
+            .write_new_exact(&physical, new_write_range(bytes), bytes),
         ArtifactNewWriteOutcome::DeniedBeforeEffect(failure)
             if failure.kind() == ArtifactTreeFailureKind::AlreadyExists
     ));
@@ -126,7 +155,7 @@ fn denied_exact_write_after_create_is_indeterminate() {
     let failure =
         match media
             .artifact_tree()
-            .write_new_exact(&physical, coordinate(logical, bytes), bytes)
+            .write_new_exact(&physical, new_write_range(bytes), bytes)
         {
             ArtifactNewWriteOutcome::Indeterminate(failure) => failure,
             outcome => panic!("post-create denial was not indeterminate: {outcome:?}"),
@@ -157,7 +186,7 @@ fn append_exact_at_eof_extends_without_weakening_exact_overwrite_bounds() {
     let tree = media.artifact_tree();
     let initial = b"abc";
     assert!(matches!(
-        tree.write_new_exact(&physical, coordinate(logical, initial), initial),
+        tree.write_new_exact(&physical, new_write_range(initial), initial),
         ArtifactNewWriteOutcome::Completed(_)
     ));
     let continuation = RecordFrameCoordinate::new(logical, 3, 3).unwrap();

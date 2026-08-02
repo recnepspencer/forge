@@ -4,8 +4,8 @@ use worth_store_buffer_pool::{
     PhysicalResidencyPool, PhysicalResidencyPoolOwner, PhysicalSpeculativeWorkKind,
 };
 use worth_store_physical_backend::{
-    ArtifactNewWriteOutcome, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
-    FilesystemAccessPosture,
+    ArtifactNewWriteOutcome, ArtifactNewWriteRange, ArtifactRangeWriteOutcome,
+    ArtifactTreeDirectory, FilesystemAccessPosture,
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
@@ -30,12 +30,20 @@ fn writeback_settlement_rejects_wrong_bytes_and_accepts_exact_physical_receipt()
     let artifact = RecordArtifactFile::RootManifest { generation: 1 };
     let physical = root_manifest_artifact(media, artifact);
     let coordinate = RecordFrameCoordinate::new(artifact, 0, 8).unwrap();
+    match media.artifact_tree().write_new_exact(
+        &physical,
+        ArtifactNewWriteRange::new(8).unwrap(),
+        &[0xA5; 8],
+    ) {
+        ArtifactNewWriteOutcome::Completed(_) => {}
+        outcome => panic!("real receipt write failed: {outcome:?}"),
+    };
     let wrong = match media
         .artifact_tree()
-        .write_new_exact(&physical, coordinate, &[0xA5; 8])
+        .write_exact_at(&physical, coordinate, &[0xA5; 8])
     {
-        ArtifactNewWriteOutcome::Completed(completed) => completed.into_write(),
-        outcome => panic!("real receipt write failed: {outcome:?}"),
+        ArtifactRangeWriteOutcome::Completed(completed) => completed,
+        outcome => panic!("real range receipt write failed: {outcome:?}"),
     };
 
     let (pool, _, writeback_clean) =

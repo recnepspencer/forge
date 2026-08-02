@@ -49,6 +49,7 @@ fn facade_visibility_stays_narrow_at_closeout() {
             "blob_reachability_compile_fail",
             "blob_recovery_records_compile_fail",
             "blob_retention_reclaim_compile_fail",
+            "blob_streaming_execution_authority_compile_fail",
             "blob_streaming_read_compile_fail",
             "security_metadata_compile_fail",
         ],

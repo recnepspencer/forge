@@ -78,10 +78,12 @@ fn basis(
 }
 
 fn coverage_mismatch(exact: &DerivedIndexParityBasis) -> DerivedIndexParityBasis {
-    let lsm = fixture_inputs::lsm_materialization();
+    let strategy = fixture_inputs::btree_strategy();
+    let source = fixture_inputs::root_source(99);
+    let alternate = fixture_inputs::root_materialization(&strategy, &source);
     DerivedIndexParityBasis::new(
         exact.ordered_rows().to_vec(),
-        lsm.coverage().clone(),
+        alternate.coverage().clone(),
         exact.cost_envelope_compliant(),
         exact.counter_shape().to_vec(),
     )

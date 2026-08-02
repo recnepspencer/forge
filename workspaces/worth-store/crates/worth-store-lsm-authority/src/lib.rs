@@ -30,8 +30,9 @@ pub use replay_source::{
 pub use membership::issue_published_lsm_membership_for_certification;
 
 pub(crate) use worth_store_wal::{
-    AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, AdmittedWalArtifactStore,
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
-    CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
-    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope, WalSecurityMetadataCarrier,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind, CheckpointArtifactObservation,
+    CheckpointPublicationScope, LogSequenceNumber, PublicationDeclaration, PublicationScope,
+    StoreCheckpointRecordIdentity, WalArtifactInventory, WalFrameArtifactObservation,
+    WalFramePublicationScope, WalLsnRange, WalSecurityMetadataCarrier, WalSegmentGeneration,
+    WalSegmentId,
 };

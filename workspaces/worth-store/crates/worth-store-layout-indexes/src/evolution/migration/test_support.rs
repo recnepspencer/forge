@@ -6,14 +6,9 @@ mod authority;
 mod publication;
 
 pub(crate) use authority::current_authority;
-use publication::{current_publication_source, publication_inputs};
-pub(crate) use publication::{publication_plan, rollback_publication_plan};
+use publication::current_publication_source;
 
-use super::{
-    layout_evolution_binding, layout_migration_execution, layout_migration_operation,
-    LayoutBindingRequest, LayoutMigrationExecutionRequest, LayoutMigrationReceipt,
-    LayoutMigrationRequest, LayoutRollbackRequest,
-};
+use super::{layout_evolution_binding, LayoutBindingRequest, LayoutMigrationRequest};
 use crate::{
     layout_declarations, ArtifactFamilyAuthorityWitness, LayoutBindingWitness,
     LayoutCompatibilityWindow, LayoutEvolutionDeclaration, LayoutInterruptionPolicy,
@@ -146,102 +141,12 @@ pub(crate) fn other_family_binding(
     )
 }
 
-pub(crate) fn migrated_binding(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-) -> LayoutMigrationReceipt {
-    let request = migration_execution_request(declaration, authority);
-    let mut publication =
-        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
-            request.publication_source_root(),
-        )
-        .unwrap();
-    layout_migration_execution(&mut publication)
-        .execute(request)
-        .into_published()
-        .expect("migration fixture must publish through physical copy-on-write")
-}
-
-pub(crate) fn migration_execution_request(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-) -> LayoutMigrationExecutionRequest {
-    migration_execution_request_for_publication(declaration, authority, 1_901)
-}
-
-pub(crate) fn migration_execution_request_for_publication(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> LayoutMigrationExecutionRequest {
-    let source = binding(
-        declaration.migration_source(),
-        declaration.migration_source(),
-        authority.clone(),
-    );
-    let plan = layout_migration_operation()
-        .plan(migration_request(declaration, source), authority)
-        .into_ready()
-        .expect("migration fixture must plan through the ordinary owner");
-    LayoutMigrationExecutionRequest::new(plan, publication_plan(authority, generation))
-}
-
 pub(crate) fn migration_request(
     declaration: LayoutEvolutionDeclaration,
     binding: LayoutBindingWitness,
 ) -> LayoutMigrationRequest {
     let current_family = binding.admitted_family();
     LayoutMigrationRequest::new(declaration, binding, current_family)
-}
-
-pub(crate) fn same_store_unbound_migration_source(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> (
-    LayoutBindingWitness,
-    worth_store_physical_isolation::CopyOnWritePublicationPlan,
-) {
-    let inputs = publication_inputs(authority, generation);
-    let source = admitted_binding_from_physical_source(
-        declaration,
-        layout_declarations().seed_family(),
-        authority.clone(),
-        inputs.new_candidate,
-    )
-    .expect("same-Store hostile source should admit through the production owner");
-    let unbound_plan =
-        worth_store_test_support::harness::physical_isolation::publication::admitted_copy_on_write_plan(
-            &inputs,
-        );
-    (source, unbound_plan)
-}
-
-pub(crate) fn rollback_request(
-    declaration: LayoutEvolutionDeclaration,
-    binding: LayoutBindingWitness,
-) -> LayoutRollbackRequest {
-    let current_family = binding.admitted_family();
-    LayoutRollbackRequest::new(declaration, binding, current_family)
-}
-
-pub(crate) fn rollback_execution_request_for_publication(
-    declaration: LayoutEvolutionDeclaration,
-    authority: &StoreCurrentAuthorityWitness,
-    generation: u64,
-) -> super::LayoutRollbackExecutionRequest {
-    let migrated = migrated_binding(declaration, authority);
-    let plan = super::layout_rollback_operation()
-        .plan(
-            rollback_request(declaration, migrated.target_binding().clone()),
-            authority,
-        )
-        .into_ready()
-        .expect("rollback fixture must plan through the ordinary owner");
-    super::LayoutRollbackExecutionRequest::new(
-        plan,
-        rollback_publication_plan(authority, migrated.publication(), generation),
-    )
 }
 
 pub(crate) fn admitted_family_for_scope(
@@ -271,41 +176,6 @@ pub(crate) fn admitted_family_for_scope(
     layout_declarations()
         .admit_physical_artifact_family(family_declaration, security.witnesses())
         .unwrap()
-}
-
-pub(crate) fn other_family_migrated_binding(
-    authority: &StoreCurrentAuthorityWitness,
-) -> LayoutMigrationReceipt {
-    let declared = LayoutEvolutionDeclaration::new(
-        other_declared_family(),
-        declaration().layout_version(),
-        declaration().compatibility_window(),
-        declaration().migration_source(),
-        declaration().migration_target(),
-        declaration().rollback_source(),
-        declaration().rollback_target(),
-        declaration().interruption_policy(),
-    );
-    let source = other_family_binding(
-        declared.migration_source(),
-        declared.migration_source(),
-        authority.clone(),
-    );
-    let plan = layout_migration_operation()
-        .plan(migration_request(declared, source), authority)
-        .into_ready()
-        .expect("migration fixture must plan through the ordinary owner");
-    let publication = publication_plan(authority, 1_901);
-    let request = LayoutMigrationExecutionRequest::new(plan, publication);
-    let mut runtime =
-        worth_store_test_support::harness::physical_isolation::PhysicalRootPublicationFixture::open(
-            request.publication_source_root(),
-        )
-        .unwrap();
-    layout_migration_execution(&mut runtime)
-        .execute(request)
-        .into_published()
-        .expect("migration fixture must publish through physical copy-on-write")
 }
 
 fn admitted_binding(

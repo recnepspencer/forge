@@ -107,22 +107,22 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         1,
         "publication-durability",
-        "crates/worth-store/src/physical_runtime/record_serving/publication/manifest_progression.rs",
-        "stage\n        .synchronize_artifact(artifact)\n        .and_then(|_| stage.synchronize_artifact_parent(artifact))",
-        "stage.synchronize_artifact_parent(artifact)",
+        "crates/worth-store/src/physical_runtime/record_serving/publication/director/root_candidate_execution.rs",
+        "for index in 0..candidate.candidate().artifacts().len() {",
+        "for index in 0..candidate.candidate().artifacts().len().saturating_sub(1) {",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_recovery_faults::manifest_sync_failure_cannot_erase_the_accepted_candidate_write"
+        "durability_admission::data_durability::root_projection_carriage::exact_settled_group_advances_only_after_replacement_and_namespace_durability"
     ),
     mutation!(
         2,
         "outcome-order",
-        "crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs",
-        "let namespace_synchronized =\n        synchronize_namespace(media, &artifacts, catalog_replaced, counters_before)?;",
-        "let namespace_synchronized = NamespaceSynchronized(catalog_replaced.0);",
+        "crates/worth-store/src/physical_runtime/durability/publication/namespace_durability.rs",
+        "PhysicalRootPublicationWorkAction::SynchronizeParentNamespace,",
+        "PhysicalRootPublicationWorkAction::ReplaceBootstrapCatalog,",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_faults::possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication_effect"
+        "durability_admission::data_durability::root_signal_progression::root_candidate_signal_completion_precedes_replacement_and_current_root_advance"
     ),
     mutation!(
         3,

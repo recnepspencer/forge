@@ -11,7 +11,6 @@ mod checkpoint_root;
 mod checkpoint_validation;
 mod cutover_recovery;
 mod denial;
-mod wal_retention;
 
 #[cfg(test)]
 mod tests;
@@ -50,7 +49,3 @@ pub use cutover_recovery::{
     RecoveredCheckpointManifestMedia, RecoveredCheckpointRoot, RecoveredCheckpointSelector,
 };
 pub use denial::{CheckpointValidationDenial, CheckpointValidationDenialKind};
-pub use wal_retention::{
-    ContiguousWalTailProof, WalRetentionAction, WalRetentionAdmittedAction,
-    WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
-};

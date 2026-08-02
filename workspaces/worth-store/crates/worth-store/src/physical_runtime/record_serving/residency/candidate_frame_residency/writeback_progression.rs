@@ -30,7 +30,9 @@ impl StoreCandidateFramePublicationSession<'_> {
         ),
         CandidateFrameWriteFailure<PhysicalRecordWritebackFailureEvidence>,
     > {
-        let (resident, expectation) = self.retain_submitted_frame(frame)?;
+        let (resident, expectation, frame) = self
+            .retain_submitted_frame(frame)
+            .map_err(super::RecoverableCandidateFrameWriteFailure::into_cause)?;
         let coordinate = RecordFrameCoordinate::new(
             resident.coordinate().artifact(),
             resident.coordinate().offset(),
@@ -76,7 +78,8 @@ impl StoreCandidateFramePublicationSession<'_> {
                     payload_digest,
                     settlement,
                 );
-                self.complete_frame(expectation, &completion)?;
+                self.complete_frame(expectation, &completion, frame)
+                    .map_err(super::RecoverableCandidateFrameWriteFailure::into_cause)?;
                 Ok((completion, settlement))
             }
             PhysicalWritebackExecution::Retryable(retryable) => {

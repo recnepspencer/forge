@@ -1,22 +1,19 @@
-use worth_store_physical_backend::{
-    BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
-    SimulatedStrictDurableProfile, WalDurabilityBarrier,
-};
+use worth_store_physical_backend::{BackendDurabilityProfile, SimulatedStrictDurableProfile};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceAuthority,
     PhysicalRootReference, PhysicalSegmentId,
 };
 use worth_store_recovery_physics::{
-    ensure_recovery_entry_allowed, reject_locator_projection, AcknowledgmentPrecondition,
+    ensure_recovery_entry_allowed, reject_locator_projection,
     CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
     CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverLayoutReport,
     CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet, CheckpointLocatorArtifactCommitment,
     CheckpointManifest, CheckpointPageLsnFrontier, CheckpointPublicationPlan,
     CheckpointRecoveryManifestLayoutReport, CheckpointRedoBoundary, CheckpointRootPosture,
-    CheckpointSelectorEvidence, CheckpointValidation, DurableAckReceipt, IntegrityDamageMap,
-    LogSequenceNumber, PageLsn, RecoveryLayoutAccessDenialKind, SharpCheckpointCertificationMode,
-    StoreOwnedCheckpointLocator, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId,
+    CheckpointSelectorEvidence, CheckpointValidation, IntegrityDamageMap, LogSequenceNumber,
+    PageLsn, RecoveryLayoutAccessDenialKind, SharpCheckpointCertificationMode,
+    StoreOwnedCheckpointLocator, WalAppendObservationScope, WalAppendReceipt,
+    WalDurabilityObservation, WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
 
 #[test]
@@ -139,8 +136,8 @@ fn durable_ack(
     lsn_range: WalLsnRange,
     frame_digest: impl Into<String>,
     expected_bytes: u64,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
-    let plan = WalAppendPlan::<SimulatedStrictDurableProfile>::new(
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
+    let scope = WalAppendObservationScope::new(
         WalSegmentId::new(segment_id).unwrap(),
         WalSegmentGeneration::new(generation).unwrap(),
         lsn_range,
@@ -148,24 +145,18 @@ fn durable_ack(
         expected_bytes,
     )
     .unwrap();
-    let progress = plan.record_written_bytes(expected_bytes);
-    let scope = progress.durability_scope();
-    let barrier = SimulatedStrictDurabilityAuthority::new()
-        .certify_completed_barrier(scope, WalDurabilityBarrier::SimulatedDurableCommit)
-        .unwrap();
-    let receipt = WalDurabilityObservationSequence::new(progress)
-        .completed(barrier)
-        .unwrap()
-        .finish()
-        .unwrap();
-    DurableAckReceipt::acknowledge(
-        AcknowledgmentPrecondition::from_append_receipt(receipt).unwrap(),
-    )
+    let receipt = WalAppendReceipt::from_certification_observation(
+        scope,
+        expected_bytes,
+        SimulatedStrictDurableProfile::REQUIRED_BARRIERS,
+        None,
+    );
+    WalDurabilityObservation::from_append_receipt(receipt).unwrap()
 }
 
 fn artifact_ack(
     segment_id: u64,
     commitment: CheckpointArtifactDurabilityCommitment,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
     durable_ack(segment_id, 1, wal_range(10, 30), commitment.digest(), 64)
 }

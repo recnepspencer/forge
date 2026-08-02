@@ -52,21 +52,6 @@ pub(crate) fn strategy_test_store_identity() -> worth_store_physical_format::Phy
     )
 }
 
-pub(crate) fn strategy_test_security_scope(
-    key_scope: StoreKeyScope,
-    tenant_scope: StoreTenantScope,
-) -> StoreAdmittedSecurityScope {
-    admitted_scope(
-        key_scope,
-        tenant_scope,
-        StoreAuthenticityRequirement::required(
-            StoreAuthenticityRequirementClass::AuthenticatedFrame,
-        ),
-        StoreCustodyPosture::InternalStoreCustody,
-        strategy_store_authority_key(),
-    )
-}
-
 pub(crate) fn strategy_test_wal_security_scope_for_store(
     store_authority_key: &str,
 ) -> StoreAdmittedSecurityScope {

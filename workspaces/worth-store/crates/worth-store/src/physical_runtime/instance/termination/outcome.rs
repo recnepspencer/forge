@@ -13,17 +13,17 @@ use crate::physical_runtime::{
 pub enum PhysicalStoreCloseOutcome {
     Closed {
         shutdown: ServingShutdownOutcome<ClosedRuntime>,
-        phases: [PhysicalStoreClosePhase; 6],
+        phases: [PhysicalStoreClosePhase; 7],
     },
     InspectionRequired {
         shutdown: ServingShutdownOutcome<ClosedRuntime>,
-        phases: [PhysicalStoreClosePhase; 6],
+        phases: [PhysicalStoreClosePhase; 7],
     },
 }
 
 pub struct PhysicalStoreAbortOutcome {
     shutdown: ServingShutdownOutcome<AbortedRuntime>,
-    phases: [PhysicalStoreClosePhase; 6],
+    phases: [PhysicalStoreClosePhase; 7],
 }
 
 impl PhysicalStoreCloseOutcome {
@@ -41,7 +41,7 @@ impl PhysicalStoreCloseOutcome {
         }
     }
 
-    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 6] {
+    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 7] {
         match self {
             Self::Closed { phases, .. } | Self::InspectionRequired { phases, .. } => phases,
         }
@@ -73,7 +73,7 @@ impl PhysicalStoreAbortOutcome {
         }
     }
 
-    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 6] {
+    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 7] {
         &self.phases
     }
 
@@ -92,6 +92,7 @@ impl PhysicalStoreAbortOutcome {
 
 fn shutdown_requires_inspection<Terminal>(shutdown: &ServingShutdownOutcome<Terminal>) -> bool {
     shutdown.records().posture() == RecordServingTerminalPosture::InspectionRequired
+        || shutdown.checkpoint().requires_inspection()
         || shutdown.residency().requires_inspection()
         || shutdown.work().drain().requires_inspection()
         || shutdown.signal() != PhysicalSignalShutdownOutcome::Disposed

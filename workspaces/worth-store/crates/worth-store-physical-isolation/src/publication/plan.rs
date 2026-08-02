@@ -1,7 +1,6 @@
 use super::{
-    AtomicPhysicalRootSwap, PhysicalIdentityReuse, PhysicalPublicationCounterSnapshot,
-    PhysicalPublicationDenial, PhysicalPublicationReadiness, PhysicalPublicationReleasePosture,
-    RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+    AtomicPhysicalRootSwap, PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
+    PhysicalPublicationReadiness, RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
 
 #[derive(Debug, Clone)]
@@ -14,10 +13,8 @@ pub struct LoweredCopyOnWritePublicationPlan {
 #[derive(Debug, Clone)]
 pub struct CopyOnWritePublicationPlan {
     intent: ValidatedPhysicalPublicationIntent,
-    ordering: RootSwapOrderingContract,
     readiness: PhysicalPublicationReadiness,
     atomic_swap: AtomicPhysicalRootSwap,
-    counters: PhysicalPublicationCounterSnapshot,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,9 +86,7 @@ impl LoweredCopyOnWritePublicationPlan {
         Ok(CopyOnWritePublicationPlan {
             atomic_swap: AtomicPhysicalRootSwap::new(self.ordering),
             intent: self.intent,
-            ordering: self.ordering,
             readiness,
-            counters: self.counters.with_readiness_join(),
         })
     }
 
@@ -103,29 +98,6 @@ impl LoweredCopyOnWritePublicationPlan {
 impl CopyOnWritePublicationPlan {
     pub fn binding(&self) -> CopyOnWritePublicationBinding {
         CopyOnWritePublicationBinding::from_intent(&self.intent)
-    }
-
-    pub(crate) const fn intent(&self) -> &ValidatedPhysicalPublicationIntent {
-        &self.intent
-    }
-
-    pub(crate) const fn counters(&self) -> PhysicalPublicationCounterSnapshot {
-        self.counters
-    }
-
-    pub(crate) const fn publish_ordering(&self) -> RootSwapOrderingContract {
-        self.ordering
-    }
-
-    pub(crate) const fn release_posture(&self) -> PhysicalPublicationReleasePosture {
-        match self.intent.identity_reuse() {
-            PhysicalIdentityReuse::None => {
-                PhysicalPublicationReleasePosture::OldReachabilityRetainedUntilReadRelease
-            }
-            PhysicalIdentityReuse::Requested => {
-                PhysicalPublicationReleasePosture::IdentityReuseProtectedByAllocatorFence
-            }
-        }
     }
 
     pub const fn readiness(&self) -> PhysicalPublicationReadiness {

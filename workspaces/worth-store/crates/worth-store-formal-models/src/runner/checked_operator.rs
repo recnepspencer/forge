@@ -72,7 +72,7 @@ fn durability_operator(action: DurabilityRecoveryAction) -> &'static str {
         DurabilityRecoveryAction::WalAppendCompletedInMemory => "WalWrite",
         DurabilityRecoveryAction::WalFenceRequested => "WalFenceRequest",
         DurabilityRecoveryAction::WalFenceCompleted => "WalFenceComplete",
-        DurabilityRecoveryAction::WalAcknowledgmentLegal => "WalAcknowledge",
+        DurabilityRecoveryAction::PhysicalMutationAcknowledged => "PhysicalAcknowledge",
         DurabilityRecoveryAction::PageFlushRequested => "PageRequest",
         DurabilityRecoveryAction::PageFlushCompleted => "PageComplete",
         DurabilityRecoveryAction::PageFlushDurabilityUncertain => "PageUncertain",

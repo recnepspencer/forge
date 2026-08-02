@@ -9,11 +9,10 @@ use worth_store_physical_format::{
     PhysicalRootReference, RootPublicationValidationWitness,
 };
 use worth_store_physical_isolation::{
-    admit_post_publication_read_stability_authority, CopyOnWritePublicationPlan,
-    CrashStableFreeReusePosture, NewRootPublicationProof, OldReachabilityPreservation,
+    CopyOnWritePublicationPlan, NewRootPublicationProof, OldReachabilityPreservation,
     PhysicalPublicationIntent, PhysicalPublicationReadiness, PhysicalReadPlanReleaseReceipt,
     PublicationLatchReadiness, PublicationRootCandidate, PublicationRootSuccessorOwner,
-    ReadCopyUpdateRootPublication, RootSwapOrderingContract,
+    RootSwapOrderingContract,
 };
 use worth_store_recovery_physics::{
     ExecutedPublicationRecoveryReceipt, PublicationCrashStage, PublicationRecoveryReplayInput,
@@ -74,32 +73,6 @@ pub fn publication_inputs_for_store(
     )
 }
 
-pub fn successor_publication_inputs_for_store(
-    prior: &worth_store_physical_isolation::PhysicalPublicationReceipt,
-    store_identity: &worth_store_physical_format::PhysicalStoreIdentity,
-    reference_generation: u64,
-) -> PublicationInputs {
-    assert_eq!(
-        prior.new_root().store_authority_identity(),
-        store_identity.authority_identity(),
-        "successor fixture Store must match the published root"
-    );
-    let old_authority = admit_post_publication_read_stability_authority(prior).unwrap();
-    let old_candidate =
-        PublicationRootCandidate::admit(prior.new_root(), prior.new_root_validation()).unwrap();
-    let new_candidate = PublicationRootSuccessorOwner::plan(
-        old_candidate,
-        physical_generation(reference_generation),
-    )
-    .unwrap();
-    publication_inputs_from_candidates(
-        old_authority,
-        old_candidate,
-        new_candidate,
-        reference_generation,
-    )
-}
-
 fn publication_inputs_from_candidates(
     old_authority: worth_store_physical_isolation::PhysicalReadStabilityAuthority,
     old_candidate: PublicationRootCandidate,
@@ -134,17 +107,6 @@ fn publication_inputs_from_candidates(
     }
 }
 
-pub fn publish_inputs(
-    inputs: &PublicationInputs,
-) -> worth_store_physical_isolation::PhysicalPublicationReceipt {
-    let mut fixture = super::PhysicalRootPublicationFixture::open(inputs.old_root).unwrap();
-    fixture
-        .publish(admitted_copy_on_write_plan(inputs))
-        .unwrap()
-        .receipt()
-        .clone()
-}
-
 pub fn admitted_copy_on_write_plan(inputs: &PublicationInputs) -> CopyOnWritePublicationPlan {
     let intent = PhysicalPublicationIntent::copy_on_write_root_manifest(
         inputs.old_candidate,
@@ -177,40 +139,6 @@ pub fn mismatched_release_receipt(reference_generation: u64) -> PhysicalReadPlan
     )
     .into_execution_ready_handle()
     .release()
-}
-
-pub fn publish_copy_on_write(
-    intent: PhysicalPublicationIntent,
-    new_validation: RootPublicationValidationWitness,
-    reuse: Option<CrashStableFreeReusePosture>,
-) -> worth_store_physical_isolation::PhysicalPublicationReceipt {
-    publish_copy_on_write_result(intent, new_validation, reuse)
-        .receipt()
-        .clone()
-}
-
-pub fn publish_copy_on_write_result(
-    intent: PhysicalPublicationIntent,
-    new_validation: RootPublicationValidationWitness,
-    reuse: Option<CrashStableFreeReusePosture>,
-) -> ReadCopyUpdateRootPublication {
-    let validated = intent.validate_copy_on_write_inputs().unwrap();
-    let lowered = validated
-        .clone()
-        .lower_with_ordering(RootSwapOrderingContract::acquire_release_or_stronger())
-        .unwrap();
-    let mut readiness = PhysicalPublicationReadiness::from_validated_intent(
-        &validated,
-        NewRootPublicationProof::from_root_validation(new_validation),
-        PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
-    );
-    if let Some(reuse) = reuse {
-        readiness = readiness.with_free_reuse_posture(reuse).unwrap();
-    }
-    let plan = lowered.join_readiness(readiness).unwrap();
-    let mut fixture =
-        super::PhysicalRootPublicationFixture::open(plan.binding().old_root()).unwrap();
-    fixture.publish(plan).unwrap()
 }
 
 pub fn execute_publication_recovery_replay(

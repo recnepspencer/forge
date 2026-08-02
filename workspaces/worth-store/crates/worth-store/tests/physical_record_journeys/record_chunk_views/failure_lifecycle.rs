@@ -1,10 +1,13 @@
 use std::io::{Seek, SeekFrom, Write};
 
+use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    RecordAppendBatch, RecordAppendDenial, RecordAppendError, RecordByteLimit, RecordReadLimits,
-    RecordServingTerminalPosture, RecordStreamFailureKind,
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, RecordAppendBatch, RecordAppendDenial, RecordByteLimit,
+    RecordReadLimits, RecordServingTerminalPosture, RecordStreamFailureKind,
 };
 
+use super::super::durable_publication::{self, publish_single};
 use super::fixture;
 
 #[test]
@@ -13,22 +16,20 @@ fn later_extent_damage_through_a_view_revokes_health_and_releases_read_authority
     let root = parent.path().join("damaged-view");
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(40_000);
-    let record = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([173; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     let extent =
         root.join("families/records/extents/extent-0000000000000001-0000000000000001.data");
     let mut file = std::fs::OpenOptions::new()
         .write(true)
         .open(extent)
         .unwrap();
-    file.seek(SeekFrom::Start((fixture::FRAME_BYTES + 120) as u64))
+    file.seek(SeekFrom::Start(fixture::FRAME_BYTES + 120))
         .unwrap();
     file.write_all(&[0xa5]).unwrap();
     file.sync_all().unwrap();
@@ -72,16 +73,19 @@ fn later_extent_damage_through_a_view_revokes_health_and_releases_read_authority
     assert_eq!(residency.pin_leases(), 0);
     assert_eq!(residency.pinned_frames(), 0);
     assert_eq!(residency.active_operation_bytes(), 0);
-    assert_eq!(
-        serving
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"denied after damage".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap_err(),
-        RecordAppendError::Denied(RecordAppendDenial::ServingRequiresInspection)
-    );
+    assert!(matches!(
+        durable_publication::prepare_single(
+            &serving.record_submission(),
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([213; 32]),
+            RecordAppendBatch::try_from_iter([b"denied after damage".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
+            RecordAppendDenial::ServingRequiresInspection
+        ))
+    ));
     assert_eq!(
         serving.abort().records().posture(),
         RecordServingTerminalPosture::InspectionRequired
@@ -94,15 +98,13 @@ fn cancelling_after_a_view_reports_unread_bytes_and_releases_the_held_frame() {
     let root = parent.path().join("cancelled-view");
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(3 * fixture::CHUNK_PAYLOAD_BYTES + 19);
-    let record = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([173; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     let mut session = serving
         .records()
         .open(

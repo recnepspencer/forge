@@ -2,7 +2,6 @@ use worth_store_physical_backend::MAX_OPERATIONAL_CONTROL_PAYLOAD_BYTES;
 
 use super::persisted_record_codec_io::{ControlRecordDecoder, ControlRecordEncoder};
 use super::persisted_record_encoding::encode_kind;
-use super::publication_binding_codec::{decode_admission_policy, decode_authority_posture};
 use super::{
     OperationalControlRecord, PersistedControlRecordDecodeDenial,
     PersistedOperationalControlRecord, PersistedOperationalControlRecordKind,
@@ -113,36 +112,9 @@ fn decode_kind(
             plan_fingerprint: input.array()?, disposition_tag: input.u8()?,
             disposition_basis: input.array()?,
         },
-        16 => PersistedOperationalControlRecordKind::RecoveryPublicationPending {
-            operation_tag: input.u8()?, cutover_plan_fingerprint: input.array()?,
-            publication_plan_fingerprint: input.array()?, publication_identity: input.array()?,
-            candidate_media_identity: input.array()?, fence_identity: input.array()?,
-            fence_plan_fingerprint: input.array()?,
-            authority_posture: decode_authority_posture(input)?,
-            admission_policy: decode_admission_policy(input)?,
-        },
-        17 => PersistedOperationalControlRecordKind::RecoveryPublicationDisposition {
-            publication_identity: input.array()?, disposition_tag: input.u8()?,
-            disposition_basis: input.array()?,
-            observed_authority: input.array()?,
-        },
         18 => PersistedOperationalControlRecordKind::RecoveryStagingCompleted {
             authorization_identity: input.array()?, plan_fingerprint: input.array()?,
             execution_plan_fingerprint: input.array()?, staged_media_identity: input.array()?,
-        },
-        19 => PersistedOperationalControlRecordKind::RecoveryPublicationPrepared {
-            operation_tag: input.u8()?, cutover_plan_fingerprint: input.array()?,
-            publication_plan_fingerprint: input.array()?, publication_identity: input.array()?,
-            candidate_media_identity: input.array()?, fence_identity: input.array()?,
-            fence_plan_fingerprint: input.array()?,
-            authority_posture: decode_authority_posture(input)?,
-            admission_policy: decode_admission_policy(input)?,
-        },
-        20 => PersistedOperationalControlRecordKind::RecoveryPublicationFenceReleased {
-            publication_identity: input.array()?,
-            fence_identity: input.array()?,
-            fence_plan_fingerprint: input.array()?,
-            disposition_tag: input.u8()?,
         },
         21 => PersistedOperationalControlRecordKind::RepairOwnerEffectStarted {
             plan_fingerprint: input.array()?,

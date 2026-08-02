@@ -49,7 +49,6 @@ layout-fixtures = [
     "physical-isolation-fixtures",
     "dep:worth-store-layout-indexes",
     "dep:worth-store-lsm-authority",
-    "worth-store-physical-backend/certification-test-authority",
 ]
 certification-world = [
     "layout-fixtures",
@@ -85,6 +84,5 @@ worth-store-physical-integrity = { workspace = true, optional = true }
 worth-store-recovery-physics = { workspace = true, optional = true }
 worth-store-security = { workspace = true, optional = true }
 worth-store-wal = { workspace = true, optional = true }
-
 [lints]
 workspace = true

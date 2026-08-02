@@ -7,7 +7,7 @@ use worth_store::physical_runtime::{
 };
 
 use super::child_process::{hex, unhex};
-use super::{configuration, serving_from_initialization, serving_from_open};
+use super::{configuration, durable_publication, serving_from_initialization, serving_from_open};
 
 pub(super) fn allocation_writer(root: &Path, logical_bytes: &str) {
     let logical_bytes = logical_bytes.parse().unwrap();
@@ -17,20 +17,23 @@ pub(super) fn allocation_writer(root: &Path, logical_bytes: &str) {
         .push_source(super::stream_fixture::PatternSource::exact(logical_bytes))
         .build()
         .unwrap();
-    let published = serving
-        .record_submission()
-        .append_batch(batch, placement)
-        .unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("cross-process-extent-allocation", 1),
+        batch,
+    );
+    let published_member = &published.settled_members()[0];
     println!(
         "C5_ALLOC {} {} {}",
         serving
             .residency_observation()
             .counters()
             .peak_operation_bytes(),
-        published.observation().peak_scratch_bytes(),
+        published_member.observation().peak_scratch_bytes(),
         hex(&ExternalPhysicalRecordLocator::new(
             serving.store_identity(),
-            published.record_id(0).unwrap(),
+            published_member.record_id(0).unwrap(),
         )
         .encode()),
     );

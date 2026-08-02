@@ -1,7 +1,5 @@
 use crate::independent_verifier_observation;
 
-use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
-
 use worth_store_physical_certification::{
     expected_error_text_oracle_attempt, fixture_label_oracle_attempt, log_only_oracle_attempt,
     lower_physical_simulation_plan, physical_scenario, same_run_self_comparison_oracle_attempt,
@@ -26,9 +24,6 @@ fn observer_collects_facts_and_certification_oracle_judges_verdict() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap();
 
@@ -61,9 +56,6 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap();
 
@@ -78,9 +70,6 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .with_independent_verifier_observation(
             independent_verifier_observation::observed_runtime_comparison(
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
@@ -115,9 +104,6 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .with_independent_verifier_observation(
             independent_verifier_observation::observed_runtime_comparison(
                 independent_verifier_observation::RuntimeComparisonFixture::ArtifactDigestMismatch,
@@ -154,9 +140,6 @@ fn oracle_family_admission_is_plan_bound_not_fixture_label_bound() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap();
 
@@ -205,9 +188,6 @@ fn physical_isolation_readiness_family_is_reusable_without_claiming_physical_iso
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap();
 

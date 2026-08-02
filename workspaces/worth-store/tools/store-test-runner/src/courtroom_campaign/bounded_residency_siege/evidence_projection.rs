@@ -19,7 +19,7 @@ mod schedule;
 mod speculation;
 mod work_reconciliation;
 
-const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency-siege.v10";
+const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency-siege.v11";
 const ARTIFACT_MANIFEST_STAGE: &str = "after-siege-writer-close-before-fresh-reopen";
 
 pub(super) fn encode(
@@ -143,7 +143,7 @@ mod tests {
     fn schema_is_versioned_and_courtroom_specific() {
         assert_eq!(
             SCHEMA,
-            "worth.store.physical-work-courtroom.bounded-residency-siege.v10"
+            "worth.store.physical-work-courtroom.bounded-residency-siege.v11"
         );
         assert_eq!(
             ARTIFACT_MANIFEST_STAGE,

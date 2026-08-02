@@ -4,12 +4,14 @@ use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     AdmittedPhysicalDurabilityPolicy, AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
     AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
-    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations, ManifestEntryCapacity,
-    MediaOwnedPhysicalRuntime, PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy,
-    PhysicalDurabilityDeclaration, PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy,
-    PhysicalRecordFormatDeclaration, PhysicalRecordInitialization, PhysicalRecordPlacementPolicy,
-    PhysicalRecordResidencyPolicy, PhysicalResidencyObservation, PhysicalRuntimeAdmission,
-    PhysicalSpeculativeWorkKind, PhysicalStore, RetainedWalTailLimit, ServingPhysicalRuntime,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
+    LiveIdempotencyBindingLimit, ManifestEntryCapacity, MediaOwnedPhysicalRuntime,
+    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
+    PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
+    PhysicalRecordInitialization, PhysicalRecordPlacementPolicy, PhysicalRecordResidencyPolicy,
+    PhysicalResidencyObservation, PhysicalRuntimeAdmission, PhysicalSpeculativeWorkKind,
+    PhysicalStore, PhysicalWalPolicy, RetainedWalTailLimit, ServingPhysicalRuntime,
+    WalSegmentByteLimit, WalSegmentInventoryLimit,
 };
 use worth_store_physical_backend::FilesystemAccessPosture;
 
@@ -84,9 +86,14 @@ fn durability_policy(media: &MediaOwnedPhysicalRuntime) -> AdmittedPhysicalDurab
             GroupCommitLimit::new(nonzero_frames(32)),
             GroupCommitDelay::new(nonzero_bytes(1)),
         )
+        .wal(PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(nonzero_bytes(8 * 1024 * 1024)),
+            WalSegmentInventoryLimit::new(nonzero_frames(1_024)),
+        ))
         .idempotency(PhysicalIdempotencyPolicy::new(
             IdempotencyRetentionGenerations::new(nonzero_bytes(4)),
             PendingUnresolvedMutationLimit::new(nonzero_frames(1_024)),
+            LiveIdempotencyBindingLimit::new(nonzero_frames(4_096)),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
             CheckpointMemoryLimit::new(nonzero_bytes(16 * 1024 * 1024)),

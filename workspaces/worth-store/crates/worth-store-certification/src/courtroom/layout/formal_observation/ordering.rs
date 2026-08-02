@@ -1,9 +1,4 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum LayoutDurableOrdering {
     BTreeReferenceObservedUnderStableRoot,
-    LsmValueBeforeGeneration,
-    LsmGenerationBeforeTombstone,
-    LsmTombstoneBeforeReplacementOutput,
-    LsmActivationCoversInputAndOutput,
-    PhysicalCompactionRootAdvances,
 }

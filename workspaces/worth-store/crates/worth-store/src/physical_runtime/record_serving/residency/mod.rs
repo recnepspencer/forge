@@ -32,9 +32,7 @@ pub use certification::{
     PhysicalWritebackTransitionFailure, PreparedPhysicalWriteback, ReadyPhysicalWriteback,
     RetryablePhysicalWriteback,
 };
-pub(super) use dirty::{
-    FrameWritebackPort, PhysicalWritebackSettlement as StorePhysicalWritebackSettlement,
-};
+pub(super) use dirty::FrameWritebackPort;
 pub use dirty::{
     PhysicalRecordWritebackFailureCause, PhysicalRecordWritebackFailureEvidence,
     PhysicalWritebackFailureCause,

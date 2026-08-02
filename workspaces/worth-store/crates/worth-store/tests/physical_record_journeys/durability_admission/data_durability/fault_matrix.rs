@@ -35,14 +35,15 @@ fn denied_byte_write_after_artifact_creation_is_inspection_only() {
             format, placement, access, policy,
         )),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let appended = append(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([111; 32]),
         RecordAppendBatch::try_from_iter([b"pre-effect-retry".as_slice()]).unwrap(),
     );
-    let target = appended.reserved().redo().records()[0].targets()[0].target();
+    let target =
+        appended.members()[0].mutation().reserved().redo().records()[0].targets()[0].target();
     let durable = synchronize(&submission, appended);
     activation.arm().unwrap();
     let uncertain = match submission.dispatch_wal_durable_data(durable) {
@@ -74,15 +75,16 @@ fn uncertainty_after_first_data_effect_returns_inspection_only_authority() {
             format, placement, access, policy,
         )),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let appended = append(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([112; 32]),
         RecordAppendBatch::try_from_iter([b"post-effect-uncertainty".as_slice()]).unwrap(),
     );
-    let target = appended.reserved().redo().records()[0].targets()[0].target();
-    let mutation = appended.mutation_identity();
+    let appended_member = appended.members()[0].mutation();
+    let target = appended_member.reserved().redo().records()[0].targets()[0].target();
+    let mutation = appended_member.mutation_identity();
     let durable = synchronize(&submission, appended);
     activation.arm().unwrap();
     let uncertain = match submission.dispatch_wal_durable_data(durable) {
@@ -99,8 +101,8 @@ fn uncertainty_after_first_data_effect_returns_inspection_only_authority() {
 }
 
 #[test]
-fn second_chunk_denial_retains_first_effect_and_never_launders_partial_c6_work_as_retryable() {
-    let calibration = calibrated_first_c6_write();
+fn second_chunk_denial_retains_first_effect_and_never_launders_partial_writeback_as_retryable() {
+    let calibration = calibrated_first_existing_artifact_write();
     let parent = tempfile::tempdir().unwrap();
     let store_root = parent.path().join("store");
     let media = fault_scheduled_media_at_identified_ordinal(
@@ -118,7 +120,7 @@ fn second_chunk_denial_retains_first_effect_and_never_launders_partial_c6_work_a
             format, placement, access, policy,
         )),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let payload = vec![0x7c; format.declaration().page_size().bytes() as usize * 3];
     let appended = append(
         &submission,
@@ -147,19 +149,19 @@ fn second_chunk_denial_retains_first_effect_and_never_launders_partial_c6_work_a
     );
     assert!(matches!(
         uncertain.cause(),
-        PhysicalDataDispatchFailureCause::C6Writeback(_)
+        PhysicalDataDispatchFailureCause::ExistingArtifactWriteback(_)
     ));
     let artifact = artifact_path(&store_root, uncertain.effects()[0].coordinate().artifact());
     assert!(fs::metadata(artifact).unwrap().len() > 0);
     serving.close();
 }
 
-struct C6WriteCalibration {
+struct ExistingArtifactWriteCalibration {
     before_dispatch: u64,
     target: u64,
 }
 
-fn calibrated_first_c6_write() -> C6WriteCalibration {
+fn calibrated_first_existing_artifact_write() -> ExistingArtifactWriteCalibration {
     let parent = tempfile::tempdir().unwrap();
     let store_root = parent.path().join("control");
     let media = certification_media(&store_root);
@@ -170,7 +172,7 @@ fn calibrated_first_c6_write() -> C6WriteCalibration {
             format, placement, access, policy,
         )),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let payload = vec![0x6d; format.declaration().page_size().bytes() as usize * 3];
     let appended = append(
         &submission,
@@ -192,22 +194,22 @@ fn calibrated_first_c6_write() -> C6WriteCalibration {
     let after = serving
         .media_counters()
         .identified_operation_attempts_for(MediaOperationRole::PositionedWrite);
-    let c6_effects = dispatched
+    let existing_artifact_effects = dispatched
         .effects()
         .iter()
-        .filter(|effect| effect.source() == PhysicalDataEffectSource::C6Writeback)
+        .filter(|effect| effect.source() == PhysicalDataEffectSource::ExistingArtifactWriteback)
         .count() as u64;
     let new_artifact_writes = after
         .checked_sub(before)
-        .and_then(|total| total.checked_sub(c6_effects))
-        .expect("control counters partition new-artifact and C6 writes");
+        .and_then(|total| total.checked_sub(existing_artifact_effects))
+        .expect("control counters partition new-artifact and existing-artifact writes");
     assert!(new_artifact_writes > 0);
     assert!(matches!(
         dispatched.settle_exact_effects(),
         PhysicalDataSettlementOutcome::Settled(_)
     ));
     serving.close();
-    C6WriteCalibration {
+    ExistingArtifactWriteCalibration {
         before_dispatch: before,
         target: before + new_artifact_writes + 1,
     }

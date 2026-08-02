@@ -61,8 +61,10 @@ fn require_foundational_adoption() -> Result<(), AspectNativeBoundaryCertificati
 
 fn require_public_facade() -> Result<(), AspectNativeBoundaryCertificationDenial> {
     let facade = workspace_file("workspaces/worth-store/crates/worth-store/src/lib.rs")?;
+    let certification_facade = workspace_file(
+        "workspaces/worth-store/crates/worth-store-certification/src/public_api.rs",
+    )?;
     let aspect_native = facade_module_body(&facade, "aspect_native")?;
-    let certification = facade_module_body(&facade, "certification")?;
     let terminal_projection = facade_module_body(&facade, "terminal_projection")?;
 
     require_exports(
@@ -74,7 +76,7 @@ fn require_public_facade() -> Result<(), AspectNativeBoundaryCertificationDenial
         ],
     )?;
     require_exports(
-        certification,
+        &certification_facade,
         &[
             "certify_store_json_residue_inventory",
             "StoreJsonResidueInventory",
@@ -89,7 +91,7 @@ fn require_public_facade() -> Result<(), AspectNativeBoundaryCertificationDenial
         ],
     )?;
     require_no_json_or_serde_export(aspect_native)?;
-    require_no_json_or_serde_export(certification)?;
+    require_no_json_or_serde_export(&certification_facade)?;
 
     Ok(())
 }

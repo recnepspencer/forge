@@ -1,6 +1,6 @@
 use crate::PhysicalArtifactFamilyDeclaration;
 
-use super::{LayoutInterruptionFingerprint, LayoutVersion};
+use super::LayoutVersion;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LayoutEvolutionDenial {
@@ -41,28 +41,6 @@ pub enum LayoutEvolutionDenial {
         source: LayoutVersion,
         target: LayoutVersion,
     },
-    InterruptStateDoesNotMatchPlan {
-        expected: Box<LayoutInterruptionFingerprint>,
-        actual: Box<LayoutInterruptionFingerprint>,
-    },
-    RollbackInterruptStateDoesNotMatchExecution {
-        expected: Box<super::LayoutRollbackExecutionFingerprint>,
-        actual: Box<super::LayoutRollbackExecutionFingerprint>,
-    },
-    InterruptionBindingVersionNotDeclared {
-        observed: LayoutVersion,
-        source: LayoutVersion,
-        target: LayoutVersion,
-    },
-    PhysicalPublicationStoreAuthorityMismatch {
-        binding: worth_store_authority::StoreCurrentAuthorityIdentity,
-        publication: worth_store_authority::StoreCurrentAuthorityIdentity,
-    },
-    PhysicalPublicationSourceMismatch {
-        expected: super::LayoutBindingSourceIdentity,
-        actual: worth_store_physical_format::PhysicalReference,
-    },
-    PhysicalPublication(Box<worth_store_physical_isolation::PhysicalPublicationDenial>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -77,12 +55,6 @@ pub enum LayoutEvolutionDenialKind {
     UndeclaredCompatibleLayoutVersion,
     UnsupportedMigrationTarget,
     UnsupportedRollbackTarget,
-    InterruptStateDoesNotMatchPlan,
-    RollbackInterruptStateDoesNotMatchExecution,
-    InterruptionBindingVersionNotDeclared,
-    PhysicalPublicationStoreAuthorityMismatch,
-    PhysicalPublicationSourceMismatch,
-    PhysicalPublication,
 }
 
 impl LayoutEvolutionDenial {
@@ -116,22 +88,6 @@ impl LayoutEvolutionDenial {
             Self::UnsupportedRollbackTarget { .. } => {
                 LayoutEvolutionDenialKind::UnsupportedRollbackTarget
             }
-            Self::InterruptStateDoesNotMatchPlan { .. } => {
-                LayoutEvolutionDenialKind::InterruptStateDoesNotMatchPlan
-            }
-            Self::RollbackInterruptStateDoesNotMatchExecution { .. } => {
-                LayoutEvolutionDenialKind::RollbackInterruptStateDoesNotMatchExecution
-            }
-            Self::InterruptionBindingVersionNotDeclared { .. } => {
-                LayoutEvolutionDenialKind::InterruptionBindingVersionNotDeclared
-            }
-            Self::PhysicalPublicationStoreAuthorityMismatch { .. } => {
-                LayoutEvolutionDenialKind::PhysicalPublicationStoreAuthorityMismatch
-            }
-            Self::PhysicalPublicationSourceMismatch { .. } => {
-                LayoutEvolutionDenialKind::PhysicalPublicationSourceMismatch
-            }
-            Self::PhysicalPublication(_) => LayoutEvolutionDenialKind::PhysicalPublication,
         }
     }
 }

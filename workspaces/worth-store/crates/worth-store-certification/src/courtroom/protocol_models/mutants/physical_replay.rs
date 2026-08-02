@@ -342,7 +342,7 @@ mod tests {
             ProtocolFamily::DurabilityRecovery,
             ProtocolFrontierIdentity::Durability,
             [CanonicalProtocolAction::DurabilityRecovery(
-                worth_store_formal_models::DurabilityRecoveryAction::WalAcknowledgmentLegal,
+                worth_store_formal_models::DurabilityRecoveryAction::PhysicalMutationAcknowledged,
             )],
         )
         .unwrap();

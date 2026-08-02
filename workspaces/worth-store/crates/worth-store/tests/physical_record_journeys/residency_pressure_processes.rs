@@ -10,7 +10,7 @@ use worth_store::physical_runtime::{
 use worth_store_physical_backend::MediaOperationRole;
 
 use super::{
-    allocation_probe::peak_live_bytes_during, configuration, media,
+    allocation_probe::peak_live_bytes_during, configuration, durable_publication, media,
     stream_fixture::RepeatedByteSource, success,
 };
 
@@ -87,11 +87,14 @@ pub(super) fn pressure_writer(root: &Path, locator_path: &str) {
         batch.push_source(RepeatedByteSource::new(RECORD_BYTES as u64, ordinal as u8))
     });
     let (published, peak_live_bytes) = peak_live_bytes_during(|| {
-        serving
-            .record_submission()
-            .append_batch(batch.build().unwrap(), placement)
-            .unwrap()
+        durable_publication::publish_single(
+            &serving,
+            placement,
+            durable_publication::certification_material("residency-pressure-process", 1),
+            batch.build().unwrap(),
+        )
     });
+    let published = &published.settled_members()[0];
     let observation = serving.residency_observation();
     let counters = observation.counters();
     assert!(observation.store_generation().get() > 0);

@@ -1,31 +1,38 @@
 use std::num::NonZeroU64;
 
+use self::failure_outcome::{
+    pressure_basis, project_candidate_admission_failure, project_residency_failure,
+};
 use super::RecordPublicationDirector;
 use crate::physical_runtime::{
     durability::{
-        DataDispatchedPhysicalMutation, IndeterminatePhysicalDataDispatch,
-        PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome,
-        PhysicalDataEffectSettlement, PhysicalDataFrameKind,
+        PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome, PhysicalDataFrameKind,
     },
     record_serving::{
-        residency::{
-            candidate_frame_residency::{
-                CandidateFrame, CandidateFrameCoordinate, CandidateFrameDeclaration,
-                CandidateFrameFailurePosture, CandidateFrameRole, CandidateFrameSet,
-                CandidateFrameWriteFailure,
-            },
-            publication_artifacts::PublicationRecordArtifacts,
+        residency::candidate_frame_residency::{
+            CandidateFrameCoordinate, CandidateFrameDeclaration, CandidateFrameRole,
+            CandidateFrameSet,
         },
-        RecordAppendDenial, RecordPublicationStage, RecordPublicationWorkTrace,
+        PhysicalRecordPressureBasis,
     },
-    PhysicalWorkEffectFate, WalDurablePhysicalMutation,
+    WalDurablePhysicalMutation,
 };
+
+mod candidate_cleanup;
+mod effect_progression;
+mod failure_outcome;
 
 impl RecordPublicationDirector {
     pub(super) fn dispatch_wal_durable_data(
         &self,
         durable: WalDurablePhysicalMutation,
     ) -> PhysicalDataDispatchOutcome {
+        let Some(runtime) = self.runtime.upgrade() else {
+            return PhysicalDataDispatchOutcome::NotStarted {
+                durable,
+                cause: PhysicalDataDispatchFailureCause::PublicationAuthorityReleased,
+            };
+        };
         if let Some(cause) = self.dispatch_admission_failure(&durable) {
             return PhysicalDataDispatchOutcome::NotStarted { durable, cause };
         }
@@ -41,18 +48,29 @@ impl RecordPublicationDirector {
             };
         let bytes = NonZeroU64::new(declaration.total_frame_bytes())
             .expect("a WAL-bound data plan has nonempty frames");
+        let store_basis = PhysicalRecordPressureBasis::for_store(self.durability.store_identity());
         let allocation = match self.residency.begin_foreground_write_operation(bytes) {
             Ok(allocation) => allocation,
             Err(denial) => {
                 return PhysicalDataDispatchOutcome::NotStarted {
                     durable,
-                    cause: PhysicalDataDispatchFailureCause::Residency(
-                        RecordAppendDenial::from_residency(denial),
-                    ),
+                    cause: project_residency_failure(denial.into(), self.generation, store_basis),
                 }
             }
         };
-        let mut residency = match self
+        let candidate_basis = declaration
+            .declarations()
+            .first()
+            .copied()
+            .and_then(|frame| {
+                pressure_basis(
+                    self.durability.store_identity(),
+                    frame.coordinate(),
+                    frame.length(),
+                )
+            })
+            .unwrap_or(store_basis);
+        let residency = match self
             .residency
             .begin_candidate_publication(&allocation, declaration)
         {
@@ -60,67 +78,20 @@ impl RecordPublicationDirector {
             Err(denial) => {
                 return PhysicalDataDispatchOutcome::NotStarted {
                     durable,
-                    cause: PhysicalDataDispatchFailureCause::Residency(denial),
+                    cause: project_candidate_admission_failure(
+                        denial,
+                        self.generation,
+                        candidate_basis,
+                    ),
                 }
             }
         };
-        let artifacts = PublicationRecordArtifacts::new(&self.mutation);
-        let mut work = RecordPublicationWorkTrace::default();
-        let mut effects = Vec::with_capacity(durable.data_frames().len());
-        for frame in durable.data_frames() {
-            let basis = frame.basis().clone();
-            let target = basis.target();
-            let coordinate = target.coordinate();
-            let candidate = CandidateFrame::new(
-                candidate_role(target.kind()),
-                CandidateFrameCoordinate::new(coordinate.artifact(), coordinate.offset()),
-                frame.bytes().to_vec(),
-            );
-            let completion = {
-                let mut stage = artifacts.at(RecordPublicationStage::CandidateDataWrite, &mut work);
-                if coordinate.offset() == 0 {
-                    stage
-                        .write_new_candidate(&mut residency, candidate, coordinate.artifact())
-                        .map_err(map_canonical_failure)
-                } else {
-                    stage
-                        .write_existing_artifact_candidate(
-                            &mut residency,
-                            candidate,
-                            self.residency.writeback(),
-                        )
-                        .map_err(map_writeback_failure)
-                }
-            };
-            let completion = match completion {
-                Ok(completion) => completion,
-                Err(failure) => {
-                    return classify_dispatch_failure(durable, effects, failure);
-                }
-            };
-            let Some(effect) = completion.effect() else {
-                return PhysicalDataDispatchOutcome::Indeterminate(
-                    IndeterminatePhysicalDataDispatch::new(
-                        durable,
-                        effects,
-                        PhysicalDataDispatchFailureCause::MissingEffectSettlement,
-                    ),
-                );
-            };
-            effects.push(PhysicalDataEffectSettlement::from_candidate(basis, effect));
-        }
-        if let Err(violation) = residency.require_complete() {
-            return PhysicalDataDispatchOutcome::Indeterminate(
-                IndeterminatePhysicalDataDispatch::new(
-                    durable,
-                    effects,
-                    PhysicalDataDispatchFailureCause::CandidateFrameContract(violation),
-                ),
-            );
-        }
-        PhysicalDataDispatchOutcome::Dispatched(DataDispatchedPhysicalMutation::new(
-            durable, effects,
-        ))
+        effect_progression::DurableFrameDispatch::new(
+            self,
+            store_basis,
+            runtime.executor.record_serving_media(),
+        )
+        .execute(durable, residency)
     }
 
     fn dispatch_admission_failure(
@@ -161,93 +132,9 @@ fn candidate_declaration(
     CandidateFrameSet::new(root_generation, frames)
 }
 
-const fn candidate_role(kind: PhysicalDataFrameKind) -> CandidateFrameRole {
+pub(super) const fn candidate_role(kind: PhysicalDataFrameKind) -> CandidateFrameRole {
     match kind {
         PhysicalDataFrameKind::InlinePage => CandidateFrameRole::InlinePage,
         PhysicalDataFrameKind::ExtentChunk => CandidateFrameRole::ExtentChunk,
-    }
-}
-
-fn map_canonical_failure(
-    failure: CandidateFrameWriteFailure<
-        crate::physical_runtime::record_serving::CanonicalRecordMutationFailure,
-    >,
-) -> DispatchFailure {
-    match failure {
-        CandidateFrameWriteFailure::Contract { violation, posture } => posture_failure(
-            PhysicalDataDispatchFailureCause::CandidateFrameContract(violation),
-            posture,
-        ),
-        CandidateFrameWriteFailure::Residency { denial, posture } => {
-            posture_failure(PhysicalDataDispatchFailureCause::Residency(denial), posture)
-        }
-        CandidateFrameWriteFailure::Effect(failure) => {
-            let fate = failure.effect_fate();
-            DispatchFailure::Settled {
-                cause: PhysicalDataDispatchFailureCause::Canonical(failure.evidence()),
-                fate,
-            }
-        }
-    }
-}
-
-fn map_writeback_failure(
-    failure: CandidateFrameWriteFailure<
-        crate::physical_runtime::PhysicalRecordWritebackFailureEvidence,
-    >,
-) -> DispatchFailure {
-    match failure {
-        CandidateFrameWriteFailure::Contract { violation, posture } => posture_failure(
-            PhysicalDataDispatchFailureCause::CandidateFrameContract(violation),
-            posture,
-        ),
-        CandidateFrameWriteFailure::Residency { denial, posture } => {
-            posture_failure(PhysicalDataDispatchFailureCause::Residency(denial), posture)
-        }
-        CandidateFrameWriteFailure::Effect(failure) => DispatchFailure::Settled {
-            cause: PhysicalDataDispatchFailureCause::C6Writeback(failure),
-            fate: failure.effect_fate(),
-        },
-    }
-}
-
-enum DispatchFailure {
-    ProvenNoEffect(PhysicalDataDispatchFailureCause),
-    Settled {
-        cause: PhysicalDataDispatchFailureCause,
-        fate: PhysicalWorkEffectFate,
-    },
-    Uncertain(PhysicalDataDispatchFailureCause),
-}
-
-fn posture_failure(
-    cause: PhysicalDataDispatchFailureCause,
-    posture: CandidateFrameFailurePosture,
-) -> DispatchFailure {
-    match posture {
-        CandidateFrameFailurePosture::ProvenNoEffect => DispatchFailure::ProvenNoEffect(cause),
-        CandidateFrameFailurePosture::UnsettledBeforeEffect
-        | CandidateFrameFailurePosture::EffectPossible => DispatchFailure::Uncertain(cause),
-    }
-}
-
-fn classify_dispatch_failure(
-    durable: WalDurablePhysicalMutation,
-    effects: Vec<PhysicalDataEffectSettlement>,
-    failure: DispatchFailure,
-) -> PhysicalDataDispatchOutcome {
-    match failure {
-        DispatchFailure::ProvenNoEffect(cause) if effects.is_empty() => {
-            PhysicalDataDispatchOutcome::NotStarted { durable, cause }
-        }
-        DispatchFailure::Settled {
-            cause,
-            fate: PhysicalWorkEffectFate::ProvenNoEffect,
-        } if effects.is_empty() => PhysicalDataDispatchOutcome::NotStarted { durable, cause },
-        DispatchFailure::ProvenNoEffect(cause)
-        | DispatchFailure::Settled { cause, .. }
-        | DispatchFailure::Uncertain(cause) => PhysicalDataDispatchOutcome::Indeterminate(
-            IndeterminatePhysicalDataDispatch::new(durable, effects, cause),
-        ),
     }
 }

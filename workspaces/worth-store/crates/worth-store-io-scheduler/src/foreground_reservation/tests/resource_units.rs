@@ -16,6 +16,7 @@ fn every_lane_denies_when_a_required_resource_unit_is_missing() {
     }
     for unit in wal_write_required_units() {
         assert_missing_required_unit(ForegroundIoLaneKind::CommitCriticalWalWrite, unit);
+        assert_missing_required_unit(ForegroundIoLaneKind::RootPublication, unit);
     }
     for unit in page_write_required_units() {
         assert_missing_required_unit(ForegroundIoLaneKind::OrdinaryPageWrite, unit);
@@ -134,7 +135,7 @@ pub(super) fn lane_with_budget(
         .with_budget(budget)
 }
 
-const fn lane_declaration(lane: ForegroundIoLaneKind) -> ForegroundLaneDeclaration {
+fn lane_declaration(lane: ForegroundIoLaneKind) -> ForegroundLaneDeclaration {
     match lane {
         ForegroundIoLaneKind::PointRead => ForegroundLaneDeclaration::point_read(),
         ForegroundIoLaneKind::RangeRead => ForegroundLaneDeclaration::range_read(),
@@ -143,6 +144,9 @@ const fn lane_declaration(lane: ForegroundIoLaneKind) -> ForegroundLaneDeclarati
         }
         ForegroundIoLaneKind::CommitCriticalWalWrite => {
             ForegroundLaneDeclaration::commit_critical_wal_write()
+        }
+        ForegroundIoLaneKind::RootPublication => {
+            ForegroundLaneDeclaration::root_candidate_synchronization().unwrap()
         }
         ForegroundIoLaneKind::OrdinaryPageWrite => ForegroundLaneDeclaration::ordinary_page_write(),
         ForegroundIoLaneKind::InteractiveRead => ForegroundLaneDeclaration::interactive_read(),
@@ -163,7 +167,9 @@ pub(super) fn budget_for_lane(lane: ForegroundIoLaneKind) -> ForegroundResourceB
         | ForegroundIoLaneKind::InternalForegroundRead => read_budget(),
         ForegroundIoLaneKind::ArtifactMetadataRead => metadata_budget(),
         ForegroundIoLaneKind::CommitCriticalWalAppend => wal_append_budget(),
-        ForegroundIoLaneKind::CommitCriticalWalWrite => wal_write_budget(),
+        ForegroundIoLaneKind::CommitCriticalWalWrite | ForegroundIoLaneKind::RootPublication => {
+            wal_write_budget()
+        }
         ForegroundIoLaneKind::OrdinaryPageWrite => page_write_budget(),
     }
 }

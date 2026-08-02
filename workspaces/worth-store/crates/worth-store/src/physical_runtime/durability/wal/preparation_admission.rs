@@ -17,6 +17,9 @@ pub enum PhysicalWalReservationDenial {
     DataPlanning(crate::physical_runtime::RecordAppendDenial),
     DataPlanBinding(crate::physical_runtime::durability::PhysicalDataPlanBindingDenial),
     FramePlanning(WalFramePlanningDenial),
+    GroupFrameBytesExceedSegmentLimit { admitted: u64, requested: u64 },
+    SegmentInventoryLimitReached { admitted: u32, retained: u32 },
+    SegmentIdentityExhausted,
 }
 
 pub(super) struct PhysicalWalPreparationAdmission {

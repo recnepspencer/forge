@@ -20,21 +20,33 @@ fn current_version_reopens_and_every_unimplemented_version_fails_typed() {
     }))
     .close();
 
-    for (name, relative_path, expected_read_bytes) in [
-        ("catalog", "families/records/bootstrap.catalog", 74),
+    for (name, relative_path, read_paths) in [
+        (
+            "catalog",
+            "families/records/bootstrap.catalog",
+            &["families/records/bootstrap.catalog"][..],
+        ),
         (
             "root",
             "families/records/roots/root-0000000000000001.manifest",
-            434,
+            &[
+                "families/records/bootstrap.catalog",
+                "families/records/roots/root-0000000000000001.manifest",
+            ][..],
         ),
         (
             "free-space",
             "families/records/free-space/free-space-0000000000000001.manifest",
-            602,
+            &[
+                "families/records/bootstrap.catalog",
+                "families/records/roots/root-0000000000000001.manifest",
+                "families/records/free-space/free-space-0000000000000001.manifest",
+            ][..],
         ),
     ] {
         let root = parent.path().join(name);
         serving_from_initialization(&root).close();
+        let expected_read_bytes = super::durable_frame_oracle::artifact_bytes(&root, read_paths);
         let artifact = root.join(relative_path);
         let mut bytes = std::fs::read(&artifact).unwrap();
         bytes[10..12].copy_from_slice(&2_u16.to_le_bytes());
@@ -112,6 +124,10 @@ fn unsupported_catalog_format_dimensions_localize_before_root_traversal() {
         let root = parent.path().join(name);
         serving_from_initialization(&root).close();
         let catalog = root.join("families/records/bootstrap.catalog");
+        let expected_read_bytes = super::durable_frame_oracle::artifact_bytes(
+            &root,
+            &["families/records/bootstrap.catalog"],
+        );
         let mut bytes = std::fs::read(&catalog).unwrap();
         bytes[offset..offset + encoded.len()].copy_from_slice(encoded);
         reseal(&mut bytes);
@@ -136,7 +152,7 @@ fn unsupported_catalog_format_dimensions_localize_before_root_traversal() {
                 .media_counters()
                 .completed_bytes_for(MediaOperationRole::PositionedRead)
                 - before.completed_bytes_for(MediaOperationRole::PositionedRead),
-            74,
+            expected_read_bytes,
             "{name}",
         );
         media.close();
@@ -157,7 +173,8 @@ fn selected_stale_root_and_foreign_store_use_distinct_proof_outcomes() {
     let catalog = root.join("families/records/bootstrap.catalog");
     let mut bytes = std::fs::read(&catalog).unwrap();
     bytes[28..36].copy_from_slice(&2_u64.to_le_bytes());
-    bytes[56..64].copy_from_slice(&2_u64.to_le_bytes());
+    super::durable_frame_oracle::payload_mut(&mut bytes)[16..24]
+        .copy_from_slice(&2_u64.to_le_bytes());
     reseal(&mut bytes);
     std::fs::write(&catalog, bytes).unwrap();
     let (format, _, access) = configuration();
@@ -178,7 +195,7 @@ fn selected_stale_root_and_foreign_store_use_distinct_proof_outcomes() {
     serving_from_initialization(&foreign_root).close();
     let catalog = foreign_root.join("families/records/bootstrap.catalog");
     let mut bytes = std::fs::read(&catalog).unwrap();
-    bytes[40..56].copy_from_slice(&[0x77; 16]);
+    super::durable_frame_oracle::payload_mut(&mut bytes)[..16].copy_from_slice(&[0x77; 16]);
     reseal(&mut bytes);
     std::fs::write(&catalog, bytes).unwrap();
     let outcome = open_record_store!(media(&foreign_root), |durability| PhysicalRecordOpen::new(
@@ -224,6 +241,5 @@ fn caller_format_narrows_acceptance_without_authorizing_migration() {
 }
 
 fn reseal(bytes: &mut [u8]) {
-    let checksum = super::page_packing_oracle::independent_crc32c(&[&bytes[..36], &bytes[40..]]);
-    bytes[36..40].copy_from_slice(&checksum.to_le_bytes());
+    super::durable_frame_oracle::reseal(bytes);
 }

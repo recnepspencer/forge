@@ -86,7 +86,7 @@ fn inspect_publication_port(source: &str) -> Result<(), String> {
 
 fn inspect_write_evidence(source: &str) -> Result<(), String> {
     for forbidden in [
-        "Option<CompletedArtifactRangeWrite>",
+        "Option<CompletedArtifactNewWrite>",
         "Option<crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement>",
         "for_contract_test",
     ] {
@@ -98,7 +98,7 @@ fn inspect_write_evidence(source: &str) -> Result<(), String> {
     }
     let physical_write = struct_contract(source, "CandidateFramePhysicalWrite")?;
     for required in [
-        "receipt: CompletedArtifactRangeWrite,",
+        "receipt: CompletedArtifactNewWrite,",
         "settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,",
     ] {
         if !physical_write.contains(required) {
@@ -108,7 +108,7 @@ fn inspect_write_evidence(source: &str) -> Result<(), String> {
         }
     }
     let receipt = physical_write
-        .find("receipt: CompletedArtifactRangeWrite,")
+        .find("receipt: CompletedArtifactNewWrite,")
         .expect("required receipt was checked");
     let settlement = physical_write
         .find("settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,")
@@ -197,10 +197,10 @@ fn candidate_port_cannot_acquire_current_truth_authority() {
 #[test]
 fn write_evidence_rejects_optional_or_test_forged_proof() {
     for mutant in [
-        "receipt: Option<CompletedArtifactRangeWrite>,",
+        "receipt: Option<CompletedArtifactNewWrite>,",
         "settlement: Option<CanonicalRecordMutationSettlement>,",
         "fn for_contract_test() -> Self { todo!() }",
-        "fn completed(receipt: CompletedArtifactRangeWrite) -> Self { todo!() }",
+        "fn completed(receipt: CompletedArtifactNewWrite) -> Self { todo!() }",
     ] {
         inspect_write_evidence(mutant)
             .expect_err("incomplete or test-forged physical proof must be rejected");
@@ -211,7 +211,7 @@ fn write_evidence_rejects_optional_or_test_forged_proof() {
 fn write_evidence_accepts_semantic_fields_independent_of_indentation() {
     let source = "
         struct CandidateFramePhysicalWrite {
-          receipt: CompletedArtifactRangeWrite,
+          receipt: CompletedArtifactNewWrite,
             settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
         }
     ";

@@ -41,7 +41,7 @@ pub enum OperationalRecoveryYieldpoint {
 }
 
 impl OperationalRecoveryYieldpoint {
-    pub const ALL: [Self; 82] = [
+    pub const ALL: [Self; 74] = [
         Self::BeforeDurableControlTransition(
             OperationalRecoveryControlTransitionKind::BackupSourceLease,
         ),
@@ -107,30 +107,6 @@ impl OperationalRecoveryYieldpoint {
         ),
         Self::AfterDurableControlTransition(
             OperationalRecoveryControlTransitionKind::RepairDisposition,
-        ),
-        Self::BeforeDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationPreparation,
-        ),
-        Self::AfterDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationPreparation,
-        ),
-        Self::BeforeDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationPending,
-        ),
-        Self::AfterDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationPending,
-        ),
-        Self::BeforeDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationDisposition,
-        ),
-        Self::AfterDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationDisposition,
-        ),
-        Self::BeforeDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationFenceRelease,
-        ),
-        Self::AfterDurableControlTransition(
-            OperationalRecoveryControlTransitionKind::RecoveryPublicationFenceRelease,
         ),
         Self::BeforeDurableControlTransition(
             OperationalRecoveryControlTransitionKind::WorkflowAbandonment,

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, num::NonZeroU64};
 
 use worth_store_physical_format::{
     append_inline_records_owned, prepare_extent_chunk, ExtentChunkCoordinate, InlineRecordAppend,
@@ -6,8 +6,8 @@ use worth_store_physical_format::{
 };
 
 use super::{
-    extent_publication::ExtentDataPlan, plan::CandidateDataArtifact,
-    segment_publication::SegmentDataPlan,
+    append_observation::PublicationObservation, extent_publication::ExtentDataPlan,
+    plan::CandidateDataArtifact, segment_publication::SegmentDataPlan,
 };
 use crate::physical_runtime::{
     durability::{
@@ -15,15 +15,18 @@ use crate::physical_runtime::{
         PreparedPhysicalDataPlan,
     },
     record_serving::{
-        planning::prepared_payload::PreparedRecordPayloadPlan, AdmittedPhysicalRecordFormat,
-        RecordAppendDenial, RecordAppendError, RecordStreamFailure, RecordStreamFailureKind,
+        planning::{prepared_payload::PreparedRecordPayloadPlan, PreparedPhysicalRootProjection},
+        AdmittedPhysicalRecordFormat, RecordAppendDenial, RecordAppendError, RecordStreamFailure,
+        RecordStreamFailureKind,
     },
 };
 
 pub(in crate::physical_runtime::record_serving) fn materialize_durable_data(
     mut payload: PreparedRecordPayloadPlan,
     format: AdmittedPhysicalRecordFormat,
-) -> Result<(PreparedPhysicalDataPlan, PreparedRecordPayloadPlan), RecordAppendError> {
+    root_publication_allocation_bytes: NonZeroU64,
+    manifest_capacity_transition: super::PhysicalManifestCapacityTransition,
+) -> Result<(PreparedPhysicalDataPlan, PreparedPhysicalRootProjection), RecordAppendError> {
     let ordinals = payload
         .records
         .iter()
@@ -34,17 +37,39 @@ pub(in crate::physical_runtime::record_serving) fn materialize_durable_data(
     let mut frames = Vec::new();
     for data in std::mem::take(&mut payload.data) {
         match data {
-            CandidateDataArtifact::Segment(segment) => {
-                materialize_segment(segment, format, &ordinals, &mut frames)?
-            }
-            CandidateDataArtifact::Extent(extent) => {
-                materialize_extent(extent, format, &ordinals, &mut frames)?
-            }
+            CandidateDataArtifact::Segment(segment) => materialize_segment(
+                segment,
+                format,
+                &ordinals,
+                &mut frames,
+                &mut payload.observation,
+            )?,
+            CandidateDataArtifact::Extent(extent) => materialize_extent(
+                extent,
+                format,
+                &ordinals,
+                &mut frames,
+                &mut payload.observation,
+            )?,
         }
     }
-    let plan = PreparedPhysicalDataPlan::new(frames, payload.records.len() as u32)
+    let data = PreparedPhysicalDataPlan::new(frames, payload.records.len() as u32)
         .map_err(|_| invalid_plan())?;
-    Ok((plan, payload))
+    let root = PreparedPhysicalRootProjection {
+        root_publication_allocation_bytes,
+        source_root: payload.source_root,
+        manifest_capacity_transition,
+        placement: payload.placement,
+        records: payload.records,
+        payload_manifests: payload.payload_manifests,
+        placements: payload.placements,
+        segment_updates: payload.segment_updates,
+        inline_allocations: payload.inline_allocations,
+        last_inline_record: payload.last_inline_record,
+        last_inline_segment: payload.last_inline_segment,
+        observation: payload.observation,
+    };
+    Ok((data, root))
 }
 
 fn materialize_segment(
@@ -52,6 +77,7 @@ fn materialize_segment(
     format: AdmittedPhysicalRecordFormat,
     ordinals: &BTreeMap<PersistedRecordIdentity, u32>,
     frames: &mut Vec<PreparedPhysicalDataFrame>,
+    observation: &mut PublicationObservation,
 ) -> Result<(), RecordAppendError> {
     let page_bytes = u64::from(format.declaration().page_size().bytes());
     for (page_index, page) in segment.pages.into_iter().enumerate() {
@@ -68,6 +94,11 @@ fn materialize_segment(
             &appends,
         )
         .map_err(|_| invalid_plan())?;
+        observation.observe_scratch(bytes.len());
+        for (_, _, record_bytes) in &page.records {
+            observation.observe_copy(record_bytes.len());
+        }
+        observation.observe_transfer(bytes.len());
         let offset = (page_index as u64)
             .checked_mul(page_bytes)
             .ok_or_else(invalid_plan)?;
@@ -102,6 +133,7 @@ fn materialize_extent(
     format: AdmittedPhysicalRecordFormat,
     ordinals: &BTreeMap<PersistedRecordIdentity, u32>,
     frames: &mut Vec<PreparedPhysicalDataFrame>,
+    observation: &mut PublicationObservation,
 ) -> Result<(), RecordAppendError> {
     let redo_ordinal = ordinals
         .get(&extent.manifest.record())
@@ -124,8 +156,15 @@ fn materialize_extent(
         .ok_or_else(invalid_plan)?;
         let mut frame = prepare_extent_chunk(format.declaration(), coordinate, expected)
             .map_err(|_| invalid_plan())?;
-        read_exact_source(&mut *extent.source, frame.payload_mut(), completed)?;
+        read_exact_source(
+            &mut *extent.source,
+            frame.payload_mut(),
+            completed,
+            observation,
+        )?;
         let bytes = frame.seal();
+        observation.observe_scratch(bytes.len());
+        observation.observe_transfer(bytes.len());
         let length = u32::try_from(bytes.len()).map_err(|_| invalid_plan())?;
         let target = PhysicalDataFrameIdentity::extent_chunk(
             coordinate,
@@ -177,6 +216,7 @@ fn read_exact_source(
     source: &mut dyn super::streaming::RecordWriteSource,
     target: &mut [u8],
     completed_before: u64,
+    observation: &mut PublicationObservation,
 ) -> Result<(), RecordAppendError> {
     let mut filled = 0_usize;
     while filled < target.len() {
@@ -198,6 +238,7 @@ fn read_exact_source(
                 completed_before + filled as u64,
             ));
         }
+        observation.observe_copy(count);
         filled += count;
     }
     Ok(())

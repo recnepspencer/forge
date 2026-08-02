@@ -12,6 +12,7 @@ use crate::{
 };
 
 mod directory_synchronization;
+mod durable_removal;
 mod file_synchronization;
 mod replacement;
 

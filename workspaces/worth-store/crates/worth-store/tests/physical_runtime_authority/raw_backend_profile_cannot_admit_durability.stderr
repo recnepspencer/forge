@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/physical_runtime_authority/raw_backend_profile_cannot_admit_durability.rs:25:31
+  --> tests/physical_runtime_authority/raw_backend_profile_cannot_admit_durability.rs:31:31
    |
-25 |     let _ = declaration.admit(BackendTargetProfile::PosixFileFsyncDirSync);
+31 |     let _ = declaration.admit(BackendTargetProfile::PosixFileFsyncDirSync);
    |                         ----- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `PhysicalDurabilityAdmissionBasis`, found `BackendTargetProfile`
    |                         |
    |                         arguments to this method are incorrect

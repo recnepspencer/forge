@@ -36,8 +36,6 @@ pub(super) struct MaelstromPauseGates {
     pub second_read: MediaPauseGate,
     pub close_read: MediaPauseGate,
     pub close_read_activation: CertificationMediaFaultActivation,
-    pub first_append: MediaPauseGate,
-    pub second_append: MediaPauseGate,
 }
 
 struct AdmittedBinding {
@@ -281,15 +279,9 @@ fn faulted_admission(
         second_read: authority.pause_gate(),
         close_read: authority.pause_gate(),
         close_read_activation: authority.one_shot_activation(),
-        first_append: authority.pause_gate(),
-        second_append: authority.pause_gate(),
     };
     let mut rules = read_fault_rules(&authority, identified_reads_after_open, &gates).to_vec();
-    rules.extend(write_fault_rules(
-        &authority,
-        identified_writes_after_open,
-        &gates,
-    ));
+    rules.extend(write_fault_rules(&authority, identified_writes_after_open));
     let schedule = authority.schedule(rules).unwrap();
     (admission.with_fault_schedule(schedule), gates)
 }
@@ -327,32 +319,15 @@ fn read_fault_rules(
 fn write_fault_rules(
     authority: &CertificationMediaFaultAuthority,
     after_open: u64,
-    gates: &MaelstromPauseGates,
-) -> [MediaFaultRule; 3] {
-    [
-        authority
-            .rule(
-                MediaOperationRole::PositionedWrite,
-                after_open + 1,
-                MediaFaultDirective::FailBefore {
-                    kind: std::io::ErrorKind::Other,
-                    raw_os_error: None,
-                },
-            )
-            .for_identified_operation_ordinal(),
-        authority
-            .rule(
-                MediaOperationRole::PositionedWrite,
-                after_open + 4,
-                MediaFaultDirective::PauseBefore(gates.first_append.clone()),
-            )
-            .for_identified_operation_ordinal(),
-        authority
-            .rule(
-                MediaOperationRole::PositionedWrite,
-                after_open + 5,
-                MediaFaultDirective::PauseBefore(gates.second_append.clone()),
-            )
-            .for_identified_operation_ordinal(),
-    ]
+) -> [MediaFaultRule; 1] {
+    [authority
+        .rule(
+            MediaOperationRole::PositionedWrite,
+            after_open + 1,
+            MediaFaultDirective::FailBefore {
+                kind: std::io::ErrorKind::Other,
+                raw_os_error: None,
+            },
+        )
+        .for_identified_operation_ordinal()]
 }

@@ -23,6 +23,7 @@ pub(crate) fn admit_replay_cursor_segments(
     require_current_generation(&scan_records, expected_generation)?;
     require_unique_segments(&scan_records)?;
     scan_records.sort_by(canonical_scan_record_order);
+    require_contiguous_segment_identities(&scan_records)?;
     require_contiguous_non_overlapping_ranges(&scan_records)?;
 
     let segments = cursor_segments(&scan_records);
@@ -44,6 +45,21 @@ pub(crate) fn admit_replay_cursor_segments(
         segments,
         ordering_proof,
     })
+}
+
+fn require_contiguous_segment_identities(
+    scan_records: &[WalSegmentScanRecord],
+) -> Result<(), WalTopologyDenial> {
+    for pair in scan_records.windows(2) {
+        let expected = pair[0].segment_id().get().checked_add(1);
+        if expected != Some(pair[1].segment_id().get()) {
+            return Err(WalTopologyDenial::for_segment(
+                WalTopologyDenialKind::NonContiguousSegment,
+                pair[1].segment_id(),
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn require_current_generation(

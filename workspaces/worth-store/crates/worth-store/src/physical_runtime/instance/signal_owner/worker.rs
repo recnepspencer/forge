@@ -122,13 +122,6 @@ impl PhysicalSignalGraphWorker {
         self.route(route).map(|owner| owner.mailbox.len())
     }
 
-    #[cfg(feature = "certification-test-authority")]
-    pub(super) fn publication_dependencies_for_certification(
-        &self,
-    ) -> Result<Vec<super::graph::PhysicalPublicationDependencyObservation>, ()> {
-        self.routes.first().ok_or(())?.publication_dependencies()
-    }
-
     pub(super) fn len(&self) -> usize {
         self.routes.len()
     }

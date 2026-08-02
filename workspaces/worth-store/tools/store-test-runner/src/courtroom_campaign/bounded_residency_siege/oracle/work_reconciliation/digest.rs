@@ -10,7 +10,7 @@ use super::super::super::protocol::{
 
 pub(super) fn digest(evidence: &BoundedResidencyWorkReconciliationObservation) -> [u8; 32] {
     let mut digest = Sha256::new();
-    digest.update(b"bounded-residency-work-reconciliation-v3");
+    digest.update(b"bounded-residency-work-reconciliation-v4");
     digest.update(evidence.causal_overflow.to_le_bytes());
     digest.update(evidence.terminal_overflow.to_le_bytes());
     digest.update(evidence.safe_evidence_elided.to_le_bytes());
@@ -45,6 +45,11 @@ fn update_signal_binding(
         u8::from(binding.families.exact_writeback),
         u8::from(binding.families.publication),
         u8::from(binding.families.lifecycle),
+        u8::from(binding.families.wal_append),
+        u8::from(binding.families.durability_barrier),
+        u8::from(binding.families.checkpoint_capture),
+        u8::from(binding.families.root_publication),
+        u8::from(binding.families.wal_reclamation),
     ]);
     if let Some(partition) = binding.partition.as_deref() {
         digest.update([1]);

@@ -7,7 +7,7 @@ use worth_signal::facade::{
 };
 
 use crate::physical_runtime::work::{
-    AdmittedPhysicalWork, BlockedPhysicalWork, PhysicalWorkAspectDelta, PhysicalWorkIdentity,
+    AdmittedPhysicalWork, PhysicalWorkAspectDelta, PhysicalWorkIdentity,
     PhysicalWorkPreEffectDenial, PhysicalWorkReadiness, ReadyPhysicalWork,
 };
 
@@ -25,14 +25,6 @@ pub(in crate::physical_runtime::instance::signal_owner) enum PhysicalSignalRoute
     Request(
         AdmittedPhysicalWork,
         mpsc::SyncSender<Result<PhysicalWorkReadiness, PhysicalWorkPreEffectDenial>>,
-    ),
-    BeginPublicationDependency(
-        AdmittedPhysicalWork,
-        mpsc::SyncSender<Result<BlockedPhysicalWork, PhysicalWorkPreEffectDenial>>,
-    ),
-    AdvancePublicationDependency(
-        BlockedPhysicalWork,
-        mpsc::SyncSender<Result<ReadyPhysicalWork, PhysicalWorkPreEffectDenial>>,
     ),
     RevalidateReady(
         ReadyPhysicalWork,
@@ -74,8 +66,4 @@ pub(in crate::physical_runtime::instance::signal_owner) enum PhysicalSignalRoute
     ),
     Release(PhysicalWorkIdentity),
     Observation(mpsc::SyncSender<super::super::graph::PhysicalSignalGraphObservation>),
-    #[cfg(feature = "certification-test-authority")]
-    PublicationDependencies(
-        mpsc::SyncSender<Vec<super::super::graph::PhysicalPublicationDependencyObservation>>,
-    ),
 }

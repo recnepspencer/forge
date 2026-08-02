@@ -287,7 +287,7 @@ fn validate_extent_manifests(
         let bytes = read_artifact(&path)?;
         bytes_read = bytes_read.saturating_add(bytes.len() as u64);
         let frame = decode_frame(&bytes, 6, format)?;
-        let chunk_payload_bytes = format.page_size().bytes() as u64 - 40 - 64;
+        let chunk_payload_bytes = format.page_size().bytes() as u64 - 48 - 64;
         let expected_chunks = payload_bytes.div_ceil(chunk_payload_bytes);
         if frame.payload.len() != 56
             || frame.payload[48..56] != [0; 8]

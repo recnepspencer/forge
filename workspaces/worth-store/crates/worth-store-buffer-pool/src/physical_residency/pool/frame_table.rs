@@ -5,8 +5,14 @@ struct FrameSlotId(u32);
 
 #[derive(Debug)]
 enum FrameSlot {
-    Exact(FrameEntry),
-    Bounded(bounded_frame_admission::BoundedFrameEntry),
+    Exact {
+        coordinate: RecordFrameCoordinate,
+        frame: FrameEntry,
+    },
+    Bounded {
+        artifact: RecordArtifactFile,
+        entry: bounded_frame_admission::BoundedFrameEntry,
+    },
 }
 
 /// One fixed-capacity frame population with two semantic lookup indexes.
@@ -101,8 +107,8 @@ impl FrameTable {
     pub(super) fn get(&self, coordinate: &RecordFrameCoordinate) -> Option<&FrameEntry> {
         let slot = self.slot(*self.exact_index.get(coordinate)?);
         match slot {
-            FrameSlot::Exact(frame) => Some(frame),
-            FrameSlot::Bounded(entry) => entry.resident_frame(),
+            FrameSlot::Exact { frame, .. } => Some(frame),
+            FrameSlot::Bounded { entry, .. } => entry.resident_frame(),
         }
     }
 
@@ -112,8 +118,8 @@ impl FrameTable {
     ) -> Option<&mut FrameEntry> {
         let id = *self.exact_index.get(coordinate)?;
         match self.slot_mut(id) {
-            FrameSlot::Exact(frame) => Some(frame),
-            FrameSlot::Bounded(entry) => entry.resident_frame_mut(),
+            FrameSlot::Exact { frame, .. } => Some(frame),
+            FrameSlot::Bounded { entry, .. } => entry.resident_frame_mut(),
         }
     }
 
@@ -127,9 +133,36 @@ impl FrameTable {
 
     pub(super) fn values(&self) -> impl Iterator<Item = &FrameEntry> {
         self.slots.iter().filter_map(|slot| match slot.as_ref()? {
-            FrameSlot::Exact(frame) => Some(frame),
-            FrameSlot::Bounded(entry) => entry.resident_frame(),
+            FrameSlot::Exact { frame, .. } => Some(frame),
+            FrameSlot::Bounded { entry, .. } => entry.resident_frame(),
         })
+    }
+
+    pub(super) fn slot_count(&self) -> usize {
+        self.slots.len()
+    }
+
+    pub(super) fn resident_entries_from(
+        &self,
+        start: usize,
+    ) -> impl Iterator<Item = (usize, RecordFrameCoordinate, &FrameEntry)> {
+        self.slots
+            .iter()
+            .enumerate()
+            .skip(start)
+            .filter_map(|(index, slot)| match slot.as_ref()? {
+                FrameSlot::Exact { coordinate, frame }
+                    if matches!(frame.state, FrameState::Resident(_)) =>
+                {
+                    Some((index, *coordinate, frame))
+                }
+                FrameSlot::Exact { .. } => None,
+                FrameSlot::Bounded { artifact, entry } => entry
+                    .resident_coordinate_for_artifact(*artifact)
+                    .zip(entry.resident_frame())
+                    .filter(|(_, frame)| matches!(frame.state, FrameState::Resident(_)))
+                    .map(|(coordinate, frame)| (index, coordinate, frame)),
+            })
     }
 
     pub(super) fn insert(
@@ -141,7 +174,7 @@ impl FrameTable {
             return Some(std::mem::replace(existing, frame));
         }
         let complete_artifact = frame.artifact_posture != FrameArtifactPosture::Fragment;
-        let id = self.claim_slot(FrameSlot::Exact(frame));
+        let id = self.claim_slot(FrameSlot::Exact { coordinate, frame });
         assert!(
             self.exact_index.insert(coordinate, id).is_none(),
             "an absent exact coordinate cannot replace an index"
@@ -164,8 +197,8 @@ impl FrameTable {
         }
         let slot = self.release_slot(id);
         match slot {
-            FrameSlot::Exact(frame) => Some(frame),
-            FrameSlot::Bounded(entry) => {
+            FrameSlot::Exact { frame, .. } => Some(frame),
+            FrameSlot::Bounded { entry, .. } => {
                 assert_eq!(
                     self.bounded_index.remove(&coordinate.artifact()),
                     None,
@@ -181,8 +214,8 @@ impl FrameTable {
         key: &PhysicalBoundedFrameKey,
     ) -> Option<&FrameEntry> {
         match self.slot(*self.bounded_index.get(&key.artifact())?) {
-            FrameSlot::Exact(frame) => Some(frame),
-            FrameSlot::Bounded(_) => None,
+            FrameSlot::Exact { frame, .. } => Some(frame),
+            FrameSlot::Bounded { .. } => None,
         }
     }
 
@@ -191,8 +224,8 @@ impl FrameTable {
         key: &PhysicalBoundedFrameKey,
     ) -> Option<&bounded_frame_admission::BoundedFrameEntry> {
         match self.slot(*self.bounded_index.get(&key.artifact())?) {
-            FrameSlot::Bounded(entry) => Some(entry),
-            FrameSlot::Exact(_) => None,
+            FrameSlot::Bounded { entry, .. } => Some(entry),
+            FrameSlot::Exact { .. } => None,
         }
     }
 
@@ -202,8 +235,8 @@ impl FrameTable {
     ) -> Option<&mut bounded_frame_admission::BoundedFrameEntry> {
         let id = *self.bounded_index.get(&key.artifact())?;
         match self.slot_mut(id) {
-            FrameSlot::Bounded(entry) => Some(entry),
-            FrameSlot::Exact(_) => None,
+            FrameSlot::Bounded { entry, .. } => Some(entry),
+            FrameSlot::Exact { .. } => None,
         }
     }
 
@@ -216,7 +249,10 @@ impl FrameTable {
             !self.bounded_index.contains_key(&key.artifact()),
             "bounded admission requires an absent alias"
         );
-        let id = self.claim_slot(FrameSlot::Bounded(entry));
+        let id = self.claim_slot(FrameSlot::Bounded {
+            artifact: key.artifact(),
+            entry,
+        });
         assert!(
             self.bounded_index.insert(key.artifact(), id).is_none(),
             "an absent bounded identity cannot replace an index"
@@ -251,13 +287,13 @@ impl FrameTable {
         key: &PhysicalBoundedFrameKey,
     ) -> Option<bounded_frame_admission::BoundedFrameEntry> {
         let id = *self.bounded_index.get(&key.artifact())?;
-        if matches!(self.slot(id), FrameSlot::Exact(_)) {
+        if matches!(self.slot(id), FrameSlot::Exact { .. }) {
             return None;
         }
         self.bounded_index.remove(&key.artifact());
         let slot = self.release_slot(id);
         match slot {
-            FrameSlot::Bounded(entry) => {
+            FrameSlot::Bounded { entry, .. } => {
                 if let Some(coordinate) = entry.resident_coordinate(*key) {
                     assert_eq!(
                         self.exact_index.remove(&coordinate),
@@ -267,7 +303,7 @@ impl FrameTable {
                 }
                 Some(entry)
             }
-            FrameSlot::Exact(_) => None,
+            FrameSlot::Exact { .. } => None,
         }
     }
 

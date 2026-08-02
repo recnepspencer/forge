@@ -2,8 +2,7 @@
 
 use worth_store_lsm_authority::LsmMembershipKey;
 use worth_store_wal::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
-    DurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, PublicationDeclaration, PublicationScope,
 };
 
 use super::super::BaselineLsmCounterObservation;
@@ -100,7 +99,7 @@ pub struct BaselineLsmCompactionPublicationReceipt {
     output_publication: BlobWalRecordEnvelope,
     tombstone_record: BaselineLsmCompactionRecordIdentity,
     retired_value_record: BaselineLsmCompactionRecordIdentity,
-    manifest_publication: DurablePublicationDeclaration,
+    manifest_publication: PublicationDeclaration,
     replay_binding: [BlobWalRecordIdentity; 3],
     tombstone_blocks_older: bool,
     retired_runs: [BaselineLsmRunIdentity; 3],
@@ -124,7 +123,7 @@ impl BaselineLsmCompactionPublicationReceipt {
         output_publication: BlobWalRecordEnvelope,
         tombstone_record: BaselineLsmCompactionRecordIdentity,
         retired_value_record: BaselineLsmCompactionRecordIdentity,
-        manifest_publication: DurablePublicationDeclaration,
+        manifest_publication: PublicationDeclaration,
         replay_binding: [BlobWalRecordIdentity; 3],
         bytes_in: u64,
         bytes_out: u64,
@@ -208,7 +207,7 @@ impl BaselineLsmCompactionPublicationReceipt {
         self.retired_value_record
     }
 
-    pub const fn manifest_publication(&self) -> &DurablePublicationDeclaration {
+    pub const fn manifest_publication(&self) -> &PublicationDeclaration {
         &self.manifest_publication
     }
 
@@ -274,7 +273,7 @@ impl BaselineLsmCompactionPublicationReceipt {
     pub fn publication_is_bound(&self) -> bool {
         matches!(
             self.manifest_publication.scope(),
-            DurablePublicationScope::Manifest(_)
+            PublicationScope::Manifest(_)
         ) && self.output_generation() > self.input_runs[2].generation
             && self.output_publication.identity() == self.output_run.root_record
             && self.counters.publications() == 1

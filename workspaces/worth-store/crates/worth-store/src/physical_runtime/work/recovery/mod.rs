@@ -4,4 +4,6 @@ mod locator;
 pub(in crate::physical_runtime) use effect_obligation::{
     PhysicalEffectJournal, PhysicalEffectRecoveryInventory, PreparedPhysicalEffect,
 };
-pub use locator::{PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget};
+pub use locator::{
+    PhysicalCheckpointRecoveryAction, PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget,
+};

@@ -1,17 +1,18 @@
-use std::sync::{Arc, Mutex, Weak};
-
-use worth_store_physical_format::store_namespace::StableStoreIdentity;
-
-use crate::physical_runtime::{
-    PhysicalDurabilityPolicyIdentity, PhysicalIdempotencyPolicy, RuntimeIdentity,
-};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use super::{
+    binding_compaction::{
+        PendingPhysicalMutationBindingCompaction, PhysicalMutationBindingCompaction,
+        PhysicalMutationBindingCompactionDenial,
+    },
     lease::PhysicalMutationLeaseIssuanceFailure,
     registry::{
+        PhysicalMutationGroupSealingBinding, PhysicalMutationIdempotencyGroupSealDenial,
         PhysicalMutationIdempotencyRegistry, PhysicalMutationIdempotencyRegistryAdmission,
         PhysicalMutationIdempotencyRegistryAdmissionError,
-        PhysicalMutationIdempotencyRegistryDenial,
+        PhysicalMutationIdempotencyRegistryDenial, PhysicalMutationPreSealCancellationDenial,
+        PhysicalMutationTerminalizationDenial, PhysicalMutationUnresolvedBindingObservation,
+        PhysicalMutationWalBindingDenial,
     },
     PhysicalMutationIdempotencyKey, PhysicalMutationIdempotencyMaterial,
 };
@@ -25,6 +26,16 @@ pub(in crate::physical_runtime) struct PhysicalMutationIdempotencyRuntimeAuthori
     owner: Weak<PhysicalMutationIdempotencyRuntimeOwner>,
 }
 
+#[derive(Clone)]
+pub(in crate::physical_runtime) struct PhysicalMutationBindingCompactionRuntimeAuthority {
+    owner: Arc<PhysicalMutationIdempotencyRuntimeOwner>,
+}
+
+pub(in crate::physical_runtime) struct PhysicalMutationBindingCompactionCutover<'owner> {
+    registry: MutexGuard<'owner, PhysicalMutationIdempotencyRegistry>,
+    pending: Option<PendingPhysicalMutationBindingCompaction>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalMutationIdempotencyIssuanceDenial {
     DurabilityAuthorityReleased,
@@ -32,19 +43,11 @@ pub enum PhysicalMutationIdempotencyIssuanceDenial {
 }
 
 impl PhysicalMutationIdempotencyRuntimeOwner {
-    pub(in crate::physical_runtime) fn generation_zero(
-        store: StableStoreIdentity,
-        runtime: RuntimeIdentity,
-        policy: PhysicalDurabilityPolicyIdentity,
-        idempotency: PhysicalIdempotencyPolicy,
+    pub(super) fn from_rebuilt_registry(
+        registry: PhysicalMutationIdempotencyRegistry,
     ) -> Arc<Self> {
         Arc::new(Self {
-            registry: Mutex::new(PhysicalMutationIdempotencyRegistry::generation_zero(
-                store,
-                runtime,
-                policy,
-                idempotency,
-            )),
+            registry: Mutex::new(registry),
         })
     }
 
@@ -55,9 +58,85 @@ impl PhysicalMutationIdempotencyRuntimeOwner {
             owner: Arc::downgrade(owner),
         }
     }
+
+    pub(in crate::physical_runtime) fn binding_compaction_authority(
+        owner: &Arc<Self>,
+    ) -> PhysicalMutationBindingCompactionRuntimeAuthority {
+        PhysicalMutationBindingCompactionRuntimeAuthority {
+            owner: Arc::clone(owner),
+        }
+    }
+}
+
+impl PhysicalMutationBindingCompactionRuntimeAuthority {
+    pub(in crate::physical_runtime) fn begin_binding_compaction(
+        &self,
+        checkpoint: worth_store_physical_format::PhysicalCheckpointIdentity,
+        wal_cutoff_lsn_exclusive: u64,
+    ) -> Result<PhysicalMutationBindingCompactionCutover<'_>, PhysicalMutationBindingCompactionDenial>
+    {
+        let registry = self
+            .owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let pending = registry.prepare_binding_compaction(checkpoint, wal_cutoff_lsn_exclusive)?;
+        Ok(PhysicalMutationBindingCompactionCutover {
+            registry,
+            pending: Some(pending),
+        })
+    }
 }
 
 impl PhysicalMutationIdempotencyRuntimeAuthority {
+    pub(in crate::physical_runtime) fn record_completed(
+        &self,
+        fact: Arc<crate::physical_runtime::CompletedPhysicalMutationFact>,
+    ) -> Result<(), PhysicalMutationTerminalizationDenial> {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(PhysicalMutationTerminalizationDenial::AuthorityReleased)?;
+        let outcome = owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_completed(fact);
+        outcome
+    }
+
+    pub(in crate::physical_runtime) fn record_indeterminate(
+        &self,
+        fate: crate::physical_runtime::IndeterminatePhysicalMutation,
+    ) -> Result<(), PhysicalMutationTerminalizationDenial> {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(PhysicalMutationTerminalizationDenial::AuthorityReleased)?;
+        let outcome = owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_indeterminate(fate);
+        outcome
+    }
+
+    pub(in crate::physical_runtime) fn record_wal_binding(
+        &self,
+        persisted: super::PersistedPhysicalMutationAttemptBinding,
+    ) -> Result<(), PhysicalMutationWalBindingDenial> {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(PhysicalMutationWalBindingDenial::AuthorityReleased)?;
+        let outcome = owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_wal_binding(persisted);
+        outcome
+    }
+
     pub(in crate::physical_runtime) fn issue_key(
         &self,
         material: PhysicalMutationIdempotencyMaterial,
@@ -70,14 +149,13 @@ impl PhysicalMutationIdempotencyRuntimeAuthority {
             .registry
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let issued = registry
+        registry
             .issue_key(material)
             .map_err(|failure| match failure {
                 PhysicalMutationLeaseIssuanceFailure::GenerationExhausted => {
                     PhysicalMutationIdempotencyIssuanceDenial::LeaseGenerationExhausted
                 }
-            });
-        issued
+            })
     }
 
     pub(in crate::physical_runtime) fn admit_unallocated_with<E>(
@@ -100,5 +178,76 @@ impl PhysicalMutationIdempotencyRuntimeAuthority {
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .admit_unallocated_with(key, fingerprint, reserve);
         admission
+    }
+
+    pub(in crate::physical_runtime) fn cancel_before_group_seal(
+        &self,
+        expected: PhysicalMutationUnresolvedBindingObservation,
+        cause: crate::physical_runtime::PhysicalMutationProvenNoEffectCause,
+    ) -> Result<
+        crate::physical_runtime::ProvenNoEffectPhysicalMutation,
+        PhysicalMutationPreSealCancellationDenial,
+    > {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(PhysicalMutationPreSealCancellationDenial::AuthorityReleased)?;
+        let outcome = owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .cancel_before_group_seal(expected, cause);
+        outcome
+    }
+
+    pub(in crate::physical_runtime) fn seal_group(
+        &self,
+        expected: &[PhysicalMutationGroupSealingBinding],
+    ) -> Result<(), PhysicalMutationIdempotencyGroupSealDenial> {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(PhysicalMutationIdempotencyGroupSealDenial::AuthorityReleased)?;
+        let outcome = owner
+            .registry
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .seal_group(expected);
+        outcome
+    }
+}
+
+impl PhysicalMutationBindingCompactionCutover<'_> {
+    pub(in crate::physical_runtime) fn generation(
+        &self,
+    ) -> super::PhysicalNamespaceDurableCheckpointGeneration {
+        self.pending_ref().generation()
+    }
+
+    pub(in crate::physical_runtime) fn wal_cutoff_lsn_exclusive(&self) -> u64 {
+        self.pending_ref().wal_cutoff_lsn_exclusive()
+    }
+
+    pub(in crate::physical_runtime) fn for_each_record<E>(
+        &self,
+        consume: impl FnMut(&[u8]) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pending_ref().for_each_record(&self.registry, consume)
+    }
+
+    pub(in crate::physical_runtime) fn commit_namespace_durable(
+        mut self,
+        namespace_sync: &crate::physical_runtime::work::CompletedPhysicalCheckpointAction,
+    ) -> Result<PhysicalMutationBindingCompaction, PhysicalMutationBindingCompactionDenial> {
+        self.pending
+            .take()
+            .expect("a move-owned cutover commits at most once")
+            .commit(&mut self.registry, namespace_sync)
+    }
+
+    fn pending_ref(&self) -> &PendingPhysicalMutationBindingCompaction {
+        self.pending
+            .as_ref()
+            .expect("an uncommitted cutover retains its prospective compaction")
     }
 }

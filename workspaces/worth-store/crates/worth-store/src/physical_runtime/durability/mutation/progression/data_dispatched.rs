@@ -31,4 +31,13 @@ impl DataDispatchedPhysicalMutation {
     pub fn settle_exact_effects(self) -> PhysicalDataSettlementOutcome {
         join_dispatched_data(self)
     }
+
+    pub(in crate::physical_runtime) fn into_parts(
+        self,
+    ) -> (
+        WalDurablePhysicalMutation,
+        Vec<PhysicalDataEffectSettlement>,
+    ) {
+        (self.durable, self.effects)
+    }
 }

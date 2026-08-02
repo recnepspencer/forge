@@ -4,6 +4,10 @@ use worth_store_io_scheduler::{
 };
 use worth_store_physical_backend::QualifiedFilesystemMedia;
 
+mod checkpoint;
+mod reclamation;
+mod root_publication;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime) enum RecordSchedulerReservationDenial {
     Admission(
@@ -17,6 +21,8 @@ pub(in crate::physical_runtime) enum RecordSchedulerReservationDenial {
 pub(in crate::physical_runtime) struct PhysicalSchedulerAdmissionOwner {
     buffered_file: IoSchedulerBackendCapabilityAdmission,
     fsync: IoSchedulerBackendCapabilityAdmission,
+    directory_sync: IoSchedulerBackendCapabilityAdmission,
+    durable_rename: IoSchedulerBackendCapabilityAdmission,
     foreground:
         worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundCapacity,
 }
@@ -31,6 +37,14 @@ impl PhysicalSchedulerAdmissionOwner {
             fsync: admit(
                 media,
                 IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+            )?,
+            directory_sync: admit(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync,
+            )?,
+            durable_rename: admit(
+                media,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename,
             )?,
             foreground: worth_store_io_scheduler::foreground_reservation::
                 PhysicalInstanceForegroundCapacity::new(foreground_capacity(capacity))
@@ -165,27 +179,6 @@ impl PhysicalSchedulerAdmissionOwner {
             .map_err(RecordSchedulerReservationDenial::Admission)
     }
 
-    pub(in crate::physical_runtime) fn record_publication_effect(
-        &self,
-        security: &worth_store_io_scheduler::IoSchedulerSecurityScopeAdmission,
-    ) -> Result<
-        (
-            worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundReservation,
-            IoSchedulerBackendCapabilityAdmission,
-        ),
-        RecordSchedulerReservationDenial,
-    > {
-        let lane = worth_store_io_scheduler::foreground_reservation::ForegroundLaneDeclaration::
-            ordinary_page_write()
-            .with_latency_envelope(
-                worth_store_io_scheduler::foreground_reservation::ForegroundLatencyEnvelope::
-                    bounded_interference("physical-record-publication-effect", 8),
-            )
-            .with_budget(publication_effect_budget());
-        self.reserve_record_lane(lane, security)
-            .map_err(RecordSchedulerReservationDenial::Admission)
-    }
-
     pub(in crate::physical_runtime) fn reserve_record_lane(
         &self,
         lane: worth_store_io_scheduler::foreground_reservation::ForegroundLaneDeclaration,
@@ -273,15 +266,6 @@ fn write_budget(
     } else {
         budget
     }
-}
-
-fn publication_effect_budget(
-) -> worth_store_io_scheduler::foreground_reservation::ForegroundResourceBudget {
-    // Publication effects consume the ordinary write lane even when the exact
-    // backend operation is a barrier or namespace mutation rather than a byte
-    // range. One token is the scheduler's minimum bounded transfer unit; the
-    // flush and publication flags carry the additional durability resources.
-    write_budget(1, true, true)
 }
 
 fn wal_append_budget(

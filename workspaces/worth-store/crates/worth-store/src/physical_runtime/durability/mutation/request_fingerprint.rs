@@ -52,6 +52,18 @@ pub(in crate::physical_runtime) enum PhysicalMutationFingerprintDenial {
     CanonicalAdmissionDenied,
 }
 
+pub(super) fn reopen_exact_native_fingerprint(
+    digest: [u8; 32],
+) -> PhysicalMutationRequestFingerprint {
+    PhysicalMutationRequestFingerprint {
+        digest,
+        basis: StoreDigestEquivalenceBasis::exact_native_basis(
+            StoreCanonicalBasisFamily::PhysicalMutationRequestFingerprint,
+        )
+        .identity(),
+    }
+}
+
 impl PhysicalMutationRequestFingerprint {
     pub(in crate::physical_runtime) fn derive(
         input: PhysicalMutationFingerprintInput<'_>,

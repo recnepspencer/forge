@@ -10,9 +10,15 @@ use worth_store_physical_format::RecordArtifactFile;
 
 use super::PhysicalPublicationEffect;
 
+mod checkpoint;
 mod residency_writeback;
+mod wal_reclamation;
 
+pub use checkpoint::CompletedPhysicalCheckpointAction;
+pub(in crate::physical_runtime) use checkpoint::IndeterminatePhysicalCheckpointAction;
 pub(in crate::physical_runtime) use residency_writeback::PhysicalResidencyWritebackCompletion;
+pub use wal_reclamation::CompletedPhysicalWalReclamationAction;
+pub(in crate::physical_runtime) use wal_reclamation::IndeterminatePhysicalWalReclamationAction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime) enum PhysicalEffectRecoveryObligation {
@@ -49,7 +55,7 @@ pub(in crate::physical_runtime) struct IndeterminatePhysicalWalBarrier {
     artifact: worth_store_physical_backend::ArtifactTreeFile,
 }
 
-pub enum PhysicalExecutorOutcome {
+pub(in crate::physical_runtime) enum PhysicalExecutorOutcome {
     DeniedBeforeEffect {
         failure: ArtifactTreeFailure,
         retry: super::PhysicalRetryPayload,
@@ -77,6 +83,7 @@ pub enum PhysicalExecutorOutcome {
     },
     NewArtifactCompleted {
         physical: CompletedArtifactNewWrite,
+        coordinate: worth_store_physical_format::RecordFrameCoordinate,
         scheduler: QueueExecutionOutcome,
     },
     PublicationEffectCompleted {
@@ -87,15 +94,33 @@ pub enum PhysicalExecutorOutcome {
         physical: CompletedArtifactAppend,
         scheduler: QueueExecutionOutcome,
     },
+    WalSegmentCreateCompleted {
+        physical: CompletedArtifactNewWrite,
+        scheduler: QueueExecutionOutcome,
+    },
     WalBarrierCompleted {
         physical: CompletedPhysicalWalBarrier,
         scheduler: QueueExecutionOutcome,
     },
+    CheckpointCompleted {
+        physical: CompletedPhysicalCheckpointAction,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalReclamationCompleted {
+        physical: CompletedPhysicalWalReclamationAction,
+        scheduler: QueueExecutionOutcome,
+    },
     Indeterminate(IndeterminateArtifactRangeWrite),
-    NewArtifactIndeterminate(IndeterminateArtifactNewWrite),
+    NewArtifactIndeterminate {
+        physical: IndeterminateArtifactNewWrite,
+        coordinate: worth_store_physical_format::RecordFrameCoordinate,
+    },
     PublicationEffectIndeterminate(IndeterminatePhysicalPublicationEffect),
     WalAppendIndeterminate(IndeterminateArtifactAppend),
+    WalSegmentCreateIndeterminate(IndeterminateArtifactNewWrite),
     WalBarrierIndeterminate(IndeterminatePhysicalWalBarrier),
+    CheckpointIndeterminate(IndeterminatePhysicalCheckpointAction),
+    WalReclamationIndeterminate(IndeterminatePhysicalWalReclamationAction),
 }
 
 impl PhysicalEffectRecoveryObligation {

@@ -20,13 +20,73 @@ pub(super) fn require_effect_contract(
         PhysicalWorkOperationFamily::ArtifactPublication => {
             require_publication_contract(effect, durability, recovery)
         }
+        PhysicalWorkOperationFamily::CheckpointCapture => {
+            require_checkpoint_contract(effect, durability, recovery)
+        }
         PhysicalWorkOperationFamily::WalAppend => {
             require_wal_append_contract(effect, durability, recovery)
         }
         PhysicalWorkOperationFamily::DurabilityBarrier => {
             require_wal_barrier_contract(effect, durability, recovery)
         }
+        PhysicalWorkOperationFamily::WalReclamation => {
+            require_wal_reclamation_contract(effect, durability, recovery)
+        }
+        PhysicalWorkOperationFamily::RootPublication => {
+            require_root_publication_contract(effect, durability, recovery)
+        }
     }
+}
+
+fn require_root_publication_contract(
+    effect: PhysicalWorkEffectClass,
+    durability: PhysicalWorkDurabilityRequirement,
+    recovery: PhysicalWorkRecoveryDisposition,
+) -> Result<(), PhysicalWorkDeclarationDenial> {
+    matches!(
+        (effect, durability, recovery),
+        (
+            PhysicalWorkEffectClass::PublicationBoundary,
+            PhysicalWorkDurabilityRequirement::RootPublication,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    )
+    .then_some(())
+    .ok_or(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
+}
+
+fn require_wal_reclamation_contract(
+    effect: PhysicalWorkEffectClass,
+    durability: PhysicalWorkDurabilityRequirement,
+    recovery: PhysicalWorkRecoveryDisposition,
+) -> Result<(), PhysicalWorkDeclarationDenial> {
+    matches!(
+        (effect, durability, recovery),
+        (
+            PhysicalWorkEffectClass::PublicationBoundary,
+            PhysicalWorkDurabilityRequirement::WalReclamation,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    )
+    .then_some(())
+    .ok_or(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
+}
+
+fn require_checkpoint_contract(
+    effect: PhysicalWorkEffectClass,
+    durability: PhysicalWorkDurabilityRequirement,
+    recovery: PhysicalWorkRecoveryDisposition,
+) -> Result<(), PhysicalWorkDeclarationDenial> {
+    matches!(
+        (effect, durability, recovery),
+        (
+            PhysicalWorkEffectClass::PublicationBoundary,
+            PhysicalWorkDurabilityRequirement::CheckpointCapture,
+            PhysicalWorkRecoveryDisposition::InspectionRequired,
+        )
+    )
+    .then_some(())
+    .ok_or(PhysicalWorkDeclarationDenial::EffectfulContractMismatch)
 }
 
 fn require_wal_barrier_contract(

@@ -4,7 +4,7 @@ error: cannot construct `PhysicalWalBarrierSettlement` with struct literal synta
 8 |     let _ = PhysicalWalBarrierSettlement {};
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: private fields that were not provided
+  = note: private fields `group`, `binding` and `member` that were not provided
 
 error: cannot construct `WalDurablePhysicalMutation` with struct literal syntax due to private fields
  --> tests/physical_runtime_authority/wal_durable_authority_requires_completed_barrier.rs:9:13
@@ -12,7 +12,7 @@ error: cannot construct `WalDurablePhysicalMutation` with struct literal syntax 
 9 |     let _ = WalDurablePhysicalMutation {};
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
-  = note: private fields `appended` and `settlement` that were not provided
+  = note: private fields `appended`, `group_binding` and `settlement` that were not provided
 help: you might have meant to use the `new` associated function
   |
 9 -     let _ = WalDurablePhysicalMutation {};
@@ -39,22 +39,27 @@ error[E0624]: associated function `new` is private
    |
   ::: src/physical_runtime/durability/mutation/progression/wal_durable.rs
    |
-   | /     pub(in crate::physical_runtime) const fn new(
-   | |         appended: WalAppendedPhysicalMutation,
+   | /     pub(in crate::physical_runtime) fn new(
+   | |         member: WalBarrierMember<WalAppendedPhysicalMutation>,
    | |         settlement: CompletionBoundPhysicalWalBarrierSettlement,
    | |     ) -> Self {
    | |_____________- private associated function defined here
 
-error[E0308]: mismatched types
-  --> tests/physical_runtime_authority/wal_durable_authority_requires_completed_barrier.rs:17:47
+error[E0308]: arguments to this function are incorrect
+  --> tests/physical_runtime_authority/wal_durable_authority_requires_completed_barrier.rs:17:5
    |
 17 |     WalDurablePhysicalMutation::new(appended, settlement)
-   |     -------------------------------           ^^^^^^^^^^ expected `CompletionBoundPhysicalWalBarrierSettlement`, found `PhysicalWalBarrierSettlement`
-   |     |
-   |     arguments to this function are incorrect
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^           ---------- expected `CompletionBoundPhysicalWalBarrierSettlement`, found `PhysicalWalBarrierSettlement`
    |
+note: expected `WalBarrierMember<...>`, found `WalAppendedPhysicalMutation`
+  --> tests/physical_runtime_authority/wal_durable_authority_requires_completed_barrier.rs:17:37
+   |
+17 |     WalDurablePhysicalMutation::new(appended, settlement)
+   |                                     ^^^^^^^^
+   = note: expected struct `WalBarrierMember<WalAppendedPhysicalMutation>`
+              found struct `WalAppendedPhysicalMutation`
 note: associated function defined here
   --> src/physical_runtime/durability/mutation/progression/wal_durable.rs
    |
-   |     pub(in crate::physical_runtime) const fn new(
-   |                                              ^^^
+   |     pub(in crate::physical_runtime) fn new(
+   |                                        ^^^

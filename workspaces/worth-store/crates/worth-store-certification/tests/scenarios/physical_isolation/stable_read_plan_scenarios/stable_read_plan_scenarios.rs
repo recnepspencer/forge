@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
-
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan,
     physical_isolation_stable_read_plan_fault_event, physical_scenario, CounterContractKind,
@@ -240,9 +238,6 @@ fn executed_trace(
     PhysicalSimulationObserver::independent_physical_trace()
         .observe_boundary_observation(plan, &execution)
         .unwrap()
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
         .complete()
         .unwrap()

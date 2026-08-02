@@ -102,11 +102,6 @@ impl ExecutedBackupRestore {
     ) -> &worth_store_physical_backend::ClosedNonCurrentStagingMedia {
         self.receipt.backend.media()
     }
-    pub(crate) const fn owner_verification(
-        &self,
-    ) -> worth_store_offline_verifier::StagedRecoveryOwnerVerificationSet {
-        self.owner_verification
-    }
 }
 
 impl AuthorizedBackupRestorePlan {

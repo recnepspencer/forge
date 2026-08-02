@@ -1,11 +1,25 @@
+mod completed;
 mod data_dispatched;
 mod data_settled;
+mod root_namespace_durable;
+mod root_prepared;
+mod root_publication_member;
+mod root_replaced;
 mod wal_appended;
 mod wal_durable;
 mod wal_reserved;
 
+pub use completed::CompletedPhysicalMutation;
+pub(in crate::physical_runtime) use completed::CompletedPhysicalMutationFact;
 pub use data_dispatched::DataDispatchedPhysicalMutation;
 pub use data_settled::DataSettledPhysicalMutation;
+pub(in crate::physical_runtime) use data_settled::SettledPhysicalMutationBasis;
+pub use root_namespace_durable::RootNamespaceDurablePhysicalMutationMembers;
+pub(in crate::physical_runtime) use root_prepared::RootPublicationPreparedCore;
+pub use root_prepared::RootPublicationPreparedPhysicalMutationMembers;
+pub use root_publication_member::RootPublicationPhysicalMutationMember;
+pub use root_replaced::RootReplacedPhysicalMutationMembers;
 pub use wal_appended::WalAppendedPhysicalMutation;
 pub use wal_durable::WalDurablePhysicalMutation;
 pub use wal_reserved::WalRangeReservedPhysicalMutation;
+pub(in crate::physical_runtime) use wal_reserved::WalRangeReservedPhysicalMutationBasis;

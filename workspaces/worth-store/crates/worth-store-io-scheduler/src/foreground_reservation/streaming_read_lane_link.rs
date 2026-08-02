@@ -9,6 +9,7 @@ pub const fn admits_streaming_read_lane(lane: ForegroundIoLaneKind) -> bool {
             | ForegroundIoLaneKind::InternalForegroundRead
             | ForegroundIoLaneKind::CommitCriticalWalAppend
             | ForegroundIoLaneKind::CommitCriticalWalWrite
+            | ForegroundIoLaneKind::RootPublication
             | ForegroundIoLaneKind::OrdinaryPageWrite
     )
 }

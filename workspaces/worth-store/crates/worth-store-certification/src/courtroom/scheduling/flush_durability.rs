@@ -1,50 +1,32 @@
-use worth_store_physical_backend::{StoreDurabilityCounterSnapshot, StoreDurabilityState};
-use worth_store_recovery_physics::{
-    DurabilityReplayIdentity, DurableCheckpointPublication, DurableManifestPublication,
-    DurableWalPublication,
+use worth_store::physical_runtime::{
+    PhysicalMutationAcknowledgment, PhysicalMutationExecutedBoundaryEvidence,
+    PhysicalMutationPerformanceEvidence,
 };
+use worth_store_budgets::CounterEvidenceStrength;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct S6FlushDurabilityEvidenceRow {
-    replay: DurabilityReplayIdentity,
-    required_state: StoreDurabilityState,
-    counters: StoreDurabilityCounterSnapshot,
+    executed: PhysicalMutationExecutedBoundaryEvidence,
+    performance: PhysicalMutationPerformanceEvidence,
 }
 
 impl S6FlushDurabilityEvidenceRow {
-    pub fn from_wal_publication(publication: &DurableWalPublication) -> Self {
+    pub fn from_physical_acknowledgment(acknowledgment: &PhysicalMutationAcknowledgment) -> Self {
         Self {
-            replay: publication.replay_identity().clone(),
-            required_state: publication.required_state(),
-            counters: publication.counters(),
+            executed: acknowledgment.executed_boundary_evidence(),
+            performance: acknowledgment.performance_evidence(),
         }
     }
 
-    pub fn from_checkpoint_publication(publication: &DurableCheckpointPublication) -> Self {
-        Self {
-            replay: publication.replay_identity().clone(),
-            required_state: publication.required_state(),
-            counters: publication.counters(),
-        }
+    pub const fn executed_boundary(&self) -> PhysicalMutationExecutedBoundaryEvidence {
+        self.executed
     }
 
-    pub fn from_manifest_publication(publication: &DurableManifestPublication) -> Self {
-        Self {
-            replay: publication.replay_identity().clone(),
-            required_state: StoreDurabilityState::OrderingBarrierDurable,
-            counters: publication.counters(),
-        }
+    pub const fn performance(&self) -> PhysicalMutationPerformanceEvidence {
+        self.performance
     }
 
-    pub fn replay_identity(&self) -> &DurabilityReplayIdentity {
-        &self.replay
-    }
-
-    pub const fn required_state(&self) -> StoreDurabilityState {
-        self.required_state
-    }
-
-    pub const fn counters(&self) -> StoreDurabilityCounterSnapshot {
-        self.counters
+    pub const fn counter_strength(&self) -> CounterEvidenceStrength {
+        CounterEvidenceStrength::Exact
     }
 }

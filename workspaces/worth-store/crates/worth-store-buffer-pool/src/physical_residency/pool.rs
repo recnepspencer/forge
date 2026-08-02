@@ -1,14 +1,17 @@
 use super::{
-    DirtyPhysicalFrame, ForegroundWriteAllocationGrant, OperationAllocationGrant,
-    PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner, PhysicalBoundedFrameFaultWaiter,
-    PhysicalCandidateBatchAdmission, PhysicalCandidateBatchReservation,
-    PhysicalCandidateFrameReservation, PhysicalFrameAccess, PhysicalFrameFaultOwner,
-    PhysicalFrameFaultWaiter, PhysicalFrameLease, PhysicalFrameLoadTerminal,
-    PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity, PhysicalFrameRemoval,
-    PhysicalOperationAllocationScope, PhysicalResidencyAccounting,
-    PhysicalResidencyAllocationActualization, PhysicalResidencyAllocationEventObserver,
-    PhysicalResidencyCounters, PhysicalResidencyDenial, PhysicalResidencyDimension,
-    PhysicalResidencyLimits, PhysicalResidencyPressureDemand, PhysicalResidencyPressureDenial,
+    DirtyPhysicalFrame, ForegroundWriteAllocationGrant, MaintenanceAllocationGrant,
+    OperationAllocationGrant, PhysicalBoundedFrameAccess, PhysicalBoundedFrameFaultOwner,
+    PhysicalBoundedFrameFaultWaiter, PhysicalCandidateBatchAdmission,
+    PhysicalCandidateBatchReservation, PhysicalCandidateFrameReservation, PhysicalDirtyFrameBasis,
+    PhysicalDirtyGeneration, PhysicalDirtyGenerationCaptureSession,
+    PhysicalDirtyGenerationCaptureStep, PhysicalDirtyGenerationSlice, PhysicalFrameAccess,
+    PhysicalFrameFaultOwner, PhysicalFrameFaultWaiter, PhysicalFrameLease,
+    PhysicalFrameLoadTerminal, PhysicalFrameLoadTerminalKind, PhysicalFrameLoadingIdentity,
+    PhysicalFrameRemoval, PhysicalOperationAllocationScope, PhysicalResidencyAccounting,
+    PhysicalResidencyActualAllocationUnits, PhysicalResidencyAllocationActualization,
+    PhysicalResidencyAllocationEventObserver, PhysicalResidencyCounters, PhysicalResidencyDenial,
+    PhysicalResidencyDimension, PhysicalResidencyLimits, PhysicalResidencyPressureDemand,
+    PhysicalResidencyPressureDenial, PhysicalResidencyRequestedAllocationUnits,
     PhysicalResidencyShutdown, PhysicalWritebackClaim, WriteBehindResidencyGrant,
 };
 use std::{
@@ -21,6 +24,7 @@ use worth_store_physical_format::{
 
 mod bounded_frame_admission;
 mod candidate_admission;
+mod dirty_generation_capture;
 mod dirty_transition;
 mod eviction;
 mod frame_admission;
@@ -170,6 +174,7 @@ struct PoolState {
     loading_frames: u32,
     next_loading_ordinal: u64,
     active_candidate_publications: u32,
+    dirty_generation: PhysicalDirtyGeneration,
     accepting: bool,
     closed: bool,
 }
@@ -181,6 +186,7 @@ struct FrameEntry {
     allocation_scope: PhysicalOperationAllocationScope,
     pins: u32,
     dirty: bool,
+    dirty_generation: Option<PhysicalDirtyGeneration>,
     writeback_claimed: bool,
     bytes: u64,
     older_evictable: Option<RecordFrameCoordinate>,

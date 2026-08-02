@@ -55,6 +55,7 @@ fn install_for_partition(
         .with(PhysicalWorkSignalFamily::DurabilityBarrier)
         .with(PhysicalWorkSignalFamily::CheckpointCapture)
         .with(PhysicalWorkSignalFamily::RootPublication);
+    let families = families.with(PhysicalWorkSignalFamily::WalReclamation);
     let declaration =
         PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::Dependency)
             .for_families(families)
@@ -105,6 +106,7 @@ mod tests {
             PhysicalWorkSignalFamily::DurabilityBarrier,
             PhysicalWorkSignalFamily::CheckpointCapture,
             PhysicalWorkSignalFamily::RootPublication,
+            PhysicalWorkSignalFamily::WalReclamation,
         ] {
             assert!(families.contains(family));
         }

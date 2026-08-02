@@ -1,7 +1,6 @@
 use super::super::model::LsmMembershipKey;
 use crate::{
-    BlobWalRecordEnvelope, BlobWalRecordKind, CheckpointDurablePublicationScope,
-    WalFrameDurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordKind, CheckpointPublicationScope, WalFramePublicationScope,
 };
 
 /// Non-authoritative bytes to hand to a durability backend.
@@ -21,13 +20,13 @@ impl LsmMembershipArtifactDeclaration {
         }
     }
 
-    pub fn manifest(scope: &CheckpointDurablePublicationScope) -> Self {
+    pub fn manifest(scope: &CheckpointPublicationScope) -> Self {
         Self {
             bytes: lsm_membership_manifest_bytes(scope),
         }
     }
 
-    pub fn compaction_output(scope: &WalFrameDurablePublicationScope) -> Self {
+    pub fn compaction_output(scope: &WalFramePublicationScope) -> Self {
         Self {
             bytes: lsm_membership_output_bytes(scope),
         }
@@ -42,7 +41,7 @@ pub(crate) fn lsm_membership_record_bytes(
     envelope: &BlobWalRecordEnvelope,
     key: LsmMembershipKey,
 ) -> Vec<u8> {
-    let crate::DurablePublicationScope::WalFrame(scope) = envelope.durable_publication().scope()
+    let crate::PublicationScope::WalFrame(scope) = envelope.publication_declaration().scope()
     else {
         return Vec::new();
     };
@@ -68,7 +67,7 @@ pub(crate) fn lsm_membership_record_bytes(
     bytes
 }
 
-pub(crate) fn lsm_membership_manifest_bytes(scope: &CheckpointDurablePublicationScope) -> Vec<u8> {
+pub(crate) fn lsm_membership_manifest_bytes(scope: &CheckpointPublicationScope) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(64 + scope.manifest_digest().len());
     bytes.extend_from_slice(b"worth-store:wal-lsm-manifest:v1\0");
     bytes.extend_from_slice(&scope.checkpoint().checkpoint_epoch().to_le_bytes());
@@ -78,7 +77,7 @@ pub(crate) fn lsm_membership_manifest_bytes(scope: &CheckpointDurablePublication
     bytes
 }
 
-pub(crate) fn lsm_membership_output_bytes(scope: &WalFrameDurablePublicationScope) -> Vec<u8> {
+pub(crate) fn lsm_membership_output_bytes(scope: &WalFramePublicationScope) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(4096);
     bytes.extend_from_slice(b"worth-store:wal-lsm-output:v1\0");
     bytes.extend_from_slice(scope.frame_digest().as_bytes());
@@ -92,7 +91,7 @@ pub(crate) fn lsm_membership_activation_digest_prefix(
     base: Option<crate::BlobWalRecordIdentity>,
     output: crate::BlobWalRecordIdentity,
     store_binding: &str,
-    output_scope: &WalFrameDurablePublicationScope,
+    output_scope: &WalFramePublicationScope,
 ) -> String {
     format!(
         "{}:output-scope={}:{}:{}:{}:{}:{}:physical=",

@@ -161,3 +161,47 @@ fn exact_store_reasons_retain_actionable_parameters() {
         }
     );
 }
+
+#[test]
+fn dirty_generation_failures_keep_distinct_remediation_and_exact_budget() {
+    let exhausted =
+        PhysicalRecordResidencyFailure::from(PhysicalResidencyDenial::DirtyGenerationExhausted);
+    assert_eq!(
+        exhausted.kind(),
+        PhysicalRecordResidencyFailureKind::DirtyGenerationExhausted
+    );
+    assert_eq!(
+        exhausted.reason(),
+        PhysicalRecordResidencyFailureReason::DirtyGenerationExhausted
+    );
+
+    let underfunded = PhysicalRecordResidencyFailure::from(
+        PhysicalResidencyDenial::DirtyGenerationCaptureBudgetExceeded {
+            required: 32,
+            admitted: 16,
+        },
+    );
+    assert_eq!(
+        underfunded.kind(),
+        PhysicalRecordResidencyFailureKind::AllocationUnavailable
+    );
+    assert_eq!(
+        underfunded.reason(),
+        PhysicalRecordResidencyFailureReason::DirtyGenerationCaptureBudgetExceeded {
+            required: 32,
+            admitted: 16,
+        }
+    );
+
+    let foreign_session = PhysicalRecordResidencyFailure::from(
+        PhysicalResidencyDenial::DirtyGenerationCaptureSessionMismatch,
+    );
+    assert_eq!(
+        foreign_session.kind(),
+        PhysicalRecordResidencyFailureKind::CaptureSessionAuthorityMismatch
+    );
+    assert_eq!(
+        foreign_session.reason(),
+        PhysicalRecordResidencyFailureReason::DirtyGenerationCaptureSessionMismatch
+    );
+}

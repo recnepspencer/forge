@@ -14,7 +14,7 @@ impl PhysicalSignalRuntimeIdentity {
 pub enum PhysicalSignalConstructionFailure {
     ProfileRejected(crate::physical_runtime::PhysicalWorkProfileDenial),
     SchedulerCapabilityRejected(worth_store_io_scheduler::IoSchedulerBackendCapabilityDenial),
-    WalArtifactInitializationRejected(worth_store_physical_backend::ArtifactTreeFailure),
+    DurabilityStateReopenRejected(super::super::PhysicalDurabilityStateReopenFailure),
     IdentityEntropyUnavailable,
     WorkerSpawnRejected,
     WorkerReadinessLost,

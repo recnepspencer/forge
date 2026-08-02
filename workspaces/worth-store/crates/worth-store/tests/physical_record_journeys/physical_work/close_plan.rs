@@ -47,6 +47,7 @@ fn close_safely_cancels_predispatch_work_and_reconciles_signal() {
     assert_eq!(
         closed.phases(),
         &[
+            PhysicalStoreClosePhase::CheckpointDrained,
             PhysicalStoreClosePhase::AdmissionStopped,
             PhysicalStoreClosePhase::SafeCancellationComplete,
             PhysicalStoreClosePhase::DispatchSettlementComplete,
@@ -55,7 +56,7 @@ fn close_safely_cancels_predispatch_work_and_reconciles_signal() {
             PhysicalStoreClosePhase::MediaReleased,
         ]
     );
-    assert_eq!(progress.completed_phase_count(), 6);
+    assert_eq!(progress.completed_phase_count(), 7);
     assert_eq!(
         progress.latest_phase(),
         Some(PhysicalStoreClosePhase::MediaReleased)
@@ -135,6 +136,7 @@ fn certification_close_gate_holds_lifecycle_after_signal_disposal() {
 #[test]
 fn every_close_phase_survives_process_death_without_signal_replay_input() {
     let phases = [
+        PhysicalStoreClosePhase::CheckpointDrained,
         PhysicalStoreClosePhase::AdmissionStopped,
         PhysicalStoreClosePhase::SafeCancellationComplete,
         PhysicalStoreClosePhase::DispatchSettlementComplete,

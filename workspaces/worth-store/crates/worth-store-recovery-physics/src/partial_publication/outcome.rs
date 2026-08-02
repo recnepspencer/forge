@@ -8,7 +8,6 @@ pub enum UnacknowledgedPublicationOutcome {
     NoWalAppendObserved,
     WalAppendedButNotDurable,
     DurableWalReplayable,
-    AcknowledgedBeforePageFlush,
     CheckpointCutoverAmbiguous,
     RejectedNonAuthoritativePromotion,
     TornPublicationRejected,
@@ -22,9 +21,6 @@ pub enum RecoveredOrRejectedPartialPublication {
     },
     ReplayableUnacknowledgedWal {
         durable_wal: UnacknowledgedDurableWal,
-        counters: PartialPublicationCounterSnapshot,
-    },
-    AcknowledgedWorkAwaitingPageFlush {
         counters: PartialPublicationCounterSnapshot,
     },
     RejectedTornPublication {
@@ -57,7 +53,6 @@ impl RecoveredOrRejectedPartialPublication {
         match self {
             Self::NoRecoveredWork { counters }
             | Self::ReplayableUnacknowledgedWal { counters, .. }
-            | Self::AcknowledgedWorkAwaitingPageFlush { counters }
             | Self::RejectedTornPublication { counters, .. }
             | Self::RejectedNonAuthoritativePromotion { counters, .. }
             | Self::Ambiguous { counters, .. } => *counters,

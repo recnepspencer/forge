@@ -1,10 +1,10 @@
+use worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission;
 use worth_store::physical_runtime::{
-    PhysicalDataDispatchOutcome, PhysicalDataSettlementOutcome, PhysicalRecordSubmission,
-    WalDurablePhysicalMutation,
+    PhysicalDataDispatchOutcome, PhysicalDataSettlementOutcome, WalDurablePhysicalMutation,
 };
 
 fn dispatch_and_settle_exact_data(
-    submission: &PhysicalRecordSubmission,
+    submission: &CertificationPhysicalRecordSubmission,
     durable: WalDurablePhysicalMutation,
 ) {
     match submission.dispatch_wal_durable_data(durable) {
@@ -20,6 +20,15 @@ fn dispatch_and_settle_exact_data(
         }
         PhysicalDataDispatchOutcome::NotStarted { durable, cause } => {
             let _preserved_authority = (durable.mutation_identity(), cause);
+        }
+        PhysicalDataDispatchOutcome::RetryableAfterCleanup(retry) => {
+            let _proved_cleanup = (
+                retry.durable().mutation_identity(),
+                retry.discarded_effects().len(),
+                retry.pressure(),
+                retry.deleted_artifacts().len(),
+            );
+            let _preserved_authority = retry.into_durable();
         }
         PhysicalDataDispatchOutcome::Indeterminate(indeterminate) => {
             let _inspection_basis = (

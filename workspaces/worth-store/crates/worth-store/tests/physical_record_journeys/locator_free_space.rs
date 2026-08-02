@@ -1,8 +1,11 @@
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_store::physical_runtime::{
-    ExternalPhysicalRecordLocator, PhysicalLocatorReadmissionDenial, PhysicalRecordInitialization,
-    PhysicalRecordOpen, PhysicalWorkEffectFate, RecordAppendBatch, RecordAppendDenial,
-    RecordAppendError, RecordByteLimit, RecordReadDenial, RecordReadLimits,
+    ExternalPhysicalRecordLocator, PhysicalLocatorReadmissionDenial,
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, PhysicalMutationPreparationSuccess,
+    PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalWalGroupAppendFailureCause,
+    PhysicalWalGroupAppendOutcome, PhysicalWalReservationDenial, PhysicalWorkEffectFate,
+    RecordAppendBatch, RecordAppendDenial, RecordByteLimit, RecordReadDenial, RecordReadLimits,
     RecordServingTerminalPosture,
 };
 use worth_store_physical_backend::MediaOperationRole;
@@ -10,7 +13,7 @@ use worth_store_physical_format::{
     PhysicalFreeSpaceMembershipBlock, RecordAllocationClass, RecordFreeSpaceManifestEntry,
 };
 
-use super::{media, scenario_configuration::dense_configuration, success};
+use super::{durable_publication, media, scenario_configuration::dense_configuration, success};
 
 #[test]
 fn locator_readmission_and_free_space_truth_survive_reopen() {
@@ -20,16 +23,15 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
     let serving = success(initialize_record_store!(media(&root), |durability| {
         PhysicalRecordInitialization::new(format, placement, access, durability)
     }));
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("locator-free-space-reopen", 1),
+        RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
+    );
     let locator = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        published.record_id(0).unwrap(),
+        published.settled_members()[0].record_id(0).unwrap(),
     );
     serving.close();
     let free = super::manifest_fixture::decode_free_space_tree(&root, 2, format.declaration(), 128);
@@ -45,7 +47,7 @@ fn locator_readmission_and_free_space_truth_survive_reopen() {
             .readmit_locator(locator)
             .into_result()
             .unwrap(),
-        published.record_id(0).unwrap()
+        published.settled_members()[0].record_id(0).unwrap()
     );
     let before = reopened.media_counters();
     let mut foreign = locator.encode();
@@ -99,16 +101,15 @@ fn locator_readmission_damage_revokes_the_shared_serving_authority() {
     let serving = success(initialize_record_store!(media(&root), |durability| {
         PhysicalRecordInitialization::new(format, placement, access, durability)
     }));
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"locator truth".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("locator-artifact-damage", 1),
+        RecordAppendBatch::try_from_iter([b"locator truth".as_slice()]).unwrap(),
+    );
     let locator = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        published.record_id(0).unwrap(),
+        published.settled_members()[0].record_id(0).unwrap(),
     );
     serving.close();
 
@@ -181,11 +182,15 @@ fn assert_mutation_fenced(
     placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
 ) {
     assert!(matches!(
-        serving.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"must stay sealed".as_slice()]).unwrap(),
+        durable_publication::prepare_single(
+            &serving.certification_record_submission(),
             placement,
-        ),
-        Err(RecordAppendError::Denied(
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([209; 32]),
+            RecordAppendBatch::try_from_iter([b"must stay sealed".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
             RecordAppendDenial::ServingRequiresInspection
         ))
     ));
@@ -199,13 +204,12 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     let serving = success(initialize_record_store!(media(&root), |durability| {
         PhysicalRecordInitialization::new(format, placement, access, durability)
     }));
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("free-space-tree-damage", 1),
+        RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
+    );
     serving.close();
 
     let free = super::manifest_fixture::decode_free_space_tree(&root, 2, format.declaration(), 128);
@@ -219,15 +223,7 @@ fn validly_framed_extra_free_space_claim_is_not_accepted_as_truth() {
     let reopened = success(open_record_store!(media(&root), |durability| {
         PhysicalRecordOpen::new(format, access, durability)
     }));
-    assert!(matches!(
-        reopened.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"must inspect the tree".as_slice()]).unwrap(),
-            placement,
-        ),
-        Err(RecordAppendError::Denied(
-            RecordAppendDenial::PublishedLayoutDamaged
-        ))
-    ));
+    assert_layout_damage_denies_data_planning(&reopened, placement, 210);
     reopened.close();
 }
 
@@ -240,13 +236,12 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         let serving = success(initialize_record_store!(media(&root), |durability| {
             PhysicalRecordInitialization::new(format, placement, access, durability)
         }));
-        serving
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap();
+        durable_publication::publish_single(
+            &serving,
+            placement,
+            durable_publication::certification_material("free-space-tree-entry-damage", 1),
+            RecordAppendBatch::try_from_iter([b"stable".as_slice()]).unwrap(),
+        );
         serving.close();
 
         let free =
@@ -269,20 +264,66 @@ fn altered_free_range_and_generation_cannot_be_readmitted_as_authority() {
         let reopened = success(open_record_store!(media(&root), |durability| {
             PhysicalRecordOpen::new(format, access, durability)
         }));
-        assert!(
-            matches!(
-                reopened.record_submission().append_batch(
-                    RecordAppendBatch::try_from_iter([b"tree damage".as_slice()]).unwrap(),
-                    placement,
-                ),
-                Err(RecordAppendError::Denied(
-                    RecordAppendDenial::PublishedLayoutDamaged
-                ))
-            ),
-            "altered {case} authority must deny allocation planning"
-        );
+        assert_layout_damage_denies_data_planning(&reopened, placement, 211);
         reopened.close();
     }
+}
+
+fn assert_layout_damage_denies_data_planning(
+    serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
+    placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
+    material: u8,
+) {
+    let submission = serving.certification_record_submission();
+    let prepared = match durable_publication::prepare_single(
+        &submission,
+        placement,
+        PhysicalManifestCapacityTransition::PreserveCurrent,
+        PhysicalMutationIdempotencyMaterial::new([material; 32]),
+        RecordAppendBatch::try_from_iter([b"tree damage".as_slice()]).unwrap(),
+    )
+    .into_raw()
+    {
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
+        _ => panic!("free-space corruption is discovered during canonical data planning"),
+    };
+    let before = serving.media_counters();
+    assert!(matches!(
+        submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())),
+        PhysicalWalGroupAppendOutcome::NotAdmitted {
+            cause: PhysicalWalGroupAppendFailureCause::Reservation(
+                PhysicalWalReservationDenial::DataPlanning(
+                    RecordAppendDenial::PublishedLayoutDamaged
+                )
+            ),
+            ..
+        }
+    ));
+    let after = serving.media_counters();
+    for role in [
+        MediaOperationRole::CreateDirectory,
+        MediaOperationRole::CreateNew,
+        MediaOperationRole::PositionedWrite,
+        MediaOperationRole::Append,
+        MediaOperationRole::Truncate,
+        MediaOperationRole::Allocate,
+        MediaOperationRole::SynchronizeFileData,
+        MediaOperationRole::SynchronizeFileState,
+        MediaOperationRole::SynchronizeDirectoryPublication,
+        MediaOperationRole::SynchronizeStoreRootPublication,
+        MediaOperationRole::SynchronizeRootParentPublication,
+        MediaOperationRole::AtomicReplace,
+        MediaOperationRole::Delete,
+    ] {
+        assert_eq!(
+            after.attempts_for(role),
+            before.attempts_for(role),
+            "dishonest free-space truth must deny before {role:?}"
+        );
+    }
+    assert_mutation_fenced(serving, placement);
 }
 
 fn overwrite_free_space_root_block(

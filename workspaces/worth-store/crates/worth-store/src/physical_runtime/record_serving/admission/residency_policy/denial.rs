@@ -1,4 +1,4 @@
-pub use worth_store_buffer_pool::PhysicalResidencyDimension;
+pub(super) use worth_store_buffer_pool::PhysicalResidencyDimension;
 
 /// Why a physical residency declaration could not become an admitted policy.
 ///

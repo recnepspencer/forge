@@ -17,6 +17,7 @@ use super::{
     PhysicalStoreWorkRuntime, PhysicalWorkExecutor, PhysicalWorkSignalOwner,
 };
 
+struct CheckpointDrained;
 struct AdmissionStopped;
 struct SafeCancellationComplete;
 struct DispatchSettlementComplete;
@@ -30,9 +31,11 @@ struct ShutdownProtocol<State, Terminate> {
     core: PhysicalRuntimeCore,
     record_owner: RecordServingOwner,
     publication_residue: RecordPublicationResidueObservation,
+    mutation: crate::physical_runtime::PhysicalMutationShutdown,
+    checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
     health: Option<ServingHealth>,
     residency_owner: Option<PhysicalResidencyOwner>,
-    durability_owner: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
+    durability_owner: crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner,
     work_runtime: Option<Arc<PhysicalStoreWorkRuntime>>,
     work_cancellation: Option<PhysicalWorkSafeCancellation>,
     work: Option<PhysicalWorkShutdownObservation>,
@@ -70,7 +73,8 @@ impl PhysicalStoreInstanceParts {
     where
         Terminate: FnOnce(PhysicalRuntimeCore) -> Terminal,
     {
-        ShutdownProtocol::stop_admission(self, stop, terminate_core, progress)
+        ShutdownProtocol::drain_checkpoints(self, stop, terminate_core, progress)
+            .stop_admission()
             .cancel_safe_work()
             .classify_dispatch_settlement()
             .dispose_signal()
@@ -79,8 +83,8 @@ impl PhysicalStoreInstanceParts {
     }
 }
 
-impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
-    fn stop_admission(
+impl<Terminate> ShutdownProtocol<CheckpointDrained, Terminate> {
+    fn drain_checkpoints(
         parts: PhysicalStoreInstanceParts,
         stop: PhysicalWorkStopKind,
         terminate_core: Terminate,
@@ -97,15 +101,17 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             format: _format,
             access: _access,
             publication,
+            checkpoint,
             residency,
             durability,
         } = parts;
+        let checkpoint = checkpoint.stop_and_drain();
         let publication =
             crate::physical_runtime::record_serving::RecordPublicationDirector::stop_and_extract(
                 publication,
             );
         let publication_residue = publication.residue;
-        work_runtime.stop_execution_admission();
+        let mutation = publication.mutations;
         let protocol = Self {
             termination,
             signal_owner: None,
@@ -113,6 +119,8 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
             core,
             record_owner,
             publication_residue,
+            mutation,
+            checkpoint,
             health: None,
             residency_owner: Some(residency),
             durability_owner: durability,
@@ -130,10 +138,22 @@ impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
         };
         protocol
             .progress
-            .record(super::PhysicalStoreClosePhase::AdmissionStopped);
+            .record(super::PhysicalStoreClosePhase::CheckpointDrained);
         protocol
     }
 
+    fn stop_admission(self) -> ShutdownProtocol<AdmissionStopped, Terminate> {
+        self.work_runtime
+            .as_ref()
+            .expect("checkpoint-drained phase owns work runtime")
+            .stop_execution_admission();
+        self.progress
+            .record(super::PhysicalStoreClosePhase::AdmissionStopped);
+        self.transition()
+    }
+}
+
+impl<Terminate> ShutdownProtocol<AdmissionStopped, Terminate> {
     fn cancel_safe_work(mut self) -> ShutdownProtocol<SafeCancellationComplete, Terminate> {
         let work_runtime = self.work_runtime.as_ref().expect("phase owns work runtime");
         work_runtime.await_execution_calls();
@@ -229,6 +249,7 @@ impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
                 .expect("phase owns serving health")
                 .requires_inspection()
                 || !self.publication_residue.is_empty()
+                || self.mutation.requires_inspection()
                 || residency.requires_inspection(),
             self.publication_residue,
             record_counters,
@@ -245,6 +266,8 @@ impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
         ServingShutdownOutcome::new(
             media,
             records,
+            self.mutation,
+            self.checkpoint,
             residency,
             self.work.expect("dispatch settlement phase completed"),
             self.signal.expect("Signal phase completed"),
@@ -263,6 +286,8 @@ impl<State, Terminate> ShutdownProtocol<State, Terminate> {
             core: self.core,
             record_owner: self.record_owner,
             publication_residue: self.publication_residue,
+            mutation: self.mutation,
+            checkpoint: self.checkpoint,
             health: self.health,
             residency_owner: self.residency_owner,
             durability_owner: self.durability_owner,

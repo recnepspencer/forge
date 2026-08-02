@@ -10,16 +10,16 @@ read,8,scheduler-admission,crates/worth-store/src/physical_runtime/record_servin
 read,9,executor-dispatch,crates/worth-store/src/physical_runtime/record_serving/canonical_read_execution.rs,execute_physical_work,Store physical executor
 read,10,backend-read,crates/worth-store/src/physical_runtime/instance/executor/range_read.rs,read_scheduled_exact_at,Physical backend
 read,11,settlement,crates/worth-store/src/physical_runtime/record_serving/canonical_read_execution.rs,into_settled().into_evidence(),Store settlement
-publication,1,publication-entry,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,execute_prepared_root,Store publication
-publication,2,candidate-residency,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,StoreCandidateFramePublicationSession,Buffer pool candidate residency
+publication,1,publication-entry,crates/worth-store/src/physical_runtime/record_serving/publication/director/managed_mutation.rs,execute_managed_mutation,Store publication
+publication,2,candidate-residency,crates/worth-store/src/physical_runtime/record_serving/publication/director/durable_data.rs,begin_candidate_publication,Buffer pool candidate residency
 publication,3,store-admission,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,PhysicalMutationWorkRequest::publication,Store physical work admission
 publication,4,signal-readiness,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,.request(admitted),Worth Signal
 publication,5,scheduler-admission,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/admission.rs,PhysicalWorkScheduler::admit,Store IO scheduler
 publication,6,executor-dispatch,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/settlement.rs,execute_physical_work,Store physical executor
 publication,7,backend-effect,crates/worth-store/src/physical_runtime/instance/executor/publication.rs,write_scheduled_new_exact,Physical backend
 publication,8,settlement,crates/worth-store/src/physical_runtime/record_serving/mutation_work_port/settlement.rs,CanonicalRecordMutationSettlement::from_settled,Store settlement
-publication,9,root-eligibility,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,CatalogReplacementEligibility::join,Store root publication authority
-publication,10,publication-completion,crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs,record_settled,Store publication evidence
+publication,9,root-eligibility,crates/worth-store/src/physical_runtime/record_serving/publication/director/managed_mutation.rs,prepare_settled_root_publication,Store root publication authority
+publication,10,publication-completion,crates/worth-store/src/physical_runtime/record_serving/publication/director/managed_mutation.rs,advance_namespace_durable_root,Store publication evidence
 bootstrap,1,bootstrap-route,crates/worth-store/src/physical_runtime/record_serving/residency/record_frame_reader.rs,pub(in crate::physical_runtime::record_serving) const fn bootstrap,Store initialization and open only
 bootstrap,2,direct-source-construction,crates/worth-store/src/physical_runtime/record_serving/residency/record_frame_reader.rs,DirectFrameReadSource::new,Bootstrap record frame route
 bootstrap,3,backend-read,crates/worth-store/src/physical_runtime/record_serving/residency/frame_loading/read_source/direct.rs,.read_exact_at(self.artifact,Physical backend through bootstrap adapter

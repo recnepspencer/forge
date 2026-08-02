@@ -11,7 +11,9 @@ use worth_store::physical_runtime::{
 use super::super::{media, scenario_configuration::dense_configuration};
 
 pub(super) const FRAME_BYTES: u64 = 16_384;
-pub(super) const CHUNK_PAYLOAD_BYTES: usize = 16_384 - 104;
+const EXTENT_METADATA_BYTES: usize = 64;
+pub(super) const CHUNK_PAYLOAD_BYTES: usize =
+    FRAME_BYTES as usize - super::super::durable_frame_oracle::HEADER_BYTES - EXTENT_METADATA_BYTES;
 pub(super) const RESIDENT_BYTES: u64 = 2 * FRAME_BYTES;
 
 pub(super) fn initialize(root: &Path) -> (ServingPhysicalRuntime, AdmittedRecordPlacementPolicy) {

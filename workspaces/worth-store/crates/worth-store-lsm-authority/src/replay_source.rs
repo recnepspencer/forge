@@ -1,6 +1,4 @@
-use worth_store_wal::{
-    AdmittedCheckpointPublicationReceipt, BlobWalRecordIdentity, BlobWalRecordKind,
-};
+use worth_store_wal::{BlobWalRecordIdentity, BlobWalRecordKind, CheckpointArtifactObservation};
 
 use crate::{LsmCompactionMembership, LsmMembershipRecord};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -63,7 +61,7 @@ pub struct LsmReplayExecutionPlan {
 impl AdmittedLsmReplaySource {
     pub fn admit_recovered_membership(
         membership: LsmCompactionMembership,
-        checkpoint: Option<&AdmittedCheckpointPublicationReceipt>,
+        checkpoint: Option<&CheckpointArtifactObservation>,
         partial: Option<&PartialPublicationClassification>,
     ) -> Result<Self, LsmReplaySourceDenial> {
         validate_membership(&membership)?;
@@ -174,7 +172,6 @@ fn classify_partial_publication(
         | UnacknowledgedPublicationOutcome::WalAppendedButNotDurable
         | UnacknowledgedPublicationOutcome::DurableWalReplayable
         | UnacknowledgedPublicationOutcome::RejectedNonAuthoritativePromotion => Ok(false),
-        UnacknowledgedPublicationOutcome::AcknowledgedBeforePageFlush => Ok(true),
         UnacknowledgedPublicationOutcome::CheckpointCutoverAmbiguous
         | UnacknowledgedPublicationOutcome::Ambiguous => {
             Err(LsmReplaySourceDenial::PartialPublicationAmbiguous)

@@ -13,7 +13,7 @@ const LIFECYCLE: &str =
 const SERVING: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                        record_serving/lifecycle/serving_runtime.rs";
 const OBSERVATION: &str =
-    "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/observation.rs";
+    "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/observation/policy.rs";
 
 #[test]
 fn durability_owner_is_mandatory_and_exhaustive_across_the_runtime_lifecycle() {
@@ -26,8 +26,8 @@ fn lifecycle_gate_rejects_optional_failure_omission_and_observation_mutants() {
 
     let mut optional = source.clone();
     optional.lifecycle = optional.lifecycle.replace(
-        "durability_owner: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner",
-        "durability_owner: Option<crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner>",
+        "durability_owner: crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner",
+        "durability_owner: Option<crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner>",
     );
     assert!(inspect(&optional).is_err());
 
@@ -96,16 +96,16 @@ fn inspect(source: &LifecycleSources) -> Result<(), &'static str> {
     {
         return Err("foundation and construction failure must retain the owner");
     }
-    if !compact(&source.parts)
-        .contains("durability:crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner")
-    {
+    if !compact(&source.parts).contains(
+        "durability:crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner",
+    ) {
         return Err("serving parts must retain the owner");
     }
     let lifecycle = compact(&source.lifecycle);
     if lifecycle
-        .contains("Option<crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner>")
+        .contains("Option<crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner>")
         || !lifecycle.contains(
-            "durability_owner:crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner",
+            "durability_owner:crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner",
         )
         || !lifecycle.contains("drop(self.durability_owner);")
     {

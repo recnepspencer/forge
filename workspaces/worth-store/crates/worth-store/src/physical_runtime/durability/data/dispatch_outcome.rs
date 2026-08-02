@@ -3,16 +3,26 @@ use crate::physical_runtime::durability::{
 };
 use crate::physical_runtime::{
     CandidateFrameContractViolation, PhysicalRecordMutationFailureEvidence,
+    PhysicalRecordPressureEvidence, PhysicalRecordResidencyFailure,
     PhysicalRecordWritebackFailureEvidence, RecordAppendDenial, WalDurablePhysicalMutation,
 };
+use worth_store_physical_format::RecordArtifactFile;
 
 pub enum PhysicalDataDispatchOutcome {
     Dispatched(DataDispatchedPhysicalMutation),
+    RetryableAfterCleanup(CleanedPhysicalDataDispatchRetry),
     NotStarted {
         durable: WalDurablePhysicalMutation,
         cause: PhysicalDataDispatchFailureCause,
     },
     Indeterminate(IndeterminatePhysicalDataDispatch),
+}
+
+pub struct CleanedPhysicalDataDispatchRetry {
+    durable: WalDurablePhysicalMutation,
+    discarded_effects: Box<[PhysicalDataEffectSettlement]>,
+    pressure: PhysicalRecordPressureEvidence,
+    deleted_artifacts: Box<[RecordArtifactFile]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,10 +31,12 @@ pub enum PhysicalDataDispatchFailureCause {
     ForeignStore,
     StaleRuntime,
     SignalProfileMismatch,
-    Residency(RecordAppendDenial),
+    PhysicalPressure(PhysicalRecordPressureEvidence),
+    RecordResidency(PhysicalRecordResidencyFailure),
+    CandidateAdmission(RecordAppendDenial),
     CandidateFrameContract(CandidateFrameContractViolation),
     Canonical(PhysicalRecordMutationFailureEvidence),
-    C6Writeback(PhysicalRecordWritebackFailureEvidence),
+    ExistingArtifactWriteback(PhysicalRecordWritebackFailureEvidence),
     IncompleteFrameSet,
     MissingEffectSettlement,
 }
@@ -33,6 +45,42 @@ pub struct IndeterminatePhysicalDataDispatch {
     durable: WalDurablePhysicalMutation,
     effects: Vec<PhysicalDataEffectSettlement>,
     cause: PhysicalDataDispatchFailureCause,
+}
+
+impl CleanedPhysicalDataDispatchRetry {
+    pub(in crate::physical_runtime) fn new(
+        durable: WalDurablePhysicalMutation,
+        discarded_effects: Vec<PhysicalDataEffectSettlement>,
+        pressure: PhysicalRecordPressureEvidence,
+        deleted_artifacts: Vec<RecordArtifactFile>,
+    ) -> Self {
+        Self {
+            durable,
+            discarded_effects: discarded_effects.into_boxed_slice(),
+            pressure,
+            deleted_artifacts: deleted_artifacts.into_boxed_slice(),
+        }
+    }
+
+    pub const fn durable(&self) -> &WalDurablePhysicalMutation {
+        &self.durable
+    }
+
+    pub fn discarded_effects(&self) -> &[PhysicalDataEffectSettlement] {
+        &self.discarded_effects
+    }
+
+    pub const fn pressure(&self) -> PhysicalRecordPressureEvidence {
+        self.pressure
+    }
+
+    pub fn deleted_artifacts(&self) -> &[RecordArtifactFile] {
+        &self.deleted_artifacts
+    }
+
+    pub fn into_durable(self) -> WalDurablePhysicalMutation {
+        self.durable
+    }
 }
 
 impl IndeterminatePhysicalDataDispatch {

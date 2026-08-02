@@ -14,7 +14,7 @@ use crate::physical_runtime::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalDataEffectSource {
     NewArtifact,
-    C6Writeback,
+    ExistingArtifactWriteback,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -64,7 +64,9 @@ impl PhysicalDataEffectSettlement {
             basis,
             source: match effect.source() {
                 CandidateFrameEffectSource::NewArtifact => PhysicalDataEffectSource::NewArtifact,
-                CandidateFrameEffectSource::C6Writeback => PhysicalDataEffectSource::C6Writeback,
+                CandidateFrameEffectSource::ExistingArtifactWriteback => {
+                    PhysicalDataEffectSource::ExistingArtifactWriteback
+                }
             },
             coordinate: effect.coordinate(),
             payload_digest: effect.payload_digest(),
@@ -174,7 +176,7 @@ fn validate(
         let expected_source = if *count == 0 && target.offset() == 0 {
             PhysicalDataEffectSource::NewArtifact
         } else {
-            PhysicalDataEffectSource::C6Writeback
+            PhysicalDataEffectSource::ExistingArtifactWriteback
         };
         if effect.source() != expected_source {
             return Err(PhysicalDataSettlementFailureCause::EffectSourceMismatch);
@@ -191,7 +193,7 @@ fn effect_has_completed_fate(effect: &PhysicalDataEffectSettlement) -> bool {
             PhysicalDataEffectSource::NewArtifact,
             PhysicalWorkEffectFate::PublicationCompleted
         ) | (
-            PhysicalDataEffectSource::C6Writeback,
+            PhysicalDataEffectSource::ExistingArtifactWriteback,
             PhysicalWorkEffectFate::WriteCompleted
         )
     )

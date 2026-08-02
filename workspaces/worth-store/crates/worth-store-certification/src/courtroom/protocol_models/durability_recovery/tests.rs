@@ -1,177 +1,95 @@
 use std::collections::BTreeSet;
 
 use worth_store_formal_models::{
-    map_certified_wal_durability_mechanism, DurabilityRecoveryAction, DurabilityRecoveryDenial,
-    DurabilityRecoveryFrontier,
-};
-use worth_store_physical_backend::{
-    BackendDurabilityBarrierDenialKind, BackendDurabilityProfile, PosixFileFsyncDirFsyncProfile,
-    StoreDurabilityAdmission, StoreDurabilityExecutionBoundary, StoreDurabilityRequirement,
-    StoreDurabilityRuntime, WalDurabilityBarrier,
-};
-use worth_store_recovery_physics::{
-    LogSequenceNumber, WalAppendPlan, WalLsnRange, WalSegmentGeneration, WalSegmentId,
+    DurabilityRecoveryAction as Action, DurabilityRecoveryDenial, DurabilityRecoveryFrontier,
 };
 
 use super::scenario::{
-    admitted_backend, execute_certified_wal, execute_ordinary_durability_recovery,
+    execute_ordinary_durability_recovery, execute_ordinary_durability_recovery_traces,
+    replay_acknowledgment_ordering_guard,
 };
 
 #[test]
-fn ordinary_owner_execution_covers_every_production_owned_durability_action() {
-    let mut observed = execute_ordinary_durability_recovery();
-    observed.sort_unstable();
-    observed.dedup();
-
-    assert_eq!(observed, DurabilityRecoveryAction::production_owned());
+fn ordinary_execution_covers_every_production_owned_durability_action() {
+    let required = Action::production_owned()
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let observed = execute_ordinary_durability_recovery()
+        .into_iter()
+        .filter(|action| required.contains(action))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(observed, required);
 }
 
 #[test]
-fn page_flush_policy_actions_are_explicitly_not_production_owned() {
-    let all = BTreeSet::from(DurabilityRecoveryAction::all());
-    let production = BTreeSet::from(DurabilityRecoveryAction::production_owned());
-    let policy = BTreeSet::from(DurabilityRecoveryAction::policy_only());
-
+fn production_and_policy_actions_are_a_disjoint_complete_partition() {
+    let production = Action::production_owned()
+        .into_iter()
+        .collect::<BTreeSet<_>>();
+    let policy = Action::policy_only().into_iter().collect::<BTreeSet<_>>();
     assert!(production.is_disjoint(&policy));
     assert_eq!(
         production.union(&policy).copied().collect::<BTreeSet<_>>(),
-        all
-    );
-    assert_eq!(
-        policy,
-        BTreeSet::from([
-            DurabilityRecoveryAction::PageFlushRequested,
-            DurabilityRecoveryAction::PageFlushCompleted,
-            DurabilityRecoveryAction::PageFlushDurabilityUncertain,
-        ])
+        Action::all().into_iter().collect::<BTreeSet<_>>()
     );
 }
 
 #[test]
-fn certified_wal_mechanism_maps_to_legal_acknowledgment() {
-    let directory = tempfile::tempdir().unwrap();
-    let outcome = execute_certified_wal(directory.path());
-    let actions = map_certified_wal_durability_mechanism(&outcome);
-    let mut frontier = DurabilityRecoveryFrontier::initial();
-    for action in actions.iter().copied() {
-        frontier.apply(action).expect("owner trace refines model");
-    }
-
-    assert!(frontier.wal_acknowledged());
+fn canonical_physical_acknowledgment_is_last_in_its_trace() {
+    let traces = execute_ordinary_durability_recovery_traces();
+    let completed = traces
+        .iter()
+        .find(|trace| trace.contains(&Action::PhysicalMutationAcknowledged))
+        .expect("ordinary execution includes one completed mutation trace");
     assert_eq!(
-        actions.last(),
-        Some(&DurabilityRecoveryAction::WalAcknowledgmentLegal)
-    );
-    assert_eq!(outcome.execution().persisted_bytes(), 175);
-}
-
-#[test]
-fn file_sync_crash_seam_cannot_mint_directory_barrier() {
-    let backend =
-        admitted_backend(worth_store_physical_backend::BackendTargetProfile::PosixFileFsyncDirSync);
-    let requirement = StoreDurabilityRequirement::wal_ordering_barrier(
-        PosixFileFsyncDirFsyncProfile::REQUIRED_BARRIERS,
-    );
-    let admission = StoreDurabilityAdmission::admit(requirement, &backend).expect("admitted WAL");
-    let scope = WalAppendPlan::<PosixFileFsyncDirFsyncProfile>::new(
-        WalSegmentId::new(9).unwrap(),
-        WalSegmentGeneration::new(2).unwrap(),
-        WalLsnRange::new(LogSequenceNumber::new(1), LogSequenceNumber::new(2)).unwrap(),
-        "file-sync-crash-seam",
-        4,
-    )
-    .unwrap()
-    .record_written_bytes(4)
-    .durability_scope();
-    let accepted = admission.submit_write(scope).backend_accepted();
-    let directory = tempfile::tempdir().unwrap();
-    let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute_to(
-            directory.path(),
-            b"seam",
-            &accepted,
-            StoreDurabilityExecutionBoundary::FileSynchronized,
-        )
-        .expect("file sync seam is executable");
-
-    let denial = proof
-        .certify_completed_barrier::<PosixFileFsyncDirFsyncProfile>(
-            WalDurabilityBarrier::WalDirectoryFsync,
-        )
-        .expect_err("directory barrier cannot precede directory sync");
-    assert_eq!(
-        denial.kind(),
-        BackendDurabilityBarrierDenialKind::BarrierNotCompleted
+        completed.last(),
+        Some(&Action::PhysicalMutationAcknowledged)
     );
 }
 
 #[test]
-fn frontier_rejects_publication_shortcuts() {
+fn physical_acknowledgment_requires_wal_data_and_namespace_durability() {
     let mut frontier = DurabilityRecoveryFrontier::initial();
     assert_eq!(
-        frontier.apply(DurabilityRecoveryAction::PageFlushCompleted),
-        Err(DurabilityRecoveryDenial::PageFlushAheadOfWal)
+        frontier.apply(Action::PhysicalMutationAcknowledged),
+        Err(DurabilityRecoveryDenial::IncompletePhysicalDurability)
     );
-    assert_eq!(
-        frontier.apply(DurabilityRecoveryAction::CheckpointPublished),
-        Err(DurabilityRecoveryDenial::DirectorySyncNotDurable)
-    );
-    assert_eq!(
-        frontier.apply(DurabilityRecoveryAction::RecoveredRootPublicationCompleted),
-        Err(DurabilityRecoveryDenial::ReplayNotResolved)
-    );
-}
 
-#[test]
-fn every_modeled_durability_cut_reopens_deterministically() {
-    use DurabilityRecoveryAction as Action;
-
-    let legal_trace = [
+    for action in [
         Action::WalAppendProposed,
         Action::WalAppendCompletedInMemory,
         Action::WalFenceRequested,
         Action::WalFenceCompleted,
-        Action::WalAcknowledgmentLegal,
         Action::PageFlushRequested,
         Action::PageFlushCompleted,
         Action::CheckpointBegun,
         Action::CheckpointDurable,
         Action::DirectorySyncCompleted,
         Action::CheckpointPublished,
-        Action::CheckpointSelected,
-        Action::RecoveryReplayRequired,
-        Action::RecoveryReplayApplied,
-        Action::RecoveredRootPublicationPending,
-        Action::RecoveredRootPublicationCompleted,
-    ];
-
-    for seam in 0..=legal_trace.len() {
-        let mut first = DurabilityRecoveryFrontier::initial();
-        for action in legal_trace[..seam].iter().copied() {
-            first.apply(action).unwrap();
-        }
-        let mut second = first;
-        first.apply(Action::Crash).unwrap();
-        first.apply(Action::Reopen).unwrap();
-        second.apply(Action::Crash).unwrap();
-        second.apply(Action::Reopen).unwrap();
-        assert_eq!(
-            first, second,
-            "reopen classification drifted at seam {seam}"
-        );
-        assert!(!first.is_crashed());
+        Action::PhysicalMutationAcknowledged,
+    ] {
+        frontier.apply(action).unwrap();
     }
+    assert!(frontier.physical_mutation_acknowledged());
+    assert_eq!(
+        frontier.apply(Action::PhysicalMutationAcknowledged),
+        Err(DurabilityRecoveryDenial::PhysicalMutationAlreadyAcknowledged)
+    );
 }
 
 #[test]
-fn wal_ack_and_redo_generation_denials_are_reachable() {
+fn page_flush_dispatch_is_denied_before_the_wal_fence() {
     let mut frontier = DurabilityRecoveryFrontier::initial();
     assert_eq!(
-        frontier.apply(DurabilityRecoveryAction::WalAcknowledgmentLegal),
-        Err(DurabilityRecoveryDenial::AmbiguousWalDurability)
+        frontier.apply(Action::PageFlushRequested),
+        Err(DurabilityRecoveryDenial::PageFlushAheadOfWal)
     );
-    assert_eq!(
-        frontier.apply(DurabilityRecoveryAction::RecoveryReplayRejectedGenerationMismatch),
-        Err(DurabilityRecoveryDenial::RedoGenerationMismatch)
-    );
+}
+
+#[test]
+fn failed_wal_fence_never_yields_fence_completion_or_physical_acknowledgment() {
+    let trace = replay_acknowledgment_ordering_guard(91);
+    assert_eq!(trace.last(), Some(&Action::WalFenceRequested));
+    assert!(!trace.contains(&Action::WalFenceCompleted));
+    assert!(!trace.contains(&Action::PhysicalMutationAcknowledged));
 }

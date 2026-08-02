@@ -1,8 +1,14 @@
+use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    ExternalPhysicalRecordLocator, PhysicalRecordInitialization, PhysicalRecordOpen,
-    RecordAppendBatch,
+    ExternalPhysicalRecordLocator, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalMutationPreparationDenial,
+    PhysicalRecordInitialization, PhysicalRecordOpen, RecordAppendBatch, RecordAppendDenial,
 };
 use worth_store_physical_backend::MediaOperationRole;
+
+use crate::durable_publication::{
+    prepare_single, publish_single, publish_single_with_manifest_capacity_transition,
+};
 
 use super::scale_support::{access, assert_canonical_parity, complete_scan, format, placement};
 use super::{media, success};
@@ -16,14 +22,13 @@ pub(super) fn prove() {
     let serving = success(initialize_record_store!(media(&root), |durability| {
         PhysicalRecordInitialization::new(format, initial, admitted_access, durability)
     }));
-    let first = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter((0..25).map(|value| vec![value; 600])).unwrap(),
-            initial,
-        )
-        .unwrap();
-    let stable = first.record_id(0).unwrap();
+    let first = publish_single(
+        &serving,
+        initial,
+        PhysicalMutationIdempotencyMaterial::new([171; 32]),
+        RecordAppendBatch::try_from_iter((0..25).map(|value| vec![value; 600])).unwrap(),
+    );
+    let stable = first.settled_members()[0].record_id(0).unwrap();
     let locator = ExternalPhysicalRecordLocator::new(serving.store_identity(), stable);
 
     let wider = placement(format, 8, 3, 75);
@@ -31,12 +36,16 @@ pub(super) fn prove() {
         .media_counters()
         .attempts_for(MediaOperationRole::PositionedWrite);
     assert!(matches!(
-        serving.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"cost-visible migration".as_slice()]).unwrap(),
+        prepare_single(
+            &serving.record_submission(),
             wider,
-        ),
-        Err(worth_store::physical_runtime::RecordAppendError::Denied(
-            worth_store::physical_runtime::RecordAppendDenial::ManifestCapacityMigrationRequired
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([172; 32]),
+            RecordAppendBatch::try_from_iter([b"cost-visible migration".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
+            RecordAppendDenial::ManifestCapacityMigrationRequired
         ))
     ));
     assert_eq!(
@@ -45,13 +54,13 @@ pub(super) fn prove() {
             .attempts_for(MediaOperationRole::PositionedWrite),
         writes_before
     );
-    serving
-        .record_submission()
-        .append_batch_reconstructing_manifest_capacity(
-            RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0x80 + value; 900])).unwrap(),
-            wider,
-        )
-        .unwrap();
+    publish_single_with_manifest_capacity_transition(
+        &serving,
+        wider,
+        PhysicalManifestCapacityTransition::ReconstructToRequested,
+        PhysicalMutationIdempotencyMaterial::new([173; 32]),
+        RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0x80 + value; 900])).unwrap(),
+    );
     let wide = worth_store_offline_verifier::walk_current_durable_record_manifest(
         &root,
         format.declaration(),
@@ -60,13 +69,13 @@ pub(super) fn prove() {
     assert_eq!(wide.node_capacity(), 8);
 
     let narrower = placement(format, 2, 1, 60);
-    serving
-        .record_submission()
-        .append_batch_reconstructing_manifest_capacity(
-            RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0xc0 + value; 700])).unwrap(),
-            narrower,
-        )
-        .unwrap();
+    publish_single_with_manifest_capacity_transition(
+        &serving,
+        narrower,
+        PhysicalManifestCapacityTransition::ReconstructToRequested,
+        PhysicalMutationIdempotencyMaterial::new([174; 32]),
+        RecordAppendBatch::try_from_iter((0..5).map(|value| vec![0xc0 + value; 700])).unwrap(),
+    );
     assert_eq!(
         serving
             .records()

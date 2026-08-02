@@ -1,16 +1,28 @@
 use std::collections::BTreeMap;
 
-use crate::physical_runtime::{
-    PendingUnresolvedMutationLimit, PhysicalDurabilityPolicyIdentity, PhysicalIdempotencyPolicy,
-    RuntimeIdentity,
+mod admission;
+mod binding_state;
+
+pub(super) use binding_state::{
+    PhysicalMutationBindingBasis, PhysicalMutationIdempotencyBindingState,
+    RebuiltPhysicalMutationBindingState,
 };
+pub(in crate::physical_runtime) use binding_state::{
+    PhysicalMutationGroupSealingBinding, PhysicalMutationUnresolvedBindingObservation,
+};
+
+use crate::physical_runtime::{
+    CompletedPhysicalMutationFact, IndeterminatePhysicalMutation, PendingUnresolvedMutationLimit,
+    PhysicalDurabilityPolicyIdentity, PhysicalIdempotencyPolicy,
+    PhysicalMutationProvenNoEffectCause, ProvenNoEffectPhysicalMutation, RuntimeIdentity,
+};
+use std::sync::Arc;
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 use super::super::{PhysicalMutationIdentity, PhysicalMutationRequestFingerprint};
 use super::{
-    attempt_binding::{
-        PhysicalMutationAttemptBinding, UnallocatedPhysicalMutationAttemptBinding, WalUnallocated,
-    },
+    attempt_binding::UnallocatedPhysicalMutationAttemptBinding,
+    fate::PersistedPhysicalMutationFate,
     lease::{PhysicalMutationLeaseIssuanceFailure, PhysicalNamespaceDurableCheckpointGeneration},
     PhysicalMutationIdempotencyKey, PhysicalMutationIdempotencyKeyIdentity,
     PhysicalMutationIdempotencyLease, PhysicalMutationIdempotencyMaterial,
@@ -22,23 +34,18 @@ pub(super) struct PhysicalMutationIdempotencyRegistry {
     policy: PhysicalDurabilityPolicyIdentity,
     retention: crate::physical_runtime::IdempotencyRetentionGenerations,
     pending_limit: PendingUnresolvedMutationLimit,
-    generation: PhysicalNamespaceDurableCheckpointGeneration,
-    unresolved: BTreeMap<
-        PhysicalMutationIdempotencyKeyIdentity,
-        PhysicalMutationUnresolvedBindingObservation,
-    >,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime) struct PhysicalMutationUnresolvedBindingObservation {
-    key: PhysicalMutationIdempotencyKeyIdentity,
-    fingerprint: PhysicalMutationRequestFingerprint,
-    mutation: PhysicalMutationIdentity,
+    live_limit: crate::physical_runtime::LiveIdempotencyBindingLimit,
+    pub(super) generation: PhysicalNamespaceDurableCheckpointGeneration,
+    pub(super) bindings:
+        BTreeMap<PhysicalMutationIdempotencyKeyIdentity, PhysicalMutationIdempotencyBindingState>,
 }
 
 pub(in crate::physical_runtime) enum PhysicalMutationIdempotencyRegistryAdmission {
     Fresh(UnallocatedPhysicalMutationAttemptBinding),
     DuplicateUnresolved(PhysicalMutationUnresolvedBindingObservation),
+    Completed(Arc<CompletedPhysicalMutationFact>),
+    ProvenNoEffect(ProvenNoEffectPhysicalMutation),
+    Indeterminate(IndeterminatePhysicalMutation),
 }
 
 pub(in crate::physical_runtime) enum PhysicalMutationIdempotencyRegistryAdmissionError<E> {
@@ -56,22 +63,40 @@ pub(in crate::physical_runtime) enum PhysicalMutationIdempotencyRegistryDenial {
     Expired,
     Conflict,
     PendingUnresolvedLimitReached,
+    LiveBindingLimitReached,
 }
 
-impl PhysicalMutationUnresolvedBindingObservation {
-    pub(in crate::physical_runtime) const fn key(self) -> PhysicalMutationIdempotencyKeyIdentity {
-        self.key
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime) enum PhysicalMutationPreSealCancellationDenial {
+    AuthorityReleased,
+    BindingMismatch,
+    GroupSealed,
+    ReopenedUnresolved,
+}
 
-    pub(in crate::physical_runtime) const fn fingerprint(
-        self,
-    ) -> PhysicalMutationRequestFingerprint {
-        self.fingerprint
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime) enum PhysicalMutationIdempotencyGroupSealDenial {
+    AuthorityReleased,
+    BindingMismatch,
+    AlreadyGroupSealed,
+    ReopenedUnresolved,
+    ProvenNoEffect,
+}
 
-    pub(in crate::physical_runtime) const fn mutation(self) -> PhysicalMutationIdentity {
-        self.mutation
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime) enum PhysicalMutationWalBindingDenial {
+    AuthorityReleased,
+    BindingMismatch,
+    AlreadyWalBound,
+    ProvenNoEffect,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime) enum PhysicalMutationTerminalizationDenial {
+    AuthorityReleased,
+    BindingMismatch,
+    CompletionBeforeWalBinding,
+    AlreadyTerminal,
 }
 
 impl PhysicalMutationIdempotencyRegistry {
@@ -87,8 +112,9 @@ impl PhysicalMutationIdempotencyRegistry {
             policy,
             retention: idempotency.retention(),
             pending_limit: idempotency.pending_unresolved_limit(),
+            live_limit: idempotency.live_binding_limit(),
             generation: PhysicalNamespaceDurableCheckpointGeneration::INITIAL,
-            unresolved: BTreeMap::new(),
+            bindings: BTreeMap::new(),
         }
     }
 
@@ -105,86 +131,228 @@ impl PhysicalMutationIdempotencyRegistry {
         Ok(PhysicalMutationIdempotencyKey::issue(lease, material))
     }
 
-    #[cfg(test)]
-    pub(super) fn admit_unallocated(
+    pub(in crate::physical_runtime) fn cancel_before_group_seal(
         &mut self,
-        key: PhysicalMutationIdempotencyKey,
-        fingerprint: PhysicalMutationRequestFingerprint,
-        mutation: PhysicalMutationIdentity,
-    ) -> Result<
-        PhysicalMutationIdempotencyRegistryAdmission,
-        PhysicalMutationIdempotencyRegistryDenial,
-    > {
-        match self.admit_unallocated_with(key, fingerprint, || {
-            Ok::<_, std::convert::Infallible>(mutation)
-        }) {
-            Ok(admission) => Ok(admission),
-            Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(denial)) => Err(denial),
-            Err(PhysicalMutationIdempotencyRegistryAdmissionError::Reservation(never)) => {
-                match never {}
+        expected: PhysicalMutationUnresolvedBindingObservation,
+        cause: PhysicalMutationProvenNoEffectCause,
+    ) -> Result<ProvenNoEffectPhysicalMutation, PhysicalMutationPreSealCancellationDenial> {
+        let Some(state) = self.bindings.get_mut(&expected.key()) else {
+            return Err(PhysicalMutationPreSealCancellationDenial::BindingMismatch);
+        };
+        match state {
+            PhysicalMutationIdempotencyBindingState::Unsealed(basis)
+                if basis.observation() == expected =>
+            {
+                let terminal = ProvenNoEffectPhysicalMutation::before_group_seal(
+                    expected.key(),
+                    expected.fingerprint(),
+                    expected.mutation(),
+                    cause,
+                );
+                *state = PhysicalMutationIdempotencyBindingState::Terminal {
+                    basis: basis.clone(),
+                    fate: PersistedPhysicalMutationFate::proven_no_effect(terminal),
+                    last_compacted: None,
+                };
+                Ok(terminal)
+            }
+            PhysicalMutationIdempotencyBindingState::GroupSealed { basis, .. }
+                if basis.observation() == expected =>
+            {
+                Err(PhysicalMutationPreSealCancellationDenial::GroupSealed)
+            }
+            PhysicalMutationIdempotencyBindingState::RebuiltUnresolved { basis, .. }
+                if basis.observation() == expected =>
+            {
+                Err(PhysicalMutationPreSealCancellationDenial::ReopenedUnresolved)
+            }
+            PhysicalMutationIdempotencyBindingState::WalBound { basis, .. }
+                if basis.observation() == expected =>
+            {
+                Err(PhysicalMutationPreSealCancellationDenial::GroupSealed)
+            }
+            PhysicalMutationIdempotencyBindingState::Terminal { basis, fate, .. }
+                if basis.observation() == expected =>
+            {
+                fate.as_proven_no_effect()
+                    .ok_or(PhysicalMutationPreSealCancellationDenial::GroupSealed)
+            }
+            _ => Err(PhysicalMutationPreSealCancellationDenial::BindingMismatch),
+        }
+    }
+
+    pub(in crate::physical_runtime) fn seal_group(
+        &mut self,
+        expected: &[PhysicalMutationGroupSealingBinding],
+    ) -> Result<(), PhysicalMutationIdempotencyGroupSealDenial> {
+        for expected in expected {
+            let observation = expected.observation();
+            match self.bindings.get(&observation.key()) {
+                Some(PhysicalMutationIdempotencyBindingState::Unsealed(basis))
+                    if basis.observation() == observation => {}
+                Some(PhysicalMutationIdempotencyBindingState::GroupSealed { basis, group })
+                    if basis.observation() == observation && *group == expected.group() =>
+                {
+                    return Err(PhysicalMutationIdempotencyGroupSealDenial::AlreadyGroupSealed)
+                }
+                Some(PhysicalMutationIdempotencyBindingState::RebuiltUnresolved {
+                    basis, ..
+                }) if basis.observation() == observation => {
+                    return Err(PhysicalMutationIdempotencyGroupSealDenial::ReopenedUnresolved)
+                }
+                Some(PhysicalMutationIdempotencyBindingState::Terminal { basis, .. })
+                    if basis.observation() == observation =>
+                {
+                    return Err(PhysicalMutationIdempotencyGroupSealDenial::ProvenNoEffect)
+                }
+                _ => return Err(PhysicalMutationIdempotencyGroupSealDenial::BindingMismatch),
+            }
+        }
+        for expected in expected {
+            let observation = expected.observation();
+            let state = self
+                .bindings
+                .get_mut(&observation.key())
+                .expect("validated group bindings remain present under the registry lock");
+            let PhysicalMutationIdempotencyBindingState::Unsealed(basis) = state else {
+                unreachable!("validated group bindings remain unsealed until the update loop")
+            };
+            *state = PhysicalMutationIdempotencyBindingState::GroupSealed {
+                basis: basis.clone(),
+                group: expected.group(),
+            };
+        }
+        Ok(())
+    }
+
+    pub(in crate::physical_runtime) fn record_wal_binding(
+        &mut self,
+        persisted: super::PersistedPhysicalMutationAttemptBinding,
+    ) -> Result<(), PhysicalMutationWalBindingDenial> {
+        let observation = persisted.observation();
+        let Some(state) = self.bindings.get_mut(&observation.key()) else {
+            return Err(PhysicalMutationWalBindingDenial::BindingMismatch);
+        };
+        match state {
+            PhysicalMutationIdempotencyBindingState::GroupSealed { basis, group }
+                if basis.observation() == observation && *group == persisted.group() =>
+            {
+                *state = PhysicalMutationIdempotencyBindingState::WalBound {
+                    basis: basis.clone(),
+                    persisted,
+                };
+                Ok(())
+            }
+            PhysicalMutationIdempotencyBindingState::RebuiltUnresolved { basis, prior } => {
+                if basis.observation() != observation {
+                    return Err(PhysicalMutationWalBindingDenial::BindingMismatch);
+                }
+                let prior_accepts_binding = match prior {
+                    RebuiltPhysicalMutationBindingState::Unsealed => true,
+                    RebuiltPhysicalMutationBindingState::GroupSealed(group) => {
+                        *group == persisted.group()
+                    }
+                };
+                if !prior_accepts_binding {
+                    return Err(PhysicalMutationWalBindingDenial::BindingMismatch);
+                }
+                *state = PhysicalMutationIdempotencyBindingState::WalBound {
+                    basis: basis.clone(),
+                    persisted,
+                };
+                Ok(())
+            }
+            PhysicalMutationIdempotencyBindingState::WalBound {
+                persisted: existing,
+                ..
+            } if existing == &persisted => Err(PhysicalMutationWalBindingDenial::AlreadyWalBound),
+            PhysicalMutationIdempotencyBindingState::Terminal { .. } => {
+                Err(PhysicalMutationWalBindingDenial::ProvenNoEffect)
+            }
+            _ => Err(PhysicalMutationWalBindingDenial::BindingMismatch),
+        }
+    }
+
+    pub(in crate::physical_runtime) fn record_completed(
+        &mut self,
+        fact: Arc<CompletedPhysicalMutationFact>,
+    ) -> Result<(), PhysicalMutationTerminalizationDenial> {
+        let key = fact.idempotency_identity();
+        let Some(state) = self.bindings.get_mut(&key) else {
+            return Err(PhysicalMutationTerminalizationDenial::BindingMismatch);
+        };
+        match state {
+            PhysicalMutationIdempotencyBindingState::WalBound { basis, persisted }
+                if basis.fingerprint() == fact.request_fingerprint()
+                    && basis.mutation() == fact.mutation_identity() =>
+            {
+                *state = PhysicalMutationIdempotencyBindingState::Terminal {
+                    basis: basis.clone(),
+                    fate: PersistedPhysicalMutationFate::completed(persisted.clone(), fact),
+                    last_compacted: None,
+                };
+                Ok(())
+            }
+            PhysicalMutationIdempotencyBindingState::Terminal { .. } => {
+                Err(PhysicalMutationTerminalizationDenial::AlreadyTerminal)
+            }
+            PhysicalMutationIdempotencyBindingState::Unsealed(_)
+            | PhysicalMutationIdempotencyBindingState::GroupSealed { .. }
+            | PhysicalMutationIdempotencyBindingState::RebuiltUnresolved { .. } => {
+                Err(PhysicalMutationTerminalizationDenial::CompletionBeforeWalBinding)
+            }
+            PhysicalMutationIdempotencyBindingState::WalBound { .. } => {
+                Err(PhysicalMutationTerminalizationDenial::BindingMismatch)
             }
         }
     }
 
-    pub(in crate::physical_runtime) fn admit_unallocated_with<E>(
+    pub(in crate::physical_runtime) fn record_indeterminate(
         &mut self,
-        key: PhysicalMutationIdempotencyKey,
-        fingerprint: PhysicalMutationRequestFingerprint,
-        reserve: impl FnOnce() -> Result<PhysicalMutationIdentity, E>,
-    ) -> Result<
-        PhysicalMutationIdempotencyRegistryAdmission,
-        PhysicalMutationIdempotencyRegistryAdmissionError<E>,
-    > {
-        if key.lease().store_identity() != self.store {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::ForeignStore,
-            ));
-        }
-        if key.lease().policy_identity() != self.policy {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::ForeignPolicy,
-            ));
-        }
-        if let Some(existing) = self.unresolved.get(&key.identity()) {
-            return if existing.fingerprint == fingerprint {
-                Ok(PhysicalMutationIdempotencyRegistryAdmission::DuplicateUnresolved(*existing))
-            } else {
-                Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                    PhysicalMutationIdempotencyRegistryDenial::Conflict,
-                ))
-            };
-        }
-        if key.lease().is_expired_at(self.generation) {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::Expired,
-            ));
-        }
-        if self.unresolved.len() >= self.pending_limit.get().get() as usize {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::PendingUnresolvedLimitReached,
-            ));
-        }
-        let mutation =
-            reserve().map_err(PhysicalMutationIdempotencyRegistryAdmissionError::Reservation)?;
-        if mutation.store_identity() != self.store {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::ForeignMutationStore,
-            ));
-        }
-        if mutation.runtime_identity() != self.runtime {
-            return Err(PhysicalMutationIdempotencyRegistryAdmissionError::Denied(
-                PhysicalMutationIdempotencyRegistryDenial::ForeignMutationRuntime,
-            ));
-        }
-        let observation = PhysicalMutationUnresolvedBindingObservation {
-            key: key.identity(),
-            fingerprint,
-            mutation,
+        terminal: IndeterminatePhysicalMutation,
+    ) -> Result<(), PhysicalMutationTerminalizationDenial> {
+        use super::fate::PersistedIndeterminatePhysicalMutationBasis;
+
+        let key = terminal.idempotency_identity();
+        let Some(state) = self.bindings.get_mut(&key) else {
+            return Err(PhysicalMutationTerminalizationDenial::BindingMismatch);
         };
-        self.unresolved.insert(key.identity(), observation);
-        Ok(PhysicalMutationIdempotencyRegistryAdmission::Fresh(
-            PhysicalMutationAttemptBinding::<WalUnallocated>::new(key, fingerprint, mutation),
-        ))
+        let (basis, indeterminate_basis) = match state {
+            PhysicalMutationIdempotencyBindingState::Unsealed(basis)
+                if basis.matches_terminal(terminal) =>
+            {
+                (
+                    basis.clone(),
+                    PersistedIndeterminatePhysicalMutationBasis::Unsealed,
+                )
+            }
+            PhysicalMutationIdempotencyBindingState::GroupSealed { basis, group }
+                if basis.matches_terminal(terminal) =>
+            {
+                (
+                    basis.clone(),
+                    PersistedIndeterminatePhysicalMutationBasis::GroupSealed(*group),
+                )
+            }
+            PhysicalMutationIdempotencyBindingState::WalBound { basis, persisted }
+                if basis.matches_terminal(terminal) =>
+            {
+                (
+                    basis.clone(),
+                    PersistedIndeterminatePhysicalMutationBasis::WalBound(persisted.clone()),
+                )
+            }
+            PhysicalMutationIdempotencyBindingState::Terminal { .. } => {
+                return Err(PhysicalMutationTerminalizationDenial::AlreadyTerminal)
+            }
+            _ => return Err(PhysicalMutationTerminalizationDenial::BindingMismatch),
+        };
+        *state = PhysicalMutationIdempotencyBindingState::Terminal {
+            basis,
+            fate: PersistedPhysicalMutationFate::indeterminate(indeterminate_basis, terminal),
+            last_compacted: None,
+        };
+        Ok(())
     }
 
     #[cfg(test)]

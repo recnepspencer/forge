@@ -6,8 +6,8 @@ use worth_store_physical_isolation::{
     CurrentGenerationPhysicalReference, GenerationCountedPhysicalReference,
 };
 use worth_store_wal::{
-    BlobWalRecordIdentity, BlobWalRecordKind, DurablePublicationDeclaration,
-    WalFrameDurablePublicationScope,
+    BlobWalRecordIdentity, BlobWalRecordKind, LogSequenceNumber, PublicationDeclaration,
+    WalFramePublicationScope, WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
 
 use crate::lifecycle::generation_registry_test_support::current_authority;
@@ -85,11 +85,21 @@ fn wal_record(
     case: &str,
 ) -> worth_store_wal::BlobWalRecordEnvelope {
     let payload = format!("phase14:{case}:{kind:?}:{sequence}");
-    let scope = WalFrameDurablePublicationScope::new(9, 1, sequence, sequence + 1, &payload, 64)
-        .expect("wal scope should admit");
+    let scope = WalFramePublicationScope::new(
+        WalSegmentId::new(9).unwrap(),
+        WalSegmentGeneration::new(1).unwrap(),
+        WalLsnRange::new(
+            LogSequenceNumber::new(sequence),
+            LogSequenceNumber::new(sequence + 1),
+        )
+        .unwrap(),
+        &payload,
+        64,
+    )
+    .expect("wal scope should admit");
     worth_store_wal::BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(sequence, kind).expect("wal identity should admit"),
-        DurablePublicationDeclaration::wal_frame(scope),
+        PublicationDeclaration::wal_frame(scope),
         payload,
     )
     .expect("wal record should admit")

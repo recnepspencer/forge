@@ -60,17 +60,6 @@
 //! let _authorization: RepairOperatorAuthorization = readiness;
 //! ```
 //!
-//! Restored observations and copied root metadata are not import publication readiness:
-//!
-//! ```compile_fail
-//! use worth_store_operations::{
-//!     ImportPublicationReadiness, RestoredLayoutMaterializationObservation,
-//! };
-//!
-//! let observed: RestoredLayoutMaterializationObservation = todo!();
-//! let _readiness: ImportPublicationReadiness = observed;
-//! ```
-//!
 //! Durable control records are decoded only through the crate-private wire
 //! schema; arbitrary bytes cannot manufacture a public domain record:
 //!

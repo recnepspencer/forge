@@ -132,11 +132,6 @@ fn required_crash_edges_classify_as_distinct_outcomes() {
             20, 21,
         )),
     );
-    let after_ack = PartialPublicationClassification::classify(
-        PartialPublicationEvidence::from_persisted_crash_edge(after_ack_before_page_flush_edge(
-            20, 21,
-        )),
-    );
     let checkpoint_cutover = PartialPublicationClassification::classify(
         PartialPublicationEvidence::from_persisted_crash_edge(during_checkpoint_cutover_edge()),
     );
@@ -145,7 +140,6 @@ fn required_crash_edges_classify_as_distinct_outcomes() {
         before_wal.outcome(),
         before_durability.outcome(),
         before_ack.outcome(),
-        after_ack.outcome(),
         checkpoint_cutover.outcome(),
     ];
     assert_eq!(
@@ -154,7 +148,6 @@ fn required_crash_edges_classify_as_distinct_outcomes() {
             UnacknowledgedPublicationOutcome::NoWalAppendObserved,
             UnacknowledgedPublicationOutcome::WalAppendedButNotDurable,
             UnacknowledgedPublicationOutcome::DurableWalReplayable,
-            UnacknowledgedPublicationOutcome::AcknowledgedBeforePageFlush,
             UnacknowledgedPublicationOutcome::CheckpointCutoverAmbiguous,
         ]
     );
@@ -170,10 +163,6 @@ fn required_crash_edges_classify_as_distinct_outcomes() {
     assert!(matches!(
         before_ack.recovered_or_rejected(),
         RecoveredOrRejectedPartialPublication::ReplayableUnacknowledgedWal { .. }
-    ));
-    assert!(matches!(
-        after_ack.recovered_or_rejected(),
-        RecoveredOrRejectedPartialPublication::AcknowledgedWorkAwaitingPageFlush { .. }
     ));
     assert!(matches!(
         checkpoint_cutover.recovered_or_rejected(),

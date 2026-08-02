@@ -120,9 +120,6 @@ fn exercise_staging_crash_boundary(case: usize, boundary: NonCurrentStagingBound
         .join(".closed-staging")
         .is_file());
     assert_eq!(media_snapshot(world.scenario.source_root()), current_before);
-    recovered
-        .post_verify(verification_budget())
-        .expect("fresh independent verification after resumed staging");
 }
 
 struct RevokeAtBoundary(NonCurrentStagingBoundary);

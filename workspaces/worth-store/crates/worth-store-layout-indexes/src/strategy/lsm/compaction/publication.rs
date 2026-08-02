@@ -1,7 +1,6 @@
 use worth_store_lsm_authority::{replace_lsm_membership, LsmMembershipSession};
 use worth_store_wal::{
-    AdmittedCheckpointPublicationReceipt, BlobWalRecordEnvelope, DurablePublicationDeclaration,
-    DurablePublicationScope,
+    BlobWalRecordEnvelope, CheckpointArtifactObservation, PublicationDeclaration, PublicationScope,
 };
 
 use super::super::{
@@ -89,7 +88,7 @@ impl LsmPublicationRuntime {
         admission: BaselineLsmRunPublicationAdmission,
         interlocked: InterlockedLsmCompaction,
         activation: worth_store_lsm_authority::LsmMembershipActivationDeclaration,
-        manifest: AdmittedCheckpointPublicationReceipt,
+        manifest: CheckpointArtifactObservation,
     ) -> LsmCompactionPublicationOutcome {
         LsmCompactionPublicationOutcome::issue(self.publish_inner(
             session,
@@ -106,7 +105,7 @@ impl LsmPublicationRuntime {
         admission: BaselineLsmRunPublicationAdmission,
         interlocked: InterlockedLsmCompaction,
         activation: worth_store_lsm_authority::LsmMembershipActivationDeclaration,
-        manifest: AdmittedCheckpointPublicationReceipt,
+        manifest: CheckpointArtifactObservation,
     ) -> Result<PublishedLsmCompaction, BaselineLsmExecutionAdmissionDenial> {
         let maintenance_mode = admission
             .selected()
@@ -160,8 +159,7 @@ impl LsmPublicationRuntime {
             retired.tombstone(),
         );
         let input_runs = [value_run, generation_run, tombstone_run];
-        let manifest_publication =
-            DurablePublicationDeclaration::manifest(manifest.scope().clone());
+        let manifest_publication = PublicationDeclaration::manifest(manifest.scope().clone());
         let compaction = BaselineLsmCompactionPublicationReceipt::new(
             key,
             input_runs,
@@ -232,7 +230,7 @@ pub(super) fn owner_cases() -> impl Iterator<Item = LsmExecutionOwnerCaseDeclara
 }
 
 fn wal_frame_bytes(record: &BlobWalRecordEnvelope) -> u64 {
-    let DurablePublicationScope::WalFrame(scope) = record.durable_publication().scope() else {
+    let PublicationScope::WalFrame(scope) = record.publication_declaration().scope() else {
         unreachable!("BlobWalRecordEnvelope admits only WAL-frame publication")
     };
     scope.expected_bytes()

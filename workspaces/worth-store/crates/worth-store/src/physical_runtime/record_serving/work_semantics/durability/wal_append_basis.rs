@@ -4,7 +4,7 @@ use crate::physical_runtime::work::{
     PhysicalSignalAspectDeclaration, PhysicalWorkSemanticBasis, PhysicalWorkSignalFamily,
 };
 
-use super::super::{contract, dependency_and_output_declaration, patch_fact};
+use super::super::{contract, partitioned_dependency_and_output_declaration, patch_fact};
 
 pub(super) const WAL_APPEND_ASPECT_KEY: &str = "store.physical.durability.wal-append-basis";
 
@@ -17,6 +17,7 @@ pub(in crate::physical_runtime::record_serving::work_semantics) struct Installed
 
 pub(in crate::physical_runtime::record_serving::work_semantics) fn install(
     witness: StorePhysicalBoundaryWitness,
+    partition: String,
 ) -> InstalledWalAppendSemantics {
     let (contract, identity, admission) = contract(WAL_APPEND_ASPECT_KEY, 1_308, witness);
     let basis = PhysicalWorkSemanticBasis::mutation(
@@ -26,9 +27,10 @@ pub(in crate::physical_runtime::record_serving::work_semantics) fn install(
     .expect("WAL append patch and contract are constructed together");
     InstalledWalAppendSemantics {
         basis,
-        declaration: dependency_and_output_declaration(
+        declaration: partitioned_dependency_and_output_declaration(
             admission,
             PhysicalWorkSignalFamily::WalAppend,
+            partition,
         ),
     }
 }
@@ -40,7 +42,11 @@ mod tests {
 
     #[test]
     fn wal_append_is_a_dedicated_mutation_dependency_and_output() {
-        let installed = install(super::super::super::security_admission::physical_witness());
+        let partition = "physical-durability-runtime/store/runtime".to_owned();
+        let installed = install(
+            super::super::super::security_admission::physical_witness(),
+            partition.clone(),
+        );
         assert_eq!(
             installed.basis.posture(),
             PhysicalWorkSemanticPosture::Mutation
@@ -52,6 +58,10 @@ mod tests {
         assert_eq!(
             installed.declaration.role(),
             PhysicalSignalAspectRole::DependencyAndOutput
+        );
+        assert_eq!(
+            installed.declaration.partition().unwrap().partition.0,
+            partition
         );
     }
 }

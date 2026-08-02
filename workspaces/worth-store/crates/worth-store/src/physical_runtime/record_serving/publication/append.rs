@@ -1,8 +1,6 @@
 use worth_store_physical_backend::ArtifactTreeFailure;
 
-use super::super::{
-    IndeterminateRecordPublication, RecordStreamFailure, UnpublishedRecordBatchFailure,
-};
+use super::super::RecordStreamFailure;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RecordPlacementClass {
@@ -24,21 +22,13 @@ pub enum RecordAppendDenial {
     BackendUnavailable(ArtifactTreeFailure),
     ServingRequiresInspection,
     PublicationAuthorityReleased,
-    PublicationAdmissionStopped,
     PhysicalWorkUnavailable(Box<super::super::PhysicalRecordMutationFailureEvidence>),
     PhysicalReadWorkUnavailable(super::super::RecordReadWorkDenial),
-    CatalogReplacementEligibilityMismatch,
     PlacementFormatMismatch,
     ManifestCapacityMigrationRequired,
     PublishedLayoutDamaged,
     PhysicalPressure,
     ResidencyUnavailable(super::super::PhysicalRecordResidencyFailure),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime::record_serving) enum ManifestCapacityTransition {
-    PreserveCurrent,
-    ReconstructToRequested,
 }
 
 /// Failure to publish an ordinary physical record append.
@@ -52,8 +42,6 @@ pub enum RecordAppendError {
         evidence: super::super::PhysicalRecordPressureEvidence,
     },
     StreamFailed(RecordStreamFailure),
-    Unpublished(UnpublishedRecordBatchFailure),
-    Indeterminate(IndeterminateRecordPublication),
 }
 
 impl RecordAppendError {
@@ -63,7 +51,6 @@ impl RecordAppendError {
     pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
         match self {
             Self::PhysicalPressure { evidence } => Some(*evidence),
-            Self::Unpublished(failure) => failure.pressure(),
             Self::StreamFailed(failure) => failure.pressure(),
             _ => None,
         }
@@ -73,9 +60,6 @@ impl RecordAppendError {
     pub const fn pressure_denial(&self) -> Option<RecordAppendDenial> {
         match self {
             Self::PhysicalPressure { .. } => Some(RecordAppendDenial::PhysicalPressure),
-            Self::Unpublished(failure) if failure.pressure().is_some() => {
-                Some(RecordAppendDenial::PhysicalPressure)
-            }
             Self::StreamFailed(failure) if failure.pressure().is_some() => {
                 Some(RecordAppendDenial::PhysicalPressure)
             }

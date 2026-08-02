@@ -12,6 +12,14 @@ pub(in crate::physical_runtime::record_serving) struct CanonicalRecordAppendPayl
     pub(in crate::physical_runtime::record_serving) digest: [u8; 32],
     pub(in crate::physical_runtime::record_serving) record_count: u32,
     pub(in crate::physical_runtime::record_serving) payload_bytes: u64,
+    pub(in crate::physical_runtime::record_serving) materialization:
+        CanonicalPayloadMaterializationObservation,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(in crate::physical_runtime::record_serving) struct CanonicalPayloadMaterializationObservation {
+    explicit_copy_count: u64,
+    copied_bytes: u64,
 }
 
 pub(in crate::physical_runtime::record_serving) enum CanonicalPayloadPreparationError {
@@ -28,6 +36,7 @@ pub(in crate::physical_runtime::record_serving) fn prepare_canonical_payload(
     write_field(&mut digest, PAYLOAD_DOMAIN);
     write_field(&mut digest, &record_count.to_le_bytes());
     let mut payload_bytes = 0_u64;
+    let mut materialization = CanonicalPayloadMaterializationObservation::default();
     let mut records = Vec::new();
     records
         .try_reserve_exact(batch.records.len())
@@ -35,7 +44,9 @@ pub(in crate::physical_runtime::record_serving) fn prepare_canonical_payload(
             required_records: record_count,
         })?;
     for input in batch.records {
-        let bytes = materialize(input, payload_bytes)?;
+        let materialized = materialize(input, payload_bytes)?;
+        materialization.merge(materialized.observation);
+        let bytes = materialized.bytes;
         payload_bytes = payload_bytes.saturating_add(bytes.len() as u64);
         write_field(&mut digest, &(bytes.len() as u64).to_le_bytes());
         write_field(&mut digest, &bytes);
@@ -46,15 +57,24 @@ pub(in crate::physical_runtime::record_serving) fn prepare_canonical_payload(
         digest: digest.finalize().into(),
         record_count,
         payload_bytes,
+        materialization,
     })
+}
+
+struct MaterializedCanonicalInput {
+    bytes: Vec<u8>,
+    observation: CanonicalPayloadMaterializationObservation,
 }
 
 fn materialize(
     input: RecordAppendInput,
     completed_bytes: u64,
-) -> Result<Vec<u8>, CanonicalPayloadPreparationError> {
+) -> Result<MaterializedCanonicalInput, CanonicalPayloadPreparationError> {
     match input {
-        RecordAppendInput::Bytes(bytes) => Ok(bytes),
+        RecordAppendInput::Bytes(bytes) => Ok(MaterializedCanonicalInput {
+            bytes,
+            observation: CanonicalPayloadMaterializationObservation::default(),
+        }),
         RecordAppendInput::Source {
             source,
             declared_length,
@@ -66,7 +86,7 @@ fn materialize_source(
     mut source: Box<dyn super::super::streaming::RecordWriteSource>,
     declared_length: u64,
     completed_bytes: u64,
-) -> Result<Vec<u8>, CanonicalPayloadPreparationError> {
+) -> Result<MaterializedCanonicalInput, CanonicalPayloadPreparationError> {
     let length = usize::try_from(declared_length).map_err(|_| {
         CanonicalPayloadPreparationError::PayloadBytes {
             required_bytes: declared_length,
@@ -80,16 +100,28 @@ fn materialize_source(
     })?;
     bytes.resize(length, 0);
     let completed = read_declared_bytes(&mut *source, &mut bytes, completed_bytes)?;
-    reject_excess_bytes(&mut *source, completed_bytes, completed)?;
-    Ok(bytes)
+    reject_excess_bytes(&mut *source, completed_bytes, completed.bytes)?;
+    Ok(MaterializedCanonicalInput {
+        bytes,
+        observation: CanonicalPayloadMaterializationObservation {
+            explicit_copy_count: completed.copy_count,
+            copied_bytes: completed.bytes as u64,
+        },
+    })
+}
+
+struct SourceReadCompletion {
+    bytes: usize,
+    copy_count: u64,
 }
 
 fn read_declared_bytes(
     source: &mut dyn super::super::streaming::RecordWriteSource,
     bytes: &mut [u8],
     completed_bytes: u64,
-) -> Result<usize, CanonicalPayloadPreparationError> {
+) -> Result<SourceReadCompletion, CanonicalPayloadPreparationError> {
     let mut offset = 0_usize;
+    let mut copy_count = 0_u64;
     while offset < bytes.len() {
         let count = source.read_next(&mut bytes[offset..]).map_err(|_| {
             stream_failure(
@@ -113,8 +145,31 @@ fn read_declared_bytes(
             ));
         }
         offset += count;
+        copy_count = copy_count.saturating_add(1);
     }
-    Ok(offset)
+    Ok(SourceReadCompletion {
+        bytes: offset,
+        copy_count,
+    })
+}
+
+impl CanonicalPayloadMaterializationObservation {
+    fn merge(&mut self, incoming: Self) {
+        self.explicit_copy_count = self
+            .explicit_copy_count
+            .saturating_add(incoming.explicit_copy_count);
+        self.copied_bytes = self.copied_bytes.saturating_add(incoming.copied_bytes);
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn apply_to(
+        self,
+        observation: &mut super::super::append_observation::PublicationObservation,
+    ) {
+        observation.explicit_copy_count = observation
+            .explicit_copy_count
+            .saturating_add(self.explicit_copy_count);
+        observation.copied_bytes = observation.copied_bytes.saturating_add(self.copied_bytes);
+    }
 }
 
 fn reject_excess_bytes(

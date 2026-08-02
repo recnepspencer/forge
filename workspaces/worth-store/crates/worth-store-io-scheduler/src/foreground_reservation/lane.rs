@@ -10,6 +10,7 @@ pub enum ForegroundIoLaneKind {
     RangeRead,
     CommitCriticalWalAppend,
     CommitCriticalWalWrite,
+    RootPublication,
     OrdinaryPageWrite,
     InteractiveRead,
     InternalForegroundRead,
@@ -26,6 +27,9 @@ impl ForegroundIoLaneKind {
             Self::ArtifactMetadataRead => IoSchedulerBackendCapabilityRequirement::BufferedFile,
             Self::CommitCriticalWalAppend => IoSchedulerBackendCapabilityRequirement::BufferedFile,
             Self::CommitCriticalWalWrite => IoSchedulerBackendCapabilityRequirement::Fsync,
+            Self::RootPublication => {
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+            }
             Self::OrdinaryPageWrite => IoSchedulerBackendCapabilityRequirement::BufferedFile,
         }
     }
@@ -71,6 +75,26 @@ impl ForegroundLaneDeclaration {
                 },
             )
         }
+    }
+
+    pub const fn root_candidate_synchronization(
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        Self::root_publication_with(
+            IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+        )
+    }
+
+    pub const fn root_catalog_replacement() -> Result<Self, ForegroundReservationAdmissionDenial> {
+        Self::root_publication_with(
+            IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename,
+        )
+    }
+
+    pub const fn root_namespace_synchronization(
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        Self::root_publication_with(
+            IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync,
+        )
     }
 
     pub const fn ordinary_page_write() -> Self {
@@ -161,6 +185,11 @@ impl ForegroundLaneDeclaration {
                 ForegroundIoLaneKind::OrdinaryPageWrite,
                 IoSchedulerBackendCapabilityRequirement::BufferedFile,
             ) | (
+                ForegroundIoLaneKind::RootPublication,
+                IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+                    | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename
+                    | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync,
+            ) | (
                 ForegroundIoLaneKind::InteractiveRead,
                 IoSchedulerBackendCapabilityRequirement::DirectIo,
             ) | (
@@ -202,5 +231,22 @@ impl ForegroundLaneDeclaration {
     ) -> Self {
         self.backend_requirement = backend_requirement;
         self
+    }
+
+    const fn root_publication_with(
+        backend_requirement: IoSchedulerBackendCapabilityRequirement,
+    ) -> Result<Self, ForegroundReservationAdmissionDenial> {
+        let lane = Self::new(ForegroundIoLaneKind::RootPublication)
+            .with_store_owned_backend_requirement(backend_requirement);
+        if lane.backend_requirement_is_store_owned() {
+            Ok(lane)
+        } else {
+            Err(
+                ForegroundReservationAdmissionDenial::LaneBackendRequirementNotStoreOwned {
+                    lane: lane.lane,
+                    backend_requirement: lane.backend_requirement,
+                },
+            )
+        }
     }
 }

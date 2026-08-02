@@ -1,126 +1,220 @@
-# Physical WAL Append
+# Physical WAL Group Append And Barrier
 
 ## What This Feature Is
 
-Physical WAL append records a prepared Store mutation in the write-ahead log
-before any data page is allowed to depend on it. Use it after durable mutation
-preparation when you need an exact, inspectable WAL frame. The returned value
-proves that the frame was appended; it does not yet prove that the frame
-survived a power loss.
+This is the Store's internal write-ahead-log stage for durable mutation. It
+writes one or more prepared mutations and makes the exact group durable with
+one shared file barrier. Ordinary callers start a prepared mutation and let the
+Store manage this stage. Direct group progression exists only for certification
+and fault testing.
 
 ## Why You Use It
 
-- Persist one mutation identity, idempotency lease, request fingerprint, and
-  ordered redo set in one framed WAL member.
-- Preserve exact WAL segment, byte-range, and LSN-range identity for later
-  durability and data-ordering work.
-- Distinguish a proven pre-effect rejection from an append whose physical fate
-  needs inspection.
+- Submit durable mutations without manually sequencing WAL, data, and root
+  publication phases.
+- Understand how the Store shares one WAL barrier without sharing mutation
+  identity, fate, or acknowledgment.
+- Observe WAL activity and diagnose inspection-required outcomes without
+  gaining mutation authority.
+- Phase-drive exact failure boundaries in certification tests.
 
 ## Stable Entry Points
 
-- `PhysicalRecordServing::record_submission()`
-- `PhysicalRecordSubmission::issue_idempotency_key(...)`
 - `PhysicalRecordSubmission::prepare_durable_append(...)`
-- `PhysicalRecordSubmission::append_prepared_wal(...)`
+- `PreparedPhysicalMutation::start()` or `PreparedPhysicalMutation::execute()`
+- `PhysicalMutationHandle::poll()`, `request_cancellation()`, and `wait()`
 - `PhysicalRecordSubmission::wal_observation()`
+- `CompletedPhysicalCheckpoint::wal_reclamation()`
 
-The principal result types are `PhysicalWalAppendOutcome`,
-`WalAppendedPhysicalMutation`, `WalRangeReservedPhysicalMutation`, and
-`PhysicalWalObservation`.
-
-Do not call lower backend durability runtimes or path-bound WAL planners.
-Those surfaces are mechanism or certification infrastructure, not an
-alternative ordinary append API.
+The phase-driving methods live on
+`certification::CertificationPhysicalRecordSubmission`, obtained from
+`ServingPhysicalRuntime::certification_record_submission()` when the
+`certification-test-authority` feature is enabled. They are test authority, not
+an ordinary application API. Certification group methods consume a
+`worth_proof::NonEmpty<PreparedPhysicalMutation>`; even one member uses the
+group contract.
 
 ## Core Mental Model
 
-Preparation decides what the mutation means. WAL reservation then assigns that
-immutable meaning one member, one ordered redo sequence, one LSN range, and one
-byte range. The Store carries those facts through Signal readiness, scheduler
-admission, executor dispatch, the filesystem media effect, and exact
-settlement.
+Each prepared mutation keeps its own mutation identity, idempotency identity,
+request fingerprint, redo, WAL range, and eventual outcome. Group admission
+adds an immutable group identity, ordered membership digest, member ordinal,
+member count, and bounded admission facts. It does not turn the members into a
+transaction.
 
-`WalAppendedPhysicalMutation` means the complete requested bytes were observed
-written at the declared range. It is intentionally weaker than a durable
-mutation: no file barrier, data dispatch, root publication, completion, or
-acknowledgment follows from append alone.
+For ordinary callers, `PreparedPhysicalMutation::start()` transfers the work
+to the Store-owned lifecycle. The returned handle observes progress,
+cancellation, and final fate; dropping it does not cancel the mutation. The
+Store continues settlement and drains owned workers during close.
+
+Idempotency binding is terminal-aware. A same-key same-fingerprint replay
+returns the existing unresolved observation or the retained
+`ProvenNoEffectPhysicalMutation`; a conflicting fingerprint is denied. Before
+group seal, cancellation consumes one prepared value and either proves the
+exact mutation had no effect or returns the exact prepared value with a typed
+denial. Once any same-binding prepared value seals into a group, cancellation
+is permanently closed. Once cancellation becomes terminal, every older
+prepared value for that binding is rejected before WAL reservation.
+
+`SealedPhysicalDurabilityGroupMembers` means every admitted member was appended
+and the exact ordered membership was validated. It does not mean the WAL is
+durable.
+
+`WalDurablePhysicalMutationMembers` means one real file barrier completed for
+the exact sealed group. The Store then derives a separate
+`WalDurablePhysicalMutation` for every member. A member proof cannot be
+substituted for another member, and the group itself is never acknowledged.
+
+`PhysicalGroupAppendAmplificationObservation` is append-stage truth:
+mutations admitted, groups formed, members per group, WAL frames and bytes
+actually appended, and root publications planned. Root publication is
+explicitly planning truth at this stage. After the shared barrier,
+`PhysicalGroupBarrierAmplificationObservation` adds exactly one executed
+barrier and the exact count of members proved WAL-durable. Data writes, root
+effects, and acknowledgments are not reported before their later stages
+execute.
 
 ## How It Executes
 
 ```text
-PreparedPhysicalMutation
-  -> Store-owned WAL reservation
-  -> Signal dependency readiness
-  -> scheduler resource admission
-  -> Store executor
-  -> C.4 scheduled exact artifact append
-  -> exact Store settlement
-  -> WalAppendedPhysicalMutation
+NonEmpty<PreparedPhysicalMutation>
+  -> bounded group admission and unique identity validation
+  -> ordered per-member WAL reservation and append
+  -> SealedPhysicalDurabilityGroupMembers
+  -> one Signal/scheduler/executor WAL barrier
+  -> one completion-bound group barrier settlement
+  -> exact per-member WalDurablePhysicalMutation values
 ```
 
-The scheduler admits resources but does not settle the mutation. The backend
-performs the bytes effect but does not promote Store progression. Store
-settlement checks the exact work identity, byte range, and payload digest
-before constructing the appended type.
+## Segment Placement And Reopen
+
+`PhysicalWalPolicy` admits two independent bounds. `WalSegmentByteLimit` is
+the maximum encoded byte prefix of one segment. `WalSegmentInventoryLimit` is
+the maximum number of segment artifacts that rotation or reopen may retain at
+once. Neither is the checkpoint policy's retained-WAL-tail limit; checkpoint
+publication and retention begin in the next phase.
+
+The Store plans every member in a group before any member effect begins. If
+the complete group fits the active segment, all members stay there. Otherwise
+the Store discards that no-effect plan and places the complete group in one
+new empty segment. A group is never split across segments. A group that does
+not fit an empty segment, or would require an artifact beyond the admitted
+inventory, is denied before effect with a typed reservation cause.
+
+Each reserved member carries `PhysicalWalFrameWriteDisposition`. The first
+frame in a new segment carries `CreateSegment`; later frames in that segment
+carry `AppendExistingSegment`. That distinction reaches command lowering and
+the C4 media owner, so creating a segment is not disguised as an append to an
+artifact that does not exist.
+
+After a partial group append, the continuation retains the exact preplanned
+suffix. The Store keeps the group in flight, rejects competing group
+reservations, and resumes the suffix without allocating new LSNs, changing
+artifact identity, or reconsidering segment placement. Group ownership is
+released only after the full suffix completes. Before-effect failure of the
+first member is different: because no member effect occurred, the reservation
+may be released back to admitted member authority.
+
+Reopen first enumerates file names under the admitted inventory bound. It then
+requires canonical segment names and, for each file, checks nonzero metadata
+length and the segment byte limit before allocating or reading that file.
+Complete-segment inspection verifies framing, digests, LSN continuity, and
+cross-segment topology. Noncanonical names, empty or oversized segments,
+allocation failure, damaged frames, generation drift, gaps, overlaps, and
+counter overflow are typed `PhysicalWalOpenFailure` values.
+
+A nonempty WAL reopened without a namespace-durable checkpoint cutoff remains
+sealed for inspection. When binding-compaction reopen supplies a cutoff inside
+the exact retained WAL range, the Store can reopen that checkpoint-certified
+suffix without an inspection seal. A cutoff outside the retained range is a
+typed `CheckpointCutoffOutsideRetainedWal` failure; a checkpoint is not trusted
+merely because an artifact exists.
+
+Checkpoint publication may reclaim only the exact obsolete prefix preceding
+the canonical retained tail. The deletion owner joins namespace-durable
+checkpoint identity, binding-compaction generation and digest, checkpoint
+boundary, exact suffix inventory, and a private per-segment no-last-copy proof.
+Each artifact removal uses the dedicated `WalReclamation` Signal/scheduler
+route and the C4 scheduled durable-delete effect. Inventory truth advances
+oldest-first only after the matching completed effect receipt.
+
+`CompletedPhysicalCheckpoint::wal_reclamation()` reports `NotRequired`,
+`Reclaimed`, `DeferredBeforeEffect`, or `InspectionRequired`. A before-effect
+denial preserves the exact live inventory for a later checkpoint. A possible
+delete effect or mismatched receipt seals the WAL for inspection and never
+claims reclamation. `wal_observation()` also exposes cumulative reclaimed
+segment and byte counters.
+
+If append stops before the first member, `NotStarted` retains one consuming
+continuation. If earlier members appended, `PartiallyAppended` retains the
+already-appended and remaining authority together. Continue either value with
+`continue_prepared_wal_group`; do not reconstruct the group.
+
+An indeterminate append or barrier means an effect may have happened. It is
+inspection authority, not retry authority.
 
 ## Small Example
 
-Assume `submission`, `placement`, `request`, and `batch` were obtained from an
-admitted serving Store:
-
 ```rust
+use worth_proof::NonEmpty;
+use worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission;
 use worth_store::physical_runtime::{
-    PhysicalRecordSubmission, PhysicalWalAppendFailureCause, PhysicalWalAppendOutcome,
-    PhysicalWalReservationDenial, PreparedPhysicalMutation, WalAppendedPhysicalMutation,
-    WalRangeReservedPhysicalMutation,
+    IndeterminatePhysicalWalGroupAppend, PhysicalWalAppendFailureCause,
+    PhysicalWalGroupAppendContinuation, PhysicalWalGroupAppendFailureCause,
+    PhysicalWalGroupAppendOutcome, PreparedPhysicalMutation, RejectedPhysicalDurabilityGroup,
+    SealedPhysicalDurabilityGroupMembers, WalAppendedPhysicalMutation,
 };
-
-enum WalAppendDecision {
-    Appended(WalAppendedPhysicalMutation),
-    ReservationDenied {
-        prepared: PreparedPhysicalMutation,
-        cause: PhysicalWalReservationDenial,
+enum WalGroupAppendDecision {
+    Appended(SealedPhysicalDurabilityGroupMembers),
+    NotAdmitted {
+        members: NonEmpty<PreparedPhysicalMutation>,
+        cause: PhysicalWalGroupAppendFailureCause,
     },
-    ProvenNoEffect {
-        prepared: PreparedPhysicalMutation,
-        cause: PhysicalWalAppendFailureCause,
-    },
-    Inspect(WalRangeReservedPhysicalMutation),
+    AdmissionRejected(RejectedPhysicalDurabilityGroup),
+    Continue(PhysicalWalGroupAppendContinuation),
+    Inspect(IndeterminatePhysicalWalGroupAppend),
 }
 
-fn append_one_wal_member(
-    submission: &PhysicalRecordSubmission,
-    prepared: PreparedPhysicalMutation,
-) -> WalAppendDecision {
-    match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => WalAppendDecision::Appended(appended),
-        PhysicalWalAppendOutcome::ReservationDenied { prepared, cause } => {
-            WalAppendDecision::ReservationDenied { prepared, cause }
+fn append_wal_group(
+    submission: &CertificationPhysicalRecordSubmission,
+    members: NonEmpty<PreparedPhysicalMutation>,
+) -> WalGroupAppendDecision {
+    match submission.append_prepared_wal_group(members) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => {
+            WalGroupAppendDecision::Appended(appended)
         }
-        PhysicalWalAppendOutcome::ProvenNoEffect { prepared, cause } => {
-            WalAppendDecision::ProvenNoEffect { prepared, cause }
+        PhysicalWalGroupAppendOutcome::NotAdmitted { members, cause } => {
+            WalGroupAppendDecision::NotAdmitted { members, cause }
         }
-        PhysicalWalAppendOutcome::Indeterminate { reserved } => {
-            WalAppendDecision::Inspect(reserved)
+        PhysicalWalGroupAppendOutcome::AdmissionRejected(rejected) => {
+            WalGroupAppendDecision::AdmissionRejected(rejected)
+        }
+        PhysicalWalGroupAppendOutcome::NotStarted(continuation)
+        | PhysicalWalGroupAppendOutcome::PartiallyAppended(continuation) => {
+            WalGroupAppendDecision::Continue(continuation)
+        }
+        PhysicalWalGroupAppendOutcome::Indeterminate(indeterminate) => {
+            WalGroupAppendDecision::Inspect(indeterminate)
         }
     }
 }
 ```
 
-Prepare the mutation first with `prepare_durable_append`. The example begins at
-the consuming append boundary so each non-success branch can retain the exact
-value it owns. Reservation and proven-no-effect denials both prove that this
-attempt changed no WAL bytes, but retry eligibility is cause-specific. Retry
-only after a transient cause is removed while the same runtime remains
-authoritative. `PublicationAuthorityReleased` and `StaleRuntime` retain the
-preparation for lifecycle or recovery handling; a reopened runtime must reject
-that old runtime identity. An indeterminate result retains a reserved mutation
-for inspection and must not be retried as though no bytes changed.
+This is a certification example for deterministic boundary tests. It keeps
+every authority-bearing value in the branch that owns it. `NotAdmitted`
+retains raw prepared members. `AdmissionRejected` retains an exact rejected
+group. Retryable work retains a consuming continuation.
+
+In certification code, call `synchronize_appended_wal_group` after `Appended`.
+On `Durable`, iterate `into_members()` and drive the next certified boundary.
+On `BarrierNotStarted`, retain the sealed group and retry only after its typed
+cause is resolved. On `Indeterminate`, inspect; do not resubmit the barrier as
+proven no-effect. Ordinary code should call `start()` or `execute()` instead of
+performing these transitions.
 
 ## Real Example
 
-Use the settlement and observation together when recording operational
+Use a member projection and the WAL observation when recording operational
 evidence:
 
 ```rust
@@ -151,63 +245,75 @@ fn inspect_wal_append(
 }
 ```
 
-The declaration is the planned identity. The settlement is the exact completed
-media effect. The observation is a bounded, read-only summary; it cannot append,
-retry, unseal, or advance a mutation.
+Obtain the member projection from
+`sealed.members()[index].mutation()`. The declaration is the planned member
+identity; the settlement is the completed append effect. The observation is a
+bounded read-only summary and cannot append, retry, unseal, or advance any
+member.
 
 ## How It Relates To Other Features
 
-- Durable mutation preparation supplies the exact request and idempotency
-  meaning consumed by WAL reservation.
-- The physical work runtime supplies Signal, scheduling, execution, effect
-  fate, and settlement without becoming WAL authority.
-- A later WAL barrier consumes the appended mutation before data dispatch can
-  become legal.
-- Bounded WAL verification independently inspects a segment after the writer is
-  no longer authoritative.
+- Durable mutation preparation defines each member before grouping begins.
+- The physical work runtime supplies Signal readiness, bounded scheduling,
+  execution, and effect settlement without becoming WAL authority.
+- Data dispatch consumes individual `WalDurablePhysicalMutation` values, never
+  a group-level durability receipt.
+- The group carries an explicit future root-publication plan, but current root
+  replacement remains a separate feature.
 
 ## Inspection And Debugging
 
-`wal_observation()` reports the current segment and generation, frames and
-bytes appended by this runtime, the valid byte prefix, the last assigned LSN
-end, and whether allocation is sealed for inspection.
+`wal_observation()` reports the current segment and generation, appended frames
+and bytes, reclaimed segments and bytes, valid prefix, last LSN end, and whether
+allocation is sealed for inspection.
 
-Safe-denial causes remain layer-specific. For example,
-`SubmissionDeferred` reports the exact bounded work-capacity dimension and
-limit, while `SchedulerReservationDenied` retains the exact scheduler
-admission denial. `DependencyBlocked` retains both Signal's admission class
-and its exact blocking condition rather than collapsing every dependency
-posture into one label. Release or reduce the named pressure before retrying
-the returned preparation. Do not reinterpret deferral as media failure.
+For append failures, inspect `PhysicalWalGroupAppendContinuation::cause()` plus
+its appended and remaining member counts. For indeterminate append, inspect the
+group basis, appended count, uncertain member, and unstarted count. These
+projections explain retained authority; they do not grant retry permission.
 
-An indeterminate append seals later allocation. Do not infer no effect from a
-timeout, dropped completion, or partial write. Preserve the returned reserved
-mutation and use the recovery or certification inspection path appropriate to
-the deployment.
+For barrier failures, `PhysicalWalGroupBarrierFailureCause` preserves the exact
+declaration, work-admission, scheduler, command, or media cause. A successful
+group settlement exposes one group identity, membership digest, member count,
+work identity, effect identity, and physical barrier.
+
+Call `SealedPhysicalDurabilityGroupMembers::amplification_observation()` after
+append and
+`WalDurablePhysicalMutationMembers::amplification_observation()` after the
+barrier. These are immutable stage observations. They cannot execute the
+planned root publication or collapse per-member fate into a group
+acknowledgment.
 
 ## Anti-Patterns
 
-- Do not treat `WalAppendedPhysicalMutation` as file durability or caller
-  acknowledgment.
-- Do not dispatch page writes from a raw LSN comparison or WAL observation.
-- Do not bypass Store through `StoreDurabilityRuntime`, a path-bound planner,
-  or a direct filesystem append.
-- Do not rebuild a request fingerprint from allocated WAL identity; allocation
-  is attempt state, not request equivalence.
-- Do not retry an indeterminate append as though it were proven no effect.
+- Do not acknowledge or settle the group as one mutation.
+- Do not use certification phase-driving methods in ordinary product code.
+- Do not use one member's durable proof for another member.
+- Do not rebuild a continuation from member fields.
+- Do not retry an indeterminate append or barrier as though it had no effect.
+- Do not bypass the Store through a backend WAL planner or direct filesystem
+  synchronization.
+- Do not infer semantic transaction ordering from group order.
+- Do not report planned root publication as an executed root effect.
+- Do not fill future-stage data-write or acknowledgment counters with
+  misleading zeroes.
+- Do not delete from a checkpoint-existence, age, pressure, or file-count
+  heuristic; none carries last-copy authority.
+- Do not consume live inventory before the exact scheduled deletion receipt.
+- Do not retry an indeterminate deletion as though it were proven no-effect.
 
 ## Current Limits
 
-- This surface stops after exact append. WAL barrier, WAL-before-data, and
-  pageLSN authority are separate later transitions.
-- Group commit, checkpoint capture, root publication, and physical
-  acknowledgment are not provided by this API.
-- Opening a Store that already contains WAL bytes currently seals ordinary WAL
-  allocation for inspection; reconstruction and safe continuation belong to
-  the recovery progression.
+- Group append shares the WAL barrier only. Shared root publication is planned
+  explicitly but is not executed by this surface yet.
+- Data dispatch and later acknowledgment remain per member.
+- Ordinary callers cannot phase-drive WAL append, barrier, or data settlement;
+  the Store-owned mutation lifecycle performs those transitions.
+- An opened Store containing pre-existing WAL bytes without a matching
+  namespace-durable checkpoint cutoff remains inspection-bound until recovery
+  establishes safe continuation.
 
 ## Related Docs
 
 - [Bounded Physical Record Access](./bounded-physical-record-access.md)
-- [C.7 Durable Publication Join](./physical-reconstruction-c7-durable-publication-join.md)
-- [C.7 Phase 3 Implementation Plan](./physical-reconstruction-c7-phase-3-implementation-plan.md)
+- [Durable Publication Join](./physical-reconstruction-c7-durable-publication-join.md)

@@ -76,7 +76,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege::protocol) fn parse(
 
 fn parse_signal_binding(line: &str) -> Result<BoundedResidencySignalBindingObservation, String> {
     let value = line.split_whitespace().collect::<Vec<_>>();
-    if value.len() != 9 || value[0] != SIGNAL_BINDING.trim_end() {
+    if value.len() != 14 || value[0] != SIGNAL_BINDING.trim_end() {
         return Err(format!(
             "malformed Courtroom C Signal binding observation `{line}`"
         ));
@@ -90,8 +90,13 @@ fn parse_signal_binding(line: &str) -> Result<BoundedResidencySignalBindingObser
             exact_writeback: boolean(value[5], "exact-writeback family membership")?,
             publication: boolean(value[6], "publication family membership")?,
             lifecycle: boolean(value[7], "lifecycle family membership")?,
+            wal_append: boolean(value[8], "WAL-append family membership")?,
+            durability_barrier: boolean(value[9], "durability-barrier family membership")?,
+            checkpoint_capture: boolean(value[10], "checkpoint-capture family membership")?,
+            root_publication: boolean(value[11], "root-publication family membership")?,
+            wal_reclamation: boolean(value[12], "WAL-reclamation family membership")?,
         },
-        partition: (value[8] != "none").then(|| value[8].to_owned()),
+        partition: (value[13] != "none").then(|| value[13].to_owned()),
     })
 }
 

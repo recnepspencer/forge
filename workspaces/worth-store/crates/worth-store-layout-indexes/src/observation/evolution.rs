@@ -1,11 +1,8 @@
 use super::owner_case::{sealed, ObserveOwnerCase, OwnerCaseObservation};
 use crate::evolution::migration::{
     LayoutBackwardReadCompatibilityCaseId, LayoutBackwardReadOutcome, LayoutBindingAdmissionCaseId,
-    LayoutBindingAdmissionOutcome, LayoutMigrationExecutionCaseId, LayoutMigrationExecutionOutcome,
-    LayoutMigrationInterruptionCaseId, LayoutMigrationInterruptionOutcome,
-    LayoutRollbackExecutionCaseId, LayoutRollbackExecutionOutcome,
-    LayoutRollbackInterruptionCaseId, LayoutRollbackInterruptionOutcome, MigrationPlanningCaseId,
-    MigrationPlanningOutcome, RollbackPlanningCaseId, RollbackPlanningOutcome,
+    LayoutBindingAdmissionOutcome, MigrationPlanningCaseId, MigrationPlanningOutcome,
+    RollbackPlanningCaseId, RollbackPlanningOutcome,
 };
 
 macro_rules! observe_owner_case {
@@ -23,10 +20,6 @@ macro_rules! observe_owner_case {
 }
 
 observe_owner_case!(MigrationPlanningOutcome => MigrationPlanningCaseId);
-observe_owner_case!(LayoutMigrationExecutionOutcome => LayoutMigrationExecutionCaseId);
-observe_owner_case!(LayoutMigrationInterruptionOutcome => LayoutMigrationInterruptionCaseId);
 observe_owner_case!(RollbackPlanningOutcome => RollbackPlanningCaseId);
-observe_owner_case!(LayoutRollbackExecutionOutcome => LayoutRollbackExecutionCaseId);
-observe_owner_case!(LayoutRollbackInterruptionOutcome => LayoutRollbackInterruptionCaseId);
 observe_owner_case!(LayoutBackwardReadOutcome => LayoutBackwardReadCompatibilityCaseId);
 observe_owner_case!(LayoutBindingAdmissionOutcome => LayoutBindingAdmissionCaseId);

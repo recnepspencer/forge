@@ -1,11 +1,12 @@
 use std::num::NonZeroU32;
 
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_signal::facade::TemporalDuration;
 use worth_store::physical_runtime::{
     PhysicalEffectObligation, PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial,
-    PhysicalMutationRequest, PhysicalRecordInitialization, PhysicalWalAppendFailureCause,
-    PhysicalWalAppendOutcome, PhysicalWorkCapacity, PhysicalWorkCapacityDimension,
+    PhysicalMutationPreparationSuccess, PhysicalMutationRequest, PhysicalRecordInitialization,
+    PhysicalWalAppendFailureCause, PhysicalWalGroupAppendFailureCause,
+    PhysicalWalGroupAppendOutcome, PhysicalWorkCapacity, PhysicalWorkCapacityDimension,
     PhysicalWorkReadiness, RecordAppendBatch,
 };
 
@@ -41,7 +42,7 @@ fn bounded_work_deferral_returns_exact_cause_and_preparation_for_retry() {
         TransitionOutcome::Success(receipt) => receipt,
         other => panic!("the one command slot must be occupied: {other:?}"),
     };
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let key = submission
         .issue_idempotency_key(PhysicalMutationIdempotencyMaterial::new([87; 32]))
         .unwrap();
@@ -56,28 +57,34 @@ fn bounded_work_deferral_returns_exact_cause_and_preparation_for_retry() {
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("durable preparation must precede work admission"),
     };
     let identity = prepared.mutation_identity();
     let fingerprint = prepared.request_fingerprint();
 
-    let preserved = match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::ProvenNoEffect {
-            prepared,
-            cause: PhysicalWalAppendFailureCause::SubmissionDeferred(deferred),
-        } => {
-            assert_eq!(
-                deferred.dimension(),
-                PhysicalWorkCapacityDimension::Commands
-            );
-            assert_eq!(deferred.capacity(), 1);
-            prepared
-        }
-        _ => panic!("bounded work pressure must retain its exact deferred cause"),
-    };
-    assert_eq!(preserved.mutation_identity(), identity);
-    assert_eq!(preserved.request_fingerprint(), fingerprint);
+    let continuation =
+        match submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())) {
+            PhysicalWalGroupAppendOutcome::NotStarted(continuation) => {
+                let PhysicalWalGroupAppendFailureCause::Append(
+                    PhysicalWalAppendFailureCause::SubmissionDeferred(deferred),
+                ) = continuation.cause()
+                else {
+                    panic!("bounded work pressure must retain its exact deferred cause")
+                };
+                assert_eq!(
+                    deferred.dimension(),
+                    PhysicalWorkCapacityDimension::Commands
+                );
+                assert_eq!(deferred.capacity(), 1);
+                assert_eq!(continuation.appended_member_count(), 0);
+                assert_eq!(continuation.remaining_member_count(), 1);
+                continuation
+            }
+            _ => panic!("bounded work pressure must retain one exact continuation"),
+        };
     assert_eq!(submission.wal_observation().unwrap().appended_frames(), 0);
 
     let admitted = serving.admit_physical_work(occupied).unwrap();
@@ -94,9 +101,12 @@ fn bounded_work_deferral_returns_exact_cause_and_preparation_for_retry() {
     );
     drop(ready);
 
-    assert!(matches!(
-        submission.append_prepared_wal(preserved),
-        PhysicalWalAppendOutcome::Appended(_)
-    ));
+    let appended = match submission.continue_prepared_wal_group(continuation) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
+        _ => panic!("the exact continuation must append once capacity returns"),
+    };
+    let appended = appended.members()[0].mutation();
+    assert_eq!(appended.mutation_identity(), identity);
+    assert_eq!(appended.reserved().request_fingerprint(), fingerprint);
     serving.close();
 }

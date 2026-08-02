@@ -1,13 +1,14 @@
 use std::{fs, num::NonZeroU32, path::Path};
 
 use sha2::{Digest, Sha256};
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_signal::facade::TemporalDuration;
 use worth_store::physical_runtime::certification::MediaFaultDirective;
 use worth_store::physical_runtime::{
     FilesystemMediaAdmission, PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial,
-    PhysicalMutationRequest, PhysicalRecordInitialization, PhysicalRecordOpen,
-    PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalAppendOutcome,
+    PhysicalMutationPreparationSuccess, PhysicalMutationRequest, PhysicalRecordInitialization,
+    PhysicalRecordOpen, PhysicalRuntimeAdmission, PhysicalStore,
+    PhysicalWalGroupAppendFailureCause, PhysicalWalGroupAppendOutcome,
     PhysicalWalReservationDenial, RecordAppendBatch,
 };
 use worth_store_physical_backend::{
@@ -27,37 +28,10 @@ fn ordinary_prepared_mutation_appends_one_independently_verifiable_wal_frame() {
     let media = media(&store_root);
     let policy = durability_with_group_limit(&media, NonZeroU32::new(32).unwrap());
     let (format, placement, access) = configuration();
-    let serving = match media
-        .initialize_record_store(PhysicalRecordInitialization::new(
-            format, placement, access, policy,
-        ))
-        .into_raw()
-    {
-        TransitionOutcome::Success(serving) => serving,
-        TransitionOutcome::Denied(denial) => {
-            panic!(
-                "record-serving initialization denied: {:?}",
-                denial.reason()
-            )
-        }
-        TransitionOutcome::Failed(inspection) => {
-            panic!(
-                "record-serving initialization requires inspection: {:?}",
-                inspection.cause()
-            )
-        }
-        TransitionOutcome::Stale(stale) => {
-            panic!("record-serving initialization stale: {:?}", stale.reason())
-        }
-        TransitionOutcome::RebindRequired(rebind) => {
-            panic!(
-                "record-serving initialization requires rebind: {:?}",
-                rebind.reason()
-            )
-        }
-        TransitionOutcome::Deferred(deferred) => match deferred {},
-    };
-    let submission = serving.record_submission();
+    let serving = super::super::success(media.initialize_record_store(
+        PhysicalRecordInitialization::new(format, placement, access, policy),
+    ));
+    let submission = serving.certification_record_submission();
     let key = submission
         .issue_idempotency_key(PhysicalMutationIdempotencyMaterial::new([61; 32]))
         .unwrap();
@@ -74,17 +48,18 @@ fn ordinary_prepared_mutation_appends_one_independently_verifiable_wal_frame() {
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => {
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
             request_fingerprint = prepared.request_fingerprint();
             prepared
         }
         _ => panic!("fresh physical mutation preparation must succeed"),
     };
 
-    let appended = match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    let appended = match submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("the canonical WAL route must append the prepared mutation"),
     };
+    let appended = appended.members()[0].mutation();
     let declaration = appended.reserved().declaration();
     assert_eq!(
         appended.reserved().request_fingerprint(),
@@ -159,23 +134,13 @@ fn torn_wal_frame_is_indeterminate_and_seals_later_range_allocation() {
     let serving = super::super::success(
         media.open_record_store(PhysicalRecordOpen::new(format, access, policy)),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let first = prepared(
         &submission,
         placement,
         PhysicalMutationIdempotencyMaterial::new([71; 32]),
         b"torn-redo",
     );
-    fault_activation.arm().unwrap();
-    let reserved = match submission.append_prepared_wal(first) {
-        PhysicalWalAppendOutcome::Indeterminate { reserved } => reserved,
-        _ => panic!("a strict nonzero prefix must be classified indeterminate"),
-    };
-    assert!(submission
-        .wal_observation()
-        .unwrap()
-        .sealed_for_inspection());
-
     let second = prepared(
         &submission,
         placement,
@@ -183,18 +148,47 @@ fn torn_wal_frame_is_indeterminate_and_seals_later_range_allocation() {
         b"must-not-allocate",
     );
     let second_identity = second.mutation_identity();
-    let second_fingerprint = second.request_fingerprint();
-    let denied = submission.append_prepared_wal(second);
-    let preserved = match denied {
-        PhysicalWalAppendOutcome::ReservationDenied {
-            prepared,
-            cause: PhysicalWalReservationDenial::InspectionRequired,
-        } => prepared,
+    fault_activation.arm().unwrap();
+    let uncertain = match submission.append_prepared_wal_group(NonEmpty::new(first, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Indeterminate(uncertain) => uncertain,
+        _ => panic!("a strict nonzero prefix must be classified indeterminate"),
+    };
+    assert!(submission
+        .wal_observation()
+        .unwrap()
+        .sealed_for_inspection());
+
+    let denied = submission.append_prepared_wal_group(NonEmpty::new(second, Vec::new()));
+    let continuation = match denied {
+        PhysicalWalGroupAppendOutcome::NotStarted(continuation)
+            if matches!(
+                continuation.cause(),
+                PhysicalWalGroupAppendFailureCause::Reservation(
+                    PhysicalWalReservationDenial::InspectionRequired
+                )
+            ) =>
+        {
+            continuation
+        }
         _ => panic!("inspection sealing must preserve the denied prepared mutation"),
     };
-    assert_eq!(preserved.mutation_identity(), second_identity);
-    assert_eq!(preserved.request_fingerprint(), second_fingerprint);
-    let declaration = reserved.declaration();
+    assert_eq!(continuation.remaining_member_count(), 1);
+    assert_eq!(
+        continuation.basis().member_count().get(),
+        1,
+        "the exact singleton authority remains in the continuation"
+    );
+    let declaration = uncertain
+        .uncertain_member()
+        .expect("the append was indeterminate at its exact member")
+        .mutation()
+        .declaration();
+    assert_ne!(
+        continuation.basis().identity().bytes(),
+        [0; 32],
+        "the preserved continuation retains a real group identity"
+    );
+    assert_ne!(second_identity.operation_identity().get(), 0);
     serving.close();
 
     let artifact = wal_artifact(&store_root);
@@ -231,7 +225,7 @@ fn consecutive_mutations_receive_distinct_contiguous_wal_bindings() {
     let serving = super::super::success(media.initialize_record_store(
         PhysicalRecordInitialization::new(format, placement, access, policy),
     ));
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
 
     let first = prepared(
         &submission,
@@ -245,14 +239,16 @@ fn consecutive_mutations_receive_distinct_contiguous_wal_bindings() {
         PhysicalMutationIdempotencyMaterial::new([74; 32]),
         b"second",
     );
-    let first = match submission.append_prepared_wal(first) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    let first = match submission.append_prepared_wal_group(NonEmpty::new(first, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("first mutation must append"),
     };
-    let second = match submission.append_prepared_wal(second) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    let second = match submission.append_prepared_wal_group(NonEmpty::new(second, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("second mutation must append"),
     };
+    let first = first.members()[0].mutation();
+    let second = second.members()[0].mutation();
 
     let first_declaration = first.reserved().declaration();
     let second_declaration = second.reserved().declaration();
@@ -288,24 +284,40 @@ fn consecutive_mutations_receive_distinct_contiguous_wal_bindings() {
     let exact_work = first.settlement().work_identity();
     let exact_range = first_declaration.artifact_range();
     let exact_digest = first_declaration.payload_digest();
-    assert!(first
-        .settlement()
-        .matches_completion_binding(exact_work, exact_range, exact_digest,));
-    assert!(!first.settlement().matches_completion_binding(
-        second.settlement().work_identity(),
+    let exact_artifact = first.reserved().artifact();
+    let exact_disposition = first_declaration.disposition();
+    assert!(first.settlement().matches_completion_binding(
+        exact_work,
+        exact_artifact,
         exact_range,
         exact_digest,
+        exact_disposition,
+    ));
+    assert!(!first.settlement().matches_completion_binding(
+        second.settlement().work_identity(),
+        exact_artifact,
+        exact_range,
+        exact_digest,
+        exact_disposition,
     ));
     let wrong_range =
         ArtifactAppendRange::new(exact_range.offset() + 1, exact_range.byte_count()).unwrap();
-    assert!(!first
-        .settlement()
-        .matches_completion_binding(exact_work, wrong_range, exact_digest,));
+    assert!(!first.settlement().matches_completion_binding(
+        exact_work,
+        exact_artifact,
+        wrong_range,
+        exact_digest,
+        exact_disposition,
+    ));
     let mut wrong_digest = exact_digest;
     wrong_digest[0] ^= 0xff;
-    assert!(!first
-        .settlement()
-        .matches_completion_binding(exact_work, exact_range, wrong_digest,));
+    assert!(!first.settlement().matches_completion_binding(
+        exact_work,
+        exact_artifact,
+        exact_range,
+        wrong_digest,
+        exact_disposition,
+    ));
     serving.close();
 }
 
@@ -327,7 +339,9 @@ pub(super) fn prepared(
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("fresh physical mutation preparation must succeed"),
     }
 }
@@ -365,10 +379,7 @@ fn media_with_write_prefix_fault(
 }
 
 fn wal_artifact(store_root: &Path) -> std::path::PathBuf {
-    store_root
-        .join("families")
-        .join("wal")
-        .join("segment-1-generation-1.wal")
+    store_root.join("families/wal/segment-1-generation-1.wal")
 }
 
 fn contains(haystack: &[u8], needle: &[u8]) -> bool {

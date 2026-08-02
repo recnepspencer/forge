@@ -1,85 +1,80 @@
 use std::sync::{Arc, Mutex};
 
-use sha2::{Digest, Sha256};
-use worth_store_physical_backend::{
-    ArtifactAppendRange, ArtifactTreeDirectory, ArtifactTreeFailure, ArtifactTreeFile,
-    QualifiedFilesystemMedia,
-};
-use worth_store_wal::{
-    plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange, WalSegmentGeneration,
-    WalSegmentId,
-};
+use worth_store_physical_backend::{ArtifactTreeFile, QualifiedFilesystemMedia};
+use worth_store_wal::{LogSequenceNumber, WalAppendFrontier};
 
-use crate::physical_runtime::durability::AdmittedPhysicalMutation;
-use crate::physical_runtime::durability::AllocatedPhysicalMutationAttemptBinding;
 use crate::physical_runtime::record_serving::PreparedPhysicalMutation;
-use crate::physical_runtime::{
-    CanonicalRedoRecords, PhysicalSignalProfileIdentity, PhysicalWalAppendDeclaration,
-    PhysicalWalMemberBasis, PhysicalWalMemberIdentity, RecordAppendBatch, RuntimeIdentity,
-    WalRangeReservedPhysicalMutation,
-};
+use crate::physical_runtime::{PhysicalSignalProfileIdentity, RuntimeIdentity};
 
 use super::preparation_admission::{AdmittedWalPreparedMutation, PhysicalWalPreparationAdmission};
-use super::PhysicalWalReservationDenial;
+use super::{
+    inventory::{PhysicalWalSegmentInventory, ReopenedPhysicalWalInventory},
+    PhysicalWalAppendDeclaration, PhysicalWalReservationDenial,
+};
 
 #[derive(Clone)]
 pub(in crate::physical_runtime) struct PhysicalWalRuntimeOwner {
-    shared: Arc<Mutex<PhysicalWalRuntimeState>>,
-    artifact: ArtifactTreeFile,
-    preparation: Arc<PhysicalWalPreparationAdmission>,
+    pub(super) shared: Arc<Mutex<PhysicalWalRuntimeState>>,
+    pub(super) preparation: Arc<PhysicalWalPreparationAdmission>,
 }
 
-struct PhysicalWalRuntimeState {
-    frontier: WalAppendFrontier,
-    in_flight: bool,
-    sealed: bool,
-    appended_frames: u64,
-    appended_bytes: u64,
+pub(super) struct PhysicalWalRuntimeState {
+    pub(super) frontier: WalAppendFrontier,
+    pub(super) durable_lsn_end: Option<LogSequenceNumber>,
+    pub(super) active_artifact: ArtifactTreeFile,
+    pub(super) policy: crate::physical_runtime::PhysicalWalPolicy,
+    pub(super) segment_count: u32,
+    pub(super) in_flight: bool,
+    pub(super) sealed: bool,
+    pub(super) appended_frames: u64,
+    pub(super) appended_bytes: u64,
+    pub(super) rotations: u64,
+    pub(super) reclaimed_segments: u64,
+    pub(super) reclaimed_bytes: u64,
+    pub(super) reopened_frames: u64,
+    pub(super) reopened_bytes: u64,
+    pub(super) reopen_peak_buffer_bytes: u64,
+    pub(super) segments: PhysicalWalSegmentInventory,
+}
+
+pub(super) enum PhysicalWalMemberCompletionDenial {
+    Inventory,
+    Idempotency,
 }
 
 impl PhysicalWalRuntimeOwner {
-    pub(in crate::physical_runtime) fn initialize(
+    pub(in crate::physical_runtime) fn from_reopened(
         media: &QualifiedFilesystemMedia,
         runtime: RuntimeIdentity,
         signal_profile: PhysicalSignalProfileIdentity,
-    ) -> Result<Self, ArtifactTreeFailure> {
-        let segment = WalSegmentId::new(1).expect("the initial WAL segment is nonzero");
-        let generation =
-            WalSegmentGeneration::new(1).expect("the initial WAL generation is nonzero");
-        let directory = ArtifactTreeDirectory::families()
-            .child("wal")
-            .expect("the Store-owned WAL directory is portable");
-        let artifact = directory
-            .file("segment-1-generation-1.wal")
-            .expect("the Store-owned WAL artifact name is portable");
-        let tree = media.artifact_tree();
-        if !tree.directory_exists(&directory)? {
-            tree.create_directory(&directory)?;
-        }
-        if !tree.file_exists(&artifact)? {
-            tree.write_new(&artifact, &[])?;
-        }
-        let observed_bytes = tree.file_length(&artifact)?;
-        let (frontier, sealed) = if observed_bytes == 0 {
-            (WalAppendFrontier::empty(segment, generation), false)
-        } else {
-            (WalAppendFrontier::empty(segment, generation), true)
-        };
-        Ok(Self {
+        policy: crate::physical_runtime::PhysicalWalPolicy,
+        inventory: ReopenedPhysicalWalInventory,
+    ) -> Self {
+        Self {
             shared: Arc::new(Mutex::new(PhysicalWalRuntimeState {
-                frontier,
+                frontier: inventory.frontier,
+                durable_lsn_end: inventory.frontier.last_lsn_end(),
+                active_artifact: inventory.active_artifact,
+                policy,
+                segment_count: inventory.segment_count,
                 in_flight: false,
-                sealed,
+                sealed: inventory.requires_inspection,
                 appended_frames: 0,
                 appended_bytes: 0,
+                rotations: 0,
+                reclaimed_segments: 0,
+                reclaimed_bytes: 0,
+                reopened_frames: inventory.frame_count,
+                reopened_bytes: inventory.byte_count,
+                reopen_peak_buffer_bytes: inventory.peak_buffer_bytes,
+                segments: inventory.segments,
             })),
-            artifact,
             preparation: Arc::new(PhysicalWalPreparationAdmission::new(
                 media.store_identity(),
                 runtime,
                 signal_profile,
             )),
-        })
+        }
     }
 
     pub(super) fn admit_preparation(
@@ -90,155 +85,77 @@ impl PhysicalWalRuntimeOwner {
         self.preparation.admit(prepared)
     }
 
-    pub(super) fn reserve(
+    pub(super) fn complete_member(
         &self,
-        prepared: AdmittedWalPreparedMutation,
-    ) -> Result<
-        WalRangeReservedPhysicalMutation,
-        (PreparedPhysicalMutation, PhysicalWalReservationDenial),
-    > {
-        let prepared = prepared.into_prepared();
-        if !matches!(
-            prepared.disposition(),
-            crate::physical_runtime::PhysicalMutationAdmissionDisposition::Fresh
-        ) {
-            return Err((prepared, PhysicalWalReservationDenial::DuplicateUnresolved));
-        }
+        frontier: WalAppendFrontier,
+        artifact: ArtifactTreeFile,
+        declaration: PhysicalWalAppendDeclaration,
+        bytes: u64,
+        idempotency: &crate::physical_runtime::durability::PhysicalMutationIdempotencyRuntimeAuthority,
+        persisted: crate::physical_runtime::durability::PersistedPhysicalMutationAttemptBinding,
+    ) -> Result<(), PhysicalWalMemberCompletionDenial> {
         let mut state = self
             .shared
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if state.sealed {
-            return Err((prepared, PhysicalWalReservationDenial::InspectionRequired));
-        }
-        if state.in_flight {
-            return Err((prepared, PhysicalWalReservationDenial::AppendInFlight));
-        }
-        let start = state
-            .frontier
-            .last_lsn_end()
-            .unwrap_or(LogSequenceNumber::new(LogSequenceNumber::GENESIS.get() + 1));
-        let Some(end) = start
-            .get()
-            .checked_add(u64::from(prepared.resources().record_count()))
-            .map(LogSequenceNumber::new)
-        else {
-            return Err((prepared, PhysicalWalReservationDenial::LsnExhausted));
-        };
-        let lsn_range = WalLsnRange::new(start, end)
-            .expect("canonical redo is nonempty and therefore has a nonempty LSN range");
-        let (
-            admission,
-            batch,
-            data,
-            continuation,
-            placement,
-            deadline,
-            signal_profile,
-            durability_policy_basis,
-            resources,
-        ) = prepared.into_parts();
-        let data = match data.bind(lsn_range) {
-            Ok(data) => data,
-            Err((data, denial)) => {
-                let prepared = PreparedPhysicalMutation::from_planned_parts(
-                    admission,
-                    batch,
-                    data,
-                    continuation,
-                    placement,
-                    deadline,
-                    signal_profile,
-                    durability_policy_basis,
-                    resources,
-                );
-                return Err((
-                    prepared,
-                    PhysicalWalReservationDenial::DataPlanBinding(denial),
-                ));
-            }
-        };
-        let binding = admission
-            .into_fresh_binding()
-            .expect("fresh disposition carries one unallocated WAL binding");
-        let redo = CanonicalRedoRecords::from_prepared_records(
-            batch.into_prepared_record_bytes(),
-            lsn_range,
-            data.redo_targets(),
+        let identity = worth_store_wal::WalSegmentArtifactIdentity::new(
+            declaration.segment(),
+            declaration.generation(),
         );
-        let member_identity = PhysicalWalMemberIdentity::for_mutation(binding.mutation_identity());
-        let member =
-            PhysicalWalMemberBasis::new(member_identity, binding.mutation_identity(), lsn_range);
-        let binding = binding.allocate_wal(member, &redo);
-        let payload = encode_member_payload(&binding, &redo);
-        let declared_identity = declared_member_identity(&binding);
-        let frame =
-            match plan_wal_frame_append(state.frontier, lsn_range, &declared_identity, &payload) {
-                Ok(frame) => frame,
-                Err(denial) => {
-                    let binding = binding.release_wal_allocation();
-                    let batch = RecordAppendBatch::from_prepared_record_bytes(
-                        redo.into_prepared_record_bytes(),
-                    );
-                    let prepared = PreparedPhysicalMutation::from_planned_parts(
-                        AdmittedPhysicalMutation::Fresh(binding),
-                        batch,
-                        data.into_prepared(),
-                        continuation,
-                        placement,
-                        deadline,
-                        signal_profile,
-                        durability_policy_basis,
-                        resources,
-                    );
-                    return Err((
-                        prepared,
-                        PhysicalWalReservationDenial::FramePlanning(denial),
-                    ));
-                }
-            };
-        let artifact_range = ArtifactAppendRange::new(
-            frame.frame().valid_prefix_bytes(),
-            frame.frame().encoded_frame().len() as u64,
-        )
-        .expect("WAL framing returns one nonempty nonoverflowing frame");
-        let declaration = PhysicalWalAppendDeclaration::new(
-            state.frontier.segment(),
-            state.frontier.generation(),
-            lsn_range,
-            artifact_range,
-            Sha256::digest(frame.frame().encoded_frame()).into(),
-        );
-        state.in_flight = true;
-        Ok(WalRangeReservedPhysicalMutation::new(
-            binding,
-            member,
-            redo,
-            data,
-            continuation,
-            frame,
-            self.artifact.clone(),
-            declaration,
-            placement,
-            deadline,
-            signal_profile,
-            durability_policy_basis,
-            resources,
-        ))
-    }
-
-    pub(in crate::physical_runtime) fn complete(&self, frontier: WalAppendFrontier, bytes: u64) {
-        let mut state = self
-            .shared
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Err(_denial) =
+            state
+                .segments
+                .record_completed_append(identity, declaration.lsn_range(), bytes)
+        {
+            state.sealed = true;
+            return Err(PhysicalWalMemberCompletionDenial::Inventory);
+        }
+        if let Err(_denial) = idempotency.record_wal_binding(persisted) {
+            state.sealed = true;
+            return Err(PhysicalWalMemberCompletionDenial::Idempotency);
+        }
+        if state.segment_count == 0 {
+            state.segment_count = 1;
+        } else if state.frontier.segment() != frontier.segment() {
+            state.segment_count = state.segment_count.saturating_add(1);
+            state.rotations = state.rotations.saturating_add(1);
+        }
         state.frontier = frontier;
-        state.in_flight = false;
+        state.active_artifact = artifact;
         state.appended_frames = state.appended_frames.saturating_add(1);
         state.appended_bytes = state.appended_bytes.saturating_add(bytes);
+        Ok(())
     }
 
-    pub(in crate::physical_runtime) fn release_before_effect(&self) {
+    pub(in crate::physical_runtime) fn finish_group(&self) {
+        self.shared
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .in_flight = false;
+    }
+
+    pub(in crate::physical_runtime) fn record_durable_barrier(
+        &self,
+        lsn_start: u64,
+        lsn_end_exclusive: u64,
+    ) -> bool {
+        let mut state = self
+            .shared
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        state.record_durable_barrier(lsn_start, lsn_end_exclusive)
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_source_range(
+        &self,
+    ) -> Option<worth_store_physical_format::CheckpointWalSourceRange> {
+        self.shared
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .checkpoint_source_range()
+    }
+
+    pub(in crate::physical_runtime) fn release_group_before_effect(&self) {
         self.shared
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -266,44 +183,48 @@ impl PhysicalWalRuntimeOwner {
             state.appended_bytes,
             state.frontier.valid_prefix_bytes(),
             state.frontier.last_lsn_end().map(LogSequenceNumber::get),
+            state.segment_count,
+            state.reopened_frames,
+            state.reopened_bytes,
+            state.reopen_peak_buffer_bytes,
+            state.rotations,
+            state.reclaimed_segments,
+            state.reclaimed_bytes,
             state.sealed,
         )
     }
 }
 
-fn encode_member_payload(
-    binding: &AllocatedPhysicalMutationAttemptBinding,
-    redo: &CanonicalRedoRecords,
-) -> Vec<u8> {
-    let persisted_binding = binding.encode_persisted();
-    let mut payload = Vec::with_capacity(
-        16_usize
-            .saturating_add(persisted_binding.len())
-            .saturating_add(redo.encoded().len()),
-    );
-    write_field(&mut payload, &persisted_binding);
-    write_field(&mut payload, redo.encoded());
-    payload
+impl PhysicalWalRuntimeState {
+    fn record_durable_barrier(&mut self, lsn_start: u64, lsn_end_exclusive: u64) -> bool {
+        let expected_start = self
+            .durable_lsn_end
+            .or_else(|| self.segments.first_lsn_start())
+            .map(LogSequenceNumber::get);
+        let appended_end = self.frontier.last_lsn_end().map(LogSequenceNumber::get);
+        if self.sealed
+            || expected_start != Some(lsn_start)
+            || appended_end.is_none_or(|end| end < lsn_end_exclusive)
+            || lsn_start >= lsn_end_exclusive
+        {
+            self.sealed = true;
+            return false;
+        }
+        self.durable_lsn_end = Some(LogSequenceNumber::new(lsn_end_exclusive));
+        true
+    }
+
+    fn checkpoint_source_range(
+        &self,
+    ) -> Option<worth_store_physical_format::CheckpointWalSourceRange> {
+        if self.sealed {
+            return None;
+        }
+        let begin = self.segments.first_lsn_start()?.get();
+        let end = self.durable_lsn_end?.get();
+        worth_store_physical_format::CheckpointWalSourceRange::new(begin, end)
+    }
 }
 
-fn declared_member_identity(binding: &AllocatedPhysicalMutationAttemptBinding) -> String {
-    let member = binding
-        .member()
-        .member_identity()
-        .bytes()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    let fingerprint = binding
-        .fingerprint()
-        .bytes()
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    format!("member-{member}-{fingerprint}")
-}
-
-fn write_field(target: &mut Vec<u8>, field: &[u8]) {
-    target.extend_from_slice(&(field.len() as u64).to_le_bytes());
-    target.extend_from_slice(field);
-}
+#[cfg(test)]
+mod tests;

@@ -20,8 +20,7 @@ pub use budget::{PartialOrderReductionPosture, ScheduleExplorationCost, StateSpa
 pub use denial::ScheduleReplayDenial;
 pub use execution::{
     execute_physical_schedule, PhysicalActorStorageExecution, PhysicalScheduleExecution,
-    PhysicalScheduleExecutionError, PhysicalScheduleOwnerEvidenceDenial,
-    PhysicalScheduleOwnerExecution, PhysicalScheduleOwnerKind,
+    PhysicalScheduleExecutionError, PhysicalScheduleOwnerExecution,
 };
 pub use exploration::{
     explore_physical_interleavings, PhysicalScheduleExploration, ScheduleExplorationCompletion,

@@ -1,8 +1,6 @@
 use super::super::state::KeyState;
 use crate::membership::{durable_artifact, LsmCompactionMembership};
-use crate::{
-    BlobWalRecordIdentity, CheckpointDurablePublicationScope, WalFrameDurablePublicationScope,
-};
+use crate::{BlobWalRecordIdentity, CheckpointPublicationScope, WalFramePublicationScope};
 use std::path::Path;
 
 pub(in crate::membership::runtime) fn selected_state_matches(
@@ -23,8 +21,8 @@ pub(in crate::membership::runtime) fn selected_state_matches(
 pub(in crate::membership::runtime) fn manifest_matches_membership(
     selected: &LsmCompactionMembership,
     output: BlobWalRecordIdentity,
-    output_scope: &WalFrameDurablePublicationScope,
-    scope: &CheckpointDurablePublicationScope,
+    output_scope: &WalFramePublicationScope,
+    scope: &CheckpointPublicationScope,
     path: &Path,
     bytes: u64,
 ) -> bool {
@@ -48,7 +46,7 @@ pub(in crate::membership::runtime) fn manifest_matches_membership(
 pub(in crate::membership::runtime) fn replacement_output_matches(
     selected: &LsmCompactionMembership,
     identity: BlobWalRecordIdentity,
-    scope: &WalFrameDurablePublicationScope,
+    scope: &WalFramePublicationScope,
     path: &Path,
     offset: u64,
     bytes: u64,
@@ -86,7 +84,7 @@ fn active_identities(state: &KeyState) -> Option<[BlobWalRecordIdentity; 3]> {
 fn activation_scope_matches(
     selected: &LsmCompactionMembership,
     output: BlobWalRecordIdentity,
-    scope: &CheckpointDurablePublicationScope,
+    scope: &CheckpointPublicationScope,
 ) -> bool {
     let expected_checkpoint = selected
         .base()

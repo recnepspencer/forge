@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use worth_signal::facade::specialist::EvaluationOutput;
 use worth_signal::facade::{
-    AspectVersion, EvaluationContext, NodeEvaluationResult, NodeId, ResourceRequestHandle,
+    AspectVersion, EvaluationContext, NodeEvaluationResult, ResourceRequestHandle,
     RuntimeClockBasis, SignalError, SignalGraph, SignalRuntime,
 };
 
@@ -21,14 +21,11 @@ mod completion;
 mod delta;
 mod locality;
 mod observation;
-mod publication_dependency;
 mod request_cleanup;
 
 pub(super) use abandonment::PhysicalSignalAbandonmentFailure;
 use locality::PhysicalSignalLocalityIndex;
 pub(in crate::physical_runtime::instance::signal_owner) use observation::PhysicalSignalGraphObservation;
-#[cfg(feature = "certification-test-authority")]
-pub use publication_dependency::PhysicalPublicationDependencyObservation;
 
 struct PhysicalSignalContext {
     version: u64,
@@ -225,18 +222,6 @@ impl PhysicalSignalGraph {
         Ok(())
     }
 
-    fn evaluate_target(&mut self, node: NodeId) -> Result<(), SignalError> {
-        let topology = &self.topology;
-        let bindings = &self.bindings;
-        let version = self.context.version;
-        self.runtime
-            .target(node)
-            .read(&self.context, &|view| {
-                evaluate_physical_signal_node(topology, bindings, version, view)
-            })
-            .map(|_| ())
-    }
-
     pub(super) fn release_identity(
         &mut self,
         identity: crate::physical_runtime::PhysicalWorkIdentity,
@@ -247,24 +232,18 @@ impl PhysicalSignalGraph {
                 worth_signal::facade::ResourceCancellationReason::RuntimePolicy,
             );
         }
-        if let Some(dependency) = self.locality.release_identity(identity) {
-            self.retire_publication_dependency(dependency);
-        }
+        self.locality.release_identity(identity);
     }
 
     pub(super) fn release_signal(&mut self, signal: ResourceRequestHandle) {
-        if let Some(dependency) = self.locality.release_signal(signal) {
-            self.retire_publication_dependency(dependency);
-        }
+        self.locality.release_signal(signal);
     }
 
     pub(super) fn release_envelope(
         &mut self,
         envelope: &worth_signal::facade::RawCompletionEnvelope,
     ) {
-        if let Some(dependency) = self.locality.release_envelope(envelope) {
-            self.retire_publication_dependency(dependency);
-        }
+        self.locality.release_envelope(envelope);
     }
 }
 

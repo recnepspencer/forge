@@ -10,7 +10,7 @@ pub struct WalAppendedPhysicalMutation {
 }
 
 impl WalAppendedPhysicalMutation {
-    pub(in crate::physical_runtime) const fn new(
+    pub(in crate::physical_runtime) fn new(
         reserved: WalRangeReservedPhysicalMutation,
         settlement: CompletionBoundPhysicalWalAppendSettlement,
     ) -> Self {
@@ -24,11 +24,20 @@ impl WalAppendedPhysicalMutation {
         self.reserved.mutation_identity()
     }
 
-    pub const fn settlement(&self) -> PhysicalWalAppendSettlement {
-        self.settlement
+    pub const fn settlement(&self) -> &PhysicalWalAppendSettlement {
+        &self.settlement
     }
 
     pub const fn reserved(&self) -> &WalRangeReservedPhysicalMutation {
         &self.reserved
+    }
+
+    pub(in crate::physical_runtime) fn into_parts(
+        self,
+    ) -> (
+        WalRangeReservedPhysicalMutation,
+        PhysicalWalAppendSettlement,
+    ) {
+        (self.reserved, self.settlement)
     }
 }

@@ -2,6 +2,7 @@ mod authority_trace;
 mod cargo_graph;
 mod closure_ledger;
 mod contract;
+mod cutover;
 mod inventory;
 mod public_api;
 

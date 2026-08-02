@@ -12,7 +12,7 @@ use super::observation::{
 };
 use super::{read_u32, read_u64, OfflineDurableManifestDenial};
 
-const FRAME_HEADER_BYTES: usize = 40;
+const FRAME_HEADER_BYTES: usize = 48;
 const PAGE_PREFIX_BYTES: usize = 24;
 const SLOT_BYTES: usize = 40;
 const EXTENT_METADATA_BYTES: usize = 64;

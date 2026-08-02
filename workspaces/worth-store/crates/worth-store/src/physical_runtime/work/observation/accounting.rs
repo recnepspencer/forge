@@ -4,14 +4,14 @@ use super::{PhysicalWorkOperationFamily, PhysicalWorkPressureClass, PhysicalWork
 
 pub(in crate::physical_runtime::work) struct PhysicalWorkAccounting {
     declared: AtomicU64,
-    terminal_by_family_and_pressure: [[AtomicU64; 6]; 6],
+    terminal_by_family_and_pressure: [[AtomicU64; 7]; 9],
 }
 
 impl PhysicalWorkAccounting {
     pub(in crate::physical_runtime::work) const fn new() -> Self {
         Self {
             declared: AtomicU64::new(0),
-            terminal_by_family_and_pressure: [const { [const { AtomicU64::new(0) }; 6] }; 6],
+            terminal_by_family_and_pressure: [const { [const { AtomicU64::new(0) }; 7] }; 9],
         }
     }
 
@@ -41,7 +41,7 @@ impl PhysicalWorkAccounting {
 
     pub(in crate::physical_runtime::work) fn terminal_by_family_and_pressure(
         &self,
-    ) -> [[u64; 6]; 4] {
+    ) -> [[u64; 7]; 9] {
         std::array::from_fn(|family| {
             std::array::from_fn(|pressure| {
                 self.terminal_by_family_and_pressure[family][pressure].load(Ordering::Acquire)
@@ -66,8 +66,11 @@ pub(in crate::physical_runtime::work) const fn family_index(
         PhysicalWorkOperationFamily::ArtifactRangeRead => 1,
         PhysicalWorkOperationFamily::ArtifactRangeWrite => 2,
         PhysicalWorkOperationFamily::ArtifactPublication => 3,
-        PhysicalWorkOperationFamily::WalAppend => 4,
-        PhysicalWorkOperationFamily::DurabilityBarrier => 5,
+        PhysicalWorkOperationFamily::CheckpointCapture => 4,
+        PhysicalWorkOperationFamily::WalAppend => 5,
+        PhysicalWorkOperationFamily::DurabilityBarrier => 6,
+        PhysicalWorkOperationFamily::WalReclamation => 7,
+        PhysicalWorkOperationFamily::RootPublication => 8,
     }
 }
 
@@ -94,5 +97,6 @@ pub(in crate::physical_runtime::work) const fn pressure_index(
         PhysicalWorkPressureClass::ForegroundInteractiveRead => 3,
         PhysicalWorkPressureClass::ForegroundInternalRead => 4,
         PhysicalWorkPressureClass::ForegroundMutation => 5,
+        PhysicalWorkPressureClass::BackgroundCheckpoint => 6,
     }
 }

@@ -3,6 +3,7 @@ use worth_store::physical_runtime::{
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
+use super::super::durable_publication::publish_single;
 use super::fixture;
 
 #[test]
@@ -11,14 +12,13 @@ fn inline_view_exposes_only_the_record_payload_and_observational_basis() {
     let root = parent.path().join("inline-view");
     let (serving, placement) = fixture::initialize(&root);
     let expected = b"lease-scoped inline payload";
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([172; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     let store = serving.store_identity();
     let generation = serving.residency_observation().store_generation();
     let copies_before = serving.residency_observation().counters();
@@ -63,14 +63,13 @@ fn external_locator_view_retains_the_readmitted_record_basis_without_copying() {
     let root = parent.path().join("external-locator-view");
     let (serving, placement) = fixture::initialize(&root);
     let expected = b"externally located lease-scoped payload";
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([172; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     let store = serving.store_identity();
     let generation = serving.residency_observation().store_generation();
     let locator = ExternalPhysicalRecordLocator::new(store, record);
@@ -117,14 +116,13 @@ fn extent_views_stream_one_resident_frame_at_a_time_without_pool_copies() {
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(5 * fixture::CHUNK_PAYLOAD_BYTES + 37);
     assert!(expected.len() as u64 > fixture::RESIDENT_BYTES);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([172; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     let generation = serving.residency_observation().store_generation();
     let copies_before = serving.residency_observation().counters();
     let mut session = serving
@@ -200,17 +198,16 @@ fn dropping_a_partially_consumed_extent_releases_its_session_frame_and_allocatio
     let root = parent.path().join("partial-extent-drop");
     let (serving, placement) = fixture::initialize(&root);
     let expected = fixture::payload(3 * fixture::CHUNK_PAYLOAD_BYTES + 19);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([172; 32]),
+        RecordAppendBatch::try_from_iter([expected.as_slice()]).unwrap(),
+    );
     let mut session = serving
         .records()
         .open(
-            published.record_id(0).unwrap(),
+            published.settled_members()[0].record_id(0).unwrap(),
             RecordReadLimits::new(RecordByteLimit::new(expected.len() as u32).unwrap()),
         )
         .unwrap();

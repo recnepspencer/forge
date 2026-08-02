@@ -4,8 +4,9 @@ use super::replacement::{
     PublishedLsmMembershipReplacement,
 };
 use crate::{
-    BlobWalRecordIdentity, BlobWalRecordKind, CheckpointDurablePublicationScope,
-    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,
+    BlobWalRecordIdentity, BlobWalRecordKind, CheckpointPublicationScope, LogSequenceNumber,
+    StoreCheckpointRecordIdentity, WalFramePublicationScope, WalLsnRange, WalSegmentGeneration,
+    WalSegmentId,
 };
 
 /// Issues the smallest synthetic published-membership fact needed to falsify
@@ -22,16 +23,19 @@ pub fn issue_published_lsm_membership_for_certification(
     let output = record_identity(44, BlobWalRecordKind::GenerationPublication);
     let retired =
         LsmCompactionRecordIdentitySet::issued_for_certification(value, generation, tombstone);
-    let output_scope = WalFrameDurablePublicationScope::new(
-        1,
-        1,
-        tombstone.sequence(),
-        output.sequence(),
+    let output_scope = WalFramePublicationScope::new(
+        WalSegmentId::new(1).unwrap(),
+        WalSegmentGeneration::new(1).unwrap(),
+        WalLsnRange::new(
+            LogSequenceNumber::new(tombstone.sequence()),
+            LogSequenceNumber::new(output.sequence()),
+        )
+        .unwrap(),
         "certification-lsm-output",
         1,
     )
     .expect("certification output scope is valid");
-    let activation_scope = CheckpointDurablePublicationScope::new(
+    let activation_scope = CheckpointPublicationScope::new(
         StoreCheckpointRecordIdentity::new(1),
         "certification-lsm-membership",
         value.sequence(),

@@ -114,6 +114,7 @@ impl Disposition {
 pub(super) enum DeletionPhase {
     Phase3,
     Phase4,
+    Phase5,
     Phase6,
     Phase7,
     Phase8,
@@ -127,6 +128,7 @@ impl DeletionPhase {
         match value {
             "phase-3" => Ok(Self::Phase3),
             "phase-4" => Ok(Self::Phase4),
+            "phase-5" => Ok(Self::Phase5),
             "phase-6" => Ok(Self::Phase6),
             "phase-7" => Ok(Self::Phase7),
             "phase-8" => Ok(Self::Phase8),

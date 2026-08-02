@@ -1,11 +1,12 @@
 use std::num::NonZeroU32;
 
 use sha2::{Digest, Sha256};
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_signal::facade::TemporalDuration;
 use worth_store::physical_runtime::{
-    PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial, PhysicalMutationRequest,
-    PhysicalRecordInitialization, PhysicalWalAppendOutcome, RecordAppendBatch,
+    PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationSuccess, PhysicalMutationRequest, PhysicalRecordInitialization,
+    PhysicalWalGroupAppendOutcome, RecordAppendBatch,
 };
 use worth_store_wal::artifact_store::{
     verify_bounded_wal_segment, BoundedWalSegmentVerificationRequest,
@@ -30,7 +31,7 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
             format, placement, access, policy,
         )),
     );
-    let submission = serving.record_submission();
+    let submission = serving.certification_record_submission();
     let key = submission
         .issue_idempotency_key(PhysicalMutationIdempotencyMaterial::new([88; 32]))
         .unwrap();
@@ -49,17 +50,21 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("binding inspection fixture must prepare"),
     };
-    let appended = match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    let appended = match submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("binding inspection fixture must append"),
     };
+    let appended = appended.members()[0].mutation();
     let reserved = appended.reserved();
     let declaration = reserved.declaration();
     let mutation = reserved.mutation_identity();
     let member = reserved.member_basis();
+    let group = reserved.group_binding();
     let targets = reserved
         .redo()
         .records()
@@ -83,12 +88,20 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
         independent_canonical_redo(&source_redo, member.lsn_range().start().get(), &targets);
     let expected = ExpectedAttemptBinding {
         key: key.identity().bytes(),
+        lease_store: key.lease().store_identity().bytes(),
+        policy: key.lease().policy_identity().bytes(),
         issuance: key.lease().issuance_generation().get(),
         expiry: key.lease().expiry_generation().get(),
+        material: key.caller_material().bytes(),
         fingerprint: reserved.request_fingerprint().bytes(),
         store: mutation.store_identity().bytes(),
         runtime: mutation.runtime_identity().get(),
+        lifecycle_generation: mutation.lifecycle_generation(),
         operation: mutation.operation_identity().get(),
+        group: group.group_identity().bytes(),
+        ordinal: group.ordinal().get(),
+        member_count: group.member_count().get(),
+        membership: group.membership_digest(),
         member: member.member_identity().bytes(),
         lsn_start: member.lsn_range().start().get(),
         lsn_end: member.lsn_range().end_exclusive().get(),
@@ -146,8 +159,13 @@ fn real_wal_attempt_binding_is_independently_decoded_and_substitution_hostile() 
     for field in [
         BindingField::Domain,
         BindingField::Key,
+        BindingField::LeaseStore,
+        BindingField::Policy,
+        BindingField::Material,
         BindingField::Fingerprint,
         BindingField::Store,
+        BindingField::Group,
+        BindingField::Membership,
         BindingField::Member,
         BindingField::RedoDigest,
     ] {

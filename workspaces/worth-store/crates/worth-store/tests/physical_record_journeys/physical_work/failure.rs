@@ -285,15 +285,17 @@ fn health_revocation_fences_already_open_and_new_record_reads() {
     let (profile, _, mutation_request) = work_fixture();
     let (_, placement, _) = super::super::configuration();
     let initial = serving_from_initialization_with_work_profile(root.path(), profile.clone());
-    let published = initial
-        .record_submission()
-        .append_batch(
-            worth_store::physical_runtime::RecordAppendBatch::try_from_iter([b"stable".as_slice()])
-                .unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = super::super::durable_publication::publish_single(
+        &initial,
+        placement,
+        super::super::durable_publication::certification_material(
+            "health-revocation-read-fence",
+            1,
+        ),
+        worth_store::physical_runtime::RecordAppendBatch::try_from_iter([b"stable".as_slice()])
+            .unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let serving = serving_from_open_with_positioned_write_fault(

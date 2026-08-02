@@ -16,12 +16,6 @@ mod epoch_scope_foundational_lowering;
 #[path = "../scenarios/physical_isolation/evidence_materialization/evidence_materialization.rs"]
 mod evidence_materialization;
 
-#[path = "../scenarios/physical_isolation/interleaving_harness_consumption/interleaving_harness_consumption.rs"]
-mod interleaving_harness_consumption;
-
-#[path = "../scenarios/physical_isolation/interleaving_harness_denials/interleaving_harness_denials.rs"]
-mod interleaving_harness_denials;
-
 #[path = "../scenarios/physical_isolation/latch_acquisition_order/latch_acquisition_order.rs"]
 mod latch_acquisition_order;
 
@@ -45,9 +39,6 @@ mod read_during_compaction;
 
 #[path = "../scenarios/physical_isolation/reclaim_reachability_hazard_barriers/reclaim_reachability_hazard_barriers.rs"]
 mod reclaim_reachability_hazard_barriers;
-
-#[path = "../scenarios/physical_isolation/simulation_harness_readiness/simulation_harness_readiness.rs"]
-mod simulation_harness_readiness;
 
 #[path = "../scenarios/physical_isolation/stable_read_execution/stable_read_execution.rs"]
 mod stable_read_execution;

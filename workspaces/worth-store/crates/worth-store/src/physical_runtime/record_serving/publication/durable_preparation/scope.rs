@@ -1,5 +1,6 @@
 use sha2::{Digest, Sha256};
 
+use super::PhysicalManifestCapacityTransition;
 use crate::physical_runtime::{AdmittedPhysicalRecordFormat, AdmittedRecordPlacementPolicy};
 
 const SCOPE_DOMAIN: &[u8] = b"store.physical.record-append.scope.v1";
@@ -7,6 +8,7 @@ const SCOPE_DOMAIN: &[u8] = b"store.physical.record-append.scope.v1";
 pub(in crate::physical_runtime::record_serving) fn record_append_scope_identity(
     format: AdmittedPhysicalRecordFormat,
     placement: AdmittedRecordPlacementPolicy,
+    manifest_capacity_transition: PhysicalManifestCapacityTransition,
 ) -> [u8; 32] {
     let mut digest = Sha256::new();
     write_field(&mut digest, SCOPE_DOMAIN);
@@ -24,6 +26,7 @@ pub(in crate::physical_runtime::record_serving) fn record_append_scope_identity(
         &mut digest,
         &placement.manifest_capacity().get().to_le_bytes(),
     );
+    write_field(&mut digest, &[manifest_capacity_transition.identity_code()]);
     digest.finalize().into()
 }
 

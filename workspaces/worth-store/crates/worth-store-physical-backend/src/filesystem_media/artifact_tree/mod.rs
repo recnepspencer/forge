@@ -25,9 +25,11 @@ pub use metadata_read::{
     CompletedArtifactMetadataRead, CompletedScheduledArtifactMetadataRead,
     ScheduledArtifactMetadataReadOutcome,
 };
+use new_artifact_write::ArtifactNewFileWriteOutcome;
 pub use new_artifact_write::{
-    ArtifactNewWriteOutcome, CompletedArtifactNewWrite, CompletedScheduledArtifactNewWrite,
-    IndeterminateArtifactNewWrite, ScheduledArtifactNewWriteOutcome,
+    ArtifactNewWriteOutcome, ArtifactNewWriteRange, CompletedArtifactNewWrite,
+    CompletedScheduledArtifactNewWrite, IndeterminateArtifactNewWrite,
+    ScheduledArtifactNewWriteOutcome,
 };
 pub use path::{ArtifactTreeDirectory, ArtifactTreeFile, ArtifactTreePathDenial};
 pub use publication_effect::{

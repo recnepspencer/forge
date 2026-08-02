@@ -6,8 +6,8 @@ mod prior_page_basis;
 mod writeback_join;
 
 pub use dispatch_outcome::{
-    IndeterminatePhysicalDataDispatch, PhysicalDataDispatchFailureCause,
-    PhysicalDataDispatchOutcome,
+    CleanedPhysicalDataDispatchRetry, IndeterminatePhysicalDataDispatch,
+    PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome,
 };
 pub use frame_identity::{
     PhysicalDataFrameIdentity, PhysicalDataFrameKind, PhysicalDataFrameSubject,

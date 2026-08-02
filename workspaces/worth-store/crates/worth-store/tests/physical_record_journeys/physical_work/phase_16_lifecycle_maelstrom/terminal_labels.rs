@@ -72,6 +72,8 @@ pub(super) const fn effect_fate(value: PhysicalWorkEffectFateEvidence) -> &'stat
         PhysicalWorkEffectFateEvidence::ReadIncomplete => "read-incomplete",
         PhysicalWorkEffectFateEvidence::WriteCompleted => "write-completed",
         PhysicalWorkEffectFateEvidence::PublicationCompleted => "publication-completed",
+        PhysicalWorkEffectFateEvidence::CheckpointCompleted => "checkpoint-completed",
+        PhysicalWorkEffectFateEvidence::WalReclamationCompleted => "wal-reclamation-completed",
         PhysicalWorkEffectFateEvidence::WrittenButSchedulerRejected => {
             "written-but-scheduler-rejected"
         }

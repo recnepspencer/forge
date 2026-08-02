@@ -28,8 +28,6 @@ use worker::PhysicalSignalGraphWorker;
 
 pub(in crate::physical_runtime) use availability::PhysicalSignalAdmissionStatus;
 #[cfg(feature = "certification-test-authority")]
-pub use graph::PhysicalPublicationDependencyObservation;
-#[cfg(feature = "certification-test-authority")]
 pub use yieldpoint::CertificationPhysicalSignalPauseGate;
 
 pub(in crate::physical_runtime) struct PhysicalWorkSignalOwner {
@@ -250,43 +248,6 @@ impl PhysicalWorkSignalOwner {
         self.route(route)
             .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
             .request(admitted)
-    }
-
-    pub(in crate::physical_runtime) fn begin_publication_dependency(
-        &self,
-        admitted: crate::physical_runtime::AdmittedPhysicalWork,
-    ) -> Result<
-        crate::physical_runtime::BlockedPhysicalWork,
-        crate::physical_runtime::PhysicalWorkPreEffectDenial,
-    > {
-        self.require_available()?;
-        let route = admitted.authority().binding();
-        self.route(route)
-            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
-            .begin_publication_dependency(admitted)
-    }
-
-    pub(in crate::physical_runtime) fn advance_publication_dependency(
-        &self,
-        blocked: crate::physical_runtime::BlockedPhysicalWork,
-    ) -> Result<
-        crate::physical_runtime::ReadyPhysicalWork,
-        crate::physical_runtime::PhysicalWorkPreEffectDenial,
-    > {
-        self.require_available()?;
-        let route = blocked.authority().binding();
-        self.route(route)
-            .ok_or(crate::physical_runtime::PhysicalWorkPreEffectDenial::CapabilityAbsent)?
-            .advance_publication_dependency(blocked)
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(in crate::physical_runtime) fn publication_dependencies_for_certification(
-        &self,
-    ) -> Result<Vec<PhysicalPublicationDependencyObservation>, ()> {
-        self.require_available().map_err(|_| ())?;
-        self.graph_worker
-            .publication_dependencies_for_certification()
     }
 
     pub(in crate::physical_runtime) fn revalidate(

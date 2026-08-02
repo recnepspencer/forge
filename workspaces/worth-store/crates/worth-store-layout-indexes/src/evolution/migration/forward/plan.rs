@@ -1,8 +1,8 @@
 use worth_store_authority::StoreCurrentAuthorityWitness;
 
 use super::{
-    LayoutBindingWitness, LayoutEvolutionDeclaration, LayoutEvolutionDenial,
-    LayoutInterruptionState, LayoutPlanFingerprint, LayoutRebindRequired, LayoutVersion,
+    LayoutBindingWitness, LayoutEvolutionDeclaration, LayoutEvolutionDenial, LayoutPlanFingerprint,
+    LayoutRebindRequired, LayoutVersion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -165,24 +165,5 @@ impl LayoutMigrationPlan {
 
     pub const fn target_version(&self) -> LayoutVersion {
         self.declaration.migration_target()
-    }
-
-    pub fn interruption_state(&self) -> LayoutInterruptionState {
-        LayoutInterruptionState::new(
-            super::LayoutInterruptionFingerprint::plan(self.fingerprint),
-            self.binding.clone(),
-            super::LayoutInterruptionBoundary::SourceBound,
-        )
-    }
-
-    pub fn resume_or_rollback(
-        &self,
-        interruption: LayoutInterruptionState,
-    ) -> super::LayoutMigrationInterruptionOutcome {
-        super::interruption::classify_migration_interruption(
-            super::LayoutInterruptionFingerprint::plan(self.fingerprint),
-            self.declaration,
-            interruption,
-        )
     }
 }

@@ -1128,6 +1128,15 @@ permission to publish C.6 internals early.
 Engineering spec:
 [physical-reconstruction-c7-durable-publication-join.md](physical-reconstruction-c7-durable-publication-join.md)
 
+Current caller and operator contract:
+[physical-durability-and-checkpoints.md](physical-durability-and-checkpoints.md)
+
+Cutover and closure evidence:
+[closure ledger](physical-reconstruction-c7-closure-ledger.md),
+[public API ledger](physical-reconstruction-c7-public-api.csv),
+[removal ledger](physical-reconstruction-c7-removal-ledger.csv), and
+[physical-reality audit](physical-reality-audit.csv).
+
 ### Goal
 
 Join the existing WAL, durability-ordering, checkpoint, pageLSN, manifest, and
@@ -1228,6 +1237,12 @@ semantic writer, or impose semantic serialization across operations that
 merely share a durability barrier.
 
 ## C.8: Fresh-Process Recovery And Reopen
+
+C.8 starts from the bounded
+[C.7 successor handoff](physical-reconstruction-c7-durable-publication-join.md#c8-successor-handoff),
+not from a live runtime. The caller-facing boundary and current exclusions are
+summarized in the
+[C.7 current limits and C.8 handoff](physical-durability-and-checkpoints.md#current-limits-and-c8-handoff).
 
 ### Goal
 

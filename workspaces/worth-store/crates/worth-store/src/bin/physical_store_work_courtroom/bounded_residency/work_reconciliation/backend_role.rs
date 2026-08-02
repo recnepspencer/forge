@@ -9,6 +9,7 @@ pub(in crate::bounded_residency) enum PhysicalWorkBackendRoleEvidence {
     SynchronizeFileState,
     SynchronizeDirectoryPublication,
     AtomicReplace,
+    Delete,
 }
 
 impl TryFrom<MediaOperationRole> for PhysicalWorkBackendRoleEvidence {
@@ -25,6 +26,7 @@ impl TryFrom<MediaOperationRole> for PhysicalWorkBackendRoleEvidence {
                 Ok(Self::SynchronizeDirectoryPublication)
             }
             MediaOperationRole::AtomicReplace => Ok(Self::AtomicReplace),
+            MediaOperationRole::Delete => Ok(Self::Delete),
             MediaOperationRole::OpenRootParent
             | MediaOperationRole::InspectNamespaceEntry
             | MediaOperationRole::CreateDirectory
@@ -43,8 +45,7 @@ impl TryFrom<MediaOperationRole> for PhysicalWorkBackendRoleEvidence {
             | MediaOperationRole::ListDirectory
             | MediaOperationRole::SynchronizeFileData
             | MediaOperationRole::SynchronizeStoreRootPublication
-            | MediaOperationRole::SynchronizeRootParentPublication
-            | MediaOperationRole::Delete => Err(format!(
+            | MediaOperationRole::SynchronizeRootParentPublication => Err(format!(
                 "media-reaching physical work carried unsupported backend role {role:?}"
             )),
         }

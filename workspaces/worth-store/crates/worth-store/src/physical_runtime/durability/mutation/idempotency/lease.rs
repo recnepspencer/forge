@@ -11,6 +11,17 @@ impl PhysicalNamespaceDurableCheckpointGeneration {
         self.0
     }
 
+    pub(super) const fn checked_successor(self) -> Option<Self> {
+        match self.0.checked_add(1) {
+            Some(generation) => Some(Self(generation)),
+            None => None,
+        }
+    }
+
+    pub(super) const fn from_reopened(generation: u64) -> Self {
+        Self(generation)
+    }
+
     #[cfg(test)]
     pub(super) const fn from_namespace_durable_checkpoint(generation: u64) -> Self {
         Self(generation)
@@ -31,6 +42,25 @@ pub(super) enum PhysicalMutationLeaseIssuanceFailure {
 }
 
 impl PhysicalMutationIdempotencyLease {
+    pub(super) fn from_reopened(
+        store: StableStoreIdentity,
+        policy: PhysicalDurabilityPolicyIdentity,
+        issuance: u64,
+        expiry: u64,
+        retention: IdempotencyRetentionGenerations,
+    ) -> Option<Self> {
+        let expected_expiry = issuance.checked_add(retention.get().get())?;
+        if expiry != expected_expiry {
+            return None;
+        }
+        Some(Self {
+            store,
+            policy,
+            issuance: PhysicalNamespaceDurableCheckpointGeneration(issuance),
+            expiry: PhysicalNamespaceDurableCheckpointGeneration(expiry),
+        })
+    }
+
     pub(super) fn issue(
         store: StableStoreIdentity,
         policy: PhysicalDurabilityPolicyIdentity,

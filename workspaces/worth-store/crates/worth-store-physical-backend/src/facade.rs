@@ -24,18 +24,6 @@ pub use crate::backup_materialization::{
     PhysicalMaterializedBackupBundle,
 };
 #[cfg(feature = "certification-test-authority")]
-pub use crate::durability_ordering::StoreDurabilityAppendInput;
-pub use crate::durability_ordering::{
-    StoreDurabilityAdmission, StoreDurabilityAdmissionOutcome, StoreDurabilityBoundaryReached,
-    StoreDurabilityCounterSnapshot, StoreDurabilityCounterStrength, StoreDurabilityDenial,
-    StoreDurabilityDenialKind, StoreDurabilityExecutionBoundary, StoreDurabilityExecutionProof,
-    StoreDurabilityFileSyncKind, StoreDurabilityOperation, StoreDurabilityOrderingBarrierDurable,
-    StoreDurabilityParentNamespaceDurable, StoreDurabilityPersistedArtifact,
-    StoreDurabilityPublicationKind, StoreDurabilityRenameDurable, StoreDurabilityRequirement,
-    StoreDurabilityRuntime, StoreDurabilityState, StoreDurabilityWriteAccepted,
-    StoreDurabilityWriteSubmitted,
-};
-#[cfg(feature = "certification-test-authority")]
 pub use crate::durability_profile::{
     AdversarialLostFlushAuthority, AdversarialReorderedFlushAuthority,
     BackendDurabilityBarrierAuthority, MmapFlushNotDurabilityCertifiedAuthority,
@@ -70,7 +58,7 @@ pub use crate::filesystem_media::{
 pub use crate::filesystem_media::{
     filesystem_media_build_identity, AdmittedFilesystemMedia, AdmittedStoreNamespace,
     AllocationLengthPosture, AllocationRequest, AppendRequest, ArtifactAppendOutcome,
-    ArtifactAppendRange, ArtifactFamilyDirectory, ArtifactNewWriteOutcome,
+    ArtifactAppendRange, ArtifactFamilyDirectory, ArtifactNewWriteOutcome, ArtifactNewWriteRange,
     ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
     ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
     ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia,

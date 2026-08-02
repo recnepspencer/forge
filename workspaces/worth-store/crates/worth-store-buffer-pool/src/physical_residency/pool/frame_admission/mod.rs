@@ -91,6 +91,7 @@ impl PoolInner {
                 allocation_scope: scope,
                 pins: 1,
                 dirty: false,
+                dirty_generation: None,
                 writeback_claimed: false,
                 bytes: key.coordinate.length() as u64,
                 older_evictable: None,

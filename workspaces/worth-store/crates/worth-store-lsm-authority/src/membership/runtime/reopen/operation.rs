@@ -4,7 +4,7 @@ use crate::membership::{
     LsmMembershipOwnerCaseId, LsmMembershipOwnerCaseObservation, LsmMembershipReopenCounters,
     LsmMembershipReplayPosture, LsmMembershipSession,
 };
-use crate::{AdmittedWalAppendReceipt, AdmittedWalArtifactStore};
+use crate::{WalArtifactInventory, WalFrameArtifactObservation};
 use std::collections::HashMap;
 use worth_store_wal::WalArtifactStoreDenial;
 
@@ -62,10 +62,20 @@ impl LsmMembershipOpenOutcome {
 }
 
 pub fn open_lsm_membership(
-    anchor: &AdmittedWalAppendReceipt,
+    anchor: &WalFrameArtifactObservation,
     current_scope: &worth_store_security::StoreCurrentSecurityScopeWitnessSet,
 ) -> LsmMembershipOpenOutcome {
-    let store = match AdmittedWalArtifactStore::open(anchor) {
+    let Some(wal_directory) = anchor.path().parent() else {
+        return LsmMembershipOpenOutcome::issue(Err(LsmMembershipDenial::StoreBindingMismatch));
+    };
+    let Some(root) = wal_directory.parent() else {
+        return LsmMembershipOpenOutcome::issue(Err(LsmMembershipDenial::StoreBindingMismatch));
+    };
+    let store = match WalArtifactInventory::open(
+        root,
+        anchor.scope().segment_id(),
+        anchor.scope().generation(),
+    ) {
         Ok(store) => store,
         Err(denial) => {
             return LsmMembershipOpenOutcome::issue(Err(map_store_denial(denial)));
@@ -75,14 +85,14 @@ pub fn open_lsm_membership(
 }
 
 pub fn reopen_lsm_membership_from_store(
-    store: AdmittedWalArtifactStore,
+    store: WalArtifactInventory,
     current_scope: &worth_store_security::StoreCurrentSecurityScopeWitnessSet,
 ) -> LsmMembershipOpenOutcome {
     LsmMembershipOpenOutcome::issue(execute_reopen(store, current_scope))
 }
 
 fn execute_reopen(
-    store: AdmittedWalArtifactStore,
+    store: WalArtifactInventory,
     current_scope: &worth_store_security::StoreCurrentSecurityScopeWitnessSet,
 ) -> Result<LsmMembershipSession, LsmMembershipDenial> {
     let segment_id = store.identity().segment_id();

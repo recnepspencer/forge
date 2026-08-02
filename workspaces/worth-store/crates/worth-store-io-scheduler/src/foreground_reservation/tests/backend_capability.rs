@@ -51,7 +51,9 @@ const fn backend_evidence_basis_for(
         IoSchedulerBackendCapabilityRequirement::BufferedFile => {
             BackendCapabilityEvidenceBasis::declared_by_config(2)
         }
-        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync => {
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+        | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync
+        | IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename => {
             BackendCapabilityEvidenceBasis::established_filesystem_admission_for_certification(1)
         }
         _ => BackendCapabilityEvidenceBasis::certified_backend_profile(),

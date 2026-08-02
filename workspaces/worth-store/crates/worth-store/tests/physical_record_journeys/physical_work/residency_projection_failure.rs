@@ -1,4 +1,8 @@
-use worth_store::physical_runtime::{RecordAppendBatch, RecordAppendDenial, RecordAppendError};
+use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::{
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, RecordAppendBatch, RecordAppendDenial,
+};
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
 use super::{configuration, serving_from_initialization};
@@ -29,15 +33,18 @@ fn semantic_rejection_consumes_the_admitted_residency_projection_failure() {
             .aspect_invalidation_count(),
         invalidations_before + 1
     );
-    assert_eq!(
-        serving
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"fenced".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap_err(),
-        RecordAppendError::Denied(RecordAppendDenial::ServingRequiresInspection)
-    );
+    assert!(matches!(
+        super::super::durable_publication::prepare_single(
+            &serving.record_submission(),
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([212; 32]),
+            RecordAppendBatch::try_from_iter([b"fenced".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
+            RecordAppendDenial::ServingRequiresInspection
+        ))
+    ));
     assert!(serving.close_plan().execute().requires_inspection());
 }

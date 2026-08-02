@@ -1,23 +1,24 @@
 use std::path::Path;
 
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_signal::facade::TemporalDuration;
 use worth_store::physical_runtime::certification::MediaFaultDirective;
 use worth_store::physical_runtime::{
     FilesystemMediaAdmission, PhysicalMutationDeadline, PhysicalMutationIdempotencyMaterial,
-    PhysicalMutationRequest, PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalAppendOutcome,
-    PhysicalWalBarrierOutcome, RecordAppendBatch,
+    PhysicalMutationPreparationSuccess, PhysicalMutationRequest, PhysicalRuntimeAdmission,
+    PhysicalStore, PhysicalWalGroupAppendOutcome, PhysicalWalGroupBarrierOutcome,
+    RecordAppendBatch, SealedPhysicalDurabilityGroupMembers,
 };
 use worth_store_physical_backend::{
     CertificationMediaFaultActivation, FilesystemAccessPosture, MediaOperationRole,
 };
 
 pub(super) fn append(
-    submission: &worth_store::physical_runtime::PhysicalRecordSubmission,
+    submission: &worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission,
     placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
     material: PhysicalMutationIdempotencyMaterial,
     batch: RecordAppendBatch,
-) -> worth_store::physical_runtime::WalAppendedPhysicalMutation {
+) -> SealedPhysicalDurabilityGroupMembers {
     let key = submission.issue_idempotency_key(material).unwrap();
     let prepared = match submission
         .prepare_durable_append(
@@ -30,21 +31,27 @@ pub(super) fn append(
         )
         .into_raw()
     {
-        TransitionOutcome::Success(prepared) => prepared,
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
         _ => panic!("the real durable preparation path must succeed"),
     };
-    match submission.append_prepared_wal(prepared) {
-        PhysicalWalAppendOutcome::Appended(appended) => appended,
+    match submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())) {
+        PhysicalWalGroupAppendOutcome::Appended(appended) => appended,
         _ => panic!("the real WAL append path must succeed"),
     }
 }
 
 pub(super) fn synchronize(
-    submission: &worth_store::physical_runtime::PhysicalRecordSubmission,
-    appended: worth_store::physical_runtime::WalAppendedPhysicalMutation,
+    submission: &worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission,
+    appended: SealedPhysicalDurabilityGroupMembers,
 ) -> worth_store::physical_runtime::WalDurablePhysicalMutation {
-    match submission.synchronize_appended_wal(appended) {
-        PhysicalWalBarrierOutcome::Durable(durable) => durable,
+    match submission.synchronize_appended_wal_group(appended) {
+        PhysicalWalGroupBarrierOutcome::Durable(durable) => durable
+            .into_members()
+            .into_vec()
+            .pop()
+            .expect("a singleton group derives one durable member"),
         _ => panic!("the real WAL barrier must mint durable authority"),
     }
 }

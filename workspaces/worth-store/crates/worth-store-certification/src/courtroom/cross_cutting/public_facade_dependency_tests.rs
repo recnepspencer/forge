@@ -4,8 +4,9 @@ use std::fs;
 #[test]
 fn store_public_facade_exports_aspect_native_boundary_only() {
     let facade = workspace_file("workspaces/worth-store/crates/worth-store/src/lib.rs");
+    let certification_facade =
+        workspace_file("workspaces/worth-store/crates/worth-store-certification/src/public_api.rs");
     let aspect_native = facade_module_body(&facade, "aspect_native");
-    let certification = facade_module_body(&facade, "certification");
     let terminal_projection = facade_module_body(&facade, "terminal_projection");
 
     assert_module_exports(
@@ -19,7 +20,7 @@ fn store_public_facade_exports_aspect_native_boundary_only() {
     );
     assert_module_exports(
         "certification",
-        certification,
+        &certification_facade,
         &[
             "certify_store_json_residue_inventory",
             "StoreJsonResidueInventory",
@@ -36,7 +37,7 @@ fn store_public_facade_exports_aspect_native_boundary_only() {
         ],
     );
     assert_no_json_or_serde_export("aspect_native", aspect_native);
-    assert_no_json_or_serde_export("certification", certification);
+    assert_no_json_or_serde_export("certification", &certification_facade);
 }
 
 #[test]

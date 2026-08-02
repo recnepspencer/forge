@@ -1,6 +1,7 @@
+use worth_store::physical_runtime::certification::CertificationPhysicalRecordSubmission;
 use worth_store::physical_runtime::{
-    DataDispatchedPhysicalMutation, DataSettledPhysicalMutation, PhysicalRecordSubmission,
-    WalAppendedPhysicalMutation, WalDurablePhysicalMutation,
+    DataDispatchedPhysicalMutation, DataSettledPhysicalMutation, WalAppendedPhysicalMutation,
+    WalDurablePhysicalMutation,
 };
 
 fn require_clone<T: Clone>() {}
@@ -14,7 +15,7 @@ fn main() {
 }
 
 fn appended_wal_cannot_dispatch_data(
-    submission: &PhysicalRecordSubmission,
+    submission: &CertificationPhysicalRecordSubmission,
     appended: WalAppendedPhysicalMutation,
 ) {
     let _ = submission.dispatch_wal_durable_data(appended);

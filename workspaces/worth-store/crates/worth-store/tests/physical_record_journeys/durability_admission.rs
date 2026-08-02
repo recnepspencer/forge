@@ -6,10 +6,28 @@ use worth_store::physical_runtime::{
     PhysicalRecordInitialization,
 };
 
+#[path = "durability_admission/checkpoint_capture.rs"]
+mod checkpoint_capture;
+#[path = "durability_admission/checkpoint_lifecycle.rs"]
+mod checkpoint_lifecycle;
+#[path = "durability_admission/checkpoint_pressure.rs"]
+mod checkpoint_pressure;
+#[path = "durability_admission/checkpoint_retained_wal_tail.rs"]
+mod checkpoint_retained_wal_tail;
+#[path = "durability_admission/checkpoint_wal_reclamation.rs"]
+mod checkpoint_wal_reclamation;
 #[path = "durability_admission/data_durability.rs"]
 mod data_durability;
+#[path = "durability_admission/durability_documentation.rs"]
+mod durability_documentation;
+#[path = "durability_admission/group_commit.rs"]
+mod group_commit;
+#[path = "durability_admission/idempotency_reopen.rs"]
+mod idempotency_reopen;
 #[path = "durability_admission/independent_wal_oracle.rs"]
 mod independent_wal_oracle;
+#[path = "durability_admission/managed_mutation.rs"]
+mod managed_mutation;
 #[path = "durability_admission/mutation_preparation.rs"]
 mod mutation_preparation;
 #[path = "durability_admission/source_shape.rs"]
@@ -22,12 +40,16 @@ mod wal_attempt_binding_inspection;
 mod wal_barrier;
 #[path = "durability_admission/wal_documentation.rs"]
 mod wal_documentation;
+#[path = "durability_admission/wal_group_continuation.rs"]
+mod wal_group_continuation;
 #[path = "durability_admission/wal_ownership_shape.rs"]
 mod wal_ownership_shape;
-#[path = "durability_admission/wal_pre_effect_retry.rs"]
-mod wal_pre_effect_retry;
 #[path = "durability_admission/wal_preparation_authority.rs"]
 mod wal_preparation_authority;
+#[path = "durability_admission/wal_reopen.rs"]
+mod wal_reopen;
+#[path = "durability_admission/wal_rotation.rs"]
+mod wal_rotation;
 #[path = "durability_admission/wal_submission_admission.rs"]
 mod wal_submission_admission;
 
@@ -36,14 +58,15 @@ fn admitted_limits_and_identity_are_observable_without_exposing_policy_authority
     let parent = tempfile::tempdir().unwrap();
     let media = media(&parent.path().join("store"));
     let ordinary = durability_with_group_limit(&media, NonZeroU32::new(32).unwrap());
-    let changed = durability_with_group_limit(&media, NonZeroU32::new(64).unwrap());
     let ordinary_identity = ordinary.identity();
-    assert_ne!(ordinary_identity, changed.identity());
-    assert_eq!(
-        ordinary.admission_basis_identity(),
-        changed.admission_basis_identity(),
-    );
-    drop(changed);
+    {
+        let changed = durability_with_group_limit(&media, NonZeroU32::new(64).unwrap());
+        assert_ne!(ordinary_identity, changed.identity());
+        assert_eq!(
+            ordinary.admission_basis_identity(),
+            changed.admission_basis_identity(),
+        );
+    }
 
     let (format, placement, access) = configuration();
     let serving = success(
@@ -56,7 +79,7 @@ fn admitted_limits_and_identity_are_observable_without_exposing_policy_authority
     assert_eq!(observed.runtime_identity(), serving.runtime_identity());
     assert_eq!(observed.policy_identity(), ordinary_identity);
     assert_eq!(observed.group_commit_limit().get().get(), 32);
-    assert_eq!(observed.group_commit_delay().get().get(), 1);
+    assert_eq!(observed.group_commit_delay().signal_duration().get(), 1);
     assert_eq!(observed.idempotency_policy().retention().get().get(), 4,);
     assert_eq!(
         observed

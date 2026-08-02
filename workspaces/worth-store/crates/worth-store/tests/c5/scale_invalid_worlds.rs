@@ -3,8 +3,9 @@ use std::path::Path;
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    PhysicalPageSizeClass, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
-    PhysicalRecordOpen, RecordAppendBatch, RecordAppendDenial, RecordAppendError,
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, PhysicalPageSizeClass, PhysicalRecordAccessPolicy,
+    PhysicalRecordFormatDeclaration, PhysicalRecordOpen, RecordAppendBatch, RecordAppendDenial,
     RecordBootstrapDenial,
 };
 
@@ -51,22 +52,25 @@ fn missing_catalog(
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
 ) -> bool {
-    let world = clone_world(source, "missing-catalog");
-    std::fs::remove_file(world.join("families/records/bootstrap.catalog")).unwrap();
+    let catalog = source.join("families/records/bootstrap.catalog");
+    let original = std::fs::read(&catalog).unwrap();
+    std::fs::remove_file(&catalog).unwrap();
     let TransitionOutcome::Denied(denial) = open_record_store!(
-        super::media(&world),
+        super::media(source),
         |durability| PhysicalRecordOpen::new(format, access, durability)
     )
     .into_raw() else {
+        std::fs::write(catalog, original).unwrap();
         return false;
     };
     let matched = denial.reason() == RecordBootstrapDenial::AmbiguousRecordFamilyResidue
         && worth_store_offline_verifier::walk_current_durable_record_manifest(
-            &world,
+            source,
             format.declaration(),
         )
         .is_err();
     denial.into_runtime().close();
+    std::fs::write(catalog, original).unwrap();
     matched
 }
 
@@ -75,26 +79,28 @@ fn checksum_damage(
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
 ) -> bool {
-    let world = clone_world(source, "checksum-damage");
-    let root = current_root_path(&world, format);
-    let mut bytes = std::fs::read(&root).unwrap();
+    let root = current_root_path(source, format);
+    let original = std::fs::read(&root).unwrap();
+    let mut bytes = original.clone();
     let last = bytes.len() - 1;
     bytes[last] ^= 1;
-    std::fs::write(root, bytes).unwrap();
+    std::fs::write(&root, bytes).unwrap();
     let TransitionOutcome::Denied(denial) = open_record_store!(
-        super::media(&world),
+        super::media(source),
         |durability| PhysicalRecordOpen::new(format, access, durability)
     )
     .into_raw() else {
+        std::fs::write(root, original).unwrap();
         return false;
     };
     let matched = denial.reason() == RecordBootstrapDenial::CurrentRootDamaged
         && worth_store_offline_verifier::walk_current_durable_record_manifest(
-            &world,
+            source,
             format.declaration(),
         )
         .is_err();
     denial.into_runtime().close();
+    std::fs::write(root, original).unwrap();
     matched
 }
 
@@ -103,37 +109,39 @@ fn stale_manifest(
     format: AdmittedPhysicalRecordFormat,
     access: AdmittedRecordAccessPolicy,
 ) -> bool {
-    let world = clone_world(source, "stale-manifest");
-    let current = current_root_path(&world, format);
-    let stale = world.join("families/records/roots/root-0000000000000001.manifest");
-    std::fs::copy(stale, current).unwrap();
-    match open_record_store!(super::media(&world), |durability| PhysicalRecordOpen::new(
-        format, access, durability
-    ))
-    .into_raw()
-    {
-        TransitionOutcome::Stale(stale) => {
-            stale.into_runtime().close();
-            worth_store_offline_verifier::walk_current_durable_record_manifest(
-                &world,
-                format.declaration(),
-            )
-            .is_err()
-        }
-        TransitionOutcome::Success(runtime) => {
-            runtime.close();
-            false
-        }
-        TransitionOutcome::Denied(denial) => {
-            denial.into_runtime().close();
-            false
-        }
-        _ => false,
-    }
+    let current = current_root_path(source, format);
+    let original = std::fs::read(&current).unwrap();
+    let stale = source.join("families/records/roots/root-0000000000000001.manifest");
+    std::fs::copy(stale, &current).unwrap();
+    let matched =
+        match open_record_store!(super::media(source), |durability| PhysicalRecordOpen::new(
+            format, access, durability
+        ))
+        .into_raw()
+        {
+            TransitionOutcome::Stale(stale) => {
+                stale.into_runtime().close();
+                worth_store_offline_verifier::walk_current_durable_record_manifest(
+                    source,
+                    format.declaration(),
+                )
+                .is_err()
+            }
+            TransitionOutcome::Success(runtime) => {
+                runtime.close();
+                false
+            }
+            TransitionOutcome::Denied(denial) => {
+                denial.into_runtime().close();
+                false
+            }
+            _ => false,
+        };
+    std::fs::write(current, original).unwrap();
+    matched
 }
 
 fn format_drift(source: &Path) -> bool {
-    let world = clone_world(source, "format-drift");
     let format = AdmittedPhysicalRecordFormat::admit(
         PhysicalRecordFormatDeclaration::builder()
             .page_size(PhysicalPageSizeClass::KiB64)
@@ -142,7 +150,7 @@ fn format_drift(source: &Path) -> bool {
     );
     let access = PhysicalRecordAccessPolicy::builder().admit(format).unwrap();
     let TransitionOutcome::Denied(denial) = open_record_store!(
-        super::media(&world),
+        super::media(source),
         |durability| PhysicalRecordOpen::new(format, access, durability)
     )
     .into_raw() else {
@@ -152,7 +160,7 @@ fn format_drift(source: &Path) -> bool {
         denial.reason(),
         RecordBootstrapDenial::PhysicalRecordFormatMismatch(_)
     ) && worth_store_offline_verifier::walk_current_durable_record_manifest(
-        &world,
+        source,
         format.declaration(),
     )
     .is_err();
@@ -166,32 +174,36 @@ fn unpublished_residue(
     placement: AdmittedRecordPlacementPolicy,
     access: AdmittedRecordAccessPolicy,
 ) -> bool {
-    let world = clone_world(source, "unpublished-residue");
-    let catalog = world.join("families/records/bootstrap.catalog");
-    let candidate = world.join("staging/records/bootstrap-deadbeefdeadbeef.candidate");
+    let catalog = source.join("families/records/bootstrap.catalog");
+    let candidate = source.join("staging/records/bootstrap-deadbeefdeadbeef.candidate");
     let candidate_bytes = std::fs::copy(&catalog, &candidate).unwrap();
     assert_eq!(candidate_bytes, std::fs::metadata(catalog).unwrap().len());
-    let reopened = super::success(open_record_store!(super::media(&world), |durability| {
+    let reopened = super::success(open_record_store!(super::media(source), |durability| {
         PhysicalRecordOpen::new(format, access, durability)
     }));
     let excluded = reopened.observed_staging_residue()
         && reopened.publication_residue().staging_catalog_candidate()
         && reopened.observed_non_authoritative_residue()
         && matches!(
-            reopened.record_submission().append_batch(
-                RecordAppendBatch::try_from_iter([b"blocked".as_slice()]).unwrap(),
+            super::durable_publication::prepare_single(
+                &reopened.record_submission(),
                 placement,
-            ),
-            Err(RecordAppendError::Denied(
+                PhysicalManifestCapacityTransition::PreserveCurrent,
+                PhysicalMutationIdempotencyMaterial::new([210; 32]),
+                RecordAppendBatch::try_from_iter([b"blocked".as_slice()]).unwrap(),
+            )
+            .into_raw(),
+            TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
                 RecordAppendDenial::ServingRequiresInspection
             ))
         );
     reopened.close();
     let offline_prior = worth_store_offline_verifier::walk_current_durable_record_manifest(
-        &world,
+        source,
         format.declaration(),
     )
     .is_ok_and(|walk| !walk.placements().is_empty());
+    std::fs::remove_file(candidate).unwrap();
     excluded && offline_prior
 }
 
@@ -205,31 +217,4 @@ fn current_root_path(root: &Path, format: AdmittedPhysicalRecordFormat) -> std::
     root.join(format!(
         "families/records/roots/root-{generation:016x}.manifest"
     ))
-}
-
-fn clone_world(source: &Path, name: &str) -> std::path::PathBuf {
-    let source_name = source.file_name().unwrap().to_string_lossy();
-    let destination = source
-        .parent()
-        .unwrap()
-        .join(format!("invalid-{source_name}-{name}"));
-    assert!(
-        !destination.exists(),
-        "an invalid-world clone must begin from one exact valid source"
-    );
-    copy_directory(source, &destination);
-    destination
-}
-
-fn copy_directory(source: &Path, destination: &Path) {
-    std::fs::create_dir_all(destination).unwrap();
-    for entry in std::fs::read_dir(source).unwrap() {
-        let entry = entry.unwrap();
-        let target = destination.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_directory(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
 }

@@ -45,24 +45,24 @@ struct RootManifestProjection<'projection> {
     free_space: &'projection DurableFreeSpaceManifestHeader,
     free_space_bytes: &'projection [u8],
     segment: &'projection SegmentMembershipPublicationPlan,
-    placements: BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
+    placements: &'projection BTreeMap<PersistedRecordIdentity, CurrentPhysicalRecordPlacement>,
     last_inline_record: Option<PersistedRecordIdentity>,
     last_inline_segment: Option<SegmentGenerationCell>,
 }
 
 pub(super) fn project_successor_root(
     context: &RootRebaseContext<'_>,
-    prepared: PreparedRecordPayloadPlan,
+    prepared: &PreparedRecordPayloadPlan,
     generation: u64,
 ) -> Result<ProjectedSuccessorRoot, RecordAppendError> {
-    let free_space = project_free_space(context, &prepared, generation)?;
+    let free_space = project_free_space(context, prepared, generation)?;
     let FreeSpacePublicationPlan {
         header: free_space_header,
         blocks: free_space_blocks,
         discovery: free_space_discovery,
     } = free_space;
     let free_space_bytes = free_space_header.encode(context.format.declaration());
-    let segment = project_segment_membership(context, prepared.segment_updates, generation)?;
+    let segment = project_segment_membership(context, &prepared.segment_updates, generation)?;
     let (last_inline_record, last_inline_segment) = successor_inline_tail(
         context.current_root,
         prepared.last_inline_record,
@@ -75,7 +75,7 @@ pub(super) fn project_successor_root(
             free_space: &free_space_header,
             free_space_bytes: &free_space_bytes,
             segment: &segment,
-            placements: prepared.placements,
+            placements: &prepared.placements,
             last_inline_record,
             last_inline_segment,
         },
@@ -133,7 +133,7 @@ fn project_free_space(
 
 fn project_segment_membership(
     context: &RootRebaseContext<'_>,
-    updates: BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
+    updates: &BTreeMap<SegmentPageKey, RecordSegmentPageManifestEntry>,
     generation: u64,
 ) -> Result<SegmentMembershipPublicationPlan, RecordAppendError> {
     plan_segment_membership_updates(

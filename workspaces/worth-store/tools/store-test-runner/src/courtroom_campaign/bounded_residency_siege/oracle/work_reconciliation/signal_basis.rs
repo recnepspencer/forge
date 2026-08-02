@@ -20,18 +20,33 @@ const READ_ONLY: BoundedResidencySignalFamilySet = BoundedResidencySignalFamilyS
     exact_writeback: false,
     publication: false,
     lifecycle: false,
+    wal_append: false,
+    durability_barrier: false,
+    checkpoint_capture: false,
+    root_publication: false,
+    wal_reclamation: false,
 };
 const WRITEBACK_ONLY: BoundedResidencySignalFamilySet = BoundedResidencySignalFamilySet {
     read_fault: false,
     exact_writeback: true,
     publication: false,
     lifecycle: false,
+    wal_append: false,
+    durability_barrier: false,
+    checkpoint_capture: false,
+    root_publication: false,
+    wal_reclamation: false,
 };
 const PUBLICATION_ONLY: BoundedResidencySignalFamilySet = BoundedResidencySignalFamilySet {
     read_fault: false,
     exact_writeback: false,
     publication: true,
     lifecycle: false,
+    wal_append: false,
+    durability_barrier: false,
+    checkpoint_capture: false,
+    root_publication: false,
+    wal_reclamation: false,
 };
 
 const REQUIRED_NATIVE_BINDINGS: [NativeSignalBasis; 6] = [

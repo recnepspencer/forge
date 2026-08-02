@@ -8,5 +8,5 @@ error: cannot construct `AdmittedPhysicalDurabilityPolicy` with struct literal s
 help: you might have meant to use the `new` associated function
   |
 4 -     AdmittedPhysicalDurabilityPolicy {}
-4 +     AdmittedPhysicalDurabilityPolicy::new(_, _, _, _)
+4 +     AdmittedPhysicalDurabilityPolicy::new(_, _, _, _, _)
   |

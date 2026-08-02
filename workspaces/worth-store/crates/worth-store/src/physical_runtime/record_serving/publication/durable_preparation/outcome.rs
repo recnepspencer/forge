@@ -1,10 +1,20 @@
 use worth_proof::ProofOutcome;
 
 use super::PreparedPhysicalMutation;
-use crate::physical_runtime::{RecordAppendDenial, RecordStreamFailure};
+use crate::physical_runtime::{
+    CompletedPhysicalMutation, IndeterminatePhysicalMutation, ProvenNoEffectPhysicalMutation,
+    RecordAppendDenial, RecordStreamFailure,
+};
+
+pub enum PhysicalMutationPreparationSuccess {
+    Prepared(PreparedPhysicalMutation),
+    Completed(CompletedPhysicalMutation),
+    ProvenNoEffect(ProvenNoEffectPhysicalMutation),
+    Indeterminate(IndeterminatePhysicalMutation),
+}
 
 pub type PhysicalMutationPreparationOutcome = ProofOutcome<
-    PreparedPhysicalMutation,
+    PhysicalMutationPreparationSuccess,
     PhysicalMutationPreparationDenial,
     PhysicalMutationPreparationDeferred,
     PhysicalMutationPreparationStale,
@@ -24,6 +34,7 @@ pub enum PhysicalMutationPreparationDeferred {
     PreparedRecordSlots { required_records: u32 },
     PreparedPayloadBytes { required_bytes: u64 },
     PendingUnresolvedLimitReached,
+    LiveBindingLimitReached,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

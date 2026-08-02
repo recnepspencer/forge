@@ -1,5 +1,7 @@
 use super::super::read_repository_document;
 
+mod manifest_capacity_transition;
+
 const FINGERPRINT: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                            durability/mutation/request_fingerprint.rs";
 const PREPARATION_FACADE: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
@@ -7,7 +9,7 @@ const PREPARATION_FACADE: &str = "workspaces/worth-store/crates/worth-store/src/
 const PREPARATION_OWNER: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                                  record_serving/publication/director/durable_preparation.rs";
 const REGISTRY: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
-                        durability/mutation/idempotency/registry.rs";
+                         durability/mutation/idempotency/registry/admission.rs";
 const POLICY_BASIS: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                             record_serving/work_semantics/durability/policy_binding_basis.rs";
 const CANONICAL_RECORD: &str = "workspaces/worth-store/crates/worth-store-aspect-native/src/\
@@ -48,9 +50,9 @@ fn mutation_preparation_gate_rejects_allocation_policy_and_ordering_mutants() {
 
     let mut eager_reservation = source.clone();
     eager_reservation.registry = eager_reservation.registry.replace(
-        "if let Some(existing) = self.unresolved.get(&key.identity()) {",
+        "if let Some(existing) = self.bindings.get(&key.identity()) {",
         "let mutation = reserve().map_err(PhysicalMutationIdempotencyRegistryAdmissionError::Reservation)?;\n\
-         if let Some(existing) = self.unresolved.get(&key.identity()) {",
+         if let Some(existing) = self.bindings.get(&key.identity()) {",
     );
     assert!(inspect(&eager_reservation).is_err());
 
@@ -176,7 +178,12 @@ fn inspect_fingerprint(source: &str) -> Result<(), &'static str> {
 fn inspect_preparation(facade: &str, owner: &str) -> Result<(), &'static str> {
     let facade_body = function_body(facade, "pub fn prepare_durable_append(")
         .ok_or("public durable preparation boundary is absent")?;
-    if !facade_body.contains("director.prepare_durable_append(batch, placement, request)") {
+    let facade_body = compact(facade_body);
+    if !facade_body.contains("director.prepare_durable_append(")
+        || !facade_body.contains(
+            "batch,placement,PhysicalManifestCapacityTransition::PreserveCurrent,request,",
+        )
+    {
         return Err("public durable preparation facade bypasses its semantic owner");
     }
     for required in [
@@ -209,22 +216,72 @@ fn inspect_registry(source: &str) -> Result<(), &'static str> {
         "pub(in crate::physical_runtime) fn admit_unallocated_with<E>(",
     )
     .ok_or("atomic idempotency admission is absent")?;
+    let body = compact(body);
     let existing = body
-        .find("self.unresolved.get(&key.identity())")
+        .find("self.bindings.get(&key.identity())")
         .ok_or("duplicate lookup is absent")?;
-    let expiry = body
-        .find("key.lease().is_expired_at(self.generation)")
-        .ok_or("expiry check is absent")?;
-    let pending = body
-        .find("self.unresolved.len() >= self.pending_limit")
-        .ok_or("pending bound is absent")?;
+    let fresh_validation = body
+        .find("self.validate_fresh_admission(&key)")
+        .ok_or("fresh admission validation is absent")?;
     let reserve = body
         .find("reserve().map_err")
         .ok_or("fresh operation reservation is absent")?;
-    if !(existing < expiry && expiry < pending && pending < reserve) {
-        return Err("duplicate, expiry, pending, and fresh reservation ordering drifted");
+    if !(existing < fresh_validation && fresh_validation < reserve) {
+        return Err("duplicate lookup, fresh validation, and reservation ordering drifted");
+    }
+    let validation = compact(
+        function_body(source, "fn validate_fresh_admission<")
+            .ok_or("fresh admission validation owner is absent")?,
+    );
+    let expiry = validation
+        .find("key.lease().is_expired_at(self.generation)")
+        .ok_or("expiry check is absent")?;
+    let live = validation
+        .find("self.bindings.len()>=self.live_limit.get().get()asusize")
+        .ok_or("live binding bound is absent")?;
+    let pending = validation
+        .find("self.pending_binding_count()>=self.pending_limit.get().get()asusize")
+        .ok_or("pending bound is absent")?;
+    if !(expiry < live && live < pending) {
+        return Err("expiry, live binding, and pending bounds changed order");
+    }
+    let classification = compact(
+        function_body(source, "fn classify_existing_binding<")
+            .ok_or("existing binding classification owner is absent")?,
+    );
+    for required in [
+        "PhysicalMutationIdempotencyBindingState::Unsealed(existing)",
+        "PhysicalMutationIdempotencyBindingState::GroupSealed{basis:existing,..}",
+        "PhysicalMutationIdempotencyBindingState::RebuiltUnresolved{basis:existing,..}",
+        "PhysicalMutationIdempotencyBindingState::WalBound{basis:existing,..}",
+        "PhysicalMutationIdempotencyRegistryAdmission::DuplicateUnresolved",
+        "PhysicalMutationIdempotencyBindingState::Terminal{fate,..}",
+        "fate.duplicate_observation(fingerprint)",
+        "PhysicalMutationIdempotencyRegistryAdmission::ProvenNoEffect",
+    ] {
+        if !classification.contains(required) {
+            return Err("idempotency replay lost an unresolved or terminal state");
+        }
+    }
+    let pending_count = compact(
+        function_body(source, "fn pending_binding_count(").ok_or("pending count is absent")?,
+    );
+    if !pending_count.contains("PhysicalMutationIdempotencyBindingState::Unsealed(_)")
+        || !pending_count.contains("PhysicalMutationIdempotencyBindingState::GroupSealed{..}")
+        || !pending_count.contains("PhysicalMutationIdempotencyBindingState::RebuiltUnresolved{..}")
+        || !pending_count.contains("PhysicalMutationIdempotencyBindingState::WalBound{..}")
+        || pending_count.contains("PhysicalMutationIdempotencyBindingState::Terminal{..}")
+    {
+        return Err("terminal no-effect facts entered unresolved-capacity accounting");
     }
     Ok(())
+}
+
+fn compact(source: &str) -> String {
+    source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect()
 }
 
 fn inspect_policy_basis(source: &str) -> Result<(), &'static str> {

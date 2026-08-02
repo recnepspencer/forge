@@ -17,8 +17,6 @@ use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture,
 };
 
-use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
-
 #[test]
 fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
     let plan = lower_physical_isolation_plan();
@@ -27,9 +25,6 @@ fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
     let runtime_trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_boundary_observation(&plan, &execution)
         .unwrap()
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap();
     assert_eq!(
@@ -43,9 +38,6 @@ fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
             independent_verifier_observation::observed_runtime_comparison(
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
             ),
-        )
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
         )
         .complete()
         .unwrap();
@@ -105,9 +97,6 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
             )
             .with_shortcut_rejection_observation(
                 ShortcutRejectionObservation::json_authority_denied(),
-            )
-            .with_compaction_interlock_observation(
-                compaction_interlock_trace::store_compaction_observation(),
             )
             .complete()
             .unwrap();

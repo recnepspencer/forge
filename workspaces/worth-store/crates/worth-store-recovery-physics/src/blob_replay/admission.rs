@@ -4,10 +4,9 @@ use worth_proof::{
 };
 use worth_store_authority::StoreCurrentAuthorityWitness;
 
-use crate::{
-    CrashBoundaryLayoutReport, DurabilityReplayIdentity, DurabilityReplayKind,
-    DurableCheckpointPublication, DurableManifestPublication,
-};
+use crate::CrashBoundaryLayoutReport;
+#[cfg(feature = "certification-test-authority")]
+use crate::{DurabilityReplayIdentity, DurabilityReplayKind};
 
 use super::{BlobReplayAdmissionDenial, BlobReplayAdmissionDenialKind};
 
@@ -76,23 +75,11 @@ impl BlobReplaySourceAdmission {
         admit_checkpoint_replay_source(identity)
     }
 
-    pub fn from_durable_checkpoint_publication(
-        publication: &DurableCheckpointPublication,
-    ) -> Result<Self, BlobReplayAdmissionDenial> {
-        admit_checkpoint_replay_source(publication.replay_identity())
-    }
-
     #[cfg(feature = "certification-test-authority")]
     pub fn from_manifest_replay_identity(
         identity: &DurabilityReplayIdentity,
     ) -> Result<Self, BlobReplayAdmissionDenial> {
         admit_manifest_replay_source(identity)
-    }
-
-    pub fn from_durable_manifest_publication(
-        publication: &DurableManifestPublication,
-    ) -> Result<Self, BlobReplayAdmissionDenial> {
-        admit_manifest_replay_source(publication.replay_identity())
     }
 
     pub fn reject_backend_residue(digest: impl Into<String>) -> BlobReplayAdmissionDenial {
@@ -159,6 +146,7 @@ impl BlobResumeReplayReadmission {
     }
 }
 
+#[cfg(feature = "certification-test-authority")]
 fn admit_checkpoint_replay_source(
     identity: &DurabilityReplayIdentity,
 ) -> Result<BlobReplaySourceAdmission, BlobReplayAdmissionDenial> {
@@ -170,6 +158,7 @@ fn admit_checkpoint_replay_source(
     )
 }
 
+#[cfg(feature = "certification-test-authority")]
 fn admit_manifest_replay_source(
     identity: &DurabilityReplayIdentity,
 ) -> Result<BlobReplaySourceAdmission, BlobReplayAdmissionDenial> {
@@ -181,6 +170,7 @@ fn admit_manifest_replay_source(
     )
 }
 
+#[cfg(feature = "certification-test-authority")]
 fn admit_durability_replay_source(
     identity: &DurabilityReplayIdentity,
     expected_replay_kind: DurabilityReplayKind,

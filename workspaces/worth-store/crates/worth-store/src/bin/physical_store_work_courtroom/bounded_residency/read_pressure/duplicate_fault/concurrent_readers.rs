@@ -269,18 +269,19 @@ fn observe_held_lease(
     role: ReaderRole,
     work_before: u64,
 ) -> Result<HeldLeaseObservation, String> {
-    let view = session
-        .next_chunk()
-        .map_err(|failure| format!("duplicate-fault view failed: {failure:?}"))?
-        .ok_or_else(|| "duplicate-fault view found no payload".to_owned())?;
-    let prefix = view
-        .bytes()
-        .get(..8)
-        .ok_or_else(|| "duplicate-fault view omitted workload prefix".to_owned())?
-        .try_into()
-        .expect("an eight-byte slice has exact array width");
-    let basis = view.basis();
-    drop(view);
+    let (prefix, basis) = {
+        let view = session
+            .next_chunk()
+            .map_err(|failure| format!("duplicate-fault view failed: {failure:?}"))?
+            .ok_or_else(|| "duplicate-fault view found no payload".to_owned())?;
+        let prefix = view
+            .bytes()
+            .get(..8)
+            .ok_or_else(|| "duplicate-fault view omitted workload prefix".to_owned())?
+            .try_into()
+            .expect("an eight-byte slice has exact array width");
+        (prefix, view.basis())
+    };
     let work = session
         .observation()
         .physical_work_count()

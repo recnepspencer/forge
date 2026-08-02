@@ -17,6 +17,8 @@ pub enum PhysicalRecordResidencyFailureKind {
     SettlementAuthorityMismatch,
     AllocationUnavailable,
     AllocationAuthorityMismatch,
+    CaptureSessionAuthorityMismatch,
+    DirtyGenerationExhausted,
     SpeculativeContractConflict,
     PublicationConflict,
     LifecycleClosed,
@@ -45,6 +47,12 @@ pub enum PhysicalRecordResidencyFailureReason {
         actual: u64,
     },
     AllocationGrantMismatch,
+    DirtyGenerationCaptureSessionMismatch,
+    DirtyGenerationExhausted,
+    DirtyGenerationCaptureBudgetExceeded {
+        required: u64,
+        admitted: u64,
+    },
     SpeculativeAllocationMismatch {
         granted: u64,
         required: u64,
@@ -125,6 +133,19 @@ impl PhysicalRecordResidencyFailure {
             PhysicalResidencyDenial::AllocationGrantMismatch => {
                 PhysicalRecordResidencyFailureReason::AllocationGrantMismatch
             }
+            PhysicalResidencyDenial::DirtyGenerationCaptureSessionMismatch => {
+                PhysicalRecordResidencyFailureReason::DirtyGenerationCaptureSessionMismatch
+            }
+            PhysicalResidencyDenial::DirtyGenerationExhausted => {
+                PhysicalRecordResidencyFailureReason::DirtyGenerationExhausted
+            }
+            PhysicalResidencyDenial::DirtyGenerationCaptureBudgetExceeded {
+                required,
+                admitted,
+            } => PhysicalRecordResidencyFailureReason::DirtyGenerationCaptureBudgetExceeded {
+                required,
+                admitted,
+            },
             PhysicalResidencyDenial::SpeculativeAllocationMismatch { granted, required } => {
                 PhysicalRecordResidencyFailureReason::SpeculativeAllocationMismatch {
                     granted,
@@ -241,11 +262,18 @@ impl From<PhysicalResidencyDenial> for PhysicalRecordResidencyFailure {
                 PhysicalRecordResidencyFailureKind::SettlementAuthorityMismatch
             }
             PhysicalResidencyDenial::AllocationFailed
-            | PhysicalResidencyDenial::AllocatorExceededReservation { .. } => {
+            | PhysicalResidencyDenial::AllocatorExceededReservation { .. }
+            | PhysicalResidencyDenial::DirtyGenerationCaptureBudgetExceeded { .. } => {
                 PhysicalRecordResidencyFailureKind::AllocationUnavailable
             }
             PhysicalResidencyDenial::AllocationGrantMismatch => {
                 PhysicalRecordResidencyFailureKind::AllocationAuthorityMismatch
+            }
+            PhysicalResidencyDenial::DirtyGenerationCaptureSessionMismatch => {
+                PhysicalRecordResidencyFailureKind::CaptureSessionAuthorityMismatch
+            }
+            PhysicalResidencyDenial::DirtyGenerationExhausted => {
+                PhysicalRecordResidencyFailureKind::DirtyGenerationExhausted
             }
             PhysicalResidencyDenial::SpeculativeAllocationMismatch { .. }
             | PhysicalResidencyDenial::EmptySpeculativeRead

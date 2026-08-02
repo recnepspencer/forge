@@ -3,7 +3,7 @@ use worth_store_physical_backend::ControlMediaFault;
 use super::{
     ActiveBackupRecoveryHandle, IndeterminateRecoveryStagingHandle,
     IndeterminateRepairRecoveryHandle, OperationalControlReplayResource, OperationalOperationId,
-    OperationalWorkflowKind, PendingRecoveryPublicationHandle, PreparedRecoveryPublicationHandle,
+    OperationalWorkflowKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,10 +40,6 @@ pub enum OperationalControlHistoryViolationKind {
     RepairReceiptBeforeOwnerStart,
     RepairCompletedBeforeAllOwnerReceipts,
     RepairRecordAfterDisposition,
-    DuplicateRecoveryPublication,
-    RecoveryDispositionBeforePublication,
-    RecoveryPublicationIdentityMismatch,
-    DuplicateRecoveryPublicationDisposition,
     DuplicateRecoveryStaging,
     RecoveryOwnerReceiptBeforeAuthorization,
     RecoveryOwnerReceiptWorkflowMismatch,
@@ -52,11 +48,6 @@ pub enum OperationalControlHistoryViolationKind {
     RecoveryStagingCompletionBeforeAuthorization,
     RecoveryStagingCompletionBeforeOwnerReceipts,
     RecoveryStagingBindingMismatch,
-    RecoveryPublicationBeforeStagingCompletion,
-    RecoveryPublicationBeforePreparation,
-    RecoveryPublicationBindingMismatch,
-    FenceReleaseBeforeDisposition,
-    FenceReleaseBindingMismatch,
     DuplicateReplicaOperation,
     ReplicaRecordBeforeAuthorization,
     ReplicaOperationBindingMismatch,
@@ -110,9 +101,6 @@ pub(crate) struct ReplayedSelectedControlHistory {
     pub(crate) abandoned_backups: u64,
     pub(crate) indeterminate_repairs: Vec<IndeterminateRepairRecoveryHandle>,
     pub(crate) indeterminate_recovery_staging: Vec<IndeterminateRecoveryStagingHandle>,
-    pub(crate) pending_recovery_publications: Vec<PendingRecoveryPublicationHandle>,
-    pub(crate) prepared_recovery_publications: Vec<PreparedRecoveryPublicationHandle>,
-    pub(crate) terminal_recovery_fence_releases: Vec<super::TerminalRecoveryFenceReleaseHandle>,
     pub(crate) replica_bootstraps: Vec<super::ReplicaBootstrapRecoveryHandle>,
     pub(crate) replica_promotions: Vec<super::ReplicaPromotionRecoveryHandle>,
 }

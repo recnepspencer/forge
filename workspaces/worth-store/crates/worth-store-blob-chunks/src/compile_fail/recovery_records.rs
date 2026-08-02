@@ -58,14 +58,14 @@
 //! ```compile_fail
 //! use worth_store_wal::{
 //!     BlobWalRecordEnvelope, BlobWalRecordIdentity, BlobWalRecordKind,
-//!     DurablePublicationDeclaration,
+//!     PublicationDeclaration,
 //! };
 //!
 //! let identity = BlobWalRecordIdentity::new(
 //!     1,
 //!     BlobWalRecordKind::GenerationPublication,
 //! ).unwrap();
-//! let durable: DurablePublicationDeclaration = todo!();
+//! let durable: PublicationDeclaration = todo!();
 //! let _envelope = BlobWalRecordEnvelope::from_wal_publication(
 //!     identity,
 //!     durable,

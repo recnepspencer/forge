@@ -35,8 +35,11 @@ pub(in crate::physical_runtime) struct RecordWorkAdmission {
     publication_bases: publication_basis::RecordPublicationSemanticBases,
     frame_writeback_basis: PhysicalWorkSemanticBasis,
     durability_policy_basis: PhysicalWorkSemanticBasis,
+    root_publication_basis: PhysicalWorkSemanticBasis,
+    checkpoint_capture_basis: PhysicalWorkSemanticBasis,
     wal_append_basis: PhysicalWorkSemanticBasis,
     wal_barrier_basis: PhysicalWorkSemanticBasis,
+    wal_reclamation_basis: PhysicalWorkSemanticBasis,
 }
 
 impl RecordWorkAdmission {
@@ -50,14 +53,23 @@ impl RecordWorkAdmission {
         let frame_writeback = frame_writeback_basis::install(witness);
         let durability_policy =
             durability::install_policy_binding(witness, durability.policy_identity());
-        let wal_append = durability::install_wal_append(witness);
-        let wal_barrier = durability::install_wal_barrier(witness);
+        let store_partition = durability_store_partition(durability);
+        let root_publication =
+            durability::install_root_publication(witness, store_partition.clone());
+        let checkpoint_capture =
+            durability::install_checkpoint_capture(witness, store_partition.clone());
+        let wal_append = durability::install_wal_append(witness, store_partition.clone());
+        let wal_barrier = durability::install_wal_barrier(witness, store_partition.clone());
+        let wal_reclamation = durability::install_wal_reclamation(witness, store_partition);
         let extensions = read.declarations.into_iter().chain([
             publication.declaration,
             frame_writeback.declaration,
             durability_policy.declaration,
+            root_publication.declaration,
+            checkpoint_capture.declaration,
             wal_append.declaration,
             wal_barrier.declaration,
+            wal_reclamation.declaration,
         ]);
         let profile = profile.with_native_extensions(read.security, extensions)?;
         Ok((
@@ -68,8 +80,11 @@ impl RecordWorkAdmission {
                 publication_bases: publication.bases,
                 frame_writeback_basis: frame_writeback.basis,
                 durability_policy_basis: durability_policy.basis,
+                root_publication_basis: root_publication.basis,
+                checkpoint_capture_basis: checkpoint_capture.basis,
                 wal_append_basis: wal_append.basis,
                 wal_barrier_basis: wal_barrier.basis,
+                wal_reclamation_basis: wal_reclamation.basis,
             },
             profile,
         ))
@@ -109,12 +124,26 @@ impl RecordWorkAdmission {
         self.durability_policy_basis.clone()
     }
 
+    pub(in crate::physical_runtime) fn root_publication_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.root_publication_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_capture_basis(
+        &self,
+    ) -> PhysicalWorkSemanticBasis {
+        self.checkpoint_capture_basis.clone()
+    }
+
     pub(in crate::physical_runtime) fn wal_append_basis(&self) -> PhysicalWorkSemanticBasis {
         self.wal_append_basis.clone()
     }
 
     pub(in crate::physical_runtime) fn wal_barrier_basis(&self) -> PhysicalWorkSemanticBasis {
         self.wal_barrier_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn wal_reclamation_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.wal_reclamation_basis.clone()
     }
 }
 
@@ -124,6 +153,28 @@ fn dependency_and_output_declaration(
 ) -> PhysicalSignalAspectDeclaration {
     PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::DependencyAndOutput)
         .for_families(PhysicalWorkSignalFamilySet::only(family))
+}
+
+fn partitioned_dependency_and_output_declaration(
+    admission: StoreAspectContractAdmission,
+    family: PhysicalWorkSignalFamily,
+    partition: String,
+) -> PhysicalSignalAspectDeclaration {
+    PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::DependencyAndOutput)
+        .for_families(PhysicalWorkSignalFamilySet::only(family))
+        .with_partition(worth_signal::facade::PartitionSubscription::whole_partition(partition))
+}
+
+fn durability_store_partition(
+    durability: crate::physical_runtime::PhysicalDurabilityObservation,
+) -> String {
+    let store = durability
+        .store_identity()
+        .bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("physical-durability-store/{store}")
 }
 
 fn contract(

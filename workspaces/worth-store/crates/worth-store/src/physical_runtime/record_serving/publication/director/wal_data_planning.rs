@@ -3,7 +3,7 @@ use crate::physical_runtime::record_serving::{
     planning::{
         batch_placement::{append_operation_allocation_bytes, classify_batch},
         placement_context::PlacementPlanningContext,
-        prepared_payload::{prepare_payload_plan, PreparedRecordPayloadPlan},
+        prepared_payload::prepare_payload_plan,
     },
     publication::{
         materialize_durable_data, PhysicalMutationAdmissionDisposition, PreparedPhysicalMutation,
@@ -29,8 +29,14 @@ impl RecordPublicationDirector {
             return Ok(prepared);
         }
         match self.build_durable_data_plan(&prepared) {
-            Ok((data, continuation)) => Ok(prepared.attach_data_plan(data, continuation)),
-            Err(error) => Err((prepared, data_planning_denial(error))),
+            Ok((data, root)) => Ok(prepared.attach_plans(data, root)),
+            Err(error) => {
+                let denial = data_planning_denial(error);
+                if let Some(runtime) = self.runtime.upgrade() {
+                    runtime.health.observe_append_denial(&denial);
+                }
+                Err((prepared, denial))
+            }
         }
     }
 
@@ -40,7 +46,7 @@ impl RecordPublicationDirector {
     ) -> Result<
         (
             crate::physical_runtime::durability::PreparedPhysicalDataPlan,
-            PreparedRecordPayloadPlan,
+            crate::physical_runtime::record_serving::PreparedPhysicalRootProjection,
         ),
         RecordAppendError,
     > {
@@ -58,13 +64,7 @@ impl RecordPublicationDirector {
             .map_err(|denial| {
                 RecordAppendError::Denied(RecordAppendDenial::from_residency(denial))
             })?;
-        let (current_root, current_free_space) = {
-            let state = self
-                .state
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            (state.current_root.clone(), state.free_space.clone())
-        };
+        let (current_root, current_free_space) = self.root_owner.snapshot();
         let admitted = batch
             .admit(self.access)
             .map_err(RecordAppendError::Denied)?;
@@ -89,7 +89,7 @@ impl RecordPublicationDirector {
                 RecordAppendDenial::PhysicalIdentityExhausted,
             ))?;
         drop(preparation);
-        let payload = prepare_payload_plan(
+        let mut payload = prepare_payload_plan(
             PlacementPlanningContext {
                 allocation: &allocation,
                 media: runtime.executor.record_serving_media(),
@@ -104,7 +104,16 @@ impl RecordPublicationDirector {
             classified,
             true,
         )?;
-        materialize_durable_data(payload, self.format)
+        prepared
+            .materialization_observation()
+            .apply_to(&mut payload.observation);
+        materialize_durable_data(
+            payload,
+            self.format,
+            std::num::NonZeroU64::new(bytes)
+                .expect("an admitted nonempty append has nonzero planning bytes"),
+            prepared.manifest_capacity_transition(),
+        )
     }
 }
 
@@ -112,8 +121,6 @@ fn data_planning_denial(error: RecordAppendError) -> RecordAppendDenial {
     match error {
         RecordAppendError::Denied(denial) => denial,
         RecordAppendError::PhysicalPressure { .. } => RecordAppendDenial::PhysicalPressure,
-        RecordAppendError::StreamFailed(_)
-        | RecordAppendError::Unpublished(_)
-        | RecordAppendError::Indeterminate(_) => RecordAppendDenial::PublishedLayoutDamaged,
+        RecordAppendError::StreamFailed(_) => RecordAppendDenial::PublishedLayoutDamaged,
     }
 }

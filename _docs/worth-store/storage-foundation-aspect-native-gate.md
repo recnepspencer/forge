@@ -686,6 +686,38 @@ Produce the typed gate output that S0 must consume.
   evidence as the ordinary path.
 - Native test harness builders for all ordinary Store S.* boundary facts.
 
+## C.7 Derived Durability Work-Basis Contracts
+
+C.7 adds exactly six aspect-native contracts to the physical work profile:
+
+| Contract key | Basis posture and Signal role | Admitted masks | Signal families | Partition |
+| --- | --- | --- | --- | --- |
+| `store.physical.durability.policy-binding-basis` | projection; `Dependency` | projection only | `WalAppend`, `DurabilityBarrier`, `CheckpointCapture`, `RootPublication`, `WalReclamation` | `physical-durability-policy/{policy-identity}` |
+| `store.physical.durability.wal-append-basis` | mutation; `DependencyAndOutput` | whole projection and whole mutation | `WalAppend` | `physical-durability-store/{store-identity}` |
+| `store.physical.durability.wal-barrier-basis` | mutation; `DependencyAndOutput` | whole projection and whole mutation | `DurabilityBarrier` | `physical-durability-store/{store-identity}` |
+| `store.physical.durability.checkpoint-capture-basis` | mutation; `DependencyAndOutput` | whole projection and whole mutation | `CheckpointCapture` | `physical-durability-store/{store-identity}` |
+| `store.physical.durability.root-publication-basis` | mutation; `DependencyAndOutput` | whole projection and whole mutation | `RootPublication` | `physical-durability-store/{store-identity}` |
+| `store.physical.durability.wal-reclamation-basis` | mutation; `DependencyAndOutput` | whole projection and whole mutation | `WalReclamation` | `physical-durability-store/{store-identity}` |
+
+These contracts route dependency readiness and invalidation only. They do not
+own WAL durability, data settlement, checkpoint publication, current-root
+advancement, reclamation eligibility, or acknowledgment. Exact WAL ranges,
+barrier artifacts, checkpoint identities, root candidates, and reclaim targets
+remain in typed Store work declarations and executor commands. Signal receives
+the admitted family and partition; it never receives authority to construct or
+widen physical truth. The installed Signal graph already has one runtime owner;
+the partition therefore stays stable for the Store across reopen while exact
+runtime-incarnation authority remains in Store commands and progression types.
+
+`FoundationalPolicyAdmissionReceipt` separately proves finite scheduler budget
+admission for the named work. Worth Proof separately carries transition
+posture. Neither value can enter Store progression as physical evidence.
+
+The gate
+`c7_durability_aspects_are_six_exact_store_partitioned_contracts` and its
+unpartitioned, ephemeral-runtime, missing-contract, and wrong-key mutants
+enforce this table.
+
 ## Must Preserve
 
 - Store owns physical byte survival. Foundational owns shared boundary

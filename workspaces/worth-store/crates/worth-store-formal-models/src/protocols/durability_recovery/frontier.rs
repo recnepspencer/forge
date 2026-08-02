@@ -7,7 +7,6 @@ pub enum WalFrontierState {
     CompletedInMemory,
     FenceRequested,
     FenceCompleted,
-    Acknowledged,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -57,6 +56,7 @@ pub struct DurabilityRecoveryFrontier {
     directory_sync: DirectorySyncFrontierState,
     replay: ReplayFrontierState,
     recovered_root: RecoveredRootFrontierState,
+    physical_mutation_acknowledged: bool,
     crashed: bool,
 }
 
@@ -69,6 +69,7 @@ impl DurabilityRecoveryFrontier {
             directory_sync: DirectorySyncFrontierState::Absent,
             replay: ReplayFrontierState::Absent,
             recovered_root: RecoveredRootFrontierState::Absent,
+            physical_mutation_acknowledged: false,
             crashed: false,
         }
     }
@@ -94,16 +95,13 @@ impl DurabilityRecoveryFrontier {
             Action::WalFenceCompleted if self.wal == WalFrontierState::FenceRequested => {
                 self.wal = WalFrontierState::FenceCompleted;
             }
-            Action::WalAcknowledgmentLegal if self.wal == WalFrontierState::FenceCompleted => {
-                self.wal = WalFrontierState::Acknowledged;
-            }
-            Action::WalAcknowledgmentLegal => {
-                return Err(DurabilityRecoveryDenial::AmbiguousWalDurability);
+            Action::PageFlushRequested if self.wal != WalFrontierState::FenceCompleted => {
+                return Err(DurabilityRecoveryDenial::PageFlushAheadOfWal);
             }
             Action::PageFlushRequested if self.page == PageFrontierState::Clean => {
                 self.page = PageFrontierState::FlushRequested;
             }
-            Action::PageFlushCompleted if self.wal != WalFrontierState::Acknowledged => {
+            Action::PageFlushCompleted if self.wal != WalFrontierState::FenceCompleted => {
                 return Err(DurabilityRecoveryDenial::PageFlushAheadOfWal);
             }
             Action::PageFlushCompleted if self.page == PageFrontierState::FlushRequested => {
@@ -117,7 +115,10 @@ impl DurabilityRecoveryFrontier {
             Action::CheckpointBegun if self.checkpoint == CheckpointFrontierState::Absent => {
                 self.checkpoint = CheckpointFrontierState::Begun;
             }
-            Action::CheckpointDurable if self.wal != WalFrontierState::Acknowledged => {
+            Action::CheckpointDurable
+                if self.wal != WalFrontierState::FenceCompleted
+                    || self.page != PageFrontierState::Durable =>
+            {
                 return Err(DurabilityRecoveryDenial::CheckpointFrontierNotDurable);
             }
             Action::CheckpointDurable if self.checkpoint == CheckpointFrontierState::Begun => {
@@ -139,6 +140,19 @@ impl DurabilityRecoveryFrontier {
             }
             Action::CheckpointPublished => {
                 return Err(DurabilityRecoveryDenial::DirectorySyncNotDurable);
+            }
+            Action::PhysicalMutationAcknowledged if self.physical_mutation_acknowledged => {
+                return Err(DurabilityRecoveryDenial::PhysicalMutationAlreadyAcknowledged);
+            }
+            Action::PhysicalMutationAcknowledged
+                if self.wal == WalFrontierState::FenceCompleted
+                    && self.page == PageFrontierState::Durable
+                    && self.checkpoint == CheckpointFrontierState::Published =>
+            {
+                self.physical_mutation_acknowledged = true;
+            }
+            Action::PhysicalMutationAcknowledged => {
+                return Err(DurabilityRecoveryDenial::IncompletePhysicalDurability);
             }
             Action::CheckpointSelected if self.checkpoint == CheckpointFrontierState::Published => {
                 self.checkpoint = CheckpointFrontierState::Selected;
@@ -199,7 +213,7 @@ impl DurabilityRecoveryFrontier {
     fn reopen(&mut self) {
         self.crashed = false;
         self.wal = match self.wal {
-            WalFrontierState::FenceCompleted | WalFrontierState::Acknowledged => self.wal,
+            WalFrontierState::FenceCompleted => self.wal,
             _ => WalFrontierState::Absent,
         };
         self.page = match self.page {
@@ -218,8 +232,8 @@ impl DurabilityRecoveryFrontier {
         }
     }
 
-    pub const fn wal_acknowledged(self) -> bool {
-        matches!(self.wal, WalFrontierState::Acknowledged)
+    pub const fn physical_mutation_acknowledged(self) -> bool {
+        self.physical_mutation_acknowledged
     }
 
     pub const fn root_publication_pending(self) -> bool {

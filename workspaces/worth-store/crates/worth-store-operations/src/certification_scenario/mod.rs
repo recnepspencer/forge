@@ -4,7 +4,6 @@ mod backup;
 pub(crate) mod backup_artifacts;
 mod dag_permutation;
 mod fencing;
-mod footprint_rejection;
 mod offline_truth;
 mod poisoned_backup;
 mod recovery_staging;
@@ -29,9 +28,6 @@ pub use dag_permutation::{
     certify_scenario_canonical_owner_dag_permutation, ScenarioCanonicalOwnerDagPermutationReceipt,
 };
 pub use fencing::{ExactScenarioControlSelection, ExactScenarioRecoveryFencePort};
-pub use footprint_rejection::{
-    certify_scenario_footprint_mutation_rejection, ScenarioFootprintMutationRejectionReceipt,
-};
 pub use offline_truth::{
     certify_scenario_truth_restarts, inspect_scenario_truth, InspectedScenarioTruth,
 };

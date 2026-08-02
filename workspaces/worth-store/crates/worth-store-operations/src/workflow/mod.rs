@@ -1,5 +1,4 @@
 mod backup;
-mod cutover;
 mod point_in_time_recovery;
 mod recovery_owner_plan;
 mod recovery_owner_receipt;
@@ -9,7 +8,6 @@ mod replica_promotion;
 mod restore;
 mod rollback;
 
-pub(crate) use cutover::recover_pending;
 pub(crate) use recovery_owner_receipt::persist_recovery_owner_receipts;
 #[cfg(feature = "certification-test-authority")]
 pub(crate) use repair::{
@@ -32,42 +30,6 @@ pub use backup::{
     ProductionRestoreAdmissibleBackupBundle, RecoverableOnlineBackup,
     UnpersistedBackupReachabilityLease, UnrecordedBackupMaterialization,
     UnreleasedIndependentBackupVerification,
-};
-pub use cutover::{
-    AuthorityAffectingRepairReadmissionOutcome, AuthorizedAuthorityAffectingRepairCutover,
-    AuthorizedBackupRestoreCutover, AuthorizedPointInTimeRecoveryCutover,
-    AuthorizedRollbackCutover, BackupRestoreReadmissionOutcome, CompletedRetainedAuthorityRollback,
-    CurrentRecoveryAuthoritySnapshot, FencedAuthorityAffectingRepairCutover,
-    FencedBackupRestoreCutover, FencedPointInTimeRecoveryCutover, FencedRollbackCutover,
-    LoweredAuthorityAffectingRepairCutoverPlanDag, LoweredBackupRestoreCutoverPlanDag,
-    LoweredPointInTimeRecoveryCutoverPlanDag, LoweredRollbackCutoverPlanDag,
-    PointInTimeRecoveryReadmissionOutcome, PostVerifiedAuthorityAffectingRepair,
-    PostVerifiedBackupRestore, PostVerifiedPointInTimeRecovery, PostVerifiedRollback,
-    PublishedAuthorityAffectingRepairAbandoned,
-    PublishedAuthorityAffectingRepairPendingReadmission,
-    PublishedAuthorityAffectingRepairRejectedByAuthority,
-    PublishedAuthorityAffectingRepairRetainedForForensics, PublishedBackupRestoreAbandoned,
-    PublishedBackupRestorePendingReadmission, PublishedBackupRestoreRejectedByAuthority,
-    PublishedBackupRestoreRetainedForForensics, PublishedPointInTimeRecoveryAbandoned,
-    PublishedPointInTimeRecoveryPendingReadmission,
-    PublishedPointInTimeRecoveryRejectedByAuthority,
-    PublishedPointInTimeRecoveryRetainedForForensics, PublishedRollbackAbandoned,
-    PublishedRollbackPendingReadmission, PublishedRollbackRejectedByAuthority,
-    PublishedRollbackRetainedForForensics, ReadmittedAuthorityAffectingRepairCurrent,
-    ReadmittedBackupRestoreCurrent, ReadmittedPointInTimeRecoveryCurrent,
-    ReadmittedRollbackCurrent, RecoveredAuthorityAffectingRepairPendingReadmission,
-    RecoveredAuthorityAffectingRepairReadmissionOutcome, RecoveredBackupRestorePendingReadmission,
-    RecoveredBackupRestoreReadmissionOutcome, RecoveredPendingRecoveryPublication,
-    RecoveredPointInTimeRecoveryPendingReadmission, RecoveredPointInTimeRecoveryReadmissionOutcome,
-    RecoveredReadmittedAuthorityAffectingRepairCurrent, RecoveredReadmittedBackupRestoreCurrent,
-    RecoveredReadmittedPointInTimeRecoveryCurrent, RecoveredReadmittedRollbackCurrent,
-    RecoveredRollbackPendingReadmission, RecoveredRollbackReadmissionOutcome,
-    RecoveryAuthorityDelta, RecoveryAuthorityFrontier, RecoveryCutoverDenial,
-    RecoveryCutoverExecutionDenial, RecoverySourceLeaseFinalizationDenial,
-    ResolvedAuthorityAffectingRepairCutoverCandidate, ResolvedBackupRestoreCutoverCandidate,
-    ResolvedPointInTimeRecoveryCutoverCandidate, ResolvedRollbackCutoverCandidate,
-    RestoreDrillCertification, RestoreDrillCertificationDenial, RestoreDrillExpectation,
-    RollbackReadmissionOutcome,
 };
 pub use point_in_time_recovery::{
     AdmittedPitrSourceOperation, AuthorizedPointInTimeRecoveryPlan,

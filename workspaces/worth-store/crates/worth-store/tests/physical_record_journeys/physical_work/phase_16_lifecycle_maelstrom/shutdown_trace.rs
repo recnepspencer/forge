@@ -59,14 +59,14 @@ pub(super) fn close_and_finish(
     assert!(matches!(closed, PhysicalStoreCloseOutcome::Closed { .. }));
     assert_shutdown(&closed, &trace, abandoned_identity, close_read_identity);
     let fresh = fresh.open_after_close();
-    assert_eq!(fresh.root_generation, model.append_generations[1]);
+    assert_eq!(fresh.root_generation, model.fresh_root_generation);
     let courtroom = super::evidence::finish(
         evidence_binding,
         environment,
         &world.root,
         &fresh,
-        model.append_generations[1],
-        &model.append_records,
+        model.fresh_root_generation,
+        model.fresh_records,
     );
     assert_eq!(courtroom.store(), store.bytes());
     assert_dispatched_close_evidence(&courtroom, close_read_identity);

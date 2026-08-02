@@ -1,44 +1,52 @@
 use worth_proof::TransitionOutcome;
-use worth_store_physical_backend::SimulatedStrictDurableProfile;
+use worth_store_physical_backend::{BackendDurabilityProfile, SimulatedStrictDurableProfile};
 use worth_store_recovery_physics::{
     CrashBoundaryLayoutReport, LogSequenceNumber, PartialPublicationCrashEdge,
     PartialPublicationReplayedCrashEdge, RecoveryCheckpointRecordSecurityMetadataEnvelope,
     RecoveryCheckpointRecordSecurityMetadataIdentity, RecoveryEntryAdmission,
     RecoveryReplayEntryGate, RecoveryRootSecurityMetadataEnvelope,
     RecoverySecurityScopePropagation, RecoveryWalRecordSecurityMetadataEnvelope,
-    RecoveryWalRecordSecurityMetadataIdentity, WalAppendPlan, WalLsnRange, WalSegmentGeneration,
-    WalSegmentId,
+    RecoveryWalRecordSecurityMetadataIdentity, WalAppendObservationScope, WalAppendReceipt,
+    WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
 use worth_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
     StoreSecurityScopeAdmissionExpectation, StoreSecurityScopeAdmissionRequest, StoreTenantScope,
 };
-use worth_store_wal::{DurablePublicationDeclaration, WalFrameDurablePublicationScope};
+use worth_store_wal::{PublicationDeclaration, WalFramePublicationScope};
 
 use crate::lifecycle::generation_registry_test_support::current_authority;
 use crate::publication::evidence::identity::BlobPublicationRecoveryOperationDigest;
 use crate::BlobPublicationPreWalReplayEvidence;
 
-pub(crate) fn durable_wal_publication(frame_digest: &str) -> DurablePublicationDeclaration {
-    let scope = WalFrameDurablePublicationScope::new(7, 1, 10, 11, frame_digest, 64)
-        .expect("wal frame publication scope should admit");
-    DurablePublicationDeclaration::wal_frame(scope)
-}
-
-pub(crate) fn replayable_wal_classification(frame_digest: &str) -> CrashBoundaryLayoutReport {
-    let plan = WalAppendPlan::<SimulatedStrictDurableProfile>::new(
+pub(crate) fn durable_wal_publication(frame_digest: &str) -> PublicationDeclaration {
+    let scope = WalFramePublicationScope::new(
         WalSegmentId::new(7).unwrap(),
         WalSegmentGeneration::new(1).unwrap(),
         WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(11)).unwrap(),
         frame_digest,
         64,
     )
-    .expect("wal append plan should admit");
-    let receipt = plan
-        .record_written_bytes(64)
-        .finish()
-        .expect("wal append receipt should finish");
+    .expect("wal frame publication scope should admit");
+    PublicationDeclaration::wal_frame(scope)
+}
+
+pub(crate) fn replayable_wal_classification(frame_digest: &str) -> CrashBoundaryLayoutReport {
+    let scope = WalAppendObservationScope::new(
+        WalSegmentId::new(7).unwrap(),
+        WalSegmentGeneration::new(1).unwrap(),
+        WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(11)).unwrap(),
+        frame_digest,
+        64,
+    )
+    .expect("WAL observation scope should admit");
+    let receipt = WalAppendReceipt::<SimulatedStrictDurableProfile>::from_certification_observation(
+        scope,
+        64,
+        SimulatedStrictDurableProfile::REQUIRED_BARRIERS,
+        None,
+    );
     CrashBoundaryLayoutReport::admit_crash_edge(
         PartialPublicationCrashEdge::after_durability_before_ack(receipt),
     )

@@ -1,5 +1,5 @@
 use worth_store_recovery_physics::{BlobReplaySourceAdmission, BlobReplaySourceKind};
-use worth_store_wal::DurablePublicationDeclaration;
+use worth_store_wal::PublicationDeclaration;
 
 use crate::{
     BlobChunkSecurityMetadataWitness, BlobGeneration, BlobObjectClassification, BlobObjectId,
@@ -105,7 +105,7 @@ pub struct BlobRecoveredPublishedGeneration {
     chunk_tree_root: ChunkTreeRoot,
     logical_content_digest: LogicalContentDigest,
     classification: BlobObjectClassification,
-    durable_publication: DurablePublicationDeclaration,
+    publication_declaration: PublicationDeclaration,
     replay_classification_digest: String,
     staging_identity: BlobReachabilityStagingIdentity,
     security_metadata: BlobChunkSecurityMetadataWitness,
@@ -163,7 +163,7 @@ impl BlobRecoveredPublishedGeneration {
             chunk_tree_root: intent.chunk_tree_root().clone(),
             logical_content_digest: intent.logical_content_digest().clone(),
             classification: intent.classification(),
-            durable_publication: commit.durable_publication().clone(),
+            publication_declaration: commit.publication_declaration().clone(),
             replay_classification_digest: commit.replay_classification_digest().to_owned(),
             staging_identity: commit.staging_identity().clone(),
             security_metadata: commit.security_metadata(),
@@ -190,8 +190,8 @@ impl BlobRecoveredPublishedGeneration {
         self.classification
     }
 
-    pub const fn durable_publication(&self) -> &DurablePublicationDeclaration {
-        &self.durable_publication
+    pub const fn publication_declaration(&self) -> &PublicationDeclaration {
+        &self.publication_declaration
     }
 
     pub fn replay_classification_digest(&self) -> &str {

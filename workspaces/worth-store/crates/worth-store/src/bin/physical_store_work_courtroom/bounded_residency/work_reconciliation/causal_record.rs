@@ -69,6 +69,23 @@ fn require_backend_role(
                 | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
                 | PhysicalWorkBackendRoleEvidence::AtomicReplace
         ),
+        PhysicalWorkOperationFamily::CheckpointCapture => matches!(
+            role,
+            PhysicalWorkBackendRoleEvidence::CreateNew
+                | PhysicalWorkBackendRoleEvidence::PositionedWrite
+                | PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+                | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
+                | PhysicalWorkBackendRoleEvidence::AtomicReplace
+        ),
+        PhysicalWorkOperationFamily::WalReclamation => {
+            role == PhysicalWorkBackendRoleEvidence::Delete
+        }
+        PhysicalWorkOperationFamily::RootPublication => matches!(
+            role,
+            PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+                | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
+                | PhysicalWorkBackendRoleEvidence::AtomicReplace
+        ),
     };
     if exact {
         Ok(())
@@ -100,6 +117,12 @@ fn require_signal_family(
         ) | (
             PhysicalWorkOperationFamily::DurabilityBarrier,
             PhysicalWorkSignalFamily::DurabilityBarrier,
+        ) | (
+            PhysicalWorkOperationFamily::CheckpointCapture,
+            PhysicalWorkSignalFamily::CheckpointCapture,
+        ) | (
+            PhysicalWorkOperationFamily::WalReclamation,
+            PhysicalWorkSignalFamily::WalReclamation,
         )
     );
     if !exact {
@@ -138,6 +161,18 @@ fn require_successful_fate(record: PhysicalWorkCausalRecord) -> Result<(), Strin
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }
         PhysicalWorkOperationFamily::DurabilityBarrier => {
+            record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::CheckpointCapture => {
+            record.effect_fate() == PhysicalWorkEffectFate::CheckpointCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::WalReclamation => {
+            record.effect_fate() == PhysicalWorkEffectFate::WalReclamationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::RootPublication => {
             record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }

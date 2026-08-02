@@ -2,6 +2,7 @@ use worth_store_physical_backend::QualifiedFilesystemMedia;
 
 use crate::physical_runtime::{PhysicalExecutorCommand, PhysicalExecutorDispatch};
 
+mod checkpoint;
 mod metadata_read;
 mod publication;
 mod range_read;
@@ -10,6 +11,8 @@ mod recovery_obligation;
 mod residency_writeback;
 mod wal_append;
 mod wal_barrier;
+mod wal_reclamation;
+mod wal_segment_create;
 #[cfg(feature = "certification-test-authority")]
 mod yieldpoint;
 
@@ -71,13 +74,23 @@ impl PhysicalWorkExecutor {
             }
             PhysicalExecutorCommand::NewArtifact(command) => self.dispatch_new_artifact(command),
             PhysicalExecutorCommand::PublicationEffect(command) => {
-                self.dispatch_publication_effect(command)
+                self.dispatch_publication_effect(command, false)
+            }
+            PhysicalExecutorCommand::RootPublicationEffect(command) => {
+                self.dispatch_publication_effect(command, true)
             }
             PhysicalExecutorCommand::ResidencyWriteback(command) => {
                 self.dispatch_residency_writeback(command)
             }
             PhysicalExecutorCommand::WalAppend(command) => self.dispatch_wal_append(command),
+            PhysicalExecutorCommand::WalSegmentCreate(command) => {
+                self.dispatch_wal_segment_create(command)
+            }
             PhysicalExecutorCommand::WalBarrier(command) => self.dispatch_wal_barrier(command),
+            PhysicalExecutorCommand::Checkpoint(command) => self.dispatch_checkpoint(command),
+            PhysicalExecutorCommand::WalReclamation(command) => {
+                self.dispatch_wal_reclamation(command)
+            }
         }
     }
 

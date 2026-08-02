@@ -11,8 +11,17 @@ use test_support::{background_budget_with_queue_slots, read_pressure_budget, Wor
 
 use crate::{
     BackgroundDebtKind, BackgroundIoPressureClass, BackgroundIoPressureShape,
-    BackgroundPacingDenial, BackgroundPacingOutcome, QueueSlot,
+    BackgroundPacingDenial, BackgroundPacingOutcome, IoSchedulerBackendCapabilityRequirement,
+    QueueSlot,
 };
+
+#[test]
+fn filesystem_checkpoint_shape_requires_filesystem_admitted_fsync_evidence() {
+    assert_eq!(
+        BackgroundIoPressureShape::filesystem_admitted_checkpoint_flush().backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+    );
+}
 
 #[test]
 fn background_pressure_classes_are_distinct_physical_shapes() {

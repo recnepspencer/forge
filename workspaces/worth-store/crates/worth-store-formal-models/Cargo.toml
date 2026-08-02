@@ -14,7 +14,7 @@ worth-store-operations.workspace = true
 worth-store-physical-backend.workspace = true
 worth-store-physical-integrity.workspace = true
 worth-store-physical-isolation.workspace = true
-worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics.workspace = true
 worth-store-replication.workspace = true
 worth-store-security.workspace = true
 worth-store-wal.workspace = true

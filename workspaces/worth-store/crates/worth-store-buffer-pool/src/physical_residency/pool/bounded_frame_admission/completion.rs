@@ -41,6 +41,7 @@ impl PoolInner {
                 allocation_scope,
                 pins: 1 + waiters,
                 dirty: false,
+                dirty_generation: None,
                 writeback_claimed: false,
                 bytes: bytes.capacity() as u64,
                 older_evictable: None,

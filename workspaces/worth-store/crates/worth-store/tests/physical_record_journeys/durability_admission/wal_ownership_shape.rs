@@ -4,22 +4,43 @@ use std::{
 };
 
 #[test]
-fn wal_append_effect_and_typed_promotion_each_have_one_production_owner() {
+fn wal_and_checkpoint_append_effects_have_exact_semantic_owners() {
     let runtime = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("physical_runtime");
     let sources = rust_sources(&runtime);
 
+    assert_exact_owners(
+        &runtime,
+        &sources,
+        ".append_scheduled_artifact_exact_at(",
+        &[
+            "instance/executor/checkpoint.rs",
+            "instance/executor/wal_append.rs",
+        ],
+    );
     assert_single_owner(
         &runtime,
         &sources,
-        "append_scheduled_artifact_exact_at(",
+        "fn dispatch_wal_append(",
         "instance/executor/wal_append.rs",
     );
     assert_single_owner(
         &runtime,
         &sources,
-        "PhysicalWalAppendSettlement::completed(",
+        "fn dispatch_checkpoint(",
+        "instance/executor/checkpoint.rs",
+    );
+    assert_single_owner(
+        &runtime,
+        &sources,
+        "PhysicalWalAppendSettlement::completed_append(",
+        "durability/wal/port.rs",
+    );
+    assert_single_owner(
+        &runtime,
+        &sources,
+        "PhysicalWalAppendSettlement::completed_segment_create(",
         "durability/wal/port.rs",
     );
     assert_single_owner(
@@ -37,6 +58,30 @@ fn wal_append_effect_and_typed_promotion_each_have_one_production_owner() {
 }
 
 #[test]
+fn wal_segment_creation_has_one_scheduled_owner() {
+    let runtime = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("physical_runtime");
+    let sources = rust_sources(&runtime);
+    let create_owner = read(&runtime.join("instance/executor/wal_segment_create.rs"));
+    assert_eq!(
+        create_owner.matches(".write_scheduled_new_exact(").count(),
+        1
+    );
+    assert!(
+        sources
+            .iter()
+            .filter(|(path, _)| {
+                path.to_string_lossy()
+                    .replace('\\', "/")
+                    .contains("durability/wal")
+            })
+            .all(|(_, source)| !source.contains(".write_new(")),
+        "the WAL owner must not create an empty or unscheduled segment artifact"
+    );
+}
+
+#[test]
 fn displaced_wal_executors_are_absent_from_default_facades() {
     let crates = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -47,11 +92,19 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
             .join("src")
             .join("lib.rs"),
     );
-    let recovery_wal = read(
+    let displaced_recovery_wal = crates
+        .join("worth-store-recovery-physics")
+        .join("src")
+        .join("wal_durability");
+    assert!(
+        !displaced_recovery_wal.exists(),
+        "the recovery-owned WAL execution directory must remain deleted"
+    );
+    let recovery_wal_basis = read(
         &crates
             .join("worth-store-recovery-physics")
             .join("src")
-            .join("wal_durability")
+            .join("wal_recovery_basis")
             .join("mod.rs"),
     );
     for displaced in [
@@ -60,23 +113,15 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
         "WalDurabilityExecutionError",
     ] {
         assert!(!recovery_root.contains(displaced));
-        assert!(!recovery_wal.contains(displaced));
+        assert!(!recovery_wal_basis.contains(displaced));
     }
-    assert!(recovery_wal
-        .contains("#[cfg(feature = \"certification-test-authority\")]\nmod certification_probe;"));
-
-    let backend_facade = read(
-        &crates
-            .join("worth-store-physical-backend")
-            .join("src")
-            .join("facade.rs"),
-    );
-    let guarded_backend_append = "#[cfg(feature = \"certification-test-authority\")]\npub use crate::durability_ordering::StoreDurabilityAppendInput;";
-    assert!(has_only_guarded_surface(
-        &backend_facade,
-        guarded_backend_append,
-        "StoreDurabilityAppendInput",
-    ));
+    for descriptive in [
+        "WalAppendReceipt",
+        "WalDurabilityObservation",
+        "WalDurabilityCrashBasis",
+    ] {
+        assert!(recovery_wal_basis.contains(descriptive));
+    }
 
     let wal_root = read(&crates.join("worth-store-wal").join("src").join("lib.rs"));
     let guarded_wal_planner =
@@ -90,16 +135,6 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
 
 #[test]
 fn cleanup_gate_rejects_unguarded_duplicate_exports() {
-    let guarded_backend_append = "#[cfg(feature = \"certification-test-authority\")]\npub use crate::durability_ordering::StoreDurabilityAppendInput;";
-    let backend_mutant = format!(
-        "{guarded_backend_append}\npub use crate::durability_ordering::StoreDurabilityAppendInput;"
-    );
-    assert!(!has_only_guarded_surface(
-        &backend_mutant,
-        guarded_backend_append,
-        "StoreDurabilityAppendInput",
-    ));
-
     let guarded_wal_planner =
         "#[cfg(feature = \"certification-authority\")]\npub use artifact_store::WalAppendPlanner;";
     let wal_mutant = format!("{guarded_wal_planner}\npub use artifact_store::WalAppendPlanner;");
@@ -137,6 +172,26 @@ fn assert_single_owner(
         .to_string_lossy()
         .replace('\\', "/");
     assert_eq!(relative, expected_owner);
+}
+
+fn assert_exact_owners(
+    root: &Path,
+    sources: &[(PathBuf, String)],
+    needle: &str,
+    expected_owners: &[&str],
+) {
+    let mut owners = sources
+        .iter()
+        .flat_map(|(path, source)| std::iter::repeat_n(path, source.matches(needle).count()))
+        .map(|path| {
+            path.strip_prefix(root)
+                .unwrap()
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect::<Vec<_>>();
+    owners.sort();
+    assert_eq!(owners, expected_owners, "unexpected owners for {needle}");
 }
 
 fn rust_sources(root: &Path) -> Vec<(PathBuf, String)> {

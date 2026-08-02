@@ -1,11 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use self::source_identity::{
-    phase_one_source_identity, phase_three_wal_source_identity,
+    phase_four_data_source_identity, phase_one_source_identity, phase_three_wal_source_identity,
     phase_two_authority_source_identity, phase_two_mutation_source_identity,
 };
 use super::read_repository_document;
 
+mod phase_eight;
+mod phase_five;
+mod phase_nine;
+mod phase_seven;
+mod phase_six;
 mod source_identity;
 
 const LEDGER: &str = "_docs/worth-store/physical-reconstruction-c7-closure-ledger.md";
@@ -19,9 +24,11 @@ const REQUIRED_FAMILIES: &[&str] = &[
     "VOCABULARY",
     "IDEMPOTENCY",
     "WAL",
+    "BARRIER",
     "DATA",
     "GROUP",
     "CHECKPOINT",
+    "RETENTION",
     "ROOT",
     "FAILURE",
     "LIFECYCLE",
@@ -32,6 +39,14 @@ const REQUIRED_FAMILIES: &[&str] = &[
     "DOCUMENTATION",
     "COURTROOM",
     "HANDOFF",
+];
+const PHASE_FOUR_GUARANTEES: &[&str] = &[
+    "C7-BARRIER-01",
+    "C7-DATA-01",
+    "C7-DATA-02",
+    "C7-DATA-03",
+    "C7-DATA-04",
+    "C7-FAILURE-01",
 ];
 
 #[test]
@@ -95,6 +110,18 @@ fn proved_phase_three_wal_guarantees_track_their_exact_source_closure() {
     let source_identity =
         phase_three_wal_source_identity().expect("hash Phase 3 WAL source closure");
     for guarantee in ["C7-WAL-01", "C7-WAL-02", "C7-WAL-03", "C7-WAL-04"] {
+        validate_exact_source_identity(&rows, guarantee, &source_identity)
+            .unwrap_or_else(|denial| panic!("{denial}"));
+    }
+}
+
+#[test]
+fn proved_phase_four_barrier_and_data_guarantees_track_their_exact_source_closure() {
+    let document = read_repository_document(LEDGER).expect("read C.7 closure ledger");
+    let rows = parse_ledger(&document).expect("parse C.7 closure ledger");
+    let source_identity =
+        phase_four_data_source_identity().expect("hash Phase 4 barrier and data source closure");
+    for guarantee in PHASE_FOUR_GUARANTEES {
         validate_exact_source_identity(&rows, guarantee, &source_identity)
             .unwrap_or_else(|denial| panic!("{denial}"));
     }
@@ -177,6 +204,18 @@ fn validate_ledger(rows: &[LedgerRow]) -> Result<(), String> {
             return Err(format!("C.7 closure ledger omits `{family}` guarantees"));
         }
     }
+    for guarantee in PHASE_FOUR_GUARANTEES {
+        let row = rows
+            .iter()
+            .find(|row| row.id == *guarantee)
+            .ok_or_else(|| format!("C.7 closure ledger omits Phase 4 guarantee `{guarantee}`"))?;
+        if row.phase != "4" {
+            return Err(format!(
+                "Phase 4 guarantee `{guarantee}` is assigned to phase {}",
+                row.phase
+            ));
+        }
+    }
     Ok(())
 }
 
@@ -225,59 +264,90 @@ fn ledger_validator_rejects_omitted_family_duplicate_and_stale_proof() {
         .collect::<Vec<_>>();
     assert!(validate_ledger(&omitted).is_err());
 
+    let omitted_retention = rows
+        .iter()
+        .filter(|row| !row.id.starts_with("C7-RETENTION-"))
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(validate_ledger(&omitted_retention).is_err());
+
     let mut duplicate = rows.clone();
     duplicate.push(rows[0].clone());
     assert!(validate_ledger(&duplicate).is_err());
+
+    let omitted_phase_four = rows
+        .iter()
+        .filter(|row| row.id != "C7-DATA-03")
+        .cloned()
+        .collect::<Vec<_>>();
+    assert!(validate_ledger(&omitted_phase_four).is_err());
 
     let mut stale = rows.clone();
     stale[0].status = LedgerStatus::Proved;
     stale[0].current_evidence = "pending".to_owned();
     assert!(validate_ledger(&stale).is_err());
+}
+
+#[test]
+fn source_identity_validators_reject_stale_phase_closures() {
+    let document = read_repository_document(LEDGER).expect("read C.7 closure ledger");
+    let rows = parse_ledger(&document).expect("parse C.7 closure ledger");
 
     let source_identity = phase_one_source_identity().expect("hash Phase 1 source closure");
-    let mut stale_identity = rows;
+    let mut stale_identity = rows.clone();
     stale_identity[0].source_identity = "P1 closure deadbeefdead".to_owned();
     assert!(validate_phase_one_source_identity(&stale_identity, &source_identity).is_err());
 
     let source_identity =
         phase_two_authority_source_identity().expect("hash Phase 2 authority closure");
-    let mut stale_phase_two = parse_ledger(&document).expect("parse C.7 closure ledger");
-    let authority = stale_phase_two
-        .iter_mut()
-        .find(|row| row.id == "C7-AUTHORITY-02")
-        .expect("Phase 2 authority guarantee");
-    authority.status = LedgerStatus::Proved;
-    authority.source_identity = "P2 authority deadbeefdead".to_owned();
-    assert!(
-        validate_exact_source_identity(&stale_phase_two, "C7-AUTHORITY-02", &source_identity)
-            .is_err()
+    assert_stale_exact_identity_rejected(
+        &rows,
+        "C7-AUTHORITY-02",
+        &source_identity,
+        "P2 authority deadbeefdead",
     );
 
     let source_identity =
         phase_two_mutation_source_identity().expect("hash Phase 2 mutation closure");
-    let mutation = stale_phase_two
-        .iter_mut()
-        .find(|row| row.id == "C7-IDEMPOTENCY-01")
-        .expect("Phase 2 mutation guarantee");
-    mutation.status = LedgerStatus::Proved;
-    mutation.source_identity = "P2 mutation deadbeefdead".to_owned();
-    assert!(validate_exact_source_identity(
-        &stale_phase_two,
+    assert_stale_exact_identity_rejected(
+        &rows,
         "C7-IDEMPOTENCY-01",
-        &source_identity
-    )
-    .is_err());
+        &source_identity,
+        "P2 mutation deadbeefdead",
+    );
 
     let source_identity = phase_three_wal_source_identity().expect("hash Phase 3 WAL closure");
-    let wal = stale_phase_two
-        .iter_mut()
-        .find(|row| row.id == "C7-WAL-01")
-        .expect("Phase 3 WAL guarantee");
-    wal.status = LedgerStatus::Proved;
-    wal.source_identity = "P3 WAL deadbeefdead".to_owned();
-    assert!(
-        validate_exact_source_identity(&stale_phase_two, "C7-WAL-01", &source_identity).is_err()
+    assert_stale_exact_identity_rejected(
+        &rows,
+        "C7-WAL-01",
+        &source_identity,
+        "P3 WAL deadbeefdead",
     );
+
+    let source_identity =
+        phase_four_data_source_identity().expect("hash Phase 4 barrier and data closure");
+    assert_stale_exact_identity_rejected(
+        &rows,
+        "C7-DATA-01",
+        &source_identity,
+        "P4 data deadbeefdead",
+    );
+}
+
+fn assert_stale_exact_identity_rejected(
+    rows: &[LedgerRow],
+    guarantee: &str,
+    expected: &str,
+    stale: &str,
+) {
+    let mut rows = rows.to_vec();
+    let row = rows
+        .iter_mut()
+        .find(|row| row.id == guarantee)
+        .unwrap_or_else(|| panic!("missing controlled guarantee `{guarantee}`"));
+    row.status = LedgerStatus::Proved;
+    row.source_identity = stale.to_owned();
+    assert!(validate_exact_source_identity(&rows, guarantee, expected).is_err());
 }
 
 #[derive(Clone)]

@@ -6,7 +6,7 @@ use worth_store_physical_backend::{
     ArtifactTreeFailureKind, MediaFaultDirective, MediaOperationRole,
 };
 
-use super::super::serving_from_open;
+use super::super::{durable_publication, serving_from_open};
 use super::record_read_signal_cleanup::await_read_signal_cleanup;
 use super::{configuration, serving_from_initialization};
 
@@ -18,15 +18,13 @@ fn denied_before_effect_read_releases_work_and_allows_same_runtime_retry() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("record-read-failure-cleanup", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let calibration = serving_from_open(&root);

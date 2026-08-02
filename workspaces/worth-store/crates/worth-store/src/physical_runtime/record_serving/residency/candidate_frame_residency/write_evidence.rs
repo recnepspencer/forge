@@ -1,5 +1,5 @@
 use sha2::{Digest, Sha256};
-use worth_store_physical_backend::CompletedArtifactRangeWrite;
+use worth_store_physical_backend::CompletedArtifactNewWrite;
 use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
 
 use crate::physical_runtime::record_serving::RecordAppendDenial;
@@ -9,7 +9,8 @@ use crate::physical_runtime::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct CandidateFramePhysicalWrite {
-    receipt: CompletedArtifactRangeWrite,
+    receipt: CompletedArtifactNewWrite,
+    coordinate: RecordFrameCoordinate,
     settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
 }
 
@@ -20,7 +21,7 @@ pub(in crate::physical_runtime::record_serving) struct CandidateFrameResidencySe
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime) enum CandidateFrameEffectSource {
     NewArtifact,
-    C6Writeback,
+    ExistingArtifactWriteback,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,19 +37,15 @@ pub(in crate::physical_runtime) struct CandidateFrameEffectSettlement {
 
 impl CandidateFramePhysicalWrite {
     pub(in crate::physical_runtime::record_serving) fn completed(
-        receipt: CompletedArtifactRangeWrite,
+        receipt: CompletedArtifactNewWrite,
+        coordinate: RecordFrameCoordinate,
         settlement: crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement,
     ) -> Self {
         Self {
             receipt,
+            coordinate,
             settlement,
         }
-    }
-
-    pub(in crate::physical_runtime::record_serving) const fn settlement(
-        &self,
-    ) -> crate::physical_runtime::record_serving::CanonicalRecordMutationSettlement {
-        self.settlement
     }
 
     pub(in crate::physical_runtime::record_serving) fn settle_residency(
@@ -62,7 +59,8 @@ impl CandidateFramePhysicalWrite {
         let coordinate =
             RecordFrameCoordinate::new(coordinate.artifact(), coordinate.offset(), length)
                 .ok_or(CandidateFrameContractViolation::PhysicalWriteMismatch)?;
-        if !completed_write_matches(&self.receipt, store, coordinate, bytes) {
+        if !completed_new_artifact_matches(&self.receipt, self.coordinate, store, coordinate, bytes)
+        {
             return Err(CandidateFrameContractViolation::PhysicalWriteMismatch);
         }
         Ok(CandidateFrameResidencySettlement {
@@ -71,15 +69,17 @@ impl CandidateFramePhysicalWrite {
     }
 }
 
-pub(super) fn completed_write_matches(
-    receipt: &CompletedArtifactRangeWrite,
+pub(super) fn completed_new_artifact_matches(
+    receipt: &CompletedArtifactNewWrite,
+    receipt_coordinate: RecordFrameCoordinate,
     store: StableStoreIdentity,
     coordinate: RecordFrameCoordinate,
     bytes: &[u8],
 ) -> bool {
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     receipt.store() == store
-        && receipt.coordinate() == coordinate
+        && receipt_coordinate == coordinate
+        && receipt.range().byte_count() == bytes.len() as u64
         && receipt.completed_bytes() == bytes.len() as u64
         && receipt.payload_digest() == digest
 }
@@ -116,7 +116,7 @@ impl CandidateFrameEffectSettlement {
             PhysicalWritebackSettlement,
     ) -> Self {
         Self {
-            source: CandidateFrameEffectSource::C6Writeback,
+            source: CandidateFrameEffectSource::ExistingArtifactWriteback,
             coordinate,
             payload_digest,
             work: settlement.identity(),
@@ -158,7 +158,6 @@ impl CandidateFrameEffectSettlement {
 #[derive(Debug)]
 pub(in crate::physical_runtime::record_serving) struct CandidateFrameWriteCompletion {
     frame_bytes: u64,
-    reusable_bytes: Option<Vec<u8>>,
     effect: Option<CandidateFrameEffectSettlement>,
 }
 
@@ -171,7 +170,6 @@ impl CandidateFrameWriteCompletion {
     ) -> Self {
         Self {
             frame_bytes,
-            reusable_bytes: None,
             effect: Some(CandidateFrameEffectSettlement::canonical(
                 coordinate,
                 payload_digest,
@@ -189,7 +187,6 @@ impl CandidateFrameWriteCompletion {
     ) -> Self {
         Self {
             frame_bytes,
-            reusable_bytes: None,
             effect: Some(CandidateFrameEffectSettlement::writeback(
                 coordinate,
                 payload_digest,
@@ -202,19 +199,12 @@ impl CandidateFrameWriteCompletion {
     pub(in crate::physical_runtime::record_serving) fn retained(frame_bytes: u64) -> Self {
         Self {
             frame_bytes,
-            reusable_bytes: None,
             effect: None,
         }
     }
 
     pub(in crate::physical_runtime::record_serving) const fn frame_bytes(&self) -> u64 {
         self.frame_bytes
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn into_reusable_bytes(
-        self,
-    ) -> Option<Vec<u8>> {
-        self.reusable_bytes
     }
 
     pub(in crate::physical_runtime) const fn effect(
@@ -234,7 +224,6 @@ pub enum CandidateFrameContractViolation {
     UnexpectedFrame,
     RetainedFrameBytesChanged,
     PhysicalWriteMismatch,
-    CatalogResidencyInvalidationFailed,
     IncompleteFrameSet,
 }
 
@@ -249,6 +238,32 @@ pub(in crate::physical_runtime::record_serving) enum CandidateFrameWriteFailure<
         denial: RecordAppendDenial,
         posture: CandidateFrameFailurePosture,
     },
+}
+
+pub(in crate::physical_runtime::record_serving) struct RecoverableCandidateFrameWriteFailure<
+    EffectFailure,
+> {
+    cause: CandidateFrameWriteFailure<EffectFailure>,
+    frame: super::CandidateFrame,
+}
+
+impl<EffectFailure> RecoverableCandidateFrameWriteFailure<EffectFailure> {
+    pub(super) fn new(
+        cause: CandidateFrameWriteFailure<EffectFailure>,
+        frame: super::CandidateFrame,
+    ) -> Self {
+        Self { cause, frame }
+    }
+
+    pub(super) fn into_cause(self) -> CandidateFrameWriteFailure<EffectFailure> {
+        self.cause
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn into_parts(
+        self,
+    ) -> (CandidateFrameWriteFailure<EffectFailure>, Vec<u8>) {
+        (self.cause, self.frame.into_bytes())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

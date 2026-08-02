@@ -11,6 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::read_repository_document;
 use crate::workspace_root;
 
+const RETIRED_FAMILY_IDS: &[&str] = &["append-batch-api", "published-record-batch"];
+
 #[test]
 fn every_tracked_consumer_has_one_current_disposition() {
     let discovered = discover_tracked_consumers().expect("discover C.7 consumers");
@@ -50,11 +52,16 @@ fn assert_semantic_classification(row: &RemovalRow, family_ids: &BTreeSet<&str>)
         "{} lacks the C.7 mechanical absence proof",
         row.path
     );
-    assert!(row
-        .families
-        .iter()
-        .all(|family| family_ids.contains(family.as_str())));
+    assert!(families_match_row_fate(row, family_ids));
     assert_eq!(row.families, row.match_counts.keys().cloned().collect());
+}
+
+fn families_match_row_fate(row: &RemovalRow, active: &BTreeSet<&str>) -> bool {
+    row.families.iter().all(|family| {
+        active.contains(family.as_str())
+            || matches!(row.status, RemovalStatus::Deleted(_))
+                && RETIRED_FAMILY_IDS.contains(&family.as_str())
+    })
 }
 
 fn assert_path_fate(row: &RemovalRow) {
@@ -101,7 +108,15 @@ fn reconcile(
     let unclassified = discovered_paths
         .difference(&open_paths)
         .filter(|path| !deleted_paths.contains(*path))
-        .map(|path| path.as_str())
+        .map(|path| {
+            format!(
+                "{}: {:?}",
+                path,
+                discovered
+                    .get(*path)
+                    .expect("a discovered path retains its family counts")
+            )
+        })
         .collect::<Vec<_>>();
     let stale_open = open_paths
         .difference(&discovered_paths)
@@ -161,6 +176,18 @@ fn reconciliation_rejects_omission_stale_row_and_family_drift() {
         &BTreeMap::from([("crates/live.rs".to_owned(), count_drifted)])
     )
     .is_err());
+}
+
+#[test]
+fn retired_family_identity_is_valid_only_as_deletion_history() {
+    let active = TRACKED_FAMILIES
+        .iter()
+        .map(|family| family.id)
+        .collect::<BTreeSet<_>>();
+    let mut row = controlled_row(BTreeMap::from([("append-batch-api".to_owned(), 1)]));
+    assert!(!families_match_row_fate(&row, &active));
+    row.status = RemovalStatus::Deleted(removal_ledger::DeletionPhase::Phase7);
+    assert!(families_match_row_fate(&row, &active));
 }
 
 fn controlled_row(match_counts: BTreeMap<String, usize>) -> RemovalRow {

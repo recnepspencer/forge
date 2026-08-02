@@ -3,23 +3,29 @@ mod joined_outcome;
 mod outcome;
 pub(super) mod settlement;
 
+pub(in crate::physical_runtime) use command::{
+    PhysicalCheckpointExecutorCommand, PhysicalMetadataExecutorCommand,
+    PhysicalPublicationExecutorCommand, PhysicalReadExecutorCommand,
+    PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload,
+    PhysicalWalAppendExecutorCommand, PhysicalWalBarrierExecutorCommand,
+    PhysicalWalFrameCompletionBinding, PhysicalWalReclamationExecutorCommand,
+    PhysicalWalSegmentCreateExecutorCommand, PhysicalWriteExecutorCommand,
+};
 pub use command::{
     PhysicalExecutorCommand, PhysicalExecutorCommandDenial, PhysicalPublicationEffect,
     PhysicalRetryCommand,
-};
-pub(in crate::physical_runtime) use command::{
-    PhysicalMetadataExecutorCommand, PhysicalPublicationExecutorCommand,
-    PhysicalReadExecutorCommand, PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload,
-    PhysicalWalAppendExecutorCommand, PhysicalWalBarrierExecutorCommand,
-    PhysicalWriteExecutorCommand,
 };
 pub use joined_outcome::{
     PhysicalSignalSettlementOutcome, PhysicalWorkBatchDenial, PhysicalWorkExecutionBatchOutcome,
     PhysicalWorkExecutionOutcome,
 };
-pub use outcome::{CompletedPhysicalPublicationEffect, CompletedPhysicalWalBarrier};
+pub use outcome::{
+    CompletedPhysicalCheckpointAction, CompletedPhysicalPublicationEffect,
+    CompletedPhysicalWalBarrier, CompletedPhysicalWalReclamationAction,
+};
 pub(in crate::physical_runtime) use outcome::{
-    IndeterminatePhysicalPublicationEffect, IndeterminatePhysicalWalBarrier,
+    IndeterminatePhysicalCheckpointAction, IndeterminatePhysicalPublicationEffect,
+    IndeterminatePhysicalWalBarrier, IndeterminatePhysicalWalReclamationAction,
     PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
     PhysicalResidencyWritebackCompletion,
 };

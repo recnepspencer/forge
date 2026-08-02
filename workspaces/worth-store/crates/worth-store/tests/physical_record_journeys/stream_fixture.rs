@@ -2,9 +2,8 @@ use worth_store::physical_runtime::{RecordWriteSource, RecordWriteSourceError};
 
 pub(super) struct PatternSource {
     declared: u64,
-    available: u64,
     produced: u64,
-    extra: bool,
+    maximum_transfer: u64,
 }
 
 pub(super) struct RepeatedByteSource {
@@ -39,25 +38,19 @@ impl PatternSource {
     pub(super) const fn exact(bytes: u64) -> Self {
         Self {
             declared: bytes,
-            available: bytes,
             produced: 0,
-            extra: false,
+            maximum_transfer: u64::MAX,
         }
     }
-    pub(super) const fn truncated(declared: u64, available: u64) -> Self {
+    pub(super) const fn fragmented(bytes: u64, maximum_transfer: u64) -> Self {
+        assert!(
+            maximum_transfer != 0,
+            "a fragmented source must make progress"
+        );
         Self {
-            declared,
-            available,
+            declared: bytes,
             produced: 0,
-            extra: false,
-        }
-    }
-    pub(super) const fn overlong(declared: u64) -> Self {
-        Self {
-            declared,
-            available: declared,
-            produced: 0,
-            extra: true,
+            maximum_transfer,
         }
     }
 }
@@ -66,15 +59,13 @@ impl RecordWriteSource for PatternSource {
         self.declared
     }
     fn read_next(&mut self, target: &mut [u8]) -> Result<usize, RecordWriteSourceError> {
-        if self.produced == self.available {
-            if self.extra {
-                self.extra = false;
-                target[0] = 0xa5;
-                return Ok(1);
-            }
+        if self.produced == self.declared {
             return Ok(0);
         }
-        let count = target.len().min((self.available - self.produced) as usize);
+        let count = target
+            .len()
+            .min((self.declared - self.produced) as usize)
+            .min(self.maximum_transfer as usize);
         for (index, byte) in target[..count].iter_mut().enumerate() {
             *byte = pattern(self.produced + index as u64);
         }

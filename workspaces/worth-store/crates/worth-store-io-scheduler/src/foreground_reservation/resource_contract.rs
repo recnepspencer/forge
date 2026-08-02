@@ -60,6 +60,13 @@ const fn required_units_for_lane(
             ForegroundResourceUnitKind::SyncDebt,
             ForegroundResourceUnitKind::WorkerPermit,
         ],
+        ForegroundIoLaneKind::RootPublication => &[
+            ForegroundResourceUnitKind::QueueSlot,
+            ForegroundResourceUnitKind::BandwidthToken,
+            ForegroundResourceUnitKind::FlushPermit,
+            ForegroundResourceUnitKind::SyncDebt,
+            ForegroundResourceUnitKind::WorkerPermit,
+        ],
         ForegroundIoLaneKind::OrdinaryPageWrite => &[
             ForegroundResourceUnitKind::QueueSlot,
             ForegroundResourceUnitKind::BandwidthToken,

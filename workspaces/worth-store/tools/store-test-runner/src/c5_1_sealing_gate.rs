@@ -81,6 +81,10 @@ const FORBIDDEN_DUPLICATE_RUNTIME_FRAGMENTS: &[(&str, &str)] = &[
         "PhysicalEffectRetryAfterDerivedRollback",
         "physical effect retry after derived rollback",
     ),
+    (
+        "graph.set_dependencies(",
+        "C5_PREDICATE:duplicate-signal-dependency-authority: duplicate static Signal dependency authority",
+    ),
     ("DuplicatePhysicalLifecycle", "duplicate physical lifecycle"),
 ];
 
@@ -166,6 +170,10 @@ fn sealing_gate_rejects_each_authority_bypass_family() {
         (
             "struct LocalPhysicalWorkScheduler;",
             "local physical-work scheduler",
+        ),
+        (
+            "graph.set_dependencies(node, std::iter::empty())?;",
+            "duplicate static Signal dependency authority",
         ),
     ] {
         let denial = inspect_ordinary_source(Path::new("controlled_mutant.rs"), source)

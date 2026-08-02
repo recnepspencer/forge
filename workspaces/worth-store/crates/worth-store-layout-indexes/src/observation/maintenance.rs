@@ -1,11 +1,9 @@
 use super::owner_case::{sealed, ObserveOwnerCase, OwnerCaseObservation};
 use crate::maintenance::{
-    CopyOnWriteLayoutMutationExecutionCaseId, CopyOnWriteLayoutMutationExecutionOutcome,
     DerivedIndexParityCaseId, DerivedIndexParityOutcome, DerivedIndexRebuildAdmissionCaseId,
     DerivedIndexRebuildAdmissionOutcome, DerivedIndexRebuildExecutionCaseId,
-    DerivedIndexRebuildOutcome, ExactBTreePublicationCaseId, ExactBTreePublicationOutcome,
-    LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome, LiveExactMaintenanceCaseId,
-    LiveExactMaintenanceOutcome, LiveMaintenancePostureCaseId, LiveMaintenancePostureOutcome,
+    DerivedIndexRebuildOutcome, LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome,
+    LiveMaintenancePostureCaseId, LiveMaintenancePostureOutcome,
 };
 
 macro_rules! observe_owner_case {
@@ -22,11 +20,8 @@ macro_rules! observe_owner_case {
     };
 }
 
-observe_owner_case!(ExactBTreePublicationOutcome => ExactBTreePublicationCaseId);
 observe_owner_case!(LiveMaintenancePostureOutcome => LiveMaintenancePostureCaseId);
 observe_owner_case!(LayoutMutationAdmissionOutcome => LayoutMutationAdmissionCaseId);
-observe_owner_case!(LiveExactMaintenanceOutcome => LiveExactMaintenanceCaseId);
 observe_owner_case!(DerivedIndexParityOutcome => DerivedIndexParityCaseId);
 observe_owner_case!(DerivedIndexRebuildAdmissionOutcome => DerivedIndexRebuildAdmissionCaseId);
 observe_owner_case!(DerivedIndexRebuildOutcome => DerivedIndexRebuildExecutionCaseId);
-observe_owner_case!(CopyOnWriteLayoutMutationExecutionOutcome => CopyOnWriteLayoutMutationExecutionCaseId);

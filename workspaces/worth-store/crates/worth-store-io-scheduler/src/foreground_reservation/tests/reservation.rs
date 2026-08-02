@@ -269,6 +269,7 @@ fn every_foreground_lane_has_an_explicit_fairness_class_without_identity_launder
         ForegroundIoLaneKind::RangeRead,
         ForegroundIoLaneKind::CommitCriticalWalAppend,
         ForegroundIoLaneKind::CommitCriticalWalWrite,
+        ForegroundIoLaneKind::RootPublication,
         ForegroundIoLaneKind::OrdinaryPageWrite,
         ForegroundIoLaneKind::InteractiveRead,
         ForegroundIoLaneKind::InternalForegroundRead,
@@ -283,6 +284,7 @@ fn every_foreground_lane_has_an_explicit_fairness_class_without_identity_launder
             ForegroundFairnessClass::RangeRead,
             ForegroundFairnessClass::CommitCriticalWalWrite,
             ForegroundFairnessClass::CommitCriticalWalWrite,
+            ForegroundFairnessClass::RootPublication,
             ForegroundFairnessClass::OrdinaryPageWrite,
             ForegroundFairnessClass::InteractiveRead,
             ForegroundFairnessClass::InternalForegroundRead,
@@ -322,6 +324,29 @@ fn every_foreground_lane_has_an_explicit_fairness_class_without_identity_launder
             declared: ForegroundIoLaneKind::PointRead,
             attempted: ForegroundIoLaneKind::InteractiveRead,
         })
+    );
+}
+
+#[test]
+fn root_publication_actions_have_non_interchangeable_filesystem_requirements() {
+    let candidate = ForegroundLaneDeclaration::root_candidate_synchronization().unwrap();
+    let replacement = ForegroundLaneDeclaration::root_catalog_replacement().unwrap();
+    let namespace = ForegroundLaneDeclaration::root_namespace_synchronization().unwrap();
+
+    assert_eq!(candidate.lane(), ForegroundIoLaneKind::RootPublication);
+    assert_eq!(replacement.lane(), ForegroundIoLaneKind::RootPublication);
+    assert_eq!(namespace.lane(), ForegroundIoLaneKind::RootPublication);
+    assert_eq!(
+        candidate.backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync
+    );
+    assert_eq!(
+        replacement.backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDurableRename
+    );
+    assert_eq!(
+        namespace.backend_requirement(),
+        IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedDirectorySync
     );
 }
 

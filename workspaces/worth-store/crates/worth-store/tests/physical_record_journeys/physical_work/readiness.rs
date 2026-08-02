@@ -251,7 +251,11 @@ fn changed_dependency_revalidation_refreshes_the_exact_active_lineage_without_me
         PhysicalWorkReadiness::Blocked(_) => panic!("evaluated dependency must become ready"),
     };
     assert_eq!(refreshed.intent().identity().operation().get(), 1);
-    assert_ne!(refreshed.signal_request(), active);
+    assert_ne!(
+        refreshed.signal_request(),
+        active,
+        "changed dependency must supersede active readiness"
+    );
     assert_eq!(
         refreshed.revalidated_from_signal_request(),
         Some(active),
@@ -319,8 +323,8 @@ fn signal_observation_is_bounded_and_contains_no_runtime_handles() {
     assert_eq!(observation.locality_owner_count(), installed_binding_count);
     assert_eq!(
         observation.async_family_count(),
-        8,
-        "the bounded async capability table includes WAL append as one of eight exact families"
+        9,
+        "the bounded async capability table includes checkpoint capture and WAL reclamation among nine exact families"
     );
     assert_eq!(observation.clock().current_tick(), 0);
     serving.close();
