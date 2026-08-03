@@ -1,16 +1,12 @@
-use std::sync::Arc;
-
-use crate::basis_lifecycle::{AdmittedBasisCapability, BasisOperationLane};
-use crate::domain_installation::{
-    WorthQueryInstalledDomainAuthority, WorthQuerySettledDomainProjection,
-};
-use crate::runtime::WorthQueryRuntimeAuthorityIdentity;
+use crate::basis_lifecycle::BasisOperationLane;
+use crate::domain_installation::WorthQuerySettledDomainProjection;
 use worth_proof::{
     Artifact, AssumptionBasis, AuthorityMarker, AuthorityRevalidationRequiredBasis,
     AuthorityWitness, CurrentValidity, FreshnessScopedBasis, NoProofs, PhaseMarker,
     RebindRequiredBasis, StaleReadableBasis,
 };
 
+pub(super) use super::lifecycle_basis::WorthQueryProjectionLifecycleBasis;
 use super::{WorthQueryLiveProjectionReceipt, WorthQueryProjectionPromotionCounters};
 
 pub(super) struct WorthQueryCurrentProjectionPhase;
@@ -33,19 +29,6 @@ impl WorthQueryProjectionLifecycleEvidence {
     pub(in crate::domain_installation::operation_execution) fn identity(&self) -> &str {
         &self.identity
     }
-}
-
-#[derive(Clone)]
-pub(in crate::domain_installation::operation_execution) struct WorthQueryProjectionLifecycleBasis<
-    L: BasisOperationLane,
-> {
-    runtime_authority: WorthQueryRuntimeAuthorityIdentity,
-    installation_generation: super::super::super::WorthQueryDomainInstallationGeneration,
-    domain_authority: Arc<WorthQueryInstalledDomainAuthority>,
-    binding_identity: String,
-    capability_identity: u64,
-    capability_generation: crate::domain_installation::WorthQueryBoundCapabilityGeneration,
-    basis: AdmittedBasisCapability<L>,
 }
 
 pub(super) type CurrentProjectionProof<L> = Artifact<
@@ -105,6 +88,36 @@ pub struct WorthQueryLiveBoundDomainProjection<D, O, F, L: BasisOperationLane> {
 }
 
 impl<D, O, F, L: BasisOperationLane> WorthQuerySettledDomainProjection<D, O, F, L> {
+    pub fn binding_identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        crate::WorthQueryEvidenceIdentity::compose(
+            crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
+        )
+        .field_shape(
+            crate::WorthQueryEvidenceTag::new("projection"),
+            "settled-binding",
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("binding"),
+            self.execution_receipt().binding_identity(),
+        )
+        .seal()
+    }
+
+    pub fn result_identity_evidence(&self) -> crate::WorthQueryEvidenceIdentity {
+        crate::WorthQueryEvidenceIdentity::compose(
+            crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
+        )
+        .field_shape(
+            crate::WorthQueryEvidenceTag::new("projection"),
+            "settled-result",
+        )
+        .field_value(
+            crate::WorthQueryEvidenceTag::new("settled"),
+            self.identity(),
+        )
+        .seal()
+    }
+
     pub fn into_lifecycle(self) -> WorthQueryCurrentDomainProjection<D, O, F, L> {
         let basis = WorthQueryProjectionLifecycleBasis::from_source(&self);
         let identity = crate::identity::hash_parts(&[
@@ -314,57 +327,6 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryLiveBoundDomainProjection<D, O, F
     > {
         self.owner
     }
-}
-
-impl<L: BasisOperationLane> WorthQueryProjectionLifecycleBasis<L> {
-    pub(in crate::domain_installation::operation_execution) const fn capability_generation(
-        &self,
-    ) -> crate::domain_installation::WorthQueryBoundCapabilityGeneration {
-        self.capability_generation
-    }
-
-    pub(super) fn from_source<D, O, F, S>(source: &S) -> Self
-    where
-        S: super::source::WorthQueryProjectionLifecycleSource<D, O, F, L>,
-    {
-        let bound = source.bound_operation();
-        Self {
-            runtime_authority: bound.operation().domain_authority().runtime_authority(),
-            installation_generation: bound.operation().installation_generation(),
-            domain_authority: Arc::clone(bound.operation().domain_authority()),
-            binding_identity: bound.binding_identity().to_string(),
-            capability_identity: bound.capability_identity(),
-            capability_generation: super::WorthQueryBoundCapabilityGeneration::mint(),
-            basis: bound.basis().clone(),
-        }
-    }
-
-    pub(super) fn binds<D, O, F, S>(&self, source: &S, checks: &mut usize) -> bool
-    where
-        S: super::source::WorthQueryProjectionLifecycleSource<D, O, F, L>,
-    {
-        let bound = source.bound_operation();
-        exact(
-            checks,
-            self.runtime_authority == bound.operation().domain_authority().runtime_authority(),
-        ) && exact(
-            checks,
-            self.installation_generation == bound.operation().installation_generation(),
-        ) && exact(
-            checks,
-            Arc::ptr_eq(&self.domain_authority, bound.operation().domain_authority()),
-        ) && exact(checks, self.binding_identity == bound.binding_identity())
-            && exact(
-                checks,
-                self.capability_identity == bound.capability_identity(),
-            )
-            && exact(checks, &self.basis == bound.basis())
-    }
-}
-
-fn exact(checks: &mut usize, matches: bool) -> bool {
-    *checks += 1;
-    matches
 }
 
 pub(super) fn mint_current_proof<L: BasisOperationLane>(

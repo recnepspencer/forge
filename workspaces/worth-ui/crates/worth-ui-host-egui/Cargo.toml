@@ -14,3 +14,6 @@ workspace = true
 [dependencies]
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 egui = { workspace = true }
+
+[dev-dependencies]
+worth-ui-test-support = { path = "../worth-ui-test-support" }

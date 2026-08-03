@@ -300,6 +300,7 @@ fn root_page_artifact(app: &worth_ui::facade::app::WorthUiApp) -> &UiDeclaration
 
 fn participation_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-participation",

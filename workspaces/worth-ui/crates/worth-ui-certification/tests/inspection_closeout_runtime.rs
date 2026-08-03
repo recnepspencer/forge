@@ -22,6 +22,7 @@ use inspection_closeout_support::{
 #[test]
 fn inspection_closeout_report_enumerates_milestone35_lanes_guarantees_and_non_goals() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
         .inspection_closeout_report();

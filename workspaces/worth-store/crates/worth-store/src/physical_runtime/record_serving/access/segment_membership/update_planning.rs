@@ -9,7 +9,7 @@ use worth_store_physical_format::{
 use super::SegmentMembershipReader;
 use crate::physical_runtime::record_serving::{
     access::manifest_routing::{ManifestDiscoveryCounterSnapshot, ManifestLookupFailure},
-    residency::ServingFrameResidency,
+    residency::PhysicalResidencyWorkPort,
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
@@ -23,7 +23,7 @@ pub(in crate::physical_runtime::record_serving) struct SegmentMembershipPublicat
 pub(in crate::physical_runtime::record_serving) struct SegmentMembershipUpdateContext<'plan> {
     pub(in crate::physical_runtime::record_serving) allocation:
         &'plan worth_store_buffer_pool::OperationAllocationGrant,
-    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
+    pub(in crate::physical_runtime::record_serving) residency: PhysicalResidencyWorkPort,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current: &'plan DurablePhysicalRootManifest,

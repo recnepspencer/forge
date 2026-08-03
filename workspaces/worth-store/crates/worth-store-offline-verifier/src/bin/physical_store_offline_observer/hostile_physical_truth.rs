@@ -2,6 +2,7 @@ use std::path::Path;
 
 use worth_store_offline_verifier::{
     observe_hostile_physical_truth, OfflineHostilePhysicalTruthBudget,
+    OfflineHostilePhysicalTruthObservation,
 };
 use worth_store_physical_format::PhysicalRecordFormatDeclaration;
 
@@ -10,6 +11,17 @@ const MAX_TOTAL_BYTES: u64 = 1024 * 1024 * 1024;
 const MUTATION_OBSERVATION_PREFIX_BYTES: u64 = 512;
 
 pub(super) fn run(root: &Path) {
+    let observation = match observe(root) {
+        Ok(observation) => observation,
+        Err(denial) => {
+            eprintln!("C5_1_OFFLINE_DENIED {denial}");
+            std::process::exit(1);
+        }
+    };
+    emit(&observation);
+}
+
+pub(super) fn observe(root: &Path) -> Result<OfflineHostilePhysicalTruthObservation, String> {
     let format = PhysicalRecordFormatDeclaration::builder()
         .admit()
         .expect("the canonical v1 declaration is valid");
@@ -19,13 +31,10 @@ pub(super) fn run(root: &Path) {
         MUTATION_OBSERVATION_PREFIX_BYTES,
     )
     .expect("fixed observer budget is valid");
-    let observation = match observe_hostile_physical_truth(root, format, budget) {
-        Ok(observation) => observation,
-        Err(denial) => {
-            eprintln!("C5_1_OFFLINE_DENIED {denial:?}");
-            std::process::exit(1);
-        }
-    };
+    observe_hostile_physical_truth(root, format, budget).map_err(|denial| format!("{denial:?}"))
+}
+
+pub(super) fn emit(observation: &OfflineHostilePhysicalTruthObservation) {
     println!("C5_1_OFFLINE_PROCESS {}", std::process::id());
     match observation.current() {
         Ok(current) => println!(

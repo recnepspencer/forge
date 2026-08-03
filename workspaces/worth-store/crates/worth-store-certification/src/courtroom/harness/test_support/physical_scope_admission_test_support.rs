@@ -1,6 +1,7 @@
 use super::pre_decode_physical_admission_test_support::{
-    checksum_declaration, checksum_scope, crc32c, with_entry_seed,
+    checksum_declaration, checksum_scope, crc32c, with_entry_seed, with_store_entry_seed,
 };
+use worth_store::physical_runtime::ServingPhysicalRuntime;
 use worth_store_physical_format::{
     AllocationClassKind, CheckpointAdjacencyPosture, ExtentGenerationCell, ManifestMembershipProof,
     PageGenerationCell, PhysicalBinaryEncodingWitness, PhysicalCellReuseDomain, PhysicalExtentId,
@@ -20,8 +21,16 @@ pub(crate) fn with_checked_frame(
     validation: PhysicalReferenceValidationWitness,
     run: impl FnOnce(IntegrityCheckedFrame<'_>),
 ) {
+    with_store_checked_frame(payload, validation, |_serving, checked| run(checked));
+}
+
+pub(crate) fn with_store_checked_frame(
+    payload: &[u8],
+    validation: PhysicalReferenceValidationWitness,
+    run: impl FnOnce(&ServingPhysicalRuntime, IntegrityCheckedFrame<'_>),
+) {
     let (kind, protected_bytes, witness) = frame_fixture(payload, validation);
-    with_entry_seed(&protected_bytes, |seed| {
+    with_store_entry_seed(&protected_bytes, |serving, seed| {
         let declaration =
             checksum_declaration().admit_for_physical_integrity_entry(seed.entry_witness());
         let admission = seed.with_checksum_declaration(declaration).unwrap();
@@ -33,7 +42,7 @@ pub(crate) fn with_checked_frame(
                 DeclaredPhysicalChecksum::new(crc32c(&protected_bytes)),
             ))
             .unwrap();
-        run(checked);
+        run(serving, checked);
     });
 }
 

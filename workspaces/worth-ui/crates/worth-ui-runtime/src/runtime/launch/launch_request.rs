@@ -13,6 +13,22 @@ pub struct WorthUiRuntimeLaunch {
     pub(crate) candidate_artifact_digest: Option<crate::source::WorthUiArtifactDigest>,
 }
 
+/// Move-only prepared authority required to turn one admitted launch request
+/// into a runtime. Constituent proofs never cross the public facade
+/// independently.
+pub(crate) struct WorthUiRuntimeLaunchAuthority {
+    pub(crate) lowering_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    pub(crate) initial_allocation_commit:
+        crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
+    pub(crate) snapshot_digest: crate::capability::CapabilitySnapshotDigest,
+    pub(crate) retained_allocation_planning_evidence:
+        Rc<crate::runtime::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry>,
+    pub(crate) query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
+    pub(crate) host_plan_binding: crate::facade::WorthUiHostPlanBinding,
+    pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchDenial {
     HostSessionIdentityExhausted,

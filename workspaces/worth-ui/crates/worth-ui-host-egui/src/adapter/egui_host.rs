@@ -3,14 +3,15 @@ use std::sync::{Arc, Mutex};
 
 use worth_ui_host_contract::{
     UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
-    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostProtocolNegotiation,
-    UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfacePresentationDenial,
-    UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily,
-    UiMountedCompletedEffects, UiMountedFrameConsumptionView,
+    UiHostProtocolNegotiation, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
+    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode,
+    UiHostSurfacePresentationOutcome, UiMeasurementRequestFamily, UiMountedFrameConsumptionView,
     UiMountedSurfacePresentationCompletion, UiSurfaceBindingGeneration,
     UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
     WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
+
+mod input_observation;
 
 #[derive(Clone, Default)]
 pub struct WorthUiHostEgui {
@@ -24,9 +25,18 @@ pub struct WorthUiHostEgui {
         >,
     >,
     measurement_environment: Arc<Mutex<EguiMeasurementEnvironment>>,
-    retained_native_paint: Arc<
-        Mutex<BTreeMap<UiSurfaceBindingGeneration, super::native_paint::UiEguiPreparedNativePaint>>,
+    observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
+    input_translators: super::input_observation::UiEguiInstalledInputTranslators,
+    input_observation: Arc<Mutex<super::input_observation::UiEguiInputObservationState>>,
+    retained_presentations: Arc<
+        Mutex<
+            BTreeMap<
+                UiSurfaceBindingGeneration,
+                super::mounted_presentation::UiEguiPreparedMountedPresentation,
+            >,
+        >,
     >,
+    visual_captures: Arc<Mutex<super::visual_snapshot::UiEguiVisualCaptureState>>,
 }
 
 #[derive(Default)]
@@ -43,7 +53,11 @@ impl WorthUiHostEgui {
             context,
             registrations: Arc::default(),
             measurement_environment: Arc::default(),
-            retained_native_paint: Arc::default(),
+            observation_retention: Arc::default(),
+            input_translators: Default::default(),
+            input_observation: Arc::default(),
+            retained_presentations: Arc::default(),
+            visual_captures: Arc::default(),
         }
     }
 
@@ -57,8 +71,8 @@ impl WorthUiHostEgui {
     /// adapter-owned mechanics retained from a successful mounted presentation;
     /// it does not execute Worth UI or construct new product meaning.
     pub fn repaint_retained_surfaces(&self) {
-        for paint in self.retained_native_paint.lock().unwrap().values() {
-            paint.paint(&self.context);
+        for presentation in self.retained_presentations.lock().unwrap().values() {
+            presentation.paint(&self.context);
         }
     }
 }
@@ -70,7 +84,7 @@ impl WorthUiMeasurementHostAdapter for WorthUiHostEgui {
     ) -> UiHostMeasurementObservationValue {
         match request.family() {
             UiMeasurementRequestFamily::ViewportExtent => {
-                let size = self.context.input(|input| input.screen_rect().size());
+                let size = self.context.input(|input| input.viewport_rect().size());
                 UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
                     width: size.x,
                     height: size.y,
@@ -94,18 +108,56 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
     }
 
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
+        let mut capabilities = vec![
             WorthUiHostCapability::DpiObservation,
+            WorthUiHostCapability::IdentityOverlay,
             WorthUiHostCapability::NativePaint,
             WorthUiHostCapability::ViewportObservation,
-        ])
+        ];
+        capabilities.extend(self.input_translators.capabilities());
+        WorthUiHostCapabilityReport::available(capabilities)
+    }
+
+    fn drain_mechanical_host_observations(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self.observation_retention.drain(host_session_identity))
+    }
+
+    fn mechanical_visual_capture_capability(
+        &self,
+    ) -> worth_ui_host_contract::UiHostCaptureCapability {
+        super::visual_snapshot::capture_capability()
+    }
+
+    fn perform_visual_capture(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureObservationOutcome {
+        super::visual_snapshot::capture(
+            &self.context,
+            &self.registrations,
+            &self.visual_captures,
+            request,
+        )
+    }
+
+    fn perform_visual_capture_cancellation(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
+        super::visual_snapshot::cancel(&self.visual_captures, request)
     }
 
     fn mechanical_measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
         let viewport = self.context.input(|input| {
-            let size = input.screen_rect().size();
+            let size = input.viewport_rect().size();
             (size.x.to_bits(), size.y.to_bits())
         });
         let dpi = self.context.pixels_per_point().to_bits();
@@ -171,10 +223,15 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
                 worth_ui_host_contract::UiHostSurfaceRegistrationDenial::ForeignRegistration,
             );
         }
-        self.retained_native_paint
+        self.retained_presentations
             .lock()
             .unwrap()
             .remove(&request.binding_generation());
+        super::input_observation::remove_binding(
+            &self.input_observation,
+            request.binding_generation(),
+        );
+        super::visual_snapshot::remove_binding(&self.visual_captures, request.binding_generation());
         worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
             worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
                 request.host_session_identity(),
@@ -190,34 +247,55 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
         if let Some(denial) = self.validate_mounted_view(view) {
             return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
         }
-        let native_paint = match super::native_paint::UiEguiPreparedNativePaint::prepare(view) {
-            Ok(prepared) => prepared,
+        let presentation =
+            match super::mounted_presentation::UiEguiPreparedMountedPresentation::prepare(
+                &self.context,
+                view,
+            ) {
+                Ok(prepared) => prepared,
+                Err(denial) => {
+                    return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+                }
+            };
+        let realized_regions = match super::native_regions::prepare(view.projection()) {
+            Ok(regions) => regions,
             Err(denial) => {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
-        let cost = match projection_cost(view.projection()) {
+        let cost = match super::presentation_cost::for_projection(view.projection()) {
             Ok(cost) => cost,
             Err(denial) => {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
-        let effects = if native_paint.is_empty() {
-            Vec::new()
-        } else {
-            vec![worth_ui_host_contract::UiMountedEffectFamily::NativePaint]
-        };
-        native_paint.paint(&self.context);
+        let effects = presentation.completed_effects();
+        let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
+            view.attempt().diagnostic_value(),
+        );
+        presentation.paint(&self.context);
         let binding = view.requirement().binding();
-        let mut retained = self.retained_native_paint.lock().unwrap();
-        if native_paint.is_empty() {
+        let mut retained = self.retained_presentations.lock().unwrap();
+        if presentation.is_empty() {
             retained.remove(&binding);
         } else {
-            retained.insert(binding, native_paint);
+            retained.insert(binding, presentation);
         }
+        super::visual_snapshot::record_presentation(
+            &self.visual_captures,
+            view,
+            epoch,
+            realized_regions,
+        );
+        super::input_observation::record_completed_presentation(
+            &self.input_observation,
+            view,
+            epoch,
+        );
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::NativeDisplay,
-            UiMountedCompletedEffects::new(effects),
+            epoch,
+            effects,
             cost,
         ))
     }
@@ -235,58 +313,19 @@ impl WorthUiHostMechanicsAdapter for WorthUiHostEgui {
             .collect::<Vec<_>>();
         let before = registrations.len();
         registrations.retain(|_, request| request.host_session_identity() != host_session_identity);
-        let mut retained = self.retained_native_paint.lock().unwrap();
+        let mut retained = self.retained_presentations.lock().unwrap();
         for binding in released_bindings {
             retained.remove(&binding);
+            super::visual_snapshot::remove_binding(&self.visual_captures, binding);
         }
+        super::input_observation::release_session(&self.input_observation, host_session_identity);
+        self.observation_retention
+            .release_session(host_session_identity);
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             host_session_identity,
             before - registrations.len(),
         ))
     }
-}
-
-fn projection_cost(
-    projection: &worth_ui_host_contract::UiMountedProjectionView,
-) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
-    let rows = [
-        projection.nodes().len(),
-        projection.clips().rows().len(),
-        projection.layers().rows().len(),
-        projection.filled_rects().rows().len(),
-        projection.paint_batches().rows().len(),
-        projection.spatial_batches().rows().len(),
-        projection.realtime_batches().rows().len(),
-        projection.resources().entries().len(),
-    ]
-    .into_iter()
-    .try_fold(0usize, usize::checked_add)
-    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    let bytes = [
-        std::mem::size_of_val(projection.nodes()),
-        std::mem::size_of_val(projection.clips().rows()),
-        std::mem::size_of_val(projection.layers().rows()),
-        std::mem::size_of_val(projection.filled_rects().rows()),
-        std::mem::size_of_val(projection.paint_batches().rows()),
-        std::mem::size_of_val(projection.spatial_batches().rows()),
-        std::mem::size_of_val(projection.realtime_batches().rows()),
-        std::mem::size_of_val(projection.resources().entries()),
-    ]
-    .into_iter()
-    .try_fold(0usize, usize::checked_add)
-    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    Ok(UiHostPresentationCostReport::from_adapter(
-        UiHostPresentationCostInput {
-            presented_surfaces: 1,
-            translated_rows: u64::try_from(rows)
-                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
-            translated_bytes: u64::try_from(bytes)
-                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
-            native_resource_cache_hits: 0,
-            native_resource_cache_misses: 0,
-            asynchronous_handoffs: 0,
-        },
-    ))
 }
 
 fn next_generation(current: u64) -> u64 {

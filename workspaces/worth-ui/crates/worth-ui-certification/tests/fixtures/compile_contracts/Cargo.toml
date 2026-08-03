@@ -70,6 +70,18 @@ name = "product-predecessor-builder-aliases"
 path = "../../../../worth-ui/tests/ui/facade/construction/predecessor_builder_aliases_are_absent.rs"
 
 [[bin]]
+name = "product-change-profile-required"
+path = "../../../../worth-ui/tests/ui/facade/construction/change_profile/missing_change_profile_cannot_freeze.rs"
+
+[[bin]]
+name = "product-rebind-phase-progression-sealed"
+path = "../../../../worth-ui/tests/ui/rebind/fail/rebind_phase_progression_is_sealed.rs"
+
+[[bin]]
+name = "product-rebind-phase-progression-valid"
+path = "../../../../worth-ui/tests/ui/rebind/pass/rebind_phase_progression_uses_owner_issued_values.rs"
+
+[[bin]]
 name = "product-ordinary-framework-turn"
 path = "../../../../worth-ui/tests/ui/runtime_authority/fail/ordinary_framework_turn_is_not_callable.rs"
 
@@ -146,6 +158,30 @@ name = "product-installed-view-registration"
 path = "../../../../worth-ui/tests/ui/facade/query_binding/pass/installed_view_registration.rs"
 
 [[bin]]
+name = "product-projection-contract-shapes"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/pass/projection_contract_is_shape_specific.rs"
+
+[[bin]]
+name = "product-projection-binding-construction"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_binding_construction_is_private.rs"
+
+[[bin]]
+name = "product-projection-fact-construction"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs"
+
+[[bin]]
+name = "product-scalar-projection-continuation"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/scalar_fact_has_no_continuation.rs"
+
+[[bin]]
+name = "product-projection-fact-affinity"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/projection_fact_is_affine.rs"
+
+[[bin]]
+name = "product-reporting-projection-non-entry"
+path = "../../../../worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs"
+
+[[bin]]
 name = "certification-second-host-adapter"
 path = "../../ui/host/second_adapter_implements_contract.rs"
 
@@ -156,3 +192,75 @@ path = "../../ui/host/external_callers_cannot_forge_mounted_consumption.rs"
 [[bin]]
 name = "certification-shared-inspection-contract"
 path = "../../ui/inspection/ai_and_human_callers_share_inspection_contract.rs"
+
+[[bin]]
+name = "product-visual-snapshot-lifecycle"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[bin]]
+name = "product-visual-snapshot-wrong-grant"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/grant_substitution_is_rejected.rs"
+
+[[bin]]
+name = "product-visual-snapshot-pixel-grant-geometry"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/pixel_grant_cannot_authorize_geometry.rs"
+
+[[bin]]
+name = "product-visual-snapshot-overlay-grant-pixels"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/overlay_grant_cannot_authorize_pixels.rs"
+
+[[bin]]
+name = "product-visual-snapshot-geometry-pixels"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/geometry_receipt_has_no_pixels.rs"
+
+[[bin]]
+name = "product-visual-snapshot-raw-target"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/raw_target_construction_is_rejected.rs"
+
+[[bin]]
+name = "product-visual-snapshot-coordinate-escape"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/snapshot_coordinate_cannot_escape.rs"
+
+[[bin]]
+name = "product-visual-snapshot-region-escape"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/snapshot_region_cannot_escape.rs"
+
+[[bin]]
+name = "product-visual-snapshot-cancelled-reuse"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/cancelled_capture_cannot_be_reused.rs"
+
+[[bin]]
+name = "product-visual-snapshot-explicit-hit-order"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/hit_test_requires_distinct_explicit_order.rs"
+
+[[bin]]
+name = "product-visual-snapshot-index-non-substitution"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/hit_test_index_cannot_replace_visible_index.rs"
+
+[[bin]]
+name = "product-visual-overlay-wrong-grant"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/pixel_grant_cannot_publish_overlay.rs"
+
+[[bin]]
+name = "product-visual-overlay-consumed-clear"
+path = "../../../../worth-ui/tests/ui/visual_snapshot/fail/published_overlay_cannot_clear_twice.rs"
+
+[[bin]]
+name = "product-intent-definition-valid"
+path = "../../../../worth-ui/tests/ui/facade/intent/pass/typed_definition_registration.rs"
+
+[[bin]]
+name = "product-intent-definition-private"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/definition_fields_are_private.rs"
+
+[[bin]]
+name = "product-intent-string-command-binding-absent"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/string_command_intent_binding_is_absent.rs"
+
+[[bin]]
+name = "product-intent-static-command-readiness-absent"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/static_command_readiness_is_absent.rs"
+
+[[bin]]
+name = "product-intent-accepted-interactions-canonical"
+path = "../../../../worth-ui/tests/ui/facade/intent/fail/accepted_interactions_require_canonical_order.rs"

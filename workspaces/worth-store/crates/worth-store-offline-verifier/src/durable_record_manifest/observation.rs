@@ -60,6 +60,46 @@ impl OfflineRecordPlacement {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OfflineRecordPayloadObservation {
+    record: OfflineRecordIdentity,
+    payload_bytes: u64,
+    prefix: Box<[u8]>,
+    digest: [u8; 32],
+}
+
+impl OfflineRecordPayloadObservation {
+    pub(super) fn new(
+        record: OfflineRecordIdentity,
+        payload_bytes: u64,
+        prefix: Box<[u8]>,
+        digest: [u8; 32],
+    ) -> Self {
+        Self {
+            record,
+            payload_bytes,
+            prefix,
+            digest,
+        }
+    }
+
+    pub const fn record(&self) -> OfflineRecordIdentity {
+        self.record
+    }
+
+    pub const fn payload_bytes(&self) -> u64 {
+        self.payload_bytes
+    }
+
+    pub fn prefix(&self) -> &[u8] {
+        &self.prefix
+    }
+
+    pub const fn digest(&self) -> [u8; 32] {
+        self.digest
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OfflineSegmentPageMembership {
     pub(super) segment: u64,

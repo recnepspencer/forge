@@ -5,12 +5,11 @@ use worth_foundational::{
 };
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    lower_offline_record_publication_canonical_basis, lower_record_operation_performance_receipt,
-    lower_record_publication_canonical_basis, PhysicalRecordAccessSummary,
-    PhysicalRecordPerformanceContract, RecordAppendBatch, RecordAppendPerformanceExpectation,
-    RecordByteLimit, RecordLocatePerformanceExpectation, RecordManifestPerformanceExpectation,
-    RecordReadLimits, RecordScanOutcome, RecordScanPerformanceExpectation, RecordScanRequest,
-    RecordTransferPerformanceExpectation,
+    lower_record_operation_performance_receipt, lower_record_publication_canonical_basis,
+    PhysicalRecordAccessSummary, PhysicalRecordPerformanceContract, RecordAppendBatch,
+    RecordAppendPerformanceExpectation, RecordByteLimit, RecordLocatePerformanceExpectation,
+    RecordManifestPerformanceExpectation, RecordReadLimits, RecordScanOutcome,
+    RecordScanPerformanceExpectation, RecordScanRequest, RecordTransferPerformanceExpectation,
 };
 
 use super::{configuration, serving_from_initialization};
@@ -41,7 +40,9 @@ fn runtime_and_offline_topology_have_canonical_parity() {
     )
     .unwrap();
     let runtime = success(lower_record_publication_canonical_basis(&runtime));
-    let offline = success(lower_offline_record_publication_canonical_basis(&offline));
+    let offline = success(
+        worth_store_offline_verifier::lower_offline_record_publication_canonical_basis(&offline),
+    );
     assert!(matches!(
         compare(runtime.clone(), offline),
         CanonicalComparisonOutcome::Equivalent(_)
@@ -119,7 +120,9 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     assert_rows_fail_closed(&append);
 
     let record = published.record_id(0).unwrap();
-    serving.drain_clean_residency();
+    serving
+        .certification_physical_residency()
+        .drain_unpinned_clean_frames();
     let mut read = serving
         .records()
         .open(

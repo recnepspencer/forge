@@ -9,10 +9,15 @@ use worth_ui_runtime::facade::mounted::{
 };
 
 mod adapter;
+mod measurement_adapter;
+mod visual_capture_script;
+
+use visual_capture_script::ScriptedVisualCapture;
 
 #[derive(Clone, Default)]
 pub(crate) struct ScriptedPresentationHost {
     state: Arc<Mutex<ScriptedPresentationState>>,
+    observation_retention: Arc<worth_ui_host_contract::UiHostObservationRetention>,
 }
 
 enum ScriptedPresentationStart {
@@ -48,15 +53,17 @@ struct ScriptedPresentationState {
     viewport_environment_generation: u64,
     font_environment_generation: u64,
     adapter_environment_generation: u64,
-    queued_observation: Option<(
-        worth_ui::facade::observation_report::WorthUiHostObservationIngress,
-        worth_ui::facade::observation_report::UiHostObservationBatch,
-    )>,
+    queued_observation: Option<worth_ui::facade::observation_report::UiHostObservationBatch>,
     queued_measurement: Option<(
         worth_ui::facade::measurement_exchange::WorthUiHostMeasurementIngress,
         worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
     )>,
     observation_events: Vec<&'static str>,
+    visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability,
+    visual_captures: VecDeque<ScriptedVisualCapture>,
+    visual_capture_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
+    visual_cancellation_outcome: worth_ui_host_contract::UiHostCaptureCancellationOutcome,
+    visual_cancellation_calls: Vec<worth_ui_host_contract::UiHostVisualCaptureRequest>,
 }
 
 impl Default for ScriptedPresentationState {
@@ -79,12 +86,23 @@ impl Default for ScriptedPresentationState {
             queued_observation: None,
             queued_measurement: None,
             observation_events: Vec::new(),
+            visual_capture_capability: worth_ui_host_contract::UiHostCaptureCapability::Unsupported,
+            visual_captures: VecDeque::new(),
+            visual_capture_calls: Vec::new(),
+            visual_cancellation_outcome:
+                worth_ui_host_contract::UiHostCaptureCancellationOutcome::CancelledBeforeReadback,
+            visual_cancellation_calls: Vec::new(),
         }
     }
 }
 
 pub(crate) fn recorded_effects() -> UiMountedCompletedEffects {
     UiMountedCompletedEffects::new(vec![UiMountedEffectFamily::RecordedProjection])
+}
+
+pub(crate) const fn scripted_presentation_epoch() -> worth_ui_host_contract::UiHostPresentationEpoch
+{
+    worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1)
 }
 
 fn scripted_presentation_cost() -> worth_ui_host_contract::UiHostPresentationCostReport {
@@ -104,6 +122,7 @@ pub(crate) fn presented_completion() -> ScriptedSurfaceCompletion {
     ScriptedSurfaceCompletion::Presented(
         worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
+            scripted_presentation_epoch(),
             recorded_effects(),
             scripted_presentation_cost(),
         ),
@@ -123,6 +142,7 @@ impl ScriptedPresentationHost {
         self.push_presentation(UiHostSurfacePresentationOutcome::Presented(
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
+                scripted_presentation_epoch(),
                 recorded_effects(),
                 scripted_presentation_cost(),
             ),
@@ -200,10 +220,13 @@ impl ScriptedPresentationHost {
 
     pub(crate) fn enqueue_observation_during_next_presentation(
         &self,
-        ingress: worth_ui::facade::observation_report::WorthUiHostObservationIngress,
         batch: worth_ui::facade::observation_report::UiHostObservationBatch,
     ) {
-        self.state.lock().unwrap().queued_observation = Some((ingress, batch));
+        self.state.lock().unwrap().queued_observation = Some(batch);
+    }
+
+    pub(crate) fn pending_observation_batch_count(&self) -> usize {
+        self.observation_retention.pending_batch_count()
     }
 
     pub(crate) fn enqueue_measurement_during_next_presentation(

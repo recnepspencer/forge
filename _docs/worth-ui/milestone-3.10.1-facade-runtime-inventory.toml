@@ -24,7 +24,9 @@ file = "facade/mod.rs"
 audience = "product"
 responsibility = "named audience modules"
 disposition = "retain"
-fingerprint = "5f3ae69d30a14fb5"
+# Milestone 3.12 adds named observation and rebind audiences without broadening
+# the root into a prelude.
+fingerprint = "be4368dc53fefcf1"
 forbidden_shortcut = "add a broad prelude or wildcard export"
 
 [[surface]]
@@ -32,9 +34,11 @@ file = "facade/app.rs"
 audience = "application-author"
 responsibility = "application construction and lifecycle"
 disposition = "retain"
-# Milestone 3.10.2 Phase 3 adds the curated native application shell, typed
-# replacement outcome and denial, and observable shutdown receipt.
-fingerprint = "08927281b0e87d44"
+# Milestone 3.11 Phase 3 adds the curated mounted inspection receipt and target
+# denial types required to derive node capture authority without runtime imports.
+# Milestone 3.12 adds profile typestate plus active-session observation and
+# planning entrypoints while constructors and execution stay owner-controlled.
+fingerprint = "1c07b78d1ad70c12"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -61,7 +65,9 @@ audience = "inspection-consumer"
 responsibility = "read-only inspection projections"
 disposition = "split"
 exit_phase = 5
-fingerprint = "5348028550348a15"
+# Milestones 3.11 and 3.12 add curated visual and rebind-decision projections
+# without exporting runtime-owned construction or mutation authority.
+fingerprint = "41457d733dab347b"
 forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
 
 [[surface]]
@@ -86,8 +92,9 @@ file = "facade/declaration.rs"
 audience = "application-author"
 responsibility = "curated declaration contract"
 disposition = "retain"
-# Milestone 3.10.2 exposes the typed FillViewport component contract here.
-fingerprint = "d4c250b6480c98f1"
+# Milestone 3.11 exposes static paint, hit-test, and viewport-inset contracts
+# beside the typed FillViewport contract.
+fingerprint = "f796dd9190f68825"
 forbidden_shortcut = "reopen declaration source authority"
 
 [[surface]]
@@ -127,8 +134,27 @@ file = "facade/observation_report.rs"
 audience = "inspection-consumer"
 responsibility = "observation reports"
 disposition = "retain"
-fingerprint = "d0181a64084ab5ac"
+# Milestone 3.12 removes the mutable ingress owner and exposes only typed drain denial.
+fingerprint = "b40ae4ebc3eb41e0"
 forbidden_shortcut = "become a mutable runtime facade"
+
+[[surface]]
+file = "facade/observation.rs"
+audience = "application-author"
+responsibility = "typed observation profiles, turn admission outcomes, and read-only admitted evidence for advanced active-session callers"
+disposition = "retain"
+# Milestone 3.12 extends the same audience with classified observation outcomes
+# while owner construction and mutable state remain private.
+fingerprint = "5c9c3c54a2abe029"
+forbidden_shortcut = "export observation state ownership, raw construction, or mutable runtime internals"
+
+[[surface]]
+file = "facade/rebind.rs"
+audience = "advanced-application-author"
+responsibility = "typed change profiles, owner facts, affected scope, immutable plans, and caller execution policy"
+disposition = "retain"
+fingerprint = "a176573ed1e23e06"
+forbidden_shortcut = "export classifiers, plan constructors, executors, raw scope construction, or mutable runtime authority"
 
 [[surface]]
 file = "facade/query_binding.rs"
@@ -152,7 +178,8 @@ file = "facade/source.rs"
 audience = "application-author"
 responsibility = "runtime source transport, watcher settlement, and candidate ingress"
 disposition = "retain"
-fingerprint = "92f304e3f11d0dca"
+# Milestone 3.12 exposes the typed, basis-carrying source rebind attempt outcome.
+fingerprint = "34867054bd2f3d05"
 forbidden_shortcut = "export parser, AST, or watcher internals"
 
 [[surface]]
@@ -200,10 +227,11 @@ forbidden_shortcut = "make certification reports runtime lifecycle authority"
 id = "certification-scenario"
 path = "scenario"
 match = "directory"
-expected_files = 18
-# Milestone 3.10.2 corrects candidate allocation certification to use
-# allocation-touch authority through the certification-only extension route.
-content_fingerprint = "f7d77e73c29cd0b7"
+expected_files = 25
+# Milestone 3.11 extracts the two-node platform pulse application builder into
+# its named scenario home and adds visual-identity capability and filesystem
+# lifecycle worlds while preserving certification-only construction.
+content_fingerprint = "72463c67577c0472"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -221,7 +249,7 @@ exclude_prefixes = [
   "topology/milestone_3103_watched_replacement",
   "topology/milestone_3103_cost_closure",
 ]
-expected_files = 61
+expected_files = 62
 # Milestone 3.10.2 Phase 2 teaches the adapter-boundary audit to distinguish
 # explicit private `self` composition from forbidden source/DSL authority and
 # excludes the successor pulse scenario from the frozen Phase 7 source count.
@@ -232,7 +260,14 @@ expected_files = 61
 # evidence classification.
 # Phases 3 through 5 likewise retain separate external-world, watched-
 # replacement, and cost-closure owners instead of enlarging this predecessor.
-content_fingerprint = "8da7a76c805ef114"
+# Milestone 3.11 extracts the exact inspection role-purity inventory into its
+# named child, extends its frozen export sets for the visual snapshot contract,
+# and teaches the Phase 7 budget audit to distinguish fixed Cargo-session cost
+# from evolving exact compile-case inventory while excluding the named
+# successor visual-identity scenario sources from historical closing counts.
+# Milestone 3.12 adds its authored-identity, rebind-profile, and post-
+# classification-cost scenario sources to the same explicit successor boundary.
+content_fingerprint = "3b53b0121a50a8f3"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -248,8 +283,12 @@ expected_files = 8
 # closing evidence owner. Milestone 3.10.3 corrects its successor handoff so
 # product completion and executable-world certification remain distinct, and
 # Phase 2 recognizes the bounded serialization dependencies added by the
-# observation-only library contract.
-content_fingerprint = "7df33a4c0d43d30f"
+# observation-only library contract. Milestone 3.11 updates the exact
+# nondegenerate pulse row and byte-cost witnesses. Milestone 3.12 updates the
+# continuing product-doc witness from both retired debug markers to the
+# versioned FirstFramePublished, RebindPublished, and VisualComparison
+# observations.
+content_fingerprint = "f0316e3fd53297f6"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"
@@ -270,8 +309,11 @@ forbidden_shortcut = "move executable-world runner mechanics into worth-ui-certi
 id = "certification-topology-3103-product-contract"
 path = "topology/milestone_3103_product_contract"
 match = "directory"
-expected_files = 4
-content_fingerprint = "60c42723b0271e23"
+expected_files = 5
+# Milestone 3.11 recognizes the product-owned permanent visual pulse contract
+# without admitting executable-world or workflow authority. Milestone 3.12
+# replaces the predecessor source-lowering denial with its typed attempt failure.
+content_fingerprint = "3bd6b8e792aa5b11"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -282,7 +324,7 @@ id = "certification-topology-3103-external-world"
 path = "topology/milestone_3103_external_world"
 match = "directory"
 expected_files = 4
-content_fingerprint = "5b86647ccdb0d2a5"
+content_fingerprint = "9227231997b968ff"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
 disposition = "retain"
@@ -292,8 +334,8 @@ forbidden_shortcut = "substitute an in-process host double, synthetic pixels, or
 id = "certification-topology-3103-watched-replacement"
 path = "topology/milestone_3103_watched_replacement"
 match = "directory"
-expected_files = 3
-content_fingerprint = "d236bd3fd32cdd7c"
+expected_files = 4
+content_fingerprint = "99e343d3b5e633be"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
 disposition = "retain"
@@ -420,9 +462,16 @@ target = "worth-ui-runtime/evidence"
 disposition = "retain"
 
 [[subsystem]]
+name = "fact_contract"
+owner = "authoritative produced and consumed fact meaning"
+allowed_dependencies = ["declaration", "host_exchange", "runtime"]
+target = "worth-ui-runtime/fact_contract"
+disposition = "retain"
+
+[[subsystem]]
 name = "facade"
 owner = "runtime audience aggregation"
-allowed_dependencies = ["admission", "capability", "declaration", "evidence", "graph", "host", "host_exchange", "inspection", "lifecycle", "mounting", "obligations", "runtime", "source"]
+allowed_dependencies = ["admission", "capability", "declaration", "evidence", "fact_contract", "graph", "host", "host_exchange", "inspection", "lifecycle", "mounting", "obligations", "runtime", "source"]
 target = "split audience facades"
 disposition = "split"
 exit_phase = 5
@@ -430,7 +479,7 @@ exit_phase = 5
 [[subsystem]]
 name = "graph"
 owner = "runtime graph"
-allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "obligations", "runtime"]
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "fact_contract", "obligations", "runtime"]
 target = "worth-ui-runtime/graph"
 disposition = "split"
 exit_phase = 5
@@ -452,7 +501,7 @@ disposition = "retain"
 [[subsystem]]
 name = "inspection"
 owner = "inspection bridge"
-allowed_dependencies = ["host_exchange", "mounting"]
+allowed_dependencies = ["evidence", "host_exchange", "lifecycle", "mounting"]
 target = "worth-ui-inspection"
 disposition = "split"
 exit_phase = 5
@@ -482,7 +531,7 @@ disposition = "retain"
 [[subsystem]]
 name = "runtime"
 owner = "active application execution"
-allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "graph", "host", "mounting", "obligations", "source"]
+allowed_dependencies = ["admission", "capability", "certification_support", "declaration", "evidence", "facade", "fact_contract", "graph", "host", "host_exchange", "inspection", "mounting", "obligations", "source"]
 target = "split runtime/application/replacement owners"
 disposition = "split"
 exit_phase = 5

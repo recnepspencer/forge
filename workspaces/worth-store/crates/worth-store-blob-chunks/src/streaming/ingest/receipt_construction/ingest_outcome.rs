@@ -12,7 +12,7 @@ use crate::{
 
 pub(crate) fn emit_ingest_receipt(
     sequence: AdmittedBlobChunkSequence,
-    allocation: AdmittedBlobStreamingAllocation,
+    allocation: AdmittedBlobStreamingAllocation<'_>,
     window: BlobStreamingWindow,
     counter_strength: CounterEvidenceStrength,
     counters: BlobStreamingIngestCounterSnapshot,

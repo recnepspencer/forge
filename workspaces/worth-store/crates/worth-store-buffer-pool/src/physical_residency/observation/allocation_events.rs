@@ -2,7 +2,25 @@ use std::sync::{Arc, Mutex};
 
 use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
-use super::super::{PhysicalResidencyDimension, PhysicalResidencyIncarnation};
+use super::super::{
+    PhysicalOperationAllocationScope, PhysicalResidencyDimension, PhysicalResidencyIncarnation,
+};
+
+#[path = "allocation_events/actualization.rs"]
+mod actualization;
+#[path = "allocation_events/boundary_facts.rs"]
+mod boundary_facts;
+#[path = "allocation_events/boundary_trace.rs"]
+mod boundary_trace;
+pub(crate) use actualization::{
+    PhysicalResidencyActualAllocationUnits, PhysicalResidencyAllocationActualization,
+    PhysicalResidencyRequestedAllocationUnits,
+};
+use boundary_facts::PhysicalResidencyAllocationBoundaryFacts;
+pub use boundary_trace::{
+    PhysicalResidencyAllocationBoundaryEvent, PhysicalResidencyAllocationBoundaryKind,
+    PhysicalResidencyAllocationOperation, PhysicalResidencyAllocationTrace,
+};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PhysicalResidencyAllocationEventCounters {
@@ -38,6 +56,10 @@ pub(crate) struct PhysicalResidencyAllocationEventRecorder {
 #[derive(Debug)]
 struct PhysicalResidencyAllocationEventCells {
     dimensions: [PhysicalResidencyAllocationEventCounters; PhysicalResidencyDimension::COUNT],
+    #[cfg(feature = "certification-test-authority")]
+    next_sequence: u64,
+    #[cfg(feature = "certification-test-authority")]
+    events: Vec<PhysicalResidencyAllocationBoundaryEvent>,
 }
 
 impl PhysicalResidencyAllocationEventRecorder {
@@ -48,6 +70,10 @@ impl PhysicalResidencyAllocationEventRecorder {
         let cells = Arc::new(Mutex::new(PhysicalResidencyAllocationEventCells {
             dimensions: [PhysicalResidencyAllocationEventCounters::default();
                 PhysicalResidencyDimension::COUNT],
+            #[cfg(feature = "certification-test-authority")]
+            next_sequence: 1,
+            #[cfg(feature = "certification-test-authority")]
+            events: Vec::new(),
         }));
         (
             Self {
@@ -58,34 +84,169 @@ impl PhysicalResidencyAllocationEventRecorder {
     }
 
     pub(crate) fn admit(&self, dimension: PhysicalResidencyDimension, units: u64) {
+        self.admit_with_scope(dimension, None, units);
+    }
+
+    pub(crate) fn admit_scoped(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: PhysicalOperationAllocationScope,
+        units: u64,
+    ) {
+        self.admit_with_scope(dimension, Some(scope), units);
+    }
+
+    fn admit_with_scope(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: Option<PhysicalOperationAllocationScope>,
+        units: u64,
+    ) {
         let mut cells = self.lock();
         let counters = &mut cells.dimensions[dimension.index()];
         counters.attempts += 1;
         counters.admissions += 1;
         counters.admitted_units = counters.admitted_units.saturating_add(units);
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts::admission(dimension, scope, units),
+        );
     }
 
     pub(crate) fn release(&self, dimension: PhysicalResidencyDimension, units: u64) {
+        self.release_with_scope(dimension, None, units);
+    }
+
+    pub(crate) fn release_scoped(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: PhysicalOperationAllocationScope,
+        units: u64,
+    ) {
+        self.release_with_scope(dimension, Some(scope), units);
+    }
+
+    fn release_with_scope(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: Option<PhysicalOperationAllocationScope>,
+        units: u64,
+    ) {
+        if units == 0 {
+            return;
+        }
         let mut cells = self.lock();
         let counters = &mut cells.dimensions[dimension.index()];
         counters.releases += 1;
         counters.released_units = counters.released_units.saturating_add(units);
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts::release(dimension, scope, units),
+        );
     }
 
-    pub(crate) fn deny(&self, dimension: PhysicalResidencyDimension, units: u64) {
+    pub(crate) fn deny_scoped(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: PhysicalOperationAllocationScope,
+        units: u64,
+    ) {
+        self.deny_with_scope(dimension, Some(scope), units);
+    }
+
+    fn deny_with_scope(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: Option<PhysicalOperationAllocationScope>,
+        units: u64,
+    ) {
         let mut cells = self.lock();
         let counters = &mut cells.dimensions[dimension.index()];
         counters.attempts += 1;
         counters.denials += 1;
         counters.denied_units = counters.denied_units.saturating_add(units);
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts::denial(dimension, scope, units),
+        );
     }
 
-    pub(crate) fn allocator_failure(&self, dimension: PhysicalResidencyDimension, units: u64) {
+    pub(crate) fn allocator_failure_scoped(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: PhysicalOperationAllocationScope,
+        units: u64,
+    ) {
+        self.allocator_failure_with_scope(dimension, Some(scope), units);
+    }
+
+    fn allocator_failure_with_scope(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        scope: Option<PhysicalOperationAllocationScope>,
+        units: u64,
+    ) {
         let mut cells = self.lock();
         let counters = &mut cells.dimensions[dimension.index()];
         counters.allocator_failures += 1;
         counters.releases += 1;
         counters.released_units = counters.released_units.saturating_add(units);
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts::allocator_failure(dimension, scope, units),
+        );
+    }
+
+    pub(crate) fn actualize_unscoped(
+        &self,
+        dimension: PhysicalResidencyDimension,
+        requested_units: u64,
+        actual_units: u64,
+    ) {
+        let mut cells = self.lock();
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts {
+                kind: PhysicalResidencyAllocationBoundaryKind::Actualization,
+                dimension,
+                scope: None,
+                requested_units,
+                actual_units,
+                operation: None,
+            },
+        );
+    }
+
+    pub(crate) fn actualize(&self, actualization: PhysicalResidencyAllocationActualization) {
+        let mut cells = self.lock();
+        Self::record(
+            &mut cells,
+            PhysicalResidencyAllocationBoundaryFacts::actualization(actualization),
+        );
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    fn record(
+        cells: &mut PhysicalResidencyAllocationEventCells,
+        facts: PhysicalResidencyAllocationBoundaryFacts,
+    ) {
+        let sequence = cells.next_sequence;
+        cells.next_sequence = cells
+            .next_sequence
+            .checked_add(1)
+            .expect("allocation evidence sequence exhausted");
+        cells
+            .events
+            .push(PhysicalResidencyAllocationBoundaryEvent::new(
+                sequence, facts,
+            ));
+    }
+
+    #[cfg(not(feature = "certification-test-authority"))]
+    fn record(
+        _: &mut PhysicalResidencyAllocationEventCells,
+        _: PhysicalResidencyAllocationBoundaryFacts,
+    ) {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, PhysicalResidencyAllocationEventCells> {
@@ -106,6 +267,15 @@ impl PhysicalResidencyAllocationEventObserver {
             pool: self.pool,
             dimensions: cells.dimensions,
         }
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub fn trace(&self) -> PhysicalResidencyAllocationTrace {
+        let cells = self
+            .cells
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        PhysicalResidencyAllocationTrace::new(self.store, self.pool, cells.events.clone())
     }
 }
 

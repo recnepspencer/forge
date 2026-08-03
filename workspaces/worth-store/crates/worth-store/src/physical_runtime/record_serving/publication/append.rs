@@ -41,6 +41,10 @@ pub(in crate::physical_runtime::record_serving) enum ManifestCapacityTransition 
     ReconstructToRequested,
 }
 
+/// Failure to publish an ordinary physical record append.
+///
+/// Physical-pressure failures retain exact Store-owned evidence through
+/// `pressure`; lower pool authority is never exposed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RecordAppendError {
     Denied(RecordAppendDenial),
@@ -53,16 +57,28 @@ pub enum RecordAppendError {
 }
 
 impl RecordAppendError {
+    /// Returns exact physical-pressure evidence when pressure caused failure.
+    ///
+    /// The evidence describes the observed denial and is not retry authority.
     pub const fn pressure(&self) -> Option<super::super::PhysicalRecordPressureEvidence> {
         match self {
             Self::PhysicalPressure { evidence } => Some(*evidence),
+            Self::Unpublished(failure) => failure.pressure(),
+            Self::StreamFailed(failure) => failure.pressure(),
             _ => None,
         }
     }
 
+    /// Returns the broad pressure classification without discarding evidence.
     pub const fn pressure_denial(&self) -> Option<RecordAppendDenial> {
         match self {
             Self::PhysicalPressure { .. } => Some(RecordAppendDenial::PhysicalPressure),
+            Self::Unpublished(failure) if failure.pressure().is_some() => {
+                Some(RecordAppendDenial::PhysicalPressure)
+            }
+            Self::StreamFailed(failure) if failure.pressure().is_some() => {
+                Some(RecordAppendDenial::PhysicalPressure)
+            }
             _ => None,
         }
     }

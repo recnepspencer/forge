@@ -96,7 +96,8 @@ impl ScratchUiWorld {
         .unwrap();
         std::fs::write(
             root.join("dependency/src/lib.rs"),
-            "pub struct Sealed { value: u64 }\n",
+            "pub struct Sealed { value: u64 }\n\
+             impl Sealed { pub fn value(&self) -> u64 { self.value } }\n",
         )
         .unwrap();
         for fixture in ["private_a.rs", "private_b.rs"] {

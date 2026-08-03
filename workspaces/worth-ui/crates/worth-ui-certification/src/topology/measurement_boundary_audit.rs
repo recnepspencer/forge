@@ -6,7 +6,7 @@ use worth_ui_host_contract::{
     UiMeasurementRequestDenial, UiMeasurementRequestFamily, UiMeasurementRequestIdentity,
     UiNativeControlIntrinsicSizeRequest, UiNativeControlKind, UiPortalAnchorRectRequest,
     UiScrollContainerViewportRequest, UiTextBaselineMetricsRequest, UiTextIntrinsicSizeRequest,
-    UiViewportExtentRequest, WorthUiHostCapabilityReport, WorthUiHostContract,
+    UiViewportExtentRequest, WorthUiHostCapability, WorthUiHostCapabilityReport,
 };
 
 pub fn certify_measurement_host_boundary_purity(workspace_root: &Path) -> Result<(), Vec<String>> {
@@ -22,7 +22,16 @@ pub fn certify_measurement_host_boundary_purity(workspace_root: &Path) -> Result
 }
 
 pub fn audit_measurement_host_request_surface(_workspace_root: &Path) -> Vec<String> {
-    let capability_report = WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::egui());
+    let capability_report = WorthUiHostCapabilityReport::available(vec![
+        WorthUiHostCapability::DpiObservation,
+        WorthUiHostCapability::FontMetrics,
+        WorthUiHostCapability::NativeControlIntrinsicMeasurement,
+        WorthUiHostCapability::PortalAnchorObservation,
+        WorthUiHostCapability::ScrollContainerObservation,
+        WorthUiHostCapability::TextBaselineMeasurement,
+        WorthUiHostCapability::TextIntrinsicMeasurement,
+        WorthUiHostCapability::ViewportObservation,
+    ]);
     let mut violations = Vec::new();
 
     for (label, family, result) in allowed_measurement_requests(&capability_report) {

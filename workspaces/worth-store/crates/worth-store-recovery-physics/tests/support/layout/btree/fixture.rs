@@ -103,35 +103,37 @@ pub fn admitted_source_with_residue() -> AdmittedRecoverySource {
 }
 
 pub fn bounded_source_admission() -> worth_store_recovery_physics::BoundedRecoverySourceAdmission {
-    recovery_budget()
-        .source_precedence_graph("phase22-profile")
-        .discover(RecoverySourceCandidate::backend_residue(
-            BackendResidueRejection::new(
-                BackendResidueKind::BackendDirectoryResidue,
-                trace("residue", 2),
-            ),
-        ))
-        .expect("residue candidate")
-        .discover(RecoverySourceCandidate::checkpoint_base(
-            worth_store_recovery_physics::CheckpointBaseAdmission::from_validated_checkpoint(
-                &validated_checkpoint(),
-                &fixture().checkpoint_receipt,
-                trace("checkpoint", 1),
-            )
-            .expect("checkpoint base"),
-        ))
-        .expect("checkpoint candidate")
-        .discover(RecoverySourceCandidate::wal_tail(
-            WalTailRedoSource::from_contiguous_tail(
-                &fixture().checkpoint_receipt,
-                ContiguousWalTailProof::prove(&fixture().checkpoint_receipt, wal_range(30, 45))
-                    .unwrap(),
-                trace("wal-tail", 3),
-            )
-            .expect("tail"),
-        ))
-        .expect("wal tail candidate")
-        .admit_sources()
+    with_recovery_budget(|budget| {
+        budget
+            .source_precedence_graph("phase22-profile")
+            .discover(RecoverySourceCandidate::backend_residue(
+                BackendResidueRejection::new(
+                    BackendResidueKind::BackendDirectoryResidue,
+                    trace("residue", 2),
+                ),
+            ))
+            .expect("residue candidate")
+            .discover(RecoverySourceCandidate::checkpoint_base(
+                worth_store_recovery_physics::CheckpointBaseAdmission::from_validated_checkpoint(
+                    &validated_checkpoint(),
+                    &fixture().checkpoint_receipt,
+                    trace("checkpoint", 1),
+                )
+                .expect("checkpoint base"),
+            ))
+            .expect("checkpoint candidate")
+            .discover(RecoverySourceCandidate::wal_tail(
+                WalTailRedoSource::from_contiguous_tail(
+                    &fixture().checkpoint_receipt,
+                    ContiguousWalTailProof::prove(&fixture().checkpoint_receipt, wal_range(30, 45))
+                        .unwrap(),
+                    trace("wal-tail", 3),
+                )
+                .expect("tail"),
+            ))
+            .expect("wal tail candidate")
+            .admit_sources()
+    })
 }
 
 pub fn authoritative_quarantine_record(seed: &str) -> QuarantineRecord {
@@ -179,16 +181,20 @@ pub const fn recovery_family_id() -> DurableArtifactFamilyId {
     DurableArtifactFamilyId::WalRecoveryDecision
 }
 
-fn recovery_budget() -> worth_store_recovery_physics::RecoveryBudget {
-    worth_store_recovery_physics::RecoveryBudget::new(
-        CheckpointIntervalContract::max_tail_frames(32),
-        WalTailReplayBudget::max_frames(32)
-            .with_max_scanned_segments(4)
-            .with_max_page_redos(32),
-        recovery_memory_allocation(),
-    )
-    .with_store_footprint(RecoveryStoreFootprint::admitted_persisted_pages(64))
-    .with_checkpoint_discovery_candidates(4)
+fn with_recovery_budget<R>(
+    run: impl FnOnce(worth_store_recovery_physics::RecoveryBudget<'_>) -> R,
+) -> R {
+    with_recovery_memory_allocation(|memory_allocation| {
+        run(worth_store_recovery_physics::RecoveryBudget::new(
+            CheckpointIntervalContract::max_tail_frames(32),
+            WalTailReplayBudget::max_frames(32)
+                .with_max_scanned_segments(4)
+                .with_max_page_redos(32),
+            memory_allocation,
+        )
+        .with_store_footprint(RecoveryStoreFootprint::admitted_persisted_pages(64))
+        .with_checkpoint_discovery_candidates(4))
+    })
 }
 
 fn validated_checkpoint() -> CheckpointValidation {

@@ -138,7 +138,7 @@ fn filesystem_submission(
     WorthUiFilesystemSourceProvider::new(workspace.root())
         .read()
         .expect("production filesystem provider should read committed bytes")
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("real source should lower through production semantics")
 }
 
@@ -159,7 +159,7 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
     let submission = WorthUiFilesystemSourceProvider::new(workspace.root())
         .read()
         .expect("baseline should be read from disk")
-        .lower_to_candidate_submission(capabilities.capabilities())
+        .attempt_candidate_for_certification(capabilities.capabilities())
         .expect("baseline should lower");
     builder()
         .with_candidate_submission(submission)
@@ -169,6 +169,7 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
 
 fn builder() -> WorthUiApplicationBuilder {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(MultiRemovalHost)
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
             worth_ui::facade::declaration::ViewBindingId::new("multi.removal.filesystem").unwrap(),

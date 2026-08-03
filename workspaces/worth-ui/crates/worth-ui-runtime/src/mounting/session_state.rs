@@ -1,5 +1,6 @@
 mod identity;
 mod inspection;
+mod interaction;
 mod projection;
 mod publication;
 mod replacement;

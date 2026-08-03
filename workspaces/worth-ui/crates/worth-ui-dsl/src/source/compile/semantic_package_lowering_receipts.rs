@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    UiDslLoweringReceipt, UiDslSemanticArtifact, UiDslSemanticArtifactSpec, UiDslSemanticFamily,
-    UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken, WorthUiArtifactInputProvenance,
+    UiDslLoweringReceipt, UiDslPostureToken, UiDslSemanticArtifact, UiDslSemanticArtifactSpec,
+    UiDslSemanticFamily, UiDslSemanticKey, UiDslSourceProvenance, UiDslStructuralToken,
+    WorthUiArtifactInputProvenance,
 };
 
 use super::{
@@ -54,7 +55,9 @@ fn lower_declaration(view: WorthUiSemanticDeclarationView<'_>) -> Option<Lowerin
         WorthUiSemanticDeclaration::SemanticArtifact(artifact) => {
             semantic_artifact_spec(artifact, provenance.clone())
         }
-        WorthUiSemanticDeclaration::Import(_) | WorthUiSemanticDeclaration::Token(_) => {
+        WorthUiSemanticDeclaration::Import(_)
+        | WorthUiSemanticDeclaration::Projection(_)
+        | WorthUiSemanticDeclaration::Token(_) => {
             return None;
         }
     };
@@ -101,14 +104,20 @@ fn structural_spec(
         None => format!("{family}:identity:{}", block.name_text()),
     };
     let module_path = provenance.module_path().to_owned();
-    UiDslSemanticArtifactSpec::new(
+    let mut spec = UiDslSemanticArtifactSpec::new(
         UiDslSemanticKey::new(format!("{family}:{}", block.name_text())),
         UiDslSemanticFamily::Mosaic,
         provenance,
     )
     .with_structural_token(UiDslStructuralToken::new(format!(
         "mosaic:{module_path}|{identity}"
-    )))
+    )));
+    if !block.structure().interaction_routes().is_empty() {
+        spec = spec.with_posture_token(UiDslPostureToken::new(
+            "intent:attached:canonical-route-catalog",
+        ));
+    }
+    spec
 }
 
 fn dsl_provenance(provenance: &WorthUiArtifactInputProvenance) -> UiDslSourceProvenance {

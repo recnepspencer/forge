@@ -9,8 +9,7 @@ description = "Public Worth Store facade and owner of the physical runtime lifec
 [features]
 default = []
 certification-test-authority = [
-    "dep:worth-store-certification",
-    "dep:worth-store-offline-verifier",
+    "worth-store-buffer-pool/certification-test-authority",
     "worth-store-physical-backend/certification-test-authority",
     "worth-store-io-scheduler/certification-test-authority",
 ]
@@ -19,10 +18,8 @@ certification-test-authority = [
 worth-store-aspect-native.workspace = true
 worth-store-authority.workspace = true
 worth-store-buffer-pool.workspace = true
-worth-store-certification = { workspace = true, optional = true }
 worth-store-contracts.workspace = true
 worth-store-io-scheduler.workspace = true
-worth-store-offline-verifier = { workspace = true, optional = true }
 worth-store-physical-backend = { workspace = true, features = ["store-runtime-owner"] }
 worth-store-physical-format.workspace = true
 worth-store-security.workspace = true
@@ -31,6 +28,7 @@ worth-signal = { path = "../../../../crates/worth-signal" }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 sha2 = "0.10"
 getrandom = "0.4"
+tracking-allocator = { version = "0.4", default-features = false }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }
@@ -39,6 +37,7 @@ stats_alloc = "0.1"
 tempfile = "3"
 trybuild = "1.0"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-store-offline-verifier.workspace = true
 
 [lints]
 workspace = true
@@ -75,6 +74,10 @@ required-features = ["certification-test-authority"]
 name = "physical_runtime_authority_ui"
 path = "tests/physical_runtime_authority_ui.rs"
 required-features = ["certification-test-authority"]
+
+[[test]]
+name = "physical_adapter_authority_ui"
+path = "tests/physical_adapter_authority_ui.rs"
 
 [[test]]
 name = "physical_record_journeys"

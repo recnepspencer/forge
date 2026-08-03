@@ -2,7 +2,11 @@ mod application;
 mod launch_configuration;
 mod lifecycle_observation_publication;
 mod native_frame;
+mod query_source;
 mod source_watch;
+mod visual_identity_adjudication;
+mod visual_identity_execution;
+mod visual_observation_publication;
 
 use std::process::ExitCode;
 
@@ -33,6 +37,7 @@ fn main() -> ExitCode {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_inner_size([160.0, 96.0])
             .with_min_inner_size([160.0, 96.0]),
+        renderer: eframe::Renderer::Wgpu,
         ..Default::default()
     };
     let frame_publisher = publisher.clone();

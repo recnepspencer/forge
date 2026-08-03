@@ -12,13 +12,14 @@ pub fn assemble_physical_isolation_replay_bundle(
     schedule: PhysicalInterleavingSchedule,
     fixture: &ProductionBackedPhysicalFixture,
     trace: ObservedPhysicalTrace,
+    residency: worth_store::physical_runtime::PhysicalResidencyObservation,
     expected_fault: crate::PhysicalScenarioFaultKind,
 ) -> SimulationReplayBundle {
     let sources = crate::PhysicalCounterExecutionSources::admit_for_plan(
         plan,
         &schedule,
         &trace,
-        buffer_pool_evidence(plan),
+        residency,
         io_queue_evidence(plan),
     )
     .unwrap();
@@ -83,28 +84,6 @@ fn physical_isolation_fault_events(
         .unwrap()
         .into_iter()
         .collect()
-}
-
-fn buffer_pool_evidence(
-    plan: &PhysicalSimulationPlan,
-) -> worth_store_buffer_pool::BufferPoolExecutedEvidenceSource {
-    let mut allocation = worth_store_buffer_pool::AllocationAdmission::from_declaration(
-        plan.resource_envelope().allocation(),
-    );
-    let grant = allocation
-        .admit(
-            worth_store_buffer_pool::AllocationRequest::copied_payload(
-                worth_store_buffer_pool::AllocationScope::Foreground,
-                64,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    allocation.record_allocation(grant).unwrap();
-    worth_store_buffer_pool::BufferPoolExecutedEvidenceSource::from_allocation_execution(
-        &allocation,
-    )
-    .unwrap()
 }
 
 fn io_queue_evidence(

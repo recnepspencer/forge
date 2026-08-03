@@ -8,6 +8,7 @@ pub struct WorthServerRequestContextInput {
     transport_class: WorthServerTransportClass,
     authenticated_principal_id: String,
     admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
+    application_authority_proof_identity: Option<String>,
     tenant_id: String,
     workspace_id: String,
     branch_target: RawWorthServerBranchTarget,
@@ -37,6 +38,10 @@ impl WorthServerRequestContextInput {
         self.admitted_transport_caller.as_ref()
     }
 
+    pub(crate) fn application_authority_proof_identity(&self) -> Option<&str> {
+        self.application_authority_proof_identity.as_deref()
+    }
+
     pub(crate) fn tenant_id(&self) -> &str {
         &self.tenant_id
     }
@@ -60,6 +65,7 @@ pub struct WorthServerRequestContextInputBuilder {
     transport_class: Option<WorthServerTransportClass>,
     authenticated_principal_id: Option<String>,
     admitted_transport_caller: Option<crate::WorthServerAdmittedTransportCaller>,
+    application_authority_proof_identity: Option<String>,
     tenant_id: Option<String>,
     workspace_id: Option<String>,
     branch_target: Option<RawWorthServerBranchTarget>,
@@ -73,6 +79,7 @@ impl Default for WorthServerRequestContextInputBuilder {
             transport_class: None,
             authenticated_principal_id: None,
             admitted_transport_caller: None,
+            application_authority_proof_identity: None,
             tenant_id: None,
             workspace_id: None,
             branch_target: Some(RawWorthServerBranchTarget::Main),
@@ -106,7 +113,17 @@ impl WorthServerRequestContextInputBuilder {
     ) -> Self {
         self.authenticated_principal_id =
             Some(admitted_transport_caller.principal_identity().to_string());
+        self.application_authority_proof_identity =
+            Some(admitted_transport_caller.authority_identity().to_string());
         self.admitted_transport_caller = Some(admitted_transport_caller);
+        self
+    }
+
+    pub fn with_application_authority_proof_identity(
+        mut self,
+        proof_identity: impl Into<String>,
+    ) -> Self {
+        self.application_authority_proof_identity = Some(proof_identity.into());
         self
     }
 
@@ -161,6 +178,7 @@ impl WorthServerRequestContextInputBuilder {
                 .authenticated_principal_id
                 .ok_or(WorthServerRequestContextInputError::MissingAuthenticatedPrincipalId)?,
             admitted_transport_caller: self.admitted_transport_caller,
+            application_authority_proof_identity: self.application_authority_proof_identity,
             tenant_id: self
                 .tenant_id
                 .ok_or(WorthServerRequestContextInputError::MissingTenantId)?,

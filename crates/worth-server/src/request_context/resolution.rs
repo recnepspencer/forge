@@ -36,6 +36,7 @@ pub(crate) fn resolve_request_context(
     let principal_gate = resolve_authenticated_principal(
         input.authenticated_principal_id(),
         input.admitted_transport_caller(),
+        input.application_authority_proof_identity(),
         requested_or_default_profile,
     );
     let workspace_gate = resolve_workspace_target(
@@ -93,6 +94,7 @@ pub(crate) fn resolve_request_context(
 fn resolve_authenticated_principal(
     principal_id: &str,
     admitted_transport_caller: Option<&crate::WorthServerAdmittedTransportCaller>,
+    application_authority_proof_identity: Option<&str>,
     diagnostics_profile: DiagnosticRichnessProfile,
 ) -> PreConstructionGate<
     WorthServerAuthenticatedPrincipal,
@@ -114,10 +116,27 @@ fn resolve_authenticated_principal(
             "admitted transport caller does not match the authenticated principal identity",
         ));
     }
+    if application_authority_proof_identity.is_some_and(|identity| identity.trim().is_empty()) {
+        return PreConstructionGate::denied(WorthServerRequestContextDenial::new(
+            WorthServerRequestContextDenialCode::InvalidAuthenticatedPrincipal,
+            diagnostics_profile,
+            "application authority proof identity must not be empty",
+        ));
+    }
+    if admitted_transport_caller.is_some_and(|caller| {
+        application_authority_proof_identity != Some(caller.authority_identity())
+    }) {
+        return PreConstructionGate::denied(WorthServerRequestContextDenial::new(
+            WorthServerRequestContextDenialCode::InvalidAuthenticatedPrincipal,
+            diagnostics_profile,
+            "application authority proof does not match the admitted transport caller",
+        ));
+    }
 
     PreConstructionGate::ready(WorthServerAuthenticatedPrincipal::new(
         principal_id.trim().to_owned(),
         admitted_transport_caller.cloned(),
+        application_authority_proof_identity.map(str::to_owned),
     ))
 }
 

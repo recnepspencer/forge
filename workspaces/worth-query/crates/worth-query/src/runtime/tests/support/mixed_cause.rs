@@ -3,8 +3,8 @@ use worth_foundational::facade::{
 };
 use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{
-    AdmittedBridgeAsyncCompletion, AdmittedBridgeSubscription, AdmittedBridgeTemporalBasis,
-    BridgeAsyncCompletionAdmissionReport, BridgeAsyncRequestAdmissionRequest,
+    AdmittedBridgeAsyncCompletion, AdmittedBridgeAsyncRequestIdentity, AdmittedBridgeSubscription,
+    AdmittedBridgeTemporalBasis, BridgeAsyncRequestAdmissionRequest,
     BridgeAsyncRequestTruthViewBasis, BridgeAsyncSourceDeclarationDraft,
     BridgeAsyncSourceDeclarationIdentity, BridgeAsyncSourceLegacyDeclarationIdentity,
     BridgeCommittedPatchEnvelope, BridgeCommittedPatchEnvelopeIdentity, BridgeCommittedPatchItem,
@@ -132,10 +132,54 @@ pub(in crate::runtime::tests) fn admitted_async_completion(
     truth_basis: BridgeAsyncRequestTruthViewBasis,
     payload_byte_len: u64,
 ) -> AdmittedBridgeAsyncCompletion {
-    admit_request_response_completion(runtime, node, truth_basis, payload_byte_len)
+    admitted_async_request_and_completion(runtime, node, truth_basis, payload_byte_len).1
+}
+
+pub(in crate::runtime::tests) fn admitted_async_request_and_completion(
+    runtime: &RuntimeBridge,
+    node: NodeId,
+    truth_basis: BridgeAsyncRequestTruthViewBasis,
+    payload_byte_len: u64,
+) -> (
+    AdmittedBridgeAsyncRequestIdentity,
+    AdmittedBridgeAsyncCompletion,
+) {
+    let request_identity = admitted_async_request(runtime, node, truth_basis);
+    let completion =
+        admitted_async_completion_for_request(runtime, &request_identity, payload_byte_len);
+    (request_identity, completion)
+}
+
+pub(in crate::runtime::tests) fn admitted_async_completion_for_request(
+    runtime: &RuntimeBridge,
+    request_identity: &AdmittedBridgeAsyncRequestIdentity,
+    payload_byte_len: u64,
+) -> AdmittedBridgeAsyncCompletion {
+    let validated = runtime
+        .validate_async_completion_envelope(
+            request_identity,
+            worth_signal::facade::RawCompletionEnvelope::new(
+                request_identity.request_handle().request_id(),
+                request_identity.request_handle().generation(),
+                request_identity.request_handle().branch_epoch(),
+                request_identity.attempt(),
+                request_identity
+                    .lowered()
+                    .resource_descriptor()
+                    .expect("request-response identity should retain resource descriptor")
+                    .payload_contract_digest()
+                    .clone(),
+                payload_byte_len,
+            ),
+        )
+        .expect("request-response completion envelope should validate");
+    let completion = runtime
+        .admit_async_completion(request_identity, &validated)
+        .expect("request-response completion should admit or deny canonically")
         .admitted_completion()
         .expect("completion should admit")
-        .clone()
+        .clone();
+    completion
 }
 
 fn admitted_detail_subscription(runtime: &RuntimeBridge) -> AdmittedBridgeSubscription {
@@ -236,12 +280,11 @@ fn preview_declaration_for_truth(
     )
 }
 
-fn admit_request_response_completion(
+pub(in crate::runtime::tests) fn admitted_async_request(
     runtime: &RuntimeBridge,
     node: NodeId,
     truth_basis: BridgeAsyncRequestTruthViewBasis,
-    payload_byte_len: u64,
-) -> BridgeAsyncCompletionAdmissionReport {
+) -> AdmittedBridgeAsyncRequestIdentity {
     let lowered = runtime
         .lower_async_source_declaration(
             &runtime
@@ -252,30 +295,9 @@ fn admit_request_response_completion(
     let binding = runtime.bind_async_request_basis(&lowered, truth_basis);
     let request = BridgeAsyncRequestAdmissionRequest::request_response(&lowered, &binding)
         .expect("request-response admission request should construct");
-    let request_identity = runtime
-        .admit_async_request_identity(request)
-        .expect("request-response identity should admit");
-    let validated = runtime
-        .validate_async_completion_envelope(
-            &request_identity,
-            worth_signal::facade::RawCompletionEnvelope::new(
-                request_identity.request_handle().request_id(),
-                request_identity.request_handle().generation(),
-                request_identity.request_handle().branch_epoch(),
-                request_identity.attempt(),
-                request_identity
-                    .lowered()
-                    .resource_descriptor()
-                    .expect("request-response identity should retain resource descriptor")
-                    .payload_contract_digest()
-                    .clone(),
-                payload_byte_len,
-            ),
-        )
-        .expect("request-response completion envelope should validate");
     runtime
-        .admit_async_completion(&request_identity, &validated)
-        .expect("request-response completion should admit or deny canonically")
+        .admit_async_request_identity(request)
+        .expect("request-response identity should admit")
 }
 
 fn request_response_draft(node: NodeId) -> BridgeAsyncSourceDeclarationDraft {

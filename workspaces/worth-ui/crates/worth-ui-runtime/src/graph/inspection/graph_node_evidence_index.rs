@@ -79,6 +79,23 @@ impl UiGraphNodeEvidenceIndex {
             .get(&graph_node_identity)
             .map(UiGraphNodeEvidenceLookup::graph_node_identity_hit)
     }
+
+    pub(crate) fn minimum_retained_structural_bytes(&self) -> Option<usize> {
+        self.by_graph_node_identity.iter().try_fold(
+            std::mem::size_of::<Self>(),
+            |bytes, (_, neighborhood)| {
+                bytes
+                    .checked_add(std::mem::size_of::<UiGraphNodeIdentity>())?
+                    .checked_add(std::mem::size_of::<UiGraphNodeEvidenceNeighborhood>())?
+                    .checked_add(
+                        neighborhood
+                            .refs
+                            .len()
+                            .checked_mul(std::mem::size_of::<UiEvidenceRef>())?,
+                    )
+            },
+        )
+    }
 }
 
 impl UiGraphNodeEvidenceNeighborhood {

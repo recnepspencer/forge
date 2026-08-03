@@ -5,13 +5,14 @@ use sha2::{Digest, Sha256};
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
 use crate::source::BridgeAsyncRequestTruthViewBasisKind;
 use crate::source::{
-    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion, BridgeAsyncRetryLineage,
-    BridgeAsyncRevalidationLineage,
+    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion,
+    BridgeAsyncDeniedCompletion, BridgeAsyncRetryLineage, BridgeAsyncRevalidationLineage,
 };
 use crate::subscription::{
     BridgeTemporalCauseClassification, BridgeTemporalCauseRecord, BridgeTemporalRoutingLaneKind,
 };
 
+use super::async_result_transition::BridgeMixedCauseAsyncResultTransitionSeed;
 use super::ordering::{BridgeMixedCauseDeniedKind, BridgeMixedCauseOrderFamilyKind};
 use super::request::BridgeMixedCauseOrderingInput;
 
@@ -126,6 +127,7 @@ pub(super) struct Candidate {
     pub(super) precedence: u8,
     pub(super) preview_local: bool,
     pub(super) stale_or_nondeliverable: Option<BridgeMixedCauseDeniedKind>,
+    pub(super) async_result_transition: Option<BridgeMixedCauseAsyncResultTransitionSeed>,
 }
 
 impl Candidate {
@@ -135,6 +137,9 @@ impl Candidate {
             BridgeMixedCauseOrderingInput::Temporal(cause) => Self::from_temporal(cause),
             BridgeMixedCauseOrderingInput::AsyncCompletion(completion) => {
                 Self::from_async_completion(completion)
+            }
+            BridgeMixedCauseOrderingInput::AsyncDeniedCompletion(completion) => {
+                Self::from_async_denied_completion(completion)
             }
             BridgeMixedCauseOrderingInput::AsyncClassifiedDeniedCompletion(denied) => {
                 Self::from_async_denied(denied)
@@ -175,6 +180,7 @@ impl Candidate {
             precedence: 0,
             preview_local: false,
             stale_or_nondeliverable: None,
+            async_result_transition: None,
         }
     }
 
@@ -200,6 +206,7 @@ impl Candidate {
                 BridgeTemporalRoutingLaneKind::Preview
             ),
             stale_or_nondeliverable: None,
+            async_result_transition: None,
         }
     }
 
@@ -218,6 +225,30 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: None,
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_completion(completion),
+            ),
+        }
+    }
+
+    fn from_async_denied_completion(completion: &BridgeAsyncDeniedCompletion) -> Self {
+        Self {
+            family_kind: BridgeMixedCauseOrderFamilyKind::AsyncDeniedCompletion,
+            source_identity: Arc::from(completion.denial_identity().to_owned()),
+            source_digest: Arc::from(completion.digest().to_owned()),
+            dedup_key: Arc::from(format!("async-denied-completion:{}", completion.digest())),
+            precedence: 2,
+            preview_local: matches!(
+                completion
+                    .request_identity()
+                    .basis_binding()
+                    .truth_view_basis_kind(),
+                BridgeAsyncRequestTruthViewBasisKind::Preview
+            ),
+            stale_or_nondeliverable: None,
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_denied_completion(completion),
+            ),
         }
     }
 
@@ -237,6 +268,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncStaleCauseRejected),
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_classified_denied(denied),
+            ),
         }
     }
 
@@ -255,6 +289,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable),
+            async_result_transition: Some(BridgeMixedCauseAsyncResultTransitionSeed::from_retry(
+                lineage,
+            )),
         }
     }
 
@@ -273,6 +310,9 @@ impl Candidate {
                 BridgeAsyncRequestTruthViewBasisKind::Preview
             ),
             stale_or_nondeliverable: Some(BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable),
+            async_result_transition: Some(
+                BridgeMixedCauseAsyncResultTransitionSeed::from_revalidation(lineage),
+            ),
         }
     }
 }

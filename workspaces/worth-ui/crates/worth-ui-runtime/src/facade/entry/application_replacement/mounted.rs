@@ -8,7 +8,8 @@ mod admission;
 mod outcome;
 
 pub use outcome::{
-    WorthUiMountedApplicationReplacementInFlight, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
     WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
     WorthUiPreparedMountedApplicationReplacement,
@@ -31,6 +32,33 @@ impl WorthUiActiveApplicationSession {
         request: crate::mounting::UiMountedFrameRequest,
     ) -> Result<WorthUiMountedReplacementPreparationOutcome<'_>, WorthUiApplicationCutoverDenial>
     {
+        self.prepare_mounted_replacement_with_content(
+            pending,
+            admitted_delta,
+            boundary,
+            lane_parity_report,
+            crate::mounting::UiMountedSemanticContentInput::empty(),
+            request,
+        )
+    }
+
+    pub(crate) fn prepare_mounted_replacement_with_content(
+        &mut self,
+        pending: WorthUiPendingApplicationCutover,
+        admitted_delta: crate::graph::UiAdmittedAllocationCatalogDelta,
+        boundary: crate::runtime::WorthUiFrameBoundary,
+        lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
+        mut semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        request: crate::mounting::UiMountedFrameRequest,
+    ) -> Result<WorthUiMountedReplacementPreparationOutcome<'_>, WorthUiApplicationCutoverDenial>
+    {
+        let active_query_plan = self.application.prepared_authority().query_binding_plan();
+        let candidate_query_plan = pending.next_app.prepared_authority().query_binding_plan();
+        if active_query_plan != candidate_query_plan {
+            semantic_content.require_projection_input_replacement(
+                candidate_query_plan.projection_input_count(),
+            );
+        }
         let candidate_graph = pending.next_app.graph_snapshot().clone();
         let candidate_generation = pending.next_app.generation_identity().clone();
         let prepared = self.prepare_application_cutover(
@@ -65,6 +93,7 @@ impl WorthUiActiveApplicationSession {
                 capability_generation: capability_report.observation_generation(),
                 capability_profile_digest: capability_report.profile_identity_digest(),
             },
+            semantic_content,
             request,
         )
         .map_err(WorthUiApplicationCutoverDenial::MountedFrame)?;
@@ -211,7 +240,11 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
                     observation,
                 );
                 WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(Box::new(
-                    frame,
+                    WorthUiMountedApplicationReplacementIndeterminate {
+                        session,
+                        application,
+                        frame,
+                    },
                 ))
             }
         }
@@ -263,6 +296,38 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
             session
                 .mounted
                 .complete_graph_replacement(&session.host_session, mounted, now);
+        let outcome = match outcome {
+            Ok(outcome) => outcome,
+            Err(rejection) => {
+                return WorthUiMountedApplicationReplacementOutcome::CompletionDenied(Box::new(
+                    WorthUiMountedReplacementCompletionDenial {
+                        denial: rejection.denial,
+                        in_flight: WorthUiMountedApplicationReplacementInFlight {
+                            session,
+                            application,
+                            mounted: *rejection.in_flight,
+                        },
+                    },
+                ));
+            }
+        };
+        WorthUiPreparedMountedApplicationReplacement::finish(
+            session,
+            application,
+            outcome,
+            |presented| presented.commit_once(),
+        )
+    }
+
+    pub fn cancel(self: Box<Self>) -> WorthUiMountedApplicationReplacementOutcome<'session> {
+        let Self {
+            session,
+            application,
+            mounted,
+        } = *self;
+        let outcome = session
+            .mounted
+            .cancel_graph_replacement(&session.host_session, mounted);
         let outcome = match outcome {
             Ok(outcome) => outcome,
             Err(rejection) => {

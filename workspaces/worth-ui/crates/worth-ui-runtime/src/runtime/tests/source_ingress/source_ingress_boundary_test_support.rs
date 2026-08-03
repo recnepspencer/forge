@@ -16,7 +16,7 @@ pub(crate) fn lower_file_submission<const N: usize>(
     session
         .ingest(events)
         .expect("events debounce")
-        .lower_to_candidate_submission(snapshot)
+        .attempt_candidate_for_certification(snapshot)
         .expect("candidate submission lowers")
 }
 

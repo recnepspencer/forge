@@ -15,6 +15,7 @@ use super::settings_fixtures::{boolean_workspace_setting, setting_id};
 #[test]
 fn setting_without_scope_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::missing_scope_for_diagnostics(
                 setting_id("workspace.setting.no_scope"),
@@ -41,6 +42,7 @@ fn setting_without_scope_rejected() {
 #[test]
 fn duplicate_setting_id_rejected_before_snapshot_freeze() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(boolean_workspace_setting("workspace.setting.duplicate"))
         .register_setting(boolean_workspace_setting("workspace.setting.duplicate"))
         .freeze_with_registration_report();
@@ -59,6 +61,7 @@ fn duplicate_setting_id_rejected_before_snapshot_freeze() {
 #[test]
 fn setting_without_value_schema_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::missing_value_schema_for_diagnostics(
                 setting_id("workspace.setting.no_schema"),
@@ -82,6 +85,7 @@ fn setting_without_value_schema_rejected() {
 #[test]
 fn setting_without_default_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.no_default"),
@@ -105,6 +109,7 @@ fn setting_without_default_posture_rejected() {
 #[test]
 fn setting_without_validation_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.no_validation"),
@@ -130,6 +135,7 @@ fn setting_without_validation_posture_rejected() {
 #[test]
 fn arbitrary_key_value_setting_bag_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(SettingDescriptor::arbitrary_key_value_bag_for_diagnostics(
             setting_id("workspace.setting.raw_bag"),
             ArbitraryKeyValueSettingBag::new("HashMap<String, serde_json::Value>"),
@@ -155,6 +161,7 @@ fn arbitrary_key_value_setting_bag_rejected() {
 #[test]
 fn setting_without_migration_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.no_migration"),
@@ -180,6 +187,7 @@ fn setting_without_migration_posture_rejected() {
 #[test]
 fn setting_without_editor_hint_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.no_editor_hint"),
@@ -205,6 +213,7 @@ fn setting_without_editor_hint_rejected() {
 #[test]
 fn setting_without_ownership_metadata_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.no_ownership"),
@@ -230,6 +239,7 @@ fn setting_without_ownership_metadata_rejected() {
 #[test]
 fn setting_default_value_must_satisfy_schema() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.mismatch"),
@@ -256,6 +266,7 @@ fn setting_default_value_must_satisfy_schema() {
 #[test]
 fn invalid_enum_setting_schema_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.empty_enum"),
@@ -280,6 +291,7 @@ fn invalid_enum_setting_schema_rejected() {
 #[test]
 fn duplicate_enum_setting_schema_options_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.duplicate_enum"),
@@ -306,6 +318,7 @@ fn duplicate_enum_setting_schema_options_rejected() {
 #[test]
 fn malformed_decimal_setting_default_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.bad_decimal"),
@@ -332,6 +345,7 @@ fn malformed_decimal_setting_default_rejected() {
 #[test]
 fn setting_persistence_cannot_claim_domain_truth() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             boolean_workspace_setting("workspace.setting.truth_claim")
                 .with_migration_posture(
@@ -354,6 +368,7 @@ fn setting_persistence_cannot_claim_domain_truth() {
 #[test]
 fn rejected_setting_does_not_poison_valid_setting() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_setting(
             SettingDescriptor::typed(
                 setting_id("workspace.setting.bad"),

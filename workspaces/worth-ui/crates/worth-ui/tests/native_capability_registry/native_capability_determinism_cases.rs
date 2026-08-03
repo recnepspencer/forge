@@ -9,11 +9,13 @@ use super::native_capability_fixtures::{native_capability, native_capability_id}
 #[test]
 fn equivalent_native_capabilities_produce_equivalent_support_entries() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.clipboard"))
         .register_native_capability(native_capability("platform.native.file_dialog"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.file_dialog"))
         .register_native_capability(native_capability("platform.native.clipboard"))
         .freeze()
@@ -38,15 +40,20 @@ fn all_domain_agnostic_builtin_native_capability_families_are_admitted() {
     let app = all_builtin_native_families()
         .into_iter()
         .enumerate()
-        .fold(WorthUi::app(), |builder, (index, family)| {
-            builder.register_native_capability(
-                NativeCapabilityDescriptor::new(native_capability_id(&format!(
-                    "platform.native.builtin_{index}"
-                )))
-                .with_family(family)
-                .with_platform_posture(NativePlatformPosture::runtime_declared()),
-            )
-        })
+        .fold(
+            WorthUi::app().with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            ),
+            |builder, (index, family)| {
+                builder.register_native_capability(
+                    NativeCapabilityDescriptor::new(native_capability_id(&format!(
+                        "platform.native.builtin_{index}"
+                    )))
+                    .with_family(family)
+                    .with_platform_posture(NativePlatformPosture::runtime_declared()),
+                )
+            },
+        )
         .freeze()
         .expect("application preparation should succeed");
 
@@ -77,6 +84,7 @@ fn all_domain_agnostic_builtin_native_capability_families_are_admitted() {
 fn frozen_native_capabilities_support_index_lookup_by_typed_id() {
     let native_id = native_capability_id("platform.native.clipboard");
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.clipboard_backup"))
         .register_native_capability(native_capability(native_id.as_str()))
         .freeze()
@@ -99,6 +107,7 @@ fn frozen_native_capabilities_support_index_lookup_by_typed_id() {
 fn explicit_unsupported_platform_posture_is_registered_as_declared_support_seam() {
     let native_id = native_capability_id("platform.native.clipboard");
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             NativeCapabilityDescriptor::new(native_id.clone())
                 .with_family(NativeCapabilityFamily::clipboard())
@@ -122,10 +131,12 @@ fn explicit_unsupported_platform_posture_is_registered_as_declared_support_seam(
 #[test]
 fn different_native_platform_posture_changes_snapshot_digest() {
     let runtime_declared = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.clipboard"))
         .freeze()
         .expect("application preparation should succeed");
     let deferred = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             native_capability("platform.native.clipboard")
                 .with_platform_posture(NativePlatformPosture::deferred()),

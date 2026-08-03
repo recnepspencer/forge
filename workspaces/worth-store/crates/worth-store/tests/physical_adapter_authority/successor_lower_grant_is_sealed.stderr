@@ -1,0 +1,5 @@
+error[E0599]: no method named `into_grant` found for struct `BlobPhysicalAllocation<'runtime>` in the current scope
+ --> tests/physical_adapter_authority/successor_lower_grant_is_sealed.rs:4:35
+  |
+4 |     let _lower_grant = allocation.into_grant();
+  |                                   ^^^^^^^^^^ method not found in `BlobPhysicalAllocation<'_>`

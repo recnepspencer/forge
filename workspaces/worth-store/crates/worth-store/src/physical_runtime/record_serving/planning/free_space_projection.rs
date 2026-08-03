@@ -17,7 +17,7 @@ pub(in crate::physical_runtime::record_serving) struct FreeSpaceProjectionContex
     pub(in crate::physical_runtime::record_serving) allocation:
         &'plan worth_store_buffer_pool::OperationAllocationGrant,
     pub(in crate::physical_runtime::record_serving) residency:
-        super::super::residency::ServingFrameResidency,
+        super::super::residency::PhysicalResidencyWorkPort,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime::record_serving) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime::record_serving) current: &'plan DurableFreeSpaceManifestHeader,

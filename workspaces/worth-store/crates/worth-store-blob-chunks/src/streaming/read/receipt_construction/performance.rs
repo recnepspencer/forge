@@ -13,6 +13,8 @@ use crate::BlobStreamingReadCounterSnapshot;
 pub type BlobStreamingReadCounterBackedPerformanceReceipt =
     FoundationalCounterBackedPerformanceReceipt<FoundationalAuthoritativePerformanceClaim>;
 
+const READ_PERFORMANCE_COUNTER_COUNT: usize = 22;
+
 pub(crate) fn counter_backed_streaming_read_performance_receipt(
     counters: BlobStreamingReadCounterSnapshot,
 ) -> BlobStreamingReadCounterBackedPerformanceReceipt {
@@ -53,7 +55,7 @@ fn counter_claim() -> FoundationalAuthoritativePerformanceClaim {
 
 fn counter_specs(
     counters: BlobStreamingReadCounterSnapshot,
-) -> [FoundationalPerformanceCounterSpec; 23] {
+) -> [FoundationalPerformanceCounterSpec; READ_PERFORMANCE_COUNTER_COUNT] {
     counter_rows(counters).map(|row| {
         FoundationalPerformanceCounterSpec::new(
             row.name().clone(),
@@ -65,7 +67,7 @@ fn counter_specs(
 
 fn counter_rows(
     counters: BlobStreamingReadCounterSnapshot,
-) -> [FoundationalPerformanceCounterRow; 23] {
+) -> [FoundationalPerformanceCounterRow; READ_PERFORMANCE_COUNTER_COUNT] {
     [
         counter_row("read_windows_observed", counters.windows_observed()),
         counter_row("bytes_read", counters.bytes_read()),
@@ -91,7 +93,6 @@ fn counter_rows(
             "pressure_denied_denials",
             counters.pressure_denied_denials(),
         ),
-        counter_row("pressure_stale_denials", counters.pressure_stale_denials()),
         counter_row("pressure_throttles", counters.pressure_throttles()),
         counter_row(
             "pressure_admitted_with_debt",

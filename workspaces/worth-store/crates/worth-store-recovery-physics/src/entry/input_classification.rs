@@ -12,7 +12,7 @@ pub(crate) enum RecoveryEntryInputClassification {
 
 pub(crate) fn classify_recovery_entry_inputs(
     integrity_readiness: &AdmittedRecoveryIntegrityInput,
-    memory_allocation: &RecoveryMemoryAllocation,
+    memory_allocation: &RecoveryMemoryAllocation<'_>,
     physical_authority: PhysicalAuthorityRecap,
 ) -> RecoveryEntryInputClassification {
     if integrity_readiness.claims_recovery() {

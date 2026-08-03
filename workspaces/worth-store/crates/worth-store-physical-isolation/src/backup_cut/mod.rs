@@ -16,6 +16,7 @@ mod storage_posture;
 
 pub use artifact_reference::{
     BackupArtifactCoverage, BackupArtifactFamily, BackupArtifactReference,
+    UntrustedBackupArtifactClaim,
 };
 pub use cut_admission::{
     AdmittedBackupCut, BackupCutAdmissionAuthority, BackupCutAdmissionDenial,

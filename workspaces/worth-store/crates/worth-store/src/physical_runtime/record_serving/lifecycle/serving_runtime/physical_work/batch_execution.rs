@@ -24,6 +24,7 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
     ) -> crate::physical_runtime::PhysicalWorkExecutionBatchOutcome {
         let mut settled = Vec::with_capacity(commands.len());
         let mut effect_activities = Vec::with_capacity(commands.len());
+        let mut residency_writebacks = Vec::with_capacity(commands.len());
         let mut denied = Vec::new();
         let mut derived_guard = BatchDerivedCompletionGuard::new(&self.submission);
         let mut derivation_reconciled = false;
@@ -37,7 +38,7 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
                 derivation_reconciled = true;
             }
             match self.execute_batch_command(command) {
-                Ok((work, effect_activity)) => {
+                Ok((work, effect_activity, residency_writeback)) => {
                     self.submission.record_settled_causality(&work);
                     if self.signal.settlement_requires_derived_completion(&work) {
                         if self.signal.retain_settlement_obligation(&work) {
@@ -49,6 +50,7 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
                     }
                     settled.push(work);
                     effect_activities.push(effect_activity);
+                    residency_writebacks.push(residency_writeback);
                 }
                 Err(failure) => denied.push(failure),
             }
@@ -69,8 +71,13 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
         let executions = settled
             .into_iter()
             .zip(signals)
-            .map(|(work, signal)| {
-                crate::physical_runtime::PhysicalWorkExecutionOutcome::new(work, signal)
+            .zip(residency_writebacks)
+            .map(|((work, signal), residency_writeback)| {
+                crate::physical_runtime::PhysicalWorkExecutionOutcome::new(
+                    work,
+                    signal,
+                    residency_writeback,
+                )
             })
             .collect();
         crate::physical_runtime::PhysicalWorkExecutionBatchOutcome::new(executions, denied)
@@ -83,6 +90,7 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
         (
             crate::physical_runtime::SettledPhysicalWork,
             crate::physical_runtime::work::PhysicalEffectActivity,
+            Option<crate::physical_runtime::PhysicalResidencyWritebackCompletion>,
         ),
         crate::physical_runtime::PhysicalWorkBatchDenial,
     > {
@@ -116,10 +124,10 @@ impl crate::physical_runtime::instance::PhysicalStoreWorkRuntime {
             }
         };
         let settlement = crate::physical_runtime::PhysicalWorkSettlement::settle(execution);
-        let (work, revocation, effect_activity) = settlement.into_parts();
+        let (work, revocation, effect_activity, residency_writeback) = settlement.into_parts();
         self.consume_settlement_revocation(&work, revocation);
         dispatch_guard.disarm();
-        Ok((work, effect_activity))
+        Ok((work, effect_activity, residency_writeback))
     }
 }
 

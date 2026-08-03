@@ -15,10 +15,13 @@ pub(super) fn prepare_candidate_mounted_frame(
     state: &crate::mounting::UiMountedGraphReplacementSuccessor,
     graph: crate::graph::UiGraphAuthority<'_>,
     reuse_basis: UiMountedReplacementReuseBasis,
+    semantic_content: crate::mounting::UiMountedSemanticContentInput,
     request: crate::mounting::UiMountedFrameRequest,
 ) -> Result<crate::mounting::UiPreparedMountedFrame, crate::mounting::UiMountedFramePreparationDenial>
 {
     let range = request.virtualized_range();
+    let visual_overlay = request.visual_overlay();
+    let visual_overlay_revision = request.visual_overlay_revision();
     let plan = application.candidate_plan();
     let lanes = candidate_lanes(plan, range.is_some());
     let allocation_source = crate::runtime::UiMountedAllocationProjectionSource::for_replacement(
@@ -36,11 +39,13 @@ pub(super) fn prepare_candidate_mounted_frame(
             protocol: reuse_basis.protocol,
             capability_generation: reuse_basis.capability_generation,
             capability_profile_digest: reuse_basis.capability_profile_digest,
+            visual_overlay_revision,
         });
     let mut assembler =
         state.begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
             graph,
             generation: reuse_basis.generation,
+            trace_source: application.visual_trace_source(),
             plan_digest: application.candidate_plan_digest(),
             plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
             allocation_truth_revision: application.candidate_allocation_truth_revision(),
@@ -48,6 +53,8 @@ pub(super) fn prepare_candidate_mounted_frame(
             request,
             lanes,
             preview: None,
+            visual_overlay,
+            semantic_content,
             reuse_contract,
         })?;
     execute_candidate_lanes(application, &mut assembler, lanes, range)?;

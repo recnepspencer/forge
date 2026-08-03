@@ -4,6 +4,7 @@ edition.workspace = true
 version.workspace = true
 license.workspace = true
 autotests = false
+build = "build.rs"
 
 [lib]
 name = "worth_ui_platform_pulse"
@@ -25,13 +26,16 @@ required-features = ["executable-world"]
 workspace = true
 
 [dependencies]
-eframe = { workspace = true }
+eframe = { workspace = true, features = ["wgpu"] }
+notify = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+worth-query-decl = { workspace = true }
+worth-query-host = { workspace = true }
 worth-ui = { workspace = true }
 worth-ui-host-egui = { workspace = true }
 
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
 winsafe = { workspace = true }
-xcap = { workspace = true }
+xcap = { workspace = true, features = ["wgc"] }

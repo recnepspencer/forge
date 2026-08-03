@@ -76,12 +76,14 @@ fn wal_cut_coverage_uses_the_wal_owners_half_open_interval_semantics() {
         std::fs::write(&path, frame.encoded_frame()).expect("WAL source");
         artifacts.push(
             BackupArtifactReference::declare_untrusted_physical_observation(
-                BackupArtifactFamily::WalSegment,
-                artifact_format(BackupArtifactFamily::WalSegment),
-                format!("half-open-wal-{index}"),
-                1,
-                BackupArtifactCoverage::wal_segment(start, end_exclusive)
-                    .expect("nonempty half-open WAL interval"),
+                UntrustedBackupArtifactClaim {
+                    family: BackupArtifactFamily::WalSegment,
+                    format: artifact_format(BackupArtifactFamily::WalSegment),
+                    identity: format!("half-open-wal-{index}"),
+                    generation: 1,
+                    coverage: BackupArtifactCoverage::wal_segment(start, end_exclusive)
+                        .expect("nonempty half-open WAL interval"),
+                },
                 observe_physical_backup_artifact(path, 4 * 1024).expect("WAL observation"),
                 reclaim_reference(BackupArtifactFamily::WalSegment, 70 + index as u16),
             )

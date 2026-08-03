@@ -117,10 +117,7 @@ impl DurabilityRecoveryFrontier {
             Action::CheckpointBegun if self.checkpoint == CheckpointFrontierState::Absent => {
                 self.checkpoint = CheckpointFrontierState::Begun;
             }
-            Action::CheckpointDurable
-                if self.wal != WalFrontierState::Acknowledged
-                    || self.page != PageFrontierState::Durable =>
-            {
+            Action::CheckpointDurable if self.wal != WalFrontierState::Acknowledged => {
                 return Err(DurabilityRecoveryDenial::CheckpointFrontierNotDurable);
             }
             Action::CheckpointDurable if self.checkpoint == CheckpointFrontierState::Begun => {

@@ -20,9 +20,7 @@ mod scrub;
 mod wal_frames;
 
 pub use admission::entry::entry_admission::IntegrityEntryAdmission;
-pub use admission::entry::entry_basis::{
-    IntegrityEntryBasis, ScrubEnvelopeLimits, VerifierResidentLimits,
-};
+pub use admission::entry::entry_basis::IntegrityEntryBasis;
 pub use admission::entry::entry_denial::{IntegrityEntryDenial, IntegrityEntryDenialKind};
 pub use admission::entry::entry_request::IntegrityEntryRequest;
 pub use admission::entry::entry_witness::IntegrityEntryWitness;
@@ -195,21 +193,15 @@ pub use quarantine::quarantine_posture::{QuarantineHandoffPosture, QuarantineLif
 pub use quarantine::quarantine_receipt::{FoundationalQuarantineReceiptBasis, QuarantineReceipt};
 pub use quarantine::quarantine_record::QuarantineRecord;
 pub use quarantine::quarantine_request::QuarantineSealRequest;
+pub use scrub::execution::{
+    PausedScrubExecution, ScrubExecution, ScrubExecutionOutcome, ScrubExecutionReceipt,
+    ScrubIntegrityFinding, ScrubProgressReport,
+};
+pub use scrub::plan::{
+    PlannedScrubWindow, PlannedScrubWindowStatus, ScrubPlan, ScrubPlanPolicy, ScrubPlanRequest,
+};
 pub use scrub::scrub_counters::ScrubCounterSnapshot;
-pub use scrub::scrub_denial::{
-    ScrubExecutionDenial, ScrubExecutionDenialKind, ScrubOverBudgetClass, ScrubPlanDenial,
-    ScrubPlanDenialKind,
-};
-pub use scrub::scrub_execution::{
-    ScrubExecution, ScrubExecutionReceipt, ScrubIntegrityFinding, ScrubProgressReport,
-};
-pub use scrub::scrub_plan::{
-    PlannedScrubWindow, PlannedScrubWindowStatus, ScrubPlan, ScrubPlanBudget, ScrubPlanRequest,
-};
-pub use scrub::scrub_planning_memory_envelope::{
-    ScrubPlanningMemoryEnvelope, ScrubPlanningMemoryEnvelopeDenial,
-};
-pub use scrub::scrub_resume::ScrubResumeToken;
+pub use scrub::scrub_denial::{ScrubOverBudgetClass, ScrubPlanDenial, ScrubPlanDenialKind};
 pub use scrub::scrub_scheduler_demand::scrub_scan_scheduler_demand;
 pub use scrub::scrub_window::{
     ScrubLocalitySummary, ScrubMode, ScrubWindow, ScrubWindowOrdinal, ScrubWindowSource,

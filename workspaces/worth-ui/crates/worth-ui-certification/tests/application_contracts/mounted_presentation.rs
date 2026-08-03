@@ -4,79 +4,30 @@ use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
     mounted_session, prepared, InFlightPresentationWorld,
 };
-use super::mounted_application_lifecycle::known_empty_surface_world::{
-    mounted_application_with_host, profile,
-};
+use super::mounted_application_lifecycle::known_empty_surface_world::mounted_application_with_host;
 use super::mounted_host_protocol::scripted_host::{
-    presented_completion, ScriptedPresentationHost,
-    ScriptedSurfaceCompletion as UiHostSurfaceInFlightCompletion,
+    ScriptedPresentationHost, ScriptedSurfaceCompletion as UiHostSurfaceInFlightCompletion,
 };
 use super::mounted_presentation_model_trace::assert_model_outcome;
-use super::mounted_protocol_model::{
-    ModelCancellation, ModelCompletion, ModelPresentation, ModelSurfaceStart,
-};
+use super::mounted_protocol_model::{ModelCancellation, ModelPresentation, ModelSurfaceStart};
 use worth_ui_runtime::facade::mounted::{
-    UiHostPresentationReconciliation, UiHostSurfaceCancellationOutcome,
-    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedPresentationAdmissionDenial,
+    UiHostSurfaceCancellationOutcome, UiHostSurfacePresentationMode, UiMountedFrameOutcome,
     UiPresentationDeadline,
+};
+
+#[path = "mounted_presentation/support.rs"]
+mod support;
+use support::{
+    present_asynchronously, present_synchronously, publish_partial_effects,
+    rebind_and_reconcile_affected,
 };
 
 #[test]
 fn synchronous_and_multi_in_flight_completion_converge_with_distinct_attempts() {
     let host = ScriptedPresentationHost::default();
     let (mut session, bindings) = mounted_session(host.clone(), "presentation-convergence", 2);
-    let synchronous_frame = prepared(&mut session);
-    host.push_presented();
-    host.push_presented();
-    let synchronous_model =
-        ModelPresentation::start(&[ModelSurfaceStart::Presented, ModelSurfaceStart::Presented]);
-    let synchronous_outcome = session.present_prepared_mounted_frame(
-        synchronous_frame,
-        UiPresentationDeadline::at_tick(10),
-        0,
-    );
-    assert_model_outcome(&synchronous_model, &synchronous_outcome);
-    let synchronous = published(synchronous_outcome);
-
-    let asynchronous_frame = prepared(&mut session);
-    host.push_in_flight(
-        vec![
-            UiHostSurfaceInFlightCompletion::Pending,
-            presented_completion(),
-        ],
-        UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
-    );
-    host.push_in_flight(
-        vec![presented_completion()],
-        UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun,
-    );
-    let mut asynchronous_model =
-        ModelPresentation::start(&[ModelSurfaceStart::InFlight, ModelSurfaceStart::InFlight]);
-    let first_outcome = session.present_prepared_mounted_frame(
-        asynchronous_frame,
-        UiPresentationDeadline::at_tick(10),
-        0,
-    );
-    assert_model_outcome(&asynchronous_model, &first_outcome);
-    let first_poll = expect_in_flight(first_outcome);
-    assert_eq!(first_poll.pending_bindings().count(), 2);
-    asynchronous_model.complete(0, ModelCompletion::Pending);
-    asynchronous_model.complete(1, ModelCompletion::Presented);
-    let second_outcome = session.complete_mounted_presentation(first_poll, 1);
-    assert_model_outcome(&asynchronous_model, &second_outcome);
-    let second_poll = expect_in_flight(second_outcome);
-    assert_eq!(second_poll.pending_bindings().count(), 1);
-    let duplicate = second_poll.clone();
-    asynchronous_model.complete(0, ModelCompletion::Presented);
-    let terminal_outcome = session.complete_mounted_presentation(second_poll, 2);
-    assert_model_outcome(&asynchronous_model, &terminal_outcome);
-    let asynchronous = published(terminal_outcome);
-    assert!(matches!(
-        session.complete_mounted_presentation(duplicate, 2),
-        UiMountedFrameOutcome::CompletionDenied(
-            worth_ui_runtime::facade::mounted::UiMountedPresentationCompletionDenial::UnknownAttempt
-        )
-    ));
+    let synchronous = present_synchronously(&mut session, &host);
+    let asynchronous = present_asynchronously(&mut session, &host);
 
     assert_ne!(synchronous.attempt(), asynchronous.attempt());
     assert_ne!(synchronous.frame(), asynchronous.frame());
@@ -88,71 +39,9 @@ fn synchronous_and_multi_in_flight_completion_converge_with_distinct_attempts() 
 fn partial_effects_block_the_semantic_surface_until_reset_binding_evidence() {
     let host = ScriptedPresentationHost::default();
     let (mut session, _) = mounted_session(host.clone(), "presentation-reconcile", 2);
-    let frame = prepared(&mut session);
-    host.push_presented();
-    host.push_rejected();
-    let model = ModelPresentation::start(&[
-        ModelSurfaceStart::Presented,
-        ModelSurfaceStart::RejectedBeforeEffects,
-    ]);
-    let outcome =
-        session.present_prepared_mounted_frame(frame, UiPresentationDeadline::at_tick(10), 0);
-    assert_model_outcome(&model, &outcome);
-    let indeterminate = match outcome {
-        UiMountedFrameOutcome::PresentationIndeterminate(value) => value,
-        _ => panic!("success on one required surface plus rejection is indeterminate"),
-    };
-    let affected = indeterminate.report().affected_bindings().to_vec();
-    assert_eq!(affected.len(), 2);
-    drop(indeterminate);
+    let affected = publish_partial_effects(&mut session, &host);
+    rebind_and_reconcile_affected(&mut session, &affected);
 
-    let old_views = session
-        .inspect_mounted_identity()
-        .surface_bindings()
-        .to_vec();
-    let mut replacements = Vec::new();
-    for old in &old_views {
-        session
-            .rebind_host_surface(
-                old.binding_generation(),
-                UiHostSurfacePresentationMode::RecordOnly,
-                profile(2),
-            )
-            .unwrap();
-    }
-    replacements.extend_from_slice(session.inspect_mounted_identity().surface_bindings());
-    let blocked_frame = prepared(&mut session);
-    assert!(matches!(
-        session.present_prepared_mounted_frame(
-            blocked_frame,
-            UiPresentationDeadline::at_tick(10),
-            0
-        ),
-        UiMountedFrameOutcome::AdmissionDenied(rejection)
-            if matches!(
-                rejection.denial(),
-                UiMountedPresentationAdmissionDenial::BindingRequiresReconciliation(_)
-            )
-    ));
-
-    for affected_binding in affected {
-        let semantic_surface = old_views
-            .iter()
-            .find(|view| view.binding_generation() == affected_binding)
-            .unwrap()
-            .semantic_surface_identity();
-        let replacement = replacements
-            .iter()
-            .find(|view| view.semantic_surface_identity() == semantic_surface)
-            .unwrap()
-            .to_owned();
-        assert!(session.reconcile_mounted_presentation(
-            UiHostPresentationReconciliation::KnownEmptyBaseline {
-                affected_binding,
-                replacement,
-            },
-        ));
-    }
     let retry = prepared(&mut session);
     host.push_presented();
     host.push_presented();
@@ -309,6 +198,7 @@ fn adapter_overreported_effects_cannot_publish_as_exact_completion() {
         worth_ui_host_contract::UiHostSurfacePresentationOutcome::Presented(
             worth_ui_host_contract::UiMountedSurfacePresentationCompletion::new(
                 UiHostSurfacePresentationMode::RecordOnly,
+                worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(1),
                 worth_ui_host_contract::UiMountedCompletedEffects::new(vec![
                     worth_ui_host_contract::UiMountedEffectFamily::RecordedProjection,
                     worth_ui_host_contract::UiMountedEffectFamily::NativePaint,
@@ -384,7 +274,7 @@ fn protocol(
         worth_ui_host_contract::UiHostProtocolVersion::new(revision),
         worth_ui_host_contract::UiMountedFrameSchemaVersion::new(revision),
         worth_ui_host_contract::UiMountedPresentationSchemaVersion::new(revision),
-        worth_ui_host_contract::UiHostObservationSchemaVersion::new(3),
+        worth_ui_host_contract::UiHostProtocolContract::current().observation(),
         worth_ui_host_contract::UiHostMeasurementSchemaVersion::new(revision),
     )
 }

@@ -10,21 +10,21 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct RecoveryBudget {
+pub struct RecoveryBudget<'runtime> {
     checkpoint_interval: CheckpointIntervalContract,
     wal_tail: WalTailReplayBudget,
-    memory_allocation: RecoveryMemoryAllocation,
+    memory_allocation: RecoveryMemoryAllocation<'runtime>,
     max_memory_envelope_bytes: Option<u64>,
     max_allocation_bytes: Option<u64>,
     max_checkpoint_discovery_candidates: Option<usize>,
     store_footprint: RecoveryStoreFootprint,
 }
 
-impl RecoveryBudget {
+impl<'runtime> RecoveryBudget<'runtime> {
     pub fn new(
         checkpoint_interval: CheckpointIntervalContract,
         wal_tail: WalTailReplayBudget,
-        memory_allocation: RecoveryMemoryAllocation,
+        memory_allocation: RecoveryMemoryAllocation<'runtime>,
     ) -> Self {
         Self {
             checkpoint_interval,
@@ -60,7 +60,7 @@ impl RecoveryBudget {
     pub fn source_precedence_graph(
         self,
         profile: impl Into<String>,
-    ) -> BoundedRecoverySourcePrecedenceGraph {
+    ) -> BoundedRecoverySourcePrecedenceGraph<'runtime> {
         BoundedRecoverySourcePrecedenceGraph::new(self, profile)
     }
 
@@ -76,7 +76,7 @@ impl RecoveryBudget {
         self,
         source_admission: BoundedRecoverySourceAdmission,
         redo_plan: RecoveryRedoPlan,
-    ) -> Result<BoundedRecoveryPlan, RecoveryBudgetDenial> {
+    ) -> Result<BoundedRecoveryPlan<'runtime>, RecoveryBudgetDenial> {
         let (source, evidence) = source_admission.into_parts();
         self.require_source_trace_matches_plan(&source, &redo_plan)?;
         let checkpoint = admitted_checkpoint_base(&source)?;

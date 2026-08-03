@@ -8,6 +8,7 @@ mod lower;
 mod module;
 mod package;
 mod parse;
+mod projection;
 #[cfg(test)]
 mod tests;
 
@@ -32,10 +33,13 @@ pub use compile::{
     WorthUiDslSourceSpan, WorthUiSealedSemanticArtifact, WorthUiSealedSemanticPackage,
     WorthUiSemanticBlock, WorthUiSemanticDeclaration, WorthUiSemanticDeclarationView,
     WorthUiSemanticImport, WorthUiSemanticModule, WorthUiSemanticPackageIdentity,
-    WorthUiSemanticProvenanceRef, WorthUiSemanticToken,
+    WorthUiSemanticProjectionDeclaration, WorthUiSemanticProvenanceRef, WorthUiSemanticToken,
 };
 pub(crate) use import_graph::{WorthUiSourceImport, WorthUiSourceImportGraph};
-pub use legality::{WorthUiAuthoredMount, WorthUiAuthoredRegion, WorthUiAuthoredStructuralBody};
+pub use legality::{
+    WorthUiAuthoredMount, WorthUiAuthoredProjectionContent, WorthUiAuthoredRegion,
+    WorthUiAuthoredStructuralBody,
+};
 pub(crate) use legality::{
     WorthUiStructuralBodyParser, WorthUiStructuralLanguageDiagnosticCode,
     WorthUiStructuralParseFailure,
@@ -60,4 +64,11 @@ pub(crate) use parse::{
     WorthUiParsedBlockDeclaration, WorthUiParsedImportDeclaration, WorthUiParsedSourceDeclaration,
     WorthUiParsedSourceModule, WorthUiParsedSourcePackage, WorthUiParsedTokenDeclaration,
     WorthUiSourceParser,
+};
+pub(crate) use projection::parse_projection_requirement;
+pub use projection::{
+    WorthUiProjectionCollectionPolicy, WorthUiProjectionCollectionSelection,
+    WorthUiProjectionDeclarationError, WorthUiProjectionDeclarationErrorKind,
+    WorthUiProjectionLifecycle, WorthUiProjectionNativeFamily, WorthUiProjectionRequirement,
+    WorthUiProjectionRequirementIdentity, WorthUiProjectionShape,
 };

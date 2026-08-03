@@ -853,27 +853,31 @@ through admitted binding/projection lanes.
 The ordinary application path is:
 
 ```text
-install worth_ui_domain_package() in the Query runtime
--> resolve workspace.worth_ui()
--> derive measurement_view(...) or live_measurement_view(...)
--> register_query_view(...) on WorthUi::app()
+prepare a WorthUiScalarProjectionHostPlan or another binding-owned installation
+-> install its request through the Query host
+-> complete installation into a shape-specific registration and initial advance
+-> register_scalar_projection(...) or register_collection_projection(...) on WorthUi::app()
 -> freeze and launch one active application session
--> execute through the installed view
--> submit its projection outcome during the active session's framework turn
+-> admit the Query-issued observation through begin_projection_rebind(...)
+-> mount semantic content and publish through the ordinary host contract
+-> release the affine fact to the Query lifecycle owner
 ```
 
-The installed view is one semantic object: it carries its UI definition and the
-exact runtime-affine Query domain authority. Application code does not assemble
-result shape, basis, lifecycle, capability status, or projection identity as
-independent fields.
+The public application grammar enters through
+`worth_ui::facade::query_binding`; there is no
+`WorthUiQueryWorkspaceExt` product import. The installation owner obtains an
+`UiInstalledProjectionView`, then declares a scalar or keyed collection
+registration with selected fields, native family, lifecycle, and collection
+cardinality posture. Application code cannot assemble a binding or fact from
+result shape, basis, capability status, or reporting identities.
 
-Projection crosses the UI boundary as one sealed lifecycle-specific outcome:
-`WorthUiQuerySnapshotProjectionOutcome` or
-`WorthUiQueryLiveProjectionOutcome`. The binding edge may derive indexed UI facts,
-but it may not split that outcome into independently trusted basis, receipt,
-support, source-label, fact-bag, or digest fields. Foundational native aspect
-values remain native through refinement and allocation/plan admission; they do
-not take a JSON, string, or widened-number detour.
+Projection crosses the UI boundary as a shape-specific observation and affine
+fact receipt. `UiProjectionAvailability` distinguishes unavailable, present,
+and stopped; `UiPresentProjection` distinguishes current from retained stale
+activity. Exact stop kinds preserve schema, payload, native-family, world,
+generation, basis, support, remasking, budget, and reset distinctions.
+Foundational native values remain native through consumption and mounted
+semantic text; they do not take a JSON, debug-string, or widened-number detour.
 
 See [Query-backed UI views](./query-binding.md) for the public entry points and
 worked examples.
@@ -883,12 +887,14 @@ UI query binding answers:
 ```text
 which Query artifact is consumed?
 which basis/world is it bound to?
-which projection facts are needed?
+which shape-specific projection fact is consumed?
 which schema/view shape is expected?
-which fields/options/collections are projected?
-which async/result posture is retained?
+which scalar field or keyed collection fields are projected?
+which availability, currency/activity, and stop posture is retained?
+which compatibility proof admits replacement?
+which completeness and continuation posture governs a collection?
 which invalidation aspects affect the UI graph?
-which payload shape is admitted for intent?
+which access, row, byte, and retained-resource budget applies?
 ```
 
 If a UI binding consumes Query truth without retaining the aspect contract that
@@ -900,8 +906,9 @@ state, and intent admission.
 
 Query also remains the owner of installed-domain and live-resource activation,
 maintenance, recovery, and disposal. Worth UI binds admitted references to its
-application/plan generation and coordinates exact-once succession at cutover;
-it does not become a subscription manager or local Query runtime.
+application/plan generation, coordinates exact-once succession at cutover, and
+returns the published affine fact to its owner; it does not become a
+subscription manager, session data cache, or local Query runtime.
 
 View shape is not UI-only sugar. It can affect planning, invalidation, live
 patch shape, delivery formatting, and binding support.
@@ -909,25 +916,34 @@ patch shape, delivery formatting, and binding support.
 Minimum binding postures:
 
 ```text
-ready
 pending
 current
 stale
 revalidating
+failed
+retried
 superseded
 cancelled
 denied
 unsupported
+remasked
 schema-mismatch
+payload-shape-mismatch
+native-family-mismatch
 wrong-world
-rebind-required
+stale-generation
+basis-mismatch
+budget-exceeded
+reset-required
 ```
 
 Mistakes to avoid:
 
 - local `loading/error/retry` enums replacing Query result-state
 - renderer-side query builders
+- a product workspace-extension import that bypasses hosted installation
 - field visibility computed from local caches
+- operational literal-field lookup after contract admission
 - payload shape assembled in renderer code
 - schema swaps handled by component conditionals
 - UI reading relational/bridge internals directly
@@ -935,8 +951,13 @@ Mistakes to avoid:
 - splitting a consumed projection into UI-local basis/status/fact/digest truth
 - stringifying or JSON-encoding native aspect values for operational UI use
 - implementing live-view activation, recovery, or disposal in the UI runtime
-- constructing a detached `ViewBindingDescriptor` for Query-backed UI
-- registering a bare UI view definition without installed Query authority
+- treating reporting identities or inspection projections as reassembly parts
+- crossing scalar and collection facts or treating continuation as scalar state
+
+Rich tables, joins, expressions, formatting/coercion, mutation intents, and
+general authored composition are additive successors. They must consume these
+same installed bindings, typed postures, and ordinary rebind/publication path;
+they do not justify a second Query or renderer-owned lane.
 
 ---
 
@@ -1333,46 +1354,47 @@ Canonical path:
 
 ```text
 host observation
--> mounted node identity
--> participation check
--> interaction route
--> intent declaration
--> operability/readiness check
+-> exact presented-frame mounted target
+-> semantic interaction
+-> compact route binding + registered intent definition
+-> intent declaration + coherent typed payload
+-> runtime-derived operability
+-> UI routing admission
+-> managed application execution
 -> Query/domain admission where required
--> intent receipt or diagnostic
+-> typed completion or recovery
+-> declared consequence through observation/rebind/publication
 ```
 
-Minimum intent families:
+Initial semantic interaction families:
 
 ```text
-click
+activate
+edit-commit
+selection-commit
 submit
-edit
-select
-open-portal
-close-portal
-navigate-page
-change-mosaic
-invoke-command
-start-drag
-commit-drag
-cancel
 ```
 
-Operability must distinguish:
+Product intents have typed application identities and payloads; they are not
+an enum of host gestures. Navigate-page and change-mosaic are product intents.
+Portal and command requests enter their runtime service owners rather than
+executing as host callbacks.
+
+Operability is derived from orthogonal axes:
 
 ```text
-operable
-disabled
-readonly
-pending
-denied
-unsupported
-wrong-world
-stale
-rebind-required
-requires-confirmation
+support: supported | unsupported
+mutability: writable | readonly
+readiness: ready | pending
+occupancy: idle | in-flight
+policy: admitted | denied
+affinity: current | stale | wrong-world | rebind-required
+confirmation: not-required | required(policy)
 ```
+
+Occupancy is target/route single-flight by default. Declaration-, definition-,
+or application-wide serialization requires an explicit typed concurrency
+scope; a busy provider cannot silently disable unrelated controls.
 
 Mistakes to avoid:
 
@@ -1382,6 +1404,8 @@ Mistakes to avoid:
 - command routing bypassing runtime
 - treating click success as mutation success
 - side effects from host event handlers
+- treating UI routing admission as Query/domain mutation admission
+- boolean confirmation or diagnostic receipts used as authority
 
 ---
 
@@ -1761,15 +1785,17 @@ sequenceDiagram
 sequenceDiagram
     participant Host as Host Adapter
     participant Obs as Observation Intake
+    participant Interaction as Interaction Runtime
     participant Intent as Intent Runtime
     participant Portal as Portal Service
     participant Focus as Focus Service
     participant Measure as Measurement
     participant Mount as Mounted Receipts
 
-    Host->>Obs: pointer click on mounted node
-    Obs->>Intent: open-portal observation route
-    Intent->>Portal: admitted portal request
+    Host->>Obs: pointer motion, press, and release
+    Obs->>Interaction: exact presented-frame target
+    Interaction->>Intent: activate routes portal request
+    Intent->>Portal: admitted typed service request
     Portal->>Focus: focus/dismissal obligations
     Portal->>Measure: portal anchor measurement
     Measure->>Mount: portal mounted receipt
@@ -1782,18 +1808,25 @@ sequenceDiagram
 sequenceDiagram
     participant Host as Host Adapter
     participant Obs as Observation Intake
-    participant Control as Control State Projection
+    participant Interaction as Interaction Runtime
+    participant Payload as Payload And Operability
     participant Intent as Intent Runtime
-    participant Query as Query Admission
+    participant Provider as Application Provider
+    participant Query as Domain Admission
+    participant Rebind as Observation And Rebind
     participant Diag as Diagnostics
     participant Receipt as Intent Receipt
 
-    Host->>Obs: submit observation
-    Obs->>Control: mounted form identity
-    Control->>Intent: payload projection
-    Intent->>Query: payload/schema/operability admission
-    Query-->>Intent: admitted or denied
-    Intent->>Receipt: valid intent receipt
+    Host->>Obs: pointer/key/text observations
+    Obs->>Interaction: exact target and submit interaction
+    Interaction->>Payload: coherent runtime revision
+    Payload->>Intent: prepared typed attempt
+    Intent->>Provider: UI routing admission
+    Provider->>Query: separate domain admission/effect
+    Query-->>Provider: typed product outcome
+    Provider->>Intent: typed completion or recovery
+    Intent->>Rebind: declared consequence
+    Intent->>Receipt: exact attempt receipt
     Intent->>Diag: denial diagnostic if invalid
 ```
 

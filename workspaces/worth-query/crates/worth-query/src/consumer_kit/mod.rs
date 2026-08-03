@@ -129,5 +129,5 @@ pub use test_backend::{
     WorthQueryTestBackendEquivalenceRow, WorthQueryTestBackendError,
     WorthQueryTestBackendErrorKind, WorthQueryTestBackendResidueAudit,
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
-    WorthQueryTestBackendSchema,
+    WorthQueryTestBackendSchema, WorthQueryTestSeedReceipt, WorthQueryTestSeedRow,
 };

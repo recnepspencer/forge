@@ -17,10 +17,18 @@ pub fn observe_hostile_physical_truth(
     budget: OfflineHostilePhysicalTruthBudget,
 ) -> Result<OfflineHostilePhysicalTruthObservation, OfflineHostilePhysicalTruthDenial> {
     let artifacts = artifact_inventory::inventory(store_root, budget)?;
-    let current = super::walk_current_durable_record_manifest(store_root, expected_format)
-        .map(OfflineHostileCurrentRecordTruth::from_walk);
+    let (current, record_payloads) =
+        match super::walk_current_durable_record_manifest(store_root, expected_format) {
+            Ok(walk) => (
+                Ok(OfflineHostileCurrentRecordTruth::from_walk(&walk)),
+                walk.record_payloads().to_vec(),
+            ),
+            Err(denial) => (Err(denial), Vec::new()),
+        };
     Ok(OfflineHostilePhysicalTruthObservation::new(
-        artifacts, current,
+        artifacts,
+        current,
+        record_payloads,
     ))
 }
 

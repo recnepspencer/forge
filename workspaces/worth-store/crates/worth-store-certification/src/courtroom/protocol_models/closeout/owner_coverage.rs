@@ -58,7 +58,7 @@ fn require_exact_compaction_owner_coverage(
 
 fn declared_cases(protocol: ProtocolFamily) -> Vec<OwnerBindingCase> {
     match protocol {
-        ProtocolFamily::DurabilityRecovery => DurabilityRecoveryAction::all()
+        ProtocolFamily::DurabilityRecovery => DurabilityRecoveryAction::production_owned()
             .into_iter()
             .map(OwnerBindingCase::Durability)
             .collect(),

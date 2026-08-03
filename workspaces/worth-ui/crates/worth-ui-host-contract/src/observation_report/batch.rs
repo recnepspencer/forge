@@ -24,8 +24,7 @@ pub enum UiHostObservationLoss {
 pub struct UiHostObservationCanonicalCore {
     protocol: crate::UiHostProtocolAgreement,
     host_session: u64,
-    binding: crate::UiSurfaceBindingGeneration,
-    frame: crate::UiMountedFrameIdentity,
+    presentation: super::UiHostObservationPresentationBasis,
     sequences: UiHostObservationSequenceRange,
     report_count: usize,
     byte_count: usize,
@@ -36,8 +35,7 @@ pub struct UiHostObservationCanonicalCore {
 pub struct UiHostObservationCanonicalCoreInput {
     pub protocol: crate::UiHostProtocolAgreement,
     pub host_session: u64,
-    pub binding: crate::UiSurfaceBindingGeneration,
-    pub frame: crate::UiMountedFrameIdentity,
+    pub presentation: super::UiHostObservationPresentationBasis,
     pub sequences: UiHostObservationSequenceRange,
     pub report_count: usize,
     pub byte_count: usize,
@@ -65,8 +63,7 @@ pub struct UiHostObservationBatch {
 pub struct UiHostObservationBatchInput {
     pub protocol: crate::UiHostProtocolAgreement,
     pub host_session: u64,
-    pub binding: crate::UiSurfaceBindingGeneration,
-    pub frame: crate::UiMountedFrameIdentity,
+    pub presentation: super::UiHostObservationPresentationBasis,
     pub sequences: UiHostObservationSequenceRange,
     pub loss: UiHostObservationLoss,
     pub reports: Vec<UiHostObservationReport>,
@@ -77,8 +74,7 @@ impl UiHostObservationCanonicalCore {
         Self {
             protocol: input.protocol,
             host_session: input.host_session,
-            binding: input.binding,
-            frame: input.frame,
+            presentation: input.presentation,
             sequences: input.sequences,
             report_count: input.report_count,
             byte_count: input.byte_count,
@@ -95,11 +91,15 @@ impl UiHostObservationCanonicalCore {
     }
 
     pub const fn binding(self) -> crate::UiSurfaceBindingGeneration {
-        self.binding
+        self.presentation.binding()
     }
 
     pub const fn frame(self) -> crate::UiMountedFrameIdentity {
-        self.frame
+        self.presentation.frame()
+    }
+
+    pub const fn presentation(self) -> super::UiHostObservationPresentationBasis {
+        self.presentation
     }
 
     pub const fn sequences(self) -> UiHostObservationSequenceRange {
@@ -132,8 +132,7 @@ impl UiHostObservationBatch {
             UiHostObservationCanonicalCore::from_untrusted(UiHostObservationCanonicalCoreInput {
                 protocol: input.protocol,
                 host_session: input.host_session,
-                binding: input.binding,
-                frame: input.frame,
+                presentation: input.presentation,
                 sequences: input.sequences,
                 report_count: input.reports.len(),
                 byte_count,

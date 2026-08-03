@@ -28,6 +28,7 @@ pub struct WorthServerProductAdapterRegistry {
     receipts: Vec<WorthServerProductAdapterRegistrationReceipt>,
     operations_by_name: BTreeMap<String, RegisteredProductOperation>,
     mutation_lane_coordinator: super::lane_coordination::WorthServerProductMutationLaneCoordinator,
+    operation_authorizer: Option<Arc<dyn super::WorthServerProductOperationAuthorizer>>,
 }
 
 impl WorthServerProductAdapterRegistry {
@@ -105,7 +106,22 @@ impl WorthServerProductAdapterRegistry {
             receipts,
             operations_by_name,
             mutation_lane_coordinator: Default::default(),
+            operation_authorizer: None,
         })
+    }
+
+    pub(crate) fn with_operation_authorizer(
+        mut self,
+        authorizer: Option<Arc<dyn super::WorthServerProductOperationAuthorizer>>,
+    ) -> Self {
+        self.operation_authorizer = authorizer;
+        self
+    }
+
+    pub(crate) fn operation_authorizer(
+        &self,
+    ) -> Option<&Arc<dyn super::WorthServerProductOperationAuthorizer>> {
+        self.operation_authorizer.as_ref()
     }
 
     pub fn receipts(&self) -> &[WorthServerProductAdapterRegistrationReceipt] {

@@ -11,10 +11,7 @@ pub enum BlobPlacementAdmissionDenial {
         source: BackendCapabilityAdmissionDenial,
         counters: BlobPlacementCounterSnapshot,
     },
-    PlacementReadinessBasisMismatch {
-        counters: BlobPlacementCounterSnapshot,
-    },
-    ExternalPlacementMissingRecoverability {
+    ColdPostureScopeMismatch {
         counters: BlobPlacementCounterSnapshot,
     },
     ExternalPlacementRecoverabilityBasisMismatch {

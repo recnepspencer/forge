@@ -9,6 +9,7 @@ mod obligation_relevance_detail;
 mod relevance_admission;
 mod relevance_filter;
 mod relevance_outcome;
+mod visual_snapshot;
 
 pub use allocation_planning_question::UiAllocationPlanningQuestion;
 pub use aspect_relevance_detail::UiInspectionAspectRelevanceDetail;
@@ -21,3 +22,10 @@ pub use obligation_relevance_detail::UiInspectionObligationRelevanceDetail;
 pub use relevance_admission::UiInspectionRelevanceAdmission;
 pub use relevance_filter::{UiEvidenceLinkKind, UiRelevanceFamily, UiRelevanceFilter};
 pub use relevance_outcome::{UiInspectionRelevanceOutcome, UiInspectionTargetClass};
+pub use visual_snapshot::{
+    SealedPixelArtifactPolicy, UiGeometryOnly, UiPixelsOptional, UiPixelsRequired,
+    UiVisualArtifactPolicy, UiVisualCaptureCancellation, UiVisualCaptureDeadline,
+    UiVisualInspectionAudience, UiVisualInspectionByteBudget, UiVisualInspectionCapacity,
+    UiVisualInspectionDisclosure, UiVisualInspectionPolicy, UiVisualInspectionPolicyDenial,
+    UiVisualInspectionRegionCapacity, UiVisualPixelRedaction, UiVisualSnapshotRequest,
+};

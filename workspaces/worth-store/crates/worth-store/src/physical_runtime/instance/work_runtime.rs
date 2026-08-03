@@ -149,11 +149,9 @@ impl PhysicalWorkExecution {
         &self,
         commands: Box<[PhysicalExecutorCommand]>,
     ) -> PhysicalWorkExecutionBatchOutcome {
-        let Ok(call) = self.admit_call() else {
-            return deny_batch_before_effect(
-                commands,
-                PhysicalWorkPreEffectDenial::AdmissionStopped,
-            );
+        let call = match self.admit_call() {
+            Ok(call) => call,
+            Err(denial) => return deny_batch_before_effect(commands, denial),
         };
         let Some(runtime) = self.runtime.upgrade() else {
             drop(call);
@@ -171,6 +169,13 @@ impl PhysicalWorkExecution {
     pub(in crate::physical_runtime) fn admit_call(
         &self,
     ) -> Result<PhysicalExecutionCall, PhysicalWorkPreEffectDenial> {
+        let runtime = self
+            .runtime
+            .upgrade()
+            .ok_or(PhysicalWorkPreEffectDenial::AdmissionStopped)?;
+        if runtime.submission.generation() != self.generation {
+            return Err(PhysicalWorkPreEffectDenial::StaleGeneration);
+        }
         let mut state = self
             .gate
             .state
@@ -180,6 +185,7 @@ impl PhysicalWorkExecution {
             return Err(PhysicalWorkPreEffectDenial::AdmissionStopped);
         }
         state.active = state.active.saturating_add(1);
+        drop(runtime);
         Ok(PhysicalExecutionCall {
             gate: Arc::clone(&self.gate),
         })

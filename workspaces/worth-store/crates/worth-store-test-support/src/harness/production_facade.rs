@@ -25,6 +25,8 @@ pub use super::lsm_execution_fixture::{
 };
 #[cfg(feature = "physical-isolation-fixtures")]
 pub use super::physical_isolation::*;
+#[cfg(feature = "physical-residency-fixtures")]
+pub use super::physical_residency::*;
 #[cfg(feature = "certification-world")]
 pub use super::physical_simulation::{
     admitted_ci_certification_driver_contracts, admitted_developer_smoke_driver_contracts,

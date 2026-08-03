@@ -14,6 +14,7 @@ mod declaration_authority;
 mod domain_operation_executors;
 mod domain_packages;
 mod graph_participation;
+mod host_installation;
 mod lowering;
 mod primary_graph;
 mod queued_graph_obligation_registrations;
@@ -92,7 +93,15 @@ pub struct WorthQueryRuntimeBuilder {
         Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
     pending_primary_graph_installation:
         Option<Box<dyn primary_graph::PendingPrimaryGraphInstallation>>,
+    host_execution_installation:
+        Option<worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation>,
 }
+
+pub use host_installation::{
+    WorthQueryHostRuntimeCompletionError, WorthQueryHostRuntimeInstallationCompletion,
+    WorthQueryHostRuntimeInstallationDenial, WorthQueryHostRuntimeInstallationDenialKind,
+    WorthQueryHostRuntimeInstallationPlan, WorthQueryHostRuntimeInstallationRequest,
+};
 
 impl WorthQueryRuntimeBuilder {
     pub fn new() -> Self {

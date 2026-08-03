@@ -12,6 +12,7 @@ use super::snapshot_fixtures::{command_icon, command_id, command_with_icon};
 #[test]
 fn snapshot_lookup_by_typed_id_is_index_backed() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("icon.save"))
         .register_command(command_with_icon("command.save", "icon.save"))
         .register_command(command_with_icon("command.open", "icon.save"))
@@ -36,6 +37,7 @@ fn snapshot_lookup_by_typed_id_is_index_backed() {
 #[test]
 fn snapshot_lookup_index_covers_every_frozen_family() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let index = app.capabilities().index();

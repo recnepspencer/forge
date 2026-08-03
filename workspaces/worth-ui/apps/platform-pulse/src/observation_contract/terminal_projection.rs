@@ -1,11 +1,12 @@
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, WorthUiApplicationPreparationDenial, WorthUiMountedFrameExecutionStop,
-    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeSourceRebindDenial,
 };
+use worth_ui::facade::rebind::UiRebindPreparationDenial;
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
-    WorthUiFilesystemWatcherShutdownReceipt, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherBackend, WorthUiFilesystemWatcherDenial,
+    WorthUiFilesystemWatcherShutdownReceipt,
 };
 
 use super::envelope::PlatformPulseLifecycleObservationEnvelope;
@@ -20,22 +21,62 @@ use super::projection::{
 };
 
 impl PlatformPulseLifecycleObservationStream {
+    pub fn project_query_preparation_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::QueryPreparation)
+    }
+
+    pub fn project_query_shutdown_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::QueryShutdown)
+    }
+
     pub fn project_shutdown(
         &mut self,
         watcher: &WorthUiFilesystemWatcherShutdownReceipt,
+        query: super::query::PlatformPulseQueryShutdownEvidence,
         application: WorthUiNativeApplicationShutdownReceipt,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         self.published_predecessor()?;
+        let visual_capture = application.visual_capture();
+        let visual_overlay = application.visual_overlay();
+        let query_watcher = query.watcher();
+        let query_live = query.live();
+        let query_projection = query.projection();
         let outcome =
             PlatformPulseLifecycleObservation::ShutdownCompleted(PlatformPulseShutdownCompleted {
                 watcher_backend: watcher_backend(watcher.backend()),
                 observed_notification_count: watcher.observed_notification_count(),
+                query_watcher_joined: query_watcher.worker_joined(),
+                pending_query_observation_count: query_watcher.pending_observation_count(),
+                query_owner_terminal: query.owner_terminal(),
+                live_query_source_count: query_live.source_count(),
+                live_query_attempt_count: query_live.attempt_count(),
+                live_query_resource_count: query_live.resource_count(),
+                live_query_consumer_lease_count: query_live.consumer_lease_count(),
+                retained_query_projection_count: query_projection.retained_projection_count(),
+                query_projection_receipt_count: query_projection.projection_receipt_count(),
                 mounted_shutdown_attempt_count: application.mounted_shutdown_attempt_count() as u64,
                 host_session_released: application.host_session_released(),
                 released_surface_count: application.released_surface_count() as u64,
+                cancelled_visual_capture_count: visual_capture.cancelled_capture_count() as u64,
+                disposed_visual_snapshot_count: visual_capture.disposed_snapshot_count() as u64,
+                disposed_visual_pixel_bytes: visual_capture.disposed_pixel_bytes(),
+                disposed_visual_structural_bytes: visual_capture.disposed_structural_bytes(),
+                cancelled_pending_overlay_count: visual_overlay.cancelled_pending_count() as u64,
+                disposed_published_overlay_count: visual_overlay.disposed_published_count() as u64,
+                disposed_clearing_overlay_count: visual_overlay.disposed_clearing_count() as u64,
             });
         let envelope = self.next_envelope(outcome)?;
         self.state = PlatformPulseObservationState::Terminal;
@@ -76,7 +117,7 @@ impl PlatformPulseLifecycleObservationStream {
 
     pub fn project_candidate_submission_failure(
         &mut self,
-        _denial: &WorthUiWatchedCandidateSubmissionDenial,
+        _denial: &UiSourceRebindAttemptFailure,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -128,14 +169,57 @@ impl PlatformPulseLifecycleObservationStream {
         }
     }
 
-    pub fn project_native_replacement_failure(
+    pub fn project_native_rebind_failure(
         &mut self,
-        _denial: &WorthUiNativeApplicationReplacementDenial,
+        denial: &WorthUiNativeSourceRebindDenial,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
-        self.project_terminal(PlatformPulseTerminalFailureFamily::NativeApplicationReplacement)
+        let stage = match denial {
+            WorthUiNativeSourceRebindDenial::Source(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Source
+            }
+            WorthUiNativeSourceRebindDenial::ObservationTurn(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::ObservationTurn
+            }
+            WorthUiNativeSourceRebindDenial::ObservationAdmission(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::ObservationAdmission
+            }
+            WorthUiNativeSourceRebindDenial::Classification(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Classification
+            }
+            WorthUiNativeSourceRebindDenial::Scope(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Scope
+            }
+            WorthUiNativeSourceRebindDenial::Identity(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Identity
+            }
+            WorthUiNativeSourceRebindDenial::Planning(_) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Planning
+            }
+            WorthUiNativeSourceRebindDenial::Preparation(denial) => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::Preparation(
+                    project_rebind_preparation_denial(denial),
+                )
+            }
+        };
+        self.project_terminal(
+            PlatformPulseTerminalFailureFamily::NativeApplicationReplacement(stage),
+        )
+    }
+
+    pub fn project_native_rebind_outcome_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(
+            PlatformPulseTerminalFailureFamily::NativeApplicationReplacement(
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::NonterminalOutcome,
+            ),
+        )
     }
 
     pub fn project_source_worker_panic(
@@ -145,6 +229,15 @@ impl PlatformPulseLifecycleObservationStream {
         PlatformPulseLifecycleObservationProjectionDenial,
     > {
         self.project_terminal(PlatformPulseTerminalFailureFamily::SourceWorkerPanicked)
+    }
+
+    pub fn project_visual_identity_failure(
+        &mut self,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        self.project_terminal(PlatformPulseTerminalFailureFamily::VisualIdentity)
     }
 
     pub fn project_native_event_loop_failure(
@@ -174,6 +267,45 @@ impl PlatformPulseLifecycleObservationStream {
     }
 }
 
+fn project_rebind_preparation_denial(
+    denial: &UiRebindPreparationDenial,
+) -> super::lifecycle::PlatformPulseNativeRebindPreparationDenial {
+    use super::lifecycle::PlatformPulseNativeRebindPreparationDenial as Projected;
+
+    match denial {
+        UiRebindPreparationDenial::ForeignSession => Projected::ForeignSession,
+        UiRebindPreparationDenial::StaleSourceBasis => Projected::StaleSourceBasis,
+        UiRebindPreparationDenial::StalePredecessorGeneration => {
+            Projected::StalePredecessorGeneration
+        }
+        UiRebindPreparationDenial::CandidateGenerationMismatch => {
+            Projected::CandidateGenerationMismatch
+        }
+        UiRebindPreparationDenial::TimedOutBeforeEffects => Projected::TimedOutBeforeEffects,
+        UiRebindPreparationDenial::CancelledBeforeEffects => Projected::CancelledBeforeEffects,
+        UiRebindPreparationDenial::Reservation(_) => Projected::Reservation,
+        UiRebindPreparationDenial::CandidateBindingMismatch => Projected::CandidateBindingMismatch,
+        UiRebindPreparationDenial::CandidateAllocation => Projected::CandidateAllocation,
+        UiRebindPreparationDenial::CandidateLowering => Projected::CandidateLowering,
+        UiRebindPreparationDenial::CandidateStaging => Projected::CandidateStaging,
+        UiRebindPreparationDenial::FrameBoundaryUnavailable => Projected::FrameBoundaryUnavailable,
+        UiRebindPreparationDenial::ContentMountedPreparation(_) => {
+            Projected::ContentMountedPreparation
+        }
+        UiRebindPreparationDenial::CandidateMountedPreparation(_) => {
+            Projected::CandidateMountedPreparation
+        }
+        UiRebindPreparationDenial::CandidateCutoverPreparation => {
+            Projected::CandidateCutoverPreparation
+        }
+        UiRebindPreparationDenial::PlannedChangeBecameSemanticNoOp => {
+            Projected::PlannedChangeBecameSemanticNoOp
+        }
+        UiRebindPreparationDenial::UnsupportedNonSourcePlan => Projected::UnsupportedNonSourcePlan,
+        UiRebindPreparationDenial::InvalidSemanticProof => Projected::InvalidSemanticProof,
+    }
+}
+
 fn watcher_backend(
     backend: WorthUiFilesystemWatcherBackend,
 ) -> PlatformPulseWatcherBackendObservation {
@@ -187,5 +319,20 @@ fn watcher_backend(
         WorthUiFilesystemWatcherBackend::OtherNative => {
             PlatformPulseWatcherBackendObservation::OtherNative
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::project_rebind_preparation_denial;
+    use crate::observation_contract::PlatformPulseNativeRebindPreparationDenial;
+    use worth_ui::facade::rebind::UiRebindPreparationDenial;
+
+    #[test]
+    fn terminal_projection_preserves_the_exact_preparation_denial() {
+        assert_eq!(
+            project_rebind_preparation_denial(&UiRebindPreparationDenial::CandidateAllocation),
+            PlatformPulseNativeRebindPreparationDenial::CandidateAllocation
+        );
     }
 }

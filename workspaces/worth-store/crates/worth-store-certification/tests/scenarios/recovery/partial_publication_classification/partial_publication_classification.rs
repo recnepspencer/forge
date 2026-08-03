@@ -1,19 +1,15 @@
 #[path = "crash_edge_observations.rs"]
 mod crash_edge_observations;
-#[path = "durable_page_mutation_observations.rs"]
-mod durable_page_mutation_observations;
 #[path = "non_authoritative_observations.rs"]
 mod non_authoritative_observations;
 
 use worth_store_recovery_physics::{
     BackendResidueKind, LogSequenceNumber, PartialPublicationClassification,
     PartialPublicationEvidence, PartialPublicationObservationSet,
-    RecoveredOrRejectedPartialPublication, RollbackImageRequiredPosture, TornPublicationDenial,
-    UnacknowledgedPublicationOutcome,
+    RecoveredOrRejectedPartialPublication, TornPublicationDenial, UnacknowledgedPublicationOutcome,
 };
 
 use crash_edge_observations::*;
-use durable_page_mutation_observations::*;
 use non_authoritative_observations::*;
 
 #[test]
@@ -119,73 +115,6 @@ fn torn_publication_and_insufficient_evidence_do_not_share_outcome() {
         ambiguous.recovered_or_rejected(),
         RecoveredOrRejectedPartialPublication::Ambiguous { .. }
     ));
-}
-
-#[test]
-fn missing_rollback_image_is_typed_no_undo_denial() {
-    let classification = PartialPublicationClassification::classify_observations(
-        missing_rollback_image_observations(),
-    );
-
-    assert_eq!(
-        classification.outcome(),
-        UnacknowledgedPublicationOutcome::RejectedNoUndoHazard
-    );
-    assert_eq!(classification.counters().no_undo_denials(), 1);
-    match classification.recovered_or_rejected() {
-        RecoveredOrRejectedPartialPublication::RejectedNoUndoHazard { classification, .. } => {
-            assert_eq!(
-                classification.posture(),
-                RollbackImageRequiredPosture::RequiredButMissing
-            );
-        }
-        other => panic!("expected no-undo hazard rejection, got {other:?}"),
-    }
-}
-
-#[test]
-fn rollback_image_posture_is_not_rejected_as_no_undo_hazard() {
-    let classification = PartialPublicationClassification::classify_observations(
-        rollback_image_protected_observations(),
-    );
-
-    assert_eq!(
-        classification.outcome(),
-        UnacknowledgedPublicationOutcome::RollbackImageProtected
-    );
-    assert_eq!(classification.counters().no_undo_denials(), 0);
-    assert_eq!(classification.counters().no_undo_postures(), 1);
-    match classification.recovered_or_rejected() {
-        RecoveredOrRejectedPartialPublication::NoUndoPostureAccepted { classification, .. } => {
-            assert_eq!(
-                classification.posture(),
-                RollbackImageRequiredPosture::ProtectedByRollbackImage
-            );
-        }
-        other => panic!("expected rollback-protected posture, got {other:?}"),
-    }
-}
-
-#[test]
-fn admitted_redo_only_posture_is_not_rejected_as_no_undo_hazard() {
-    let classification =
-        PartialPublicationClassification::classify_observations(admitted_redo_only_observations());
-
-    assert_eq!(
-        classification.outcome(),
-        UnacknowledgedPublicationOutcome::NoUndoPostureSatisfied
-    );
-    assert_eq!(classification.counters().no_undo_denials(), 0);
-    assert_eq!(classification.counters().no_undo_postures(), 1);
-    match classification.recovered_or_rejected() {
-        RecoveredOrRejectedPartialPublication::NoUndoPostureAccepted { classification, .. } => {
-            assert_eq!(
-                classification.posture(),
-                RollbackImageRequiredPosture::NotRequiredForAdmittedRedoOnlyMutation
-            );
-        }
-        other => panic!("expected admitted redo-only posture, got {other:?}"),
-    }
 }
 
 #[test]

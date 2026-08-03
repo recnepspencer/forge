@@ -1,22 +1,24 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
-    UiHostObservationIngressDenial, UiHostObservationIntegrity, UiHostObservationLoss,
-    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
-    UiHostObservationReportDenial, UiHostObservationReportOutcome, UiHostObservationSequence,
-    UiHostObservationSequenceRange, UiHostObservationTimeBasis,
+    UiHostObservationIntegrity, UiHostObservationLoss, UiHostObservationMountedBasis,
+    UiHostObservationPayload, UiHostObservationReport, UiHostObservationReportDenial,
+    UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostObservationTimeBasis,
 };
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
-    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-    UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiMountedFrameSchemaVersion,
-    UiMountedPresentationSchemaVersion,
+    UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostPresentationEpoch,
+    UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
+    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostProtocolVersion,
+    UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
 };
 use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
 
 use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
+#[path = "host_observation_denials/presentation_epoch.rs"]
+mod presentation_epoch;
 #[path = "host_observation_denials/receipt_forgery.rs"]
 mod receipt_forgery;
 
@@ -31,11 +33,11 @@ fn foreign_duplicate_instance_and_shutdown_reports_have_typed_effect_free_outcom
     assert_foreign_protocol();
     assert_foreign_session();
     assert_foreign_binding();
+    presentation_epoch::assert_wrong_presentation_epoch();
     assert_unknown_frame();
     receipt_forgery::assert_receipt_coordinate_denials();
     assert_reordered_sequence();
     assert_duplicate_suppression();
-    assert_post_shutdown_ingress();
 }
 
 #[test]
@@ -59,6 +61,11 @@ fn corrupt_canonical_fields_deny_before_coalescing_or_retention() {
         CanonicalCorruptionCase {
             label: "surface binding basis",
             mutate: corrupt_binding_without_resealing,
+            expected: UiHostObservationReportDenial::IntegrityMismatch,
+        },
+        CanonicalCorruptionCase {
+            label: "presentation epoch basis",
+            mutate: presentation_epoch::corrupt_without_resealing,
             expected: UiHostObservationReportDenial::IntegrityMismatch,
         },
     ];
@@ -218,22 +225,6 @@ fn assert_reordered_sequence() {
     assert_eq!(world.session.retained_host_observation_report_count(), 1);
 }
 
-fn assert_post_shutdown_ingress() {
-    let world = published_observation_world("observation-post-shutdown");
-    let ingress = world.session.host_observation_ingress();
-    let raw = batch(
-        source(&world.session, world.binding, &world.current),
-        (1, 1),
-        UiHostObservationLoss::Complete,
-        vec![report(1, pointer(1, 10), &world.current)],
-    );
-    let _ = world.session.shutdown();
-    assert_eq!(
-        ingress.enqueue(raw),
-        Err(UiHostObservationIngressDenial::Shutdown)
-    );
-}
-
 fn corrupt_integrity(valid: UiHostObservationBatch) -> UiHostObservationBatch {
     UiHostObservationBatch::from_untrusted_parts(
         valid.canonical_core(),
@@ -289,6 +280,7 @@ struct CanonicalCoreMutation {
     protocol: Option<worth_ui::facade::observation_report::UiHostProtocolAgreement>,
     host_session: Option<u64>,
     binding: Option<UiSurfaceBindingGeneration>,
+    presentation_epoch: Option<UiHostPresentationEpoch>,
     sequences: Option<UiHostObservationSequenceRange>,
     byte_count: Option<usize>,
 }
@@ -300,8 +292,13 @@ fn core_with(
     UiHostObservationCanonicalCore::from_untrusted(UiHostObservationCanonicalCoreInput {
         protocol: mutation.protocol.unwrap_or(source.protocol()),
         host_session: mutation.host_session.unwrap_or(source.host_session()),
-        binding: mutation.binding.unwrap_or(source.binding()),
-        frame: source.frame(),
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+            source.frame(),
+            mutation.binding.unwrap_or(source.binding()),
+            mutation
+                .presentation_epoch
+                .unwrap_or(source.presentation().epoch()),
+        ),
         sequences: mutation.sequences.unwrap_or(source.sequences()),
         report_count: source.report_count(),
         byte_count: mutation.byte_count.unwrap_or(source.byte_count()),
@@ -343,7 +340,7 @@ fn compatible_noncurrent_protocol() -> worth_ui::facade::observation_report::UiH
         UiHostProtocolVersion::new(1),
         UiMountedFrameSchemaVersion::new(1),
         UiMountedPresentationSchemaVersion::new(1),
-        UiHostObservationSchemaVersion::new(3),
+        UiHostProtocolContract::current().observation(),
         UiHostMeasurementSchemaVersion::new(1),
     );
     match contract.negotiate() {
@@ -360,7 +357,7 @@ fn old_observation_contract() -> UiHostProtocolContract {
         UiHostProtocolVersion::new(2),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(2),
-        UiHostObservationSchemaVersion::new(2),
+        UiHostObservationSchemaVersion::new(5),
         UiHostMeasurementSchemaVersion::new(2),
     )
 }

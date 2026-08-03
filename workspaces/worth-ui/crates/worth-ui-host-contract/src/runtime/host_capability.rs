@@ -1,5 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum WorthUiHostCapability {
+    PointerInput,
+    KeyboardInput,
     TextInput,
     Ime,
     Accessibility,
@@ -14,6 +16,7 @@ pub enum WorthUiHostCapability {
     VisualCapture,
     MountedFrameRecording,
     NativePaint,
+    IdentityOverlay,
     NativeFocus,
     CanvasSpatialDraw,
     CanvasSpatialHitTest,
@@ -28,6 +31,8 @@ pub enum WorthUiHostCapability {
 impl WorthUiHostCapability {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::PointerInput => "pointer-input",
+            Self::KeyboardInput => "keyboard-input",
             Self::TextInput => "text-input",
             Self::Ime => "ime",
             Self::Accessibility => "accessibility",
@@ -42,6 +47,7 @@ impl WorthUiHostCapability {
             Self::VisualCapture => "visual-capture",
             Self::MountedFrameRecording => "mounted-frame-recording",
             Self::NativePaint => "native-paint",
+            Self::IdentityOverlay => "identity-overlay",
             Self::NativeFocus => "native-focus",
             Self::CanvasSpatialDraw => "canvas-spatial-draw",
             Self::CanvasSpatialHitTest => "canvas-spatial-hit-test",

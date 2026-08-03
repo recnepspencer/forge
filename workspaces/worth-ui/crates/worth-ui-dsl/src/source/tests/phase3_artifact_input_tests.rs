@@ -288,4 +288,5 @@ fn lower_file_authored(
     let parsed_source_package =
         WorthUiSourceParser::parse_package(&source_package).expect("source package should parse");
     WorthUiParsedSourceToArtifactInputLowerer::lower(&parsed_source_package)
+        .expect("valid test source lowers")
 }

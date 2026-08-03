@@ -3,6 +3,6 @@ mod suite;
 
 pub use reservations::{S5CloseoutReservationSet, S5CloseoutReservedScope};
 pub use suite::{
-    PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutHandoffEvidence,
-    PhysicalIsolationCloseoutLaneEvidence, PhysicalIsolationCloseoutSuite,
+    PhysicalIsolationCloseoutDenial, PhysicalIsolationCloseoutLaneEvidence,
+    PhysicalIsolationCloseoutSuite, PhysicalIsolationExecutedCloseoutEvidence,
 };

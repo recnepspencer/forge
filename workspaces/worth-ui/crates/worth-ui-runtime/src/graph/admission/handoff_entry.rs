@@ -17,6 +17,10 @@ pub(super) fn construct_instantiation_entry(
             .measurement_policy()
             .admitted()
             .and_then(|policy| policy.constraint_modifier()),
+        measurement_basis_source: handoff
+            .measurement_policy()
+            .admitted()
+            .and_then(|policy| policy.basis_source()),
         aspect_contract: handoff.aspect_contract().clone(),
         repeated_instance_basis,
         topology_seed: UiGraphTopologySeed::new(UiGraphTopologySeedInput {

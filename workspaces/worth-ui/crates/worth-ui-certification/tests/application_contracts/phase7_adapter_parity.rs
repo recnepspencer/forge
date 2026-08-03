@@ -66,7 +66,7 @@ fn headless_and_egui_consume_equivalent_sealed_meaning_with_independent_conseque
 
     let mut egui_frame = Some(egui_frame);
     let mut egui_outcome = None;
-    let native = context.run(raw_input(), |_| {
+    let native = context.run_ui(raw_input(), |_| {
         egui_outcome = Some(egui.present_prepared_mounted_frame(
             egui_frame.take().expect("egui consumes the frame once"),
             UiPresentationDeadline::at_tick(10),

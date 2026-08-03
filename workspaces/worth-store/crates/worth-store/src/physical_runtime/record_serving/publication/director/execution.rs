@@ -23,6 +23,14 @@ struct PublishedTailReservation {
     active: bool,
 }
 
+struct PreparedRootPublication {
+    plan: RebasableRecordPublicationPlan,
+    replacement: super::super::super::PreparedCatalogReplacement,
+    placement: AdmittedRecordPlacementPolicy,
+    capacity_transition: ManifestCapacityTransition,
+    counters_before: worth_store_physical_backend::MediaCounterSnapshot,
+}
+
 impl RecordPublicationDirector {
     pub(super) fn preflight(
         &self,
@@ -96,11 +104,13 @@ impl RecordPublicationDirector {
                         self.publish_rebased_root(
                             &runtime,
                             &allocation,
-                            plan,
-                            replacement,
-                            placement,
-                            capacity_transition,
-                            counters_before,
+                            PreparedRootPublication {
+                                plan,
+                                replacement,
+                                placement,
+                                capacity_transition,
+                                counters_before,
+                            },
                         )
                     })
                     .map(|published| (published, reservation))
@@ -113,10 +123,9 @@ impl RecordPublicationDirector {
         &self,
         batch: &RecordAppendBatch,
         placement: AdmittedRecordPlacementPolicy,
-    ) -> Result<worth_store_buffer_pool::OperationAllocationGrant, RecordAppendError> {
+    ) -> Result<worth_store_buffer_pool::ForegroundWriteAllocationGrant, RecordAppendError> {
         self.residency
-            .begin_operation(
-                worth_store_buffer_pool::PhysicalOperationAllocationScope::ForegroundWrite,
+            .begin_foreground_write_operation(
                 std::num::NonZeroU64::new(append_operation_allocation_bytes(
                     self.format,
                     placement,
@@ -197,7 +206,7 @@ impl RecordPublicationDirector {
     fn materialize_payload(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
-        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         plan: RebasableRecordPublicationPlan,
     ) -> Result<RebasableRecordPublicationPlan, RecordAppendError> {
         let RebasableRecordPublicationPlan {
@@ -212,14 +221,13 @@ impl RecordPublicationDirector {
             .begin_candidate_publication(allocation, declaration)
             .map_err(RecordAppendError::Denied)?;
         let before = runtime.executor.record_serving_media().counters();
-        let publication = payload_progression::execute(
+        let progression = payload_progression::PayloadPublicationProgression::new(
             &self.mutation,
+            self.residency.writeback(),
             runtime.executor.record_serving_media(),
-            self.format,
-            publication,
-            &mut residency,
-            before,
-        )?;
+            payload_progression::PayloadPublicationBasis::new(self.generation, self.format, before),
+        );
+        let publication = progression.execute(publication, &mut residency)?;
         residency.require_complete().map_err(|violation| {
             super::super::unpublished_candidate_frame_contract(
                 runtime.executor.record_serving_media(),
@@ -238,13 +246,16 @@ impl RecordPublicationDirector {
     fn publish_rebased_root(
         &self,
         runtime: &crate::physical_runtime::instance::PhysicalStoreWorkRuntime,
-        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-        plan: RebasableRecordPublicationPlan,
-        replacement: super::super::super::PreparedCatalogReplacement,
-        placement: AdmittedRecordPlacementPolicy,
-        capacity_transition: ManifestCapacityTransition,
-        counters_before: worth_store_physical_backend::MediaCounterSnapshot,
+        allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
+        prepared: PreparedRootPublication,
     ) -> Result<PublishedRecordBatch, RecordAppendError> {
+        let PreparedRootPublication {
+            plan,
+            replacement,
+            placement,
+            capacity_transition,
+            counters_before,
+        } = prepared;
         let mut state = self
             .state
             .lock()

@@ -9,6 +9,8 @@ use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, Fie
 
 use super::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 
+mod atomic_setup;
+
 #[test]
 fn in_memory_test_runtime_executes_public_insert_and_live_read() {
     let mut workspace = task_workspace();
@@ -180,40 +182,6 @@ fn in_memory_test_runtime_denies_wrong_collection_preview_before_residue() {
     assert_eq!(outcome.closeout_evidence().preview_write_staging_count(), 0);
     assert_eq!(outcome.write_count(), 0);
     assert_eq!(outcome.authoritative_residue_count(), 0);
-}
-
-#[test]
-fn in_memory_test_runtime_denies_multi_command_batch_before_partial_residue() {
-    let mut workspace = task_workspace();
-    let tasks = workspace
-        .live_view::<WorthQueryUnrefinedLiveShape>("consumer-kit.test.batch-denial.tasks", |view| {
-            view.from("Task").select([
-                crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id").unwrap(),
-                crate::authoring::AspectFieldKey::from_authoring_parts("title", "value").unwrap(),
-            ])
-        })
-        .expect("task live view should declare");
-
-    let error = workspace
-        .batch(|batch| {
-            batch
-                .insert("Task", |task| {
-                    task.set_aspect(touch("identity.id"), authored_text("task-batch-1"))
-                        .set_aspect(touch("title.value"), authored_text("First"))
-                })
-                .insert("Issue", |issue| {
-                    issue
-                        .set_aspect(touch("identity.id"), authored_text("issue-batch-2"))
-                        .set_aspect(touch("title.value"), authored_text("Second"))
-                })
-        })
-        .expect_err("scaffold backend should deny multi-command batch before execution");
-
-    assert_workspace_error_kind(
-        error,
-        WorthQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
-    );
-    assert!(workspace.read(&tasks).is_empty());
 }
 
 #[test]

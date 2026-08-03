@@ -21,7 +21,7 @@ impl ChunkIntegrityAuthority {
 
     pub fn inspect(
         self,
-        request: ChunkIntegrityInspectionRequest<'_>,
+        request: ChunkIntegrityInspectionRequest<'_, '_, '_>,
     ) -> Result<ChunkIntegrityReport, ChunkIntegrityDenial> {
         let input = request.input();
         let basis = input.admission().basis().clone();
@@ -70,7 +70,7 @@ impl Default for ChunkIntegrityAuthority {
 
 fn reject_protected_window_overread(
     protected_bytes: u64,
-    window: crate::ChunkIntegrityStreamingWindow,
+    window: crate::ChunkIntegrityStreamingWindow<'_, '_>,
     counters: ChunkIntegrityCounters,
     basis: crate::PhysicalScopeBasis,
 ) -> Result<(), ChunkIntegrityDenial> {
@@ -89,7 +89,7 @@ fn inspect_chunk_window_bytes(
     bytes: &[u8],
     counters: ChunkIntegrityCounters,
     basis: crate::PhysicalScopeBasis,
-    window: crate::ChunkIntegrityStreamingWindow,
+    window: crate::ChunkIntegrityStreamingWindow<'_, '_>,
 ) -> Result<ChunkIntegrityReport, ChunkIntegrityDenial> {
     let Some(status) = parse_chunk_window_status(bytes) else {
         return Err(chunk_denial(

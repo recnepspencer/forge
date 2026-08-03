@@ -10,9 +10,10 @@
 //! - **Cold-tier posture evidence** enters through [`BlobPlacementMovementColdOutcome`], classified
 //!   via tiering [`cold_posture_permits_movement`] before movement planning admits.
 //!
-//! **I/O scheduler admission** for placement cost enters upstream at
-//! [`BlobPlacementAdmissionAuthority::admit`] via [`S7PlacementIoReadinessSeed`]; source and
-//! target [`AdmittedBlobPlacement`] values consumed here already carry that admission outcome.
+//! Placement admission carries no scheduler readiness. Inline placement needs no cold-tier
+//! authority, external placement validates store recoverability evidence, and cold placement
+//! validates an exact [`worth_store_tiering::ColdTierIoPosture`]. Movement scheduling is a
+//! separate responsibility admitted at this boundary's own execution lane.
 //!
 //! Primary entry points:
 //! - [`BlobPlacementMovementAuthority::plan_movement`] — classify eligibility via composed

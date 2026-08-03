@@ -7,6 +7,7 @@ pub(super) fn rerun(
     target_root: Option<&Path>,
     mutant_report: &Path,
     report: &Path,
+    schedule_seed: Option<u64>,
 ) -> Result<PhysicalWorkRerunEvidence, String> {
     let program = std::env::current_exe()
         .map_err(|error| format!("cannot locate courtroom runner for rerun: {error}"))?
@@ -27,6 +28,9 @@ pub(super) fn rerun(
             absolute(target_root)?.display().to_string(),
         ]);
     }
+    if let Some(schedule_seed) = schedule_seed {
+        arguments.extend(["--schedule-seed".to_owned(), schedule_seed.to_string()]);
+    }
     PhysicalWorkRerunEvidence::new(program.display().to_string(), arguments)
         .map_err(|denial| format!("courtroom rerun evidence denied: {denial:?}"))
 }
@@ -38,4 +42,10 @@ fn absolute(path: &Path) -> Result<PathBuf, String> {
     std::env::current_dir()
         .map(|current| current.join(path))
         .map_err(|error| format!("cannot resolve courtroom rerun path: {error}"))
+}
+
+pub(super) fn display(rerun: &PhysicalWorkRerunEvidence) -> String {
+    let mut command = std::process::Command::new(rerun.program());
+    command.args(rerun.arguments().iter().map(AsRef::as_ref));
+    format!("{command:?}")
 }

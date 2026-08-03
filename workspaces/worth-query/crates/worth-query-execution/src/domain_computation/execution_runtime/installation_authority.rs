@@ -70,4 +70,8 @@ impl WorthQueryExecutionRuntimeInstallation {
     ) {
         (self.runtime, self.authority)
     }
+
+    pub fn runtime(&self) -> &WorthQueryExecutionRuntime {
+        &self.runtime
+    }
 }

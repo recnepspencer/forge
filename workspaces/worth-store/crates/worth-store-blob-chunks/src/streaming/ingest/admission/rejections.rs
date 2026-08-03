@@ -1,4 +1,3 @@
-use worth_store_buffer_pool::PhysicalResidencyDenial;
 use worth_store_physical_backend::{
     BlobBackendChunkWriteObservation, BlobBackendChunkWriteObservationKind,
 };
@@ -16,10 +15,4 @@ pub fn reject_scalar_backend_api_as_streaming_ingest(
             actual: observation.ordinal(),
         }
     }
-}
-
-pub fn reject_allocation_denial_as_streaming_ingest(
-    denial: PhysicalResidencyDenial,
-) -> BlobStreamingIngestDenial {
-    BlobStreamingIngestDenial::AllocationDenied(denial)
 }

@@ -180,18 +180,26 @@ fn audit_definition_sources(
             ledger::strings(row, "sources")?.into_iter().collect(),
         );
     }
+    let mut drift = Vec::new();
     for callable in actual {
         let sources = declared
             .get(&(callable.kind, callable.owner.as_str()))
             .ok_or_else(|| format!("callable owner `{}` is unmanifested", callable.owner))?;
         if !sources.contains(callable.source.as_str()) {
-            return Err(format!(
+            drift.push(format!(
                 "callable `{}::{}` is defined in undeclared source `{}`",
                 callable.owner, callable.method, callable.source
             ));
         }
     }
-    Ok(())
+    if drift.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "callable definition source inventory drifted: {}",
+            drift.join("; ")
+        ))
+    }
 }
 
 fn callable_identities(callables: &BTreeSet<Callable>) -> BTreeSet<CallableIdentity> {

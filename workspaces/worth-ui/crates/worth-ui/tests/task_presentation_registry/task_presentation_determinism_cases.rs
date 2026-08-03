@@ -16,10 +16,12 @@ use super::task_presentation_fixtures::{
 #[test]
 fn equivalent_task_presentations_produce_equivalent_projection_eligibility() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
         .freeze()
         .expect("application preparation should succeed");
@@ -41,6 +43,7 @@ fn equivalent_task_presentations_produce_equivalent_projection_eligibility() {
 #[test]
 fn accepted_task_presentations_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(retryable_task_presentation("workspace.task.retry"))
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
         .freeze()
@@ -60,6 +63,7 @@ fn accepted_task_presentations_are_canonically_ordered_and_inspectable() {
 #[test]
 fn all_builtin_task_presentation_families_are_admitted() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(progress_task_presentation("workspace.task.progress"))
         .register_task_presentation(cancellable_task_presentation("workspace.task.cancellable"))
         .register_task_presentation(retryable_task_presentation("workspace.task.retryable"))
@@ -97,6 +101,7 @@ fn all_builtin_task_presentation_families_are_admitted() {
 #[test]
 fn task_presentation_projection_eligibility_change_changes_snapshot_digest() {
     let status_summary_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(presentation_with_family(
             "workspace.task.status",
             TaskPresentationFamily::background(),
@@ -105,6 +110,7 @@ fn task_presentation_projection_eligibility_change_changes_snapshot_digest() {
         .freeze()
         .expect("application preparation should succeed");
     let hidden_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(presentation_with_family(
             "workspace.task.status",
             TaskPresentationFamily::background(),
@@ -135,10 +141,12 @@ fn presentation_with_family(
 #[test]
 fn task_presentation_family_metadata_change_changes_snapshot_digest() {
     let progress_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(progress_task_presentation("workspace.task.family"))
         .freeze()
         .expect("application preparation should succeed");
     let cancellable_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(cancellable_task_presentation("workspace.task.family"))
         .freeze()
         .expect("application preparation should succeed");

@@ -20,6 +20,7 @@ use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 #[test]
 fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-selection.rejection",
@@ -30,6 +31,7 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-selection.foreign",
@@ -39,6 +41,7 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
         .freeze()
         .expect("application preparation should succeed");
     let preview_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("worth-ui.selection.preview")
                 .expect("preview label should admit"),

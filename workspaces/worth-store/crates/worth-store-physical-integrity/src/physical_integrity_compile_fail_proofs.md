@@ -1,4 +1,116 @@
 ﻿
+Scrub plans accept only Store-minted Scrub allocation authority; an exact
+Verification allocation cannot cross the scope boundary:
+
+```compile_fail
+use worth_store::physical_runtime::VerificationPhysicalAllocation;
+use worth_store_physical_integrity::{
+    OfflineScrubInspectionInput, ScrubPlanPolicy, ScrubPlanRequest,
+};
+
+fn cannot_substitute_scrub_scope<'runtime, 'lease>(
+    allocation: VerificationPhysicalAllocation<'runtime>,
+    input: OfflineScrubInspectionInput<'lease>,
+    policy: ScrubPlanPolicy,
+) {
+    let _request = ScrubPlanRequest::offline(allocation, input, policy);
+}
+```
+
+Owning Scrub plans cannot erase the issuing runtime lifetime:
+
+```compile_fail
+use worth_store::physical_runtime::ScrubPhysicalAllocation;
+use worth_store_physical_integrity::{
+    OfflineScrubInspectionInput, ScrubPlan, ScrubPlanPolicy, ScrubPlanRequest,
+};
+
+fn cannot_escape_scrub_runtime<'runtime, 'lease>(
+    allocation: ScrubPhysicalAllocation<'runtime>,
+    input: OfflineScrubInspectionInput<'lease>,
+    policy: ScrubPlanPolicy,
+) -> ScrubPlan<'static, 'lease> {
+    ScrubPlan::build(ScrubPlanRequest::offline(allocation, input, policy)).unwrap()
+}
+```
+
+The issuing runtime cannot close while a Scrub plan still owns its exact
+allocation authority:
+
+```compile_fail
+use std::num::NonZeroU64;
+use worth_store::physical_runtime::ServingPhysicalRuntime;
+use worth_store_physical_integrity::{
+    OfflineScrubInspectionInput, ScrubPlan, ScrubPlanPolicy, ScrubPlanRequest,
+};
+
+fn cannot_close_while_scrub_authority_is_live(
+    runtime: ServingPhysicalRuntime,
+    input: OfflineScrubInspectionInput<'_>,
+    policy: ScrubPlanPolicy,
+) {
+    let allocation = runtime
+        .physical_allocations()
+        .admit_scrub(NonZeroU64::MIN)
+        .unwrap();
+    let plan =
+        ScrubPlan::build(ScrubPlanRequest::offline(allocation, input, policy)).unwrap();
+    let _closed = runtime.close();
+    drop(plan);
+}
+```
+
+Integrity entry requests accept only Store-minted Verification allocation
+authority; an exact Scrub allocation cannot cross the scope boundary:
+
+```compile_fail
+use worth_store::physical_runtime::ScrubPhysicalAllocation;
+use worth_store_physical_integrity::{IntegrityEntryRequest, ProtectedPhysicalByteView};
+
+fn cannot_substitute_verification_scope<'runtime, 'lease>(
+    protected: ProtectedPhysicalByteView<'lease>,
+    allocation: ScrubPhysicalAllocation<'runtime>,
+) {
+    let _request = IntegrityEntryRequest::new(protected, allocation);
+}
+```
+
+Owning integrity entry requests cannot erase the issuing runtime lifetime:
+
+```compile_fail
+use worth_store::physical_runtime::VerificationPhysicalAllocation;
+use worth_store_physical_integrity::{IntegrityEntryRequest, ProtectedPhysicalByteView};
+
+fn cannot_escape_verification_runtime<'runtime, 'lease>(
+    protected: ProtectedPhysicalByteView<'lease>,
+    allocation: VerificationPhysicalAllocation<'runtime>,
+) -> IntegrityEntryRequest<'static, 'lease> {
+    IntegrityEntryRequest::new(protected, allocation)
+}
+```
+
+The issuing runtime cannot close while an integrity entry request still owns
+its exact Verification allocation authority:
+
+```compile_fail
+use std::num::NonZeroU64;
+use worth_store::physical_runtime::ServingPhysicalRuntime;
+use worth_store_physical_integrity::{IntegrityEntryRequest, ProtectedPhysicalByteView};
+
+fn cannot_close_while_verification_authority_is_live(
+    runtime: ServingPhysicalRuntime,
+    protected: ProtectedPhysicalByteView<'_>,
+) {
+    let allocation = runtime
+        .physical_allocations()
+        .admit_verification(NonZeroU64::MIN)
+        .unwrap();
+    let request = IntegrityEntryRequest::new(protected, allocation);
+    let _closed = runtime.close();
+    drop(request);
+}
+```
+
 S.3 entry witnesses cannot be synthesized by external callers:
 
 ```compile_fail
@@ -31,13 +143,13 @@ let _view = ProtectedPhysicalByteView {
 Expired protected views cannot be widened into S.3 admission lifetime:
 
 ```compile_fail
-use worth_store_buffer_pool::PinnedFrameView;
+use worth_store::physical_runtime::PhysicalRecordChunkView;
 use worth_store_physical_integrity::ProtectedPhysicalByteView;
 
 fn widen<'short>(
-    view: &'short PinnedFrameView<'short>,
+    view: &'short PhysicalRecordChunkView<'short>,
 ) -> ProtectedPhysicalByteView<'static> {
-    ProtectedPhysicalByteView::from_pinned_frame(view)
+    ProtectedPhysicalByteView::from_store_chunk(view)
 }
 ```
 
@@ -55,21 +167,32 @@ let _view = ProtectedPhysicalByteView::from_backend_private_handle(handle);
 File paths cannot enter S.3 integrity admission as byte authority:
 
 ```compile_fail
+use worth_store::physical_runtime::VerificationPhysicalAllocation;
 use worth_store_physical_integrity::IntegrityEntryRequest;
 use std::path::Path;
 
-let path = Path::new("store/page-1.bin");
-let _request = IntegrityEntryRequest::new(path);
+fn request_from_path<'runtime>(
+    path: &Path,
+    verification: VerificationPhysicalAllocation<'runtime>,
+) {
+    let _request = IntegrityEntryRequest::new(path, verification);
+}
 ```
 
-Pinned frame views must be explicitly lowered to protected physical byte views:
+Store record chunks must be explicitly lowered to protected physical byte
+views:
 
 ```compile_fail
-use worth_store_buffer_pool::PinnedFrameView;
+use worth_store::physical_runtime::{
+    PhysicalRecordChunkView, VerificationPhysicalAllocation,
+};
 use worth_store_physical_integrity::IntegrityEntryRequest;
 
-fn unlowered_request<'lease>(view: PinnedFrameView<'lease>) {
-    let _request = IntegrityEntryRequest::new(view);
+fn unlowered_request<'runtime, 'lease>(
+    view: PhysicalRecordChunkView<'lease>,
+    verification: VerificationPhysicalAllocation<'runtime>,
+) {
+    let _request = IntegrityEntryRequest::new(view, verification);
 }
 ```
 
@@ -338,31 +461,6 @@ byte counts:
 use worth_store_physical_integrity::ChunkIntegrityStreamingWindow;
 
 let _window = ChunkIntegrityStreamingWindow::bounded(4096, 1024);
-```
-
-S.2 resident-frame tokens cannot substitute for S.1 durable physical scope:
-
-```compile_fail
-use worth_store_buffer_pool::ResidentFrameToken;
-use worth_store_physical_format::PhysicalReferenceScope;
-
-fn requires_durable_scope(_: PhysicalReferenceScope) {}
-
-let resident_token: ResidentFrameToken = todo!();
-requires_durable_scope(resident_token);
-```
-
-S.2 resident-frame tokens cannot substitute for S.1 durable generation owners:
-
-```compile_fail
-use worth_store_buffer_pool::ResidentFrameToken;
-use worth_store_physical_format::PhysicalGenerationOwner;
-use worth_store_physical_integrity::GenerationIntegrityReport;
-
-let durable_owner: PhysicalGenerationOwner = todo!();
-let resident_token: ResidentFrameToken = todo!();
-
-let _ = GenerationIntegrityReport::compare(durable_owner, resident_token);
 ```
 
 Quarantine records cannot be synthesized from copied fields:

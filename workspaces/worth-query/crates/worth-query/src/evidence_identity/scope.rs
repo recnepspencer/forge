@@ -181,6 +181,7 @@ pub enum WorthQueryEvidenceScope {
     ConsumerSupportSnapshotSchema,
     ConsumerSupportSnapshotRow,
     ConsumerSupportSnapshotDocument,
+    ConsumerProjectionContractDenial,
     ConsumerSupportPinContractSchema,
     ConsumerSupportPinVocabulary,
     ConsumerSupportPinRequirement,

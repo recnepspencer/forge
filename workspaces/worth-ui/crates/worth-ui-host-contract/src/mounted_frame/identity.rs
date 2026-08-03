@@ -29,6 +29,7 @@ opaque_identity!(UiSurfaceBindingGeneration);
 opaque_identity!(UiMountIncarnation);
 opaque_identity!(UiMountedInstanceIdentity);
 opaque_identity!(UiMountedFrameIdentity);
+opaque_identity!(UiMountedContentGeneration);
 opaque_identity!(UiMountedPresentationAttemptIdentity);
 
 #[doc(hidden)]
@@ -96,7 +97,7 @@ impl UiMountedNodeReceiptIdentity {
         self.frame
     }
 
-    pub(crate) const fn mounted_instance(self) -> UiMountedInstanceIdentity {
+    pub const fn mounted_instance(self) -> UiMountedInstanceIdentity {
         self.mounted_instance
     }
 }

@@ -18,6 +18,7 @@ use worth_ui_dsl::{
 #[test]
 fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-topology.authority",
@@ -186,6 +187,7 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
 #[test]
 fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-topology.zero-root-denial",
@@ -221,6 +223,7 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
 #[test]
 fn public_freeze_returns_typed_root_cardinality_denial() {
     let denial = match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-topology.root-denial",

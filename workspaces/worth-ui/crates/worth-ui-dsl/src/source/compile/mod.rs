@@ -23,6 +23,6 @@ pub use sealed_semantic_artifact::WorthUiSealedSemanticArtifact;
 pub use sealed_semantic_package::{
     WorthUiSealedSemanticPackage, WorthUiSemanticBlock, WorthUiSemanticDeclaration,
     WorthUiSemanticDeclarationView, WorthUiSemanticImport, WorthUiSemanticModule,
-    WorthUiSemanticProvenanceRef, WorthUiSemanticToken,
+    WorthUiSemanticProjectionDeclaration, WorthUiSemanticProvenanceRef, WorthUiSemanticToken,
 };
 pub use semantic_package_identity::WorthUiSemanticPackageIdentity;

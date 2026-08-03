@@ -10,7 +10,7 @@ description = "Roadmap 2 S.3 physical checksums, scrub, quarantine, and corrupti
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
-worth-store-buffer-pool.workspace = true
+worth-store.workspace = true
 worth-store-contracts.workspace = true
 worth-store-aspect-native.workspace = true
 worth-store-physical-format.workspace = true
@@ -18,7 +18,6 @@ worth-store-security.workspace = true
 
 [features]
 test-support = []
-legacy-certification-models = ["worth-store-buffer-pool/legacy-s2-models"]
 
 [lints]
 workspace = true

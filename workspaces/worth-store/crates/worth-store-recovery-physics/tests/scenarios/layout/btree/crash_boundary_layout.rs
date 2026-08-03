@@ -7,7 +7,7 @@ use worth_store_recovery_physics::{
 };
 
 #[test]
-fn recovery_source_and_crash_boundary_families_deny_residue_and_rollback_shortcuts() {
+fn recovery_source_and_crash_boundary_families_deny_residue_shortcuts() {
     let source = phase22_fixture::admitted_source_with_residue();
     let report = RecoverySourceLayoutReport::from_source(&source);
     assert_eq!(report.candidate_count(), 3);
@@ -55,14 +55,5 @@ fn recovery_source_and_crash_boundary_families_deny_residue_and_rollback_shortcu
     assert_eq!(
         denial.kind(),
         RecoveryLayoutAccessDenialKind::AmbiguousResidueCannotStandInForCrashBoundaryAuthority
-    );
-
-    let denial = CrashBoundaryLayoutReport::reject_derived_rollback_outcome(
-        UnacknowledgedPublicationOutcome::RollbackImageProtected,
-    )
-    .unwrap_err();
-    assert_eq!(
-        denial.kind(),
-        RecoveryLayoutAccessDenialKind::DerivedRollbackCannotStandInForCrashBoundaryAuthority
     );
 }

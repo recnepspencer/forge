@@ -8,6 +8,23 @@
 //!     worth_store_physical_isolation::execute_admitted_compaction_rewrite_for_plan;
 //! ```
 //!
+//! A byte-guard scope derives its protected reference from the Store chunk.
+//! A caller cannot pair an unrelated reference with borrowed bytes:
+//!
+//! ```compile_fail
+//! use worth_store::physical_runtime::PhysicalRecordChunkView;
+//! use worth_store_physical_isolation::{
+//!     CurrentGenerationPhysicalReference, PhysicalByteGuardScope,
+//! };
+//!
+//! fn pair_unrelated_reference(
+//!     reference: CurrentGenerationPhysicalReference,
+//!     chunk: &PhysicalRecordChunkView<'_>,
+//! ) {
+//!     let _ = PhysicalByteGuardScope::for_record_chunk(reference, chunk);
+//! }
+//! ```
+//!
 //! Replica bootstrap cannot lease a caller-built raw source request. It must
 //! consume the cut resolved by Recovery Physics from independently reopened
 //! media:
@@ -62,7 +79,7 @@ pub use backup_cut::{
     BackupReachabilityLeaseRegistry, BackupReachabilityLeaseRegistryDenial,
     BackupReachabilityLeaseReleaseRecord, InvalidBackupReachabilityLeaseReleaseRecord,
     PendingBackupLeaseAdmission, PendingBackupLeaseRelease, PersistedBackupReachabilityLease,
-    PreparedBackupCutAbandonment, ReleasedBackupReachabilityLease,
+    PreparedBackupCutAbandonment, ReleasedBackupReachabilityLease, UntrustedBackupArtifactClaim,
 };
 pub use blob_orphan_reclaim::{
     BlobOrphanReclaimBarrier, BlobOrphanReclaimCounterSnapshot, BlobOrphanReclaimCoverage,
@@ -71,7 +88,6 @@ pub use blob_orphan_reclaim::{
 };
 pub use byte_guard::{
     ByteGuardReleaseReceipt, PhysicalByteGuard, PhysicalByteGuardDenial, PhysicalByteGuardScope,
-    PhysicalByteGuardScopeKind,
 };
 #[cfg(any(test, feature = "certification-authority"))]
 pub use checkpoint_interlock::read_during_checkpoint_verdict_for_certification_test;
@@ -121,9 +137,10 @@ pub use executed_isolation_evidence::{
     S5IsolationEvidenceRichness, StorePhysicalAuthoritySurface,
 };
 pub use executed_isolation_evidence::{
-    ExecutedIsolationCounterKind, ExecutedIsolationEvidence, ExecutedIsolationReceipts,
-    IsolationInterferenceCounterName, IsolationInterferenceSnapshot,
-    IsolationInterferenceSnapshotRow, PhysicalIsolationCounterSnapshot,
+    ExecutedIsolationBasis, ExecutedIsolationCounterKind, ExecutedIsolationEvidence,
+    ExecutedIsolationEvidenceDenial, ExecutedIsolationReceipts, IsolationInterferenceCounterName,
+    IsolationInterferenceSnapshot, IsolationInterferenceSnapshotRow,
+    PhysicalIsolationCounterSnapshot,
 };
 pub use free_reuse_fence::{
     AllocatorPublicationReceipt, CrashStableReclaimReuseFence, FreeReuseFenceDenial,
@@ -203,12 +220,6 @@ pub use publication::{
     ReleasedOldReachability, RootPublicationEpoch, RootSwapOrderingContract,
     ValidatedPhysicalPublicationIntent,
 };
-pub use readiness::interference::{
-    BackgroundMaintenanceIsolationAssumption, ForegroundInterferenceSurface,
-    PhysicalStabilityAssumption,
-};
-#[cfg(any(test, feature = "certification-authority"))]
-pub use readiness::publish_scheduler_isolation_capability_for_certification_test;
 pub use readiness::{
     admit_physical_isolation_entry, admit_physical_isolation_entry_checked,
     reject_copied_recovery_fields_as_physical_isolation_entry,
@@ -226,17 +237,6 @@ pub use readiness::{
     PhysicalIsolationEntryProofRequest, PhysicalIsolationEntryRebindRequired,
     PhysicalIsolationEntryRequest, PhysicalIsolationLoweredEntryRecipe,
     PhysicalIsolationResolvedEntryRecipe, PhysicalIsolationRootEpochBasis, RecoveryReadinessBasis,
-};
-pub use readiness::{
-    publish_scheduler_isolation_capability_from_executed_evidence,
-    reject_copied_closeout_report_as_isolation_readiness,
-    reject_log_or_terminal_projection_as_isolation_readiness,
-    reject_missing_latch_counters_as_isolation_readiness,
-    reject_missing_protected_byte_footprint_as_isolation_readiness,
-    reject_missing_reclaim_counters_as_isolation_readiness,
-    reject_synthetic_wait_label_as_isolation_readiness,
-    reject_unsupported_qos_claim_as_isolation_readiness, IsolationReadinessDenial,
-    SchedulerIsolationCapability, UnsupportedQoSClaim,
 };
 pub use reclaim_reachability::{
     reject_backend_residue_as_reclaim_authority,

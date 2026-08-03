@@ -1,5 +1,5 @@
+use worth_store::physical_runtime::BlobPhysicalAllocation;
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::OperationAllocationGrant;
 
 use super::super::super::allocation::AdmittedBlobStreamingAllocation;
 use super::super::transitions::{
@@ -12,17 +12,17 @@ use crate::{
     BlobStreamingPressureAdmission, BlobStreamingSourceFrame, BlobStreamingWindow,
 };
 
-pub struct BlobStreamingIngestExecution {
+pub struct BlobStreamingIngestExecution<'runtime> {
     window: BlobStreamingWindow,
-    allocation: OperationAllocationGrant,
+    allocation: BlobPhysicalAllocation<'runtime>,
     pressure: BlobStreamingPressureAdmission,
     counter_strength: CounterEvidenceStrength,
 }
 
-impl BlobStreamingIngestExecution {
+impl<'runtime> BlobStreamingIngestExecution<'runtime> {
     pub fn new(
         window: BlobStreamingWindow,
-        allocation: OperationAllocationGrant,
+        allocation: BlobPhysicalAllocation<'runtime>,
         pressure: BlobStreamingPressureAdmission,
         counter_strength: CounterEvidenceStrength,
     ) -> Self {
@@ -36,9 +36,9 @@ impl BlobStreamingIngestExecution {
 }
 
 impl BlobStreamingIngest {
-    pub(crate) fn run_bounded<W>(
+    pub(crate) fn run_bounded<'runtime, W>(
         request: BlobStreamingIngestRequest,
-        execution: BlobStreamingIngestExecution,
+        execution: BlobStreamingIngestExecution<'runtime>,
         source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
         writer: &mut W,
     ) -> Result<Self, BlobStreamingIngestDenial>
@@ -49,9 +49,9 @@ impl BlobStreamingIngest {
     }
 }
 
-pub(crate) fn execute_bounded_ingest<W>(
+pub(crate) fn execute_bounded_ingest<'runtime, W>(
     request: BlobStreamingIngestRequest,
-    execution: BlobStreamingIngestExecution,
+    execution: BlobStreamingIngestExecution<'runtime>,
     source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
     writer: &mut W,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial>

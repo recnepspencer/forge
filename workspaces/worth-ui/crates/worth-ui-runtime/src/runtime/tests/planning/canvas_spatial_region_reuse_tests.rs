@@ -72,10 +72,12 @@ fn one_changed_canvas_region_rebuilds_without_copying_unaffected_regions() {
 fn ordinary_to_canvas_transition_is_non_equivalent_and_leaves_no_ordinary_residue() {
     const ID: &str = "workspace.component.lane_transition";
     let ordinary_app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ordinary_descriptor(ID))
         .freeze()
         .expect("ordinary predecessor freezes");
     let canvas_app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ordinary_descriptor(ID).with_canvas_spatial_contract(
             ComponentCanvasSpatialContract::new(64, 2, 1).expect("canvas successor is bounded"),
         ))
@@ -135,7 +137,8 @@ fn ordinary_to_canvas_transition_is_non_equivalent_and_leaves_no_ordinary_residu
 }
 
 fn canvas_app(changed_primitive_limit: u32) -> WorthUiApp {
-    let mut builder = WorthUi::app();
+    let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse());
     for index in 0..CANVAS_COUNT {
         let primitive_limit = if index == CHANGED_INDEX {
             changed_primitive_limit

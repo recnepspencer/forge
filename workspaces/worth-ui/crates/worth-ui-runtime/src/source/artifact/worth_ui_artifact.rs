@@ -12,6 +12,7 @@ pub(crate) struct WorthUiArtifact {
     modules: BTreeMap<WorthUiSourceModuleId, WorthUiArtifactModule>,
     canonical_module_order: Vec<WorthUiSourceModuleId>,
     node_identity_index: BTreeMap<String, (WorthUiSourceModuleId, usize)>,
+    authored_provenance_index: BTreeMap<u64, Box<[Box<str>]>>,
     query_binding_ids: BTreeSet<String>,
 }
 
@@ -21,6 +22,7 @@ impl WorthUiArtifact {
         canonical_module_order: Vec<WorthUiSourceModuleId>,
     ) -> Self {
         let mut node_identity_index = BTreeMap::new();
+        let mut authored_provenance_index = BTreeMap::<u64, Vec<Box<str>>>::new();
         let mut query_binding_ids = BTreeSet::new();
         for module_id in &canonical_module_order {
             let Some(module) = modules.get(module_id) else {
@@ -31,6 +33,10 @@ impl WorthUiArtifact {
                     node.identity_seed().basis().to_owned(),
                     (module_id.clone(), node_index),
                 );
+                authored_provenance_index
+                    .entry(node.authored_provenance_digest())
+                    .or_default()
+                    .push(node.authored_declaration_identity().into());
                 if let crate::source::WorthUiArtifactNode::Binding(binding) = node {
                     let binding_id = binding
                         .view_binding_reference()
@@ -52,6 +58,10 @@ impl WorthUiArtifact {
             modules,
             canonical_module_order,
             node_identity_index,
+            authored_provenance_index: authored_provenance_index
+                .into_iter()
+                .map(|(digest, identities)| (digest, identities.into_boxed_slice()))
+                .collect(),
             query_binding_ids,
         }
     }
@@ -91,6 +101,34 @@ impl WorthUiArtifact {
     ) -> Option<&crate::source::WorthUiArtifactNode> {
         let (module_id, node_index) = self.node_identity_index.get(identity_basis)?;
         self.module(module_id)?.nodes().get(*node_index)
+    }
+
+    pub(crate) fn identity_bases_for_authored_provenance(
+        &self,
+        provenance_digest: u64,
+    ) -> &[Box<str>] {
+        self.authored_provenance_index
+            .get(&provenance_digest)
+            .map(Box::as_ref)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn authored_provenance_entries(
+        &self,
+    ) -> impl Iterator<Item = (u64, String, Option<&str>, Option<&str>)> {
+        self.canonical_module_order
+            .iter()
+            .filter_map(|module_id| self.module(module_id))
+            .flat_map(|module| {
+                module.nodes().iter().map(|node| {
+                    (
+                        node.authored_provenance_digest(),
+                        node.authored_declaration_identity(),
+                        node.component_capability_identity(),
+                        node.theme_token_capability_identity(),
+                    )
+                })
+            })
     }
 
     pub(crate) fn query_binding_ids(&self) -> &BTreeSet<String> {

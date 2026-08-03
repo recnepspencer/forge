@@ -36,6 +36,7 @@ pub(super) fn admitted_app() -> WorthUiApp {
     .expect("query definition should admit");
 
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.dashboard"))
         .register_component(component_descriptor("workspace.component.inspector_panel"))
         .register_view_binding(ViewBindingDescriptor::from_definition(
@@ -71,6 +72,7 @@ pub(super) fn admitted_app() -> WorthUiApp {
 
 pub(in crate::source::tests) fn empty_snapshot() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
 }
@@ -94,6 +96,7 @@ pub(in crate::source::tests) fn snapshot_with_support_catalog(
         command_projections: base.command_projections().clone(),
         components: base.components().clone(),
         icons: base.icons().clone(),
+        intent_definitions: base.intent_definitions().clone(),
         surfaces: base.surfaces().clone(),
         mosaic_regions: base.mosaic_regions().clone(),
         mosaic_placement_policies: base.mosaic_placement_policies().clone(),

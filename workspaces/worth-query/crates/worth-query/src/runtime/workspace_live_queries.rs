@@ -11,6 +11,35 @@ use super::{
 };
 
 impl WorthQueryWorkspace {
+    pub fn declare_bridge_async_live_view<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: super::DeclarativeLiveQueryRequest,
+        schema_view: super::QuerySchemaView,
+        bridge_request: &worth_runtime_bridge::facade::AdmittedBridgeAsyncRequestIdentity,
+    ) -> Result<super::WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.runtime
+            .declare_bridge_async_live_view(name, request, schema_view, bridge_request)
+    }
+
+    pub fn admit_bridge_async_result_transitions<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+        ordering: &worth_runtime_bridge::facade::BridgeMixedCauseOrdering,
+    ) -> Result<super::WorthQueryAsyncResultTransitionBatch, super::WorthQueryAsyncSourceBindingError>
+    {
+        self.runtime
+            .admit_bridge_async_result_transitions(view, ordering)
+    }
+
+    pub fn take_bridge_async_initial_result<T>(
+        &mut self,
+        view: &super::WorthQueryLiveView<T>,
+    ) -> Result<super::WorthQueryAsyncResultTransitionBatch, super::WorthQueryAsyncSourceBindingError>
+    {
+        self.runtime.take_bridge_async_initial_result(view)
+    }
+
     pub(crate) fn managed_live_capability(
         &self,
     ) -> std::sync::Arc<super::WorthQueryManagedLiveWorkspaceCapability> {

@@ -14,7 +14,7 @@ pub struct BlobStreamingResidencyProof {
 
 impl BlobStreamingResidencyProof {
     pub(crate) fn from_executed_streaming_session(
-        allocation: &AdmittedBlobStreamingAllocation,
+        allocation: &AdmittedBlobStreamingAllocation<'_>,
         observed_peak_resident_bytes: u64,
         window: BlobStreamingWindow,
         counter_strength: CounterEvidenceStrength,
@@ -43,7 +43,7 @@ impl BlobStreamingResidencyProof {
     }
 
     pub const fn allocation_bytes(self) -> u64 {
-        self.allocation.allocation().bytes()
+        self.allocation.allocation_bytes()
     }
 
     pub const fn peak_resident_bytes(self) -> u64 {

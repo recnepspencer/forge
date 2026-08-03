@@ -16,6 +16,7 @@ use super::native_capability_fixtures::{native_capability, native_capability_id}
 #[test]
 fn unsupported_native_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             native_capability("platform.native.unsupported").with_family(
                 NativeCapabilityFamily::unsupported_for_diagnostics("ambient_desktop_bus"),
@@ -34,6 +35,7 @@ fn unsupported_native_family_rejected() {
 #[test]
 fn native_capability_missing_platform_posture_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             NativeCapabilityDescriptor::new(native_capability_id("platform.native.clipboard"))
                 .with_family(NativeCapabilityFamily::clipboard()),
@@ -51,6 +53,7 @@ fn native_capability_missing_platform_posture_rejected() {
 #[test]
 fn native_capability_missing_family_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             NativeCapabilityDescriptor::new(native_capability_id("platform.native.unknown"))
                 .with_platform_posture(NativePlatformPosture::runtime_declared()),
@@ -68,6 +71,7 @@ fn native_capability_missing_family_rejected() {
 #[test]
 fn duplicate_native_capability_id_rejected_before_snapshot_freeze() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.clipboard"))
         .register_native_capability(
             native_capability("platform.native.clipboard")
@@ -89,6 +93,7 @@ fn duplicate_native_capability_id_rejected_before_snapshot_freeze() {
 #[test]
 fn native_adapter_claims_shell_authority_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             native_capability("platform.native.menu").with_shell_authority_claim_for_diagnostics(
                 NativeShellAuthorityClaim::redefines_shell_semantics_for_diagnostics(),
@@ -107,6 +112,7 @@ fn native_adapter_claims_shell_authority_rejected() {
 #[test]
 fn ambient_host_check_cannot_replace_native_capability_posture() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(
             NativeCapabilityDescriptor::new(native_capability_id("platform.native.clipboard"))
                 .with_family(NativeCapabilityFamily::clipboard())
@@ -128,6 +134,7 @@ fn ambient_host_check_cannot_replace_native_capability_posture() {
 #[test]
 fn invalid_native_capability_does_not_poison_valid_native_capability() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_native_capability(native_capability("platform.native.clipboard"))
         .register_native_capability(NativeCapabilityDescriptor::new(native_capability_id(
             "platform.native.empty",

@@ -3,62 +3,100 @@
 This map is for contributors placing runtime work. Application developers
 should start with [Application lifecycle](./application-lifecycle.md).
 
-## The Seven Owners
+## Runtime Owners
 
 | Owner | State or contract | Owns |
 | --- | --- | --- |
-| application | `WorthUiApplicationSessionState` | active generation, framework transition, replacement preparation and commit |
-| graph | `UiGraphSnapshot` | graph truth, indexes, and mutation successors |
-| planning | `WorthUiAllocationPlanning` | admitted planning, allocation inputs, and sealed execution plans |
-| mounting | `WorthUiMountedSessionState` | mounted identities, frame assembly, presentation, retention, reconciliation, and publication |
-| observation | `WorthUiHostExchangeSessionState` | structural host reports, measurement exchange, quarantine, and retained transport evidence |
-| inspection | `UiMountedInspectionRequest` and facade bridge | read-only indexed projections and evidence receipts |
-| session | `WorthUiActiveApplicationSession` | thin composition of named transitions across the established owners |
+| application | `WorthUiApplicationSessionState` | active generation, framework transitions, source basis, application cutover |
+| graph | `UiGraphSnapshot` and graph indexes | graph truth, produced-fact consumers, and mutation successors |
+| planning | allocation and rebind plan compilers | admitted inputs, affected scope, identity lifecycle, and sealed plans |
+| mounting | `WorthUiMountedSessionState` | mounted identities, frame assembly, retention, reconciliation, and mounted publication |
+| host exchange | `WorthUiHostExchangeSessionState` | structural host reports, measurement exchange, quarantine, and transport evidence |
+| visual inspection | `WorthUiVisualInspectionAuthority` plus capture/overlay registries | grants, retained snapshots, comparison, overlays, and visual resource bounds |
+| rebind lifecycle | `UiRebindRuntimeState` | plan, receipt, completion, recovery, terminal-decision, and causal-evidence capacity |
+| inspection bridge | typed inspection queries and projections | read-only indexed summaries, exact references, support, and expiry posture |
+| session | `WorthUiActiveApplicationSession` | thin composition of complete transitions across established owners |
 
-The session is not a bag of the other owners’ fields. It coordinates complete
-transitions and returns product outcomes.
+The session is not a bag of the other owners' fields. It coordinates named
+transitions and returns product outcomes. New state belongs in the owner that
+can establish, rebuild, and dispose its truth.
+
+Query projection state is not another session owner. Query owns the live
+resource; `worth-ui-query-binding` converts Query-issued authority into
+shape-specific UI observations and affine facts; the existing observation,
+planning, mounting, and publication owners consume the resulting UI meaning.
 
 ## Allowed Dependency Direction
 
 ```text
 graph
   -> planning
-  -> application
 application + graph + planning
   -> mounting
 mounting
-  -> observation
-application + graph + planning + mounting + observation
-  -> inspection (read-only)
-application + mounting + observation + inspection
+  -> host exchange
+application + graph + planning + mounting + host exchange
+  -> rebind lifecycle
+application + graph + planning + mounting + host exchange + rebind + visual
+  -> inspection bridge (read-only)
+named owners
   -> session composition
 ```
 
 More exactly:
 
-- application may depend on graph and planning;
-- graph depends on none of the other six owners;
-- planning may depend on graph;
-- mounting may depend on application, graph, and planning;
-- observation may depend on mounting;
-- inspection may read application, graph, planning, mounting, and observation;
-  and
-- session may coordinate application, mounting, observation, and inspection.
+- graph depends on none of the mounted, host-exchange, visual, rebind, or
+  inspection owners;
+- planning may read graph and sealed application meaning;
+- mounting may consume application, graph, and sealed planning output;
+- host exchange may observe mounted transport but cannot publish;
+- rebind may coordinate owner-issued observation, plan, application, mounting,
+  and host outcomes but does not absorb their source truth;
+- visual inspection borrows exact mounted evidence and rebind affinity without
+  becoming a publication owner;
+- inspection reads named projections and cannot mutate or reconstruct them; and
+- session composition may call complete transitions but cannot invent a
+  parallel state store.
 
-Graph must never import mounting. Observation cannot publish a frame.
-Inspection cannot mutate or reconstruct operational truth. Planning cannot
-mutate mounted or observation state.
+Graph must never import mounting. Planning cannot mutate mounted or observation
+state. Observation cannot publish a frame. Inspection cannot reconstruct
+operational truth.
+
+## Rebind Construction
+
+Every active session constructs `UiRebindRuntimeState` from the prepared
+application's `UiRebindProfile`. The state owns bounded registration for plans,
+terminal receipts, in-flight completion, uncertain recovery, terminal decision
+records, and retained causal evidence. A profile is required; there is no
+ambient default hidden in the executor.
+
+The ordinary source route is:
+
+```text
+native shell
+-> begin_source_rebind
+-> application-owned observation/classification/scope/plan
+-> rebind lifecycle final admission
+-> mounting and host effects
+-> application + mounted atomic cutover
+```
+
+The legacy whole-application replacement facade is not an alternate route.
 
 ## Failure Preservation
 
 Each subsystem owns its denial:
 
-- application denial retains the predecessor app, plan, allocation, and Query
+- source/DSL denial retains the exact attempted revision and compile report;
+- application denial retains predecessor app, graph, allocation, and Query
   state;
-- graph denial leaves the current snapshot and indexes unchanged;
-- planning denial leaves the active plan and committed allocation unchanged;
-- mounting denial preserves the prior mounted identity and publication;
-- observation denial cannot mutate application or mounted truth; and
+- graph or planning denial leaves current snapshots and indexes unchanged;
+- mounting denial preserves prior mounted identity and publication;
+- host-exchange denial cannot mutate application or mounted truth;
+- rebind before-effect denial retains the predecessor and exact valid next
+  action;
+- uncertain effects retain completion or recovery authority until
+  reconciliation or shutdown; and
 - inspection denial has no operational side effects.
 
 The session preserves this ordering and never publishes a partial
@@ -67,20 +105,42 @@ cross-subsystem successor.
 ## Cost Ownership
 
 Owners report their own work. The session carries receipts but does not invent
-duplicate totals. Reconstructive source and replacement work remains separate
-from steady-frame execution. Rich inspection/report materialization is an
-explicit cost outside measured executor intervals.
+duplicate totals.
 
-## Future Insertion Points
+- source acquisition and DSL compile are reconstructive source cost;
+- classification/scope/planning use `O + F + A + C + R + G + M + B`;
+- mounting and adapter effects report physical presentation cost;
+- reconciliation reports recovery cost separately; and
+- rich inspection/report materialization is explicit diagnostic cost outside
+  measured executor intervals.
 
-| Milestone | Roadmap responsibility | Owner | Exact insertion | Forbidden alternate |
-| --- | --- | --- | --- | --- |
-| 3.11 | Visual snapshot receipts and hit-test identity bridge | application | application replacement preparation and commit | session |
-| 3.12 | Semantic host-observation admission before bounded hot-rebind planning | observation | after structural host-report validation | mounting |
-| 3.17 | Runtime evaluation and invalidation of sealed DSL expression artifacts | planning | planning input handoff before active-plan publication | session |
-| 3.18 | DSL composition, modules, and lowering equivalence | worth-ui-dsl | before the sealed semantic handoff; no runtime subsystem insertion | session |
+Saturation returns typed denial or backpressure. It must not trigger a hidden
+whole-graph scan, universal remount, or unbounded queue.
 
-These rows are mechanically cross-checked with the Phase 4 runtime-subsystem
-ledger and the exact current roadmap headings. Milestone 3.17 keeps authored
-expression meaning in `worth-ui-dsl`; only evaluation over sealed artifacts
-enters runtime planning. Milestone 3.18 has no runtime insertion at all.
+## Successor Homes
+
+| Capability family | Existing owner to extend | Forbidden alternate |
+| --- | --- | --- |
+| projected product data | Query binding consequence plus owner-specific observation facts | session data cache |
+| admitted user intents and services | dedicated admission/service facade feeding declared consequences | host callback mutation |
+| portals, focus, motion, appearance | typed produced facts and consumed aspects feeding rebind planning | renderer-local state |
+| expression evaluation | planning over sealed DSL expression artifacts | runtime reparsing |
+| authored modules and composition | `worth-ui-dsl` before sealed semantic handoff | session composition |
+| human and agent diagnostics | inspection projections over retained exact references | replay in ordinary runtime |
+
+Future work should insert at these homes and reuse the canonical rebind
+executor. If a feature requires moving source settlement, graph truth,
+publication, or host authority, its architecture is not yet honest.
+
+For projected text, planning selects the declared scalar or collection fact,
+mounting owns the semantic text node and `BodyDefault` appearance role, and the
+host adapter translates only the resulting mounted mechanics. A renderer-side
+field lookup or Query call is therefore both an ownership violation and a
+second data path.
+
+## Related Docs
+
+- [Worth UI architecture](./architecture.md)
+- [Hot rebind](./hot-rebind.md)
+- [Application inspection](./inspection.md)
+- [Visual inspection](./visual-inspection.md)

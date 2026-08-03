@@ -58,6 +58,7 @@ component workspace.component.source_backed_boundary {
 
 fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> WorthUiApp {
     let support_app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())
         .register_component(source_backed_boundary_peer_component())
         .register_mosaic_region_kind(source_backed_boundary_region())
@@ -72,9 +73,10 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(provider_revision)])
         .expect("source-backed graph reorder provider should debounce")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed graph reorder provider should lower through ingress");
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())
         .register_component(source_backed_boundary_peer_component())

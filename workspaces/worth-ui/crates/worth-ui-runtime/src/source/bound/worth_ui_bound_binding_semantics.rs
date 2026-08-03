@@ -1,8 +1,7 @@
 use crate::capability::{
     AdmittedCapability, CommandDescriptor, CommandId, CommandProjectionDescriptor,
-    CommandProjectionId, CommandReadinessBinding, CommandRuntimeIntentBinding,
-    FrozenThemeTokenEntry, FrozenViewBindingEntry, IconDescriptor, IconId, QueryDenialPresentation,
-    ThemeTokenId, ViewBindingId,
+    CommandProjectionId, FrozenThemeTokenEntry, FrozenViewBindingEntry, IconDescriptor, IconId,
+    QueryDenialPresentation, ThemeTokenId, ViewBindingId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -20,8 +19,6 @@ pub(crate) struct WorthUiBoundCommandProjectionReference {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct WorthUiBoundCommandSemantics {
     icon: Option<WorthUiBoundIconReference>,
-    readiness: CommandReadinessBinding,
-    runtime_intent_binding: Option<CommandRuntimeIntentBinding>,
     projection_eligibility: Option<WorthUiBoundCommandProjectionReference>,
 }
 
@@ -141,28 +138,16 @@ impl WorthUiBoundCommandProjectionReference {
 impl WorthUiBoundCommandSemantics {
     pub(crate) fn new(
         icon: Option<WorthUiBoundIconReference>,
-        readiness: CommandReadinessBinding,
-        runtime_intent_binding: Option<CommandRuntimeIntentBinding>,
         projection_eligibility: Option<WorthUiBoundCommandProjectionReference>,
     ) -> Self {
         Self {
             icon,
-            readiness,
-            runtime_intent_binding,
             projection_eligibility,
         }
     }
 
     pub(crate) fn icon(&self) -> Option<&WorthUiBoundIconReference> {
         self.icon.as_ref()
-    }
-
-    pub(crate) fn readiness(&self) -> &CommandReadinessBinding {
-        &self.readiness
-    }
-
-    pub(crate) fn runtime_intent_binding(&self) -> Option<&CommandRuntimeIntentBinding> {
-        self.runtime_intent_binding.as_ref()
     }
 
     pub(crate) fn projection_eligibility(&self) -> Option<&WorthUiBoundCommandProjectionReference> {

@@ -25,6 +25,7 @@ pub(in crate::physical_runtime::record_serving) enum CandidateDataWriteFailure {
     Stream(RecordStreamFailure),
     CandidateFrameContract(super::super::CandidateFrameContractViolation),
     Canonical(Box<super::super::CanonicalRecordMutationFailure>),
+    Writeback(Box<super::super::PhysicalRecordWritebackFailureEvidence>),
 }
 
 impl CandidateDataWriteFailure {
@@ -39,6 +40,24 @@ impl CandidateDataWriteFailure {
             ) => Self::CandidateFrameContract(violation),
             super::super::residency::frame_ports::CandidateFrameWriteFailure::Effect(failure) => {
                 Self::Canonical(Box::new(failure))
+            }
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
+                Self::Residency(denial)
+            }
+        }
+    }
+
+    pub(in crate::physical_runtime::record_serving) fn from_writeback(
+        failure: super::super::residency::frame_ports::CandidateFrameWriteFailure<
+            super::super::PhysicalRecordWritebackFailureEvidence,
+        >,
+    ) -> Self {
+        match failure {
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Contract(
+                violation,
+            ) => Self::CandidateFrameContract(violation),
+            super::super::residency::frame_ports::CandidateFrameWriteFailure::Effect(failure) => {
+                Self::Writeback(Box::new(failure))
             }
             super::super::residency::frame_ports::CandidateFrameWriteFailure::Residency(denial) => {
                 Self::Residency(denial)

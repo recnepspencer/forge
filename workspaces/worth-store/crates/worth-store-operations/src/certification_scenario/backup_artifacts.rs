@@ -1,34 +1,26 @@
 use std::path::Path;
 
-use sha2::{Digest, Sha256};
-use worth_store_blob_chunks::certification_test_authority::blob_backup_artifact_for_bytes;
 use worth_store_contracts::{
     AcceptedHandoffReadiness, HandoffEvidenceDigestSet, StableDigest, ROADMAP_2_S1_SCOPE,
 };
-use worth_store_layout_indexes::encode_baseline_btree_leaf_record;
-use worth_store_physical_backend::observe_physical_backup_artifact;
 use worth_store_physical_format::{
-    BackupBundleArtifactFormat, InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest,
-    PageGenerationCell, PhysicalGeneration, PhysicalGenerationAuthority,
-    PhysicalReferenceAuthority, PlatformPhysicalAppendRequest,
-    PlatformPhysicalRootPublicationReport, RootPublicationCell,
+    InMemoryPhysicalFormatModel, InMemoryPhysicalFormatModelRequest, PhysicalGeneration,
+    PhysicalGenerationAuthority, PlatformPhysicalAppendRequest,
 };
 #[cfg(test)]
 use worth_store_physical_format::{
     PhysicalBinaryEncodingWitness, PhysicalHeaderAuthority, PhysicalPageKind,
     PHYSICAL_HEADER_LENGTH,
 };
-use worth_store_physical_isolation::{
-    BackupArtifactCoverage, BackupArtifactFamily, BackupArtifactReference,
-    CurrentGenerationPhysicalReference,
-};
-use worth_store_recovery_physics::{
-    CheckpointBackupArtifact, CheckpointCoveredLsnRange, CheckpointManifest,
-    CheckpointPageLsnFrontier, CheckpointRedoBoundary, CheckpointRootPosture, LogSequenceNumber,
-    PageLsn, SharpCheckpointCertificationMode,
-};
+use worth_store_physical_isolation::BackupArtifactReference;
+#[cfg(test)]
+use worth_store_physical_isolation::CurrentGenerationPhysicalReference;
 
+mod canonical_materialization;
 mod physical_reference;
+use canonical_materialization::{
+    materialize_canonical_backup_artifacts, CanonicalBackupArtifactRequest,
+};
 use physical_reference::*;
 
 pub(crate) struct CanonicalBackupArtifacts {
@@ -115,152 +107,14 @@ impl CanonicalBackupArtifactWorld {
             .runtime
             .publish_physical_root()
             .expect("root publication");
-        materialize_canonical_backup_artifacts(
-            &self.case,
+        materialize_canonical_backup_artifacts(CanonicalBackupArtifactRequest {
+            case: &self.case,
             source,
-            &self.runtime,
+            runtime: &self.runtime,
             publication,
-            self.generation,
-            self.blob_count,
-        )
-    }
-}
-
-fn materialize_canonical_backup_artifacts(
-    case: &str,
-    source: &Path,
-    runtime: &InMemoryPhysicalFormatModel,
-    publication: PlatformPhysicalRootPublicationReport,
-    generation: PhysicalGeneration,
-    blob_count: u64,
-) -> CanonicalBackupArtifacts {
-    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
-    let current = runtime
-        .current_physical_reachability_source()
-        .expect("published current-root closure");
-    let root = current.manifest().root_publication();
-    let layout = publication.persisted_layout();
-    let persisted_page = layout.pages().first().expect("persisted page");
-    let persisted_extent = layout.extents().first().expect("persisted extent");
-
-    let checkpoint_manifest = checkpoint_manifest(root, persisted_page.cell());
-    let checkpoint = CheckpointBackupArtifact::from_sharp_manifest(&checkpoint_manifest, 1, 10)
-        .expect("sharp checkpoint backup artifact");
-    let checkpoint_identity = checkpoint.checkpoint_identity().to_owned();
-
-    let mut references = Vec::with_capacity(6 + blob_count as usize);
-    references.push(observe_reference(
-        source,
-        "root.media",
-        layout
-            .root_manifest_candidates()
-            .first()
-            .expect("root manifest"),
-        BackupArtifactFamily::RootManifest,
-        BackupBundleArtifactFormat::PhysicalRootManifestV1,
-        root_identity(root),
-        BackupArtifactCoverage::root_manifest(root.generation().get()).expect("root coverage"),
-        current_root_reference(root),
-    ));
-
-    let mut checkpoint_bytes = Vec::new();
-    checkpoint
-        .encode(&mut checkpoint_bytes)
-        .expect("checkpoint encoding");
-    references.push(observe_reference(
-        source,
-        "checkpoint.media",
-        &checkpoint_bytes,
-        BackupArtifactFamily::CheckpointManifest,
-        BackupBundleArtifactFormat::RecoveryCheckpointManifestV1,
-        checkpoint_identity.clone(),
-        BackupArtifactCoverage::checkpoint_manifest(&checkpoint_identity, 1, 10)
-            .expect("checkpoint coverage"),
-        current_slot_reference(segment(200), page(1), record_slot(2), generation),
-    ));
-
-    let wal_owner_segment = segment(3);
-    let wal = worth_store_wal::prepare_wal_frame_append(
-        source,
-        wal_owner_segment.get(),
-        generation.get(),
-        10,
-        12,
-        &format!("{case}:wal-frame"),
-        format!("{case}:wal-payload").as_bytes(),
-    )
-    .expect("canonical WAL frame");
-    references.push(observe_reference(
-        source,
-        "wal.media",
-        wal.encoded_frame(),
-        BackupArtifactFamily::WalSegment,
-        BackupBundleArtifactFormat::WalSegmentV1,
-        format!("wal:{}:{}:10-12", wal_owner_segment.get(), generation.get()),
-        BackupArtifactCoverage::wal_segment(10, 12).expect("WAL coverage"),
-        current_segment_reference(wal_owner_segment, generation),
-    ));
-
-    references.push(observe_reference(
-        source,
-        "page.media",
-        persisted_page.bytes(),
-        BackupArtifactFamily::Page,
-        BackupBundleArtifactFormat::PhysicalDataPageV1,
-        page_identity(persisted_page.cell()),
-        BackupArtifactCoverage::physical_reachability(),
-        current_page_reference(persisted_page.cell()),
-    ));
-    references.push(observe_reference(
-        source,
-        "extent.media",
-        persisted_extent.bytes(),
-        BackupArtifactFamily::Extent,
-        BackupBundleArtifactFormat::PhysicalExtentRecordV1,
-        extent_identity(persisted_extent.cell()),
-        BackupArtifactCoverage::physical_reachability(),
-        current_extent_reference(persisted_extent.cell()),
-    ));
-
-    let index_bytes =
-        encode_baseline_btree_leaf_record([record_slot(20), record_slot(21)], true, false);
-    references.push(observe_reference(
-        source,
-        "index.media",
-        &index_bytes,
-        BackupArtifactFamily::Index,
-        BackupBundleArtifactFormat::LayoutBTreeLeafV1,
-        format!("index:sha256:{}", hex(&Sha256::digest(index_bytes))),
-        BackupArtifactCoverage::physical_reachability(),
-        current_slot_reference(segment(200), page(1), record_slot(6), generation),
-    ));
-
-    for index in 0..blob_count {
-        let blob_case = format!("{case}:blob-{index:04}");
-        let blob_payload = format!("{blob_case}:payload");
-        let blob = blob_backup_artifact_for_bytes(&blob_case, blob_payload.as_bytes());
-        let blob_identity = blob.chunk_identity().to_owned();
-        let mut blob_bytes = Vec::new();
-        blob.encode(&mut blob_bytes).expect("blob backup encoding");
-        references.push(observe_reference(
-            source,
-            &format!("blob-{index:04}.media"),
-            &blob_bytes,
-            BackupArtifactFamily::BlobChunk,
-            BackupBundleArtifactFormat::BlobChunkV1,
-            blob_identity,
-            BackupArtifactCoverage::physical_reachability(),
-            current_extent_reference(
-                generations
-                    .extent_cell(segment(100), extent(7 + index))
-                    .with_extent_generation(generation),
-            ),
-        ));
-    }
-
-    CanonicalBackupArtifacts {
-        references,
-        checkpoint_identity,
+            generation: self.generation,
+            blob_count: self.blob_count,
+        })
     }
 }
 
@@ -301,46 +155,6 @@ pub(crate) fn copy_page_to_owner(
     std::fs::write(target, bytes).expect("owner-bound page bytes");
 }
 
-fn checkpoint_manifest(root: RootPublicationCell, page: PageGenerationCell) -> CheckpointManifest {
-    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
-    let root_reference = references.admit_root_publication(root).reference();
-    let redo = LogSequenceNumber::new(10);
-    CheckpointManifest::sharp(
-        CheckpointRootPosture::root_present(root_reference),
-        CheckpointPageLsnFrontier::from_pages([(page, PageLsn::from_lsn(redo))])
-            .expect("page-LSN frontier"),
-        CheckpointCoveredLsnRange::new(redo, LogSequenceNumber::new(12)).expect("checkpoint range"),
-        CheckpointRedoBoundary::from_page_lsn(PageLsn::from_lsn(redo)),
-        SharpCheckpointCertificationMode::certified(),
-    )
-    .expect("sharp checkpoint")
-}
-
-#[allow(clippy::too_many_arguments)]
-fn observe_reference(
-    source: &Path,
-    name: &str,
-    bytes: &[u8],
-    family: BackupArtifactFamily,
-    format: BackupBundleArtifactFormat,
-    identity: String,
-    coverage: BackupArtifactCoverage,
-    reclaim_reference: CurrentGenerationPhysicalReference,
-) -> BackupArtifactReference {
-    let path = source.join(name);
-    std::fs::write(&path, bytes).expect("owner artifact bytes");
-    BackupArtifactReference::declare_untrusted_physical_observation(
-        family,
-        format,
-        identity,
-        reclaim_reference.generation().get(),
-        coverage,
-        observe_physical_backup_artifact(path, 4 * 1024).expect("physical observation"),
-        reclaim_reference,
-    )
-    .expect("owner-bound backup reference")
-}
-
 fn physical_readiness() -> AcceptedHandoffReadiness {
     let digest = |name: &str| StableDigest::new(format!("sha256:{name}")).expect("fixture digest");
     AcceptedHandoffReadiness::from_foundational_handoff_artifacts(
@@ -356,8 +170,4 @@ fn physical_readiness() -> AcceptedHandoffReadiness {
         ),
     )
     .expect("physical-format readiness")
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }

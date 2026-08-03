@@ -7,7 +7,9 @@ use std::{
 };
 
 use worth_signal::facade::{ResourceAttemptId, ResourceRequestHandle};
-use worth_store_physical_backend::{BackendQueueExecutionPlanBinding, MediaOperationIdentity};
+use worth_store_physical_backend::{
+    BackendQueueExecutionPlanBinding, MediaOperationIdentity, MediaOperationRole,
+};
 
 use super::super::{
     PhysicalSignalAspectBindingDigest, PhysicalSignalSettlementOutcome,
@@ -22,9 +24,11 @@ pub struct PhysicalWorkCausalRecord {
     signal_request: ResourceRequestHandle,
     signal_predecessor: Option<ResourceRequestHandle>,
     signal_attempt: ResourceAttemptId,
+    signal_family: super::super::PhysicalWorkSignalFamily,
     signal_binding: PhysicalSignalAspectBindingDigest,
     scheduler_binding: BackendQueueExecutionPlanBinding,
     backend_operation: Option<MediaOperationIdentity>,
+    backend_role: Option<MediaOperationRole>,
     effect_fate: PhysicalWorkEffectFate,
     recovery: PhysicalWorkRecoveryDisposition,
     derived_completion: Option<PhysicalSignalSettlementOutcome>,
@@ -62,11 +66,13 @@ impl PhysicalWorkCausalLedger {
             signal_request: settled.signal_request(),
             signal_predecessor: settled.signal_evidence().replaces,
             signal_attempt: settled.request_attempt(),
+            signal_family: settled.signal_family(),
             signal_binding: settled.signal_binding(),
             scheduler_binding: settled.scheduler_binding(),
             backend_operation: settled
                 .effect_identity()
                 .map(|identity| identity.backend_operation()),
+            backend_role: settled.evidence().backend_role(),
             effect_fate: settled.evidence().fate(),
             recovery: settled.recovery_disposition(),
             derived_completion: None,
@@ -147,6 +153,10 @@ impl PhysicalWorkCausalRecord {
         self.signal_attempt
     }
 
+    pub const fn signal_family(self) -> super::super::PhysicalWorkSignalFamily {
+        self.signal_family
+    }
+
     pub const fn signal_binding(self) -> PhysicalSignalAspectBindingDigest {
         self.signal_binding
     }
@@ -157,6 +167,10 @@ impl PhysicalWorkCausalRecord {
 
     pub const fn backend_operation(self) -> Option<MediaOperationIdentity> {
         self.backend_operation
+    }
+
+    pub const fn backend_role(self) -> Option<MediaOperationRole> {
+        self.backend_role
     }
 
     pub const fn effect_fate(self) -> PhysicalWorkEffectFate {

@@ -1,9 +1,6 @@
 use super::compaction_observation as compaction_interlock_trace;
 
 use crate::{admitted_developer_smoke_driver_contracts, NativeStoreAspectFixture};
-use worth_store_buffer_pool::{
-    AllocationAdmission, AllocationRequest, AllocationScope, BufferPoolExecutedEvidenceSource,
-};
 use worth_store_io_scheduler::IoQueueExecutionRecorder;
 use worth_store_physical_certification::{
     admit_physical_counter_evidence, lower_physical_simulation_plan, physical_scenario,
@@ -72,11 +69,8 @@ pub fn hostile_resource_observation_within_envelope(
     let envelope = plan.resource_envelope();
     HostileResourceEnvelopeObservation::new(
         plan.profile(),
-        envelope
-            .allocation()
-            .budget(AllocationScope::Foreground)
-            .as_bytes(),
-        envelope.resident_bytes().as_bytes(),
+        envelope.allocation_bytes(),
+        envelope.resident_bytes(),
         u64::from(envelope.max_pinned_pages()),
         u64::from(envelope.max_dirty_pages()),
         u64::from(envelope.io_queue().max_queue_depth()),
@@ -98,7 +92,7 @@ pub fn executed_counter_evidence(
         plan,
         &schedule,
         &trace,
-        buffer_pool_evidence(plan),
+        store_residency_observation(plan),
         io_queue_evidence(plan),
     )
     .unwrap();
@@ -140,7 +134,7 @@ pub fn execution_sources_with_schedule(
         plan,
         schedule,
         &trace,
-        buffer_pool_evidence(plan),
+        store_residency_observation(plan),
         io_queue_evidence(plan),
     )
 }
@@ -238,14 +232,14 @@ pub fn lower_physical_isolation_shortcut_plan_for_profile(
     .unwrap()
 }
 
-fn buffer_pool_evidence(plan: &PhysicalSimulationPlan) -> BufferPoolExecutedEvidenceSource {
-    let mut allocation =
-        AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
-    let grant = allocation
-        .admit(AllocationRequest::copied_payload(AllocationScope::Foreground, 64).unwrap())
-        .unwrap();
-    allocation.record_allocation(grant).unwrap();
-    BufferPoolExecutedEvidenceSource::from_allocation_execution(&allocation).unwrap()
+fn store_residency_observation(
+    _plan: &PhysicalSimulationPlan,
+) -> worth_store::physical_runtime::PhysicalResidencyObservation {
+    crate::harness::physical_residency::observed_store_residency(
+        "recovery-counter-evidence",
+        crate::harness::physical_residency::PhysicalResidencyFixtureWorkload::Recovery,
+        64,
+    )
 }
 
 fn io_queue_evidence(

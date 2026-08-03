@@ -17,9 +17,11 @@ use worth_ui_runtime::facade::admission::UiAdmissionReport;
 #[test]
 fn distinct_global_stop_reports_keep_distinct_public_refs_for_the_same_stop_posture() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let foreign = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.foreign-global-stop",

@@ -229,6 +229,7 @@ fn assert_terminal_basis(
     ));
     let basis = PresentedObservationBasis {
         frame: frame_identity,
+        epoch: world.current.epoch,
         instance: world.current.instance,
         receipt: world.current.receipt,
     };
@@ -268,6 +269,7 @@ fn assert_indeterminate_quarantine() {
     ));
     let basis = PresentedObservationBasis {
         frame: frame_identity,
+        epoch: world.current.epoch,
         instance: world.current.instance,
         receipt: world.current.receipt,
     };

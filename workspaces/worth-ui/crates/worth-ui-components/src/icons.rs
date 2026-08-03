@@ -130,9 +130,10 @@ impl IconStore {
     /// Load every icon with SVG bytes into GPU textures. Call once at startup.
     pub fn load(ctx: &egui::Context) -> Self {
         let mut textures = std::collections::HashMap::new();
+        let svg_options = Default::default();
         for &icon in Self::all_icons() {
             if let Some(bytes) = icon.svg_bytes() {
-                match egui_extras::image::load_svg_bytes(bytes) {
+                match egui_extras::image::load_svg_bytes(bytes, &svg_options) {
                     Ok(img) => {
                         let handle = ctx.load_texture(
                             format!("icon_{:?}", icon),

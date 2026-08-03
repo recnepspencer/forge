@@ -4,9 +4,12 @@ use worth_ui::facade::measurement_exchange::{
 };
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationDisposition, UiHostObservationFamily, UiHostObservationFrameRelation,
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationDisposition,
+    UiHostObservationFamily, UiHostObservationFrameRelation, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostPointerButton,
+    UiHostPointerButtonTransition, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostPressedPointerButtons, UiHostSurfacePosition,
 };
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedRetentionClass, UiPresentationDeadline,
@@ -178,10 +181,11 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
         report(
             3,
             UiHostObservationPayload::PointerButton {
-                pointer: 7,
-                capture_epoch: 3,
-                button: 1,
-                pressed: true,
+                pointer: UiHostPointerIdentity::new(7),
+                capture_epoch: UiHostPointerCaptureEpoch::new(3),
+                button: UiHostPointerButton::Primary,
+                transition: UiHostPointerButtonTransition::Pressed,
+                position: UiHostSurfacePosition::viewport_logical(30, 3),
             },
             &world.current,
         ),
@@ -189,11 +193,12 @@ fn pointer_capture_button_and_discrete_transitions_cut_coalescing_ranges() {
         report(
             5,
             UiHostObservationPayload::PointerMotion {
-                pointer: 7,
-                capture_epoch: 4,
-                pressed_buttons: 1,
-                x_subpixels: 50,
-                y_subpixels: 5,
+                pointer: UiHostPointerIdentity::new(7),
+                capture_epoch: UiHostPointerCaptureEpoch::new(4),
+                pressed_buttons: UiHostPressedPointerButtons::from_buttons([
+                    UiHostPointerButton::Primary,
+                ]),
+                position: UiHostSurfacePosition::viewport_logical(50, 5),
             },
             &world.current,
         ),
@@ -228,7 +233,6 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
     let mut world =
         published_observation_world_with_host("observation-non-reentrant", measurement_host());
     let setup_event_count = world.host.observation_events().len();
-    let observation_ingress = world.session.host_observation_ingress();
     let raw = batch(
         source(&world.session, world.binding, &world.current),
         (1, 2),
@@ -248,9 +252,7 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
         viewport_observation(&measurement_request, 800.0, 600.0),
         1,
     );
-    world
-        .host
-        .enqueue_observation_during_next_presentation(observation_ingress.clone(), raw);
+    world.host.enqueue_observation_during_next_presentation(raw);
     world.host.enqueue_measurement_during_next_presentation(
         measurement_ingress.clone(),
         measurement_completion,
@@ -270,7 +272,7 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
         .current_mounted_publication()
         .expect("explicit presentation published")
         .clone();
-    assert_eq!(observation_ingress.pending_batch_count(), 1);
+    assert_eq!(world.host.pending_observation_batch_count(), 1);
     assert_eq!(measurement_ingress.pending_completion_count(), 1);
     assert_eq!(world.session.retained_host_observation_report_count(), 0);
     assert_eq!(world.session.pending_host_measurement_count(), 1);
@@ -285,7 +287,10 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
         ]
     );
 
-    let outcomes = world.session.validate_enqueued_host_observation_batches();
+    let outcomes = world
+        .session
+        .drain_and_validate_host_observation_batches()
+        .expect("scripted adapter drain stays within the canonical bound");
     assert_eq!(outcomes.len(), 1);
     let relation = match &outcomes[0] {
         UiHostObservationReportOutcome::Validated(validated) => validated.frame_relation(),
@@ -309,15 +314,25 @@ fn adapter_call_only_enqueues_pointer_focus_and_measurement_until_presentation_r
 }
 
 fn keyboard(sequence: u64) -> UiHostObservationPayload {
+    let key = if sequence.is_multiple_of(2) {
+        UiHostKey::A
+    } else {
+        UiHostKey::B
+    };
     UiHostObservationPayload::Keyboard {
-        physical_key: u32::try_from(sequence).unwrap(),
-        pressed: sequence.is_multiple_of(2),
-        repeat: false,
+        logical_key: key,
+        physical_key: Some(key),
+        modifiers: UiHostKeyboardModifiers::default(),
+        transition: if sequence.is_multiple_of(2) {
+            UiHostKeyTransition::Pressed { repeat: false }
+        } else {
+            UiHostKeyTransition::Released
+        },
     }
 }
 
 fn text_composition(revision: u64) -> UiHostObservationPayload {
-    UiHostObservationPayload::TextComposition {
+    UiHostObservationPayload::TextInput {
         revision,
         text: "x".repeat(15_000).into_boxed_str(),
     }

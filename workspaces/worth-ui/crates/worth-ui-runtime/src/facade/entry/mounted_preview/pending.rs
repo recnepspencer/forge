@@ -9,6 +9,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
     pub fn into_mounted_preview(self) -> Result<WorthUiPendingMountedPreview<'session>, Box<Self>> {
         let Self {
             generation_identity,
+            visual_trace_source,
             graph,
             active_plan_digest,
             host_session_identity,
@@ -20,6 +21,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
         match completion.into_pending_mounted_preview() {
             Ok((transition, planning_counters)) => Ok(WorthUiPendingMountedPreview {
                 generation: generation_identity,
+                visual_trace_source,
                 graph,
                 plan_digest: active_plan_digest,
                 transition,
@@ -32,6 +34,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             }),
             Err(completion) => Err(Box::new(Self {
                 generation_identity,
+                visual_trace_source,
                 graph,
                 active_plan_digest,
                 host_session_identity,
@@ -117,6 +120,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 protocol: self.ports.host_session.protocol(),
                 capability_generation: capability_report.observation_generation(),
                 capability_profile_digest: capability_report.profile_identity_digest(),
+                visual_overlay_revision: 0,
             },
         );
         let assembler = self
@@ -125,6 +129,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
             .begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
                 graph: self.graph,
                 generation: self.generation.clone(),
+                trace_source: self.visual_trace_source.clone(),
                 plan_digest: self.plan_digest,
                 plan: crate::mounting::UiMountedPlanProjectionSource::PreviewOnly,
                 allocation_source:
@@ -140,6 +145,8 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                     candidate_count: preview.candidate_count(),
                     all_candidates_admitted: preview.all_candidates_admitted(),
                 }),
+                visual_overlay: None,
+                semantic_content: crate::mounting::UiMountedSemanticContentInput::empty(),
                 reuse_contract,
             })
             .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;

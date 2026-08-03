@@ -5,6 +5,10 @@ use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFr
 
 use crate::physical_runtime::{LifecycleGeneration, PhysicalRecordId, PhysicalWorkIdentity};
 
+/// The Store, record, frame, or work identity affected by physical pressure.
+///
+/// This basis is descriptive only. It cannot allocate memory, retry work, or
+/// control the buffer pool.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalRecordPressureBasis {
     store: StableStoreIdentity,
@@ -13,6 +17,11 @@ pub struct PhysicalRecordPressureBasis {
     work_identity: Option<PhysicalWorkIdentity>,
 }
 
+/// Exact pre-effect or post-effect physical-pressure evidence.
+///
+/// Inspect the dimension, requested/current/limit values, retry posture, and
+/// `effect_may_have_started` before deciding how the application should react.
+/// This value is not a retry token or allocation grant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalRecordPressureEvidence {
     basis: PhysicalRecordPressureBasis,
@@ -26,6 +35,10 @@ pub struct PhysicalRecordPressureEvidence {
     effect_may_have_started: bool,
 }
 
+/// The state change required before retry may become useful.
+///
+/// A nonterminal posture describes a necessary condition, not permission or a
+/// guarantee that a later retry will succeed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalResidencyRetryPosture {
     AfterLeaseRelease,
@@ -73,38 +86,47 @@ impl PhysicalRecordPressureEvidence {
         })
     }
 
+    /// Returns the physical identity affected by the denial.
     pub const fn basis(&self) -> PhysicalRecordPressureBasis {
         self.basis
     }
 
+    /// Returns the serving lifecycle generation that observed the denial.
     pub const fn store_generation(&self) -> LifecycleGeneration {
         self.store_generation
     }
 
+    /// Returns the operation scope whose allocation was denied.
     pub const fn scope(&self) -> PhysicalOperationAllocationScope {
         self.scope
     }
 
+    /// Returns the exhausted or invalid residency dimension.
     pub const fn dimension(&self) -> PhysicalResidencyDimension {
         self.dimension
     }
 
+    /// Returns the units requested by the denied operation.
     pub const fn requested(&self) -> u64 {
         self.requested
     }
 
+    /// Returns the units active when the denial was observed.
     pub const fn admitted(&self) -> u64 {
         self.admitted
     }
 
+    /// Returns the admitted limit for this dimension.
     pub const fn limit(&self) -> u64 {
         self.limit
     }
 
+    /// Returns the state change required before retry may be useful.
     pub const fn retry_posture(&self) -> PhysicalResidencyRetryPosture {
         self.retry_posture
     }
 
+    /// Reports whether an external effect may already have started.
     pub const fn effect_may_have_started(&self) -> bool {
         self.effect_may_have_started
     }
@@ -130,24 +152,40 @@ impl PhysicalRecordPressureBasis {
         self
     }
 
+    pub(in crate::physical_runtime::record_serving) const fn with_frame_coordinate(
+        mut self,
+        frame: RecordFrameCoordinate,
+    ) -> Self {
+        self.frame_coordinate = Some(frame);
+        self
+    }
+
+    /// Returns the stable physical Store identity.
     pub const fn store_identity(&self) -> StableStoreIdentity {
         self.store
     }
 
+    /// Returns the affected record when the denial is record-specific.
     pub const fn record(&self) -> Option<PhysicalRecordId> {
         self.record
     }
 
+    /// Returns the affected frame when one is known.
     pub const fn frame_coordinate(&self) -> Option<RecordFrameCoordinate> {
         self.frame_coordinate
     }
 
+    /// Returns the affected physical-work identity when one is known.
     pub const fn work_identity(&self) -> Option<PhysicalWorkIdentity> {
         self.work_identity
     }
 }
 
 impl PhysicalResidencyRetryPosture {
+    /// Returns whether this posture leaves a possible future retry.
+    ///
+    /// The caller must still wait for the named condition and perform a fresh
+    /// admission; `true` is not retry authority.
     pub const fn may_retry(self) -> bool {
         !matches!(self, Self::Terminal)
     }

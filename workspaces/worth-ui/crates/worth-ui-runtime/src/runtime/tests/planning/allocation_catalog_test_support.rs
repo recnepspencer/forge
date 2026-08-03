@@ -271,6 +271,7 @@ fn admitted_planning_admissions_with_operators(
         },
     );
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(package)
         .freeze()

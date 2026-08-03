@@ -29,6 +29,31 @@ pub enum WorthQueryCollectionContinuation {
     LiveMore(WorthQueryCollectionCursor),
 }
 
+impl WorthQueryCollectionContinuation {
+    pub fn identity_evidence(&self) -> Option<crate::WorthQueryEvidenceIdentity> {
+        let (posture, cursor) = match self {
+            Self::Complete => return None,
+            Self::SnapshotMore(cursor) => ("snapshot-more", cursor),
+            Self::LiveMore(cursor) => ("live-more", cursor),
+        };
+        Some(
+            crate::WorthQueryEvidenceIdentity::compose(
+                crate::WorthQueryEvidenceScope::ProjectionConsumptionIdentity,
+            )
+            .field_shape(
+                crate::WorthQueryEvidenceTag::new("collection"),
+                "continuation",
+            )
+            .field_shape(crate::WorthQueryEvidenceTag::new("posture"), posture)
+            .field_evidence_identity(
+                crate::WorthQueryEvidenceTag::new("cursor"),
+                &cursor.identity_evidence(),
+            )
+            .seal(),
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryCollectionWindowWarning {
     ExecutionWarningsPresent { count: usize },

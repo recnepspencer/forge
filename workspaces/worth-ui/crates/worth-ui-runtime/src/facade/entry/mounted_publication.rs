@@ -6,7 +6,6 @@ use crate::mounting::{
 use super::WorthUiActiveApplicationSession;
 
 impl WorthUiActiveApplicationSession {
-    #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn present_prepared_mounted_frame_internal(
         &mut self,
         frame: crate::mounting::UiPreparedMountedFrame,

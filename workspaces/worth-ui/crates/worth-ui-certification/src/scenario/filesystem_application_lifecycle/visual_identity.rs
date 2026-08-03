@@ -1,0 +1,280 @@
+use worth_ui::facade::app::WorthUiApp;
+use worth_ui::facade::intent::{UiIntent, UiIntentDefinition};
+use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+use super::FilesystemApplicationLifecycleScenario;
+use crate::scenario::application_authority_closure::visual_identity_application::{
+    clipped_visual_identity_application_builder_with_host,
+    duplicate_hit_order_application_builder_with_host,
+    region_identity_application_builder_with_host, visual_identity_application_builder_with_host,
+    VISUAL_HIT_ONLY_COMPONENT, VISUAL_IDENTITY_SURFACE, VISUAL_NEITHER_COMPONENT,
+    VISUAL_PAINT_AND_HIT_COMPONENT, VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PAINT_ONLY_COMPONENT,
+    VISUAL_PAINT_ONLY_TOKEN, VISUAL_PURPLE_TOKEN, VISUAL_RED_TOKEN,
+};
+
+impl FilesystemApplicationLifecycleScenario {
+    /// Start the canonical visual-identity world compiler while allowing a
+    /// scenario to add the exact capability owners its claim requires.
+    pub fn visual_identity_application_builder<Host>(
+        &self,
+        host: Host,
+    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        visual_identity_application_builder_with_host(host)
+    }
+
+    pub fn visual_identity_source_text() -> String {
+        format!(
+            "component {VISUAL_PAINT_ONLY_COMPONENT} {{}}\n\
+             component {VISUAL_HIT_ONLY_COMPONENT} {{}}\n\
+             component {VISUAL_PAINT_AND_HIT_COMPONENT} {{}}\n\
+             component {VISUAL_NEITHER_COMPONENT} {{}}\n\
+             surface {VISUAL_IDENTITY_SURFACE} {{}}\n\
+             token {VISUAL_PAINT_ONLY_TOKEN} = \"{VISUAL_RED_TOKEN}\";\n\
+             token {VISUAL_PAINT_AND_HIT_TOKEN} = \"{VISUAL_PURPLE_TOKEN}\";\n"
+        )
+    }
+
+    pub fn visual_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        visual_identity_application_builder_with_host(host)
+            .freeze()
+            .expect("visual identity capabilities should prepare")
+    }
+
+    pub fn visual_identity_capability_application_with_intent<Host, I>(
+        &self,
+        host: Host,
+        definition: UiIntentDefinition<I>,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .freeze()
+            .expect("visual identity and intent capabilities should prepare")
+    }
+
+    pub fn visual_identity_capability_application_with_intents<Host, I, J>(
+        &self,
+        host: Host,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .freeze()
+            .expect("visual identity and intent capabilities should prepare")
+    }
+
+    pub fn duplicate_hit_order_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        duplicate_hit_order_application_builder_with_host(host)
+            .freeze()
+            .expect("duplicate-order capabilities should prepare")
+    }
+
+    pub fn region_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        region_identity_application_builder_with_host(host)
+            .freeze()
+            .expect("region identity capabilities should prepare")
+    }
+
+    pub fn clipped_visual_identity_capability_application<Host>(&self, host: Host) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_visual_identity_application_builder_with_host(host)
+            .freeze()
+            .expect("clipped visual identity capabilities should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        visual_identity_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored visual identity application should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_intent_and_host<Host, I>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        definition: UiIntentDefinition<I>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_intents_and_host<Host, I, J>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_rust_application_with_intent_and_host<Host, I>(
+        &self,
+        input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+        definition: UiIntentDefinition<I>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(definition)
+            .expect("typed intent definition should register")
+            .with_rust_authored_input(input)
+            .freeze()
+            .expect("Rust-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_rust_application_with_intents_and_host<Host, I, J>(
+        &self,
+        input: worth_ui_dsl::WorthUiRustAuthoredArtifactInput,
+        first: UiIntentDefinition<I>,
+        second: UiIntentDefinition<J>,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+        I: UiIntent,
+        J: UiIntent,
+    {
+        visual_identity_application_builder_with_host(host)
+            .register_intent_definition(first)
+            .expect("first typed intent definition should register")
+            .register_intent_definition(second)
+            .expect("second typed intent definition should register")
+            .with_rust_authored_input(input)
+            .freeze()
+            .expect("Rust-authored routed application should prepare")
+    }
+
+    pub fn prepare_visual_identity_application_with_policy_and_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        visual_identity_application_builder_with_host(host)
+            .with_visual_inspection_policy(policy)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("policy-bounded filesystem visual identity application should prepare")
+    }
+
+    pub fn prepare_region_identity_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        region_identity_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored region identity application should prepare")
+    }
+
+    pub fn prepare_clipped_visual_identity_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        clipped_visual_identity_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("filesystem-authored clipped visual identity application should prepare")
+    }
+
+    pub fn prepare_region_identity_application_with_policy_and_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        region_identity_application_builder_with_host(host)
+            .with_visual_inspection_policy(policy)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("policy-bounded filesystem region identity application should prepare")
+    }
+
+    pub fn prepare_duplicate_hit_order_application_with_host<Host>(
+        &self,
+        submission: WorthUiWatchedCandidateSubmission,
+        host: Host,
+    ) -> WorthUiApp
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        duplicate_hit_order_application_builder_with_host(host)
+            .with_candidate_submission(submission)
+            .freeze()
+            .expect("duplicate-order world should prepare before mounted projection")
+    }
+}

@@ -3,9 +3,12 @@ mod counters;
 mod delta;
 mod denial;
 mod frame_assembler;
+mod frame_manifest_validation;
 mod host_truth;
 mod identity;
+mod identity_overlay;
 mod identity_state;
+mod identity_trace_basis;
 mod identity_view;
 mod presentation;
 mod projection;
@@ -14,10 +17,12 @@ mod publication;
 mod receipt_basis;
 mod retention;
 mod reuse;
+mod semantic_content;
 mod session_state;
 mod surface_binding;
+mod visual_region_basis;
 
-pub(crate) use assembly::{binding_requirement, validate_manifest};
+pub(crate) use assembly::{binding_requirement, UiPreparedMountedFrameAdmission};
 pub(crate) use counters::{UiMountCostOverflow, UiMountStageCounters};
 pub use counters::{UiMountCostReport, UiMountNamedCounters, UiMountWorkClass};
 pub use delta::UiMountedFrameDelta;
@@ -26,9 +31,15 @@ pub(crate) use frame_assembler::{
     UiMountedFrameAssembler, UiMountedFrameAssemblyInput, UiMountedLaneAssembly,
     UiMountedPlanProjectionSource,
 };
+pub(crate) use frame_manifest_validation::validate_manifest;
 pub(crate) use host_truth::UiMountedHostTruthCoordinator;
 pub use identity::{UiMountedGraphNodeHandle, UiMountedGraphWorldIdentity, UiMountedIdentityBasis};
-pub(crate) use identity_state::{UiAuthorityAdmittedMountedFrame, UiMountedIdentityState};
+pub(crate) use identity_overlay::UiMountedVisualOverlayProjectionInput;
+pub(crate) use identity_state::{
+    UiAuthorityAdmittedMountedFrame, UiCurrentHitTarget, UiCurrentHitTargetAffinityDenial,
+    UiCurrentInteractionAffinity, UiMountedIdentityState, UiMountedInteractionAffinityInput,
+};
+pub(crate) use identity_trace_basis::UiMountedIdentityTraceBasis;
 pub use identity_view::{
     UiMountedFrameIdentityView, UiMountedIdentityView, UiMountedInstanceIdentityView,
     UiSurfaceBindingIdentityView,
@@ -72,7 +83,9 @@ pub(crate) use retention::{
     UiMountedFrameInspectionTarget, UiMountedFrameRetentionCoordinator,
     UiMountedFrameRetentionSnapshot, UiMountedObservationBasisLease,
     UiMountedObservationBasisRetentionDenial, UiMountedRetentionUsageSnapshot,
-    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedMountedDiagnostics,
+    UiMountedVisualCaptureBasis, UiMountedVisualOverlayLease, UiMountedVisualRetentionDenial,
+    UiMountedVisualSnapshotLease, UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation,
+    UiPresentedHitTestBasis, UiRetainedMountedDiagnostics,
 };
 pub use retention::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
@@ -85,6 +98,12 @@ pub use reuse::{
     UiMountedFrameReuseContract, UiMountedFrameReuseDependency, UiMountedFrameReuseMintingStage,
     UiMountedFrameReuseWitness,
 };
+pub(crate) use semantic_content::{
+    UiMountedCollectionSemanticTextContent, UiMountedCollectionTextChange,
+    UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
+    UiMountedScalarSemanticTextContent, UiMountedSemanticContentInput,
+    UiMountedSemanticTextContent, UiMountedSemanticTextValueDirective,
+};
 pub(crate) use session_state::{
     UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,
     UiMountedGraphReplacementPreparation, UiMountedGraphReplacementPresentation,
@@ -93,6 +112,7 @@ pub(crate) use session_state::{
     WorthUiMountedSessionState,
 };
 pub use surface_binding::{UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile};
+pub(crate) use visual_region_basis::UiMountedVisualRegionBasis;
 
 pub use assembly::{
     UiMountedFramePreparationDenial, UiMountedFrameReceipt, UiMountedFrameRequest,

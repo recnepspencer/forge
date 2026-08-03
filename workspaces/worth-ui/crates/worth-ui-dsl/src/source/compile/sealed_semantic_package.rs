@@ -1,15 +1,16 @@
-use std::collections::BTreeMap;
+mod sealing;
+
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     WorthUiAuthoredMode, WorthUiDslProtocolIdentity, WorthUiSealedSemanticArtifact,
     WorthUiSemanticPackageIdentity,
 };
 use crate::source::{
-    WorthUiArtifactInput, WorthUiArtifactInputNode, WorthUiArtifactInputProvenance,
-    WorthUiArtifactInputReference, WorthUiAuthoredStructuralBody, WorthUiDslCompileDiagnostic,
-    WorthUiDslCompileDiagnosticCode, WorthUiDslCompileReport, WorthUiDslCompileStopClass,
-    WorthUiDslSourceSpan, WorthUiSourceModuleId, WorthUiStructuralBodyParser,
-    WorthUiStructuralLanguageDiagnosticCode, WorthUiStructuralParseFailure,
+    WorthUiArtifactInput, WorthUiArtifactInputModule, WorthUiArtifactInputNode,
+    WorthUiArtifactInputProvenance, WorthUiArtifactInputReference, WorthUiAuthoredStructuralBody,
+    WorthUiDslCompileDiagnostic, WorthUiDslCompileReport, WorthUiProjectionRequirement,
+    WorthUiSourceModuleId,
 };
 use crate::UiDslLoweringReceipt;
 
@@ -36,6 +37,7 @@ pub enum WorthUiSemanticDeclaration {
     Component(WorthUiSemanticBlock),
     Surface(WorthUiSemanticBlock),
     Binding(WorthUiSemanticBlock),
+    Projection(WorthUiSemanticProjectionDeclaration),
     Token(WorthUiSemanticToken),
     SemanticArtifact(WorthUiSealedSemanticArtifact),
 }
@@ -63,6 +65,12 @@ pub struct WorthUiSemanticToken {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthUiSemanticProjectionDeclaration {
+    requirement: WorthUiProjectionRequirement,
+    provenance_ref: WorthUiSemanticProvenanceRef,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct WorthUiSemanticPackageSeal;
 
 /// Compact, package-local reference to diagnostic provenance.
@@ -78,55 +86,46 @@ pub struct WorthUiSemanticDeclarationView<'package> {
     provenance: &'package WorthUiArtifactInputProvenance,
 }
 
+struct WorthUiSemanticPackageSealingState {
+    modules: BTreeMap<WorthUiSourceModuleId, WorthUiSemanticModule>,
+    provenance_table: Vec<WorthUiArtifactInputProvenance>,
+    diagnostics: Vec<WorthUiDslCompileDiagnostic>,
+    projection_identities: BTreeSet<String>,
+    projection_content_references: Vec<(String, WorthUiArtifactInputProvenance)>,
+}
+
 impl WorthUiSealedSemanticPackage {
     pub(super) fn seal(
         semantic_input: WorthUiArtifactInput,
         authored_mode: WorthUiAuthoredMode,
     ) -> Result<Self, WorthUiDslCompileReport> {
         let canonical_module_order = semantic_input.module_ids().to_vec();
-        let mut modules = BTreeMap::new();
-        let mut provenance_table = Vec::new();
-        let mut diagnostics = Vec::new();
-
+        let mut state = WorthUiSemanticPackageSealingState::new();
         for module_id in &canonical_module_order {
             let input_module = semantic_input
                 .module(module_id)
                 .expect("normalized semantic input should contain every canonical module");
-            let mut declarations = Vec::new();
-            for declaration in input_module.nodes() {
-                let provenance_ref = WorthUiSemanticProvenanceRef(provenance_table.len());
-                provenance_table.push(input_node_provenance(declaration).clone());
-                match seal_declaration(declaration, provenance_ref) {
-                    Ok(declaration) => declarations.push(declaration),
-                    Err(diagnostic) => diagnostics.push(diagnostic),
-                }
-            }
-            modules.insert(
-                module_id.clone(),
-                WorthUiSemanticModule {
-                    module_id: module_id.clone(),
-                    declarations,
-                },
-            );
+            state.seal_module(module_id, input_module);
         }
-
-        if !diagnostics.is_empty() {
-            return Err(WorthUiDslCompileReport::new(diagnostics));
+        state.validate_projection_content_references();
+        if !state.diagnostics.is_empty() {
+            return Err(WorthUiDslCompileReport::new(state.diagnostics));
         }
         let identity = WorthUiSemanticPackageIdentity::from_modules(
             canonical_module_order.iter().map(|module_id| {
                 (
                     module_id,
-                    modules
+                    state
+                        .modules
                         .get(module_id)
                         .expect("sealed package contains every canonical module"),
                 )
             }),
         );
         Ok(Self {
-            modules,
+            modules: state.modules,
             canonical_module_order,
-            provenance_table: provenance_table.into_boxed_slice(),
+            provenance_table: state.provenance_table.into_boxed_slice(),
             identity,
             protocol: WorthUiDslProtocolIdentity::current(),
             authored_mode,
@@ -178,6 +177,19 @@ impl WorthUiSealedSemanticPackage {
         super::semantic_package_lowering_receipts::lower(self)
     }
 
+    pub fn projection_requirements(&self) -> impl Iterator<Item = &WorthUiProjectionRequirement> {
+        self.canonical_module_order.iter().flat_map(|module_id| {
+            self.modules[module_id].declarations.iter().filter_map(
+                |declaration| match declaration {
+                    WorthUiSemanticDeclaration::Projection(projection) => {
+                        Some(projection.requirement())
+                    }
+                    _ => None,
+                },
+            )
+        })
+    }
+
     #[cfg(feature = "certification-support")]
     pub(super) fn with_protocol_for_certification(
         mut self,
@@ -185,6 +197,88 @@ impl WorthUiSealedSemanticPackage {
     ) -> Self {
         self.protocol = protocol;
         self
+    }
+}
+
+impl WorthUiSemanticPackageSealingState {
+    fn new() -> Self {
+        Self {
+            modules: BTreeMap::new(),
+            provenance_table: Vec::new(),
+            diagnostics: Vec::new(),
+            projection_identities: BTreeSet::new(),
+            projection_content_references: Vec::new(),
+        }
+    }
+
+    fn seal_module(
+        &mut self,
+        module_id: &WorthUiSourceModuleId,
+        input_module: &WorthUiArtifactInputModule,
+    ) {
+        let mut declarations = Vec::new();
+        for input_declaration in input_module.nodes() {
+            self.seal_input_declaration(input_declaration, &mut declarations);
+        }
+        self.modules.insert(
+            module_id.clone(),
+            WorthUiSemanticModule {
+                module_id: module_id.clone(),
+                declarations,
+            },
+        );
+    }
+
+    fn seal_input_declaration(
+        &mut self,
+        input: &WorthUiArtifactInputNode,
+        declarations: &mut Vec<WorthUiSemanticDeclaration>,
+    ) {
+        let provenance_ref = WorthUiSemanticProvenanceRef(self.provenance_table.len());
+        self.provenance_table
+            .push(sealing::input_node_provenance(input).clone());
+        match sealing::seal_declaration(input, provenance_ref) {
+            Ok(WorthUiSemanticDeclaration::Projection(projection))
+                if !self
+                    .projection_identities
+                    .insert(projection.requirement().declaration_identity().to_owned()) =>
+            {
+                self.diagnostics
+                    .push(sealing::duplicate_projection_diagnostic(
+                        projection.requirement().declaration_identity(),
+                        sealing::input_node_provenance(input),
+                    ));
+            }
+            Ok(declaration) => {
+                if let WorthUiSemanticDeclaration::Component(component) = &declaration {
+                    self.projection_content_references.extend(
+                        component
+                            .structure()
+                            .projection_contents()
+                            .iter()
+                            .map(|content| {
+                                (
+                                    content.projection_identity_text().to_owned(),
+                                    sealing::input_node_provenance(input).clone(),
+                                )
+                            }),
+                    );
+                }
+                declarations.push(declaration);
+            }
+            Err(diagnostic) => self.diagnostics.push(diagnostic),
+        }
+    }
+
+    fn validate_projection_content_references(&mut self) {
+        for (identity, provenance) in &self.projection_content_references {
+            if !self.projection_identities.contains(identity) {
+                self.diagnostics
+                    .push(sealing::unknown_projection_content_diagnostic(
+                        identity, provenance,
+                    ));
+            }
+        }
     }
 }
 
@@ -244,6 +338,16 @@ impl WorthUiSemanticToken {
     }
 }
 
+impl WorthUiSemanticProjectionDeclaration {
+    pub fn requirement(&self) -> &WorthUiProjectionRequirement {
+        &self.requirement
+    }
+
+    pub fn provenance_ref(&self) -> WorthUiSemanticProvenanceRef {
+        self.provenance_ref
+    }
+}
+
 impl WorthUiSemanticDeclaration {
     pub fn provenance_ref(&self) -> WorthUiSemanticProvenanceRef {
         match self {
@@ -251,6 +355,7 @@ impl WorthUiSemanticDeclaration {
             Self::Component(declaration)
             | Self::Surface(declaration)
             | Self::Binding(declaration) => declaration.provenance_ref(),
+            Self::Projection(declaration) => declaration.provenance_ref(),
             Self::Token(declaration) => declaration.provenance_ref(),
             Self::SemanticArtifact(declaration) => declaration.provenance_ref(),
         }
@@ -268,123 +373,5 @@ impl<'package> WorthUiSemanticDeclarationView<'package> {
 
     pub fn provenance(&self) -> &'package WorthUiArtifactInputProvenance {
         self.provenance
-    }
-}
-
-fn seal_declaration(
-    declaration: &WorthUiArtifactInputNode,
-    provenance_ref: WorthUiSemanticProvenanceRef,
-) -> Result<WorthUiSemanticDeclaration, WorthUiDslCompileDiagnostic> {
-    match declaration {
-        WorthUiArtifactInputNode::Import(import) => {
-            Ok(WorthUiSemanticDeclaration::Import(WorthUiSemanticImport {
-                target: import.target().clone(),
-                provenance_ref,
-            }))
-        }
-        WorthUiArtifactInputNode::Component(block) => {
-            seal_block(block, provenance_ref).map(WorthUiSemanticDeclaration::Component)
-        }
-        WorthUiArtifactInputNode::Surface(block) => {
-            seal_block(block, provenance_ref).map(WorthUiSemanticDeclaration::Surface)
-        }
-        WorthUiArtifactInputNode::Binding(block) => {
-            seal_block(block, provenance_ref).map(WorthUiSemanticDeclaration::Binding)
-        }
-        WorthUiArtifactInputNode::Token(token) => {
-            Ok(WorthUiSemanticDeclaration::Token(WorthUiSemanticToken {
-                name_text: token.name_text().to_owned(),
-                authored_identity: token.authored_identity().map(str::to_owned),
-                value_text: token.value_text().to_owned(),
-                provenance_ref,
-            }))
-        }
-        WorthUiArtifactInputNode::SemanticArtifact(node) => {
-            Ok(WorthUiSemanticDeclaration::SemanticArtifact(
-                WorthUiSealedSemanticArtifact::new(node.declaration().clone(), provenance_ref),
-            ))
-        }
-    }
-}
-
-fn seal_block(
-    block: &crate::source::WorthUiArtifactInputBlockNode,
-    provenance_ref: WorthUiSemanticProvenanceRef,
-) -> Result<WorthUiSemanticBlock, WorthUiDslCompileDiagnostic> {
-    let structure = WorthUiStructuralBodyParser::parse(block.body_atoms())
-        .map_err(|failure| structural_diagnostic(failure, block.provenance()))?;
-    Ok(WorthUiSemanticBlock {
-        name_text: block.name_text().to_owned(),
-        authored_identity: block.authored_identity().map(str::to_owned),
-        structure,
-        provenance_ref,
-    })
-}
-
-fn input_node_provenance(
-    declaration: &WorthUiArtifactInputNode,
-) -> &WorthUiArtifactInputProvenance {
-    match declaration {
-        WorthUiArtifactInputNode::Import(declaration) => declaration.provenance(),
-        WorthUiArtifactInputNode::Component(declaration)
-        | WorthUiArtifactInputNode::Surface(declaration)
-        | WorthUiArtifactInputNode::Binding(declaration) => declaration.provenance(),
-        WorthUiArtifactInputNode::Token(declaration) => declaration.provenance(),
-        WorthUiArtifactInputNode::SemanticArtifact(declaration) => declaration.provenance(),
-    }
-}
-
-fn structural_diagnostic(
-    failure: WorthUiStructuralParseFailure,
-    provenance: &WorthUiArtifactInputProvenance,
-) -> WorthUiDslCompileDiagnostic {
-    let code = match failure.code {
-        WorthUiStructuralLanguageDiagnosticCode::InvalidStructuralSyntax => {
-            WorthUiDslCompileDiagnosticCode::InvalidStructuralSyntax
-        }
-        WorthUiStructuralLanguageDiagnosticCode::DuplicateRegionSizingDeclaration => {
-            WorthUiDslCompileDiagnosticCode::DuplicateRegionSizingDeclaration
-        }
-        WorthUiStructuralLanguageDiagnosticCode::DuplicateRegionStateDeclaration => {
-            WorthUiDslCompileDiagnosticCode::DuplicateRegionStateDeclaration
-        }
-        WorthUiStructuralLanguageDiagnosticCode::DuplicateMountPlacementDeclaration => {
-            WorthUiDslCompileDiagnosticCode::DuplicateMountPlacementDeclaration
-        }
-        WorthUiStructuralLanguageDiagnosticCode::DuplicateMountStateDeclaration => {
-            WorthUiDslCompileDiagnosticCode::DuplicateMountStateDeclaration
-        }
-        WorthUiStructuralLanguageDiagnosticCode::IllegalRootStructuralStatement => {
-            WorthUiDslCompileDiagnosticCode::IllegalRootStructuralStatement
-        }
-    };
-    let (module_id, span) = diagnostic_location(provenance);
-    WorthUiDslCompileDiagnostic::new(
-        code,
-        WorthUiDslCompileStopClass::LanguageLegality,
-        format!("{} at {}", failure.authored_text, failure.structural_locus),
-        Some(module_id),
-        span,
-    )
-}
-
-fn diagnostic_location(
-    provenance: &WorthUiArtifactInputProvenance,
-) -> (String, Option<WorthUiDslSourceSpan>) {
-    match provenance {
-        WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
-            declaration_span, ..
-        } => (
-            declaration_span.module_id().as_str().to_owned(),
-            Some(WorthUiDslSourceSpan::new(
-                declaration_span.module_id().as_str(),
-                declaration_span.start_byte(),
-                declaration_span.end_byte(),
-            )),
-        ),
-        WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
-            authored_module_path,
-            ..
-        } => (authored_module_path.clone(), None),
     }
 }

@@ -1,3 +1,5 @@
+#[cfg(feature = "certification-world")]
+use worth_store_recovery_physics::PageRedoEligibility;
 use worth_store_recovery_physics::{
     CheckpointManifestBudgetMaterialization, CheckpointManifestMaterialization,
     CheckpointManifestRecoveryBasisMaterialization, CheckpointManifestSourceMaterialization,
@@ -55,6 +57,53 @@ pub fn reopened_recovery_artifact_for_operation_digest(
     .verify_persisted_artifacts(&artifacts)
     .unwrap();
     ReopenedRecoveryArtifactAdmission::admit(report, &artifacts).unwrap()
+}
+
+#[cfg(feature = "certification-world")]
+pub fn reopened_redo_eligibility(
+    current_lsn: u64,
+    redo_lsn: u64,
+    page_value: u64,
+) -> PageRedoEligibility {
+    let seed = format!("redo-{page_value}-{current_lsn}-{redo_lsn}");
+    let profile = RecoveryProfileId::strict_offline_recovery_artifacts();
+    let artifacts = PersistedRecoveryArtifactMaterialization::new(
+        seed.clone(),
+        "posix",
+        profile.clone(),
+        CheckpointManifestMaterialization::new(
+            format!("checkpoint-{seed}"),
+            CheckpointManifestRecoveryBasisMaterialization::new(
+                1,
+                1,
+                current_lsn.saturating_sub(1),
+                redo_lsn,
+            ),
+            CheckpointManifestSourceMaterialization::new("checkpoint", 1),
+            CheckpointManifestBudgetMaterialization::new(4096, 0, 4096, 1),
+        ),
+        WalRedoFrameMaterialization::new(
+            format!("wal-{seed}"),
+            redo_lsn,
+            page_value,
+            format!("sha256:op-{seed}"),
+            format!("sha256:idem-{seed}"),
+        ),
+        CheckpointPageImageMaterialization::new(
+            format!("page-{seed}"),
+            page_value,
+            7,
+            current_lsn,
+            format!("sha256:page-{seed}"),
+        ),
+    )
+    .materialize()
+    .unwrap();
+    let report = RecoveryOfflineVerifier::for_profile(seed, "posix", profile)
+        .verify_persisted_artifacts(&artifacts)
+        .unwrap();
+    let reopened = ReopenedRecoveryArtifactAdmission::admit(report, &artifacts).unwrap();
+    reopened.replay_cursor().pages()[0].eligibility().clone()
 }
 
 #[cfg(test)]

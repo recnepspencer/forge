@@ -1,12 +1,12 @@
 use crate::epoch::EpochRetryDecision;
 
 use crate::{
-    ExecutedIsolationReceipts, IsolationReadinessDenial, PhysicalIsolationCounterSnapshot,
+    ExecutedIsolationEvidenceDenial, ExecutedIsolationReceipts, PhysicalIsolationCounterSnapshot,
 };
 
 pub(crate) fn project_closeout_counters(
     receipts: ExecutedIsolationReceipts<'_>,
-) -> Result<PhysicalIsolationCounterSnapshot, IsolationReadinessDenial> {
+) -> Result<PhysicalIsolationCounterSnapshot, ExecutedIsolationEvidenceDenial> {
     let stable = receipts.stable_read.counters();
     let compaction_pre = receipts.compaction.pre_cutover_read().counters();
     let compaction_post = receipts.compaction.post_cutover_read().counters();

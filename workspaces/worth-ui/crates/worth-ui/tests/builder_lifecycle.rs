@@ -4,9 +4,11 @@ use worth_ui::facade::diagnostics::{CapabilitySnapshot, SnapshotMetrics};
 #[test]
 fn equivalent_builder_inputs_freeze_to_equivalent_snapshots() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
 
@@ -15,8 +17,10 @@ fn equivalent_builder_inputs_freeze_to_equivalent_snapshots() {
 
 #[test]
 fn hidden_global_registration_does_not_affect_snapshot() {
-    let first_builder = WorthUi::app();
-    let second_builder = WorthUi::app();
+    let first_builder = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse());
+    let second_builder = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse());
 
     let second_snapshot = second_builder
         .freeze()

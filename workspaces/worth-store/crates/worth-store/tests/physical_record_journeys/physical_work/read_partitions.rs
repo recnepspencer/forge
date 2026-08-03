@@ -31,8 +31,8 @@ fn ordinary_read_and_scan_select_their_exact_store_native_signal_partitions() {
         .unwrap();
     initial.close();
 
-    let serving = serving_from_open(&root);
-    let bindings = serving.physical_signal_aspect_binding_observations();
+    let read_serving = serving_from_open(&root);
+    let bindings = read_serving.physical_signal_aspect_binding_observations();
     assert_eq!(
         read_binding_partitions(&bindings),
         vec![
@@ -44,32 +44,44 @@ fn ordinary_read_and_scan_select_their_exact_store_native_signal_partitions() {
         "the frozen runtime must install exactly the four bounded read dependencies"
     );
 
-    let before_read = serving.physical_work_observer().causal().records().len();
+    let before_read = read_serving
+        .physical_work_observer()
+        .causal()
+        .records()
+        .len();
     let limits = RecordReadLimits::new(RecordByteLimit::new(PAYLOAD.len() as u32).unwrap());
     let (bytes, _) = read_record(
-        serving.records().open(record, limits).unwrap(),
+        read_serving.records().open(record, limits).unwrap(),
         PAYLOAD.len(),
     );
     assert_eq!(bytes, PAYLOAD);
-    let after_read = serving.physical_work_observer().causal().records();
+    let after_read = read_serving.physical_work_observer().causal().records();
     assert_eq!(
         causal_partitions(&after_read[before_read..], &bindings),
         BTreeSet::from([ARTIFACT.to_owned(), FRAME.to_owned(), ROOT.to_owned()]),
         "ordinary locate and read must bind root, artifact, and frame dependencies"
     );
 
-    let before_scan = after_read.len();
+    read_serving.close();
+
+    let scan_serving = serving_from_open(&root);
+    let scan_bindings = scan_serving.physical_signal_aspect_binding_observations();
+    let before_scan = scan_serving
+        .physical_work_observer()
+        .causal()
+        .records()
+        .len();
     assert_eq!(
-        collect_scan(&serving, 1, 4 * 1024),
+        collect_scan(&scan_serving, 1, 4 * 1024),
         vec![(record, PAYLOAD.to_vec())]
     );
-    let after_scan = serving.physical_work_observer().causal().records();
+    let after_scan = scan_serving.physical_work_observer().causal().records();
     assert_eq!(
-        causal_partitions(&after_scan[before_scan..], &bindings),
+        causal_partitions(&after_scan[before_scan..], &scan_bindings),
         BTreeSet::from([SCAN.to_owned()]),
         "scan-owned physical work must not launder through ordinary read partitions"
     );
-    serving.close();
+    scan_serving.close();
 }
 
 fn read_binding_partitions(bindings: &[PhysicalSignalAspectBindingObservation]) -> Vec<String> {

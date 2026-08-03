@@ -1,7 +1,10 @@
+mod fingerprint;
+
 use crate::source::{
     WorthUiAuthoredMount, WorthUiAuthoredRegion, WorthUiAuthoredStructuralBody,
     WorthUiSemanticDeclaration, WorthUiSemanticModule, WorthUiSourceModuleId,
 };
+use fingerprint::Fingerprint;
 
 #[derive(Debug, Eq, PartialEq)]
 pub(super) struct WorthUiSemanticPackageExactBasis {
@@ -22,6 +25,17 @@ enum WorthUiSemanticDeclarationExactBasis {
     Component(WorthUiSemanticBlockExactBasis),
     Surface(WorthUiSemanticBlockExactBasis),
     Binding(WorthUiSemanticBlockExactBasis),
+    Projection {
+        declaration: String,
+        view: String,
+        shape: String,
+        selected_fields: Box<[String]>,
+        row_identity: Option<String>,
+        native_family: String,
+        lifecycle: String,
+        requires_complete_result: Option<bool>,
+        permits_continuation: Option<bool>,
+    },
     Token {
         name: String,
         authored_identity: Option<String>,
@@ -35,7 +49,17 @@ enum WorthUiSemanticDeclarationExactBasis {
         structural_tokens: Box<[String]>,
         posture_tokens: Box<[String]>,
         support_tokens: Box<[String]>,
+        intent: Option<WorthUiIntentDeclarationExactBasis>,
     },
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct WorthUiIntentDeclarationExactBasis {
+    definition: String,
+    interaction: String,
+    payload_schema: Option<(String, u16)>,
+    outcome_schema: Option<(String, u16)>,
+    payload_sources: Box<[String]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -48,6 +72,15 @@ struct WorthUiSemanticBlockExactBasis {
 #[derive(Debug, Eq, PartialEq)]
 struct WorthUiStructuralBodyExactBasis {
     root_regions: Box<[WorthUiRegionExactBasis]>,
+    projection_contents: Box<[String]>,
+    interaction_routes: Box<[WorthUiInteractionRouteExactBasis]>,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct WorthUiInteractionRouteExactBasis {
+    family: String,
+    declaration: String,
+    kind: String,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -126,6 +159,24 @@ impl WorthUiSemanticDeclarationExactBasis {
             WorthUiSemanticDeclaration::Binding(block) => {
                 Self::Binding(WorthUiSemanticBlockExactBasis::from_block(block))
             }
+            WorthUiSemanticDeclaration::Projection(projection) => {
+                let requirement = projection.requirement();
+                Self::Projection {
+                    declaration: requirement.declaration_identity().to_owned(),
+                    view: requirement.view_identity().to_owned(),
+                    shape: requirement.shape().canonical_token().to_owned(),
+                    selected_fields: requirement.selected_fields().map(str::to_owned).collect(),
+                    row_identity: requirement.row_identity_field().map(str::to_owned),
+                    native_family: requirement.native_family().canonical_token().to_owned(),
+                    lifecycle: requirement.lifecycle().canonical_token().to_owned(),
+                    requires_complete_result: requirement
+                        .collection_policy()
+                        .map(|policy| policy.requires_complete_result()),
+                    permits_continuation: requirement
+                        .collection_policy()
+                        .map(|policy| policy.permits_continuation()),
+                }
+            }
             WorthUiSemanticDeclaration::Token(token) => Self::Token {
                 name: token.name_text().to_owned(),
                 authored_identity: token.authored_identity().map(str::to_owned),
@@ -141,6 +192,9 @@ impl WorthUiSemanticDeclarationExactBasis {
                     structural_tokens: semantic_texts(declaration.structural_tokens()),
                     posture_tokens: semantic_texts(declaration.posture_tokens()),
                     support_tokens: semantic_texts(declaration.support_tokens()),
+                    intent: declaration
+                        .intent_declaration()
+                        .map(WorthUiIntentDeclarationExactBasis::from_meaning),
                 }
             }
         }
@@ -164,6 +218,28 @@ impl WorthUiSemanticDeclarationExactBasis {
                 fingerprint.fold_text("binding");
                 block.fold_into(fingerprint);
             }
+            Self::Projection {
+                declaration,
+                view,
+                shape,
+                selected_fields,
+                row_identity,
+                native_family,
+                lifecycle,
+                requires_complete_result,
+                permits_continuation,
+            } => {
+                fingerprint.fold_text("projection");
+                fingerprint.fold_text(declaration);
+                fingerprint.fold_text(view);
+                fingerprint.fold_text(shape);
+                fingerprint.fold_texts(selected_fields);
+                fingerprint.fold_optional_text(row_identity.as_deref());
+                fingerprint.fold_text(native_family);
+                fingerprint.fold_text(lifecycle);
+                fingerprint.fold_optional_bool(*requires_complete_result);
+                fingerprint.fold_optional_bool(*permits_continuation);
+            }
             Self::Token {
                 name,
                 authored_identity,
@@ -182,6 +258,7 @@ impl WorthUiSemanticDeclarationExactBasis {
                 structural_tokens,
                 posture_tokens,
                 support_tokens,
+                intent,
             } => {
                 fingerprint.fold_text("semantic-artifact");
                 fingerprint.fold_text(key);
@@ -191,8 +268,54 @@ impl WorthUiSemanticDeclarationExactBasis {
                 fingerprint.fold_texts(structural_tokens);
                 fingerprint.fold_texts(posture_tokens);
                 fingerprint.fold_texts(support_tokens);
+                match intent {
+                    Some(intent) => {
+                        fingerprint.fold_bool(true);
+                        intent.fold_into(fingerprint);
+                    }
+                    None => fingerprint.fold_bool(false),
+                }
             }
         }
+    }
+}
+
+impl WorthUiIntentDeclarationExactBasis {
+    fn from_meaning(meaning: &crate::WorthUiIntentDeclarationMeaning) -> Self {
+        Self {
+            definition: meaning.definition_reference().to_owned(),
+            interaction: meaning.interaction().as_str().to_owned(),
+            payload_schema: meaning
+                .expected_payload_schema()
+                .map(|schema| (schema.identity().to_owned(), schema.version())),
+            outcome_schema: meaning
+                .expected_outcome_schema()
+                .map(|schema| (schema.identity().to_owned(), schema.version())),
+            payload_sources: meaning
+                .payload_sources()
+                .iter()
+                .map(crate::WorthUiIntentPayloadSourceSpec::revision_token)
+                .collect(),
+        }
+    }
+
+    fn fold_into(&self, fingerprint: &mut Fingerprint) {
+        fingerprint.fold_text(&self.definition);
+        fingerprint.fold_text(&self.interaction);
+        fold_schema(fingerprint, self.payload_schema.as_ref());
+        fold_schema(fingerprint, self.outcome_schema.as_ref());
+        fingerprint.fold_texts(&self.payload_sources);
+    }
+}
+
+fn fold_schema(fingerprint: &mut Fingerprint, schema: Option<&(String, u16)>) {
+    match schema {
+        Some((identity, version)) => {
+            fingerprint.fold_bool(true);
+            fingerprint.fold_text(identity);
+            fingerprint.fold_u16(*version);
+        }
+        None => fingerprint.fold_bool(false),
     }
 }
 
@@ -246,6 +369,24 @@ impl WorthUiStructuralBodyExactBasis {
                 .iter()
                 .map(WorthUiRegionExactBasis::from_region)
                 .collect(),
+            projection_contents: structure
+                .projection_contents()
+                .iter()
+                .map(|content| content.projection_identity_text().to_owned())
+                .collect(),
+            interaction_routes: structure
+                .interaction_routes()
+                .iter()
+                .map(|route| WorthUiInteractionRouteExactBasis {
+                    family: route.family().as_str().to_owned(),
+                    declaration: route.declaration_identity().to_owned(),
+                    kind: match route.kind() {
+                        crate::WorthUiIntentInteractionRouteKind::Product => "product",
+                        crate::WorthUiIntentInteractionRouteKind::Confirmation => "confirmation",
+                    }
+                    .to_owned(),
+                })
+                .collect(),
         }
     }
 
@@ -253,6 +394,16 @@ impl WorthUiStructuralBodyExactBasis {
         fingerprint.fold_usize(self.root_regions.len());
         for region in &self.root_regions {
             region.fold_into(fingerprint);
+        }
+        fingerprint.fold_usize(self.projection_contents.len());
+        for projection in &self.projection_contents {
+            fingerprint.fold_text(projection);
+        }
+        fingerprint.fold_usize(self.interaction_routes.len());
+        for route in &self.interaction_routes {
+            fingerprint.fold_text(&route.family);
+            fingerprint.fold_text(&route.declaration);
+            fingerprint.fold_text(&route.kind);
         }
     }
 }
@@ -304,55 +455,5 @@ impl WorthUiMountExactBasis {
         fingerprint.fold_text(&self.surface);
         fingerprint.fold_optional_text(self.placement_policy.as_deref());
         fingerprint.fold_optional_text(self.state_slot.as_deref());
-    }
-}
-
-struct Fingerprint(u64);
-
-impl Fingerprint {
-    fn new(domain: &str) -> Self {
-        let mut value = Self(0xcbf2_9ce4_8422_2325);
-        value.fold_text(domain);
-        value
-    }
-
-    fn fold_optional_text(&mut self, text: Option<&str>) {
-        match text {
-            Some(text) => {
-                self.fold_u64(1);
-                self.fold_text(text);
-            }
-            None => self.fold_u64(0),
-        }
-    }
-
-    fn fold_text(&mut self, text: &str) {
-        self.fold_usize(text.len());
-        for byte in text.as_bytes() {
-            self.0 ^= u64::from(*byte);
-            self.0 = self.0.wrapping_mul(0x100_0000_01b3);
-        }
-    }
-
-    fn fold_texts(&mut self, values: &[String]) {
-        self.fold_usize(values.len());
-        for value in values {
-            self.fold_text(value);
-        }
-    }
-
-    fn fold_usize(&mut self, value: usize) {
-        self.fold_u64(value as u64);
-    }
-
-    fn fold_u64(&mut self, value: u64) {
-        for byte in value.to_le_bytes() {
-            self.0 ^= u64::from(byte);
-            self.0 = self.0.wrapping_mul(0x100_0000_01b3);
-        }
-    }
-
-    fn finish(self) -> u64 {
-        self.0
     }
 }

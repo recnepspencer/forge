@@ -90,6 +90,19 @@ fn phase7_rejects_build_budget_amendment() {
 }
 
 #[test]
+fn phase7_rejects_compile_case_count_that_disagrees_with_inventory() {
+    let mut manifest = manifest();
+    manifest["compile_pass_targets"] = toml::Value::Integer(
+        manifest["compile_pass_targets"]
+            .as_integer()
+            .expect("compile pass count")
+            + 1,
+    );
+    let error = audit(&inventory(), &manifest).expect_err("invented compile case must fail");
+    assert!(error.contains("compile-contract target budget changed"));
+}
+
+#[test]
 fn phase7_rejects_a_tenth_integration_target() {
     let error =
         validate_target_counts(3, 7).expect_err("a proposed product target must exceed budget");

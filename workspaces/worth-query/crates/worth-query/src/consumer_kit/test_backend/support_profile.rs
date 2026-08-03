@@ -53,6 +53,7 @@ pub(super) fn in_memory_test_backend_support_profile() -> WorthQueryRuntimeSuppo
         ),
     ])
     .with_posture(WorthQueryRuntimeBackendPosture::Scaffold)
+    .with_direct_atomic_batch_authority()
 }
 
 fn supported_read() -> WorthQueryRuntimeFamilySupport {

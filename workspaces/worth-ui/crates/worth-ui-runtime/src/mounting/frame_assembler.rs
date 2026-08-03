@@ -5,7 +5,8 @@ use worth_ui_host_contract::{
 
 use super::{
     UiMountedFramePreparationDenial, UiMountedFrameRequest, UiMountedIdentityState,
-    UiMountedPreviewProjectionInput, UiPreparedMountedFrame, UiPreparedMountedProjection,
+    UiMountedPreviewProjectionInput, UiPreparedMountedFrame, UiPreparedMountedFrameAdmission,
+    UiPreparedMountedProjection,
 };
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -24,10 +25,14 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub plan_digest: u64,
     pub plan: UiMountedPlanProjectionSource<'input>,
     pub allocation_truth_revision: u64,
+    pub trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     pub allocation_source: crate::runtime::UiMountedAllocationProjectionSource,
     pub request: UiMountedFrameRequest,
     pub lanes: UiMountedLaneAssembly,
     pub preview: Option<UiMountedPreviewProjectionInput>,
+    pub visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
+    pub semantic_content: super::UiMountedSemanticContentInput,
     pub reuse_contract: super::UiMountedFrameReuseContract,
 }
 
@@ -45,6 +50,7 @@ pub(crate) struct UiMountedFrameAssembler<'state> {
     projection: UiPreparedMountedProjection,
     graph_world: u64,
     allocation_truth_revision: u64,
+    trace_source: crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     required: UiMountedLaneAssembly,
     recorded: UiMountedLaneAssembly,
     reuse_contract: super::UiMountedFrameReuseContract,
@@ -88,11 +94,49 @@ impl UiMountedPlanProjectionSource<'_> {
             Self::PreviewOnly => Ok(None),
         }
     }
+
+    pub(crate) fn component_semantic_text_token(
+        self,
+        component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,
+    ) -> Result<
+        Option<(
+            u32,
+            std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+        )>,
+        (),
+    > {
+        let Some(token_id) = component.semantic_text_theme_token_dependency() else {
+            return Ok(None);
+        };
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_theme_token(token_id),
+            Self::PreviewOnly => Ok(None),
+        }
+    }
 }
 
 impl<'state> UiMountedFrameAssembler<'state> {
     pub(crate) fn begin(
         state: &'state UiMountedIdentityState,
+        input: UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<Self, UiMountedFramePreparationDenial> {
+        let semantic_predecessor = state
+            .current_projection()
+            .map(|frame| frame.semantic_projection());
+        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+    }
+
+    pub(in crate::mounting) fn begin_graph_replacement(
+        state: &'state UiMountedIdentityState,
+        semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
+        input: UiMountedFrameAssemblyInput<'_, '_>,
+    ) -> Result<Self, UiMountedFramePreparationDenial> {
+        Self::begin_with_semantic_predecessor(state, semantic_predecessor, input)
+    }
+
+    fn begin_with_semantic_predecessor(
+        state: &'state UiMountedIdentityState,
+        semantic_predecessor: Option<&super::projection::UiMountedSemanticProjection>,
         input: UiMountedFrameAssemblyInput<'_, '_>,
     ) -> Result<Self, UiMountedFramePreparationDenial> {
         let bindings = input
@@ -119,6 +163,11 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 allocation_source: &input.allocation_source,
                 requested_surfaces: &surfaces,
                 preview: input.preview,
+                visual_overlay: input.visual_overlay,
+                semantic_content: &input.semantic_content,
+                semantic_predecessor,
+                capability_generation: input.reuse_contract.capability_generation(),
+                capability_profile_digest: input.reuse_contract.capability_profile_digest(),
             },
         )
         .map_err(UiMountedFramePreparationDenial::Projection)?;
@@ -129,6 +178,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
             manifest,
             projection,
             allocation_truth_revision: input.allocation_truth_revision,
+            trace_source: input.trace_source,
             required: input.lanes,
             recorded: UiMountedLaneAssembly {
                 preview: input.preview.is_some(),
@@ -184,14 +234,15 @@ impl<'state> UiMountedFrameAssembler<'state> {
             .projection
             .finish(self.state)
             .map_err(UiMountedFramePreparationDenial::Projection)?;
-        UiPreparedMountedFrame::admit(
+        UiPreparedMountedFrame::admit(UiPreparedMountedFrameAdmission {
             candidate,
-            self.generation,
-            self.manifest,
-            self.graph_world,
-            self.allocation_truth_revision,
-            self.reuse_contract,
-        )
+            generation: self.generation,
+            manifest: self.manifest,
+            graph_world: self.graph_world,
+            allocation_truth_revision: self.allocation_truth_revision,
+            trace_source: self.trace_source,
+            reuse_contract: self.reuse_contract,
+        })
     }
 }
 

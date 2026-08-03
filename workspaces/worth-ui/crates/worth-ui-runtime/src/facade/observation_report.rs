@@ -1,28 +1,34 @@
 pub use crate::host_exchange::observation_report_validation::{
     UiDuplicateHostObservationBatch, UiHostObservationBatchDisposition, UiHostObservationCapacity,
     UiHostObservationCapacityInput, UiHostObservationDisposition, UiHostObservationFrameRelation,
-    UiHostObservationIngressDenial, UiHostObservationReportDenial, UiHostObservationReportOutcome,
-    UiHostObservationWorkReport, UiQuarantinedHostObservationBatch,
-    UiValidatedHostObservationBatch, UiValidatedHostObservationReport,
-    WorthUiHostObservationIngress,
+    UiHostObservationReportDenial, UiHostObservationReportOutcome, UiHostObservationWorkReport,
+    UiQuarantinedHostObservationBatch, UiValidatedHostObservationBatch,
+    UiValidatedHostObservationReport,
 };
 pub use worth_ui_host_contract::{
-    UiHostObservationBatch, UiHostObservationBatchConstructionDenial, UiHostObservationBatchInput,
-    UiHostObservationCanonicalCore, UiHostObservationCanonicalCoreInput,
-    UiHostObservationCoalescingIdentity, UiHostObservationFamily, UiHostObservationIntegrity,
+    UiHostImeCompositionPhase, UiHostImePreedit, UiHostImePreeditConstructionDenial,
+    UiHostImePreeditSelection, UiHostImeRangeConversionReceipt, UiHostKey, UiHostKeyTransition,
+    UiHostKeyboardModifiers, UiHostObservationBatch, UiHostObservationBatchConstructionDenial,
+    UiHostObservationBatchInput, UiHostObservationCanonicalCore,
+    UiHostObservationCanonicalCoreInput, UiHostObservationCoalescingIdentity,
+    UiHostObservationDrainDenial, UiHostObservationFamily, UiHostObservationIntegrity,
     UiHostObservationLoss, UiHostObservationMountedBasis, UiHostObservationPayload,
-    UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
-    UiHostObservationTimeBasis, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
-    UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT,
+    UiHostObservationPresentationBasis, UiHostObservationReport, UiHostObservationSequence,
+    UiHostObservationSequenceRange, UiHostObservationTimeBasis, UiHostPointerButton,
+    UiHostPointerButtonTransition, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostPressedPointerButtons, UiHostSurfaceCoordinateSpace, UiHostSurfaceCoordinateUnit,
+    UiHostSurfacePosition, UiHostSurfacePositionBasis, UiHostUnicodeScalarRange,
+    UiHostUtf8ByteRange, UI_HOST_OBSERVATION_BATCH_BYTE_LIMIT,
+    UI_HOST_OBSERVATION_BATCH_REPORT_LIMIT, UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT,
+    UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT, UI_HOST_OBSERVATION_DRAIN_REPORT_LIMIT,
+    UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
 pub use worth_ui_host_contract::{
     UiHostProtocolAgreement, UiHostProtocolContract, UiHostProtocolNegotiation,
 };
 
-/// Host-integrator access to raw observation ingress and structural validation.
+/// Host-integrator access to adapter drain and structural validation.
 pub trait WorthUiHostObservationSessionExt {
-    fn host_observation_ingress(&self) -> WorthUiHostObservationIngress;
-
     fn validate_host_observation_batch(
         &mut self,
         batch: UiHostObservationBatch,
@@ -38,16 +44,12 @@ pub trait WorthUiHostObservationSessionExt {
 
     fn host_observation_work_report(&self) -> UiHostObservationWorkReport;
 
-    fn validate_enqueued_host_observation_batches(
+    fn drain_and_validate_host_observation_batches(
         &mut self,
-    ) -> Box<[UiHostObservationReportOutcome]>;
+    ) -> Result<Box<[UiHostObservationReportOutcome]>, UiHostObservationDrainDenial>;
 }
 
 impl WorthUiHostObservationSessionExt for crate::facade::WorthUiActiveApplicationSession {
-    fn host_observation_ingress(&self) -> WorthUiHostObservationIngress {
-        crate::facade::WorthUiActiveApplicationSession::host_observation_ingress(self)
-    }
-
     fn validate_host_observation_batch(
         &mut self,
         batch: UiHostObservationBatch,
@@ -79,10 +81,10 @@ impl WorthUiHostObservationSessionExt for crate::facade::WorthUiActiveApplicatio
         crate::facade::WorthUiActiveApplicationSession::host_observation_work_report(self)
     }
 
-    fn validate_enqueued_host_observation_batches(
+    fn drain_and_validate_host_observation_batches(
         &mut self,
-    ) -> Box<[UiHostObservationReportOutcome]> {
-        crate::facade::WorthUiActiveApplicationSession::validate_enqueued_host_observation_batches(
+    ) -> Result<Box<[UiHostObservationReportOutcome]>, UiHostObservationDrainDenial> {
+        crate::facade::WorthUiActiveApplicationSession::drain_and_validate_host_observation_batches(
             self,
         )
     }

@@ -29,6 +29,8 @@ pub(super) struct WorthQueryRuntimeLiveSubscriptionState {
     pub(super) delivery_batches: Vec<WorthQueryRuntimeDeliveryBatch>,
     pub(super) last_delivery: Option<WorthQueryRuntimeRetainedDelivery>,
     pub(super) async_result_state: Option<WorthQueryRuntimeAsyncResultState>,
+    pub(super) async_source_binding:
+        Option<super::async_source_binding::WorthQueryRuntimeAsyncSourceBinding>,
     pub(super) remask_posture: Option<WorthQueryRuntimeRemaskPosture>,
     pub(super) read_authority_binding:
         Option<crate::intent_admission::WorthQueryReadExecutionBinding>,

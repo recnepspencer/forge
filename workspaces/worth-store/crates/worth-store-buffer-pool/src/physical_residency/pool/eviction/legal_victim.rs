@@ -1,4 +1,5 @@
 use super::super::*;
+use super::eligibility::EvictionEligibility;
 use worth_store_physical_format::RecordFrameCoordinate;
 
 /// Proof that one frame was selected from the pool's legal eviction order
@@ -21,16 +22,21 @@ impl PoolState {
     pub(in crate::physical_residency::pool) fn select_oldest_legal_victim(
         &mut self,
     ) -> Option<LegalEvictionVictim> {
-        let coordinate = self.evictable_head?;
-        let candidate = self
+        let oldest = self.evictable_head?;
+        let oldest_entry = self
             .frames
-            .get(&coordinate)
+            .get(&oldest)
             .expect("an eviction-order identity remains resident");
-        assert!(
-            candidate.is_evictable(),
-            "eviction order contained an illegal victim"
-        );
-        self.detach_evictable(coordinate);
-        Some(LegalEvictionVictim { coordinate })
+        match oldest_entry.eviction_eligibility() {
+            EvictionEligibility::Legal => {}
+            exclusion => panic!(
+                "{}: eviction order contained {exclusion:?}",
+                exclusion
+                    .violation_predicate()
+                    .expect("an exclusion has a failure predicate")
+            ),
+        }
+        self.detach_evictable(oldest);
+        Some(LegalEvictionVictim { coordinate: oldest })
     }
 }

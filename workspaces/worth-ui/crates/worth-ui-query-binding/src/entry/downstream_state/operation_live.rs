@@ -79,6 +79,32 @@ impl WorthUiInstalledDownstreamQueryState {
         operation_live.admit_collection_change(consequence)
     }
 
+    pub(crate) fn validate_operation_live_change_observation(
+        &self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiValidatedCollectionChangeObservation,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        if self
+            .references
+            .validate(consequence.installed_reference())
+            .is_err()
+        {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ForeignInstalledReference,
+                consequence,
+            ));
+        }
+        let Some(operation_live) = self.operation_live.as_ref() else {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ResourceNotRetained,
+                consequence,
+            ));
+        };
+        operation_live.validate_collection_change_observation(consequence)
+    }
+
     pub(crate) fn publish_staged_operation_live_changes(
         &mut self,
     ) -> crate::WorthUiCollectionChangePublicationReceipt {

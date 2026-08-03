@@ -1,8 +1,8 @@
 use super::binding_app_fixture::admitted_app;
 use super::binding_phase_fixture::bound_artifact_input;
 use crate::capability::{
-    CommandReadinessStatus, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor,
-    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+    ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
+    ThemeTokenSource, ThemeTokenValue,
 };
 use crate::facade::{WorthUi, WorthUiApp};
 use crate::source::{
@@ -50,18 +50,6 @@ fn nested_command_and_surface_semantics_preserve_typed_identity() {
             .id()
             .as_str(),
         "workspace.command_projection.inspect_actions"
-    );
-    assert_eq!(
-        command.semantics().readiness().strongest_status(),
-        CommandReadinessStatus::Deferred
-    );
-    assert_eq!(
-        command
-            .semantics()
-            .runtime_intent_binding()
-            .unwrap()
-            .intent_key(),
-        "workspace.runtime.inspect"
     );
 }
 
@@ -205,6 +193,7 @@ fn bound_token_target(bound: &WorthUiBoundArtifactInput) -> &str {
 
 fn token_target_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_token("theme.test.blue", "#2f81f7"))
         .register_theme_token(color_token("theme.test.green", "#3fb950"))
         .register_theme_token(ThemeTokenDescriptor::alias(

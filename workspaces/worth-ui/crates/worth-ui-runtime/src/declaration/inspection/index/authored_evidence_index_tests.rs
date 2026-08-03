@@ -102,6 +102,7 @@ fn public_authored_lookup_omits_admission_ref_when_declaration_correspondence_is
 #[test]
 fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
     let mut app = WorthUi::app()
+        .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.runtime.authored-evidence-index.rebuild",
@@ -233,6 +234,7 @@ fn repeated_instance_app() -> WorthUiApp {
     )
     .with_semantic_artifact_spec(control_spec());
     let baseline = WorthUi::app()
+        .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package.clone())
         .freeze()
         .expect("application preparation should succeed");
@@ -246,6 +248,7 @@ fn repeated_instance_app() -> WorthUiApp {
     ];
 
     WorthUi::app()
+        .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package)
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()

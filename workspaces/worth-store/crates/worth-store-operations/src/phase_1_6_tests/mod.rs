@@ -10,6 +10,7 @@ mod control_store_selection;
 mod current_root_fixture;
 mod cut_failure_recovery;
 mod cut_lifecycle;
+mod cut_physical_owner_binding;
 mod cut_publication_race;
 mod cut_wal_coverage;
 mod independent_verification;

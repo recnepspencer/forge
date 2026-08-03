@@ -3,6 +3,7 @@ use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 use super::{FrameReadSource, FrameReadSourceFailure, ObservedArtifactLength, PreparedFrameRead};
 use crate::physical_runtime::{
     record_serving::{
+        read_work_port::CanonicalRecordReadFailureEvidence,
         residency::frame_work_trace::FrameWorkTrace, CanonicalRecordReadFailure,
         CanonicalRecordReadPort, PreparedCanonicalRecordRead, RecordReadPartition,
     },
@@ -34,6 +35,30 @@ impl CanonicalFrameReadSource {
         self
     }
 
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving::residency::frame_loading) fn prepare_prefetch(
+        &self,
+        grant: &worth_store_buffer_pool::PrefetchResidencyGrant,
+    ) -> Result<Box<dyn PreparedFrameRead + '_>, FrameReadSourceFailure> {
+        let artifact = grant.frame().coordinate().artifact();
+        bind_prepared(
+            self.port
+                .prepare_prefetch(grant, self.range_partition(artifact)),
+        )
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving::residency::frame_loading) fn prepare_read_ahead(
+        &self,
+        grant: &worth_store_buffer_pool::ReadAheadFrameGrant<'_, '_>,
+    ) -> Result<Box<dyn PreparedFrameRead + '_>, FrameReadSourceFailure> {
+        let artifact = grant.frame().coordinate().artifact();
+        bind_prepared(
+            self.port
+                .prepare_read_ahead(grant, self.range_partition(artifact)),
+        )
+    }
+
     fn range_partition(&self, artifact: RecordArtifactFile) -> RecordReadPartition {
         match self.context {
             CanonicalReadContext::Ordinary => RecordReadPartition::for_range(artifact),
@@ -49,6 +74,16 @@ impl CanonicalFrameReadSource {
     }
 }
 
+fn bind_prepared(
+    prepared: Result<PreparedCanonicalRecordRead, CanonicalRecordReadFailureEvidence>,
+) -> Result<Box<dyn PreparedFrameRead>, FrameReadSourceFailure> {
+    prepared
+        .map(|prepared| Box::new(prepared) as Box<dyn PreparedFrameRead>)
+        .map_err(|failure| {
+            FrameReadSourceFailure::work(failure.failure(), FrameWorkTrace::one(failure.identity()))
+        })
+}
+
 impl FrameReadSource for CanonicalFrameReadSource {
     fn prepare_exact(
         &self,
@@ -62,15 +97,10 @@ impl FrameReadSource for CanonicalFrameReadSource {
                 FrameWorkTrace::default(),
             )
         })?;
-        self.port
-            .prepare(coordinate, self.range_partition(artifact))
-            .map(|prepared| Box::new(prepared) as Box<dyn PreparedFrameRead>)
-            .map_err(|failure| {
-                FrameReadSourceFailure::work(
-                    failure.failure(),
-                    FrameWorkTrace::one(failure.identity()),
-                )
-            })
+        bind_prepared(
+            self.port
+                .prepare(coordinate, self.range_partition(artifact)),
+        )
     }
 
     fn file_length(

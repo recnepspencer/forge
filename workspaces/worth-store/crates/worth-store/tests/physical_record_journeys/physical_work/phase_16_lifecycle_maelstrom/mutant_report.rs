@@ -16,7 +16,7 @@ const REPORT_SCHEMA: &str = "worth.store.c5_1.mutation-evidence.v2";
 const ARTIFACT_OWNER_SCHEMA: &str = "worth.store.c5_1.mutation-artifacts.v1";
 const ARTIFACT_OWNER_MARKER: &str = ".worth-store-mutation-evidence-owner";
 const FIRST_MUTANT: u8 = 15;
-const LAST_MUTANT: u8 = 43;
+const LAST_MUTANT: u8 = 44;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -276,8 +276,9 @@ fn predicate(id: u8) -> &'static str {
         39 => "skipped-backend-write",
         40 => "raw-backend-dispatch",
         41 => "signal-readiness",
-        42 => "dirty-clean-without-exact-receipt",
-        43 => "c6-local-scheduler",
+        42 => "candidate-clean-without-exact-receipt",
+        43 => "local-physical-work-scheduler",
+        44 => "writeback-clean-without-exact-receipt",
         _ => unreachable!("campaign shape validates the mutant range"),
     }
 }
@@ -311,10 +312,9 @@ fn source(id: u8) -> &'static str {
         39 => "crates/worth-store/src/physical_runtime/instance/executor/range_write.rs",
         40 => "crates/worth-store/src/physical_runtime/record_serving/residency/artifact_tree.rs",
         41 => "crates/worth-store/src/physical_runtime/instance/signal_owner/graph/publication_dependency.rs",
-        42 => "crates/worth-store-buffer-pool/src/physical_residency/lease.rs",
-        43 => {
-            "crates/worth-store/src/physical_runtime/record_serving/c6_handoff/residency/mod.rs"
-        }
+        42 => "crates/worth-store/src/physical_runtime/record_serving/residency/candidate_frame_residency/write_evidence.rs",
+        43 => "crates/worth-store/src/physical_runtime/record_serving/residency/dirty/writeback/admission.rs",
+        44 => "crates/worth-store/src/physical_runtime/work/execution/outcome/residency_writeback.rs",
         _ => unreachable!("campaign shape validates the mutant range"),
     }
 }
@@ -346,8 +346,9 @@ fn scenario(id: u8) -> &'static str {
         38 => "physical_work::authority_mutants::scheduler_counters_cannot_settle_cross_bound_backend_receipts",
         39 | 40 => "physical_work::authority_mutants::one_canonical_write_requires_one_backend_effect",
         41 => "physical_work::publication_signal_progression::root_publication_waits_for_settled_child_signal_completion_without_repeating_media",
-        42 => "physical_runtime::record_serving::residency::candidate_frame_residency::tests::exact_receipt::foreign_real_receipt_cannot_clean_dirty_writeback",
-        43 => "physical_work::c6_handoff::c6_handoff_joins_submission_writeback_and_lifecycle_fencing",
+        42 => "physical_runtime::record_serving::residency::candidate_frame_residency::tests::exact_receipt::foreign_real_receipt_cannot_settle_candidate_residency",
+        43 => "physical_work::residency_writeback_retry::no_effect_writeback_retains_dirty_ownership_through_signal_retry",
+        44 => "physical_runtime::work::execution::outcome::residency_writeback::tests::writeback_settlement_rejects_wrong_bytes_and_accepts_exact_physical_receipt",
         _ => unreachable!("campaign shape validates the mutant range"),
     }
 }

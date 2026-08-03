@@ -258,12 +258,14 @@ impl WorthQueryRuntime {
         view_name: &str,
         request: &DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
+        future_selection: crate::subscription::QuerySubscriptionFutureSelection,
     ) -> Result<WorthQueryRuntimeLiveSubscriptionActivation, WorthQueryRuntimeError> {
         let lowered_subscription = lower_runtime_live_subscription_request(
             &*self.backend,
             view_name,
             request,
             schema_view,
+            future_selection,
         )?;
         self.install_lowered_live_subscription(view_name, request, lowered_subscription, None)
     }

@@ -6,7 +6,8 @@ use worth_store_physical_backend::{
 use worth_store_physical_format::{
     BackupBundleArtifactCoverage, BackupBundleArtifactFamily, BackupBundleArtifactManifestRow,
     BackupBundleFormatAuthority, BackupBundleFormatDenial, BackupBundleManifest,
-    BackupBundleManifestConstructionDenial,
+    BackupBundleManifestConstructionDenial, BackupBundleManifestDeclaration,
+    BackupBundleManifestIdentity, BackupBundleRecoveryCoordinates,
 };
 use worth_store_physical_isolation::PitrReachabilityLease;
 use worth_store_recovery_physics::{
@@ -240,18 +241,22 @@ fn exact_frontier_artifacts(
     if !found_target {
         return Err(PitrLoweringDenial::MissingTargetWalFrame);
     }
-    let exact = BackupBundleManifest::canonical_checked(
-        manifest.cut_identity(),
-        format!("{}::pitr:{}", manifest.store_lineage(), target),
-        manifest.root_generation(),
-        manifest.manifest_generation(),
-        manifest.checkpoint_identity(),
-        manifest.durable_checkpoint_lsn(),
-        (manifest.wal_half_open_interval().0, target),
-        frontier.client_acknowledged(),
+    let exact = BackupBundleManifest::canonical_checked(BackupBundleManifestDeclaration::new(
+        BackupBundleManifestIdentity {
+            cut_identity: manifest.cut_identity(),
+            store_lineage: format!("{}::pitr:{}", manifest.store_lineage(), target),
+            root_generation: manifest.root_generation(),
+            manifest_generation: manifest.manifest_generation(),
+        },
+        BackupBundleRecoveryCoordinates {
+            checkpoint_identity: manifest.checkpoint_identity().to_owned(),
+            durable_checkpoint_lsn: manifest.durable_checkpoint_lsn(),
+            wal_half_open_interval: (manifest.wal_half_open_interval().0, target),
+            acknowledged_frontier: frontier.client_acknowledged(),
+        },
         manifest.security_scope_fingerprint(),
         rows,
-    )
+    ))
     .map_err(PitrLoweringDenial::Manifest)?;
     let encoded = BackupBundleFormatAuthority::canonical()
         .encode_manifest(&exact)

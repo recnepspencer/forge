@@ -46,6 +46,23 @@ impl WorthUiMountedAllocationEstablishmentReceipt {
     pub fn committed(&self) -> &crate::runtime::UiCommittedAllocationReplan {
         &self.committed
     }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub fn committed_basis_sources(
+        &self,
+    ) -> Box<[Option<crate::declaration::UiDeclaredMeasurementBasisSource>]> {
+        self.committed
+            .receipts()
+            .iter()
+            .map(|receipt| {
+                receipt
+                    .committed_allocation()
+                    .measurement_basis()
+                    .declared_measurement_policy()
+                    .basis_source()
+            })
+            .collect()
+    }
 }
 
 /// SUPPORT AUTHORITY for certification worlds that establish allocation
@@ -132,10 +149,15 @@ impl WorthUiActiveApplicationSession {
                     WorthUiMountedAllocationRuntimeStage::CatalogPreparation,
                 )
             })?;
+        let predecessor_generation = self.application.generation_identity().clone();
         let committed = self
             .application
             .activate_initial_mounted_allocation_catalog(graph_successor, admitted, boundary)
             .map_err(map_initial_activation_denial)?;
+        self.intent_application_facts.commit_generation_successor(
+            &predecessor_generation,
+            self.application.generation_identity().clone(),
+        );
         Ok(WorthUiMountedAllocationEstablishmentReceipt { committed })
     }
 

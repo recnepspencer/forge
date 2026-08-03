@@ -238,9 +238,11 @@ mod tests {
             family: UiHostObservationFamily::PointerMotion,
             replaced: sequence_range(1, 2),
             survivor: worth_ui_host_contract::UiHostObservationCoalescingIdentity::PointerMotion {
-                pointer: 8,
-                capture_epoch: 2,
-                pressed_buttons: 1,
+                pointer: worth_ui_host_contract::UiHostPointerIdentity::new(8),
+                capture_epoch: worth_ui_host_contract::UiHostPointerCaptureEpoch::new(2),
+                pressed_buttons: worth_ui_host_contract::UiHostPressedPointerButtons::from_buttons(
+                    [worth_ui_host_contract::UiHostPointerButton::Primary],
+                ),
             },
         };
         assert_eq!(
@@ -281,11 +283,18 @@ mod tests {
             UiHostObservationSequence::new(sequence),
             worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicTick(sequence),
             worth_ui_host_contract::UiHostObservationPayload::PointerMotion {
-                pointer,
-                capture_epoch,
-                pressed_buttons,
-                x_subpixels: 0,
-                y_subpixels: 0,
+                pointer: worth_ui_host_contract::UiHostPointerIdentity::new(pointer),
+                capture_epoch: worth_ui_host_contract::UiHostPointerCaptureEpoch::new(
+                    capture_epoch,
+                ),
+                pressed_buttons: if pressed_buttons == 0 {
+                    worth_ui_host_contract::UiHostPressedPointerButtons::NONE
+                } else {
+                    worth_ui_host_contract::UiHostPressedPointerButtons::from_buttons([
+                        worth_ui_host_contract::UiHostPointerButton::Primary,
+                    ])
+                },
+                position: worth_ui_host_contract::UiHostSurfacePosition::viewport_logical(0, 0),
             },
         )
     }

@@ -4,26 +4,14 @@ use worth_store_physical_certification::{
     PhysicalFixtureBuilder, PhysicalSimulationPlan, ProductionBackedPhysicalFixture,
 };
 
-pub fn buffer_pool_evidence(
-    plan: &PhysicalSimulationPlan,
-) -> worth_store_buffer_pool::BufferPoolExecutedEvidenceSource {
-    let mut allocation = worth_store_buffer_pool::AllocationAdmission::from_declaration(
-        plan.resource_envelope().allocation(),
-    );
-    let grant = allocation
-        .admit(
-            worth_store_buffer_pool::AllocationRequest::copied_payload(
-                worth_store_buffer_pool::AllocationScope::Foreground,
-                64,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    allocation.record_allocation(grant).unwrap();
-    worth_store_buffer_pool::BufferPoolExecutedEvidenceSource::from_allocation_execution(
-        &allocation,
+pub fn store_residency_observation(
+    _plan: &PhysicalSimulationPlan,
+) -> worth_store::physical_runtime::PhysicalResidencyObservation {
+    crate::harness::physical_residency::observed_store_residency(
+        "physical-isolation-interleaving",
+        crate::harness::physical_residency::PhysicalResidencyFixtureWorkload::Verification,
+        64,
     )
-    .unwrap()
 }
 
 pub fn io_queue_evidence(

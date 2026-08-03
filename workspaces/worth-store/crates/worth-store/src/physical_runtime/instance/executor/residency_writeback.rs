@@ -8,7 +8,7 @@ use crate::physical_runtime::{
         scheduled_writeback::{PhysicalScheduledWriteback, PhysicalScheduledWritebackOutcome},
     },
     PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
-    PhysicalResidencyWritebackExecutorCommand,
+    PhysicalResidencyWritebackCompletion, PhysicalResidencyWritebackExecutorCommand,
 };
 
 impl PhysicalWorkExecutor {
@@ -29,19 +29,42 @@ impl PhysicalWorkExecutor {
             crate::physical_runtime::PhysicalWorkRecoveryTarget::Range(coordinate),
             Some(payload_digest),
         )?;
-        let physical = writeback.execute(
+        let physical = writeback.execute_effect(
             &PhysicalRecordArtifactTree::new(&self.media),
             BackendQueueExecutionAdaptation::None,
         );
-        let (outcome, physical_recovery) = classify_residency_writeback(physical);
+        let physical = match physical {
+            Err(outcome) => *outcome,
+            Ok(effect) => {
+                #[cfg(feature = "certification-test-authority")]
+                self.certification_yieldpoints.pause(
+                    super::CertificationPhysicalExecutionCheckpoint::
+                        AfterResidencyWriteBeforeSchedulerSettlement,
+                );
+                effect.settle()
+            }
+        };
+        let identity = dispatched.intent().identity();
+        let (outcome, physical_recovery, completion) =
+            classify_residency_writeback(identity, physical);
         let recovery = self.finish_effect_recovery(prepared, physical_recovery);
-        Ok(PhysicalExecutorDispatch::new(dispatched, outcome, recovery))
+        Ok(match completion {
+            Some(completion) => PhysicalExecutorDispatch::with_residency_writeback_completion(
+                dispatched, outcome, recovery, completion,
+            ),
+            None => PhysicalExecutorDispatch::new(dispatched, outcome, recovery),
+        })
     }
 }
 
 fn classify_residency_writeback(
+    identity: crate::physical_runtime::PhysicalWorkIdentity,
     physical: PhysicalScheduledWritebackOutcome,
-) -> (PhysicalExecutorOutcome, PhysicalEffectRecoveryObligation) {
+) -> (
+    PhysicalExecutorOutcome,
+    PhysicalEffectRecoveryObligation,
+    Option<PhysicalResidencyWritebackCompletion>,
+) {
     match physical {
         PhysicalScheduledWritebackOutcome::RetryableBeforeEffect(failure) => (
             PhysicalExecutorOutcome::DeniedBeforeEffect {
@@ -49,10 +72,12 @@ fn classify_residency_writeback(
                 retry: crate::physical_runtime::work::PhysicalRetryPayload::ResidencyWriteback,
             },
             PhysicalEffectRecoveryObligation::Cleared,
+            None,
         ),
         PhysicalScheduledWritebackOutcome::InspectionRequired(failure) => (
             PhysicalExecutorOutcome::Indeterminate(failure),
             PhysicalEffectRecoveryObligation::Retained,
+            None,
         ),
         PhysicalScheduledWritebackOutcome::WrittenButNotApplied {
             physical,
@@ -63,28 +88,23 @@ fn classify_residency_writeback(
                 scheduler: execution,
             },
             PhysicalEffectRecoveryObligation::Retained,
+            None,
         ),
-        PhysicalScheduledWritebackOutcome::Applied {
+        PhysicalScheduledWritebackOutcome::Completed {
             physical,
             execution,
-        } => (
-            PhysicalExecutorOutcome::ResidencyWritebackCompleted {
-                physical,
-                scheduler: execution,
-            },
-            PhysicalEffectRecoveryObligation::Cleared,
-        ),
-        PhysicalScheduledWritebackOutcome::ResidencyTerminal {
-            physical,
-            execution,
-            denial,
-        } => (
-            PhysicalExecutorOutcome::ResidencyTerminal {
-                physical,
-                scheduler: execution,
-                denial,
-            },
-            PhysicalEffectRecoveryObligation::Retained,
-        ),
+            claim,
+        } => {
+            let completion =
+                PhysicalResidencyWritebackCompletion::new(identity, claim, physical.clone());
+            (
+                PhysicalExecutorOutcome::ResidencyWritebackCompleted {
+                    physical,
+                    scheduler: execution,
+                },
+                PhysicalEffectRecoveryObligation::Cleared,
+                Some(completion),
+            )
+        }
     }
 }

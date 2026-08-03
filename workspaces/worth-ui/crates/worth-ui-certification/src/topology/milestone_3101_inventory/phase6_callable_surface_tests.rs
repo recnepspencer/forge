@@ -51,6 +51,24 @@ fn phase6_real_callable_manifest_is_exact() {
 }
 
 #[test]
+fn phase6_rejects_omitting_visual_overlay_shutdown_observation() {
+    let mut manifest = callable_manifest();
+    let shutdown = manifest["surface"]
+        .as_array_mut()
+        .expect("surface rows")
+        .iter_mut()
+        .find(|row| row["owner"].as_str() == Some("WorthUiNativeApplicationShutdownReceipt"))
+        .expect("shutdown receipt surface");
+    shutdown["callers"]
+        .as_table_mut()
+        .expect("shutdown receipt callers")
+        .remove("visual_overlay");
+    let error = audit(&workspace_inventory(), &manifest)
+        .expect_err("omitted visual overlay shutdown observation must fail");
+    assert!(error.contains("visual_overlay"), "{error}");
+}
+
+#[test]
 fn phase6_collects_renamed_forwarding_wrappers_as_surface_growth() {
     let actual = collect(
         r#"

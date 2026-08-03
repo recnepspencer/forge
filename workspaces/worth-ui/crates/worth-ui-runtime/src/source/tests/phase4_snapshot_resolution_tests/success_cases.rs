@@ -4,6 +4,24 @@ use worth_ui_dsl::WorthUiArtifactInputProvenance;
 use super::resolution_fixture_support::{admitted_app, standard_artifact_input};
 
 #[test]
+fn projection_declaration_remains_package_meaning_not_an_artifact_node() {
+    let app = admitted_app();
+    let package = crate::source::test_compilation::compile_source([(
+        "app/main.wui",
+        "query_scalar pulse.status { view pulse.status field status require text }",
+    )]);
+    assert_eq!(package.projection_requirements().count(), 1);
+
+    let resolved = WorthUiArtifactInputResolver::resolve(&package, app.capabilities())
+        .expect("projection meaning does not require artifact capability resolution");
+    let module = resolved
+        .module(&resolved.module_ids()[0])
+        .expect("projection source module remains present");
+
+    assert!(module.nodes().is_empty());
+}
+
+#[test]
 fn same_artifact_input_and_same_snapshot_produce_equivalent_resolution() {
     let app = admitted_app();
     let artifact_input = standard_artifact_input();

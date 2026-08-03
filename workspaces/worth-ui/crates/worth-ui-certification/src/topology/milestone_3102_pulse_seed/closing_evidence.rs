@@ -144,8 +144,9 @@ fn audit_documentation(repository_root: &Path) -> Result<(), String> {
         "theme.platform_pulse.blue",
         "theme.platform_pulse.green",
         "component platform.pulse.component.seed {",
-        "WORTH_UI_PLATFORM_PULSE_PUBLISHED",
-        "WORTH_UI_PLATFORM_PULSE_REPLACED",
+        "FirstFramePublished",
+        "RebindPublished",
+        "VisualComparison",
         "Close the native window normally",
     ] {
         if !normalized.contains(required) {
@@ -220,13 +221,18 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/native_frame.rs",
     )?;
+    let native_rebind = read(
+        repository_root,
+        "workspaces/worth-ui/apps/platform-pulse/src/native_frame/rebind.rs",
+    )?;
     let protocol = read(
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/observation_contract/envelope.rs",
     )?;
     for required in [
-        "adapter_cost.translated_rows(), 6",
-        "adapter_cost.translated_bytes(), 560",
+        "adapter_cost.translated_rows(), 8",
+        "std::mem::size_of::<UiMountedNodeProjectionView>()",
+        "std::mem::size_of::<UiMountedFilledRectMechanic>()",
         "adapter_cost.native_resource_cache_hits(), 0",
     ] {
         if !courtroom.contains(required) {
@@ -238,7 +244,11 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         || !protocol.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
         || !protocol.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !native.contains("self.publisher.first_frame(&source, &publication)")
-        || !native.contains("self.publisher.replacement(&source, &application, &mounted)")
+        || !native.contains("self.publisher.replacement(")
+        || !native.contains(".application_publication()")
+        || !native.contains(".mounted_publication()")
+        || !native.contains(".compare_after_rebind(")
+        || !native_rebind.contains(".begin_source_rebind(")
         || native.contains("WORTH_UI_PLATFORM_PULSE_PUBLISHED")
         || native.contains("WORTH_UI_PLATFORM_PULSE_REPLACED")
         || native.contains("pulse-checkpoint")

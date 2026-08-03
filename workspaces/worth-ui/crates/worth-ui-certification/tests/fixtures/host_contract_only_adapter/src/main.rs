@@ -22,7 +22,7 @@ impl WorthUiHostMechanicsAdapter for ContractOnlyAdapter {
     }
 
     fn mechanical_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
+        WorthUiHostCapabilityReport::missing(Vec::new())
     }
 
     fn release_mechanical_host_session(

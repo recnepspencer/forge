@@ -41,19 +41,45 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         crate::mounting::UiPreparedMountedFrame,
         crate::mounting::UiMountedFramePreparationDenial,
     > {
-        use worth_ui_host_contract::UiMountedLaneParticipation as Lane;
+        self.prepare_mounted_frame_with_content_internal(
+            request,
+            crate::mounting::UiMountedSemanticContentInput::empty(),
+        )
+    }
 
+    pub(crate) fn prepare_mounted_frame_with_content_internal(
+        &self,
+        request: crate::mounting::UiMountedFrameRequest,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+    ) -> Result<
+        crate::mounting::UiPreparedMountedFrame,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
-        let generation = self.generation_identity.clone();
+        let mut projection = self.begin_mounted_projection(request, lanes, semantic_content)?;
+        projection.execute_requested_lanes(lanes, virtualized_range)?;
+        projection.finish()
+    }
+
+    fn begin_mounted_projection<'frame>(
+        &'frame self,
+        request: crate::mounting::UiMountedFrameRequest,
+        lanes: crate::mounting::UiMountedLaneAssembly,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+    ) -> Result<
+        WorthUiActiveMountedProjectionFrame<'frame, 'session>,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        let visual_overlay = request.visual_overlay();
+        let plan = self.execution.runtime.active.active_plan_ref();
         let allocation_truth_revision = self
             .execution
             .runtime
             .allocation_receipt_ledger
             .truth_revision()
             .revision();
-        let plan_digest = plan.digest().as_u64();
         let allocation_source = self
             .execution
             .runtime
@@ -64,82 +90,23 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             self.mounted
                 .begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
                     graph: self.graph,
-                    generation,
-                    plan_digest,
+                    generation: self.generation_identity.clone(),
+                    trace_source: self.visual_trace_source.clone(),
+                    plan_digest: plan.digest().as_u64(),
                     plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
                     allocation_source,
                     allocation_truth_revision,
                     request,
                     lanes,
                     preview: None,
+                    visual_overlay,
+                    semantic_content,
                     reuse_contract,
                 })?;
-        let mut projection = WorthUiActiveMountedProjectionFrame {
+        Ok(WorthUiActiveMountedProjectionFrame {
             execution: &self.execution,
             assembler,
-        };
-        if lanes.ordinary {
-            projection
-                .execute_ordinary(crate::runtime::WorthUiOrdinaryFrameTarget::root_shell())
-                .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
-        }
-        if let Some(range) = virtualized_range.filter(|_| lanes.virtualized) {
-            let target = projection
-                .execution
-                .runtime
-                .active
-                .active_plan_ref()
-                .virtualized_summary(
-                    &projection.execution.runtime.query_binding,
-                    crate::runtime::WorthUiVirtualizedPlanSummaryRequest::first_view(),
-                )
-                .map_err(|_| {
-                    crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
-                        Lane::Virtualized,
-                    )
-                })?
-                .target(range);
-            projection
-                .execute_virtualized(target)
-                .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
-        }
-        if lanes.canvas {
-            let handle = projection
-                .execution
-                .runtime
-                .active
-                .active_plan_ref()
-                .first_canvas_spatial_handle()
-                .ok_or(
-                    crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
-                        Lane::CanvasSpatial,
-                    ),
-                )?;
-            projection
-                .execute_canvas(crate::runtime::WorthUiCanvasSpatialFrameTarget::draw(
-                    handle,
-                ))
-                .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
-        }
-        if lanes.realtime {
-            let handle = projection
-                .execution
-                .runtime
-                .active
-                .active_plan_ref()
-                .first_realtime_handle()
-                .ok_or(
-                    crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
-                        Lane::Realtime,
-                    ),
-                )?;
-            projection
-                .execute_realtime(
-                    crate::runtime::WorthUiRealtimeFrameTarget::renderer_surface(handle),
-                )
-                .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
-        }
-        projection.finish()
+        })
     }
 
     fn reuse_contract(
@@ -162,7 +129,95 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
                 protocol: self.host_protocol,
                 capability_generation: self.host_capability_generation,
                 capability_profile_digest: self.host_capability_profile_digest,
+                visual_overlay_revision: request.visual_overlay_revision(),
             })
+    }
+}
+
+impl WorthUiActiveMountedProjectionFrame<'_, '_> {
+    fn execute_requested_lanes(
+        &mut self,
+        lanes: crate::mounting::UiMountedLaneAssembly,
+        virtualized_range: Option<crate::runtime::WorthUiVisibleRange>,
+    ) -> Result<(), crate::mounting::UiMountedFramePreparationDenial> {
+        if lanes.ordinary {
+            self.execute_ordinary(crate::runtime::WorthUiOrdinaryFrameTarget::root_shell())
+                .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
+        }
+        if let Some(range) = virtualized_range.filter(|_| lanes.virtualized) {
+            self.execute_requested_virtualized(range)?;
+        }
+        if lanes.canvas {
+            self.execute_requested_canvas()?;
+        }
+        if lanes.realtime {
+            self.execute_requested_realtime()?;
+        }
+        Ok(())
+    }
+
+    fn execute_requested_virtualized(
+        &mut self,
+        range: crate::runtime::WorthUiVisibleRange,
+    ) -> Result<(), crate::mounting::UiMountedFramePreparationDenial> {
+        let target = self
+            .execution
+            .runtime
+            .active
+            .active_plan_ref()
+            .virtualized_summary(
+                &self.execution.runtime.query_binding,
+                crate::runtime::WorthUiVirtualizedPlanSummaryRequest::first_view(),
+            )
+            .map_err(|_| {
+                crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
+                    worth_ui_host_contract::UiMountedLaneParticipation::Virtualized,
+                )
+            })?
+            .target(range);
+        self.execute_virtualized(target)
+            .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
+        Ok(())
+    }
+
+    fn execute_requested_canvas(
+        &mut self,
+    ) -> Result<(), crate::mounting::UiMountedFramePreparationDenial> {
+        let handle = self
+            .execution
+            .runtime
+            .active
+            .active_plan_ref()
+            .first_canvas_spatial_handle()
+            .ok_or(
+                crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
+                    worth_ui_host_contract::UiMountedLaneParticipation::CanvasSpatial,
+                ),
+            )?;
+        self.execute_canvas(crate::runtime::WorthUiCanvasSpatialFrameTarget::draw(
+            handle,
+        ))
+        .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
+        Ok(())
+    }
+
+    fn execute_requested_realtime(
+        &mut self,
+    ) -> Result<(), crate::mounting::UiMountedFramePreparationDenial> {
+        let handle = self
+            .execution
+            .runtime
+            .active
+            .active_plan_ref()
+            .first_realtime_handle()
+            .ok_or(
+                crate::mounting::UiMountedFramePreparationDenial::LaneWorkUnavailable(
+                    worth_ui_host_contract::UiMountedLaneParticipation::Realtime,
+                ),
+            )?;
+        self.execute_realtime(crate::runtime::WorthUiRealtimeFrameTarget::renderer_surface(handle))
+            .map_err(crate::mounting::UiMountedFramePreparationDenial::Lane)?;
+        Ok(())
     }
 }
 

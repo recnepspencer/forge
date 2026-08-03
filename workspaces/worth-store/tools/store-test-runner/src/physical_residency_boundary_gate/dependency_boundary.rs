@@ -6,6 +6,7 @@ use super::workspace_source::{read, rust_sources};
 use crate::workspace_root;
 
 const BUFFER_POOL_SOURCE: &str = "crates/worth-store-buffer-pool/src";
+const PHYSICAL_RESIDENCY_SOURCE: &str = "crates/worth-store-buffer-pool/src/physical_residency";
 const FORBIDDEN_POOL_AUTHORITIES: &[&str] = &[
     "worth-signal",
     "worth_signal",
@@ -15,6 +16,10 @@ const FORBIDDEN_POOL_AUTHORITIES: &[&str] = &[
     "worth_foundational",
     "worth-store-aspect-native",
     "worth_store_aspect_native",
+];
+const FORBIDDEN_RESIDENCY_BACKEND_AUTHORITY: &[&str] = &[
+    "worth_store_physical_backend",
+    "CompletedArtifactRangeWrite",
 ];
 
 const ORDINARY_MANIFESTS: &[&str] = &[
@@ -69,6 +74,16 @@ fn buffer_pool_source_and_api_have_no_foreign_authority_types() {
 }
 
 #[test]
+fn physical_residency_source_and_api_have_no_backend_receipt_authority() {
+    for source in rust_sources(&workspace_root().join(PHYSICAL_RESIDENCY_SOURCE))
+        .expect("discover physical-residency sources")
+    {
+        let text = read(&source).expect("read physical-residency source");
+        inspect_residency_source(&source, &text).unwrap_or_else(|denial| panic!("{denial}"));
+    }
+}
+
+#[test]
 fn ordinary_manifests_have_no_active_legacy_feature_edges() {
     for relative in ORDINARY_MANIFESTS {
         let path = workspace_root().join(relative);
@@ -98,6 +113,15 @@ legacy = { package = "worth-store-buffer-pool", workspace = true, features = ["l
     let denial = inspect_ordinary_manifest(Path::new("Cargo.toml"), mutant)
         .expect_err("active legacy feature edge must be denied");
     assert!(denial.contains("legacy-s2-models"));
+
+    for mutant in [
+        "use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;",
+        "pub fn clean(receipt: CompletedArtifactRangeWrite) { drop(receipt); }",
+    ] {
+        let denial = inspect_residency_source(Path::new("lease/writeback.rs"), mutant)
+            .expect_err("backend receipt authority must be denied from physical residency");
+        assert!(denial.contains("backend receipt authority"));
+    }
 }
 
 fn cargo_metadata() -> Value {
@@ -119,6 +143,18 @@ fn inspect_pool_source(path: &Path, source: &str) -> Result<(), String> {
         if source.contains(authority) {
             return Err(format!(
                 "physical residency boundary: buffer-pool source imports or exposes `{authority}` at {}",
+                path.display()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn inspect_residency_source(path: &Path, source: &str) -> Result<(), String> {
+    for authority in FORBIDDEN_RESIDENCY_BACKEND_AUTHORITY {
+        if source.contains(authority) {
+            return Err(format!(
+                "physical residency boundary: backend receipt authority `{authority}` appears at {}",
                 path.display()
             ));
         }

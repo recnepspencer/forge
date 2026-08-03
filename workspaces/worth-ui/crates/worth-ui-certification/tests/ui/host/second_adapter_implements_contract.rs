@@ -23,7 +23,7 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
     }
 
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless())
+        WorthUiHostCapabilityReport::missing(Vec::new())
     }
 
     fn release_host_session(
@@ -38,7 +38,7 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
 }
 
 fn main() {
-    let app = WorthUi::app()
+    let app = WorthUi::app().with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_host(AlternateHost::default())
         .freeze()
         .expect("application preparation should succeed");

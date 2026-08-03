@@ -2,129 +2,177 @@
 
 ## What This Feature Is
 
-Query-backed views let a Worth UI application present data owned by a Worth
-Query workspace without copying Query state into the UI runtime. You install
-the Worth UI domain package in Query, create an installed view, and register
-that view on the application builder.
+Query-backed views let Worth UI mount native values produced by an installed
+Worth Query runtime. Query owns execution, result posture, compatibility,
+recovery, and resource lifecycle. Worth UI owns the declared projection
+requirement, UI consequence, mounted identity, and presentation.
 
 ## Why You Use It
 
-- Present collection or detail data from an installed Query workspace.
-- Keep snapshot and live-resource lifecycle with the Query runtime that owns it.
-- Carry native Foundational values into UI planning without JSON or text.
-- Preserve exact Query denials and settlement identity for inspection.
+- Present scalar or keyed collection data without copying Query truth into UI.
+- Preserve pending, current, stale, revalidating, and exact stop posture.
+- Carry native values into mounted semantic text without JSON or string
+  reconstruction.
+- Rebind only declared consumers when Query meaning changes.
+- Correlate Query evidence, a projection fact, mounted identity, and pixels.
 
 ## Stable Entry Points
 
-- `worth_ui::facade::query_binding::worth_ui_domain_package()`
-- `WorthUiQueryWorkspaceExt::worth_ui()`
-- `WorthUiInstalledQueryDomain::measurement_view(...)`
-- `WorthUiInstalledQueryDomain::live_measurement_view(...)`
-- `WorthUiApplicationBuilder::register_query_view(...)`
-- `WorthUiApp::resolve_query_view(...)`
-- `WorthUiQueryInspection`
+- `worth_ui::facade::query_binding::WorthUiScalarProjectionHostPlan`
+- `UiScalarProjectionRegistration`
+- `UiCollectionProjectionRegistration`
+- `UiScalarProjectionObservation`
+- `UiCollectionProjectionObservation`
+- `UiScalarProjectionFactReceipt`
+- `UiCollectionProjectionFactReceipt`
+- `UiProjectionAvailability`
+- `UiPresentProjection`
+- `WorthUiApplicationBuilder::register_scalar_projection(...)`
+- `WorthUiApplicationBuilder::register_collection_projection(...)`
+- `WorthUiActiveApplicationSession::begin_projection_rebind(...)`
 
-Query-free applications do not register a dummy domain or view.
+There is no product `WorthUiQueryWorkspaceExt` import. Query-free applications
+do not install a dummy Query runtime or register a dummy projection.
 
 ## Core Mental Model
 
-Worth Query owns the installed domain, operation attempt, live resource,
-settlement, and exact result. Worth UI owns where and how an admitted result is
-presented. The binding crate carries a compact installed reference across that
-boundary; it does not create a second Query runtime.
+A projection has orthogonal contracts:
 
-## How It Executes
+- shape: scalar or collection;
+- schema: selected fields, native family, and row identity where applicable;
+- lifecycle: snapshot or live;
+- availability: unavailable, present, or stopped;
+- currency/activity: current or retained stale, optionally revalidating;
+- compatibility: exact admitted replacement or a typed stop;
+- budget: bounded accesses, rows, bytes, and retained resources.
+
+These are types, not fields an application may reassemble. A reporting identity
+cannot become a binding, an inspection projection cannot become a fact, and a
+collection fact cannot enter a scalar consumer.
+
+## Register A Projection
+
+An installation owner first obtains an `UiInstalledProjectionView` from Query
+authority. Product application code then declares the required shape and
+registers it before `freeze()`.
+
+The following fragment is compiled inside the public facade contract.
+
+<!-- compile-pass-fragment:register_scalar_projection -->
+```rust
+fn register_scalar(view: UiInstalledProjectionView) {
+    let registration = UiScalarProjectionRegistration::text(
+        view,
+        UiProjectionFieldRequirement::declared("status").expect("valid selected field"),
+    );
+    let _app = worth_ui::facade::app::WorthUi::app()
+        .with_change_profile(
+            worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+        )
+        .register_scalar_projection(registration)
+        .expect("installed scalar projection registration")
+        .freeze()
+        .expect("application preparation should succeed");
+}
+```
+
+For a collection, use `UiCollectionProjectionRegistration::text(...)` or
+`native(...)` with an explicit row-identity field, selected fields,
+completeness requirement, and continuation posture. Registration never
+executes Query or creates UI-local result state.
+
+## Install The Production Query Runtime
+
+Platform Pulse demonstrates the concrete hosted scalar route:
 
 ```text
-install Worth UI domain package in Query
--> create installed measurement view
--> register view before application freeze
--> resolve installed binding reference
--> execute and settle through the Query workspace
--> submit the settled projection in a mounted-frame source closure
--> plan, mount, present, and publish through the ordinary application path
+WorthUiScalarProjectionHostPlan::prepare()
+-> split request and completion
+-> WorthQueryExecutionRuntimeInstaller::install(...)
+-> completion.complete(installation)
+-> split installed registration and initial projection advance
+-> register the scalar projection on WorthUi::app()
 ```
 
-## Small Example
+The completion verifies the Query Consumer Kit support contract for the actual
+backend before opening the live projection. The host installer remains the
+Query authority boundary; Worth UI does not emulate it.
 
-```rust
-use worth_ui::facade::app::WorthUi;
-use worth_ui::facade::query_binding::WorthUiQueryWorkspaceExt;
+## Observe And Rebind
 
-let view = workspace
-    .worth_ui()?
-    .measurement_view("inspector.measurements")?;
-let app = WorthUi::app()
-    .register_query_view(view)?
-    .freeze()?;
+The live owner issues one affine observation. Submit it through
+`begin_projection_rebind(...)`, exhaust the typed rebind outcome, and return the
+released shape-specific fact to the Query lifecycle owner. Publication
+completion is what allows that owner to advance again.
+
+```text
+Query-issued observation
+-> ordinary 3.12 observation admission and classification
+-> indexed affected-scope plan
+-> mounted semantic text
+-> host presentation and atomic publication
+-> released scalar or collection fact
+-> Query publication admission
 ```
 
-This registers Query authority before application preparation. It does not
-execute the view or create UI-local result state.
+`UiProjectionAvailability` must be matched exhaustively. `Present(Current)`
+carries current native value. `Present(RetainedStale { ... })` carries the
+predecessor plus activity. `Unavailable` and `Stopped` carry exact typed
+posture and mint no fabricated value.
 
-## Real Example
+## Replacement And Invalidation
 
-```rust
-let reference = app
-    .resolve_query_view(&view_identity, view_shape)
-    .expect("the prepared app owns this installed view");
-let settled = settle_projection(reference, requirements, &mut workspace)?;
+Compatible replacement preserves logical binding identity only through
+Query-issued compatibility proof. Schema, native-family, payload-shape, row
+identity, world, generation, basis, and budget mismatches stop before a
+successor. The predecessor remains available only when the typed outcome says
+it was retained.
 
-let outcome = session.execute_mounted_frame(
-    request,
-    deadline,
-    now,
-    |sources| {
-        sources.query_projection(|query| {
-            query
-                .admit_settled(settled)
-                .expect("the exact registered projection should admit");
-            query
-                .submit_settled(&plan_link)
-                .expect("the active plan link should resolve");
-        });
-    },
-)?;
-```
+Changed scalar and collection facts enter the same source/viewport observation
+ordering used by the rest of the application. Runtime follows declared
+consumer indexes; it does not poll Query, scan the mounted graph, or introduce a
+second executor.
 
-`settle_projection` must enter through
-`WorthUiInstalledQueryBindingReference::enter_snapshot_attempt`, prepare the
-consumer contract, and exhaust the typed execution, publication, consumption,
-and settlement outcomes. The exact plan link depends on the admitted
-application plan. The important boundary is stable: Query produces the settled
-projection, and the ordinary mounted-frame closure admits it into UI
-execution.
+## Cost And Lifecycle
 
-## How It Relates To Other Features
-
-- Register the view on the same builder used by
-  [Application lifecycle](./application-lifecycle.md).
-- File and Rust-authored declarations can reference the same registered view.
-- Query inspection cites exact attempt or settlement artifacts without copying
-  them into UI-owned truth.
+- Query-free and unchanged turns perform zero projection/content work.
+- Scalar access is bounded by declared selected fields.
+- Collection work scales with selected or changed rows, not total collection
+  size; completeness and continuation remain explicit.
+- Diagnostic detail and closure stress belong to separate cost lanes.
+- Cancellation, denial, replacement, retry, continuation, reset, close, and
+  shutdown dispose their governed resources exactly once.
 
 ## Inspection And Debugging
 
-Use `WorthUiQueryInspection` to inspect an exact settled projection or denial.
-Minimal and rich evidence policies share the same underlying artifact. A
-wrong-world attempt remains a typed Query denial.
+Correlate the Query transition or attempt identity, projection fact identity,
+application generation, mounted frame/node identity, and presentation evidence.
+Request compact evidence first and expand detail under an explicit disclosure,
+retention, and byte budget. None of those reporting values can execute Query,
+construct a fact, or publish.
 
 ## Anti-Patterns
 
-- Copying Query result state into a UI cache.
-- Recreating support, denial, recovery, or live-resource posture locally.
-- Converting native values through JSON or text.
-- Using an inspection receipt as a Query operation capability.
-- Registering dummy Query state for a Query-free application.
+- Importing a nonexistent workspace-extension convenience API.
+- Copying Query result state into a UI cache or local loading/error enum.
+- Selecting operational values by a literal field lookup after admission.
+- Converting native values through JSON, debug text, or widened numbers.
+- Reassembling authority from identities, digests, reports, or inspection.
+- Querying from a renderer or host adapter.
+- Treating collection continuation as scalar posture.
+- Retrying or replacing without consuming the returned affine owner.
 
 ## Current Limits
 
-Only registered, installed view shapes and operations are available. Treat a
-missing support row or typed denial as real boundary truth rather than falling
-back to a local query implementation.
+The direct grammar supports declared scalar and keyed collection projections.
+Rich tables, joins, authored expressions and formatting, mutation intents, and
+general composition remain additive successor work. Milestone 3.14 may consume
+these projection facts for admitted intents; it must not replace this binding,
+observation, or publication path.
 
 ## Related Docs
 
 - [Application lifecycle](./application-lifecycle.md)
-- [Authored composition](./authored-composition.md)
+- [Worth UI architecture](./architecture.md)
+- [Runtime subsystems](./runtime-subsystems.md)
 - [Application inspection](./inspection.md)

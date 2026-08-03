@@ -1,6 +1,25 @@
 use super::*;
 
 impl PoolInner {
+    pub(in crate::physical_residency) fn begin_speculative_admission(
+        self: &Arc<Self>,
+        kind: crate::PhysicalSpeculativeWorkKind,
+    ) -> crate::physical_residency::speculation::SpeculativeAdmissionAttempt {
+        let mut state = self.lock();
+        state.accounting.attempt_speculative(kind);
+        crate::physical_residency::speculation::SpeculativeAdmissionAttempt::new(
+            Arc::clone(self),
+            kind,
+        )
+    }
+
+    pub(in crate::physical_residency) fn record_speculative_admission_denial(
+        &self,
+        kind: crate::PhysicalSpeculativeWorkKind,
+    ) {
+        self.lock().accounting.record_speculative_denial(kind);
+    }
+
     pub(super) fn reserve_operation(
         self: &Arc<Self>,
         scope: PhysicalOperationAllocationScope,
@@ -121,19 +140,44 @@ impl PoolInner {
         state.accounting.record_copy(bytes);
     }
 
-    pub(super) fn reserve_speculative(
+    pub(in crate::physical_residency) fn require_bounded_speculative_validation(
+        &self,
+        scope: PhysicalOperationAllocationScope,
+        kind: crate::PhysicalSpeculativeWorkKind,
+        frames: u32,
+    ) -> Result<(), PhysicalResidencyDenial> {
+        let limit = self.limits.speculative_frames(kind);
+        if frames <= limit {
+            return Ok(());
+        }
+        let mut state = self.lock();
+        if !state.accepting {
+            return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
+        }
+        let current = state.accounting.active_speculative_frames(kind);
+        Err(self.pressure(
+            &mut state,
+            PhysicalResidencyPressureDemand {
+                dimension: PhysicalResidencyDimension::SpeculativeFrames(kind),
+                scope,
+                requested: u64::from(frames),
+                current: u64::from(current),
+                limit: u64::from(limit),
+            },
+        ))
+    }
+
+    pub(in crate::physical_residency) fn reserve_speculative(
         self: &Arc<Self>,
         scope: PhysicalOperationAllocationScope,
         kind: crate::PhysicalSpeculativeWorkKind,
         frames: u32,
     ) -> Result<(), PhysicalResidencyDenial> {
         let mut state = self.lock();
-        state.accounting.attempt_speculative(kind);
         if !state.accepting {
             return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
         }
         if frames == 0 {
-            state.accounting.record_speculative_denial(kind);
             let current = u64::from(state.accounting.active_speculative_frames(kind));
             return Err(self.pressure(
                 &mut state,
@@ -149,7 +193,6 @@ impl PoolInner {
         let limit = self.limits.speculative_frames(kind);
         let current = state.accounting.active_speculative_frames(kind);
         let Some(next) = current.checked_add(frames) else {
-            state.accounting.record_speculative_denial(kind);
             return Err(self.pressure(
                 &mut state,
                 PhysicalResidencyPressureDemand {
@@ -162,7 +205,6 @@ impl PoolInner {
             ));
         };
         if next > limit {
-            state.accounting.record_speculative_denial(kind);
             return Err(self.pressure(
                 &mut state,
                 PhysicalResidencyPressureDemand {

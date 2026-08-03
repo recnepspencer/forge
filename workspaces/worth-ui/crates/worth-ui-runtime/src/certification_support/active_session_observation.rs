@@ -1,4 +1,6 @@
 use crate::facade::{WorthUiActiveApplicationSession, WorthUiHostMeasurementCapability};
+use crate::fact_contract::UiProducedFact;
+use crate::graph::{UiGraphFactLookupDenial, UiGraphFactLookupReceipt};
 use crate::runtime::{
     WorthUiActiveRuntimeObservation, WorthUiCanvasSpatialInspectionDenial,
     WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasSpatialTargetSummary, WorthUiLaneHandle,
@@ -15,6 +17,18 @@ pub trait WorthUiActiveSessionCertificationExt {
     fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation;
 
     fn inspect_query_state_residue(&self) -> WorthUiStateQueryResidueScan;
+
+    fn refresh_query_change(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    >;
+
+    fn measurement_basis_sources(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]>;
 
     fn ordinary_plan_availability(&self) -> WorthUiOrdinaryPlanAvailability;
 
@@ -51,6 +65,11 @@ pub trait WorthUiActiveSessionCertificationExt {
     ) -> Result<WorthUiOrdinaryPlanSummary, WorthUiOrdinaryPlanSummaryDenial>;
 
     fn host_measurement_capability(&self) -> WorthUiHostMeasurementCapability;
+
+    fn lookup_consumed_fact(
+        &self,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial>;
 }
 
 impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
@@ -60,6 +79,22 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
 
     fn inspect_query_state_residue(&self) -> WorthUiStateQueryResidueScan {
         WorthUiActiveApplicationSession::inspect_query_state_residue(self)
+    }
+
+    fn refresh_query_change(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        WorthUiActiveApplicationSession::refresh_query_change_for_certification(self, request)
+    }
+
+    fn measurement_basis_sources(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        WorthUiActiveApplicationSession::measurement_basis_sources_for_certification(self)
     }
 
     fn ordinary_plan_availability(&self) -> WorthUiOrdinaryPlanAvailability {
@@ -120,5 +155,12 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
 
     fn host_measurement_capability(&self) -> WorthUiHostMeasurementCapability {
         WorthUiActiveApplicationSession::host_measurement_capability(self)
+    }
+
+    fn lookup_consumed_fact(
+        &self,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
+        WorthUiActiveApplicationSession::lookup_consumed_fact_for_certification(self, fact)
     }
 }

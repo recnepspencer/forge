@@ -35,6 +35,14 @@ fn nodes_are_equivalent(left: &WorthUiArtifactInputNode, right: &WorthUiArtifact
         | (WorthUiArtifactInputNode::Binding(left), WorthUiArtifactInputNode::Binding(right)) => {
             left.name_text() == right.name_text() && left.body_atoms() == right.body_atoms()
         }
+        (
+            WorthUiArtifactInputNode::QueryScalar(left),
+            WorthUiArtifactInputNode::QueryScalar(right),
+        )
+        | (
+            WorthUiArtifactInputNode::QueryCollection(left),
+            WorthUiArtifactInputNode::QueryCollection(right),
+        ) => left.name_text() == right.name_text() && left.body_atoms() == right.body_atoms(),
         (WorthUiArtifactInputNode::Token(left), WorthUiArtifactInputNode::Token(right)) => {
             left.name_text() == right.name_text() && left.value_text() == right.value_text()
         }

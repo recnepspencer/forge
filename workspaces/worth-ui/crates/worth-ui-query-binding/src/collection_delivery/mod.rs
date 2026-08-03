@@ -21,4 +21,4 @@ pub use inspection::{
 };
 pub use source_reference::{WorthUiCollectionChangeSourceReference, WorthUiCollectionRowReference};
 
-pub(crate) use translation::mint_collection_change_consequence;
+pub(crate) use translation::{map_reset_reason, mint_collection_change_consequence};

@@ -4,3 +4,6 @@ mod phase3_artifact_input_tests;
 mod phase4_structural_legality_tests;
 mod phase5_diagnostic_identity_tests;
 mod phase6_semantic_package_identity_tests;
+mod phase7_projection_declaration_tests;
+mod phase7_projection_expectation;
+mod phase7_rust_projection_declaration_tests;

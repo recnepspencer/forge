@@ -3,6 +3,7 @@ use crate::{
     WorthServerOperationPreconditionPosture, WorthServerOperationSupportPosture,
 };
 
+use super::WorthServerProductOperationAuthorization;
 use super::{WorthServerProductOperationDeclaration, WorthServerProductOperationPayload};
 
 #[derive(Clone, Debug)]
@@ -10,6 +11,7 @@ pub struct WorthServerLoweredProductOperationPlan {
     operation_admission: WorthServerOperationAdmissionPosture,
     declaration: WorthServerProductOperationDeclaration,
     payload: WorthServerProductOperationPayload,
+    application_authorization: Option<WorthServerProductOperationAuthorization>,
     support_posture: WorthServerOperationSupportPosture,
     precondition_posture: WorthServerOperationPreconditionPosture,
     concurrency_class: WorthServerOperationConcurrencyClass,
@@ -21,6 +23,7 @@ impl WorthServerLoweredProductOperationPlan {
         operation_admission: WorthServerOperationAdmissionPosture,
         declaration: WorthServerProductOperationDeclaration,
         payload: WorthServerProductOperationPayload,
+        application_authorization: Option<WorthServerProductOperationAuthorization>,
         support_posture: WorthServerOperationSupportPosture,
         precondition_posture: WorthServerOperationPreconditionPosture,
         concurrency_class: WorthServerOperationConcurrencyClass,
@@ -44,12 +47,20 @@ impl WorthServerLoweredProductOperationPlan {
         .field("support", support_posture.canonical_digest())
         .field("precondition", precondition_posture.canonical_digest())
         .field("payload", payload.envelope().canonical_digest())
+        .field(
+            "application_authorization",
+            application_authorization
+                .as_ref()
+                .map(WorthServerProductOperationAuthorization::canonical_digest)
+                .unwrap_or("none"),
+        )
         .field("concurrency", concurrency_label(&concurrency_class))
         .finish();
         Self {
             operation_admission,
             declaration,
             payload,
+            application_authorization,
             support_posture,
             precondition_posture,
             concurrency_class,
@@ -67,6 +78,10 @@ impl WorthServerLoweredProductOperationPlan {
 
     pub fn payload(&self) -> &WorthServerProductOperationPayload {
         &self.payload
+    }
+
+    pub fn application_authorization(&self) -> Option<&WorthServerProductOperationAuthorization> {
+        self.application_authorization.as_ref()
     }
 
     pub fn support_posture(&self) -> &WorthServerOperationSupportPosture {

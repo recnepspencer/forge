@@ -1,11 +1,9 @@
 use crate::domain_capabilities::WorthQueryInvariantCatalogRegistrationArtifact;
-use crate::memory_workspace::WorthQueryMemoryWorkspace;
-use crate::runtime::{WorthQueryRuntimeBuilder, WorthQueryWorkspace};
+use crate::runtime::WorthQueryRuntimeBuilder;
 use worth_relational::facade::runtime::{
     CustomInvariantRegistration, CustomInvariantRule, InvariantCatalog,
 };
 
-use super::backend::WorthQueryInMemoryTestBackend;
 use super::domain_package_installation::{domain_package_installer, TestDomainInstaller};
 use super::error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
 use super::schema::WorthQueryTestBackendSchema;
@@ -14,14 +12,16 @@ type TestRuntimeInstaller = Box<dyn FnOnce(WorthQueryRuntimeBuilder) -> WorthQue
 
 #[derive(Default)]
 pub struct WorthQueryInMemoryTestRuntimeBuilder {
-    schema: Option<WorthQueryTestBackendSchema>,
-    invariant_catalog: InvariantCatalog,
-    custom_invariants: Vec<CustomInvariantRegistration>,
-    domain_installers: Vec<TestDomainInstaller>,
-    runtime_installers: Vec<TestRuntimeInstaller>,
-    support_profile: Option<crate::runtime::WorthQueryRuntimeSupportProfile>,
-    live_close_failures: usize,
-    collection_entity_lookup_disabled: bool,
+    pub(super) schema: Option<WorthQueryTestBackendSchema>,
+    pub(super) invariant_catalog: InvariantCatalog,
+    pub(super) custom_invariants: Vec<CustomInvariantRegistration>,
+    pub(super) domain_installers: Vec<TestDomainInstaller>,
+    pub(super) runtime_installers: Vec<TestRuntimeInstaller>,
+    pub(super) support_profile: Option<crate::runtime::WorthQueryRuntimeSupportProfile>,
+    pub(super) remask_projection: Option<crate::runtime::WorthQueryRuntimeRemaskProjection>,
+    pub(super) live_close_failures: usize,
+    pub(super) collection_entity_lookup_disabled: bool,
+    pub(super) initial_seed: Option<super::seed::WorthQueryTestSeedSpecification>,
 }
 
 pub fn in_memory_test_runtime() -> WorthQueryInMemoryTestRuntimeBuilder {
@@ -38,6 +38,14 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
     /// Injects exact backend close failures for lifecycle ownership tests.
     pub fn fail_next_live_closes(mut self, count: usize) -> Self {
         self.live_close_failures = count;
+        self
+    }
+
+    pub fn remask_projection(
+        mut self,
+        projection: crate::runtime::WorthQueryRuntimeRemaskProjection,
+    ) -> Self {
+        self.remask_projection = Some(projection);
         self
     }
 
@@ -301,73 +309,6 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
         })?;
         self.custom_invariants.push(registration);
         Ok(self)
-    }
-
-    pub fn workspace(
-        mut self,
-        name: impl Into<String>,
-    ) -> Result<WorthQueryWorkspace, WorthQueryTestBackendError> {
-        let schema = self.schema.ok_or_else(|| {
-            WorthQueryTestBackendError::new(
-                WorthQueryTestBackendErrorKind::MissingSchema,
-                "in-memory test runtime requires a schema before workspace creation",
-            )
-        })?;
-        let mut domain_installations =
-            crate::domain_installation::WorthQueryPendingDomainInstallations::default();
-        for install in self.domain_installers {
-            install(&mut domain_installations)?;
-        }
-        let compiled = domain_installations.take_compiled_substrates();
-        self.custom_invariants.extend(compiled.custom_invariants);
-        let memory_workspace = WorthQueryMemoryWorkspace::collection_with_native_contracts(
-            schema.collection(),
-            schema.memory_aspects()?,
-            schema.contracts().cloned(),
-            self.invariant_catalog,
-            self.custom_invariants,
-        )
-        .map_err(|error| {
-            WorthQueryTestBackendError::new(
-                WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
-                format!("failed to build in-memory test backend workspace: {error}"),
-            )
-        })?;
-        let backend = WorthQueryInMemoryTestBackend::with_close_failures(
-            memory_workspace,
-            self.support_profile,
-            self.live_close_failures,
-            !self.collection_entity_lookup_disabled,
-        );
-        let mut runtime_builder = WorthQueryRuntimeBuilder::new()
-            .backend(backend)
-            .with_precompiled_domain_installations(domain_installations);
-        for install in self.runtime_installers {
-            runtime_builder = install(runtime_builder);
-        }
-        runtime_builder = runtime_builder
-            .aspect_contracts(schema.contracts().cloned())
-            .map_err(|error| {
-                WorthQueryTestBackendError::new(
-                    WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
-                    format!("failed to install in-memory test schema aspect contracts: {error}"),
-                )
-            })?;
-        for obligation in compiled.graph_obligations {
-            runtime_builder = runtime_builder.graph_obligation(obligation);
-        }
-        let runtime = runtime_builder.build().map_err(|error| {
-            WorthQueryTestBackendError::new(
-                WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
-                format!("failed to build in-memory test runtime: {error}"),
-            )
-        })?;
-        WorthQueryWorkspace::new(name, runtime).map_err(|error| {
-            WorthQueryTestBackendError::new(
-                WorthQueryTestBackendErrorKind::WorkspaceBuildFailed,
-                format!("failed to build in-memory test workspace facade: {error}"),
-            )
-        })
     }
 
     fn merge_invariant_catalog(&mut self, invariant_catalog: InvariantCatalog) {

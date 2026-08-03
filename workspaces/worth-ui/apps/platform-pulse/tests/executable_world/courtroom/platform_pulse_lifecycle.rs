@@ -5,15 +5,16 @@ use crate::failure_teardown::PulseExecutableWorldFailure;
 use crate::installation::CanonicalPlatformPulse;
 use crate::native_platform::{current_platform_posture, NativePlatformPosture};
 use crate::product_process::{
-    AwaitingFirstFrame, AwaitingReplacement, CargoBuiltPlatformPulse, InitialBlue, Installed,
-    Published, PulseExecutableWorld, WatchedPulseObservationFailure, WatchedPulseTransition,
+    AwaitingFirstFrame, AwaitingReplacement, CargoBuiltPlatformPulse, FirstCurrent, IdentityTraced,
+    InitialBlue, Installed, OverlayCleared, OverlayPublished, Published, PulseExecutableWorld,
+    SecondCurrent, SnapshotCaptured, WatchedPulseObservationFailure, WatchedPulseTransition,
 };
-use crate::source_delta::GreenPulseSourceDelta;
+use crate::source_delta::{GreenPulseSourceDelta, QueryStatusV1, QueryStatusV2};
 
 use super::platform_pulse_journey::{self, PlatformPulseJourneyDeltas};
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
-const JOURNEY_BUDGET: Duration = Duration::from_secs(20);
+const JOURNEY_BUDGET: Duration = Duration::from_secs(30);
 
 #[test]
 fn canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown() {
@@ -76,7 +77,8 @@ fn expired_green_observation_preserves_action_failure_and_teardown_disposition()
     let published: PulseExecutableWorld<Published<InitialBlue>> = awaiting
         .await_first_frame(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("reach hostile initial frame: {failure}"));
-    let awaiting_green: PulseExecutableWorld<AwaitingReplacement> = published
+    let second_current = reach_second_current(published);
+    let awaiting_green: PulseExecutableWorld<AwaitingReplacement> = second_current
         .apply_green(green_delta)
         .unwrap_or_else(|failure| panic!("apply hostile green action: {failure}"));
     let expired = Instant::now()
@@ -99,6 +101,35 @@ fn expired_green_observation_preserves_action_failure_and_teardown_disposition()
     assert_eq!(failure.teardown().installation_removed(), Some(true));
     assert!(failure.teardown().all_owned_resources_released());
     discard_expected_failure_artifact(failure);
+}
+
+fn reach_second_current(
+    published: PulseExecutableWorld<Published<InitialBlue>>,
+) -> PulseExecutableWorld<Published<SecondCurrent>> {
+    let first = published
+        .reach_native_input(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile native-input stage: {failure}"))
+        .publish_first_query_value(QueryStatusV1)
+        .unwrap_or_else(|failure| panic!("publish hostile first Query value: {failure}"))
+        .await_first_query_value(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile first Query value: {failure}"));
+    let snapshot: PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>> = first
+        .await_visual_snapshot(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile snapshot stage: {failure}"));
+    let traced: PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>> = snapshot
+        .await_identity_trace(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile trace stage: {failure}"));
+    let overlay: PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>> = traced
+        .await_overlay_published(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile overlay stage: {failure}"));
+    let cleared: PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>> = overlay
+        .await_overlay_cleared(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile clear stage: {failure}"));
+    cleared
+        .publish_second_query_value(QueryStatusV2)
+        .unwrap_or_else(|failure| panic!("publish hostile second Query value: {failure}"))
+        .await_second_query_value(Instant::now() + TRANSITION_DEADLINE)
+        .unwrap_or_else(|failure| panic!("reach hostile second Query value: {failure}"))
 }
 
 fn discard_expected_failure_artifact(

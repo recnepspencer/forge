@@ -1,9 +1,11 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
 use worth_ui::facade::observation_report::{
     UiHostObservationBatch, UiHostObservationBatchInput, UiHostObservationLoss,
-    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationReport,
-    UiHostObservationSequence, UiHostObservationSequenceRange, UiHostObservationTimeBasis,
-    UiHostProtocolContract, UiHostProtocolNegotiation,
+    UiHostObservationMountedBasis, UiHostObservationPayload, UiHostObservationPresentationBasis,
+    UiHostObservationReport, UiHostObservationSequence, UiHostObservationSequenceRange,
+    UiHostObservationTimeBasis, UiHostPointerCaptureEpoch, UiHostPointerIdentity,
+    UiHostPressedPointerButtons, UiHostProtocolContract, UiHostProtocolNegotiation,
+    UiHostSurfacePosition,
 };
 use worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration;
 
@@ -41,8 +43,11 @@ pub(super) fn batch(
     UiHostObservationBatch::new(UiHostObservationBatchInput {
         protocol: protocol(),
         host_session: source.session.host_session_identity().as_u64(),
-        binding: source.binding,
-        frame: source.basis.frame,
+        presentation: UiHostObservationPresentationBasis::new(
+            source.basis.frame,
+            source.binding,
+            source.basis.epoch,
+        ),
         sequences: UiHostObservationSequenceRange::new(
             UiHostObservationSequence::new(range.0),
             UiHostObservationSequence::new(range.1),
@@ -67,11 +72,10 @@ pub(super) fn source<'a>(
 
 pub(super) fn pointer(sequence: u64, x: i64) -> UiHostObservationPayload {
     UiHostObservationPayload::PointerMotion {
-        pointer: 7,
-        capture_epoch: 3,
-        pressed_buttons: 0,
-        x_subpixels: x,
-        y_subpixels: i64::try_from(sequence).unwrap(),
+        pointer: UiHostPointerIdentity::new(7),
+        capture_epoch: UiHostPointerCaptureEpoch::new(3),
+        pressed_buttons: UiHostPressedPointerButtons::NONE,
+        position: UiHostSurfacePosition::viewport_logical(x, i64::try_from(sequence).unwrap()),
     }
 }
 

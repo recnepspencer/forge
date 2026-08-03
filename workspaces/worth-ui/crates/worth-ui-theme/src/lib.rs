@@ -254,7 +254,7 @@ mod tests {
 
         theme.apply_to_egui(&context);
 
-        let visuals = context.style().visuals.clone();
+        let visuals = context.style_of(egui::Theme::Dark).visuals.clone();
         assert_eq!(visuals.override_text_color, Some(theme.text_primary));
         assert_eq!(visuals.panel_fill, theme.bg_surface);
         assert_eq!(visuals.window_fill, theme.bg_raised);

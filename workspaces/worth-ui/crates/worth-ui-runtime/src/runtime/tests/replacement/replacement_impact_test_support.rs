@@ -70,6 +70,7 @@ pub(super) fn artifact_from_modules<const N: usize>(
 
 pub(super) fn impact_test_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(CommandDescriptor::new(
             command_id("workspace.command.save"),
             "Save",
@@ -79,6 +80,7 @@ pub(super) fn impact_test_app() -> WorthUiApp {
             "Open",
         ))
         .register_component(component("workspace.component.dashboard"))
+        .register_component(component("workspace.component.replacement"))
         .register_surface(surface(
             "workspace.surface.main",
             SurfacePlacementClass::primary_region(),
@@ -111,11 +113,20 @@ pub(super) fn impact_test_app() -> WorthUiApp {
 }
 
 pub(super) fn surface_module(surface_id: &str) -> WorthUiRustAuthoredArtifactInputModule {
-    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_surface(surface_id)
+    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_surface_authored_identity(surface_id, "impact.surface")
+}
+
+pub(super) fn component_module(component_id: &str) -> WorthUiRustAuthoredArtifactInputModule {
+    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_component(component_id)
 }
 
 pub(super) fn token_module(token_id: &str) -> WorthUiRustAuthoredArtifactInputModule {
-    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_token(token_id, token_id)
+    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui").with_token_authored_identity(
+        token_id,
+        "impact.token",
+        token_id,
+    )
 }
 
 pub(super) fn import_artifact<const N: usize>(targets: [&str; N]) -> WorthUiArtifact {

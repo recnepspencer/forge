@@ -10,6 +10,10 @@ pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
     pub(in crate::mounting::projection) plan_index: Option<u32>,
     pub(in crate::mounting::projection) static_paint:
         Option<super::super::static_paint::UiMountedStaticPaintSeed>,
+    pub(in crate::mounting::projection) semantic_text:
+        Option<super::super::semantic_text::UiMountedSemanticTextSeed>,
+    pub(in crate::mounting::projection) hit_test:
+        Option<super::super::hit_test::UiMountedHitTestSeed>,
 }
 
 #[derive(Clone, Copy)]
@@ -20,7 +24,7 @@ pub(in crate::mounting::projection) struct UiMountedProjectionSurface {
 }
 
 #[derive(Clone)]
-pub(in crate::mounting::projection) struct UiMountedSemanticProjection {
+pub(in crate::mounting) struct UiMountedSemanticProjection {
     pub(super) nodes: crate::runtime::persistent_index::UiPersistentOrdMap<
         worth_ui_host_contract::UiMountedInstanceIdentity,
         UiMountedProjectionNodeRecord,
@@ -38,6 +42,10 @@ pub(in crate::mounting::projection) struct UiMountedSemanticProjection {
     pub(super) surfaces: crate::runtime::persistent_index::UiPersistentOrdMap<
         UiSurfaceBindingGeneration,
         UiMountedProjectionSurface,
+    >,
+    projection_input_capacity: usize,
+    projection_inputs: crate::runtime::persistent_index::UiPersistentSlotTrie<
+        worth_ui_query_binding::UiProjectionInputFactReference,
     >,
 }
 
@@ -73,6 +81,8 @@ impl UiMountedSemanticProjection {
             semantic_surfaces,
             binding_by_surface,
             surfaces: surface_index,
+            projection_input_capacity: 0,
+            projection_inputs: Default::default(),
         }
     }
 
@@ -99,6 +109,13 @@ impl UiMountedSemanticProjection {
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,
     ) -> bool {
         self.membership.contains_with_probes(&instance).0
+    }
+
+    pub(in crate::mounting::projection) fn node(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<&UiMountedProjectionNodeRecord> {
+        self.nodes.get(&instance)
     }
 
     pub(in crate::mounting::projection) fn insert_node(
@@ -164,6 +181,27 @@ impl UiMountedSemanticProjection {
         })
     }
 
+    pub(in crate::mounting) fn node_receipt_with_probes(
+        &self,
+        mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> (Option<&UiMountedNodeReceipt>, usize) {
+        let (record, probes) = self.nodes.get_with_probes(&mounted_instance);
+        (record.map(|record| &record.receipt), probes)
+    }
+
+    pub(in crate::mounting) fn retained_structural_bytes(&self) -> Option<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.nodes.retained_structural_bytes()?)?
+            .checked_add(self.order.len().checked_mul(std::mem::size_of::<
+                worth_ui_host_contract::UiMountedInstanceIdentity,
+            >())?)?
+            .checked_add(self.membership.retained_structural_bytes()?)?
+            .checked_add(self.semantic_surfaces.retained_structural_bytes()?)?
+            .checked_add(self.binding_by_surface.retained_structural_bytes()?)?
+            .checked_add(self.surfaces.retained_structural_bytes()?)?
+            .checked_add(self.projection_inputs.retained_structural_bytes()?)
+    }
+
     pub(in crate::mounting::projection) fn surface_instance_count(
         &self,
         surfaces: &[UiSemanticSurfaceIdentity],
@@ -186,5 +224,52 @@ impl UiMountedSemanticProjection {
             .get(&surface)
             .and_then(|binding| self.surfaces.get(binding))
             .copied()
+    }
+
+    pub(in crate::mounting::projection) fn apply_projection_inputs(
+        &mut self,
+        content: &super::super::super::UiMountedSemanticContentInput,
+    ) {
+        use crate::mounting::semantic_content::UiMountedProjectionInputTransition as Transition;
+
+        let (capacity, inputs) = match content.projection_input_transition() {
+            Transition::Retain => return,
+            Transition::Merge { capacity, inputs } => {
+                if self.projection_input_capacity != *capacity {
+                    self.projection_input_capacity = *capacity;
+                    self.projection_inputs = Default::default();
+                }
+                (*capacity, inputs)
+            }
+            Transition::Replace { capacity, inputs } => {
+                self.projection_input_capacity = *capacity;
+                self.projection_inputs = Default::default();
+                (*capacity, inputs)
+            }
+        };
+        for (slot, transition) in inputs {
+            debug_assert!(slot.index() < capacity);
+            let predecessor = self.projection_inputs.get(slot.index()).cloned();
+            let input = transition.apply(predecessor.as_ref());
+            self.projection_inputs.insert(slot.index(), input.clone());
+        }
+    }
+
+    pub(in crate::mounting::projection) fn inherit_projection_inputs(
+        &mut self,
+        predecessor: Option<&Self>,
+    ) {
+        let Some(predecessor) = predecessor else {
+            return;
+        };
+        self.projection_input_capacity = predecessor.projection_input_capacity;
+        self.projection_inputs = predecessor.projection_inputs.clone();
+    }
+
+    pub(in crate::mounting) fn projection_input(
+        &self,
+        slot: worth_ui_query_binding::UiProjectionInputSlot,
+    ) -> Option<&worth_ui_query_binding::UiProjectionInputFactReference> {
+        self.projection_inputs.get(slot.index())
     }
 }

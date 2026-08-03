@@ -6,6 +6,7 @@ use worth_ui::facade::source::{
 #[test]
 fn named_source_event_ingress_produces_a_preparable_replacement() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("empty application preparation should succeed");
     let session = app.launch().expect("empty application should launch");
@@ -19,7 +20,7 @@ fn named_source_event_ingress_produces_a_preparable_replacement() {
         .expect("one provider revision should settle");
     assert_eq!(settled.counters().source_revisions_emitted(), 1);
     let submission = settled
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .expect("settled source should lower through the DSL handoff");
     assert_eq!(submission.counters().candidate_submissions_emitted(), 1);
     let replacement = session

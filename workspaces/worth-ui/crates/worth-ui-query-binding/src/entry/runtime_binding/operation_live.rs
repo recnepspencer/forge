@@ -62,6 +62,24 @@ impl WorthUiRuntimeQueryBinding {
         }
     }
 
+    pub fn validate_operation_live_change_observation(
+        &self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiValidatedCollectionChangeObservation,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        match self {
+            Self::QueryFree => Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::QueryNotInstalled,
+                consequence,
+            )),
+            Self::Installed(binding) => {
+                binding.validate_operation_live_change_observation(consequence)
+            }
+        }
+    }
+
     pub fn publish_staged_operation_live_changes(
         &mut self,
     ) -> crate::WorthUiCollectionChangePublicationReceipt {

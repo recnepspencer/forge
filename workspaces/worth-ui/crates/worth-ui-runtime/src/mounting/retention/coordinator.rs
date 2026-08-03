@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use worth_ui_host_contract::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiSurfaceBindingGeneration,
 };
 
 use super::authority::{
@@ -18,9 +17,11 @@ use super::{
     UiMountedFrameInspectionTarget, UiMountedFrameRetentionBudget,
     UiMountedFrameRetentionRejection, UiMountedObservationBasisLease,
     UiMountedObservationBasisRetentionDenial, UiMountedRetentionClass, UiMountedRetentionLease,
-    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiRetainedMountedDiagnostics,
-    UiRetentionPreparedMountedFrame,
+    UiPresentedFrameBasisDenial, UiPresentedFrameBasisRelation, UiPresentedHitTestBasis,
+    UiRetainedMountedDiagnostics, UiRetentionPreparedMountedFrame,
 };
+
+mod visual_lease;
 
 pub(crate) struct UiMountedFrameRetentionCoordinator {
     authority: Rc<RefCell<UiMountedFrameRetentionAuthority>>,
@@ -49,13 +50,12 @@ impl UiMountedFrameRetentionCoordinator {
 
     pub(crate) fn classify(
         &self,
-        frame: UiMountedFrameIdentity,
-        binding: UiSurfaceBindingGeneration,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
         mounted_instance: Option<UiMountedInstanceIdentity>,
         node_receipt: Option<UiMountedNodeReceiptIdentity>,
     ) -> Result<UiPresentedFrameBasisRelation, UiPresentedFrameBasisDenial> {
         let authority = self.authority.borrow();
-        let (evidence, relation) = match authority.frame(frame) {
+        let (evidence, relation) = match authority.frame(presentation.frame()) {
             UiMountedRetainedFrameLookup::Found {
                 evidence, relation, ..
             } => (evidence, relation),
@@ -66,8 +66,47 @@ impl UiMountedFrameRetentionCoordinator {
                 return Err(UiPresentedFrameBasisDenial::Unknown)
             }
         };
-        evidence.classify(binding, mounted_instance, node_receipt)?;
+        evidence.classify(presentation, mounted_instance, node_receipt)?;
         Ok(relation)
+    }
+
+    pub(crate) fn interaction_hit_test_basis(
+        &self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    ) -> Result<UiPresentedHitTestBasis, UiPresentedFrameBasisDenial> {
+        let authority = self.authority.borrow();
+        let (evidence, relation) = match authority.frame(presentation.frame()) {
+            UiMountedRetainedFrameLookup::Found {
+                evidence, relation, ..
+            } => (evidence, relation),
+            UiMountedRetainedFrameLookup::Expired { .. } => {
+                return Err(UiPresentedFrameBasisDenial::Expired)
+            }
+            UiMountedRetainedFrameLookup::Unknown { .. } => {
+                return Err(UiPresentedFrameBasisDenial::Unknown)
+            }
+        };
+        evidence.classify(presentation, None, None)?;
+        let rows = evidence
+            .visual_region_basis(presentation.binding())
+            .hit_test()
+            .to_vec()
+            .into_boxed_slice();
+        Ok(UiPresentedHitTestBasis::new(presentation, relation, rows))
+    }
+
+    pub(crate) fn current_projection_input(
+        &self,
+        slot: worth_ui_query_binding::UiProjectionInputSlot,
+    ) -> Option<worth_ui_query_binding::UiProjectionInputFactReference> {
+        let authority = self.authority.borrow();
+        match authority.current_frame() {
+            UiMountedRetainedFrameLookup::Found { evidence, .. } => {
+                evidence.projection_input(slot).cloned()
+            }
+            UiMountedRetainedFrameLookup::Expired { .. }
+            | UiMountedRetainedFrameLookup::Unknown { .. } => None,
+        }
     }
 
     pub(crate) fn inspect(
@@ -170,6 +209,10 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(UiSelectedMountedFrameInspection {
             frame: evidence.frame(),
             relation,
+            presentation: evidence
+                .presentation_receipt()
+                .expect("published retained frames carry completed presentation truth")
+                .clone(),
             presented_binding_count: evidence.presented_binding_count(),
             mounted_instance_count: evidence.mounted_instance_count(),
             selected_node_receipt,
@@ -198,6 +241,7 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(UiMountedFrameInspectionBasis {
             frame: selected.frame,
             relation: selected.relation,
+            presentation: selected.presentation,
             presented_binding_count: selected.presented_binding_count,
             mounted_instance_count: selected.mounted_instance_count,
             selected_node_receipt: selected.selected_node_receipt,
@@ -256,6 +300,7 @@ impl Default for UiMountedFrameRetentionCoordinator {
 struct UiSelectedMountedFrameInspection {
     frame: UiMountedFrameIdentity,
     relation: UiPresentedFrameBasisRelation,
+    presentation: super::super::UiMountedPresentationReceipt,
     presented_binding_count: usize,
     mounted_instance_count: usize,
     selected_node_receipt: Option<UiMountedNodeReceiptIdentity>,

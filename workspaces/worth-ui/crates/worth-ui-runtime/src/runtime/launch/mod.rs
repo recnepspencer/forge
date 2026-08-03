@@ -22,7 +22,10 @@ mod staging_transition;
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use staging_transition::WorthUiActivationStagingPlans;
 
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use launch_request::WorthUiRuntimeLaunchAuthority;
 pub use launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
+pub(crate) use lifecycle_state::WorthUiPendingActivationInput;
 pub use lifecycle_state::{
     WorthUiPendingActivation, WorthUiRuntimeFrameEpoch, WorthUiRuntimeLifecycle,
     WorthUiRuntimeShutdownReceipt,

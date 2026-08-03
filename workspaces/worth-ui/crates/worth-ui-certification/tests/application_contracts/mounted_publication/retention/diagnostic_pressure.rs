@@ -13,7 +13,8 @@ fn diagnostic_pressure_omits_new_richness_while_a_real_lease_pins_the_budget() {
         observation_basis: large_budget(),
         predecessor_inspection: large_budget(),
         diagnostic: diagnostic_budget,
-        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_overlay: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     });
     let (mut session, host, _, instance) = retention_world("mounted-diagnostic-pressure", budget);

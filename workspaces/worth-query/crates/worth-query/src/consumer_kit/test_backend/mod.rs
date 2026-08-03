@@ -6,7 +6,9 @@ mod error;
 mod installation_generation;
 mod residue_audit;
 mod schema;
+mod seed;
 mod support_profile;
+mod workspace_build;
 mod workspace_control;
 
 pub use builder::{in_memory_test_runtime, WorthQueryInMemoryTestRuntimeBuilder};
@@ -21,6 +23,7 @@ pub use residue_audit::{
     WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
 };
 pub use schema::WorthQueryTestBackendSchema;
+pub use seed::{WorthQueryTestSeedReceipt, WorthQueryTestSeedRow};
 pub use workspace_control::WorthQueryControlledTestWorkspace;
 
 #[cfg(test)]

@@ -3,17 +3,20 @@
 ## What This Feature Is
 
 Application inspection explains prepared or active Worth UI state without
-letting the caller mutate, execute, publish, or reconstruct that state. You
-submit a typed query and receive a generation-bound receipt plus explicit
-support and relevance posture.
+letting the caller mutate, execute, publish, or reconstruct that state. A typed
+query returns a generation-bound receipt plus explicit support and relevance
+posture. A completed rebind also exposes a compact terminal decision record.
 
 ## Why You Use It
 
-- Explain which declarations and graph facts were admitted.
+- Explain which declarations, graph facts, and runtime decisions were admitted.
 - Inspect a running generation without borrowing its mutable owners.
 - Ask for compact evidence first and expand selected references when needed.
-- Distinguish supported, diagnostic-only, deferred, unsupported, and
+- Distinguish supported, diagnostic-only, deferred, unsupported, expired, and
   wrong-world requests.
+- Correlate a published rebind with its exact source basis and structural work.
+- Correlate a Query transition, projection fact, mounted node, frame, and
+  presentation without promoting any correlation key into authority.
 
 ## Stable Entry Points
 
@@ -26,16 +29,25 @@ support and relevance posture.
 - `WorthUiActiveApplicationSession::inspect(...)`
 - `WorthUiApp::inspection_support_report_for(...)`
 - `WorthUiApp::expand_evidence_ref(...)`
+- `UiRebindReceipt::decision_record()`
+- `UiRebindReceipt::decision_index()`
+- `UiRebindDecisionLookup`
 
 ## Core Mental Model
 
 Inspection is a read-only projection. The prepared app or active session still
-owns the real graph, plan, mounting, observation, and publication state.
-Receipts carry identities and evidence references so results can be explained,
-but those values cannot be promoted back into operational authority.
+owns the real graph, plan, mounting, observation, rebind, and publication
+state. Receipts carry identities and evidence references so results can be
+explained, but those values cannot be promoted back into operational authority.
 
-Active inspection also carries the exact application-generation identity. Use
-it to reject or label stale results after replacement.
+Active inspection carries the exact application-generation identity. Use it to
+reject or label stale results after rebind.
+
+A published rebind receipt projects one `UiRebindDecisionRecord`. It carries
+the exact decision key, source basis, observation/fact/aspect/consumer counts,
+changed-versus-evidence-only disposition, published stop point, and structural
+cost. A bounded decision index reports `Found`, `Expired`, or `Unavailable`;
+absence is never silently relabeled as an empty decision.
 
 ## How It Executes
 
@@ -70,6 +82,26 @@ let receipt = app.inspect(query);
 This asks the prepared application for a graph-scoped summary. It does not
 launch or mutate the application.
 
+## Rebind Decision Example
+
+This fragment is compiled inside the complete public program in
+[Hot rebind](./hot-rebind.md#compiled-public-example).
+
+<!-- compile-pass-fragment:inspect_rebind_decision -->
+```rust
+fn inspect_rebind_decision(receipt: &UiRebindReceipt) -> Option<UiRebindDecisionRecord> {
+    let record = receipt.decision_record();
+    match receipt.decision_index().lookup(record.key()) {
+        UiRebindDecisionLookup::Found(exact) => Some(*exact),
+        UiRebindDecisionLookup::Expired | UiRebindDecisionLookup::Unavailable => None,
+    }
+}
+```
+
+The record is a terminal projection, not retained execution authority. Dropping
+the rebind receipt releases its registered terminal capacity; copyable
+identities and compact records do not keep retry or recovery handles alive.
+
 ## Real Example
 
 ```rust
@@ -95,28 +127,54 @@ unsupported. Evidence expansion is bounded and still read-only.
 - Inspect `WorthUiApp` before launch for prepared truth.
 - Inspect `WorthUiActiveApplicationSession` for generation-bound active truth.
 - Query-specific inspection can cite the exact Query attempt or settled
-  projection without copying it into UI-owned state.
+  projection, availability/activity/stop posture, compatibility basis, and
+  shape-specific fact without copying them into UI-owned state.
+- Rebind decision records cite the exact published source basis and structural
+  consequence counts without exposing the plan as mutable authority.
+- Visual predecessor/successor comparison uses retained snapshots plus the
+  exact rebind receipt; inspection alone cannot infer that relationship.
 
 ## Inspection And Debugging
 
-Compare the active inspection receipt’s generation identity with the current
+Compare the active inspection receipt's generation identity with the current
 session generation before displaying long-lived results. Surface explicit
-relevance and support outcomes; do not collapse them into a generic “no data.”
+relevance, `Expired`, `Unavailable`, and support outcomes; do not collapse them
+into a generic "no data."
+
+Projection evidence should be requested in layers: compact transition/fact and
+mounted correlation first, then lazy detail under an explicit evidence budget.
+Disclosure and retention posture apply to Query summaries and mounted
+correlations independently. Expired detail is a typed omission, not permission
+to reopen Query or reconstruct a fact from a digest. Inspection evidence cannot
+construct a binding or fact, even when every reporting identity matches.
+
+For rebind, inspect the decision key and source basis before counts. Then compare
+planned structural cost with the mounted and host receipts. A matching pixel or
+digest cannot repair wrong generation or frame affinity.
 
 ## Anti-Patterns
 
 - Importing runtime storage, planning, mounting, or publication modules.
 - Treating evidence identities or digests as constructors.
 - Using inspection output to drive operational mutation.
+- Reassembling a projection binding or fact from matching reporting identities.
 - Requesting rich evidence globally when a compact reference is enough.
+- Retaining hidden execution state so an inspection reference never expires.
 
 ## Current Limits
 
 Not every future scope is admitted. Deferred and diagnostic-only rows are
 intentional public truth, not incomplete success responses.
 
+Compact rebind decision records are available now. Rich causal-neighborhood
+materialization and replay/reconstruction remain deferred. They must extend
+the inspection projection and certification authority; ordinary inspection
+must not retain hidden runtime state or import replay.
+
 ## Related Docs
 
 - [Application lifecycle](./application-lifecycle.md)
+- [Hot rebind](./hot-rebind.md)
 - [Runtime subsystems](./runtime-subsystems.md)
+- [Visual inspection](./visual-inspection.md)
 - [Query-backed UI views](./query-binding.md)

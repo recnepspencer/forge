@@ -326,6 +326,14 @@ mod tests {
     #[test]
     fn worth_store_integration_target_budget_is_explicit() {
         let catalog = TestCatalog::load(workspace_root()).unwrap();
+        assert!(
+            catalog
+                .integration_target("worth-store", "physical_adapter_authority_ui")
+                .unwrap()
+                .required_features
+                .is_empty(),
+            "the adapter UI target must retain the ordinary feature graph that it seals"
+        );
         assert_eq!(
             catalog
                 .integration_target("worth-store", "physical_runtime_authority_ui")
@@ -347,6 +355,7 @@ mod tests {
         assert_eq!(
             targets,
             [
+                "physical_adapter_authority_ui",
                 "physical_media_authority_ui",
                 "physical_media_journeys",
                 "physical_record_journeys",

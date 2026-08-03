@@ -121,6 +121,20 @@ fn bounded_copy_example() {
     }
 }
 
+fn successor_physical_allocation_example() {
+    use std::num::NonZeroU64;
+    use worth_store::physical_runtime::{
+        PhysicalScopedAllocationFailure, RecoveryPhysicalAllocation, ServingPhysicalRuntime,
+    };
+
+    fn admit_recovery_bytes<'runtime>(
+        runtime: &'runtime ServingPhysicalRuntime,
+        bytes: NonZeroU64,
+    ) -> Result<RecoveryPhysicalAllocation<'runtime>, PhysicalScopedAllocationFailure> {
+        runtime.physical_allocations().admit_recovery(bytes)
+    }
+}
+
 fn consume_payload<A, B, C, D>(_: A, _: B, _: C, _: D) {}
 
 fn consume_copy(_: &[u8]) {}
@@ -131,6 +145,10 @@ pub(crate) fn run_configuration_examples() {
 }
 
 fn main() {
-    let _ = (borrowed_chunk_example, bounded_copy_example);
+    let _ = (
+        borrowed_chunk_example,
+        bounded_copy_example,
+        successor_physical_allocation_example,
+    );
     run_configuration_examples();
 }

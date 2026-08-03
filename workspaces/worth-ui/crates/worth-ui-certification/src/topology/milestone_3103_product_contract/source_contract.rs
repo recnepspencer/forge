@@ -34,16 +34,32 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
         "lib.rs",
         "lifecycle_observation_publication.rs",
         "main.rs",
+        "native_frame/rebind.rs",
         "native_frame.rs",
         "observation_contract/envelope.rs",
         "observation_contract/lifecycle.rs",
         "observation_contract/mod.rs",
         "observation_contract/projection.rs",
         "observation_contract/terminal_projection.rs",
+        "observation_contract/visual.rs",
+        "observation_contract/visual_projection.rs",
+        "observation_contract/visual_tests.rs",
+        "observation_contract/visual_value_projection.rs",
         "source_watch.rs",
+        "visual_identity_adjudication.rs",
+        "visual_identity_execution.rs",
+        "visual_identity_execution/comparison.rs",
+        "visual_identity_execution/progression.rs",
+        "visual_identity_pulse.rs",
+        "visual_observation_publication.rs",
     ]
     .into_iter()
-    .map(|path| Path::new(SOURCE_ROOT).join(path))
+    .map(|path| {
+        Path::new("apps")
+            .join("platform-pulse")
+            .join("src")
+            .join(path)
+    })
     .collect::<BTreeSet<_>>();
     let observed = inventory
         .rust_files_under(SOURCE_ROOT)
@@ -60,15 +76,26 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
 pub(super) fn audit_library_surface(source: &str) -> Result<(), String> {
     let syntax =
         syn::parse_file(source).map_err(|error| format!("pulse library should parse: {error}"))?;
-    let only_observation_module = matches!(
-        syntax.items.as_slice(),
-        [Item::Mod(module)]
-            if module.ident == "observation_contract"
-                && matches!(module.vis, Visibility::Public(_))
-                && module.content.is_none()
-    );
-    if !only_observation_module {
-        return Err("pulse library may export only the lifecycle observation contract".to_owned());
+    let public_modules = syntax
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Mod(module)
+                if matches!(module.vis, Visibility::Public(_)) && module.content.is_none() =>
+            {
+                Some(module.ident.to_string())
+            }
+            _ => None,
+        })
+        .collect::<BTreeSet<_>>();
+    let expected = BTreeSet::from([
+        "observation_contract".to_owned(),
+        "visual_identity_pulse".to_owned(),
+    ]);
+    if public_modules != expected || syntax.items.len() != expected.len() {
+        return Err(format!(
+            "pulse library exports {public_modules:?}; expected only lifecycle observation and permanent visual pulse contracts"
+        ));
     }
     Ok(())
 }
@@ -151,7 +178,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     )?;
     require_contains(
         &application,
-        "lower_to_candidate_submission(capability_app.capabilities())",
+        "attempt_source_rebind(capability_app.capabilities())",
         "source lowering",
     )?;
     Ok(())
@@ -159,7 +186,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
 
 pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), String> {
     if !envelope.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
-        || !envelope.contains("SCHEMA_VERSION: u16 = 1")
+        || !envelope.contains("SCHEMA_VERSION: u16 = 3")
         || !envelope.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !envelope.contains("MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576")
     {
@@ -183,8 +210,14 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
     let expected = [
         "ProcessStarted",
         "FirstFramePublished",
-        "ReplacementPublished",
-        "ReplacementDeniedPreserving",
+        "VisualSnapshotCaptured",
+        "VisualPointTrace",
+        "VisualOverlayPublished",
+        "VisualOverlayCleared",
+        "VisualSnapshotRetired",
+        "RebindPublished",
+        "RebindDeniedPreserving",
+        "VisualComparison",
         "ShutdownCompleted",
         "TerminalFailure",
     ];
@@ -237,7 +270,7 @@ pub(super) fn audit_projection_contract(
     for required in [
         "pubfnproject_first_frame(&mutself,source:&WorthUiSourcePackageRevision,publication:&UiMountedFramePublicationReceipt,)",
         "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,application:&WorthUiApplicationCutoverReceipt,mounted:&UiMountedFramePublicationReceipt,)",
-        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&WorthUiWatchedCandidateSubmissionDenial,)",
+        "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&UiSourceRebindAttemptFailure,)",
         "actual_native_effect_count:publication.cost_report().adapter().translated_rows()",
         "actual_native_effect_count:mounted.cost_report().adapter().translated_rows()",
     ] {

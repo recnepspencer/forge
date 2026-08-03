@@ -114,11 +114,8 @@ fn audit_phase3_successor_test_surface(manifest: &toml::Value) -> Result<(), Str
         let table = dependency.as_table().ok_or_else(|| {
             format!("pulse Windows dev dependency `{name}` should use workspace inheritance")
         })?;
-        if table.len() != 1 || table.get("workspace").and_then(toml::Value::as_bool) != Some(true) {
-            return Err(format!(
-                "pulse Windows dev dependency `{name}` should be exactly `{{ workspace = true }}`"
-            ));
-        }
+        let features = if name == "xcap" { &["wgc"][..] } else { &[] };
+        audit_workspace_dependency(name, table, features, "Windows dev dependency")?;
     }
     Ok(())
 }
@@ -149,11 +146,44 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         let table = dependency
             .as_table()
             .ok_or_else(|| format!("pulse dependency `{name}` should use workspace inheritance"))?;
-        if table.len() != 1 || table.get("workspace").and_then(toml::Value::as_bool) != Some(true) {
-            return Err(format!(
-                "pulse dependency `{name}` should be exactly `{{ workspace = true }}`"
-            ));
-        }
+        let features = if name == "eframe" { &["wgpu"][..] } else { &[] };
+        audit_workspace_dependency(name, table, features, "dependency")?;
+    }
+    Ok(())
+}
+
+fn audit_workspace_dependency(
+    name: &str,
+    table: &toml::map::Map<String, toml::Value>,
+    expected_features: &[&str],
+    owner: &str,
+) -> Result<(), String> {
+    let expected_keys = if expected_features.is_empty() {
+        ["workspace"].into_iter().collect::<BTreeSet<_>>()
+    } else {
+        ["features", "workspace"]
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+    };
+    let observed_keys = table.keys().map(String::as_str).collect::<BTreeSet<_>>();
+    let observed_features = table
+        .get("features")
+        .and_then(toml::Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .collect::<BTreeSet<_>>()
+        })
+        .unwrap_or_default();
+    let expected_features = expected_features.iter().copied().collect::<BTreeSet<_>>();
+    if table.get("workspace").and_then(toml::Value::as_bool) != Some(true)
+        || observed_keys != expected_keys
+        || observed_features != expected_features
+    {
+        return Err(format!(
+            "pulse {owner} `{name}` contract drifted: keys={observed_keys:?}, features={observed_features:?}"
+        ));
     }
     Ok(())
 }

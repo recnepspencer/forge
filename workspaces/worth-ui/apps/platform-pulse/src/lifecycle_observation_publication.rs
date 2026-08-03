@@ -3,20 +3,20 @@ use std::io::{self, Write};
 use std::rc::Rc;
 
 use worth_ui::facade::app::{
-    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationCutoverReceipt,
-    WorthUiApplicationPreparationDenial, WorthUiMountedFrameExecutionStop,
-    WorthUiNativeApplicationReplacementDenial, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeApplicationShutdownReceipt,
+    UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationPreparationDenial,
+    WorthUiMountedFrameExecutionStop, WorthUiNativeApplicationShellLaunchDenial,
+    WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{
-    WorthUiFilesystemWatcherDenial, WorthUiFilesystemWatcherShutdownReceipt,
-    WorthUiSourcePackageRevision, WorthUiWatchedCandidateSubmissionDenial,
+    UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLaunchConfigurationDenial, PlatformPulseLifecycleObservationCodecDenial,
     PlatformPulseLifecycleObservationEnvelope, PlatformPulseLifecycleObservationProjectionDenial,
     PlatformPulseLifecycleObservationStream,
 };
+
+mod query;
 
 const MAXIMUM_EVENTS: usize = 256;
 const MAXIMUM_ENCODED_BYTES: usize = 1_048_576;
@@ -89,7 +89,7 @@ impl PlatformPulseObservationPublisher {
 
     pub(crate) fn candidate_submission_failure(
         &self,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
             publication.project(|stream| stream.project_candidate_submission_failure(denial))
@@ -123,12 +123,22 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
-    pub(crate) fn native_replacement_failure(
+    pub(crate) fn native_rebind_failure(
         &self,
-        denial: &WorthUiNativeApplicationReplacementDenial,
+        denial: &WorthUiNativeSourceRebindDenial,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publication| {
-            publication.project(|stream| stream.project_native_replacement_failure(denial))
+            publication.project(|stream| stream.project_native_rebind_failure(denial))
+        })
+    }
+
+    pub(crate) fn native_rebind_outcome_failure(
+        &self,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publication| {
+            publication.project(
+                PlatformPulseLifecycleObservationStream::project_native_rebind_outcome_failure,
+            )
         })
     }
 
@@ -142,34 +152,42 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
+    pub(crate) fn native_input_reached(
+        &self,
+        reached: worth_ui_host_egui::UiEguiRawInputReachability,
+        posture: worth_ui_platform_pulse::observation_contract::PlatformPulseNativeInputIngressPosture,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publisher| {
+            publisher.project(|stream| stream.project_native_input_reached(reached, posture))
+        })
+    }
+
     pub(crate) fn replacement(
         &self,
         source: &WorthUiSourcePackageRevision,
-        application: &WorthUiApplicationCutoverReceipt,
-        mounted: &UiMountedFramePublicationReceipt,
+        receipt: &worth_ui::facade::rebind::UiRebindReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_replacement(source, application, mounted))
+            publisher.project(|stream| stream.project_replacement(source, receipt))
         })
     }
 
     pub(crate) fn preserved_predecessor(
         &self,
         source: &WorthUiSourcePackageRevision,
-        denial: &WorthUiWatchedCandidateSubmissionDenial,
+        denial: &UiSourceRebindAttemptFailure,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
             publisher.project(|stream| stream.project_preserved_predecessor(source, denial))
         })
     }
 
-    pub(crate) fn shutdown(
+    pub(crate) fn visual_comparison(
         &self,
-        watcher: &WorthUiFilesystemWatcherShutdownReceipt,
-        application: WorthUiNativeApplicationShutdownReceipt,
+        comparison: worth_ui::facade::inspection::UiVisualSnapshotComparison,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_shutdown(watcher, application))
+            publisher.project(|stream| stream.project_visual_comparison(comparison))
         })
     }
 
@@ -198,6 +216,18 @@ impl PlatformPulseObservationPublisher {
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         let mut publication = self.lock()?;
         publish(&mut publication)
+    }
+
+    pub(super) fn project_observation(
+        &self,
+        projection: impl FnOnce(
+            &mut PlatformPulseLifecycleObservationStream,
+        ) -> Result<
+            PlatformPulseLifecycleObservationEnvelope,
+            PlatformPulseLifecycleObservationProjectionDenial,
+        >,
+    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
+        self.with_publication(|publication| publication.project(projection))
     }
 
     fn lock(

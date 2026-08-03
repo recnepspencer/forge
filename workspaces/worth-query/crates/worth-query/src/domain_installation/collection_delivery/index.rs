@@ -108,6 +108,20 @@ impl WorthQueryCollectionMaintenanceIndex {
         self.delivery_supported
     }
 
+    pub(super) fn selects_native_key(&self, key: &WorthQueryNativeAccessKey) -> bool {
+        self.native_keys.contains(key)
+    }
+
+    pub(super) fn native_value(
+        &self,
+        identity: &WorthQueryEntityIdentity,
+        key: &WorthQueryNativeAccessKey,
+    ) -> Option<ConsumedNativeValue> {
+        let ordering = self.identities.get(identity)?;
+        let row = self.rows.get(ordering)?;
+        Some(native_value(&row.entity, key))
+    }
+
     pub(super) fn preview(
         &self,
         request: WorthQueryCollectionPreviewRequest<'_>,

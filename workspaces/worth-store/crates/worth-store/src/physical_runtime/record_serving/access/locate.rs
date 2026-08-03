@@ -5,7 +5,7 @@ use worth_store_physical_format::{CurrentPhysicalRecordPlacement, DurablePhysica
 
 use super::super::{
     access::{extent_read_session::ExtentReadState, record_chunk_view::RecordReadIdentity},
-    residency::{frame_loading::LoadedPhysicalFrame, ServingFrameResidency},
+    residency::{frame_loading::LoadedPhysicalFrame, PhysicalResidencyWorkPort},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, ExternalPhysicalRecordLocator,
     PhysicalLocatorReadmissionOutcome, PhysicalRecordId, RecordReadDenial, RecordReadError,
     RecordReadLimits, RecordReadObservation,
@@ -33,6 +33,12 @@ enum ReadPlacement {
     Extent(Box<ExtentReadState>),
 }
 
+/// A live, bounded read of one physical record.
+///
+/// The session owns the read allocation and at most one current frame. Use
+/// `next_chunk` to borrow decoded payload bytes or `read_next` to copy into a
+/// caller-provided buffer. A borrowed chunk cannot outlive or advance this
+/// session.
 pub struct RecordReadSession {
     placement: ReadPlacement,
     identity: RecordReadIdentity,
@@ -43,6 +49,10 @@ pub struct RecordReadSession {
     _allocation: worth_store_buffer_pool::OperationAllocationGrant,
 }
 
+/// Opens bounded record-read sessions through the serving Store.
+///
+/// The reader exposes no pool, frame, pin, eviction, or source-loading
+/// authority.
 pub struct PhysicalRecordReader {
     pub(in crate::physical_runtime::record_serving) store: StableStoreIdentity,
     pub(in crate::physical_runtime::record_serving) format: AdmittedPhysicalRecordFormat,
@@ -54,14 +64,14 @@ pub struct PhysicalRecordReader {
         std::sync::Weak<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
     pub(in crate::physical_runtime::record_serving) lifecycle:
         super::super::lifecycle::record_lifecycle::RecordReaderLease,
-    pub(in crate::physical_runtime::record_serving) residency: ServingFrameResidency,
+    pub(in crate::physical_runtime::record_serving) residency: PhysicalResidencyWorkPort,
 }
 
 impl PhysicalRecordReader {
-    const fn read_identity(&self, record: PhysicalRecordId) -> RecordReadIdentity {
-        RecordReadIdentity::new(self.store, self.generation, record)
-    }
-
+    /// Locates a record and opens a bounded read session.
+    ///
+    /// The caller-supplied limits are checked before payload streaming. A
+    /// pressure denial is available through `RecordReadError::pressure`.
     pub fn open(
         &self,
         record: PhysicalRecordId,
@@ -187,6 +197,7 @@ impl PhysicalRecordReader {
         result.map_err(|denial| self.read_error_for_record(record, denial, observation))
     }
 
+    /// Revalidates an external locator against the current Store generation.
     pub fn readmit_locator(
         &self,
         locator: ExternalPhysicalRecordLocator,
@@ -194,6 +205,7 @@ impl PhysicalRecordReader {
         super::super::access::readmission::readmit_locator(self, locator)
     }
 
+    /// Revalidates an external locator and opens its bounded read session.
     pub fn open_external(
         &self,
         locator: ExternalPhysicalRecordLocator,
@@ -218,6 +230,7 @@ impl PhysicalRecordReader {
         )
     }
 
+    /// Returns the stable physical Store identity read by this facade.
     pub const fn store_identity(&self) -> StableStoreIdentity {
         self.store
     }

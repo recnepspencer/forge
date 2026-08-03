@@ -144,6 +144,7 @@ fn resolve_node(
                 ),
             )))
         }
-        WorthUiSemanticDeclaration::SemanticArtifact(_) => Ok(None),
+        WorthUiSemanticDeclaration::Projection(_)
+        | WorthUiSemanticDeclaration::SemanticArtifact(_) => Ok(None),
     }
 }

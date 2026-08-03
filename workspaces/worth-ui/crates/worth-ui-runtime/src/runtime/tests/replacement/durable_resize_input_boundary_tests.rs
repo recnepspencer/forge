@@ -197,6 +197,7 @@ pub(crate) fn splitter_pending_activation_with_query_view_and_provenance(
 ) {
     let binding_id = view.definition().identity().as_str().to_owned();
     let app = crate::facade::WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component("workspace.component.dashboard"))
         .register_component(component("workspace.component.panel"))
         .register_surface(surface(

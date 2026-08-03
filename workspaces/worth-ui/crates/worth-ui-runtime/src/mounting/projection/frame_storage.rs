@@ -2,17 +2,17 @@ use worth_ui_host_contract::{
     UiMountedClipProjection, UiMountedLayerProjection, UiMountedLayerReference, UiMountedLayerRow,
     UiMountedPaintBatchReference, UiMountedPaintBatchRow, UiMountedPaintPrimitiveKind,
     UiMountedRealtimeBatchRow, UiMountedResourceEntry, UiMountedResourceKind,
-    UiMountedResourceReference, UiMountedSpatialBatchRow, UiSurfaceBindingGeneration,
+    UiMountedResourceReference, UiMountedSpatialBatchRow,
 };
 
 use super::UiMountedProjectionDenial;
 
+mod rebind;
 mod semantic_projection;
 mod view;
 
-pub(super) use semantic_projection::{
-    UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
-};
+pub(in crate::mounting) use semantic_projection::UiMountedSemanticProjection;
+pub(super) use semantic_projection::{UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
 use view::{UiMountedOrdinaryPaintSelector, UiMountedPlanIndexPaintSelector};
 
 const TABLE_LIMIT: usize = 2_048;
@@ -21,10 +21,13 @@ const RESOURCE_LIMIT: usize = 1_024;
 #[derive(Clone)]
 pub struct UiMountedProjectionFrame {
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    content_generation: worth_ui_host_contract::UiMountedContentGeneration,
     receipt_basis: super::super::UiMountedNodeReceiptBasis,
     plan_digest: u64,
     semantic: UiMountedSemanticProjection,
     filled_rects: Vec<worth_ui_host_contract::UiMountedFilledRectMechanic>,
+    semantic_text: Vec<worth_ui_host_contract::UiMountedSemanticTextMechanic>,
+    hit_tests: Vec<worth_ui_host_contract::UiMountedHitTestMechanic>,
     paint_batches: Vec<UiMountedPaintBatchRow>,
     layers: Vec<UiMountedLayerRow>,
     spatial_batches: Vec<UiMountedSpatialBatchRow>,
@@ -37,23 +40,34 @@ pub struct UiMountedProjectionFrame {
     ordinary_paint_selector: Option<UiMountedOrdinaryPaintSelector>,
     plan_index_paint_selectors: Vec<UiMountedPlanIndexPaintSelector>,
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
+    visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     counters: super::super::UiMountStageCounters,
+    capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
+}
+
+pub(super) struct UiMountedProjectionFrameInput {
+    pub frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    pub content_generation: worth_ui_host_contract::UiMountedContentGeneration,
+    pub receipt_basis: super::super::UiMountedNodeReceiptBasis,
+    pub plan_digest: u64,
+    pub semantic: UiMountedSemanticProjection,
+    pub counters: super::super::UiMountStageCounters,
+    pub capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
+    pub capability_profile_digest: u64,
 }
 
 impl UiMountedProjectionFrame {
-    pub(super) fn new(
-        frame: worth_ui_host_contract::UiMountedFrameIdentity,
-        receipt_basis: super::super::UiMountedNodeReceiptBasis,
-        plan_digest: u64,
-        semantic: UiMountedSemanticProjection,
-        counters: super::super::UiMountStageCounters,
-    ) -> Self {
+    pub(super) fn new(input: UiMountedProjectionFrameInput) -> Self {
         Self {
-            frame,
-            receipt_basis,
-            plan_digest,
-            semantic,
+            frame: input.frame,
+            content_generation: input.content_generation,
+            receipt_basis: input.receipt_basis,
+            plan_digest: input.plan_digest,
+            semantic: input.semantic,
             filled_rects: Vec::new(),
+            semantic_text: Vec::new(),
+            hit_tests: Vec::new(),
             paint_batches: Vec::new(),
             layers: Vec::new(),
             spatial_batches: Vec::new(),
@@ -66,7 +80,10 @@ impl UiMountedProjectionFrame {
             ordinary_paint_selector: None,
             plan_index_paint_selectors: Vec::new(),
             preview: None,
-            counters,
+            visual_overlay: None,
+            counters: input.counters,
+            capability_generation: input.capability_generation,
+            capability_profile_digest: input.capability_profile_digest,
         }
     }
 
@@ -86,10 +103,25 @@ impl UiMountedProjectionFrame {
         self.counters.finish()
     }
 
-    pub(crate) fn static_paint_structural_bytes(&self) -> Option<usize> {
-        self.filled_rects.len().checked_mul(std::mem::size_of::<
-            worth_ui_host_contract::UiMountedFilledRectMechanic,
-        >())
+    pub(crate) fn static_paint_rows(
+        &self,
+    ) -> Box<[worth_ui_host_contract::UiMountedFilledRectMechanic]> {
+        self.filled_rects.clone().into_boxed_slice()
+    }
+
+    pub(crate) fn hit_test_rows(&self) -> Box<[worth_ui_host_contract::UiMountedHitTestMechanic]> {
+        self.hit_tests.clone().into_boxed_slice()
+    }
+
+    pub(in crate::mounting) fn identity_trace_basis(
+        &self,
+        source: crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
+    ) -> super::super::UiMountedIdentityTraceBasis {
+        super::super::UiMountedIdentityTraceBasis::new(
+            self.receipt_basis.clone(),
+            self.semantic.clone(),
+            source,
+        )
     }
 
     pub(super) fn record_ordinary(
@@ -116,6 +148,30 @@ impl UiMountedProjectionFrame {
         )?;
         self.record_rows::<worth_ui_host_contract::UiMountedFilledRectMechanic>(rows.len())?;
         self.filled_rects.extend(rows);
+        Ok(())
+    }
+
+    pub(super) fn complete_semantic_text(&mut self) -> Result<(), UiMountedProjectionDenial> {
+        let rows = super::semantic_text::complete_semantic_text(
+            super::semantic_text::UiMountedSemanticTextCompletionContext {
+                frame: self.frame,
+                content_generation: self.content_generation,
+                receipt_basis: &self.receipt_basis,
+                semantic: &self.semantic,
+                capability_generation: self.capability_generation,
+                capability_profile_digest: self.capability_profile_digest,
+            },
+        )?;
+        self.record_rows::<worth_ui_host_contract::UiMountedSemanticTextMechanic>(rows.len())?;
+        self.semantic_text.extend(rows);
+        Ok(())
+    }
+
+    pub(super) fn complete_hit_tests(&mut self) -> Result<(), UiMountedProjectionDenial> {
+        let rows =
+            super::hit_test::complete_hit_tests(self.frame, &self.receipt_basis, &self.semantic)?;
+        self.record_rows::<worth_ui_host_contract::UiMountedHitTestMechanic>(rows.len())?;
+        self.hit_tests.extend(rows);
         Ok(())
     }
 
@@ -204,33 +260,26 @@ impl UiMountedProjectionFrame {
         Ok(())
     }
 
-    pub(crate) fn rebound(
-        &self,
-        replacements: &[(
-            UiSurfaceBindingGeneration,
-            super::super::UiSurfaceBindingIdentityView,
-        )],
-    ) -> Result<Self, UiMountedProjectionDenial> {
-        let mut rebound = self.clone();
-        for (affected, replacement) in replacements {
-            let mut surface = rebound
+    pub(super) fn record_visual_overlay(
+        &mut self,
+        overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    ) -> Result<(), UiMountedProjectionDenial> {
+        if let Some(overlay) = overlay {
+            let instance = overlay.target_receipt.mounted_instance();
+            let target = self
                 .semantic
-                .surfaces
-                .get(affected)
-                .copied()
-                .ok_or(UiMountedProjectionDenial::MissingSurfaceBinding)?;
-            if surface.surface != replacement.semantic_surface_identity() {
-                return Err(UiMountedProjectionDenial::MissingSurfaceBinding);
+                .nodes
+                .get(&instance)
+                .ok_or(UiMountedProjectionDenial::VisualOverlayTargetMissing)?;
+            if target.receipt.semantic_surface() != overlay.surface {
+                return Err(UiMountedProjectionDenial::VisualOverlaySurfaceMismatch);
             }
-            rebound.semantic.surfaces.remove(affected);
-            surface.binding = replacement.binding_generation();
-            rebound.semantic.surfaces.insert(surface.binding, surface);
+            self.visual_overlay = Some(overlay);
         }
-        super::static_paint::rebind_filled_rects(&mut rebound.filled_rects, replacements)?;
-        Ok(rebound)
+        Ok(())
     }
 
-    pub(super) fn semantic_projection(&self) -> &UiMountedSemanticProjection {
+    pub(in crate::mounting) fn semantic_projection(&self) -> &UiMountedSemanticProjection {
         &self.semantic
     }
 

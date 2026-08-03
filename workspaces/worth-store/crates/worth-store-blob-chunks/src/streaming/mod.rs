@@ -16,16 +16,13 @@ pub use chunk_streaming::{
     BlobChunkStreamingResidencyProof, BlobChunkStreamingWindow,
 };
 pub use ingest::{
-    reject_allocation_denial_as_streaming_ingest, reject_full_blob_vec_as_streaming_ingest,
-    reject_scalar_backend_api_as_streaming_ingest, BlobStreamingChunkWriter,
-    BlobStreamingContentFrontier, BlobStreamingCounterBackedPerformanceReceipt,
-    BlobStreamingIngest, BlobStreamingIngestCounterSnapshot, BlobStreamingIngestDenial,
-    BlobStreamingIngestExecution, BlobStreamingIngestRequest, BlobStreamingPressureAdmission,
-    BlobStreamingResidencyProof, BlobStreamingSourceFrame, BlobStreamingWindow,
-    BlobStreamingWrittenChunk,
+    reject_full_blob_vec_as_streaming_ingest, reject_scalar_backend_api_as_streaming_ingest,
+    BlobStreamingChunkWriter, BlobStreamingContentFrontier,
+    BlobStreamingCounterBackedPerformanceReceipt, BlobStreamingIngest,
+    BlobStreamingIngestCounterSnapshot, BlobStreamingIngestDenial, BlobStreamingIngestExecution,
+    BlobStreamingIngestRequest, BlobStreamingPressureAdmission, BlobStreamingResidencyProof,
+    BlobStreamingSourceFrame, BlobStreamingWindow, BlobStreamingWrittenChunk,
 };
-#[cfg(feature = "certification-test-authority")]
-pub use ingest::{LargeRecordStreamingEnvelope, LargeRecordStreamingEnvelopeDenial};
 pub use operation_counters::BlobChunkStreamingCounterSnapshot;
 #[cfg(test)]
 pub(crate) use read::test_support::layout_runtime_case;

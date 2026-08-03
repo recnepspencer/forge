@@ -14,6 +14,7 @@ pub(in crate::physical_runtime::record_serving) enum FrameLoadFailureKind {
         cause: FrameLoadFaultCause,
     },
     AccessLimitExceeded,
+    ArtifactLengthMismatch,
     InvalidCoordinate,
     ReturnedFrameIdentityMismatch,
     CoalescedFault(worth_store_buffer_pool::PhysicalFrameLoadTerminal),

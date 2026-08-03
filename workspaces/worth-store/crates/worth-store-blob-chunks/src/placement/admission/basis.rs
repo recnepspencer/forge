@@ -1,5 +1,5 @@
 use worth_store_physical_backend::StoreExternalPlacementRecoverabilityEvidence;
-use worth_store_tiering::TierPlacementIoAdmission;
+use worth_store_tiering::ColdTierIoPosture;
 
 use crate::{BlobChunkReachabilityProofSet, BlobChunkSecurityMetadataWitness, StoredChunkDigest};
 
@@ -35,7 +35,7 @@ impl BlobPlacementReachabilityBasis {
         )
     }
 
-    pub(crate) fn admits_readiness(&self, readiness: &TierPlacementIoAdmission) -> bool {
-        readiness.cold_tier_posture().security_scope() == self.security_metadata.identity()
+    pub(crate) fn admits_cold_posture(&self, posture: &ColdTierIoPosture) -> bool {
+        posture.security_scope() == self.security_metadata.identity()
     }
 }

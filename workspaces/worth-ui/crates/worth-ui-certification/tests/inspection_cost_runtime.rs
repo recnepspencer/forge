@@ -253,6 +253,7 @@ fn obligation_projection_count(
 
 fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.inspection-cost")
                 .with_semantic_artifact_spec(
@@ -272,6 +273,7 @@ fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
 
 fn aspect_cost_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.inspection-cost.aspect",

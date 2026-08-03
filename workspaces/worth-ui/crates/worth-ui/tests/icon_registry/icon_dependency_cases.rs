@@ -9,6 +9,7 @@ use super::icon_fixtures::{
 #[test]
 fn command_references_missing_icon_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             command_descriptor("workspace.command.save", "Save")
                 .with_icon(icon_id("workspace.icon.save")),
@@ -26,6 +27,7 @@ fn command_references_missing_icon_rejected() {
 #[test]
 fn command_icon_reference_resolves_against_registered_icon() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("workspace.icon.save"))
         .register_command(
             command_descriptor("workspace.command.save", "Save")
@@ -41,6 +43,7 @@ fn command_icon_reference_resolves_against_registered_icon() {
 #[test]
 fn surface_references_missing_icon_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(
             surface_descriptor("workspace.surface.editor", "workspace.component.editor")
@@ -59,6 +62,7 @@ fn surface_references_missing_icon_rejected() {
 #[test]
 fn surface_icon_reference_survives_freeze_when_registered() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(surface_icon("workspace.icon.surface"))
         .register_component(component_descriptor("workspace.component.editor"))
         .register_surface(
@@ -79,6 +83,7 @@ fn surface_icon_reference_survives_freeze_when_registered() {
 #[test]
 fn runtime_outcome_projection_references_missing_icon_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(denied_projection_with_icon(
             "workspace.outcome.denied",
             "workspace.icon.denied",
@@ -99,6 +104,7 @@ fn runtime_outcome_projection_references_missing_icon_rejected() {
 #[test]
 fn rejected_icon_dependency_does_not_poison_valid_icons() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(command_icon("workspace.icon.valid"))
         .register_command(
             command_descriptor("workspace.command.missing", "Missing")
@@ -124,6 +130,7 @@ fn rejected_icon_dependency_does_not_poison_valid_icons() {
 #[test]
 fn runtime_outcome_icon_reference_resolves_when_registered() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_icon(runtime_outcome_icon("workspace.icon.denied"))
         .register_runtime_outcome_projection(denied_projection_with_icon(
             "workspace.outcome.denied",

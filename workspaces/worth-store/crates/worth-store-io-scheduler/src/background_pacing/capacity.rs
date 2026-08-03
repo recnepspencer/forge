@@ -4,14 +4,13 @@ use worth_store_security::StoreSecurityScopeIdentity;
 use crate::foreground_reservation::{ForegroundIoLaneKind, ForegroundReservationReceipt};
 use crate::{
     IoSchedulerBackendCapabilityAdmission, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerIsolationAdmission, SecureIoOperation, SecureIoPreservationDenial,
-    SecureIoPreservationReceipt,
+    SecureIoOperation, SecureIoPreservationDenial, SecureIoPreservationReceipt,
 };
 
 use super::budget::require_policy_receipt;
 use super::{
     BackgroundIoPressureShape, BackgroundPacingAdmissionBasis, BackgroundPacingDenial,
-    BackgroundPacingFreshness, BackgroundPacingProgressionEvidence, BackgroundResourceBudget,
+    BackgroundResourceBudget,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -19,13 +18,11 @@ pub struct BackgroundCapacityAdmissionRequest<'a> {
     pressure: BackgroundIoPressureShape,
     foreground: &'a ForegroundReservationReceipt,
     backend: &'a IoSchedulerBackendCapabilityAdmission,
-    readiness: &'a IoSchedulerIsolationAdmission,
     security_scope_identity: StoreSecurityScopeIdentity,
     idle_available: BackgroundResourceBudget,
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
     policy_receipt: FoundationalPolicyAdmissionReceipt,
-    freshness: BackgroundPacingFreshness,
     secure_io: Option<SecureIoPreservationReceipt>,
 }
 
@@ -37,7 +34,6 @@ pub struct BackgroundCapacityAdmission {
     policy_admitted: BackgroundResourceBudget,
     debt_limit: BackgroundResourceBudget,
     policy_receipt: FoundationalPolicyAdmissionReceipt,
-    freshness: BackgroundPacingFreshness,
     secure_io: Option<SecureIoPreservationReceipt>,
 }
 
@@ -56,14 +52,12 @@ pub fn admit_background_capacity(
             request.pressure.class(),
             request.foreground,
             request.backend,
-            request.readiness,
             request.security_scope_identity,
         ),
         idle_available: request.idle_available,
         policy_admitted: request.policy_admitted,
         debt_limit: request.debt_limit,
         policy_receipt: request.policy_receipt,
-        freshness: request.freshness,
         secure_io: request.secure_io,
     })
 }
@@ -73,7 +67,6 @@ impl<'a> BackgroundCapacityAdmissionRequest<'a> {
         pressure: BackgroundIoPressureShape,
         foreground: &'a ForegroundReservationReceipt,
         backend: &'a IoSchedulerBackendCapabilityAdmission,
-        readiness: &'a IoSchedulerIsolationAdmission,
         policy_receipt: FoundationalPolicyAdmissionReceipt,
     ) -> Self {
         let requested = pressure.requested_budget();
@@ -81,13 +74,11 @@ impl<'a> BackgroundCapacityAdmissionRequest<'a> {
             pressure,
             foreground,
             backend,
-            readiness,
             security_scope_identity: foreground.security_scope_identity(),
             idle_available: requested,
             policy_admitted: requested,
             debt_limit: BackgroundResourceBudget::new(),
             policy_receipt,
-            freshness: BackgroundPacingProgressionEvidence::current(readiness).freshness(),
             secure_io: None,
         }
     }
@@ -111,14 +102,6 @@ impl<'a> BackgroundCapacityAdmissionRequest<'a> {
         self.policy_receipt = policy_receipt;
         self
     }
-    pub fn with_progression_evidence(
-        mut self,
-        evidence: BackgroundPacingProgressionEvidence,
-    ) -> Self {
-        self.freshness = evidence.freshness();
-        self
-    }
-
     pub const fn with_secure_io_scope(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
         self.secure_io = Some(secure_io);
         self
@@ -144,10 +127,6 @@ impl BackgroundCapacityAdmission {
     pub const fn policy_receipt(&self) -> &FoundationalPolicyAdmissionReceipt {
         &self.policy_receipt
     }
-    pub const fn freshness(&self) -> BackgroundPacingFreshness {
-        self.freshness
-    }
-
     pub const fn secure_io(&self) -> Option<SecureIoPreservationReceipt> {
         self.secure_io
     }
@@ -205,7 +184,6 @@ fn require_background_basis(
         return Err(BackgroundPacingDenial::SecureBackgroundPressureRequiresSecurityBoundBackend);
     }
     require_secure_io_scope(request)?;
-    let _readiness = request.readiness.background_maintenance();
     Ok(())
 }
 

@@ -1,20 +1,19 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
 use worth_ui::facade::declaration::{
-    CommandDescriptor, CommandId, ComponentAllocationMeasurementContract,
-    ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentRealtimeOverlayContract, ComponentRealtimeOverlayPriority,
-    ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
-    MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
-    MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicRegionKindDescriptor,
-    MosaicRegionKindId, MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission,
-    MosaicScrollOwnership, MosaicSizingBehavior, MosaicSizingContractDescriptor,
-    MosaicSizingContractId, MosaicSizingKind, MosaicSizingPersistence, MosaicStateOwnerIdentity,
-    MosaicStatePersistencePolicy, MosaicStateReplacementRule, MosaicStateSlotDescriptor,
-    MosaicStateSlotId, MosaicStateSlotKind, MosaicStateTruthPosture, MosaicViewportConstraint,
-    NamedMeasurementDefinition, NamedMeasurementToken, SurfaceDescriptor, SurfaceId, SurfaceKind,
-    SurfacePlacementClass, SurfaceStateClass, ThemeColorValue, ThemeTokenAlias,
-    ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
-    ViewBindingId,
+    CommandDescriptor, CommandId, ComponentCanvasSpatialContract, ComponentChildPolicy,
+    ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentRealtimeOverlayContract,
+    ComponentRealtimeOverlayPriority, ComponentStateOwnership, MeasurementConstraint,
+    MeasurementValue, MosaicChildRule, MosaicClippingPosture, MosaicFocusScopeKind,
+    MosaicHitTestPosture, MosaicMeasurementAuthority, MosaicOverflowBehavior,
+    MosaicParentGrowthBehavior, MosaicRegionKindDescriptor, MosaicRegionKindId,
+    MosaicRegionPersistence, MosaicRegionRole, MosaicResizePermission, MosaicScrollOwnership,
+    MosaicSizingBehavior, MosaicSizingContractDescriptor, MosaicSizingContractId, MosaicSizingKind,
+    MosaicSizingPersistence, MosaicStateOwnerIdentity, MosaicStatePersistencePolicy,
+    MosaicStateReplacementRule, MosaicStateSlotDescriptor, MosaicStateSlotId, MosaicStateSlotKind,
+    MosaicStateTruthPosture, MosaicViewportConstraint, NamedMeasurementDefinition,
+    NamedMeasurementToken, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
+    SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
+    ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingId,
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
 use worth_ui::facade::query_binding::WorthUiQueryViewRegistration;
@@ -43,16 +42,28 @@ pub(crate) const PREVIEW_REGION: &str = "workspace.region.preview_split";
 pub(crate) const PREVIEW_SIZING: &str = "workspace.sizing.preview_splitter";
 pub(crate) const PREVIEW_STATE_SLOT: &str = "workspace.state.preview_splitter_position";
 pub(crate) const PREVIEW_SCROLL_STATE_SLOT: &str = "workspace.state.preview_scroll_position";
-pub(crate) const PLATFORM_PULSE_COMPONENT: &str = "platform.pulse.component.seed";
-pub(crate) const PLATFORM_PULSE_SURFACE: &str = "platform.pulse.surface.main";
-pub(crate) const PLATFORM_PULSE_FILL_TOKEN: &str = "theme.platform_pulse.fill";
-pub(crate) const PLATFORM_PULSE_BLUE_TOKEN: &str = "theme.platform_pulse.blue";
-pub(crate) const PLATFORM_PULSE_GREEN_TOKEN: &str = "theme.platform_pulse.green";
+pub(crate) use super::platform_pulse_application::{
+    platform_pulse_application_builder_with_host,
+    platform_pulse_application_builder_with_host_and_unrelated_width, unrelated_component_id,
+    PLATFORM_PULSE_BACKGROUND_COMPONENT, PLATFORM_PULSE_BLUE_TOKEN, PLATFORM_PULSE_FILL_TOKEN,
+    PLATFORM_PULSE_GREEN_TOKEN, PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT,
+    PLATFORM_PULSE_IDENTITY_TARGET_FILL_TOKEN, PLATFORM_PULSE_SURFACE, PLATFORM_PULSE_YELLOW_TOKEN,
+};
 
 pub(crate) fn application_builder(
     query: &WorthUiInstalledQueryTestFixture,
 ) -> WorthUiApplicationBuilder {
-    application_builder_with_host(query, WorthUiHeadlessHost)
+    application_builder_with_change_profile(
+        query,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+    )
+}
+
+pub(crate) fn application_builder_with_change_profile(
+    query: &WorthUiInstalledQueryTestFixture,
+    profile: worth_ui::facade::rebind::UiChangeProfile,
+) -> WorthUiApplicationBuilder {
+    application_builder_with_host_and_change_profile(query, WorthUiHeadlessHost, profile)
 }
 
 pub(crate) fn application_builder_with_host<Host>(
@@ -62,7 +73,23 @@ pub(crate) fn application_builder_with_host<Host>(
 where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
+    application_builder_with_host_and_change_profile(
+        query,
+        host,
+        worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
+    )
+}
+
+fn application_builder_with_host_and_change_profile<Host>(
+    query: &WorthUiInstalledQueryTestFixture,
+    host: Host,
+    profile: worth_ui::facade::rebind::UiChangeProfile,
+) -> WorthUiApplicationBuilder
+where
+    Host: WorthUiOperationalHostAdapter + 'static,
+{
     WorthUi::app()
+        .with_change_profile(profile)
         .with_host(host)
         .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
             ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
@@ -105,61 +132,6 @@ where
         .register_mosaic_state_slot(state_slot())
         .register_query_view(WorthUiQueryViewRegistration::new(query.installed_view()))
         .expect("installed Query view should register through the production builder")
-}
-
-pub(crate) fn platform_pulse_application_builder_with_host<Host>(
-    host: Host,
-) -> WorthUiApplicationBuilder
-where
-    Host: WorthUiOperationalHostAdapter + 'static,
-{
-    WorthUi::app()
-        .with_host(host)
-        .register_component(
-            component(PLATFORM_PULSE_COMPONENT)
-                .with_theme_token_dependency(
-                    ThemeTokenId::new(PLATFORM_PULSE_FILL_TOKEN)
-                        .expect("valid platform pulse fill token id"),
-                )
-                .with_allocation_measurement_contract(
-                    ComponentAllocationMeasurementContract::fill_viewport(),
-                ),
-        )
-        .register_surface(SurfaceDescriptor::new(
-            SurfaceId::new(PLATFORM_PULSE_SURFACE).expect("valid platform pulse surface id"),
-            SurfaceKind::primary_content(),
-            ComponentId::new(PLATFORM_PULSE_COMPONENT).expect("valid platform pulse component id"),
-            SurfacePlacementClass::primary_region(),
-            SurfaceStateClass::ephemeral(),
-        ))
-        .register_theme_token(ThemeTokenDescriptor::define(
-            ThemeTokenId::new(PLATFORM_PULSE_BLUE_TOKEN)
-                .expect("valid platform pulse blue token id"),
-            ThemeTokenFamily::surface(),
-            ThemeTokenSource::application(),
-            ThemeTokenValue::color(
-                ThemeColorValue::hex("#2f81f7").expect("valid platform pulse blue"),
-            ),
-        ))
-        .register_theme_token(ThemeTokenDescriptor::define(
-            ThemeTokenId::new(PLATFORM_PULSE_GREEN_TOKEN)
-                .expect("valid platform pulse green token id"),
-            ThemeTokenFamily::surface(),
-            ThemeTokenSource::application(),
-            ThemeTokenValue::color(
-                ThemeColorValue::hex("#3fb950").expect("valid platform pulse green"),
-            ),
-        ))
-        .register_theme_token(ThemeTokenDescriptor::alias(
-            ThemeTokenId::new(PLATFORM_PULSE_FILL_TOKEN)
-                .expect("valid platform pulse fill token id"),
-            ThemeTokenFamily::surface(),
-            ThemeTokenSource::application(),
-            ThemeTokenAlias::to(
-                ThemeTokenId::new(PLATFORM_PULSE_BLUE_TOKEN)
-                    .expect("valid platform pulse blue token id"),
-            ),
-        ))
 }
 
 pub(crate) fn cross_lane_application_builder_with_host<Host>(

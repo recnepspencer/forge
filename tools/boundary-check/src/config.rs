@@ -66,6 +66,8 @@ pub(crate) struct SourceDependencyContractConfig {
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct SourceIdentifierDenialConfig {
     pub(crate) root: String,
+    #[serde(default)]
+    pub(crate) exclude_paths: Vec<String>,
     pub(crate) forbidden_identifiers: Vec<String>,
     #[serde(default)]
     pub(crate) forbidden_identifier_fragments: Vec<String>,

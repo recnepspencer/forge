@@ -83,6 +83,7 @@ fn denied_graph_mutation_publishes_no_replacement_snapshot() {
 #[test]
 fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
     let denial = match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-mutation.freeze-denial",
@@ -114,6 +115,7 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
 
 fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-mutation")
                 .with_semantic_artifact_spec(control_spec()),

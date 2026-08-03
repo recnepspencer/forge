@@ -25,7 +25,6 @@ mod existing_artifact_family;
 mod handoff_readiness;
 mod physical_authority;
 mod physical_integrity;
-mod physical_substrate;
 mod resources;
 mod roadmap_scope;
 
@@ -65,7 +64,6 @@ pub use physical_integrity::readiness::{
 pub use physical_integrity::readiness::{
     PhysicalIntegrityReadinessDenial, PhysicalIntegrityReadinessDenialKind,
 };
-pub use physical_substrate::PhysicalSubstrateReadinessSnapshot;
 pub use resources::{
     BackgroundPressureDeclaration, BackgroundPressureKind, QueueProducerKind,
     QueueProducerResourceShape,

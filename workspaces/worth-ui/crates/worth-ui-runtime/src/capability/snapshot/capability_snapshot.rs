@@ -1,13 +1,13 @@
 use crate::capability::{
     CapabilitySnapshotFreezeInput, CapabilitySnapshotIndex, CapabilitySnapshotIndexParts,
     CapabilitySupportCatalog, FrozenCommandCapabilities, FrozenCommandProjectionCapabilities,
-    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenMosaicPlacementCapabilities,
-    FrozenMosaicRegionCapabilities, FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities,
-    FrozenNativeCapabilities, FrozenPluginSlotCapabilities,
-    FrozenRuntimeOutcomeProjectionCapabilities, FrozenSettingCapabilities,
-    FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities, FrozenThemeTokenCapabilities,
-    FrozenViewBindingCapabilities, RegisteredCapabilitySet, SnapshotFreezeReport,
-    SnapshotReferenceValidationReport,
+    FrozenComponentCapabilities, FrozenIconCapabilities, FrozenIntentDefinitionCapabilities,
+    FrozenMosaicPlacementCapabilities, FrozenMosaicRegionCapabilities,
+    FrozenMosaicSizingCapabilities, FrozenMosaicStateCapabilities, FrozenNativeCapabilities,
+    FrozenPluginSlotCapabilities, FrozenRuntimeOutcomeProjectionCapabilities,
+    FrozenSettingCapabilities, FrozenSurfaceCapabilities, FrozenTaskPresentationCapabilities,
+    FrozenThemeTokenCapabilities, FrozenViewBindingCapabilities, RegisteredCapabilitySet,
+    SnapshotFreezeReport, SnapshotReferenceValidationReport,
 };
 
 use super::{CapabilitySnapshotDigest, SnapshotMetrics};
@@ -20,6 +20,7 @@ pub struct CapabilitySnapshot {
     command_projections: FrozenCommandProjectionCapabilities,
     components: FrozenComponentCapabilities,
     icons: FrozenIconCapabilities,
+    intent_definitions: FrozenIntentDefinitionCapabilities,
     surfaces: FrozenSurfaceCapabilities,
     mosaic_regions: FrozenMosaicRegionCapabilities,
     mosaic_placement_policies: FrozenMosaicPlacementCapabilities,
@@ -53,6 +54,7 @@ impl CapabilitySnapshot {
             command_projections: input.command_projections,
             components: input.components,
             icons: input.icons,
+            intent_definitions: input.intent_definitions,
             surfaces: input.surfaces,
             mosaic_regions: input.mosaic_regions,
             mosaic_placement_policies: input.mosaic_placement_policies,
@@ -91,6 +93,10 @@ impl CapabilitySnapshot {
 
     pub fn icons(&self) -> &FrozenIconCapabilities {
         &self.icons
+    }
+
+    pub fn intent_definitions(&self) -> &FrozenIntentDefinitionCapabilities {
+        &self.intent_definitions
     }
 
     pub fn surfaces(&self) -> &FrozenSurfaceCapabilities {
@@ -173,6 +179,7 @@ impl CapabilitySnapshot {
             command_projections: &self.command_projections,
             components: &self.components,
             icons: &self.icons,
+            intent_definitions: &self.intent_definitions,
             surfaces: &self.surfaces,
             mosaic_regions: &self.mosaic_regions,
             mosaic_placement_policies: &self.mosaic_placement_policies,

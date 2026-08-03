@@ -11,6 +11,7 @@ use super::mosaic_placement_registry_fixtures::{complete_policy, placement_id};
 #[test]
 fn overlay_policy_with_explicit_runtime_support_is_admitted() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy(
                 "workspace.placement.overlay",

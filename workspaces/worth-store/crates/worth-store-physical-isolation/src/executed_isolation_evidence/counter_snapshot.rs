@@ -1,4 +1,4 @@
-use crate::IsolationReadinessDenial;
+use crate::ExecutedIsolationEvidenceDenial;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalIsolationCounterSnapshot {
@@ -38,15 +38,15 @@ impl PhysicalIsolationCounterSnapshot {
         blocked_maintenance_count: u64,
         reclaim_block_count: u64,
         protected_byte_footprint: u64,
-    ) -> Result<Self, IsolationReadinessDenial> {
+    ) -> Result<Self, ExecutedIsolationEvidenceDenial> {
         if latch_counter_rows == 0 {
-            return Err(IsolationReadinessDenial::MissingLatchCounters);
+            return Err(ExecutedIsolationEvidenceDenial::MissingLatchCounters);
         }
         if reclaim_counter_rows == 0 {
-            return Err(IsolationReadinessDenial::MissingReclaimCounters);
+            return Err(ExecutedIsolationEvidenceDenial::MissingReclaimCounters);
         }
         if protected_byte_footprint == 0 {
-            return Err(IsolationReadinessDenial::MissingProtectedByteFootprint);
+            return Err(ExecutedIsolationEvidenceDenial::MissingProtectedByteFootprint);
         }
         Ok(Self {
             outcome_count,

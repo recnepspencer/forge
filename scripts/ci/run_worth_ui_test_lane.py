@@ -33,7 +33,12 @@ FULL_LANE_WORKERS = 2
 
 
 def cargo(*arguments: str) -> list[str]:
-    return ["cargo", *arguments, "--manifest-path", str(MANIFEST)]
+    command = ["cargo", *arguments]
+    manifest = ["--manifest-path", str(MANIFEST)]
+    if "--" not in command:
+        return [*command, *manifest]
+    separator = command.index("--")
+    return [*command[:separator], *manifest, *command[separator:]]
 
 
 def fast_commands() -> list[list[str]]:
@@ -70,6 +75,23 @@ def filesystem_contract_commands() -> list[list[str]]:
             "--test",
             "application_contracts",
             "filesystem_",
+        )
+    ]
+
+
+def closure_stress_commands() -> list[list[str]]:
+    return [
+        cargo(
+            "test",
+            "--all-features",
+            "-p",
+            "worth-ui-certification",
+            "--test",
+            "application_contracts",
+            "closure_stress_",
+            "--",
+            "--ignored",
+            "--nocapture",
         )
     ]
 
@@ -139,6 +161,8 @@ def commands_for(lane: str) -> list[list[str]]:
         return platform_check_commands()
     if lane == "filesystem-contract":
         return filesystem_contract_commands()
+    if lane == "closure-stress":
+        return closure_stress_commands()
     if lane == "full":
         return full_commands()
     raise ValueError(f"unknown lane: {lane}")
@@ -156,6 +180,7 @@ def parse_args() -> argparse.Namespace:
             "dependency-contract",
             "platform-check",
             "filesystem-contract",
+            "closure-stress",
             "full",
         ),
     )

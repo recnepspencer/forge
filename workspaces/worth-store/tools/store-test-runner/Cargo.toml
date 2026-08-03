@@ -17,3 +17,9 @@ physical-work-evidence = [
     "dep:worth-store",
     "worth-store/certification-test-authority",
 ]
+
+[dev-dependencies]
+trybuild = "1.0"
+worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store-io-scheduler.workspace = true
+worth-store-physical-isolation.workspace = true

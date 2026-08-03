@@ -91,14 +91,36 @@ fn container_peer_group_ids(
             .lookup()
             .slot_occupants(parent_node_identity, slot_topology.slot_name())
             .value()
-            .to_vec();
+            .iter()
+            .copied()
+            .filter(|candidate| {
+                belongs_to_peer_neighborhood(snapshot, root_graph_node_identity, *candidate)
+            })
+            .collect();
     }
 
     snapshot
         .lookup()
         .child_nodes(parent_node_identity)
         .value()
-        .to_vec()
+        .iter()
+        .copied()
+        .filter(|candidate| {
+            belongs_to_peer_neighborhood(snapshot, root_graph_node_identity, *candidate)
+        })
+        .collect()
+}
+
+fn belongs_to_peer_neighborhood(
+    snapshot: &UiGraphSnapshot,
+    root: UiGraphNodeIdentity,
+    candidate: UiGraphNodeIdentity,
+) -> bool {
+    candidate == root
+        || snapshot
+            .lookup()
+            .graph_node(candidate)
+            .is_some_and(|record| record.value().measurement_basis_source().is_none())
 }
 
 fn repeated_instance_basis_for(

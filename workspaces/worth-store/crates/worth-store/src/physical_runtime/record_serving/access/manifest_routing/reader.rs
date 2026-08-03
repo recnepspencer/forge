@@ -7,7 +7,7 @@ use worth_store_physical_format::{
 };
 
 use crate::physical_runtime::record_serving::{
-    residency::{record_frame_reader::RecordFrameReader, ServingFrameResidency},
+    residency::{record_frame_reader::RecordFrameReader, PhysicalResidencyWorkPort},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
 };
 
@@ -48,7 +48,7 @@ impl<'media> ManifestReader<'media> {
     }
 
     pub(in crate::physical_runtime::record_serving) fn serving(
-        residency: ServingFrameResidency,
+        residency: PhysicalResidencyWorkPort,
         format: AdmittedPhysicalRecordFormat,
         access: AdmittedRecordAccessPolicy,
         root: DurablePhysicalRootManifest,

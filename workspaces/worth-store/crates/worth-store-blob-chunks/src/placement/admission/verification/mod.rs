@@ -1,5 +1,5 @@
 mod class_capability;
-mod readiness_basis_match;
+mod cold_posture_scope;
 
 pub(crate) use class_capability::verify_class_backend_capability;
-pub(crate) use readiness_basis_match::verify_readiness_basis_match;
+pub(crate) use cold_posture_scope::verify_cold_posture_scope;

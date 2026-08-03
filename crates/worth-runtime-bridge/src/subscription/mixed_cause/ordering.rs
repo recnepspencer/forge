@@ -10,6 +10,7 @@ use crate::subscription::{
 
 use super::comparison::{BridgeMixedCauseComparisonEvidence, Candidate};
 use super::request::{BridgeMixedCauseOrderingLaneKind, BridgeMixedCauseOrderingRequest};
+use super::{BridgeMixedCauseAsyncResultDisposition, BridgeMixedCauseAsyncResultTransition};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeMixedCauseOrderFamilyKind {
@@ -17,6 +18,7 @@ pub enum BridgeMixedCauseOrderFamilyKind {
     TemporalTruthPlusTime,
     TemporalTimeOnly,
     AsyncCompletion,
+    AsyncDeniedCompletion,
     AsyncClassifiedDeniedCompletion,
     AsyncRetryLineage,
     AsyncRevalidationLineage,
@@ -81,6 +83,7 @@ pub struct BridgeMixedCauseOrdering {
     ordered: Vec<BridgeOrderedMixedCause>,
     suppressed: Vec<BridgeSuppressedMixedCause>,
     denied: Vec<BridgeDeniedMixedCause>,
+    async_result_transitions: Vec<BridgeMixedCauseAsyncResultTransition>,
     counters: BridgeSubscriptionCounters,
     canonical_basis: Arc<str>,
     digest: Arc<str>,
@@ -100,14 +103,26 @@ impl BridgeMixedCauseOrdering {
         let mut ordered = Vec::new();
         let mut suppressed = Vec::new();
         let mut denied = Vec::new();
+        let mut async_result_transitions = Vec::new();
         let mut prior_ordered_candidate: Option<Candidate> = None;
 
         for candidate in candidates {
             if let Some(denied_kind) = candidate.denied_kind(request.lane_kind()) {
+                if let Some(transition) = candidate.async_result_transition.as_ref() {
+                    async_result_transitions.push(transition.admit(
+                        BridgeMixedCauseAsyncResultDisposition::DeliveryDenied(denied_kind),
+                    ));
+                }
                 denied.push(BridgeDeniedMixedCause::new(candidate, denied_kind));
                 continue;
             }
             if let Some(first_digest) = seen.get(candidate.dedup_key.as_ref()) {
+                if let Some(transition) = candidate.async_result_transition.as_ref() {
+                    async_result_transitions.push(
+                        transition
+                            .admit(BridgeMixedCauseAsyncResultDisposition::DuplicateSuppressed),
+                    );
+                }
                 suppressed.push(BridgeSuppressedMixedCause::new(
                     candidate.clone(),
                     BridgeMixedCauseSuppressedKind::DuplicateDigest,
@@ -120,6 +135,11 @@ impl BridgeMixedCauseOrdering {
             }
 
             let ordinal = ordered.len();
+            if let Some(transition) = candidate.async_result_transition.as_ref() {
+                async_result_transitions.push(
+                    transition.admit(BridgeMixedCauseAsyncResultDisposition::Ordered { ordinal }),
+                );
+            }
             exemplar_by_dedup.insert(candidate.dedup_key.to_string(), candidate.clone());
             seen.insert(
                 candidate.dedup_key.to_string(),
@@ -162,6 +182,7 @@ impl BridgeMixedCauseOrdering {
             ordered,
             suppressed,
             denied,
+            async_result_transitions,
             counters: BridgeSubscriptionCounters::from_mixed_cause_ordering(),
             canonical_basis,
             digest: Arc::from(format!("bridge-mixed-cause-ordering:sha256:{digest:x}")),
@@ -186,6 +207,9 @@ impl BridgeMixedCauseOrdering {
 
     pub fn denied(&self) -> &[BridgeDeniedMixedCause] {
         &self.denied
+    }
+    pub fn async_result_transitions(&self) -> &[BridgeMixedCauseAsyncResultTransition] {
+        &self.async_result_transitions
     }
 
     pub fn counters(&self) -> &BridgeSubscriptionCounters {

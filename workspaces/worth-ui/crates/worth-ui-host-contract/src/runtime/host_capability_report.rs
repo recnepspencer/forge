@@ -1,6 +1,4 @@
-use super::{
-    WorthUiHostCapability, WorthUiHostCapabilityPosture, WorthUiHostContract, WorthUiHostKind,
-};
+use super::{WorthUiHostCapability, WorthUiHostCapabilityPosture};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthUiHostCapabilityObservationGeneration {
@@ -25,34 +23,6 @@ pub struct WorthUiHostCapabilityReport {
 }
 
 impl WorthUiHostCapabilityReport {
-    pub fn from_contract(contract: WorthUiHostContract) -> Self {
-        match contract.kind() {
-            WorthUiHostKind::Headless => Self::missing(Vec::new()),
-            WorthUiHostKind::Egui => Self::available(vec![
-                WorthUiHostCapability::Accessibility,
-                WorthUiHostCapability::DpiObservation,
-                WorthUiHostCapability::FontMetrics,
-                WorthUiHostCapability::Ime,
-                WorthUiHostCapability::NativeControlIntrinsicMeasurement,
-                WorthUiHostCapability::PortalAnchorObservation,
-                WorthUiHostCapability::ScrollContainerObservation,
-                WorthUiHostCapability::TextBaselineMeasurement,
-                WorthUiHostCapability::TextIntrinsicMeasurement,
-                WorthUiHostCapability::TextInput,
-                WorthUiHostCapability::ViewportObservation,
-                WorthUiHostCapability::VisualCapture,
-            ]),
-            WorthUiHostKind::CapabilityProbeInconclusive => Self::ambiguous(vec![
-                WorthUiHostCapability::TextInput,
-                WorthUiHostCapability::TextIntrinsicMeasurement,
-            ]),
-            WorthUiHostKind::DiagnosticsOnly => Self::diagnostic_only(vec![
-                WorthUiHostCapability::TextInput,
-                WorthUiHostCapability::TextIntrinsicMeasurement,
-            ]),
-        }
-    }
-
     pub fn available(capabilities: Vec<WorthUiHostCapability>) -> Self {
         Self::new(WorthUiHostCapabilityPosture::Available, capabilities)
     }

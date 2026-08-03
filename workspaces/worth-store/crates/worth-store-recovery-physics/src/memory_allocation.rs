@@ -1,16 +1,20 @@
-use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
+use worth_store::physical_runtime::{
+    LifecycleGeneration, RecoveryPhysicalAllocation, RuntimeIdentity,
 };
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 #[derive(Debug)]
-pub struct RecoveryMemoryAllocation {
-    grant: OperationAllocationGrant,
+pub struct RecoveryMemoryAllocation<'runtime> {
+    allocation: RecoveryPhysicalAllocation<'runtime>,
     observation: RecoveryMemoryObservation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryMemoryObservation {
-    allocation: OperationAllocationObservation,
+    store: StableStoreIdentity,
+    generation: LifecycleGeneration,
+    runtime: RuntimeIdentity,
+    allocation_bytes: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,28 +22,22 @@ pub struct RecoveryMemoryCounterSnapshot {
     allocation_bytes: u64,
 }
 
-impl RecoveryMemoryAllocation {
-    pub fn from_allocation_grant(
-        grant: OperationAllocationGrant,
-    ) -> Result<Self, RecoveryMemoryAllocationDenial> {
-        let allocation = grant.observation();
-        if allocation.scope() != PhysicalOperationAllocationScope::Recovery {
-            return Err(RecoveryMemoryAllocationDenial::WrongAllocationScope {
-                actual: allocation.scope(),
-            });
+impl<'runtime> RecoveryMemoryAllocation<'runtime> {
+    pub fn from_store_allocation(allocation: RecoveryPhysicalAllocation<'runtime>) -> Self {
+        let observation = RecoveryMemoryObservation {
+            store: allocation.store_identity(),
+            generation: allocation.store_generation(),
+            runtime: allocation.runtime_identity(),
+            allocation_bytes: allocation.bytes(),
+        };
+        Self {
+            allocation,
+            observation,
         }
-        Ok(Self {
-            grant,
-            observation: RecoveryMemoryObservation { allocation },
-        })
-    }
-
-    pub const fn allocation_scope(&self) -> PhysicalOperationAllocationScope {
-        self.observation.allocation.scope()
     }
 
     pub const fn bytes(&self) -> u64 {
-        self.grant.bytes()
+        self.allocation.bytes()
     }
 
     pub const fn observation(&self) -> RecoveryMemoryObservation {
@@ -48,19 +46,31 @@ impl RecoveryMemoryAllocation {
 
     pub const fn counters(&self) -> RecoveryMemoryCounterSnapshot {
         RecoveryMemoryCounterSnapshot {
-            allocation_bytes: self.grant.bytes(),
+            allocation_bytes: self.allocation.bytes(),
         }
     }
 }
 
 impl RecoveryMemoryObservation {
-    pub const fn allocation(self) -> OperationAllocationObservation {
-        self.allocation
+    pub const fn store_identity(self) -> StableStoreIdentity {
+        self.store
+    }
+
+    pub const fn store_generation(self) -> LifecycleGeneration {
+        self.generation
+    }
+
+    pub const fn runtime_identity(self) -> RuntimeIdentity {
+        self.runtime
+    }
+
+    pub const fn allocation_bytes(self) -> u64 {
+        self.allocation_bytes
     }
 
     pub const fn counters(self) -> RecoveryMemoryCounterSnapshot {
         RecoveryMemoryCounterSnapshot {
-            allocation_bytes: self.allocation.bytes(),
+            allocation_bytes: self.allocation_bytes,
         }
     }
 }
@@ -89,11 +99,4 @@ impl RecoveryMemoryCounterSnapshot {
     pub const fn copied_bytes(self) -> u64 {
         0
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RecoveryMemoryAllocationDenial {
-    WrongAllocationScope {
-        actual: PhysicalOperationAllocationScope,
-    },
 }

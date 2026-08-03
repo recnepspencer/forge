@@ -94,9 +94,6 @@ mod observer_oracle_execution;
 #[path = "../scenarios/recovery/observer_oracle_fact_basis/observer_oracle_fact_basis.rs"]
 mod observer_oracle_fact_basis;
 
-#[path = "../scenarios/recovery/page_lsn_publication/page_lsn_publication.rs"]
-mod page_lsn_publication;
-
 #[path = "../scenarios/recovery/partial_publication_classification/partial_publication_classification.rs"]
 mod partial_publication_classification;
 

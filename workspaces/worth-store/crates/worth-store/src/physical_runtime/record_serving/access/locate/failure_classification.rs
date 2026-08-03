@@ -60,9 +60,6 @@ fn terminal_denial(cause: crate::physical_runtime::PhysicalWorkTerminalCause) ->
         crate::physical_runtime::PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect => {
             RecordReadDenial::PhysicalWork(RecordReadWorkDenial::SchedulerSettlementRejected)
         }
-        crate::physical_runtime::PhysicalWorkTerminalCause::ResidencyRejectedAfterEffect(
-            reason,
-        ) => RecordReadDenial::from_residency(reason),
     }
 }
 

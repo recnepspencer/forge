@@ -52,14 +52,24 @@ pub struct WorthUiPendingActivation {
     staging_report: crate::runtime::WorthUiActivationStagingReport,
 }
 
+pub(crate) struct WorthUiPendingActivationInput {
+    pub(crate) frame_epoch: WorthUiRuntimeFrameEpoch,
+    pub(crate) candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    pub(crate) staged_replacement: crate::runtime::WorthUiStagedReplacement,
+    pub(crate) readiness: crate::runtime::WorthUiActivationReadiness,
+    pub(crate) staging_report: crate::runtime::WorthUiActivationStagingReport,
+}
+
 impl WorthUiPendingActivation {
-    pub(crate) fn new(
-        frame_epoch: WorthUiRuntimeFrameEpoch,
-        candidate_application_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
-        staged_replacement: crate::runtime::WorthUiStagedReplacement,
-        readiness: crate::runtime::WorthUiActivationReadiness,
-        staging_report: crate::runtime::WorthUiActivationStagingReport,
-    ) -> Self {
+    pub(crate) fn new(input: WorthUiPendingActivationInput) -> Self {
+        let WorthUiPendingActivationInput {
+            frame_epoch,
+            candidate_application_authority,
+            staged_replacement,
+            readiness,
+            staging_report,
+        } = input;
         let allocation_planning_projection =
             crate::runtime::planning::allocation_planning::WorthUiAllocationPlanningProjection::seal(
                 frame_epoch,
@@ -112,6 +122,10 @@ pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
     query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
+    visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
+    visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
+    interaction: crate::runtime::interaction::UiInteractionShutdownReport,
+    rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
 }
 
@@ -125,6 +139,10 @@ impl WorthUiRuntimeShutdownReceipt {
             final_frame_epoch,
             query_retirement,
             mounted_presentation: Default::default(),
+            visual_capture: Default::default(),
+            visual_overlay: Default::default(),
+            interaction: Default::default(),
+            rebind: Default::default(),
             host_session_release: None,
         }
     }
@@ -143,6 +161,26 @@ impl WorthUiRuntimeShutdownReceipt {
         &self.mounted_presentation
     }
 
+    pub const fn visual_capture(
+        &self,
+    ) -> crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport {
+        self.visual_capture
+    }
+
+    pub const fn visual_overlay(
+        &self,
+    ) -> crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport {
+        self.visual_overlay
+    }
+
+    pub const fn rebind(&self) -> crate::runtime::rebind::UiRebindShutdownReport {
+        self.rebind
+    }
+
+    pub const fn interaction(&self) -> &crate::runtime::interaction::UiInteractionShutdownReport {
+        &self.interaction
+    }
+
     pub fn host_session_release(
         &self,
     ) -> Option<crate::host::adapter::UiHostSessionReleaseOutcome> {
@@ -157,11 +195,43 @@ impl WorthUiRuntimeShutdownReceipt {
         self
     }
 
+    pub(crate) fn bind_visual_capture(
+        mut self,
+        report: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
+    ) -> Self {
+        self.visual_capture = report;
+        self
+    }
+
+    pub(crate) fn bind_visual_overlay(
+        mut self,
+        report: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
+    ) -> Self {
+        self.visual_overlay = report;
+        self
+    }
+
     pub(crate) fn bind_host_session_release(
         mut self,
         outcome: crate::host::adapter::UiHostSessionReleaseOutcome,
     ) -> Self {
         self.host_session_release = Some(outcome);
+        self
+    }
+
+    pub(crate) fn bind_rebind(
+        mut self,
+        report: crate::runtime::rebind::UiRebindShutdownReport,
+    ) -> Self {
+        self.rebind = report;
+        self
+    }
+
+    pub(crate) fn bind_interaction(
+        mut self,
+        report: crate::runtime::interaction::UiInteractionShutdownReport,
+    ) -> Self {
+        self.interaction = report;
         self
     }
 

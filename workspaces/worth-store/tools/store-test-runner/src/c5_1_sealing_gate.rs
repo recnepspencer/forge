@@ -67,7 +67,10 @@ const FORBIDDEN_DUPLICATE_RUNTIME_FRAGMENTS: &[(&str, &str)] = &[
     ("TimeoutRegistry", "Store-local timeout registry"),
     ("PolicyRegistry", "Store-local async policy registry"),
     ("PendingWorkRegistry", "duplicate pending-work registry"),
-    ("C6LocalScheduler", "C.6-local scheduler"),
+    (
+        "LocalPhysicalWorkScheduler",
+        "local physical-work scheduler",
+    ),
     ("CallbackSettlement", "callback settlement route"),
     ("BranchWriterRegistry", "Store-local branch writer registry"),
     (
@@ -160,7 +163,10 @@ fn sealing_gate_rejects_each_authority_bypass_family() {
             "struct DuplicatePhysicalLifecycle;",
             "duplicate physical lifecycle",
         ),
-        ("struct C6LocalScheduler;", "C.6-local scheduler"),
+        (
+            "struct LocalPhysicalWorkScheduler;",
+            "local physical-work scheduler",
+        ),
     ] {
         let denial = inspect_ordinary_source(Path::new("controlled_mutant.rs"), source)
             .expect_err("controlled authority bypass must be denied");

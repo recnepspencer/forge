@@ -4,6 +4,7 @@ pub(crate) const COMMAND_FAMILY_NAME: &str = RegistryFamily::Command.name();
 pub(crate) const COMMAND_PROJECTION_FAMILY_NAME: &str = RegistryFamily::CommandProjection.name();
 pub(crate) const COMPONENT_FAMILY_NAME: &str = RegistryFamily::Component.name();
 pub(crate) const ICON_FAMILY_NAME: &str = RegistryFamily::Icon.name();
+pub(crate) const INTENT_DEFINITION_FAMILY_NAME: &str = RegistryFamily::IntentDefinition.name();
 pub(crate) const MOSAIC_PLACEMENT_POLICY_FAMILY_NAME: &str =
     RegistryFamily::MosaicPlacementPolicy.name();
 pub(crate) const MOSAIC_REGION_KIND_FAMILY_NAME: &str = RegistryFamily::MosaicRegionKind.name();

@@ -31,6 +31,11 @@ impl PhysicalWorkExecutor {
         );
         let outcome = match physical {
             ScheduledArtifactRangeReadOutcome::Completed(completed) => {
+                #[cfg(feature = "certification-test-authority")]
+                self.certification_yieldpoints.pause(
+                    super::CertificationPhysicalExecutionCheckpoint::
+                        AfterReadBeforeSchedulerSettlement,
+                );
                 PhysicalExecutorOutcome::ReadCompleted {
                     physical: completed.physical(),
                     bytes: destination,

@@ -16,6 +16,8 @@ mod inspection;
 pub mod inspection_bridge;
 mod inspection_observation;
 mod inspection_receipt;
+pub mod intent;
+pub mod interaction;
 pub mod lifecycle;
 pub mod measurement_exchange;
 mod measurement_inspection_evidence;
@@ -25,9 +27,11 @@ mod measurement_inspection_test_support;
 mod measurement_inspection_tests;
 pub mod mounted;
 pub mod obligations;
+pub mod observation;
 pub mod observation_report;
 pub mod prepared_application_authority;
 pub mod query_binding;
+pub mod rebind;
 pub mod registry;
 mod retained_obligation_registry;
 pub mod runtime_handoff;
@@ -38,27 +42,29 @@ pub(crate) use crate::declaration::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use inspection::foreign_evidence_refs_for_obligation_record;
 
 pub use entry::{
-    CapabilityRegistrationBuilder, WorthUi, WorthUiActiveApplicationSession,
-    WorthUiActiveApplicationSessionIdentity, WorthUiActiveCanvasSpatialFrameCompletion,
-    WorthUiActiveFrameworkTurnCompletion, WorthUiActiveFrameworkTurnExecution,
-    WorthUiActiveInspectionReceipt, WorthUiActiveOrdinaryFrameCompletion,
-    WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
-    WorthUiAllocationCatalogActivationDenial, WorthUiApp, WorthUiApplicationBuilder,
-    WorthUiApplicationCutoverDenial, WorthUiApplicationCutoverReceipt,
-    WorthUiApplicationReplacementLoweringDenial, WorthUiApplicationReplacementOutcome,
-    WorthUiApplicationReplacementPreparationDenial, WorthUiApplicationReplacementStagingDenial,
-    WorthUiApplicationSemanticNoOpReceipt, WorthUiCandidateInspectionReceipt,
-    WorthUiLoweredApplicationReplacement, WorthUiMountedApplicationReplacementInFlight,
-    WorthUiMountedApplicationReplacementOutcome, WorthUiMountedFrameExecutionStop,
-    WorthUiMountedFrameFrameworkTransitionStop, WorthUiMountedLaneProjectionDenial,
-    WorthUiMountedPreviewAdmissionRejection, WorthUiMountedPreviewCompletionRejection,
-    WorthUiMountedPreviewDisposition, WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
+    CapabilityRegistrationBuilder, UiChangeProfileInstalled, UiChangeProfileMissing, WorthUi,
+    WorthUiActiveApplicationSession, WorthUiActiveApplicationSessionIdentity,
+    WorthUiActiveCanvasSpatialFrameCompletion, WorthUiActiveFrameworkTurnCompletion,
+    WorthUiActiveFrameworkTurnExecution, WorthUiActiveInspectionReceipt,
+    WorthUiActiveOrdinaryFrameCompletion, WorthUiActiveRealtimeFrameCompletion,
+    WorthUiActiveVirtualizedDataFrameCompletion, WorthUiAllocationCatalogActivationDenial,
+    WorthUiApp, WorthUiApplicationBuilder, WorthUiApplicationCutoverDenial,
+    WorthUiApplicationCutoverReceipt, WorthUiApplicationReplacementLoweringDenial,
+    WorthUiApplicationReplacementOutcome, WorthUiApplicationReplacementPreparationDenial,
+    WorthUiApplicationReplacementStagingDenial, WorthUiApplicationSemanticNoOpReceipt,
+    WorthUiCandidateInspectionReceipt, WorthUiLoweredApplicationReplacement,
+    WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedFrameExecutionStop, WorthUiMountedFrameFrameworkTransitionStop,
+    WorthUiMountedLaneProjectionDenial, WorthUiMountedPreviewAdmissionRejection,
+    WorthUiMountedPreviewCompletionRejection, WorthUiMountedPreviewDisposition,
+    WorthUiMountedPreviewInFlight, WorthUiMountedPreviewOutcome,
     WorthUiMountedPreviewPreparationDenial, WorthUiMountedPreviewPreparationRejection,
     WorthUiMountedPreviewRetentionRejection, WorthUiMountedReplacementAdmissionDenial,
     WorthUiMountedReplacementCompletionDenial, WorthUiMountedReplacementPreparationOutcome,
-    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationReplacementDenial,
-    WorthUiNativeApplicationReplacementOutcome, WorthUiNativeApplicationShell,
+    WorthUiMountedReplacementRetentionDenial, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,
+    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
     WorthUiPendingApplicationCutover, WorthUiPendingMountedPreview,
     WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
     WorthUiPreparedMountedPreview, WorthUiReplacementCandidateSummary,

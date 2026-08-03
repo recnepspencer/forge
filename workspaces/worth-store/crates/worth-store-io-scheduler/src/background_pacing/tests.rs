@@ -1,7 +1,6 @@
 mod interference_evidence;
 mod pacing_edges;
 mod policy_receipts;
-mod progression;
 mod revocation_units;
 mod secure_io_preservation;
 mod test_support;
@@ -12,8 +11,7 @@ use test_support::{background_budget_with_queue_slots, read_pressure_budget, Wor
 
 use crate::{
     BackgroundDebtKind, BackgroundIoPressureClass, BackgroundIoPressureShape,
-    BackgroundPacingDenial, BackgroundPacingOutcome, BackgroundPacingProgressionEvidence,
-    QueueSlot,
+    BackgroundPacingDenial, BackgroundPacingOutcome, QueueSlot,
 };
 
 #[test]
@@ -75,7 +73,6 @@ fn background_admits_with_debt_and_revocable_lease() {
         admitted,
         admitted,
         debt_limit,
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let BackgroundPacingOutcome::AdmittedWithDebt(admitted_with_debt) = outcome else {
@@ -85,8 +82,9 @@ fn background_admits_with_debt_and_revocable_lease() {
         admitted_with_debt.debt().kind(),
         BackgroundDebtKind::CompactionDebt
     );
+    assert_eq!(admitted_with_debt.counters().compaction_debt(), debt_limit);
     let revocation = admitted_with_debt
-        .lease()
+        .into_lease()
         .revoke_for_foreground_pressure(NonZeroU64::new(1).unwrap());
     assert_eq!(revocation.revoked_budget(), admitted);
     assert_eq!(
@@ -96,7 +94,6 @@ fn background_admits_with_debt_and_revocable_lease() {
     assert_eq!(revocation.counters().revoked_budget(), admitted);
     assert_eq!(revocation.counters().revoke_events(), 1);
     assert_eq!(revocation.counters().foreground_pressure_events(), 1);
-    assert_eq!(admitted_with_debt.counters().compaction_debt(), debt_limit);
 }
 
 #[test]
@@ -109,7 +106,6 @@ fn policy_admitted_capacity_bounds_execution_even_when_idle_exists() {
         requested,
         policy_admitted,
         crate::BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let BackgroundPacingOutcome::Throttled(throttled) = outcome else {
@@ -117,6 +113,10 @@ fn policy_admitted_capacity_bounds_execution_even_when_idle_exists() {
     };
     assert_eq!(throttled.admitted_budget(), policy_admitted);
     assert!(throttled.throttled_budget().bandwidth_tokens() > 0);
+    let lease = throttled
+        .into_lease()
+        .expect("nonzero policy-admitted capacity must remain move-owned in the throttle");
+    assert_eq!(lease.admitted_budget(), policy_admitted);
 }
 
 #[test]
@@ -129,7 +129,6 @@ fn debt_limit_cannot_mint_execution_lease_without_admitted_capacity() {
         no_capacity,
         requested,
         requested,
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let BackgroundPacingOutcome::Throttled(throttled) = outcome else {
@@ -137,6 +136,10 @@ fn debt_limit_cannot_mint_execution_lease_without_admitted_capacity() {
     };
     assert_eq!(throttled.admitted_budget(), no_capacity);
     assert_eq!(throttled.throttled_budget(), requested);
+    assert!(
+        throttled.into_lease().is_none(),
+        "debt without admitted capacity must not mint execution authority"
+    );
 }
 
 #[test]
@@ -148,7 +151,6 @@ fn policy_zero_budget_defers_without_constructing_background_lease() {
         requested,
         crate::BackgroundResourceBudget::new(),
         crate::BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let BackgroundPacingOutcome::Deferred(deferred) = outcome else {
@@ -209,7 +211,6 @@ fn partial_idle_capacity_throttles_without_debt_authority() {
         admitted,
         admitted,
         crate::BackgroundResourceBudget::new(),
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let BackgroundPacingOutcome::Throttled(throttled) = outcome else {
@@ -217,6 +218,10 @@ fn partial_idle_capacity_throttles_without_debt_authority() {
     };
     assert_eq!(throttled.admitted_budget(), admitted);
     assert!(throttled.throttled_budget().bandwidth_tokens() > 0);
+    let lease = throttled
+        .into_lease()
+        .expect("partially admitted idle capacity must remain move-owned in the throttle");
+    assert_eq!(lease.admitted_budget(), admitted);
 }
 
 #[test]
@@ -257,7 +262,6 @@ fn late_yield_records_typed_violation_debt() {
                 admitted,
                 admitted,
                 debt_limit,
-                BackgroundPacingProgressionEvidence::current(world.readiness()),
             )
             .with_foreground_pressure_events(1)
             .with_late_yield(),
@@ -326,7 +330,6 @@ fn admitted_debt_counters(
         admitted,
         admitted,
         debt_limit,
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
     let BackgroundPacingOutcome::AdmittedWithDebt(admitted) = outcome else {
         panic!("expected admitted-with-debt, got {outcome:?}");

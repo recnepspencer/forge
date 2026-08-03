@@ -47,7 +47,7 @@ pub fn fg_toast(
     ctx: &Context,
     theme: &WorthTheme,
     icons: &crate::IconStore,
-    id_source: impl std::hash::Hash,
+    id_source: impl egui::AsId,
     props: FgToast<'_>,
 ) -> bool {
     let (bg, accent, icon) = match props.variant {

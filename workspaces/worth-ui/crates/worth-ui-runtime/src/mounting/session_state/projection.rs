@@ -28,4 +28,11 @@ impl WorthUiMountedSessionState {
     > {
         crate::mounting::UiMountedFrameAssembler::begin(&self.identity, input)
     }
+
+    pub(crate) fn current_projection_input(
+        &self,
+        slot: worth_ui_query_binding::UiProjectionInputSlot,
+    ) -> Option<worth_ui_query_binding::UiProjectionInputFactReference> {
+        self.retention.current_projection_input(slot)
+    }
 }

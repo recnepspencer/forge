@@ -1,7 +1,4 @@
-use crate::{
-    IoSchedulerBackendCapabilityDenial, IoSchedulerBackendCapabilityRequirement,
-    IoSchedulerIsolationAdmissionDenial,
-};
+use crate::{IoSchedulerBackendCapabilityDenial, IoSchedulerBackendCapabilityRequirement};
 
 use super::{ForegroundIoLaneKind, ForegroundResourceBudget, ForegroundResourceUnitKind};
 
@@ -22,7 +19,6 @@ pub enum ForegroundReservationResourceShortfall {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForegroundReservationAdmissionDenial {
     BackendCapabilityDenied(IoSchedulerBackendCapabilityDenial),
-    StableReadinessDenied(IoSchedulerIsolationAdmissionDenial),
     LaneBackendRequirementMismatch {
         lane_required: IoSchedulerBackendCapabilityRequirement,
         admitted: IoSchedulerBackendCapabilityRequirement,
@@ -52,7 +48,6 @@ pub enum ForegroundReservationAdmissionDenial {
     CapacityAdmissionEnvelopeMismatch,
     CapacityAdmissionArbitrationMismatch,
     CapacityAdmissionSecurityScopeMismatch,
-    CapacityAdmissionReadinessCounterMismatch,
     CertificationOnlyEnvelopeCannotExecute,
     ForegroundPriorityLaundering {
         declared: ForegroundIoLaneKind,
@@ -60,7 +55,6 @@ pub enum ForegroundReservationAdmissionDenial {
     },
     RawLaneLabelCannotReserve,
     SemanticPriorityCannotReserve,
-    CopiedIsolationCountersCannotReserve,
     CopiedSecurityScopeFieldsCannotReserve,
     TerminalProjectionCannotReserve,
 }

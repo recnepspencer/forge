@@ -1,8 +1,11 @@
+mod change_classification;
 mod framework_turn;
 mod inspection;
 mod mounted_allocation;
 #[cfg(any(test, feature = "certification-support"))]
 mod planning;
+mod rebind_planning;
+mod rebind_publication;
 mod replacement;
 
 pub(crate) use replacement::WorthUiRuntimePublicationBasis;
@@ -39,6 +42,12 @@ impl WorthUiApplicationSessionState {
         self.app.capabilities()
     }
 
+    pub(crate) fn intent_application_fact_plan(
+        &self,
+    ) -> &crate::declaration::UiIntentApplicationFactPlan {
+        self.app.prepared_authority().intent_application_fact_plan()
+    }
+
     pub(crate) fn graph(&self) -> UiGraphAuthority<'_> {
         self.app.graph()
     }
@@ -47,11 +56,32 @@ impl WorthUiApplicationSessionState {
         self.app.graph_snapshot()
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn lookup_consumed_fact(
+        &self,
+        fact: &crate::fact_contract::UiProducedFact,
+    ) -> Result<crate::graph::UiGraphFactLookupReceipt, crate::graph::UiGraphFactLookupDenial> {
+        let prepared = self.app.prepared_authority();
+        let index = prepared.consumed_fact_index();
+        index.lookup(index.basis(), fact)
+    }
+
     pub(crate) fn source_event_ingress(
         &self,
         provider: WorthUiSourceProvider,
     ) -> WorthUiSourceEventIngress {
         self.runtime.source_event_ingress(provider)
+    }
+
+    pub(crate) fn begin_observation_turn(
+        &mut self,
+        session: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    ) -> Result<
+        crate::facade::observation::UiObservationTurn<'_>,
+        crate::facade::observation::UiObservationTurnDenial,
+    > {
+        let source_basis = self.app.capabilities().digest().as_u64();
+        self.runtime.begin_observation_turn(session, source_basis)
     }
 
     pub(crate) fn admission(&self) -> crate::admission::UiAdmissionBoundary<'_> {
@@ -70,6 +100,34 @@ impl WorthUiApplicationSessionState {
 
     pub(crate) fn allocation_truth_revision(&self) -> crate::runtime::UiAllocationTruthRevision {
         self.runtime.allocation_truth_revision()
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn refresh_query_change_for_certification(
+        &mut self,
+        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
+    ) -> Result<
+        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
+        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
+    > {
+        self.runtime.query_binding.refresh_operation_live(request)
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub(crate) fn measurement_basis_sources_for_certification(
+        &self,
+    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
+        self.app
+            .declaration_artifacts()
+            .iter()
+            .filter_map(|artifact| artifact.graph_handoff().ok())
+            .filter_map(|handoff| {
+                handoff
+                    .measurement_policy()
+                    .admitted()
+                    .and_then(|policy| policy.basis_source())
+            })
+            .collect()
     }
 
     pub(crate) fn host_measurement_collector(

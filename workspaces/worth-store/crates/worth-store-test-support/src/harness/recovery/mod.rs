@@ -12,8 +12,6 @@ pub mod compaction_observation;
 pub mod counter_evidence;
 #[cfg(feature = "certification-world")]
 pub mod coverage;
-#[cfg(feature = "certification-world")]
-pub mod dirty_publication;
 pub mod memory_budget;
 pub mod redo_replay;
 mod reopened_artifact;
@@ -61,6 +59,6 @@ pub use s4_persisted_recovery::{
     runtime_disagreement_recovery_artifacts, runtime_state_mismatch_recovery_artifacts,
 };
 pub use s4_recovery_entry_fixture::{
-    admitted_recovery_entry, admitted_recovery_partial_publication_recovery_entry,
+    with_admitted_recovery_entry, with_admitted_recovery_partial_publication_entry,
 };
 pub use s4_storage_interposer::{StorageBoundaryEvent, StorageBoundaryInterposerDriver};

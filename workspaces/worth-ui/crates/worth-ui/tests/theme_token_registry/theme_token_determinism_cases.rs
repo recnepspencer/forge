@@ -11,6 +11,7 @@ use super::theme_token_fixtures::{
 #[test]
 fn equivalent_token_graphs_resolve_equivalent_entries() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .register_theme_token(alias_theme_token(
             "theme.text.default",
@@ -19,6 +20,7 @@ fn equivalent_token_graphs_resolve_equivalent_entries() {
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(alias_theme_token(
             "theme.text.default",
             "theme.text.primary",
@@ -53,6 +55,7 @@ fn equivalent_token_graphs_resolve_equivalent_entries() {
 #[test]
 fn multi_hop_alias_graph_resolves_to_terminal_token_definition() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .register_theme_token(alias_theme_token(
             "theme.text.default",
@@ -80,6 +83,7 @@ fn multi_hop_alias_graph_resolves_to_terminal_token_definition() {
 #[test]
 fn accepted_theme_tokens_are_canonically_ordered_and_inspectable() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.secondary", "#506070"))
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .freeze()
@@ -101,14 +105,19 @@ fn all_builtin_theme_token_families_are_admitted() {
     let app = ThemeTokenFamily::all_built_in_for_tests()
         .into_iter()
         .enumerate()
-        .fold(WorthUi::app(), |builder, (index, family)| {
-            builder.register_theme_token(ThemeTokenDescriptor::define(
-                theme_token_id(&format!("theme.family.family_{index}")),
-                family,
-                ThemeTokenSource::application(),
-                color_value("#112233"),
-            ))
-        })
+        .fold(
+            WorthUi::app().with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            ),
+            |builder, (index, family)| {
+                builder.register_theme_token(ThemeTokenDescriptor::define(
+                    theme_token_id(&format!("theme.family.family_{index}")),
+                    family,
+                    ThemeTokenSource::application(),
+                    color_value("#112233"),
+                ))
+            },
+        )
         .freeze()
         .expect("application preparation should succeed");
 
@@ -118,10 +127,12 @@ fn all_builtin_theme_token_families_are_admitted() {
 #[test]
 fn theme_token_value_change_changes_snapshot_digest() {
     let light = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#101820"))
         .freeze()
         .expect("application preparation should succeed");
     let dark = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_theme_token(color_theme_token("theme.text.primary", "#f6f7f9"))
         .freeze()
         .expect("application preparation should succeed");

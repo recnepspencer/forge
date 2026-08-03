@@ -13,14 +13,15 @@ use worth_server::{
     WorthServer, WorthServerCompatHttpRouteFamily, WorthServerCompatibilityPreparedRequest,
     WorthServerCompatibilityRequestInput, WorthServerConfig, WorthServerMiddlewareConfig,
     WorthServerProductAdapterExecutionError, WorthServerProductApplicationAdapter,
-    WorthServerProductApplicationAdapterRegistration, WorthServerProductOperationBasisKind,
-    WorthServerProductOperationDeclaration, WorthServerProductOperationDenial,
-    WorthServerProductOperationErrorMaps, WorthServerProductOperationPayload,
-    WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductPayloadSchemaValidator, WorthServerProductResultContract,
-    WorthServerProductSession, WorthServerProductSessionCreationRequest,
-    WorthServerQueryHandoffConfig, WorthServerQueryWorkspaceProvider,
-    WorthServerRequestContextConfig, WorthServerWorthNativeSession,
+    WorthServerProductApplicationAdapterRegistration, WorthServerProductOperationAuthorizer,
+    WorthServerProductOperationBasisKind, WorthServerProductOperationDeclaration,
+    WorthServerProductOperationDenial, WorthServerProductOperationErrorMaps,
+    WorthServerProductOperationPayload, WorthServerProductOperationSuccess,
+    WorthServerProductOperationSupportSnapshot, WorthServerProductPayloadSchemaValidator,
+    WorthServerProductResultContract, WorthServerProductSession,
+    WorthServerProductSessionCreationRequest, WorthServerQueryHandoffConfig,
+    WorthServerQueryWorkspaceProvider, WorthServerRequestContextConfig,
+    WorthServerTransportCallerVerifier, WorthServerWorthNativeSession,
     WorthServerWorthNativeSessionInput,
 };
 
@@ -37,6 +38,25 @@ pub fn build_server(
         registrations,
         Arc::new(query_handoff_runtime::TestWorkspaceProvider),
     )
+}
+
+pub fn build_server_with_operation_authority(
+    registrations: Vec<WorthServerProductApplicationAdapterRegistration>,
+    verifier: Arc<dyn WorthServerTransportCallerVerifier>,
+    authorizer: Arc<dyn WorthServerProductOperationAuthorizer>,
+) -> WorthServer {
+    WorthServer::builder()
+        .with_config(base_config_with_workspace_provider(Arc::new(
+            query_handoff_runtime::TestWorkspaceProvider,
+        )))
+        .register_operations(worth_server::WorthServerOperationRegistration::phase_two_defaults())
+        .register_surface(WorthNativeSurface::enabled())
+        .register_surface(CompatHttpSurface::phase_one_enabled())
+        .register_product_adapters(registrations)
+        .with_transport_caller_verifier(verifier)
+        .with_product_operation_authorizer(authorizer)
+        .build()
+        .expect("authorized product server should build")
 }
 
 pub fn build_server_with_query_workspace_provider(

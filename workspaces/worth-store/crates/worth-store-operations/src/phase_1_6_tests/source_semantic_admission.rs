@@ -12,11 +12,13 @@ fn caller_observation_cannot_admit_arbitrary_bytes_as_an_owner_artifact() {
     let forged_path = scenario.source.join("forged-page.media");
     std::fs::write(&forged_path, b"not a physical page").expect("forged source");
     let forged = BackupArtifactReference::declare_untrusted_physical_observation(
-        original.family(),
-        original.format(),
-        original.identity(),
-        original.generation(),
-        original.coverage().clone(),
+        UntrustedBackupArtifactClaim {
+            family: original.family(),
+            format: original.format(),
+            identity: original.identity().to_owned(),
+            generation: original.generation(),
+            coverage: original.coverage().clone(),
+        },
         observe_physical_backup_artifact(forged_path, 4 * 1024).expect("untrusted observation"),
         original.reclaim_reference(),
     )

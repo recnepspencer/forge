@@ -1,0 +1,364 @@
+use std::collections::BTreeMap;
+
+use crate::capability::{CapabilitySnapshot, ComponentId};
+use crate::declaration::{UiAspectName, UiAspectSemanticSlice};
+use crate::fact_contract::{UiAuthoredFactSelector, UiConsumedFactContract, UiProducedFact};
+use crate::graph::{UiGraphAspectConsumerKind, UiGraphAspectPublisherKind, UiGraphSnapshot};
+
+use super::{
+    UiAuthoredDeclarationLookup, UiGraphFactConsumerIdentity, UiGraphFactConsumerKey,
+    UiGraphFactConsumerKind, UiGraphFactIndexBasis, UiGraphFactIndexEntry, UiGraphFactLookupDenial,
+    UiGraphFactLookupReceipt,
+};
+
+mod subsystem;
+
+use subsystem::{build_subsystem_index, UiGraphSubsystemFactIndex};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiGraphConsumedFactIndex {
+    basis: UiGraphFactIndexBasis,
+    authored_by_declaration: BTreeMap<Box<str>, Box<[UiGraphFactIndexEntry]>>,
+    query_by_projection:
+        BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>>,
+    subsystem: UiGraphSubsystemFactIndex,
+}
+
+impl UiGraphConsumedFactIndex {
+    pub(crate) fn rebuild(
+        snapshot: &UiGraphSnapshot,
+        capabilities: &CapabilitySnapshot,
+        authored_declarations: &UiAuthoredDeclarationLookup,
+        projection_contents: &[crate::runtime::WorthUiProjectionContentEdge],
+    ) -> Self {
+        let mut authored_by_declaration =
+            direct_authored_consumers(snapshot, authored_declarations);
+        add_authored_aspect_consumers(
+            snapshot,
+            authored_declarations,
+            &mut authored_by_declaration,
+        );
+        add_static_paint_token_consumers(
+            snapshot,
+            capabilities,
+            authored_declarations,
+            &mut authored_by_declaration,
+        );
+        let authored_by_declaration = authored_by_declaration
+            .into_iter()
+            .map(|(identity, entries)| (identity, canonical_entries(entries)))
+            .collect();
+
+        Self {
+            basis: UiGraphFactIndexBasis::from_generation(snapshot, capabilities),
+            authored_by_declaration,
+            query_by_projection: query_projection_consumers(snapshot, projection_contents),
+            subsystem: build_subsystem_index(snapshot),
+        }
+    }
+
+    #[cfg(any(test, feature = "certification-support"))]
+    pub const fn basis(&self) -> UiGraphFactIndexBasis {
+        self.basis
+    }
+
+    pub(crate) fn lookup(
+        &self,
+        requested_basis: UiGraphFactIndexBasis,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
+        if requested_basis != self.basis {
+            return Err(UiGraphFactLookupDenial::BasisMismatch {
+                index_basis: self.basis,
+                requested_basis,
+            });
+        }
+
+        let entries = match fact {
+            UiProducedFact::AuthoredSource(authored) => match authored.selector() {
+                UiAuthoredFactSelector::Module(_) => &[][..],
+                UiAuthoredFactSelector::Node(identity) => self
+                    .authored_by_declaration
+                    .get(identity)
+                    .map(Box::as_ref)
+                    .ok_or_else(|| UiGraphFactLookupDenial::UnknownAuthoredDeclaration {
+                        authored_identity: identity.clone(),
+                    })?,
+            },
+            UiProducedFact::Query(query) => match query.projection_identity() {
+                Some(identity) => self
+                    .query_by_projection
+                    .get(identity)
+                    .map(Box::as_ref)
+                    .unwrap_or_default(),
+                None => self.subsystem.entries_for(fact.family()),
+            },
+            _ => self.subsystem.entries_for(fact.family()),
+        };
+        debug_assert!(entries
+            .iter()
+            .all(|entry| entry.consumed_fact_contract().matches(fact)));
+        Ok(UiGraphFactLookupReceipt::new(
+            self.basis,
+            entries.to_vec().into_boxed_slice(),
+        ))
+    }
+}
+
+fn query_projection_consumers(
+    snapshot: &UiGraphSnapshot,
+    projection_contents: &[crate::runtime::WorthUiProjectionContentEdge],
+) -> BTreeMap<worth_ui_query_binding::WorthUiQueryViewIdentity, Box<[UiGraphFactIndexEntry]>> {
+    let mut by_projection = BTreeMap::<
+        worth_ui_query_binding::WorthUiQueryViewIdentity,
+        Vec<UiGraphFactIndexEntry>,
+    >::new();
+    let affected_aspect = UiAspectName::from_semantic_slice(UiAspectSemanticSlice::ContentText);
+    for content in projection_contents {
+        let contract =
+            UiConsumedFactContract::query_projection(content.projection_identity().clone());
+        let entries = by_projection
+            .entry(content.projection_identity().clone())
+            .or_default();
+        for node in snapshot.nodes().iter().filter(|node| {
+            node.declaration_identity().authored_semantic_name() == content.component_identity()
+        }) {
+            push_component_consumer(
+                entries,
+                snapshot,
+                node,
+                contract.clone(),
+                affected_aspect.clone(),
+            );
+        }
+    }
+    by_projection
+        .into_iter()
+        .map(|(identity, entries)| (identity, canonical_entries(entries)))
+        .collect()
+}
+
+fn add_static_paint_token_consumers(
+    snapshot: &UiGraphSnapshot,
+    capabilities: &CapabilitySnapshot,
+    authored_declarations: &UiAuthoredDeclarationLookup,
+    by_declaration: &mut BTreeMap<Box<str>, Vec<UiGraphFactIndexEntry>>,
+) {
+    for node in snapshot.nodes() {
+        let Some(component) =
+            component_capability_for_node(node, capabilities, authored_declarations)
+        else {
+            continue;
+        };
+        let Some(static_paint) = component.static_paint_contract() else {
+            continue;
+        };
+        let token_capability_identity = static_paint.theme_token().as_str();
+        let token_identity: Box<str> = authored_declarations
+            .theme_token_declaration_identity(token_capability_identity)
+            .unwrap_or(token_capability_identity)
+            .into();
+        let contract = UiConsumedFactContract::authored(token_identity.clone());
+        let affected_aspect =
+            UiAspectName::from_semantic_slice(UiAspectSemanticSlice::AppearanceBackground);
+        let entries = by_declaration.entry(token_identity).or_default();
+        push_component_consumer(entries, snapshot, node, contract, affected_aspect);
+    }
+}
+
+fn component_capability_for_node<'capability>(
+    node: &crate::graph::UiGraphNode,
+    capabilities: &'capability CapabilitySnapshot,
+    authored_declarations: &UiAuthoredDeclarationLookup,
+) -> Option<&'capability crate::capability::ComponentDescriptor> {
+    let source_backed = authored_declarations
+        .unique_component_capability_identity(node.authored_provenance_digest())
+        .and_then(|identity| ComponentId::new(identity).ok())
+        .and_then(|identity| capabilities.components().get(&identity));
+    source_backed.or_else(|| {
+        ComponentId::new(node.declaration_identity().authored_semantic_name())
+            .ok()
+            .and_then(|identity| capabilities.components().get(&identity))
+    })
+}
+
+fn fact_selector_identity<'identity>(
+    provenance_digest: u64,
+    fallback_identity: &'identity str,
+    authored_declarations: &'identity UiAuthoredDeclarationLookup,
+) -> &'identity str {
+    authored_declarations
+        .unique_identity(provenance_digest)
+        .unwrap_or(fallback_identity)
+}
+
+fn push_component_consumer(
+    entries: &mut Vec<UiGraphFactIndexEntry>,
+    snapshot: &UiGraphSnapshot,
+    node: &crate::graph::UiGraphNode,
+    contract: UiConsumedFactContract,
+    affected_aspect: UiAspectName,
+) {
+    let authored_identity: Box<str> = node.declaration_identity().authored_semantic_name().into();
+    let repeated = node.repeated_instance_basis().identity_digest();
+    entries.push(UiGraphFactIndexEntry::new(
+        UiGraphFactConsumerKey::new(
+            UiGraphFactConsumerKind::GraphNode,
+            authored_identity.clone(),
+            repeated,
+        ),
+        UiGraphFactConsumerIdentity::GraphNode(node.graph_node_identity()),
+        Some(affected_aspect.clone()),
+        contract.clone(),
+    ));
+    if let Some(slot) = snapshot.mount_eligibility_slot_for_node(node.graph_node_identity()) {
+        entries.push(UiGraphFactIndexEntry::new(
+            UiGraphFactConsumerKey::new(
+                UiGraphFactConsumerKind::MountEligibilitySlot,
+                authored_identity,
+                repeated,
+            ),
+            UiGraphFactConsumerIdentity::MountEligibilitySlot(slot.mount_eligibility_identity()),
+            Some(affected_aspect),
+            contract,
+        ));
+    }
+}
+
+fn direct_authored_consumers(
+    snapshot: &UiGraphSnapshot,
+    authored_declarations: &UiAuthoredDeclarationLookup,
+) -> BTreeMap<Box<str>, Vec<UiGraphFactIndexEntry>> {
+    let mut by_declaration = BTreeMap::<Box<str>, Vec<UiGraphFactIndexEntry>>::new();
+    for node in snapshot.nodes() {
+        let consumer_identity: Box<str> =
+            node.declaration_identity().authored_semantic_name().into();
+        let selector_identity: Box<str> = fact_selector_identity(
+            node.authored_provenance_digest(),
+            node.declaration_identity().authored_semantic_name(),
+            authored_declarations,
+        )
+        .into();
+        let contract = UiConsumedFactContract::authored(selector_identity.clone());
+        let entries = by_declaration.entry(selector_identity).or_default();
+        entries.push(UiGraphFactIndexEntry::new(
+            UiGraphFactConsumerKey::new(
+                UiGraphFactConsumerKind::GraphNode,
+                consumer_identity.clone(),
+                node.repeated_instance_basis().identity_digest(),
+            ),
+            UiGraphFactConsumerIdentity::GraphNode(node.graph_node_identity()),
+            None,
+            contract.clone(),
+        ));
+        if let Some(slot) = snapshot.mount_eligibility_slot_for_node(node.graph_node_identity()) {
+            entries.push(UiGraphFactIndexEntry::new(
+                UiGraphFactConsumerKey::new(
+                    UiGraphFactConsumerKind::MountEligibilitySlot,
+                    consumer_identity,
+                    node.repeated_instance_basis().identity_digest(),
+                ),
+                UiGraphFactConsumerIdentity::MountEligibilitySlot(
+                    slot.mount_eligibility_identity(),
+                ),
+                None,
+                contract,
+            ));
+        }
+    }
+    by_declaration
+}
+
+fn add_authored_aspect_consumers(
+    snapshot: &UiGraphSnapshot,
+    authored_declarations: &UiAuthoredDeclarationLookup,
+    by_declaration: &mut BTreeMap<Box<str>, Vec<UiGraphFactIndexEntry>>,
+) {
+    let indexes = snapshot.core_indexes();
+    for (aspect, publishers) in indexes.published_aspects().iter() {
+        for publisher in publishers {
+            let UiGraphAspectPublisherKind::GraphNode(publisher_node) = publisher.kind() else {
+                continue;
+            };
+            let publisher_lookup = snapshot
+                .lookup()
+                .graph_node(publisher_node)
+                .expect("every published graph node remains indexed");
+            let publisher = publisher_lookup.value();
+            let selector_identity: Box<str> = fact_selector_identity(
+                publisher.authored_provenance_digest(),
+                publisher.declaration_identity().authored_semantic_name(),
+                authored_declarations,
+            )
+            .into();
+            let contract = UiConsumedFactContract::authored(selector_identity.clone());
+            let entries = by_declaration.entry(selector_identity).or_default();
+            for consumer in indexes.consumed_aspects().consumers_for(aspect) {
+                entries.push(UiGraphFactIndexEntry::new(
+                    consumer_key(snapshot, consumer.kind()),
+                    consumer_identity(consumer.kind()),
+                    Some(aspect.clone()),
+                    contract.clone(),
+                ));
+            }
+        }
+    }
+}
+
+pub(super) fn canonical_entries(
+    mut entries: Vec<UiGraphFactIndexEntry>,
+) -> Box<[UiGraphFactIndexEntry]> {
+    entries.sort_by(|left, right| {
+        left.consumer_key()
+            .cmp(right.consumer_key())
+            .then_with(|| left.consumer().cmp(&right.consumer()))
+            .then_with(|| left.affected_aspect().cmp(&right.affected_aspect()))
+    });
+    entries.dedup();
+    entries.into_boxed_slice()
+}
+
+pub(super) fn consumer_key(
+    snapshot: &UiGraphSnapshot,
+    kind: UiGraphAspectConsumerKind,
+) -> UiGraphFactConsumerKey {
+    let (consumer_kind, node_identity) = match kind {
+        UiGraphAspectConsumerKind::GraphNode(identity) => {
+            (UiGraphFactConsumerKind::GraphNode, identity)
+        }
+        UiGraphAspectConsumerKind::MountEligibilitySlot(identity) => {
+            let node_identity = snapshot
+                .mount_eligibilities()
+                .slot(identity)
+                .expect("every indexed mount-eligibility consumer has a graph-owned slot")
+                .graph_node_identity();
+            (UiGraphFactConsumerKind::MountEligibilitySlot, node_identity)
+        }
+    };
+    let node = snapshot
+        .nodes()
+        .iter()
+        .find(|node| node.graph_node_identity() == node_identity)
+        .expect("every indexed fact consumer has one graph node");
+    let declaration = snapshot
+        .core_indexes()
+        .declaration_correspondence()
+        .declaration_identity_for(node_identity)
+        .expect("every indexed fact consumer has declaration correspondence");
+    UiGraphFactConsumerKey::new(
+        consumer_kind,
+        declaration.authored_semantic_name(),
+        node.repeated_instance_basis().identity_digest(),
+    )
+}
+
+pub(super) fn consumer_identity(kind: UiGraphAspectConsumerKind) -> UiGraphFactConsumerIdentity {
+    match kind {
+        UiGraphAspectConsumerKind::GraphNode(identity) => {
+            UiGraphFactConsumerIdentity::GraphNode(identity)
+        }
+        UiGraphAspectConsumerKind::MountEligibilitySlot(identity) => {
+            UiGraphFactConsumerIdentity::MountEligibilitySlot(identity)
+        }
+    }
+}

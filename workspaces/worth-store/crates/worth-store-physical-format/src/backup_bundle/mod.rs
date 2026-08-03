@@ -9,6 +9,7 @@ pub use artifact_closure::{backup_canonical_artifact_closure_digest, BackupBundl
 pub use bundle_manifest::{
     BackupBundleArtifactCoverage, BackupBundleArtifactFamily, BackupBundleArtifactFormat,
     BackupBundleArtifactManifestRow, BackupBundleManifest, BackupBundleManifestConstructionDenial,
+    BackupBundleManifestDeclaration, BackupBundleManifestIdentity, BackupBundleRecoveryCoordinates,
     MaterializedBackupBundle,
 };
 pub use format_authority::{

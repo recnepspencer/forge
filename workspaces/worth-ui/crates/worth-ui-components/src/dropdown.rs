@@ -150,7 +150,6 @@ pub fn fg_dropdown(
     // ── Popup list ──────────────────────────────────────────────
     if props.dropdown_state.open {
         let popup_id = egui::Id::new(format!("dropdown_popup_{id_source}"));
-        let _above_or_below = egui::AboveOrBelow::Below;
         let trigger_rect = trigger_resp.rect;
 
         egui::Area::new(popup_id)
@@ -177,7 +176,7 @@ pub fn fg_dropdown(
                                 .hint_text("🔍 Search…")
                                 .desired_width(f32::INFINITY)
                                 .font(egui::FontId::proportional(theme.font_size_sm))
-                                .frame(false),
+                                .frame(egui::Frame::NONE),
                         )
                         .request_focus();
                         ui.add_space(4.0);
@@ -240,7 +239,7 @@ pub fn fg_dropdown(
                                         } else {
                                             theme.text_primary
                                         };
-                                        let g = ui.fonts(|f| {
+                                        let g = ui.fonts_mut(|f| {
                                             f.layout_no_wrap(
                                                 item.label.clone(),
                                                 egui::FontId::proportional(theme.font_size_sm),

@@ -3,16 +3,13 @@ use worth_store_physical_backend::{BackendTargetProfile, CapabilityEvidenceClass
 
 use crate::BackgroundResourceBudget;
 
-use super::progression::{
-    execute_queue_execution_proof, ready_queue_execution_proof, QueueExecutedRecipe,
-    QueueReadyRecipe,
-};
+use super::super::admission::ValidatedQueueExecutionAdmission;
 use super::{
     QueueExecutionPlanBinding, QueueExecutionProgression, QueueExecutionReplayIdentity,
     QueueGroupingBasis, QueueWorkDeclaration,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct AdmittedQueueExecutionPlan {
     work: QueueWorkDeclaration,
     backend_profile: BackendTargetProfile,
@@ -28,48 +25,40 @@ pub struct AdmittedQueueExecutionPlan {
 pub struct QueueExecutionReadyPlan {
     admitted: AdmittedQueueExecutionPlan,
     progression: QueueExecutionProgression,
-    ready_proof: QueueReadyRecipe,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct QueueExecutedPlan {
     admitted: AdmittedQueueExecutionPlan,
     progression: QueueExecutionProgression,
-    executed_proof: QueueExecutedRecipe,
 }
 
 impl AdmittedQueueExecutionPlan {
-    pub(crate) fn new(
-        work: QueueWorkDeclaration,
-        backend_profile: BackendTargetProfile,
-        backend_evidence_class: CapabilityEvidenceClass,
-        policy_receipt: FoundationalPolicyAdmissionReceipt,
-        grouping_basis: QueueGroupingBasis,
-        admitted_budget: BackgroundResourceBudget,
-    ) -> Self {
+    pub(crate) fn from_validated(admission: ValidatedQueueExecutionAdmission) -> Self {
         Self {
-            replay_identity: QueueExecutionReplayIdentity::new(&work, grouping_basis.clone()),
-            work,
-            backend_profile,
-            backend_evidence_class,
-            policy_receipt,
-            grouping_basis,
-            admitted_budget,
+            replay_identity: QueueExecutionReplayIdentity::new(
+                &admission.work,
+                admission.grouping_basis.clone(),
+            ),
+            work: admission.work,
+            backend_profile: admission.backend_profile,
+            backend_evidence_class: admission.backend_evidence_class,
+            policy_receipt: admission.policy_receipt,
+            grouping_basis: admission.grouping_basis,
+            admitted_budget: admission.admitted_budget,
             progression: QueueExecutionProgression::Lowered,
         }
     }
 
     pub fn into_execution_ready(self) -> QueueExecutionReadyPlan {
-        let replay_identity = self.replay_identity.clone();
         QueueExecutionReadyPlan {
-            ready_proof: ready_queue_execution_proof(replay_identity),
             admitted: self,
             progression: QueueExecutionProgression::ExecutionReady,
         }
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
-        self.work.clone()
+    pub const fn work(&self) -> &QueueWorkDeclaration {
+        &self.work
     }
 
     pub const fn backend_profile(&self) -> BackendTargetProfile {
@@ -106,7 +95,7 @@ impl QueueExecutionReadyPlan {
         &self.admitted
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
+    pub const fn work(&self) -> &QueueWorkDeclaration {
         self.admitted.work()
     }
 
@@ -149,7 +138,6 @@ impl QueueExecutionReadyPlan {
         QueueExecutedPlan {
             admitted: self.admitted,
             progression: QueueExecutionProgression::Executed,
-            executed_proof: execute_queue_execution_proof(self.ready_proof),
         }
     }
 }
@@ -159,7 +147,7 @@ impl QueueExecutedPlan {
         &self.admitted
     }
 
-    pub fn work(&self) -> QueueWorkDeclaration {
+    pub const fn work(&self) -> &QueueWorkDeclaration {
         self.admitted.work()
     }
 
@@ -192,6 +180,6 @@ impl QueueExecutedPlan {
     }
 
     pub fn executed_replay_identity(&self) -> &QueueExecutionReplayIdentity {
-        self.executed_proof.payload()
+        self.admitted.replay_identity()
     }
 }

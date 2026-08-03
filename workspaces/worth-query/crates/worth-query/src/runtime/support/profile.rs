@@ -7,10 +7,10 @@ use super::bridge_backed_verification_profile::{
 use super::{
     default_graph_composition_capability_support_rows, WorthQueryBranchBasisAdmission,
     WorthQueryGraphCompositionCapabilitySupportRow, WorthQueryPreviewBasisAdmission,
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeEvidenceAuthority,
-    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
-    WorthQueryRuntimeFamilySupportStatus, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSupportDenial,
+    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeBatchAuthority,
+    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeFacadeFamily,
+    WorthQueryRuntimeFamilySupport, WorthQueryRuntimeFamilySupportStatus,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportDenial,
 };
 use crate::runtime::{WorthQueryAuthorityLane, WorthQueryEffectPolicy};
 use crate::runtime::{WorthQueryGraphIndexSupportRow, WorthQueryGraphReadAccessRequirementKind};
@@ -18,6 +18,7 @@ use crate::runtime::{WorthQueryGraphIndexSupportRow, WorthQueryGraphReadAccessRe
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryRuntimeSupportProfile {
     posture: WorthQueryRuntimeBackendPosture,
+    pub(super) batch_authority: WorthQueryRuntimeBatchAuthority,
     rows: BTreeMap<WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport>,
     bridge_backed_verification_support_rows:
         Vec<WorthQueryBridgeBackedVerificationSupportProfileRow>,
@@ -29,6 +30,7 @@ impl WorthQueryRuntimeSupportProfile {
     pub fn new(rows: impl IntoIterator<Item = WorthQueryRuntimeFamilySupport>) -> Self {
         Self {
             posture: WorthQueryRuntimeBackendPosture::Primary,
+            batch_authority: WorthQueryRuntimeBatchAuthority::BackendAtomicFull,
             rows: rows.into_iter().map(|row| (row.family(), row)).collect(),
             bridge_backed_verification_support_rows:
                 default_bridge_backed_verification_support_rows(),
@@ -231,6 +233,14 @@ impl WorthQueryRuntimeSupportProfile {
 
     pub fn with_posture(mut self, posture: WorthQueryRuntimeBackendPosture) -> Self {
         self.posture = posture;
+        self.batch_authority = match posture {
+            WorthQueryRuntimeBackendPosture::Primary => {
+                WorthQueryRuntimeBatchAuthority::BackendAtomicFull
+            }
+            WorthQueryRuntimeBackendPosture::Scaffold => {
+                WorthQueryRuntimeBatchAuthority::Unsupported
+            }
+        };
         self
     }
 

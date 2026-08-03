@@ -1,24 +1,12 @@
 use std::collections::VecDeque;
 
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostContract,
-    WorthUiMeasurementHostAdapter,
-};
+use worth_ui_host_contract::WorthUiHostContract;
 use worth_ui_runtime::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
     WorthUiOperationalHostAdapter,
 };
 
 use super::*;
-
-impl WorthUiMeasurementHostAdapter for ScriptedPresentationHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("scripted host advertises no measurement capability")
-    }
-}
 
 impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
     fn operational_host_contract(&self) -> WorthUiHostContract {
@@ -31,6 +19,18 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
 
     fn operational_protocol_contract(&self) -> worth_ui_host_contract::UiHostProtocolContract {
         self.state.lock().unwrap().protocol
+    }
+
+    fn drain_host_observations(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        Ok(self
+            .observation_retention
+            .drain(authority.host_session_identity()))
     }
 
     fn measurement_environment_report(
@@ -57,6 +57,40 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
                 ))
             .then_some(state.adapter_environment_generation),
         )
+    }
+
+    fn visual_capture_capability(&self) -> worth_ui_host_contract::UiHostCaptureCapability {
+        self.state.lock().unwrap().visual_capture_capability
+    }
+
+    fn capture_visual_presentation(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureObservationOutcome {
+        if !authority.admits_visual_capture(request) {
+            return worth_ui_host_contract::UiHostCaptureObservationOutcome::Unsupported;
+        }
+        let mut state = self.state.lock().unwrap();
+        state.visual_capture_calls.push(request);
+        let script = state
+            .visual_captures
+            .pop_front()
+            .expect("script names every visual capture outcome");
+        visual_capture_script::observe(request, script)
+    }
+
+    fn cancel_visual_capture(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
+        if !authority.admits_visual_capture(request) {
+            return worth_ui_host_contract::UiHostCaptureCancellationOutcome::CleanupIndeterminate;
+        }
+        let mut state = self.state.lock().unwrap();
+        state.visual_cancellation_calls.push(request);
+        state.visual_cancellation_outcome
     }
 
     fn register_surface(
@@ -243,6 +277,8 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         for token in session_tokens {
             clear_token_state(&mut state, token);
         }
+        self.observation_retention
+            .release_session(authority.host_session_identity());
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             authority.host_session_identity(),
             before - state.registrations.len(),
@@ -258,19 +294,16 @@ fn clear_token_state(state: &mut ScriptedPresentationState, identity: u64) {
 
 fn dispatch_queued_ingress(
     host: &ScriptedPresentationHost,
-    observation: Option<(
-        worth_ui::facade::observation_report::WorthUiHostObservationIngress,
-        worth_ui::facade::observation_report::UiHostObservationBatch,
-    )>,
+    observation: Option<worth_ui::facade::observation_report::UiHostObservationBatch>,
     measurement: Option<(
         worth_ui::facade::measurement_exchange::WorthUiHostMeasurementIngress,
         worth_ui::facade::measurement_exchange::UiHostMeasurementCompletion,
     )>,
 ) {
-    if let Some((ingress, batch)) = observation {
-        ingress
-            .enqueue(batch)
-            .expect("scripted in-call raw report fits ingress");
+    if let Some(batch) = observation {
+        host.observation_retention
+            .retain(batch)
+            .expect("scripted in-call raw report fits adapter retention");
         host.state
             .lock()
             .unwrap()

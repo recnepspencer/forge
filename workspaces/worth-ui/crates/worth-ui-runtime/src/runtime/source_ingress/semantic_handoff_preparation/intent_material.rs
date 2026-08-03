@@ -1,0 +1,177 @@
+use worth_ui_dsl::{
+    UiDslSemanticFamily, WorthUiArtifactInputProvenance, WorthUiIntentDeclarationMeaning,
+    WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute, WorthUiIntentPayloadSourceSpec,
+    WorthUiSealedSemanticPackage, WorthUiSemanticDeclaration,
+};
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct WorthUiAuthoredIntentMaterial {
+    declarations: Box<[WorthUiAuthoredIntentDeclaration]>,
+    routes: Box<[WorthUiAuthoredIntentRoute]>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorthUiAuthoredIntentDeclaration {
+    identity: Box<str>,
+    meaning: WorthUiIntentDeclarationMeaning,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct WorthUiAuthoredIntentRoute {
+    target_provenance_digest: u64,
+    route: WorthUiIntentInteractionRoute,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiAuthoredIntentMaterialDenial {
+    InvalidDeclaration {
+        identity: Box<str>,
+        reason: WorthUiAuthoredIntentDeclarationDenial,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum WorthUiAuthoredIntentDeclarationDenial {
+    MissingStructuredMeaning,
+    UnexpectedSemanticSurface,
+}
+
+pub(crate) fn prepare_authored_intent_material(
+    package: &WorthUiSealedSemanticPackage,
+) -> Result<WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentMaterialDenial> {
+    let mut declarations = Vec::new();
+    let mut routes = Vec::new();
+    for module_id in package.module_ids() {
+        let views = package
+            .declaration_views(module_id)
+            .expect("sealed package contains every canonical module");
+        for view in views {
+            match view.declaration() {
+                WorthUiSemanticDeclaration::SemanticArtifact(artifact)
+                    if artifact.declaration().family() == UiDslSemanticFamily::Intent =>
+                {
+                    declarations.push(admit_declaration(artifact.declaration())?);
+                }
+                WorthUiSemanticDeclaration::Component(component) => {
+                    let target_provenance_digest = provenance_digest(view.provenance());
+                    routes.extend(
+                        component
+                            .structure()
+                            .interaction_routes()
+                            .iter()
+                            .cloned()
+                            .map(|route| WorthUiAuthoredIntentRoute {
+                                target_provenance_digest,
+                                route,
+                            }),
+                    );
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(WorthUiAuthoredIntentMaterial {
+        declarations: declarations.into_boxed_slice(),
+        routes: routes.into_boxed_slice(),
+    })
+}
+
+fn admit_declaration(
+    declaration: &worth_ui_dsl::WorthUiSemanticArtifactDeclaration,
+) -> Result<WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterialDenial> {
+    let identity: Box<str> = declaration.key().as_str().into();
+    if !declaration.published_aspects().is_empty()
+        || !declaration.consumed_aspects().is_empty()
+        || !declaration.structural_tokens().is_empty()
+        || !declaration.support_tokens().is_empty()
+    {
+        return Err(invalid(
+            identity,
+            WorthUiAuthoredIntentDeclarationDenial::UnexpectedSemanticSurface,
+        ));
+    }
+    let meaning = declaration.intent_declaration().cloned().ok_or_else(|| {
+        invalid(
+            identity.clone(),
+            WorthUiAuthoredIntentDeclarationDenial::MissingStructuredMeaning,
+        )
+    })?;
+    Ok(WorthUiAuthoredIntentDeclaration { identity, meaning })
+}
+
+fn invalid(
+    identity: Box<str>,
+    reason: WorthUiAuthoredIntentDeclarationDenial,
+) -> WorthUiAuthoredIntentMaterialDenial {
+    WorthUiAuthoredIntentMaterialDenial::InvalidDeclaration { identity, reason }
+}
+
+fn provenance_digest(provenance: &WorthUiArtifactInputProvenance) -> u64 {
+    match provenance {
+        WorthUiArtifactInputProvenance::ParsedSourceDeclaration {
+            declaration_span,
+            declaration_index,
+            ..
+        } => crate::declaration::authored_source_provenance_digest(
+            declaration_span.module_id().as_str(),
+            *declaration_index,
+        ),
+        WorthUiArtifactInputProvenance::RustAuthoredDeclaration {
+            authored_module_path,
+            declaration_index,
+        } => crate::declaration::authored_source_provenance_digest(
+            authored_module_path,
+            *declaration_index,
+        ),
+    }
+}
+
+impl WorthUiAuthoredIntentMaterial {
+    pub(crate) fn declarations(&self) -> &[WorthUiAuthoredIntentDeclaration] {
+        &self.declarations
+    }
+
+    pub(crate) fn routes(&self) -> &[WorthUiAuthoredIntentRoute] {
+        &self.routes
+    }
+}
+
+impl WorthUiAuthoredIntentDeclaration {
+    pub(crate) fn identity(&self) -> &str {
+        &self.identity
+    }
+
+    pub(crate) fn definition_reference(&self) -> &str {
+        self.meaning.definition_reference()
+    }
+
+    pub(crate) const fn interaction(&self) -> WorthUiIntentInteractionFamily {
+        self.meaning.interaction()
+    }
+
+    pub(crate) fn expected_payload_schema(
+        &self,
+    ) -> Option<&worth_ui_dsl::WorthUiIntentSchemaExpectation> {
+        self.meaning.expected_payload_schema()
+    }
+
+    pub(crate) fn expected_outcome_schema(
+        &self,
+    ) -> Option<&worth_ui_dsl::WorthUiIntentSchemaExpectation> {
+        self.meaning.expected_outcome_schema()
+    }
+
+    pub(crate) fn payload_sources(&self) -> &[WorthUiIntentPayloadSourceSpec] {
+        self.meaning.payload_sources()
+    }
+}
+
+impl WorthUiAuthoredIntentRoute {
+    pub(crate) const fn target_provenance_digest(&self) -> u64 {
+        self.target_provenance_digest
+    }
+
+    pub(crate) const fn route(&self) -> &WorthUiIntentInteractionRoute {
+        &self.route
+    }
+}

@@ -1,4 +1,4 @@
-use crate::{PhysicalExtentId, PhysicalGeneration};
+use crate::{PhysicalExtentId, PhysicalGeneration, PhysicalGenerationOwner};
 
 /// Generation authority for an extent that is a top-level record artifact.
 ///
@@ -25,6 +25,10 @@ impl RecordExtentGenerationCell {
 
     pub const fn generation(self) -> PhysicalGeneration {
         self.generation
+    }
+
+    pub const fn owner(self) -> PhysicalGenerationOwner {
+        PhysicalGenerationOwner::for_record_extent(self.extent_id, self.generation)
     }
 }
 

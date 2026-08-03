@@ -36,7 +36,7 @@ impl WorthUiActiveApplicationSession {
                 .query_binding_plan()
                 .prepare_downstream_state(),
             next_app,
-            admitted,
+            semantic_input: WorthUiPreparedReplacementSemanticInput::Admitted(admitted),
             basis,
             candidate_graph_changed_nodes: Default::default(),
         }))
@@ -52,16 +52,20 @@ impl WorthUiActiveApplicationSession {
                 WorthUiApplicationReplacementLoweringDenial::ForeignActiveApplicationSession,
             );
         }
-        let candidate_application_authority =
-            prepared.next_app.prepared_authority().lowering_authority();
-        let lowering = self
-            .application
-            .prepare_application_replacement_lowering(
-                prepared.admitted,
-                candidate_application_authority,
-                &prepared.candidate_query_binding,
-            )
-            .map_err(WorthUiApplicationReplacementLoweringDenial::Lowering)?;
+        let lowering = match prepared.semantic_input {
+            WorthUiPreparedReplacementSemanticInput::Admitted(admitted) => {
+                let candidate_application_authority =
+                    prepared.next_app.prepared_authority().lowering_authority();
+                self.application
+                    .prepare_application_replacement_lowering(
+                        admitted,
+                        candidate_application_authority,
+                        &prepared.candidate_query_binding,
+                    )
+                    .map_err(WorthUiApplicationReplacementLoweringDenial::Lowering)?
+            }
+            WorthUiPreparedReplacementSemanticInput::Prelowered(lowering) => lowering,
+        };
         let reload_cost_seed = lowering.reload_cost_seed();
         Ok(WorthUiLoweredApplicationReplacement {
             next_app: prepared.next_app,

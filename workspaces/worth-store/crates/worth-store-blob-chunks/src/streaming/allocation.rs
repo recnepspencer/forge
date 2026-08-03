@@ -1,57 +1,48 @@
-use worth_store_buffer_pool::{
-    OperationAllocationGrant, OperationAllocationObservation, PhysicalOperationAllocationScope,
-};
+use worth_store::physical_runtime::{BlobPhysicalAllocation, LifecycleGeneration, RuntimeIdentity};
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 #[derive(Debug)]
-pub(crate) struct AdmittedBlobStreamingAllocation {
-    grant: OperationAllocationGrant,
+pub(crate) struct AdmittedBlobStreamingAllocation<'runtime> {
+    allocation: BlobPhysicalAllocation<'runtime>,
     observation: BlobStreamingAllocationObservation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlobStreamingAllocationObservation {
-    allocation: OperationAllocationObservation,
+    store: StableStoreIdentity,
+    generation: LifecycleGeneration,
+    runtime: RuntimeIdentity,
+    allocation_bytes: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BlobStreamingAllocationDenial {
-    WrongScope {
-        actual: PhysicalOperationAllocationScope,
-    },
     WindowExceedsAllocation {
         window_bytes: u64,
         allocation_bytes: u64,
     },
-    CountersUnavailable,
 }
 
-impl AdmittedBlobStreamingAllocation {
+impl<'runtime> AdmittedBlobStreamingAllocation<'runtime> {
     pub(crate) fn admit(
-        grant: OperationAllocationGrant,
+        allocation: BlobPhysicalAllocation<'runtime>,
         window_bytes: u64,
     ) -> Result<Self, BlobStreamingAllocationDenial> {
-        let allocation = grant.observation();
-        if allocation.scope() != PhysicalOperationAllocationScope::Blob {
-            return Err(BlobStreamingAllocationDenial::WrongScope {
-                actual: allocation.scope(),
-            });
-        }
         if allocation.bytes() < window_bytes {
             return Err(BlobStreamingAllocationDenial::WindowExceedsAllocation {
                 window_bytes,
                 allocation_bytes: allocation.bytes(),
             });
         }
-        if allocation
-            .counters()
-            .active_operation_bytes_for(PhysicalOperationAllocationScope::Blob)
-            < allocation.bytes()
-        {
-            return Err(BlobStreamingAllocationDenial::CountersUnavailable);
-        }
+        let observation = BlobStreamingAllocationObservation {
+            store: allocation.store_identity(),
+            generation: allocation.store_generation(),
+            runtime: allocation.runtime_identity(),
+            allocation_bytes: allocation.bytes(),
+        };
         Ok(Self {
-            grant,
-            observation: BlobStreamingAllocationObservation { allocation },
+            allocation,
+            observation,
         })
     }
 
@@ -60,12 +51,24 @@ impl AdmittedBlobStreamingAllocation {
     }
 
     pub(crate) const fn bytes(&self) -> u64 {
-        self.grant.bytes()
+        self.allocation.bytes()
     }
 }
 
 impl BlobStreamingAllocationObservation {
-    pub const fn allocation(self) -> OperationAllocationObservation {
-        self.allocation
+    pub const fn store_identity(self) -> StableStoreIdentity {
+        self.store
+    }
+
+    pub const fn store_generation(self) -> LifecycleGeneration {
+        self.generation
+    }
+
+    pub const fn runtime_identity(self) -> RuntimeIdentity {
+        self.runtime
+    }
+
+    pub const fn allocation_bytes(self) -> u64 {
+        self.allocation_bytes
     }
 }

@@ -25,7 +25,9 @@ use super::host_measurement_fixture::{
 };
 use super::host_observation_fixture::{batch, report, source};
 use super::mounted_application_lifecycle::known_empty_surface_world::profile;
-use super::mounted_application_lifecycle::published_mounted_world::PresentedObservationBasis;
+use super::mounted_application_lifecycle::published_mounted_world::{
+    presented_epoch, PresentedObservationBasis,
+};
 use super::mounted_publication::{replacement_workspace, stage_replacement};
 
 #[test]
@@ -132,10 +134,12 @@ fn real_wui_lifecycle_closes_phase_one_through_eight_authority_seams() {
     ));
     let identity = session.inspect_mounted_identity();
     let instance = identity.mounted_instances()[0].identity();
+    let frame = identity
+        .current_frame()
+        .expect("replacement frame is current");
     let basis = PresentedObservationBasis {
-        frame: identity
-            .current_frame()
-            .expect("replacement frame is current"),
+        frame,
+        epoch: presented_epoch(&session, frame, bindings[0]),
         instance,
         receipt: identity
             .frame_receipts()

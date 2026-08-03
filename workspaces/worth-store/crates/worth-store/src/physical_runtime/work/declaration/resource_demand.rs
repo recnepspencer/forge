@@ -24,6 +24,13 @@ impl PhysicalWorkResourceDemand {
             .with_queue_slots(members)
             .with_worker_permits(members)
             .with_bandwidth_tokens(bytes)
+            .with_write_back_windows(
+                if matches!(operation, PhysicalWorkOperationFamily::ArtifactRangeWrite) {
+                    members
+                } else {
+                    0
+                },
+            )
             .with_flush_permits(u64::from(matches!(
                 durability,
                 PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(

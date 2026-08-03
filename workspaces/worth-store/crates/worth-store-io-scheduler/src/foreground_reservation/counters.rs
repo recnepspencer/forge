@@ -7,8 +7,6 @@ pub struct ForegroundReservationCounterSnapshot {
     admitted: ForegroundResourceBudget,
     denied: ForegroundResourceBudget,
     denied_capacity_events: u64,
-    stable_read_wait_count: u64,
-    stable_read_retry_count: u64,
 }
 
 impl ForegroundReservationCounterSnapshot {
@@ -16,8 +14,6 @@ impl ForegroundReservationCounterSnapshot {
         requested: ForegroundResourceBudget,
         available: ForegroundResourceBudget,
         admitted: ForegroundResourceBudget,
-        stable_read_wait_count: u64,
-        stable_read_retry_count: u64,
     ) -> Self {
         Self {
             requested,
@@ -25,8 +21,6 @@ impl ForegroundReservationCounterSnapshot {
             admitted,
             denied: ForegroundResourceBudget::new(),
             denied_capacity_events: 0,
-            stable_read_wait_count,
-            stable_read_retry_count,
         }
     }
 
@@ -41,8 +35,6 @@ impl ForegroundReservationCounterSnapshot {
             admitted: ForegroundResourceBudget::new(),
             denied,
             denied_capacity_events: 1,
-            stable_read_wait_count: 0,
-            stable_read_retry_count: 0,
         }
     }
 
@@ -64,13 +56,5 @@ impl ForegroundReservationCounterSnapshot {
 
     pub const fn denied_capacity_events(self) -> u64 {
         self.denied_capacity_events
-    }
-
-    pub const fn stable_read_wait_count(self) -> u64 {
-        self.stable_read_wait_count
-    }
-
-    pub const fn stable_read_retry_count(self) -> u64 {
-        self.stable_read_retry_count
     }
 }

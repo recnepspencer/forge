@@ -72,6 +72,7 @@ impl VirtualizedDataFixture {
         let mut query =
             worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture::new(label);
         let snapshot = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .register_query_view(query.installed_view())
             .expect("installed view registers")
             .freeze()
@@ -83,6 +84,7 @@ impl VirtualizedDataFixture {
             snapshot.capabilities(),
         );
         let mut session = WorthUi::app()
+            .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .register_query_view(query.installed_view())
             .expect("installed view registers for active app")
             .with_candidate_submission(submission)

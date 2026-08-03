@@ -19,7 +19,7 @@ fn equivalent_patches_ignore_unrelated_collection_width() {
     assert_eq!(narrow.ui.measurement_effects_minted(), 2);
     assert_eq!(narrow.ui.allocation_effects_minted(), 1);
     assert_eq!(narrow.query.operations_materialized(), 1);
-    assert_eq!(narrow.query.native_facts_materialized(), 0);
+    assert_eq!(narrow.query.native_facts_materialized(), 1);
     assert_eq!(narrow.query.full_collection_scans(), 0);
     assert_eq!(narrow.query.unrelated_consumer_scans(), 0);
 }

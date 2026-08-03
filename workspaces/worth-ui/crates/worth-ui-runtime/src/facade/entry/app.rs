@@ -37,7 +37,9 @@ pub struct WorthUi {
 
 impl WorthUi {
     /// Start a Worth UI application definition.
-    pub fn app() -> crate::facade::entry::WorthUiApplicationBuilder {
+    pub fn app(
+    ) -> crate::facade::entry::WorthUiApplicationBuilder<crate::facade::entry::UiChangeProfileMissing>
+    {
         crate::facade::entry::WorthUiApplicationBuilder::new()
     }
 }
@@ -79,10 +81,22 @@ impl WorthUiApp {
             .host_observation_capacity()
     }
 
+    pub(super) const fn visual_inspection_policy(
+        &self,
+    ) -> worth_ui_inspection::UiVisualInspectionPolicy {
+        self.prepared.visual_inspection_policy()
+    }
+
     /// Borrow the sealed prepared authority without transferring any
     /// independently launchable constituent.
     pub(crate) fn prepared_authority(&self) -> &WorthUiPreparedApplicationAuthority {
         &self.prepared
+    }
+
+    pub(crate) fn visual_trace_source(
+        &self,
+    ) -> crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource {
+        self.prepared.visual_trace_source()
     }
 
     /// Inspect the immutable capability snapshot owned by this app.
@@ -130,6 +144,19 @@ impl WorthUiApp {
         committed: crate::graph::UiGraphMutationCommitResult,
     ) {
         self.prepared.advance_graph_snapshot(committed);
+    }
+
+    pub(crate) fn commit_evidence_only_prepared_authority(
+        &mut self,
+        successor: WorthUiPreparedApplicationAuthority,
+    ) -> (
+        WorthUiPreparedApplicationGenerationIdentity,
+        WorthUiPreparedApplicationGenerationIdentity,
+    ) {
+        let prior = self.prepared.generation_identity().clone();
+        let active = successor.generation_identity().clone();
+        self.prepared = successor;
+        (prior, active)
     }
 
     pub(crate) fn prepare_graph_successor(
@@ -283,14 +310,20 @@ impl WorthUiApp {
                 })?;
         let runtime = WorthUiRuntime::launch(
             launch,
-            lowering_authority,
-            initial_allocation_commit,
-            self.prepared.capabilities().digest(),
-            Rc::clone(&self.retained_allocation_planning_evidence),
-            self.prepared
-                .query_binding_plan()
-                .prepare_downstream_state(),
-            host_session.plan_binding(),
+            crate::runtime::WorthUiRuntimeLaunchAuthority {
+                lowering_authority,
+                initial_allocation_commit,
+                snapshot_digest: self.prepared.capabilities().digest(),
+                retained_allocation_planning_evidence: Rc::clone(
+                    &self.retained_allocation_planning_evidence,
+                ),
+                query_binding: self
+                    .prepared
+                    .query_binding_plan()
+                    .prepare_downstream_state(),
+                host_plan_binding: host_session.plan_binding(),
+                change_profile: self.prepared.change_profile(),
+            },
         )?;
         Ok(runtime)
     }

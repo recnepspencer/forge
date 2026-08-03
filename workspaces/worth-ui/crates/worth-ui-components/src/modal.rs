@@ -27,7 +27,7 @@ pub fn fg_modal<R>(
         .order(egui::Order::Foreground)
         .interactable(true)
         .show(ctx, |ui| {
-            let screen = ctx.screen_rect();
+            let screen = ctx.viewport_rect();
             let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
             ui.painter()
                 .rect_filled(rect, 0.0, Color32::from_black_alpha(140));

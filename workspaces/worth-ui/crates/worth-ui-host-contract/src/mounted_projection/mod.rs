@@ -1,9 +1,12 @@
 mod geometry;
 mod headless_cache;
 mod headless_observation;
+mod hit_test;
+mod identity_overlay;
 mod participation;
 mod preview;
 mod resource;
+mod semantic_text;
 mod static_paint;
 mod tables;
 mod view;
@@ -20,6 +23,15 @@ pub use headless_cache::{
 pub use headless_observation::{
     UiHeadlessMountedParticipationRecord, WorthUiHeadlessMountedProjectionRecord,
 };
+pub use hit_test::{
+    UiMountedHitTestCompletionDenial, UiMountedHitTestCompletionInput, UiMountedHitTestMechanic,
+    UiMountedHitTestOrder, UiMountedHitTestProjection, UiMountedHitTestReference,
+    UiMountedHitTestTable,
+};
+pub use identity_overlay::{
+    UiMountedClientCoordinateBasis, UiMountedClientPhysicalRect, UiMountedIdentityOverlayMechanic,
+    UiMountedIdentityOverlayMechanicInput,
+};
 pub use participation::{
     UiMountedAccessibilityProjection, UiMountedDiagnosticProjection, UiMountedDiagnosticReference,
     UiMountedMechanicalRole, UiMountedMotionProjection, UiMountedOmissionReason,
@@ -30,6 +42,13 @@ pub use preview::UiMountedPreviewProjection;
 pub use resource::{
     UiMountedResourceEntry, UiMountedResourceKind, UiMountedResourceReference,
     UiMountedResourceTable,
+};
+pub use semantic_text::{
+    UiMountedCollectionRowCorrelation, UiMountedSemanticTextCompletionDenial,
+    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
+    UiMountedSemanticTextReference, UiMountedSemanticTextTable, UiMountedSemanticTextTableDenial,
+    UiMountedTextSchemaVersion, UiSemanticTextBaselinePosture, UiSemanticTextProfile,
+    UiSemanticTextSlot, UiSemanticTextWrapPosture,
 };
 pub use static_paint::{
     UiMountedFilledRectCompletionDenial, UiMountedFilledRectCompletionInput,

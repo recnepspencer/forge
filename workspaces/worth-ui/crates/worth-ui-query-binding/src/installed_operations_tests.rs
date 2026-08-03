@@ -3,10 +3,18 @@ use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBa
 use worth_query::facade::{domain, foundation};
 
 use crate::installed_domain::{
+    collection_text_projection::{
+        WorthUiCollectionTextProjection, WorthUiCollectionTextProjectionExecutor,
+        WorthUiCollectionTextProjectionFamily,
+    },
     executor_registration::install_worth_ui_test_operation_executors,
     measurement_recording::{
         WorthUiMeasurementRecording, WorthUiMeasurementRecordingExecutor,
         WorthUiMeasurementRecordingFamily, IDENTIFY_STAGE, RECORD_STAGE,
+    },
+    scalar_text_projection::{
+        WorthUiScalarTextProjection, WorthUiScalarTextProjectionExecutor,
+        WorthUiScalarTextProjectionFamily,
     },
     snapshot_measurement::{
         snapshot_measurement_definition_with_value_alias, WorthUiSnapshotMeasurement,
@@ -20,6 +28,8 @@ use crate::{
 
 #[path = "installed_operations_tests/reference_convergence.rs"]
 mod reference_convergence;
+#[path = "installed_operations_tests/semantic_contract.rs"]
+mod semantic_contract;
 
 #[test]
 fn installed_snapshot_identity_converges_and_semantic_drift_changes_it() {
@@ -302,6 +312,18 @@ fn drifted_installed_builder_with_package(
             WorthUiSnapshotMeasurement,
             WorthUiSnapshotMeasurementFamily,
             WorthUiSnapshotMeasurementValueAliasExecutor,
+        )
+        .domain_operation_executor(
+            crate::WorthUiDomainEntry,
+            WorthUiScalarTextProjection,
+            WorthUiScalarTextProjectionFamily,
+            WorthUiScalarTextProjectionExecutor,
+        )
+        .domain_operation_executor(
+            crate::WorthUiDomainEntry,
+            WorthUiCollectionTextProjection,
+            WorthUiCollectionTextProjectionFamily,
+            WorthUiCollectionTextProjectionExecutor,
         )
         .workflow_stage_executor(
             crate::WorthUiDomainEntry,

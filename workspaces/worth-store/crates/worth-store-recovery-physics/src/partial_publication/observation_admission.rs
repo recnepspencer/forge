@@ -24,7 +24,6 @@ fn select_recovery_authoritative_observation(
 ) -> PartialPublicationObservedSource {
     sources
         .torn_publication
-        .or(sources.durable_page_mutation)
         .or(sources.persisted_crash_edge)
         .or(sources.backend_residue)
         .or(sources.live_ack_memory)

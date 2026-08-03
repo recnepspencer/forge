@@ -6,12 +6,16 @@ mod entry {}
 mod evidence {}
 pub mod graph;
 pub mod inspection;
+pub mod intent;
+pub mod interaction;
 pub mod measurement_exchange;
 mod inspection_bridge {}
 mod lifecycle {}
 pub mod obligations;
+pub mod observation;
 pub mod observation_report;
 pub mod query_binding;
+pub mod rebind;
 mod runtime_handoff {}
 pub mod source;
 pub mod support;

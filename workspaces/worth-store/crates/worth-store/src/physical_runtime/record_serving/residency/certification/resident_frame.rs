@@ -73,7 +73,7 @@ impl CertificationResidentFrame {
 
     pub(in crate::physical_runtime::record_serving) fn into_dirty_candidate<F>(
         self,
-        allocation: &worth_store_buffer_pool::OperationAllocationGrant,
+        allocation: &worth_store_buffer_pool::ForegroundWriteAllocationGrant,
         fill: F,
     ) -> Result<
         (

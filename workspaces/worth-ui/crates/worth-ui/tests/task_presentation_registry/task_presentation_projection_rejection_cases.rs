@@ -15,6 +15,9 @@ use super::task_presentation_fixtures::task_presentation_id;
 fn status_projected_task_presentation_requires_status_projection_eligibility() {
     let report =
         WorthUi::app()
+            .with_change_profile(
+                worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse(),
+            )
             .register_task_presentation(
                 TaskPresentationDescriptor::new(
                     task_presentation_id("workspace.task.status_mismatch"),
@@ -42,6 +45,7 @@ fn status_projected_task_presentation_requires_status_projection_eligibility() {
 #[test]
 fn terminal_task_presentation_families_require_terminal_projection_eligibility() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.completed_mismatch"),
@@ -82,7 +86,7 @@ fn terminal_task_presentation_families_require_terminal_projection_eligibility()
 
 #[test]
 fn active_task_presentation_families_require_matching_projection_eligibility() {
-    let report = WorthUi::app()
+    let report = WorthUi::app().with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_task_presentation(
             TaskPresentationDescriptor::new(
                 task_presentation_id("workspace.task.progress_mismatch"),

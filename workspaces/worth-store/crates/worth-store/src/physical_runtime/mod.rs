@@ -67,24 +67,24 @@ pub use work::{
     PhysicalWorkObservation, PhysicalWorkOperationFamily, PhysicalWorkPreEffectDenial,
     PhysicalWorkPressureClass, PhysicalWorkProfileDeclaration, PhysicalWorkProfileDenial,
     PhysicalWorkPublicationResiduePosture, PhysicalWorkReadiness, PhysicalWorkRecoveryDisposition,
-    PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget, PhysicalWorkResidencyPosture,
-    PhysicalWorkRetryAdmission, PhysicalWorkRetryFailure, PhysicalWorkRetrySchedule,
-    PhysicalWorkRetryScheduleOutcome, PhysicalWorkScheduler, PhysicalWorkSchedulerPosture,
-    PhysicalWorkScope, PhysicalWorkSemanticBasis, PhysicalWorkSemanticBasisDenial,
-    PhysicalWorkSemanticPosture, PhysicalWorkSettlementEvidence, PhysicalWorkShutdownObservation,
-    PhysicalWorkSignalDeclaration, PhysicalWorkSignalFamily, PhysicalWorkSignalFamilySet,
-    PhysicalWorkSubmissionDeferred, PhysicalWorkSubmissionDenial, PhysicalWorkSubmissionFailure,
-    PhysicalWorkSubmissionOutcome, PhysicalWorkSubmissionReceipt, PhysicalWorkSubmissionStale,
-    PhysicalWorkSupersessionJoin, PhysicalWorkTerminalCause, PhysicalWorkTerminalDisposition,
-    PhysicalWorkTerminalFailure, PhysicalWorkTerminalObservation, PhysicalWorkTerminalStage,
-    PhysicalWorkTimeoutJoin, ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
+    PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget, PhysicalWorkRetryAdmission,
+    PhysicalWorkRetryFailure, PhysicalWorkRetrySchedule, PhysicalWorkRetryScheduleOutcome,
+    PhysicalWorkScheduler, PhysicalWorkSchedulerPosture, PhysicalWorkScope,
+    PhysicalWorkSemanticBasis, PhysicalWorkSemanticBasisDenial, PhysicalWorkSemanticPosture,
+    PhysicalWorkSettlementEvidence, PhysicalWorkShutdownObservation, PhysicalWorkSignalDeclaration,
+    PhysicalWorkSignalFamily, PhysicalWorkSignalFamilySet, PhysicalWorkSubmissionDeferred,
+    PhysicalWorkSubmissionDenial, PhysicalWorkSubmissionFailure, PhysicalWorkSubmissionOutcome,
+    PhysicalWorkSubmissionReceipt, PhysicalWorkSubmissionStale, PhysicalWorkSupersessionJoin,
+    PhysicalWorkTerminalCause, PhysicalWorkTerminalDisposition, PhysicalWorkTerminalFailure,
+    PhysicalWorkTerminalObservation, PhysicalWorkTerminalStage, PhysicalWorkTimeoutJoin,
+    ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
 };
 
 pub(in crate::physical_runtime) use work::{
     PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch, PhysicalExecutorOutcome,
     PhysicalPublicationExecutorCommand, PhysicalReadExecutorCommand,
-    PhysicalResidencyWritebackExecutorCommand, PhysicalWorkSettlement,
-    PhysicalWriteExecutorCommand,
+    PhysicalResidencyWritebackCompletion, PhysicalResidencyWritebackExecutorCommand,
+    PhysicalWorkSettlement, PhysicalWriteExecutorCommand,
 };
 
 #[cfg(feature = "certification-test-authority")]

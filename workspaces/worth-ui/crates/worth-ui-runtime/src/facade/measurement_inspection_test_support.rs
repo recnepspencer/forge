@@ -62,6 +62,7 @@ pub(super) fn measurement_app_in_world(
     evidence: Option<UiMeasurementInspectionEvidenceBundle>,
 ) -> WorthUiApp {
     let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package)
         .with_graph_world_profile(graph_world_profile);
     if let Some(bundle) = evidence {
@@ -92,6 +93,7 @@ pub(super) fn repeated_instance_app() -> WorthUiApp {
     ];
 
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(host_measurement_package())
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::topology::WorkspaceSourceInventory;
 
 use super::runner_contract::{self, Phase4RunnerSources};
+use super::visual_identity_contract::{self, VisualIdentityRunnerSources};
 
 #[test]
 fn live_phase4_watched_replacement_satisfies_the_runner_contract() {
@@ -121,6 +122,134 @@ fn forced_close_hidden_teardown_and_non_atomic_actions_are_rejected() {
     );
     let error = runner_contract::audit_sources(&non_atomic).expect_err("non-atomic edit must fail");
     assert!(error.contains("winsafe::ReplaceFile"));
+}
+
+#[test]
+fn visual_event_only_and_pixel_only_success_are_rejected() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = VisualIdentityRunnerSources::capture(&inventory);
+
+    let mut event_only = sources.clone();
+    event_only.visual_progression = mutate_required_edge(
+        &event_only.visual_progression,
+        "observe_watched_native(&mut world)",
+        "assume_native_pixels(&mut world)",
+    );
+    let error = visual_identity_contract::audit_sources(&event_only)
+        .expect_err("visual event-only success must fail");
+    assert!(error.contains("observe_watched_native"));
+
+    let mut pixel_only = sources;
+    pixel_only.visual_progression = mutate_required_edge(
+        &pixel_only.visual_progression,
+        "await_visual_event(",
+        "assume_product_event(",
+    );
+    let error = visual_identity_contract::audit_sources(&pixel_only)
+        .expect_err("visual pixel-only success must fail");
+    assert!(error.contains("await_visual_event"));
+}
+
+#[test]
+fn sole_node_and_wrong_target_visual_proofs_are_rejected() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = VisualIdentityRunnerSources::capture(&inventory);
+
+    let mut sole_node = sources.clone();
+    sole_node.identity_trace = mutate_required_edge(
+        &sole_node.identity_trace,
+        "snapshot.visible_region_count() != 2",
+        "snapshot.visible_region_count() == 0",
+    );
+    let error = visual_identity_contract::audit_sources(&sole_node)
+        .expect_err("sole-node fallback must fail");
+    assert!(error.contains("visible_region_count"));
+
+    let mut wrong_target = sources;
+    wrong_target.identity_trace = mutate_required_edge(
+        &wrong_target.identity_trace,
+        "PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME",
+        "CALLER_SELECTED_AUTHORED_NAME",
+    );
+    let error = visual_identity_contract::audit_sources(&wrong_target)
+        .expect_err("wrong target identity must fail");
+    assert!(error.contains("PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME"));
+}
+
+#[test]
+fn restored_pixel_resampling_and_unexposed_capture_shortcuts_are_rejected() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = VisualIdentityRunnerSources::capture(&inventory);
+
+    let mut no_clear_pixels = sources.clone();
+    no_clear_pixels.overlay_pixels = mutate_required_edge(
+        &no_clear_pixels.overlay_pixels,
+        "matching != 0",
+        "matching == usize::MAX",
+    );
+    let error = visual_identity_contract::audit_sources(&no_clear_pixels)
+        .expect_err("missing restored-pixel predicate must fail");
+    assert!(error.contains("matching != 0"));
+
+    let mut resampled = sources.clone();
+    resampled
+        .wgc_capture
+        .push_str("\nfn counterfeit() { imageops::resize(); }\n");
+    let error = visual_identity_contract::audit_sources(&resampled)
+        .expect_err("resampled client capture must fail");
+    assert!(error.contains("imageops::resize"));
+
+    let mut unexposed = sources;
+    unexposed.windows_capture =
+        mutate_required_edge(&unexposed.windows_capture, "win::DwmFlush()", "Ok(())");
+    let error = visual_identity_contract::audit_sources(&unexposed)
+        .expect_err("capture without a compositor exposure barrier must fail");
+    assert!(error.contains("win::DwmFlush()"));
+}
+
+#[test]
+fn exact_capture_identity_and_structural_residue_are_required() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let sources = VisualIdentityRunnerSources::capture(&inventory);
+
+    for edge in [
+        "window.pid().ok() == Some(process_id)",
+        "window.id().ok() == Some(window_id)",
+    ] {
+        let mut identity_blind = sources.clone();
+        identity_blind.wgc_capture =
+            mutate_required_edge(&identity_blind.wgc_capture, edge, "true");
+        let error = visual_identity_contract::audit_sources(&identity_blind)
+            .expect_err("capture without exact process and HWND identity must fail");
+        assert!(error.contains(edge), "{error}");
+    }
+
+    let mut structural_blind = sources;
+    structural_blind.lifecycle_cleanup = mutate_required_edge(
+        &structural_blind.lifecycle_cleanup,
+        "shutdown.disposed_visual_structural_bytes()",
+        "0",
+    );
+    let error = visual_identity_contract::audit_sources(&structural_blind)
+        .expect_err("cleanup without structural-byte residue must fail");
+    assert!(
+        error.contains("disposed_visual_structural_bytes"),
+        "{error}"
+    );
+}
+
+#[test]
+fn spawning_without_a_process_owned_native_desktop_lease_is_rejected() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let mut sources = VisualIdentityRunnerSources::capture(&inventory);
+    sources.process_launch = mutate_required_edge(
+        &sources.process_launch,
+        "_native_desktop_lease: NativeDesktopLease",
+        "_native_desktop_lease: ()",
+    );
+    let error = visual_identity_contract::audit_sources(&sources)
+        .expect_err("unleased native child spawn must fail");
+    assert!(error.contains("_native_desktop_lease"));
 }
 
 fn workspace_root() -> PathBuf {

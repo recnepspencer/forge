@@ -12,12 +12,14 @@ mod cutover;
 mod mounted;
 mod mounted_frame;
 mod publication_observation;
+mod rebind_preparation;
 mod receipt;
 mod retry;
 
 pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope};
 pub use mounted::{
-    WorthUiMountedApplicationReplacementInFlight, WorthUiMountedApplicationReplacementOutcome,
+    WorthUiMountedApplicationReplacementInFlight,
+    WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
     WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
     WorthUiPreparedMountedApplicationReplacement,
@@ -26,10 +28,24 @@ pub use publication_observation::WorthUiApplicationPublicationObservation;
 
 pub struct WorthUiPreparedApplicationReplacement {
     next_app: WorthUiApp,
-    admitted: crate::runtime::WorthUiAdmittedReplacementCandidate,
+    semantic_input: WorthUiPreparedReplacementSemanticInput,
     basis: WorthUiPreparedApplicationReplacementBasis,
     candidate_query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
     candidate_graph_changed_nodes: std::collections::BTreeSet<crate::graph::UiGraphNodeIdentity>,
+}
+
+enum WorthUiPreparedReplacementSemanticInput {
+    Admitted(crate::runtime::WorthUiAdmittedReplacementCandidate),
+    Prelowered(crate::runtime::WorthUiReplacementLoweringReady),
+}
+
+impl WorthUiPreparedReplacementSemanticInput {
+    fn admitted(&self) -> &crate::runtime::WorthUiAdmittedReplacementCandidate {
+        match self {
+            Self::Admitted(admitted) => admitted,
+            Self::Prelowered(lowering) => lowering.admitted(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -94,6 +110,8 @@ enum WorthUiApplicationCutoverTransition {
 pub(super) struct WorthUiPreparedApplicationActivation {
     identity: Box<WorthUiApplicationCutoverIdentityEvidence>,
     publication: Box<WorthUiApplicationPublicationObservation>,
+    visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     reload_cost: Result<
         crate::runtime::WorthUiReloadLoweringCounterReceipt,
         crate::runtime::WorthUiReloadCounterBoundaryDenial,

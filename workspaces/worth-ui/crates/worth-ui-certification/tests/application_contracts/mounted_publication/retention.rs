@@ -1,15 +1,15 @@
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
 use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportDenial,
-    UiHostObservationReportOutcome,
+    UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers, UiHostObservationLoss,
+    UiHostObservationPayload, UiHostObservationReportDenial, UiHostObservationReportOutcome,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountWorkClass, UiMountedFrameOutcome,
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
-    UiMountedFrameRetentionDenial, UiMountedInspectionOmission, UiMountedInspectionReceipt,
-    UiMountedInspectionRelation, UiMountedInspectionRequest, UiMountedInstanceIdentity,
-    UiMountedRetentionClass, UiMountedRetentionClassBudget, UiPresentationDeadline,
-    UiSurfaceBindingGeneration,
+    UiMountedFrameRetentionDenial, UiMountedFrameRetentionRejection, UiMountedInspectionOmission,
+    UiMountedInspectionReceipt, UiMountedInspectionRelation, UiMountedInspectionRequest,
+    UiMountedInstanceIdentity, UiMountedRetentionClass, UiMountedRetentionClassBudget,
+    UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
@@ -38,7 +38,8 @@ fn retention_capacity_denies_the_frame_before_any_adapter_effect() {
         observation_basis: UiMountedRetentionClassBudget::new(8, 1024),
         predecessor_inspection: UiMountedRetentionClassBudget::new(8, 1024),
         diagnostic: UiMountedRetentionClassBudget::new(0, 0),
-        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_overlay: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     });
     let mut session = mounted_application_with_host_and_retention_budget(
@@ -67,6 +68,15 @@ fn retention_capacity_denies_the_frame_before_any_adapter_effect() {
             _ => panic!("a one-byte current-frame budget must deny retention"),
         };
 
+    assert_pre_effect_retention_denial(&session, &host, one_byte, rejection);
+}
+
+fn assert_pre_effect_retention_denial(
+    session: &worth_ui::facade::app::WorthUiActiveApplicationSession,
+    host: &ScriptedPresentationHost,
+    one_byte: UiMountedRetentionClassBudget,
+    rejection: UiMountedFrameRetentionRejection,
+) {
     assert!(matches!(
         rejection.denial(),
         UiMountedFrameRetentionDenial::CapacityExceeded {
@@ -273,7 +283,8 @@ fn retention_budget(
         observation_basis,
         predecessor_inspection,
         diagnostic: UiMountedRetentionClassBudget::new(0, 0),
-        future_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_snapshot: UiMountedRetentionClassBudget::new(0, 0),
+        visual_overlay: UiMountedRetentionClassBudget::new(0, 0),
         expired_identity_limit: 64,
     })
 }
@@ -295,9 +306,10 @@ fn retain_keyboard_report(
         vec![report(
             sequence,
             UiHostObservationPayload::Keyboard {
-                physical_key: u32::try_from(sequence).unwrap(),
-                pressed: true,
-                repeat: false,
+                logical_key: UiHostKey::A,
+                physical_key: Some(UiHostKey::A),
+                modifiers: UiHostKeyboardModifiers::default(),
+                transition: UiHostKeyTransition::Pressed { repeat: false },
             },
             &basis,
         )],

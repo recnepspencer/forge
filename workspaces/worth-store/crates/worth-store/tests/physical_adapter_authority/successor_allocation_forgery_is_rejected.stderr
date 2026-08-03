@@ -1,0 +1,13 @@
+error[E0451]: field `allocation` of struct `RecoveryPhysicalAllocation` is private
+  --> tests/physical_adapter_authority/successor_allocation_forgery_is_rejected.rs:11:9
+   |
+10 |     RecoveryPhysicalAllocation {
+   |     -------------------------- in this type
+11 |         allocation: unavailable(),
+   |         ^^^^^^^^^^ private field
+
+error: type `physical_runtime::record_serving::residency::scoped_allocation::grant::StoreScopedAllocation<'_, physical_runtime::record_serving::residency::scoped_allocation::scope::RecoveryScope>` is private
+  --> tests/physical_adapter_authority/successor_allocation_forgery_is_rejected.rs:11:21
+   |
+11 |         allocation: unavailable(),
+   |                     ^^^^^^^^^^^^^ private type

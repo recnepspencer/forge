@@ -13,6 +13,7 @@ pub enum WorthUiCollectionGraphEffect {
         at: usize,
     },
     Remove {
+        row: WorthUiCollectionRowReference,
         from: usize,
     },
     Move {

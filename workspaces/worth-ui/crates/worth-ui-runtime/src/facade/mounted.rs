@@ -5,7 +5,7 @@ pub use crate::inspection::mounted_frame::{
     UiMountedInspectedDiagnostics, UiMountedInspectedFrame, UiMountedInspectionOmission,
     UiMountedInspectionReceipt, UiMountedInspectionRelation, UiMountedInspectionRequest,
     UiMountedInspectionTarget, UiMountedRetentionClassReport, UiMountedRetentionEvictionPosture,
-    UiMountedRetentionQueueBudget, UiMountedRetentionReport,
+    UiMountedRetentionQueueBudget, UiMountedRetentionReport, UiMountedVisualTargetDenial,
 };
 pub use crate::mounting::{
     UiHostPresentationReconciliation, UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity,
@@ -47,7 +47,9 @@ pub use worth_ui_host_contract::{
     UiMountedEffectFamily, UiMountedFilledRectCompletionDenial, UiMountedFilledRectMechanic,
     UiMountedFilledRectReference, UiMountedFilledRectTable, UiMountedFrameCanonicalCore,
     UiMountedFrameIntegrity, UiMountedFrameManifest, UiMountedGeometryDenial,
-    UiMountedGeometryPosture, UiMountedLaneParticipation, UiMountedLayerProjection,
+    UiMountedGeometryPosture, UiMountedHitTestCompletionDenial, UiMountedHitTestMechanic,
+    UiMountedHitTestOrder, UiMountedHitTestProjection, UiMountedHitTestReference,
+    UiMountedHitTestTable, UiMountedLaneParticipation, UiMountedLayerProjection,
     UiMountedLayerReference, UiMountedLayerRow, UiMountedLayerTable, UiMountedMotionProjection,
     UiMountedNodeProjectionView, UiMountedOmissionReason, UiMountedPaintBatchReference,
     UiMountedPaintBatchRow, UiMountedPaintBatchTable, UiMountedPaintPrimitiveKind,

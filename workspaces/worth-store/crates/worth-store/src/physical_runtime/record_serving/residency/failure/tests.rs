@@ -97,7 +97,45 @@ fn exact_store_reasons_separate_frame_and_writeback_actions() {
 }
 
 #[test]
+fn cleaning_authority_mismatches_remain_exact_and_non_retryable() {
+    for (denial, reason) in [
+        (
+            PhysicalResidencyDenial::CandidateCleanAuthorityMismatch,
+            PhysicalRecordResidencyFailureReason::CandidateCleanAuthorityMismatch,
+        ),
+        (
+            PhysicalResidencyDenial::WritebackCleanAuthorityMismatch,
+            PhysicalRecordResidencyFailureReason::WritebackCleanAuthorityMismatch,
+        ),
+    ] {
+        let failure = PhysicalRecordResidencyFailure::from(denial);
+        assert_eq!(
+            failure.kind(),
+            PhysicalRecordResidencyFailureKind::SettlementAuthorityMismatch
+        );
+        assert_eq!(failure.reason(), reason);
+    }
+}
+
+#[test]
 fn exact_store_reasons_retain_actionable_parameters() {
+    let allocation = PhysicalRecordResidencyFailure::from(
+        PhysicalResidencyDenial::AllocatorExceededReservation {
+            requested: 8,
+            actual: 16,
+        },
+    );
+    assert_eq!(
+        allocation.kind(),
+        PhysicalRecordResidencyFailureKind::AllocationUnavailable
+    );
+    assert_eq!(
+        allocation.reason(),
+        PhysicalRecordResidencyFailureReason::AllocatorExceededReservation {
+            requested: 8,
+            actual: 16,
+        }
+    );
     assert_eq!(
         PhysicalRecordResidencyFailure::from(PhysicalResidencyDenial::BoundedLoadLimitConflict {
             active_limit: 16,

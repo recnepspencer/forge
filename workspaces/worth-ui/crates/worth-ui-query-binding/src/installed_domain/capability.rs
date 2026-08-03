@@ -30,4 +30,16 @@ impl WorthUiInstalledQueryDomain {
     pub(crate) fn authority_order(&self) -> usize {
         self.handle.authority() as *const _ as usize
     }
+
+    pub(crate) fn runtime_provenance(
+        &self,
+    ) -> worth_query::facade::runtime::WorthQueryRuntimeProvenance {
+        self.handle.runtime_provenance()
+    }
+
+    pub(crate) fn authority_identity(
+        &self,
+    ) -> &worth_query::facade::runtime::WorthQueryEvidenceIdentity {
+        self.handle.authority().authority_identity()
+    }
 }

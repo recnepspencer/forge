@@ -26,18 +26,22 @@ pub(crate) struct CanonicalBlueRecoverySourceDelta {
 
 #[derive(Debug)]
 pub(crate) enum PulseSourceDeltaDefinitionFailure {
-    CanonicalBlueTokenMissing,
-    CanonicalBlueTokenAmbiguous(usize),
+    BlueTokenMissing,
+    BlueTokenAmbiguous(usize),
+    StatusFieldMissing,
+    StatusFieldAmbiguous(usize),
 }
 
 impl fmt::Display for PulseSourceDeltaDefinitionFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::CanonicalBlueTokenMissing => {
-                formatter.write_str("canonical pulse has no blue token")
-            }
-            Self::CanonicalBlueTokenAmbiguous(count) => {
+            Self::BlueTokenMissing => formatter.write_str("canonical pulse has no blue token"),
+            Self::BlueTokenAmbiguous(count) => {
                 write!(formatter, "canonical pulse has {count} blue tokens")
+            }
+            Self::StatusFieldMissing => formatter.write_str("canonical pulse has no status field"),
+            Self::StatusFieldAmbiguous(count) => {
+                write!(formatter, "canonical pulse has {count} status fields")
             }
         }
     }
@@ -55,8 +59,8 @@ impl GreenPulseSourceDelta {
             .collect::<Vec<_>>();
         let [offset] = offsets.as_slice() else {
             return Err(match offsets.len() {
-                0 => PulseSourceDeltaDefinitionFailure::CanonicalBlueTokenMissing,
-                count => PulseSourceDeltaDefinitionFailure::CanonicalBlueTokenAmbiguous(count),
+                0 => PulseSourceDeltaDefinitionFailure::BlueTokenMissing,
+                count => PulseSourceDeltaDefinitionFailure::BlueTokenAmbiguous(count),
             });
         };
         let mut bytes = Vec::with_capacity(source.len() - BLUE_TOKEN.len() + GREEN_TOKEN.len());

@@ -124,7 +124,8 @@ pub mod consumer_kit {
         WorthQueryTestBackendEquivalenceReport, WorthQueryTestBackendEquivalenceRow,
         WorthQueryTestBackendError, WorthQueryTestBackendErrorKind,
         WorthQueryTestBackendResidueAudit, WorthQueryTestBackendResidueFinding,
-        WorthQueryTestBackendResidueReport, WorthQueryTestBackendSchema,
+        WorthQueryTestBackendResidueReport, WorthQueryTestBackendSchema, WorthQueryTestSeedReceipt,
+        WorthQueryTestSeedRow,
     };
     pub use crate::runtime::WorthQueryRuntimeFacadeFamily;
 }

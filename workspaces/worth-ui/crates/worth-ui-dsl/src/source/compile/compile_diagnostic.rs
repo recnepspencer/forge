@@ -28,6 +28,9 @@ pub enum WorthUiDslCompileDiagnosticCode {
     DuplicateMountPlacementDeclaration,
     DuplicateMountStateDeclaration,
     IllegalRootStructuralStatement,
+    InvalidProjectionDeclaration,
+    UnknownProjectionContent,
+    InvalidIntentDeclaration,
     InvalidRustAuthoredModulePath,
     DuplicateRustAuthoredModuleIdentity,
 }
@@ -59,7 +62,7 @@ pub struct WorthUiDslCompileReport {
 }
 
 impl WorthUiDslCompileReport {
-    pub(super) fn new(diagnostics: Vec<WorthUiDslCompileDiagnostic>) -> Self {
+    pub(crate) fn new(diagnostics: Vec<WorthUiDslCompileDiagnostic>) -> Self {
         Self { diagnostics }
     }
 
@@ -69,7 +72,7 @@ impl WorthUiDslCompileReport {
 }
 
 impl WorthUiDslCompileDiagnostic {
-    pub(super) fn new(
+    pub(crate) fn new(
         code: WorthUiDslCompileDiagnosticCode,
         stop_class: WorthUiDslCompileStopClass,
         message: impl Into<String>,
@@ -115,7 +118,7 @@ impl WorthUiDslDiagnosticIdentity {
 }
 
 impl WorthUiDslSourceSpan {
-    pub(super) fn new(module_id: impl Into<String>, start_byte: usize, end_byte: usize) -> Self {
+    pub(crate) fn new(module_id: impl Into<String>, start_byte: usize, end_byte: usize) -> Self {
         Self {
             module_id: module_id.into(),
             start_byte,

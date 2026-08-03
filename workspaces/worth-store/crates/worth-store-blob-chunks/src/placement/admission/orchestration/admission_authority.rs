@@ -6,7 +6,7 @@ use crate::placement::admission::{
     basis::BlobPlacementReachabilityBasis,
     receipt_construction::construct_admitted_placement,
     types::AdmittedBlobPlacement,
-    verification::{verify_class_backend_capability, verify_readiness_basis_match},
+    verification::{verify_class_backend_capability, verify_cold_posture_scope},
     BlobPlacementAdmissionDenial, BlobPlacementIntent,
 };
 
@@ -23,10 +23,10 @@ impl BlobPlacementAdmissionAuthority {
     pub fn admit(
         &self,
         reachability: &BlobChunkReachabilityProofSet,
-        intent: BlobPlacementIntent,
+        intent: BlobPlacementIntent<'_>,
     ) -> Result<AdmittedBlobPlacement, BlobPlacementAdmissionDenial> {
         let basis = BlobPlacementReachabilityBasis::from_reachability(reachability);
-        verify_readiness_basis_match(&basis, &intent)?;
+        verify_cold_posture_scope(&basis, &intent)?;
         let counters = verify_class_backend_capability(&self.backend, &intent, &basis)?;
         Ok(construct_admitted_placement(
             basis,

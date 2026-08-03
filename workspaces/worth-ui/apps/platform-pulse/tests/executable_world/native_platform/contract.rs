@@ -3,8 +3,8 @@ use std::time::Instant;
 
 #[cfg(target_os = "windows")]
 use crate::external_observation::{
-    NativeClientPixelCapture, NormalNativeCloseRequestObservation,
-    ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeInputDeliveryObservation, NativeInputProbeKind,
+    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,12 +20,13 @@ pub(crate) enum NativePlatformFailure {
     WindowEnumeration(String),
     WindowLookupDeadline,
     AmbiguousProcessWindows(usize),
-    CaptureWindowMissing,
-    CaptureWindowAmbiguous(usize),
     ClientCapture(String),
+    ClientExposure(String),
     InvalidCaptureWindowBounds,
     BoundWindowMissing,
     BoundWindowOwnerChanged,
+    BoundClientAreaChanged,
+    ClientOutsideCaptureMonitor,
     InvalidClientCapture {
         image_width: u32,
         image_height: u32,
@@ -33,6 +34,7 @@ pub(crate) enum NativePlatformFailure {
         client: crate::external_observation::NativeClientAreaBounds,
     },
     NormalClose(String),
+    InputDelivery(String),
     ProcessWindowResidue(usize),
 }
 
@@ -51,13 +53,10 @@ impl fmt::Display for NativePlatformFailure {
             Self::AmbiguousProcessWindows(count) => {
                 write!(formatter, "found {count} visible process windows")
             }
-            Self::CaptureWindowMissing => {
-                formatter.write_str("process-bound native capture window is missing")
-            }
-            Self::CaptureWindowAmbiguous(count) => {
-                write!(formatter, "found {count} process-bound native capture windows")
-            }
             Self::ClientCapture(error) => write!(formatter, "capture native client area: {error}"),
+            Self::ClientExposure(error) => {
+                write!(formatter, "expose native client area for capture: {error}")
+            }
             Self::InvalidCaptureWindowBounds => {
                 formatter.write_str("native capture window reported invalid bounds")
             }
@@ -66,6 +65,12 @@ impl fmt::Display for NativePlatformFailure {
             }
             Self::BoundWindowOwnerChanged => {
                 formatter.write_str("the bound native window no longer belongs to the child")
+            }
+            Self::BoundClientAreaChanged => {
+                formatter.write_str("the bound native client area changed after observation")
+            }
+            Self::ClientOutsideCaptureMonitor => {
+                formatter.write_str("the native client area is not contained by one monitor")
             }
             Self::InvalidClientCapture {
                 image_width,
@@ -79,6 +84,7 @@ impl fmt::Display for NativePlatformFailure {
             Self::NormalClose(error) => {
                 write!(formatter, "request normal native-window close: {error}")
             }
+            Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
             Self::ProcessWindowResidue(count) => {
                 write!(formatter, "{count} process window(s) remained after exit")
             }
@@ -105,6 +111,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         &self,
         bound: &Self::BoundClientArea,
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure>;
+
+    fn deliver_input_reachability_probe(
+        &self,
+        bound: &Self::BoundClientArea,
+        kind: NativeInputProbeKind,
+    ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
 
     fn request_normal_close(
         &self,

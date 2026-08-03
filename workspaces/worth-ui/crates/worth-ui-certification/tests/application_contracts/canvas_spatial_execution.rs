@@ -258,7 +258,9 @@ fn unsupported_canvas_builder() -> WorthUiApplicationBuilder {
 }
 
 fn canvas_descriptor_builder() -> WorthUiApplicationBuilder {
-    WorthUi::app().register_component(canvas_descriptor())
+    WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_component(canvas_descriptor())
 }
 
 fn canvas_descriptor() -> ComponentDescriptor {
@@ -288,7 +290,7 @@ fn file_app(
         .read()
         .expect("production filesystem reader should acquire source");
     let submission = snapshot
-        .lower_to_candidate_submission(capability_app.capabilities())
+        .attempt_candidate_for_certification(capability_app.capabilities())
         .expect("real source should lower through production semantics");
     builder()
         .with_candidate_submission(submission)

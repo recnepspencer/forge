@@ -1,5 +1,7 @@
 #[path = "../../../support/physical_isolation/executed_closeout_fixture/executed_closeout_fixture.rs"]
 mod executed_closeout_fixture;
+use std::sync::OnceLock;
+
 use crate::physical_interleaving_support as harness_support;
 use worth_store_test_support::harness::physical_isolation::epoch_scope as support;
 use worth_store_test_support::harness::physical_isolation::publication as publication_support;
@@ -18,10 +20,7 @@ use worth_store_physical_certification::{
     CoverageSurfaceKind, HarnessCoverageStage, PhysicalCertificationEvidenceBundle,
     PhysicalSimulationProfile, PhysicalSimulationScenarioFamily,
 };
-use worth_store_physical_isolation::{
-    publish_scheduler_isolation_capability_from_executed_evidence,
-    PhysicalIsolationEvidenceProfile, PhysicalStabilityAssumption, UnsupportedQoSClaim,
-};
+use worth_store_physical_isolation::PhysicalIsolationEvidenceProfile;
 
 #[test]
 fn closeout_aggregates_all_physical_isolation_hostile_lanes_with_machine_evidence() {
@@ -190,32 +189,17 @@ fn closeout_denies_mismatched_lane_evidence_fragments() {
 }
 
 #[test]
-fn closeout_seals_handoff_evidence_without_minting_production_readiness() {
+fn closeout_seals_executed_evidence_without_minting_scheduler_authority() {
     let closeout = executed_closeout_fixture::honest_executed_physical_isolation_closeout();
-    let handoff = closeout_suite()
-        .seal_executed_closeout_handoff(closeout.clone())
-        .expect("aggregate closeout seals executed handoff evidence");
+    let certified = closeout_suite()
+        .seal_executed_closeout_evidence(closeout.clone())
+        .expect("aggregate closeout seals executed isolation evidence");
 
-    assert_eq!(handoff.suite().lanes().len(), 6);
-    assert_eq!(handoff.executed_closeout(), &closeout);
-
-    let readiness = publish_scheduler_isolation_capability_from_executed_evidence(closeout)
-        .expect("production readiness minting belongs to physical-isolation");
-    assert_eq!(
-        readiness.assumptions(),
-        &PhysicalStabilityAssumption::required()
+    assert_eq!(certified.suite().lanes().len(), 6);
+    assert_eq!(certified.executed_closeout(), &closeout);
+    executed_closeout_fixture::assert_expected_io_qos_closeout_counters(
+        certified.executed_closeout().counters(),
     );
-    assert_eq!(
-        readiness.unsupported_qos_claims(),
-        &[
-            UnsupportedQoSClaim::P99Latency,
-            UnsupportedQoSClaim::P999Latency,
-            UnsupportedQoSClaim::HardwareQueueDepth,
-            UnsupportedQoSClaim::MediaQoS,
-            UnsupportedQoSClaim::BackgroundWorkPacing,
-        ]
-    );
-    executed_closeout_fixture::assert_expected_io_qos_closeout_counters(readiness.counters());
 }
 
 fn closeout_suite() -> PhysicalIsolationCloseoutSuite {
@@ -232,6 +216,11 @@ fn simulation_harness_readiness(
 }
 
 fn closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
+    static ROWS: OnceLock<Vec<PhysicalIsolationCloseoutLaneEvidence>> = OnceLock::new();
+    ROWS.get_or_init(build_closeout_rows).clone()
+}
+
+fn build_closeout_rows() -> Vec<PhysicalIsolationCloseoutLaneEvidence> {
     physical_isolation_lanes()
         .into_iter()
         .map(|lane| {

@@ -2,8 +2,8 @@ use super::test_support::{background_budget_with_queue_slots, read_pressure_budg
 
 use crate::{
     BackgroundDebtKind, BackgroundInterferenceEvidence, BackgroundIoPressureClass,
-    BackgroundIoPressureShape, BackgroundPacingProgressionEvidence, BackgroundResourceBudget,
-    InterferenceAttribution, InterferenceCounterName, LatencyEnvelopeAssessmentStatus, QueueSlot,
+    BackgroundIoPressureShape, BackgroundResourceBudget, InterferenceAttribution,
+    InterferenceCounterName, LatencyEnvelopeAssessmentStatus, QueueSlot,
 };
 
 #[test]
@@ -49,7 +49,6 @@ fn admitted_with_debt_outcome_materializes_policy_debt_counter() {
         admitted,
         admitted,
         debt_limit,
-        BackgroundPacingProgressionEvidence::current(world.readiness()),
     ));
 
     let evidence = BackgroundInterferenceEvidence::from_background_pacing_outcome(
@@ -87,7 +86,6 @@ fn late_yield_violation_materializes_execution_violated_evidence() {
                 admitted,
                 admitted,
                 debt_limit,
-                BackgroundPacingProgressionEvidence::current(world.readiness()),
             )
             .with_foreground_pressure_events(1)
             .with_late_yield(),

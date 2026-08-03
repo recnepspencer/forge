@@ -10,6 +10,12 @@ use super::{
     PhysicalResidencyIncarnation,
 };
 
+mod foreground_read;
+mod foreground_write;
+
+pub use foreground_read::ForegroundReadAllocationGrant;
+pub use foreground_write::ForegroundWriteAllocationGrant;
+
 #[derive(Debug)]
 pub struct OperationAllocationGrant {
     pub(crate) owner: Arc<PoolInner>,

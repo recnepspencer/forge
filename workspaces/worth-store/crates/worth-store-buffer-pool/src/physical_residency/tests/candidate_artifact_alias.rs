@@ -6,7 +6,7 @@ fn complete_candidate_blocks_bounded_source_then_becomes_a_zero_source_hit() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 7 }, 0, 32)
             .unwrap();
@@ -18,7 +18,7 @@ fn complete_candidate_blocks_bounded_source_then_becomes_a_zero_source_hit() {
     let dirty = batch
         .reserve_next(candidate)
         .unwrap()
-        .admit(vec![6; 32])
+        .materialize(|bytes| bytes.fill(6))
         .unwrap();
     let bounded = PhysicalBoundedFrameKey::new(
         identity,
@@ -48,7 +48,7 @@ fn fragment_candidate_never_claims_complete_artifact_residency() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let coordinate = RecordFrameCoordinate::new(
         RecordArtifactFile::Segment {
             segment: 8,
@@ -66,7 +66,7 @@ fn fragment_candidate_never_claims_complete_artifact_residency() {
     let dirty = batch
         .reserve_next(candidate)
         .unwrap()
-        .admit(vec![7; 32])
+        .materialize(|bytes| bytes.fill(7))
         .unwrap();
     pool.inner.publish_clean(frame).unwrap();
     let bounded = PhysicalBoundedFrameKey::new(
@@ -89,7 +89,7 @@ fn abandoned_complete_candidate_releases_its_artifact_alias() {
     let pool =
         PhysicalResidencyPool::open(identity, limits(256, 3, 1, candidate_batch_bytes(1), 4))
             .unwrap();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let allocation = candidate_allocation(&pool, 1);
     let coordinate =
         RecordFrameCoordinate::new(RecordArtifactFile::RootManifest { generation: 9 }, 0, 32)
             .unwrap();

@@ -1,36 +1,8 @@
-use worth_store_buffer_pool::{
-    AllocationAdmission, AllocationRequest, AllocationScope, BufferPoolEvidenceSourceDenial,
-    BufferPoolExecutedEvidenceSource,
-};
 use worth_store_io_scheduler::{IoQueueExecutionDenial, IoQueueExecutionRecorder};
 
 use worth_store_test_support::harness::recovery::counter_evidence as support;
 
 use support::{counter_receipt, lower_physical_isolation_plan, observed_trace};
-
-#[test]
-fn denied_allocation_execution_cannot_mint_buffer_pool_counter_evidence() {
-    let plan = lower_physical_isolation_plan();
-    let mut admission =
-        AllocationAdmission::from_declaration(plan.resource_envelope().allocation());
-    let grant = admission
-        .admit(AllocationRequest::copied_payload(AllocationScope::Foreground, 64).unwrap())
-        .unwrap();
-    admission.record_allocation(grant).unwrap();
-    let too_large = admission.remaining(AllocationScope::Foreground) + 1;
-
-    admission
-        .admit(AllocationRequest::copied_payload(AllocationScope::Foreground, too_large).unwrap())
-        .unwrap_err();
-
-    let denial = BufferPoolExecutedEvidenceSource::from_allocation_execution(&admission)
-        .expect_err("denied allocation execution must not become evidence");
-
-    assert_eq!(
-        denial,
-        BufferPoolEvidenceSourceDenial::ExecutionContainedDeniedAllocation
-    );
-}
 
 #[test]
 fn denied_io_queue_depth_cannot_mint_io_counter_evidence() {

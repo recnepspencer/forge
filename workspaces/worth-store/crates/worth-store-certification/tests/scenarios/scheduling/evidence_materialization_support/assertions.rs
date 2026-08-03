@@ -107,7 +107,7 @@ pub fn assert_performance_receipts_are_exact_for_fixture(
             ("store.s6.background.denied", 0),
             ("store.s6.background.yield", 0),
             ("store.s6.flush.rows", 1),
-            ("store.s6.foreground.wait", 2),
+            ("store.s6.foreground.denied_capacity", 0),
             ("store.s6.queue.denied", 0),
             ("store.s6.queue.peak_depth", 1),
             ("store.s6.queue.submitted", 4100),

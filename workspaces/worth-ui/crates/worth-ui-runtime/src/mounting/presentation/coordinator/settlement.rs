@@ -24,101 +24,93 @@ impl UiMountedPresentationCoordinator {
         let Some(state) = self.in_flight.remove(&attempt_identity) else {
             return Err(UiMountedPresentationCompletionDenial::UnknownAttempt);
         };
+        if state.deadline.expired_at(now) {
+            return Ok(self.finish_expired_completion(state, host));
+        }
+        Ok(self.poll_pending_completion(state, host))
+    }
+
+    fn finish_expired_completion(
+        &mut self,
+        state: UiMountedPresentationInFlightState,
+        host: UiHostEffectPort<'_>,
+    ) -> UiMountedPresentationOutcome {
+        let UiMountedPresentationInFlightState {
+            frame,
+            retention,
+            attempt,
+            pending,
+            rejected,
+            completed,
+            ..
+        } = state;
+        let affected = aggregate_affected(&completed, &pending, &rejected);
+        let timeout_rejections = pending
+            .iter()
+            .map(|pending| {
+                UiMountedSurfacePresentationRejection::new(
+                    pending.binding,
+                    worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
+                )
+            })
+            .collect::<Vec<_>>();
+        if cancel_all(pending, host) || !completed.is_empty() {
+            return self.indeterminate(
+                frame,
+                retention,
+                attempt,
+                UiIndeterminatePresentationEvidence::new(affected, completed),
+            );
+        }
+        self.active.borrow_mut().remove(&attempt);
+        let mut rejections = rejected;
+        rejections.extend(timeout_rejections);
+        rejected_outcome(attempt, frame, retention, rejections)
+    }
+
+    fn poll_pending_completion(
+        &mut self,
+        state: UiMountedPresentationInFlightState,
+        host: UiHostEffectPort<'_>,
+    ) -> UiMountedPresentationOutcome {
         let UiMountedPresentationInFlightState {
             frame,
             retention,
             attempt,
             deadline,
             pending,
-            mut rejected,
-            mut completed,
+            rejected,
+            completed,
         } = state;
-        if deadline.expired_at(now) {
-            let affected = aggregate_affected(&completed, &pending, &rejected);
-            let timeout_rejections = pending
-                .iter()
-                .map(|pending| {
-                    UiMountedSurfacePresentationRejection::new(
-                        pending.binding,
-                        worth_ui_host_contract::UiHostSurfacePresentationDenial::DeadlineExpired,
-                    )
-                })
-                .collect::<Vec<_>>();
-            let effects_may_have_begun = cancel_all(pending, host);
-            if effects_may_have_begun || !completed.is_empty() {
-                return Ok(self.indeterminate(
-                    frame,
-                    retention,
-                    attempt,
-                    UiIndeterminatePresentationEvidence::new(affected, completed),
-                ));
-            }
-            self.active.borrow_mut().remove(&attempt);
-            let mut rejections = rejected;
-            rejections.extend(timeout_rejections);
-            return Ok(rejected_outcome(attempt, frame, retention, rejections));
-        }
+        let mut progress = super::UiMountedPresentationProgress {
+            pending: Vec::new(),
+            rejected,
+            completed,
+        };
         let mut remaining = Vec::new();
         let mut pending_iter = pending.into_iter();
         while let Some(pending_surface) = pending_iter.next() {
-            let UiPendingMountedSurface { binding, token } = pending_surface;
-            match host
-                .adapter()
-                .complete_mounted_surface(host.authority(), token)
+            if let Some((binding, additional_cost)) =
+                observe_pending_surface(&frame, host, pending_surface, &mut progress)
             {
-                UiHostSurfaceInFlightCompletion::Pending(token) => {
-                    remaining.push(UiPendingMountedSurface { binding, token });
-                }
-                UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
-                    rejected.push(UiMountedSurfacePresentationRejection::new(binding, denial));
-                }
-                UiHostSurfaceInFlightCompletion::PresentationIndeterminate => {
-                    remaining.extend(pending_iter);
-                    let mut affected = aggregate_affected(&completed, &remaining, &rejected);
-                    affected.push(binding);
-                    cancel_all(remaining, host);
-                    return Ok(self.indeterminate(
-                        frame,
-                        retention,
-                        attempt,
-                        UiIndeterminatePresentationEvidence::new(affected, completed),
-                    ));
-                }
-                UiHostSurfaceInFlightCompletion::Presented(completion) => {
-                    let surface = frame
-                        .surfaces()
-                        .iter()
-                        .find(|surface| surface.requirement().binding() == binding)
-                        .expect("pending binding belongs to retained prepared frame");
-                    if !completion_satisfies(surface, &completion) {
-                        remaining.extend(pending_iter);
-                        let mut affected = aggregate_affected(&completed, &remaining, &rejected);
-                        affected.push(binding);
-                        cancel_all(remaining, host);
-                        let evidence =
-                            UiIndeterminatePresentationEvidence::new(affected, completed)
-                                .with_additional_adapter_cost(completion.cost());
-                        return Ok(self.indeterminate(frame, retention, attempt, evidence));
-                    }
-                    let (effects, adapter_cost) = completion.into_parts();
-                    completed.push(UiMountedSurfacePresentationReceipt::new(
-                        binding,
-                        effects,
-                        adapter_cost,
-                    ));
-                }
+                remaining.extend(pending_iter);
+                progress.pending.extend(remaining);
+                let evidence =
+                    terminalize_pending_uncertainty(&mut progress, host, binding, additional_cost);
+                return self.indeterminate(frame, retention, attempt, evidence);
             }
         }
-        Ok(self.finish_or_wait(super::UiMountedPresentationSettlement {
+        progress.pending.extend(remaining);
+        self.finish_or_wait(super::UiMountedPresentationSettlement {
             frame,
             retention,
             attempt,
             deadline,
-            pending: remaining,
-            rejected,
-            completed,
+            pending: progress.pending,
+            rejected: progress.rejected,
+            completed: progress.completed,
             host,
-        }))
+        })
     }
 
     pub fn cancel(
@@ -213,6 +205,74 @@ impl UiMountedPresentationCoordinator {
         let mut rejections = rejected;
         rejections.extend(cancellation_rejections);
         rejected_outcome(attempt, frame, retention, rejections)
+    }
+}
+
+fn observe_pending_surface(
+    frame: &super::super::super::UiPreparedMountedFrame,
+    host: UiHostEffectPort<'_>,
+    pending: UiPendingMountedSurface,
+    progress: &mut super::UiMountedPresentationProgress,
+) -> Option<(
+    worth_ui_host_contract::UiSurfaceBindingGeneration,
+    Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+)> {
+    let UiPendingMountedSurface { binding, token } = pending;
+    match host
+        .adapter()
+        .complete_mounted_surface(host.authority(), token)
+    {
+        UiHostSurfaceInFlightCompletion::Pending(token) => {
+            progress
+                .pending
+                .push(UiPendingMountedSurface { binding, token });
+            None
+        }
+        UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
+            progress
+                .rejected
+                .push(UiMountedSurfacePresentationRejection::new(binding, denial));
+            None
+        }
+        UiHostSurfaceInFlightCompletion::PresentationIndeterminate => Some((binding, None)),
+        UiHostSurfaceInFlightCompletion::Presented(completion) => {
+            let surface = frame
+                .surfaces()
+                .iter()
+                .find(|surface| surface.requirement().binding() == binding)
+                .expect("pending binding belongs to retained prepared frame");
+            if !completion_satisfies(surface, &completion) {
+                return Some((binding, Some(completion.cost())));
+            }
+            let (epoch, effects, adapter_cost) = completion.into_parts();
+            progress
+                .completed
+                .push(UiMountedSurfacePresentationReceipt::new(
+                    surface.requirement(),
+                    epoch,
+                    effects,
+                    adapter_cost,
+                ));
+            None
+        }
+    }
+}
+
+fn terminalize_pending_uncertainty(
+    progress: &mut super::UiMountedPresentationProgress,
+    host: UiHostEffectPort<'_>,
+    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+) -> UiIndeterminatePresentationEvidence {
+    let mut affected =
+        aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
+    affected.push(binding);
+    cancel_all(std::mem::take(&mut progress.pending), host);
+    let evidence =
+        UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
+    match additional_cost {
+        Some(cost) => evidence.with_additional_adapter_cost(cost),
+        None => evidence,
     }
 }
 

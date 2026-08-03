@@ -47,8 +47,6 @@ pub enum BackgroundPacingDenial {
     PolicyReceiptBudgetOverflow(FoundationalPerformanceBudgetKind),
     InsufficientIdleCapacity(BackgroundResourceShortfall),
     DebtNotPermittedForPressureClass(BackgroundIoPressureClass),
-    PacingProgressionDenied(BackgroundIoPressureClass),
-    PacingProgressionFailed(BackgroundIoPressureClass),
     RawBackgroundLabelCannotPace,
     SemanticLifecycleReceiptCannotPace,
     LogLineCannotPace,

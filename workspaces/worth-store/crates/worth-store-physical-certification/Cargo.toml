@@ -10,13 +10,14 @@ description = "Roadmap 2 S.12 physical database certification and performance ev
 bincode = "1.3"
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
+tempfile = { version = "3", optional = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
+worth-store.workspace = true
 worth-store-aspect-native.workspace = true
 worth-store-authority.workspace = true
 worth-store-blob-chunks = { workspace = true, features = ["certification-test-authority"] }
 worth-store-budgets.workspace = true
-worth-store-buffer-pool.workspace = true
 worth-store-contracts.workspace = true
 worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
 worth-store-layout-indexes.workspace = true
@@ -39,7 +40,7 @@ worth-store-formal-models.workspace = true
 worth-store-test-support = { workspace = true, features = ["certification-world"] }
 
 [features]
-certification-test-support = []
+certification-test-support = ["dep:tempfile"]
 
 [lints]
 workspace = true

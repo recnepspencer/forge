@@ -3,14 +3,16 @@ use crate::failure_teardown::{
 };
 use crate::source_delta::{
     CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, MalformedPulseSourceDelta,
+    RevisionSchemaSourceDelta, StatusSchemaRecoverySourceDelta,
 };
 
 use super::{
-    AwaitingPreservation, AwaitingRecovery, AwaitingReplacement, GreenSuccessor, InitialBlue,
-    PreservedPredecessor, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
+    AwaitingPreservation, AwaitingRecovery, AwaitingReplacement, AwaitingSchemaStop,
+    AwaitingStatusRecovery, GreenSuccessor, PreservedPredecessor, PreservedPredecessorEvidence,
+    Published, PulseExecutableWorld, RecoveredBlue, SchemaStopped, SecondCurrent,
 };
 
-impl PulseExecutableWorld<Published<InitialBlue>> {
+impl PulseExecutableWorld<Published<SecondCurrent>> {
     pub(crate) fn apply_green(
         self,
         delta: GreenPulseSourceDelta,
@@ -29,6 +31,57 @@ impl PulseExecutableWorld<Published<InitialBlue>> {
             state: AwaitingReplacement {
                 world,
                 initial: stage,
+                action,
+            },
+        })
+    }
+}
+
+impl PulseExecutableWorld<Published<RecoveredBlue>> {
+    pub(crate) fn apply_revision_schema(
+        self,
+        delta: RevisionSchemaSourceDelta,
+    ) -> Result<PulseExecutableWorld<AwaitingSchemaStop>, PulseExecutableWorldFailureReport> {
+        let Published { world, stage } = self.state;
+        let action = match delta.apply(&world.installation) {
+            Ok(action) => action,
+            Err(failure) => {
+                return Err(teardown_native_bound_world(
+                    PulseExecutableWorldFailure::SourceAction(failure),
+                    world.into_failure_resources(),
+                ))
+            }
+        };
+        Ok(PulseExecutableWorld {
+            state: AwaitingSchemaStop {
+                world,
+                recovered: stage,
+                action,
+            },
+        })
+    }
+}
+
+impl PulseExecutableWorld<Published<SchemaStopped>> {
+    pub(crate) fn restore_status_schema(
+        self,
+        delta: StatusSchemaRecoverySourceDelta,
+    ) -> Result<PulseExecutableWorld<AwaitingStatusRecovery>, PulseExecutableWorldFailureReport>
+    {
+        let Published { world, stage } = self.state;
+        let action = match delta.apply(&world.installation) {
+            Ok(action) => action,
+            Err(failure) => {
+                return Err(teardown_native_bound_world(
+                    PulseExecutableWorldFailure::SourceAction(failure),
+                    world.into_failure_resources(),
+                ))
+            }
+        };
+        Ok(PulseExecutableWorld {
+            state: AwaitingStatusRecovery {
+                world,
+                stopped: stage,
                 action,
             },
         })

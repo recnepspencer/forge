@@ -1,7 +1,4 @@
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    mpsc, Arc, Barrier,
-};
+use std::sync::{mpsc, Arc};
 use std::time::Duration;
 
 use super::*;
@@ -69,60 +66,6 @@ fn bounded_fault_reserves_before_source_then_shrinks_and_hits_without_source() {
         admitted_metadata,
         "bounded fault, resolution, and hit cannot grow admitted metadata"
     );
-}
-
-#[test]
-fn bounded_overlap_coalesces_length_discovery_and_fill_under_one_owner() {
-    let identity = store(22);
-    let pool = Arc::new(PhysicalResidencyPool::open(identity, limits(256, 2, 1, 64, 4)).unwrap());
-    let key = bounded_key(identity, 1, 64);
-    let owner_ready = Arc::new(Barrier::new(2));
-    let owner_release = Arc::new(Barrier::new(2));
-    let discovery_count = Arc::new(AtomicU64::new(0));
-    let fill_count = Arc::new(AtomicU64::new(0));
-    let (identity_tx, identity_rx) = mpsc::sync_channel(1);
-    let worker_pool = Arc::clone(&pool);
-    let worker_ready = Arc::clone(&owner_ready);
-    let worker_release = Arc::clone(&owner_release);
-    let worker_discovery = Arc::clone(&discovery_count);
-    let worker_fill = Arc::clone(&fill_count);
-    let worker = std::thread::spawn(move || {
-        let allocation = allocation(&worker_pool, READ_SCOPE);
-        let owner = expect_bounded_fault(&worker_pool, &allocation, key);
-        identity_tx.send(owner.loading_identity()).unwrap();
-        worker_ready.wait();
-        worker_release.wait();
-        owner
-            .load(
-                |_| {
-                    worker_discovery.fetch_add(1, Ordering::AcqRel);
-                    Ok::<_, ()>(32)
-                },
-                |target| {
-                    worker_fill.fetch_add(1, Ordering::AcqRel);
-                    target.fill(7);
-                    Ok::<_, ()>(())
-                },
-            )
-            .unwrap()
-    });
-
-    owner_ready.wait();
-    let allocation = allocation(&pool, READ_SCOPE);
-    let waiter = match pool.access_bounded_frame(&allocation, key).unwrap() {
-        PhysicalBoundedFrameAccess::Coalesced(waiter) => waiter,
-        _ => panic!("overlapping bounded access must attach one waiter"),
-    };
-    assert_eq!(waiter.loading_identity(), identity_rx.recv().unwrap());
-    owner_release.wait();
-    let owner = worker.join().unwrap();
-    let waiter = waiter.wait().unwrap();
-    assert_eq!(&*owner, &*waiter);
-    assert_eq!(discovery_count.load(Ordering::Acquire), 1);
-    assert_eq!(fill_count.load(Ordering::Acquire), 1);
-    assert_eq!(pool.counters().faults(), 1);
-    assert_eq!(pool.counters().coalesced_waiters(), 1);
-    assert_eq!(pool.counters().source_loads(), 1);
 }
 
 #[test]

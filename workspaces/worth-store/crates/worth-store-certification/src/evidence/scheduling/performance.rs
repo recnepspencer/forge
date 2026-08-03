@@ -20,7 +20,7 @@ pub struct S6FoundationalPerformanceReceipts {
 impl S6FoundationalPerformanceReceipts {
     pub(crate) fn from_sources(
         sources: &S6CertificationEvidenceSources,
-    ) -> Result<Self, crate::FoundationalBoundaryEvidenceDenial> {
+    ) -> Result<Self, crate::FoundationalPerformanceEvidenceDenial> {
         Ok(Self {
             runtime_execution: counter_receipt(
                 "store.s6.certification.runtime-execution",
@@ -91,8 +91,8 @@ fn runtime_rows(sources: &S6CertificationEvidenceSources) -> [(&'static str, u64
             u64::from(queue.peak_queue_depth()),
         ),
         (
-            "store.s6.foreground.wait",
-            foreground.stable_read_wait_count(),
+            "store.s6.foreground.denied_capacity",
+            foreground.denied_capacity_events(),
         ),
         ("store.s6.background.yield", background.yield_events()),
         ("store.s6.background.denied", background.denied_events()),

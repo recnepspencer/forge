@@ -11,8 +11,16 @@ const PHASE8_CLOSEOUT_SOURCES: [&str; 2] = [
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout.rs",
     "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout_tests.rs",
 ];
-const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 7] = [
+const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 15] = [
+    "crates/worth-ui-certification/src/scenario/application_authority_closure/platform_pulse_application.rs",
+    "crates/worth-ui-certification/src/scenario/application_authority_closure/visual_identity_application.rs",
     "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/platform_pulse.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/authored_identity.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/post_classification_cost.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/rebind_profile.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_identity.rs",
+    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_inspection.rs",
+    "crates/worth-ui-certification/src/topology/inspection_topology_audit/",
     "crates/worth-ui-certification/src/topology/milestone_3102_pulse_seed/",
     "crates/worth-ui-certification/src/topology/milestone_3103_executable_world/",
     "crates/worth-ui-certification/src/topology/milestone_3103_product_contract/",

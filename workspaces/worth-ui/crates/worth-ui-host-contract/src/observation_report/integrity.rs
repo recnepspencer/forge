@@ -15,6 +15,7 @@ impl UiHostObservationIntegrity {
             core.host_session(),
             core.binding().diagnostic_value(),
             core.frame().diagnostic_value(),
+            core.presentation().epoch().diagnostic_value(),
             core.sequences().first().value(),
             core.sequences().last().value(),
             u64::try_from(core.report_count()).unwrap_or(u64::MAX),
@@ -83,9 +84,9 @@ const fn coalescing_identity_digest(identity: super::UiHostObservationCoalescing
             capture_epoch,
             pressed_buttons,
         } => {
-            2 ^ pointer.rotate_left(7)
-                ^ capture_epoch.rotate_left(19)
-                ^ pressed_buttons.rotate_left(31)
+            2 ^ pointer.value().rotate_left(7)
+                ^ capture_epoch.value().rotate_left(19)
+                ^ (pressed_buttons.bits() as u64).rotate_left(31)
         }
     }
 }

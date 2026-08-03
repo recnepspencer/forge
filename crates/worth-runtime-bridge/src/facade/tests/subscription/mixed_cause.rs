@@ -5,12 +5,15 @@ use crate::facade::tests::source::support::{
 };
 use crate::facade::{
     BridgeAsyncCompletionSupersessionClassificationRequest, BridgeAsyncRequestTruthViewBasis,
+    BridgeMixedCauseAsyncResultCause, BridgeMixedCauseAsyncResultDisposition,
     BridgeMixedCauseComparisonReasonKind, BridgeMixedCauseDeniedKind,
-    BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrderingInput,
+    BridgeMixedCauseOrderFamilyKind, BridgeMixedCauseOrdering, BridgeMixedCauseOrderingInput,
     BridgeMixedCauseOrderingLaneKind, BridgeMixedCauseOrderingRequest,
-    BridgeTemporalSubscriptionFamilyKind,
+    BridgeTemporalSubscriptionFamilyKind, RuntimeBridge,
 };
 use worth_signal::facade::NodeId;
+
+mod async_result;
 
 #[test]
 fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
@@ -80,6 +83,18 @@ fn runtime_orders_mixed_causes_canonically_across_shuffled_input_order() {
     );
     assert!(first.suppressed().is_empty());
     assert!(first.denied().is_empty());
+    let transition = first
+        .async_result_transitions()
+        .first()
+        .expect("ordered completion should retain one async transition");
+    assert_eq!(
+        transition.disposition(),
+        BridgeMixedCauseAsyncResultDisposition::Ordered { ordinal: 2 }
+    );
+    assert!(matches!(
+        transition.cause(),
+        BridgeMixedCauseAsyncResultCause::Completion(_)
+    ));
     assert_eq!(
         first.counters().subscription_mixed_cause_ordering_count(),
         1
@@ -117,6 +132,36 @@ fn runtime_suppresses_duplicate_mixed_cause_digests_explicitly() {
     assert_eq!(
         ordering.suppressed()[0].comparison_evidence().reason_kind(),
         BridgeMixedCauseComparisonReasonKind::DuplicateDigestSuppression
+    );
+
+    let async_completion = admit_request_response_completion(
+        &runtime,
+        NodeId::new(244, 0),
+        BridgeAsyncRequestTruthViewBasis::authoritative(
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        ),
+        64,
+    )
+    .admitted_completion()
+    .expect("completion should admit")
+    .clone();
+    let async_ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
+        BridgeMixedCauseOrderingLaneKind::Authoritative,
+        vec![
+            BridgeMixedCauseOrderingInput::AsyncCompletion(async_completion.clone()),
+            BridgeMixedCauseOrderingInput::AsyncCompletion(async_completion),
+        ],
+    ));
+    assert_eq!(async_ordering.async_result_transitions().len(), 2);
+    assert_eq!(
+        async_ordering.async_result_transitions()[0].disposition(),
+        BridgeMixedCauseAsyncResultDisposition::Ordered { ordinal: 0 }
+    );
+    assert_eq!(
+        async_ordering.async_result_transitions()[1].disposition(),
+        BridgeMixedCauseAsyncResultDisposition::DuplicateSuppressed
     );
 }
 
@@ -170,6 +215,34 @@ fn runtime_denies_preview_local_causes_in_authoritative_mixed_window() {
 #[test]
 fn runtime_denies_stale_async_causes_and_non_deliverable_lineage() {
     let runtime = runtime(BridgeRuntimePolicy::development());
+    let inputs = stale_and_revalidation_inputs(&runtime);
+    let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
+        BridgeMixedCauseOrderingLaneKind::Authoritative,
+        inputs,
+    ));
+
+    assert!(ordering.ordered().is_empty());
+    assert_eq!(ordering.denied().len(), 2);
+    assert_eq!(
+        ordering.denied()[0].denied_kind(),
+        BridgeMixedCauseDeniedKind::AsyncStaleCauseRejected
+    );
+    assert_eq!(
+        ordering.denied()[1].denied_kind(),
+        BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable
+    );
+    assert_eq!(
+        ordering.denied()[0].comparison_evidence().reason_kind(),
+        BridgeMixedCauseComparisonReasonKind::AsyncStaleDenial
+    );
+    assert_eq!(
+        ordering.denied()[1].comparison_evidence().reason_kind(),
+        BridgeMixedCauseComparisonReasonKind::AsyncLineageNonDeliverable
+    );
+    assert_denied_async_transitions(&ordering);
+}
+
+fn stale_and_revalidation_inputs(runtime: &RuntimeBridge) -> Vec<BridgeMixedCauseOrderingInput> {
     let original_basis = BridgeAsyncRequestTruthViewBasis::authoritative(
         crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
         crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
@@ -205,33 +278,34 @@ fn runtime_denies_stale_async_causes_and_non_deliverable_lineage() {
         ),
         current_basis,
     );
+    vec![
+        BridgeMixedCauseOrderingInput::AsyncClassifiedDeniedCompletion(classified),
+        BridgeMixedCauseOrderingInput::AsyncRevalidationLineage(lineage),
+    ]
+}
 
-    let ordering = runtime.order_mixed_causes(&BridgeMixedCauseOrderingRequest::new(
-        BridgeMixedCauseOrderingLaneKind::Authoritative,
-        vec![
-            BridgeMixedCauseOrderingInput::AsyncClassifiedDeniedCompletion(classified),
-            BridgeMixedCauseOrderingInput::AsyncRevalidationLineage(lineage),
-        ],
+fn assert_denied_async_transitions(ordering: &BridgeMixedCauseOrdering) {
+    assert_eq!(ordering.async_result_transitions().len(), 2);
+    assert_eq!(
+        ordering.async_result_transitions()[0].disposition(),
+        BridgeMixedCauseAsyncResultDisposition::DeliveryDenied(
+            BridgeMixedCauseDeniedKind::AsyncStaleCauseRejected
+        )
+    );
+    assert!(matches!(
+        ordering.async_result_transitions()[0].cause(),
+        BridgeMixedCauseAsyncResultCause::ClassifiedDenied { .. }
     ));
-
-    assert!(ordering.ordered().is_empty());
-    assert_eq!(ordering.denied().len(), 2);
     assert_eq!(
-        ordering.denied()[0].denied_kind(),
-        BridgeMixedCauseDeniedKind::AsyncStaleCauseRejected
+        ordering.async_result_transitions()[1].disposition(),
+        BridgeMixedCauseAsyncResultDisposition::DeliveryDenied(
+            BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable
+        )
     );
-    assert_eq!(
-        ordering.denied()[1].denied_kind(),
-        BridgeMixedCauseDeniedKind::AsyncLineageNonDeliverable
-    );
-    assert_eq!(
-        ordering.denied()[0].comparison_evidence().reason_kind(),
-        BridgeMixedCauseComparisonReasonKind::AsyncStaleDenial
-    );
-    assert_eq!(
-        ordering.denied()[1].comparison_evidence().reason_kind(),
-        BridgeMixedCauseComparisonReasonKind::AsyncLineageNonDeliverable
-    );
+    assert!(matches!(
+        ordering.async_result_transitions()[1].cause(),
+        BridgeMixedCauseAsyncResultCause::Revalidation(_)
+    ));
 }
 
 #[test]

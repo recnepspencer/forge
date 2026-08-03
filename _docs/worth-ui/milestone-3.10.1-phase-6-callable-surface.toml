@@ -40,12 +40,14 @@ register_surface = "crates/worth-ui/tests/view_binding_registry/query_boundary_c
 register_task_presentation = "crates/worth-ui/tests/registry_extension_proof/fixtures.rs"
 register_theme_token = "crates/worth-ui-runtime/src/source/tests/phase7_identity_seeding_tests/identity_app_fixture.rs"
 with_candidate_submission = "crates/worth-ui-certification/tests/application_contracts/canvas_spatial_execution.rs"
+with_change_profile = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
 with_host = "crates/worth-ui-runtime/src/facade/prepared_application_authority/tests.rs"
 with_host_observation_capacity = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 with_minimal_registration_diagnostics = "crates/worth-ui/tests/registration_diagnostics.rs"
 with_mounted_frame_retention_budget = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 with_rich_registration_diagnostics = "crates/worth-ui/tests/registration_diagnostics.rs"
 with_rust_authored_input = "crates/worth-ui/tests/ui/runtime_source_ingress/pass/rust_authored_input_uses_compiler_owned_handoff.rs"
+with_visual_inspection_policy = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot.rs"
 
 [[surface]]
 kind = "inherent"
@@ -84,15 +86,30 @@ owner = "WorthUiNativeApplicationShell"
 audience = "ordinary-native-app"
 feature = "production-default"
 sources = [
-  "crates/worth-ui-runtime/src/facade/entry/native_application_replacement.rs",
+  "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_source_rebind.rs",
+  "crates/worth-ui-runtime/src/facade/entry/visual_overlay.rs",
+  "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs",
 ]
 [surface.callers]
-capabilities = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+begin_visual_geometry_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+begin_visual_pixel_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+begin_source_rebind = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+cancel_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+clear_visual_overlay = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+compare_visual_snapshots = "apps/platform-pulse/src/visual_identity_execution/comparison.rs"
+dispose_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 generation_identity = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+inspect_mounted_frame = "apps/platform-pulse/src/visual_identity_execution/progression.rs"
+poll_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 present_frame = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
-replace_application = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+present_visual_overlay = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+rebind_cancellation_request = "crates/worth-ui-certification/tests/application_contracts/observation_rebind/terminal_outcomes.rs"
+rebind_deadline_at = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+show_identity_overlay = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 shutdown = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
+visual_inspection_authority = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 
 [[surface]]
 kind = "inherent"
@@ -104,6 +121,8 @@ sources = ["crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs
 host_session_released = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
 mounted_shutdown_attempt_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
 released_surface_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+visual_capture = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot.rs"
+visual_overlay = "apps/platform-pulse/src/observation_contract/terminal_projection.rs"
 
 [[surface]]
 kind = "inherent"
@@ -119,14 +138,29 @@ sources = [
   "crates/worth-ui-runtime/src/facade/entry/mounted_frame_execution.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_publication.rs",
+  "crates/worth-ui-runtime/src/facade/entry/observation.rs",
+  "crates/worth-ui-runtime/src/facade/entry/rebind_execution.rs",
+  "crates/worth-ui-runtime/src/facade/entry/visual_overlay.rs",
+  "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs",
+  "crates/worth-ui-runtime/src/facade/entry/visual_snapshot/capture_poll.rs",
 ]
 [surface.callers]
 activate_prepared_replacement = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle.rs"
+begin_visual_geometry_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+begin_visual_pixel_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+begin_observation_turn = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
 cancel_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation.rs"
+cancel_visual_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 capabilities = "crates/worth-ui/tests/view_binding_registry/view_binding_determinism_cases.rs"
+classify_observations = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
+clear_visual_overlay = "crates/worth-ui-certification/tests/application_contracts/visual_identity/overlay_oracle/transition.rs"
+compile_preservation_rebind = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
+compile_rebind_plan = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
 complete_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation.rs"
+compare_visual_snapshots = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 current_mounted_publication = "crates/worth-ui-certification/tests/application_contracts/host_measurement_lifecycle.rs"
 discard_evidence_slice = "crates/worth-ui-certification/tests/evidence_reference_runtime.rs"
+dispose_visual_snapshot = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot.rs"
 execute_mounted_frame = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
 expand_evidence_ref = "crates/worth-ui-runtime/src/runtime/tests/source_ingress/active_application_launch_tests.rs"
 generation_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/foreign_graph_authority.rs"
@@ -140,13 +174,34 @@ inspection_support_report = "crates/worth-ui-runtime/src/facade/inspection_bridg
 inspection_support_report_for = "crates/worth-ui-certification/tests/declaration_support_snapshot_runtime.rs"
 lower_prepared_replacement = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 mounted_retention_report = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
+poll_visual_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+prepare_rebind = "crates/worth-ui-runtime/src/facade/entry/native_source_rebind.rs"
 prepare_mounted_replacement = "crates/worth-ui-certification/tests/application_contracts/mounted_identity_lifecycle.rs"
 prepare_replacement = "crates/worth-ui-certification/tests/application_contracts/filesystem_replacement_support.rs"
 present_current_mounted_frame_for_reconciliation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation_reconciliation.rs"
+present_visual_overlay = "crates/worth-ui-certification/tests/application_contracts/visual_identity/overlay_oracle/transition.rs"
 reconcile_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation_reconciliation.rs"
+rebind_cancellation_request = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
+rebind_deadline_at = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
+resolve_affected_scope = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
 session_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
+show_identity_overlay = "crates/worth-ui-certification/tests/application_contracts/visual_identity/overlay_oracle.rs"
 shutdown = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_replacement.rs"
 stage_prepared_replacement = "crates/worth-ui-certification/src/scenario/application_authority_closure/foreign_graph_authority.rs"
+visual_inspection_authority = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+
+[[surface]]
+kind = "inherent"
+owner = "WorthUiVisualInspectionAuthority"
+audience = "governed-visual-inspection"
+feature = "production-default"
+sources = ["crates/worth-ui-runtime/src/inspection/visual_snapshot/grant.rs"]
+[surface.callers]
+issue_geometry_grant = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+issue_comparison_grant = "apps/platform-pulse/src/visual_identity_execution/comparison.rs"
+issue_overlay_grant = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+issue_pixel_grant = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+policy = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 
 [[surface]]
 kind = "inherent"
@@ -226,13 +281,12 @@ audience = "observation_report"
 feature = "production-default"
 sources = ["crates/worth-ui-runtime/src/facade/observation_report.rs"]
 [surface.callers]
-host_observation_ingress = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
+drain_and_validate_host_observation_batches = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 host_observation_work_report = "crates/worth-ui-certification/tests/application_contracts/host_observation_reporting.rs"
 quarantined_host_observation_batch_count = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
 quarantined_host_observation_byte_count = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
 retained_host_observation_byte_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 retained_host_observation_report_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_reporting.rs"
-validate_enqueued_host_observation_batches = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 validate_host_observation_batch = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/mixed_real_lifecycle/hostile_mounted_journey.rs"
 
 [[surface]]
@@ -261,9 +315,12 @@ inspect_query_state_residue = "crates/worth-ui-certification/tests/application_c
 inspect_realtime_target = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_replacement.rs"
 inspect_runtime = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
 inspect_virtualized_plan = "crates/worth-ui-runtime/src/runtime/tests/execution/virtualized_data_lane_test_support.rs"
+lookup_consumed_fact = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission/fact_index.rs"
+measurement_basis_sources = "crates/worth-ui-certification/tests/application_contracts/observation_rebind/mixed_source.rs"
 ordinary_plan_availability = "crates/worth-ui-certification/tests/application_contracts/mounted_publication/replacement_atomicity.rs"
 query_fact_link = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/mixed_real_lifecycle/mounted_successor.rs"
 realtime_plan_availability = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_execution.rs"
+refresh_query_change = "crates/worth-ui-certification/tests/application_contracts/observation_rebind/query_consequence.rs"
 virtualized_plan_availability = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle.rs"
 
 [[surface]]
@@ -274,6 +331,7 @@ feature = "test-support-only"
 sources = ["crates/worth-ui-runtime/src/certification_support/application_builder.rs"]
 [surface.callers]
 with_graph_world_profile = "crates/worth-ui-certification/tests/graph_authority_runtime.rs"
+with_runtime_instance_basis_admissions = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/rebind_profile.rs"
 
 [[surface]]
 kind = "extension_trait"
@@ -334,4 +392,5 @@ audience = "certification-support"
 feature = "test-support-only"
 sources = ["crates/worth-ui-runtime/src/certification_support/mounted_frame_execution.rs"]
 [surface.callers]
+acquire_visual_overlay_lease = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot/phase_2_lifecycle.rs"
 present_prepared_mounted_frame = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation_authority.rs"

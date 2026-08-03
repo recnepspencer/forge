@@ -443,45 +443,69 @@ The wrong alternatives are:
 
 ## Visual Snapshots
 
-Worth UI should absolutely support screenshots.
+Worth UI supports screenshots, but a screenshot is not the public truth
+object. The implemented public object is
+`UiVisualSnapshotReceipt<ArtifactPosture>`: a bounded, immutable evidence
+bundle for one exact presentation basis.
 
-But a screenshot is not enough.
-
-The public object should be a receipt-backed visual snapshot.
-
-Example shape:
+Its implemented shape includes:
 
 ```text
-UiVisualSnapshotReceipt {
-  snapshot_identity
-  frame_identity
-  viewport_observation_identity
-  mounted_frame_receipt_identity
-  visible_node_regions
-  hit_test_regions
-  overlay_options
-  capture_time
+UiVisualSnapshotReceipt<ArtifactPosture> {
+  UiVisualSnapshotIdentity
+  UiVisualSnapshotAffinity {
+    presentation_attempt
+    frame
+    semantic_surface
+    host_surface
+    binding_generation
+    presentation_epoch
+    relation
+  }
+  UiVisualCoordinateObservation
+  UiVisibleRegionIndexIdentity
+  UiHitTestRegionIndexIdentity
+  optional or required UiVisualPixelArtifact
+  UiVisualInspectionCostReceipt
+  UiVisualSnapshotEvidence
 }
 ```
 
-The point is:
+Coordinates created through `UiVisualCoordinateScope` cannot escape their
+snapshot. Point and region adjudication keep visible contributors distinct from
+the total-ordered hit-test target. Each result may carry
+`UiVisualIdentityTrace`, which follows mounted receipt and incarnation through
+graph and declaration identity to authored source provenance and typed evidence
+references.
 
-- a screenshot region maps back to mounted receipt identity
-- a mounted receipt maps back to declaration and graph identity
-- a frame maps back to the exact runtime evidence neighborhood that produced it
+The host supplies capture and presentation observations. The runtime supplies
+the meaning those observations explain. AI and human consumers project the
+same receipt, omission, denial, indeterminate posture, cost, and lifecycle
+evidence; neither consumer reconstructs authority from pixels.
 
-That is what makes the screenshot useful to AI rather than decorative.
+### Implemented Visual Snapshot Closure: Milestone 3.11
 
-### Visual Snapshot Closure
+The 3.11 snapshot lane is honest because the system can:
 
-The snapshot lane is only honest if the system can do all of the following:
+- capture the current frame, a retained presentation, a selected mounted node,
+  or a snapshot-scoped region;
+- map a client physical point or region to distinct visible and hit-test
+  outcomes;
+- map mounted receipt identity to graph, declaration, authored source, and
+  evidence references;
+- retain, supersede, expire, cancel, dispose, and shut down snapshots through
+  typed bounded lifecycle outcomes;
+- publish and clear a fixed identity overlay through successor mounted frames;
+  and
+- keep optional pixels as disposable evidence rather than truth.
 
-- capture the current frame
-- capture a single node or region
-- map screen point -> mounted receipt identity
-- map screenshot region -> mounted receipt identity
-- map mounted receipt identity -> declaration / source / evidence
-- diff two frames with identity-aware meaning rather than raw pixel diff alone
+### Committed Successor: Milestone 3.12
+
+Identity-aware predecessor/successor snapshot comparison is not a 3.11
+capability. Milestone 3.12 owns the first admitted comparison that can relate
+changed facts, preserved identity, remount decisions, and bounded hot rebind.
+Until that contract exists, neither raw pixel diff nor local identity matching
+may be presented as semantic rebind evidence.
 
 ## Replay
 
@@ -565,7 +589,12 @@ CSS style cascades.
 
 ### Inspector Views
 
-Useful first-class views include:
+The following are required evidence views, not a mandate for one top-level tab
+per item. The human inspector keeps the small task-oriented shell defined by
+Milestone 3.22 and exposes these as contextual drill-down for the current
+selection or event.
+
+Useful evidence views include:
 
 1. Visual Tree  
    Mounted receipt topology, visible region identity, declaration identity,
@@ -591,21 +620,43 @@ Useful first-class views include:
    Query artifact consumed, basis/world posture, projection facts, schema
    posture, async/result posture, payload shape, and invalidation posture.
 
+   The current projection evidence family correlates a Query transition or
+   attempt, shape-specific affine fact, application generation, mounted node
+   and frame, presentation attempt, and visible pixels. Availability,
+   current/stale activity, stop kind, compatibility, native family,
+   collection continuation, and structural cost remain separate typed fields.
+   Compact identities are retained first; detail is materialized lazily under
+   explicit evidence, disclosure, and retention budgets.
+
+   Support reporting distinguishes the installed product backend and consumer
+   contract from unsupported, remasked, wrong-world, stale-generation,
+   incompatible-schema, and expired-detail posture. A matching identity,
+   digest, diagnostic string, pixel, or inspection record cannot construct a
+   binding, fact, Query operation, rebind plan, or publication authority.
+
 7. **Execution Plan And Frame Cost** -- lowering authority, active plan
    generation, host-neutral lane partitions, typed handle families, exact
    equivalence/no-op decision, affected closure, activation receipt, and
    ordinary versus reconstructive cost counters.
 
-8. **Services Inspector** -- portal topology, focus routing, motion, command
+8. **Interaction And Intent Inspector** -- host observation sequence, exact
+   presented-frame target, semantic interaction, route binding, reusable intent
+   definition, payload/input-basis revision, orthogonal operability decision,
+   confirmation challenge posture, UI admission, framework-owned attempt,
+   product/domain outcome, declared consequence, and mounted visible posture.
+   Compact evidence can explain the chain but cannot target, confirm, complete,
+   retry, or readmit it.
+
+9. **Services Inspector** -- portal topology, focus routing, motion, command
    routing, selection, scroll, and other runtime services.
 
-9. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
+10. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
    not a console.
 
-10. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
+11. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
     observations, rebinds, mounted frames, and diagnostics.
 
-11. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
+12. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
     symmetry axes, visual bounds, overlays, invariant violations, and
     perceptual advisories.
 
@@ -834,6 +885,8 @@ This architecture is only real if it can prove all of the following:
 - the inspector consumes evidence but does not author truth
 - plan and Query inspection cannot mint handles, activate candidates, promote
   receipts/digests into authority, or submit an executable plan
+- projection evidence cannot be reassembled into a binding or fact, and lazy
+  detail cannot widen Query, application, mounted, or disclosure authority
 - no explanation path requires renderer-local semantic reconstruction
 
 ## Final Rule

@@ -1,3 +1,7 @@
+/// Current, peak, and transition counters for one Store's physical residency.
+///
+/// Counters describe executed transitions. They cannot grant a lease, prove an
+/// effect, or authorize retry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalResidencyCounterSnapshot {
     inner: worth_store_buffer_pool::PhysicalResidencyCounters,
@@ -85,6 +89,9 @@ impl PhysicalResidencyCounterSnapshot {
     }
     pub const fn source_loads(self) -> u64 {
         self.inner.source_loads()
+    }
+    pub const fn coalesced_waiters(self) -> u64 {
+        self.inner.coalesced_waiters()
     }
     pub const fn evictions(self) -> u64 {
         self.inner.evictions()

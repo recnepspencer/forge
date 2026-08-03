@@ -123,6 +123,9 @@ pub mod blob_recovery_records_compile_fail;
 #[path = "compile_fail/retention_reclaim.rs"]
 #[doc(hidden)]
 pub mod blob_retention_reclaim_compile_fail;
+#[path = "compile_fail/streaming_execution_authority.rs"]
+#[doc(hidden)]
+pub mod blob_streaming_execution_authority_compile_fail;
 #[path = "compile_fail/streaming_read.rs"]
 #[doc(hidden)]
 pub mod blob_streaming_read_compile_fail;

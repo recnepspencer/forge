@@ -3,6 +3,7 @@ use worth_store_security::StoreAuthorityBoundSecurityScopeReceipt;
 use super::{
     PhysicalSignalAspectBindingDigest, PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass,
     PhysicalWorkGeneration, PhysicalWorkIntent, PhysicalWorkOperationFamily,
+    PhysicalWorkSignalFamily,
 };
 
 /// Borrow-free proof that admission is being performed by the live owner of
@@ -33,6 +34,7 @@ pub struct AdmittedPhysicalWorkAuthority {
     scope_digest: [u8; 32],
     security: StoreAuthorityBoundSecurityScopeReceipt,
     binding: PhysicalSignalAspectBindingDigest,
+    signal_family: PhysicalWorkSignalFamily,
     operation: PhysicalWorkOperationFamily,
     effect: PhysicalWorkEffectClass,
     durability: PhysicalWorkDurabilityRequirement,
@@ -72,6 +74,7 @@ impl AdmittedPhysicalWorkAuthority {
     pub(super) fn seal(
         intent: &PhysicalWorkIntent,
         binding: PhysicalSignalAspectBindingDigest,
+        signal_family: PhysicalWorkSignalFamily,
         physical: &PhysicalWorkAdmissionAuthority,
     ) -> Self {
         Self {
@@ -81,6 +84,7 @@ impl AdmittedPhysicalWorkAuthority {
             scope_digest: intent.scope().stable_digest(),
             security: intent.security_authority(),
             binding,
+            signal_family,
             operation: intent.operation(),
             effect: intent.effect(),
             durability: intent.durability(),
@@ -110,6 +114,10 @@ impl AdmittedPhysicalWorkAuthority {
 
     pub const fn binding(&self) -> PhysicalSignalAspectBindingDigest {
         self.binding
+    }
+
+    pub const fn signal_family(&self) -> PhysicalWorkSignalFamily {
+        self.signal_family
     }
 
     pub const fn operation(&self) -> PhysicalWorkOperationFamily {

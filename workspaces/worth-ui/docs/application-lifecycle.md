@@ -21,10 +21,14 @@ publication, and generation state coherent. Application code holds one
 - `WorthUiApplicationBuilder::freeze()`
 - `WorthUiApp::launch()`
 - `WorthUiActiveApplicationSession::execute_mounted_frame(...)`
+- `WorthUiNativeApplicationShell::begin_source_rebind(...)`
 - `WorthUiActiveApplicationSession::inspect(...)`
 - `WorthUiActiveApplicationSession::shutdown()`
 - `UiMountedFrameOutcome`
 - `WorthUiMountedFrameExecutionStop`
+- `UiSourceRebindRequest`
+- `UiRebindOutcome`
+- `WorthUiNativeSourceRebindDenial`
 
 Mounted request, deadline, outcome, and recovery types are re-exported by
 `worth_ui::facade::app`. Application code does not import a mounted runtime
@@ -41,6 +45,11 @@ assembles all required surfaces, presents through the host contract, and
 publishes only a complete frame. A receipt reports what happened; it cannot be
 used to execute or publish another frame.
 
+After launch, `begin_source_rebind` is the ordinary bridge from one settled
+filesystem snapshot to semantic classification, bounded consequence planning,
+canonical host presentation, and atomic successor publication. It borrows the
+same running shell; it does not launch or swap in a second application.
+
 ## How It Executes
 
 ```text
@@ -54,6 +63,10 @@ WorthUi::app()
    | RejectedBeforeEffects | InFlight | PresentationIndeterminate
    | RetentionDenied | AdmissionDenied | CompletionDenied
 -> inspect or continue through the returned typed outcome
+-> for a settled edit, begin_source_rebind
+-> Published | ObservedNoChange | Duplicate | SupersededBeforeEffects
+   | TimedOutBeforeEffects | CancelledBeforeEffects
+   | RejectedBeforeEffects | InFlight | Indeterminate
 -> shutdown
 ```
 
@@ -118,6 +131,7 @@ fn main() {
 
 pub fn run() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
@@ -247,8 +261,8 @@ identity, host result, or inspection receipt.
 
 - Add file or Rust composition as described in
   [Authored composition](./authored-composition.md).
-- Register installed Query views before `freeze`; submit settled projection
-  input inside the mounted-frame source closure.
+- Register installed scalar or collection projections before `freeze`; submit
+  Query-issued observations through `begin_projection_rebind(...)`.
 - Use [Application inspection](./inspection.md) on the prepared app or active
   session.
 - Host adapters consume only the sealed mounted mechanics prepared by runtime.
@@ -288,17 +302,110 @@ absolute directory containing `main.wui`:
 
 ```powershell
 $sourceRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/app).Path
-cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot
+$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
+New-Item -ItemType Directory -Force -Path $queryRoot | Out-Null
+Remove-Item -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -ErrorAction SilentlyContinue
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- --source-root $sourceRoot --query-source-root $queryRoot
 ```
 
 The process watches
 `workspaces/worth-ui/apps/platform-pulse/app/main.wui`. On first launch, the
-160-by-96 native window is filled with the admitted blue `#2f81f7` rectangle.
-The rectangle is mounted runtime meaning translated through the canonical host
-contract; the eframe shell does not draw a second application-owned shape.
-Successful first publication prints
-`WORTH_UI_PLATFORM_PULSE_PUBLISHED` with the active application generation and
-mounted frame identity.
+160-by-96 native client area contains an admitted blue `#2f81f7` background
+and a yellow `#f2cc60` inset target. The target occupies the half-open logical
+region `[48, 24]` through `[112, 72]`; `[80, 48]` is its inspection point and
+`[16, 16]` is the background control point. Both shapes are mounted runtime
+meaning translated through the canonical host contract; the eframe shell does
+not draw a second application-owned shape. Successful first publication prints
+`FirstFramePublished` in the `WORTH_UI_PLATFORM_PULSE_EVENT ` stream with the
+active application generation and mounted frame identity.
+
+After first publication, the application captures that exact mounted frame,
+resolves both points, and temporarily publishes a magenta identity border
+around the inset target. The border remains visible for two seconds and then
+clears through another successor mounted frame. The console emits this initial
+visual sequence inside the current version-3 lifecycle protocol:
+
+```text
+VisualSnapshotCaptured
+VisualPointTrace
+VisualOverlayPublished
+VisualOverlayCleared
+```
+
+Each is a `WORTH_UI_PLATFORM_PULSE_EVENT ` prefixed JSON envelope. The snapshot
+event binds the captured pixels to snapshot, presentation-attempt, frame,
+surface, binding-generation, and presentation-epoch identity. In
+`VisualPointTrace`, inspect:
+
+```text
+outcome.VisualPointTrace.snapshot
+outcome.VisualPointTrace.target.hit.mounted.node_receipt
+outcome.VisualPointTrace.target.hit.authored_semantic_name
+outcome.VisualPointTrace.target.hit.source_artifact_path
+outcome.VisualPointTrace.background.hit.mounted.node_receipt
+```
+
+The target authored name is
+`component:platform.pulse.component.identity_target`. Its mounted receipt must
+differ from the background receipt. `VisualOverlayPublished.base_frame` is the
+captured frame; `published_frame` is its overlay successor.
+
+For a pretty-printed human view of the same observation stream, run:
+
+```powershell
+cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse |
+  ForEach-Object {
+    if ($_ -like 'WORTH_UI_PLATFORM_PULSE_EVENT *') {
+      ($_ -replace '^WORTH_UI_PLATFORM_PULSE_EVENT ', '') |
+        ConvertFrom-Json |
+        ConvertTo-Json -Depth 20
+    } else {
+      $_
+    }
+  }
+```
+
+This projection is for reading the receipt stream. It does not create visual
+truth or grant authority back to the console.
+
+### Projected Product Data
+
+The checked-in application declares one live scalar projection:
+`platform.pulse.status`. At launch, Worth UI prepares the public Query host
+installation, the Query host installs it, and the returned scalar registration
+joins `WorthUi::app()` before freeze. With no
+`platform-pulse-value.json` in the query source root, the mounted status is
+pending and the event stream reports `QueryProjectionIssued` followed by
+`QueryProjectionPublished` with pending posture.
+
+While the process remains open, create the first external value from another
+PowerShell window:
+
+```powershell
+$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
+'{"status":"ONLINE","revision":1}' |
+  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
+```
+
+The operating-system watcher settles that file, Query issues a current native
+text observation, and the ordinary projection rebind publishes `ONLINE` as
+mounted semantic text in the same window. The event pair carries the exact
+projection/fact, application generation, mounted frame, node, presentation,
+and pixel correlation.
+
+Then replace only the external value:
+
+```powershell
+'{"status":"UPDATED-LONG","revision":2}' |
+  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
+```
+
+The visible text changes through the same installation, observation, rebind,
+mount, and host path; background and authored identity controls remain fixed.
+The executable-world certification also introduces an incompatible declared
+schema, proves a typed schema stop preserves the exact predecessor value and
+pixels, restores compatibility, and observes recovery. The denial does not
+manufacture a fallback value or replace Query authority with UI state.
 
 To exercise a valid replacement, change only this line:
 
@@ -312,11 +419,20 @@ to:
 token theme.platform_pulse.fill = "theme.platform_pulse.green";
 ```
 
-After the operating-system watcher settles the file, the complete successor is
-prepared and published atomically. The window becomes admitted green
-`#3fb950`, and `WORTH_UI_PLATFORM_PULSE_REPLACED` reports the predecessor,
-successor, and published frame identities. This is whole-application
-replacement, not Milestone 3.12 semantic rebind.
+After the operating-system watcher settles the file, the held snapshot enters
+`begin_source_rebind`. Semantic classification selects the affected consumers,
+the immutable plan preserves stable authored identity for this color-only
+change, and the canonical host publishes one successor. The background becomes
+admitted green `#3fb950` while the yellow inset target remains distinct.
+`RebindPublished` reports predecessor generation, successor generation, source
+revision, planned and realized work, and mounted frame identities.
+
+The Pulse then captures the exact successor and emits `VisualComparison`.
+That comparison borrows the predecessor snapshot, successor snapshot, and
+published rebind receipt. It reports preserved identity and differing retained
+pixels without recapturing either frame. `VisualSnapshotRetired` proves that
+the predecessor snapshot was explicitly superseded and its registered resource
+was released.
 
 To see denial preservation, replace the file temporarily with:
 
@@ -324,19 +440,42 @@ To see denial preservation, replace the file temporarily with:
 component platform.pulse.component.seed {
 ```
 
-The source compiler reports a typed diagnostic. No successor publishes, and
-the last admitted green generation and pixels remain visible. Restore the
+The source compiler reports a typed diagnostic through
+`RebindDeniedPreserving`. No successor publishes, and the exact green
+generation, mounted frame, window, and pixels remain current. Restore the
 checked-in source exactly:
 
 ```text
 component platform.pulse.component.seed {}
+component platform.pulse.component.identity_target {}
+component platform.pulse.component.projected_status {
+  content projection platform.pulse.status
+}
 surface platform.pulse.surface.main {}
+query_scalar platform.pulse.status {
+  view platform.pulse.status
+  field status
+  require text
+  lifecycle live
+}
 token theme.platform_pulse.fill = "theme.platform_pulse.blue";
+token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
+token theme.platform_pulse.projected_status.text = "theme.platform_pulse.white";
 ```
 
-The watcher then publishes the recovered blue application. Close the native
-window normally to shut down the operating-system watcher, release the
-registered host surface, and consume the active application shutdown path.
+The same process and window then publish the recovered blue successor through
+the same rebind path. Close the native window normally to shut down both
+operating-system watchers, close the Query live owner and consumer lease,
+release the registered host surface, and consume the active application
+shutdown path. The terminal `Shutdown` observation must report zero live Query
+sources, attempts, resources, consumer leases, retained projections, and
+projection receipts, alongside zero live captures, snapshots, comparison
+projections, rebind handles, pixel bytes, structural bytes, pending overlays,
+published overlays, and clearing overlays. The visual fields include
+`cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
+`disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
+`cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and
+`disposed_clearing_overlay_count`.
 
 ### Current Certification Posture
 
@@ -393,5 +532,6 @@ composition root or universal fixture.
 
 - [Worth UI architecture](./architecture.md)
 - [Authored composition](./authored-composition.md)
+- [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Query-backed UI views](./query-binding.md)

@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, num::NonZeroUsize, sync::Arc};
 
+use super::candidate_allocation::{CandidateFrameAllocator, ProcessCandidateFrameAllocator};
 use crate::physical_residency::{
     operation_allocation::OperationAllocationUse, pool::PoolInner, DirtyPhysicalFrame,
     PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyDenial,
@@ -24,6 +25,7 @@ pub struct PhysicalCandidateBatchReservation<'grant> {
 pub struct PhysicalCandidateFrameReservation {
     pub(crate) owner: Arc<PoolInner>,
     pub(crate) candidate: PhysicalCandidateFrameKey,
+    pub(crate) scope: crate::PhysicalOperationAllocationScope,
     pub(crate) armed: bool,
 }
 
@@ -57,6 +59,7 @@ impl PhysicalCandidateBatchReservation<'_> {
         Ok(PhysicalCandidateFrameReservation::new(
             Arc::clone(&self.owner),
             candidate,
+            scope,
         ))
     }
 }
@@ -75,14 +78,51 @@ impl PhysicalCandidateFrameReservation {
         self.candidate.frame_key()
     }
 
-    pub fn admit(mut self, bytes: Vec<u8>) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial> {
+    pub fn materialize<F>(self, fill: F) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial>
+    where
+        F: FnOnce(&mut [u8]),
+    {
+        self.materialize_with_allocator(&ProcessCandidateFrameAllocator, fill)
+    }
+
+    pub(crate) fn materialize_with_allocator<F>(
+        mut self,
+        allocator: &dyn CandidateFrameAllocator,
+        fill: F,
+    ) -> Result<DirtyPhysicalFrame, PhysicalResidencyDenial>
+    where
+        F: FnOnce(&mut [u8]),
+    {
         let key = self.candidate.frame_key();
-        if bytes.len() != key.coordinate().length() as usize {
-            return Err(self
-                .owner
-                .record_denial(PhysicalResidencyDenial::FrameLengthMismatch));
+        let length = usize::try_from(key.coordinate().length())
+            .expect("physical frame lengths are admitted from u32 coordinates");
+        let mut buffer = allocator.allocate(length).map_err(|()| {
+            self.owner.candidate_allocator_failed(key);
+            self.armed = false;
+            PhysicalResidencyDenial::AllocationFailed
+        })?;
+        let actual = u64::try_from(buffer.capacity()).expect("Vec capacity fits u64");
+        let requested = u64::try_from(length).expect("frame length fits u64");
+        if actual > requested {
+            self.owner.candidate_allocator_failed(key);
+            self.armed = false;
+            return Err(PhysicalResidencyDenial::AllocatorExceededReservation {
+                requested,
+                actual,
+            });
         }
-        let bytes = Arc::new(bytes);
+        self.owner.actualize_allocation(
+            crate::physical_residency::PhysicalResidencyAllocationActualization::new(
+                crate::PhysicalResidencyDimension::ResidentBytes,
+                self.scope,
+                crate::physical_residency::PhysicalResidencyRequestedAllocationUnits::new(
+                    requested,
+                ),
+                crate::physical_residency::PhysicalResidencyActualAllocationUnits::new(actual),
+            ),
+        );
+        fill(buffer.as_mut_slice());
+        let bytes = buffer.into_resident();
         let frame = self.owner.finish_candidate(key, bytes)?;
         self.armed = false;
         Ok(frame)

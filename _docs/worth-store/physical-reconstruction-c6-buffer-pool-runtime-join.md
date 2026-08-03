@@ -369,6 +369,7 @@ impl PhysicalRecordChunkBasis {
     pub fn store_identity(self) -> StableStoreIdentity;
     pub fn store_generation(self) -> LifecycleGeneration;
     pub fn record(self) -> PhysicalRecordId;
+    pub fn physical_owner(self) -> PhysicalGenerationOwner;
     pub fn frame_coordinate(self) -> RecordFrameCoordinate;
 }
 ```
@@ -377,9 +378,31 @@ The view borrows the session mutably used to advance the stream. Therefore the
 caller cannot retain one chunk while advancing to or evicting its successor.
 `bytes()` returns only the payload range admitted by physical-format decode;
 headers, neighboring slots, and unvalidated bytes are not exposed.
-`PhysicalRecordChunkBasis` has no public constructor and is observation only:
-its coordinate and generations cannot create a session, lease, fault,
-writeback, retry, or semantic-residency claim.
+`PhysicalRecordChunkBasis` has no public constructor and is observation only.
+Its `physical_owner` is minted from the exact durable inline slot or top-level
+record-extent generation cell that produced the chunk; callers cannot pair a
+different owner with the basis. Its coordinate, owners, and generations cannot
+create a session, lease, fault, writeback, retry, or semantic-residency claim.
+
+The isolation adapter derives its reference from that Store-minted owner:
+
+```rust
+impl CurrentGenerationPhysicalReference {
+    pub fn for_record_chunk(
+        chunk: &PhysicalRecordChunkView<'_>,
+    ) -> CurrentGenerationPhysicalReference;
+}
+
+impl PhysicalByteGuardScope {
+    pub fn for_record_chunk(
+        chunk: &PhysicalRecordChunkView<'_>,
+    ) -> PhysicalByteGuardScope;
+}
+```
+
+There is deliberately no overload accepting a separately selected physical
+reference. A caller cannot pair reference A with Store chunk B and ask later
+runtime validation to notice the substitution.
 
 `read_next` is the explicit copy API. It copies only into caller-owned storage,
 never allocates a result, and advances the same cursor as `next_chunk`.
@@ -878,6 +901,20 @@ workspaces/worth-store/crates/
 ├── worth-store-physical-integrity/             # C.9 consumes borrowed physical views
 ├── worth-store-physical-isolation/             # C.10 consumes leases + pressure evidence
 └── worth-store-blob-chunks/                    # C.11 consumes Blob-scoped allocations
+
+workspaces/worth-store/tools/store-test-runner/
+└── src/
+    ├── arguments.rs                             # exact replay CLI
+    ├── courtroom_campaign/
+    │   └── bounded_residency_siege/
+    │       ├── schedule.rs                      # sealed schedule-plan facade [C.6]
+    │       └── schedule/
+    │           ├── seed.rs                      # typed seed and deterministic derivation [C.6]
+    │           ├── decision.rs                  # closed admissible decision vocabulary [C.6]
+    │           └── trace.rs                     # ordered replay evidence [C.6]
+    └── mutation_campaign/
+        └── catalog/
+            └── physical_reconstruction_c6.rs    # append-only C.6 regression corpus [C.6]
 ```
 
 This plan intentionally permits a directory to begin with one semantic
@@ -1182,6 +1219,13 @@ The phase that stabilizes each public surface writes or revises:
 5. `_docs/worth-store/physical-foundation-reconstruction-roadmap.md`
    - link this engineering spec now;
    - at closeout, record the evidence bundle and successor handoff.
+6. `workspaces/worth-store/tools/store-test-runner/README.md`
+   - document the exact Courtroom C workload-seed and schedule-seed distinction;
+   - show the canonical run, exact `--schedule-seed <u64>` replay command, and
+     the 16-seed CI derivation;
+   - state that the twelve designed controlled-defect categories are the
+     minimum corpus and that every later executable bug correction appends its
+     causal mutation to certification in the same change.
 
 The feature-facing guide must be written with the `feature-doc-writer` skill
 after the public API is real. Documentation claims are verified against
@@ -1233,7 +1277,7 @@ Allowed test-only layers are:
 2. Persisted logical payload bytes are at least 32 times the serving process's
    resident-byte budget and at least 16 times its total live pool-owned byte
    envelope.
-3. The deterministic seed fixes:
+3. The deterministic workload seed fixes:
    - a hot set that fits in two frames;
    - a cold random set larger than the frame-entry budget;
    - a sequential extent set larger than the resident budget;
@@ -1242,8 +1286,9 @@ Allowed test-only layers are:
    - duplicate-fault coordinates;
    - expected record bytes generated independently from Store decode.
 4. The evidence records backend profile, format version, page size, exact
-   global and per-scope budgets, speculative ceilings, seed, source identity,
-   binary identity, and filesystem profile.
+   global and per-scope budgets, speculative ceilings, workload seed,
+   schedule-perturbation seed, source identity, binary identity, and
+   filesystem profile.
 5. No replay artifact, persisted heap image, pool snapshot, decoded expected
    record file, or legacy S.2 fixture exists before serving begins.
 
@@ -1327,15 +1372,67 @@ The closure lane proves:
 19. the second fresh verifier observes the complete expected record set and no
     forbidden artifacts.
 
+### Schedule perturbation and replay
+
+The staged schedule above remains the canonical adversarial proof. It is not
+the only lawful interleaving.
+
+Courtroom C must also derive a deterministic `SchedulePerturbationPlan` from a
+schedule seed that is distinct from the workload seed. The plan may choose
+only among actions that are simultaneously admissible at the existing sealed
+certification gates: worker start order, equivalent contender identity, gate
+release order, and independent ready-work selection. It may not reorder a
+causal prerequisite, weaken a hostile condition, change workload truth,
+introduce sleeps or timing jitter, call production scheduling policy, or
+create another scheduler.
+
+The runner API is exact:
+
+```text
+store-test-runner courtrooms --courtroom c \
+  --schedule-seed <u64> \
+  --mutant-report <path> \
+  --report <path>
+```
+
+Omitting `--schedule-seed` selects the declared canonical closeout seed.
+Supplying it replays exactly the same ordered schedule decisions from the same
+source identity. Before the serving child starts, the runner emits the
+schedule seed and exact replay command. The machine report records the
+workload seed, schedule seed, closed decision vocabulary, ordered decision
+trace, and trace digest. A seed that is accepted but never changes any
+admissible decision is invalid evidence.
+
+CI runs exactly 16 distinct schedule seeds. Seed `i` is derived
+deterministically from the checked-out revision identity and lane index
+`i in 0..16`; retrying the same revision therefore replays the same corpus.
+Each seed gets a distinct report path, and any failure publishes or prints its
+exact seed and replay command. The canonical staged seed remains required in
+release certification in addition to the full mutation corpus.
+
 ### Mutation sensitivity
 
-The twelve mutants in the Adversarial Constraint are individually bound to
-their expected predicate and lane. The evidence bundle records mutant id,
-source/binary identity, exact source replacement, expected failing predicate,
-actual first failing predicate, and localization. At least the whole-store
-copy, pinned eviction, premature clean, duplicate source load, speculative
-budget bypass, and topology-bypass mutants run in CI certification. The full
-set runs in release certification.
+The twelve controlled-defect categories in the Adversarial Constraint are the
+minimum seed corpus, not a fixed sample and not a ceiling. Every concrete
+mutation is individually bound to its expected predicate and lane. The
+evidence bundle records mutant id, source/binary identity, exact source
+replacement, expected failing predicate, actual first failing predicate, and
+localization.
+
+After this contract is adopted, every real executable bug corrected in the
+C.6 production subject or its certification evidence must add a mutation that
+recreates the causal defect in the same change. The corresponding ledger
+finding cannot close until that mutation fails at the nearest causal predicate
+and participates in certification. Mutation identities are append-only and
+never reused. Courtroom C derives its required concrete inventory from the
+current bounded-residency catalog; no separately hard-coded count or terminal
+id may let a newly appended regression disappear.
+
+At least the whole-store copy, pinned eviction, premature clean, duplicate
+source load, speculative budget bypass, and topology-bypass mutants run in CI
+certification. Release certification runs every concrete mutation in the
+current catalog, including every bug-derived regression added after the
+original twelve categories.
 
 ### Mechanical anti-substitution gates
 
@@ -1367,7 +1464,9 @@ The milestone adds:
 The machine-checkable bundle contains:
 
 - source, binary, runner, format, backend, filesystem, and hardware identities;
-- seed and independent expectation digest;
+- workload seed, schedule-perturbation seed, ordered schedule-decision trace,
+  schedule-trace digest, exact replay command, and independent expectation
+  digest;
 - process, runtime, root, Store generation, operation, frame, lease, and
   writeback identities;
 - admitted global/scope/speculative budget declaration;
@@ -1666,8 +1765,9 @@ truth.
 - owner checks for pool laws and Store composition;
 - developer smoke for hot/cold/refault/view/copy/dirty/speculative behavior;
 - CI certification for the 32-times-resident real-store courtroom and required
-  mutant subset;
-- release certification for the full hostile schedule and mutant set;
+  mutant subset across exactly 16 revision-derived, replayable schedule seeds;
+- release certification for the canonical hostile schedule and every concrete
+  mutation in the current append-only corpus;
 - hardware qualification where filesystem or allocation instrumentation claims
   depend on a named platform;
 - a requirement-and-evidence closure ledger covering every section of this
@@ -1679,9 +1779,12 @@ truth.
 becomes production authority.
 
 **Proof:** the Non-Fake Acceptance Setup passes from clean source with current
-identities; every required mutant fails at its declared predicate; a clean
-rerun reproduces the verdict; constitution, line-cap, dependency, feature,
-source, UI, and closure-ledger gates are green.
+identities; all 16 CI schedule seeds name distinct deterministic decision
+traces and any one is exactly replayable; every current required mutant fails
+at its declared predicate; every bug correction made after corpus adoption
+names its appended mutation; a clean rerun reproduces the verdict;
+constitution, line-cap, dependency, feature, source, UI, and closure-ledger
+gates are green.
 
 **Cleanup:** delete temporary courtroom-only production hooks. Retain only
 named storage interposer/yieldpoint capabilities whose production boundary is
@@ -1709,7 +1812,8 @@ C.6 is incomplete without all of the following:
 - removal of the temporary `C6*` handoff surface;
 - removal of the complete legacy S.2 model and feature graph;
 - updated docs, reality audit, roadmap handoff, and closure ledger;
-- the hostile larger-than-memory fresh-process courtroom and mutation evidence.
+- the hostile larger-than-memory fresh-process courtroom, 16-seed CI schedule
+  perturbation evidence, and the complete current mutation regression corpus.
 
 ## Explicit Non-Goals
 
@@ -1731,7 +1835,10 @@ bounded physical residency owner inside the C.5.1 work topology; lease
 lifetimes, memory admission, scope isolation, fault coalescence, dirty truth,
 writeback settlement, and exact counters are mechanically falsifiable; a real
 store at least 32 times larger than resident memory remains operational through
-fresh processes; future physical adapters can consume bounded views and
+fresh processes; the canonical hostile schedule and 16 revision-derived CI
+schedule seeds are exactly replayable; every real executable bug fixed after
+corpus adoption has added its causal certification mutation; future physical
+adapters can consume bounded views and
 pressure evidence without pool or semantic-residency authority; the temporary
 handoff and legacy S.2 worlds no longer compile; documentation describes the
 real surface; and cleanup has no deferred entries.

@@ -40,6 +40,18 @@ impl WorthQueryCollectionRowHandle {
         &self.view_local_identity
     }
 
+    pub(crate) const fn ordinal(&self) -> usize {
+        self.row_ordinal
+    }
+
+    pub(crate) const fn capability_identity(&self) -> u64 {
+        self.capability_identity
+    }
+
+    pub(crate) const fn capability_generation(&self) -> WorthQueryBoundCapabilityGeneration {
+        self.capability_generation
+    }
+
     pub(super) fn rebind(
         &self,
         capability_identity: u64,

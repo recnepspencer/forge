@@ -20,6 +20,8 @@ mod drag_resize;
 pub(crate) mod execution;
 pub(crate) mod exports;
 pub(crate) mod host_observation;
+pub(crate) mod intent;
+pub(crate) mod interaction;
 mod invalidation_narrowing;
 pub(crate) use invalidation_narrowing::{
     UiAdmittedScrollInvalidationBinding, UiAllocationInvalidationAuthority,
@@ -27,17 +29,30 @@ pub(crate) use invalidation_narrowing::{
 mod launch;
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use launch::WorthUiActivationStagingPlans;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use launch::WorthUiRuntimeLaunchAuthority;
 pub(crate) use launch::{
     WorthUiInitialMountedCatalogPreparationDenial, WorthUiMountedAllocationActivationBasis,
 };
 mod measurement;
+pub(crate) mod observation;
 pub(crate) mod persistent_index;
 pub(crate) mod planning;
 mod portal_anchored_allocation;
+pub(crate) mod rebind;
 pub mod replacement;
 pub(crate) mod scroll_owned_allocation;
 pub(crate) mod session;
 mod source_ingress;
+pub(crate) use source_ingress::WorthUiAuthoredSourceBasis;
+pub(crate) use source_ingress::WorthUiProjectionContentEdge;
+pub use source_ingress::{
+    UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
+    UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,
+};
+pub(crate) use source_ingress::{
+    WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
+};
 mod stream_policy;
 mod viewport_resize;
 

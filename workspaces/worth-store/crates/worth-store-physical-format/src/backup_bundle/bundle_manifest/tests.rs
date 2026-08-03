@@ -1,6 +1,7 @@
 use super::{
     BackupBundleArtifactCoverage, BackupBundleArtifactFamily, BackupBundleArtifactFormat,
-    BackupBundleArtifactManifestRow, BackupBundleManifest,
+    BackupBundleArtifactManifestRow, BackupBundleManifest, BackupBundleManifestDeclaration,
+    BackupBundleManifestIdentity, BackupBundleRecoveryCoordinates,
 };
 use crate::{
     BackupBundleFormatAuthority, BackupBundleFormatDenial, BackupBundleManifestReadLimits,
@@ -46,19 +47,7 @@ fn output_names_are_unique_across_nonadjacent_families() {
         ),
         row(BackupBundleArtifactFamily::Page, "page", "same.bin"),
     ];
-    assert!(BackupBundleManifest::canonical(
-        [1; 32],
-        "lineage",
-        1,
-        1,
-        "checkpoint",
-        1,
-        (1, 1),
-        1,
-        7,
-        rows,
-    )
-    .is_none());
+    assert!(BackupBundleManifest::canonical(manifest_declaration(7, rows)).is_none());
 }
 
 #[test]
@@ -75,19 +64,8 @@ fn decoded_manifest_cannot_bypass_row_constructor_invariants() {
         owner(BackupBundleArtifactFamily::Page),
     )
     .expect("canonical row");
-    let manifest = BackupBundleManifest::canonical(
-        [1; 32],
-        "lineage",
-        1,
-        1,
-        "checkpoint",
-        1,
-        (1, 1),
-        1,
-        9,
-        vec![row],
-    )
-    .expect("canonical manifest");
+    let manifest = BackupBundleManifest::canonical(manifest_declaration(9, vec![row]))
+        .expect("canonical manifest");
     let authority = BackupBundleFormatAuthority::canonical();
     let mut encoded = authority
         .encode_manifest(&manifest)
@@ -247,19 +225,29 @@ fn page_manifest(rows: usize) -> BackupBundleManifest {
             .expect("page row")
         })
         .collect();
-    BackupBundleManifest::canonical(
-        [1; 32],
-        "lineage",
-        1,
-        1,
-        "checkpoint",
-        1,
-        (1, 1),
-        1,
-        9,
+    BackupBundleManifest::canonical(manifest_declaration(9, artifacts)).expect("canonical manifest")
+}
+
+fn manifest_declaration(
+    security_scope_fingerprint: u64,
+    artifacts: Vec<BackupBundleArtifactManifestRow>,
+) -> BackupBundleManifestDeclaration {
+    BackupBundleManifestDeclaration::new(
+        BackupBundleManifestIdentity {
+            cut_identity: [1; 32],
+            store_lineage: "lineage".to_owned(),
+            root_generation: 1,
+            manifest_generation: 1,
+        },
+        BackupBundleRecoveryCoordinates {
+            checkpoint_identity: "checkpoint".to_owned(),
+            durable_checkpoint_lsn: 1,
+            wal_half_open_interval: (1, 1),
+            acknowledged_frontier: 1,
+        },
+        security_scope_fingerprint,
         artifacts,
     )
-    .expect("canonical manifest")
 }
 
 fn owner(family: BackupBundleArtifactFamily) -> BackupBundlePhysicalOwner {
@@ -275,13 +263,15 @@ fn owner(family: BackupBundleArtifactFamily) -> BackupBundlePhysicalOwner {
             PhysicalSegmentId::from_raw(1).expect("segment"),
             generation,
         ),
-        BackupBundleArtifactFamily::Extent | BackupBundleArtifactFamily::BlobChunk => {
-            PhysicalGenerationOwner::for_extent(
-                PhysicalSegmentId::from_raw(1).expect("segment"),
-                crate::PhysicalExtentId::from_raw(1).expect("extent"),
-                generation,
-            )
-        }
+        BackupBundleArtifactFamily::Extent => PhysicalGenerationOwner::for_record_extent(
+            crate::PhysicalExtentId::from_raw(1).expect("extent"),
+            generation,
+        ),
+        BackupBundleArtifactFamily::BlobChunk => PhysicalGenerationOwner::for_extent(
+            PhysicalSegmentId::from_raw(1).expect("segment"),
+            crate::PhysicalExtentId::from_raw(1).expect("extent"),
+            generation,
+        ),
         BackupBundleArtifactFamily::Page => {
             crate::PhysicalGenerationAuthority::for_canonical_physical_format()
                 .page_cell(

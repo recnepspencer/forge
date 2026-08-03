@@ -6,6 +6,6 @@ pub(crate) use publish::{
     publish_generation_with_bytes_and_chunk_size, recovery_cases,
 };
 pub(crate) use wal::{
-    chunk_write_replay_evidence, durable_wal_publication, generic_recovery_replay_entry,
-    recovery_replay_entry, replayable_wal_classification,
+    chunk_write_replay_evidence, durable_wal_publication, replayable_wal_classification,
+    with_generic_recovery_replay_entry, with_recovery_replay_entry,
 };

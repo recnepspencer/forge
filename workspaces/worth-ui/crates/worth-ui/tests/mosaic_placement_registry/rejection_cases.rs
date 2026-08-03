@@ -13,6 +13,7 @@ use super::mosaic_placement_registry_fixtures::complete_policy;
 #[test]
 fn illegal_surface_to_region_placement_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy(
                 "workspace.placement.primary_to_toolbar",
@@ -41,6 +42,7 @@ fn illegal_surface_to_region_placement_rejected() {
 #[test]
 fn cyclic_mosaic_containment_policy_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy(
                 "workspace.placement.split_cycle",
@@ -67,6 +69,7 @@ fn cyclic_mosaic_containment_policy_rejected() {
 #[test]
 fn unsupported_float_or_overlay_policy_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy("workspace.placement.float", MosaicPlacementAction::float())
                 .with_source(MosaicPlacementSource::surface_class(
@@ -95,6 +98,7 @@ fn unsupported_float_or_overlay_policy_rejected() {
 #[test]
 fn surface_target_must_match_declared_action() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy(
                 "workspace.placement.primary_toolbar_projection",
@@ -121,6 +125,7 @@ fn surface_target_must_match_declared_action() {
 #[test]
 fn plugin_cannot_imperatively_rearrange_mosaic_state() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy(
                 "workspace.placement.plugin_mutation",
@@ -147,6 +152,7 @@ fn plugin_cannot_imperatively_rearrange_mosaic_state() {
 #[test]
 fn mosaic_placement_policy_requires_source_and_target_families() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_placement_policy(
             complete_policy("workspace.placement.missing", MosaicPlacementAction::dock())
                 .with_source(MosaicPlacementSource::missing_for_diagnostics())

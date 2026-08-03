@@ -198,6 +198,7 @@ fn declaration_correspondence_lookup_handles_zero_one_many_nodes_honestly() {
 
 fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-lookup")
                 .with_semantic_artifact_spec(control_spec()),
@@ -208,6 +209,7 @@ fn lookup_app() -> worth_ui::facade::app::WorthUiApp {
 
 fn absent_lookup_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.graph-lookup.absent",

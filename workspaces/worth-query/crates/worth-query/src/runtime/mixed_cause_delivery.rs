@@ -197,7 +197,8 @@ impl WorthQueryRuntimeMixedCauseDelivery {
                 BridgeMixedCauseOrderFamilyKind::AsyncCompletion => {
                     WorthQueryRuntimeMixedCauseMemberKind::AsyncCompletion
                 }
-                BridgeMixedCauseOrderFamilyKind::AsyncClassifiedDeniedCompletion => {
+                BridgeMixedCauseOrderFamilyKind::AsyncDeniedCompletion
+                | BridgeMixedCauseOrderFamilyKind::AsyncClassifiedDeniedCompletion => {
                     WorthQueryRuntimeMixedCauseMemberKind::AsyncDeniedCompletion
                 }
                 BridgeMixedCauseOrderFamilyKind::AsyncRetryLineage => {

@@ -94,6 +94,23 @@ fn classify_meaningful_difference(
                 structural_scope_from_artifacts(active_artifact, admitted, counters),
             ))
         }
+        WorthUiArtifactDifference::NodeCreated { .. }
+        | WorthUiArtifactDifference::NodeRetired { .. }
+        | WorthUiArtifactDifference::ModuleCreated { .. } => {
+            Ok(WorthUiReplacementImpact::StructuralReplacement(
+                structural_scope_from_artifacts(active_artifact, admitted, counters),
+            ))
+        }
+        WorthUiArtifactDifference::NodeMoved {
+            right_module_id,
+            right_node_index,
+            ..
+        } => Ok(WorthUiReplacementImpact::LocalSubtree(
+            local_scope_from_candidate(right_module_id, *right_node_index, admitted, counters),
+        )),
+        WorthUiArtifactDifference::ModuleRetired { .. } => {
+            deny_broad_replacement_without_receipts(admitted, counters)
+        }
         WorthUiArtifactDifference::ModuleNodeCount { .. }
             if super::is_query_binding_topology_only_difference(
                 active_artifact,

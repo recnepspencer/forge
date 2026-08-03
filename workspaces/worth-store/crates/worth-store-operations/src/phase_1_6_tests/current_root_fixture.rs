@@ -73,27 +73,31 @@ pub(super) fn core_references_for_source(
     .expect("current root");
     let mut artifacts = vec![observed_reference(
         directory,
-        BackupArtifactFamily::RootManifest,
-        "runtime-root",
-        layout
-            .root_manifest_candidates()
-            .first()
-            .expect("runtime root bytes"),
-        BackupArtifactCoverage::root_manifest(root.generation().get()).expect("root coverage"),
+        RuntimeOwnedArtifactObservation::new(
+            BackupArtifactFamily::RootManifest,
+            "runtime-root",
+            layout
+                .root_manifest_candidates()
+                .first()
+                .expect("runtime root bytes"),
+            BackupArtifactCoverage::root_manifest(root.generation().get()).expect("root coverage"),
+        ),
         root_reference,
     )];
     artifacts.extend(source.page_cells().iter().enumerate().map(|(index, cell)| {
         observed_reference(
             directory,
-            BackupArtifactFamily::Page,
-            &format!("runtime-page-{index}"),
-            layout
-                .pages()
-                .iter()
-                .find(|persisted| persisted.cell() == *cell)
-                .expect("runtime page bytes")
-                .bytes(),
-            BackupArtifactCoverage::physical_reachability(),
+            RuntimeOwnedArtifactObservation::new(
+                BackupArtifactFamily::Page,
+                format!("runtime-page-{index}"),
+                layout
+                    .pages()
+                    .iter()
+                    .find(|persisted| persisted.cell() == *cell)
+                    .expect("runtime page bytes")
+                    .bytes(),
+                BackupArtifactCoverage::physical_reachability(),
+            ),
             GenerationCountedPhysicalReference::from_page_cell(*cell)
                 .require_current_generation(cell.generation())
                 .expect("current page"),
@@ -107,15 +111,17 @@ pub(super) fn core_references_for_source(
             .map(|(index, cell)| {
                 observed_reference(
                     directory,
-                    BackupArtifactFamily::Extent,
-                    &format!("runtime-extent-{index}"),
-                    layout
-                        .extents()
-                        .iter()
-                        .find(|persisted| persisted.cell() == *cell)
-                        .expect("runtime extent bytes")
-                        .bytes(),
-                    BackupArtifactCoverage::physical_reachability(),
+                    RuntimeOwnedArtifactObservation::new(
+                        BackupArtifactFamily::Extent,
+                        format!("runtime-extent-{index}"),
+                        layout
+                            .extents()
+                            .iter()
+                            .find(|persisted| persisted.cell() == *cell)
+                            .expect("runtime extent bytes")
+                            .bytes(),
+                        BackupArtifactCoverage::physical_reachability(),
+                    ),
                     GenerationCountedPhysicalReference::from_admitted_reference(
                         references.admit_extent(*cell),
                     )
@@ -127,22 +133,44 @@ pub(super) fn core_references_for_source(
     artifacts
 }
 
+struct RuntimeOwnedArtifactObservation<'a> {
+    family: BackupArtifactFamily,
+    identity: String,
+    bytes: &'a [u8],
+    coverage: BackupArtifactCoverage,
+}
+
+impl<'a> RuntimeOwnedArtifactObservation<'a> {
+    fn new(
+        family: BackupArtifactFamily,
+        identity: impl Into<String>,
+        bytes: &'a [u8],
+        coverage: BackupArtifactCoverage,
+    ) -> Self {
+        Self {
+            family,
+            identity: identity.into(),
+            bytes,
+            coverage,
+        }
+    }
+}
+
 fn observed_reference(
     directory: &Path,
-    family: BackupArtifactFamily,
-    identity: &str,
-    bytes: &[u8],
-    coverage: BackupArtifactCoverage,
+    observation: RuntimeOwnedArtifactObservation<'_>,
     reference: CurrentGenerationPhysicalReference,
 ) -> BackupArtifactReference {
-    let path = directory.join(format!("{identity}.media"));
-    std::fs::write(&path, bytes).expect("runtime-owned source artifact");
+    let path = directory.join(format!("{}.media", observation.identity));
+    std::fs::write(&path, observation.bytes).expect("runtime-owned source artifact");
     BackupArtifactReference::declare_untrusted_physical_observation(
-        family,
-        super::support::artifact_format(family),
-        identity,
-        reference.generation().get(),
-        coverage,
+        super::support::UntrustedBackupArtifactClaim {
+            family: observation.family,
+            format: super::support::artifact_format(observation.family),
+            identity: observation.identity,
+            generation: reference.generation().get(),
+            coverage: observation.coverage,
+        },
         observe_physical_backup_artifact(path, 4 * 1024).expect("physical observation"),
         reference,
     )

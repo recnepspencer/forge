@@ -1,7 +1,9 @@
 mod bound_fact_inventory;
 mod declared_native_fact_extraction;
+mod declared_native_fact_samples;
 mod foundation;
 mod native_refinement_contract_context;
+mod native_scalar_field_storage;
 mod native_whole_visibility;
 mod phase_five;
 mod phase_four;

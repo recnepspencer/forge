@@ -44,7 +44,6 @@ pub use receipt::{
     ForegroundReservationReceipt, ForegroundReservationState,
 };
 pub use request::{
-    reject_copied_physical_isolation_counters_as_foreground_reservation,
     reject_copied_security_scope_fields_as_foreground_reservation,
     reject_raw_lane_label_as_foreground_reservation,
     reject_semantic_priority_as_foreground_reservation,

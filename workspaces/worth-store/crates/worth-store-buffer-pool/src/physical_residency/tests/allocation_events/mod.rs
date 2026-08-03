@@ -1,8 +1,12 @@
 use super::*;
 
+#[cfg(feature = "certification-test-authority")]
+mod boundary_trace;
+mod candidate_materialization;
 mod dimension_reconciliation;
 mod dirty_replacement_release;
 mod fixed_cell_reconciliation;
+mod frame_overallocation;
 
 fn assert_reconciled(
     pool: &PhysicalResidencyPool,

@@ -1,8 +1,7 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding, CommandReadinessStatus,
-    CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
+    CommandProjectionId, CommandProjectionSurface, ComponentChildPolicy, ComponentDescriptor,
+    ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
     IconSourceDescriptor, MeasurementConstraint, MeasurementValue, MosaicChildRule,
     MosaicClippingPosture, MosaicFocusScopeKind, MosaicHitTestPosture, MosaicMeasurementAuthority,
     MosaicOverflowBehavior, MosaicParentGrowthBehavior, MosaicPlacementAction,
@@ -22,18 +21,13 @@ use crate::capability::{
 use crate::facade::{WorthUi, WorthUiApp};
 pub(crate) fn identity_test_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(
                 CommandId::new("workspace.command.inspect").unwrap(),
                 "Inspect",
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
-            .with_readiness(CommandReadinessBinding::from_status(
-                CommandReadinessStatus::Deferred,
-            ))
-            .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
-                "workspace.runtime.inspect",
-            ))
             .with_projection_eligibility(
                 CommandProjectionId::new("workspace.command_projection.inspect_actions").unwrap(),
             ),

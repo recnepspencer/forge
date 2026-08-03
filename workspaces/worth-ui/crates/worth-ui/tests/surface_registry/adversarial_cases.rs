@@ -10,6 +10,7 @@ use worth_ui::facade::{
 #[test]
 fn surface_descriptor_reports_multiple_independent_violations() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_surface(
             SurfaceDescriptor::new(
                 surface_id("workspace.surface.invalid"),

@@ -14,10 +14,14 @@ fn candidate_batch_larger_than_cache_progresses_through_one_reserved_window() {
             ))
         })
         .collect::<Vec<_>>();
-    let allocation = candidate_allocation(&pool, WRITE_SCOPE, 16);
+    let allocation = candidate_allocation(&pool, 16);
     let mut batch = pool.reserve_candidate_frames(&allocation, &keys).unwrap();
     for key in keys {
-        let dirty = batch.reserve_next(key).unwrap().admit(vec![7; 32]).unwrap();
+        let dirty = batch
+            .reserve_next(key)
+            .unwrap()
+            .materialize(|bytes| bytes.fill(7))
+            .unwrap();
         dirty.discard_candidate().unwrap();
     }
     drop(batch);

@@ -16,6 +16,7 @@ use worth_ui_dsl::{
 #[test]
 fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.coverage")
                 .with_semantic_artifact_spec(aspectful_control_spec()),
@@ -64,6 +65,7 @@ fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
 #[test]
 fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
     let baseline = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.aspect.equivalence.baseline",
@@ -76,6 +78,7 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
         .freeze()
         .expect("application preparation should succeed");
     let equivalent = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.aspect.equivalence.equivalent",
@@ -105,6 +108,7 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
 #[test]
 fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.noise")
                 .with_semantic_artifact_spec(noise_only_control_spec()),
@@ -146,6 +150,7 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
     let denial = match WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.aspect.unsupported",

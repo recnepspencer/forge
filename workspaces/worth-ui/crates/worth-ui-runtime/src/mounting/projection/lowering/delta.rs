@@ -54,14 +54,25 @@ impl UiMountedDeltaScope {
             .state
             .try_projection_instances_for_graph_nodes(input.allocation_delta.changed_graph_nodes())
             .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
+        let content_graph_nodes = input
+            .lowering
+            .semantic_content
+            .graph_nodes()
+            .collect::<Vec<_>>();
+        let content_affected = input
+            .state
+            .try_projection_instances_for_graph_nodes(&content_graph_nodes)
+            .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
         let mut changed = input.changes.changed_instances().collect::<Vec<_>>();
         changed.extend_from_slice(allocation_affected.instances());
+        changed.extend_from_slice(content_affected.instances());
         changed.sort();
         changed.dedup();
         let initial_index_entries = input
             .allocation_delta
             .journal_entries_touched()
             .checked_add(allocation_affected.index_entries_touched())
+            .and_then(|count| count.checked_add(content_affected.index_entries_touched()))
             .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
         Ok(Self {
             changed,
@@ -70,7 +81,8 @@ impl UiMountedDeltaScope {
             removed_surfaces: input.changes.removed_surfaces().collect(),
             declared_semantic_changed: input.changes.changed_instances().next().is_some()
                 || input.changes.retired_instances().next().is_some()
-                || input.changes.order_changed(),
+                || input.changes.order_changed()
+                || !input.lowering.semantic_content.is_empty(),
             allocation_delta_observed: input.allocation_delta.journal_entries_touched() > 0
                 || !input.allocation_delta.changed_graph_nodes().is_empty(),
             initial_index_entries,
@@ -78,7 +90,8 @@ impl UiMountedDeltaScope {
     }
 
     fn has_work(&self) -> bool {
-        !self.changed.is_empty()
+        self.declared_semantic_changed
+            || !self.changed.is_empty()
             || !self.retired.is_empty()
             || !self.changed_surfaces.is_empty()
             || !self.removed_surfaces.is_empty()

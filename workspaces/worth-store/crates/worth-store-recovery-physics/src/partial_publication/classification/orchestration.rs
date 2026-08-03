@@ -8,7 +8,7 @@ use crate::partial_publication::{
 
 use super::{
     ambiguity::classify_ambiguity, crash_edge::classify_persisted_crash_edge,
-    no_undo_hazard::reject_no_undo_hazard, non_authoritative::reject_non_authoritative_promotion,
+    non_authoritative::reject_non_authoritative_promotion,
     torn_publication::reject_torn_publication,
 };
 
@@ -69,9 +69,6 @@ impl PartialPublicationClassification {
             PartialPublicationEvidenceKind::TornPublication(denial) => {
                 reject_torn_publication(denial.clone(), evidence.persisted_digest())
             }
-            PartialPublicationEvidenceKind::NoUndoHazard(classification) => {
-                reject_no_undo_hazard(classification.as_ref().clone(), evidence.persisted_digest())
-            }
             PartialPublicationEvidenceKind::InsufficientPersistedEvidence { ambiguity_digest } => {
                 classify_ambiguity(ambiguity_digest)
             }
@@ -108,9 +105,6 @@ impl PartialPublicationClassification {
             ),
             PartialPublicationEvidenceKind::TornPublication(denial) => {
                 reject_torn_publication(denial.clone(), evidence.persisted_digest())
-            }
-            PartialPublicationEvidenceKind::NoUndoHazard(classification) => {
-                reject_no_undo_hazard(classification.as_ref().clone(), evidence.persisted_digest())
             }
             PartialPublicationEvidenceKind::InsufficientPersistedEvidence { ambiguity_digest } => {
                 classify_ambiguity(ambiguity_digest)

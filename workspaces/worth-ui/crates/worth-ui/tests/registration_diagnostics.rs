@@ -7,7 +7,9 @@ use worth_ui::facade::{
 
 #[test]
 fn successful_freeze_can_return_empty_registration_report() {
-    let report = WorthUi::app().freeze_with_registration_report();
+    let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+        .freeze_with_registration_report();
 
     assert!(!report.has_errors());
     assert!(report.registration_diagnostics().is_empty());
@@ -20,9 +22,11 @@ fn successful_freeze_can_return_empty_registration_report() {
 #[test]
 fn diagnostics_do_not_change_accepted_snapshot_digest() {
     let minimal = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .with_minimal_registration_diagnostics()
         .freeze_with_registration_report();
     let rich = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rich_registration_diagnostics()
         .freeze_with_registration_report();
 

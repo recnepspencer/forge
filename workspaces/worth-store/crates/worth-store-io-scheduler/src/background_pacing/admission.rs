@@ -2,34 +2,13 @@ use super::{
     BackgroundIdleCapacityLease, BackgroundIdleCapacityLeaseRequest, BackgroundIoDebt,
     BackgroundPacingAdmittedWithDebt, BackgroundPacingCounterSnapshot, BackgroundPacingDeferred,
     BackgroundPacingDenial, BackgroundPacingDenied, BackgroundPacingOutcome,
-    BackgroundPacingStaleRebindKind, BackgroundPacingStaleRebindRequired, BackgroundPacingThrottle,
-    BackgroundPacingViolation, BackgroundPacingYield, BackgroundResourceBudget,
-    BackgroundResourceShortfall,
+    BackgroundPacingThrottle, BackgroundPacingViolation, BackgroundPacingYield,
+    BackgroundResourceBudget, BackgroundResourceShortfall,
 };
 
 pub fn admit_background_pacing(
     request: BackgroundIdleCapacityLeaseRequest,
 ) -> BackgroundPacingOutcome {
-    match super::proof::prove_background_pacing_current(
-        request.capacity().pressure().class(),
-        request.capacity().freshness(),
-    )
-    .into_raw()
-    {
-        worth_proof::TransitionOutcome::Success(ready) => {
-            let _authority = ready.authority_witness();
-        }
-        worth_proof::TransitionOutcome::Denied(denial) => return denied(&request, denial),
-        worth_proof::TransitionOutcome::Deferred(_) => return deferred(&request),
-        worth_proof::TransitionOutcome::Stale(_) => {
-            return stale_or_rebind(&request, BackgroundPacingStaleRebindKind::Stale);
-        }
-        worth_proof::TransitionOutcome::RebindRequired(_) => {
-            return stale_or_rebind(&request, BackgroundPacingStaleRebindKind::RebindRequired);
-        }
-        worth_proof::TransitionOutcome::Failed(failed) => match failed {},
-    }
-
     if request.foreground_pressure_events() > 0 && !request.late_yield() {
         return yield_now(&request);
     }
@@ -85,20 +64,6 @@ fn deferred(request: &BackgroundIdleCapacityLeaseRequest) -> BackgroundPacingOut
     ))
 }
 
-fn stale_or_rebind(
-    request: &BackgroundIdleCapacityLeaseRequest,
-    kind: BackgroundPacingStaleRebindKind,
-) -> BackgroundPacingOutcome {
-    BackgroundPacingOutcome::StaleRebindRequired(BackgroundPacingStaleRebindRequired::new(
-        request.capacity().pressure().class(),
-        kind,
-        BackgroundPacingCounterSnapshot::deferred(
-            request.capacity().pressure().requested_budget(),
-            request.capacity().idle_available(),
-        ),
-    ))
-}
-
 fn denied(
     request: &BackgroundIdleCapacityLeaseRequest,
     denial: BackgroundPacingDenial,
@@ -119,16 +84,28 @@ fn throttled(
     admitted: BackgroundResourceBudget,
     throttled_units: BackgroundResourceBudget,
 ) -> BackgroundPacingOutcome {
+    let counters = BackgroundPacingCounterSnapshot::throttled(
+        request.capacity().pressure().requested_budget(),
+        request.capacity().idle_available(),
+        admitted,
+        throttled_units,
+    );
+    let lease = if admitted.is_empty() {
+        None
+    } else {
+        Some(background_lease(
+            request,
+            admitted,
+            throttled_units,
+            counters,
+        ))
+    };
     BackgroundPacingOutcome::Throttled(Box::new(BackgroundPacingThrottle::new(
         request.capacity().pressure().class(),
         admitted,
         throttled_units,
-        BackgroundPacingCounterSnapshot::throttled(
-            request.capacity().pressure().requested_budget(),
-            request.capacity().idle_available(),
-            admitted,
-            throttled_units,
-        ),
+        counters,
+        lease,
     )))
 }
 
@@ -137,24 +114,32 @@ fn admitted_with_debt(
     admitted: BackgroundResourceBudget,
     debt_units: BackgroundResourceBudget,
 ) -> BackgroundPacingOutcome {
-    let debt = BackgroundIoDebt::new(request.capacity().pressure().class(), debt_units);
     let counters = BackgroundPacingCounterSnapshot::admitted_with_debt(
         request.capacity().pressure().requested_budget(),
         request.capacity().idle_available(),
         admitted,
         debt_units,
-        debt.kind(),
+        BackgroundIoDebt::new(request.capacity().pressure().class(), debt_units).kind(),
     );
     BackgroundPacingOutcome::AdmittedWithDebt(Box::new(BackgroundPacingAdmittedWithDebt::new(
-        BackgroundIdleCapacityLease::new(
-            request.capacity().pressure().class(),
-            admitted,
-            debt,
-            request.capacity().basis(),
-            counters,
-            request.capacity().secure_io(),
-        ),
+        background_lease(request, admitted, debt_units, counters),
     )))
+}
+
+fn background_lease(
+    request: &BackgroundIdleCapacityLeaseRequest,
+    admitted: BackgroundResourceBudget,
+    debt_units: BackgroundResourceBudget,
+    counters: BackgroundPacingCounterSnapshot,
+) -> BackgroundIdleCapacityLease {
+    BackgroundIdleCapacityLease::new(
+        request.capacity().pressure().class(),
+        admitted,
+        BackgroundIoDebt::new(request.capacity().pressure().class(), debt_units),
+        request.capacity().basis(),
+        counters,
+        request.capacity().secure_io(),
+    )
 }
 
 fn violation(

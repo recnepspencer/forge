@@ -5,14 +5,29 @@ mod lifecycle_cleanup;
 #[cfg(target_os = "windows")]
 mod native_color;
 #[cfg(target_os = "windows")]
+mod native_input_reachability;
+#[cfg(target_os = "windows")]
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
 mod publication_identity;
+mod query_to_pixel;
 #[cfg(target_os = "windows")]
 mod replacement_to_pixel;
 #[cfg(target_os = "windows")]
+mod schema_transition;
+#[cfg(target_os = "windows")]
 mod source_to_pixel;
+#[cfg(target_os = "windows")]
+mod visual_overlay_pixels;
 
+#[cfg(target_os = "windows")]
+pub(crate) use identity_trace::{
+    adjudicate_successor_visual_snapshot, adjudicate_visual_comparison,
+    adjudicate_visual_retirement, adjudicate_visual_snapshot, adjudicate_visual_trace,
+    ExecutableVisualComparisonEvidence, ExecutableVisualIdentityFailure,
+    ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
+    ExecutableVisualTraceEvidence,
+};
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{
     adjudicate_lifecycle_cleanup, CausalLifecycleCleanupObservationSet,
@@ -23,6 +38,12 @@ pub(crate) use native_color::{
     adjudicate_native_color, ExpectedNativeColor, NativeColorFailure, NativeColorVerdict,
 };
 #[cfg(target_os = "windows")]
+pub(crate) use native_input_reachability::{
+    adjudicate_native_input_reachability, ExecutableNativeInputReachabilityEvidence,
+    ExecutableNativeInputReachabilityFailure, NativeInputFamilyObservation,
+    NativeInputReachabilityObservationSet,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use predecessor_preservation::{
     adjudicate_predecessor_preservation, CausalPredecessorPreservationObservationSet,
     ExecutablePredecessorPreservationEvidence, ExecutablePredecessorPreservationFailure,
@@ -30,12 +51,26 @@ pub(crate) use predecessor_preservation::{
 #[cfg(target_os = "windows")]
 pub(crate) use publication_identity::ExecutablePublishedIdentity;
 #[cfg(target_os = "windows")]
+pub(crate) use query_to_pixel::{
+    adjudicate_query_current, ExecutableQueryCurrentEvidence, ExecutableQueryCurrentFailure,
+};
+#[cfg(target_os = "windows")]
 pub(crate) use replacement_to_pixel::{
-    adjudicate_replacement, CausalReplacementObservationSet, ExecutableReplacementEvidence,
-    ExecutableReplacementFailure, ReplacementExpectation,
+    adjudicate_replacement, require_replacement_lifecycle, CausalReplacementObservationSet,
+    ExecutableReplacementEvidence, ExecutableReplacementFailure, ReplacementExpectation,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use schema_transition::{
+    adjudicate_schema_transition, ExecutableSchemaTransitionEvidence,
+    ExecutableSchemaTransitionFailure, ExpectedSchemaTransition,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use source_to_pixel::{
     adjudicate_first_frame, CausalFirstFrameObservationSet, ExecutableFirstFrameEvidence,
     ExecutableFirstFrameFailure,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use visual_overlay_pixels::{
+    adjudicate_overlay_pixels, adjudicate_restored_pixels, ExecutableVisualClearEvidence,
+    ExecutableVisualOverlayEvidence,
 };

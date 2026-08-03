@@ -37,6 +37,7 @@ impl PoolInner {
         };
         let BoundedFrameEntry::Loading {
             identity: found,
+            allocation_scope,
             waiters,
             ..
         } = entry
@@ -47,10 +48,14 @@ impl PoolInner {
             return terminal;
         }
         let waiters = *waiters;
+        let allocation_scope = *allocation_scope;
         state.loading_frames -= 1;
-        state
-            .accounting
-            .fail_loading(u64::from(key.limit()), 1 + waiters, waiters > 0);
+        state.accounting.fail_loading(
+            allocation_scope,
+            u64::from(key.limit()),
+            1 + waiters,
+            waiters > 0,
+        );
         if waiters == 0 {
             state.frames.remove_bounded(&key);
         } else {
@@ -58,7 +63,11 @@ impl PoolInner {
                 .frames
                 .get_bounded_mut(&key)
                 .expect("retained bounded failure remains indexed") =
-                BoundedFrameEntry::LoadFailed { terminal, waiters };
+                BoundedFrameEntry::LoadFailed {
+                    terminal,
+                    allocation_scope,
+                    waiters,
+                };
         }
         terminal
     }

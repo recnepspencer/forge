@@ -9,16 +9,21 @@ impl ServingPhysicalRuntime {
         )
     }
 
+    pub fn certification_stale_physical_residency(
+        &self,
+    ) -> crate::physical_runtime::record_serving::PhysicalResidencyCertification {
+        crate::physical_runtime::record_serving::PhysicalResidencyCertification::stale_from_parts(
+            &self.parts,
+        )
+    }
+
     pub fn certification_physical_work_courtroom_binding(
         &self,
     ) -> crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding {
-        let identity = crate::physical_runtime::record_serving::C6PhysicalWorkHandoffIdentity::new(
+        crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding::new(
             self.store_identity(),
             self.runtime_identity(),
             self.parts.core.lifecycle_generation(),
-        );
-        crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding::new(
-            identity,
             self.physical_work_observer(),
         )
     }
@@ -165,37 +170,5 @@ impl ServingPhysicalRuntime {
         self.parts
             .publication
             .reject_next_catalog_eligibility_join();
-    }
-
-    pub fn certification_admit_dirty_frame(
-        &self,
-        coordinate: worth_store_physical_format::RecordFrameCoordinate,
-        bytes: Vec<u8>,
-    ) -> Result<(), worth_store_buffer_pool::PhysicalResidencyDenial> {
-        self.parts
-            .residency
-            .ports()
-            .admit_dirty_for_certification(coordinate, bytes)
-    }
-
-    pub fn certification_writeback_declaration(
-        &self,
-        coordinate: worth_store_physical_format::RecordFrameCoordinate,
-        grouping: worth_store_buffer_pool::BufferPoolQueueGroupingScope,
-        flush_epoch: u64,
-        resource_shape: worth_store_contracts::QueueProducerResourceShape,
-    ) -> Result<
-        worth_store_buffer_pool::BufferPoolQueueExecutionDeclaration,
-        worth_store_buffer_pool::PhysicalResidencyDenial,
-    > {
-        self.parts
-            .residency
-            .ports()
-            .writeback_declaration_for_certification(
-                coordinate,
-                grouping,
-                flush_epoch,
-                resource_shape,
-            )
     }
 }

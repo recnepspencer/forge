@@ -15,10 +15,12 @@ use super::runtime_outcome_projection_fixtures::{
 #[test]
 fn equivalent_outcome_projections_preserve_family_identity() {
     let left = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .freeze()
         .expect("application preparation should succeed");
     let right = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .freeze()
         .expect("application preparation should succeed");
@@ -36,10 +38,12 @@ fn equivalent_outcome_projections_preserve_family_identity() {
 #[test]
 fn outcome_projection_does_not_change_runtime_meaning() {
     let plain = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .freeze()
         .expect("application preparation should succeed");
     let renamed = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             denied_projection("workspace.outcome.denied").with_presentation(
                 RuntimeOutcomePresentation::new()
@@ -76,6 +80,7 @@ fn outcome_projection_does_not_change_runtime_meaning() {
 #[test]
 fn async_result_state_family_is_preserved_without_local_bool_flattening() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(ready_projection("workspace.outcome.ready"))
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .register_runtime_outcome_projection(failed_projection("workspace.outcome.failed"))
@@ -103,6 +108,7 @@ fn async_result_state_family_is_preserved_without_local_bool_flattening() {
 #[test]
 fn ui_outcome_sources_project_distinct_typed_families() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(
             RuntimeOutcomeProjectionDescriptor::new(
                 projection_id("workspace.outcome.ordinary_rebind"),
@@ -141,6 +147,7 @@ fn ui_outcome_sources_project_distinct_typed_families() {
 #[test]
 fn accepted_runtime_outcome_projections_remain_inspectable_after_freeze() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(failed_projection("workspace.outcome.failed"))
         .register_runtime_outcome_projection(denied_projection("workspace.outcome.denied"))
         .freeze()
@@ -160,10 +167,12 @@ fn projection_key_basis_is_not_delimiter_collision_prone_for_presentation_text()
         .with_presentation(RuntimeOutcomePresentation::new().with_label("pending|retry"));
 
     let split_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(split)
         .freeze()
         .expect("application preparation should succeed");
     let joined_app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_runtime_outcome_projection(joined)
         .freeze()
         .expect("application preparation should succeed");

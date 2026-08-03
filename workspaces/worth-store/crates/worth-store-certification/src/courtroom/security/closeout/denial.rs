@@ -9,7 +9,7 @@ use worth_store_readiness::{
     FoundationalAdoptionDenial, FoundationalAdoptionFamily, PhysicalFoundationEvidenceField,
 };
 
-use crate::FoundationalBoundaryEvidenceDenial;
+use crate::FoundationalPerformanceEvidenceDenial;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum S51CertificationCloseoutDenial {
@@ -28,7 +28,7 @@ pub enum S51CertificationCloseoutDenial {
     FoundationalAdoptionDenied(FoundationalAdoptionDenial),
     MissingFoundationalAdoptionFamily(FoundationalAdoptionFamily),
     MissingFoundationalEvidenceField(PhysicalFoundationEvidenceField),
-    BoundaryPerformanceDenied(FoundationalBoundaryEvidenceDenial),
+    BoundaryPerformanceDenied(FoundationalPerformanceEvidenceDenial),
     PerformanceReceiptDenied(FoundationalCounterBackedPerformanceReceiptConstructionDenial),
     FoundationalBoundaryProvenanceDenied(FoundationalBoundaryEvidenceProvenanceConstructionDenial),
     FoundationalCanonicalBasisDenied(CanonicalBasisConstructionDenial),
@@ -48,8 +48,8 @@ impl From<FoundationalCounterBackedPerformanceReceiptConstructionDenial>
     }
 }
 
-impl From<FoundationalBoundaryEvidenceDenial> for S51CertificationCloseoutDenial {
-    fn from(denial: FoundationalBoundaryEvidenceDenial) -> Self {
+impl From<FoundationalPerformanceEvidenceDenial> for S51CertificationCloseoutDenial {
+    fn from(denial: FoundationalPerformanceEvidenceDenial) -> Self {
         Self::BoundaryPerformanceDenied(denial)
     }
 }

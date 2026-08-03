@@ -81,6 +81,8 @@ fn admitted_effect_projection() -> UiMountedProjectionView {
         frame,
         surface: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
         binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+        content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+            .unwrap(),
         nodes: vec![UiMountedNodeProjectionView::new(
             UiMountedNodeProjectionViewInput {
                 mounted_instance,
@@ -99,16 +101,21 @@ fn admitted_effect_projection() -> UiMountedProjectionView {
                 allocation: UiMountedAllocationProjection::Omitted(omitted),
                 preview: UiMountedPreviewProjection::Omitted(omitted),
                 paint: UiMountedPaintProjection::Omitted(omitted),
+                hit_test: worth_ui_host_contract::UiMountedHitTestProjection::Omitted(omitted),
                 accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
                 motion: UiMountedMotionProjection::Admitted,
                 diagnostic: UiMountedDiagnosticProjection::Reference(
                     UiMountedDiagnosticReference::new(3),
                 ),
+                semantic_text: Vec::new(),
             },
         )],
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
+        hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
+            .unwrap(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),

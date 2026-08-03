@@ -3,9 +3,9 @@ use super::super::{
     ForegroundLaneDeclaration, ForegroundLatencyEnvelope, ForegroundReservationAdmissionDenial,
     PhysicalInstanceForegroundAdmissionDenial, PhysicalInstanceForegroundAdmissionRequest,
 };
-use super::common::{
-    backend_admission, full_capacity_budget, io_qos_security_scope_admission, read_budget,
-};
+use super::backend_capability::backend_admission;
+use super::resource_budget::{full_capacity_budget, read_budget};
+use super::security_scope::io_qos_security_scope_admission;
 use crate::IoSchedulerBackendCapabilityRequirement;
 
 #[test]
@@ -26,8 +26,6 @@ fn physical_instance_basis_admits_without_claiming_isolation_counters() {
     assert_eq!(receipt.lane(), ForegroundIoLaneKind::PointRead);
     assert_eq!(receipt.counters().requested(), read_budget());
     assert_eq!(receipt.counters().admitted_budget(), read_budget());
-    assert_eq!(receipt.counters().stable_read_wait_count(), 0);
-    assert_eq!(receipt.counters().stable_read_retry_count(), 0);
 }
 
 #[test]

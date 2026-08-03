@@ -9,6 +9,8 @@ pub enum WorthUiArtifactInputNodeKind {
     Component,
     Surface,
     Binding,
+    QueryScalar,
+    QueryCollection,
     Token,
     SemanticArtifact,
 }
@@ -19,8 +21,12 @@ pub enum WorthUiArtifactInputBodyAtom {
     StringLiteral(String),
     KeywordImport,
     KeywordComponent,
+    KeywordControl,
+    KeywordIntent,
     KeywordSurface,
     KeywordBinding,
+    KeywordQueryScalar,
+    KeywordQueryCollection,
     KeywordToken,
     LeftBrace,
     RightBrace,
@@ -34,6 +40,8 @@ pub enum WorthUiArtifactInputNode {
     Component(WorthUiArtifactInputBlockNode),
     Surface(WorthUiArtifactInputBlockNode),
     Binding(WorthUiArtifactInputBlockNode),
+    QueryScalar(WorthUiArtifactInputBlockNode),
+    QueryCollection(WorthUiArtifactInputBlockNode),
     Token(WorthUiArtifactInputTokenNode),
     SemanticArtifact(WorthUiArtifactInputSemanticArtifactNode),
 }
@@ -73,6 +81,8 @@ impl WorthUiArtifactInputNode {
             Self::Component(_) => WorthUiArtifactInputNodeKind::Component,
             Self::Surface(_) => WorthUiArtifactInputNodeKind::Surface,
             Self::Binding(_) => WorthUiArtifactInputNodeKind::Binding,
+            Self::QueryScalar(_) => WorthUiArtifactInputNodeKind::QueryScalar,
+            Self::QueryCollection(_) => WorthUiArtifactInputNodeKind::QueryCollection,
             Self::Token(_) => WorthUiArtifactInputNodeKind::Token,
             Self::SemanticArtifact(_) => WorthUiArtifactInputNodeKind::SemanticArtifact,
         }
@@ -82,7 +92,11 @@ impl WorthUiArtifactInputNode {
     pub(crate) fn provenance(&self) -> &WorthUiArtifactInputProvenance {
         match self {
             Self::Import(node) => node.provenance(),
-            Self::Component(node) | Self::Surface(node) | Self::Binding(node) => node.provenance(),
+            Self::Component(node)
+            | Self::Surface(node)
+            | Self::Binding(node)
+            | Self::QueryScalar(node)
+            | Self::QueryCollection(node) => node.provenance(),
             Self::Token(node) => node.provenance(),
             Self::SemanticArtifact(node) => node.provenance(),
         }

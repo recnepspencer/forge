@@ -36,7 +36,7 @@ pub(super) const SNAPSHOT_VIEW: &str = "inspector.snapshot";
 const REGION: &str = "workspace.region.query_lifecycle";
 const SIZING: &str = "workspace.sizing.query_lifecycle";
 
-pub(super) fn application(
+pub(crate) fn application(
     first: WorthUiInstalledLiveQueryView,
     second: WorthUiInstalledLiveQueryView,
     workspace: &mut runtime::WorthQueryWorkspace,
@@ -159,7 +159,7 @@ pub(crate) fn submission(
         .expect("production filesystem acquisition reads real Query-bound .wui bytes");
     workspace.close();
     snapshot
-        .lower_to_candidate_submission(capabilities)
+        .attempt_candidate_for_certification(capabilities)
         .expect("filesystem source lowers against exact capabilities")
 }
 
@@ -167,7 +167,7 @@ pub(super) fn installed_workspace(label: &str) -> runtime::WorthQueryWorkspace {
     installed_workspace_with_measurement_authority(label).0
 }
 
-pub(super) fn installed_workspace_with_measurement_authority(
+pub(crate) fn installed_workspace_with_measurement_authority(
     label: &str,
 ) -> (runtime::WorthQueryWorkspace, WorthQueryEntityIdentity) {
     let schema = WorthQueryTestBackendSchema::single_collection("WorthUiMeasurement")
@@ -189,7 +189,9 @@ pub(super) fn installed_workspace_with_measurement_authority(
     (workspace, measurement)
 }
 
-fn insert_measurement(workspace: &mut runtime::WorthQueryWorkspace) -> WorthQueryEntityIdentity {
+pub(crate) fn insert_measurement(
+    workspace: &mut runtime::WorthQueryWorkspace,
+) -> WorthQueryEntityIdentity {
     workspace
         .insert("WorthUiMeasurement", |measurement| {
             measurement
@@ -214,7 +216,7 @@ fn insert_measurement(workspace: &mut runtime::WorthQueryWorkspace) -> WorthQuer
         .clone()
 }
 
-fn operation_live_support(
+pub(crate) fn operation_live_support(
     builder: worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder,
 ) -> worth_query::facade::consumer_kit::WorthQueryInMemoryTestRuntimeBuilder {
     [
@@ -243,6 +245,7 @@ fn builder(
         binding_reference,
     );
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(graph_world)
         .register_component(component(ACTIVE_COMPONENT))
         .register_component(component(NEXT_COMPONENT))

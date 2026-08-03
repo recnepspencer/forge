@@ -7,8 +7,11 @@ use worth_ui_host_contract::{
     UiMountedResourceKind, UiSurfaceBindingGeneration,
 };
 
+mod semantic_text;
 mod static_paint;
 
+pub use self::semantic_text::UiHeadlessSemanticTextMechanic;
+pub(in crate::host::adapter) use self::semantic_text::UiHeadlessSemanticTextMechanicInput;
 pub use self::static_paint::UiHeadlessFilledRectMechanic;
 pub(in crate::host::adapter) use self::static_paint::UiHeadlessFilledRectMechanicInput;
 
@@ -93,6 +96,7 @@ pub(crate) struct UiHeadlessNodeMechanicInput {
 pub enum UiHeadlessUnperformedEffect {
     NativePaint {
         filled_rect_count: u32,
+        semantic_text_count: u32,
         preview_node_count: u32,
     },
     Accessibility {
@@ -131,6 +135,7 @@ pub struct UiHeadlessMountedFrameTranscript {
     nodes: Box<[UiHeadlessNodeMechanic]>,
     clips: Box<[UiHeadlessClipMechanic]>,
     filled_rects: Box<[UiHeadlessFilledRectMechanic]>,
+    semantic_text: Box<[UiHeadlessSemanticTextMechanic]>,
     paint_batches: Box<[UiHeadlessPaintBatchMechanic]>,
     unperformed_effects: Box<[UiHeadlessUnperformedEffect]>,
 }
@@ -313,6 +318,7 @@ pub(crate) struct UiHeadlessMountedFrameTranscriptInput {
     pub nodes: Vec<UiHeadlessNodeMechanic>,
     pub clips: Vec<UiHeadlessClipMechanic>,
     pub filled_rects: Vec<UiHeadlessFilledRectMechanic>,
+    pub semantic_text: Vec<UiHeadlessSemanticTextMechanic>,
     pub paint_batches: Vec<UiHeadlessPaintBatchMechanic>,
     pub unperformed_effects: Vec<UiHeadlessUnperformedEffect>,
 }
@@ -329,6 +335,7 @@ impl UiHeadlessMountedFrameTranscript {
             nodes: input.nodes.into_boxed_slice(),
             clips: input.clips.into_boxed_slice(),
             filled_rects: input.filled_rects.into_boxed_slice(),
+            semantic_text: input.semantic_text.into_boxed_slice(),
             paint_batches: input.paint_batches.into_boxed_slice(),
             unperformed_effects: input.unperformed_effects.into_boxed_slice(),
         }
@@ -368,6 +375,10 @@ impl UiHeadlessMountedFrameTranscript {
 
     pub fn filled_rects(&self) -> &[UiHeadlessFilledRectMechanic] {
         &self.filled_rects
+    }
+
+    pub fn semantic_text(&self) -> &[UiHeadlessSemanticTextMechanic] {
+        &self.semantic_text
     }
 
     pub fn paint_batches(&self) -> &[UiHeadlessPaintBatchMechanic] {

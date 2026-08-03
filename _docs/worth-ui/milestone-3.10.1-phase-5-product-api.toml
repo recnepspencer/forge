@@ -11,6 +11,16 @@ audience = "app"
 path = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
 
 [[journey]]
+id = "governed-visual-snapshot-app"
+audience = "app"
+path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[journey]]
+id = "governed-visual-snapshot-inspection"
+audience = "inspection"
+path = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
+
+[[journey]]
 id = "authored-application"
 audience = "declaration"
 path = "crates/worth-ui/tests/ui/facade_visibility/pass/facade_only_app_remains_ergonomic.rs"
@@ -44,6 +54,16 @@ path = "crates/worth-ui-certification/tests/obligation_dispatch_runtime.rs"
 id = "host-observation"
 audience = "observation_report"
 path = "crates/worth-ui-certification/tests/application_contracts/arrival_schedule.rs"
+
+[[journey]]
+id = "semantic-observation-admission"
+audience = "observation"
+path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
+
+[[journey]]
+id = "affected-scope-planning"
+audience = "rebind"
+path = "crates/worth-ui-certification/tests/application_contracts/milestone_312_affected_scope.rs"
 
 [[journey]]
 id = "installed-query-view"
@@ -95,6 +115,8 @@ stability = "evolving-product-contract"
 authority = "application lifecycle and affine execution"
 caller = "ordinary-mounted-app"
 symbols = [
+  "UiChangeProfileInstalled",
+  "UiChangeProfileMissing",
   "UiMountedFrameOutcome",
   "UiMountedFramePublicationReceipt",
   "UiMountedFrameRequest",
@@ -124,6 +146,7 @@ symbols = [
   "WorthUiCandidateInspectionReceipt",
   "WorthUiLoweredApplicationReplacement",
   "WorthUiMountedApplicationReplacementInFlight",
+  "WorthUiMountedApplicationReplacementIndeterminate",
   "WorthUiMountedApplicationReplacementOutcome",
   "WorthUiMountedFrameExecutionStop",
   "WorthUiMountedFrameFrameworkTransitionStop",
@@ -133,9 +156,8 @@ symbols = [
   "WorthUiMountedReplacementRetentionDenial",
   "WorthUiNativeApplicationShell",
   "WorthUiNativeApplicationShellLaunchDenial",
-  "WorthUiNativeApplicationReplacementDenial",
-  "WorthUiNativeApplicationReplacementOutcome",
   "WorthUiNativeApplicationShutdownReceipt",
+  "WorthUiNativeSourceRebindDenial",
   "WorthUiPendingApplicationCutover",
   "WorthUiPreparedApplicationGenerationIdentity",
   "WorthUiPreparedApplicationReplacement",
@@ -145,6 +167,19 @@ symbols = [
   "WorthUiVisibleRange",
   "WorthUiVisibleRangeDenial",
   "WorthUiVisibleRangeDenialReason",
+]
+
+[[export_group]]
+audience = "app"
+source = "facade/app.rs"
+stability = "evolving-product-contract"
+authority = "runtime-originated mounted inspection selection and target denial"
+caller = "governed-visual-snapshot-app"
+symbols = [
+  "UiMountedInspectedFrame",
+  "UiMountedInspectionReceipt",
+  "UiMountedInspectionRequest",
+  "UiMountedVisualTargetDenial",
 ]
 
 [[export_group]]
@@ -180,6 +215,8 @@ symbols = [
   "ComponentDescriptor",
   "ComponentExecutionLane",
   "ComponentFocusSupport",
+  "ComponentHitTestContract",
+  "ComponentHitTestOrder",
   "ComponentId",
   "ComponentPropSchema",
   "ComponentRealtimeOverlayContract",
@@ -187,6 +224,9 @@ symbols = [
   "ComponentRealtimeOverlayContractDenialReason",
   "ComponentRealtimeOverlayPriority",
   "ComponentStateOwnership",
+  "ComponentStaticPaintContract",
+  "ComponentStaticPaintOrder",
+  "ComponentViewportInset",
   "IconAccessibilityPosture",
   "IconColorSupport",
   "IconDescriptor",
@@ -519,6 +559,7 @@ stability = "evolving-product-contract"
 authority = "compact read-only evidence"
 caller = "compact-inspection"
 symbols = [
+  "SealedPixelArtifactPolicy",
   "UiAllocationInspectionAnchorPosture",
   "UiAllocationInspectionAttemptResult",
   "UiAllocationInspectionAxis",
@@ -546,6 +587,11 @@ symbols = [
   "UiAllocationReceiptDenialInspectionReceipt",
   "UiAllocationReceiptInspectionReceipt",
   "UiAuthoredSourceProvenanceRef",
+  "UiClearedVisualOverlayReceipt",
+  "UiClientPhysicalPixel",
+  "UiClientPhysicalRect",
+  "UiClientRegionVisualTarget",
+  "UiCurrentPresentedSurfaceTarget",
   "UiEvidenceAuthorityArtifactIdentity",
   "UiEvidenceAuthorityBinding",
   "UiEvidenceAuthorityGeneration",
@@ -566,6 +612,8 @@ symbols = [
   "UiEvidenceSlice",
   "UiEvidenceSliceOmission",
   "UiEvidenceSliceRef",
+  "UiGeometryOnly",
+  "UiHostSurfaceLogicalPoint",
   "UiInspectionAdmissionHostCapability",
   "UiInspectionAdmissionPosture",
   "UiInspectionAdmissionQueryBasis",
@@ -643,8 +691,131 @@ symbols = [
   "UiInspectionUnsupportedPosture",
   "UiInspectionWrongWorldPosture",
   "UiMeasurementInspectionEvidenceBundle",
+  "UiMountedNodeVisualTarget",
+  "UiNativeScreenPhysicalPixel",
+  "UiPendingVisualCapture",
+  "UiPendingVisualOverlay",
+  "UiPixelsOptional",
+  "UiPixelsRequired",
+  "UiPublishedVisualOverlay",
+  "UiRebindDecisionDisposition",
+  "UiRebindDecisionIndex",
+  "UiRebindDecisionKey",
+  "UiRebindDecisionLookup",
+  "UiRebindDecisionRecord",
+  "UiRebindDecisionStopPoint",
+  "UiRebindStructuralCost",
   "UiRelevanceFamily",
   "UiRelevanceFilter",
+  "UiRetainedPresentedSurfaceTarget",
+  "UiSnapshotClientPixel",
+  "UiViewportLogicalPoint",
+  "UiVisualArtifactPolicy",
+  "UiVisualAuthoredProvenance",
+  "UiVisualCancellationPosture",
+  "UiVisualCancellationReceipt",
+  "UiVisualCaptureCancellation",
+  "UiVisualCaptureDeadline",
+  "UiVisualCapturePoll",
+  "UiVisualCaptureShutdownReport",
+  "UiVisualContributorStack",
+  "UiVisualCoordinateDenial",
+  "UiVisualCoordinateObservation",
+  "UiVisualCoordinateOrientation",
+  "UiVisualCoordinateRounding",
+  "UiVisualCoordinateScope",
+  "UiVisualDeclarationRef",
+  "UiVisualEvidenceRef",
+  "UiVisualGeometryGrant",
+  "UiVisualGraphNodeRef",
+  "UiVisualGrantLifetime",
+  "UiVisualGrantScope",
+  "UiVisualGrantSurfaceScope",
+  "UiVisualHitTestOutcome",
+  "UiVisualHitTestTarget",
+  "UiVisualIdentityTrace",
+  "UiVisualInspectionAudience",
+  "UiVisualInspectionByteBudget",
+  "UiVisualInspectionCapacity",
+  "UiVisualInspectionDisclosure",
+  "UiVisualInspectionCostLane",
+  "UiVisualInspectionCostReceipt",
+  "UiVisualInspectionPolicy",
+  "UiVisualInspectionPolicyDenial",
+  "UiVisualInspectionRegionCapacity",
+  "UiVisualMountedNodeRef",
+  "UiVisualOverlayGrant",
+  "UiVisualOverlayTarget",
+  "UiVisualPixelArtifact",
+  "UiVisualPixelCaptureGrant",
+  "UiVisualPixelColorSpace",
+  "UiVisualPixelFormat",
+  "UiVisualPixelRedaction",
+  "UiVisualPixelRetentionDisposition",
+  "UiVisualPointAdjudication",
+  "UiVisualRegionAdjudication",
+  "UiVisualRegionCompleteness",
+  "UiVisualRegionIntersection",
+  "UiVisualSnapshotAffinity",
+  "UiVisualSnapshotArtifactPosture",
+  "UiVisualSnapshotDenial",
+  "UiVisualSnapshotDisposalReceipt",
+  "UiVisualSnapshotEvidence",
+  "UiVisualSnapshotIdentity",
+  "UiVisualSnapshotIndeterminate",
+  "UiVisualSnapshotOmission",
+  "UiVisualSnapshotOutcome",
+  "UiVisualSnapshotReceipt",
+  "UiVisualSnapshotRelation",
+  "UiVisualSnapshotRequest",
+  "UiVisualSnapshotSuperseded",
+  "UiVisualTarget",
+  "UiVisualVisibleContributor",
+  "UiVisualVisibleOutcome",
+  "WorthUiVisualInspectionAuthority",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "snapshot-scoped coordinates and immutable index and pixel provenance"
+caller = "governed-visual-snapshot-inspection"
+symbols = [
+  "UiHitTestRegionIndexIdentity",
+  "UiSnapshotClientRegion",
+  "UiUnbudgetedVisualSnapshotComparisonRequest",
+  "UiVisibleRegionIndexIdentity",
+  "UiVisualComparisonPixelPolicy",
+  "UiVisualIdentityContinuity",
+  "UiVisualPixelCaptureSource",
+  "UiVisualQueryBudget",
+  "UiVisualSnapshotComparison",
+  "UiVisualSnapshotComparisonBudget",
+  "UiVisualSnapshotComparisonBudgetDenial",
+  "UiVisualSnapshotComparisonCost",
+  "UiVisualSnapshotComparisonDenial",
+  "UiVisualSnapshotComparisonDenialKind",
+  "UiVisualSnapshotComparisonExpiry",
+  "UiVisualSnapshotComparisonGrant",
+  "UiVisualSnapshotComparisonIncompatibility",
+  "UiVisualSnapshotComparisonOmission",
+  "UiVisualSnapshotComparisonOutcome",
+  "UiVisualSnapshotComparisonRequest",
+]
+
+[[export_group]]
+audience = "inspection"
+source = "facade/inspection.rs"
+stability = "evolving-product-contract"
+authority = "snapshot-bound overlay identity, typed failure, and shutdown observation"
+caller = "governed-visual-snapshot-inspection"
+symbols = [
+  "UiVisualOverlayClearFailure",
+  "UiVisualOverlayDenial",
+  "UiVisualOverlayIdentity",
+  "UiVisualOverlayPublicationFailure",
+  "UiVisualOverlayShutdownReport",
 ]
 
 [[export_group]]
@@ -739,9 +910,9 @@ symbols = [
   "UiHostObservationCapacityInput",
   "UiHostObservationCoalescingIdentity",
   "UiHostObservationDisposition",
+  "UiHostObservationDrainDenial",
   "UiHostObservationFamily",
   "UiHostObservationFrameRelation",
-  "UiHostObservationIngressDenial",
   "UiHostObservationIntegrity",
   "UiHostObservationLoss",
   "UiHostObservationMountedBasis",
@@ -759,8 +930,49 @@ symbols = [
   "UiQuarantinedHostObservationBatch",
   "UiValidatedHostObservationBatch",
   "UiValidatedHostObservationReport",
-  "WorthUiHostObservationIngress",
   "WorthUiHostObservationSessionExt",
+]
+
+[[export_group]]
+audience = "observation"
+source = "facade/observation.rs"
+stability = "evolving-product-contract"
+authority = "typed semantic observation profiles, turn admission outcomes, and read-only admitted evidence"
+caller = "semantic-observation-admission"
+symbols = [
+  "UiAdmittedObservation",
+  "UiAdmittedObservationSet",
+  "UiAdmittedSourceObservation",
+  "UiChangeClassificationDenial",
+  "UiChangeClassificationOutcome",
+  "UiClassifiedChange",
+  "UiCommittedPortalAnchorObservation",
+  "UiCommittedRuntimeStateAdmissionReceipt",
+  "UiCommittedScrollExtentObservation",
+  "UiEvidenceOnlySourceChange",
+  "UiHostObservation",
+  "UiHostObservationAdmissionStop",
+  "UiHostObservationBatchAdmissionReceipt",
+  "UiHostObservationSuccessorOwner",
+  "UiHostObservationUnavailable",
+  "UiObservationAdmissionDenial",
+  "UiObservationAdmissionReceipt",
+  "UiObservationCoalescingPolicy",
+  "UiObservationDuplicatePolicy",
+  "UiObservationFamily",
+  "UiObservationFamilyDefinition",
+  "UiObservationLossPolicy",
+  "UiObservationOwner",
+  "UiObservationProfile",
+  "UiObservationProfileConstructionDenial",
+  "UiObservationProfileInput",
+  "UiObservationResetPolicy",
+  "UiObservationSetSummary",
+  "UiObservationTurn",
+  "UiObservationTurnDenial",
+  "UiObservationTurnIdentity",
+  "UiObservedNoChangeReceipt",
+  "UiQueryObservationAdmissionStop",
 ]
 
 [[export_group]]
@@ -786,12 +998,123 @@ symbols = [
 ]
 
 [[export_group]]
+audience = "rebind"
+source = "facade/rebind.rs"
+stability = "evolving-product-contract"
+authority = "typed change declarations and owner-issued immutable affected-scope and rebind planning evidence"
+caller = "affected-scope-planning"
+symbols = [
+  "UiAffectedConsumer",
+  "UiAffectedFactLookup",
+  "UiAffectedScopeBasis",
+  "UiAffectedScopeCost",
+  "UiAffectedScopeDenial",
+  "UiAffectedScopeGeneration",
+  "UiAuthoredChangedFact",
+  "UiAuthoredFactKind",
+  "UiAuthoredFactSelector",
+  "UiChangeProfile",
+  "UiCommittedPortalAnchorChangedFact",
+  "UiCommittedScrollExtentChangedFact",
+  "UiConsumedFactContract",
+  "UiConsumedFactSelector",
+  "UiGraphFactConsumerIdentity",
+  "UiGraphFactConsumerKey",
+  "UiGraphFactConsumerKind",
+  "UiHostDeviceScaleChangedFact",
+  "UiHostViewportChangedFact",
+  "UiIdentityLifecycleDecision",
+  "UiIdentityLifecycleDenial",
+  "UiIdentityLifecycleEntry",
+  "UiMeasurementChangedFact",
+  "UiProducedFact",
+  "UiProducedFactContract",
+  "UiProducedFactFamily",
+  "UiProducedFactOwner",
+  "UiProducedFactResetPosture",
+  "UiQueryChangedFact",
+  "UiQueryChangedFactKind",
+  "UiQueryIncrementalChangedFact",
+  "UiQueryResetChangedFact",
+  "UiRebindArtifactPolicy",
+  "UiRebindBudgetInput",
+  "UiRebindCancellationPolicy",
+  "UiRebindCancellationRequest",
+  "UiRebindConcurrencyInput",
+  "UiRebindConflictFootprint",
+  "UiRebindDeadlinePolicy",
+  "UiRebindDeclarativeEffect",
+  "UiRebindDisclosurePolicy",
+  "UiRebindEffectSet",
+  "UiRebindExecutionPolicy",
+  "UiRebindIdempotency",
+  "UiRebindLimit",
+  "UiRebindParallelAdmission",
+  "UiRebindPlan",
+  "UiRebindPlanBasis",
+  "UiRebindPlanCost",
+  "UiRebindPlanningDenial",
+  "UiRebindPlanTarget",
+  "UiRebindProfile",
+  "UiRebindProfileConstructionDenial",
+  "UiRebindResourceAccess",
+  "UiRebindRetryTolerance",
+  "UiRebindSafePoint",
+  "UiRebindSafePointPolicy",
+  "UiRebindSessionDeadline",
+  "UiRebindSubsystemKind",
+  "UiRebindSubsystemPlan",
+  "UiResolvedAffectedScope",
+  "UiResolvedIdentityLifecycle",
+  "UiSubsystemConsumedFactRule",
+  "UiDuplicateObservationReceipt",
+  "UiPreparedRebind",
+  "UiPreparedRebindPosture",
+  "UiRebindCancellationReceipt",
+  "UiRebindCandidatePreparationDenial",
+  "UiRebindCompletionHandle",
+  "UiRebindDenialCause",
+  "UiRebindDenialReceipt",
+  "UiRebindDisposition",
+  "UiRebindExecutionRequest",
+  "UiRebindInternalDefectKind",
+  "UiRebindInternalDefectOutcome",
+  "UiRebindOutcome",
+  "UiRebindPreparationDenial",
+  "UiRebindReceipt",
+  "UiRebindReconciliation",
+  "UiRebindReconciliationRequest",
+  "UiRebindRecoveryCompletionHandle",
+  "UiRebindRecoveryDenial",
+  "UiRebindRecoveryDenialCause",
+  "UiRebindRecoveryHandle",
+  "UiRebindRecoveryInternalDefect",
+  "UiRebindRecoveryInternalDefectKind",
+  "UiRebindRecoveryOutcome",
+  "UiRebindRecoveryReceipt",
+  "UiRebindRecoverySurfaceDenial",
+  "UiRebindReservationDenial",
+  "UiRebindShutdownReport",
+  "UiRebindStoppedPhase",
+  "UiRebindSupersededReceipt",
+  "UiRebindTimeoutReceipt",
+  "UiRebindValidNextAction",
+  "UiSourceRebindRequest",
+]
+
+[[export_group]]
 audience = "source"
 source = "facade/source.rs"
 stability = "evolving-product-contract"
 authority = "authored source acquisition and candidate ingress"
 caller = "authored-source-ingress"
 symbols = [
+  "UiSourceCompilationDenialReceipt",
+  "UiSourceRebindAttemptBasis",
+  "UiSourceRebindAttemptDenial",
+  "UiSourceRebindAttemptDenialReceipt",
+  "UiSourceRebindAttemptFailure",
+  "UiSourceRebindAttemptOutcome",
   "WorthUiCandidateComposition",
   "WorthUiCandidateCompositionBasis",
   "WorthUiCandidateOrderingReceipt",

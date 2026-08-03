@@ -2,6 +2,7 @@ use super::WorthUiMountedSessionState;
 
 pub(crate) struct UiMountedGraphReplacementSuccessor {
     identity: Box<crate::mounting::UiMountedIdentityState>,
+    semantic_predecessor: Option<Box<crate::mounting::projection::UiMountedSemanticProjection>>,
 }
 
 pub(crate) struct UiMountedGraphReplacementAdmission {
@@ -70,7 +71,11 @@ impl UiMountedGraphReplacementSuccessor {
         crate::mounting::UiMountedFrameAssembler<'_>,
         crate::mounting::UiMountedFramePreparationDenial,
     > {
-        crate::mounting::UiMountedFrameAssembler::begin(&self.identity, input)
+        crate::mounting::UiMountedFrameAssembler::begin_graph_replacement(
+            &self.identity,
+            self.semantic_predecessor.as_deref(),
+            input,
+        )
     }
 }
 
@@ -85,10 +90,15 @@ impl WorthUiMountedSessionState {
         &self,
         graph: crate::graph::UiGraphAuthority<'_>,
     ) -> Result<UiMountedGraphReplacementSuccessor, crate::mounting::UiMountedIdentityDenial> {
+        let semantic_predecessor = self
+            .identity
+            .current_projection()
+            .map(|frame| Box::new(frame.semantic_projection().clone()));
         self.identity
             .prepare_graph_replacement_successor(graph)
             .map(|identity| UiMountedGraphReplacementSuccessor {
                 identity: Box::new(identity),
+                semantic_predecessor,
             })
     }
 
@@ -193,6 +203,29 @@ impl WorthUiMountedSessionState {
             .presentation
             .complete(observed, host.effect_port(), now)
         {
+            Ok(outcome) => outcome,
+            Err(denial) => {
+                return Err(UiMountedGraphReplacementCompletionRejection {
+                    denial,
+                    in_flight: Box::new(in_flight),
+                });
+            }
+        };
+        Ok(settle_graph_replacement(
+            in_flight.successor,
+            in_flight.publication,
+            outcome,
+        ))
+    }
+
+    pub(crate) fn cancel_graph_replacement(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        in_flight: UiMountedGraphReplacementInFlight,
+    ) -> Result<UiMountedGraphReplacementPresentation, UiMountedGraphReplacementCompletionRejection>
+    {
+        let observed = in_flight.handle.clone();
+        let outcome = match self.presentation.cancel(observed, host.effect_port()) {
             Ok(outcome) => outcome,
             Err(denial) => {
                 return Err(UiMountedGraphReplacementCompletionRejection {

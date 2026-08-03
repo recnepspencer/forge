@@ -4,9 +4,10 @@ use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::application_definition::{
-    platform_pulse_application_builder_with_host, PLATFORM_PULSE_BLUE_TOKEN,
-    PLATFORM_PULSE_COMPONENT, PLATFORM_PULSE_FILL_TOKEN, PLATFORM_PULSE_GREEN_TOKEN,
-    PLATFORM_PULSE_SURFACE,
+    platform_pulse_application_builder_with_host, PLATFORM_PULSE_BACKGROUND_COMPONENT,
+    PLATFORM_PULSE_BLUE_TOKEN, PLATFORM_PULSE_FILL_TOKEN, PLATFORM_PULSE_GREEN_TOKEN,
+    PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT, PLATFORM_PULSE_IDENTITY_TARGET_FILL_TOKEN,
+    PLATFORM_PULSE_SURFACE, PLATFORM_PULSE_YELLOW_TOKEN,
 };
 
 impl FilesystemApplicationLifecycleScenario {
@@ -18,11 +19,13 @@ impl FilesystemApplicationLifecycleScenario {
         Self::platform_pulse_source_text_with_color(PLATFORM_PULSE_GREEN_TOKEN)
     }
 
-    fn platform_pulse_source_text_with_color(color_token: &str) -> String {
+    pub(super) fn platform_pulse_source_text_with_color(color_token: &str) -> String {
         format!(
-            "component {PLATFORM_PULSE_COMPONENT} {{}}\n\
+            "component {PLATFORM_PULSE_BACKGROUND_COMPONENT} {{}}\n\
+             component {PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT} {{}}\n\
              surface {PLATFORM_PULSE_SURFACE} {{}}\n\
-             token {PLATFORM_PULSE_FILL_TOKEN} = \"{color_token}\";\n"
+             token {PLATFORM_PULSE_FILL_TOKEN} = \"{color_token}\";\n\
+             token {PLATFORM_PULSE_IDENTITY_TARGET_FILL_TOKEN} = \"{PLATFORM_PULSE_YELLOW_TOKEN}\";\n"
         )
     }
 

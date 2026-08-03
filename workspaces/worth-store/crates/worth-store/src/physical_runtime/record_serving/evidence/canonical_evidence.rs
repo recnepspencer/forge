@@ -4,9 +4,6 @@ use worth_foundational::{
     CanonicalBasisValue, CanonicalIntegerWidth, CanonicalizationRuleVersion,
 };
 use worth_proof::TransitionOutcome;
-use worth_store_offline_verifier::{
-    OfflineAllocationClass, OfflineDurableManifestWalk, OfflineRecordPlacement,
-};
 use worth_store_physical_format::CurrentPhysicalRecordPlacement;
 
 const DOMAIN: CanonicalBasisDomain = CanonicalBasisDomain::Future("store.physical.record-topology");
@@ -70,57 +67,6 @@ pub fn lower_record_publication_canonical_basis(
     summary: &PhysicalRecordPublicationSummary,
 ) -> RecordTopologyCanonicalBasisOutcome {
     lower_normalized(summary)
-}
-
-pub fn lower_offline_record_publication_canonical_basis(
-    walk: &OfflineDurableManifestWalk,
-) -> RecordTopologyCanonicalBasisOutcome {
-    let mut placements = walk
-        .placements()
-        .iter()
-        .copied()
-        .map(offline_placement)
-        .collect::<Vec<_>>();
-    let mut segment_pages = walk
-        .segment_pages()
-        .iter()
-        .map(|entry| CanonicalSegmentPage {
-            segment: entry.segment(),
-            page: entry.page(),
-            page_generation: entry.page_generation(),
-            data_generation: entry.data_generation(),
-            data_page_count: u64::from(entry.data_page_count()),
-            frame_index: u64::from(entry.frame_index()),
-        })
-        .collect::<Vec<_>>();
-    let mut free_space = walk
-        .free_space()
-        .iter()
-        .map(|entry| CanonicalFreeSpace {
-            class: match entry.class() {
-                OfflineAllocationClass::InlinePage => 1,
-                OfflineAllocationClass::Extent => 2,
-            },
-            owner: entry.owner(),
-            first_unallocated: entry.first_unallocated(),
-            unallocated_count: entry.unallocated_count(),
-            generation: entry.generation(),
-        })
-        .collect::<Vec<_>>();
-    placements.sort_unstable();
-    segment_pages.sort_unstable();
-    free_space.sort_unstable();
-    lower_normalized(&PhysicalRecordPublicationSummary {
-        store_identity: walk.store_identity(),
-        format_identity: walk.format_identity(),
-        root_generation: walk.root_generation(),
-        tree_identity: walk.tree_identity(),
-        node_capacity: walk.node_capacity(),
-        routing_level: walk.routing_level(),
-        placements,
-        segment_pages,
-        free_space,
-    })
 }
 
 fn lower_normalized(
@@ -222,50 +168,6 @@ pub(in crate::physical_runtime::record_serving) fn runtime_placement(
             slot_generation: 0,
             capacity: 0,
             payload_bytes: value.payload_bytes(),
-        },
-    }
-}
-
-fn offline_placement(value: OfflineRecordPlacement) -> CanonicalPlacement {
-    match value {
-        OfflineRecordPlacement::Inline {
-            record,
-            segment,
-            page,
-            segment_generation,
-            page_generation,
-            slot_generation,
-            payload_bytes,
-            segment_page_capacity,
-            ..
-        } => CanonicalPlacement {
-            epoch: record.allocation_epoch(),
-            ordinal: record.ordinal(),
-            class: 1,
-            owner: segment,
-            secondary: page,
-            owner_generation: segment_generation,
-            secondary_generation: page_generation,
-            slot_generation,
-            capacity: u64::from(segment_page_capacity),
-            payload_bytes,
-        },
-        OfflineRecordPlacement::Extent {
-            record,
-            extent,
-            generation,
-            payload_bytes,
-        } => CanonicalPlacement {
-            epoch: record.allocation_epoch(),
-            ordinal: record.ordinal(),
-            class: 2,
-            owner: extent,
-            secondary: 0,
-            owner_generation: generation,
-            secondary_generation: 0,
-            slot_generation: 0,
-            capacity: 0,
-            payload_bytes,
         },
     }
 }

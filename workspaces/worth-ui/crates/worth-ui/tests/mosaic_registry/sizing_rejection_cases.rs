@@ -74,6 +74,7 @@ fn raw_padding_value_rejected_outside_named_measurement() {
 #[test]
 fn unitless_measurement_definition_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(unitless_sizing_contract("workspace.sizing.unitless"))
         .freeze_with_registration_report();
 
@@ -91,6 +92,7 @@ fn unitless_measurement_definition_rejected() {
 #[test]
 fn unitless_constraint_measurement_definition_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(unitless_constraint_sizing_contract(
             "workspace.sizing.unitless_constraint",
         ))
@@ -124,6 +126,7 @@ fn mixed_unit_measurement_constraint_rejected() {
 #[test]
 fn sizing_contract_without_overflow_policy_rejected() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(
             complete_sizing_contract("workspace.sizing.no_overflow", sizing_kind())
                 .with_overflow_behavior(MosaicOverflowBehavior::missing_for_diagnostics()),
@@ -144,6 +147,7 @@ fn sizing_contract_without_overflow_policy_rejected() {
 #[test]
 fn sizing_contract_reports_every_missing_required_policy() {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(
             bounded_sidebar_contract("workspace.sizing.missing")
                 .with_measurement_authority(MosaicMeasurementAuthority::missing_for_diagnostics())
@@ -178,6 +182,7 @@ fn assert_raw_measurement_rejected(
     expected_code: CapabilityDiagnosticCode,
 ) {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(
             bounded_sidebar_contract("workspace.sizing.raw")
                 .with_raw_measurement_for_diagnostics(raw_measurement),
@@ -196,6 +201,7 @@ fn assert_invalid_measurement_constraint_rejected(
     descriptor: worth_ui::facade::declaration::MosaicSizingContractDescriptor,
 ) {
     let report = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_sizing_contract(descriptor)
         .freeze_with_registration_report();
 

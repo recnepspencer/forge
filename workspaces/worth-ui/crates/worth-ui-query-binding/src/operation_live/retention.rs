@@ -167,6 +167,23 @@ impl WorthUiOperationLiveRetention {
         Ok(receipt)
     }
 
+    pub(crate) fn validate_collection_change_observation(
+        &self,
+        consequence: crate::WorthUiCollectionChangeConsequence,
+    ) -> Result<
+        crate::WorthUiValidatedCollectionChangeObservation,
+        crate::WorthUiCollectionChangeAdmissionStop,
+    > {
+        let identity = consequence.installed_reference().definition().identity();
+        let Some(resource) = self.resources.get(identity).and_then(Option::as_ref) else {
+            return Err(crate::WorthUiCollectionChangeAdmissionStop::new(
+                crate::WorthUiCollectionChangeAdmissionDenial::ResourceNotRetained,
+                consequence,
+            ));
+        };
+        resource.validate_collection_change_observation(consequence)
+    }
+
     pub(crate) fn retry_collection_change_handoff(
         &self,
         reference: &WorthUiInstalledQueryBindingReference,

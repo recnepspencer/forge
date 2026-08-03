@@ -161,38 +161,6 @@ impl ServingPhysicalRuntime {
         self.parts.scheduler_admission.capacity_snapshot()
     }
 
-    pub fn prepare_physical_residency_writeback(
-        &self,
-        ready: crate::physical_runtime::ReadyPhysicalWork,
-        reservation: worth_store_io_scheduler::foreground_reservation::
-            PhysicalInstanceForegroundReservation,
-        flush_epoch: u64,
-        resource_shape: worth_store_contracts::QueueProducerResourceShape,
-        secure_io: Option<worth_store_io_scheduler::SecureIoPreservationReceipt>,
-    ) -> Result<
-        crate::physical_runtime::PhysicalSchedulerDemand,
-        crate::physical_runtime::PhysicalSchedulerDenial,
-    > {
-        let [coordinate] = ready.intent().scope().coordinates() else {
-            return Err(crate::physical_runtime::PhysicalSchedulerDenial::ResidencyWorkMismatch);
-        };
-        let grouping = worth_store_buffer_pool::BufferPoolQueueGroupingScope::new(
-            reservation.receipt().security_scope_identity(),
-        );
-        let declaration = self
-            .parts
-            .residency
-            .ports()
-            .writeback_declaration(*coordinate, grouping, flush_epoch, resource_shape)
-            .map_err(crate::physical_runtime::PhysicalSchedulerDenial::Residency)?;
-        crate::physical_runtime::PhysicalSchedulerDemand::residency_writeback(
-            ready,
-            declaration,
-            reservation,
-            secure_io,
-        )
-    }
-
     pub fn admit_physical_scheduler_demand(
         &self,
         demand: crate::physical_runtime::PhysicalSchedulerDemand,

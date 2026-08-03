@@ -83,8 +83,12 @@ fn consume_identifier(
     let kind = match raw_text {
         "import" => WorthUiSourceTokenKind::KeywordImport,
         "component" => WorthUiSourceTokenKind::KeywordComponent,
+        "control" => WorthUiSourceTokenKind::KeywordControl,
+        "intent" => WorthUiSourceTokenKind::KeywordIntent,
         "surface" => WorthUiSourceTokenKind::KeywordSurface,
         "binding" => WorthUiSourceTokenKind::KeywordBinding,
+        "query_scalar" => WorthUiSourceTokenKind::KeywordQueryScalar,
+        "query_collection" => WorthUiSourceTokenKind::KeywordQueryCollection,
         "token" => WorthUiSourceTokenKind::KeywordToken,
         _ => WorthUiSourceTokenKind::Identifier(raw_text.to_owned()),
     };

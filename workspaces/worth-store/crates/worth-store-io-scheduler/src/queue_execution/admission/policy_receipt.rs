@@ -9,19 +9,19 @@ use super::{
 };
 
 /// Policy admission sealed to one exact scheduler workload declaration.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct QueuePolicyAdmissionReceipt {
     work: QueueWorkDeclaration,
     foundational: FoundationalPolicyAdmissionReceipt,
 }
 
 impl QueuePolicyAdmissionReceipt {
-    pub(super) fn work(&self) -> QueueWorkDeclaration {
-        self.work.clone()
+    pub(super) const fn work(&self) -> &QueueWorkDeclaration {
+        &self.work
     }
 
-    pub(super) fn into_foundational(self) -> FoundationalPolicyAdmissionReceipt {
-        self.foundational
+    pub(super) fn into_parts(self) -> (QueueWorkDeclaration, FoundationalPolicyAdmissionReceipt) {
+        (self.work, self.foundational)
     }
 
     pub(super) fn foundational(&self) -> &FoundationalPolicyAdmissionReceipt {

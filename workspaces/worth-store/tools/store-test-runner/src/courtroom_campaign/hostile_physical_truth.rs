@@ -57,7 +57,7 @@ pub(super) fn run(
         binding.postbuild_source_binding(),
     );
     let started = Instant::now();
-    let rerun = super::run_provenance::rerun("b", target_root, mutant_report, report)?;
+    let rerun = super::run_provenance::rerun("b", target_root, mutant_report, report, None)?;
     timings.record_campaign(timing::CampaignPhase::RunProvenance, started.elapsed());
     let cases = scenario::run_all(&world, &binaries, &rerun, &mut timings)?;
     let started = Instant::now();

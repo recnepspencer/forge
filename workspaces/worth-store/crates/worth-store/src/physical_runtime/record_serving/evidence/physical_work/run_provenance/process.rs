@@ -102,14 +102,42 @@ impl PhysicalWorkProcessEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalWorkExecutionContext {
-    seed: u64,
+    workload_seed: PhysicalWorkWorkloadSeed,
+    schedule_seed: PhysicalWorkScheduleSeed,
     schedule: Box<str>,
     processes: Box<[PhysicalWorkProcessEvidence]>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalWorkWorkloadSeed(u64);
+
+impl PhysicalWorkWorkloadSeed {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PhysicalWorkScheduleSeed(u64);
+
+impl PhysicalWorkScheduleSeed {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
 impl PhysicalWorkExecutionContext {
     pub fn new(
-        seed: u64,
+        workload_seed: PhysicalWorkWorkloadSeed,
+        schedule_seed: PhysicalWorkScheduleSeed,
         schedule: impl Into<Box<str>>,
         processes: impl IntoIterator<Item = PhysicalWorkProcessEvidence>,
     ) -> Result<Self, PhysicalWorkRunProvenanceDenial> {
@@ -137,14 +165,19 @@ impl PhysicalWorkExecutionContext {
             return Err(PhysicalWorkRunProvenanceDenial::DuplicateProcessRole);
         }
         Ok(Self {
-            seed,
+            workload_seed,
+            schedule_seed,
             schedule,
             processes: processes.into_boxed_slice(),
         })
     }
 
-    pub const fn seed(&self) -> u64 {
-        self.seed
+    pub const fn workload_seed(&self) -> PhysicalWorkWorkloadSeed {
+        self.workload_seed
+    }
+
+    pub const fn schedule_seed(&self) -> PhysicalWorkScheduleSeed {
+        self.schedule_seed
     }
 
     pub fn schedule(&self) -> &str {
@@ -161,7 +194,10 @@ mod tests {
     use std::num::NonZeroU32;
 
     use super::PhysicalWorkRunProvenanceDenial;
-    use super::{PhysicalWorkExecutionContext, PhysicalWorkProcessEvidence};
+    use super::{
+        PhysicalWorkExecutionContext, PhysicalWorkProcessEvidence, PhysicalWorkScheduleSeed,
+        PhysicalWorkWorkloadSeed,
+    };
 
     #[test]
     fn execution_requires_distinct_roles_and_processes() {
@@ -169,7 +205,12 @@ mod tests {
         let first = PhysicalWorkProcessEvidence::exited_success("writer", process).unwrap();
         let duplicate = PhysicalWorkProcessEvidence::exited_success("observer", process).unwrap();
         assert_eq!(
-            PhysicalWorkExecutionContext::new(7, "schedule", [first, duplicate]),
+            PhysicalWorkExecutionContext::new(
+                PhysicalWorkWorkloadSeed::new(7),
+                PhysicalWorkScheduleSeed::new(7),
+                "schedule",
+                [first, duplicate],
+            ),
             Err(PhysicalWorkRunProvenanceDenial::DuplicateProcessIdentity)
         );
     }

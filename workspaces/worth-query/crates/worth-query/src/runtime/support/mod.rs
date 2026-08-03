@@ -1,4 +1,5 @@
 mod authority_artifacts;
+mod batch_authority;
 mod bridge_artifact_identity;
 mod bridge_backed_verification_profile;
 mod denial;
@@ -20,7 +21,8 @@ pub use authority_artifacts::{
 pub use bridge_artifact_identity::WorthQueryBridgeMutationArtifactIdentity;
 pub use denial::WorthQueryRuntimeSupportDenial;
 pub use facade_families::{
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
+    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeBatchAuthority,
+    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
     WorthQueryRuntimeFamilySupportStatus, WorthQueryRuntimeFamilyTeachingPosture,
 };
 pub(crate) use graph_composition::{

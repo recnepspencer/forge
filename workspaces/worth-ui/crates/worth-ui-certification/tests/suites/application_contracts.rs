@@ -6,6 +6,8 @@ mod admission_support_runtime;
 mod canvas_spatial_execution;
 #[path = "../application_contracts/canvas_spatial_replacement.rs"]
 mod canvas_spatial_replacement;
+#[path = "../application_contracts/collection_projection/mod.rs"]
+mod collection_projection;
 #[path = "../application_contracts/cross_lane_bundle_execution.rs"]
 mod cross_lane_bundle_execution;
 #[path = "../application_contracts/documented_lifecycle_journey.rs"]
@@ -16,6 +18,8 @@ mod executor_allocator_observation;
 mod facade_lifecycle_path_runtime;
 #[path = "../application_contracts/filesystem_contract_workspace.rs"]
 mod filesystem_contract_workspace;
+#[path = "../application_contracts/filesystem_mounted_world.rs"]
+mod filesystem_mounted_world;
 #[path = "../application_contracts/filesystem_replacement_support.rs"]
 mod filesystem_replacement_support;
 #[path = "../application_contracts/filesystem_source_acquisition.rs"]
@@ -36,6 +40,18 @@ mod host_observation_overflow;
 mod host_observation_pressure;
 #[path = "../application_contracts/host_observation_reporting.rs"]
 mod host_observation_reporting;
+#[path = "../application_contracts/intent/mod.rs"]
+mod intent;
+#[path = "../application_contracts/milestone_312_affected_scope.rs"]
+mod milestone_312_affected_scope;
+#[path = "../application_contracts/milestone_312_identity_lifecycle.rs"]
+mod milestone_312_identity_lifecycle;
+#[path = "../application_contracts/milestone_312_observation_admission.rs"]
+mod milestone_312_observation_admission;
+#[path = "../application_contracts/milestone_312_planning_guards.rs"]
+mod milestone_312_planning_guards;
+#[path = "../application_contracts/milestone_312_post_classification_cost.rs"]
+mod milestone_312_post_classification_cost;
 #[path = "../application_contracts/mounted_application_lifecycle/mod.rs"]
 mod mounted_application_lifecycle;
 #[path = "../application_contracts/mounted_cost_evidence.rs"]
@@ -84,6 +100,8 @@ mod mounted_publication;
 mod mounted_static_paint;
 #[path = "../application_contracts/multi_removal_filesystem.rs"]
 mod multi_removal_filesystem;
+#[path = "../application_contracts/observation_rebind.rs"]
+mod observation_rebind;
 #[path = "../application_contracts/phase7_adapter_parity.rs"]
 mod phase7_adapter_parity;
 #[path = "../application_contracts/phase7_denial_preservation.rs"]
@@ -96,6 +114,18 @@ mod phase7_public_mounted_allocation;
 mod platform_pulse;
 #[path = "../application_contracts/platform_pulse_lifecycle.rs"]
 mod platform_pulse_lifecycle;
+#[path = "../application_contracts/projection_adoption/mod.rs"]
+mod projection_adoption;
+#[path = "../application_contracts/projection_authority/mod.rs"]
+mod projection_authority;
+#[path = "../application_contracts/projection_compatibility/mod.rs"]
+mod projection_compatibility;
+#[path = "../application_contracts/projection_cost/mod.rs"]
+mod projection_cost;
+#[path = "../application_contracts/projection_lifecycle/mod.rs"]
+mod projection_lifecycle;
+#[path = "../application_contracts/projection_presentation/mod.rs"]
+mod projection_presentation;
 #[path = "../application_contracts/public_application_lifecycle.rs"]
 mod public_application_lifecycle;
 #[path = "../application_contracts/query_consumer_kit_application.rs"]
@@ -118,6 +148,8 @@ mod query_consumer_kit_wrong_binding;
 mod query_domain_certification_scenarios;
 #[path = "../application_contracts/query_free_headless_app_journey.rs"]
 mod query_free_headless_app_journey;
+#[path = "../application_contracts/query_observation/mod.rs"]
+mod query_observation;
 #[path = "../application_contracts/query_replacement_lifecycle.rs"]
 mod query_replacement_lifecycle;
 #[path = "../application_contracts/query_settlement_allocation_cost.rs"]
@@ -130,3 +162,7 @@ mod realtime_overlay_replacement;
 mod source_event_ingress_journey;
 #[path = "../application_contracts/source_transport_diagnostic_parity.rs"]
 mod source_transport_diagnostic_parity;
+#[path = "../application_contracts/visual_identity.rs"]
+mod visual_identity;
+#[path = "../application_contracts/visual_snapshot.rs"]
+mod visual_snapshot;

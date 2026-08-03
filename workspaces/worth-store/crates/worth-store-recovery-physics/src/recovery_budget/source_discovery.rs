@@ -6,14 +6,14 @@ use crate::{
 use super::{RecoveryBudget, RecoveryBudgetDenial, RecoveryBudgetDenialKind};
 
 #[derive(Debug)]
-pub struct BoundedRecoverySourcePrecedenceGraph {
-    budget: RecoveryBudget,
+pub struct BoundedRecoverySourcePrecedenceGraph<'runtime> {
+    budget: RecoveryBudget<'runtime>,
     graph: RecoverySourcePrecedenceGraph,
     evidence: RecoveryWorkBudgetEvidence,
 }
 
-impl BoundedRecoverySourcePrecedenceGraph {
-    pub(crate) fn new(budget: RecoveryBudget, profile: impl Into<String>) -> Self {
+impl<'runtime> BoundedRecoverySourcePrecedenceGraph<'runtime> {
+    pub(crate) fn new(budget: RecoveryBudget<'runtime>, profile: impl Into<String>) -> Self {
         Self {
             budget,
             graph: RecoverySourcePrecedenceGraph::new(profile),

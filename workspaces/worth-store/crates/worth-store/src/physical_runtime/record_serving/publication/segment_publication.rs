@@ -1,6 +1,6 @@
 use worth_store_physical_format::{
     append_inline_records_owned, InlineRecordAppend, PageGenerationCell, PersistedRecordIdentity,
-    RecordArtifactFile, RecordFrameCoordinate, SlotGenerationCell,
+    RecordArtifactFile, SlotGenerationCell,
 };
 
 use super::super::publication::append_observation::PublicationObservation;
@@ -23,6 +23,7 @@ pub(in crate::physical_runtime::record_serving) struct PageDataPlan {
 
 pub(in crate::physical_runtime::record_serving) fn write_segment(
     artifacts: &PublicationRecordArtifacts<'_>,
+    writeback: &super::super::residency::FrameWritebackPort,
     format: AdmittedPhysicalRecordFormat,
     plan: &mut SegmentDataPlan,
     residency: &mut super::super::residency::frame_ports::StoreCandidateFramePublicationSession<'_>,
@@ -55,23 +56,20 @@ pub(in crate::physical_runtime::record_serving) fn write_segment(
             plan.artifact,
             offset,
         );
-        let physical_coordinate = RecordFrameCoordinate::new(
-            plan.artifact,
-            offset,
-            u32::try_from(candidate.len()).expect("page frames are u32-bounded"),
-        )
-        .expect("page frames are nonempty and offset-bounded");
         let frame = super::super::residency::frame_ports::CandidateFrame::new(
             super::super::residency::frame_ports::CandidateFrameRole::InlinePage,
             coordinate,
             candidate,
         );
         let resident = if offset == 0 {
-            stage.write_new_candidate(residency, frame, plan.artifact)
+            stage
+                .write_new_candidate(residency, frame, plan.artifact)
+                .map_err(CandidateDataWriteFailure::from_frame_write)?
         } else {
-            stage.append_candidate(residency, frame, physical_coordinate)
-        }
-        .map_err(CandidateDataWriteFailure::from_frame_write)?;
+            stage
+                .write_existing_artifact_candidate(residency, frame, writeback)
+                .map_err(CandidateDataWriteFailure::from_writeback)?
+        };
         observation.observe_transfer(resident.frame_bytes() as usize);
         completed_bytes = completed_bytes.saturating_add(resident.frame_bytes());
     }

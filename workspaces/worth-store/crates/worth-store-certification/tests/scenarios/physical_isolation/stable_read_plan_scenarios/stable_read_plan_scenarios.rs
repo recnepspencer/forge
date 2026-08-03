@@ -165,7 +165,12 @@ fn executed_evidence_bundle(
             plan,
             &schedule,
             &trace,
-            buffer_pool_evidence(plan),
+            worth_store_test_support::harness::physical_residency::observed_store_residency(
+                "stable-read-plan-counter-evidence",
+                worth_store_test_support::harness::physical_residency::
+                    PhysicalResidencyFixtureWorkload::Verification,
+                64,
+            ),
             io_queue_evidence(plan),
         )
         .unwrap();
@@ -241,28 +246,6 @@ fn executed_trace(
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
         .complete()
         .unwrap()
-}
-
-fn buffer_pool_evidence(
-    plan: &PhysicalSimulationPlan,
-) -> worth_store_buffer_pool::BufferPoolExecutedEvidenceSource {
-    let mut allocation = worth_store_buffer_pool::AllocationAdmission::from_declaration(
-        plan.resource_envelope().allocation(),
-    );
-    let grant = allocation
-        .admit(
-            worth_store_buffer_pool::AllocationRequest::copied_payload(
-                worth_store_buffer_pool::AllocationScope::Foreground,
-                64,
-            )
-            .unwrap(),
-        )
-        .unwrap();
-    allocation.record_allocation(grant).unwrap();
-    worth_store_buffer_pool::BufferPoolExecutedEvidenceSource::from_allocation_execution(
-        &allocation,
-    )
-    .unwrap()
 }
 
 fn io_queue_evidence(

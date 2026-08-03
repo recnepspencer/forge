@@ -3,6 +3,7 @@ mod capability;
 mod declaration;
 mod evidence;
 pub mod facade;
+mod fact_contract;
 mod graph;
 pub(crate) mod host;
 mod host_exchange;

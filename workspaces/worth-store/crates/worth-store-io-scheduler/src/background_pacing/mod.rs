@@ -3,7 +3,6 @@
 mod admission;
 mod basis;
 mod budget;
-mod capability;
 mod capacity;
 mod class;
 mod counters;
@@ -11,7 +10,6 @@ mod debt;
 mod denial;
 mod lease;
 mod outcome;
-mod proof;
 mod request;
 mod shape;
 mod streaming_pressure_link;
@@ -21,7 +19,6 @@ mod test_authority;
 pub use admission::admit_background_pacing;
 pub use basis::BackgroundPacingAdmissionBasis;
 pub use budget::{BackgroundResourceBudget, BackgroundResourceShortfall};
-pub use capability::BackgroundPacingCapability;
 pub use capacity::{
     admit_background_capacity, BackgroundCapacityAdmission, BackgroundCapacityAdmissionRequest,
 };
@@ -32,12 +29,8 @@ pub use denial::BackgroundPacingDenial;
 pub use lease::{BackgroundIdleCapacityLease, BackgroundLeaseRevocation};
 pub use outcome::{
     BackgroundPacingAdmittedWithDebt, BackgroundPacingDeferred, BackgroundPacingDenied,
-    BackgroundPacingOutcome, BackgroundPacingStaleRebindKind, BackgroundPacingStaleRebindRequired,
-    BackgroundPacingThrottle, BackgroundPacingViolation, BackgroundPacingYield,
-};
-pub use proof::{
-    BackgroundPacingFreshness, BackgroundPacingProgressionDrift,
-    BackgroundPacingProgressionEvidence,
+    BackgroundPacingOutcome, BackgroundPacingThrottle, BackgroundPacingViolation,
+    BackgroundPacingYield,
 };
 pub use request::{
     reject_elapsed_time_as_background_pacing_authority,
@@ -57,17 +50,14 @@ pub use test_authority::{
     blob_ingest_deferred_background_capacity_for_certification_test,
     blob_ingest_denied_background_capacity_for_certification_test,
     blob_ingest_page_write_background_capacity_for_certification_test,
-    blob_ingest_rebind_background_capacity_for_certification_test,
-    blob_ingest_stale_background_capacity_for_certification_test,
     blob_ingest_throttled_background_capacity_for_certification_test,
     blob_ingest_wal_write_background_capacity_for_certification_test,
+    blob_ingest_zero_admitted_throttle_background_capacity_for_certification_test,
     checkpoint_flush_wal_background_capacity_for_certification_test,
     execute_background_pressure_for_certification_test,
     mismatched_background_pressure_denial_for_certification_test,
     verification_deferred_background_capacity_for_certification_test,
     verification_denied_background_capacity_for_certification_test,
-    verification_rebind_background_capacity_for_certification_test,
-    verification_stale_background_capacity_for_certification_test,
     verification_throttled_background_capacity_for_certification_test,
     verification_zero_admitted_throttle_background_capacity_for_certification_test,
 };

@@ -6,6 +6,10 @@ use std::time::{Duration, Instant};
 
 use crate::external_observation::PlatformPulseLifecycleStream;
 
+use super::native_desktop_lease::NativeDesktopLease;
+
+const NATIVE_DESKTOP_LEASE_DEADLINE: Duration = Duration::from_secs(30);
+
 #[derive(Debug)]
 pub(crate) struct CargoBuiltPlatformPulse {
     executable: PathBuf,
@@ -18,6 +22,7 @@ pub(crate) struct PlatformPulseProcessLaunch {
 }
 
 pub(crate) struct LivePlatformPulseProcess {
+    _native_desktop_lease: NativeDesktopLease,
     child: Child,
     fallback_termination_required: bool,
     exit_status: Option<ExitStatus>,
@@ -34,6 +39,7 @@ pub(crate) struct EmergencyPlatformPulseExit {
 pub(crate) enum PlatformPulseProcessLaunchFailure {
     CargoExecutableNotAbsolute(PathBuf),
     CargoExecutableMissing(PathBuf),
+    NativeDesktopLease,
     Spawn(std::io::Error),
     MissingStdout {
         teardown: Result<EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure>,
@@ -58,6 +64,9 @@ impl fmt::Display for PlatformPulseProcessLaunchFailure {
             ),
             Self::CargoExecutableMissing(path) => {
                 write!(formatter, "Cargo executable is missing: {}", path.display())
+            }
+            Self::NativeDesktopLease => {
+                formatter.write_str("exclusive native desktop lease deadline elapsed")
             }
             Self::Spawn(error) => write!(formatter, "spawn product process: {error}"),
             Self::MissingStdout { teardown } => {
@@ -99,17 +108,27 @@ impl CargoBuiltPlatformPulse {
     pub(crate) fn launch(
         self,
         source_root: &Path,
+        query_source_root: &Path,
     ) -> Result<PlatformPulseProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        let desktop_wait_started = Instant::now();
+        let desktop_deadline = desktop_wait_started
+            .checked_add(NATIVE_DESKTOP_LEASE_DEADLINE)
+            .ok_or(PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
+        let native_desktop_lease = NativeDesktopLease::acquire(desktop_deadline)
+            .map_err(|_| PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
         let launch_started = Instant::now();
         let child = Command::new(&self.executable)
             .arg("--source-root")
             .arg(source_root)
+            .arg("--query-source-root")
+            .arg(query_source_root)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
             .spawn()
             .map_err(PlatformPulseProcessLaunchFailure::Spawn)?;
         let mut process = LivePlatformPulseProcess {
+            _native_desktop_lease: native_desktop_lease,
             child,
             fallback_termination_required: true,
             exit_status: None,

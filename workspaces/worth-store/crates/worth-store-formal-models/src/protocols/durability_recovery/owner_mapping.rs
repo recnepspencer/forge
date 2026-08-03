@@ -4,9 +4,8 @@ use worth_store_physical_backend::{
 };
 use worth_store_recovery_physics::{
     CheckpointBaseAdmission, CheckpointCutoverReceipt, ExecutedWalDurabilityOutcome,
-    PageFlushRecoveryReceipt, RecoveryCompletion, RedoExecutionReceipt, RedoPlanningDenial,
-    RedoPlanningDenialKind, ReopenedRecoveryArtifactAdmission,
-    UnadmittedDirtyPagePublicationDenial, UnadmittedDirtyPagePublicationDenialKind,
+    RecoveryCompletion, RedoExecutionReceipt, RedoPlanningDenial, RedoPlanningDenialKind,
+    ReopenedRecoveryArtifactAdmission,
 };
 
 use super::DurabilityRecoveryAction;
@@ -40,29 +39,9 @@ pub fn map_executed_wal_durability<P: BackendDurabilityProfile>(
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurabilityOwnerMappingDenial {
     CheckpointProfileDoesNotProveDirectorySync,
-    MissingPageLsnUncertaintyRequired,
     DirectorySyncAbortWasNotInjected,
     DirectorySyncDidNotFail,
     ReplayGenerationMismatchRequired,
-}
-
-pub const fn map_page_flush_receipt(
-    _receipt: &PageFlushRecoveryReceipt,
-) -> [DurabilityRecoveryAction; 2] {
-    [
-        DurabilityRecoveryAction::PageFlushRequested,
-        DurabilityRecoveryAction::PageFlushCompleted,
-    ]
-}
-
-pub fn map_uncertain_reopened_page(
-    denial: &UnadmittedDirtyPagePublicationDenial,
-) -> Result<DurabilityRecoveryAction, DurabilityOwnerMappingDenial> {
-    if denial.kind() == UnadmittedDirtyPagePublicationDenialKind::MissingPageLsn {
-        Ok(DurabilityRecoveryAction::PageFlushDurabilityUncertain)
-    } else {
-        Err(DurabilityOwnerMappingDenial::MissingPageLsnUncertaintyRequired)
-    }
 }
 
 pub fn map_checkpoint_cutover(

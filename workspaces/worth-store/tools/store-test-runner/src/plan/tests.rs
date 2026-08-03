@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::{TestExecutionUnit, TestPlan};
+use super::{CargoTargetDirectoryPolicy, TestExecutionUnit, TestPlan};
 use crate::catalog::TestCatalog;
 use crate::classification::CiTestLane;
 use crate::product::TestProduct;
@@ -144,6 +144,68 @@ fn every_smoke_selector_names_one_exact_binary_test() {
                 case.package, case.target, case.filter
             )));
         }
+    }
+}
+
+#[test]
+fn ui_product_marks_the_runner_compilation_for_executable_isolation() {
+    let catalog = TestCatalog::load(workspace_root()).unwrap();
+    for product in [
+        TestProduct::Ui,
+        TestProduct::Ci {
+            lane: CiTestLane::Ui,
+            shard: None,
+        },
+    ] {
+        let plan = TestPlan::build(&product, &catalog, workspace_root()).unwrap();
+        assert_eq!(
+            integration_runner(&plan).cargo_target_directory_policy(),
+            CargoTargetDirectoryPolicy::IsolateFromRunningExecutable
+        );
+    }
+}
+
+#[test]
+fn physical_reconstruction_smoke_names_every_required_behavior() {
+    let required = [
+        (
+            "hot",
+            "physical_work::serving_frame_residency::pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime",
+        ),
+        (
+            "cold",
+            "physical_work::serving_frame_residency::pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime",
+        ),
+        (
+            "refault",
+            "physical_work::serving_frame_residency::pins_distinguish_faults_hits_overpin_and_refault_without_another_runtime",
+        ),
+        (
+            "view",
+            "record_chunk_views::borrowed_access::inline_view_exposes_only_the_record_payload_and_observational_basis",
+        ),
+        (
+            "copy",
+            "record_chunk_views::bounded_copy::bounded_copies_and_views_share_one_cursor_with_exact_copy_evidence",
+        ),
+        (
+            "dirty",
+            "ordinary_writeback_failures::ordinary_candidate_tail_no_effect_is_typed_and_discards_dirty_residency",
+        ),
+        (
+            "speculative",
+            "physical_work::speculative_residency::outcomes::cold_hot_and_mixed_speculation_reconcile_work_media_and_residency_truth",
+        ),
+    ];
+    for (behavior, filter) in required {
+        assert!(
+            crate::product::smoke_cases().iter().any(|case| {
+                case.package == "worth-store"
+                    && case.target == "physical_record_journeys"
+                    && case.filter == filter
+            }),
+            "developer smoke omitted required {behavior} behavior"
+        );
     }
 }
 

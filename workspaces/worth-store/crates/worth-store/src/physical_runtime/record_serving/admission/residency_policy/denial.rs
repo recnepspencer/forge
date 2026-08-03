@@ -1,5 +1,9 @@
 pub use worth_store_buffer_pool::PhysicalResidencyDimension;
 
+/// Why a physical residency declaration could not become an admitted policy.
+///
+/// Every variant is a pre-construction configuration failure. No pool or
+/// serving runtime is created when this denial is returned.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalRecordResidencyPolicyDenial {
     MissingRequiredDimension(PhysicalResidencyDimension),

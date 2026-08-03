@@ -3,6 +3,7 @@ use super::*;
 #[test]
 fn mosaic_region_metadata_survives_freeze() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_mosaic_region_kind(
             MosaicRegionKindDescriptor::new(
                 mosaic_region_id("workspace.region.overlay"),

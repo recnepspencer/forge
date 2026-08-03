@@ -174,11 +174,6 @@ impl PhysicalWorkSemanticBasis {
     pub const fn semantic_byte_width(&self) -> usize {
         self.retained_bytes
     }
-
-    #[cfg(test)]
-    pub(in crate::physical_runtime) fn shares_admitted_state_with(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.kind, &other.kind)
-    }
 }
 
 fn require_matching_projection(

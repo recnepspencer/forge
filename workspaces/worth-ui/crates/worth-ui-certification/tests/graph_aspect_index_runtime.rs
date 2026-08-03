@@ -17,6 +17,7 @@ use worth_ui_dsl::{
 #[test]
 fn aspect_indexes_are_many_to_many_and_graph_owned() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-aspects")
                 .with_semantic_artifact_spec(first_publishing_control_spec())

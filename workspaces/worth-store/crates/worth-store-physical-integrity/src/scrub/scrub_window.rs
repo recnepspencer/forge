@@ -1,4 +1,5 @@
 use crate::ProtectedPhysicalByteView;
+use worth_store::physical_runtime::PhysicalRecordChunkBasis;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScrubMode {
@@ -74,6 +75,7 @@ pub struct ScrubWindow<'lease> {
     ordinal: ScrubWindowOrdinal,
     source: ScrubWindowSource,
     bytes: &'lease [u8],
+    store_chunk_basis: Option<PhysicalRecordChunkBasis>,
 }
 
 impl<'lease> ScrubWindow<'lease> {
@@ -85,6 +87,7 @@ impl<'lease> ScrubWindow<'lease> {
             ordinal,
             source: ScrubWindowSource::OnlineProtectedRead,
             bytes: view.as_bytes(),
+            store_chunk_basis: Some(view.basis()),
         }
     }
 
@@ -93,6 +96,7 @@ impl<'lease> ScrubWindow<'lease> {
             ordinal,
             source: ScrubWindowSource::OfflineDeclaredVerifierInput,
             bytes,
+            store_chunk_basis: None,
         }
     }
 
@@ -114,6 +118,10 @@ impl<'lease> ScrubWindow<'lease> {
 
     pub const fn is_empty(self) -> bool {
         self.bytes.is_empty()
+    }
+
+    pub(crate) const fn store_chunk_basis(self) -> Option<PhysicalRecordChunkBasis> {
+        self.store_chunk_basis
     }
 
     pub fn checksum(self) -> u64 {

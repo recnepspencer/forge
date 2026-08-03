@@ -84,9 +84,11 @@ pub use counters::{
     CounterStrengthPosture, HostileCounterEvidenceRow, HostileResourceEnvelopeObservation,
     OverExactCounterDenied, PhysicalCounterContract, PhysicalCounterEvidenceReceipt,
     PhysicalCounterEvidenceRow, PhysicalCounterExecutionSources, PhysicalCounterExpectation,
-    PhysicalExecutedCounterEvidence, PhysicalResourceEnvelope, PhysicalResourceEnvelopeObservation,
-    RequiredCounterContractSet,
+    PhysicalExecutedCounterEvidence, PhysicalResidencyEvidenceSource, PhysicalResourceEnvelope,
+    PhysicalResourceEnvelopeObservation, RequiredCounterContractSet,
 };
+#[cfg(any(test, feature = "certification-test-support"))]
+pub(crate) use counters::{observe_real_store_residency, CertificationResidencyWorkload};
 pub use coverage::{
     reject_copied_physical_isolation_simulation_harness_readiness_fields, reject_edited_matrix_row,
     reject_manual_coverage_prose, reject_missing_physical_isolation_correctness_non_claim,

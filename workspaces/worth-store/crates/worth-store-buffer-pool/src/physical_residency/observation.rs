@@ -3,12 +3,17 @@ mod allocation_events;
 #[path = "observation/resource_accounting.rs"]
 mod resource_accounting;
 
-pub(crate) use allocation_events::PhysicalResidencyAllocationEventRecorder;
-pub use allocation_events::{
-    PhysicalResidencyAllocationEventCounters, PhysicalResidencyAllocationEventObserver,
-    PhysicalResidencyAllocationEventSnapshot,
+pub(crate) use allocation_events::{
+    PhysicalResidencyActualAllocationUnits, PhysicalResidencyAllocationActualization,
+    PhysicalResidencyAllocationEventRecorder, PhysicalResidencyRequestedAllocationUnits,
 };
-pub(crate) use resource_accounting::PhysicalResidencyAccounting;
+pub use allocation_events::{
+    PhysicalResidencyAllocationBoundaryEvent, PhysicalResidencyAllocationBoundaryKind,
+    PhysicalResidencyAllocationEventCounters, PhysicalResidencyAllocationEventObserver,
+    PhysicalResidencyAllocationEventSnapshot, PhysicalResidencyAllocationOperation,
+    PhysicalResidencyAllocationTrace,
+};
+pub(crate) use resource_accounting::{PhysicalFrameRemoval, PhysicalResidencyAccounting};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct PhysicalResidencyCounters {

@@ -1,5 +1,6 @@
 use worth_ui_host_contract::{
-    UiMountedCompletedEffects, UiMountedFrameIdentity, UiMountedPresentationAttemptIdentity,
+    UiHostPresentationEpoch, UiHostSurfaceIdentity, UiMountedCompletedEffects,
+    UiMountedFrameIdentity, UiMountedPresentationAttemptIdentity, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration,
 };
 
@@ -26,7 +27,10 @@ pub struct UiMountedPresentationWitness {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedSurfacePresentationReceipt {
+    semantic_surface: UiSemanticSurfaceIdentity,
+    host_surface: UiHostSurfaceIdentity,
     binding: UiSurfaceBindingGeneration,
+    epoch: UiHostPresentationEpoch,
     effects: UiMountedCompletedEffects,
     adapter_cost: worth_ui_host_contract::UiHostPresentationCostReport,
 }
@@ -134,12 +138,16 @@ impl UiMountedPresentationWitness {
 
 impl UiMountedSurfacePresentationReceipt {
     pub(super) fn new(
-        binding: UiSurfaceBindingGeneration,
+        requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
+        epoch: UiHostPresentationEpoch,
         effects: UiMountedCompletedEffects,
         adapter_cost: worth_ui_host_contract::UiHostPresentationCostReport,
     ) -> Self {
         Self {
-            binding,
+            semantic_surface: requirement.semantic_surface(),
+            host_surface: requirement.host_surface(),
+            binding: requirement.binding(),
+            epoch,
             effects,
             adapter_cost,
         }
@@ -147,6 +155,18 @@ impl UiMountedSurfacePresentationReceipt {
 
     pub fn binding(&self) -> UiSurfaceBindingGeneration {
         self.binding
+    }
+
+    pub fn semantic_surface(&self) -> UiSemanticSurfaceIdentity {
+        self.semantic_surface
+    }
+
+    pub fn host_surface(&self) -> UiHostSurfaceIdentity {
+        self.host_surface
+    }
+
+    pub fn epoch(&self) -> UiHostPresentationEpoch {
+        self.epoch
     }
 
     pub fn effects(&self) -> &UiMountedCompletedEffects {

@@ -1,11 +1,6 @@
 use eframe::egui;
-use std::fmt;
-use worth_ui::facade::app::{
-    UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationReplacementDenial,
-    WorthUiNativeApplicationReplacementOutcome, WorthUiNativeApplicationShell,
-    WorthUiNativeApplicationShellLaunchDenial,
-};
-use worth_ui::facade::source::{WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision};
+use worth_ui::facade::app::{UiMountedFrameOutcome, WorthUiApp, WorthUiNativeApplicationShell};
+use worth_ui::facade::source::WorthUiSourcePackageRevision;
 use worth_ui_host_egui::WorthUiHostEgui;
 
 use crate::application::{PlatformPulsePreparationDenial, PreparedPlatformPulse};
@@ -13,53 +8,39 @@ use crate::launch_configuration::AdmittedPlatformPulseLaunchConfiguration;
 use crate::lifecycle_observation_publication::{
     PlatformPulseObservationPublicationDenial, PlatformPulseObservationPublisher,
 };
-use crate::source_watch::{
-    PlatformPulseSourceEvent, PlatformPulseSourceWatch, PlatformPulseSourceWatchShutdownDenial,
+use crate::source_watch::{PlatformPulseSourceWatch, PlatformPulseSourceWatchShutdownDenial};
+use crate::visual_identity_execution::{
+    PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
+
+mod first_frame;
+mod input;
+#[cfg(test)]
+mod input_reachability_tests;
+mod projection;
+mod query;
+mod rebind;
+mod source_rebind;
+mod terminal_error;
+
+use projection::PlatformPulseProjectionRebindDenial;
+use terminal_error::PlatformPulseTerminalError;
 
 pub(crate) struct PlatformPulseNativeFrame {
     prepared: Option<WorthUiApp>,
     initial_source: Option<WorthUiSourcePackageRevision>,
     shell: Option<WorthUiNativeApplicationShell>,
     source_watch: Option<PlatformPulseSourceWatch>,
+    query_watch: Option<crate::query_source::PlatformPulseExternalValueWatch>,
+    query_lifecycle: Option<crate::query_source::PlatformPulseQueryLifecycle>,
     host: Option<WorthUiHostEgui>,
+    native_input: input::PlatformPulseNativeInputIngress,
     publisher: PlatformPulseObservationPublisher,
     terminal_error: Option<PlatformPulseTerminalError>,
     observation_error: Option<PlatformPulseObservationPublicationDenial>,
     terminal_reported: bool,
+    visual_identity: PlatformPulseVisualIdentityExecution,
     tick: u64,
-}
-
-enum PlatformPulseTerminalError {
-    Preparation(PlatformPulsePreparationDenial),
-    NativeSurfaceLaunch(WorthUiNativeApplicationShellLaunchDenial),
-    SourceWatcher(WorthUiFilesystemWatcherDenial),
-    FrameExecution,
-    UnexpectedInitialFrame,
-    NativeReplacement(WorthUiNativeApplicationReplacementDenial),
-    ObservationPublication,
-}
-
-impl fmt::Display for PlatformPulseTerminalError {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Preparation(denial) => {
-                write!(formatter, "application preparation: {denial:?}")
-            }
-            Self::NativeSurfaceLaunch(denial) => {
-                write!(formatter, "native surface launch: {denial:?}")
-            }
-            Self::SourceWatcher(denial) => write!(formatter, "source watcher: {denial:?}"),
-            Self::FrameExecution => formatter.write_str("mounted frame execution"),
-            Self::UnexpectedInitialFrame => formatter.write_str("initial frame did not publish"),
-            Self::NativeReplacement(denial) => {
-                write!(formatter, "native application replacement: {denial:?}")
-            }
-            Self::ObservationPublication => {
-                formatter.write_str("lifecycle observation publication")
-            }
-        }
-    }
 }
 
 impl PlatformPulseNativeFrame {
@@ -77,11 +58,15 @@ impl PlatformPulseNativeFrame {
                     initial_source: None,
                     shell: None,
                     source_watch: None,
+                    query_watch: None,
+                    query_lifecycle: None,
                     host: None,
+                    native_input: input::PlatformPulseNativeInputIngress::default(),
                     publisher,
                     terminal_error: Some(PlatformPulseTerminalError::Preparation(denial)),
                     observation_error,
                     terminal_reported: false,
+                    visual_identity: PlatformPulseVisualIdentityExecution::new(),
                     tick: 0,
                 }
             }
@@ -97,11 +82,15 @@ impl PlatformPulseNativeFrame {
             initial_source: Some(prepared.initial_source),
             shell: None,
             source_watch: Some(PlatformPulseSourceWatch::spawn(prepared.watcher)),
+            query_watch: Some(prepared.query_watcher),
+            query_lifecycle: Some(prepared.query_lifecycle),
             host: Some(prepared.host),
+            native_input: input::PlatformPulseNativeInputIngress::default(),
             publisher,
             terminal_error: None,
             observation_error: None,
             terminal_reported: false,
+            visual_identity: PlatformPulseVisualIdentityExecution::new(),
             tick: 0,
         }
     }
@@ -111,7 +100,10 @@ impl PlatformPulseNativeFrame {
             return;
         };
         match prepared.launch_native_surface() {
-            Ok(shell) => self.shell = Some(shell),
+            Ok(shell) => {
+                self.shell = Some(shell);
+                self.publish_initial_projection();
+            }
             Err(denial) => {
                 let observation = self.publisher.native_surface_launch_failure(&denial);
                 self.fail(
@@ -122,79 +114,14 @@ impl PlatformPulseNativeFrame {
         }
     }
 
-    fn poll_source(&mut self) {
-        while self.terminal_error.is_none() {
-            let Some(event) = self
-                .source_watch
-                .as_ref()
-                .and_then(PlatformPulseSourceWatch::try_next)
-            else {
-                return;
-            };
-            match event {
-                PlatformPulseSourceEvent::Settled(snapshot) => self.replace_from(snapshot),
-                PlatformPulseSourceEvent::Failed(denial) => {
-                    let observation = self.publisher.filesystem_watcher_failure(&denial);
-                    self.fail(
-                        PlatformPulseTerminalError::SourceWatcher(denial),
-                        observation,
-                    );
-                }
-            }
-        }
-    }
-
-    fn replace_from(
-        &mut self,
-        snapshot: Box<worth_ui::facade::source::WorthUiSettledSourceSnapshot>,
-    ) {
-        let Some(shell) = self.shell.as_mut() else {
-            return;
-        };
-        let source = snapshot.source_revision().clone();
-        let submission = match (*snapshot).lower_to_candidate_submission(shell.capabilities()) {
-            Ok(submission) => submission,
-            Err(denial) => {
-                let observation = self.publisher.preserved_predecessor(&source, &denial);
-                if let Err(error) = observation {
-                    self.fail(
-                        PlatformPulseTerminalError::ObservationPublication,
-                        Err(error),
-                    );
-                } else {
-                    eprintln!(
-                        "WORTH UI platform pulse kept its predecessor after source denial: {denial:?}"
-                    );
-                }
-                return;
-            }
-        };
-        self.tick = self.tick.saturating_add(1);
-        let deadline = self.tick.saturating_add(1);
-        match shell.replace_application(submission, deadline, self.tick) {
-            Ok(WorthUiNativeApplicationReplacementOutcome::Published {
-                application,
-                mounted,
-            }) => {
-                if let Err(error) = self.publisher.replacement(&source, &application, &mounted) {
-                    self.fail(
-                        PlatformPulseTerminalError::ObservationPublication,
-                        Err(error),
-                    );
-                }
-            }
-            Ok(WorthUiNativeApplicationReplacementOutcome::SemanticNoOp(_)) => {}
-            Err(denial) => {
-                let observation = self.publisher.native_replacement_failure(&denial);
-                self.fail(
-                    PlatformPulseTerminalError::NativeReplacement(denial),
-                    observation,
-                );
-            }
-        }
-    }
-
     fn present(&mut self) {
+        // The permanent pulse has no animation-driven ordinary frame loop.
+        // Once the first publication exists, explicit overlay and replacement
+        // transitions own every later presentation attempt. Re-presenting here
+        // could supersede an exact in-flight visual capture between polls.
+        if self.initial_source.is_none() {
+            return;
+        }
         let Some(shell) = self.shell.as_mut() else {
             return;
         };
@@ -208,11 +135,18 @@ impl PlatformPulseNativeFrame {
                 let Some(source) = self.initial_source.take() else {
                     return;
                 };
-                if let Err(error) = self.publisher.first_frame(&source, &publication) {
+                if let Err(error) = self.publish_first_frame(&source, &publication) {
                     self.fail(
                         PlatformPulseTerminalError::ObservationPublication,
                         Err(error),
                     );
+                    return;
+                }
+                if let Err(denial) = self
+                    .visual_identity
+                    .arm_after_first_frame(std::time::Instant::now())
+                {
+                    self.fail_visual_identity(denial);
                 }
             }
             Ok(UiMountedFrameOutcome::Unchanged(_)) if self.initial_source.is_none() => {}
@@ -221,11 +155,19 @@ impl PlatformPulseNativeFrame {
             }
             Ok(outcome) => {
                 let observation = self.publisher.frame_outcome_failure(&outcome);
-                self.fail(PlatformPulseTerminalError::FrameExecution, observation);
+                self.fail(
+                    PlatformPulseTerminalError::FrameExecution(frame_outcome_label(&outcome)),
+                    observation,
+                );
             }
             Err(denial) => {
+                let detail = frame_stop_label(&denial);
                 let observation = self.publisher.frame_execution_failure(&denial);
-                self.fail(PlatformPulseTerminalError::FrameExecution, observation);
+                drop(denial);
+                self.fail(
+                    PlatformPulseTerminalError::FrameExecution(detail),
+                    observation,
+                );
             }
         }
     }
@@ -237,6 +179,29 @@ impl PlatformPulseNativeFrame {
     ) {
         self.terminal_error = Some(error);
         self.observation_error = observation.err();
+    }
+
+    fn advance_visual_identity(&mut self) {
+        let Some(shell) = self.shell.as_mut() else {
+            return;
+        };
+        let result = self.visual_identity.advance(
+            shell,
+            &self.publisher,
+            &mut self.tick,
+            std::time::Instant::now(),
+        );
+        if let Err(denial) = result {
+            self.fail_visual_identity(denial);
+        }
+    }
+
+    fn fail_visual_identity(&mut self, denial: PlatformPulseVisualExecutionDenial) {
+        let observation = self.publisher.visual_identity_failure();
+        self.fail(
+            PlatformPulseTerminalError::VisualIdentity(denial),
+            observation,
+        );
     }
 
     fn report_terminal(&mut self, context: &egui::Context) {
@@ -255,14 +220,35 @@ impl PlatformPulseNativeFrame {
 }
 
 impl eframe::App for PlatformPulseNativeFrame {
-    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+    fn raw_input_hook(&mut self, _context: &egui::Context, raw_input: &mut egui::RawInput) {
+        let result = self
+            .native_input
+            .observe(self.host.as_ref(), raw_input, &self.publisher);
+        if let Err(denial) = result {
+            match denial {
+                input::PlatformPulseNativeInputIngressDenial::Adapter {
+                    reason,
+                    publication,
+                } => self.fail(PlatformPulseTerminalError::NativeInput(reason), publication),
+                input::PlatformPulseNativeInputIngressDenial::Publication(error) => self.fail(
+                    PlatformPulseTerminalError::ObservationPublication,
+                    Err(error),
+                ),
+            }
+        }
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let context = ui.ctx();
         if let Some(host) = &self.host {
             host.repaint_retained_surfaces();
         }
         if self.terminal_error.is_none() {
             self.ensure_launched();
+            self.poll_query();
             self.poll_source();
             self.present();
+            self.advance_visual_identity();
         }
         if self.terminal_error.is_some() {
             self.report_terminal(context);
@@ -278,6 +264,14 @@ impl Drop for PlatformPulseNativeFrame {
             .source_watch
             .take()
             .map(PlatformPulseSourceWatch::shutdown);
+        let query_watcher = self
+            .query_watch
+            .take()
+            .map(crate::query_source::PlatformPulseExternalValueWatch::shutdown);
+        let query = self
+            .query_lifecycle
+            .take()
+            .map(crate::query_source::PlatformPulseQueryLifecycle::close);
         let application = self
             .shell
             .take()
@@ -285,16 +279,18 @@ impl Drop for PlatformPulseNativeFrame {
         if self.terminal_error.is_some() {
             return;
         }
-        let publication = match (watcher, application) {
-            (Some(Ok(watcher)), Some(application)) => {
-                self.publisher.shutdown(&watcher, application)
+        let publication = match (watcher, application, query, query_watcher) {
+            (Some(Ok(watcher)), Some(application), Some(Ok(query)), Some(Ok(query_watcher))) => {
+                self.publisher
+                    .shutdown(&watcher, query, query_watcher, application)
             }
-            (Some(Err(PlatformPulseSourceWatchShutdownDenial::Watcher(denial))), _) => {
+            (Some(Err(PlatformPulseSourceWatchShutdownDenial::Watcher(denial))), _, _, _) => {
                 self.publisher.filesystem_watcher_failure(&denial)
             }
-            (Some(Err(PlatformPulseSourceWatchShutdownDenial::WorkerPanicked)), _) => {
+            (Some(Err(PlatformPulseSourceWatchShutdownDenial::WorkerPanicked)), _, _, _) => {
                 self.publisher.source_worker_panicked()
             }
+            (_, _, Some(Err(_)), _) => self.publisher.query_shutdown_failure(),
             _ => return,
         };
         if let Err(error) = publication {
@@ -318,6 +314,40 @@ fn publish_preparation_failure(
         }
         PlatformPulsePreparationDenial::InitialSourceLowering(denial) => {
             publisher.candidate_submission_failure(denial)
+        }
+        PlatformPulsePreparationDenial::QueryInstallation(_)
+        | PlatformPulsePreparationDenial::QueryRegistration(_) => {
+            publisher.query_preparation_failure()
+        }
+    }
+}
+
+fn frame_outcome_label(outcome: &UiMountedFrameOutcome) -> String {
+    match outcome {
+        UiMountedFrameOutcome::Published(_) => "published".to_owned(),
+        UiMountedFrameOutcome::Unchanged(_) => "unchanged".to_owned(),
+        UiMountedFrameOutcome::Reconciled(_) => "reconciled".to_owned(),
+        UiMountedFrameOutcome::RejectedBeforeEffects(_) => "rejected-before-effects".to_owned(),
+        UiMountedFrameOutcome::InFlight(_) => "in-flight".to_owned(),
+        UiMountedFrameOutcome::PresentationIndeterminate(_) => {
+            "presentation-indeterminate".to_owned()
+        }
+        UiMountedFrameOutcome::RetentionDenied(_) => "retention-denied".to_owned(),
+        UiMountedFrameOutcome::AdmissionDenied(_) => "admission-denied".to_owned(),
+        UiMountedFrameOutcome::CompletionDenied(_) => "completion-denied".to_owned(),
+    }
+}
+
+fn frame_stop_label(stop: &worth_ui::facade::app::WorthUiMountedFrameExecutionStop<'_>) -> String {
+    match stop {
+        worth_ui::facade::app::WorthUiMountedFrameExecutionStop::PublicationLease(_) => {
+            "publication-lease".to_owned()
+        }
+        worth_ui::facade::app::WorthUiMountedFrameExecutionStop::FrameworkTransition(_) => {
+            "framework-transition".to_owned()
+        }
+        worth_ui::facade::app::WorthUiMountedFrameExecutionStop::Preparation(denial) => {
+            format!("preparation:{denial:?}")
         }
     }
 }

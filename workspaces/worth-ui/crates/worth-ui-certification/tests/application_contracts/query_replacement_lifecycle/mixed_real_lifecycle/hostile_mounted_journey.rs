@@ -25,7 +25,9 @@ use super::mounted_successor::{
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 use crate::host_observation_fixture::{batch, pointer, report, source};
 use crate::mounted_application_lifecycle::known_empty_surface_world::profile;
-use crate::mounted_application_lifecycle::published_mounted_world::PresentedObservationBasis;
+use crate::mounted_application_lifecycle::published_mounted_world::{
+    presented_epoch, PresentedObservationBasis,
+};
 
 const SETTLEMENT_TIMEOUT: Duration = Duration::from_secs(5);
 const SOURCE: &str = "app/main.wui";
@@ -167,7 +169,7 @@ fn one_real_predecessor_survives_ordered_hostile_seams_until_each_is_resolved() 
         .settle(SETTLEMENT_TIMEOUT)
         .expect("invalid stable bytes remain observable source truth");
     assert!(denied_source
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_err());
     assert_eq!(
         session.current_mounted_publication(),
@@ -178,7 +180,7 @@ fn one_real_predecessor_survives_ordered_hostile_seams_until_each_is_resolved() 
         .settle(SETTLEMENT_TIMEOUT)
         .expect("restored real bytes settle independently");
     assert!(restored_source
-        .lower_to_candidate_submission(session.capabilities())
+        .attempt_candidate_for_certification(session.capabilities())
         .is_ok());
     let live = publish_all_lane_frame(&mut session);
     assert_eq!(live.predecessor(), Some(after_surface_restore.frame()));
@@ -235,6 +237,7 @@ fn prove_observation_denials_are_terminal(
         .node_receipt_identity();
     let basis = PresentedObservationBasis {
         frame: publication.frame(),
+        epoch: presented_epoch(session, publication.frame(), binding),
         instance,
         receipt,
     };

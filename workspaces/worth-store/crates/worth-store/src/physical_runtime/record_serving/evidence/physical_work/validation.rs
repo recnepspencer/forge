@@ -3,12 +3,12 @@ use std::collections::BTreeSet;
 use crate::physical_runtime::{PhysicalWorkIdentity, PhysicalWorkShutdownObservation};
 
 use super::{
-    super::super::c6_handoff::C6PhysicalWorkHandoffIdentity, PhysicalWorkArtifactBinding,
+    identity::PhysicalWorkCourtroomIdentity, PhysicalWorkArtifactBinding,
     PhysicalWorkCourtroomFinding, PhysicalWorkMutantLocalization, PhysicalWorkOracleEvidence,
 };
 
 pub(super) fn validate_execution(
-    expected: C6PhysicalWorkHandoffIdentity,
+    expected: PhysicalWorkCourtroomIdentity,
     records: &[crate::physical_runtime::PhysicalWorkCausalRecord],
     causal_overflow: u64,
     terminal: &PhysicalWorkShutdownObservation,
@@ -43,7 +43,7 @@ pub(super) fn validate_execution(
 }
 
 pub(super) fn validate_identity(
-    expected: C6PhysicalWorkHandoffIdentity,
+    expected: PhysicalWorkCourtroomIdentity,
     actual: PhysicalWorkIdentity,
     findings: &mut Vec<PhysicalWorkCourtroomFinding>,
 ) {

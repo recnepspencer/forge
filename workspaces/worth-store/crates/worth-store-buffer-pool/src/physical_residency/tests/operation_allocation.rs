@@ -7,9 +7,11 @@ fn candidate_dirty_posture_and_operation_allocations_are_exact() {
     let pool = PhysicalResidencyPool::open(identity, limits(1024, 2, 1, grant_bytes, 4)).unwrap();
     let key = PhysicalFrameKey::new(identity, coordinate(1, 20));
     let grant = pool
-        .begin_operation(WRITE_SCOPE, nonzero_bytes(grant_bytes))
+        .begin_foreground_write_operation(nonzero_bytes(grant_bytes))
         .unwrap();
-    let dirty = pool.admit_dirty(&grant, key, vec![9; 20]).unwrap();
+    let dirty = pool
+        .materialize_dirty_candidate(&grant, key, |bytes| bytes.fill(9))
+        .unwrap();
     assert_eq!(pool.counters().dirty_frames(), 1);
     assert_eq!(grant.bytes(), grant_bytes);
     let observation = grant.observation();
@@ -54,12 +56,15 @@ fn candidate_dirty_posture_and_operation_allocations_are_exact() {
 #[test]
 fn same_store_foreign_incarnation_grant_opens_no_admission_surface() {
     let identity = store(6);
-    let operation_bytes = candidate_batch_bytes(1);
+    let operation_bytes = candidate_batch_bytes(1) + 20;
     let foreign_pool =
         PhysicalResidencyPool::open(identity, limits(1024, 2, 1, operation_bytes, 4)).unwrap();
     let governed_pool =
         PhysicalResidencyPool::open(identity, limits(1024, 2, 1, operation_bytes, 4)).unwrap();
-    let foreign_grant = allocation(&foreign_pool, WRITE_SCOPE);
+    let foreign_grant = candidate_allocation(&foreign_pool, 1);
+    let foreign_read = foreign_pool
+        .begin_foreground_read_operation(nonzero_bytes(20))
+        .unwrap();
     let key = PhysicalFrameKey::new(identity, coordinate(1, 20));
     let candidate = PhysicalCandidateFrameKey::fragment(key);
     let before = governed_pool.counters();
@@ -70,7 +75,7 @@ fn same_store_foreign_incarnation_grant_opens_no_admission_surface() {
     );
     assert_eq!(
         governed_pool
-            .admit_dirty(&foreign_grant, key, vec![9; 20])
+            .materialize_dirty_candidate(&foreign_grant, key, |bytes| bytes.fill(9))
             .unwrap_err(),
         PhysicalResidencyDenial::AllocationGrantMismatch
     );
@@ -82,7 +87,7 @@ fn same_store_foreign_incarnation_grant_opens_no_admission_surface() {
     );
     assert_eq!(
         governed_pool
-            .begin_speculative(&foreign_grant, PhysicalSpeculativeWorkKind::WriteBehind, 1,)
+            .admit_prefetch(foreign_read, key.coordinate())
             .unwrap_err(),
         PhysicalResidencyDenial::AllocationGrantMismatch
     );
@@ -94,8 +99,8 @@ fn same_store_foreign_incarnation_grant_opens_no_admission_surface() {
     assert_eq!(after.dirty_frames(), before.dirty_frames());
     assert_eq!(after.candidate_frames(), before.candidate_frames());
     assert_eq!(
-        after.speculative_attempts(PhysicalSpeculativeWorkKind::WriteBehind),
-        before.speculative_attempts(PhysicalSpeculativeWorkKind::WriteBehind)
+        after.speculative_attempts(PhysicalSpeculativeWorkKind::Prefetch),
+        before.speculative_attempts(PhysicalSpeculativeWorkKind::Prefetch)
     );
 }
 
@@ -107,8 +112,8 @@ fn foreign_incarnation_authority_wins_over_malformed_candidate_inputs() {
         PhysicalResidencyPool::open(identity, limits(1024, 2, 1, operation_bytes, 4)).unwrap();
     let governed_pool =
         PhysicalResidencyPool::open(identity, limits(1024, 2, 1, operation_bytes, 4)).unwrap();
-    let foreign_grant = allocation(&foreign_pool, WRITE_SCOPE);
-    let governed_grant = candidate_allocation(&governed_pool, WRITE_SCOPE, 1);
+    let foreign_grant = candidate_allocation(&foreign_pool, 1);
+    let governed_grant = candidate_allocation(&governed_pool, 1);
     let declared_key = PhysicalFrameKey::new(identity, coordinate(1, 20));
     let declared_candidate = PhysicalCandidateFrameKey::fragment(declared_key);
     let batch = governed_pool
@@ -118,7 +123,7 @@ fn foreign_incarnation_authority_wins_over_malformed_candidate_inputs() {
 
     assert_eq!(
         governed_pool
-            .admit_dirty(&foreign_grant, declared_key, vec![9; 19])
+            .materialize_dirty_candidate(&foreign_grant, declared_key, |bytes| bytes.fill(9))
             .unwrap_err(),
         PhysicalResidencyDenial::AllocationGrantMismatch
     );
@@ -132,7 +137,9 @@ fn undersized_grant_denies_before_candidate_metadata_or_publication_activity() {
     let identity = store(8);
     let demand = candidate_batch_bytes(1);
     let pool = PhysicalResidencyPool::open(identity, limits(1024, 2, 1, demand, 4)).unwrap();
-    let tiny = pool.begin_operation(WRITE_SCOPE, NonZeroU64::MIN).unwrap();
+    let tiny = pool
+        .begin_foreground_write_operation(NonZeroU64::MIN)
+        .unwrap();
     let candidate =
         PhysicalCandidateFrameKey::fragment(PhysicalFrameKey::new(identity, coordinate(1, 20)));
     let before = pool.counters();
@@ -166,7 +173,7 @@ fn undersized_grant_denies_before_candidate_metadata_or_publication_activity() {
     assert_eq!(after.denials(), before.denials() + 1);
     drop(tiny);
 
-    let exact = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let exact = candidate_allocation(&pool, 1);
     let batch = pool.reserve_candidate_frames(&exact, &[candidate]).unwrap();
     drop(batch);
     drop(exact);
@@ -183,10 +190,7 @@ fn independent_batches_cannot_double_spend_one_grant_and_release_exactly() {
         PhysicalResidencyPool::open(identity, limits(1024, 2, 1, one_two_candidate_batch, 4))
             .unwrap();
     let grant = pool
-        .begin_operation(
-            WRITE_SCOPE,
-            NonZeroU64::new(one_two_candidate_batch).unwrap(),
-        )
+        .begin_foreground_write_operation(NonZeroU64::new(one_two_candidate_batch).unwrap())
         .unwrap();
     let first =
         PhysicalCandidateFrameKey::fragment(PhysicalFrameKey::new(identity, coordinate(1, 20)));
@@ -227,7 +231,7 @@ fn candidate_projection_admission_is_linearized_against_pool_close() {
     let identity = store(10);
     let demand = candidate_batch_bytes(1);
     let pool = PhysicalResidencyPool::open(identity, limits(1024, 2, 1, demand, 4)).unwrap();
-    let grant = candidate_allocation(&pool, WRITE_SCOPE, 1);
+    let grant = candidate_allocation(&pool, 1);
     let candidate =
         PhysicalCandidateFrameKey::fragment(PhysicalFrameKey::new(identity, coordinate(1, 20)));
     pool.close();
@@ -253,7 +257,7 @@ fn candidate_projection_admission_is_linearized_against_pool_close() {
     assert_eq!(pool.counters().active_operation_bytes(), 0);
 
     let racing_pool = PhysicalResidencyPool::open(identity, limits(1024, 2, 1, demand, 4)).unwrap();
-    let racing_grant = candidate_allocation(&racing_pool, WRITE_SCOPE, 1);
+    let racing_grant = candidate_allocation(&racing_pool, 1);
     let admission = racing_pool
         .begin_candidate_batch(&racing_grant, NonZeroUsize::MIN)
         .unwrap();

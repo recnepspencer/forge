@@ -40,8 +40,9 @@ pub(crate) use request_identity::SignalRuntimeThreadAffinityError;
 pub use request_identity::{
     AdmittedBridgeAsyncRequestIdentity, BridgeAsyncInFlightRequestIdentity,
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestBasisBindingIdentity,
-    BridgeAsyncRequestFamilyAdmission, BridgeAsyncRequestIdentityCounters,
-    BridgeAsyncRequestIdentityRejection, BridgeAsyncRequestIdentityRejectionKind,
+    BridgeAsyncRequestFamilyAdmission, BridgeAsyncRequestIdentity,
+    BridgeAsyncRequestIdentityCounters, BridgeAsyncRequestIdentityRejection,
+    BridgeAsyncRequestIdentityRejectionKind, BridgeAsyncRequestRuntimeIdentity,
     BridgeAsyncRequestSubscriptionInstance, BridgeAsyncRequestSubscriptionInstanceIdentity,
     BridgeAsyncRequestSubscriptionInstanceKind, BridgeAsyncRequestTruthViewBasis,
     BridgeAsyncRequestTruthViewBasisIdentity, BridgeAsyncRequestTruthViewBasisKind,

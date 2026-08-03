@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use super::workspace_source_inventory::WorkspaceSourceInventory;
 use syn::{Item, UseTree, Visibility};
 
+mod role_purity_inventory;
+
 const FORBIDDEN_PUBLIC_MODULE_NAMES: [&str; 7] = [
     "internal", "common", "helpers", "utils", "data", "manager", "debug",
 ];
@@ -30,101 +32,7 @@ pub fn audit_inspection_public_module_role_purity(
     inventory: &WorkspaceSourceInventory,
 ) -> Vec<String> {
     let inspection_root = inventory.absolute_path("crates/worth-ui-inspection/src");
-    let expected_exports = [
-        (
-            "facade/mod.rs",
-            BTreeSet::from([
-                "RUNTIME_INSPECTION_SCOPE_INVENTORY".to_string(),
-                "UiInspectionScopeInventory".to_string(),
-            ]),
-        ),
-        (
-            "query/mod.rs",
-            BTreeSet::from([
-                "UiEvidenceBudget".to_string(),
-                "UiEvidenceLinkKind".to_string(),
-                "UiEvidenceRichness".to_string(),
-                "UiAllocationPlanningQuestion".to_string(),
-                "UiInspectionAspectRelevanceDetail".to_string(),
-                "UiInspectionEvidenceSource".to_string(),
-                "UiInspectionObligationRelevanceDetail".to_string(),
-                "UiInspectionQuery".to_string(),
-                "UiInspectionRelevance".to_string(),
-                "UiInspectionRelevanceAdmission".to_string(),
-                "UiInspectionRelevanceOutcome".to_string(),
-                "UiInspectionTargetClass".to_string(),
-                "UiRelevanceFamily".to_string(),
-                "UiRelevanceFilter".to_string(),
-            ]),
-        ),
-        (
-            "target/mod.rs",
-            BTreeSet::from([
-                "UiAuthoredSourceProvenanceRef".to_string(),
-                "UiInspectionAspectName".to_string(),
-                "UiInspectionDeclarationIdentity".to_string(),
-                "UiInspectionTarget".to_string(),
-                "UiSourceArtifactGeneration".to_string(),
-                "UiSourceArtifactIdentity".to_string(),
-            ]),
-        ),
-        (
-            "scope/mod.rs",
-            BTreeSet::from(["UiInspectionScope".to_string()]),
-        ),
-        (
-            "receipt/mod.rs",
-            BTreeSet::from([
-                "UiInspectionAiHarnessLane".to_string(),
-                "UiInspectionClosedSemanticLane".to_string(),
-                "UiInspectionClosureReport".to_string(),
-                "UiInspectionCloseoutGuarantee".to_string(),
-                "UiInspectionCloseoutNonGoal".to_string(),
-                "UiInspectionCloseoutReport".to_string(),
-                "UiInspectionCostLane".to_string(),
-                "UiInspectionCostReceipt".to_string(),
-                "UiInspectionDerivedIndexLane".to_string(),
-                "UiInspectionMeasurementBasisInput".to_string(),
-                "UiInspectionMeasurementBasisPosture".to_string(),
-                "UiInspectionMeasurementBasisSource".to_string(),
-                "UiInspectionMeasurementChildIntrinsicSource".to_string(),
-                "UiInspectionMeasurementDenialPosture".to_string(),
-                "UiInspectionMeasurementDependencyLineageEntry".to_string(),
-                "UiInspectionMeasurementDependencyLineageKind".to_string(),
-                "UiInspectionMeasurementEvidenceCategory".to_string(),
-                "UiInspectionMeasurementEvidenceSlot".to_string(),
-                "UiInspectionMeasurementEvidenceView".to_string(),
-                "UiInspectionMeasurementEvidenceViewInput".to_string(),
-                "UiInspectionMeasurementFailureSource".to_string(),
-                "UiInspectionMeasurementGenerationCompatibility".to_string(),
-                "UiInspectionMeasurementNeighborhoodClassHint".to_string(),
-                "UiInspectionMeasurementOwnershipPosture".to_string(),
-                "UiInspectionMeasurementQueryFactFamily".to_string(),
-                "UiInspectionMeasurementQueryUnsupportedReason".to_string(),
-                "UiInspectionQueryWorldCompatibilityFailure".to_string(),
-                "UiInspectionRefLifecycleLane".to_string(),
-                "UiInspectionScopeSupportRow".to_string(),
-                "UiInspectionSliceLane".to_string(),
-                "UiInspectionSupportReport".to_string(),
-            ]),
-        ),
-        (
-            "posture/mod.rs",
-            BTreeSet::from([
-                "UiInspectionAdmissionPosture".to_string(),
-                "UiInspectionDeferredPosture".to_string(),
-                "UiInspectionDiagnosticOnlyPosture".to_string(),
-                "UiInspectionMilestoneExpectation".to_string(),
-                "UiInspectionPosture".to_string(),
-                "UiInspectionSupportPosture".to_string(),
-                "UiInspectionSupportReason".to_string(),
-                "UiInspectionSupportStatus".to_string(),
-                "UiInspectionSupportWorld".to_string(),
-                "UiInspectionUnsupportedPosture".to_string(),
-                "UiInspectionWrongWorldPosture".to_string(),
-            ]),
-        ),
-    ];
+    let expected_exports = role_purity_inventory::expected_exports();
     let mut violations = Vec::new();
 
     for (relative_path, expected_names) in expected_exports {
@@ -178,61 +86,76 @@ pub fn audit_inspection_future_artifact_seed_topology(
             inspection_root.join("receipt/evidence/inspector/mod.rs"),
         ),
     ];
-    let mut violations = Vec::new();
-
-    for (module_name, module_path) in &expected_seed_modules {
-        if inventory.source(module_path).is_none() {
-            violations.push(format!(
-                "{} is missing; future {module_name} inspection artifacts lack an honest internal home",
-                module_path.display()
-            ));
-        }
-    }
-
-    let parsed = parse_rust_file(inventory, &receipt_mod);
-    for (module_name, _) in &expected_seed_modules {
-        let has_private_module = parsed.items.iter().any(|item| match item {
-            Item::Mod(item_mod) => {
-                item_mod.ident == *module_name && !matches!(item_mod.vis, Visibility::Public(_))
-            }
-            _ => false,
-        });
-        if !has_private_module {
-            violations.push(format!(
-                "{} must declare a private `{module_name}` child module as the future {module_name} inspection landing zone",
-                receipt_mod.display()
-            ));
-        }
-    }
-
-    for (module_name, module_path) in &expected_evidence_seed_modules {
-        if inventory.source(module_path).is_none() {
-            violations.push(format!(
-                "{} is missing; future {module_name} evidence lacks one obvious typed substrate home",
-                module_path.display()
-            ));
-        }
-    }
-
-    let parsed_evidence = parse_rust_file(inventory, &evidence_mod);
-    for (module_name, _) in &expected_evidence_seed_modules {
-        let has_private_module = parsed_evidence.items.iter().any(|item| match item {
-            Item::Mod(item_mod) => {
-                item_mod.ident == *module_name && !matches!(item_mod.vis, Visibility::Public(_))
-            }
-            _ => false,
-        });
-        if !has_private_module {
-            violations.push(format!(
-                "{} must declare a private `{module_name}` child module as the future {module_name} evidence landing zone",
-                evidence_mod.display()
-            ));
-        }
-    }
+    let mut violations = missing_seed_module_violations(
+        inventory,
+        &expected_seed_modules,
+        "inspection artifacts lack an honest internal home",
+    );
+    violations.extend(private_seed_declaration_violations(
+        inventory,
+        &receipt_mod,
+        &expected_seed_modules,
+        "inspection landing zone",
+    ));
+    violations.extend(missing_seed_module_violations(
+        inventory,
+        &expected_evidence_seed_modules,
+        "evidence lacks one obvious typed substrate home",
+    ));
+    violations.extend(private_seed_declaration_violations(
+        inventory,
+        &evidence_mod,
+        &expected_evidence_seed_modules,
+        "evidence landing zone",
+    ));
 
     violations.sort();
     violations.dedup();
     violations
+}
+
+fn missing_seed_module_violations(
+    inventory: &WorkspaceSourceInventory,
+    expected: &[(&str, PathBuf)],
+    responsibility: &str,
+) -> Vec<String> {
+    expected
+        .iter()
+        .filter(|(_, module_path)| inventory.source(module_path).is_none())
+        .map(|(module_name, module_path)| {
+            format!(
+                "{} is missing; future {module_name} {responsibility}",
+                module_path.display()
+            )
+        })
+        .collect()
+}
+
+fn private_seed_declaration_violations(
+    inventory: &WorkspaceSourceInventory,
+    declaring_module: &Path,
+    expected: &[(&str, PathBuf)],
+    responsibility: &str,
+) -> Vec<String> {
+    let parsed = parse_rust_file(inventory, declaring_module);
+    expected
+        .iter()
+        .filter(|(module_name, _)| {
+            !parsed.items.iter().any(|item| match item {
+                Item::Mod(item_mod) => {
+                    item_mod.ident == **module_name
+                        && !matches!(item_mod.vis, Visibility::Public(_))
+                }
+                _ => false,
+            })
+        })
+        .map(|(module_name, _)| {
+            format!(
+                "{} must declare a private `{module_name}` child module as the future {module_name} {responsibility}",
+                declaring_module.display()
+            )
+        })
+        .collect()
 }
 
 fn collect_public_export_names(

@@ -1,8 +1,7 @@
 use crate::capability::{
     CommandDescriptor, CommandId, CommandProjectionCommandReference, CommandProjectionDescriptor,
-    CommandProjectionId, CommandProjectionSurface, CommandReadinessBinding, CommandReadinessStatus,
-    CommandRuntimeIntentBinding, ComponentChildPolicy, ComponentDescriptor, ComponentId,
-    ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
+    CommandProjectionId, CommandProjectionSurface, ComponentChildPolicy, ComponentDescriptor,
+    ComponentId, ComponentPropSchema, ComponentStateOwnership, IconDescriptor, IconFamily, IconId,
     IconSourceDescriptor, SurfaceDescriptor, SurfaceId, SurfaceKind, SurfacePlacementClass,
     SurfaceStateClass, ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily,
     ThemeTokenId, ThemeTokenSource, ThemeTokenValue, ViewBindingDescriptor, ViewBindingId,
@@ -34,18 +33,13 @@ pub(super) fn app_with_view_binding_descriptor(
     view_binding_descriptor: ViewBindingDescriptor,
 ) -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(
                 CommandId::new("workspace.command.inspect").unwrap(),
                 "Inspect",
             )
             .with_icon(IconId::new("workspace.icon.inspect").unwrap())
-            .with_readiness(CommandReadinessBinding::from_status(
-                CommandReadinessStatus::Deferred,
-            ))
-            .with_runtime_intent_binding(CommandRuntimeIntentBinding::named(
-                "workspace.runtime.inspect",
-            ))
             .with_projection_eligibility(
                 CommandProjectionId::new("workspace.command_projection.inspect_actions").unwrap(),
             ),

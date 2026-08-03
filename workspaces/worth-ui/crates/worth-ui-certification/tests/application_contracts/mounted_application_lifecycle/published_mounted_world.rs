@@ -1,17 +1,22 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
+use worth_ui_host_contract::UiHostPresentationEpoch;
 use worth_ui_runtime::facade::mounted::{
-    UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInstanceIdentity,
-    UiMountedNodeReceiptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
+    UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInspectionReceipt,
+    UiMountedInspectionRequest, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
+    UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::in_flight_presentation_world::{mounted_session, prepared};
-use crate::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
+use crate::mounted_host_protocol::scripted_host::{
+    scripted_presentation_epoch, ScriptedPresentationHost,
+};
 
 #[derive(Clone, Copy)]
 pub(crate) struct PresentedObservationBasis {
     pub(crate) frame: UiMountedFrameIdentity,
+    pub(crate) epoch: UiHostPresentationEpoch,
     pub(crate) instance: UiMountedInstanceIdentity,
     pub(crate) receipt: UiMountedNodeReceiptIdentity,
 }
@@ -92,6 +97,7 @@ pub(crate) fn multi_surface_observation_world(
                 binding,
                 PresentedObservationBasis {
                     frame: frame_identity,
+                    epoch: scripted_presentation_epoch(),
                     instance,
                     receipt,
                 },
@@ -124,7 +130,26 @@ pub(crate) fn publish(
         .node_receipt_identity();
     PresentedObservationBasis {
         frame: frame_identity,
+        epoch: scripted_presentation_epoch(),
         instance,
         receipt,
     }
+}
+
+pub(crate) fn presented_epoch(
+    session: &WorthUiActiveApplicationSession,
+    frame: UiMountedFrameIdentity,
+    binding: UiSurfaceBindingGeneration,
+) -> UiHostPresentationEpoch {
+    let inspected = match session.inspect_mounted_frame(UiMountedInspectionRequest::frame(frame)) {
+        UiMountedInspectionReceipt::Available(frame) => frame,
+        other => panic!("presented frame must retain presentation evidence, got {other:?}"),
+    };
+    inspected
+        .presentation()
+        .surfaces()
+        .iter()
+        .find(|surface| surface.binding() == binding)
+        .expect("presented binding has one surface receipt")
+        .epoch()
 }

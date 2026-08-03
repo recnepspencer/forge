@@ -15,6 +15,7 @@ pub use filesystem::{
 pub use platform::PhysicalWorkPlatformEvidence;
 pub use process::{
     PhysicalWorkExecutionContext, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
+    PhysicalWorkScheduleSeed, PhysicalWorkWorkloadSeed,
 };
 pub use rerun::PhysicalWorkRerunEvidence;
 

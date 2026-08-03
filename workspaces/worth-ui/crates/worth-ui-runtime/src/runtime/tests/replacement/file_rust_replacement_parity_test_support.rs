@@ -81,6 +81,7 @@ pub(super) fn candidate_for_lane(
     lane: WorthUiCandidateAuthoringLane,
 ) -> WorthUiReplacementCandidate {
     let app = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
     candidate_for_artifact(&app, lane, rust_import_artifact())

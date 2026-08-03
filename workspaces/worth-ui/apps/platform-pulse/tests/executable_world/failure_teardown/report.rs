@@ -2,7 +2,9 @@ use std::fmt;
 
 use crate::adjudication::{
     ExecutableFirstFrameFailure, ExecutableLifecycleCleanupFailure,
-    ExecutablePredecessorPreservationFailure, ExecutableReplacementFailure,
+    ExecutableNativeInputReachabilityFailure, ExecutablePredecessorPreservationFailure,
+    ExecutableReplacementFailure, ExecutableSchemaTransitionFailure,
+    ExecutableVisualIdentityFailure,
 };
 use crate::external_observation::{
     PlatformPulseLifecycleStreamFailure, PlatformPulseLifecycleTeardownEvidence,
@@ -32,9 +34,13 @@ pub(crate) enum PulseExecutableWorldFailure {
     Liveness(StableProcessLivenessFailure),
     Native(NativePlatformFailure),
     FirstFrame(ExecutableFirstFrameFailure),
+    NativeInputReachability(ExecutableNativeInputReachabilityFailure),
+    QueryCurrent(crate::adjudication::ExecutableQueryCurrentFailure),
+    VisualIdentity(ExecutableVisualIdentityFailure),
     SourceAction(PulseSourceActionFailure),
     WatchedObservation(WatchedPulseObservationFailure),
     Replacement(ExecutableReplacementFailure),
+    SchemaTransition(ExecutableSchemaTransitionFailure),
     Preservation(ExecutablePredecessorPreservationFailure),
     ProcessExit(PlatformPulseProcessExitFailure),
     Cleanup(ExecutableLifecycleCleanupFailure),
@@ -242,12 +248,27 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::FirstFrame(failure) => {
                 write!(formatter, "first-frame adjudication: {failure}")
             }
+            Self::NativeInputReachability(failure) => {
+                write!(
+                    formatter,
+                    "native-input reachability adjudication: {failure}"
+                )
+            }
+            Self::QueryCurrent(failure) => {
+                write!(formatter, "Query-current adjudication: {failure}")
+            }
+            Self::VisualIdentity(failure) => {
+                write!(formatter, "visual-identity adjudication: {failure}")
+            }
             Self::SourceAction(failure) => write!(formatter, "source action: {failure}"),
             Self::WatchedObservation(failure) => {
                 write!(formatter, "watched observation: {failure}")
             }
             Self::Replacement(failure) => {
                 write!(formatter, "replacement adjudication: {failure}")
+            }
+            Self::SchemaTransition(failure) => {
+                write!(formatter, "schema-transition adjudication: {failure}")
             }
             Self::Preservation(failure) => {
                 write!(formatter, "predecessor preservation: {failure}")

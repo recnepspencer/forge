@@ -1,6 +1,13 @@
 use super::super::write_progression::CandidateFrameEffectFailure;
+use std::sync::Arc;
+
 use super::*;
-use worth_store_buffer_pool::{PhysicalResidencyLimits, PhysicalResidencyPool};
+use worth_store_buffer_pool::{
+    PhysicalResidencyLimits, PhysicalResidencyPool, PhysicalResidencyPoolOwner,
+};
+use worth_store_physical_format::store_namespace::{
+    ProposedStoreIdentity, StoreNamespaceIdentityRecord, StoreNamespaceVersion,
+};
 
 #[derive(Debug, PartialEq, Eq)]
 struct ProvenNoEffect;
@@ -105,10 +112,13 @@ fn pool_and_publisher(
     )
     .published_identity();
     let limits = residency_limits();
-    let pool = PhysicalResidencyPool::open(store, limits).unwrap();
+    let (pool, candidate_clean, _) = PhysicalResidencyPoolOwner::open(store, limits)
+        .unwrap()
+        .into_parts();
     let publisher = BoundedCandidateFramePublisher::new(
         pool.clone(),
         Arc::new(CandidateFrameCounterCells::default()),
+        Arc::new(candidate_clean),
     );
     (pool, publisher)
 }

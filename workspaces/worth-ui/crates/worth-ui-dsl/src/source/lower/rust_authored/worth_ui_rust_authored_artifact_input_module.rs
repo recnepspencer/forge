@@ -1,4 +1,11 @@
-use crate::source::{WorthUiArtifactInputBodyAtom, WorthUiSemanticArtifactDeclaration};
+mod revision;
+
+use crate::source::{
+    WorthUiArtifactInputBodyAtom, WorthUiProjectionCollectionSelection,
+    WorthUiProjectionDeclarationError, WorthUiProjectionLifecycle, WorthUiProjectionNativeFamily,
+    WorthUiProjectionRequirement, WorthUiSemanticArtifactDeclaration,
+};
+use crate::{WorthUiIntentDeclarationSpec, WorthUiIntentInteractionRoute};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct WorthUiRustAuthoredArtifactInputModule {
@@ -24,6 +31,14 @@ pub(crate) enum WorthUiRustAuthoredDeclaration {
     Binding {
         name_text: String,
         authored_identity: Option<String>,
+        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    },
+    QueryScalar {
+        name_text: String,
+        body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
+    },
+    QueryCollection {
+        name_text: String,
         body_atoms: Vec<WorthUiArtifactInputBodyAtom>,
     },
     Token {
@@ -103,6 +118,28 @@ impl WorthUiRustAuthoredArtifactInputModule {
         self
     }
 
+    pub fn with_control_routes(
+        mut self,
+        name_text: impl Into<String>,
+        routes: impl IntoIterator<Item = WorthUiIntentInteractionRoute>,
+    ) -> Self {
+        let body_atoms = routes
+            .into_iter()
+            .flat_map(|route| route.body_atoms())
+            .collect();
+        self.declarations
+            .push(WorthUiRustAuthoredDeclaration::Component {
+                name_text: name_text.into(),
+                authored_identity: None,
+                body_atoms,
+            });
+        self
+    }
+
+    pub fn with_intent_declaration(self, declaration: WorthUiIntentDeclarationSpec) -> Self {
+        self.with_semantic_declaration(declaration.into_semantic_declaration())
+    }
+
     pub fn with_surface(mut self, name_text: impl Into<String>) -> Self {
         self.declarations
             .push(WorthUiRustAuthoredDeclaration::Surface {
@@ -163,6 +200,84 @@ impl WorthUiRustAuthoredArtifactInputModule {
                 body_atoms: body_atoms.into_iter().collect(),
             });
         self
+    }
+
+    pub fn try_with_query_scalar_text(
+        self,
+        declaration_identity: impl Into<String>,
+        view_identity: impl Into<String>,
+        selected_field: impl Into<String>,
+        lifecycle: WorthUiProjectionLifecycle,
+    ) -> Result<Self, WorthUiProjectionDeclarationError> {
+        self.try_with_query_scalar_native(
+            declaration_identity,
+            view_identity,
+            selected_field,
+            WorthUiProjectionNativeFamily::Text,
+            lifecycle,
+        )
+    }
+
+    pub fn try_with_query_scalar_native(
+        mut self,
+        declaration_identity: impl Into<String>,
+        view_identity: impl Into<String>,
+        selected_field: impl Into<String>,
+        native_family: WorthUiProjectionNativeFamily,
+        lifecycle: WorthUiProjectionLifecycle,
+    ) -> Result<Self, WorthUiProjectionDeclarationError> {
+        let requirement = WorthUiProjectionRequirement::scalar_native(
+            declaration_identity,
+            view_identity,
+            selected_field,
+            native_family,
+            lifecycle,
+        )?;
+        self.declarations
+            .push(WorthUiRustAuthoredDeclaration::QueryScalar {
+                name_text: requirement.declaration_identity().to_owned(),
+                body_atoms: projection_body_atoms(&requirement),
+            });
+        Ok(self)
+    }
+
+    pub fn try_with_query_collection_text(
+        self,
+        declaration_identity: impl Into<String>,
+        view_identity: impl Into<String>,
+        row_identity_field: impl Into<String>,
+        selection: WorthUiProjectionCollectionSelection,
+    ) -> Result<Self, WorthUiProjectionDeclarationError> {
+        self.try_with_query_collection_native(
+            declaration_identity,
+            view_identity,
+            row_identity_field,
+            WorthUiProjectionNativeFamily::Text,
+            selection,
+        )
+    }
+
+    pub fn try_with_query_collection_native(
+        mut self,
+        declaration_identity: impl Into<String>,
+        view_identity: impl Into<String>,
+        row_identity_field: impl Into<String>,
+        native_family: WorthUiProjectionNativeFamily,
+        selection: WorthUiProjectionCollectionSelection,
+    ) -> Result<Self, WorthUiProjectionDeclarationError> {
+        let requirement = WorthUiProjectionRequirement::collection_native(
+            declaration_identity,
+            view_identity,
+            row_identity_field,
+            native_family,
+            selection,
+        )?;
+        self.declarations
+            .push(WorthUiRustAuthoredDeclaration::QueryCollection {
+                name_text: requirement.declaration_identity().to_owned(),
+                body_atoms: projection_body_atoms(&requirement),
+            });
+        Ok(self)
     }
 
     pub fn with_token(
@@ -228,132 +343,55 @@ impl WorthUiRustAuthoredArtifactInputModule {
     }
 
     pub(crate) fn source_revision_digest(&self) -> u64 {
-        let mut digest = 0xcbf2_9ce4_8422_2325u64;
-        fold_text(&mut digest, "worth-ui:rust-authored-module:v1");
-        fold_text(&mut digest, &self.relative_module_path);
-        fold_u64(&mut digest, self.declarations.len() as u64);
-        for declaration in &self.declarations {
-            declaration.fold_source_revision(&mut digest);
-        }
-        digest
+        revision::module_digest(&self.relative_module_path, &self.declarations)
     }
 }
 
-impl WorthUiRustAuthoredDeclaration {
-    fn fold_source_revision(&self, digest: &mut u64) {
-        match self {
-            Self::Import { target_module_path } => {
-                fold_text(digest, "import");
-                fold_text(digest, target_module_path);
-            }
-            Self::Component {
-                name_text,
-                authored_identity,
-                body_atoms,
-            } => fold_block_revision(
-                digest,
-                "component",
-                name_text,
-                authored_identity.as_deref(),
-                body_atoms,
-            ),
-            Self::Surface {
-                name_text,
-                authored_identity,
-                body_atoms,
-            } => fold_block_revision(
-                digest,
-                "surface",
-                name_text,
-                authored_identity.as_deref(),
-                body_atoms,
-            ),
-            Self::Binding {
-                name_text,
-                authored_identity,
-                body_atoms,
-            } => fold_block_revision(
-                digest,
-                "binding",
-                name_text,
-                authored_identity.as_deref(),
-                body_atoms,
-            ),
-            Self::Token {
-                name_text,
-                authored_identity,
-                value_text,
-            } => {
-                fold_text(digest, "token");
-                fold_text(digest, name_text);
-                fold_optional_text(digest, authored_identity.as_deref());
-                fold_text(digest, value_text);
-            }
-            Self::SemanticArtifact(declaration) => {
-                fold_text(digest, "semantic-artifact");
-                declaration.fold_source_revision(digest);
-            }
-        }
+fn projection_body_atoms(
+    requirement: &WorthUiProjectionRequirement,
+) -> Vec<WorthUiArtifactInputBodyAtom> {
+    let mut atoms = Vec::new();
+    push_clause(&mut atoms, "view", requirement.view_identity());
+    if let Some(row_identity) = requirement.row_identity_field() {
+        push_clause(&mut atoms, "row", row_identity);
     }
+    for field in requirement.selected_fields() {
+        push_clause(&mut atoms, "field", field);
+    }
+    let native_family = match requirement.native_family() {
+        WorthUiProjectionNativeFamily::Text => "text",
+        WorthUiProjectionNativeFamily::Boolean => "boolean",
+    };
+    push_clause(&mut atoms, "require", native_family);
+    push_clause(
+        &mut atoms,
+        "lifecycle",
+        requirement.lifecycle().canonical_token(),
+    );
+    if let Some(policy) = requirement.collection_policy() {
+        push_clause(
+            &mut atoms,
+            "completeness",
+            if policy.requires_complete_result() {
+                "complete"
+            } else {
+                "partial"
+            },
+        );
+        push_clause(
+            &mut atoms,
+            "continuation",
+            if policy.permits_continuation() {
+                "allowed"
+            } else {
+                "forbidden"
+            },
+        );
+    }
+    atoms
 }
 
-fn fold_block_revision(
-    digest: &mut u64,
-    kind: &str,
-    name_text: &str,
-    authored_identity: Option<&str>,
-    body_atoms: &[WorthUiArtifactInputBodyAtom],
-) {
-    fold_text(digest, kind);
-    fold_text(digest, name_text);
-    fold_optional_text(digest, authored_identity);
-    fold_u64(digest, body_atoms.len() as u64);
-    for atom in body_atoms {
-        match atom {
-            WorthUiArtifactInputBodyAtom::Identifier(value) => {
-                fold_text(digest, "identifier");
-                fold_text(digest, value);
-            }
-            WorthUiArtifactInputBodyAtom::StringLiteral(value) => {
-                fold_text(digest, "string-literal");
-                fold_text(digest, value);
-            }
-            WorthUiArtifactInputBodyAtom::KeywordImport => fold_text(digest, "keyword-import"),
-            WorthUiArtifactInputBodyAtom::KeywordComponent => {
-                fold_text(digest, "keyword-component")
-            }
-            WorthUiArtifactInputBodyAtom::KeywordSurface => fold_text(digest, "keyword-surface"),
-            WorthUiArtifactInputBodyAtom::KeywordBinding => fold_text(digest, "keyword-binding"),
-            WorthUiArtifactInputBodyAtom::KeywordToken => fold_text(digest, "keyword-token"),
-            WorthUiArtifactInputBodyAtom::LeftBrace => fold_text(digest, "left-brace"),
-            WorthUiArtifactInputBodyAtom::RightBrace => fold_text(digest, "right-brace"),
-            WorthUiArtifactInputBodyAtom::Semicolon => fold_text(digest, "semicolon"),
-            WorthUiArtifactInputBodyAtom::Equals => fold_text(digest, "equals"),
-        }
-    }
-}
-
-fn fold_optional_text(digest: &mut u64, value: Option<&str>) {
-    match value {
-        Some(value) => {
-            fold_text(digest, "some");
-            fold_text(digest, value);
-        }
-        None => fold_text(digest, "none"),
-    }
-}
-
-fn fold_text(digest: &mut u64, text: &str) {
-    fold_u64(digest, text.len() as u64);
-    for byte in text.as_bytes() {
-        *digest ^= u64::from(*byte);
-        *digest = digest.wrapping_mul(0x100_0000_01b3);
-    }
-}
-
-fn fold_u64(digest: &mut u64, value: u64) {
-    for byte in value.to_le_bytes() {
-        *digest ^= u64::from(byte);
-        *digest = digest.wrapping_mul(0x100_0000_01b3);
-    }
+fn push_clause(atoms: &mut Vec<WorthUiArtifactInputBodyAtom>, clause: &str, value: &str) {
+    atoms.push(WorthUiArtifactInputBodyAtom::Identifier(clause.to_owned()));
+    atoms.push(WorthUiArtifactInputBodyAtom::Identifier(value.to_owned()));
 }

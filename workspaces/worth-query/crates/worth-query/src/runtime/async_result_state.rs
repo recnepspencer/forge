@@ -1,20 +1,20 @@
-use std::collections::BTreeMap;
-
-#[cfg(test)]
 use worth_runtime_bridge::facade::{
     BridgeAsyncCompletionClass, BridgeAsyncCompletionDenialClass, BridgeAsyncCompletionState,
-    BridgeAsyncForwardCausalityClass,
+    BridgeAsyncCompletionSupersessionClass, BridgeAsyncForwardCausalityClass,
+    BridgeMixedCauseAsyncResultCause, BridgeMixedCauseAsyncResultTransition,
 };
 
-use crate::evidence_identity::{
-    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
-    WorthQueryEvidenceTag,
-};
+use crate::evidence_identity::WorthQueryEvidenceIdentity;
 
-use super::{
-    WorthQueryLiveArtifactTarget, WorthQueryRuntimeError, WorthQueryRuntimeLiveSubscriptionState,
-    WorthQueryRuntimeStateKind,
+use super::async_result_identity::{
+    runtime_async_causality_from_bridge, runtime_async_causality_identity,
+    runtime_async_causality_label_identity, runtime_async_result_state_identity,
 };
+#[cfg(test)]
+pub(crate) use super::async_result_identity::{
+    runtime_async_causality_from_label, runtime_async_checkpoint_label_identity,
+};
+use super::WorthQueryRuntimeStateKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryRuntimeAsyncResultStateKind {
@@ -74,27 +74,24 @@ pub(crate) enum WorthQueryRuntimeAsyncResultProjection {
     Pending {
         causality_identity: WorthQueryEvidenceIdentity,
     },
-    #[cfg(test)]
     CompletionState {
         state: BridgeAsyncCompletionState,
         causality_identity: WorthQueryEvidenceIdentity,
     },
-    #[cfg(test)]
     ForwardCausality {
         class: BridgeAsyncForwardCausalityClass,
         causality_identity: WorthQueryEvidenceIdentity,
     },
-    #[cfg(test)]
-    Supersession {
+    ClassifiedSupersession {
+        class: BridgeAsyncCompletionSupersessionClass,
         causality_identity: WorthQueryEvidenceIdentity,
     },
 }
 
 impl WorthQueryRuntimeAsyncResultProjection {
-    fn kind(&self) -> WorthQueryRuntimeAsyncResultStateKind {
+    pub(super) fn kind(&self) -> WorthQueryRuntimeAsyncResultStateKind {
         match self {
             Self::Pending { .. } => WorthQueryRuntimeAsyncResultStateKind::Pending,
-            #[cfg(test)]
             Self::CompletionState { state, .. } => match state {
                 BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::Fulfilled) => {
                     WorthQueryRuntimeAsyncResultStateKind::Current
@@ -116,7 +113,6 @@ impl WorthQueryRuntimeAsyncResultProjection {
                     BridgeAsyncCompletionDenialClass::SignalLifecycleDenied,
                 ) => WorthQueryRuntimeAsyncResultStateKind::Denied,
             },
-            #[cfg(test)]
             Self::ForwardCausality { class, .. } => match class {
                 BridgeAsyncForwardCausalityClass::RetryAfterTimeout
                 | BridgeAsyncForwardCausalityClass::RetryAfterCancellation => {
@@ -128,24 +124,85 @@ impl WorthQueryRuntimeAsyncResultProjection {
                     WorthQueryRuntimeAsyncResultStateKind::Revalidating
                 }
             },
-            #[cfg(test)]
-            Self::Supersession { .. } => WorthQueryRuntimeAsyncResultStateKind::Superseded,
+            Self::ClassifiedSupersession { class, .. } => match class {
+                BridgeAsyncCompletionSupersessionClass::TruthBasisSuperseded
+                | BridgeAsyncCompletionSupersessionClass::BranchDrifted
+                | BridgeAsyncCompletionSupersessionClass::PreviewBasisDrifted
+                | BridgeAsyncCompletionSupersessionClass::SubscriptionInstanceSuperseded => {
+                    WorthQueryRuntimeAsyncResultStateKind::Stale
+                }
+                BridgeAsyncCompletionSupersessionClass::PreviewDiscarded
+                | BridgeAsyncCompletionSupersessionClass::SignalGenerationSuperseded => {
+                    WorthQueryRuntimeAsyncResultStateKind::Superseded
+                }
+            },
         }
     }
 
-    fn causality_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub(super) fn causality_identity(&self) -> &WorthQueryEvidenceIdentity {
         match self {
             Self::Pending { causality_identity } => causality_identity,
-            #[cfg(test)]
             Self::CompletionState {
                 causality_identity, ..
             } => causality_identity,
-            #[cfg(test)]
             Self::ForwardCausality {
                 causality_identity, ..
             } => causality_identity,
-            #[cfg(test)]
-            Self::Supersession { causality_identity } => causality_identity,
+            Self::ClassifiedSupersession {
+                causality_identity, ..
+            } => causality_identity,
+        }
+    }
+
+    pub(super) fn from_bridge_transition(
+        transition: &BridgeMixedCauseAsyncResultTransition,
+    ) -> Self {
+        let causality_identity = runtime_async_causality_from_bridge(
+            transition.source_identity(),
+            transition.source_digest(),
+        );
+        match transition.cause() {
+            BridgeMixedCauseAsyncResultCause::Completion(state) => Self::CompletionState {
+                state,
+                causality_identity,
+            },
+            BridgeMixedCauseAsyncResultCause::ClassifiedDenied { supersession, .. } => {
+                Self::ClassifiedSupersession {
+                    class: supersession,
+                    causality_identity,
+                }
+            }
+            BridgeMixedCauseAsyncResultCause::Retry(class)
+            | BridgeMixedCauseAsyncResultCause::Revalidation(class) => Self::ForwardCausality {
+                class,
+                causality_identity,
+            },
+        }
+    }
+
+    pub(super) fn stale_before_bridge_revalidation(
+        transition: &BridgeMixedCauseAsyncResultTransition,
+    ) -> Self {
+        let class = match transition.cause() {
+            BridgeMixedCauseAsyncResultCause::Revalidation(
+                BridgeAsyncForwardCausalityClass::RevalidationAfterTruthBasisDrift,
+            ) => BridgeAsyncCompletionSupersessionClass::TruthBasisSuperseded,
+            BridgeMixedCauseAsyncResultCause::Revalidation(
+                BridgeAsyncForwardCausalityClass::RevalidationAfterPreviewBasisDrift,
+            ) => BridgeAsyncCompletionSupersessionClass::PreviewBasisDrifted,
+            BridgeMixedCauseAsyncResultCause::Revalidation(
+                BridgeAsyncForwardCausalityClass::RevalidationAfterSubscriptionInstanceDrift,
+            ) => BridgeAsyncCompletionSupersessionClass::SubscriptionInstanceSuperseded,
+            _ => {
+                unreachable!("stale precursor is created only for Bridge revalidation lineage")
+            }
+        };
+        Self::ClassifiedSupersession {
+            class,
+            causality_identity: runtime_async_causality_from_bridge(
+                transition.source_identity(),
+                transition.source_digest(),
+            ),
         }
     }
     pub(crate) fn pending(causality_label: &str) -> Self {
@@ -184,7 +241,8 @@ impl WorthQueryRuntimeAsyncResultProjection {
 
     #[cfg(test)]
     pub(crate) fn supersession(causality_label: &str) -> Self {
-        Self::Supersession {
+        Self::ClassifiedSupersession {
+            class: BridgeAsyncCompletionSupersessionClass::SignalGenerationSuperseded,
             causality_identity: runtime_async_causality_identity(
                 &runtime_async_causality_label_identity(causality_label),
             ),
@@ -260,130 +318,5 @@ impl WorthQueryRuntimeAsyncResultState {
 
     pub fn result_state_for_reporting(&self) -> &str {
         self.result_state_identity.as_str()
-    }
-}
-
-fn runtime_async_causality_label_identity(label: &str) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "worth_query_runtime_async_causality_label_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("label"), label)
-        .seal()
-}
-
-pub(crate) fn runtime_async_causality_identity(
-    causality_identity: &WorthQueryEvidenceIdentity,
-) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "worth_query_runtime_async_causality_v1",
-        )
-        .field_evidence_identity(WorthQueryEvidenceTag::new("causality"), causality_identity)
-        .seal()
-}
-
-fn runtime_async_result_state_identity(
-    kind: WorthQueryRuntimeAsyncResultStateKind,
-    causality_identity: &WorthQueryEvidenceIdentity,
-    basis_identity: &WorthQueryEvidenceIdentity,
-    checkpoint_identity: &WorthQueryEvidenceIdentity,
-) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::RuntimeStateSnapshot)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "worth_query_runtime_async_result_state_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("kind"), kind.as_str())
-        .field_evidence_identity(WorthQueryEvidenceTag::new("causality"), causality_identity)
-        .field_evidence_identity(WorthQueryEvidenceTag::new("basis"), basis_identity)
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("checkpoint"),
-            checkpoint_identity,
-        )
-        .seal()
-}
-
-#[cfg(test)]
-pub(crate) fn runtime_async_causality_from_label(label: &str) -> WorthQueryEvidenceIdentity {
-    runtime_async_causality_identity(&runtime_async_causality_label_identity(label))
-}
-
-#[cfg(test)]
-pub(crate) fn runtime_async_checkpoint_label_identity(label: &str) -> WorthQueryEvidenceIdentity {
-    worth_query_evidence_identity(WorthQueryEvidenceScope::LowerRuntimeBoundaryEvidence)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "worth_query_runtime_async_checkpoint_label_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("label"), label)
-        .seal()
-}
-
-pub(crate) fn project_live_async_result_state(
-    live_subscriptions: &mut BTreeMap<
-        WorthQueryLiveArtifactTarget,
-        WorthQueryRuntimeLiveSubscriptionState,
-    >,
-    view_name: &str,
-    projection: &WorthQueryRuntimeAsyncResultProjection,
-    basis_identity: &WorthQueryEvidenceIdentity,
-    checkpoint_identity: &WorthQueryEvidenceIdentity,
-) -> Result<WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeError> {
-    let target = WorthQueryLiveArtifactTarget::from_view_name(view_name);
-    let state = live_subscriptions
-        .get_mut(&target)
-        .ok_or_else(|| WorthQueryRuntimeError::MissingLiveSubscription(view_name.to_string()))?;
-    let expected_basis = state.installation.basis_binding_identity();
-    let expected_checkpoint = state.active_lane_handle.checkpoint_identity();
-    let kind = projection.kind();
-    if basis_identity != expected_basis && !kind.permits_basis_or_generation_drift() {
-        return Err(async_result_state_error(
-            view_name,
-            "PreviewBasisMismatchRequiresTypedState",
-        ));
-    }
-    if checkpoint_identity != expected_checkpoint && !kind.permits_basis_or_generation_drift() {
-        return Err(async_result_state_error(
-            view_name,
-            "GenerationDriftRequiresTypedState",
-        ));
-    }
-
-    let async_result_state = WorthQueryRuntimeAsyncResultState::new(
-        kind,
-        projection.causality_identity(),
-        basis_identity,
-        checkpoint_identity,
-    );
-    state.async_result_state = Some(async_result_state.clone());
-    Ok(async_result_state)
-}
-
-fn async_result_state_error(view_name: &str, message: &str) -> WorthQueryRuntimeError {
-    WorthQueryRuntimeError::LiveSubscriptionInstallation {
-        view_name: view_name.to_string(),
-        stage: "async-result-state",
-        message: message.to_string(),
-    }
-}
-
-impl super::WorthQueryRuntime {
-    pub(crate) fn project_async_result_state(
-        &mut self,
-        view_name: &str,
-        projection: &WorthQueryRuntimeAsyncResultProjection,
-        basis_identity: &WorthQueryEvidenceIdentity,
-        checkpoint_identity: &WorthQueryEvidenceIdentity,
-    ) -> Result<WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeError> {
-        project_live_async_result_state(
-            &mut self.live_subscriptions,
-            view_name,
-            projection,
-            basis_identity,
-            checkpoint_identity,
-        )
     }
 }

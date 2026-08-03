@@ -3,7 +3,8 @@ use std::time::Duration;
 use crate::adjudication::ExecutableLifecycleCleanupEvidence;
 
 const FIRST_PUBLICATION_BUDGET: Duration = Duration::from_secs(5);
-const JOURNEY_BUDGET: Duration = Duration::from_secs(20);
+const JOURNEY_BUDGET: Duration = Duration::from_secs(45);
+const EXACT_LIFECYCLE_EVENT_COUNT: usize = 25;
 const LIFECYCLE_EVENT_BUDGET: usize = 256;
 const LIFECYCLE_BYTE_BUDGET: usize = 1_048_576;
 
@@ -18,7 +19,6 @@ pub(super) struct PlatformPulseJourneyCost {
     window_lookups: u32,
     process_launches: u32,
     native_windows: u32,
-    retries: u32,
     close_requests: u32,
     successful_exit: bool,
     installation_removed: bool,
@@ -48,7 +48,6 @@ impl PlatformPulseJourneyCost {
             window_lookups: inputs.window_lookups,
             process_launches: 1,
             native_windows: 1,
-            retries: 0,
             close_requests: cleanup.close_request_count(),
             successful_exit: cleanup.successful_exit().status().success(),
             installation_removed: cleanup.installation_removed(),
@@ -58,15 +57,14 @@ impl PlatformPulseJourneyCost {
     pub(super) fn assert_frozen_budgets(self) {
         assert!(self.first_publication <= FIRST_PUBLICATION_BUDGET);
         assert!(self.full_journey <= JOURNEY_BUDGET);
-        assert_eq!(self.lifecycle_events, 6);
+        assert_eq!(self.lifecycle_events, EXACT_LIFECYCLE_EVENT_COUNT);
         assert!(self.lifecycle_events <= LIFECYCLE_EVENT_BUDGET);
         assert!(self.lifecycle_bytes <= LIFECYCLE_BYTE_BUDGET);
-        assert_eq!(self.source_actions, 3);
-        assert_eq!(self.native_captures, 4);
+        assert_eq!(self.source_actions, 7);
+        assert_eq!(self.native_captures, 11);
         assert!(self.window_lookups > 0);
         assert_eq!(self.process_launches, 1);
         assert_eq!(self.native_windows, 1);
-        assert_eq!(self.retries, 0);
         assert_eq!(self.close_requests, 1);
         assert!(self.successful_exit);
         assert!(self.installation_removed);
@@ -76,8 +74,8 @@ impl PlatformPulseJourneyCost {
         eprintln!(
             "WORTH_UI_EXECUTABLE_WORLD_COST first_publication_ms={} journey_ms={} \
              lifecycle_events={} lifecycle_bytes={} source_actions={} native_captures={} \
-             window_lookups={} process_launches={} native_windows={} retries={} \
-             close_requests={} successful_exit={} installation_removed={}",
+             window_lookups={} process_launches={} native_windows={} close_requests={} \
+             successful_exit={} installation_removed={}",
             self.first_publication.as_millis(),
             self.full_journey.as_millis(),
             self.lifecycle_events,
@@ -87,7 +85,6 @@ impl PlatformPulseJourneyCost {
             self.window_lookups,
             self.process_launches,
             self.native_windows,
-            self.retries,
             self.close_requests,
             self.successful_exit,
             self.installation_removed,

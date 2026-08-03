@@ -1,13 +1,14 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::capability::CapabilitySnapshotDigest;
 use crate::runtime::allocation_frame_dispatch::UiAllocationFrameFrameworkScheduler;
 use crate::runtime::allocation_receipt::UiAllocationReceiptLedger;
 use crate::runtime::planning::allocation_planning::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 
 use super::build_active_state::build_active_runtime_state;
-use super::launch_request::{WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial};
+use super::launch_request::{
+    WorthUiRuntimeLaunch, WorthUiRuntimeLaunchAuthority, WorthUiRuntimeLaunchDenial,
+};
 use super::preservation::WorthUiLastValidRuntimeState;
 use super::runtime_instance::WorthUiRuntime;
 use super::seal_artifact::seal_launch_artifact;
@@ -29,6 +30,7 @@ impl WorthUiRuntime {
             diagnostic_policy,
             query_binding,
             host_session_plan,
+            change_profile,
         } = admission;
         let host_session = crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan)
             .map_err(host_session_launch_denial)?;
@@ -41,26 +43,22 @@ impl WorthUiRuntime {
                 candidate_snapshot_digest: Some(snapshot_digest.as_u64()),
                 candidate_artifact_digest: Some(artifact_digest),
             },
-            lowering_authority,
-            initial_allocation_commit,
-            snapshot_digest,
-            retained_allocation_planning_evidence,
-            query_binding,
-            host_plan_binding,
+            WorthUiRuntimeLaunchAuthority {
+                lowering_authority,
+                initial_allocation_commit,
+                snapshot_digest,
+                retained_allocation_planning_evidence,
+                query_binding,
+                host_plan_binding,
+                change_profile,
+            },
         )?;
         Ok((runtime, host_session))
     }
 
     pub(crate) fn launch(
         launch: WorthUiRuntimeLaunch,
-        lowering_authority: crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
-        initial_allocation_commit: crate::runtime::planning::allocation_planning::WorthUiInitialAllocationCommit,
-        snapshot_digest: CapabilitySnapshotDigest,
-        retained_allocation_planning_evidence: Rc<
-            WorthUiRetainedAllocationPlanningEvidenceRegistry,
-        >,
-        query_binding: worth_ui_query_binding::WorthUiRuntimeQueryBinding,
-        host_plan_binding: crate::facade::WorthUiHostPlanBinding,
+        authority: WorthUiRuntimeLaunchAuthority,
     ) -> Result<Self, WorthUiRuntimeLaunchDenial> {
         let WorthUiRuntimeLaunch {
             artifact,
@@ -69,6 +67,15 @@ impl WorthUiRuntime {
             candidate_snapshot_digest,
             candidate_artifact_digest,
         } = launch;
+        let WorthUiRuntimeLaunchAuthority {
+            lowering_authority,
+            initial_allocation_commit,
+            snapshot_digest,
+            retained_allocation_planning_evidence,
+            query_binding,
+            host_plan_binding,
+            change_profile,
+        } = authority;
         let arena_identity = crate::runtime::WorthUiHandleArenaIdentity::from_host_session(
             host_plan_binding.session_identity(),
         );
@@ -147,6 +154,8 @@ impl WorthUiRuntime {
             host_plan_binding,
             durable_resize_source: Default::default(),
             scroll_offset_projection: Default::default(),
+            observation: crate::runtime::observation::UiObservationRuntimeState::new(),
+            change_profile,
         })
     }
 }

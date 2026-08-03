@@ -12,6 +12,7 @@ use super::query_prerequisites::settled_query_world_profile;
 
 pub fn structural_touch_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-dispatch.structural",
@@ -25,6 +26,7 @@ pub fn structural_touch_app() -> WorthUiApp {
 
 pub fn query_touch_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(settled_query_world_profile(
             "snapshot:phase5-dispatch-prereq",
             ["worth-ui.phase5", "dispatch", "query-prereq"],
@@ -41,6 +43,7 @@ pub fn query_touch_app() -> WorthUiApp {
 
 pub fn service_touch_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-dispatch.service",
@@ -53,6 +56,7 @@ pub fn service_touch_app() -> WorthUiApp {
 
 pub fn focus_touch_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-dispatch.focus",
@@ -65,6 +69,7 @@ pub fn focus_touch_app() -> WorthUiApp {
 
 pub fn motion_touch_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.obligation-dispatch.motion",

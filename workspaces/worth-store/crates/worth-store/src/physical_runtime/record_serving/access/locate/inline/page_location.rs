@@ -11,7 +11,7 @@ pub(super) struct InlinePageLocation {
     artifact: RecordArtifactFile,
     offset: u64,
     page_bytes: u32,
-    segment_bytes: u64,
+    segment_bytes: std::num::NonZeroU64,
 }
 
 pub(super) fn locate_inline_page(
@@ -19,7 +19,6 @@ pub(super) fn locate_inline_page(
     placement: DurableInlineRecordPlacement,
     observation: &mut RecordReadObservation,
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-    artifacts: &RecordFrameReader<'_>,
 ) -> Result<InlinePageLocation, RecordReadDenial> {
     let mut discovery =
         super::super::super::manifest_routing::ManifestDiscoveryCounterSnapshot::default();
@@ -49,13 +48,15 @@ pub(super) fn locate_inline_page(
         segment: placement.segment().get(),
         generation: page_entry.data_generation(),
     };
-    InlinePageLocation {
+    Ok(InlinePageLocation {
         artifact,
         offset: u64::from(page_entry.frame_index()) * u64::from(page_bytes),
         page_bytes,
-        segment_bytes: u64::from(page_entry.data_page_count()) * u64::from(page_bytes),
-    }
-    .require_complete_segment(artifacts, observation)
+        segment_bytes: std::num::NonZeroU64::new(
+            u64::from(page_entry.data_page_count()) * u64::from(page_bytes),
+        )
+        .expect("an admitted segment membership has nonzero data pages"),
+    })
 }
 
 impl InlinePageLocation {
@@ -69,7 +70,15 @@ impl InlinePageLocation {
         RecordReadDenial,
     > {
         let page = artifacts
-            .load_exact(allocation, self.artifact, self.offset, self.page_bytes)
+            .load_exact(
+                allocation,
+                self.artifact,
+                self.offset,
+                self.page_bytes,
+                crate::physical_runtime::record_serving::residency::frame_loading::ExactFrameSourceExtent::CompleteArtifact(
+                    self.segment_bytes,
+                ),
+            )
             .map_err(|failure| {
                 observation.observe_physical_work(failure.work_trace());
                 read_failure(failure)
@@ -77,23 +86,6 @@ impl InlinePageLocation {
         observation.observe_physical_work(page.work_trace());
         observation.observe_transfer(page.len());
         Ok(page)
-    }
-
-    fn require_complete_segment(
-        self,
-        artifacts: &RecordFrameReader<'_>,
-        observation: &mut RecordReadObservation,
-    ) -> Result<Self, RecordReadDenial> {
-        let segment_length = artifacts.file_length(self.artifact).map_err(|failure| {
-            observation.observe_physical_work(failure.work_trace());
-            read_failure(failure)
-        })?;
-        observation.observe_physical_work(segment_length.work_trace());
-        if segment_length.bytes() != self.segment_bytes {
-            segment_length.reject_structural_damage();
-            return Err(RecordReadDenial::ArtifactDamaged);
-        }
-        Ok(self)
     }
 }
 

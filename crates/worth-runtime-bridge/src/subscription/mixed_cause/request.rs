@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 
 use crate::input::envelope::BridgeCommittedPatchEnvelope;
 use crate::source::{
-    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion, BridgeAsyncRetryLineage,
-    BridgeAsyncRevalidationLineage,
+    AdmittedBridgeAsyncCompletion, BridgeAsyncClassifiedDeniedCompletion,
+    BridgeAsyncDeniedCompletion, BridgeAsyncRetryLineage, BridgeAsyncRevalidationLineage,
 };
 use crate::subscription::{
     BridgeSubscriptionCounters, BridgeSubscriptionMixedCauseOrderingRequestIdentity,
@@ -32,6 +32,7 @@ pub enum BridgeMixedCauseOrderingInput {
     TruthPatch(BridgeCommittedPatchEnvelope),
     Temporal(BridgeTemporalCauseRecord),
     AsyncCompletion(AdmittedBridgeAsyncCompletion),
+    AsyncDeniedCompletion(BridgeAsyncDeniedCompletion),
     AsyncClassifiedDeniedCompletion(BridgeAsyncClassifiedDeniedCompletion),
     AsyncRetryLineage(BridgeAsyncRetryLineage),
     AsyncRevalidationLineage(BridgeAsyncRevalidationLineage),
@@ -44,6 +45,9 @@ impl BridgeMixedCauseOrderingInput {
             Self::Temporal(cause) => format!("temporal:{}", cause.digest()),
             Self::AsyncCompletion(completion) => {
                 format!("async-completion:{}", completion.digest())
+            }
+            Self::AsyncDeniedCompletion(completion) => {
+                format!("async-denied-completion:{}", completion.digest())
             }
             Self::AsyncClassifiedDeniedCompletion(denied) => {
                 format!("async-denied:{}", denied.receipt().digest())

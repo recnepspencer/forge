@@ -19,12 +19,7 @@ impl PoolState {
             .frames
             .remove(&victim.coordinate())
             .expect("a selected legal eviction victim remains resident");
-        self.accounting.remove_frame(
-            removed.bytes,
-            removed.pins,
-            removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
-        );
+        self.accounting.remove_frame(removed.accounting_removal());
         self.accounting.record_eviction();
     }
 
@@ -36,12 +31,7 @@ impl PoolState {
             .frames
             .remove(&victim.coordinate())
             .expect("a selected clean drain victim remains resident");
-        self.accounting.remove_frame(
-            removed.bytes,
-            removed.pins,
-            removed.dirty,
-            removed.origin == FrameOrigin::Candidate,
-        );
+        self.accounting.remove_frame(removed.accounting_removal());
         self.accounting.record_administrative_drain();
     }
 }

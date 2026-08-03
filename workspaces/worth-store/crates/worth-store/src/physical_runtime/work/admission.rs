@@ -3,6 +3,7 @@ use crate::physical_runtime::{lifecycle::ObservedLifecyclePhase, record_serving:
 use super::{
     submission::PhysicalWorkSubmissionOwner, AdmittedPhysicalWork, AdmittedPhysicalWorkAuthority,
     PhysicalWorkAdmissionAuthority, PhysicalWorkIntent, PhysicalWorkSubmissionReceipt,
+    ReadyPhysicalWork,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,16 +39,17 @@ impl PhysicalWorkAdmission {
         let (intent, capacity) = state
             .admit_declared(identity)
             .ok_or(PhysicalWorkPreEffectDenial::CommandAbsent)?;
+        let signal_family = intent.operation().required_signal_family();
         let binding = state
             .bindings()
             .binding_for_identity(intent.semantic_basis().aspect_identity())
             .filter(|binding| {
                 binding.contract().binding_stamp() == intent.semantic_basis().binding_stamp()
-                    && binding.serves_family(signal_family(intent.operation()))
+                    && binding.serves_family(signal_family)
             })
             .ok_or(PhysicalWorkPreEffectDenial::SignalProfileMismatch)?;
         let physical_authority =
-            AdmittedPhysicalWorkAuthority::seal(&intent, binding.digest(), physical);
+            AdmittedPhysicalWorkAuthority::seal(&intent, binding.digest(), signal_family, physical);
         Ok(AdmittedPhysicalWork::new(
             intent,
             physical_authority,
@@ -67,6 +69,15 @@ impl PhysicalWorkAdmission {
             health,
         )
     }
+
+    pub(in crate::physical_runtime) fn require_ready_current(
+        owner: &PhysicalWorkSubmissionOwner,
+        ready: &ReadyPhysicalWork,
+        health: &ServingHealth,
+    ) -> Result<(), PhysicalWorkPreEffectDenial> {
+        Self::require_current(owner, ready.intent(), health)?;
+        ready.require_consumer_active()
+    }
 }
 
 fn require_physical_authority(
@@ -78,23 +89,6 @@ fn require_physical_authority(
         && physical.generation() == state.generation())
     .then_some(())
     .ok_or(PhysicalWorkPreEffectDenial::PhysicalAuthorityMismatch)
-}
-
-const fn signal_family(
-    operation: super::PhysicalWorkOperationFamily,
-) -> super::PhysicalWorkSignalFamily {
-    match operation {
-        super::PhysicalWorkOperationFamily::ArtifactMetadataRead
-        | super::PhysicalWorkOperationFamily::ArtifactRangeRead => {
-            super::PhysicalWorkSignalFamily::ReadFault
-        }
-        super::PhysicalWorkOperationFamily::ArtifactRangeWrite => {
-            super::PhysicalWorkSignalFamily::ExactWriteback
-        }
-        super::PhysicalWorkOperationFamily::ArtifactPublication => {
-            super::PhysicalWorkSignalFamily::Publication
-        }
-    }
 }
 
 fn require_current_identity(

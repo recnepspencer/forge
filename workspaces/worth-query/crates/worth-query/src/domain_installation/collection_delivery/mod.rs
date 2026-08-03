@@ -1,5 +1,6 @@
 mod index;
 mod model;
+mod native_access;
 mod planning;
 mod state;
 
@@ -12,5 +13,8 @@ pub use model::{
     WorthQueryCollectionPatch, WorthQueryCollectionPatchApplicationReceipt,
     WorthQueryCollectionPatchFact, WorthQueryCollectionPatchOperation,
     WorthQueryCollectionResetCost, WorthQueryCollectionResetReason,
+};
+pub use native_access::{
+    WorthQueryCollectionNativeAccessCounters, WorthQueryCollectionNativeFactAccess,
 };
 pub use state::WorthQueryCollectionConsumerWindow;

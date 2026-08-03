@@ -165,6 +165,11 @@ define_registry_families! {
         facade_exposure: PublicFacade,
         lifecycle: FullRegistryLifecycle,
     },
+    IntentDefinition => {
+        name: "intent_definition",
+        facade_exposure: PublicFacade,
+        lifecycle: FullRegistryLifecycle,
+    },
     MosaicPlacementPolicy => {
         name: "mosaic_placement_policy",
         facade_exposure: PublicFacade,

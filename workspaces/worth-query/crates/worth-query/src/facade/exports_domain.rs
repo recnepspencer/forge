@@ -67,6 +67,7 @@ pub use crate::domain_installation::{
     WorthQueryCollectionContinuation, WorthQueryCollectionCursor,
     WorthQueryCollectionDeliveryCounters, WorthQueryCollectionDeliveryDenial,
     WorthQueryCollectionDeliveryDenialKind, WorthQueryCollectionDeliveryOutcome,
+    WorthQueryCollectionNativeAccessCounters, WorthQueryCollectionNativeFactAccess,
     WorthQueryCollectionPatch, WorthQueryCollectionPatchApplicationReceipt,
     WorthQueryCollectionPatchFact, WorthQueryCollectionPatchOperation,
     WorthQueryCollectionResetCost, WorthQueryCollectionResetReason,

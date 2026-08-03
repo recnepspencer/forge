@@ -134,6 +134,10 @@ impl ActiveSubscriptionLaneRegistry {
         self.lane_index_by_digest.len()
     }
 
+    pub(super) fn attachment_count(&self) -> usize {
+        self.attachment_lane_by_digest.len()
+    }
+
     pub(super) fn lane_lifecycle_posture(
         &self,
         handle: &ActiveSubscriptionLaneHandle,

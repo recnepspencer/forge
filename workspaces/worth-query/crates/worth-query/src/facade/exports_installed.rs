@@ -85,6 +85,7 @@ pub mod collection {
         WorthQueryCollectionContinuation, WorthQueryCollectionCursor,
         WorthQueryCollectionDeliveryCounters, WorthQueryCollectionDeliveryDenial,
         WorthQueryCollectionDeliveryDenialKind, WorthQueryCollectionDeliveryOutcome,
+        WorthQueryCollectionNativeAccessCounters, WorthQueryCollectionNativeFactAccess,
         WorthQueryCollectionPatch, WorthQueryCollectionPatchApplicationReceipt,
         WorthQueryCollectionPatchFact, WorthQueryCollectionPatchOperation,
         WorthQueryCollectionRowAccessDenial, WorthQueryCollectionRowHandle,

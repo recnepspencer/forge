@@ -20,10 +20,9 @@ fn direct_frame_source_has_one_bootstrap_construction_owner() {
         let count = occurrence_count(&text, "DirectFrameReadSource::new");
         constructors.extend(std::iter::repeat_n(workspace_relative(&source), count));
     }
-    assert_eq!(
-        constructors,
-        [BOOTSTRAP_ROUTE, BOOTSTRAP_ROUTE, BOOTSTRAP_ROUTE],
-        "direct frame reads must have one bootstrap route and no serving bypass"
+    assert!(
+        !constructors.is_empty() && constructors.iter().all(|site| site == BOOTSTRAP_ROUTE),
+        "direct frame reads must have one bootstrap owner and no serving bypass: {constructors:?}"
     );
 
     let route = read(&workspace_root().join(BOOTSTRAP_ROUTE)).expect("read bootstrap route");

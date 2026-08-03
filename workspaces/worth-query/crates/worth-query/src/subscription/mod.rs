@@ -231,9 +231,9 @@ pub use error::{
 pub use family::QuerySubscriptionFamily;
 pub use fanout::{SubscriptionFanoutPlan, SubscriptionFanoutReport};
 #[cfg(test)]
+pub(crate) use future_selection::QuerySubscriptionFutureSelectionClass;
 pub(crate) use future_selection::{
     QuerySubscriptionAsyncRequestIdentityPart, QuerySubscriptionFutureSelection,
-    QuerySubscriptionFutureSelectionClass,
 };
 pub use input::LiveQueryAdmissionArtifact;
 pub use maintenance_delta::{

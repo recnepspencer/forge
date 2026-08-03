@@ -88,11 +88,13 @@ fn replace_blob_with_two_gib_owner_artifact(scenario: &mut BackupScenario) {
         .expect("bounded physical observation of release-scale blob");
     assert_eq!(observation.peak_buffer_bytes(), STREAM_BUFFER_BYTES as u64);
     scenario.references[index] = BackupArtifactReference::declare_untrusted_physical_observation(
-        BackupArtifactFamily::BlobChunk,
-        BackupBundleArtifactFormat::BlobChunkV1,
-        identity,
-        original.generation(),
-        original.coverage().clone(),
+        UntrustedBackupArtifactClaim {
+            family: BackupArtifactFamily::BlobChunk,
+            format: BackupBundleArtifactFormat::BlobChunkV1,
+            identity,
+            generation: original.generation(),
+            coverage: original.coverage().clone(),
+        },
         observation,
         original.reclaim_reference(),
     )

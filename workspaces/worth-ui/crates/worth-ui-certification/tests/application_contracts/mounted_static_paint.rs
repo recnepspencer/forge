@@ -26,6 +26,13 @@ use worth_ui_test_support::{
 use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::known_empty_surface_world::profile;
 
+struct ExpectedPulseTranscript<'a> {
+    frame: worth_ui_runtime::facade::mounted::UiMountedFrameIdentity,
+    surface: worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity,
+    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
+    mounted_instances: &'a [worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity],
+}
+
 #[test]
 fn in_process_real_filesystem_pulse_completes_expected_headless_rectangle() {
     let recorder = WorthUiHeadlessRecorder::with_viewport_extent(
@@ -37,17 +44,21 @@ fn in_process_real_filesystem_pulse_completes_expected_headless_rectangle() {
     );
     let (mut session, source_revision, surface, binding, mounted_instances) =
         launch_and_mount_pulse(recorder.clone());
-    let allocation_node = establish_allocation(&mut session);
-    let live_allocation = session
-        .inspect_mounted_allocation_projection(allocation_node)
-        .expect("live allocation geometry is valid");
-    assert!(
-        matches!(
-            live_allocation,
-            Some(worth_ui_runtime::facade::mounted::UiMountedAllocationProjection::Known { .. })
-        ),
-        "live allocation must be known, got {live_allocation:?}"
-    );
+    let allocation_nodes = establish_allocation(&mut session);
+    for allocation_node in &allocation_nodes {
+        let live_allocation = session
+            .inspect_mounted_allocation_projection(*allocation_node)
+            .expect("live allocation geometry is valid");
+        assert!(
+            matches!(
+                live_allocation,
+                Some(
+                    worth_ui_runtime::facade::mounted::UiMountedAllocationProjection::Known { .. }
+                )
+            ),
+            "live allocation must be known for {allocation_node:?}, got {live_allocation:?}"
+        );
+    }
 
     let request = UiMountedFrameRequest::all_bound_surfaces();
     let prepared = session
@@ -57,7 +68,7 @@ fn in_process_real_filesystem_pulse_completes_expected_headless_rectangle() {
         .unwrap_or_else(|_| panic!("file-authored pulse admits ordinary execution"))
         .prepare_mounted_frame(request.clone())
         .unwrap_or_else(|denial| {
-            panic!("runtime mounting completes allocation node {allocation_node:?}: {denial:?}")
+            panic!("runtime mounting completes both allocation nodes: {denial:?}")
         });
     let publication = match session.present_prepared_mounted_frame(
         prepared,
@@ -73,10 +84,12 @@ fn in_process_real_filesystem_pulse_completes_expected_headless_rectangle() {
     assert_eq!(transcripts.len(), 1);
     assert_pulse_transcript(
         &transcripts[0],
-        publication.frame(),
-        surface,
-        binding,
-        &mounted_instances,
+        ExpectedPulseTranscript {
+            frame: publication.frame(),
+            surface,
+            binding,
+            mounted_instances: &mounted_instances,
+        },
     );
 }
 
@@ -133,43 +146,45 @@ fn assert_exact_reuse(
 
 fn assert_pulse_transcript(
     transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
-    frame: worth_ui_runtime::facade::mounted::UiMountedFrameIdentity,
-    surface: worth_ui_runtime::facade::mounted::UiSemanticSurfaceIdentity,
-    binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
-    mounted_instances: &[worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity],
+    expected: ExpectedPulseTranscript<'_>,
 ) {
-    assert_eq!(transcript.frame(), frame);
-    assert_eq!(transcript.binding(), binding);
-    assert_eq!(transcript.filled_rects().len(), 1);
-    let rect = transcript.filled_rects()[0];
-    assert_eq!(rect.frame(), frame);
-    assert_eq!(rect.surface(), surface);
-    assert_eq!(rect.binding(), binding);
-    assert!(mounted_instances.contains(&rect.mounted_instance()));
-    assert_eq!(rect.color(), UiMountedRgba8::new(47, 129, 247, 255));
-    assert_eq!(rect.layer_semantic_order(), 0);
-    assert_eq!(rect.clip_bounds(), rect.bounds());
-    assert_eq!(
-        [
-            rect.bounds().x(),
-            rect.bounds().y(),
-            rect.bounds().width(),
-            rect.bounds().height(),
-        ],
-        [0.0, 0.0, 160.0, 96.0]
-    );
+    assert_eq!(transcript.frame(), expected.frame);
+    assert_eq!(transcript.binding(), expected.binding);
+    assert_eq!(transcript.filled_rects().len(), 2);
+    let mut rects = transcript.filled_rects().to_vec();
+    rects.sort_by_key(|rect| rect.bounds().x() as i32);
+    let background = rects[0];
+    let target = rects[1];
+    for rect in rects {
+        assert_eq!(rect.frame(), expected.frame);
+        assert_eq!(rect.surface(), expected.surface);
+        assert_eq!(rect.binding(), expected.binding);
+        assert!(expected
+            .mounted_instances
+            .contains(&rect.mounted_instance()));
+        assert_eq!(rect.clip_bounds(), rect.bounds());
+    }
+    assert_ne!(background.mounted_instance(), target.mounted_instance());
+    assert_ne!(background.node_receipt(), target.node_receipt());
+    assert_eq!(background.color(), UiMountedRgba8::new(47, 129, 247, 255));
+    assert_eq!(target.color(), UiMountedRgba8::new(242, 204, 96, 255));
+    assert_eq!(background.layer_semantic_order(), 0);
+    assert_eq!(target.layer_semantic_order(), 1);
+    assert_eq!(box_values(background.bounds()), [0.0, 0.0, 160.0, 96.0]);
+    assert_eq!(box_values(target.bounds()), [48.0, 24.0, 64.0, 48.0]);
     assert_eq!(
         transcript
             .nodes()
             .iter()
-            .filter(|node| node.paint() == UiHeadlessNodePaintMechanic::FilledRect(0))
+            .filter(|node| matches!(node.paint(), UiHeadlessNodePaintMechanic::FilledRect(_)))
             .count(),
-        1
+        2
     );
     assert_eq!(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
-            filled_rect_count: 1,
+            filled_rect_count: 2,
+            semantic_text_count: 0,
             preview_node_count: 0,
         }]
     );
@@ -232,7 +247,7 @@ fn launch_and_mount_pulse(
 
 fn establish_allocation(
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
-) -> worth_ui::facade::graph::UiGraphNodeIdentity {
+) -> Vec<worth_ui::facade::graph::UiGraphNodeIdentity> {
     let capability = session.host_measurement_capability();
     let assumptions = UiHostMeasurementAssumptionProfile::from_capability_report(
         capability.capability_report(),
@@ -249,8 +264,15 @@ fn establish_allocation(
     let receipt = session
         .establish_mounted_allocation_catalog(1, [input])
         .expect("real host viewport measurement establishes committed allocation");
-    assert_eq!(receipt.committed().receipts().len(), 1);
-    receipt.committed().receipts()[0]
-        .identity()
-        .graph_node_identity()
+    assert_eq!(receipt.committed().receipts().len(), 2);
+    receipt
+        .committed()
+        .receipts()
+        .iter()
+        .map(|receipt| receipt.identity().graph_node_identity())
+        .collect()
+}
+
+fn box_values(bounds: worth_ui_runtime::facade::mounted::UiMountedCanonicalBox) -> [f32; 4] {
+    [bounds.x(), bounds.y(), bounds.width(), bounds.height()]
 }

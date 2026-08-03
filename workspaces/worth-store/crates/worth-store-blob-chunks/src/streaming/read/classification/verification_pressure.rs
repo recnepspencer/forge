@@ -1,34 +1,46 @@
 use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::{
-    BackgroundIoPressureClass, BackgroundPacingCapability, BackgroundPacingCounterSnapshot,
+    BackgroundIdleCapacityLease, BackgroundIoPressureClass, BackgroundPacingCounterSnapshot,
     BackgroundPacingOutcome,
 };
 
 use crate::{BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial};
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct AdmittedBlobVerificationPressure {
+    _lease: BackgroundIdleCapacityLease,
+    counters: BlobStreamingReadCounterSnapshot,
+}
+
+impl AdmittedBlobVerificationPressure {
+    pub(crate) const fn counters(&self) -> BlobStreamingReadCounterSnapshot {
+        self.counters
+    }
+}
+
 pub(crate) fn classify_verification_pressure(
     outcome: BackgroundPacingOutcome,
-) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
+) -> Result<AdmittedBlobVerificationPressure, BlobStreamingReadDenial> {
     if outcome.class() != BackgroundIoPressureClass::VerificationPressure {
         return Err(BlobStreamingReadDenial::VerificationPressureClassMismatch {
             actual: outcome.class(),
         });
     }
     match outcome {
-        BackgroundPacingOutcome::AdmittedWithDebt(_) => {
-            seal_verification_pressure_counters(outcome)
+        BackgroundPacingOutcome::AdmittedWithDebt(admitted) => {
+            let counters = admitted.counters();
+            seal_verification_pressure(admitted.into_lease(), counters)
         }
-        BackgroundPacingOutcome::Throttled(outcome) => {
-            if outcome.admitted_budget().is_empty() {
-                let counters = denial_counters(outcome.counters());
-                Err(
+        BackgroundPacingOutcome::Throttled(throttled) => {
+            let counters = throttled.counters();
+            let Some(lease) = throttled.into_lease() else {
+                return Err(
                     BlobStreamingReadDenial::VerificationPressureThrottledWithoutAdmittedCapacity {
-                        counters,
+                        counters: denial_counters(counters),
                     },
-                )
-            } else {
-                seal_verification_pressure_counters(BackgroundPacingOutcome::Throttled(outcome))
-            }
+                );
+            };
+            seal_verification_pressure(lease, counters)
         }
         BackgroundPacingOutcome::Yield(outcome) => {
             let counters = denial_counters(outcome.counters());
@@ -45,15 +57,6 @@ pub(crate) fn classify_verification_pressure(
                 counters,
             })
         }
-        BackgroundPacingOutcome::StaleRebindRequired(outcome) => {
-            let counters = denial_counters(outcome.counters()).record_pressure_stale_denial();
-            Err(
-                BlobStreamingReadDenial::VerificationPressureStaleRebindRequired {
-                    kind: outcome.kind(),
-                    counters,
-                },
-            )
-        }
         BackgroundPacingOutcome::Violation(outcome) => {
             let counters = denial_counters(outcome.counters());
             Err(BlobStreamingReadDenial::VerificationPressureViolation { counters })
@@ -61,17 +64,19 @@ pub(crate) fn classify_verification_pressure(
     }
 }
 
-fn seal_verification_pressure_counters(
-    outcome: BackgroundPacingOutcome,
-) -> Result<BlobStreamingReadCounterSnapshot, BlobStreamingReadDenial> {
-    let capability =
-        BackgroundPacingCapability::from_admitted_outcome(outcome).map_err(|denial| {
-            BlobStreamingReadDenial::VerificationPressureDenied {
-                denial,
-                counters: BlobStreamingReadCounterSnapshot::start(CounterEvidenceStrength::Exact),
-            }
-        })?;
-    Ok(project_blob_pressure_counters(capability.counters()))
+fn seal_verification_pressure(
+    lease: BackgroundIdleCapacityLease,
+    counters: BackgroundPacingCounterSnapshot,
+) -> Result<AdmittedBlobVerificationPressure, BlobStreamingReadDenial> {
+    if lease.class() != BackgroundIoPressureClass::VerificationPressure {
+        return Err(BlobStreamingReadDenial::VerificationPressureClassMismatch {
+            actual: lease.class(),
+        });
+    }
+    Ok(AdmittedBlobVerificationPressure {
+        _lease: lease,
+        counters: project_blob_pressure_counters(counters),
+    })
 }
 
 fn project_blob_pressure_counters(
@@ -82,6 +87,5 @@ fn project_blob_pressure_counters(
 }
 
 fn denial_counters(counters: BackgroundPacingCounterSnapshot) -> BlobStreamingReadCounterSnapshot {
-    BlobStreamingReadCounterSnapshot::start(CounterEvidenceStrength::Exact)
-        .record_background_pressure(counters)
+    project_blob_pressure_counters(counters)
 }

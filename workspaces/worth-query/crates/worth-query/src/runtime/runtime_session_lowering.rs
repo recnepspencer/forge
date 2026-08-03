@@ -23,6 +23,7 @@ pub(super) fn lower_runtime_live_subscription_request(
     view_name: &str,
     request: &DeclarativeLiveQueryRequest,
     schema_view: QuerySchemaView,
+    future_selection: crate::subscription::QuerySubscriptionFutureSelection,
 ) -> Result<LoweredRuntimeLiveSubscriptionRequest, WorthQueryRuntimeError> {
     let session = declare_runtime_live_query_session_with_grouped_baseline(
         request.clone(),
@@ -33,7 +34,7 @@ pub(super) fn lower_runtime_live_subscription_request(
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "live-lowering", error))?;
-    lower_runtime_live_subscription_session(view_name, request, session)
+    lower_runtime_live_subscription_session(view_name, request, session, future_selection)
 }
 
 pub(super) fn lower_runtime_live_subscription_read_binding(
@@ -54,13 +55,19 @@ pub(super) fn lower_runtime_live_subscription_read_binding(
         grouped_baseline_members_or_error(backend, view_name, request)?,
     )
     .map_err(|error| live_subscription_error(view_name, "admitted-read-live-lowering", error))?;
-    lower_runtime_live_subscription_session(view_name, request, session)
+    lower_runtime_live_subscription_session(
+        view_name,
+        request,
+        session,
+        crate::subscription::QuerySubscriptionFutureSelection::ordinary(),
+    )
 }
 
 fn lower_runtime_live_subscription_session(
     view_name: &str,
     request: &DeclarativeLiveQueryRequest,
     session: crate::declarative_live::DeclarativeLiveQuerySession,
+    future_selection: crate::subscription::QuerySubscriptionFutureSelection,
 ) -> Result<LoweredRuntimeLiveSubscriptionRequest, WorthQueryRuntimeError> {
     let view_family = session.live_view().lowering().family();
     let dimensions = subscription_dimensions_for_request(request, view_family)?;
@@ -75,10 +82,11 @@ fn lower_runtime_live_subscription_session(
             },
         )?;
     let live_admission =
-        crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view(
+        crate::subscription::LiveQueryAdmissionArtifact::from_live_promotion_with_view_and_future_selection(
             session.live_view().core_live_plan().descriptor(),
             scoped_declaration_basis,
             view_family,
+            future_selection,
             dimensions,
         );
     let selection = select_runtime_subscription_family(view_name, live_admission)?;

@@ -1,12 +1,10 @@
 use worth_store_budgets::CounterEvidenceStrength;
-use worth_store_buffer_pool::{PhysicalOperationAllocationScope, PhysicalResidencyDenial};
 use worth_store_io_scheduler::{
-    foreground_reservation::ForegroundIoLaneKind, BackgroundIoPressureClass,
-    BackgroundPacingStaleRebindKind,
+    foreground_reservation::ForegroundIoLaneKind, BackgroundIoPressureClass, BackgroundPacingDenial,
 };
 
 use super::super::allocation::BlobStreamingAllocationDenial;
-use crate::BlobChunkIntegrityDenial;
+use crate::{BlobChunkIntegrityDenial, BlobStreamingIngestCounterSnapshot};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BlobStreamingIngestDenial {
@@ -27,21 +25,26 @@ pub enum BlobStreamingIngestDenial {
     MissingExactCounters {
         actual: CounterEvidenceStrength,
     },
-    AllocationDenied(PhysicalResidencyDenial),
-    AllocationScopeMismatch {
-        actual: PhysicalOperationAllocationScope,
-    },
     AllocationWindowExceeded {
         window_bytes: u64,
         allocation_bytes: u64,
     },
-    AllocationCountersUnavailable,
-    BackgroundPressureDeferred,
-    BackgroundPressureDenied,
-    BackgroundPressureStale {
-        kind: BackgroundPacingStaleRebindKind,
+    BackgroundPressureYielded {
+        counters: BlobStreamingIngestCounterSnapshot,
     },
-    BackgroundPressureViolation,
+    BackgroundPressureDeferred {
+        counters: BlobStreamingIngestCounterSnapshot,
+    },
+    BackgroundPressureDenied {
+        source: BackgroundPacingDenial,
+        counters: BlobStreamingIngestCounterSnapshot,
+    },
+    BackgroundPressureThrottledWithoutAdmittedCapacity {
+        counters: BlobStreamingIngestCounterSnapshot,
+    },
+    BackgroundPressureViolation {
+        counters: BlobStreamingIngestCounterSnapshot,
+    },
     BackgroundPressureClassMismatch {
         actual: BackgroundIoPressureClass,
     },
@@ -73,18 +76,9 @@ impl From<BlobChunkIntegrityDenial> for BlobStreamingIngestDenial {
     }
 }
 
-impl From<PhysicalResidencyDenial> for BlobStreamingIngestDenial {
-    fn from(denial: PhysicalResidencyDenial) -> Self {
-        Self::AllocationDenied(denial)
-    }
-}
-
 impl From<BlobStreamingAllocationDenial> for BlobStreamingIngestDenial {
     fn from(denial: BlobStreamingAllocationDenial) -> Self {
         match denial {
-            BlobStreamingAllocationDenial::WrongScope { actual } => {
-                Self::AllocationScopeMismatch { actual }
-            }
             BlobStreamingAllocationDenial::WindowExceedsAllocation {
                 window_bytes,
                 allocation_bytes,
@@ -92,9 +86,6 @@ impl From<BlobStreamingAllocationDenial> for BlobStreamingIngestDenial {
                 window_bytes,
                 allocation_bytes,
             },
-            BlobStreamingAllocationDenial::CountersUnavailable => {
-                Self::AllocationCountersUnavailable
-            }
         }
     }
 }

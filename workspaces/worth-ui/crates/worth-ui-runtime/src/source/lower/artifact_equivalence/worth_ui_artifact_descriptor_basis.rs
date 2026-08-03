@@ -31,9 +31,14 @@ pub(super) fn component_descriptor_basis(descriptor: &ComponentDescriptor) -> St
         format!("theme_token_dependencies:[{theme_token_dependencies}]"),
         format!("command_binding_slots:[{command_binding_slots}]"),
         descriptor.execution_lane().as_str().to_owned(),
-        option_text_basis(
+        option_digest_basis(
             descriptor
                 .allocation_measurement_contract()
+                .map(|contract| contract.digest_basis()),
+        ),
+        option_digest_basis(
+            descriptor
+                .static_paint_contract()
                 .map(|contract| contract.digest_basis()),
         ),
     ]
@@ -48,12 +53,6 @@ pub(super) fn command_descriptor_basis(descriptor: &CommandDescriptor) -> String
         option_id_basis(descriptor.icon().map(|icon| icon.as_str())),
         option_text_basis(descriptor.default_shortcut_reference()),
         descriptor.category().as_str().to_owned(),
-        descriptor.readiness().digest_basis(),
-        option_text_basis(
-            descriptor
-                .runtime_intent_binding()
-                .map(|binding| binding.digest_basis()),
-        ),
         option_id_basis(
             descriptor
                 .projection_eligibility()

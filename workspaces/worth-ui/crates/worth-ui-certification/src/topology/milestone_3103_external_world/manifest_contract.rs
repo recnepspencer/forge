@@ -66,8 +66,36 @@ fn audit_windows_dev_dependencies(manifest: &toml::Value) -> Result<(), String> 
         let table = dependency
             .as_table()
             .ok_or_else(|| format!("`{name}` should inherit from the workspace"))?;
-        if table.len() != 1 || table.get("workspace").and_then(toml::Value::as_bool) != Some(true) {
-            return Err(format!("`{name}` should be exactly workspace-inherited"));
+        let expected_keys = if name == "xcap" {
+            ["features", "workspace"]
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+        } else {
+            ["workspace"].into_iter().collect::<BTreeSet<_>>()
+        };
+        let observed_keys = table.keys().map(String::as_str).collect::<BTreeSet<_>>();
+        let observed_features = table
+            .get("features")
+            .and_then(toml::Value::as_array)
+            .map(|values| {
+                values
+                    .iter()
+                    .filter_map(toml::Value::as_str)
+                    .collect::<BTreeSet<_>>()
+            })
+            .unwrap_or_default();
+        let expected_features = if name == "xcap" {
+            ["wgc"].into_iter().collect::<BTreeSet<_>>()
+        } else {
+            BTreeSet::new()
+        };
+        if table.get("workspace").and_then(toml::Value::as_bool) != Some(true)
+            || observed_keys != expected_keys
+            || observed_features != expected_features
+        {
+            return Err(format!(
+                "`{name}` application dependency contract drifted: keys={observed_keys:?}, features={observed_features:?}"
+            ));
         }
     }
     Ok(())
@@ -92,7 +120,7 @@ fn audit_workspace_native_contracts(workspace: &toml::Value) -> Result<(), Strin
         "winsafe",
         "=0.0.28",
         None,
-        &["kernel", "user"],
+        &["dwm", "kernel", "user"],
     )?;
     audit_dependency(dependencies, "xcap", "=0.9.7", Some(false), &[])
 }

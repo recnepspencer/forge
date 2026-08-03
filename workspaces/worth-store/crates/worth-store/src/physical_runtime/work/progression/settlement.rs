@@ -244,6 +244,12 @@ impl SettledPhysicalWork {
         self.dispatched.admitted.authority().binding()
     }
 
+    pub(in crate::physical_runtime) const fn signal_family(
+        &self,
+    ) -> crate::physical_runtime::work::PhysicalWorkSignalFamily {
+        self.dispatched.admitted.authority().signal_family()
+    }
+
     pub(in crate::physical_runtime) fn retry_is_physically_safe(&self) -> bool {
         if self.evidence.fate() != PhysicalWorkEffectFate::ProvenNoEffect
             || self.recovery != self.intent().recovery()

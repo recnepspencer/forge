@@ -5,7 +5,7 @@ use crate::runtime::{
     WorthQueryAspectMutationOperation, WorthQueryContinuityMutationIntent,
     WorthQueryExistingTruthTargetBinding, WorthQueryMutationFamily, WorthQueryMutationMetadata,
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingMutationIntent,
-    WorthQueryRuntimeBackendPosture, WorthQueryRuntimeError, WorthQueryRuntimeSupportProfile,
+    WorthQueryRuntimeBatchAuthority, WorthQueryRuntimeError, WorthQueryRuntimeSupportProfile,
     WorthQuerySymbolicAspectReference, WorthQuerySymbolicAspectResolutionEvidence,
     WorthQuerySymbolicTargetReference, WorthQueryVerifiedExistingTruthAssertion,
     WorthQueryWriteCommand,
@@ -131,21 +131,57 @@ pub(crate) fn should_use_backend_atomic_batch(
     support_profile: &WorthQueryRuntimeSupportProfile,
     commands: &[WorthQueryWriteCommand],
 ) -> bool {
-    support_profile.posture() == WorthQueryRuntimeBackendPosture::Primary && commands.len() > 1
+    commands.len() > 1 && batch_authority_admits(support_profile.batch_authority(), commands)
 }
 
 pub(crate) fn deny_scaffold_multi_command_batch_without_atomic_authority(
     support_profile: &WorthQueryRuntimeSupportProfile,
     commands: &[WorthQueryWriteCommand],
 ) -> Result<(), WorthQueryRuntimeError> {
-    if support_profile.posture() == WorthQueryRuntimeBackendPosture::Scaffold && commands.len() > 1
-    {
+    if commands.len() > 1 && !batch_authority_admits(support_profile.batch_authority(), commands) {
         return Err(WorthQueryRuntimeError::Workspace(
             WorthQueryWorkspaceError::with_kind(
                 WorthQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
-                "scaffold runtime backends deny multi-command batches before execution unless they advertise an atomic batch authority",
+                "runtime backend batch authority does not admit every declared command shape",
             ),
         ));
     }
     Ok(())
+}
+
+fn batch_authority_admits(
+    authority: WorthQueryRuntimeBatchAuthority,
+    commands: &[WorthQueryWriteCommand],
+) -> bool {
+    match authority {
+        WorthQueryRuntimeBatchAuthority::BackendAtomicFull => true,
+        WorthQueryRuntimeBatchAuthority::BackendAtomicDirect => {
+            commands.iter().all(direct_atomic_command)
+        }
+        WorthQueryRuntimeBatchAuthority::Unsupported => false,
+    }
+}
+
+fn direct_atomic_command(command: &WorthQueryWriteCommand) -> bool {
+    match command {
+        WorthQueryWriteCommand::InsertAspects {
+            symbolic_aspect_references,
+            ..
+        }
+        | WorthQueryWriteCommand::VerifyThenUpdateExistingAspects {
+            symbolic_aspect_references,
+            ..
+        } => symbolic_aspect_references.is_empty(),
+        WorthQueryWriteCommand::UpdateAspect { .. }
+        | WorthQueryWriteCommand::UpdateAspects { .. }
+        | WorthQueryWriteCommand::UpdateExistingAspects { .. }
+        | WorthQueryWriteCommand::AssertExistingAspects { .. }
+        | WorthQueryWriteCommand::VerifyExistingAspects { .. }
+        | WorthQueryWriteCommand::DeleteAspects { .. }
+        | WorthQueryWriteCommand::VerifyThenDeleteExistingAspects { .. }
+        | WorthQueryWriteCommand::DeleteExistingAspects { .. }
+        | WorthQueryWriteCommand::Delete { .. } => true,
+        WorthQueryWriteCommand::UpdateSymbolicAspects { .. }
+        | WorthQueryWriteCommand::DeleteSymbolicAspects { .. } => false,
+    }
 }

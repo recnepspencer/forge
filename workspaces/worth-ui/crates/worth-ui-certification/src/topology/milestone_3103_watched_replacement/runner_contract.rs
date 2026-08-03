@@ -103,7 +103,7 @@ fn audit_typestate(progression: &str, source_action: &str) -> Result<(), String>
         require(progression, required, "Phase 4 typestate")?;
     }
     for required in [
-        "impl PulseExecutableWorld<Published<InitialBlue>>",
+        "impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
         "fn apply_green(",
         "impl PulseExecutableWorld<Published<GreenSuccessor>>",
         "fn apply_malformed(",
@@ -172,7 +172,7 @@ fn audit_preservation(progression: &str, adjudication: &str) -> Result<(), Strin
         require(progression, required, "watched preservation progression")?;
     }
     for required in [
-        "ReplacementDeniedPreserving",
+        "RebindDeniedPreserving",
         "PlatformPulseReplacementDenialFamily::DslCompilation",
         "ActiveGenerationChanged",
         "ActiveFrameChanged",

@@ -21,6 +21,7 @@ pub(super) fn rich_storm_app() -> WorthUiApp {
         "reload-storm-query-app",
     );
     WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(component("workspace.component.dashboard"))
         .register_surface(surface("workspace.surface.main"))
         .register_query_view(query_binding(

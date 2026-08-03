@@ -34,21 +34,24 @@ content_fingerprint = "1e8b1349f8e05fc3"
 id = "runtime-source"
 root = "crates/worth-ui-runtime/src/source"
 exclude = ["tests", "test_compilation.rs"]
-expected_files = 109
-path_set_fingerprint = "963aa8246db37c16"
-# Milestone 3.10.2 adds FillViewport and carries token-target authority through
-# snapshot binding: file-authored references remain exact authored meaning,
-# while Rust-authored payloads retain the frozen registry target.
-content_fingerprint = "f962112e62bf19fb"
+expected_files = 110
+path_set_fingerprint = "9583dfaa351f4519"
+# Milestone 3.11 adds explicit static-paint meaning beside allocation geometry;
+# both participate in source equivalence without creating a parallel lane.
+# Milestone 3.12 adds the typed bounded-comparison denial beside exhaustive
+# artifact equivalence; comparison remains in the existing semantic-identity owner.
+content_fingerprint = "abe08f75c84fd5d9"
 
 [[scope]]
 id = "runtime-source-ingress"
 root = "crates/worth-ui-runtime/src/runtime/source_ingress"
-expected_files = 31
-path_set_fingerprint = "25acc1eb1a009e65"
-# Milestone 3.10.2 carries the registered FillViewport capability through
-# semantic handoff as typed declaration mode plus viewport evidence basis.
-content_fingerprint = "04643702919847e2"
+expected_files = 35
+path_set_fingerprint = "c5b45bb3db29679a"
+# Milestone 3.11 carries ViewportInset's two authored axes through the semantic
+# handoff beside FillViewport without creating a parallel ingress lane.
+# Milestone 3.12 retains exact watched/Rust origin beside candidate composition
+# in one typed authored-source basis under the existing runtime-candidate owner.
+content_fingerprint = "809b80b868873ef1"
 
 [[scope]]
 id = "runtime-replacement"
@@ -56,7 +59,9 @@ root = "crates/worth-ui-runtime/src/runtime/replacement"
 exclude = ["tests"]
 expected_files = 149
 path_set_fingerprint = "20258d5938a737fa"
-content_fingerprint = "95d59cf5d5321142"
+# Milestone 3.12 extends the existing replacement owners with bounded exhaustive
+# comparison and typed precomputed planning handoff; no parallel replacement lane.
+content_fingerprint = "74434aca31af5143"
 
 # Every production Rust file in the three scopes must match exactly one row.
 # `directory` includes its mod.rs; `direct-children` excludes nested directories.
@@ -371,19 +376,36 @@ forbidden_shortcut = "inspect compiler internals or collapse DSL diagnostics int
 [[classification]]
 id = "source-ingress-runtime-candidate"
 scope = "runtime-source-ingress"
-match = "exact"
-path = "candidate_composition.rs"
+match = "exact-set"
+paths = ["candidate_composition.rs", "authored_source_basis.rs"]
 current_owner = "worth-ui-runtime"
-responsibility = "compose runtime candidates with already-prepared declaration material and exact semantic handoff evidence"
+responsibility = "compose runtime candidates and retain exact authored origin with already-prepared declaration material and semantic handoff evidence"
 capabilities = ["candidate-preparation", "runtime-admission"]
 authority_in = ["sealed semantic handoff", "runtime snapshot"]
-authority_out = ["prepared replacement candidate"]
+authority_out = ["prepared replacement candidate", "exact authored source basis"]
 lifecycle = "candidate admission"
 failure_owner = "runtime admission"
 cost = "candidate bounded"
 destination = "worth-ui-runtime/application"
 disposition = "retain"
 forbidden_shortcut = "reparse or reconstruct authored semantics"
+
+[[classification]]
+id = "source-ingress-rebind-attempt"
+scope = "runtime-source-ingress"
+match = "directory"
+path = "source_rebind_attempt"
+current_owner = "worth-ui-runtime"
+responsibility = "bind one settled source revision, ordering receipt, ingress counters, capability snapshot, compiler outcome, and candidate admission into one typed source attempt"
+capabilities = ["compiler-invocation", "candidate-preparation", "runtime-admission"]
+authority_in = ["ordered source revision", "capability snapshot"]
+authority_out = ["typed source attempt outcome"]
+lifecycle = "settled source observation through candidate submission"
+failure_owner = "DSL compilation or runtime admission"
+cost = "candidate bounded"
+destination = "worth-ui-runtime/source_ingress/source_rebind_attempt"
+disposition = "retain"
+forbidden_shortcut = "return raw compiler internals, discard attempt basis, or expose generic candidate extraction"
 
 [[classification]]
 id = "source-ingress-semantic-handoff"

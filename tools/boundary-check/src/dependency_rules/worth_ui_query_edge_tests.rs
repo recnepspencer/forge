@@ -50,15 +50,18 @@ fn binding_crate_is_the_only_admitted_production_query_edge() {
 }
 
 #[test]
-fn direct_runtime_dependency_reports_the_admitted_path() {
-    let root = fixture_root("runtime-dependency");
-    write_crate(&root, "worth-ui-runtime", true, "pub fn runtime() {}");
-    let diagnostics = validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
-    assert_eq!(diagnostics.len(), 1);
-    assert!(diagnostics[0]
-        .message()
-        .contains("consume binding-owned artifacts"));
-    std::fs::remove_dir_all(root).expect("fixture cleanup");
+fn direct_runtime_or_host_dependency_reports_the_admitted_path() {
+    for package in ["worth-ui-runtime", "worth-ui-host-contract"] {
+        let root = fixture_root(package);
+        write_crate(&root, package, true, "pub fn forbidden_query_edge() {}");
+        let diagnostics =
+            validate_worth_ui_query_edge(&root, &contract()).expect("edge validation");
+        assert_eq!(diagnostics.len(), 1);
+        assert!(diagnostics[0]
+            .message()
+            .contains("consume binding-owned artifacts"));
+        std::fs::remove_dir_all(root).expect("fixture cleanup");
+    }
 }
 
 #[test]

@@ -12,11 +12,13 @@ use super::plugin_slot_fixtures::{plugin_slot, plugin_slot_id};
 #[test]
 fn equivalent_plugin_slots_produce_equivalent_admitted_families() {
     let first = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.views"))
         .freeze()
         .expect("application preparation should succeed");
     let second = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.views"))
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .freeze()
@@ -42,6 +44,7 @@ fn equivalent_plugin_slots_produce_equivalent_admitted_families() {
 #[test]
 fn equivalent_plugin_slot_families_are_canonicalized() {
     let single = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             PluginSlotDescriptor::new(plugin_slot_id("workspace.plugin_slot.inspectors"))
                 .allow_family(PluginContributionFamily::command())
@@ -54,6 +57,7 @@ fn equivalent_plugin_slot_families_are_canonicalized() {
         .freeze()
         .expect("application preparation should succeed");
     let reordered_with_duplicate = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             PluginSlotDescriptor::new(plugin_slot_id("workspace.plugin_slot.inspectors"))
                 .allow_family(PluginContributionFamily::component())
@@ -95,6 +99,7 @@ fn equivalent_plugin_slot_families_are_canonicalized() {
 #[test]
 fn all_domain_agnostic_builtin_plugin_contribution_families_are_admitted() {
     let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(all_builtin_contribution_family_slot())
         .freeze()
         .expect("application preparation should succeed");
@@ -116,10 +121,12 @@ fn all_domain_agnostic_builtin_plugin_contribution_families_are_admitted() {
 #[test]
 fn different_plugin_slot_permission_changes_snapshot_digest() {
     let host_granted = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(plugin_slot("workspace.plugin_slot.commands"))
         .freeze()
         .expect("application preparation should succeed");
     let user_consent = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .register_plugin_slot(
             plugin_slot("workspace.plugin_slot.commands")
                 .with_permission(PluginCapabilityPermission::user_consent()),

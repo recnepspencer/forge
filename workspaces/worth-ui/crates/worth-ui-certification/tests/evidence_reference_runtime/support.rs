@@ -31,6 +31,7 @@ pub(super) fn obligation_query(
 
 pub(super) fn graph_evidence_app() -> WorthUiApp {
     WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
                 "worth-ui.certification.evidence.references",

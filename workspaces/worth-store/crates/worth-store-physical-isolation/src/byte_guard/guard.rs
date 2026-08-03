@@ -1,129 +1,44 @@
 use super::{ByteGuardReleaseReceipt, PhysicalByteGuardDenial, PhysicalByteGuardScope};
-use crate::{
-    PhysicalByteGuardAdmission, PhysicalByteGuardScopeKind, PhysicalReadProtectedFootprintBasis,
-};
-use worth_store_buffer_pool::PhysicalFrameLease;
-#[cfg(feature = "legacy-certification-models")]
-use worth_store_buffer_pool::{BoundedCopyRecordView, PinnedFrameView, PinnedPageLease};
-use worth_store_physical_format::{PhysicalGenerationOwner, PhysicalPayloadViewAdmission};
+use crate::{PhysicalByteGuardAdmission, PhysicalReadProtectedFootprintBasis};
+use worth_store::physical_runtime::PhysicalRecordChunkView;
 
-#[derive(Debug)]
 pub struct PhysicalByteGuard<'a> {
     scope: PhysicalByteGuardScope,
     footprint_basis: PhysicalReadProtectedFootprintBasis,
     bytes: GuardedPhysicalBytes<'a>,
 }
 
-#[derive(Debug)]
 enum GuardedPhysicalBytes<'a> {
-    PhysicalFrame(&'a [u8]),
-    #[cfg(feature = "legacy-certification-models")]
-    PinnedFrame(PinnedFrameView<'a>),
-    BorrowedPayload(&'a [u8]),
-    #[cfg(feature = "legacy-certification-models")]
-    OwnedReadBuffer(Vec<u8>),
+    RecordChunk(PhysicalRecordChunkView<'a>),
+}
+
+impl std::fmt::Debug for PhysicalByteGuard<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PhysicalByteGuard")
+            .field("scope", &self.scope)
+            .field("footprint_basis", &self.footprint_basis)
+            .field("guarded_bytes", &self.bytes_for_execution().len())
+            .finish()
+    }
 }
 
 impl<'a> PhysicalByteGuard<'a> {
-    pub fn from_physical_frame(
+    pub fn from_record_chunk(
         admission: PhysicalByteGuardAdmission,
-        lease: &'a PhysicalFrameLease,
+        chunk: PhysicalRecordChunkView<'a>,
     ) -> Result<Self, PhysicalByteGuardDenial> {
         let scope = admission.scope();
-        reject_scope_kind(scope, PhysicalByteGuardScopeKind::ResidentFrame)?;
-        match scope.resident_frame() {
-            Some(frame) if frame == lease.key() => Ok(Self {
-                scope,
-                footprint_basis: admission.footprint_basis(),
-                bytes: GuardedPhysicalBytes::PhysicalFrame(lease),
-            }),
-            _ => Err(PhysicalByteGuardDenial::GuardScopeMismatch {
-                expected: scope,
-                observed: PhysicalByteGuardScope::for_resident_frame(
-                    scope.reference(),
-                    lease.key(),
-                ),
-            }),
+        if scope.chunk_basis() != chunk.basis() {
+            return Err(PhysicalByteGuardDenial::StoreChunkBasisMismatch {
+                expected: scope.chunk_basis(),
+                observed: chunk.basis(),
+            });
         }
-    }
-
-    #[cfg(feature = "legacy-certification-models")]
-    pub fn from_pinned_frame(
-        admission: PhysicalByteGuardAdmission,
-        lease: &'a PinnedPageLease<'a>,
-    ) -> Result<Self, PhysicalByteGuardDenial> {
-        let scope = admission.scope();
-        reject_scope_kind(scope, PhysicalByteGuardScopeKind::ResidentFrame)?;
-        reject_owner_mismatch(
-            scope.reference().owner(),
-            lease.physical_reference()?.generation_owner(),
-        )?;
-        match scope.legacy_resident_frame_token() {
-            Some(token) if token == lease.resident_frame_token() => Ok(Self {
-                scope,
-                footprint_basis: admission.footprint_basis(),
-                bytes: GuardedPhysicalBytes::PinnedFrame(lease.view()?),
-            }),
-            _ => Err(PhysicalByteGuardDenial::GuardScopeMismatch {
-                expected: scope,
-                observed: PhysicalByteGuardScope::for_legacy_resident_frame(
-                    scope.reference(),
-                    lease.resident_frame_token(),
-                ),
-            }),
-        }
-    }
-
-    #[cfg(feature = "legacy-certification-models")]
-    pub fn from_bounded_copy(
-        admission: PhysicalByteGuardAdmission,
-        copy: BoundedCopyRecordView,
-    ) -> Result<Self, PhysicalByteGuardDenial> {
-        reject_scope_kind(
-            admission.scope(),
-            PhysicalByteGuardScopeKind::OwnedReadBuffer,
-        )?;
-        reject_owner_mismatch(
-            admission.scope().reference().owner(),
-            copy.reference().generation_owner(),
-        )?;
-        let (_, bytes) = copy.into_physical_record_bytes();
         Ok(Self {
-            scope: admission.scope(),
+            scope,
             footprint_basis: admission.footprint_basis(),
-            bytes: GuardedPhysicalBytes::OwnedReadBuffer(bytes),
-        })
-    }
-
-    pub fn from_extent_window(
-        admission: PhysicalByteGuardAdmission,
-        payload: PhysicalPayloadViewAdmission<'a>,
-    ) -> Result<Self, PhysicalByteGuardDenial> {
-        Self::from_borrowed_payload(admission, payload, PhysicalByteGuardScopeKind::ExtentWindow)
-    }
-
-    pub fn from_mmap_view(
-        admission: PhysicalByteGuardAdmission,
-        payload: PhysicalPayloadViewAdmission<'a>,
-    ) -> Result<Self, PhysicalByteGuardDenial> {
-        Self::from_borrowed_payload(admission, payload, PhysicalByteGuardScopeKind::MmapView)
-    }
-
-    fn from_borrowed_payload(
-        admission: PhysicalByteGuardAdmission,
-        payload: PhysicalPayloadViewAdmission<'a>,
-        expected: PhysicalByteGuardScopeKind,
-    ) -> Result<Self, PhysicalByteGuardDenial> {
-        reject_scope_kind(admission.scope(), expected)?;
-        let view = payload.view();
-        reject_owner_mismatch(
-            admission.scope().reference().owner(),
-            view.witness().owner(),
-        )?;
-        Ok(Self {
-            scope: admission.scope(),
-            footprint_basis: admission.footprint_basis(),
-            bytes: GuardedPhysicalBytes::BorrowedPayload(view.as_bytes()),
+            bytes: GuardedPhysicalBytes::RecordChunk(chunk),
         })
     }
 
@@ -137,41 +52,11 @@ impl<'a> PhysicalByteGuard<'a> {
 
     pub(crate) fn bytes_for_execution(&self) -> &[u8] {
         match &self.bytes {
-            GuardedPhysicalBytes::PhysicalFrame(bytes) => bytes,
-            #[cfg(feature = "legacy-certification-models")]
-            GuardedPhysicalBytes::PinnedFrame(view) => view.as_bytes(),
-            GuardedPhysicalBytes::BorrowedPayload(bytes) => bytes,
-            #[cfg(feature = "legacy-certification-models")]
-            GuardedPhysicalBytes::OwnedReadBuffer(bytes) => bytes.as_slice(),
+            GuardedPhysicalBytes::RecordChunk(chunk) => chunk.bytes(),
         }
     }
 
     pub fn release(self) -> ByteGuardReleaseReceipt {
         ByteGuardReleaseReceipt::new(self.scope, self.bytes_for_execution().len() as u64)
-    }
-}
-
-fn reject_scope_kind(
-    scope: PhysicalByteGuardScope,
-    expected: PhysicalByteGuardScopeKind,
-) -> Result<(), PhysicalByteGuardDenial> {
-    if scope.kind() == expected {
-        Ok(())
-    } else {
-        Err(PhysicalByteGuardDenial::GuardScopeKindMismatch {
-            expected,
-            observed: scope.kind(),
-        })
-    }
-}
-
-fn reject_owner_mismatch(
-    expected: PhysicalGenerationOwner,
-    observed: PhysicalGenerationOwner,
-) -> Result<(), PhysicalByteGuardDenial> {
-    if expected == observed {
-        Ok(())
-    } else {
-        Err(PhysicalByteGuardDenial::ByteProvenanceMismatch { expected, observed })
     }
 }

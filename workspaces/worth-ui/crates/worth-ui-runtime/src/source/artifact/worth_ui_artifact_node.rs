@@ -111,6 +111,33 @@ artifact_node_common_accessors!(WorthUiArtifactBindingNode);
 artifact_node_common_accessors!(WorthUiArtifactThemeTokenNode);
 
 impl WorthUiArtifactNode {
+    pub(crate) fn authored_declaration_identity(&self) -> String {
+        match self {
+            Self::Import(node) => format!("import:{}", node.target().authored_text()),
+            Self::Component(node) => format!("component:{}", node.component().id().as_str()),
+            Self::Surface(node) => format!("surface:{}", node.surface().id().as_str()),
+            Self::Binding(node) => format!(
+                "binding:{}",
+                node.view_binding_reference().view_binding().id().as_str()
+            ),
+            Self::Token(node) => format!("token:{}", node.theme_token().id().as_str()),
+        }
+    }
+
+    pub(crate) fn component_capability_identity(&self) -> Option<&str> {
+        match self {
+            Self::Component(node) => Some(node.component().id().as_str()),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn theme_token_capability_identity(&self) -> Option<&str> {
+        match self {
+            Self::Token(node) => Some(node.theme_token().id().as_str()),
+            _ => None,
+        }
+    }
+
     pub(crate) fn has_same_semantic_meaning_ignoring_location(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Import(left), Self::Import(right)) => left.target == right.target,

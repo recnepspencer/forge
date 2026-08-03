@@ -44,23 +44,8 @@ impl CrashBoundaryLayoutReport {
                     RecoveryLayoutAccessDenialKind::AmbiguousResidueCannotStandInForCrashBoundaryAuthority,
                 ),
             ),
-            UnacknowledgedPublicationOutcome::NoUndoPostureSatisfied
-            | UnacknowledgedPublicationOutcome::RollbackImageProtected
-            | UnacknowledgedPublicationOutcome::UndoCapableRecoveryDeferred => Err(
-                RecoveryLayoutAccessDenial::new(
-                    RecoveryLayoutAccessDenialKind::DerivedRollbackCannotStandInForCrashBoundaryAuthority,
-                ),
-            ),
             _ => Ok(CrashBoundaryLayoutReport::from_classification(classification)),
         }
-    }
-
-    pub fn reject_derived_rollback_outcome(
-        _outcome: UnacknowledgedPublicationOutcome,
-    ) -> Result<(), RecoveryLayoutAccessDenial> {
-        Err(RecoveryLayoutAccessDenial::new(
-            RecoveryLayoutAccessDenialKind::DerivedRollbackCannotStandInForCrashBoundaryAuthority,
-        ))
     }
 }
 

@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
-    WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMemoryWorkspace,
-    WorthQueryMutationReceipt, WorthQuerySnapshotIdentity, WorthQueryWorkspaceError,
-    WorthQueryWorkspaceErrorKind,
+    WorthQueryEntity, WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQueryMemoryBatchMutation,
+    WorthQueryMemoryWorkspace, WorthQueryMutationReceipt, WorthQuerySnapshotIdentity,
+    WorthQueryWorkspaceError, WorthQueryWorkspaceErrorKind,
 };
 use crate::runtime::{
     runtime_subscription_support_evidence_identity, LiveViewDeclarationAdmissionBoundaryReceipt,
@@ -29,6 +29,7 @@ pub(super) struct WorthQueryInMemoryTestBackend {
     live_views: BTreeMap<WorthQueryLiveArtifactTarget, WorthQueryMutationTargetCollectionIdentity>,
     live_close_failures: usize,
     collection_entity_lookup_supported: bool,
+    remask_projection: Option<crate::runtime::WorthQueryRuntimeRemaskProjection>,
 }
 
 impl WorthQueryInMemoryTestBackend {
@@ -46,6 +47,7 @@ impl WorthQueryInMemoryTestBackend {
             live_views: BTreeMap::new(),
             live_close_failures: 0,
             collection_entity_lookup_supported: true,
+            remask_projection: None,
         }
     }
 
@@ -54,6 +56,7 @@ impl WorthQueryInMemoryTestBackend {
         support_profile: Option<WorthQueryRuntimeSupportProfile>,
         live_close_failures: usize,
         collection_entity_lookup_supported: bool,
+        remask_projection: Option<crate::runtime::WorthQueryRuntimeRemaskProjection>,
     ) -> Self {
         let mut backend = match support_profile {
             Some(profile) => Self::with_support_profile(workspace, profile),
@@ -61,6 +64,7 @@ impl WorthQueryInMemoryTestBackend {
         };
         backend.live_close_failures = live_close_failures;
         backend.collection_entity_lookup_supported = collection_entity_lookup_supported;
+        backend.remask_projection = remask_projection;
         backend
     }
 
@@ -156,6 +160,48 @@ impl WorthQueryInMemoryTestBackend {
         }
     }
 
+    fn prepare_batch_mutation(
+        &self,
+        mutation: WorthQueryBackendAdmissibleMutation,
+    ) -> Result<WorthQueryMemoryBatchMutation, WorthQueryWorkspaceError> {
+        if let Some(collection) = mutation.declared_collection_identity() {
+            self.ensure_declared_collection(&collection)?;
+        }
+        match mutation.mutation_family() {
+            WorthQueryMutationFamily::Insert => Ok(WorthQueryMemoryBatchMutation::Insert {
+                patch: mutation.portable_patch().clone(),
+                touches: mutation.declared_aspect_touches(),
+            }),
+            WorthQueryMutationFamily::Update => {
+                let entity = mutation.declared_entity_identity().ok_or_else(|| {
+                    WorthQueryWorkspaceError::new(
+                        "batch update missing declared entity after admission",
+                    )
+                })?;
+                Ok(WorthQueryMemoryBatchMutation::Update {
+                    entity,
+                    patch: mutation.portable_patch().clone(),
+                    touches: mutation.declared_aspect_touches(),
+                })
+            }
+            WorthQueryMutationFamily::Delete => {
+                let entity = mutation.declared_entity_identity().ok_or_else(|| {
+                    WorthQueryWorkspaceError::new(
+                        "batch delete missing declared entity after admission",
+                    )
+                })?;
+                Ok(WorthQueryMemoryBatchMutation::Delete {
+                    entity,
+                    touches: mutation.admitted_touched_aspects().to_vec(),
+                })
+            }
+            unsupported => Err(WorthQueryWorkspaceError::new(format!(
+                "batch write command `{}` should be rejected by admission before execution",
+                unsupported.as_str()
+            ))),
+        }
+    }
+
     fn view_targets_collection(&self, target: &WorthQueryLiveArtifactTarget) -> bool {
         self.live_views
             .get(target)
@@ -221,17 +267,11 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
         &mut self,
         mutations: Vec<WorthQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<WorthQueryMutationReceipt>, WorthQueryWorkspaceError> {
-        if mutations.len() > 1 {
-            return Err(WorthQueryWorkspaceError::with_kind(
-                WorthQueryWorkspaceErrorKind::BatchAtomicityUnsupported,
-                "in-memory test backend denies multi-command batches before execution because scaffold batch atomicity is not supported",
-            ));
-        }
-        let mut receipts = Vec::with_capacity(mutations.len());
+        let mut prepared = Vec::with_capacity(mutations.len());
         for mutation in mutations {
-            receipts.push(self.apply_backend_admissible_mutation(mutation)?);
+            prepared.push(self.prepare_batch_mutation(mutation)?);
         }
-        Ok(receipts)
+        self.workspace.apply_batch_atomically(prepared)
     }
 
     fn execute_intent(
@@ -301,7 +341,7 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
             view_name,
             activation,
             runtime_subscription_support_evidence_identity("consumer-kit-in-memory-test-backend"),
-            None,
+            self.remask_projection.clone(),
         ))
     }
 

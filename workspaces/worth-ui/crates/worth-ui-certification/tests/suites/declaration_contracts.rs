@@ -18,3 +18,5 @@ mod declaration_graph_handoff_runtime;
 mod declaration_structural_semantics_runtime;
 #[path = "../declaration_support_snapshot_runtime.rs"]
 mod declaration_support_snapshot_runtime;
+#[path = "../declaration_contracts/projection_declaration/mod.rs"]
+mod projection_declaration;

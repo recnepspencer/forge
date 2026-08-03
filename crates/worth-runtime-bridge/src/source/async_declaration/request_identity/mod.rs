@@ -16,6 +16,7 @@ pub use counters::BridgeAsyncRequestIdentityCounters;
 pub use identity::{
     AdmittedBridgeAsyncRequestIdentity, BridgeAsyncInFlightRequestIdentity,
     BridgeAsyncRequestAdmissionRequest, BridgeAsyncRequestFamilyAdmission,
+    BridgeAsyncRequestIdentity, BridgeAsyncRequestRuntimeIdentity,
 };
 pub use rejection::{BridgeAsyncRequestIdentityRejection, BridgeAsyncRequestIdentityRejectionKind};
 pub(crate) use state::SignalRuntimeThreadAffinityError;

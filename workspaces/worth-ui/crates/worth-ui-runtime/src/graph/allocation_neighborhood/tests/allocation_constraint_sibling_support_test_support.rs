@@ -43,7 +43,7 @@ pub(super) fn mosaic_peer_app_with_contracts(
         .start()
         .ingest([WorthUiWatcherEvent::provider_revision(package_name)])
         .expect("source-backed mosaic provider should debounce to one candidate batch")
-        .lower_to_candidate_submission(support_app.capabilities())
+        .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed mosaic candidate should lower through source ingress");
     mosaic_peer_builder(world_profile, include_alternate_contract)
         .with_candidate_submission(submission)
@@ -56,6 +56,7 @@ fn mosaic_peer_builder(
     include_alternate_contract: bool,
 ) -> crate::facade::entry::WorthUiApplicationBuilder {
     let mut builder = WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(component_descriptor("workspace.component.workflow_editor"))
         .register_component(component_descriptor(

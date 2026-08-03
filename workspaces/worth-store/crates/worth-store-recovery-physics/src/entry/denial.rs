@@ -3,8 +3,8 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub enum RecoveryEntryAdmissionDecision {
-    Admitted(Box<crate::RecoveryEntryAdmission>),
+pub enum RecoveryEntryAdmissionDecision<'runtime> {
+    Admitted(Box<crate::RecoveryEntryAdmission<'runtime>>),
     Blocked(RecoveryEntryBlockedByIntegrityDamage),
     Denied(RecoveryEntryAdmissionDenial),
 }

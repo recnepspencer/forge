@@ -11,13 +11,17 @@ use crate::test_support::{
 use crate::{
     BlobAuthorityClassification, BlobChunkDedupeAdmission, BlobChunkDedupeReferenceRegistry,
     BlobChunkOrdinal, BlobChunkRootPublication, BlobCompactionAuthority,
-    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionPacingAdmission,
+    BlobCompactionColdReadiness, BlobCompactionIntent, BlobCompactionIntentBasis,
     BlobCompactionReadHold, BlobCorruptedChunkLocalization, BlobCorruptionDetectionSource,
     BlobCorruptionGuard, BlobCorruptionPlacementClass, BlobCorruptionReferenceEdges,
     BlobQuarantineAuthority, BlobStreamingContentFrontier, BlobStreamingVerifiedRead,
     LifecycleReceipt,
 };
 use worth_proof::TransitionOutcome;
+use worth_store_io_scheduler::{
+    execute_background_pressure_for_certification_test, BackgroundIdleCapacityLease,
+    BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, QueueSlot,
+};
 use worth_store_physical_isolation::{
     execute_read_during_compaction_cutover, CompactionReadInterlockDenial,
     ReadDuringCompactionVerdict,
@@ -62,12 +66,16 @@ pub(crate) fn rewritten_publication_with_bytes(
 }
 
 pub(crate) fn intent(case: &str) -> BlobCompactionIntent {
+    pace(intent_basis(case))
+}
+
+pub(crate) fn intent_basis(case: &str) -> BlobCompactionIntentBasis {
     let (lifecycle, uncompacted_publication) = lifecycle_with_publication(case);
     let reachability = lifecycle.reachability().clone();
     let placement = admit_inline_placement(&reachability);
     let physical = physical_compaction::admitted_compaction_plan();
     let read_hold = read_hold_for_plan(&physical);
-    BlobCompactionIntent::for_published_generation(
+    BlobCompactionIntentBasis::for_published_generation(
         lifecycle,
         uncompacted_publication,
         reachability,
@@ -82,13 +90,13 @@ pub(crate) fn intent_without_reachability(case: &str) -> BlobCompactionIntent {
     let placement = admit_inline_placement(lifecycle.reachability());
     let physical = physical_compaction::admitted_compaction_plan();
     let read_hold = read_hold_for_plan(&physical);
-    BlobCompactionIntent::without_reachability(
+    pace(BlobCompactionIntentBasis::without_reachability(
         lifecycle,
         uncompacted_publication,
         placement,
         read_hold,
         physical,
-    )
+    ))
 }
 
 fn read_hold_for_plan(
@@ -191,8 +199,29 @@ pub(crate) fn quarantine_guard(case: &str) -> BlobCorruptionGuard {
     BlobCorruptionGuard::from_quarantine(quarantine)
 }
 
-pub(crate) fn pacing() -> BlobCompactionPacingAdmission {
-    BlobCompactionPacingAdmission::admitted_compaction(2)
+pub(crate) fn pace(basis: BlobCompactionIntentBasis) -> BlobCompactionIntent {
+    basis
+        .with_scheduler_pacing(compaction_lease())
+        .expect("scheduler-issued compaction lease should pace compaction")
+}
+
+pub(crate) fn compaction_lease() -> BackgroundIdleCapacityLease {
+    lease_for_pressure(BackgroundIoPressureShape::compaction_rewrite())
+}
+
+pub(crate) fn ingest_lease() -> BackgroundIdleCapacityLease {
+    lease_for_pressure(BackgroundIoPressureShape::blob_ingest_pressure())
+}
+
+fn lease_for_pressure(pressure: BackgroundIoPressureShape) -> BackgroundIdleCapacityLease {
+    let pressure = pressure
+        .requesting(BackgroundResourceBudget::new().with_queue_slots(QueueSlot::new(1).unwrap()));
+    let BackgroundPacingOutcome::AdmittedWithDebt(admitted) =
+        execute_background_pressure_for_certification_test(pressure)
+    else {
+        panic!("certification scheduler pressure should issue a lease");
+    };
+    admitted.into_lease()
 }
 
 pub(crate) fn verified_read_for_rewritten(

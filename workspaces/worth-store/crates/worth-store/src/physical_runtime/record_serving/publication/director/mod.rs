@@ -8,7 +8,7 @@ use super::append::{RecordAppendDenial, RecordAppendError};
 use crate::physical_runtime::instance::PhysicalStoreWorkRuntime;
 
 use super::super::{
-    residency::{frame_loading::CanonicalFrameReadSource, ServingFrameResidency},
+    residency::{frame_loading::CanonicalFrameReadSource, PhysicalResidencyWorkPort},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, CanonicalRecordMutationPort,
     CanonicalRecordReadPort, RecordAllocationFrontier, RecordFramePorts,
     RecordPublicationResidueObservation,
@@ -22,7 +22,7 @@ pub use submission::{PhysicalRecordSubmission, PreparedRecordAppend};
 
 pub(in crate::physical_runtime) struct RecordPublicationDirector {
     runtime: Weak<PhysicalStoreWorkRuntime>,
-    residency: ServingFrameResidency,
+    residency: PhysicalResidencyWorkPort,
     mutation: CanonicalRecordMutationPort,
     generation: crate::physical_runtime::LifecycleGeneration,
     format: AdmittedPhysicalRecordFormat,
@@ -77,11 +77,13 @@ impl RecordPublicationDirector {
         mutation: CanonicalRecordMutationPort,
         foundation: RecordPublicationFoundation,
     ) -> Arc<Self> {
+        let writeback = mutation.frame_writeback_port(foundation.frame_ports.clone());
         Arc::new(Self {
             runtime: Arc::downgrade(runtime),
-            residency: ServingFrameResidency::new(
+            residency: PhysicalResidencyWorkPort::new(
                 foundation.frame_ports,
                 CanonicalFrameReadSource::new(planning_read),
+                writeback,
             ),
             mutation,
             generation: foundation.generation,

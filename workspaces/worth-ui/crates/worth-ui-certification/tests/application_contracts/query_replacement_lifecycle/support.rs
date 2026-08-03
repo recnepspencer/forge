@@ -76,12 +76,13 @@ pub(crate) fn activation_boundary(
         .into_activation_boundary()
 }
 
-pub(super) fn admit_active_resource(
+pub(crate) fn admit_active_resource(
     session: &mut WorthUiActiveApplicationSession,
     view: &WorthUiInstalledLiveQueryView,
     workspace: &mut runtime::WorthQueryWorkspace,
-) {
+) -> worth_ui_query_binding::WorthUiInstalledQueryBindingReference {
     let resource = open_resource(view, workspace);
+    let reference = resource.installed_reference().clone();
     let mut admitted = false;
     let completion = session
         .execute_framework_turn(|turn| {
@@ -92,6 +93,7 @@ pub(super) fn admit_active_resource(
         .expect("no mounted presentation lease is active");
     drop(completion.into_completion());
     assert!(admitted);
+    reference
 }
 
 pub(super) fn admit_candidate_resource(

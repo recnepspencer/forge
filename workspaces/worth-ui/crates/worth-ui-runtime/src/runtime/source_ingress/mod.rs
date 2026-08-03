@@ -1,3 +1,4 @@
+mod authored_source_basis;
 mod candidate_composition;
 mod candidate_submission;
 mod counters;
@@ -12,7 +13,9 @@ mod revision;
 mod semantic_handoff_preparation;
 mod source_event_ingress;
 mod source_ingress_hook;
+mod source_rebind_attempt;
 
+pub(crate) use authored_source_basis::WorthUiAuthoredSourceBasis;
 pub(crate) use candidate_composition::WorthUiCandidatePreparationHandoff;
 pub use candidate_composition::{WorthUiCandidateComposition, WorthUiCandidateCompositionBasis};
 pub(crate) use candidate_submission::{
@@ -36,11 +39,18 @@ pub use provider::{WorthUiSourceProvider, WorthUiSourceProviderKind};
 pub use revision::WorthUiSourcePackageRevision;
 use semantic_handoff_preparation::prepare_semantic_handoff;
 pub(crate) use semantic_handoff_preparation::WorthUiPreparedDeclarationMaterial;
-use semantic_handoff_preparation::WorthUiPreparedSemanticHandoffMaterial;
+pub(crate) use semantic_handoff_preparation::{
+    WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
+};
 pub use semantic_handoff_preparation::{
+    WorthUiAuthoredProjectionRequirement, WorthUiProjectionContentEdge,
     WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
     WorthUiSemanticHandoffPreparationStop,
 };
 pub use source_event_ingress::{WorthUiSourceEventIngress, WorthUiSourceEventIngressSession};
 #[cfg(test)]
 pub use source_ingress_hook::WorthUiSourceIngressHook;
+pub use source_rebind_attempt::{
+    UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
+    UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,
+};

@@ -177,7 +177,12 @@ use worth_runtime_bridge::facade::{
 };
 
 mod aspect_api_closeout;
+mod async_result_identity;
+mod async_result_projection;
 mod async_result_state;
+mod async_source_binding;
+mod async_source_transition;
+mod async_source_transition_plan;
 mod authoritative_mutation_evidence_bridge_alignment;
 mod authoritative_mutation_evidence_closeout;
 mod authoritative_mutation_evidence_support;
@@ -296,6 +301,7 @@ mod runtime_journal_replay;
 mod runtime_live_read_intents;
 mod runtime_non_authoritative_obligation_dispatch;
 mod runtime_probe_routing_intents;
+mod runtime_provenance;
 mod runtime_read_access_plan;
 mod runtime_read_execution_receipts;
 mod runtime_read_intents;
@@ -328,6 +334,7 @@ mod workspace_domain_installation;
 mod workspace_graph;
 mod workspace_inspection;
 mod workspace_live_queries;
+mod workspace_live_view_close;
 mod workspace_mutations;
 mod workspace_queries;
 mod workspace_read_composition_support;
@@ -350,6 +357,10 @@ const RUNTIME_CONSUMER_ATTACHMENT_BUDGET_POLICY: &str =
 pub use aspect_api_closeout::WorthQueryAspectApiFinalizationCloseout;
 pub use async_result_state::{
     WorthQueryRuntimeAsyncResultState, WorthQueryRuntimeAsyncResultStateKind,
+};
+pub use async_source_binding::{
+    WorthQueryAsyncResultTransitionBatch, WorthQueryAsyncSourceBindingError,
+    WorthQueryAsyncSourceBindingErrorKind,
 };
 pub use authoritative_mutation_evidence_closeout::WorthQueryAuthoritativeMutationEvidenceCloseout;
 pub use authoritative_mutation_evidence_support::{
@@ -382,6 +393,9 @@ pub use branch::WorthQueryBranchSession;
 pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
 pub use builder::{
+    WorthQueryHostRuntimeCompletionError, WorthQueryHostRuntimeInstallationCompletion,
+    WorthQueryHostRuntimeInstallationDenial, WorthQueryHostRuntimeInstallationDenialKind,
+    WorthQueryHostRuntimeInstallationPlan, WorthQueryHostRuntimeInstallationRequest,
     WorthQueryPrimaryGraphConfiguration, WorthQueryPrimaryGraphConfigurationDenial,
     WorthQueryPrimaryGraphConfigurationDenialKind, WorthQueryRuntimeBuilder,
 };
@@ -821,6 +835,7 @@ use runtime_helpers::{
     synthetic_existing_assertion_receipt, WorthQuerySameBatchSymbolicTarget,
     WorthQuerySameBatchSymbolicTargetKey,
 };
+pub use runtime_provenance::WorthQueryRuntimeProvenance;
 #[cfg(test)]
 pub(crate) use shared_read::WorthQuerySharedReadBasisInspection;
 pub use shared_read::{
@@ -844,10 +859,11 @@ pub use support::{
     WorthQueryMutationTargetCollectionIdentity, WorthQueryNamingAttachmentAuthorityLabel,
     WorthQueryNamingPriorAuthorityLabel, WorthQueryNamingTargetAuthorityLabel,
     WorthQueryPreviewBasisAdmission, WorthQueryRuntimeBackendPosture,
-    WorthQueryRuntimeEvidenceAuthority, WorthQueryRuntimeFacadeFamily,
-    WorthQueryRuntimeFamilySupport, WorthQueryRuntimeFamilySupportStatus,
-    WorthQueryRuntimeFamilyTeachingPosture, WorthQueryRuntimeInspectionEvidence,
-    WorthQueryRuntimeSupportDenial, WorthQueryRuntimeSupportProfile,
+    WorthQueryRuntimeBatchAuthority, WorthQueryRuntimeEvidenceAuthority,
+    WorthQueryRuntimeFacadeFamily, WorthQueryRuntimeFamilySupport,
+    WorthQueryRuntimeFamilySupportStatus, WorthQueryRuntimeFamilyTeachingPosture,
+    WorthQueryRuntimeInspectionEvidence, WorthQueryRuntimeSupportDenial,
+    WorthQueryRuntimeSupportProfile,
 };
 pub use support_matrix::{
     WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimePublicSupportMatrixRow,
@@ -906,6 +922,7 @@ pub use workspace_declaration::{
     WorthQueryWorkspaceLiveViewDeclaration,
 };
 pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
+pub use workspace_live_view_close::WorthQueryLiveViewCloseReceipt;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
 pub use worth_query_execution::facade::primary_graph::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryApplicationPrincipalKey,
@@ -913,7 +930,11 @@ pub use worth_query_execution::facade::primary_graph::{
     WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
     WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
 };
+pub use worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation;
 pub(crate) use worth_query_execution::facade::runtime::WorthQueryRuntimeAuthorityIdentity;
+pub use worth_query_installation::facade::{
+    WorthQueryAdmittedPortableDomainPackage, WorthQueryInstallationGeneration,
+};
 
 pub struct WorthQueryRuntime {
     backend: Box<dyn WorthQueryRuntimeBackend>,

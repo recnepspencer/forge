@@ -24,7 +24,10 @@ license = "UNLICENSED"
 worth-foundational = { path = "../../crates/worth-foundational" }
 worth-proof = { path = "../../crates/worth-proof" }
 worth-query = { path = "../worth-query/crates/worth-query" }
+worth-query-decl = { path = "../worth-query/crates/worth-query-decl" }
+worth-query-host = { path = "../worth-query/crates/worth-query-host" }
 worth-relational = { path = "../../crates/worth-relational" }
+worth-runtime-bridge = { path = "../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../crates/worth-signal" }
 
 worth-ui-theme = { path = "crates/worth-ui-theme" }
@@ -41,11 +44,12 @@ worth-ui = { path = "crates/worth-ui" }
 
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1.0"
-egui = "0.31"
-eframe = { version = "=0.31.1", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+egui = "=0.35.0"
+eframe = { version = "=0.35.0", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+egui_extras = { version = "=0.35.0", features = ["svg", "image"] }
 notify = "8.2.0"
 uiautomation = { version = "=0.25.0", default-features = false, features = ["control", "input"] }
-winsafe = { version = "=0.0.28", features = ["kernel", "user"] }
+winsafe = { version = "=0.0.28", features = ["dwm", "kernel", "user"] }
 xcap = { version = "=0.9.7", default-features = false }
 
 [workspace.lints.rust]

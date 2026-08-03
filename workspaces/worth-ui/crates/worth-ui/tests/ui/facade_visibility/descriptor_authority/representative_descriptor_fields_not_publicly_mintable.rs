@@ -1,5 +1,5 @@
 use worth_ui::facade::{
-    declaration::{CommandCategory, CommandDescriptor, CommandId, CommandReadinessBinding, PluginCapabilityPermission, PluginSlotDescriptor, PluginSlotDiagnostics, PluginSlotId, PluginSlotOrdering, PluginSlotSupportPosture},
+    declaration::{CommandCategory, CommandDescriptor, CommandId, PluginCapabilityPermission, PluginSlotDescriptor, PluginSlotDiagnostics, PluginSlotId, PluginSlotOrdering, PluginSlotSupportPosture},
 };
 
 fn main() {
@@ -10,8 +10,6 @@ fn main() {
         icon: None,
         default_shortcut_reference: None,
         category: CommandCategory::Application,
-        readiness: CommandReadinessBinding::always_admitted(),
-        runtime_intent_binding: None,
         projection_eligibility: None,
     };
 

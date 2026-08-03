@@ -75,6 +75,7 @@ pub struct PhysicalSignalObservation {
     active_locality_count: usize,
     active_graph_node_count: usize,
     active_in_flight_count: u64,
+    request_admission_count: u64,
     async_family_count: u8,
     aspect_invalidation_count: u64,
     clock: PhysicalSignalClockObservation,
@@ -87,6 +88,7 @@ pub(super) struct PhysicalSignalTopologyObservation {
     pub(super) active_locality_count: usize,
     pub(super) active_graph_node_count: usize,
     pub(super) active_in_flight_count: u64,
+    pub(super) request_admission_count: u64,
     pub(super) async_family_count: u8,
     pub(super) aspect_invalidation_count: u64,
 }
@@ -105,6 +107,7 @@ impl PhysicalSignalObservation {
             active_locality_count: topology.active_locality_count,
             active_graph_node_count: topology.active_graph_node_count,
             active_in_flight_count: topology.active_in_flight_count,
+            request_admission_count: topology.request_admission_count,
             async_family_count: topology.async_family_count,
             aspect_invalidation_count: topology.aspect_invalidation_count,
             clock,
@@ -137,6 +140,10 @@ impl PhysicalSignalObservation {
 
     pub const fn active_in_flight_count(self) -> u64 {
         self.active_in_flight_count
+    }
+
+    pub const fn request_admission_count(self) -> u64 {
+        self.request_admission_count
     }
 
     pub const fn async_family_count(self) -> u8 {

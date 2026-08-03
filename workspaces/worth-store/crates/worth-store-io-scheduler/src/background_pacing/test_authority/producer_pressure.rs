@@ -11,7 +11,7 @@ use crate::{
 use super::{
     backend_admission, background_capacity_for_lane, background_policy_receipt_for,
     foreground_policy_receipt, full_foreground_capacity, page_write_budget, point_read_budget,
-    readiness_admission, security_scope_admission, wal_write_budget,
+    security_scope_admission, wal_write_budget,
 };
 
 pub fn execute_background_pressure_for_certification_test(
@@ -25,7 +25,6 @@ pub fn execute_background_pressure_for_certification_test(
         budget,
         budget,
         BackgroundResourceBudget::new(),
-        None,
     );
     admit_background_pacing(crate::BackgroundIdleCapacityLeaseRequest::new(capacity))
 }
@@ -74,7 +73,6 @@ pub fn mismatched_background_pressure_denial_for_certification_test(
             2,
         ))
         .with_budget(page_write_budget());
-    let readiness = readiness_admission();
     let security = security_scope_admission();
     let foreground_backend = backend_admission(lane.backend_requirement());
     let background_backend =
@@ -85,7 +83,6 @@ pub fn mismatched_background_pressure_denial_for_certification_test(
             lane,
             crate::foreground_reservation::ForegroundReservationCapacityBasis::new(
                 &foreground_backend,
-                &readiness,
                 &security,
             ),
             arbitration,
@@ -97,7 +94,6 @@ pub fn mismatched_background_pressure_denial_for_certification_test(
     let foreground = admit_foreground_reservation(ForegroundReservationAdmissionRequest::new(
         lane,
         &foreground_backend,
-        &readiness,
         &security,
         arbitration,
         &foreground_capacity,
@@ -108,7 +104,6 @@ pub fn mismatched_background_pressure_denial_for_certification_test(
         pressure,
         &foreground,
         &background_backend,
-        &readiness,
         background_policy_receipt_for(pressure.requested_budget(), pressure.requested_budget()),
     ))
     .expect_err("mismatched producer pressure must deny")

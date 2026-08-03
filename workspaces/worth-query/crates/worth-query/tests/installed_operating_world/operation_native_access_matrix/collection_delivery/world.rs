@@ -86,6 +86,11 @@ impl CollectionDeliveryWorld {
         assert_move_patch(&patch, &self.moved, &foundational);
         let duplicate = required_patch(&mut self.consumer, &admitted, &self.workspace);
         let receipt = self.consumer.apply_patch(patch).unwrap();
+        assert_eq!(receipt.counters().native_facts_materialized, 1);
+        assert_eq!(receipt.counters().entity_point_lookups, 1);
+        assert_eq!(receipt.counters().lease_checks, 2);
+        assert_eq!(receipt.counters().full_collection_scans, 0);
+        assert_eq!(receipt.counters().unrelated_consumer_scans, 0);
         self.mounted.apply(&receipt);
         assert_eq!(receipt.foundational_invalidation(), &foundational);
         let denial = match self.consumer.apply_patch(duplicate) {

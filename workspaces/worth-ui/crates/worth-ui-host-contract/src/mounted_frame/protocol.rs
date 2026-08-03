@@ -93,7 +93,7 @@ impl UiHostProtocolVersion {
 impl UiHostProtocolContract {
     const COMPATIBLE_FLOOR: u16 = 1;
     const CURRENT: u16 = 3;
-    const CURRENT_OBSERVATION_SCHEMA: u16 = 3;
+    const CURRENT_OBSERVATION_SCHEMA: u16 = 6;
 
     pub const fn current() -> Self {
         Self::new(
@@ -260,7 +260,7 @@ mod tests {
             UiHostProtocolNegotiation::Compatible(_)
         ));
         assert!(matches!(
-            contract(1, 1, 1, 3, 1).negotiate(),
+            contract(1, 1, 1, observation, 1).negotiate(),
             UiHostProtocolNegotiation::Compatible(_)
         ));
         assert_denial(

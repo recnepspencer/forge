@@ -1,6 +1,7 @@
 mod basis;
 mod cold_readiness;
 mod intent;
+mod intent_basis;
 mod pacing;
 mod physical_interlock;
 mod read_hold;
@@ -8,9 +9,12 @@ mod rewrite_plan;
 
 pub use cold_readiness::BlobCompactionColdReadiness;
 pub use intent::BlobCompactionIntent;
-pub use pacing::BlobCompactionPacingAdmission;
+pub use intent_basis::BlobCompactionIntentBasis;
+pub use pacing::BlobCompactionPacingDenial;
 pub use physical_interlock::BlobCompactionPhysicalInterlock;
 pub use read_hold::BlobCompactionReadHold;
 pub use rewrite_plan::BlobCompactionRewritePlan;
 
 pub(crate) use basis::BlobCompactionBasis;
+pub(crate) use pacing::BlobCompactionPacingAdmission;
+pub(crate) use rewrite_plan::BlobCompactionRewritePlanParts;

@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiMeasurementEvidenceFamily, UiMeasurementRequestIdentity, UiViewportExtentRequest,
-    WorthUiHostCapabilityReport, WorthUiHostContract,
+    WorthUiHostCapabilityReport,
 };
 use worth_ui_inspection::UiEvidenceAuthorityGeneration;
 
@@ -54,7 +54,7 @@ fn foreign_host_capability_denies_before_observation_or_source_ingress() {
 }
 
 fn host_measurement_input() -> crate::facade::WorthUiHostMeasurementSessionInput {
-    let report = WorthUiHostCapabilityReport::from_contract(WorthUiHostContract::headless());
+    let report = WorthUiHostCapabilityReport::missing(Vec::new());
     host_measurement_input_for_report(&report)
 }
 

@@ -25,8 +25,6 @@ mod native_aspect_fixture_authoring;
 mod native_aspect_fixtures;
 #[cfg(feature = "boundary-fixtures")]
 mod resident_pressure_fixtures;
-#[cfg(feature = "physical-isolation-fixtures")]
-mod scheduler_declaration_fixture;
 #[cfg(feature = "boundary-fixtures")]
 mod terminal_projection_json_fixtures;
 
@@ -42,5 +40,3 @@ pub use harness::production_facade;
 pub use harness::production_facade::*;
 #[cfg(feature = "physical-isolation-fixtures")]
 pub use harness::test_authority;
-#[cfg(feature = "physical-isolation-fixtures")]
-pub use scheduler_declaration_fixture::read_ahead_declaration_for_real_pool;

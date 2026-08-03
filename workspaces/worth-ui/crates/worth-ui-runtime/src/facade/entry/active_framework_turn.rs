@@ -13,6 +13,8 @@ pub use mounted_projection::WorthUiMountedLaneProjectionDenial;
 /// One framework-turn result bound to the active application generation.
 pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     pub(super) graph: crate::graph::UiGraphAuthority<'session>,
     pub(super) active_plan_digest: u64,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
@@ -25,6 +27,8 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
 /// Executable framework-turn authority lent by one active application session.
 pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) generation_identity: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) visual_trace_source:
+        crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     pub(super) graph: crate::graph::UiGraphAuthority<'session>,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
@@ -51,6 +55,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
     ) -> Result<WorthUiActiveFrameworkTurnExecution<'session>, Box<Self>> {
         let Self {
             generation_identity,
+            visual_trace_source,
             graph,
             active_plan_digest,
             host_session_identity,
@@ -64,6 +69,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
         match completion.into_execution() {
             Ok(execution) => Ok(WorthUiActiveFrameworkTurnExecution {
                 generation_identity,
+                visual_trace_source,
                 graph,
                 host_session_identity,
                 execution,
@@ -76,6 +82,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             }),
             Err(completion) => Err(Box::new(Self {
                 generation_identity,
+                visual_trace_source,
                 graph,
                 active_plan_digest,
                 host_session_identity,

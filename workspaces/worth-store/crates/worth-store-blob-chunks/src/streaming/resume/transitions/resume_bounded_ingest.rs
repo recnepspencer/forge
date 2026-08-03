@@ -6,10 +6,10 @@ use crate::{
     BlobStreamingIngestExecution, BlobStreamingIngestRequest, BlobStreamingSourceFrame,
 };
 
-pub fn run_resumable_streaming_ingest<W>(
+pub fn run_resumable_streaming_ingest<'runtime, W>(
     request: BlobStreamingIngestRequest,
     resume_admission: BlobStreamingResumeAdmission,
-    execution: BlobStreamingIngestExecution,
+    execution: BlobStreamingIngestExecution<'runtime>,
     source_frames: impl IntoIterator<Item = BlobStreamingSourceFrame>,
     writer: &mut W,
 ) -> Result<BlobStreamingIngest, BlobStreamingIngestDenial>

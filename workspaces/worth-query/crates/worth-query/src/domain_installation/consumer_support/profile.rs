@@ -10,6 +10,16 @@ pub enum WorthQueryConsumerSupportPosture {
     Unsupported,
 }
 
+impl WorthQueryConsumerSupportPosture {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Supported => "supported",
+            Self::Deferred => "deferred",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryConsumerSupportDimension {
     Basis,
@@ -51,6 +61,26 @@ impl WorthQueryConsumerSupportDimension {
 
     pub(crate) const fn index(self) -> usize {
         self as usize
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Basis => "basis",
+            Self::Live => "live",
+            Self::Continuation => "continuation",
+            Self::AsyncResultState => "async-result-state",
+            Self::Recovery => "recovery",
+            Self::Inspection => "inspection",
+            Self::ProjectionConsumption => "projection-consumption",
+            Self::DependencyImpact => "dependency-impact",
+            Self::Sharing => "sharing",
+            Self::Invalidation => "invalidation",
+            Self::CollectionDelivery => "collection-delivery",
+            Self::ConditionalEvaluation => "conditional-evaluation",
+            Self::ConditionalComparator => "conditional-comparator",
+            Self::ConditionalTrigger => "conditional-trigger",
+            Self::ConditionalTemporalOrOnDemand => "conditional-temporal-or-on-demand",
+        }
     }
 
     fn runtime_family(self) -> Option<WorthQueryRuntimeFacadeFamily> {

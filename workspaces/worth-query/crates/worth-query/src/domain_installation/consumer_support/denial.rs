@@ -2,12 +2,17 @@ use super::{
     WorthQueryConsumerSupportAdmissionCounters, WorthQueryConsumerSupportDimension,
     WorthQueryConsumerSupportPosture,
 };
+use crate::evidence_identity::{
+    worth_query_evidence_identity, WorthQueryEvidenceIdentity, WorthQueryEvidenceScope,
+    WorthQueryEvidenceTag,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryConsumerSupportCompatibilityDenial {
     dimension: WorthQueryConsumerSupportDimension,
     runtime_posture: WorthQueryConsumerSupportPosture,
     counters: WorthQueryConsumerSupportAdmissionCounters,
+    evidence_identity: WorthQueryEvidenceIdentity,
 }
 
 impl WorthQueryConsumerSupportCompatibilityDenial {
@@ -16,10 +21,24 @@ impl WorthQueryConsumerSupportCompatibilityDenial {
         runtime_posture: WorthQueryConsumerSupportPosture,
         counters: WorthQueryConsumerSupportAdmissionCounters,
     ) -> Self {
+        let evidence_identity = worth_query_evidence_identity(
+            WorthQueryEvidenceScope::ConsumerProjectionContractDenial,
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("identity_family"),
+            "worth_query_consumer_support_compatibility_denial_v1",
+        )
+        .field_shape(WorthQueryEvidenceTag::new("dimension"), dimension.as_str())
+        .field_shape(
+            WorthQueryEvidenceTag::new("runtime_posture"),
+            runtime_posture.as_str(),
+        )
+        .seal();
         Self {
             dimension,
             runtime_posture,
             counters,
+            evidence_identity,
         }
     }
 
@@ -33,6 +52,10 @@ impl WorthQueryConsumerSupportCompatibilityDenial {
 
     pub fn counters(&self) -> WorthQueryConsumerSupportAdmissionCounters {
         self.counters
+    }
+
+    pub fn evidence_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.evidence_identity
     }
 }
 

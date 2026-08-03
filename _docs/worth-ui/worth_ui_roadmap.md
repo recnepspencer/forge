@@ -27,6 +27,11 @@ The governing rules remain:
 - desktop UX, runtime honesty, and performance certification are all part of
   product completeness
 
+Delivery cadence is phase- and milestone-bound: commit and push only after a
+phase ledger is closed; merge to `master` only after the milestone ledger and
+status are closed. The working branch is then synchronized from the resulting
+`master` merge.
+
 Worth UI must remain strong enough for workbenches, editors, topology and CAD
 tools, AI-native editing systems, operational apps, data-heavy consoles,
 simulation tools, plugin-driven products, and real-time visualization or HUD
@@ -44,8 +49,10 @@ The shipped baseline for Worth UI today is:
   [worth-ui-dsl-vision.md](./worth-ui-dsl-vision.md)
 - the inspection and AI-diagnostics direction captured in
   [ai-diagnostics.md](./ai-diagnostics.md)
-- the explicit decision to build above `egui` while keeping Worth-owned
-  lowering, artifact, shell, interaction, and performance architecture
+- the explicit decision to build above `egui` as the first host adapter only,
+  while keeping Worth-owned lowering, artifact, shell, interaction, and
+  performance architecture; Milestone 3.14.1 retires `egui` in favor of a
+  Worth-owned aspect-native host before the host surface deepens
 - the milestone ordering needed to avoid drifting into widget-first or
   application-local infrastructure before the platform foundations exist
 
@@ -78,6 +85,12 @@ Rules for every remaining Worth UI item:
 - AI-facing inspection harnesses must arrive before, or at least alongside, the
   runtime families they need to inspect; a polished human inspector may arrive
   later, but formal AI entry points may not
+- the human inspector must use a familiar, shallow developer-tools interaction
+  model: point-to-select, visible highlighting, dockable panels, and a small
+  stable set of task-oriented tabs; it should feel immediately usable to a
+  Chrome DevTools user while replacing DOM, CSS, and network folklore with
+  Worth declarations, appearance projections, data, schema, performance, and
+  causal evidence
 - each milestone must preserve a structurally explicit layout model rather than drifting back toward DOM-shaped percentage, overflow, and implicit-parent folklore
 - each milestone must define concrete acceptance evidence through platform scenarios, diagnostics artifacts, performance counters, replay-safe plan behavior, tooling evidence, or certification suites
 - no milestone is complete until both implementation and trust evidence exist
@@ -565,7 +578,7 @@ the runtime.
 - local plan changes can identify a typed affected neighborhood instead of
   widening immediately to whole-page planning
 
-### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate â€” **Closed**
+### Milestone 3.7: Runtime Topology And Proof-Flow Cleanup Gate — **Closed**
 
 This slice is a structural cleanup gate, not a product-capability expansion
 milestone. It hardened the shipped 3.1 through 3.6b runtime surfaces before
@@ -625,7 +638,7 @@ transitions; stream policy without that dispatcher is incomplete.
 - planning: `plan_allocation` after admitted measurement basis + neighborhood +
   constraint pipeline
 - replacement continuity: identity match report after impact narrow
-- measurement: host observation â†’ admit measurement basis â†’ inspection projectors
+- measurement: host observation → admit measurement basis → inspection projectors
 - public facade lifecycle order; no deep-import pressure into private runtime
   modules
 - fixtures only via SUPPORT AUTHORITY (`worth-ui-test-support`); not production
@@ -1465,51 +1478,110 @@ all remain inside the frozen Phase 1 budgets.
 
 ### Milestone 3.11: Visual Snapshot Receipts and Hit-Test Identity Bridge
 
+Detailed spec: [milestone-3.11.md](./milestone-3.11.md)
+
+Status: Closed on 2026-07-27. Phases 1 through 5 are complete and all nine
+visual-snapshot scenario rows are proved on final source.
+
 This slice makes screenshots, hit testing, and visible-region targeting
-identity-backed runtime evidence instead of loose image bytes.
+identity-backed runtime evidence instead of loose image bytes. Visible paint
+attribution and input hit testing are separate results bound to one exact
+presentation; neither may be guessed from the other.
 
 **Platform pulse**
 
-Capture the running Platform Pulse Page, choose a visibly identifiable point
-inside one mounted node, and make the point-to-node result visible as a
-targeted overlay or equivalent human-readable trace. The selected pixel must
-resolve through the current frame to one mounted receipt identity and onward to
-graph, declaration, and evidence; a loose PNG, coordinate-only answer, or
-reconstructed parallel tree does not close the pulse.
+Extend the checked-in Platform Pulse Page into a deliberately nondegenerate
+world with distinct background and inset target regions. Capture the running
+page, choose independently known target and background points, and make the
+target result visible as a canonical mounted overlay and human-readable trace.
+For the target point, the independently represented visible contributor and
+hit-test target deliberately agree on one mounted receipt; the supporting
+scenario portfolio must also prove cases where paint and hit testing diverge.
+The receipt must resolve through the exact captured presentation to graph,
+declaration, provenance, and evidence. A sole-node fallback, loose PNG,
+coordinate-only answer, current-at-completion lookup, renderer-local overlay,
+or reconstructed parallel tree does not close the pulse.
 
 Executable-world closure extends the inherited
-`PulseExecutableWorld<Published>` with external client-area capture and the
-point-to-mounted adjudication. An in-process egui capture or new screenshot
-harness cannot substitute for the inherited product process.
+`PulseExecutableWorld<Published<InitialBlue>>` with external client-area
+capture and the point-to-mounted adjudication. An in-process egui capture or
+new screenshot harness cannot substitute for the inherited product process.
+
+The permanent Platform Pulse now renders distinct blue background and yellow
+target regions, captures the WGPU product window through the process-and-HWND
+bound WGC observer, traces independently chosen target and background pixels
+to mounted identity, publishes and clears a magenta mounted overlay, survives
+valid and malformed source replacement, closes normally, and reports zero
+visual residue. The final courtroom uses one child and window, six native
+captures, eleven lifecycle events, and no retry path.
 
 **Must ship**
 
 - `UiVisualSnapshotReceipt`
+- concrete visual-inspection grant and artifact/disclosure policy
+- presentation-bound host capture observation
+- host-issued presentation epoch and exact readback fence
+- managed capture polling, cancellation, timeout, and disposal
+- compiler-enforced target, artifact-policy, grant, coordinate-scope, capture,
+  and overlay phase progression
+- typed screen/client/viewport/host coordinate transform
 - frame capture by identity
 - node capture by identity
 - region capture by identity
+- immutable visible-region map
 - hit-test region map
-- visible mounted node overlay support
-- `screen point -> mounted receipt identity`
-- `screenshot region -> mounted receipt identity`
-- `mounted receipt identity -> declaration / graph / evidence` bridge
+- explicit total per-surface hit-test order
+- separate visible-contributor and hit-test point outcomes
+- bounded many-to-many region adjudication
+- visible mounted node overlay through a successor canonical mounted frame
+- `screen/client point -> mounted receipt identity trace`
+- `screenshot region -> mounted receipt identity traces`
+- `mounted receipt identity -> mounted instance / incarnation / declaration /
+  graph / provenance / evidence` bridge
+- bounded snapshot, pixel, overlay, and retained-frame lifecycle
 
 **Acceptance evidence**
 
-- the runtime can capture the current frame without creating a second visual
-  truth path
-- an agent can ask what node is under a pixel and receive mounted identity
-- a screenshot region can be traced back to mounted receipt, graph node,
-  declaration, and evidence
-- screenshot support is tied to frame identity rather than loose PNG bytes
+- the runtime can capture the current or retained frame without creating a
+  second visual truth path or relabeling a capture across replacement
+- an agent can ask what painted a pixel and what would receive input there and
+  receive separately typed mounted identity results
+- a screenshot region can be traced as a bounded many-to-many result back to
+  mounted receipts, graph nodes, declarations, provenance, and evidence
+- the visible target overlay is externally observable but was published
+  through the same mounted host contract and cites its base snapshot
+- screenshot support is tied to exact presentation, surface binding, viewport,
+  retention, disclosure, and cost rather than loose PNG bytes
 
 ### Milestone 3.12: Observation Intake and Hot Rebind Planner
+
+Detailed spec: [milestone-3.12.md](./milestone-3.12.md)
+
+Status: Closed on 2026-07-28. Phases 1 through 5 and all thirteen Phase 5
+courtroom rows are complete. The permanent Platform Pulse performs valid,
+malformed, recovery, comparison, close, and cleanup work in one real process;
+supporting evidence closes source affinity, semantic/pixel independence,
+identity, mixed-owner ordering, Query consequences, effects/recovery,
+cost/capacity, visual affinity, lifecycle cleanup, and compile boundaries.
+
+Milestone 3.12 inherits Milestone 3.11's snapshot, overlay, mounted-trace,
+disclosure, resource, and teardown contracts without relocation or
+reinterpretation. Its closing QA additionally corrected real authored portal
+measurement authority being absorbed by a broader unscoped allocation
+neighborhood.
 
 This slice makes hot reload real as bounded rebind rather than renderer
 refresh. Query-backed changes enter only as the sealed UI source consequences
 admitted by 3.9.2's framework-turn boundary. This milestone classifies their
 affected UI scope and decides preservation or remounting; it does not reopen
 Query leases, deltas, rows, ordering, patches, or identity.
+
+The operating-system watcher remains transport only. A watched edit must settle
+to one exact source revision, compile through `worth-ui-dsl`, and reach
+invalidation only as canonical declaration-lane facts constrained by declared
+aspect contracts. This slice also establishes bounded source-span, changed-fact,
+stop-point, and rebind-decision evidence references for later human and agent
+diagnostics; it does not pull 3.19 diagnostics or 3.21 replay forward.
 
 **Platform pulse**
 
@@ -1526,16 +1598,32 @@ external source delta, and the same child process must prove affected and
 unaffected native consequences plus the typed rebind receipt. Direct
 in-process replacement does not close the executable pulse.
 
+The comparison consumes Milestone 3.11's retained predecessor and successor
+visual snapshot identities. It may relate mounted identity and visible regions,
+but it may not reinterpret old pixels as current or replace semantic rebind
+evidence with a raw pixel diff.
+
 **Must ship**
 
+- exact watcher hint -> settled revision -> DSL compile outcome -> sealed
+  candidate -> canonical declaration delta bridge
+- typed DSL compile-stop receipt that cannot expose observation, scope, or plan
+  identities
 - `UiHostObservation`
 - `UiRebindPlan`
 - `UiRebindReceipt`
-- changed-fact classification
+- concrete visual-comparison grant, borrowed predecessor/successor/rebind
+  request, typed comparison outcome, and identity-aware receipt
+- typed no-change, evidence-only-source, and changed-fact classification
+  branches
 - affected-aspect detection
 - consumed-fact and consumed-aspect index lookup
 - preserve/remount decisions
 - invalidated measurement, binding, and obligation sets
+- explicit observation/rebind profiles with the frozen Platform Pulse limits
+- exact-generation authored-span and production-projected rebind inspection
+  targets with bounded evidence-reference lookup
+- self-audited Phase 5 command registry and RB-01/TT-01..TT-12 closure ledger
 
 **Must handle**
 
@@ -1543,15 +1631,27 @@ in-process replacement does not close the executable pulse.
 - viewport resize
 - host measurement results
 - Query-backed fact changes
-- service-event changes
+- existing committed scroll-extent and portal-anchor consequences; general
+  service input remains owned by Milestone 3.15
 
 **Acceptance evidence**
 
+- one valid file edit is causally joined from exact settlement and DSL lowering
+  through canonical declaration/aspect consequences to the published rebind
+- one invalid file edit retains the exact typed DSL report and source span,
+  constructs no later-phase identity, and preserves the last admitted page
 - local source edits do not rebuild the whole page
 - appearance changes do not invalidate structure
 - layout changes do not invalidate Query binding unless declared
 - resize invalidates allocation without broad graph rebind
 - invalid hot edits preserve the last admitted mounted truth
+- a valid edit retains exact predecessor and successor snapshots through one
+  budgeted identity-aware comparison, then disposes both without treating
+  pixel equality or difference as semantic rebind evidence
+- the exact Phase 5 command registry and all thirteen causal proof-ledger rows
+  close on final source
+- rebind summary/evidence-reference inspection is available while causal
+  diagnostic materialization and replay remain explicitly deferred
 
 ### Milestone 3.13: Query Binding and Projection Consumption Substrate
 
@@ -1564,62 +1664,89 @@ generalizes 3.9.2's contract-derived access and admitted-source pattern; it may
 not restore field scans, positional fact bags, printable Query identity, or raw
 Query patch types as a convenience layer.
 
+Detailed spec: [milestone-3.13.md](./milestone-3.13.md)
+
 **Platform pulse**
 
-Replace one static pulse value with a scalar or small collection obtained from
-a real installed Query projection and show its honest result posture on the
-page. A human must see real projected data and at least one non-current posture
-such as pending, stale, denied, or schema-mismatch; receipt evidence must bind
-the visible value and posture to the admitted projection facts. Literal fixture
-values, renderer-side querying, or a local loading/error enum do not close the
-pulse.
+Add one small semantic-text status group bound to a real installed scalar
+Query projection. Its stable value and posture slots use distinct mounted
+receipts. The production process starts with Query meaning installed and an
+external value absent, visibly presents Query-owned `pending`, then consumes an
+atomically published external value through an application-owned source
+adapter and visibly presents its exact native text without restarting. A
+second value, valid but schema-incompatible `.wui` binding edit, recovery,
+stable control pixels, and close complete the journey.
+
+This remains one cumulative Pulse process: it also repeats the 3.11
+snapshot/identity/overlay round trip and the 3.12 valid, malformed,
+preservation, and recovery sequence. Adding Query evidence may not replace
+those inherited operations.
 
 Executable-world closure must install Query meaning through the production
-installation boundary before launch or through a declared external world
-delta, then observe the real child process. The runner cannot inject projection
-facts, Query receipts, or a product-local substitute.
+declaration/host audience facades and observe the real child process. The
+runner may mutate external source bytes; it cannot inject Query workspaces,
+projection facts, Query receipts, UI posture, mounted content, or a
+product-local substitute. External screenshots, mounted receipts, Query and UI
+evidence, and stable control pixels jointly prove the result.
 
 **Must ship**
 
 - `UiProjectionBinding`
 - `UiProjectionFactReceipt`
-- schema/view-shape binding posture
-- projected scalar value and projected collection lanes
+- shape-specific scalar and collection bindings and receipts
+- contract-derived field and row identity
+- schema/view-shape and payload-shape admission
 - binding invalidation
-- payload-shape requirement posture
-- minimum binding postures:
-  - `ready`
-  - `pending`
-  - `current`
-  - `stale`
-  - `revalidating`
-  - `denied`
-  - `unsupported`
-  - `schema-mismatch`
-  - `wrong-world`
-  - `rebind-required`
+- mounted host-neutral semantic text and native egui presentation
+- orthogonal posture axes:
+  - admission: `ready` or `denied` / `unsupported` / `schema-mismatch` /
+    `wrong-world` / `rebind-required`
+  - availability: `pending` or present
+  - present currency: `current` or `stale`
+  - stale refresh: idle or `revalidating`
+  - collection completeness and continuation
+- exhaustive Query posture mapping and production reachability for every
+  claimed transition; WUI may not simulate a missing upstream producer
+- explicit application dependency grammar through `worth-ui`,
+  `worth-query-decl`, and `worth-query-host`, never raw Query or a direct Pulse
+  dependency on `worth-ui-query-binding`
 
 **Acceptance evidence**
 
-- selected-inspector fields come from Query projection facts
+- the permanent Pulse visibly progresses pending -> first current value ->
+  second current value -> schema-mismatch preservation/diagnostic -> recovered
+  current value in one process
+- selected fields come from exact Query projection contracts with work
+  independent of unrelated projection width
 - schema-swap rebinding preserves compatible field identity where admitted
+- stale and revalidating can coexist without a flat local status enum
+- collection reorder preserves Query-authorized row identity, never position
 - invalid schema/payload posture emits typed mounted diagnostics
-- no local loading/error enum replaces Query posture
-- no renderer-side query builder exists
+- mixed Query/source/viewport changes reuse the 3.12 observation, rebind, and
+  publication path
+- Query-free and unchanged-frame paths perform zero projection work
+- no local loading/error enum, renderer-side query builder, raw Query patch,
+  or diagnostic-to-authority path exists
 
 ### Milestone 3.14: Intent, Operability, and Interaction Substrate
 
-This slice turns host observations into runtime-routed intents instead of
-widget callbacks.
+Detailed spec: [milestone-3.14.md](./milestone-3.14.md)
+
+This slice turns native host observations into presentation-bound semantic
+interactions and then into runtime-admitted product intents. Pointer
+press/release observations may compile into `activate`; neither the observations
+nor an adapter-reported click are an intent or mutation result. UI routing
+admission does not replace Query/domain mutation admission.
 
 **Platform pulse**
 
-Add one visible operable control to the pulse and route a real host interaction
-through intent admission. The page must visibly distinguish admitted,
-completed, and denied or confirmation-required posture so a click alone cannot
-masquerade as mutation success. The control, host adapter, and renderer may
-project the result but may not own callback meaning or assemble an
-authority-bearing payload locally.
+Add one visible operable action and one confirmation action. Native
+pointer press/release must target the exact presented mounted incarnation,
+route through a typed activation interaction, derive one coherent payload and
+operability proof, and enter managed execution. The page visibly distinguishes
+admitted, completed, confirmation-required, denied, stale-confirmation, and
+rebind-cancelled posture. The host, renderer, and control may project those
+facts but may not own callback, payload, operability, or completion meaning.
 
 Executable-world closure must send the interaction through the cumulative
 target's current native-platform input adapter and correlate the visible
@@ -1628,43 +1755,151 @@ from certification is integration evidence only.
 
 **Must ship**
 
-- `UiIntentDeclaration`
-- `UiIntentAdmission`
-- interaction families for:
-  - `click`
-  - `edit`
-  - `select`
+- compiled `UiIntentDefinition`, canonical `UiIntentDeclaration`, and compact
+  per-control `UiIntentRouteBinding`
+- exhaustive `UiIntentAdmissionDecision` and move-only `UiAdmittedIntent`
+- presentation-bound semantic interaction families for:
+  - `activate`
+  - `edit-commit`
+  - `selection-commit`
   - `submit`
+- typed product-intent support for:
   - `navigate-page`
   - `change-mosaic`
-  - `open-portal`
-  - `close-portal`
-  - `invoke-command`
-- operability postures for:
-  - `operable`
-  - `disabled`
-  - `readonly`
-  - `pending`
-  - `denied`
-  - `unsupported`
-  - `wrong-world`
-  - `stale`
-  - `rebind-required`
-  - `requires-confirmation`
+- direct portal and command service intents remain typed unsupported until
+  Milestone 3.15 owns their execution
+- operability as orthogonal support, mutability, readiness, occupancy, policy,
+  affinity/freshness, and confirmation axes rather than one flat status
+- target-scoped single-flight as the ordinary concurrency posture; broader
+  declaration/definition/application serialization requires an explicit type
+- coherent typed payload projection, bounded draft/gesture lifecycle, affine
+  exact confirmation, framework-owned execution attempts, typed
+  partial/indeterminate recovery, and declared consequences through the 3.12
+  observation/rebind/publication path
+- explicit application-effect, WUI-transition, and deferred runtime-service
+  execution destinations; UI routing admission never widens their authority
+- replacement of cloneable string intent binding and static
+  always-admitted readiness placeholders; no parallel compatibility lane
 
 **Acceptance evidence**
 
-- controls do not own callback meaning
-- submit payloads are assembled from runtime/control projection rather than
-  renderer code
-- disabled/readiness posture comes from runtime authority
-- click success is not treated as mutation success
-- invalid submits emit typed intent denials
+- controls, renderers, and adapters own no callback or product-effect meaning
+- targeting is bound to the frame the human saw, not current coordinates or
+  an equal graph identity
+- edit/submit payloads come from one coherent runtime revision rather than
+  renderer or executor rereads
+- operability and confirmation are runtime proofs; visible enabledness and a
+  boolean confirmation result carry no authority
+- UI admission, provider execution, Query/domain admission, effect completion,
+  and visible consequence remain separately typed and causally traceable
+- gesture loss, stale challenge, rebind at every effect phase, exhaustion,
+  cancellation, partial/indeterminate outcome, retry, and shutdown have exact
+  bounded lifecycle evidence
+- work scales with selected target, payload width, and affected consumers, not
+  mounted graph width; unchanged input has zero semantic work
 
-### Milestone 3.15: Runtime Services Foundation
+### Milestone 3.14.1: Aspect-Native Host Platform and egui Retirement
 
-This slice closes the cross-cutting service lanes that the certification
-vertical slice depends on.
+This slice replaces the interim `egui`/`eframe` host with a Worth-owned
+aspect-native presentation platform and removes `egui` from the workspace
+dependency graph. It exists now, between intent and services, because it is
+the last point where the host adapter surface is small: after 3.15 and 3.16
+every service, focus, motion, and appearance lane would be built twice.
+
+The mounted host contract is the subject under test and may not change
+meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
+3.13 projection path, and the 3.14 interaction and intent path are frozen; if
+replacement pressure demands a host-contract semantic change, that is a
+reopened finding against the owning milestone, not a migration convenience.
+
+The custody boundary moves down, not sideways. The new host owns a retained
+draw list in which every quad and glyph run carries its mounted node receipt,
+frame generation, surface generation, and binding generation. Damage-scoped
+presentation derives from admitted 3.12 plans; an unchanged turn performs
+zero draw-list, atlas, and surface work, provable by named counters rather
+than elapsed time. Text shaping and glyph rasterization are consumed as
+narrow pinned mechanics dependencies in the same trust posture as the OS
+compositor: they receive completed layout decisions and are convicted by
+external pixel adjudication; they decide no value, posture, identity,
+fallback, or clipping policy. Writing a Worth-owned shaper, IME, complex
+script certification, font-management policy, general vector tessellation,
+appearance breadth beyond the frozen `BodyDefault` profile plus filled
+rectangles, any platform beyond the currently certified Windows lane, and
+accessibility-tree projection all remain explicit non-goals owned by their
+successor milestones.
+
+**Platform pulse**
+
+The same cumulative Pulse binary, `main.wui`, and executable-world target run
+on the Worth-owned host. During transition both hosts present the same
+mounted content behind the unchanged host contract, and the same external
+courtroom adjudicates both: semantic, receipt, identity, and control evidence
+must be identical, while glyph-region pixel expectations are re-baselined
+exactly once for the new text metrics, with the re-baseline recorded as its
+own ledgered event. Closure requires the full inherited journey — pending,
+two current values, overlay round trip, green/malformed/recovery source
+sequence, schema stop with predecessor preservation, the 3.14 native operable
+and confirmation actions, and normal close with zero window, surface, device,
+atlas, and draw-list residue — through the native host, followed by deletion
+of the `egui` adapter and shell. A new harness, scripted host closure, or
+retained dual-host fallback does not close the pulse.
+
+**Must ship**
+
+- a Worth-owned host platform crate owning the native event loop, surface and
+  device lifecycle, DPI posture, window close path, and lifecycle stream
+- a retained, receipt-keyed aspect-native draw list with layer order, clip
+  bounds, and damage-scoped presentation derived from admitted plans
+- filled-rectangle and `BodyDefault` glyph-run presentation with atlas
+  ownership and measurement-contract metrics derived from the shaping
+  dependency, never from adapter-local font defaults
+- snapshot capture through surface readback feeding the existing visual
+  snapshot contract
+- host-neutral input observation translation sufficient for the shipped 3.14
+  presentation-bound interaction families
+- pinned, audited mechanics dependencies for shaping and rasterization with a
+  recorded trust posture
+- removal of `egui` and `eframe` from every workspace dependency edge, with
+  the boundary gate permanently denying their return
+- named platform qualification for the certified native lane
+
+**Acceptance evidence**
+
+- dual-host parity: identical semantic, receipt, and control evidence for the
+  same mounted content, with exactly one recorded glyph re-baseline
+- every presented draw command is causally attributable to a mounted node
+  receipt and generation set; receiptless paint is unrepresentable
+- unchanged-frame zero work extends through the draw list, atlas, and surface
+  counters, not just the semantic turn
+- the shaping dependency demonstrably receives completed layout decisions and
+  cannot alter value, posture, identity, or clipping evidence
+- hostile controls turn red on receiptless paint, whole-frame repaint of an
+  unchanged turn, adapter-invented geometry, internal-state snapshot
+  substitution, and leaked window, surface, device, or atlas resources
+- `egui` appears in zero dependency edges, the boundary gate enforces the
+  prohibition, and the cumulative executable world closes on the native host
+  with no new test target or harness
+
+### Milestone 3.15: Production Runtime Services
+
+This slice closes the cross-cutting service lanes at production-ready common-
+case breadth before the certification vertical slice depends on them.
+
+It inherits 3.14's presentation-bound interaction, typed request,
+operability, confirmation, managed-attempt, and consequence contracts.
+Service implementations extend that provider topology; they do not reopen
+targeting or regress to adapter callbacks.
+
+**Coverage bar**
+
+`p95 coverage` means product breadth, not test or line coverage. Each service
+family must feel complete for ordinary serious desktop use across its lifecycle,
+host integration, hot rebind, typed denial/cancellation/cleanup, inspection,
+bounded cost, and keyboard/accessibility semantics where applicable. The
+detailed spec must name the ordinary scenario portfolio and the small set of
+genuinely uncommon exclusions; one admitted happy path cannot satisfy this
+milestone. Later work may add specialist behavior or polish, but must not be
+required to repair a skeletal service.
 
 **Platform pulse**
 
@@ -1690,8 +1925,8 @@ evidence but cannot close the product pulse.
   - `command-routing`
   - `scroll`
   - `selection`
-- minimal admitted service path for each family rather than feature-broad
-  product richness
+- p95 product coverage for every family, with explicit support posture for the
+  uncommon cases intentionally left outside this milestone
 
 **Acceptance evidence**
 
@@ -1701,6 +1936,13 @@ evidence but cannot close the product pulse.
   runtime focus receipts are real runtime artifacts
 - motion projections derive from previous receipt + next receipt + motion
   declaration rather than host-local animation meaning
+- each family passes its named ordinary-scenario portfolio through public
+  runtime and host surfaces, including denial, rebind, and teardown where
+  applicable
+- a serious downstream application needs no app-local replacement service or
+  renderer-owned state for an ordinary supported workflow
+- every unsupported case is typed, named, and demonstrably outside the
+  milestone's ordinary p95 portfolio
 
 ### Milestone 3.16: Appearance, Theme, and Visual State Projection
 
@@ -1978,42 +2220,99 @@ runtime truth, or replace the existing process with replay.
 ### Milestone 3.22: Worth Inspector Surface
 
 This slice adds the human-facing runtime inspector as a projection over the
-same evidence substrate the AI harness already uses.
+same evidence substrate the AI harness already uses. Its interaction model
+deliberately borrows the useful familiarity of Chrome DevTools without copying
+the web's ontology: point at the running product, select what is visible, trial
+its appearance, inspect live data separately from schema, and understand cost
+without first learning Worth's internal artifact graph.
+
+**Product decision**
+
+Keep the first-use surface small: `Elements`, `Styles`, `Data`, `Schema`,
+`Performance`, and `Diagnostics`. Authority graph, aspects, measurement, Query
+binding, services, rebind, replay, and visual evaluation are contextual
+drill-down for the current selection or event, not ten more top-level panels.
+Raw identities, receipts, and causal traces use progressive disclosure.
+
+The inspector may be closed, docked on the right, left, or bottom, or detached
+into a native window over the same runtime session. Placement changes preserve
+selection, exact frame affinity, active tab, filters, and any uncommitted style
+trial; detaching creates no second application truth or inspector-only
+composition root. Milestone 4 may generalize this minimum placement contract,
+and Milestone 16 may deepen the same tools without replacing them.
+
+`Styles` supports bounded, reversible live appearance trials through canonical
+appearance and rebind and can produce an exact source-span patch proposal; it
+never becomes adapter-local or silently authoritative. `Data` shows current
+Query projection values and posture, while `Schema` separately shows declared
+view, payload, field, row, and binding shape. `Performance` answers "what
+became expensive and why?" from a bounded frame/rebind timeline, selected-
+target attribution, and named counters, keeping ordinary work distinct from
+replay, capture, and inspection cost. Full profiling breadth remains Milestone
+16 work.
 
 **Platform pulse**
 
 Attach the Worth Inspector to the same running pulse rather than a special
-inspector fixture. A human must click a visible pulse node and navigate its
-declaration, graph, mounted receipt, Query binding, service, diagnostic,
-rebind, replay, and visual-evaluation evidence as applicable. The inspector and
-the 3.21 agent tools must agree on identity and causal evidence, and neither may
-become the truth source.
+inspector fixture. A human opens it, uses point-to-select on a visible pulse
+node, sees the canonical mounted highlight, trials one appearance value, and
+finds live data, schema, current-frame cost, and the relevant diagnostic
+without navigating an artifact dump. The same session exercises right, left,
+bottom, and detached placement without losing selection. The inspector and
+3.21 agent tools must agree on identity and causal evidence.
 
 Executable-world closure opens and drives the inspector inside the inherited
-product world. Native click, visible selection, agent result, and inspector
-navigation must agree for the same child and frame; an inspector-only test
-application cannot close the pulse.
+product child. Inspect mode must consume its selection gesture without
+admitting the product intent underneath it. Docking, detaching, style trial and
+reset, Data/Schema separation, and Performance attribution must stay in that
+child; an inspector-only application cannot close the pulse.
 
 **Must ship**
 
-- visual tree view
-- authority graph view
-- aspect inspector
-- rebind timeline
-- measurement inspector
-- Query binding inspector
-- services inspector
-- diagnostics feed
-- replay timeline
-- visual evaluation view
+- open, close, right-dock, left-dock, bottom-dock, and detached-window posture
+  over one inspector session
+- point-to-select mode with mounted highlight, explicit visible-contributor
+  versus hit-test outcomes, overlap choice, and stale-selection posture
+- `Elements`: visual tree, mounted/declaration/graph breadcrumbs, source
+  provenance, participation, aspects, measurement, services, and relevant
+  evidence
+- `Styles`: authored and resolved appearance, theme and state axes, bounded
+  reversible live trials, reset, and exact source patch proposals
+- `Data`: live scalar and collection projection facts, Query posture,
+  invalidation, and receipt provenance
+- `Schema`: declaration, view, payload, field, row, and binding shape with
+  compatibility and mismatch evidence
+- `Performance`: bounded frame/rebind timeline, selected-target attribution,
+  named structural counters, measured timing posture, and lane separation
+- `Diagnostics`: relevance-filtered typed findings with causal drill-down
+- contextual authority graph, aspect, measurement, Query binding, service,
+  rebind, replay, and visual-evaluation detail without additional top-level
+  panel sprawl
+- keyboard-operable tab, tree, selection, docking, and close workflows
 
 **Acceptance evidence**
 
 - the inspector consumes the same evidence substrate as the AI tools
-- clicking a visible node can navigate to declaration, graph, receipt, and
-  diagnostic evidence
+- inspect mode selects the exact presentation-bound mounted target, publishes
+  its highlight through the canonical mounted path, and does not trigger the
+  underlying product interaction
+- selection, frame affinity, tool state, and live style trial survive every
+  placement change without remounting the product or forking runtime truth
+- a live style trial visibly changes the selected target through canonical
+  appearance and rebind, reset restores the admitted appearance, and the
+  proposed persistent edit points to the exact authored span
+- `Data` updates from real Query projection truth while `Schema` remains bound
+  to declared shape; a schema mismatch cannot be misreported as an absent or
+  stale value
+- `Performance` identifies the selected frame and target's named work without
+  charging replay, capture, or inspector materialization to the ordinary frame
+  lane
+- advanced graph, aspect, measurement, service, rebind, replay, and visual
+  evidence remains reachable from the selected item without making the common
+  path read like an internal artifact browser
 - the inspector can be authored through Worth UI where feasible
-- the inspector does not become the source of diagnostic truth
+- the inspector never becomes the source of diagnostic, Query, schema, style,
+  or performance truth
 
 ### Milestone 3.23: Hot Composition Certification Vertical Slice
 
@@ -2079,6 +2378,10 @@ workflow-specific installed world and adversarial sequence.
   with a narrower authority-first sequence
 - Milestone 3.10.3 is the permanent executable-world foundation; every later
   pulse milestone extends it rather than creating its first real product entry
+- Milestone 3.14.1 retires the interim `egui` host before 3.15 and 3.16 deepen
+  the host surface; 3.14 must therefore keep its host-side input translation
+  thin and host-neutral, and 3.15/3.16 build directly on the aspect-native
+  host rather than an adapter scheduled for deletion
 - `ai-diagnostics.md` co-develops across the full 3.x series; each runtime
   family must become inspectable as it lands instead of waiting for the end
 - the formal AI inspection harness begins in Milestone 3.1; later milestones
@@ -2610,12 +2913,12 @@ alone.
 ### Must Ship
 
 - component gallery
-- theme editor
-- layout debugger
+- theme editor and layout debugger that deepen the 3.22 `Styles` and `Elements`
+  tools instead of creating parallel inspector shells
 - command registry inspector
 - accessibility inspector
-- Query or view inspector
-- profiler or frame-counter inspection surface
+- richer Query/view tooling that extends the 3.22 `Data` and `Schema` tabs
+- profiler and frame-counter tooling that extends the 3.22 `Performance` tab
 - screenshot-test harness
 - sample templates for workbench, data app, graph editor, runtime inspector,
   dashboard, and plugin host shapes
@@ -2627,6 +2930,9 @@ alone.
 - tooling consumes canonical platform artifacts rather than shadow metadata
 - templates remain examples of real platform usage rather than special internal
   paths
+- the familiar point-select, docking, tab, selection, and progressive-
+  disclosure model established by Milestone 3.22 remains the one human
+  inspection shell
 - inspection surfaces remain diagnostic and educational rather than becoming a
   second imperative editing runtime
 - tooling breadth does not dilute facade clarity or runtime ownership
@@ -2635,6 +2941,9 @@ alone.
 
 - a new team can start from a template and stay within the ordinary platform
   path
+- a new user can open the inspector, select a visible element, trial its
+  appearance, inspect data and schema, and identify a frame-cost cause without
+  learning internal receipt topology first
 - platform tooling can explain what a shell, command, artifact, view, or plan
   is doing without source spelunking
 - screenshot and inspection tooling can certify real product examples

@@ -34,6 +34,9 @@ pub(crate) fn consumer_kit_evidence_scope_as_str(scope: WorthQueryEvidenceScope)
         WorthQueryEvidenceScope::ConsumerSupportSnapshotDocument => {
             "consumer-support-snapshot-document"
         }
+        WorthQueryEvidenceScope::ConsumerProjectionContractDenial => {
+            "consumer-projection-contract-denial"
+        }
         WorthQueryEvidenceScope::ConsumerSupportPinContractSchema => {
             "consumer-support-pin-contract-schema"
         }

@@ -4,7 +4,7 @@ use crate::classification::CiTestLane;
 use crate::mutation_campaign::MutationCampaignScope;
 use crate::product::{CourtroomSelection, TestProduct};
 
-use super::Arguments;
+use super::{Arguments, CiScheduleLane};
 
 pub(super) fn parse(arguments: impl IntoIterator<Item = String>) -> Result<Arguments, String> {
     let parsed = ParsedArguments::collect(arguments)?;
@@ -23,6 +23,8 @@ struct ParsedArguments {
     target_root: Option<PathBuf>,
     report: Option<PathBuf>,
     mutant_report: Option<PathBuf>,
+    schedule_seed: Option<u64>,
+    ci_schedule_lane: Option<CiScheduleLane>,
     mutation_scope: Option<MutationCampaignScope>,
     mutant: Option<u8>,
     first_mutant: Option<u8>,
@@ -51,6 +53,8 @@ impl ParsedArguments {
             target_root: None,
             report: None,
             mutant_report: None,
+            schedule_seed: None,
+            ci_schedule_lane: None,
             mutation_scope: None,
             mutant: None,
             first_mutant: None,
@@ -73,6 +77,10 @@ impl ParsedArguments {
             "--target-root" => self.target_root = Some(path(arguments, &option)?),
             "--report" => self.report = Some(path(arguments, &option)?),
             "--mutant-report" => self.mutant_report = Some(path(arguments, &option)?),
+            "--schedule-seed" => self.schedule_seed = Some(u64_number(arguments, &option)?),
+            "--ci-schedule-lane" => {
+                self.ci_schedule_lane = Some(CiScheduleLane::parse(&value(arguments, &option)?)?)
+            }
             "--mutation-scope" => {
                 self.mutation_scope =
                     Some(MutationCampaignScope::parse(&value(arguments, &option)?)?)
@@ -154,13 +162,14 @@ impl ParsedArguments {
             }
         }
         if matches!(product, TestProduct::Mutants) && self.report.is_some() {
-            if self.mutation_scope != Some(MutationCampaignScope::PhysicalWork) {
-                return Err("mutation reports require `--mutation-scope physical-work`".into());
+            if !matches!(
+                self.mutation_scope,
+                Some(MutationCampaignScope::PhysicalWork | MutationCampaignScope::BoundedResidency)
+            ) {
+                return Err("mutation reports require a bounded mutation scope".into());
             }
             if self.list || self.mutant.is_some() || self.first_mutant.is_some() {
-                return Err(
-                    "mutation reports require the complete executing physical-work campaign".into(),
-                );
+                return Err("mutation reports require the complete executing campaign".into());
             }
         }
         Ok(())
@@ -173,6 +182,19 @@ impl ParsedArguments {
         if !matches!(product, TestProduct::Courtrooms { .. }) && self.mutant_report.is_some() {
             return Err("--mutant-report is valid only for courtrooms".into());
         }
+        if (self.schedule_seed.is_some() || self.ci_schedule_lane.is_some())
+            && !matches!(
+                product,
+                TestProduct::Courtrooms {
+                    courtroom: CourtroomSelection::C
+                }
+            )
+        {
+            return Err("schedule selection is valid only for Courtroom C".into());
+        }
+        if self.schedule_seed.is_some() && self.ci_schedule_lane.is_some() {
+            return Err("--schedule-seed and --ci-schedule-lane are mutually exclusive".into());
+        }
         if matches!(product, TestProduct::Courtrooms { .. }) {
             self.validate_courtroom_execution()?;
         }
@@ -181,9 +203,14 @@ impl ParsedArguments {
 
     fn validate_courtroom_execution(&self) -> Result<(), String> {
         if self.list {
-            if self.report.is_some() || self.mutant_report.is_some() || self.target_root.is_some() {
+            if self.report.is_some()
+                || self.mutant_report.is_some()
+                || self.target_root.is_some()
+                || self.schedule_seed.is_some()
+                || self.ci_schedule_lane.is_some()
+            {
                 return Err(
-                    "courtroom --list does not accept report or target-root arguments".into(),
+                    "courtroom --list does not accept execution or report arguments".into(),
                 );
             }
         } else {
@@ -204,6 +231,8 @@ impl ParsedArguments {
             target_root: self.target_root,
             report: self.report,
             mutant_report: self.mutant_report,
+            schedule_seed: self.schedule_seed,
+            ci_schedule_lane: self.ci_schedule_lane,
             mutation_scope: self.mutation_scope.unwrap_or(MutationCampaignScope::All),
             mutant: self.mutant,
             first_mutant: self.first_mutant,
@@ -221,6 +250,12 @@ fn number(arguments: &mut impl Iterator<Item = String>, option: &str) -> Result<
     let raw = value(arguments, option)?;
     raw.parse()
         .map_err(|_| format!("{option} requires a non-negative integer, got `{raw}`"))
+}
+
+fn u64_number(arguments: &mut impl Iterator<Item = String>, option: &str) -> Result<u64, String> {
+    let raw = value(arguments, option)?;
+    raw.parse()
+        .map_err(|_| format!("{option} requires an unsigned 64-bit integer, got `{raw}`"))
 }
 
 fn mutant_id(arguments: &mut impl Iterator<Item = String>, option: &str) -> Result<u8, String> {
