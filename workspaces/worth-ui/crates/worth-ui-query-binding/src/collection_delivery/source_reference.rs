@@ -46,10 +46,6 @@ impl WorthUiCollectionRowReference {
     pub fn source(&self) -> &WorthUiCollectionChangeSourceReference {
         &self.source
     }
-
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_row_identity.terminal_projection_for_reporting()
-    }
 }
 
 impl PartialEq for WorthUiCollectionChangeSourceReference {
@@ -86,9 +82,10 @@ impl std::fmt::Debug for WorthUiCollectionRowReference {
         formatter
             .debug_struct("WorthUiCollectionRowReference")
             .field("source", &self.source)
+            .field("query_row_identity_scope", &self.query_row_identity.scope())
             .field(
-                "query_row_identity",
-                &self.query_row_identity.terminal_projection_for_reporting(),
+                "query_row_identity_scheme",
+                &self.query_row_identity.scheme(),
             )
             .finish()
     }

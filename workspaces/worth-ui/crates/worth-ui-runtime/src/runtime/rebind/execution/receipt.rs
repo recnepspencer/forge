@@ -310,9 +310,9 @@ impl UiRebindReceipt {
         clippy::result_large_err,
         reason = "release failure returns the exact affine rebind receipt unchanged"
     )]
-    pub fn release_scalar_projection_predecessor(
+    pub fn release_scalar_projection_observation(
         self,
-    ) -> Result<worth_ui_query_binding::UiScalarProjectionFactReceipt, Self> {
+    ) -> Result<worth_ui_query_binding::UiScalarProjectionObservation, Self> {
         if self.plan.scalar_projection_fact_count() != 1 {
             return Err(self);
         }
@@ -326,6 +326,6 @@ impl UiRebindReceipt {
             .into_scalar_projection_fact()
             .expect("the exact scalar projection count was admitted before release");
         drop((publication, disposition, _registration));
-        Ok(fact)
+        Ok(fact.into_observation())
     }
 }

@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::mounting::{
-    UiMountedCollectionTextChange, UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
+    UiMountedCollectionRowIdentity, UiMountedCollectionTextChange,
+    UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
 };
 
 pub(super) fn project_collection(
@@ -54,7 +54,7 @@ fn project_row(
         );
     }
     Ok(UiMountedCollectionTextRow::new(
-        Arc::from(row.row().identity_for_reporting()),
+        UiMountedCollectionRowIdentity::from_query(row.row()),
         row.selected_values()
             .iter()
             .map(|value| Arc::from(value.as_str()))
@@ -66,14 +66,18 @@ fn project_changes(
     fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
     rows: &[worth_ui_query_binding::UiCollectionProjectionTextRow],
 ) -> Result<Box<[UiMountedCollectionTextChange]>, super::super::UiRebindPlanningDenial> {
-    let mut changed_rows = BTreeMap::new();
+    let mut changed_rows = Vec::with_capacity(rows.len());
     for row in rows {
-        let identity = row.row().identity_for_reporting();
-        if changed_rows.insert(identity, row).is_some() {
+        if changed_rows.iter().any(
+            |existing: &&worth_ui_query_binding::UiCollectionProjectionTextRow| {
+                existing.row().query_identity() == row.row().query_identity()
+            },
+        ) {
             return Err(invalid(
                 super::super::UiCollectionProjectionContentDenial::DuplicateChangedRow,
             ));
         }
+        changed_rows.push(row);
     }
     let mut changes = Vec::with_capacity(fact.changes().len());
     for change in fact.changes() {
@@ -89,7 +93,7 @@ fn project_changes(
 
 fn project_change(
     change: &worth_ui_query_binding::UiCollectionProjectionChange,
-    rows: &mut BTreeMap<&str, &worth_ui_query_binding::UiCollectionProjectionTextRow>,
+    rows: &mut Vec<&worth_ui_query_binding::UiCollectionProjectionTextRow>,
 ) -> Result<UiMountedCollectionTextChange, super::super::UiRebindPlanningDenial> {
     use worth_ui_query_binding::UiCollectionProjectionChange as Change;
 
@@ -99,11 +103,11 @@ fn project_change(
             at: *at,
         },
         Change::Remove { row, from } => UiMountedCollectionTextChange::Remove {
-            identity: Arc::from(row.identity_for_reporting()),
+            identity: UiMountedCollectionRowIdentity::from_query(row),
             from: *from,
         },
         Change::Move { row, from, to } => UiMountedCollectionTextChange::Move {
-            identity: Arc::from(row.identity_for_reporting()),
+            identity: UiMountedCollectionRowIdentity::from_query(row),
             from: *from,
             to: *to,
         },
@@ -118,10 +122,12 @@ fn project_change(
 }
 
 fn take_row(
-    rows: &mut BTreeMap<&str, &worth_ui_query_binding::UiCollectionProjectionTextRow>,
+    rows: &mut Vec<&worth_ui_query_binding::UiCollectionProjectionTextRow>,
     reference: &worth_ui_query_binding::UiCollectionProjectionRowReference,
 ) -> Result<UiMountedCollectionTextRow, super::super::UiRebindPlanningDenial> {
-    rows.remove(reference.identity_for_reporting())
+    rows.iter()
+        .position(|row| row.row().query_identity() == reference.query_identity())
+        .map(|index| rows.remove(index))
         .ok_or_else(|| {
             invalid(super::super::UiCollectionProjectionContentDenial::MissingChangedRow)
         })

@@ -63,8 +63,37 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
     let mut world = launch::<ApplicationIntent>(
         routed_input(declaration, WorthUiIntentInteractionFamily::Activate),
         PayloadProjectionRegistration::None,
-        PayloadApplicationFacts::standard(text, boolean, unsigned),
+        PayloadApplicationFacts::standard(text.clone(), boolean.clone(), unsigned.clone()),
     );
+    for (identity, receipt) in [
+        (
+            "phase3.fact.message",
+            world
+                .interaction
+                .session
+                .update_intent_text_fact(&text, "application-current")
+                .expect("registered text fact updates"),
+        ),
+        (
+            "phase3.fact.allowed",
+            world
+                .interaction
+                .session
+                .update_intent_boolean_fact(&boolean, true)
+                .expect("registered boolean fact updates"),
+        ),
+        (
+            "phase3.fact.revision",
+            world
+                .interaction
+                .session
+                .update_intent_unsigned64_fact(&unsigned, 42)
+                .expect("registered unsigned fact updates"),
+        ),
+    ] {
+        assert_eq!(receipt.identity(), identity);
+        assert_eq!(receipt.revision(), 2);
+    }
     let interaction = activation(&mut world, [10, 20]);
     let route = product_route(&world.interaction, interaction);
     let prepared = world
@@ -80,9 +109,9 @@ fn ia_05_application_facts_seal_exact_owner_revisions() {
     assert_eq!(prepared.retained_owner_reference_count(), 4);
     assert_eq!(prepared.input_basis().owner_revisions().len(), 3);
     for (expected, observed) in [
-        ("phase3.fact.message", 1),
-        ("phase3.fact.allowed", 1),
-        ("phase3.fact.revision", 1),
+        ("phase3.fact.message", 2),
+        ("phase3.fact.allowed", 2),
+        ("phase3.fact.revision", 2),
     ]
     .into_iter()
     .zip(prepared.input_basis().owner_revisions())

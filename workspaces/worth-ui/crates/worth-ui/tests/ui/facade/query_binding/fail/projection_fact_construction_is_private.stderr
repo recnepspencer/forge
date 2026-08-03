@@ -4,13 +4,13 @@ error[E0308]: mismatched types
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_reassembly_is_private.rs
- note: expected struct `UiProjectionFactReceipt`
-    found tuple `(&str, &str, &str, &str)`
+ note: expected struct `UiScalarProjectionObservation`
+    found tuple `(&WorthQueryEvidenceIdentity, &WorthQueryEvidenceIdentity, &..., ...)`
  note: function defined here
 
 error[E0308]: mismatched types
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/fail/collection_fact_cannot_become_scalar_observation.rs
 
-error: cannot construct `UiProjectionFactReceipt` with struct literal syntax due to private fields
+error: cannot construct `UiScalarProjectionObservation` with struct literal syntax due to private fields
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/fail/projection_fact_construction_is_private.rs
- help: you might have meant to use the `admitted` associated function
+ help: you might have meant to use the `query_issued` associated function

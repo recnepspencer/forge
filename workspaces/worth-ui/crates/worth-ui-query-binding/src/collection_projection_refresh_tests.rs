@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::{
     scalar_text_projection_fixture::{
         collection_projection_workspace, collection_projection_workspace_without_entity_lookup,
@@ -26,8 +24,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(matches!(
         update.fact().changes(),
         [UiCollectionProjectionChange::Update { row }]
-            if row.identity_for_reporting()
-                == bravo.evidence_identity().terminal_projection_for_reporting()
+            if row.query_identity() == &bravo.evidence_identity()
     ));
     assert_changed_row_cost(&update, 1);
 
@@ -37,8 +34,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(insert.fact().changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Insert { row, .. }
-            if row.identity_for_reporting()
-                == between.evidence_identity().terminal_projection_for_reporting()
+            if row.query_identity() == &between.evidence_identity()
     )));
     assert_changed_row_cost(&insert, 1);
 
@@ -50,8 +46,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(remove.fact().changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Remove { row, .. }
-            if row.identity_for_reporting()
-                == between.evidence_identity().terminal_projection_for_reporting()
+            if row.query_identity() == &between.evidence_identity()
     )));
     assert_changed_row_cost(&remove, 0);
 
@@ -63,30 +58,19 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
         .iter()
         .map(|change| match change {
             UiCollectionProjectionChange::Move { row, from, to } => {
-                (row.identity_for_reporting().to_owned(), *from, *to)
+                (row.query_identity().clone(), *from, *to)
             }
             other => panic!("identity reorder invented a non-move change: {other:?}"),
         })
-        .collect::<BTreeSet<_>>();
-    let expected_moves = BTreeSet::from([
-        (
-            alpha
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-                .to_owned(),
-            0,
-            1,
-        ),
-        (
-            bravo
-                .evidence_identity()
-                .terminal_projection_for_reporting()
-                .to_owned(),
-            1,
-            0,
-        ),
-    ]);
-    assert_eq!(actual_moves, expected_moves);
+        .collect::<Vec<_>>();
+    let expected_moves = [
+        (alpha.evidence_identity(), 0, 1),
+        (bravo.evidence_identity(), 1, 0),
+    ];
+    assert_eq!(actual_moves.len(), expected_moves.len());
+    assert!(expected_moves
+        .iter()
+        .all(|expected| actual_moves.contains(expected)));
     assert!(changed_values(moved.fact()).is_empty());
     assert_changed_row_cost(&moved, 0);
 }
@@ -231,8 +215,8 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
         .current_option(&alpha_row)
         .expect("move retains exact alpha identity");
     assert_eq!(
-        current_alpha.identity_for_reporting(),
-        original_alpha.identity_for_reporting()
+        current_alpha.query_identity(),
+        original_alpha.query_identity()
     );
     assert_ne!(
         current_alpha.owner_revision(),

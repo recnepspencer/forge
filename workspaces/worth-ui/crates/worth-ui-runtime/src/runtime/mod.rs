@@ -50,9 +50,6 @@ pub use source_ingress::{
     UiSourceCompilationDenialReceipt, UiSourceRebindAttemptBasis, UiSourceRebindAttemptDenial,
     UiSourceRebindAttemptDenialReceipt, UiSourceRebindAttemptFailure, UiSourceRebindAttemptOutcome,
 };
-pub(crate) use source_ingress::{
-    WorthUiAuthoredIntentDeclaration, WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
-};
 mod stream_policy;
 mod viewport_resize;
 

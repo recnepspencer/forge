@@ -78,12 +78,28 @@ pub(super) fn assert_zero_native_work(work: UiScalarProjectionWorkCounters) {
 
 pub(super) fn reporting_tuple(
     receipt: &UiScalarProjectionTransitionReceipt,
-) -> (&str, &str, &str, &str) {
+) -> (String, String, String, String) {
     let core = receipt.fact().core();
     (
-        core.query_world_identity_for_reporting(),
-        core.binding_identity_for_reporting(),
-        core.source_generation_for_reporting(),
-        core.result_generation_for_reporting(),
+        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
+            core.query_world_identity(),
+        )
+        .as_str()
+        .to_owned(),
+        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
+            core.binding_identity(),
+        )
+        .as_str()
+        .to_owned(),
+        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
+            core.source_generation_identity(),
+        )
+        .as_str()
+        .to_owned(),
+        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
+            core.result_generation_identity(),
+        )
+        .as_str()
+        .to_owned(),
     )
 }

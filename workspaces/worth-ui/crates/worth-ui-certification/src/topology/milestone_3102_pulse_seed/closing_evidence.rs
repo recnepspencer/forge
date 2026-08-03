@@ -217,10 +217,17 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         repository_root,
         "workspaces/worth-ui/crates/worth-ui-runtime/src/runtime/allocation_frame_dispatch/framework_turn/scheduler.rs",
     )?;
-    let native = read(
+    let mut native = read(
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/native_frame.rs",
     )?;
+    for relative in [
+        "workspaces/worth-ui/apps/platform-pulse/src/native_frame/first_frame.rs",
+        "workspaces/worth-ui/apps/platform-pulse/src/native_frame/source_rebind.rs",
+        "workspaces/worth-ui/apps/platform-pulse/src/observation_contract/projection/replacement_projection.rs",
+    ] {
+        native.push_str(&read(repository_root, relative)?);
+    }
     let native_rebind = read(
         repository_root,
         "workspaces/worth-ui/apps/platform-pulse/src/native_frame/rebind.rs",
@@ -243,7 +250,7 @@ fn audit_source_witnesses(repository_root: &Path) -> Result<(), String> {
         || !scheduler.contains("512 * 1024")
         || !protocol.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
         || !protocol.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
-        || !native.contains("self.publisher.first_frame(&source, &publication)")
+        || !native.contains("self.publisher.first_frame(source, publication)")
         || !native.contains("self.publisher.replacement(")
         || !native.contains(".application_publication()")
         || !native.contains(".mounted_publication()")

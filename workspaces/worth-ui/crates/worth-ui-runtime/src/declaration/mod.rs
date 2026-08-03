@@ -53,9 +53,11 @@ pub use family::{
 };
 pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
 pub(crate) use intent::{
-    UiCanonicalIntentDeclaration, UiIntentCatalog, UiIntentCatalogResolvedRoute,
-    UiResolvedIntentApplicationSource, UiResolvedIntentPayloadBinding,
-    UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
+    prepare_authored_intent_material, UiCanonicalIntentDeclaration, UiIntentCatalog,
+    UiIntentCatalogResolvedRoute, UiResolvedIntentApplicationSource,
+    UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource,
+    UiResolvedIntentProjectionSource, WorthUiAuthoredIntentDeclaration,
+    WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
 };
 pub use intent::{
     UiIntentApplicationFact, UiIntentApplicationFactIdentityError,

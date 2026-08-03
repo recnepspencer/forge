@@ -56,14 +56,14 @@ fn audit_typestate(progression: &str, visual: &str) -> Result<(), String> {
         require(progression, edge, "visual executable typestate")?;
     }
     for edge in [
-        "impl PulseExecutableWorld<Published<InitialBlue>>",
-        "PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<SnapshotCaptured<InitialBlue>>>",
-        "PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<IdentityTraced<InitialBlue>>>",
-        "PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>>",
-        "impl PulseExecutableWorld<Published<OverlayPublished<InitialBlue>>>",
-        "PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
+        "impl PulseExecutableWorld<Published<FirstCurrent>>",
+        "PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>>",
+        "impl PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>>",
+        "PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>>",
     ] {
         require(visual, edge, "visual executable progression")?;
     }
@@ -272,9 +272,15 @@ impl VisualIdentityRunnerSources {
             lifecycle_cleanup: text(
                 "apps/platform-pulse/tests/executable_world/adjudication/lifecycle_cleanup.rs",
             ),
-            courtroom: text(
-                "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
-            ),
+            courtroom: [
+                text(
+                    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+                ),
+                text(
+                    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
+                ),
+            ]
+            .concat(),
             windows_capture: text(
                 "apps/platform-pulse/tests/executable_world/native_platform/windows.rs",
             ),

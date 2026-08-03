@@ -33,7 +33,7 @@ fn audit_execution(source: &str) -> Result<(), String> {
         "AwaitingFirstFrame",
         "Capturing(PlatformPulseVisualCapture)",
         "OverlayVisible(PlatformPulseVisibleOverlay)",
-        "OverlayCleared(PlatformPulseRetainedSnapshot)",
+        "ComparisonReady(PlatformPulseRetainedSnapshot)",
         "issue_pixel_grant()",
         "begin_visual_pixel_snapshot(&grant, request)",
         "poll_visual_snapshot(capture.pending, *tick)",
@@ -273,7 +273,12 @@ impl ProductVisualIdentitySources {
             publication: source("visual_observation_publication.rs"),
             wire: source("observation_contract/visual.rs"),
             projection: source("observation_contract/visual_projection.rs"),
-            native_frame: source("native_frame.rs"),
+            native_frame: [
+                source("native_frame.rs"),
+                source("native_frame/source_rebind.rs"),
+                source("native_frame/query.rs"),
+            ]
+            .join("\n"),
             main: source("main.rs"),
         }
     }

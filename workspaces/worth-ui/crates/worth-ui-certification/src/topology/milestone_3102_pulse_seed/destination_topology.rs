@@ -10,23 +10,29 @@ const PULSE_MEMBER: &str = "apps/platform-pulse";
 const PULSE_PACKAGE: &str = "worth-ui-platform-pulse";
 const UNCONDITIONAL_DEPENDENCIES: &[&str] = &[
     "eframe",
+    "notify",
     "serde",
     "serde_json",
+    "worth-query-decl",
+    "worth-query-host",
     "worth-ui",
     "worth-ui-host-egui",
 ];
 const WINDOWS_DEV_DEPENDENCIES: &[&str] = &["uiautomation", "winsafe", "xcap"];
 const ALLOWED_DEPENDENCIES: &[&str] = &[
     "eframe",
+    "notify",
     "serde",
     "serde_json",
     "uiautomation",
     "winsafe",
+    "worth-query-decl",
+    "worth-query-host",
     "worth-ui",
     "worth-ui-host-egui",
     "xcap",
 ];
-const EFRAME_VERSION: &str = "=0.31.1";
+const EFRAME_VERSION: &str = "=0.35.0";
 const WORKSPACE_EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "x11"];
 const PULSE_EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "wgpu", "x11"];
 

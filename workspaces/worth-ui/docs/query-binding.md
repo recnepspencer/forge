@@ -23,13 +23,11 @@ requirement, UI consequence, mounted identity, and presentation.
 - `UiCollectionProjectionRegistration`
 - `UiScalarProjectionObservation`
 - `UiCollectionProjectionObservation`
-- `UiScalarProjectionFactReceipt`
-- `UiCollectionProjectionFactReceipt`
 - `UiProjectionAvailability`
 - `UiPresentProjection`
 - `WorthUiApplicationBuilder::register_scalar_projection(...)`
 - `WorthUiApplicationBuilder::register_collection_projection(...)`
-- `WorthUiActiveApplicationSession::begin_projection_rebind(...)`
+- `WorthUiNativeApplicationShell::begin_projection_rebind(...)`
 
 There is no product `WorthUiQueryWorkspaceExt` import. Query-free applications
 do not install a dummy Query runtime or register a dummy projection.
@@ -47,10 +45,12 @@ A projection has orthogonal contracts:
 - budget: bounded accesses, rows, bytes, and retained resources.
 
 These are types, not fields an application may reassemble. A reporting identity
-cannot become a binding, an inspection projection cannot become a fact, and a
-collection fact cannot enter a scalar consumer.
+cannot become a binding, an inspection projection cannot become an operational
+observation, and a collection observation cannot enter a scalar consumer.
 
-## Register A Projection
+## Small Example
+
+### Register A Projection
 
 An installation owner first obtains an `UiInstalledProjectionView` from Query
 authority. Product application code then declares the required shape and
@@ -102,7 +102,7 @@ Query authority boundary; Worth UI does not emulate it.
 
 The live owner issues one affine observation. Submit it through
 `begin_projection_rebind(...)`, exhaust the typed rebind outcome, and return the
-released shape-specific fact to the Query lifecycle owner. Publication
+released shape-specific observation to the Query lifecycle owner. Publication
 completion is what allows that owner to advance again.
 
 ```text
@@ -133,6 +133,9 @@ ordering used by the rest of the application. Runtime follows declared
 consumer indexes; it does not poll Query, scan the mounted graph, or introduce a
 second executor.
 
+Milestone 3.14 supplies the native production ingress used by this path. It
+does not move Query execution authority into the runtime or product facade.
+
 ## Cost And Lifecycle
 
 - Query-free and unchanged turns perform zero projection/content work.
@@ -145,7 +148,7 @@ second executor.
 
 ## Inspection And Debugging
 
-Correlate the Query transition or attempt identity, projection fact identity,
+Correlate the Query transition or attempt identity, projection observation identity,
 application generation, mounted frame/node identity, and presentation evidence.
 Request compact evidence first and expand detail under an explicit disclosure,
 retention, and byte budget. None of those reporting values can execute Query,
@@ -165,9 +168,9 @@ construct a fact, or publish.
 ## Current Limits
 
 The direct grammar supports declared scalar and keyed collection projections.
-Rich tables, joins, authored expressions and formatting, mutation intents, and
-general composition remain additive successor work. Milestone 3.14 may consume
-these projection facts for admitted intents; it must not replace this binding,
+Rich tables, joins, authored expressions and formatting, and general
+composition remain additive successor work. Intent payloads may consume
+admitted projection observations; they do not replace this binding,
 observation, or publication path.
 
 ## Related Docs

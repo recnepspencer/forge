@@ -26,7 +26,7 @@ responsibility = "named audience modules"
 disposition = "retain"
 # Milestone 3.12 adds named observation and rebind audiences without broadening
 # the root into a prelude.
-fingerprint = "be4368dc53fefcf1"
+fingerprint = "d4564187e2056055"
 forbidden_shortcut = "add a broad prelude or wildcard export"
 
 [[surface]]
@@ -38,7 +38,7 @@ disposition = "retain"
 # denial types required to derive node capture authority without runtime imports.
 # Milestone 3.12 adds profile typestate plus active-session observation and
 # planning entrypoints while constructors and execution stay owner-controlled.
-fingerprint = "1c07b78d1ad70c12"
+fingerprint = "b7957e5046377d17"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -71,6 +71,22 @@ fingerprint = "41457d733dab347b"
 forbidden_shortcut = "export certification-only reconstruction or mutable runtime authority"
 
 [[surface]]
+file = "facade/intent.rs"
+audience = "application-author"
+responsibility = "curated authored intent declaration contract"
+disposition = "retain"
+fingerprint = "7b50bbd7d917bd5e"
+forbidden_shortcut = "export runtime source-ingress or Query execution authority"
+
+[[surface]]
+file = "facade/interaction.rs"
+audience = "application-author"
+responsibility = "curated authored interaction declaration contract"
+disposition = "retain"
+fingerprint = "1332d5e686e48637"
+forbidden_shortcut = "export host input ownership or runtime mutation authority"
+
+[[surface]]
 file = "facade/host.rs"
 audience = "host-adapter"
 responsibility = "host requests, outputs, and observation exchange"
@@ -94,7 +110,7 @@ responsibility = "curated declaration contract"
 disposition = "retain"
 # Milestone 3.11 exposes static paint, hit-test, and viewport-inset contracts
 # beside the typed FillViewport contract.
-fingerprint = "f796dd9190f68825"
+fingerprint = "a346bae9ee1f4b99"
 forbidden_shortcut = "reopen declaration source authority"
 
 [[surface]]
@@ -135,7 +151,7 @@ audience = "inspection-consumer"
 responsibility = "observation reports"
 disposition = "retain"
 # Milestone 3.12 removes the mutable ingress owner and exposes only typed drain denial.
-fingerprint = "b40ae4ebc3eb41e0"
+fingerprint = "b3d9faf0dc55af74"
 forbidden_shortcut = "become a mutable runtime facade"
 
 [[surface]]
@@ -153,7 +169,7 @@ file = "facade/rebind.rs"
 audience = "advanced-application-author"
 responsibility = "typed change profiles, owner facts, affected scope, immutable plans, and caller execution policy"
 disposition = "retain"
-fingerprint = "a176573ed1e23e06"
+fingerprint = "4411a43c486f62e0"
 forbidden_shortcut = "export classifiers, plan constructors, executors, raw scope construction, or mutable runtime authority"
 
 [[surface]]
@@ -161,7 +177,7 @@ file = "facade/query_binding.rs"
 audience = "application-author"
 responsibility = "query binding declarations"
 disposition = "retain"
-fingerprint = "b8ee193e20b25dd6"
+fingerprint = "5d956a0e85af0e19"
 forbidden_shortcut = "recreate query-owned execution lanes"
 
 [[surface]]
@@ -227,11 +243,11 @@ forbidden_shortcut = "make certification reports runtime lifecycle authority"
 id = "certification-scenario"
 path = "scenario"
 match = "directory"
-expected_files = 25
+expected_files = 26
 # Milestone 3.11 extracts the two-node platform pulse application builder into
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds while preserving certification-only construction.
-content_fingerprint = "72463c67577c0472"
+content_fingerprint = "8691ec02629934dc"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -267,7 +283,7 @@ expected_files = 62
 # successor visual-identity scenario sources from historical closing counts.
 # Milestone 3.12 adds its authored-identity, rebind-profile, and post-
 # classification-cost scenario sources to the same explicit successor boundary.
-content_fingerprint = "3b53b0121a50a8f3"
+content_fingerprint = "55ecfd3b14b2a975"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -288,7 +304,7 @@ expected_files = 8
 # continuing product-doc witness from both retired debug markers to the
 # versioned FirstFramePublished, RebindPublished, and VisualComparison
 # observations.
-content_fingerprint = "f0316e3fd53297f6"
+content_fingerprint = "040a0de1d54bc989"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"
@@ -313,7 +329,7 @@ expected_files = 5
 # Milestone 3.11 recognizes the product-owned permanent visual pulse contract
 # without admitting executable-world or workflow authority. Milestone 3.12
 # replaces the predecessor source-lowering denial with its typed attempt failure.
-content_fingerprint = "3bd6b8e792aa5b11"
+content_fingerprint = "cb49575be076b1a5"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -324,7 +340,7 @@ id = "certification-topology-3103-external-world"
 path = "topology/milestone_3103_external_world"
 match = "directory"
 expected_files = 4
-content_fingerprint = "9227231997b968ff"
+content_fingerprint = "6890f505e041352c"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
 disposition = "retain"
@@ -335,7 +351,7 @@ id = "certification-topology-3103-watched-replacement"
 path = "topology/milestone_3103_watched_replacement"
 match = "directory"
 expected_files = 4
-content_fingerprint = "99e343d3b5e633be"
+content_fingerprint = "02319e481c61a0b6"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
 disposition = "retain"
@@ -516,7 +532,7 @@ disposition = "retain"
 [[subsystem]]
 name = "mounting"
 owner = "mounted application lifecycle"
-allowed_dependencies = ["declaration", "facade", "graph", "host", "inspection", "runtime"]
+allowed_dependencies = ["capability", "declaration", "facade", "graph", "host", "inspection", "runtime"]
 target = "worth-ui-runtime/mounting"
 disposition = "split"
 exit_phase = 5

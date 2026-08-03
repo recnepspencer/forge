@@ -1,13 +1,10 @@
 use crate::runtime::rebind::{UiProjectionRebindRequest, UiRebindOutcome, UiRebindReceipt};
-use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host;
+use crate::runtime::tests::active_application_session_test_support::source_backed_component_app_with_host_and_scalar_projection;
 
 use super::native_identity_trace_host::NativeIdentityTraceHost;
 
 #[test]
 fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
-    let mut shell = source_backed_component_app_with_host(NativeIdentityTraceHost::default())
-        .launch_native_surface()
-        .expect("source-backed application should launch through the native lifecycle");
     let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
         .expect("product Query plan prepares");
     let (request, completion) = plan.into_parts();
@@ -18,8 +15,14 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
     let installed = completion
         .complete(installation)
         .expect("binding completion opens the product Query owner");
+    let (registration, initial) = installed.into_parts();
+    let mut shell = source_backed_component_app_with_host_and_scalar_projection(
+        NativeIdentityTraceHost::default(),
+        registration,
+    )
+    .launch_native_surface()
+    .expect("source-backed application should launch through the native lifecycle");
 
-    let initial = installed.into_initial_advance();
     let (pending, pending_completion) = initial.into_parts();
     let pending_receipt = published(
         shell
@@ -27,12 +30,12 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
             .expect("pending projection enters the standard native rebind"),
         1,
     );
-    let pending_fact = match pending_receipt.release_scalar_projection_predecessor() {
-        Ok(fact) => fact,
+    let pending_observation = match pending_receipt.release_scalar_projection_observation() {
+        Ok(observation) => observation,
         Err(_) => panic!("the terminal plan did not return its only scalar predecessor"),
     };
     let owner = pending_completion
-        .admit_publication(pending_fact)
+        .admit_publication(pending_observation)
         .expect("the exact pending fact readmits the Query owner");
 
     let current = owner
@@ -48,12 +51,12 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
             .expect("current projection enters the standard native rebind"),
         2,
     );
-    let current_fact = match current_receipt.release_scalar_projection_predecessor() {
-        Ok(fact) => fact,
+    let current_observation = match current_receipt.release_scalar_projection_observation() {
+        Ok(observation) => observation,
         Err(_) => panic!("the terminal plan did not return its only current scalar predecessor"),
     };
     let owner = current_completion
-        .admit_publication(current_fact)
+        .admit_publication(current_observation)
         .expect("the exact current fact readmits the Query owner");
 
     let source_close = owner.close().expect("Query source closes terminally");

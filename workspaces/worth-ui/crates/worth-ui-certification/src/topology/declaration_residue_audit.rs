@@ -23,6 +23,7 @@ const DECLARATION_SOURCE_REOPENING_ALLOWED_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/mode.rs",
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/ownership_posture.rs",
     "crates/worth-ui-runtime/src/declaration/family/admission.rs",
+    "crates/worth-ui-runtime/src/declaration/intent/authored_material.rs",
     "crates/worth-ui-runtime/src/declaration/rust_authored_declaration_fixture.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_dependency/worth_ui_subtree_digest_basis.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_equivalence/worth_ui_artifact_descriptor_basis.rs",

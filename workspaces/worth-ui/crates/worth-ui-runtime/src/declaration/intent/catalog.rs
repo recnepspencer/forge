@@ -45,7 +45,7 @@ pub(crate) struct UiIntentCatalog {
 
 impl UiIntentCatalog {
     pub(crate) fn prepare(
-        material: &crate::runtime::WorthUiAuthoredIntentMaterial,
+        material: &crate::declaration::WorthUiAuthoredIntentMaterial,
         definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
         graph: &crate::graph::UiGraphSnapshot,
         query: &worth_ui_query_binding::WorthUiQueryBindingPlan,

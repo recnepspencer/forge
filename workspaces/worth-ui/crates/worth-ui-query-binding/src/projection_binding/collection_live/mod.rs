@@ -146,8 +146,8 @@ impl UiCollectionProjectionOpenStop {
         self.kind
     }
 
-    pub fn attempt_identity_for_reporting(&self) -> &str {
-        self.attempt_identity.terminal_projection_for_reporting()
+    pub fn attempt_identity(&self) -> &worth_query::facade::runtime::WorthQueryEvidenceIdentity {
+        &self.attempt_identity
     }
 }
 
@@ -213,7 +213,8 @@ impl std::fmt::Debug for UiCollectionProjectionOpenStop {
         formatter
             .debug_struct("UiCollectionProjectionOpenStop")
             .field("kind", &self.kind)
-            .field("attempt_identity", &self.attempt_identity_for_reporting())
+            .field("attempt_identity_scope", &self.attempt_identity.scope())
+            .field("attempt_identity_scheme", &self.attempt_identity.scheme())
             .finish()
     }
 }

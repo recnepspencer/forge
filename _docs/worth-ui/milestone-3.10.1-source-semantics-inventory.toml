@@ -26,9 +26,11 @@ forbidden_parallel_progressions = [
 id = "dsl"
 root = "crates/worth-ui-dsl/src"
 exclude = ["tests"]
-expected_files = 67
-path_set_fingerprint = "618f082cdf1f15cd"
-content_fingerprint = "1e8b1349f8e05fc3"
+expected_files = 84
+path_set_fingerprint = "b3ffe29b1e6a017f"
+# Milestone 3.14 extends the existing DSL-owned declaration and intent homes;
+# the additions remain inside the one authored-source progression classified below.
+content_fingerprint = "217b563e3a4cd8eb"
 
 [[scope]]
 id = "runtime-source"
@@ -40,7 +42,7 @@ path_set_fingerprint = "9583dfaa351f4519"
 # both participate in source equivalence without creating a parallel lane.
 # Milestone 3.12 adds the typed bounded-comparison denial beside exhaustive
 # artifact equivalence; comparison remains in the existing semantic-identity owner.
-content_fingerprint = "abe08f75c84fd5d9"
+content_fingerprint = "3a0cc84ef3968f6d"
 
 [[scope]]
 id = "runtime-source-ingress"
@@ -51,7 +53,7 @@ path_set_fingerprint = "c5b45bb3db29679a"
 # handoff beside FillViewport without creating a parallel ingress lane.
 # Milestone 3.12 retains exact watched/Rust origin beside candidate composition
 # in one typed authored-source basis under the existing runtime-candidate owner.
-content_fingerprint = "809b80b868873ef1"
+content_fingerprint = "1a3712523245127b"
 
 [[scope]]
 id = "runtime-replacement"
@@ -184,6 +186,23 @@ cost = "input bounded"
 destination = "worth-ui-dsl/source/legality"
 disposition = "retain"
 forbidden_shortcut = "consult filesystem, watcher, query, or runtime capability state"
+
+[[classification]]
+id = "dsl-source-projection-declaration"
+scope = "dsl"
+match = "directory"
+path = "source/projection"
+current_owner = "worth-ui-dsl"
+responsibility = "declare and validate query-agnostic authored projection requirements"
+capabilities = ["authored-legality", "semantic-assembly"]
+authority_in = ["authored projection clauses"]
+authority_out = ["typed projection requirement"]
+lifecycle = "authored meaning"
+failure_owner = "DSL"
+cost = "input bounded"
+destination = "worth-ui-dsl/source/projection"
+disposition = "retain"
+forbidden_shortcut = "import Query execution, runtime binding, or host publication authority"
 
 [[classification]]
 id = "dsl-source-compiler"

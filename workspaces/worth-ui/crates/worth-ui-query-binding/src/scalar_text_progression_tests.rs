@@ -96,9 +96,13 @@ fn scalar_registration_rejects_missing_async_lifecycle_support() {
     };
 
     assert_eq!(unavailable.kind(), UiProjectionUnavailableKind::Unsupported);
-    assert!(!unavailable
-        .query_transition_identity_for_reporting()
-        .is_empty());
+    assert!(
+        !crate::UiQueryIdentityReportingProjection::from_query_identity(
+            unavailable.query_transition_identity(),
+        )
+        .as_str()
+        .is_empty()
+    );
 }
 
 #[test]

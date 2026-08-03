@@ -4,6 +4,7 @@ mod operation_live_fixture;
 mod operation_semantic_facts;
 mod product_support_contract;
 mod projection_world_fixture;
+mod query_row_reference_fixture;
 mod scalar_native_authority_attack;
 
 pub use collection_patch_attack::{
@@ -24,6 +25,7 @@ pub use projection_world_fixture::{
     update_projection_identity, update_projection_status, update_projection_status_batch,
     WorthUiCollectionProjectionSeedPosture,
 };
+pub use query_row_reference_fixture::query_row_reference_fixture;
 pub use scalar_native_authority_attack::{
     certify_scalar_native_authority_attack, WorthUiScalarNativeAuthorityAttackReport,
     WorthUiScalarNativeKeyReport,

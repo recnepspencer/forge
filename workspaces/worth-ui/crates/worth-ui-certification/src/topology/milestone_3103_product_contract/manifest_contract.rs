@@ -126,8 +126,11 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         .ok_or_else(|| "pulse dependencies should be a table".to_owned())?;
     let expected = [
         "eframe",
+        "notify",
         "serde",
         "serde_json",
+        "worth-query-decl",
+        "worth-query-host",
         "worth-ui",
         "worth-ui-host-egui",
     ]

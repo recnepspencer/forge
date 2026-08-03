@@ -56,8 +56,8 @@ impl UiProjectionBindingStopReceipt {
         self.kind
     }
 
-    pub fn attempt_identity_for_reporting(&self) -> &str {
-        self.attempt_identity.terminal_projection_for_reporting()
+    pub fn attempt_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.attempt_identity
     }
 
     pub fn predecessor_binding_identity_for_reporting(&self) -> Option<&str> {

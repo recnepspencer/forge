@@ -50,7 +50,7 @@ fn milestone_312_phase4_protocol_guarantees_survive_current_v5_evolution() {
     assert!(envelope.contains("PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 5"));
     assert!(envelope.contains("CompleteV5"));
     assert!(envelope.contains("InheritedLifecycleOnly"));
-    assert!(envelope.contains("schema_version @ (2 | 3 | 4)"));
+    assert!(envelope.contains("schema_version @ 2..=4"));
     assert!(!envelope.contains("failure-artifact.v1"));
     let failure = workspace_source_inventory()
         .text("apps/platform-pulse/tests/executable_world/failure_teardown/retained_artifact.rs");

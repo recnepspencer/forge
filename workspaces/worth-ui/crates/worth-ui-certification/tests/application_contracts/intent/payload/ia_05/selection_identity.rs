@@ -57,7 +57,7 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
     let bravo_row = snapshot_value
         .rows()
         .iter()
-        .find(|row| row.row().identity_for_reporting() == bravo_identity)
+        .find(|row| row.row().reporting_projection().as_str() == bravo_identity)
         .expect("the Query snapshot contains the independently seeded entity")
         .row()
         .clone();
@@ -68,7 +68,10 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
         .session
         .current_projection_option(&projection, &bravo_row)
         .expect("the mounted snapshot exposes the exact current Query option");
-    assert_eq!(original_option.identity_for_reporting(), bravo_identity);
+    assert_eq!(
+        original_option.reporting_projection().as_str(),
+        bravo_identity
+    );
     assert_selection_payload(&mut world, original_option.clone());
 
     worth_ui_query_binding::certification::update_projection_identity(
@@ -109,8 +112,8 @@ fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revis
         .current_projection_option(&projection, &bravo_row)
         .expect("the mounted move patch retains the exact Query row");
     assert_eq!(
-        current_option.identity_for_reporting(),
-        original_option.identity_for_reporting()
+        current_option.reporting_projection().as_str(),
+        original_option.reporting_projection().as_str()
     );
     assert_ne!(
         current_option.owner_revision(),

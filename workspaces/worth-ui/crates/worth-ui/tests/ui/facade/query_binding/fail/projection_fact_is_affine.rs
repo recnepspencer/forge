@@ -1,7 +1,7 @@
-use worth_ui::facade::query_binding::UiProjectionFactReceipt;
+use worth_ui::facade::query_binding::UiScalarProjectionObservation;
 
-fn invalid(receipt: &UiProjectionFactReceipt) {
-    let _copy: UiProjectionFactReceipt = receipt.clone();
+fn invalid(observation: &UiScalarProjectionObservation) {
+    let _copy: UiScalarProjectionObservation = observation.clone();
 }
 
 fn main() {}

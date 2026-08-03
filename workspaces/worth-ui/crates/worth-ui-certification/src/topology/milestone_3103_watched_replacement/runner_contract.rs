@@ -103,7 +103,7 @@ fn audit_typestate(progression: &str, source_action: &str) -> Result<(), String>
         require(progression, required, "Phase 4 typestate")?;
     }
     for required in [
-        "impl PulseExecutableWorld<Published<OverlayCleared<InitialBlue>>>",
+        "impl PulseExecutableWorld<Published<SecondCurrent>>",
         "fn apply_green(",
         "impl PulseExecutableWorld<Published<GreenSuccessor>>",
         "fn apply_malformed(",
@@ -194,7 +194,7 @@ fn audit_atomic_action(source: &str) -> Result<(), String> {
         "winsafe::ReplaceFile(",
         "winsafe::co::REPLACEFILE::WRITE_THROUGH",
         "temporary_cleanup: fs::remove_file(replacement)",
-        "let observed = fs::read(&entry_source)",
+        "let observed = fs::read(&destination)",
         "ReadBackMismatch",
     ] {
         require(source, required, "atomic source replacement")?;
@@ -205,7 +205,7 @@ fn audit_atomic_action(source: &str) -> Result<(), String> {
 fn audit_close_and_failure(normal_close: &str, failure: &str) -> Result<(), String> {
     require(
         normal_close,
-        "impl PulseExecutableWorld<Published<RecoveredBlue>>",
+        "impl PulseExecutableWorld<Published<FinalRecovered>>",
         "recovered-only normal close",
     )?;
     for required in [
@@ -303,12 +303,15 @@ impl Phase4RunnerSources {
                 "apps/platform-pulse/tests/executable_world/failure_teardown/report.rs",
             ),
             courtroom: format!(
-                "{}\n{}",
+                "{}\n{}\n{}",
                 text(
                     "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
                 ),
                 text(
                     "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+                ),
+                text(
+                    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
                 ),
             ),
         }

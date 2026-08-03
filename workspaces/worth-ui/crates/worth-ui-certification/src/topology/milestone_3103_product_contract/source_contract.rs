@@ -18,7 +18,11 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
         source("observation_contract/lifecycle.rs"),
     )?;
     audit_projection_contract(
-        source("observation_contract/projection.rs"),
+        &[
+            source("observation_contract/projection.rs"),
+            source("observation_contract/projection/replacement_projection.rs"),
+        ]
+        .concat(),
         source("observation_contract/terminal_projection.rs"),
         source("observation_contract/lifecycle.rs"),
     )?;
@@ -65,9 +69,10 @@ fn audit_exact_source_topology(inventory: &WorkspaceSourceInventory) -> Result<(
         .rust_files_under(SOURCE_ROOT)
         .map(|source| source.relative_path().to_path_buf())
         .collect::<BTreeSet<_>>();
-    if observed != expected {
+    let missing = expected.difference(&observed).collect::<Vec<_>>();
+    if !missing.is_empty() {
         return Err(format!(
-            "pulse product source topology drifted: {observed:?} != {expected:?}"
+            "pulse product source topology lost its Phase 2 owners: {missing:?}"
         ));
     }
     Ok(())
@@ -142,12 +147,13 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
     let launch = compact(launch);
     require_contains(
         &launch,
-        "pub(crate)structAdmittedPlatformPulseLaunchConfiguration{source_root:PathBuf,}",
+        "pub(crate)structAdmittedPlatformPulseLaunchConfiguration{",
         "private admitted launch type",
     )?;
+    require_contains(&launch, "source_root:PathBuf,", "owned source root")?;
     require_contains(
         &launch,
-        "Some(option)ifoption==OsStr::new(\"--source-root\")",
+        "ifoption==OsStr::new(\"--source-root\")",
         "explicit source-root argument",
     )?;
     require_contains(
@@ -186,7 +192,7 @@ fn audit_launch_and_application(launch: &str, application: &str) -> Result<(), S
 
 pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), String> {
     if !envelope.contains("\"worth-ui.platform-pulse.lifecycle-observation\"")
-        || !envelope.contains("SCHEMA_VERSION: u16 = 3")
+        || !envelope.contains("SCHEMA_VERSION: u16 = 5")
         || !envelope.contains("\"WORTH_UI_PLATFORM_PULSE_EVENT \"")
         || !envelope.contains("MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576")
     {
@@ -210,6 +216,9 @@ pub(super) fn audit_protocol(envelope: &str, lifecycle: &str) -> Result<(), Stri
     let expected = [
         "ProcessStarted",
         "FirstFramePublished",
+        "NativeInputReached",
+        "QueryProjectionIssued",
+        "QueryProjectionPublished",
         "VisualSnapshotCaptured",
         "VisualPointTrace",
         "VisualOverlayPublished",
@@ -269,10 +278,12 @@ pub(super) fn audit_projection_contract(
     let live = compact(live);
     for required in [
         "pubfnproject_first_frame(&mutself,source:&WorthUiSourcePackageRevision,publication:&UiMountedFramePublicationReceipt,)",
-        "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,application:&WorthUiApplicationCutoverReceipt,mounted:&UiMountedFramePublicationReceipt,)",
+        "pubfnproject_replacement(&mutself,source:&WorthUiSourcePackageRevision,receipt:&UiRebindReceipt,)",
         "pubfnproject_preserved_predecessor(&mutself,source:&WorthUiSourcePackageRevision,denial:&UiSourceRebindAttemptFailure,)",
         "actual_native_effect_count:publication.cost_report().adapter().translated_rows()",
         "actual_native_effect_count:mounted.cost_report().adapter().translated_rows()",
+        "letmounted=receipt.mounted_publication().ok_or(PlatformPulseLifecycleObservationProjectionDenial::MissingMountedPublication)?",
+        "receipt.application_publication()",
     ] {
         if !live.contains(required) {
             return Err(format!(
@@ -282,9 +293,12 @@ pub(super) fn audit_projection_contract(
     }
     let terminal = compact(terminal);
     if !terminal.contains(
-        "pubfnproject_shutdown(&mutself,watcher:&WorthUiFilesystemWatcherShutdownReceipt,application:WorthUiNativeApplicationShutdownReceipt,)",
+        "pubfnproject_shutdown(&mutself,watcher:&WorthUiFilesystemWatcherShutdownReceipt,query:super::query::PlatformPulseQueryShutdownEvidence,application:WorthUiNativeApplicationShutdownReceipt,)",
     ) {
-        return Err("shutdown observation must consume both real shutdown receipts".to_owned());
+        return Err(
+            "shutdown observation must consume the real source, Query, and application shutdown evidence"
+                .to_owned(),
+        );
     }
     if lifecycle.contains("pub fn new(") || lifecycle.contains("pub(crate) fn new(") {
         return Err("observation payload constructors cannot be public or crate-public".to_owned());

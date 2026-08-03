@@ -19,14 +19,25 @@ kind = "inherent"
 owner = "WorthUiApplicationBuilder"
 audience = "ordinary-app"
 feature = "production-default"
-sources = ["crates/worth-ui-runtime/src/facade/entry/app_builder.rs"]
+sources = [
+  "crates/worth-ui-runtime/src/facade/entry/app_builder.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_builder/application_fact_registration.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_builder/capability_registration.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_builder/intent_registration.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_builder/query_registration.rs",
+]
 [surface.callers]
 freeze = "crates/worth-ui-certification/tests/admission_support_runtime.rs"
 freeze_with_registration_report = "crates/worth-ui/tests/view_binding_registry/query_boundary_cases.rs"
 register_command = "crates/worth-ui/tests/command_registry.rs"
 register_command_projection = "crates/worth-ui-runtime/src/source/tests/phase7_identity_seeding_tests/identity_app_fixture.rs"
+register_collection_projection = "crates/worth-ui-certification/tests/application_contracts/projection_presentation/collection_query.rs"
 register_component = "crates/worth-ui/tests/capability_snapshot/snapshot_diagnostic_ordering_cases.rs"
 register_icon = "crates/worth-ui-runtime/src/source/tests/phase7_identity_seeding_tests/identity_app_fixture.rs"
+register_intent_boolean_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/world.rs"
+register_intent_definition = "crates/worth-ui-certification/tests/application_contracts/intent/phase1_definition.rs"
+register_intent_text_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/world.rs"
+register_intent_unsigned64_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/world.rs"
 register_mosaic_placement_policy = "crates/worth-ui/tests/integration/minimal_structural_app.rs"
 register_mosaic_region_kind = "crates/worth-ui/tests/mosaic_region_registry/snapshot_metadata_cases.rs"
 register_mosaic_sizing_contract = "crates/worth-ui-runtime/src/source/tests/phase7_identity_seeding_tests/identity_app_fixture.rs"
@@ -35,6 +46,7 @@ register_native_capability = "crates/worth-ui/tests/native_capability_registry/n
 register_plugin_slot = "crates/worth-ui/tests/plugin_slot_registry/plugin_slot_rejection_cases.rs"
 register_query_view = "crates/worth-ui/tests/view_binding_registry/view_binding_rejection_cases.rs"
 register_runtime_outcome_projection = "crates/worth-ui/tests/runtime_outcome_projection_registry/runtime_outcome_projection_rejection_cases.rs"
+register_scalar_projection = "crates/worth-ui-certification/tests/application_contracts/projection_presentation/scalar_query_only.rs"
 register_setting = "crates/worth-ui/tests/registry_extension_proof/fixtures.rs"
 register_surface = "crates/worth-ui/tests/view_binding_registry/query_boundary_cases.rs"
 register_task_presentation = "crates/worth-ui/tests/registry_extension_proof/fixtures.rs"
@@ -88,6 +100,7 @@ feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_projection_rebind.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_source_rebind.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_overlay.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs",
@@ -96,6 +109,7 @@ sources = [
 begin_visual_geometry_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 begin_visual_pixel_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 begin_source_rebind = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+begin_projection_rebind = "apps/platform-pulse/src/native_frame/projection.rs"
 cancel_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 clear_visual_overlay = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 compare_visual_snapshots = "apps/platform-pulse/src/visual_identity_execution/comparison.rs"
@@ -135,20 +149,27 @@ sources = [
   "crates/worth-ui-runtime/src/facade/entry/application_replacement/candidate_pipeline.rs",
   "crates/worth-ui-runtime/src/facade/entry/application_replacement/cutover.rs",
   "crates/worth-ui-runtime/src/facade/entry/application_replacement/mounted.rs",
+  "crates/worth-ui-runtime/src/facade/entry/interaction.rs",
+  "crates/worth-ui-runtime/src/facade/entry/intent_payload.rs",
+  "crates/worth-ui-runtime/src/facade/entry/intent_routing.rs",
+  "crates/worth-ui-runtime/src/facade/entry/local_interaction_recipient.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_frame_execution.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/mounted_publication.rs",
   "crates/worth-ui-runtime/src/facade/entry/observation.rs",
   "crates/worth-ui-runtime/src/facade/entry/rebind_execution.rs",
+  "crates/worth-ui-runtime/src/facade/entry/selection_interaction.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_overlay.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs",
   "crates/worth-ui-runtime/src/facade/entry/visual_snapshot/capture_poll.rs",
 ]
 [surface.callers]
 activate_prepared_replacement = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle.rs"
+admit_host_interaction_batch = "crates/worth-ui-certification/tests/application_contracts/intent/interaction_world.rs"
 begin_visual_geometry_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 begin_visual_pixel_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 begin_observation_turn = "crates/worth-ui-certification/tests/application_contracts/milestone_312_observation_admission.rs"
+bind_local_input_recipient = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05/draft_input.rs"
 cancel_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation.rs"
 cancel_visual_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 capabilities = "crates/worth-ui/tests/view_binding_registry/view_binding_determinism_cases.rs"
@@ -158,7 +179,9 @@ compile_preservation_rebind = "crates/worth-ui-runtime/src/runtime/rebind/planni
 compile_rebind_plan = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
 complete_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation.rs"
 compare_visual_snapshots = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+commit_selection_interaction = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05/selection_identity.rs"
 current_mounted_publication = "crates/worth-ui-certification/tests/application_contracts/host_measurement_lifecycle.rs"
+current_projection_option = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05/selection_identity.rs"
 discard_evidence_slice = "crates/worth-ui-certification/tests/evidence_reference_runtime.rs"
 dispose_visual_snapshot = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot.rs"
 execute_mounted_frame = "crates/worth-ui/tests/ui/facade/app_journey_pass/mounted_frame_uses_app_surface.rs"
@@ -172,9 +195,12 @@ inspection_closure_report = "crates/worth-ui-certification/tests/ai_inspection_r
 inspection_observation = "crates/worth-ui-certification/tests/declaration_evidence_lookup_runtime.rs"
 inspection_support_report = "crates/worth-ui-runtime/src/facade/inspection_bridge/support_routing.rs"
 inspection_support_report_for = "crates/worth-ui-certification/tests/declaration_support_snapshot_runtime.rs"
+intent_catalog_metrics = "crates/worth-ui-certification/tests/application_contracts/intent/declaration/convergence.rs"
+interaction_state = "crates/worth-ui-certification/tests/application_contracts/intent/observation/ia_03/sequence.rs"
 lower_prepared_replacement = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 mounted_retention_report = "crates/worth-ui-certification/tests/application_contracts/quarantine_capacity.rs"
 poll_visual_snapshot = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
+prepare_intent_payload = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05.rs"
 prepare_rebind = "crates/worth-ui-runtime/src/facade/entry/native_source_rebind.rs"
 prepare_mounted_replacement = "crates/worth-ui-certification/tests/application_contracts/mounted_identity_lifecycle.rs"
 prepare_replacement = "crates/worth-ui-certification/tests/application_contracts/filesystem_replacement_support.rs"
@@ -183,11 +209,15 @@ present_visual_overlay = "crates/worth-ui-certification/tests/application_contra
 reconcile_mounted_presentation = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation_reconciliation.rs"
 rebind_cancellation_request = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
 rebind_deadline_at = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
+resolve_intent_route = "crates/worth-ui-certification/tests/application_contracts/intent/declaration/routing.rs"
 resolve_affected_scope = "crates/worth-ui-runtime/src/runtime/rebind/planning/tests.rs"
 session_identity = "crates/worth-ui-certification/src/scenario/application_authority_closure/execution.rs"
 show_identity_overlay = "crates/worth-ui-certification/tests/application_contracts/visual_identity/overlay_oracle.rs"
 shutdown = "crates/worth-ui-certification/tests/application_contracts/realtime_overlay_replacement.rs"
 stage_prepared_replacement = "crates/worth-ui-certification/src/scenario/application_authority_closure/foreign_graph_authority.rs"
+update_intent_boolean_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05.rs"
+update_intent_text_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05.rs"
+update_intent_unsigned64_fact = "crates/worth-ui-certification/tests/application_contracts/intent/payload/ia_05.rs"
 visual_inspection_authority = "crates/worth-ui-runtime/src/facade/entry/visual_snapshot.rs"
 
 [[surface]]

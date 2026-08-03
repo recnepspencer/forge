@@ -235,12 +235,12 @@ mod tests {
             receipt.mounted_publication().is_some(),
             "the pending Query receipt carries the first mounted publication"
         );
-        let fact = receipt
-            .release_scalar_projection_predecessor()
+        let observation = receipt
+            .release_scalar_projection_observation()
             .unwrap_or_else(|_| panic!("the pending receipt returns its exact Query fact"));
         prepared
             .query_lifecycle
-            .admit_publication(fact)
+            .admit_publication(observation)
             .expect("the exact pending fact restores the Query owner");
         let query_shutdown = prepared
             .query_lifecycle

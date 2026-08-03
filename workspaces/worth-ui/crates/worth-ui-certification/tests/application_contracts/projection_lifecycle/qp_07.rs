@@ -67,14 +67,14 @@ fn publish(
     advance: worth_ui_query_binding::WorthUiScalarProjectionAdvance,
 ) -> worth_ui_query_binding::WorthUiScalarProjectionLiveOwner {
     let (observation, completion) = advance.into_parts();
-    let fact = match observation {
-        UiProjectionObservation::Scalar(observation) => observation.into_fact(),
+    let observation = match observation {
+        UiProjectionObservation::Scalar(observation) => observation,
         UiProjectionObservation::Collection(_) => {
             panic!("the scalar product owner cannot issue collection evidence")
         }
     };
     completion
-        .admit_publication(fact)
+        .admit_publication(observation)
         .expect("the exact fact readmits its move-only owner")
 }
 

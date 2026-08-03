@@ -339,8 +339,13 @@ impl WorthUiSettledScalarTextProjection {
     }
 
     #[cfg(any(test, feature = "certification-construction"))]
-    pub(crate) fn certification_contract_digest(&self) -> &str {
-        self.settled.authority().contract().contract_digest()
+    pub(crate) fn certification_contract_digest(&self) -> String {
+        crate::reporting_projection::scalar_contract_digest_for_reporting(self)
+    }
+
+    #[cfg(any(test, feature = "certification-construction"))]
+    pub(crate) fn certification_settled_projection(&self) -> &Settled {
+        &self.settled
     }
 
     #[cfg(any(test, feature = "certification-construction"))]

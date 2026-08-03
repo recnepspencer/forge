@@ -1,7 +1,7 @@
-use worth_ui::facade::query_binding::UiScalarProjectionFactReceipt;
+use worth_ui::facade::query_binding::UiScalarProjectionObservation;
 
-fn invalid(receipt: &UiScalarProjectionFactReceipt) {
-    let _ = receipt.continuation();
+fn invalid(observation: &UiScalarProjectionObservation) {
+    let _ = observation.fact().continuation();
 }
 
 fn main() {}

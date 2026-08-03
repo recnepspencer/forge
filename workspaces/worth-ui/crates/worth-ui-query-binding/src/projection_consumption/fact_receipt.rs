@@ -39,38 +39,19 @@ impl UiProjectionFactReceipt {
         self.observation_order
     }
 
-    pub(crate) fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.query_world_identity
     }
 
-    pub(crate) fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.binding_identity
     }
 
-    pub(crate) fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.source_generation_identity
     }
 
-    pub(crate) fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.result_generation_identity
-    }
-
-    pub fn query_world_identity_for_reporting(&self) -> &str {
-        self.query_world_identity
-            .terminal_projection_for_reporting()
-    }
-
-    pub fn binding_identity_for_reporting(&self) -> &str {
-        self.binding_identity.terminal_projection_for_reporting()
-    }
-
-    pub fn source_generation_for_reporting(&self) -> &str {
-        self.source_generation_identity
-            .terminal_projection_for_reporting()
-    }
-
-    pub fn result_generation_for_reporting(&self) -> &str {
-        self.result_generation_identity
-            .terminal_projection_for_reporting()
     }
 }

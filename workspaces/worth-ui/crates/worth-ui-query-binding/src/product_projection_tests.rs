@@ -26,7 +26,7 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
     let fact = scalar_fact(observation);
     assert_pending_fact(&fact);
     let owner = completion
-        .admit_publication(fact)
+        .admit_publication(fact.into_observation())
         .expect("the exact returned pending fact readmits its owner");
 
     let current = owner
@@ -44,7 +44,7 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
         other => panic!("expected current native Query value, got {other:?}"),
     }
     let owner = completion
-        .admit_publication(fact)
+        .admit_publication(fact.into_observation())
         .expect("the exact current fact readmits its owner");
     let updated = owner
         .advance(
@@ -62,7 +62,7 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
         other => panic!("expected updated native Query value, got {other:?}"),
     }
     let owner = completion
-        .admit_publication(fact)
+        .admit_publication(fact.into_observation())
         .expect("the exact updated fact readmits its owner");
     let closed = owner.close().expect("the exact Query owner closes");
     assert!(closed.owner_terminal());

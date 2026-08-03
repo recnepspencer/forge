@@ -4,6 +4,8 @@ use super::finding::WorthQueryBoundaryAuditFinding;
 use super::registry_coverage::WorthQueryBoundaryAuditCoverageRow;
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
+const SOURCE_IDENTITY_CHUNK_SIZE: usize = 1_024;
+
 pub(crate) fn derive_boundary_audit_coverage_identity(
     coverage_rows: &[WorthQueryBoundaryAuditCoverageRow],
 ) -> WorthQueryEvidenceIdentity {
@@ -63,17 +65,20 @@ pub(crate) fn derive_boundary_audit_report_identity(
     parsed_item_count: usize,
     visited_call_count: usize,
 ) -> WorthQueryEvidenceIdentity {
+    let source_chunk_identities = source_labels
+        .chunks(SOURCE_IDENTITY_CHUNK_SIZE)
+        .zip(source_paths.chunks(SOURCE_IDENTITY_CHUNK_SIZE))
+        .map(|(labels, paths)| derive_boundary_audit_source_chunk_identity(labels, paths))
+        .collect::<Vec<_>>();
     worth_query_evidence_identity(WorthQueryEvidenceScope::ConsumerBoundaryAuditReport)
         .field_shape(WorthQueryEvidenceTag::new("crate_name"), crate_name)
-        .field_value_sequence(
-            WorthQueryEvidenceTag::new("source_label"),
-            source_labels.iter().copied(),
+        .field_usize(
+            WorthQueryEvidenceTag::new("source_count"),
+            source_labels.len(),
         )
-        .field_value_sequence(
-            WorthQueryEvidenceTag::new("source_path"),
-            source_paths
-                .iter()
-                .map(|path| path.as_deref().unwrap_or("")),
+        .field_evidence_identity_sequence(
+            WorthQueryEvidenceTag::new("source_chunk_identity"),
+            source_chunk_identities.iter(),
         )
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("coverage_identity"),
@@ -90,6 +95,24 @@ pub(crate) fn derive_boundary_audit_report_identity(
         .field_evidence_identity_sequence(
             WorthQueryEvidenceTag::new("finding_identity"),
             finding_identities.iter(),
+        )
+        .seal()
+}
+
+fn derive_boundary_audit_source_chunk_identity(
+    source_labels: &[&str],
+    source_paths: &[Option<String>],
+) -> WorthQueryEvidenceIdentity {
+    worth_query_evidence_identity(WorthQueryEvidenceScope::ConsumerBoundaryAuditSourceInventory)
+        .field_value_sequence(
+            WorthQueryEvidenceTag::new("source_label"),
+            source_labels.iter().copied(),
+        )
+        .field_value_sequence(
+            WorthQueryEvidenceTag::new("source_path"),
+            source_paths
+                .iter()
+                .map(|path| path.as_deref().unwrap_or("")),
         )
         .seal()
 }

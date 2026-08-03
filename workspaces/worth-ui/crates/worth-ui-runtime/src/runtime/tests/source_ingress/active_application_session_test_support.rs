@@ -38,6 +38,20 @@ where
     source_backed_component_app_from_builder(component_builder().with_host(host))
 }
 
+pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
+    host: Host,
+    registration: worth_ui_query_binding::UiScalarProjectionRegistration,
+) -> WorthUiApp
+where
+    Host: crate::facade::host::WorthUiHostAdapter + 'static,
+{
+    let builder = component_builder()
+        .with_host(host)
+        .register_scalar_projection(registration)
+        .expect("test projection registration should match its installed Query view");
+    source_backed_component_app_from_builder(builder)
+}
+
 fn source_backed_component_app_from_builder(
     builder: crate::facade::entry::WorthUiApplicationBuilder,
 ) -> WorthUiApp {

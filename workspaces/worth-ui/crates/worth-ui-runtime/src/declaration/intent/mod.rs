@@ -1,5 +1,6 @@
 mod application_fact;
 mod authored_declaration;
+mod authored_material;
 mod authored_payload_source;
 mod catalog;
 mod confirmation_route_binding;
@@ -17,6 +18,10 @@ pub(crate) use application_fact::{
     UiIntentApplicationFactPlan, UiIntentApplicationFactSlot, UiIntentApplicationFactValue,
 };
 pub use authored_declaration::{UiIntentDeclaration, UiIntentDeclarationConstructionError};
+pub(crate) use authored_material::{
+    prepare_authored_intent_material, WorthUiAuthoredIntentDeclaration,
+    WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
+};
 pub use authored_payload_source::UiIntentPayloadSource;
 pub use catalog::UiIntentCatalogMetrics;
 pub(crate) use catalog::{UiIntentCatalog, UiIntentCatalogResolvedRoute};

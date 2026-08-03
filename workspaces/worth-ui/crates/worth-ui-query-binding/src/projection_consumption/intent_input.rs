@@ -118,24 +118,20 @@ impl UiProjectionInputRevision {
         self.inner.observation_order
     }
 
-    pub fn query_world_identity_for_reporting(&self) -> &str {
-        self.inner.query_world.terminal_projection_for_reporting()
+    pub fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.query_world
     }
 
-    pub fn binding_identity_for_reporting(&self) -> &str {
-        self.inner.binding.terminal_projection_for_reporting()
+    pub fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.binding
     }
 
-    pub fn source_generation_for_reporting(&self) -> &str {
-        self.inner
-            .source_generation
-            .terminal_projection_for_reporting()
+    pub fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.source_generation
     }
 
-    pub fn result_generation_for_reporting(&self) -> &str {
-        self.inner
-            .result_generation
-            .terminal_projection_for_reporting()
+    pub fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.result_generation
     }
 
     pub(super) fn has_same_projection_owner(&self, other: &Self) -> bool {
@@ -206,11 +202,11 @@ impl UiCollectionProjectionInputFact {
             return None;
         }
         let catalog = self.catalog.as_ref()?;
-        let (retained, _) = catalog.row(row.query_row_identity());
+        let (retained, _) = catalog.row(row.query_identity());
         retained.map(|retained| {
             UiProjectionOptionReference::query_issued(
                 self.revision.clone(),
-                retained.row().query_row_identity().clone(),
+                retained.row().query_identity().clone(),
             )
         })
     }
@@ -235,8 +231,8 @@ impl UiProjectionOptionReference {
         &self.owner_revision
     }
 
-    pub fn identity_for_reporting(&self) -> &str {
-        self.query_row_identity.terminal_projection_for_reporting()
+    pub fn query_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_row_identity
     }
 }
 

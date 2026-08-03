@@ -122,7 +122,7 @@ fn key_report(settled: &WorthUiSettledScalarTextProjection) -> WorthUiScalarNati
         expected_shape: format!("{:?}", key.expected_shape()),
         absence_posture: format!("{:?}", key.absence_posture()),
         lane: format!("{:?}", key.lane()),
-        contract_digest: settled.certification_contract_digest().to_owned(),
+        contract_digest: settled.certification_contract_digest(),
     }
 }
 

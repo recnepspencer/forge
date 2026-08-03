@@ -5,8 +5,7 @@ const PRODUCTION_ROOTS: &[&str] = &[
     "crates/worth-ui-runtime/src",
 ];
 
-const REPORTING_PROJECTION_HOME: &str = "crates/worth-ui-runtime/src/evidence/measurement/\
-projection/inspection_receipt/query_reporting_projection.rs";
+const REPORTING_PROJECTION_HOME: &str = "crates/worth-ui-query-binding/src/reporting_projection.rs";
 
 const BANNED_OPERATIONAL_CALLS: &[&str] = &[
     ".contract().contract_digest()",

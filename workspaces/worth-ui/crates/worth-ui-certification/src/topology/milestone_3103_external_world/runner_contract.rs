@@ -34,12 +34,15 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
         ),
     )?;
     let courtroom = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         inventory.text(
             "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
         ),
         inventory.text(
             "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+        ),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
         ),
     );
     audit_courtroom(&courtroom)

@@ -61,7 +61,7 @@ impl ExpectedKeyedRows {
                     "QP04 declares one native text field"
                 );
                 (
-                    row.row().identity_for_reporting().to_owned(),
+                    row.row().reporting_projection().as_str().to_owned(),
                     row.selected_values()[0].as_str().to_owned(),
                 )
             })

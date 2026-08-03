@@ -169,7 +169,8 @@ fn milestone_314_phase3_contract_freezes_the_next_authority_progression() {
     assert_eq!(predecessor["status"].as_str(), Some("closed"));
     let rows = milestone_314_ledger::parse_ledger(&ledger).expect("Phase 3 ledger should parse");
     assert_eq!(rows[0][8], "PROVED");
-    assert!(rows[1..].iter().all(|row| row[8] == "OPEN"));
+    assert_eq!(rows[1][8], "PROVED");
+    assert!(rows[2..].iter().all(|row| row[8] == "OPEN"));
 }
 
 #[test]

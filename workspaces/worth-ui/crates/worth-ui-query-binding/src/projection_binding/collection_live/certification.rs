@@ -105,10 +105,11 @@ impl UiLiveCollectionProjection {
             .rows()
             .iter()
             .map(|row| {
-                row.entity_identity()
-                    .evidence_identity()
-                    .terminal_projection_for_reporting()
-                    .to_owned()
+                crate::UiQueryIdentityReportingProjection::from_query_identity(
+                    &row.entity_identity().evidence_identity(),
+                )
+                .as_str()
+                .to_owned()
             })
             .collect()
     }

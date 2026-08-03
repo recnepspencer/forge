@@ -26,20 +26,11 @@ fn registered_collection_emits_affine_native_text_fact_and_closes_lease() {
     else {
         panic!("ready Query collection must produce a current fact");
     };
-    let expected_identities = [
-        alpha
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-            .to_owned(),
-        bravo
-            .evidence_identity()
-            .terminal_projection_for_reporting()
-            .to_owned(),
-    ];
+    let expected_identities = [alpha.evidence_identity(), bravo.evidence_identity()];
     let actual_identities = value
         .rows()
         .iter()
-        .map(|row| row.row().identity_for_reporting().to_owned())
+        .map(|row| row.row().query_identity().clone())
         .collect::<Vec<_>>();
     let actual_values = value
         .rows()

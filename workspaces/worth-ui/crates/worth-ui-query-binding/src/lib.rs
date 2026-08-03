@@ -29,6 +29,7 @@ mod projection_binding;
 mod projection_consumption;
 mod projection_invalidation;
 mod projection_observation;
+mod reporting_projection;
 #[cfg(test)]
 mod scalar_projection_async_fixture;
 #[cfg(test)]
@@ -185,6 +186,9 @@ pub use projection_invalidation::{
 };
 pub use projection_observation::{
     UiCollectionProjectionObservation, UiProjectionObservation, UiScalarProjectionObservation,
+};
+pub use reporting_projection::{
+    UiQueryIdentityReportingProjection, UiQueryObservationReportingProjection,
 };
 
 #[cfg(test)]

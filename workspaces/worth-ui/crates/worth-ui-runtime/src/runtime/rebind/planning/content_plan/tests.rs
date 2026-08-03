@@ -73,16 +73,11 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
     assert_eq!(rows[1].selected_values()[0].as_ref(), "Bravo");
     assert_eq!(
         rows.iter()
-            .map(|row| row.identity().as_ref())
+            .map(|row| row.identity().query_reference().query_identity().clone())
             .collect::<Vec<_>>(),
         entities
             .iter()
-            .map(|entity| {
-                entity
-                    .evidence_identity()
-                    .terminal_projection_for_reporting()
-                    .to_owned()
-            })
+            .map(|entity| entity.evidence_identity())
             .collect::<Vec<_>>()
     );
     assert_eq!(collection.posture().as_ref(), "CURRENT · COMPLETE");
@@ -119,10 +114,8 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
     assert!(matches!(
         changes.as_ref(),
         [crate::mounting::UiMountedCollectionTextChange::Update(row)]
-            if row.identity().as_ref()
-                == entities[1]
-                    .evidence_identity()
-                    .terminal_projection_for_reporting()
+            if row.identity().query_reference().query_identity()
+                == &entities[1].evidence_identity()
                 && row.selected_values()[0].as_ref() == "Bravo updated"
     ));
 

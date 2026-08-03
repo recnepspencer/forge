@@ -7,9 +7,9 @@ use crate::source::{
 use worth_ui_dsl::WorthUiSealedSemanticPackage;
 
 use super::{
-    prepare_authored_intent_material, prepare_declaration_material,
-    WorthUiPreparedSemanticHandoffMaterial, WorthUiSemanticHandoffEvidence,
-    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
+    prepare_declaration_material, WorthUiPreparedSemanticHandoffMaterial,
+    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
+    WorthUiSemanticHandoffPreparationStop,
 };
 
 pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
@@ -23,12 +23,13 @@ pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
             WorthUiSemanticHandoffPreparationStop::UnsupportedProtocol,
         ));
     }
-    let intent_material = prepare_authored_intent_material(&package).map_err(|_| {
-        denial(
-            evidence.clone(),
-            WorthUiSemanticHandoffPreparationStop::IntentDeclaration,
-        )
-    })?;
+    let intent_material =
+        crate::declaration::prepare_authored_intent_material(&package).map_err(|_| {
+            denial(
+                evidence.clone(),
+                WorthUiSemanticHandoffPreparationStop::IntentDeclaration,
+            )
+        })?;
     evidence.admit_intent_material(intent_material);
     let resolved = WorthUiArtifactInputResolver::resolve(&package, snapshot).map_err(|_| {
         denial(
