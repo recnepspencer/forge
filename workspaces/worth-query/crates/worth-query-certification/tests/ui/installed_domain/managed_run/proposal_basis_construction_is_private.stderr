@@ -1,12 +1,13 @@
 error[E0624]: associated function `new` is private
  --> tests/ui/installed_domain/managed_run/proposal_basis_construction_is_private.rs:6:49
   |
-6 |       let _ = WorthQueryProvisionalProposalBasis::new(WorthQueryProvisionalProposalBasisParts {
+6 |       let _ = WorthQueryProvisionalProposalBasis::new(
   |                                                   ^^^ private associated function
   |
  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/provider_session/provisional_attempt/proposal_basis.rs
   |
   | /     pub(crate) fn new(
+  | |         identity: impl Into<Arc<str>>,
   | |         parts: WorthQueryProvisionalProposalBasisParts,
   | |     ) -> Result<Self, super::WorthQueryProvisionalFailure> {
   | |__________________________________________________________- private associated function defined here

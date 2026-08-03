@@ -1,7 +1,9 @@
 use super::{authenticated_principal, installed_authorization_world, live_scope, resolved_account};
 use crate::domain_computation::primary_graph::WorthQueryApplicationAttemptDenialKind;
 
-use super::super::fixture::{AccountStatus, MultiTouchOperation, TouchAccountOperation};
+use super::super::fixture::{
+    AccountLabel, AccountStatus, MultiTouchOperation, TouchAccountOperation,
+};
 
 #[test]
 fn incomplete_mandatory_decision_reads_cannot_form_an_effect_program() {
@@ -239,9 +241,12 @@ fn projected_distinct_facts_cannot_exceed_the_installed_budget() {
     attempt
         .observe_field(&account, AccountStatus::reference())
         .unwrap();
+    attempt
+        .observe_field(&account, AccountLabel::reference())
+        .unwrap();
 
     let Err(denial) = attempt.observe_field(&other, AccountStatus::reference()) else {
-        panic!("a second distinct fact must not exceed the installed budget");
+        panic!("a third distinct fact must not exceed the installed budget");
     };
     assert_eq!(
         denial.kind(),
@@ -291,9 +296,12 @@ fn fact_budget_denial_precedes_freshness_provider_work() {
     attempt
         .observe_field(&other, AccountStatus::reference())
         .unwrap();
+    attempt
+        .observe_field(&other, AccountLabel::reference())
+        .unwrap();
     let denial = attempt
         .observe_field(&newer_identity, AccountStatus::reference())
-        .expect_err("the second fact must deny before checking snapshot freshness");
+        .expect_err("the third fact must deny before checking snapshot freshness");
 
     assert_eq!(
         denial.kind(),

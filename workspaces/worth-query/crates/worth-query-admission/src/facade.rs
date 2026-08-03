@@ -12,18 +12,6 @@ pub mod graph_read_access {
     pub use crate::graph_read_access::*;
 }
 
-pub mod graph_obligation {
-    pub use crate::graph_obligation::{
-        WorthQueryAdmittedGraphWorkPlan, WorthQueryGraphObligationSelectionCounters,
-        WorthQueryGraphObligationSelectionDenial, WorthQueryGraphObligationSelectionDenialKind,
-        WorthQueryGraphWorkAdmissionDenial, WorthQueryGraphWorkIntent,
-        WorthQueryGraphWorkIntentKind, WorthQueryGraphWorkRequirementCounters,
-        WorthQueryGraphWorkRequirementDenial, WorthQueryGraphWorkRequirementDenialKind,
-        WorthQueryRequiredGraphWorkInspection, WorthQuerySelectedGraphObligationInspection,
-        WorthQuerySelectedGraphObligations,
-    };
-}
-
 pub mod domain_computation {
     pub use crate::domain_computation::*;
 }

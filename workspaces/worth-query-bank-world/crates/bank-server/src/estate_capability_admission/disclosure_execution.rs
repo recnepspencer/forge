@@ -5,8 +5,7 @@ use bank_domain::schema::{
 use worth_query_host::facade::domain::TypedApplicationValue;
 use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryApplicationQueryAdmissionDenialKind,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
 };
 
 use super::fixture::{capability_world, request_scope, GrantSpec, DECEASED, ESTATE};
@@ -95,13 +94,11 @@ fn bank_consumer_cannot_repurpose_an_administration_grant_for_identity_disclosur
         Err(denial) => denial,
     };
 
-    let BankApplicationQueryDenial::Admission(denial) = denial else {
-        panic!("wrong-purpose grant must fail inside governed query admission")
+    let BankApplicationQueryDenial::CapabilityAdmission(denial) = denial else {
+        panic!("wrong-purpose grant must fail at capability admission")
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryApplicationQueryAdmissionDenialKind::Authorization(
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied
-        )
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
     );
 }

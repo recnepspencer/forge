@@ -147,7 +147,7 @@ fn estate_preview_preserves_canonical_query_meaning_and_releases_authority() {
 }
 
 #[test]
-fn installed_governance_context_fails_closed_at_the_phase_seven_boundary() {
+fn incomplete_governance_context_fails_closed_before_governance_admission() {
     let fixture = estate_read_world("estate-governance-boundary");
     let specialist = fixture.authenticate(1);
     let denial = fixture
@@ -158,12 +158,17 @@ fn installed_governance_context_fails_closed_at_the_phase_seven_boundary() {
         .controls(controls())
         .execute();
 
-    assert!(matches!(
-        denial,
-        Err(BankApplicationQueryDenial::Admission(denial))
-            if denial.kind()
-                == WorthQueryApplicationQueryAdmissionDenialKind::DisclosureGovernanceRequired
-    ));
+    let Err(denial) = denial else {
+        panic!("the governance context unexpectedly executed")
+    };
+    match denial {
+        BankApplicationQueryDenial::Admission(denial) => assert_eq!(
+            denial.kind(),
+            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid,
+            "{denial:#?}"
+        ),
+        denial => panic!("unexpected governance boundary denial: {denial:#?}"),
+    }
 }
 
 fn controls() -> BankReadControls {

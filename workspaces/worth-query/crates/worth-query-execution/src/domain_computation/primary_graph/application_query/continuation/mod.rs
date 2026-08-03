@@ -17,7 +17,10 @@ pub use denial::{
 };
 
 use super::{
-    authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial},
+    authorized_read::{
+        execute_authorized_read, refresh_governed_authorization,
+        WorthQueryAuthorizedApplicationReadDenial,
+    },
     execution_validation::{
         validate_execution_lifetimes, validate_execution_plan, validate_live_basis,
         WorthQueryApplicationQueryExecutionValidationDenial,
@@ -84,8 +87,10 @@ where
         }
         validate_execution_lifetimes(&plan.controls, plan.principal)
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
-        validate_live_basis(plan.basis().is_live())
+        validate_live_basis(plan.basis.is_live())
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
+        refresh_governed_authorization(self, &mut plan)
+            .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
         let expected_generation = plan
             .continuation_state
             .as_ref()
@@ -106,7 +111,7 @@ where
                 .max_inline_result_bytes(),
         );
         let (raw, authorization_work) =
-            execute_authorized_read(self, graph, &mut plan, |runtime, graph, plan| {
+            execute_authorized_read(self, graph, &plan, |runtime, graph, plan| {
                 read_continuation_page(runtime, graph, plan, after, result_buffer)
             })
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;

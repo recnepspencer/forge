@@ -39,7 +39,6 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         let crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact {
             relational: observation,
             bridge,
-            ..
         } = dependency;
         let locator = format!("application-authorization:{requirement_ordinal}");
         Self::Authorization {

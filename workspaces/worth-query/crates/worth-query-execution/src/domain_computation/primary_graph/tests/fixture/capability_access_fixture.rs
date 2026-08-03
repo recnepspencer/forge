@@ -6,8 +6,8 @@ use super::{
     CapabilityTouchOperation, IdentityExecutionSchema, Principal, TouchAccountCapability,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryAuthenticatedPrincipal, WorthQueryOperationAuthorizationDenial,
-    WorthQueryPreparedApplicationCapabilityAccess,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthenticatedPrincipal,
+    WorthQueryOperationAuthorizationDenial,
 };
 
 pub(in crate::domain_computation::primary_graph) fn admit_touch_account_capability(
@@ -15,7 +15,7 @@ pub(in crate::domain_computation::primary_graph) fn admit_touch_account_capabili
     principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
     request: &WorthQueryRequestScope,
 ) -> Result<
-    WorthQueryPreparedApplicationCapabilityAccess<
+    WorthQueryAdmittedApplicationCapabilityAccess<
         IdentityExecutionSchema,
         TouchAccountCapability,
         CapabilityTouchOperation,
@@ -31,7 +31,7 @@ pub(in crate::domain_computation::primary_graph) fn admit_touch_account_capabili
             CapabilityTouchOperation::reference(),
         )
         .unwrap();
-    world.application.prepare_capability_access(
+    world.application.admit_capability_access(
         principal,
         &capability,
         CapabilityTouchInput {

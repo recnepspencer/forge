@@ -1,6 +1,9 @@
 use std::time::Instant;
 
-use bank_server::{queries, BankReadControls};
+use bank_domain::model::{BusinessId, Money};
+use bank_domain::proposals::BankIdempotencyKey;
+use bank_domain::schema::InitiateBusinessPayment;
+use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, BankReadControls};
 use worth_query_host::facade::domain::{
     WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
 };
@@ -8,7 +11,8 @@ use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
 
 use super::canonical_scale_fixture::canonical_scale_world;
 use super::fixture::{
-    ordinary_read_world_with_pending_payments, over_budget_discovery_world, APPROVER,
+    ordinary_read_world_with_pending_payments, over_budget_discovery_world, principal_id, APPROVER,
+    OWNER, RECIPIENT,
 };
 use crate::support::request_scope;
 
@@ -48,39 +52,59 @@ fn result_and_graph_fanout_do_not_increase_canonical_work() {
         expanded_result.receipt().projected_field_count()
             > baseline_result.receipt().projected_field_count()
     );
-    assert_fanout_invariant(
+    assert_eq!(
         baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work(),
+        expanded_result.receipt().canonical_work()
     );
+    assert_phase_posture(baseline_result.receipt().canonical_work());
 }
 
 #[test]
 fn guarded_candidate_fanout_does_not_increase_canonical_work() {
     const EXPANDED_CANDIDATE_COUNT: usize = 64;
 
-    let baseline_fixture = ordinary_read_world_with_pending_payments(
-        "candidate-scale",
-        EXPANDED_CANDIDATE_COUNT - 1,
-        1,
-    );
-    let expanded_fixture =
-        ordinary_read_world_with_pending_payments("candidate-scale", 0, EXPANDED_CANDIDATE_COUNT);
-    let baseline_approver = baseline_fixture.authenticate(APPROVER);
-    let expanded_approver = expanded_fixture.authenticate(APPROVER);
+    let fixture = ordinary_read_world_with_pending_payments("candidate-scale", 0, 1);
+    let approver = fixture.authenticate(APPROVER);
+    let owner = fixture.authenticate(OWNER);
 
-    let baseline_result = baseline_fixture
+    let baseline_result = fixture
         .world
         .runtime
         .query(queries::pending_payments())
-        .as_principal(&baseline_approver)
+        .as_principal(&approver)
         .controls(controls(EXPANDED_CANDIDATE_COUNT))
         .execute()
         .expect("baseline guarded query should execute");
-    let expanded_result = expanded_fixture
+
+    for ordinal in 1..EXPANDED_CANDIDATE_COUNT {
+        let outcome = fixture
+            .world
+            .runtime
+            .mutate(mutations::initiate_business_payment(
+                InitiateBusinessPayment {
+                    business: BusinessId::new(1).unwrap(),
+                    from: fixture.business_account,
+                    recipient: principal_id(RECIPIENT),
+                    amount: Money::from_minor(1).unwrap(),
+                },
+            ))
+            .as_principal(&owner)
+            .controls(BankMutationControls::new(
+                request_scope(),
+                BankIdempotencyKey::new(format!("candidate-scale-{ordinal}")).unwrap(),
+            ))
+            .execute();
+        assert!(
+            matches!(outcome.status(), BankMutationStatus::Committed(_)),
+            "scale mutation {ordinal} must commit: {outcome:?}"
+        );
+    }
+
+    let expanded_result = fixture
         .world
         .runtime
         .query(queries::pending_payments())
-        .as_principal(&expanded_approver)
+        .as_principal(&approver)
         .controls(controls(EXPANDED_CANDIDATE_COUNT))
         .execute()
         .expect("expanded guarded query should execute");
@@ -95,10 +119,11 @@ fn guarded_candidate_fanout_does_not_increase_canonical_work() {
         expanded_result.receipt().work().predicate_work_units()
             > baseline_result.receipt().work().predicate_work_units()
     );
-    assert_fanout_invariant(
+    assert_eq!(
         baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work(),
+        expanded_result.receipt().canonical_work()
     );
+    assert_phase_posture(expanded_result.receipt().canonical_work());
 }
 
 #[test]
@@ -144,10 +169,11 @@ fn policy_fact_fanout_is_counted_without_increasing_canonical_work() {
     );
     assert!(expanded_work.adjacency_edges_inspected() > baseline_work.adjacency_edges_inspected());
     assert!(expanded_work.signal_dependency_count() > baseline_work.signal_dependency_count());
-    assert_fanout_invariant(
+    assert_eq!(
         baseline_result.receipt().canonical_work(),
-        expanded_result.receipt().canonical_work(),
+        expanded_result.receipt().canonical_work()
     );
+    assert_phase_posture(expanded_result.receipt().canonical_work());
 }
 
 #[test]
@@ -177,7 +203,7 @@ fn high_operation_speed_probe_keeps_warm_digest_work_at_exact_zero() {
         let phases = result.receipt().canonical_work();
         assert_phase_posture(phases);
         if let Some(expected) = expected {
-            assert_fanout_invariant(expected, phases);
+            assert_eq!(phases, expected);
         } else {
             expected = Some(phases);
         }
@@ -216,37 +242,6 @@ fn assert_phase_posture(phases: WorthQueryCanonicalWorkPhases) {
     assert_zero(phases.retry_resolution());
     assert_zero(phases.recovery_inspection());
     assert_zero(phases.publication());
-}
-
-fn assert_fanout_invariant(
-    baseline: WorthQueryCanonicalWorkPhases,
-    expanded: WorthQueryCanonicalWorkPhases,
-) {
-    assert_eq!(baseline.installation(), expanded.installation());
-    let baseline_admission = baseline.admission();
-    let expanded_admission = expanded.admission();
-    assert_eq!(
-        baseline_admission.basis_preparations(),
-        expanded_admission.basis_preparations()
-    );
-    assert_eq!(
-        baseline_admission.digest_derivations(),
-        expanded_admission.digest_derivations()
-    );
-    assert_eq!(
-        baseline_admission.canonical_entries(),
-        expanded_admission.canonical_entries()
-    );
-    assert_eq!(
-        baseline_admission.sha256_compression_blocks(),
-        expanded_admission.sha256_compression_blocks()
-    );
-    assert_eq!(
-        baseline_admission.digest_text_materializations(),
-        expanded_admission.digest_text_materializations()
-    );
-    assert_phase_posture(baseline);
-    assert_phase_posture(expanded);
 }
 
 fn assert_zero(work: WorthQueryCanonicalWorkEvidence) {

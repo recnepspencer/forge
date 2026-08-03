@@ -73,6 +73,13 @@ pub(super) const PUBLIC_SURFACE_ROWS: &[WorthQueryLowerRuntimePublicSurfaceRow] 
         "live declaration receipt plus installation route",
     ),
     WorthQueryLowerRuntimePublicSurfaceRow::new(
+        WorthQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
+        "WorthQueryRuntime::declare_bridge_async_live_view(...)",
+        "crates/worth-query/src/runtime/bridge_async_live_view_declaration.rs",
+        WorthQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter,
+        "bridge-backed async live declaration remains a declared Query boundary adapter over an admitted Runtime Bridge request",
+    ),
+    WorthQueryLowerRuntimePublicSurfaceRow::new(
         WorthQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
         "WorthQueryWorkspace::write(...)",
         "crates/worth-query/src/runtime/workspace.rs",

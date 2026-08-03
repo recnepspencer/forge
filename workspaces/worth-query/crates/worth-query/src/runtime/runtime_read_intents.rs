@@ -292,13 +292,12 @@ fn validate_graph_read_access_plan_matches_handoff(
         .admission()
         .requirement_set()
         .read_graph_digest();
-    let handoff_read_graph_digest = handoff.read_family().read_graph().digest();
-    if worth_foundational::facade::CanonicalDigestId::parse_hex(handoff_read_graph_digest).as_ref()
-        == Some(planned_read_graph_digest)
-    {
+    let handoff_read_graph = handoff.read_family().read_graph();
+    if &handoff_read_graph.evidence_identity().canonical_digest_id() == planned_read_graph_digest {
         return Ok(());
     }
     let planned_read_graph_digest = planned_read_graph_digest.render_hex();
+    let handoff_read_graph_digest = handoff_read_graph.digest();
     Err(WorthQueryRuntimeError::ReadCompositionDenied(
         WorthQueryReadDenial::new(
             WorthQueryReadDenialKind::BasisPreflightDenied,

@@ -317,11 +317,13 @@ cross-feature proof gates before final certification:
   extract declaration and installation as permanent production authorities;
   each slice inventories only the boundary it immediately changes and no proof-
   management platform is introduced
-- `Milestone 9.13.2` must complete the Query monolith split by extracting
-  admission, execution, and publication, retargeting certification, cutting
-  audience facades, and deleting the monolith so Cargo package boundaries,
-  dependency direction, and naturally local tests replace hand-maintained
-  authority selection
+- `Milestone 9.13.2` must complete the covered Query authority split by
+  extracting admission, execution, and publication one semantic surface at a
+  time, retargeting certification, and cutting audience facades with parity so
+  Cargo package boundaries, dependency direction, and naturally local tests
+  replace hand-maintained authority selection; `worth-query` remains the
+  product composition root for unrelated behavior and may lower only one way
+  into each sole destination authority
 - `Milestone 9.14` must prove downstream projection authority is one
   non-detachable runtime-affine capability rooted in one installed operating-
   world entry root, explicit graph participation, and installed typed domain
@@ -4190,8 +4192,8 @@ The governing milestone spec is
 
 ### Allowed Debt
 
-- admission, execution, publication, final consumer cutover, and monolith
-  deletion remain for Milestone 9.13.2
+- admission, execution, publication, and parity-gated final consumer cutover
+  with exact predecessor-authority retirement remain for Milestone 9.13.2
 - cold certification may temporarily depend on the shrinking monolith until
   9.13.2 retargets it; no ordinary package may depend back on certification
 - repeated harness construction and Query-to-Worth-UI test coupling may not
@@ -4203,8 +4205,9 @@ The governing milestone spec is
 
 This follows 9.13 because test and package breadth already block ordinary work.
 It establishes the upstream half of the authority graph so 9.13.2 can complete
-the split with useful inner loops. Milestone 9.14 follows the completed split so
-new installed-operation semantics enter the intended package graph.
+the covered authority split with useful inner loops. Milestone 9.14 follows the
+completed cutovers so new installed-operation semantics enter the intended
+package graph.
 
 ### Store Dependency
 
@@ -4234,8 +4237,11 @@ Status: Open. Begins after Milestone 9.13.1 closes.
 ### Goal
 
 Complete the legal Road 1 Query authority graph established by 9.13.1: extract
-admission, execution, and publication; retarget cold certification; cut every
-consumer to an audience facade; and delete the remaining monolith.
+admission, execution, and publication one semantic authority surface at a
+time; retarget cold certification; and cut each covered consumer to an audience
+facade with full parity and atomic predecessor retirement. This removes
+competing authority while retaining the `worth-query` product composition root
+and unrelated feature behavior.
 
 ### Adversarial Constraint
 
@@ -4269,7 +4275,8 @@ The governing milestone spec is
   production owner
 - same-slice deletion of any residual source-topology audit, proof-of-proof
   test, or shared test-platform temptation encountered at an authority boundary
-- deletion of the monolithic compatibility surface after consumers cut over
+- parity-gated retirement of each authority-capable predecessor surface after
+  its covered consumers cut over; lawful one-way product composition remains
 
 ### Must Preserve
 
@@ -4283,8 +4290,11 @@ The governing milestone spec is
 - boundary-check and agent-context enforcement over the new graph
 - ordinary consumer transcripts compile through intended facades
 - each authority package runs its owned tests without unrelated Query packages
-- full Query and workspace certification remain green after monolith deletion
-- `worth-query` and every callable compatibility re-export are absent
+- full Query and workspace certification remain green after every covered
+  authority cutover
+- every covered predecessor authority and authority-capable compatibility re-
+  export is absent; the `worth-query` composition root remains green and lowers
+  one way into the sole destination authority
 
 ## Milestone 9.14: Installed Operation Semantics, Semantic Aspect Correspondence, Conditional Signal Authority, And Bound Downstream Authority
 
@@ -4756,9 +4766,12 @@ failures, and closes every high- or critical-impact ledger row.
 ### Placement
 
 Milestone 9.16 pauses after Runtime Hardening Phase 7.2 while this corrective
-milestone is open. Milestones 9.9, 9.10, and 9.15 and the completed 9.16 rows
-retain their recorded historical statuses. After 9.16.1 closes, 9.16 resumes
-at Runtime Phase 7.3.
+milestone is open. Milestones 9.9, 9.10, 9.11, and 9.15 and the completed 9.16
+rows retain their recorded historical statuses. After 9.16.1 closes, 9.16
+resumes at Runtime Phase 7.3. The corrective scope is authority convergence for
+the named graph-obligation, graph-read-planning, and provider-session surfaces.
+It does not authorize crate-wide deletion or decomposition of the
+`worth-query` monolith.
 
 ### Goal
 
@@ -4772,12 +4785,12 @@ every ordinary Query read and mutation.
 A hostile external consumer attempts to construct planning or execution proof,
 invoke review as authority, execute raw Relational state, begin authorization
 before the provider session, report a selected invariant as executed, combine
-cross-runtime, cross-branch, or cross-basis products, and import every obsolete
-monolith path.
+cross-runtime, cross-branch, or cross-basis products, and invoke a predecessor
+authority after its covered surface cuts over.
 A real Bank read and mutation must instead traverse one session-bound path,
 invoke the exact Relational/Runtime Bridge/Signal owners, release all resources,
-and preserve exact-zero warm canonical and SHA work as unrelated population and
-consumer fan-out grow.
+preserve the complete predecessor feature behavior, and retain exact-zero warm
+canonical and SHA work as unrelated population and consumer fan-out grow.
 
 ### Specification
 
@@ -4797,9 +4810,10 @@ The governing milestone spec is
   decisions, Query decision facts, proposed state, invariants, and terminals
 - honest read-only and mutation branches with exact lifecycle release
 - receipts minted only from actual terminal owner evidence
-- deletion of the monolith obligation tree, parallel graph-read planners and
-  executors, manual invariant hooks, public proof constructors, and compatibility
-  residue
+- per-surface parity, atomic cutover, and exact retirement of the monolith
+  obligation authority, parallel graph-read authority, manual invariant
+  authority, and public proof constructors covered by the milestone; unrelated
+  Query features and the ordinary monolith facade remain intact
 - hostile consumer, dependency, mutation-sensitive, scale, documentation, and
   residue evidence proving the single path
 
@@ -4820,7 +4834,11 @@ Milestone 9.16 resumes at Runtime Phase 7.3 only after the 9.16.1 ledger closes.
 Disclosure and every later capability phase must consume the canonical
 session-bound decision and may not create another selector, planner, executor,
 or receipt path. Every later 9.16 phase carries the admitted branch unchanged;
-per-branch MVCC and concurrent independent-branch writers begin in 9.17.
+per-branch MVCC and concurrent independent-branch writers begin in 9.17. Phase
+7.3 also inherits the existing Phase 6 query identity, parameter, basis,
+continuation, history, preview, live, result, and publication contracts; 9.16.1
+changes their graph authority path without deleting or redefining those
+features.
 
 ## Milestone 9.17: Branch-Affine MVCC, Advanced Domain Computation, And Provider Certification
 
@@ -5149,7 +5167,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Runtime-installed domain capability authority | Milestone 9.13 add-on Phases 13-20 | Canonical domain packages, admitted package artifacts, runtime installation registry, runtime-affine installed handles, package-compiled operation/invariant/obligation indexes, installation and execution receipts | Equivalent packages install identically; conflicting packages fail atomically; only the installing runtime can mint usable handles; registered operations and contributions resolve without raw strings, manual registries, or semantic adapters | Milestone 9.13 package convergence, installation atomicity, runtime-affinity, derived-index rebuild, facade/residue/sabotage, bounded-lookup, and reference-consumer certification + Milestone 13 domain parity |
 | Foundational-native aspect value authority and consumer DX | Milestone 9.13 add-on Phases 21-30 | Portable non-authoritative patch/state candidates, Foundational contract readmission, native entity/relation transaction intents, authoritative patch planning and publication, durable readmission, exact scalar and struct values, contract-derived operator capabilities, proof-bearing mutation/result/consumption artifacts, native retained rows or honest internal markers, typed refinement denials, canonical value identity basis | Every native patch operation, scalar family, and representative struct round-trips through portable boundaries, Relational planning/merge/commit, checkpoint/replay, Query authoring, validation, execution, materialization, projection, refinement, receipts, and inspection; incompatible operators and weaker-proof promotion fail before work; no substrate owns a competing value, patch, state, or semantic encoder | Milestone 9.13 patch/state readmission, entity/relation transaction parity, restart/replay, native-family/struct matrix, canonical identity parity, facade/compile-fail/prohibition/residue/sabotage, bounded-work, and reference-consumer deletion certification + Milestone 13 schema, execution, projection, and domain parity |
 | Livable Query iteration foundation | Milestone 9.13.1 | Selected bulk compile-fail group, responsibility-named ordinary targets, cold certification leaf, permanent declaration and installation packages, consumer-owned Worth UI adoption tests | Load-bearing compiler evidence remains selective; the manual library-test aggregator, repeated reconstruction, historical/privacy/meta fixtures, and Query-to-Worth-UI coupling are removed; declaration and installation edits omit later and cold authorities; each slice inventories only the boundary it immediately changes | Milestone 9.13.1 direct compiler and cold-certification runs, target-ownership migration review, package convergence/rebuild proof, declaration/installation owner commands, Worth UI binding run, and one before/after observation per slice |
-| Query authority crate decomposition | Milestone 9.13.2 | Completed production authority graph, admission/execution/publication packages, retargeted certification, narrow audience facades, authority-local tests, enforced dependency direction | Remaining authority work compiles and tests without later or cold Query authorities; no monolith, facade, shared support crate, or compatibility re-export reconstructs or bypasses authority | Milestone 9.13.2 boundary-check, consumer transcript, authority-local test, compiler-denial, certification-retargeting, and monolith-deletion proof |
+| Query authority crate decomposition | Milestone 9.13.2 | Completed production authority graph, admission/execution/publication packages, retargeted certification, narrow audience facades, authority-local tests, enforced dependency direction | Remaining authority work compiles and tests without later or cold Query authorities; no product composition root, facade, shared support crate, or compatibility re-export reconstructs, duplicates, or bypasses a covered authority | Milestone 9.13.2 boundary-check, consumer transcript, authority-local test, compiler-denial, certification-retargeting, per-surface parity/cutover, exact predecessor-retirement, and full downstream feature-preservation proof |
 | Installed operation semantics, semantic aspect correspondence, conditional Signal authority, and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, portable Query-authored semantic truth dependencies and conditional-node declarations, aspect-precise Relational publication, installed truth-to-Signal aspect correspondences, pair-bound runtime-bridge lowerings, installed Signal node contracts, Signal-minted decision evidence, Query re-entry receipts, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, semantic truth dependencies, aspect publication, installed aspect correspondence, entry authority, graph participation, workflow progression, conditional authoring, lowering, Signal decisions, Query re-entry, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; Query owns portable semantic dependency and conditional intent, Relational owns authoritative aspect-change meaning, the runtime bridge owns exact installed correspondence and lowering, and Signal owns local aspect slots and evaluation truth; node evaluation and effect conditions remain distinct; skipped, deferred, and reverted-clean outcomes cannot masquerade as new computed delivery; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, semantic-dependency canonicality, Relational publication precision, aspect-correspondence/slot-capacity admission, conditional-authoring canonicality, bridge-lowering admission, Signal-decision authority, conditional outcome/counter matrix, Query re-entry, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Managed pre-commit domain computation | Milestone 9.15 | Installed artifact/counter/decision/invariant contracts, occurrence and reproducibility identity, move-only managed artifacts, resource reservations, managed runs and continuations, sealed provider plans and sessions, basis-complete decision read-sets, provisional post-state attempts, and real invariant-execution results | Large products cross stages without blobs; actual provider work is bounded, cancellable, yieldable, resumable in memory, and backpressured; proposals remain isolated; selected obligations cannot masquerade as executed invariants; prepared work has no commit power | Milestone 9.15 artifact/occurrence, native-memory, resource-saturation, lifecycle, provider-session, read-set, proposed-state, invariant-execution, facade, residue, and hostile-provider certification |
 | Authenticated ordinary Query front door | Milestone 9.16 | Schema-derived typed references, installed application queries and Query-owned continuations, Authentik principal proof, capability/purpose/disclosure/conflict/elevation authority, Milestone 9.10-bound filter/sort/traversal access plans, touched-graph admission, double-entry and estate effects, provider compare-and-commit, actionable recovery, linear current-head undo/redo, ordinary read/mutation/workflow/history/live facades, and cross-process HTTP adaptation | Authentication cannot imply authorization; roles cannot imply unconstrained capability; entity visibility cannot imply field disclosure; break-glass cannot become superuser or self-benefit authority; policy composes through Relational facts, runtime-bridge lowering, Signal decision evidence, and Query admission; application queries cannot bypass graph-read planning or fabricate no-N+1 proof; cursors carry no authority; compensation preserves history; redo is fresh execution; branch-aware aftermath remains cross-runtime work; concurrent money movement commits once or returns an honest outcome | Milestone 9.16 OIDC, capability/touched-graph, conflict-of-interest, disclosure, break-glass, canonical-query/cursor/basis, graph-access/no-N+1, accounting, concurrency, idempotency, recovery, aftermath, live-revocation, cross-process consumer, facade, residue, and certification-only replay parity |

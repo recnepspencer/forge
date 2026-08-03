@@ -1,15 +1,29 @@
-use crate::admission_digest::hash_parts;
+use worth_foundational::facade::CanonicalDigestId;
+
+use crate::admission_digest::canonical_hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryGraphReadAccessShapeDigest(String);
+pub struct WorthQueryGraphReadAccessShapeDigest {
+    canonical: CanonicalDigestId,
+    rendered: String,
+}
 
 impl WorthQueryGraphReadAccessShapeDigest {
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.rendered
+    }
+
+    pub fn canonical_digest(&self) -> &CanonicalDigestId {
+        &self.canonical
     }
 
     pub fn from_parts(parts: &[String]) -> Self {
-        Self(hash_parts(parts))
+        let canonical = canonical_hash_parts(parts);
+        let rendered = canonical.render_hex();
+        Self {
+            canonical,
+            rendered,
+        }
     }
 }
 

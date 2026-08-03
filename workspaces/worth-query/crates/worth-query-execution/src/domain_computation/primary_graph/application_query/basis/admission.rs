@@ -75,18 +75,7 @@ where
             admit_preview_execution_basis(application, preview)
         }
         WorthQueryApplicationQueryBasis::Continuation(version_id) => {
-            let lease = application
-                .relational_source
-                .admit_execution_basis(
-                    application.branch_affinity().relational_branch(),
-                    version_id,
-                )
-                .map_err(|basis| {
-                    admission_denial(
-                        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-                        basis.detail(),
-                    )
-                })?;
+            let lease = admit_version_execution_basis(application, version_id)?;
             Ok(application.basis_leases.register(lease))
         }
     }
@@ -213,10 +202,14 @@ where
     let handle = graph.integration_handle();
     let version = handle
         .with_runtime_mut(|runtime| {
-            handle.ensure_primary_indexes_current(
-                runtime,
-                application.branch_affinity().relational_branch(),
-            )
+            handle.ensure_primary_indexes_current(runtime).map(|()| {
+                runtime
+                    .history()
+                    .latest_commit()
+                    .map_or(worth_relational::facade::identity::VersionId(0), |commit| {
+                        commit.version_id
+                    })
+            })
         })
         .map_err(|detail| {
             admission_denial(
@@ -224,16 +217,38 @@ where
                 detail,
             )
         })?;
-    let lease = application
+    let lease = admit_version_execution_basis(application, version)?;
+    Ok(application.basis_leases.register(lease))
+}
+
+fn admit_version_execution_basis<Schema>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    version: worth_relational::facade::identity::VersionId,
+) -> Result<
+    worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    WorthQueryApplicationQueryAdmissionDenial,
+>
+where
+    Schema: ApplicationSchema,
+{
+    let branch = application
         .relational_source
-        .admit_execution_basis(application.branch_affinity().relational_branch(), version)
+        .resolve_execution_basis_branch(version)
+        .ok_or_else(|| {
+            admission_denial(
+                WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
+                "Relational version branch",
+            )
+        })?;
+    application
+        .relational_source
+        .admit_execution_basis(&branch, version)
         .map_err(|basis| {
             admission_denial(
                 WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
                 basis.detail(),
             )
-        })?;
-    Ok(application.basis_leases.register(lease))
+        })
 }
 
 fn admit_pinned_execution_basis<Schema>(

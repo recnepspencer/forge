@@ -5,7 +5,7 @@ use worth_query_admission::facade::{
 };
 use worth_query_installation::facade::{
     WorthQueryCanonicalWorkPhases, WorthQueryInstalledApplicationQuery,
-    WorthQueryInstalledApplicationQueryIdentity, WorthQueryInstalledGraphObligationSet,
+    WorthQueryInstalledApplicationQueryIdentity,
 };
 use worth_relational::facade::indexes::DerivedIndexId;
 use worth_relational::facade::indexes::{DerivedIndexGenerationId, RelatedEntityOrderingBoundary};
@@ -43,39 +43,14 @@ pub struct WorthQueryAdmittedApplicationQueryPlan<
     pub(super) parameters: WorthQueryAdmittedApplicationQueryParameters,
     pub(super) controls: WorthQueryAdmittedApplicationQueryControls<'a>,
     pub(super) graph_read_plan: WorthQueryGraphReadPlanReview,
-    pub(super) obligations: &'a WorthQueryInstalledGraphObligationSet,
     pub(super) canonical_work: WorthQueryCanonicalWorkPhases,
     pub(super) continuation_index_id: Option<DerivedIndexId>,
     pub(super) continuation_state: Option<WorthQueryAdmittedContinuationState>,
-    pub(super) graph_work_session: Option<super::WorthQueryApplicationQueryGraphWorkSession>,
+    pub(super) basis: WorthQueryApplicationBasisLease,
     pub(super) authorization:
         crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     pub(super) authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
     pub(super) governance: super::disclosure::WorthQueryApplicationQueryGovernance,
-}
-
-pub(super) struct WorthQueryCompletedApplicationQueryPlan<
-    'a,
-    Schema,
-    Query,
-    Parameters,
-    QueryResult,
-    Principal,
-    PrincipalIdentity,
-    Scope,
-> {
-    pub(super) plan: WorthQueryAdmittedApplicationQueryPlan<
-        'a,
-        Schema,
-        Query,
-        Parameters,
-        QueryResult,
-        Principal,
-        PrincipalIdentity,
-        Scope,
-    >,
-    pub(super) release:
-        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionReleaseReceipt,
 }
 
 pub(super) struct WorthQueryAdmittedContinuationState {
@@ -112,10 +87,6 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
         &self.graph_read_plan
     }
 
-    pub const fn obligations(&self) -> &WorthQueryInstalledGraphObligationSet {
-        self.obligations
-    }
-
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
         self.canonical_work
     }
@@ -125,67 +96,7 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
     }
 
     pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
-        self.basis().identity()
-    }
-
-    pub(super) fn basis(&self) -> &WorthQueryApplicationBasisLease {
-        self.graph_work_session
-            .as_ref()
-            .expect("an admitted application query owns one graph-work session")
-            .basis()
-    }
-
-    pub(super) fn graph_work_session_mut(
-        &mut self,
-    ) -> &mut super::WorthQueryApplicationQueryGraphWorkSession {
-        self.graph_work_session
-            .as_mut()
-            .expect("an admitted application query owns one graph-work session")
-    }
-
-    pub(super) fn graph_work_session(&self) -> &super::WorthQueryApplicationQueryGraphWorkSession {
-        self.graph_work_session
-            .as_ref()
-            .expect("an admitted application query owns one graph-work session")
-    }
-
-    pub(super) fn take_graph_work_session(
-        &mut self,
-    ) -> super::WorthQueryApplicationQueryGraphWorkSession {
-        self.graph_work_session
-            .take()
-            .expect("an admitted application query completes one graph-work session")
-    }
-
-    pub(super) fn complete_graph_read(
-        mut self,
-    ) -> Result<
-        WorthQueryCompletedApplicationQueryPlan<
-            'a,
-            Schema,
-            Query,
-            Parameters,
-            QueryResult,
-            Principal,
-            PrincipalIdentity,
-            Scope,
-        >,
-        crate::domain_computation::provider_session::WorthQueryGraphWorkDecisionReadSetDenial,
-    > {
-        let release = self
-            .take_graph_work_session()
-            .complete_decision_read_set()?
-            .finish_read();
-        Ok(WorthQueryCompletedApplicationQueryPlan {
-            plan: self,
-            release,
-        })
-    }
-
-    pub(super) fn abort_graph_read(
-        mut self,
-    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionReleaseReceipt {
-        self.take_graph_work_session().abort_read()
+        self.basis.identity()
     }
 
     pub fn principal(
@@ -204,16 +115,6 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
 
     pub fn authorization_decision_fact_count(&self) -> usize {
         self.authorization.exact_fact_count()
-            + self
-                .governance
-                .authorization()
-                .map_or(0, |authorization| authorization.exact_fact_count())
-    }
-
-    pub fn capability_time_sample(&self) -> Option<&worth_foundational::facade::AspectValue> {
-        self.governance
-            .authorization()
-            .map(|authorization| authorization.sampled_value())
     }
 
     pub const fn authorization_work(

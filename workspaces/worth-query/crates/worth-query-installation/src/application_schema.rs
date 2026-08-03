@@ -2,16 +2,14 @@ use std::marker::PhantomData;
 
 mod canonical_identity;
 mod capability;
+mod compilation;
 mod principal_binding_match;
 
 use crate::application_ability::{
     WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
     WorthQueryInstalledAbility,
 };
-use crate::application_capability::{
-    compile_capability_registry, ApplicationCapabilityRegistry,
-    WorthQueryApplicationCapabilityInstallationDenial,
-};
+use crate::application_capability::{compile_capability_registry, ApplicationCapabilityRegistry};
 use crate::application_operation::{
     compile_authorization_policy_registry, ApplicationAuthorizationPolicyRegistry,
     WorthQueryApplicationOperationInstallationDenial, WorthQueryInstalledAbilityRequirement,
@@ -30,8 +28,9 @@ use crate::package::WorthQueryPortableDomainPackageIdentity;
 use canonical_identity::derive_installed_schema_identity;
 #[cfg(test)]
 pub(crate) use canonical_identity::derive_installed_schema_identity_with_budget;
+pub(crate) use compilation::ApplicationSchemaCompilationDenial;
 use principal_binding_match::{principal_binding_matches, principal_binding_name};
-use worth_foundational::facade::{CanonicalDigestDerivationDenial, CanonicalDigestId};
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationEntityRef, ApplicationOperationRef,
     ApplicationPrincipalBindingRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
@@ -209,6 +208,20 @@ where
             .and_then(|policies| policies.get(scope_entity))
     }
 
+    pub(crate) fn installed_capability_count_for_operation(
+        &self,
+        operation: &str,
+        input_type: &str,
+    ) -> usize {
+        self.capability_registry
+            .values()
+            .filter(|capability| {
+                let contract = capability.contract();
+                contract.operation() == operation && contract.input_type() == input_type
+            })
+            .count()
+    }
+
     pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
         self.installation_canonical_work
     }
@@ -371,22 +384,12 @@ where
                 query.name(),
             ));
         }
+        if !query.authority_matches(&self.package_authority) {
+            return Err(WorthQueryApplicationQueryInstallationDenial::new(
+                crate::application_query::WorthQueryApplicationQueryInstallationDenialKind::AuthorityMismatch,
+                query.name(),
+            ));
+        }
         Ok(())
-    }
-}
-
-pub(crate) enum ApplicationSchemaCompilationDenial {
-    Capability(WorthQueryApplicationCapabilityInstallationDenial),
-    Canonical(CanonicalDigestDerivationDenial),
-}
-
-impl<Schema> std::fmt::Debug for WorthQueryInstalledApplicationSchema<Schema> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("WorthQueryInstalledApplicationSchema")
-            .field("owner", &self.package_authority.owner())
-            .field("schema_name", &self.schema_name)
-            .field("schema_identity", &self.schema_identity)
-            .finish_non_exhaustive()
     }
 }

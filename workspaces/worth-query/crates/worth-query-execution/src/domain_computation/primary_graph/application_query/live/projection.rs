@@ -48,14 +48,9 @@ where
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
 {
     let RawLiveKernelOutcome { raw, result_buffer } = kernel;
-    let basis_identity = plan.basis().identity().clone();
-    let basis_version = plan.basis().version_id();
-    let completed = plan
-        .complete_graph_read()
-        .map_err(|_| WorthQueryLiveProjectionFinalizationDenial::BasisRelease)?;
-    let graph_work_release = completed.release;
-    let plan = completed.plan;
-    let released = graph_work_release.basis_released();
+    let basis_identity = plan.basis.identity().clone();
+    let basis_version = plan.basis.version_id();
+    let released = plan.basis.release().released();
     if !released {
         return Err(WorthQueryLiveProjectionFinalizationDenial::BasisRelease);
     }
@@ -77,12 +72,6 @@ where
             provider_identity: plan.provider_identity,
             basis_identity,
             basis_version,
-            branch_id: graph_work_release.branch_id().clone(),
-            graph_work_session_identity: *graph_work_release.session_identity(),
-            provider_session_identity: graph_work_release.provider_session_identity().to_owned(),
-            released_capacity_reservation_count: graph_work_release
-                .capacity()
-                .released_reservation_count(),
             basis_posture: plan.controls.basis_posture(),
             lane: plan.controls.lane(),
             consistency: plan.controls.consistency(),

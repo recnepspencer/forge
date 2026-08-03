@@ -40,27 +40,6 @@ impl WorthQueryDirectExecutionResourceAttempt {
         }
     }
 
-    pub(crate) fn start_graph_work(
-        mut reserved: WorthQueryCapacityReservedExecutionResourcePlan,
-        binding_authority: &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
-        session_identity: &worth_foundational::facade::CanonicalDigestId,
-    ) -> Self {
-        let attempt_identity = WorthQueryExecutionAttemptIdentity::graph_work(session_identity);
-        let provider_session =
-            WorthQueryExecutionProviderSession::mint(&attempt_identity, binding_authority);
-        reserved.resources_mut().record_provider_session_mint();
-        let evidence = WorthQueryExecutionResourceAttemptEvidence::capture(
-            reserved.resources(),
-            &provider_session,
-        );
-        Self {
-            reserved,
-            attempt_identity,
-            provider_session,
-            evidence,
-        }
-    }
-
     pub fn resources(&self) -> &WorthQueryAdmittedExecutionResourcePlan {
         self.reserved.resources()
     }
@@ -90,14 +69,6 @@ impl WorthQueryDirectExecutionResourceAttempt {
     ) -> &crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority
     {
         self.provider_session.binding_authority()
-    }
-
-    pub(crate) fn retain_binding_authority(
-        &self,
-    ) -> std::sync::Arc<
-        crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority,
-    > {
-        self.provider_session.retain_binding_authority()
     }
 
     pub(crate) fn release(self) -> WorthQueryDirectExecutionAttemptReleaseReceipt {

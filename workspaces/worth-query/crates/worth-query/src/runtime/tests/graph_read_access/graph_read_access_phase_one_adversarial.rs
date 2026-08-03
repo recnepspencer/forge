@@ -76,7 +76,7 @@ fn graph_read_access_shape_changes_for_relation_direction_and_depth() {
             fanout: WorthQueryGraphReadFanoutPosture::SingleRelation,
             predicate: WorthQueryGraphReadPredicateFamily::None,
             ordering: WorthQueryGraphReadOrderingPosture::ProviderOrdered,
-            result: WorthQueryGraphReadResultPressure::CollectionNarrow,
+            result: WorthQueryGraphReadResultPressure::CollectionWide,
         },
     );
     assert_eq!(

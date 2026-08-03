@@ -3,9 +3,10 @@
 > **Status:** Draft — required before Milestone 9.16 resumes after Runtime
 > Hardening Phase 7.2
 >
-> **Historical posture:** Milestones 9.9, 9.10, and 9.15 retain their recorded
-> statuses. Milestone 9.9 and 9.15 closure and Milestone 9.10's recorded Draft
-> status are not reopened, revoked, or rewritten by this corrective milestone.
+> **Historical posture:** Milestones 9.9, 9.10, 9.11, and 9.15 retain their
+> recorded statuses. Milestones 9.9, 9.11, and 9.15 closure and Milestone
+> 9.10's recorded Draft status are not reopened, revoked, or rewritten by this
+> corrective milestone.
 >
 > **Closure ledger:**
 > [milestone-9.16.1-closure-ledger.md](./milestone-9.16.1-closure-ledger.md)
@@ -13,14 +14,15 @@
 ## Goal
 
 Establish one compiler-visible graph-obligation progression for every ordinary
-Query read and mutation, then remove every parallel authority that can select,
-plan, execute, or report graph work outside that progression.
+Query read and mutation, then migrate each covered authority surface into that
+progression without losing the behavior, lanes, outcomes, lifecycle, or cost
+guarantees already implemented by the Query product.
 
 Milestone 9.16.1 is a corrective interstitial milestone. It preserves the
-useful meaning and lower-owner work produced by Milestones 9.9, 9.10, 9.15, and
-9.16 while supplying a stronger composition guarantee discovered during
-Milestone 9.16 Runtime Phase 7.2. It does not revise the historical closure of
-those milestones or phases.
+useful meaning and lower-owner work produced by Milestones 9.9, 9.10, 9.11,
+9.15, and 9.16 while supplying a stronger composition guarantee discovered
+during Milestone 9.16 Runtime Phase 7.2. It does not revise the historical
+closure of those milestones or phases.
 
 The canonical progression is:
 
@@ -49,7 +51,8 @@ occurs after the managed provider session begins.
 
 Milestone 9.16.1 consumes:
 
-- the recorded guarantees and artifacts of Milestones 9.9, 9.10, and 9.15;
+- the recorded guarantees and artifacts of Milestones 9.9, 9.10, 9.11, and
+  9.15;
 - Milestone 9.16 Runtime Phases 1-6;
 - the installed capability meaning and lower-owner authorization work completed
   through Runtime Phase 7.2; and
@@ -66,10 +69,16 @@ Future discoveries follow the same append-only rule:
 2. A later discovery may supersede an implementation surface, but does not
    rewrite the historical status of the milestone that originally introduced
    it.
-3. The new ledger records which prior artifacts remain valid inputs, which are
-   replaced prospectively, and which implementations must be deleted.
+3. The new ledger records which prior artifacts remain valid inputs, which
+   integrate unchanged, which exact semantic surfaces require migration, the
+   parity required before cutover, and which authority-capable predecessors
+   become removable only after that cutover.
 4. Dependent unfinished work is blocked by the corrective milestone; completed
    rows are not changed to manufacture a different history.
+5. A discovery whose required correction extends beyond the graph-obligation,
+   graph-read-planning, or provider-session authority surfaces receives an
+   explicit phase amendment or successor milestone before implementation; it
+   is not implicit authority to restructure the rest of `worth-query`.
 
 ## Central Claim
 
@@ -77,7 +86,10 @@ For an installed application query or operation, there is exactly one legal
 way to obtain executable graph authority and exactly one legal way to plan a
 graph read. The compiler and package graph prevent a consumer from constructing
 an admitted equivalent, bypassing the managed provider session, substituting a
-parallel executor, or promoting inspection evidence into authority.
+parallel executor, or promoting inspection evidence into authority. This is an
+authority-uniqueness claim, not a crate-deletion claim: the `worth-query`
+monolith remains the product composition root and retains every feature whose
+exact destination cutover has not yet been proved.
 
 The claim is false if any public caller can:
 
@@ -92,8 +104,14 @@ The claim is false if any public caller can:
   different typed branch;
 - enter proposed-state or invariant phases for a read-only query;
 - invoke a manual invariant pack beside installed invariant progression;
-- import the monolith to recover an obsolete authority; or
+- import an authority-capable predecessor alongside or through a destination
+  package; or
 - retain two public paths whose products are only superficially equivalent.
+
+The claim does not forbid the monolith facade, orchestration, or feature
+implementation from calling the destination authority through one-way
+lowering. It forbids the caller-facing and internal product graph from having
+two independently executable authorities for the same semantic decision.
 
 ## Current Boundary
 
@@ -121,10 +139,12 @@ The following work is directionally correct and remains the foundation:
 - Phase 7.2 exact-grant witnesses, principal currentness, trusted time,
   request binding, and policy evidence remain required decision facts.
 
-### Replace prospectively
+### Integrate or migrate prospectively
 
-The following current implementation surfaces do not satisfy the new central
-claim and are replaced by 9.16.1:
+The following exact authority surfaces do not satisfy the new central claim.
+Each is integrated when its owner and authority are already correct, or
+migrated with explicit feature-and-evidence parity when authority currently
+resides in the monolith:
 
 - the monolith-owned graph-obligation authority tree;
 - selection-backed executors that can mark an obligation executed without
@@ -139,13 +159,51 @@ claim and are replaced by 9.16.1:
 - consumer-kit or reference-consumer proof that demonstrates local
   registration or execution rather than adoption of the public Query facade;
   and
-- any compatibility export, alias, wrapper, or monolith dependency that keeps
-  an obsolete path callable.
+- any export, alias, adapter, or wrapper that can independently mint or execute
+  the superseded authority after its covered surface cuts over.
 
-The implementation may preserve private algorithms from those surfaces only
-when their semantic owner remains correct and they are consumed exclusively by
-the canonical sealed progression. Re-exporting or wrapping the old authority is
-not migration.
+The implementation preserves the product behavior behind these surfaces. A
+private algorithm, result shape, continuation, live lifecycle, diagnostic, or
+consumer-facing facade remains where it is unless its own semantic ownership
+requires migration. Re-exporting or wrapping old authority is not migration,
+but one-way facade lowering into the sole destination authority is lawful and
+is the preferred incremental integration seam.
+
+### Authority uniqueness and parity-gated migration
+
+The unit of migration is one named semantic authority surface, not a directory,
+module family, crate, or historical milestone. Every migration row names:
+
+- the predecessor guarantee and current production owner;
+- the exact authority-capable entry and every real consumer lane;
+- the destination proof type and owner;
+- behavioral, denial, lifecycle, receipt, and warm-cost parity;
+- the atomic cutover point; and
+- the exact predecessor authority that becomes residue after cutover.
+
+Before cutover, the predecessor remains the only executable authority. The
+destination may be exercised as non-authoritative comparison evidence, but it
+cannot execute effects or mint a terminal receipt. At cutover, all covered
+consumers switch to the destination and the predecessor's ability to mint or
+execute authority is sealed or removed in the same coherent slice. There is no
+intermediate state in which both paths are legal authorities.
+
+Parity is not representation equality. It proves the same supported feature
+set, typed outcomes, consequential state, cancellation and cleanup, public
+receipt meaning, and contractual work bounds through the real public facade.
+If parity exposes missing destination behavior, the migration remains open and
+the predecessor remains authoritative. The feature is not deleted to make the
+new path appear complete.
+
+Milestones 9.9, 9.10, and 9.11 are integration authorities for the semantics
+they introduced, not blanket deletion instructions. Milestone 9.13.2's valid
+package-boundary contract is likewise authority locality and one-way dependency
+direction; its former whole-monolith deletion wording is not inherited by this
+milestone. For each inherited surface, 9.16.1 must either consume its existing
+proof and owner unchanged or migrate that exact surface with parity. Unrelated
+monolith responsibilities are out of scope. A broader architectural defect is
+recorded and scheduled explicitly rather than absorbed into this corrective
+milestone.
 
 ## Adversarial Courtroom
 
@@ -184,8 +242,8 @@ authorization observations and graph dependencies. It then:
     rows, and live consumers independently and verifies the declared structural
     counters; and
 13. attempts every known public constructor, raw executor, copied proof,
-    cross-runtime plan, cross-basis session, manual invariant hook, and obsolete
-    import from a hostile external consumer crate.
+    cross-runtime plan, cross-basis session, manual invariant hook, and retired-
+    authority import from a hostile external consumer crate.
 
 The scale court includes at least 4,096 unrelated grants or obligations and 32
 live consumers. Increasing unrelated population may increase only the counters
@@ -401,9 +459,11 @@ types are not accepted by any arrow.
 ## Destination Directory And Module Skeleton
 
 The labels below are normative: **retain** keeps correct ownership, **create**
-establishes the destination, **move** transfers actual authority, **narrow**
-removes public construction or execution power, and **remove** deletes the
-surface after its consumers migrate.
+establishes a destination, **integrate** consumes an existing owner unchanged,
+**migrate** prepares a parity-backed successor while the predecessor remains
+authoritative, **cut over** atomically transfers the covered consumers and
+authority, **narrow** removes public construction or execution power, and
+**retire** removes only the exact superseded authority after parity and cutover.
 
 ```text
 workspaces/worth-query/crates/
@@ -487,7 +547,12 @@ workspaces/worth-query/crates/
         residue.rs
 
   worth-query/src/runtime/mutation/graph_composition/
-    obligation/                                    [remove entire tree]
+    obligation/                                    [migrate exact authority rows]
+      ...                                           [retire only after every row cuts over]
+  worth-query/src/runtime/graph_read_access/        [retain feature behavior]
+    ...                                             [migrate authority roles per lane]
+  worth-query/src/runtime/                          [retain product composition root]
+    ...                                             [out of scope unless named by a row]
 
 crates/
   worth-relational/src/authorization/              [retain]
@@ -507,9 +572,11 @@ re-exporting destination facades; neither facade implements domain behavior or
 authority transitions.
 
 Forbidden destinations include a new `common`, `helpers`, or `compatibility`
-module; a wrapper around the monolith tree; a destination package that imports
-`worth-query`; and any facade file that implements planning, execution, policy,
-or receipt construction.
+module; an authority-capable wrapper around the monolith tree; a destination
+package that imports `worth-query`; and any facade file that implements
+planning, execution, policy, or receipt construction. A one-way monolith facade
+adapter that lowers into the destination authority is allowed while it remains
+the sole product path and grants no independent authority.
 
 ## Phase Plan
 
@@ -619,6 +686,14 @@ Current, continuation, historical, preview, and live application-query lanes
 consume the Phase 2 plan and session. Application-query planning remains
 semantic result shaping, not graph-read authority.
 
+Migration proceeds one named lane family at a time. The existing lane remains
+authoritative until the destination path demonstrates result, denial,
+continuation or live lifecycle, receipt, cleanup, and warm-cost parity through
+the public facade. Each lane cutover switches all covered callers and disables
+the exact predecessor planning or execution authority in the same slice. An
+uncut lane remains a declared predecessor responsibility, not a failure to
+delete enough of the monolith.
+
 **Consumes**
 
 - the Phase 2 admitted plan and session;
@@ -665,6 +740,14 @@ Capability and ordinary authorization observations occur inside the same
 managed provider session whose complete decision facts support proposed state,
 real installed invariant execution, and provider compare-and-commit.
 
+Cutover is likewise per named authority family: authorization observation,
+proposal construction, installed invariant execution, and provider commit.
+Existing Relational, Runtime Bridge, Signal, and Query semantics integrate
+unchanged when already correctly owned. A predecessor Query surface retires
+only after the real Bank mutation and hostile twins prove that its destination
+performs the same supported work and that bypassing either owner turns the
+evidence red.
+
 **Consumes**
 
 - the Phase 2 session spine;
@@ -702,33 +785,35 @@ real installed invariant execution, and provider compare-and-commit.
 
 **Next trust**
 
-The obsolete authorities can be deleted without losing a legal consumer.
+Each exact predecessor authority can retire without losing a legal consumer or
+product feature.
 
-### Phase 5: Authority Deletion, Publication, And Hostile Certification
+### Phase 5: Parity Closure, Exact Authority Retirement, And Publication
 
 **What becomes true**
 
-Only destination packages own the canonical progression; every obsolete
-authority, wrapper, export, documentation path, and consumer workaround is
-gone. Terminal publication describes actual executed work and grants no
-authority.
+Destination packages own the covered canonical progression; every exact
+authority-capable predecessor whose consumers have cut over is retired.
+Unrelated monolith behavior and every not-yet-migrated feature remain intact.
+Terminal publication describes actual executed work and grants no authority.
 
 **Consumes**
 
 - the complete read and mutation cutovers from Phases 3 and 4; and
-- the deletion and evidence ledgers.
+- the semantic-surface migration, parity, and evidence ledgers.
 
 **Establishes**
 
 - destination publication receipts and inspection views;
 - public facade and documentation agreement;
-- permanent dependency, visibility, residue, and performance enforcement; and
+- permanent dependency, visibility, per-surface residue, and performance
+  enforcement; and
 - an explicit handoff back to Milestone 9.16 Runtime Phase 7.3.
 
 **Mechanically forbids**
 
-- importing the monolith from destination packages;
-- compatibility shims or aliases for removed authorities;
+- importing the monolith from destination packages to recover authority;
+- shims or aliases that can mint or execute a retired authority;
 - public proof constructors and direct executors;
 - two canonical graph-read planning products; and
 - warm canonicalization, hashing, hidden scans, synthetic owner completion, or
@@ -736,7 +821,13 @@ authority.
 
 **Closure evidence**
 
-- the entire monolith obligation tree and manual invariant hooks are deleted;
+- every graph-obligation authority row has a named predecessor, destination,
+  parity proof, cutover receipt, and exact residue result;
+- the monolith obligation tree retires only after all of its authority rows
+  have migrated, while unrelated `worth-query` runtime and public behavior
+  remain present and green;
+- manual invariant hooks retire only after installed owner execution proves
+  parity for every supported invariant family;
 - the hostile external-consumer crate proves exactly one obligation path and
   one graph-read planning path;
 - compile-pass/fail evidence is consolidated into the fewest practical compiler
@@ -746,7 +837,9 @@ authority.
 - documentation examples compile against the real public facade;
 - Clippy, line-cap, boundary-check, and generated-context checks pass; and
 - every high or critical ledger finding is closed with root-cause and residue
-  evidence.
+  evidence; and
+- the full Query monolith, public declarative journeys, Worth UI Query binding,
+  and Bank consumer lanes remain green at each final cutover boundary.
 
 **Next trust**
 
@@ -826,6 +919,10 @@ Implementation closure must:
   `domain-capabilities/provisional-state-and-invariant-execution.md` to show the
   common read/mutation progression, typed branch affinity, and the rule that
   snapshot/version identity is meaningful only inside that branch; and
+- add the per-surface migration table to the canonical graph-progression
+  document, including the inherited 9.9, 9.10, and 9.11 guarantee, current
+  owner, destination owner, covered consumers, parity evidence, cutover, and
+  exact retirement posture; and
 - compile or run every public call sequence in the ordinary documentation gate.
 
 The new canonical document owns the cross-surface mental model. The narrower
@@ -846,7 +943,8 @@ not duplicate or contradict the progression.
 - actual installed invariant execution before commit;
 - receipts derived only from terminal owner evidence;
 - exact lifecycle and warm-work counters;
-- deletion of every obsolete authority and compatibility surface; and
+- parity-backed cutover and retirement of every exact authority-capable
+  predecessor covered by this milestone, without unrelated feature deletion;
 - hostile consumer and residue proof sufficient to resume Milestone 9.16.
 
 ## Must Preserve
@@ -869,7 +967,9 @@ not duplicate or contradict the progression.
 - Phase 7.2 purpose, request binding, trusted time, exact grant/path witness,
   principal currentness, policy evidence, and revalidation guarantees;
 - cert-only replay and the ordinary/reconstructive lane boundary; and
-- typed denials, cancellation, conflict, partial, and indeterminate outcomes.
+- typed denials, cancellation, conflict, partial, and indeterminate outcomes;
+- the complete existing Query feature set and ordinary public facade until each
+  exact semantic surface has a proved destination cutover.
 
 ## Explicit Non-Goals
 
@@ -882,8 +982,11 @@ not duplicate or contradict the progression.
 - advanced Milestone 9.17 access products;
 - multiple branch heads, per-branch version allocation, concurrent branch
   writers, branch creation, merge, rebase, or branch-local inversion;
-- a generic cross-runtime workflow engine; or
-- preservation of source compatibility for unreleased obsolete APIs.
+- a generic cross-runtime workflow engine;
+- crate-wide decomposition or deletion of the `worth-query` monolith; or
+- preservation of source compatibility for an exact authority-capable API
+  after its covered consumers have cut over. Stable product behavior and the
+  ordinary facade remain required.
 
 ## Acceptance Evidence
 
@@ -898,20 +1001,25 @@ Milestone 9.16.1 closes only when:
 5. selected invariants execute through their actual owner before commit;
 6. read-only work cannot enter proposal or invariant phases;
 7. public construction, cross-affinity substitution, raw execution, manual
-   invariant, and obsolete-import attempts fail mechanically;
+   invariant, and retired-authority import attempts fail mechanically;
 8. equal-version evidence from another typed branch cannot satisfy any plan,
    session, read-set, proposal, invariant, commit, retry, receipt, or
    publication transition, and no ordinary authority derives branch meaning
    from the string `"main"`;
-9. no destination package depends on the monolith;
-10. the monolith obligation tree and every parallel planner/executor are absent;
+9. no destination package depends on the monolith and the monolith reaches
+   covered destination authority only through one-way facade lowering;
+10. every covered semantic surface has a complete parity and cutover row, every
+    authority-capable predecessor for a completed row is absent, and unrelated
+    monolith features remain present and green;
 11. exact lifecycle baselines return after success, denial, conflict,
     cancellation, failure, and indeterminate outcomes;
 12. scale-sensitive evidence proves unrelated population and consumer fan-out
     do not widen ordinary work or trigger warm canonical/SHA activity;
 13. the new canonical documentation and AI README agree with the real facade;
-    and
-14. the boundary checker, generated context checker, line-cap audit, targeted
+14. the Query monolith, public declarative journeys, Worth UI Query binding,
+    and Bank consumer suites prove that no supported feature disappeared during
+    migration; and
+15. the boundary checker, generated context checker, line-cap audit, targeted
     tests, workspace tests appropriate to the touched boundary, and strict
     Clippy all pass.
 
@@ -922,6 +1030,19 @@ may trust that internal-computation and disclosure admission begin from one
 session-bound access decision and one canonical graph-read plan. It may not
 reintroduce a disclosure-specific selector, planner, raw graph executor,
 receipt, or compatibility path.
+
+The handoff is additive to the existing Milestone 9.16 front door. Runtime
+Phase 7.3 consumes the same installed application-query identity, parameter
+binding, basis, continuation, history, preview, live, result-shaping, and
+publication behavior already established by Runtime Phase 6. Milestone 9.16.1
+changes which authority proves graph planning and session progression; it does
+not replace those feature contracts or require Phase 7.3 to reconstruct them.
+
+The handoff record must enumerate the exact 9.9 obligation, 9.10 graph-read,
+9.11 downstream-authority, 9.15 provider-session, and 9.16 Phase 6/7.1/7.2
+guarantees that integrate unchanged, plus every exact surface migrated by
+9.16.1. Any broader work discovered during that reconciliation is scheduled
+explicitly and does not silently expand the prerequisite for Phase 7.3.
 
 Runtime Phase 7.3 and every later 9.16 phase inherit the session's typed branch
 unchanged. They may not default to `"main"`, treat version identity as global,

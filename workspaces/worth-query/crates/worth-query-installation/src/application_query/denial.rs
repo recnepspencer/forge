@@ -3,7 +3,6 @@ pub enum WorthQueryApplicationQueryInstallationDenialKind {
     QueryNotInstalled,
     QueryMeaningChanged,
     AuthorizationNotInstalled,
-    DisclosureCapabilityNotInstalled,
     LiveEffectNotInstalled,
     LiveScopeIdentityNotInstalled,
     LiveTargetIdentityNotInstalled,
@@ -22,7 +21,6 @@ pub enum WorthQueryApplicationQueryInstallationDenialKind {
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,
     CanonicalDigestSlotRejected,
-    InvalidGraphObligationContract,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -160,7 +160,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
         let oldest_visibility_retained_version = self
             .runtime
             .visibility
-            .retention_fence_version(published_version);
+            .historical_reconstruction_fence_version(published_version);
         let oldest_branch_head_version = self
             .runtime
             .history()

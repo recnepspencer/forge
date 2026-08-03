@@ -1,5 +1,10 @@
 //! Capability observation across Relational and Runtime Bridge authority.
 
+use std::collections::BTreeSet;
+
+use worth_query_declaration::facade::application_capability::{
+    ApplicationCapabilityCardinalityDimension, ApplicationCapabilityRelationDimension,
+};
 use worth_relational::facade::authorization::{
     RelationalAuthorizationEntityAnchor, RelationalAuthorizationFieldComparison,
     RelationalAuthorizationObservationPlan, RelationalAuthorizationPredicate,
@@ -11,11 +16,11 @@ use worth_runtime_bridge::facade::{
     BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 
-use super::capability_projection_validation::{context_key, projection_denial};
 use super::capability_registry::{
     WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
     WorthQueryInstalledCapabilityPlan,
 };
+use super::capability_request_resolution::WorthQueryCapabilityContextKey;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
@@ -23,13 +28,13 @@ use super::{
 };
 use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
 
-pub(in crate::domain_computation) struct WorthQueryObservedCapabilityDecision {
+pub(super) struct WorthQueryObservedCapabilityDecision {
     decision: WorthQueryAuthorizationDecisionFact,
     grant: worth_relational::facade::identity::EntityId,
 }
 
 impl WorthQueryObservedCapabilityDecision {
-    pub(in crate::domain_computation) fn into_parts(
+    pub(super) fn into_parts(
         self,
     ) -> (
         WorthQueryAuthorizationDecisionFact,
@@ -39,8 +44,7 @@ impl WorthQueryObservedCapabilityDecision {
     }
 }
 
-pub(in crate::domain_computation) fn observe_capability(
-    session_identity: worth_foundational::facade::CanonicalDigestId,
+pub(super) fn observe_capability(
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     bridge: &BridgeAuthorizationRuntime,
@@ -49,9 +53,7 @@ pub(in crate::domain_computation) fn observe_capability(
     sample: &WorthQueryAuthorizationTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
-    super::capability_projection_validation::validate_retained_capability_shape(
-        installed, request,
-    )?;
+    validate_projection_shape(installed, request)?;
     let grant_path_index = installed.grant_witness.path_index();
     let paths = installed
         .paths
@@ -161,11 +163,7 @@ pub(in crate::domain_computation) fn observe_capability(
         ));
     }
     Ok(WorthQueryObservedCapabilityDecision {
-        decision: WorthQueryAuthorizationDecisionFact::new(
-            session_identity,
-            evidence,
-            bridge_evidence,
-        ),
+        decision: WorthQueryAuthorizationDecisionFact::new(evidence, bridge_evidence),
         grant,
     })
 }
@@ -206,6 +204,75 @@ fn append_grant_predicates(
             RelationalAuthorizationFieldComparison::AtLeast,
             value.clone(),
         ));
+    }
+}
+
+fn validate_projection_shape(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    projection: &WorthQueryRetainedCapabilityRequest,
+) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+    let request = &installed.request;
+    if projection.action != request.action
+        || projection.purpose != request.purpose
+        || projection.resource_entity.as_ref() != request.resource_entity
+        || projection.context_name.as_ref() != request.context
+        || projection.context_type.as_ref() != request.context_type
+        || !cardinality_admitted(request.cardinality, projection.cardinality)
+        || projection.field.is_some() != request.field.is_some()
+        || projection.amount.is_some() != request.amount.is_some()
+    {
+        return Err(projection_denial(installed.contract.name()));
+    }
+    let relation_matches = match (
+        installed.contract.target().relation(),
+        projection.related_relation.as_ref(),
+    ) {
+        (ApplicationCapabilityRelationDimension::NotApplicable, None) => true,
+        (ApplicationCapabilityRelationDimension::Bound(expected), Some(actual)) => {
+            expected == actual
+        }
+        _ => false,
+    };
+    if !relation_matches {
+        return Err(projection_denial(installed.contract.name()));
+    }
+    let expected_context = installed
+        .paths
+        .iter()
+        .flat_map(|path| path.context_anchors.iter().map(context_key))
+        .collect::<BTreeSet<_>>();
+    if expected_context.len() != projection.context.len()
+        || !expected_context
+            .iter()
+            .all(|key| projection.context.contains_key(key))
+    {
+        return Err(projection_denial(installed.contract.name()));
+    }
+    Ok(())
+}
+
+const fn cardinality_admitted(
+    installed: ApplicationCapabilityCardinalityDimension,
+    requested: u32,
+) -> bool {
+    match installed {
+        ApplicationCapabilityCardinalityDimension::One => requested == 1,
+        ApplicationCapabilityCardinalityDimension::Many => requested > 0,
+        ApplicationCapabilityCardinalityDimension::Bounded(maximum) => {
+            requested > 0 && requested <= maximum
+        }
+    }
+}
+
+fn context_key(
+    anchor: &super::capability_registry::WorthQueryCapabilityContextAnchor,
+) -> WorthQueryCapabilityContextKey {
+    WorthQueryCapabilityContextKey {
+        context: anchor.context.clone(),
+        context_type: anchor.context_type.clone(),
+        slot: anchor.slot.clone(),
+        slot_type: anchor.slot_type.clone(),
+        entity: anchor.entity.clone(),
     }
 }
 
@@ -290,6 +357,13 @@ fn guard_matches(
         WorthQueryCapabilityRequestValueAxis::Amount => projection.amount.as_ref(),
     };
     actual.is_some_and(|actual| values.contains(actual))
+}
+
+fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(
+        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
+        subject,
+    )
 }
 
 fn invalid_policy(subject: &str) -> WorthQueryOperationAuthorizationDenial {

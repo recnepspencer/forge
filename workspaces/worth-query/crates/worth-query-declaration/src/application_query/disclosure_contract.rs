@@ -11,7 +11,6 @@ use crate::application_schema::{
 
 mod influence;
 mod selector;
-
 pub use influence::{ApplicationQueryInfluenceContract, ApplicationQueryObservableInfluence};
 pub use selector::ApplicationQueryDisclosureSelector;
 

@@ -15,7 +15,6 @@ mod denial;
 mod disclosure;
 mod execution_shape;
 mod execution_validation;
-pub(in crate::domain_computation) mod graph_read_completion;
 mod graph_read_plan_binding;
 mod historical;
 mod live;
@@ -27,12 +26,6 @@ pub(super) mod resource_lifecycle;
 mod runtime_support;
 #[cfg(test)]
 pub(in crate::domain_computation::primary_graph) use runtime_support::primary_graph_support_inventory;
-
-pub(in crate::domain_computation) type WorthQueryApplicationQueryGraphWorkSession =
-    crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession<
-        crate::domain_computation::provider_session::WorthQueryReadGraphWorkLane,
-        resource_lifecycle::WorthQueryApplicationBasisLease,
-    >;
 
 pub use access_context::WorthQueryApplicationQueryAccessContext;
 pub use access_receipt::{

@@ -11,13 +11,7 @@ use crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperat
 pub struct WorthQueryExecutionProviderSession {
     identity: Arc<str>,
     attempt_identity: Arc<str>,
-    binding: WorthQueryProviderSessionBinding,
-}
-
-#[derive(Debug)]
-enum WorthQueryProviderSessionBinding {
-    Operation(Arc<WorthQueryExecutionBoundOperationAuthority>),
-    GraphRead,
+    binding_authority: Arc<WorthQueryExecutionBoundOperationAuthority>,
 }
 
 impl WorthQueryExecutionProviderSession {
@@ -29,18 +23,7 @@ impl WorthQueryExecutionProviderSession {
         Self {
             identity,
             attempt_identity: Arc::from(attempt_identity.as_str()),
-            binding: WorthQueryProviderSessionBinding::Operation(Arc::new(
-                binding_authority.clone(),
-            )),
-        }
-    }
-
-    pub(super) fn mint_graph_read(attempt_identity: &WorthQueryExecutionAttemptIdentity) -> Self {
-        let identity = Arc::<str>::from(attempt_identity.as_str());
-        Self {
-            identity,
-            attempt_identity: Arc::from(attempt_identity.as_str()),
-            binding: WorthQueryProviderSessionBinding::GraphRead,
+            binding_authority: Arc::new(binding_authority.clone()),
         }
     }
 
@@ -55,28 +38,11 @@ impl WorthQueryExecutionProviderSession {
     pub(super) fn retain_binding_authority(
         &self,
     ) -> Arc<WorthQueryExecutionBoundOperationAuthority> {
-        match &self.binding {
-            WorthQueryProviderSessionBinding::Operation(authority) => Arc::clone(authority),
-            WorthQueryProviderSessionBinding::GraphRead => {
-                unreachable!("a graph-read provider session carries no mutation authority")
-            }
-        }
+        Arc::clone(&self.binding_authority)
     }
 
     pub(crate) fn binding_authority(&self) -> &WorthQueryExecutionBoundOperationAuthority {
-        match &self.binding {
-            WorthQueryProviderSessionBinding::Operation(authority) => authority,
-            WorthQueryProviderSessionBinding::GraphRead => {
-                unreachable!("a graph-read provider session carries no mutation authority")
-            }
-        }
-    }
-
-    fn operation_binding_authority(&self) -> Option<&WorthQueryExecutionBoundOperationAuthority> {
-        match &self.binding {
-            WorthQueryProviderSessionBinding::Operation(authority) => Some(authority),
-            WorthQueryProviderSessionBinding::GraphRead => None,
-        }
+        &self.binding_authority
     }
 
     pub fn bind_direct_domain_evidence(
@@ -87,11 +53,8 @@ impl WorthQueryExecutionProviderSession {
         crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
         crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
     > {
-        let authority = self.operation_binding_authority().ok_or(
-            crate::domain_computation::WorthQueryDomainEvidenceBindingDenial::DirectOperationRequired,
-        )?;
         crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding::direct(
-            authority,
+            &self.binding_authority,
             execution_snapshot_identity,
             output_occurrence_identity,
         )
@@ -107,11 +70,8 @@ impl WorthQueryExecutionProviderSession {
         crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding,
         crate::domain_computation::WorthQueryDomainEvidenceBindingDenial,
     > {
-        let authority = self.operation_binding_authority().ok_or(
-            crate::domain_computation::WorthQueryDomainEvidenceBindingDenial::WorkflowOperationRequired,
-        )?;
         crate::domain_computation::WorthQueryDomainEvidenceExecutionBinding::workflow_stage(
-            authority,
+            &self.binding_authority,
             run_identity,
             stage_identity,
             execution_snapshot_identity,
@@ -131,17 +91,14 @@ impl WorthQueryExecutionProviderSession {
         if request.execution_snapshot_identity().is_none() {
             return Err(WorthQueryGraphCallBindingDenial::ExecutionBasisMismatch);
         }
-        let Some(binding_authority) = self.operation_binding_authority() else {
-            return Err(WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch);
-        };
-        if !binding_authority.admits_graph_call(
+        if !self.binding_authority.admits_graph_call(
             request.stage_identity(),
             graph_authority,
             request.kind(),
         ) {
             return Err(WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch);
         }
-        let spec = request.into_spec(binding_authority, graph_authority);
+        let spec = request.into_spec(&self.binding_authority, graph_authority);
         WorthQueryGraphProviderCall::mint(self, spec, execution_resources, resource_envelope)
     }
 
@@ -154,13 +111,13 @@ impl WorthQueryExecutionProviderSession {
             worth_query_installation::facade::WorthQueryExecutionResourceEnvelope,
         >,
     ) -> Result<WorthQueryGraphCommitCall, WorthQueryGraphCallBindingDenial> {
-        let Some(binding_authority) = self.operation_binding_authority() else {
-            return Err(WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch);
-        };
-        if !binding_authority.admits_commit_call(request.stage_identity(), graph_authorities) {
+        if !self
+            .binding_authority
+            .admits_commit_call(request.stage_identity(), graph_authorities)
+        {
             return Err(WorthQueryGraphCallBindingDenial::BoundOperationAuthorityMismatch);
         }
-        let spec = request.into_spec(binding_authority, graph_authorities);
+        let spec = request.into_spec(&self.binding_authority, graph_authorities);
         WorthQueryGraphCommitCall::mint(self, spec, execution_resources, resource_envelope)
     }
 }

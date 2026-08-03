@@ -30,7 +30,7 @@ impl WorthQueryApplicationHistoricalRead {
     pub fn at_application_commit(receipt: &WorthQueryApplicationCommitReceipt) -> Self {
         Self {
             selector: BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::from_relational_branch_id(receipt.branch_id().0.clone()),
+                TruthBranchIdentity::from_relational_branch_id("main"),
                 TruthCommitIdentity::from_relational_commit_id(receipt.commit_id().0),
             ),
             provider_runtime_instance_id: Some(receipt.provider_runtime_instance_id()),

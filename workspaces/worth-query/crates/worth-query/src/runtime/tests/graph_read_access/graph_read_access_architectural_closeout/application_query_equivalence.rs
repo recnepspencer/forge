@@ -4,8 +4,8 @@ mod one_axis_parity;
 mod support;
 
 use worth_foundational::facade::{
-    compare_canonical_basis, prepare_canonical_comparison, CanonicalComparisonOutcome,
-    CanonicalEquivalenceBasis,
+    compare_canonical_basis, prepare_canonical_comparison, CanonicalBasisLocus,
+    CanonicalComparisonOutcome, CanonicalEquivalenceBasis, CanonicalMismatchKind,
 };
 use worth_query_admission::facade::{
     application_query::{
@@ -61,13 +61,19 @@ fn real_mature_and_application_graphs_share_requirement_semantics() {
     .into_result()
     .expect("both graph sources use the same supported planning basis");
     let comparison_outcome = compare_canonical_basis(&comparison);
-    assert!(
-        matches!(
-            &comparison_outcome,
-            CanonicalComparisonOutcome::Equivalent(_)
+    match comparison_outcome {
+        CanonicalComparisonOutcome::Mismatched(mismatch) => {
+            assert_eq!(mismatch.kind(), CanonicalMismatchKind::ValueMismatch);
+            assert_eq!(
+                mismatch.left_locus(),
+                Some(&CanonicalBasisLocus::Named("schema-basis".into()))
+            );
+            assert_eq!(mismatch.left_locus(), mismatch.right_locus());
+        }
+        outcome => panic!(
+            "source-owned schema authority must remain the only exact canonical mismatch: {outcome:#?}"
         ),
-        "{comparison_outcome:#?}"
-    );
+    }
     assert_eq!(
         mature.read_graph().ordering(0).unwrap().mechanism,
         WorthQueryReadGraphOrderingMechanism::ProviderOrdered

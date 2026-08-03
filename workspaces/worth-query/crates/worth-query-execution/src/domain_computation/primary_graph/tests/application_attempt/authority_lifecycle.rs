@@ -9,8 +9,8 @@ use super::{
     live_scope, resolved_account, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
-    provider::PRIMARY_GRAPH_CONCURRENT_ATTEMPT_LIMIT, WorthQueryApplicationAttemptDenialKind,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationIdempotencyResolutionDenialKind,
+    WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationIdempotencyResolutionDenialKind,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationProjectionDenialKind,
 };
 
@@ -100,7 +100,6 @@ fn cancellation_after_program_preparation_prevents_provider_commit() {
     ));
     let fresh_request = live_scope();
     let _still_open = resolved_account(&world, "open", &fresh_request);
-    assert_full_mutation_capacity_available(&world);
 }
 
 #[test]
@@ -144,55 +143,4 @@ fn cancelled_admission_cannot_inspect_provider_idempotency() {
             .map(|authorization| authorization.kind()),
         Some(WorthQueryOperationAuthorizationDenialKind::Cancelled)
     );
-}
-
-fn assert_full_mutation_capacity_available(world: &super::super::fixture::AuthorizationWorld) {
-    let cancellation = WorthQueryCancellationSource::new();
-    let request = WorthQueryRequestScope::new(
-        Instant::now() + Duration::from_secs(60),
-        cancellation.token(),
-    );
-    let principal = authenticated_principal(world, &request);
-    let account = resolved_account(world, "open", &request);
-    let mut programs = Vec::with_capacity(PRIMARY_GRAPH_CONCURRENT_ATTEMPT_LIMIT);
-    for ordinal in 0..PRIMARY_GRAPH_CONCURRENT_ATTEMPT_LIMIT {
-        programs.push(admitted_program(
-            world,
-            &principal,
-            &account,
-            &request,
-            &format!("capacity-probe-{ordinal}"),
-        ));
-    }
-
-    let operation = world
-        .application
-        .installed_schema()
-        .installed_operation(TouchAccountOperation::reference())
-        .unwrap();
-    let denial = match world.application.authorize_operation(
-        &principal,
-        &account,
-        &operation,
-        Default::default(),
-        &request,
-    ) {
-        Ok(_) => panic!("the first mutation beyond provider capacity was admitted"),
-        Err(denial) => denial,
-    };
-    assert_eq!(
-        denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::GraphWorkAdmissionUnavailable
-    );
-
-    cancellation.cancel();
-    for (ordinal, program) in programs.into_iter().enumerate() {
-        assert!(matches!(
-            world.application.compare_and_commit_application(
-                program,
-                idempotency(100 + ordinal as u8, 180 + ordinal as u8),
-            ),
-            WorthQueryApplicationCommitOutcome::Cancelled
-        ));
-    }
 }

@@ -1,7 +1,9 @@
 use super::{authenticated_principal, installed_authorization_world, live_scope, resolved_account};
 use crate::domain_computation::primary_graph::WorthQueryApplicationAttemptDenialKind;
 
-use super::super::fixture::{AccountLabel, AccountStatus, TouchAccountOperation};
+use super::super::fixture::{
+    AccountLabel, AccountStatus, MultiTouchOperation, TouchAccountOperation,
+};
 
 #[test]
 fn compile_capability_does_not_widen_the_installed_effect_program() {
@@ -12,7 +14,7 @@ fn compile_capability_does_not_widen_the_installed_effect_program() {
     let operation = world
         .application
         .installed_schema()
-        .installed_operation(TouchAccountOperation::reference())
+        .installed_operation(MultiTouchOperation::reference())
         .unwrap();
     let admission = world
         .application

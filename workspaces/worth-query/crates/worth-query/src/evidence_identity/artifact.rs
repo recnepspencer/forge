@@ -2,7 +2,7 @@ use super::encoder::WorthQueryEvidenceIdentityEncoder;
 use super::scheme::WorthQueryEvidenceIdentityScheme;
 use super::scope::WorthQueryEvidenceScope;
 use super::sealed::SealedWorthQueryEvidenceIdentity;
-use worth_foundational::facade::CanonicalDerivedDigest;
+use worth_foundational::facade::{CanonicalDerivedDigest, CanonicalDigestId};
 use worth_runtime_bridge::facade::{
     bridge_truth_digest_identity_evidence_from_external_token,
     bridge_truth_external_identity_token, bridge_truth_projection_identity_from_external_token,
@@ -117,5 +117,9 @@ impl WorthQueryEvidenceIdentity {
 
     pub fn canonical_digest(&self) -> &CanonicalDerivedDigest {
         &self.canonical_digest
+    }
+
+    pub(crate) fn canonical_digest_id(&self) -> CanonicalDigestId {
+        CanonicalDigestId::new(*self.canonical_digest.value().bytes())
     }
 }

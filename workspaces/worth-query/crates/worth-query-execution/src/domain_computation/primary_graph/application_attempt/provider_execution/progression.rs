@@ -28,9 +28,6 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
         Input,
         Scope,
     >,
-    graph_work: &mut crate::domain_computation::provider_session::WorthQueryManagedMutationGraphWorkProgression<
-        crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLease,
-    >,
     prepared: WorthQueryPreparedApplicationProviderAttempt,
     authorization: crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts,
     commit_authorization: crate::domain_computation::authorization::WorthQueryCommitAuthorizationBasis,
@@ -61,11 +58,6 @@ where
     if provider
         .register_application_attempt(
             staged.token_identity(),
-            graph_work
-                .session()
-                .branch_affinity()
-                .relational_branch()
-                .clone(),
             facts,
             steps.clone(),
             batch,
@@ -90,7 +82,6 @@ where
             let serialization = provider.serialize_application_commit();
             let proof = match application.authorize_application_commit(
                 admission,
-                graph_work.session(),
                 &commit_authorization,
                 &serialization,
             ) {
@@ -188,30 +179,9 @@ where
             return denied(DenialStage::InvariantExecution);
         }
     };
-    let invariant_completion = match crate::domain_computation::primary_graph::WorthQueryOperationInvariantExecutionCompletion::mint(
-        *graph_work.session().identity(),
-        graph_work.session().branch_affinity().relational_branch().clone(),
-        candidate.invariant_receipt_identities().len(),
-    ) {
-        Ok(completion) => completion,
-        Err(()) => {
-            candidate.discard();
-            return denied(DenialStage::InvariantExecution);
-        }
-    };
-    if crate::domain_computation::provider_session::record_operation_invariant_execution_completion(
-        graph_work.session_mut(),
-        invariant_completion,
-    )
-    .is_err()
-    {
-        candidate.discard();
-        return denied(DenialStage::InvariantExecution);
-    }
     let serialization = provider.serialize_application_commit();
     let proof = match application.authorize_application_commit(
         admission,
-        graph_work.session(),
         &commit_authorization,
         &serialization,
     ) {
@@ -223,17 +193,13 @@ where
     };
     let outcome = proof.govern(candidate, |candidate| {
         match provider.resolve_application_idempotency(&session_identity) {
-            Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
-                let outcome = finish_authorized_compare(
-                    candidate.compare_and_commit(),
-                    provider,
-                    idempotency,
-                    graph_work.session().branch_affinity().relational_branch(),
-                    admission.mutation_preconditions(),
-                    admission.canonical_work(),
-                );
-                record_effect_application(outcome, graph_work)
-            }
+            Ok(WorthQueryProviderIdempotencyResolution::Absent) => finish_authorized_compare(
+                candidate.compare_and_commit(),
+                provider,
+                idempotency,
+                admission.mutation_preconditions(),
+                admission.canonical_work(),
+            ),
             Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
                 candidate.discard();
                 WorthQueryApplicationCommitOutcome::AlreadyCommitted(
@@ -265,44 +231,17 @@ where
     }
 }
 
-fn record_effect_application(
-    outcome: WorthQueryApplicationCommitOutcome,
-    graph_work: &mut crate::domain_computation::provider_session::WorthQueryManagedMutationGraphWorkProgression<
-        crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLease,
-    >,
-) -> WorthQueryApplicationCommitOutcome {
-    let WorthQueryApplicationCommitOutcome::Committed(receipt) = &outcome else {
-        return outcome;
-    };
-    let completion =
-        crate::domain_computation::primary_graph::WorthQueryOperationEffectApplicationCompletion::mint(
-            *graph_work.session().identity(),
-            receipt,
-        );
-    if crate::domain_computation::provider_session::record_operation_effect_application_completion(
-        graph_work.session_mut(),
-        completion,
-    )
-    .is_ok()
-    {
-        outcome
-    } else {
-        WorthQueryApplicationCommitOutcome::Indeterminate
-    }
-}
-
 fn finish_authorized_compare(
     compared: WorthQueryProviderCompareAndCommitOutcome,
     provider: &super::super::super::provider::WorthQueryPrimaryGraphProvider,
     idempotency: WorthQueryApplicationIdempotencyBinding,
-    branch_id: &worth_relational::facade::history::BranchId,
     preconditions: &super::super::precondition_binding::WorthQueryBoundMutationPreconditions,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
 ) -> WorthQueryApplicationCommitOutcome {
     match compared {
         WorthQueryProviderCompareAndCommitOutcome::Committed {
             provider_receipt, ..
-        } => parse_provider_receipt(&provider_receipt, branch_id.clone()).map_or_else(
+        } => parse_provider_receipt(&provider_receipt).map_or_else(
             || WorthQueryApplicationCommitOutcome::Indeterminate,
             |receipt| {
                 WorthQueryApplicationCommitOutcome::Committed(
@@ -321,13 +260,7 @@ fn finish_authorized_compare(
         }
         WorthQueryProviderCompareAndCommitOutcome::Denied(_) => denied(DenialStage::ProviderCommit),
         WorthQueryProviderCompareAndCommitOutcome::Indeterminate(_) => {
-            resolve_indeterminate_commit(
-                provider,
-                idempotency,
-                branch_id,
-                preconditions,
-                canonical_work,
-            )
+            resolve_indeterminate_commit(provider, idempotency, preconditions, canonical_work)
         }
     }
 }
@@ -335,11 +268,10 @@ fn finish_authorized_compare(
 fn resolve_indeterminate_commit(
     provider: &super::super::super::provider::WorthQueryPrimaryGraphProvider,
     idempotency: WorthQueryApplicationIdempotencyBinding,
-    branch_id: &worth_relational::facade::history::BranchId,
     preconditions: &super::super::precondition_binding::WorthQueryBoundMutationPreconditions,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
 ) -> WorthQueryApplicationCommitOutcome {
-    match provider.resolve_idempotency_binding(idempotency, branch_id) {
+    match provider.resolve_idempotency_binding(idempotency) {
         Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
             WorthQueryApplicationCommitOutcome::Committed(
                 WorthQueryApplicationCommitReceipt::from_provider(

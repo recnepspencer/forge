@@ -18,7 +18,7 @@ pub(crate) struct BridgePreviewSessionLivenessOwner {
 /// The observer does not keep the session alive and cannot perform preview
 /// work. An admitted guard holds the lifecycle read boundary while a consumer
 /// performs work already authorized by that session.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct BridgePreviewSessionLivenessObserver {
     state: Arc<BridgePreviewSessionLivenessState>,
     session_identity: BridgePreviewSessionIdentity,

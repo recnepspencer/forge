@@ -224,7 +224,8 @@ fn requirement_derivation_consumes_access_and_selectivity_proofs() {
         explanation
             .access_shape()
             .operation_resolution()
-            .read_graph_digest()
+            .read_graph_canonical_digest()
+            .render_hex()
     );
     assert_eq!(
         requirements.access_shape_digest().render_hex(),

@@ -1,15 +1,29 @@
-use crate::identity::hash_parts;
+use worth_foundational::facade::CanonicalDigestId;
+
+use crate::identity::canonical_hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryBooleanSelectivityShapeDigest(String);
+pub struct WorthQueryBooleanSelectivityShapeDigest {
+    canonical: CanonicalDigestId,
+    rendered: String,
+}
 
 impl WorthQueryBooleanSelectivityShapeDigest {
     pub fn as_str(&self) -> &str {
-        &self.0
+        &self.rendered
+    }
+
+    pub(crate) fn canonical_digest(&self) -> &CanonicalDigestId {
+        &self.canonical
     }
 
     pub(crate) fn from_parts(parts: &[String]) -> Self {
-        Self(hash_parts(parts))
+        let canonical = canonical_hash_parts(parts);
+        let rendered = canonical.render_hex();
+        Self {
+            canonical,
+            rendered,
+        }
     }
 }
 

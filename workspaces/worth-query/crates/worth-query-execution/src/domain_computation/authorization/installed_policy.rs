@@ -139,7 +139,7 @@ impl WorthQueryInstalledAuthorizationRegistry {
         self.capabilities.plan(capability)
     }
 
-    pub(in crate::domain_computation) fn capability_plan_by_identity(
+    pub(super) fn capability_plan_by_identity(
         &self,
         capability_identity: &[u8; 32],
     ) -> Option<&WorthQueryInstalledCapabilityPlan> {

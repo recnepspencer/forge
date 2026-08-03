@@ -109,6 +109,7 @@ pub(crate) fn ensure_state(
 pub(crate) fn reconstruct_state(
     runtime: &RelationalRuntime,
     version_id: crate::identity::data::VersionId,
+    allow_recent_admission: bool,
 ) -> Option<SnapshotState> {
     if version_id.is_zero() || version_id.as_u64() > runtime.current_version_id().as_u64() {
         return None;
@@ -120,10 +121,39 @@ pub(crate) fn reconstruct_state(
             .count(|counters| counters.visibility_cache_hits += 1);
         return Some(state);
     }
-    if version_id == runtime.current_version_id() {
-        return Some(ensure_state(runtime, version_id, false));
+    let recent_candidate = allow_recent_admission
+        && runtime.config.visibility.cache_policy.enabled
+        && runtime.visibility.cache.recent_window() > 0
+        && !is_protected_version(runtime, version_id);
+    if recent_candidate || is_protected_version(runtime, version_id) {
+        return Some(ensure_state(runtime, version_id, recent_candidate));
     }
-    if !is_protected_version(runtime, version_id) {
+    runtime
+        .services
+        .instrumentation
+        .count(|counters| counters.visibility_cache_miss_reconstructions += 1);
+    Some(crate::visibility::snapshot_states::build_visibility_state(
+        runtime,
+        version_id,
+        SnapshotId(0),
+        SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+    ))
+}
+
+pub(crate) fn retained_state(
+    runtime: &RelationalRuntime,
+    version_id: crate::identity::data::VersionId,
+) -> Option<SnapshotState> {
+    if version_id.is_zero() || version_id.as_u64() > runtime.current_version_id().as_u64() {
+        return None;
+    }
+    if let Some(state) = cached_state_for_version(runtime, version_id) {
+        return Some(state);
+    }
+    if version_id != runtime.current_version_id()
+        && !is_protected_version(runtime, version_id)
+        && !runtime.visibility.retains_published_version(version_id)
+    {
         return None;
     }
     Some(ensure_state(runtime, version_id, false))
@@ -137,7 +167,6 @@ pub(crate) fn is_protected_version(
     residency.branch_head_refs > 0
         || residency.replay_refs > 0
         || (runtime.protect_active_snapshots() && residency.active_snapshot_refs > 0)
-        || runtime.visibility.retains_published_version(version_id)
         || runtime
             .visibility
             .retains_execution_basis_version(version_id)

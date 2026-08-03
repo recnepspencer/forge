@@ -1,10 +1,10 @@
-use crate::capabilities::SnapshotSource;
+use crate::capabilities::{SnapshotSource, VisibilityPolicySource};
 use crate::logic::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary};
 use crate::storage::logic::state::SnapshotState;
 use crate::visibility::cache_state::reconstruct_state;
 
-use super::read_view_from_snapshot_state;
+use super::{build_visibility_state, read_view_from_snapshot_state};
 
 pub(crate) struct ResolvedVisibilitySnapshot {
     pub(crate) handle: SnapshotHandle,
@@ -67,7 +67,7 @@ pub(crate) fn resolve_snapshot_state(
             version_id,
             read_policy,
         };
-        let state = reconstruct_state(runtime, version_id)?;
+        let state = reconstruct_state(runtime, version_id, !runtime.protect_active_snapshots())?;
         return Some(ResolvedVisibilitySnapshot {
             handle: resolved_handle,
             state,
@@ -86,7 +86,7 @@ pub(crate) fn resolve_snapshot_state(
             version_id: binding.version_id,
             read_policy: binding.read_policy,
         };
-        let state = reconstruct_state(runtime, binding.version_id)?;
+        let state = reconstruct_state(runtime, binding.version_id, true)?;
         return Some(ResolvedVisibilitySnapshot {
             handle: resolved_handle,
             state,
@@ -104,7 +104,14 @@ pub(crate) fn resolve_snapshot_state(
         version_id: binding.version_id,
         read_policy: binding.read_policy,
     };
-    let state = reconstruct_state(runtime, binding.version_id)?;
+    let state = reconstruct_state(runtime, binding.version_id, true).unwrap_or_else(|| {
+        build_visibility_state(
+            runtime,
+            binding.version_id,
+            handle.snapshot_id,
+            binding.read_policy,
+        )
+    });
     Some(ResolvedVisibilitySnapshot {
         handle: resolved_handle,
         state,

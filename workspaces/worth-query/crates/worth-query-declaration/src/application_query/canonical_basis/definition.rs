@@ -1,9 +1,5 @@
 use worth_foundational::facade::CanonicalBasisEntry;
 
-mod disclosure;
-
-use disclosure::{append_disclosure, disclosure_name};
-
 use super::{
     entry::{boolean, null, text, unsigned_u64, unsigned_usize},
     prepare_artifact,
@@ -12,8 +8,11 @@ use super::{
 };
 use crate::application_query::{
     ApplicationQueryAuthorizationRequirement, ApplicationQueryDefinition,
-    ApplicationQueryOrderingDirection,
+    ApplicationQueryDisclosurePosture, ApplicationQueryOrderingDirection,
 };
+
+mod disclosure;
+use disclosure::append_disclosure;
 
 pub(in crate::application_query) fn prepare_definition_basis<
     Schema,
@@ -313,5 +312,13 @@ const fn ordering_direction_name(value: ApplicationQueryOrderingDirection) -> &'
     match value {
         ApplicationQueryOrderingDirection::Ascending => "ascending",
         ApplicationQueryOrderingDirection::Descending => "descending",
+    }
+}
+
+const fn disclosure_name(value: ApplicationQueryDisclosurePosture) -> &'static str {
+    match value {
+        ApplicationQueryDisclosurePosture::Public => "public",
+        ApplicationQueryDisclosurePosture::InstalledPolicyRequired => "installed-policy",
+        ApplicationQueryDisclosurePosture::Governed => "governed",
     }
 }

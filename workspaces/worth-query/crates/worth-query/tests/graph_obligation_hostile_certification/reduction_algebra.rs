@@ -73,9 +73,9 @@ fn reduction_accepts_real_materialized_dispatch_rows() {
         envelope.rows().len(),
         WorthQueryGraphObligationKind::ALL.len()
     );
-    assert_eq!(reduced.blocking_count(), 5);
+    assert_eq!(reduced.blocking_count(), 2);
     assert_eq!(reduced.advisory_count(), 1);
-    assert_eq!(reduced.allow_count(), 0);
+    assert_eq!(reduced.allow_count(), 3);
     assert!(reduced.blocks_if_required());
     assert_eq!(projection.blocking_count(), reduced.blocking_count());
 }

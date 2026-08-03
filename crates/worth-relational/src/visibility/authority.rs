@@ -3,7 +3,7 @@ use crate::logic::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBind
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
-    reconstruct_state, residency_for_version,
+    residency_for_version, retained_state,
 };
 use crate::visibility::snapshot_states::build_visibility_state;
 
@@ -72,7 +72,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
-        reconstruct_state(self.runtime, version_id)?;
+        retained_state(self.runtime, version_id)?;
         let handle = self.open_active_snapshot(version_id, SnapshotReadPolicy::ImmutablePinned);
         Some(SnapshotGuard::new(handle))
     }

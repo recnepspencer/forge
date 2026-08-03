@@ -4,11 +4,6 @@ mod parameter_canonical_basis;
 mod requirements;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-pub(crate) use tests::{
-    installed_query_graph_read_review, installed_query_obligations,
-    installed_query_obligations_with_authority,
-};
 
 pub use lane::WorthQueryApplicationQueryLane;
 pub use parameter_binding::{

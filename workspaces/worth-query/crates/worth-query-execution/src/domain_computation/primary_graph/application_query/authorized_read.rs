@@ -31,7 +31,7 @@ pub(super) fn execute_authorized_read<
 >(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     graph: &WorthQueryPrimaryGraph,
-    plan: &mut WorthQueryAdmittedApplicationQueryPlan<
+    plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
         Query,
@@ -63,58 +63,19 @@ where
     Schema: ApplicationSchema,
 {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let branch = plan
-            .graph_work_session()
-            .branch_affinity()
-            .relational_branch()
-            .clone();
-        let handle = graph.integration_handle();
-        let current_version = handle
-            .ensure_primary_indexes_current(runtime, &branch)
-            .map_err(|_| stale_authorization(plan.query.name()))?;
-        let current = runtime
-            .snapshots()
-            .admit_execution_basis(&branch, current_version)
-            .map_err(|_| stale_authorization(plan.query.name()))?;
-        let authorization_work = validate_current_authorization(
-            application,
-            runtime,
-            current.snapshot_handle(),
-            plan,
-        );
-        let current_released = current.release().released();
-        if !current_released {
-            return Err(stale_authorization(plan.query.name()));
-        }
+        let current = runtime.snapshots().snapshot();
+        let authorization_work =
+            validate_current_authorization(application, runtime, &current, plan);
+        runtime.snapshots().release_snapshot(&current);
         let authorization_work = authorization_work?;
-        validate_entity_freshness_at_snapshot(runtime, plan.basis().snapshot_handle(), plan.scope)
+        validate_entity_freshness_at_snapshot(runtime, plan.basis.snapshot_handle(), plan.scope)
             .map_err(|denial| {
                 WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(denial.kind())
             })?;
         let output =
             read(runtime, graph, plan).map_err(WorthQueryAuthorizedApplicationReadDenial::Read)?;
-        let completion = super::graph_read_completion::WorthQueryApplicationQueryGraphReadCompletion::mint(
-            plan.graph_work_session(),
-        );
-        crate::domain_computation::provider_session::record_application_query_graph_read_completion(
-            plan.graph_work_session_mut(),
-            completion,
-        )
-        .map_err(|_| {
-            WorthQueryAuthorizedApplicationReadDenial::Authorization(
-                crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                plan.query.name().to_string(),
-            )
-        })?;
         Ok((output, authorization_work))
     })
-}
-
-fn stale_authorization(subject: &str) -> WorthQueryAuthorizedApplicationReadDenial {
-    WorthQueryAuthorizedApplicationReadDenial::Authorization(
-        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
-        subject.to_owned(),
-    )
 }
 
 fn validate_current_authorization<
@@ -178,4 +139,41 @@ where
     validate_entity_freshness_at_snapshot(runtime, current, plan.scope)
         .map_err(|_| WorthQueryAuthorizedApplicationReadDenial::StaleScope)?;
     Ok(plan.authorization_work)
+}
+
+pub(super) fn refresh_governed_authorization<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    plan: &mut WorthQueryAdmittedApplicationQueryPlan<
+        '_,
+        Schema,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >,
+) -> Result<(), WorthQueryAuthorizedApplicationReadDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let Some(authorization) = plan.governance.authorization_mut() else {
+        return Ok(());
+    };
+    application
+        .refresh_capability_authorization(authorization)
+        .map_err(|denial| {
+            WorthQueryAuthorizedApplicationReadDenial::Authorization(
+                denial.kind(),
+                plan.query.name().to_string(),
+            )
+        })
 }

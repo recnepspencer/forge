@@ -1,12 +1,10 @@
-# Milestone 9.17: Branch-Affine MVCC, Advanced Domain Computation, And Provider Certification
+# Milestone 9.17: Advanced Domain Computation And Provider Certification
 
 ## Goal
 
 Extend the ordinary typed Query front door with advanced domain-computation
 capabilities needed by geometry, chip/netlist, and research workloads:
 
-- Relational-owned per-branch MVCC with concurrent writers on independent
-  branches and branch-qualified Query authority;
 - advanced access strategies for installed application queries, including
   typed search and spatial candidate production;
 - managed domain access products;
@@ -37,17 +35,12 @@ and receipt-backed no-N+1 proof. Milestone 9.15 established safe pre-commit
 domain computation. Milestone 9.16 established typed application authoring,
 authenticated and touched-graph-bound authorization, compare-and-commit,
 ordinary public facades, and a real cross-process consumer.
-Milestone 9.16.1 established typed branch affinity throughout the canonical
-provider session while intentionally retaining one ordinary installed branch
-and a conservative global coordinator.
 
 Milestone 9.17 builds on both:
 
 ```text
 Milestone 9.16 installed query or typed operation
     -> current capability, purpose, disclosure, and basis admission
-    -> typed branch and branch-qualified snapshot/version basis
-    -> Relational per-branch MVCC admission
     -> Milestone 9.10 graph-read requirement derivation
     -> advanced-strategy support and inventory matching
     -> admitted graph-read plan binding the selected strategy
@@ -64,30 +57,20 @@ Search, spatial access, bulk execution, reuse, and decision summaries remain
 constrained by the same application-query identity, field disclosure, cursor,
 recovery, aftermath, access-requirement, and no-N+1 contracts.
 
-Milestone 9.17 replaces the conservative execution limitation, not the
-authority model: Relational owns branch heads, branch-local versions,
-snapshots, conflicts, and atomic commit mechanics; Runtime Bridge owns the
-installed branch correspondence; Query carries the typed branch through its
-existing plan/session/read-set/proposal/receipt progression. Semantic branch
-creation, merge, rebase, branch-shaped undo/redo, and merge-conflict resolution
-remain outside this milestone.
-
 ## Migration From The Former 9.15 Draft
 
 The remaining advanced requirements retain an explicit destination:
 
-- per-branch MVCC is the new foundation Phase 1 required by the branch-affine
-  authority handoff from Milestones 9.16.1 and 9.16;
-- former Phase 12, managed domain access products, is now Phase 2;
-- former Phase 13, coverage and membership, is now Phase 3;
-- former Phase 14, verified realized footprints, is now Phase 4;
-- former Phase 15, correlated paths, is now Phase 5;
-- former Phase 16, conflict partitions and bulk execution, is now Phase 6;
-- former Phase 17, decision attachments and summaries, is now Phase 7;
-- former Phase 18, stage/subartifact reuse, is now Phase 8; and
+- former Phase 12, managed domain access products, is now Phase 1;
+- former Phase 13, coverage and membership, is now Phase 2;
+- former Phase 14, verified realized footprints, is now Phase 3;
+- former Phase 15, correlated paths, is now Phase 4;
+- former Phase 16, conflict partitions and bulk execution, is now Phase 5;
+- former Phase 17, decision attachments and summaries, is now Phase 6;
+- former Phase 18, stage/subartifact reuse, is now Phase 7; and
 - the advanced facade, reference-adoption, prohibition, and
   provider-certification obligations from former Phases 19–20 are now Phases
-  9–11.
+  8–10.
 
 Compare-and-commit did not move here. It belongs to Milestone 9.16 because a
 real bank mutation cannot be considered real without it.
@@ -147,17 +130,6 @@ Provider receipts lie, omit candidates, undercount memory, widen footprints,
 misstate conflicts, return scalar work as a batch, hide per-result lookups
 behind an access-product name, reuse stale artifacts, and attempt to disclose
 restricted decision data. Independent oracles must expose each lie.
-
-Before advanced execution begins, the courtroom creates two Relational-owned
-branches whose heads deliberately have equal local version ordinals. It blocks
-a writer on branch A inside the real provider commit boundary while a writer on
-branch B commits. Branch B must complete without waiting for A. Two writers on
-the same branch then race from one head: exactly one may advance that head and
-the other must receive the installed stale/conflict posture. Swapping either
-branch's snapshot, read set, proposed state, invariant evidence, idempotency
-receipt, or terminal receipt into the other branch must fail before effects.
-Independent head and journal observations—not Query receipts—prove both the
-concurrency and the resulting truth.
 
 In the bank variant, a conflicted branch manager searches an estate universe
 containing their deceased parent's case while holding independently valid
@@ -245,9 +217,9 @@ from becoming emergency or disbursement authority.
     when the original operation used advanced access or bulk execution.
     Branch-aware undo/redo and history navigation belong exclusively to the
     [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
-    The per-branch MVCC foundation in this milestone provides no placeholder or
-    authority for those semantic operations. Cache reuse, certification replay,
-    preview execution, and ordinary linear redo remain distinct.
+    This milestone neither designs them nor carries a placeholder. Cache reuse,
+    certification replay, preview execution, and ordinary linear redo remain
+    distinct.
 30. The bank/compliance reference path is a fourth adoption courtroom alongside
     geometry, chip/netlist, and research. It pressures typed search,
     field-sensitive capability narrowing, conflict-of-interest, governed
@@ -271,60 +243,8 @@ from becoming emergency or disbursement authority.
     queries, per-result neighbor lookups, host-side sorting, and
     post-materialization filtering are prohibited covered fallbacks. Receipts
     must prove exact-zero caller-owned N+1 work.
-34. Relational is the sole owner of branch identity, branch heads,
-    branch-qualified snapshots and versions, conflict detection, and atomic
-    branch-head advancement. Query owns only legal carriage through its
-    existing phase progression.
-35. A version or snapshot ordinal has meaning only within its typed branch.
-    Equal ordinals across branches are intentionally non-equivalent.
-36. Commit coordination is branch-local. A blocked writer on one branch cannot
-    serialize an otherwise admissible writer on another branch; same-branch
-    writers remain subject to that branch's MVCC comparison.
-37. Query, Runtime Bridge, providers, adapters, recovery, aftermath, and
-    publication cannot infer a branch from `"main"`, construct one from a
-    string, or replace the branch carried by the admitted session.
-38. Per-branch MVCC does not grant semantic branch management. Creation,
-    deletion, naming policy, merge, rebase, branch-shaped undo/redo, and
-    merge-conflict resolution remain cross-runtime responsibilities.
 
 ## Destination Topology
-
-### Branch-MVCC foundation
-
-```text
-worth-relational/src/
-    branch_mvcc/
-        branch_identity.rs
-        branch_head.rs
-        branch_snapshot.rs
-        branch_transaction.rs
-        branch_commit.rs
-        branch_conflict.rs
-        branch_retention.rs
-        branch_coordination.rs
-
-worth-runtime-bridge/src/
-    branch_correspondence/
-        installed_binding.rs
-        snapshot_lowering.rs
-
-worth-query-execution/src/domain_computation/provider_session/
-    branch_affinity.rs
-    branch_terminal_evidence.rs
-
-worth-query-certification/src/branch_mvcc/
-    independent_heads.rs
-    concurrent_writers.rs
-    affinity_substitution.rs
-    lifecycle.rs
-```
-
-Relational owns every authoritative file in the MVCC family. Runtime Bridge
-owns installed correspondence and lowering. Query's files retain and verify
-the lower authority inside the canonical session but cannot construct branch
-identity, allocate a version, compare a head, or commit graph truth. The
-topology contains no Query branch registry, generic branch manager, merge
-placeholder, or adapter-selected branch path.
 
 ### Query authority packages
 
@@ -422,67 +342,7 @@ production domain semantics.
 
 ## Phase Plan
 
-### Phase 1: Relational Per-Branch MVCC And Concurrent Branch Writers
-
-**Requirement**
-
-Replace the conservative global commit coordinator with Relational-owned
-branch-qualified MVCC so independent branches can accept concurrent writers
-without weakening the branch-affine Query authority established by Milestone
-9.16.1.
-
-**Must establish**
-
-- a runtime-affine, generational typed branch identity minted only by
-  Relational installation or branch bootstrap authority;
-- a separate authoritative head, branch-local version sequence, snapshot
-  retention set, transaction comparison point, and commit coordinator for each
-  installed branch;
-- branch-qualified snapshot, read, write, conflict, and release evidence whose
-  types or sealed provenance prevent a bare version ordinal from opening a
-  later phase;
-- atomic same-branch compare-and-commit against the exact observed head, with
-  one honest stale/conflict loser when concurrent proposals race;
-- concurrent progress for writers on distinct branches, with no global mutex,
-  capacity reservation, provider lane, or lifecycle resource that serializes
-  their ordinary commits;
-- Runtime Bridge correspondence that lowers the exact Relational branch basis
-  into the installed Query session without string identities or default-main
-  inference;
-- unchanged branch carriage through Query selection, plan, session, decision
-  read set, proposed state, invariant execution, idempotency, recovery,
-  aftermath, receipt, and publication; and
-- exact branch-local snapshot, transaction, reservation, and coordinator
-  release after success, stale conflict, denial, cancellation, provider
-  failure, and panic containment.
-
-**Mechanically forbids**
-
-- treating `(runtime, version)` or `(runtime, snapshot)` as a complete basis;
-- cross-branch substitution even when local version ordinals, graph shape,
-  operation, principal, and provider are otherwise equal;
-- Query-, provider-, host-, or adapter-minted branch authority;
-- an ordinary commit path guarded by a global serialization lock; and
-- branch creation, merge, rebase, cherry-pick, branch-shaped undo/redo, or
-  merge-conflict semantics disguised as MVCC mechanics.
-
-**Proof before Phase 2**
-
-The real provider courtroom installs branch A and branch B at equal local
-versions. It pauses A after same-branch comparison has begun, proves B commits
-and publishes independently, then resumes A. A separate same-branch barrier
-race proves exactly one head advance and one typed stale/conflict outcome.
-Cross-branch snapshot, read-set, proposal, invariant, idempotency, recovery, and
-receipt substitutions all fail before effects. Independent Relational head,
-journal, active-snapshot, transaction, and coordinator probes establish truth
-and exact cleanup; elapsed time or Query receipts alone are insufficient.
-
-Phases 2-11 consume the Phase 1 branch-qualified basis. No advanced product,
-candidate, footprint, path, partition, attachment, summary, reuse key, cursor,
-recovery handle, or receipt may omit it or replace it with a globally
-interpreted version.
-
-### Phase 2: Managed Domain Access Products
+### Phase 1: Managed Domain Access Products
 
 **Requirement**
 
@@ -502,8 +362,7 @@ one Milestone 9.16 installed application query or operation.
   `OrderingSupport`, traversal, proof, buffering, materialization, and
   live-maintenance requirement rows;
 - exact carriage of query parameters, admitted root, basis, ordering, result
-  shape, capability, purpose, disclosure proof, and typed branch into strategy
-  admission;
+  shape, capability, purpose, and disclosure proof into strategy admission;
 - runtime-affine move-only handles;
 - declared semantic universe and candidate-completeness posture;
 - provider strategy and resource admission;
@@ -513,7 +372,7 @@ one Milestone 9.16 installed application query or operation.
   counters; and
 - cleanup under cancellation, yield, provider failure, and attempt termination.
 
-**Proof before Phase 3**
+**Proof before Phase 2**
 
 Callers cannot construct or resurrect handles, stale or evicted products cannot
 execute, search cannot become an alternate query or authorization language,
@@ -521,7 +380,7 @@ and hostile memory/accounting providers are rejected by independent
 observation. An access product without the matching admitted Milestone 9.10
 plan and consumption receipt opens no execution lane.
 
-### Phase 3: Coverage And Membership Completeness
+### Phase 2: Coverage And Membership Completeness
 
 **Requirement**
 
@@ -539,7 +398,7 @@ positive and negative membership dependency relevant to candidate discovery.
 - maintenance versus rebuild transition policy; and
 - denial or degradation when completeness cannot be maintained.
 
-**Proof before Phase 4**
+**Proof before Phase 3**
 
 Independent full-scan oracles expose omitted candidates after insertion,
 deletion, motion, capability change, disclosure change, conflict insertion,
@@ -547,7 +406,7 @@ rebuild, and eviction. A provider cannot claim complete from returned
 candidates alone, and an undisclosable candidate cannot leak through rank,
 count, cursor, summary, or timing-class metadata.
 
-### Phase 4: Verified Realized Footprints
+### Phase 3: Verified Realized Footprints
 
 **Requirement**
 
@@ -559,8 +418,6 @@ publication, and commit.
 
 - declared closure as the legal upper bound;
 - provider observations tied to the exact attempt and session;
-- realized footprints bound to the exact branch-qualified basis and unusable
-  against another branch even when version ordinals match;
 - Query verification against decision read-set, effects, path, membership, and
   artifact, capability, disclosure, and basis evidence;
 - typed `VerifiedRealizedFootprint` unavailable before verification;
@@ -568,13 +425,13 @@ publication, and commit.
   and
 - explicit false-conflict and narrowing counters.
 
-**Proof before Phase 5**
+**Proof before Phase 4**
 
 Widening denies, omission of an influencing fact denies, unrelated mutations do
 not create false conflict, and a caller/provider-reported “actual set” carries
 no authority.
 
-### Phase 5: Correlated Heterogeneous Path Programs
+### Phase 4: Correlated Heterogeneous Path Programs
 
 **Requirement**
 
@@ -593,7 +450,7 @@ steps and admit provider lowering without losing Query semantics.
   and
 - complete path, membership, ordering, and negative decision facts.
 
-**Proof before Phase 6**
+**Proof before Phase 5**
 
 Illegal step composition fails before execution, provider lowering matches an
 independent interpreter, boundedness is enforced, and no raw path string or
@@ -601,7 +458,7 @@ opaque callback survives the public surface. A multi-step path executes as one
 admitted graph-shaped plan: per-binding child queries and per-result neighbor
 lookups remain exactly zero in the access receipt.
 
-### Phase 6: Conflict-Proof Set-Oriented Execution
+### Phase 5: Conflict-Proof Set-Oriented Execution
 
 **Requirement**
 
@@ -621,7 +478,7 @@ real provider set operations.
   counters; and
 - a governed transition between scalar, partitioned, and bulk strategies.
 
-**Proof before Phase 7**
+**Proof before Phase 6**
 
 The test oracle checks completeness, uniqueness, conflict freedom, and semantic
 parity. Scaling evidence distinguishes planning from execution and rejects a
@@ -629,7 +486,7 @@ quadratic all-pairs admission or hidden scalar loop. A mixed-authority batch is
 partitioned or denied without processing unauthorized members or leaking their
 existence through counters.
 
-### Phase 7: Governed Decision Attachments And Incremental Summaries
+### Phase 6: Governed Decision Attachments And Incremental Summaries
 
 **Requirement**
 
@@ -649,13 +506,13 @@ authority.
   and
 - deletion/disposal behavior consistent with installed governance.
 
-**Proof before Phase 8**
+**Proof before Phase 7**
 
 Restricted nested content cannot escape through a permissive container,
 summaries update under relevant changes, and neither attachment nor summary can
 admit, commit, approve, elevate, recover, undo, redo, or publish graph truth.
 
-### Phase 8: Stage And Subartifact Reuse
+### Phase 7: Stage And Subartifact Reuse
 
 **Requirement**
 
@@ -668,21 +525,19 @@ certification meaning.
 - stage/subartifact identity and semantic equivalence;
 - consumer-purpose-aware substitution;
 - dependency and provider compatibility;
-- exact branch compatibility, with cross-branch reuse denied unless a future
-  semantic-merge authority explicitly establishes lawful equivalence;
 - shared execution ownership and consumer leases;
 - incremental maintenance, eviction, rebuild, and disposal;
 - retained resource and fan-out accounting; and
 - denial when exact, independent, or observational occurrence requirements
   prohibit reuse.
 
-**Proof before Phase 9**
+**Proof before Phase 8**
 
 Equivalent consumers share one eligible execution, leases dispose exactly,
 stale dependencies invalidate reuse, and cache hits cannot manufacture a new
 production or independent-certification occurrence.
 
-### Phase 9: Reference-Domain Adoption
+### Phase 8: Reference-Domain Adoption
 
 **Requirement**
 
@@ -732,13 +587,13 @@ multi-site evidence.
 - governed decisions and summaries; and
 - reuse denial where observation independence matters.
 
-**Proof before Phase 10**
+**Proof before Phase 9**
 
 All four consumers use only public Query facades, retain their domain
 vocabulary locally, and delete the local index, footprint, batch, decision, and
 reuse workarounds replaced by Query.
 
-### Phase 10: Additive Facade And Documentation Cutover
+### Phase 9: Additive Facade And Documentation Cutover
 
 **Requirement**
 
@@ -751,15 +606,14 @@ surface.
 - facade snapshots for declarations and hosts;
 - public feature documents for access products, footprints, paths, bulk
   execution, decisions, reuse, installed-query search, capability-preserving
-  strategy admission, per-branch MVCC execution, advanced aftermath, and the
-  explicit cross-runtime ownership boundary for branch creation, merge,
-  branch-shaped history, and branch-aware aftermath;
+  strategy admission, advanced aftermath, and the explicit cross-runtime
+  ownership boundary for all branch-aware aftermath;
 - `AI_README.md` links and runtime mental-model updates;
 - support and explanation rows matching executable behavior;
 - migration guidance and workaround deletion; and
 - permanent dependency and residue fences.
 
-**Proof before Phase 11**
+**Proof before Phase 10**
 
 Reference domains compile and operate through the same ordinary facade shape as
 the Milestone 9.16 bank world. Capability discovery does not require internal
@@ -767,7 +621,7 @@ module names, registry keys, transport names, or string identifiers, and
 advanced strategy selection never changes the query's authorization,
 disclosure, basis, cursor, recovery, or aftermath meaning.
 
-### Phase 11: Provider-Independent Hostile Certification
+### Phase 10: Provider-Independent Hostile Certification
 
 **Requirement**
 
@@ -784,8 +638,6 @@ trusting the provider's implementation or receipts.
 - governance/redaction adversaries;
 - capability, purpose, disclosure, conflict-of-interest, break-glass, cursor,
   recovery, and aftermath adversaries across every advanced strategy;
-- equal-version cross-branch substitution, same-branch writer conflict, and
-  independently blocked cross-branch writer adversaries;
 - reuse/occurrence/reproducibility matrices;
 - serial, chunked, yielded, partitioned, and alternate-provider parity;
 - compile-fail, facade, prohibition, residue, sabotage, boundary, and context
@@ -905,11 +757,6 @@ Advanced capability is valuable only if it lowers total honest cost.
   fallback, edge-scan, memory, or live-maintenance counters.
 - Warm tests for one changed declaration, one changed operation, and one changed
   provider adapter remain explicit owner targets.
-- Branch-head probes, same-branch comparison work, branch-local coordinator
-  waits, retained snapshots, and commits are counted per branch. A blocked
-  writer on branch A must contribute zero coordination wait or provider work to
-  an admissible writer on branch B; a global commit-lock acquisition count is
-  forbidden on the ordinary path.
 
 No counter derived from requested work or returned rows may stand in for actual
 provider work.
@@ -921,8 +768,6 @@ provider work.
 - canonical installed application-query identity, Query-owned continuation,
   explicit basis, capability, purpose, field disclosure, governed elevation,
   actionable recovery, and linear aftermath from Milestone 9.16;
-- typed branch affinity from Milestone 9.16.1 across every plan, session,
-  read-set, proposal, invariant, retry, recovery, aftermath, and receipt;
 - Milestone 9.15 artifact, occurrence, resource, provider-session, read-set,
   proposed-state, and invariant authority;
 - one installed operating-world root;
@@ -943,11 +788,10 @@ provider work.
 - caller-managed access caches;
 - distributed transaction protocols;
 - durable recovery or restart semantics;
-- semantic branch creation/deletion policy, merge, rebase, cherry-pick,
-  merge-conflict resolution, branch-local inversion, and branch- or
-  tree-shaped undo/redo navigation. These belong to the cross-runtime
-  merging-and-branching roadmap; the per-branch MVCC foundation here neither
-  implements nor creates Query authority for them;
+- branch-aware governed conflict resolution, branch-local inversion, and any
+  branch- or tree-shaped undo/redo navigation. These belong to the cross-runtime
+  merging-and-branching roadmap; Milestone 9.17 creates no placeholder
+  topology or support posture for them;
 - treating decision attachments as workflow approvals; or
 - accepting a provider's receipt as independent proof.
 
@@ -955,14 +799,6 @@ provider work.
 
 Milestone 9.17 closes only when:
 
-- two equal-version branches retain distinct snapshot, read-set, proposal,
-  invariant, idempotency, recovery, and receipt authority;
-- a deliberately blocked real-provider writer on one branch cannot prevent an
-  admissible writer on another branch from committing, while a same-branch
-  race produces exactly one head advance and one typed stale/conflict outcome;
-- independent Relational head, journal, snapshot, transaction, coordinator,
-  and lifecycle observations prove per-branch MVCC without trusting Query or
-  provider receipts;
 - access-product lifecycle and memory are independently observed;
 - advanced search remains one installed application query and preserves exact
   capability, purpose, basis, disclosure, ordering, cursor, and result-shape
@@ -992,13 +828,6 @@ Milestone 9.17 closes only when:
   agree.
 
 ## Handoff
-
-The cross-runtime merging-and-branching roadmap may consume Relational's proved
-branch-local heads, snapshots, conflicts, and concurrent-writer mechanics. It
-must add semantic branch creation, references, merge, rebase, branch-shaped
-aftermath, and conflict-resolution authority above that foundation rather than
-moving MVCC truth into Query or treating branch-qualified Query receipts as
-merge authority.
 
 Milestone 13 consumes the generic and domain-computation certification oracles
 from Milestones 9.15 through 9.17 and proves provider parity across the completed

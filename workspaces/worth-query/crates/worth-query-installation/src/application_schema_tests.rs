@@ -18,8 +18,6 @@ use crate::facade::{
     WorthQueryPortableDomainPackage,
 };
 
-mod capability_operation_contracts;
-mod graph_obligation_semantics;
 mod operation_contracts;
 mod package_schema_identity;
 mod read_only_operations;

@@ -1,12 +1,17 @@
 use sha2::{Digest, Sha256};
+use worth_foundational::facade::CanonicalDigestId;
 
 pub(super) fn digest_hash_parts(parts: &[String]) -> String {
+    canonical_hash_parts(parts).render_hex()
+}
+
+pub(crate) fn canonical_hash_parts(parts: &[String]) -> CanonicalDigestId {
     let mut hasher = Sha256::new();
     for part in parts {
         hasher.update(part.as_bytes());
         hasher.update([0x1f]);
     }
-    format!("{:x}", hasher.finalize())
+    CanonicalDigestId::new(hasher.finalize().into())
 }
 
 pub(crate) fn hash_parts(parts: &[String]) -> String {

@@ -27,12 +27,8 @@ static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 pub(in crate::domain_computation) struct WorthQueryOperationAdmissionIdentity(u64);
 
 impl WorthQueryOperationAdmissionIdentity {
-    pub(super) fn mint() -> Option<Self> {
+    fn mint() -> Option<Self> {
         Self::mint_from(&NEXT_OPERATION_ADMISSION_IDENTITY)
-    }
-
-    pub(super) fn resource_binding_identity(&self) -> Arc<str> {
-        Arc::from(format!("worth-query-application-admission:{}", self.0))
     }
 
     fn mint_from(counter: &AtomicU64) -> Option<Self> {
@@ -71,6 +67,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     operation: String,
     operation_authority_identity: Arc<str>,
     admission_identity: WorthQueryOperationAdmissionIdentity,
+    resource_binding_identity: Arc<str>,
     operation_scope_binding: WorthQueryOperationScopeBinding,
     canonical_work: WorthQueryCanonicalWorkPhases,
     scope_entity_id: worth_relational::facade::identity::EntityId,
@@ -82,7 +79,6 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     mutation_preconditions: WorthQueryBoundMutationPreconditions,
     authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
     authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
-    graph_work_session: Option<super::WorthQueryOperationGraphWorkSession>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
 
@@ -90,7 +86,6 @@ impl<Schema, Operation, Input, Scope>
     WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>
 {
     pub(super) fn mint(
-        admission_identity: WorthQueryOperationAdmissionIdentity,
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         operation: String,
@@ -106,20 +101,25 @@ impl<Schema, Operation, Input, Scope>
         authorization_admission_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
         authorization: WorthQueryRetainedAuthorizationDecisionFacts,
         authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
-        graph_work_session: super::WorthQueryOperationGraphWorkSession,
-    ) -> Self {
+    ) -> Result<Self, ()> {
+        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or(())?;
+        let resource_binding_identity = Arc::<str>::from(format!(
+            "worth-query-application-admission:{}",
+            admission_identity.0
+        ));
         let canonical_work = WorthQueryCanonicalWorkPhases::new(
             contracts.canonical_work(),
             mutation_preconditions
                 .canonical_work()
                 .combine(authorization_admission_work),
         );
-        Self {
+        Ok(Self {
             runtime_authority,
             binding_identity,
             operation,
             operation_authority_identity: operation_authority_identity.into(),
             admission_identity,
+            resource_binding_identity,
             operation_scope_binding,
             canonical_work,
             scope_entity_id,
@@ -131,9 +131,8 @@ impl<Schema, Operation, Input, Scope>
             mutation_preconditions,
             authorization: Some(authorization),
             authorization_basis,
-            graph_work_session: Some(graph_work_session),
             _marker: PhantomData,
-        }
+        })
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {
@@ -317,6 +316,14 @@ impl<Schema, Operation, Input, Scope>
         &self.operation_authority_identity
     }
 
+    pub(in crate::domain_computation) fn retain_installed_operation_fingerprint(&self) -> Arc<str> {
+        Arc::clone(&self.operation_authority_identity)
+    }
+
+    pub(in crate::domain_computation) fn retain_resource_binding_identity(&self) -> Arc<str> {
+        Arc::clone(&self.resource_binding_identity)
+    }
+
     /// Revalidates the time and cancellation authority carried from the exact
     /// authentication request that minted this operation admission.
     ///
@@ -351,30 +358,6 @@ impl<Schema, Operation, Input, Scope>
     /// so an equivalent authorized retry can retain one idempotency intent.
     pub const fn operation_scope_binding(&self) -> &WorthQueryOperationScopeBinding {
         &self.operation_scope_binding
-    }
-
-    pub(in crate::domain_computation) fn graph_work_session(
-        &self,
-    ) -> &super::WorthQueryOperationGraphWorkSession {
-        self.graph_work_session
-            .as_ref()
-            .expect("an admitted operation retains graph work until phase progression")
-    }
-
-    pub(in crate::domain_computation) fn graph_work_session_mut(
-        &mut self,
-    ) -> &mut super::WorthQueryOperationGraphWorkSession {
-        self.graph_work_session
-            .as_mut()
-            .expect("an admitted operation retains graph work until phase progression")
-    }
-
-    pub(in crate::domain_computation) fn take_graph_work_session(
-        &mut self,
-    ) -> super::WorthQueryOperationGraphWorkSession {
-        self.graph_work_session
-            .take()
-            .expect("graph-work progression is linear and can be consumed only once")
     }
 }
 

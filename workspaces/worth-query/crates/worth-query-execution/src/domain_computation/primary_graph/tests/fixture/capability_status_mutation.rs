@@ -43,10 +43,7 @@ pub(in crate::domain_computation::primary_graph) fn revoke_current_capability(
             )),
         ));
         transaction.commit().unwrap();
-        let branch = runtime.config().history.main_branch.clone();
-        handle
-            .ensure_primary_indexes_current(runtime, &branch)
-            .unwrap();
+        handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }
 

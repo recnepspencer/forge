@@ -3,13 +3,10 @@ use super::*;
 struct ReadTestSchema;
 struct ReadOnlyOperation;
 struct ReadOnlyInput;
-struct PrincipalReadOperation;
-struct PrincipalReadInput;
 struct EmptyOperation;
 struct EmptyInput;
 
 impl OperationReads<ReadOnlyOperation> for PrincipalIdentityField {}
-impl OperationReads<PrincipalReadOperation> for PrincipalIdentityField {}
 impl OperationRequiresAbility<ReadOnlyOperation> for TestAbility {}
 impl OperationRequiresAbility<EmptyOperation> for TestAbility {}
 
@@ -31,11 +28,6 @@ impl ApplicationSchema for ReadTestSchema {
             ApplicationOperationRef::<Self, EmptyOperation, EmptyInput>::from_schema_identifier(
                 "EmptyOperation",
             );
-        let principal_read = ApplicationOperationRef::<
-            Self,
-            PrincipalReadOperation,
-            PrincipalReadInput,
-        >::from_schema_identifier("PrincipalReadOperation");
         let ability =
             ApplicationAbilityRef::<Self, TestAbility, TestEntity>::from_schema_identifiers(
                 "TestAbility",
@@ -48,25 +40,6 @@ impl ApplicationSchema for ReadTestSchema {
             .operation_requires_ability(read, ability)
             .operation_read_field(
                 read,
-                ApplicationFieldRef::<
-                    Self,
-                    TestEntity,
-                    IdentityAspect,
-                    PrincipalIdentityField,
-                    u64,
-                    ReadOnly,
-                    EqualityPredicate,
-                >::from_schema_identifiers(
-                    "TestEntity",
-                    "IdentityAspect",
-                    "PrincipalIdentityField",
-                ),
-            )
-            .operation(principal_read)
-            .operation_decision_fact_budget(principal_read, 1)
-            .operation_projection_work_budget(principal_read, 16)
-            .operation_read_field(
-                principal_read,
                 ApplicationFieldRef::<
                     Self,
                     TestEntity,
@@ -121,65 +94,6 @@ fn read_only_operation_installs_without_an_effect_program() {
         installed.contracts().invariant_execution(),
         crate::facade::WorthQueryInvariantExecutionContract::NotRequired
     ));
-    let kinds = installed
-        .contracts()
-        .obligations()
-        .rows()
-        .iter()
-        .map(crate::facade::WorthQueryInstalledGraphObligation::kind)
-        .collect::<Vec<_>>();
-    assert_eq!(
-        kinds,
-        [
-            crate::facade::WorthQueryInstalledGraphObligationKind::GraphRead,
-            crate::facade::WorthQueryInstalledGraphObligationKind::AuthorizationObservation,
-        ]
-    );
-    let read_lookup = installed
-        .contracts()
-        .obligations()
-        .inspect_kind(crate::facade::WorthQueryInstalledGraphObligationKind::GraphRead);
-    assert_eq!(read_lookup.selector_index_probes(), 1);
-    assert_eq!(read_lookup.rows().len(), 1);
-    assert_eq!(read_lookup.canonical_work().digest_derivations(), 0);
-    let mutation_lookup = installed
-        .contracts()
-        .obligations()
-        .inspect_kind(crate::facade::WorthQueryInstalledGraphObligationKind::MutationTouch);
-    assert_eq!(mutation_lookup.selector_index_probes(), 1);
-    assert!(mutation_lookup.rows().is_empty());
-}
-
-#[test]
-fn principal_authorization_installs_its_exact_relational_route() {
-    let index = installed_read_index();
-    let schema = index
-        .bind_application_schema(ReadTestSchema::declaration().unwrap())
-        .unwrap();
-    let installed = schema
-        .installed_operation(ApplicationOperationRef::<
-            ReadTestSchema,
-            PrincipalReadOperation,
-            PrincipalReadInput,
-        >::from_schema_identifier("PrincipalReadOperation"))
-        .unwrap();
-    let authorization = installed.contracts().obligations().inspect_kind(
-        crate::facade::WorthQueryInstalledGraphObligationKind::AuthorizationObservation,
-    );
-    let [authorization] = authorization.rows() else {
-        panic!("principal authorization must install one obligation");
-    };
-    assert!(matches!(
-        authorization.authorization_requirement(),
-        Some(crate::facade::WorthQueryInstalledGraphAuthorizationRequirement::Principal)
-    ));
-    assert_eq!(
-        authorization.owner_progression(),
-        [
-            crate::facade::WorthQueryInstalledGraphObligationOwner::Relational,
-            crate::facade::WorthQueryInstalledGraphObligationOwner::QueryAdmission,
-        ]
-    );
 }
 
 #[test]

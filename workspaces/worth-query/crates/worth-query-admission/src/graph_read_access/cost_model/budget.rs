@@ -3,7 +3,7 @@ use crate::admission_digest::hash_parts;
 
 pub(crate) const DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES: usize = 5120;
 pub(crate) const DEFAULT_INLINE_EPHEMERAL_RESULT_BYTES: usize = 2048;
-pub(crate) const DEFAULT_INLINE_EPHEMERAL_INTERMEDIATE_SET_SIZE: usize = 16;
+pub(crate) const DEFAULT_INLINE_EPHEMERAL_INTERMEDIATE_SET_SIZE: usize = 512;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphReadBudgetDigest(String);

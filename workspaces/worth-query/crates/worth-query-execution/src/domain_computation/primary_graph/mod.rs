@@ -1,5 +1,6 @@
 mod aggregate_projection;
 mod application_attempt;
+mod application_branch;
 mod application_query;
 mod application_runtime;
 mod authenticated_principal;
@@ -29,17 +30,12 @@ mod typed_bootstrap;
 mod tests;
 
 pub use crate::domain_computation::authorization::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
-    WorthQueryOperationScopeEntityBinding, WorthQueryPreparedApplicationCapabilityAccess,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
 };
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
-};
-pub(in crate::domain_computation) use application_attempt::{
-    application_resource_request, snapshot_lease::WorthQueryApplicationSnapshotLease,
-    WorthQueryOperationEffectApplicationCompletion, WorthQueryOperationGraphReadCompletion,
-    WorthQueryOperationInvariantExecutionCompletion, WorthQueryOperationMutationTouchCompletion,
 };
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
@@ -47,15 +43,13 @@ pub use application_attempt::{
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectEntity,
     WorthQueryApplicationEffectProgram, WorthQueryApplicationEffectProgramBuilder,
-    WorthQueryApplicationGraphWorkReceipt, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryApplicationIdempotencyResolution, WorthQueryApplicationIdempotencyResolutionDenial,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationIdempotencyResolution,
+    WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind, WorthQueryApplicationReadAttempt,
     WorthQueryApplicationStaleAttempt, WorthQueryCompleteApplicationReadSet,
     WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
 };
-pub(in crate::domain_computation) use application_query::graph_read_completion::WorthQueryApplicationQueryGraphReadCompletion;
-pub(in crate::domain_computation) use application_query::resource_lifecycle::WorthQueryApplicationBasisLease;
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
     WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
@@ -115,8 +109,8 @@ pub use invariant_projection::{
     WorthQueryApplicationInvariantProjectionAuthority,
     WorthQueryApplicationInvariantProjectionReader,
     WorthQueryApplicationInvariantProjectionSnapshot,
-    WorthQueryApplicationOperationInvariantProjectionEvidence,
     WorthQueryApplicationOperationInvariantProjectionReader,
+    WorthQueryApplicationOperationInvariantProjectionSnapshot,
     WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
     WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,

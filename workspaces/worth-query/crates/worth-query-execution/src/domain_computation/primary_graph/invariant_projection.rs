@@ -3,7 +3,6 @@ mod locked_reader;
 mod operation_projection_denial;
 mod operation_reader;
 mod realized_scope;
-mod session_projection;
 mod traversal;
 mod work;
 
@@ -35,8 +34,8 @@ pub use operation_projection_denial::{
     WorthQueryOperationProjectionDenial, WorthQueryOperationProjectionDenialKind,
 };
 pub use operation_reader::{
-    WorthQueryApplicationOperationInvariantProjectionEvidence,
     WorthQueryApplicationOperationInvariantProjectionReader,
+    WorthQueryApplicationOperationInvariantProjectionSnapshot,
     WorthQueryCompletedOperationInvariantProjection,
     WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantDecisionPlanDenial,
     WorthQueryInvariantDecisionPlanDenialKind,
@@ -65,7 +64,10 @@ pub struct WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
     graph: WorthQueryPrimaryGraphIntegrationHandle,
     layout: Arc<WorthQueryPrimaryGraphLayout>,
     snapshot: Option<worth_relational::facade::snapshots::SnapshotHandle>,
+    runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+    binding_identity: ApplicationSchemaBindingIdentity,
     authority_identity: u64,
+    realized_scope: WorthQueryRealizedProjectionScope,
     _schema: PhantomData<fn() -> Schema>,
 }
 
@@ -123,7 +125,10 @@ where
             graph: self.graph.clone(),
             layout: Arc::clone(&self.layout),
             snapshot: Some(snapshot),
+            runtime_authority: self.runtime_authority,
+            binding_identity: self.binding_identity.clone(),
             authority_identity: self.authority_identity,
+            realized_scope: WorthQueryRealizedProjectionScope::default(),
             _schema: PhantomData,
         }
     }
@@ -226,6 +231,38 @@ where
                 })
                 .collect()
         })
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn belongs_to(
+        &self,
+        runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+    ) -> bool {
+        self.runtime_authority == runtime_authority && &self.binding_identity == binding_identity
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn into_lease(
+        mut self,
+    ) -> super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease {
+        let snapshot = self
+            .snapshot
+            .take()
+            .expect("projection snapshot remains live until consumed");
+        super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease::from_existing(
+            self.graph.clone(),
+            Arc::clone(&self.layout),
+            snapshot,
+        )
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn into_lease_and_realized_scope(
+        mut self,
+    ) -> (
+        super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease,
+        WorthQueryRealizedProjectionScope,
+    ) {
+        let realized_scope = std::mem::take(&mut self.realized_scope);
+        (self.into_lease(), realized_scope)
     }
 
     fn snapshot(&self) -> &worth_relational::facade::snapshots::SnapshotHandle {

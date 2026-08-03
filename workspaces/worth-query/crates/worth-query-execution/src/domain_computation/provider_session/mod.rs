@@ -2,7 +2,6 @@ mod attempt_evidence;
 mod decision_read_set;
 mod direct_attempt;
 mod execution_attempt_identity;
-mod graph_obligation;
 pub(crate) mod graph_provider;
 mod protocol;
 mod provisional_attempt;
@@ -16,7 +15,6 @@ pub use direct_attempt::{
     WorthQueryDirectExecutionAttemptReleaseReceipt, WorthQueryDirectExecutionResourceAttempt,
 };
 pub use execution_attempt_identity::WorthQueryExecutionAttemptIdentity;
-pub(in crate::domain_computation) use graph_obligation::*;
 pub use graph_provider::*;
 pub use protocol::*;
 pub use provisional_attempt::*;

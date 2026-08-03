@@ -121,7 +121,7 @@ fn append_mask<Mode>(
     }
 }
 
-pub(super) const fn disclosure_name(value: ApplicationQueryDisclosurePosture) -> &'static str {
+const fn disclosure_name(value: ApplicationQueryDisclosurePosture) -> &'static str {
     match value {
         ApplicationQueryDisclosurePosture::Public => "public",
         ApplicationQueryDisclosurePosture::InstalledPolicyRequired => "installed-policy",

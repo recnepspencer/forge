@@ -78,10 +78,9 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             .runtime
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let branch = runtime.config().history.main_branch.clone();
-        let previous = runtime.history().branch_head(&branch).cloned();
+        let previous = runtime.history().latest_commit().cloned();
         let outcome = mutate(&mut runtime);
-        let committed = runtime.history().branch_head(&branch).cloned();
+        let committed = runtime.history().latest_commit().cloned();
         if previous == committed {
             return Ok(outcome);
         }

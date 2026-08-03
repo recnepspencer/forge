@@ -18,7 +18,6 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     DuplicateEffectKey,
     RetainedEffectBytesExceeded,
     IncompleteEffectBasis,
-    GraphWorkProgressionDenied,
 }
 
 #[derive(Debug)]

@@ -2,8 +2,7 @@ use worth_query_admission::facade::authenticated_principal::WorthQueryRequestSco
 
 use super::fixture::{
     Account, AccountLabel, AccountStatus, AuthorizationWorld, IdentityExecutionSchema,
-    LiveActivityEffect, LiveActivityEvent, Principal, PublishLiveActivityInput,
-    PublishLiveActivityOperation,
+    LiveActivityEffect, LiveActivityEvent, Principal, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
@@ -42,14 +41,14 @@ fn live_activity_program(
     request: &WorthQueryRequestScope,
 ) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
     IdentityExecutionSchema,
-    PublishLiveActivityOperation,
-    PublishLiveActivityInput,
+    TouchAccountOperation,
+    super::fixture::TouchAccountInput,
     Account,
 > {
     let operation = world
         .application
         .installed_schema()
-        .installed_operation(PublishLiveActivityOperation::reference())
+        .installed_operation(TouchAccountOperation::reference())
         .unwrap();
     let admission = world
         .application

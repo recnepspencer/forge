@@ -32,22 +32,6 @@ impl WorthQueryPendingApplicationQueryGovernance {
             authorization,
         }
     }
-
-    pub(in crate::domain_computation::primary_graph::application_query) fn into_parts(
-        self,
-    ) -> (
-        String,
-        String,
-        AspectValue,
-        WorthQueryRetainedCapabilityAuthorization,
-    ) {
-        (
-            self.capability_name,
-            self.capability_type,
-            self.disclosure_value,
-            self.authorization,
-        )
-    }
 }
 
 pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationInternalComputationAuthority
@@ -227,6 +211,15 @@ impl WorthQueryApplicationQueryGovernance {
                 .omission(slot)
                 .map(|value| (disclosure.classification.as_str(), value))
         })
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_query) fn authorization_mut(
+        &mut self,
+    ) -> Option<&mut WorthQueryRetainedCapabilityAuthorization> {
+        match self {
+            Self::Public => None,
+            Self::Governed { authorization, .. } => Some(authorization),
+        }
     }
 
     pub(in crate::domain_computation::primary_graph::application_query) fn authorization(

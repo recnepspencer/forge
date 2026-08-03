@@ -1,7 +1,7 @@
 use super::{authenticated_principal, installed_authorization_world, live_scope, resolved_account};
 use crate::domain_computation::primary_graph::WorthQueryApplicationAttemptDenialKind;
 
-use super::super::fixture::{AccountLabel, TouchAccountOperation};
+use super::super::fixture::{AccountLabel, MultiTouchOperation};
 
 #[test]
 fn projection_capability_does_not_widen_the_installed_decision_manifest() {
@@ -12,7 +12,7 @@ fn projection_capability_does_not_widen_the_installed_decision_manifest() {
     let operation = world
         .application
         .installed_schema()
-        .installed_operation(TouchAccountOperation::reference())
+        .installed_operation(MultiTouchOperation::reference())
         .unwrap();
     let admission = world
         .application

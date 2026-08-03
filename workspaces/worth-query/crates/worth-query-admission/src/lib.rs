@@ -12,7 +12,6 @@ mod application_query;
 mod authenticated_principal;
 mod canonical_identity_derivation;
 mod domain_computation;
-mod graph_obligation;
 mod graph_read_access;
 
 pub mod facade;
@@ -24,14 +23,5 @@ pub mod integration {
         reserve_workflow_resource_plan, WorthQueryCapacityReservedExecutionResourcePlan,
         WorthQueryCapacityReservedWorkflowResourcePlan, WorthQueryExecutionCapacityReleaseReceipt,
         WorthQueryExecutionCapacityReservationScope,
-    };
-    pub use crate::graph_obligation::{
-        admit_application_operation_graph_work, admit_application_query_graph_work,
-        require_selected_graph_work, review_application_query_graph_work,
-        select_installed_graph_obligations, WorthQueryAdmittedGraphWorkPlan,
-        WorthQueryRequiredGraphWork, WorthQueryReviewedApplicationQueryGraphWork,
-    };
-    pub use crate::graph_read_access::plan_review::{
-        review_graph_read_access, WorthQueryGraphReadPlanReviewParts,
     };
 }

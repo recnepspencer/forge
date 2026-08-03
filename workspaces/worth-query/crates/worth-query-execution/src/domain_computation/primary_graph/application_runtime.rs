@@ -45,10 +45,6 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
     pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
-    pub(in crate::domain_computation) branch_affinity:
-        crate::domain_computation::provider_session::WorthQueryGraphWorkBranchAffinity,
-    pub(in crate::domain_computation) graph_admission_authority:
-        worth_query_installation::facade::WorthQueryInstalledGraphAdmissionAuthority,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     pub(super) primary_graph_authority:
@@ -97,13 +93,9 @@ where
             .retain_primary_graph_integration_handle()
             .expect("publishing the primary graph installs its integration authority");
         let relational_source = graph.relational_bridge_source();
-        let branch_affinity = graph.with_runtime(
-            crate::domain_computation::provider_session::WorthQueryGraphWorkBranchAffinity::from_installed_runtime,
-        );
         let bridge = super::managed_bridge::install_application_bridge(
             &installed_schema,
             relational_source.clone(),
-            branch_affinity.truth_branch().clone(),
         )?;
         let (provider_anchor, primary_provider) = WorthQueryPrimaryGraphProvider::install(graph);
         let primary_graph_authority =
@@ -121,7 +113,6 @@ where
                     detail,
                 )
             })?;
-        let graph_admission_authority = authority.into_graph_admission_authority();
         Ok(WorthQueryPrimaryGraphApplicationRuntime {
             runtime,
             installed_schema,
@@ -129,8 +120,6 @@ where
             authorization,
             authorization_clock: WorthQueryAuthorizationClock::system(),
             relational_source,
-            branch_affinity,
-            graph_admission_authority,
             bridge,
             primary_provider,
             primary_graph_authority,
@@ -151,31 +140,6 @@ where
 
     pub fn publication(&self) -> &WorthQueryPrimaryGraphPublication {
         &self.publication
-    }
-
-    pub(in crate::domain_computation) fn graph_work_resource_support(
-        &self,
-    ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupportSnapshot
-    {
-        self.primary_provider.application_resource_support()
-    }
-
-    pub(in crate::domain_computation) const fn branch_affinity(
-        &self,
-    ) -> &crate::domain_computation::provider_session::WorthQueryGraphWorkBranchAffinity {
-        &self.branch_affinity
-    }
-
-    pub(in crate::domain_computation) const fn graph_admission_authority(
-        &self,
-    ) -> &worth_query_installation::facade::WorthQueryInstalledGraphAdmissionAuthority {
-        &self.graph_admission_authority
-    }
-
-    pub(in crate::domain_computation) const fn graph_work_provider_authority(
-        &self,
-    ) -> &worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority {
-        &self.primary_graph_authority
     }
 
     pub fn result_buffer_observer(

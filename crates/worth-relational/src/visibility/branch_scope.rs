@@ -6,6 +6,14 @@ pub(crate) fn authoritative_branch_for_version(
     runtime: &RelationalRuntime,
     version_id: VersionId,
 ) -> BranchId {
+    branch_for_version(runtime, version_id)
+        .expect("every visible Relational version has authoritative branch identity")
+}
+
+pub(crate) fn branch_for_version(
+    runtime: &RelationalRuntime,
+    version_id: VersionId,
+) -> Option<BranchId> {
     runtime
         .history()
         .committed_version(version_id)
@@ -13,5 +21,4 @@ pub(crate) fn authoritative_branch_for_version(
         .or_else(|| {
             (version_id == VersionId(0)).then(|| runtime.config().history.main_branch.clone())
         })
-        .expect("every visible Relational version has authoritative branch identity")
 }

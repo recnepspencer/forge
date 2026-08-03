@@ -38,7 +38,8 @@ pub struct WorthQueryApplicationBasisObservation {
     acquisitions: usize,
 }
 
-pub(in crate::domain_computation) struct WorthQueryApplicationBasisLease {
+pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationBasisLease
+{
     lease: Option<RelationalExecutionBasisLease>,
     preview_session_liveness: Option<BridgePreviewSessionLivenessObserver>,
     state: Arc<WorthQueryApplicationBasisRegistryState>,
@@ -94,7 +95,7 @@ impl WorthQueryApplicationBasisObservation {
 }
 
 impl WorthQueryApplicationBasisLease {
-    pub(in crate::domain_computation) fn bind_preview_session(
+    pub(in crate::domain_computation::primary_graph::application_query) fn bind_preview_session(
         mut self,
         liveness: BridgePreviewSessionLivenessObserver,
     ) -> Self {
@@ -102,7 +103,7 @@ impl WorthQueryApplicationBasisLease {
         self
     }
 
-    pub(in crate::domain_computation) fn preview_session_liveness(
+    pub(in crate::domain_computation::primary_graph::application_query) fn preview_session_liveness(
         &self,
     ) -> Option<&BridgePreviewSessionLivenessObserver> {
         self.preview_session_liveness.as_ref()

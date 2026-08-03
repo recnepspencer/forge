@@ -285,6 +285,7 @@ use runtime_authoritative_mutation_routing::{
     WorthQueryAuthoritativeMutationExecutionEvidence, WorthQueryAuthoritativeMutationRoutingInput,
     WorthQueryPreparedAuthoritativeMutationRouting,
 };
+mod bridge_async_live_view_declaration;
 mod runtime_batch_write_entrypoints;
 mod runtime_batch_write_intents;
 mod runtime_batch_writes;

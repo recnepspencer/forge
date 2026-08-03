@@ -8,7 +8,7 @@ use bank_domain::proposals::{BankInvariantApprovedProposal, BankProposalDenial};
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationIdempotencyResolutionDenialKind,
-    WorthQueryApplicationOperationInvariantProjectionEvidence, WorthQueryInvariantProjectionWork,
+    WorthQueryApplicationOperationInvariantProjectionSnapshot, WorthQueryInvariantProjectionWork,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryOperationProjectionDenial, WorthQueryOperationProjectionDenialKind,
 };
@@ -90,7 +90,7 @@ impl std::error::Error for BankOperationProposalError {}
 pub struct BankAuthorizedProposal<Operation, Input, Scope, ScopeIdentity> {
     admission: BankAdmittedOperation<Operation, Input, Scope, ScopeIdentity>,
     invariant: BankInvariantApprovedProposal,
-    projection: WorthQueryApplicationOperationInvariantProjectionEvidence<BankSchema, Operation>,
+    projection: WorthQueryApplicationOperationInvariantProjectionSnapshot<BankSchema, Operation>,
     projection_work: WorthQueryInvariantProjectionWork,
 }
 
@@ -100,7 +100,7 @@ impl<Operation, Input, Scope, ScopeIdentity>
     pub(crate) const fn new_bounded(
         admission: BankAdmittedOperation<Operation, Input, Scope, ScopeIdentity>,
         invariant: BankInvariantApprovedProposal,
-        projection: WorthQueryApplicationOperationInvariantProjectionEvidence<
+        projection: WorthQueryApplicationOperationInvariantProjectionSnapshot<
             BankSchema,
             Operation,
         >,
@@ -133,7 +133,7 @@ impl<Operation, Input, Scope, ScopeIdentity>
     ) -> (
         BankAdmittedOperation<Operation, Input, Scope, ScopeIdentity>,
         BankInvariantApprovedProposal,
-        WorthQueryApplicationOperationInvariantProjectionEvidence<BankSchema, Operation>,
+        WorthQueryApplicationOperationInvariantProjectionSnapshot<BankSchema, Operation>,
     ) {
         (self.admission, self.invariant, self.projection)
     }

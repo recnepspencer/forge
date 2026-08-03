@@ -69,42 +69,6 @@ impl WorthQueryApplicationAuthorizationWorkEvidence {
         self.requirement_count
     }
 
-    pub(super) fn combine(self, other: Self) -> Self {
-        Self {
-            requirement_count: self
-                .requirement_count
-                .saturating_add(other.requirement_count),
-            paths_evaluated: self.paths_evaluated.saturating_add(other.paths_evaluated),
-            adjacency_lists_read: self
-                .adjacency_lists_read
-                .saturating_add(other.adjacency_lists_read),
-            adjacency_edges_inspected: self
-                .adjacency_edges_inspected
-                .saturating_add(other.adjacency_edges_inspected),
-            relation_records_inspected: self
-                .relation_records_inspected
-                .saturating_add(other.relation_records_inspected),
-            entity_records_inspected: self
-                .entity_records_inspected
-                .saturating_add(other.entity_records_inspected),
-            predicate_fields_inspected: self
-                .predicate_fields_inspected
-                .saturating_add(other.predicate_fields_inspected),
-            maximum_frontier_width: self
-                .maximum_frontier_width
-                .max(other.maximum_frontier_width),
-            reconstructive_graph_scans: self
-                .reconstructive_graph_scans
-                .saturating_add(other.reconstructive_graph_scans),
-            reconstructive_relation_records_scanned: self
-                .reconstructive_relation_records_scanned
-                .saturating_add(other.reconstructive_relation_records_scanned),
-            signal_dependency_count: self
-                .signal_dependency_count
-                .saturating_add(other.signal_dependency_count),
-        }
-    }
-
     pub const fn paths_evaluated(self) -> usize {
         self.paths_evaluated
     }

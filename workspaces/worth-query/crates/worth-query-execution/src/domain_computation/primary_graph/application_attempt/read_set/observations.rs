@@ -39,7 +39,6 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Entity {
-                branch_id: self.graph_lease().snapshot().branch_id.clone(),
                 target,
                 entity_id: identity.entity_id(),
                 kind: identity.entity_kind(),
@@ -75,12 +74,12 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.admit_fact_key(&key)?;
         self.validate_identity_freshness(field.entity(), identity)?;
         let value = self
-            .graph_lease()
+            .lease
             .handle()
             .with_runtime(|runtime| {
                 observe_field_value(
                     runtime,
-                    self.graph_lease().snapshot(),
+                    self.lease.snapshot(),
                     identity.entity_id(),
                     identity.entity_kind(),
                     &graph_layout,
@@ -101,7 +100,6 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Field {
-                branch_id: self.graph_lease().snapshot().branch_id.clone(),
                 target,
                 entity_id: identity.entity_id(),
                 kind: identity.entity_kind(),
@@ -150,10 +148,10 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.admit_fact_key(&key)?;
         self.validate_identity_freshness(relation.from(), from)?;
         self.validate_identity_freshness(relation.to(), to)?;
-        let matching_relations = self.graph_lease().handle().with_runtime(|runtime| {
+        let matching_relations = self.lease.handle().with_runtime(|runtime| {
             exact_relations(
                 runtime,
-                self.graph_lease().snapshot(),
+                self.lease.snapshot(),
                 layout.kind,
                 from.entity_id(),
                 to.entity_id(),
@@ -170,7 +168,6 @@ impl<Schema, Operation, Input, Scope, Phase>
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Relation {
-                branch_id: self.graph_lease().snapshot().branch_id.clone(),
                 target,
                 relation_kind: layout.kind,
                 from: from.entity_id(),

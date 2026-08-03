@@ -17,7 +17,11 @@ milestone and block unfinished dependents; they do not relabel completed rows.
 Milestone 9.16.1 adds the canonical graph-obligation and provider-session
 prerequisite discovered after Phase 7.2. The `R7.*` and `Q7.*` statuses below
 remain the historical Phase 7 record. Phase 7.3 cannot begin until the separate
-9.16.1 closure ledger is complete.
+9.16.1 closure ledger is complete. That prerequisite migrates only the exact
+competing authority surfaces with downstream parity; it preserves the Phase 6
+feature contracts and the proved 7.1-7.2 lower-owner meaning. Phase 7.3 receives
+the same application-query identities, lane semantics, and public front door
+with a single session-bound graph authority, not a replacement Query product.
 
 ## Requirement ledger
 

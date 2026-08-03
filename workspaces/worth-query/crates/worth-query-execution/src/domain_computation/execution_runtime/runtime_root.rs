@@ -71,12 +71,11 @@ impl WorthQueryExecutionRuntimeInstaller {
         let retained_installation_runtime = self
             .installation_runtime
             .retain_for_execution_installation();
-        let (installed_packages, graph_admission_authority) =
-            WorthQueryInstalledPackageIndex::build_for_execution(
-                self.installation_runtime,
-                generation,
-                packages,
-            )?;
+        let installed_packages = WorthQueryInstalledPackageIndex::build(
+            self.installation_runtime,
+            generation,
+            packages,
+        )?;
         Ok(WorthQueryExecutionRuntimeInstallation::new(
             WorthQueryExecutionRuntime {
                 authority_identity: self.authority_identity,
@@ -86,7 +85,6 @@ impl WorthQueryExecutionRuntimeInstaller {
                 application_query_resources: self.application_query_resources,
             },
             retained_installation_runtime,
-            graph_admission_authority,
         ))
     }
 }

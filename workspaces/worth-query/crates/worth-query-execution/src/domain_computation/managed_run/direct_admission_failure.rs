@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
-
 use crate::domain_computation::WorthQueryDirectExecutionResourceAttempt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -18,7 +16,6 @@ pub struct WorthQueryManagedDirectRunAdmissionFailure {
     kind: WorthQueryManagedDirectRunAdmissionFailureKind,
     detail: Arc<str>,
     resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-    retained_relational_basis: Option<RelationalExecutionBasisLease>,
 }
 
 impl WorthQueryManagedDirectRunAdmissionFailure {
@@ -31,21 +28,6 @@ impl WorthQueryManagedDirectRunAdmissionFailure {
             kind,
             detail: detail.into(),
             resource_attempt,
-            retained_relational_basis: None,
-        }
-    }
-
-    pub(super) fn with_retained_basis(
-        kind: WorthQueryManagedDirectRunAdmissionFailureKind,
-        detail: impl Into<Arc<str>>,
-        resource_attempt: WorthQueryDirectExecutionResourceAttempt,
-        retained_relational_basis: RelationalExecutionBasisLease,
-    ) -> Self {
-        Self {
-            kind,
-            detail: detail.into(),
-            resource_attempt,
-            retained_relational_basis: Some(retained_relational_basis),
         }
     }
 
@@ -59,16 +41,6 @@ impl WorthQueryManagedDirectRunAdmissionFailure {
 
     pub fn into_resource_attempt(self) -> WorthQueryDirectExecutionResourceAttempt {
         self.resource_attempt
-    }
-
-    pub(in crate::domain_computation) fn into_retained_resources(
-        self,
-    ) -> Option<(
-        WorthQueryDirectExecutionResourceAttempt,
-        RelationalExecutionBasisLease,
-    )> {
-        self.retained_relational_basis
-            .map(|basis| (self.resource_attempt, basis))
     }
 }
 

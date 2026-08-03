@@ -14,6 +14,14 @@ pub enum RelationalBridgeTruthViewBasisDenial {
 }
 
 impl RuntimeBridgeRelationalSource {
+    /// Resolves the Relational-owned branch for an existing version without
+    /// granting execution authority for that version.
+    pub fn resolve_execution_basis_branch(&self, version_id: VersionId) -> Option<BranchId> {
+        self.runtime.with_runtime(|runtime| {
+            crate::visibility::branch_scope::branch_for_version(runtime, version_id)
+        })
+    }
+
     /// Asks the owning Relational source to retain one exact version for a
     /// managed execution. The returned move-only lease is the read authority;
     /// a copied version or snapshot identity cannot substitute for it.

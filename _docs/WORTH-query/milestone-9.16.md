@@ -3,7 +3,9 @@
 > **Current execution posture:** Paused after Runtime Hardening Phase 7.2.
 > [Milestone 9.16.1](./milestone-9.16.1.md) must close before Runtime Phase 7.3
 > begins. Completed milestone and phase guarantees retain their recorded
-> status; 9.16.1 adds the stronger canonical graph-progression prerequisite.
+> status; 9.16.1 adds the stronger canonical graph-progression prerequisite
+> through parity-gated migration of the exact competing authority surfaces. It
+> does not authorize crate-wide monolith deletion or loss of Phase 6 behavior.
 
 ## Goal
 
@@ -125,6 +127,35 @@ The unfinished bank or runtime phase that exposed a generic gap remains blocked
 until the corrective phase or milestone closes. Previously completed rows remain
 historical inputs rather than being relabeled. The application may not carry a
 local workaround forward to keep the demo moving.
+
+### Milestone 9.16.1 Interstitial Contract
+
+Milestone 9.16.1 reconciles the graph-obligation, graph-read-planning, and
+provider-session authority introduced across Milestones 9.9, 9.10, 9.11, 9.15,
+and this milestone. Reconciliation is per semantic surface:
+
+1. consume an earlier owner and proof unchanged when they already satisfy the
+   stronger progression;
+2. otherwise preserve the existing production path as sole authority while a
+   destination successor proves feature, denial, lifecycle, receipt, and cost
+   parity;
+3. atomically cut covered consumers to the successor and retire only the exact
+   predecessor authority in the same slice; and
+4. record any broader architectural discovery as an explicit phase amendment
+   or successor milestone rather than treating it as permission to decompose
+   the rest of `worth-query`.
+
+The absence of competing authority is the invariant. File count, crate age,
+and monolith placement are not themselves defects. One-way lowering from the
+ordinary Query facade into the sole destination authority is lawful and keeps
+the Phase 6 caller contract stable. A second independently executable selector,
+planner, session, invariant completion, or receipt path is not lawful.
+
+Runtime Phase 7.3 consumes the 9.16.1 session and graph-plan authority while
+retaining Phase 6 query identity, parameters, bases, continuations, history,
+preview, live delivery, result shaping, and publication contracts. A 9.16.1
+cutover is incomplete if the Query monolith, public declarative journeys,
+Worth UI Query binding, or the Bank consumer loses covered behavior.
 
 ## Why This Milestone Exists
 

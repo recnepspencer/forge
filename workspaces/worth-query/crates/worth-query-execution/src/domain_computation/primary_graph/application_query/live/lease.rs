@@ -27,7 +27,10 @@ use crate::domain_computation::{
     managed_run::WorthQueryManagedLowerExecutionBasis,
     primary_graph::{
         application_query::{
-            authorized_read::{execute_authorized_read, WorthQueryAuthorizedApplicationReadDenial},
+            authorized_read::{
+                execute_authorized_read, refresh_governed_authorization,
+                WorthQueryAuthorizedApplicationReadDenial,
+            },
             read_execution::{read_live_target, WorthQueryApplicationReadExecutionDenialKind},
             WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
             WorthQueryApplicationQueryAdmissionDenial,
@@ -94,9 +97,6 @@ impl<
     >
 where
     Schema: ApplicationSchema,
-    Principal: 'static,
-    PrincipalIdentity: 'static,
-    Scope: 'static,
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
     Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
 {
@@ -196,8 +196,12 @@ where
             Ok(plan) => plan,
             Err(denial) => return self.handle_admission_denial(denial),
         };
+        if let Err(denial) = refresh_governed_authorization(self.runtime, &mut plan) {
+            let _ = plan.basis.release();
+            return self.handle_read_denial(denial);
+        }
         let Some(graph) = self.runtime.runtime.primary_graph() else {
-            let _ = plan.abort_graph_read();
+            let _ = plan.basis.release();
             return WorthQueryApplicationLiveOutcome::Unavailable;
         };
         let result_buffer = self.runtime.result_buffers.reserve(
@@ -206,12 +210,12 @@ where
                 .max_inline_result_bytes(),
         );
         let (raw, authorization_work) =
-            match execute_authorized_read(self.runtime, graph, &mut plan, |runtime, graph, plan| {
+            match execute_authorized_read(self.runtime, graph, &plan, |runtime, graph, plan| {
                 read_live_target(runtime, graph, plan, target_identity, result_buffer)
             }) {
                 Ok(raw) => raw,
                 Err(denial) => {
-                    let released = plan.abort_graph_read().basis_released();
+                    let released = plan.basis.release().released();
                     if !released {
                         return WorthQueryApplicationLiveOutcome::Unavailable;
                     }

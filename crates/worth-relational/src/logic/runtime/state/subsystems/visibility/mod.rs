@@ -144,7 +144,6 @@ impl VisibilitySubsystem {
     ) -> crate::identity::data::VersionId {
         let non_execution_fence = self
             .active_versions()
-            .chain(self.handles.published_versions())
             .chain(self.replay_retention.versions())
             .min()
             .unwrap_or(published_version);
@@ -153,6 +152,17 @@ impl VisibilitySubsystem {
             .map_or(non_execution_fence, |version| {
                 version.min(non_execution_fence)
             })
+    }
+
+    pub(crate) fn historical_reconstruction_fence_version(
+        &self,
+        published_version: crate::identity::data::VersionId,
+    ) -> crate::identity::data::VersionId {
+        let retention_fence = self.retention_fence_version(published_version);
+        self.handles
+            .published_versions()
+            .min()
+            .map_or(retention_fence, |version| version.min(retention_fence))
     }
 
     pub(crate) fn insert_published_handle(

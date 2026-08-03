@@ -4,14 +4,13 @@ use worth_query_admission::facade::{
         WorthQueryApplicationQueryLane,
     },
     graph_read_access::{
-        WorthQueryGraphIndexInventory, WorthQueryGraphIndexLifecycleClass,
-        WorthQueryGraphIndexLifecycleOwner, WorthQueryGraphIndexPosture,
-        WorthQueryGraphIndexSupportState, WorthQueryGraphReadAccessRequirementKind,
-        WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadBudget,
-        WorthQueryGraphReadPlanReviewDenialKind,
+        review_graph_read_access, WorthQueryGraphIndexInventory,
+        WorthQueryGraphIndexLifecycleClass, WorthQueryGraphIndexLifecycleOwner,
+        WorthQueryGraphIndexPosture, WorthQueryGraphIndexSupportState,
+        WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementSet,
+        WorthQueryGraphReadBudget, WorthQueryGraphReadPlanReviewDenialKind,
     },
 };
-use worth_query_admission::integration::review_graph_read_access;
 use worth_query_declaration::facade::{
     application_query::ApplicationQueryParameterSet, application_schema::ApplicationSchema,
 };

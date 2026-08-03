@@ -4,6 +4,7 @@ use crate::runtime::{
     WorthQueryGraphReadPolicyTenantProofBinding, WorthQueryReadBuiltInOperator,
     WorthQueryReadGraphFamily, WorthQueryReadScopeClass,
 };
+use worth_foundational::facade::CanonicalDigestId;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphReadResolvedOperationFamily {
@@ -113,6 +114,7 @@ impl WorthQueryGraphReadResolvedOperation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphReadOperationResolution {
     read_graph_digest: String,
+    read_graph_canonical_digest: CanonicalDigestId,
     graph_family: WorthQueryReadGraphFamily,
     scope_class: WorthQueryReadScopeClass,
     admitted_reference_count: usize,
@@ -127,6 +129,10 @@ pub struct WorthQueryGraphReadOperationResolution {
 impl WorthQueryGraphReadOperationResolution {
     pub fn read_graph_digest(&self) -> &str {
         &self.read_graph_digest
+    }
+
+    pub(crate) fn read_graph_canonical_digest(&self) -> &CanonicalDigestId {
+        &self.read_graph_canonical_digest
     }
 
     pub fn admitted_reference_count(&self) -> usize {
@@ -173,6 +179,7 @@ impl WorthQueryGraphReadOperationResolution {
 
     pub(crate) fn new(
         read_graph_digest: impl Into<String>,
+        read_graph_canonical_digest: CanonicalDigestId,
         graph_family: WorthQueryReadGraphFamily,
         scope_class: WorthQueryReadScopeClass,
         admitted_reference_count: usize,
@@ -185,6 +192,7 @@ impl WorthQueryGraphReadOperationResolution {
         let policy_tenant_proof_digest_part = policy_tenant_proof_binding.digest_part();
         Self {
             read_graph_digest: read_graph_digest.into(),
+            read_graph_canonical_digest,
             graph_family,
             scope_class,
             admitted_reference_count,

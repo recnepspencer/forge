@@ -6,8 +6,6 @@
 mod fixture;
 #[path = "ordinary_mutations/preconditions.rs"]
 mod preconditions;
-#[path = "ordinary_mutations/receipt_assertions.rs"]
-mod receipt_assertions;
 mod support;
 
 use std::time::{Duration, Instant};
@@ -19,14 +17,16 @@ use bank_domain::schema::{
     GrantAccountAuthorization, InitiateBusinessPayment, PostingPurpose, RejectPayment,
     ReversalReason, ReverseJournal, RevokeAccountAuthorization, SendMoney, Withdraw,
 };
-use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, BankReadControls};
+use bank_server::{
+    mutations, queries, BankMutationControls, BankMutationOutcome, BankMutationStatus,
+    BankReadControls,
+};
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
 use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
 
 use fixture::{ordinary_read_world, principal_id, APPROVER, OWNER, RECIPIENT, STRANGER, TELLER};
-use receipt_assertions::{assert_committed, assert_emitting_commit};
 use support::request_scope;
 
 macro_rules! execute {
@@ -305,6 +305,22 @@ fn public_mutation_controls_preserve_interruptions_permissions_and_intent_drift(
         BankMutationStatus::Denied(bank_server::BankMutationDenial::IdempotencyIntentDrift)
     ));
     assert!(drift.metadata().provider_work_units() > 0);
+}
+
+fn assert_committed(outcome: BankMutationOutcome) {
+    assert!(
+        matches!(outcome.status(), BankMutationStatus::Committed(_)),
+        "unexpected mutation outcome: {outcome:?}"
+    );
+    assert!(outcome.metadata().projection_work().is_some());
+}
+
+fn assert_emitting_commit(outcome: BankMutationOutcome) {
+    let BankMutationStatus::Committed(receipt) = outcome.status() else {
+        panic!("unexpected mutation outcome: {outcome:?}");
+    };
+    assert!(receipt.emitted_effect_count() > 0);
+    assert!(outcome.metadata().provider_work_units() > 0);
 }
 
 fn pending_payments(

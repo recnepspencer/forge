@@ -44,14 +44,6 @@ impl WorthQueryManagedTruthReadRequest {
         self
     }
 
-    pub(crate) const fn relational_version_id(&self) -> VersionId {
-        self.relational_version_id
-    }
-
-    pub(crate) const fn branch(&self) -> &TruthBranchIdentity {
-        &self.branch
-    }
-
     pub(crate) fn into_parts(
         self,
     ) -> (

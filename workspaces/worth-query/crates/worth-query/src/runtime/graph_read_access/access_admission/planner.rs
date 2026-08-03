@@ -13,7 +13,6 @@ use crate::runtime::{
     WorthQueryGraphReadOperationLookup, WorthQueryReadFamily,
 };
 use worth_query_admission::facade::graph_read_access::WorthQueryGraphReadPlanReviewDenialKind;
-use worth_query_admission::integration::review_graph_read_access;
 
 #[cfg(test)]
 pub fn admit_graph_read_access_for_family(
@@ -54,7 +53,7 @@ pub(crate) fn admit_graph_read_access_for_family_in_authority_with_inventory_and
     let requirements = explain_graph_read_access_requirements_for_family_in_authority_with_lookup(
         family, authority, lookup,
     )?;
-    let review = review_graph_read_access(
+    let review = worth_query_admission::facade::graph_read_access::review_graph_read_access(
         requirements,
         inventory,
         WorthQueryGraphReadBudget::inline_ephemeral_default(),

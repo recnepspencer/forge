@@ -233,21 +233,27 @@ fn intermediate_set_pressure_marks_broad_even_when_index_bytes_fit() {
         estimate.supported().index_bytes()
             <= WorthQueryGraphReadBudget::inline_ephemeral_default().max_inline_index_bytes()
     );
-    assert!(
-        estimate.intrinsic().intermediate_set_size()
-            > WorthQueryGraphReadBudget::inline_ephemeral_default()
-                .max_inline_intermediate_set_size()
-    );
     assert_eq!(
         estimate.complexity_contract().kind(),
         &WorthQueryGraphReadComplexityContractKind::BroadTraversalCandidate
+    );
+    assert_eq!(
+        WorthQueryGraphReadBudget::bounded(
+            estimate.supported().index_bytes(),
+            estimate.supported().result_bytes(),
+            estimate.intrinsic().intermediate_set_size() - 1,
+        )
+        .check_supported_cost(&estimate)
+        .class()
+        .kind(),
+        &WorthQueryGraphReadBudgetClassKind::ExceedsInlineEphemeralBudget
     );
     assert_eq!(
         WorthQueryGraphReadBudget::inline_ephemeral_default()
             .check_supported_cost(&estimate)
             .class()
             .kind(),
-        &WorthQueryGraphReadBudgetClassKind::ExceedsInlineEphemeralBudget
+        &WorthQueryGraphReadBudgetClassKind::InlineEphemeralCandidate
     );
 }
 

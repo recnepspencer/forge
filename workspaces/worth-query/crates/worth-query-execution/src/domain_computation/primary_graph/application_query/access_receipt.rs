@@ -4,7 +4,6 @@ use worth_query_admission::facade::graph_read_access::WorthQueryGraphReadPlanRev
 use worth_query_installation::facade::{
     WorthQueryCanonicalWorkPhases, WorthQueryInstalledApplicationQueryIdentity,
 };
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::identity::VersionId;
 use worth_relational::facade::indexes::DerivedIndexGenerationId;
 use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
@@ -31,10 +30,6 @@ pub struct WorthQueryApplicationQueryAccessReceipt {
     provider_identity: String,
     basis_identity: RelationalExecutionBasisIdentity,
     basis_version: VersionId,
-    branch_id: BranchId,
-    graph_work_session_identity: CanonicalDigestId,
-    provider_session_identity: String,
-    released_capacity_reservation_count: usize,
     basis_posture: WorthQueryApplicationQueryBasisPosture,
     lane: WorthQueryApplicationQueryLane,
     consistency: WorthQueryApplicationQueryConsistency,
@@ -71,10 +66,6 @@ pub(super) struct WorthQueryApplicationQueryAccessReceiptParts {
     pub provider_identity: String,
     pub basis_identity: RelationalExecutionBasisIdentity,
     pub basis_version: VersionId,
-    pub branch_id: BranchId,
-    pub graph_work_session_identity: CanonicalDigestId,
-    pub provider_session_identity: String,
-    pub released_capacity_reservation_count: usize,
     pub basis_posture: WorthQueryApplicationQueryBasisPosture,
     pub lane: WorthQueryApplicationQueryLane,
     pub consistency: WorthQueryApplicationQueryConsistency,
@@ -118,8 +109,7 @@ pub(super) struct WorthQueryApplicationQueryReceiptBasis {
     pub lane: WorthQueryApplicationQueryLane,
     pub consistency: WorthQueryApplicationQueryConsistency,
     pub freshness: WorthQueryApplicationQueryFreshness,
-    pub graph_work_release:
-        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionReleaseReceipt,
+    pub released: bool,
 }
 
 impl WorthQueryApplicationQueryAccessReceipt {
@@ -140,16 +130,6 @@ impl WorthQueryApplicationQueryAccessReceipt {
             provider_identity: identity.provider_identity,
             basis_identity: basis.identity,
             basis_version: basis.version,
-            branch_id: basis.graph_work_release.branch_id().clone(),
-            graph_work_session_identity: *basis.graph_work_release.session_identity(),
-            provider_session_identity: basis
-                .graph_work_release
-                .provider_session_identity()
-                .to_owned(),
-            released_capacity_reservation_count: basis
-                .graph_work_release
-                .capacity()
-                .released_reservation_count(),
             basis_posture: basis.posture,
             lane: basis.lane,
             consistency: basis.consistency,
@@ -175,7 +155,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
             truncation_count: kernel.truncation_count,
             total_work_units: raw.actual_work,
             result_buffer: Some(kernel.result_buffer),
-            basis_released: basis.graph_work_release.basis_released(),
+            basis_released: basis.released,
             disclosure,
         })
     }
@@ -202,22 +182,6 @@ impl WorthQueryApplicationQueryAccessReceipt {
 
     pub const fn basis_version(&self) -> VersionId {
         self.basis_version
-    }
-
-    pub const fn branch_id(&self) -> &BranchId {
-        &self.branch_id
-    }
-
-    pub const fn graph_work_session_identity(&self) -> &CanonicalDigestId {
-        &self.graph_work_session_identity
-    }
-
-    pub fn provider_session_identity(&self) -> &str {
-        &self.provider_session_identity
-    }
-
-    pub const fn released_capacity_reservation_count(&self) -> usize {
-        self.released_capacity_reservation_count
     }
 
     pub const fn basis_posture(&self) -> WorthQueryApplicationQueryBasisPosture {
@@ -342,10 +306,6 @@ impl WorthQueryApplicationQueryAccessReceipt {
             provider_identity: parts.provider_identity,
             basis_identity: parts.basis_identity,
             basis_version: parts.basis_version,
-            branch_id: parts.branch_id,
-            graph_work_session_identity: parts.graph_work_session_identity,
-            provider_session_identity: parts.provider_session_identity,
-            released_capacity_reservation_count: parts.released_capacity_reservation_count,
             basis_posture: parts.basis_posture,
             lane: parts.lane,
             consistency: parts.consistency,

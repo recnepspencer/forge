@@ -11,6 +11,50 @@ use super::{
     WorthQueryApplicationOperationInstallationDenialKind, WorthQueryInstalledAbilityRequirement,
 };
 
+pub(super) fn ability_requirement_meaning_matches(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+    installed: &[WorthQueryInstalledAbilityRequirement],
+) -> bool {
+    let mut declared = members
+        .iter()
+        .filter_map(|member| match member {
+            ApplicationSchemaMember::OperationAbility {
+                operation: candidate,
+                ability,
+                scope_entity,
+            } if candidate == operation => Some((ability.as_str(), scope_entity.as_str())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    declared.sort_unstable();
+    declared.dedup();
+    declared.len() == installed.len()
+        && declared.into_iter().all(|(ability, scope_entity)| {
+            installed.iter().any(|requirement| {
+                requirement.ability() == ability
+                    && requirement.scope_entity() == scope_entity
+                    && members.iter().any(|member| {
+                        matches!(
+                            member,
+                            ApplicationSchemaMember::AbilityPolicy {
+                                ability: candidate_ability,
+                                scope_entity: candidate_scope,
+                                policy,
+                                paths,
+                            } if candidate_ability == ability
+                                && candidate_scope == scope_entity
+                                && policy == requirement.policy()
+                                && paths.len() == requirement.policy_paths().len()
+                                && paths.iter().zip(requirement.policy_paths()).all(
+                                    |(path, installed_path)| path == installed_path.path()
+                                )
+                        )
+                    })
+            })
+        })
+}
+
 pub(super) fn operation_projection_work_budget(
     members: &[ApplicationSchemaMember],
     operation: &str,

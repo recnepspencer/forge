@@ -18,10 +18,6 @@ pub struct BankCommitReceipt {
 }
 
 impl BankCommitReceipt {
-    pub fn branch_id(&self) -> &str {
-        &self.application.branch_id().0
-    }
-
     pub const fn commit_id(&self) -> u64 {
         self.application.commit_id().0
     }
@@ -52,60 +48,6 @@ impl BankCommitReceipt {
 
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
         self.application.canonical_work()
-    }
-
-    pub fn graph_work_session_identity(&self) -> Option<&[u8; 32]> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.session_identity().bytes())
-    }
-
-    pub fn graph_work_session_identity_hex(&self) -> Option<String> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.session_identity().render_hex())
-    }
-
-    pub fn graph_work_provider_session_identity(&self) -> Option<&str> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.provider_session_identity())
-    }
-
-    pub fn graph_work_plan_identity(&self) -> Option<&[u8; 32]> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.plan_identity().bytes())
-    }
-
-    pub fn graph_work_obligation_identity(&self) -> Option<&[u8; 32]> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.obligation_identity().bytes())
-    }
-
-    pub fn graph_work_branch_id(&self) -> Option<&str> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.branch_id().0.as_str())
-    }
-
-    pub fn graph_work_required_obligation_count(&self) -> Option<usize> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.required_obligation_count())
-    }
-
-    pub fn graph_work_released_reservation_count(&self) -> Option<usize> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.released_reservation_count())
-    }
-
-    pub fn graph_work_basis_released(&self) -> Option<bool> {
-        self.application
-            .graph_work()
-            .map(|receipt| receipt.basis_released())
     }
 
     pub(crate) const fn application(&self) -> &WorthQueryApplicationCommitReceipt {

@@ -1,7 +1,7 @@
 use crate::identity::data::VersionId;
 use crate::logic::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
-use crate::visibility::cache_state::reconstruct_state;
+use crate::visibility::cache_state::retained_state;
 
 use super::{
     RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
@@ -15,7 +15,7 @@ pub(crate) fn admit_execution_basis(
 ) -> Result<RelationalExecutionBasisLease, RelationalExecutionBasisDenial> {
     let mut counters = RelationalExecutionBasisCounters::default();
     counters.checked_version_availability();
-    if reconstruct_state(runtime, version_id).is_none() {
+    if retained_state(runtime, version_id).is_none() {
         return Err(denial(
             RelationalExecutionBasisDenialKind::VersionUnavailable,
             "Relational execution basis requires a version reconstructible by this runtime",

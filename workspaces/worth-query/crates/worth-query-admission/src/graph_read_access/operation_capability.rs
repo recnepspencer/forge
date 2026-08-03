@@ -18,6 +18,7 @@ pub struct WorthQueryGraphReadOperationCapabilityRequirement {
     domain_owner: String,
     support_family: String,
     read_graph_digest: String,
+    read_graph_canonical_digest: CanonicalDigestId,
     matched_relations: Vec<String>,
 }
 
@@ -72,6 +73,7 @@ impl WorthQueryGraphReadOperationCapabilityRequirementDeclaration {
     pub fn resolve_for_read_graph(
         &self,
         read_graph_digest: impl Into<String>,
+        read_graph_canonical_digest: CanonicalDigestId,
         mut matched_relations: Vec<String>,
     ) -> WorthQueryGraphReadOperationCapabilityRequirement {
         matched_relations.sort();
@@ -82,6 +84,7 @@ impl WorthQueryGraphReadOperationCapabilityRequirementDeclaration {
             domain_owner: self.domain_owner.clone(),
             support_family: self.support_family.clone(),
             read_graph_digest: read_graph_digest.into(),
+            read_graph_canonical_digest,
             matched_relations,
         }
     }
@@ -106,6 +109,10 @@ impl WorthQueryGraphReadOperationCapabilityRequirement {
 
     pub fn read_graph_digest(&self) -> &str {
         &self.read_graph_digest
+    }
+
+    pub fn read_graph_canonical_digest(&self) -> &CanonicalDigestId {
+        &self.read_graph_canonical_digest
     }
 
     pub fn matched_relations(&self) -> &[String] {
@@ -216,3 +223,4 @@ impl WorthQueryGraphReadOperationUnsupportedDenial {
         &self.matched_relations
     }
 }
+use worth_foundational::facade::CanonicalDigestId;

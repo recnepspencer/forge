@@ -17,8 +17,6 @@ pub(super) use application_decision_fact::WorthQueryPrimaryGraphApplicationDecis
 pub(super) use committed_application::WorthQueryPrimaryGraphCommittedApplication;
 pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
 
-pub(super) const PRIMARY_GRAPH_CONCURRENT_ATTEMPT_LIMIT: usize = 64;
-
 pub(super) struct WorthQueryPrimaryGraphProvider {
     pub(super) graph: WorthQueryPrimaryGraphIntegrationHandle,
     resource_support: resource_support::WorthQueryPrimaryGraphResourceSupport,
@@ -48,12 +46,10 @@ pub(super) struct WorthQueryPrimaryGraphProviderSessions {
 }
 
 pub(super) struct WorthQueryPrimaryGraphOverlay {
-    pub(super) branch_id: worth_relational::facade::history::BranchId,
     pub(super) facts: Vec<crate::domain_computation::WorthQueryProposedFact>,
 }
 
 pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
-    pub(super) branch_id: worth_relational::facade::history::BranchId,
     pub(super) facts: BTreeMap<String, WorthQueryPrimaryGraphApplicationDecisionFact>,
     pub(super) expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
     pub(super) batch: worth_relational::facade::transactions::WorkerIntentBatch,
@@ -102,7 +98,6 @@ impl WorthQueryPrimaryGraphProvider {
     pub(super) fn register_application_attempt(
         &self,
         session_identity: &str,
-        branch_id: worth_relational::facade::history::BranchId,
         facts: Vec<WorthQueryPrimaryGraphApplicationDecisionFact>,
         expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
         mut batch: worth_relational::facade::transactions::WorkerIntentBatch,
@@ -129,7 +124,6 @@ impl WorthQueryPrimaryGraphProvider {
             .insert(
                 session_identity.to_owned(),
                 WorthQueryPrimaryGraphApplicationAttempt {
-                    branch_id,
                     facts,
                     expected_steps,
                     batch,

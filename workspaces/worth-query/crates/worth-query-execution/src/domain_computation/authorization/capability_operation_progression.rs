@@ -13,24 +13,14 @@ use worth_query_installation::facade::{
 };
 
 use super::admission::admit_request;
-use super::admitted_operation::{
-    WorthQueryOperationAdmissionIdentity, WorthQueryOperationAuthorizationBasis,
-};
-use super::capability_observation::observe_capability;
-use super::capability_request_resolution::resolve_capability_request;
-use super::graph_work_session::start_operation_graph_work;
-use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
+use super::admitted_operation::WorthQueryOperationAuthorizationBasis;
 use super::{
-    WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
-    WorthQueryPreparedApplicationCapabilityAccess, WorthQueryPrincipalCurrentnessDependency,
-    WorthQueryRetainedAuthorizationDecisionFacts, WorthQueryRetainedCapabilityAuthorization,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
     bind_mutation_preconditions, WorthQueryPrimaryGraphApplicationRuntime,
-};
-use crate::domain_computation::provider_session::{
-    record_capability_authorization_completion, WorthQueryGraphWorkAccessContextAffinity,
 };
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -39,7 +29,12 @@ where
 {
     pub fn authorize_capability_operation<Capability, Operation, Input>(
         &self,
-        access: WorthQueryPreparedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+        mut access: WorthQueryAdmittedApplicationCapabilityAccess<
+            Schema,
+            Capability,
+            Operation,
+            Input,
+        >,
         operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
         preconditions: TypedMutationPreconditions<
             Schema,
@@ -71,113 +66,18 @@ where
                 access.operation.as_ref(),
             ));
         }
+        self.refresh_capability_authorization(&mut access.authorization)?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
                 access.operation.as_ref(),
             )
         })?;
-        let installed = self
-            .authorization
-            .capability_plan_by_identity(access.capability_identity.bytes())
-            .filter(|installed| {
-                installed.capability_authority_identity.as_ref()
-                    == access.capability_authority_identity.as_ref()
-            })
-            .ok_or_else(|| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
-                    access.capability.as_ref(),
-                )
-            })?;
-        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or_else(|| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
-                operation.operation(),
-            )
-        })?;
-        let resource_binding_identity = admission_identity.resource_binding_identity();
-        let mut graph_work = start_operation_graph_work(
-            self,
-            operation,
-            &resource_binding_identity,
-            access.principal_entity_id,
-            WorthQueryGraphWorkAccessContextAffinity::installed_capability(
-                access.capability_identity,
-            ),
-        )?;
-        let principal_layout = graph
-            .layout()
-            .principal_binding(&access.principal_binding)
-            .cloned()
-            .ok_or_else(|| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                    access.principal_binding.as_ref(),
-                )
-            })?;
-        let sample = self.sample_capability_time(installed)?;
-        let (resolved, request, decision, grant) =
-            graph.integration_handle().with_runtime_mut(|runtime| {
-                let snapshot = graph_work.basis().snapshot().clone();
-                if !access.principal_freshness.remains_current_in(
-                    runtime,
-                    &snapshot,
-                    &principal_layout,
-                    &access.principal_binding,
-                ) {
-                    return Err(denial(
-                        WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                        access.principal_binding.as_ref(),
-                    ));
-                }
-                let resolved = resolve_capability_request(
-                    runtime,
-                    &snapshot,
-                    graph.layout(),
-                    &self.installed_schema,
-                    &access.projection,
-                    self.runtime.authority_identity(),
-                )?;
-                let request = WorthQueryRetainedCapabilityRequest::capture(
-                    *access.capability_identity.bytes(),
-                    access.principal_entity_id,
-                    &access.projection,
-                    &resolved,
-                );
-                let observed = observe_capability(
-                    *graph_work.identity(),
-                    runtime,
-                    snapshot,
-                    self.authorization.bridge(),
-                    installed,
-                    &request,
-                    &sample,
-                    None,
-                )?;
-                let (decision, grant) = observed.into_parts();
-                Ok((resolved, request, decision, grant))
-            })?;
-        let principal_currentness = WorthQueryPrincipalCurrentnessDependency::capture_retained(
-            *graph_work.identity(),
-            access.principal_binding.clone(),
-            principal_layout,
-            access.principal_freshness.clone(),
-            graph_work.branch_affinity().relational_branch().clone(),
-        );
-        let authorization = WorthQueryRetainedCapabilityAuthorization::new(
-            principal_currentness,
-            decision,
-            access.capability_authority_identity.clone(),
-            grant,
-            request,
-            sample,
-        );
         let preconditions = bind_mutation_preconditions(
             preconditions,
             operation.contracts(),
-            resolved.resource.entity_name(),
-            resolved.resource.entity_id(),
+            access.resolved.resource.entity_name(),
+            access.resolved.resource.entity_id(),
             graph.layout(),
         )
         .map_err(|()| {
@@ -187,16 +87,7 @@ where
             )
         })?;
         validate_access_lifecycle(&access)?;
-        record_capability_authorization_completion(&mut graph_work, &authorization).map_err(
-            |_| {
-                denial(
-                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                    operation.operation(),
-                )
-            },
-        )?;
-        Ok(WorthQueryAdmittedApplicationOperation::mint(
-            admission_identity,
+        WorthQueryAdmittedApplicationOperation::mint(
             self.runtime.authority_identity(),
             operation.binding_identity().clone(),
             operation.operation().to_string(),
@@ -206,28 +97,33 @@ where
                 operation.binding_identity(),
                 operation.authority_identity(),
                 access.principal_entity_id,
-                resolved.resource.entity_id(),
+                access.resolved.resource.entity_id(),
             ),
-            resolved.resource.entity_id(),
-            resolved.resource.entity_kind(),
-            resolved.resource.entity_name().to_string(),
+            access.resolved.resource.entity_id(),
+            access.resolved.resource.entity_kind(),
+            access.resolved.resource.entity_name().to_string(),
             access.authentication_valid_until,
             access.request_scope,
             operation.contracts().clone(),
             preconditions,
             access.canonical_work,
-            WorthQueryRetainedAuthorizationDecisionFacts::capability(authorization),
+            WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization),
             WorthQueryOperationAuthorizationBasis::Capability {
                 input: access.input,
             },
-            graph_work,
-        ))
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
+                operation.operation(),
+            )
+        })
     }
 }
 
 fn validate_progression_authority<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    access: &WorthQueryPreparedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
@@ -261,6 +157,12 @@ where
             operation.operation(),
         ));
     }
+    if access.authorization.exact_fact_count() != 2 {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            operation.operation(),
+        ));
+    }
     runtime
         .runtime
         .installed_packages()
@@ -274,7 +176,7 @@ where
 }
 
 fn validate_access_lifecycle<Schema, Capability, Operation, Input>(
-    access: &WorthQueryPreparedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Input: ApplicationCapabilityRequest<Schema, Capability>,

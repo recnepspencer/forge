@@ -22,7 +22,6 @@ where
         QueryResult,
     >(
         &self,
-        session_identity: worth_foundational::facade::CanonicalDigestId,
         runtime: &worth_relational::facade::runtime::RelationalRuntime,
         snapshot: worth_relational::facade::snapshots::SnapshotHandle,
         query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
@@ -41,7 +40,6 @@ where
             return Ok(Vec::new());
         };
         self.observe_authorization_requirements(
-            session_identity,
             runtime,
             snapshot,
             access.principal(),

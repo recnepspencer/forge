@@ -1,7 +1,6 @@
-use super::budget::{
-    DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES, DEFAULT_INLINE_EPHEMERAL_INTERMEDIATE_SET_SIZE,
-    DEFAULT_INLINE_EPHEMERAL_RESULT_BYTES,
-};
+use super::budget::{DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES, DEFAULT_INLINE_EPHEMERAL_RESULT_BYTES};
+
+const DEFAULT_BROAD_TRAVERSAL_INTERMEDIATE_SET_SIZE: usize = 16;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphReadCostEstimateStatusKind {
@@ -85,7 +84,7 @@ impl WorthQueryGraphReadComplexityContract {
     ) -> Self {
         let kind = if index_bytes > DEFAULT_INLINE_EPHEMERAL_INDEX_BYTES
             || result_bytes > DEFAULT_INLINE_EPHEMERAL_RESULT_BYTES
-            || intermediate_set_size > DEFAULT_INLINE_EPHEMERAL_INTERMEDIATE_SET_SIZE
+            || intermediate_set_size > DEFAULT_BROAD_TRAVERSAL_INTERMEDIATE_SET_SIZE
         {
             WorthQueryGraphReadComplexityContractKind::BroadTraversalCandidate
         } else {

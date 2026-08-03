@@ -16,7 +16,7 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
         program: WorthQueryProvisionalEffectProgramView<'_>,
         admission: WorthQueryProvisionalOverlayAdmission,
     ) -> Result<WorthQueryProvisionalOverlayEvidence, WorthQueryProvisionalFailure> {
-        let branch_id = {
+        {
             let sessions = self
                 .sessions
                 .lock()
@@ -34,8 +34,7 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
                     "lowered provider program differs from the registered application effects",
                 ));
             }
-            expected.branch_id.clone()
-        };
+        }
         let facts = program
             .steps()
             .iter()
@@ -54,7 +53,6 @@ impl WorthQueryProvisionalGraphProvider for Arc<WorthQueryPrimaryGraphProvider> 
         sessions.overlays.insert(
             identity.clone(),
             WorthQueryPrimaryGraphOverlay {
-                branch_id,
                 facts: facts.clone(),
             },
         );

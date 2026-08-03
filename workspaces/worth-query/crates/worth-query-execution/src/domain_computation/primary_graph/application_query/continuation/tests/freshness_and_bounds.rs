@@ -26,7 +26,7 @@ fn authentication_expiry_denies_resume_without_a_basis() {
 }
 
 #[test]
-fn stale_principal_and_scope_deny_inside_a_released_session_basis() {
+fn stale_principal_and_scope_deny_resume_before_basis_acquisition() {
     let principal_context = ContinuationTestContext::new(Duration::from_secs(60));
     let principal_continuation = principal_context.issue();
     let principal_acquisitions = principal_context.basis_acquisitions();
@@ -45,7 +45,7 @@ fn stale_principal_and_scope_deny_inside_a_released_session_basis() {
     );
     assert_eq!(
         principal_context.basis_acquisitions(),
-        principal_acquisitions + 1
+        principal_acquisitions
     );
     principal_context.assert_resource_baseline();
 
@@ -60,7 +60,7 @@ fn stale_principal_and_scope_deny_inside_a_released_session_basis() {
         scope,
         WorthQueryApplicationQueryAdmissionDenialKind::StaleScope
     );
-    assert_eq!(scope_context.basis_acquisitions(), scope_acquisitions + 1);
+    assert_eq!(scope_context.basis_acquisitions(), scope_acquisitions);
     scope_context.assert_resource_baseline();
 }
 

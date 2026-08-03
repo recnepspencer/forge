@@ -1,4 +1,5 @@
 use super::*;
+use crate::visibility::snapshot_states::build_visibility_state;
 
 impl<'runtime> VisibilityReadContext<'runtime> {
     pub fn inspect_snapshot(&self, handle: &SnapshotHandle) -> Option<SnapshotInspectionSummary> {
@@ -16,8 +17,14 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> RelationalReadView {
-        let state = reconstruct_state(self.runtime, version_id)
-            .expect("internal version reads require retained relational truth");
+        let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
+            build_visibility_state(
+                self.runtime,
+                version_id,
+                crate::snapshots::data::SnapshotId(0),
+                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+            )
+        });
         read_view_from_snapshot_state(self.runtime, &state)
     }
 

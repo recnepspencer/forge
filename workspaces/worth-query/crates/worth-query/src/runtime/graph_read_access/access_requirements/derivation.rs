@@ -1,4 +1,4 @@
-use worth_foundational::facade::{CanonicalDigestId, CanonicalDigestWorkBudget};
+use worth_foundational::facade::CanonicalDigestWorkBudget;
 use worth_query_admission::facade::graph_read_access::{
     derive_canonical_graph_read_access_requirements, WorthQueryCanonicalGraphReadPlanningInput,
     WorthQueryGraphReadPlanningIdentity, WorthQueryGraphReadPlanningOrderingField,
@@ -79,9 +79,11 @@ fn planning_input(
 ) -> WorthQueryCanonicalGraphReadPlanningInput {
     let references = access_shape.operation_resolution().references();
     let identity = WorthQueryGraphReadPlanningIdentity::from_admitted_evidence(
-        typed_digest(access_shape.operation_resolution().read_graph_digest()),
-        typed_digest(access_shape.digest().as_str()),
-        typed_digest(selectivity_shape.digest().as_str()),
+        *access_shape
+            .operation_resolution()
+            .read_graph_canonical_digest(),
+        *access_shape.digest().canonical_digest(),
+        *selectivity_shape.digest().canonical_digest(),
         *references.schema_basis_digest(),
     );
     let shape = WorthQueryGraphReadPlanningShape::from_admitted_shape(
@@ -135,11 +137,6 @@ fn planning_input(
             != &WorthQueryGraphReadRelationshipProofBindingPosture::NotRequired,
     );
     WorthQueryCanonicalGraphReadPlanningInput::from_admitted_evidence(identity, shape)
-}
-
-fn typed_digest(value: &str) -> CanonicalDigestId {
-    CanonicalDigestId::parse_hex(value)
-        .expect("admitted graph-read proof identities are canonical SHA-256 hex")
 }
 
 fn canonical_budget() -> CanonicalDigestWorkBudget {

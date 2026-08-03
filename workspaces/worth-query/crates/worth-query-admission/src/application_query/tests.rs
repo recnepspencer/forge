@@ -1,4 +1,3 @@
-use worth_foundational::facade::{CanonicalDigestId, CanonicalDigestWorkBudget};
 use worth_query_declaration::facade::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinitionBuilder,
     ApplicationQueryDependencyCeiling, ApplicationQueryDisclosureContract,
@@ -33,8 +32,6 @@ use crate::facade::{
 mod alternate_source_digest;
 #[path = "tests/installed_contract.rs"]
 mod installed_contract;
-#[path = "tests/installed_query_fixture.rs"]
-mod installed_query_fixture;
 #[path = "tests/live_lane.rs"]
 mod live_lane;
 #[path = "tests/parameter_canonical_basis.rs"]
@@ -44,11 +41,6 @@ mod planning_variations;
 #[path = "tests/without_traversal.rs"]
 mod without_traversal;
 use alternate_source_digest::AlternateSourceDigestGraph;
-use installed_query_fixture::{installed_query, query_definition};
-pub(crate) use installed_query_fixture::{
-    installed_query_graph_read_review, installed_query_obligations,
-    installed_query_obligations_with_authority,
-};
 use without_traversal::WithoutTraversalGraph;
 
 fn test_canonical_budget() -> CanonicalDigestWorkBudget {
@@ -254,3 +246,112 @@ fn alternate_source_digest_does_not_split_one_installed_contract() {
 
     assert_eq!(application, equivalent);
 }
+
+fn installed_query() -> worth_query_installation::facade::WorthQueryInstalledApplicationQuery<
+    PlanningTestSchema,
+    ActivityQuery,
+    ActivityParameters,
+    ActivityResult,
+    Account,
+> {
+    installed_schema()
+        .application_query(query_reference())
+        .unwrap()
+}
+
+fn query_definition(
+) -> worth_query_declaration::facade::application_query::ApplicationQueryDefinition<
+    PlanningTestSchema,
+    ActivityQuery,
+    ActivityParameters,
+    ActivityResult,
+    Account,
+> {
+    let sequence =
+        ApplicationQueryResultFieldRef::<ActivityQuery, SequenceSlot, _, _, _, _, _, _, _, _>::new(
+            "sequence",
+            Sequence::reference(),
+        );
+    let account_id = ApplicationQueryResultFieldRef::<
+        ActivityQuery,
+        AccountIdSlot,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+        _,
+    >::new("account_id", AccountId::reference());
+    let activity_relation = ApplicationQueryResultRelationRef::<
+        ActivityQuery,
+        ActivitySlot,
+        _,
+        _,
+        _,
+        _,
+        ForwardResultTraversal,
+        ManyResults,
+    >::forward_many("activity", AccountActivity::reference());
+    let nested =
+        ApplicationQueryResultShapeBuilder::<PlanningTestSchema, ActivityQuery, Activity, ()>::new(
+            Activity::reference(),
+        )
+        .field(sequence);
+    let shape = ApplicationQueryResultShapeBuilder::<
+        PlanningTestSchema,
+        ActivityQuery,
+        Account,
+        ActivityResult,
+    >::new(Account::reference())
+    .field(account_id)
+    .relation(activity_relation, nested)
+    .build();
+    ApplicationQueryDefinitionBuilder::public(
+        query_reference(),
+        Account::reference(),
+        Account::reference(),
+        shape,
+        ApplicationQueryCardinality::ExactlyOne,
+        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
+        ApplicationQueryDisclosureContract::public(),
+        ApplicationQueryBasisSupport::current_and_pinned(),
+        ApplicationQueryLaneEligibility::one_shot().with_live(),
+    )
+    .parameter(account_parameter())
+    .where_equal(AccountId::reference(), account_parameter())
+    .order_by(sequence, ApplicationQueryOrderingDirection::Ascending)
+    .continue_by(activity_relation)
+    .live_by::<Activity, live_lane::PlanningLiveCause, _, _, _, _, _, _, _, _>(
+        account_id,
+        sequence,
+        ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
+    )
+    .build()
+    .unwrap()
+}
+
+fn installed_schema(
+) -> worth_query_installation::facade::WorthQueryInstalledApplicationSchema<PlanningTestSchema> {
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        "application_query_planning_test",
+        1,
+        0,
+    ))
+    .application_schema(PlanningTestSchema::declaration().unwrap())
+    .validate()
+    .unwrap();
+    let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
+        .admit(package)
+        .unwrap();
+    WorthQueryInstalledPackageIndex::build(
+        WorthQueryInstallationRuntimeIdentity::fresh(),
+        WorthQueryInstallationGeneration::initial(),
+        [admitted],
+    )
+    .unwrap()
+    .bind_application_schema(PlanningTestSchema::declaration().unwrap())
+    .unwrap()
+}
+use worth_foundational::facade::{CanonicalDigestId, CanonicalDigestWorkBudget};

@@ -34,12 +34,11 @@ fn final_commit_rejects_a_replacement_policy_path_for_the_same_grant() {
         .application
         .primary_provider
         .serialize_application_commit();
-    let Err(denial) = world.application.authorize_application_commit(
-        &admission,
-        admission.graph_work_session(),
-        &commit_basis,
-        &serialization,
-    ) else {
+    let Err(denial) =
+        world
+            .application
+            .authorize_application_commit(&admission, &commit_basis, &serialization)
+    else {
         panic!("a replacement policy path must not inherit retained commit authority");
     };
     assert_eq!(
@@ -104,9 +103,6 @@ fn replace_grantor_with_custodian(
                 ))),
         );
         transaction.commit().unwrap();
-        let branch = runtime.config().history.main_branch.clone();
-        handle
-            .ensure_primary_indexes_current(runtime, &branch)
-            .unwrap();
+        handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }
