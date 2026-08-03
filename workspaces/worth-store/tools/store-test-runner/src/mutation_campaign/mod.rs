@@ -261,7 +261,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(ids, expected);
         assert!(ids.windows(2).all(|pair| pair[0] < pair[1]));
-        assert_eq!(ids.last(), Some(&127));
+        assert_eq!(ids.last(), Some(&128));
     }
 
     #[test]
@@ -270,7 +270,7 @@ mod tests {
             .map(|mutation| mutation.id)
             .collect::<Vec<_>>();
 
-        assert_eq!(ids, (79..=127).collect::<Vec<_>>());
+        assert_eq!(ids, (79..=128).collect::<Vec<_>>());
         assert!(MutationCampaignScope::All.contains(79));
         assert!(MutationCampaignScope::All.contains(118));
         assert!(MutationCampaignScope::All.contains(119));
@@ -282,6 +282,7 @@ mod tests {
         assert!(MutationCampaignScope::All.contains(125));
         assert!(MutationCampaignScope::All.contains(126));
         assert!(MutationCampaignScope::All.contains(127));
+        assert!(MutationCampaignScope::All.contains(128));
     }
 
     #[test]

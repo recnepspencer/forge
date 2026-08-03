@@ -32,6 +32,12 @@ As you plan:
 - Build the complete plan inline in the chat. Do not create a separate plan
   file unless the user asks for one.
 
+Plan for low total construction cost across the current slice and committed
+growth. Prevent duplicated authority or meaning, but do not abstract repeated
+mechanics unless the organization makes expected additions, replacement,
+testing, or scaling easier. Show where known successors enter and which existing
+boundaries absorb growth without unrelated edits or ownership changes.
+
 Write one coherent implementation path rather than a loose collection of
 possibilities.
 

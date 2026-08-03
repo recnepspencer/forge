@@ -5,6 +5,38 @@ use super::read_repository_document;
 const TRACE_DOCUMENT: &str = "_docs/worth-store/physical-reconstruction-c7-authority-trace.csv";
 const HEADER: &str = "lane,sequence,step,path,source_anchor,authority_owner,disposition";
 
+const WAL_INVENTORY_REOPEN_STEPS: &[&str] = &[
+    "construction-entry",
+    "checkpoint-compaction-reopen",
+    "checkpoint-cutoff",
+    "wal-inventory-reopen",
+    "bounded-enumeration",
+    "canonical-identity",
+    "metadata-byte-bound",
+    "bounded-allocation",
+    "bounded-read",
+    "active-tail-inspection",
+    "interrupted-successor-admission",
+    "topology-admission",
+    "retained-member-transfer",
+    "idempotency-rebuild",
+    "wal-runtime-owner",
+    "inspection-seal",
+    "post-reopen-authority",
+];
+
+const C8_RECOVERY_HANDOFF_STEPS: &[&str] = &[
+    "checkpoint-drain",
+    "mutation-drain",
+    "root-and-wal-extraction",
+    "operation-fate-reconstruction",
+    "checkpoint-basis",
+    "residue-classification",
+    "source-profile-binding",
+    "closeout-progression",
+    "successor-extraction",
+];
+
 const EXPECTED_LANES: &[(&str, &[&str])] = &[
     (
         "ordinary-publication",
@@ -74,28 +106,7 @@ const EXPECTED_LANES: &[(&str, &[&str])] = &[
             "member-promotion",
         ],
     ),
-    (
-        "ordinary-wal-inventory-reopen",
-        &[
-            "construction-entry",
-            "checkpoint-compaction-reopen",
-            "checkpoint-cutoff",
-            "wal-inventory-reopen",
-            "bounded-enumeration",
-            "canonical-identity",
-            "metadata-byte-bound",
-            "bounded-allocation",
-            "bounded-read",
-            "active-tail-inspection",
-            "interrupted-successor-admission",
-            "topology-admission",
-            "retained-member-transfer",
-            "idempotency-rebuild",
-            "wal-runtime-owner",
-            "inspection-seal",
-            "post-reopen-authority",
-        ],
-    ),
+    ("ordinary-wal-inventory-reopen", WAL_INVENTORY_REOPEN_STEPS),
     (
         "ordinary-wal-barrier",
         &[
@@ -175,24 +186,21 @@ const EXPECTED_LANES: &[(&str, &[&str])] = &[
             "diagnostic-evidence-projection",
         ],
     ),
-    (
-        "c8-recovery-handoff",
-        &[
-            "checkpoint-drain",
-            "mutation-drain",
-            "root-and-wal-extraction",
-            "operation-fate-reconstruction",
-            "checkpoint-basis",
-            "residue-classification",
-            "source-profile-binding",
-            "closeout-progression",
-            "successor-extraction",
-        ],
-    ),
+    ("c8-recovery-handoff", C8_RECOVERY_HANDOFF_STEPS),
 ];
 
-pub(super) fn current_authority_lane_count() -> usize {
-    EXPECTED_LANES.len()
+pub(super) struct AuthorityTraceAccounting {
+    pub(super) lanes: usize,
+    pub(super) c8_recovery_handoff_steps: usize,
+    pub(super) wal_inventory_reopen_steps: usize,
+}
+
+pub(super) fn current_accounting() -> AuthorityTraceAccounting {
+    AuthorityTraceAccounting {
+        lanes: EXPECTED_LANES.len(),
+        c8_recovery_handoff_steps: C8_RECOVERY_HANDOFF_STEPS.len(),
+        wal_inventory_reopen_steps: WAL_INVENTORY_REOPEN_STEPS.len(),
+    }
 }
 
 #[test]

@@ -86,6 +86,12 @@ Do not privilege any category or mechanically multiply categories across
 ledger rows. The implementation's actual claims and risks determine the
 review.
 
+Audit total future construction cost. Distinguish harmless local repetition
+from duplicated meaning that can drift, and distinguish useful organization
+from abstraction that only adds navigation. Test whether committed successors
+can be added, tested, replaced, and scaled through predictable boundaries
+without duplicating authority or changing unrelated responsibilities.
+
 ## Plan proof economically
 
 Reuse one causally valid canonical world with isolated semantic deltas. Group

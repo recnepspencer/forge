@@ -38,6 +38,12 @@ impl<T> NonEmpty<T> {
     pub fn into_vec(self) -> Vec<T> {
         self.items
     }
+
+    pub fn map<U>(self, mut transform: impl FnMut(T) -> U) -> NonEmpty<U> {
+        NonEmpty {
+            items: self.items.into_iter().map(&mut transform).collect(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -58,6 +64,13 @@ mod tests {
     #[test]
     fn non_empty_rejects_empty_vec() {
         assert_eq!(NonEmpty::<u8>::try_from_vec(Vec::new()), Err(Vec::new()));
+    }
+
+    #[test]
+    fn map_preserves_nonempty_cardinality_and_order() {
+        let mapped = NonEmpty::new(1, vec![2, 3]).map(|value| value * 10);
+
+        assert_eq!(mapped.as_slice(), &[10, 20, 30]);
     }
 
     #[test]

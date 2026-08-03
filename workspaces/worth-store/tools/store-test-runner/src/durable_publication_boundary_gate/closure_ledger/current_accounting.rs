@@ -25,6 +25,16 @@ fn current_ledger_accounting_rejects_each_independent_fact_drift() {
     }
 }
 
+#[test]
+fn current_ledger_accounting_distinguishes_handoff_from_wal_reopen() {
+    let accounting = authority_trace::current_accounting();
+    assert_eq!(
+        accounting.c8_recovery_handoff_steps, 9,
+        "MUTANT_PREDICATE:phase-ten-handoff-step-accounting-substitution-accepted"
+    );
+    assert_eq!(accounting.wal_inventory_reopen_steps, 17);
+}
+
 fn validate_claims(rows: &[LedgerRow], accounting: &CurrentLedgerAccounting) -> Result<(), String> {
     for claim in accounting.claims() {
         let row = rows
@@ -68,7 +78,7 @@ fn replace_evidence_fact(rows: &mut [LedgerRow], guarantee: &str, current: &str,
 struct CurrentLedgerAccounting {
     guarantee_rows: usize,
     required_families: usize,
-    authority_lanes: usize,
+    authority: authority_trace::AuthorityTraceAccounting,
     api: public_api::PublicApiAccounting,
     removal: inventory::RemovalLedgerAccounting,
 }
@@ -78,19 +88,33 @@ impl CurrentLedgerAccounting {
         Ok(Self {
             guarantee_rows: rows.len(),
             required_families: REQUIRED_FAMILIES.len(),
-            authority_lanes: authority_trace::current_authority_lane_count(),
+            authority: authority_trace::current_accounting(),
             api: public_api::current_accounting(),
             removal: inventory::current_accounting()?,
         })
     }
 
-    fn claims(&self) -> [AccountingClaim; 4] {
+    fn claims(&self) -> [AccountingClaim; 6] {
         [
             AccountingClaim::new(
                 "C7-AUTHORITY-01",
                 format!(
                     "[current-accounting live-consumers={} absent-paths={} authority-lanes={}]",
-                    self.removal.live_consumers, self.removal.absent_paths, self.authority_lanes
+                    self.removal.live_consumers, self.removal.absent_paths, self.authority.lanes
+                ),
+            ),
+            AccountingClaim::new(
+                "C7-WAL-05",
+                format!(
+                    "[current-accounting wal-reopen-steps={}]",
+                    self.authority.wal_inventory_reopen_steps
+                ),
+            ),
+            AccountingClaim::new(
+                "C7-HANDOFF-01",
+                format!(
+                    "[current-accounting c8-handoff-steps={}]",
+                    self.authority.c8_recovery_handoff_steps
                 ),
             ),
             AccountingClaim::new(
@@ -129,7 +153,17 @@ impl CurrentLedgerAccounting {
                 self.removal.live_consumers,
             ),
             ("C7-AUTHORITY-01", "absent-paths", self.removal.absent_paths),
-            ("C7-AUTHORITY-01", "authority-lanes", self.authority_lanes),
+            ("C7-AUTHORITY-01", "authority-lanes", self.authority.lanes),
+            (
+                "C7-WAL-05",
+                "wal-reopen-steps",
+                self.authority.wal_inventory_reopen_steps,
+            ),
+            (
+                "C7-HANDOFF-01",
+                "c8-handoff-steps",
+                self.authority.c8_recovery_handoff_steps,
+            ),
             ("C7-API-01", "locked-surfaces", self.api.locked_surfaces),
             (
                 "C7-API-01",

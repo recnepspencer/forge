@@ -1,5 +1,6 @@
 use super::{ControlledMutation, MutationTarget};
 
+mod authority_accounting;
 mod closeout_cost;
 mod ledger_accounting;
 mod process_accounting;
@@ -8,6 +9,8 @@ mod wal_lifecycle_evidence;
 mod wal_reopen_cleanup;
 mod wal_successor_cleanup;
 
+pub(super) const AUTHORITY_ACCOUNTING_MUTATIONS: &[ControlledMutation] =
+    authority_accounting::MUTATIONS;
 pub(super) const CLOSEOUT_COST_MUTATIONS: &[ControlledMutation] = closeout_cost::MUTATIONS;
 pub(super) const LEDGER_ACCOUNTING_MUTATIONS: &[ControlledMutation] = ledger_accounting::MUTATIONS;
 pub(super) const PROCESS_ACCOUNTING_MUTATIONS: &[ControlledMutation] =
@@ -181,8 +184,8 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
         id: 93,
         predicate: "c8-handoff-authority-lane-omitted",
         source: "tools/store-test-runner/src/durable_publication_boundary_gate/authority_trace.rs",
-        needle: "            \"successor-extraction\",",
-        replacement: "            \"diagnostic-evidence-projection\",",
+        needle: "    \"successor-extraction\",",
+        replacement: "    \"diagnostic-evidence-projection\",",
         package: "store-test-runner",
         target: MutationTarget::Library,
         selector: "durable_publication_boundary_gate::authority_trace::every_current_authority_lane_resolves_to_ordered_production_sources",
