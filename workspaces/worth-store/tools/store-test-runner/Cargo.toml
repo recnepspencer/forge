@@ -21,6 +21,7 @@ physical-work-evidence = [
 ]
 
 [dev-dependencies]
+syn = { version = "2", features = ["full", "visit"] }
 trybuild = "1.0"
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store-io-scheduler.workspace = true

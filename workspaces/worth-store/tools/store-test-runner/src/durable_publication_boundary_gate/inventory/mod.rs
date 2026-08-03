@@ -90,6 +90,32 @@ fn current_ledger() -> Result<BTreeMap<String, RemovalRow>, String> {
     parse_removal_ledger(&read_repository_document(REMOVAL_LEDGER)?)
 }
 
+pub(super) fn current_accounting() -> Result<RemovalLedgerAccounting, String> {
+    let ledger = current_ledger()?;
+    Ok(RemovalLedgerAccounting {
+        rows: ledger.len(),
+        live_consumers: ledger
+            .values()
+            .filter(|row| row.status == RemovalStatus::InventoryOpen)
+            .count(),
+        absent_paths: ledger
+            .values()
+            .filter(|row| matches!(row.status, RemovalStatus::Deleted(_)))
+            .count(),
+        deleted_paths: ledger
+            .values()
+            .filter(|row| row.disposition == Disposition::Delete)
+            .count(),
+        completed_moves: ledger
+            .values()
+            .filter(|row| {
+                row.disposition == Disposition::Move
+                    && matches!(row.status, RemovalStatus::Deleted(_))
+            })
+            .count(),
+    })
+}
+
 fn reconcile(
     discovered: &BTreeMap<String, BTreeMap<String, usize>>,
     ledger: &BTreeMap<String, RemovalRow>,
@@ -206,4 +232,12 @@ fn controlled_row(match_counts: BTreeMap<String, usize>) -> RemovalRow {
         absence_gate: "tracked-family-source-and-metadata-reconciliation".to_owned(),
         status: RemovalStatus::InventoryOpen,
     }
+}
+
+pub(super) struct RemovalLedgerAccounting {
+    pub(super) rows: usize,
+    pub(super) live_consumers: usize,
+    pub(super) absent_paths: usize,
+    pub(super) deleted_paths: usize,
+    pub(super) completed_moves: usize,
 }

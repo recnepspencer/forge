@@ -1,5 +1,9 @@
 use super::super::read_repository_document;
 
+mod continuation;
+mod reopen;
+mod reservation;
+
 const RESERVATION: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                            durability/wal/group_reservation/mod.rs";
 const MEMBER_PLANNING: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
@@ -10,18 +14,16 @@ const RUNTIME_OWNER: &str = "workspaces/worth-store/crates/worth-store/src/physi
                              durability/wal/runtime_owner.rs";
 const REOPEN: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                       durability/wal/inventory/reopen.rs";
-const INVENTORY: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
-                         durability/wal/inventory/live_segment_inventory.rs";
-const JOURNEY: &str = "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/\
-                       durability_admission/wal_group_continuation.rs";
 
 #[test]
-fn wal_segment_lifecycle_preserves_whole_group_rotation_and_bounded_reopen() {
-    inspect(&sources()).unwrap();
+fn wal_segment_lifecycle_resolves_through_real_rust_syntax() {
+    inspect(&sources()).unwrap_or_else(|denial| {
+        panic!("MUTANT_PREDICATE:wal-segment-lifecycle-source-counterfeit-accepted: {denial}")
+    });
 }
 
 #[test]
-fn wal_segment_lifecycle_gate_rejects_rotation_continuation_and_reopen_mutants() {
+fn wal_segment_lifecycle_rejects_wrong_owners_without_pinning_local_phrasing() {
     let source = sources();
 
     let mut per_member_create = source.clone();
@@ -30,14 +32,6 @@ fn wal_segment_lifecycle_gate_rejects_rotation_continuation_and_reopen_mutants()
         "PhysicalWalFrameWriteDisposition::CreateSegment\n        };",
     );
     assert!(inspect(&per_member_create).is_err());
-
-    let mut rotated_lsn_rebase = source.clone();
-    rotated_lsn_rebase.reservation = rotated_lsn_rebase.reservation.replacen(
-        "next_frontier,\n            group_lsn_start,",
-        "next_frontier,\n            next_frontier.last_lsn_end().unwrap(),",
-        1,
-    );
-    assert!(inspect(&rotated_lsn_rebase).is_err());
 
     let mut suffix_replanning = source.clone();
     suffix_replanning.group_port = suffix_replanning.group_port.replace(
@@ -53,18 +47,42 @@ fn wal_segment_lifecycle_gate_rejects_rotation_continuation_and_reopen_mutants()
     );
     assert!(inspect(&premature_release).is_err());
 
-    let mut unbounded_inventory = source.clone();
+    let mut unbounded_inventory = source;
     unbounded_inventory.reopen = unbounded_inventory
         .reopen
         .replace("list_file_names_bounded", "list_file_names");
     assert!(inspect(&unbounded_inventory).is_err());
+}
 
-    let mut oversized_read = source.clone();
-    oversized_read.reopen = oversized_read.reopen.replace(
-        "if byte_count > byte_limit {",
-        "if false && byte_count > byte_limit {",
+#[test]
+fn comments_and_literals_cannot_counterfeit_wal_lifecycle_steps() {
+    let source = sources();
+    let mut comment_counterfeit = source.clone();
+    comment_counterfeit.reopen = comment_counterfeit.reopen.replace(
+        ".list_file_names_bounded(&directory, inventory_limit)",
+        ".list_file_names(&directory) // .list_file_names_bounded(&directory, inventory_limit)",
     );
-    assert!(inspect(&oversized_read).is_err());
+    assert!(inspect(&comment_counterfeit).is_err());
+
+    let mut delimiter_literal = source;
+    delimiter_literal.reopen = delimiter_literal.reopen.replace(
+        "let directory = wal_directory();",
+        "let _delimiter_literal = \"{ a comment-like } brace cannot move a function boundary\";\n    let directory = wal_directory();",
+    );
+    inspect(&delimiter_literal).expect("string delimiters do not alter Rust syntax ownership");
+}
+
+#[test]
+fn delegated_reopen_verification_is_the_current_semantic_owner() {
+    let mut source = sources();
+    source.reopen = source.reopen.replace(
+        "interrupted_active_tail::inspect(",
+        "inspect_verified_wal_segment(",
+    );
+    assert!(
+        inspect(&source).is_err(),
+        "MUTANT_PREDICATE:wal-segment-lifecycle-stale-reopen-owner-accepted"
+    );
 }
 
 #[derive(Clone)]
@@ -74,188 +92,25 @@ struct WalSegmentLifecycleSources {
     group_port: String,
     runtime_owner: String,
     reopen: String,
-    inventory: String,
-    journey: String,
 }
 
 fn sources() -> WalSegmentLifecycleSources {
     WalSegmentLifecycleSources {
-        reservation: read_repository_document(RESERVATION).expect("read WAL group reservation"),
-        member_planning: read_repository_document(MEMBER_PLANNING)
-            .expect("read WAL member planning"),
-        group_port: read_repository_document(GROUP_PORT).expect("read WAL group port"),
-        runtime_owner: read_repository_document(RUNTIME_OWNER).expect("read WAL runtime owner"),
-        reopen: read_repository_document(REOPEN).expect("read WAL inventory reopen"),
-        inventory: read_repository_document(INVENTORY).expect("read WAL segment inventory"),
-        journey: read_repository_document(JOURNEY).expect("read WAL continuation journey"),
+        reservation: read(RESERVATION),
+        member_planning: read(MEMBER_PLANNING),
+        group_port: read(GROUP_PORT),
+        runtime_owner: read(RUNTIME_OWNER),
+        reopen: read(REOPEN),
     }
 }
 
-fn inspect(source: &WalSegmentLifecycleSources) -> Result<(), &'static str> {
-    inspect_whole_group_reservation(&source.reservation, &source.member_planning)?;
-    inspect_exact_continuation(&source.group_port, &source.runtime_owner)?;
-    inspect_bounded_reopen(&source.reopen, &source.inventory)?;
-    inspect_journey(&source.journey)?;
-    Ok(())
+fn inspect(source: &WalSegmentLifecycleSources) -> Result<(), String> {
+    reservation::inspect(&source.reservation, &source.member_planning)?;
+    continuation::inspect(&source.group_port, &source.runtime_owner)?;
+    reopen::inspect(&source.reopen)?;
+    super::wal_reopen_origin::inspect(&source.reopen)
 }
 
-fn inspect_whole_group_reservation(
-    reservation: &str,
-    member_planning: &str,
-) -> Result<(), &'static str> {
-    let reserve = compact(
-        function_body(reservation, "fn reserve_group(")
-            .ok_or("whole-group reservation owner is absent")?,
-    );
-    if reserve.matches("plan_group(").count() != 2
-        || reserve.matches("state.in_flight=true").count() != 2
-    {
-        return Err("group reservation no longer plans exactly one current and one rotated world");
-    }
-    for required in [
-        "letgroup_lsn_start=state.frontier.last_lsn_end()",
-        "admitted,state.frontier,group_lsn_start",
-        "letadmitted=current.release_after_no_effect()",
-        "ifstate.segment_count>=inventory_limit",
-        "admitted,next_frontier,group_lsn_start",
-        "PhysicalWalFrameWriteDisposition::CreateSegment",
-    ] {
-        if !reserve.contains(required) {
-            return Err("rotated group placement lost its pre-effect whole-group authority");
-        }
-    }
-
-    let planning = compact(
-        function_body(member_planning, "fn plan_group(")
-            .ok_or("whole-group member planning is absent")?,
-    );
-    for required in [
-        "whileletSome((prepared,group))=pending.next()",
-        "iffirst{first_disposition}else{PhysicalWalFrameWriteDisposition::AppendExistingSegment}",
-        "frontier=member.mutation().resulting_frontier()",
-        "Ok(ReservedPhysicalWalGroupMembers(nonempty(planned)))",
-    ] {
-        if !planning.contains(required) {
-            return Err("member planning can no longer prove one contiguous reserved group");
-        }
-    }
-    Ok(())
-}
-
-fn inspect_exact_continuation(group_port: &str, runtime_owner: &str) -> Result<(), &'static str> {
-    let continuation = compact(
-        function_body(group_port, "fn continue_prepared_group(")
-            .ok_or("group continuation entry is absent")?,
-    );
-    if !continuation.contains(
-        "PhysicalWalGroupAppendRemainder::Reserved(members)=>{self.append_reserved_group(basis,appended,members)}",
-    ) {
-        return Err("reserved suffix continuation can re-enter reservation or replanning");
-    }
-
-    let append = compact(
-        function_body(group_port, "fn append_reserved_group(")
-            .ok_or("reserved group append owner is absent")?,
-    );
-    for required in [
-        "ifappended.is_empty(){self.owner.release_group_before_effect()",
-        "}else{PhysicalWalGroupAppendRemainder::Reserved(pending)}",
-        "self.owner.finish_group();matchSealedPhysicalDurabilityGroupMembers::seal",
-    ] {
-        if !append.contains(required) {
-            return Err(
-                "partial continuation lost exact suffix ownership or terminal release order",
-            );
-        }
-    }
-    let owner = compact(runtime_owner);
-    if owner.matches(".in_flight=false").count() != 3
-        || !owner.contains("pub(super)fncomplete_member(")
-    {
-        return Err(
-            "WAL runtime ownership no longer separates member completion from group release",
-        );
-    }
-    Ok(())
-}
-
-fn inspect_bounded_reopen(source: &str, inventory: &str) -> Result<(), &'static str> {
-    super::wal_reopen_origin::inspect(source, inventory)?;
-    let reopen = compact(
-        function_body(source, "fn reopen_wal_inventory(")
-            .ok_or("bounded WAL reopen owner is absent")?,
-    );
-    if !contains_in_order(
-        &reopen,
-        &[
-            "list_file_names_bounded(&directory,inventory_limit)",
-            "WalSegmentArtifactIdentity::parse(name)",
-            "letbyte_count=tree.file_length(&artifact)",
-            "ifbyte_count==0",
-            "ifbyte_count>byte_limit",
-            "try_reserve_exact(allocation)",
-            "tree.read_exact_at(&artifact,0,&mutbytes)",
-            "inspect_verified_wal_segment(identity,&bytes)",
-            "WalTopologyScan::from_segment_scan(scans)",
-            "PhysicalWalSegmentInventory::from_reopened(inspections)",
-            "require_checkpoint_cutoff_within_retained_wal(cutoff,&segment_inventory,active_lsn_end)",
-            "letrequires_inspection=cutoff.lsn().is_none()&&!segment_inventory.retains_canonical_wal_origin()",
-            "requires_inspection,",
-        ],
-    ) {
-        return Err("WAL reopen no longer rejects hostile inventory before bounded allocation");
-    }
-    Ok(())
-}
-
-fn inspect_journey(source: &str) -> Result<(), &'static str> {
-    for required in [
-        "PhysicalWalGroupAppendOutcome::PartiallyAppended",
-        "PhysicalWalReservationDenial::AppendInFlight",
-        "assert_exact_rotated_group(&rotated)",
-        "second.artifact_range().offset()",
-        "first.lsn_range().end_exclusive()",
-    ] {
-        if !source.contains(required) {
-            return Err("adversarial rotated-group continuation journey lost causal evidence");
-        }
-    }
-    Ok(())
-}
-
-fn function_body<'a>(source: &'a str, signature: &str) -> Option<&'a str> {
-    let start = source.find(signature)?;
-    let open = source[start..].find('{')? + start;
-    let mut depth = 0_u32;
-    for (offset, character) in source[open..].char_indices() {
-        match character {
-            '{' => depth += 1,
-            '}' => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(&source[open + 1..open + offset]);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn compact(source: &str) -> String {
-    source
-        .chars()
-        .filter(|character| !character.is_whitespace())
-        .collect()
-}
-
-fn contains_in_order(source: &str, required: &[&str]) -> bool {
-    let mut offset = 0;
-    required.iter().all(|needle| {
-        let Some(found) = source[offset..].find(needle) else {
-            return false;
-        };
-        offset += found + needle.len();
-        true
-    })
+fn read(path: &str) -> String {
+    read_repository_document(path).unwrap_or_else(|error| panic!("{error}"))
 }

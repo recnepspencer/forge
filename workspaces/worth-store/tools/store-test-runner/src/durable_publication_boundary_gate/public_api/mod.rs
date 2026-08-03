@@ -106,6 +106,13 @@ fn locked_public_surface_count() -> usize {
         + PHASE_TEN_SURFACES.len()
 }
 
+pub(super) fn current_accounting() -> PublicApiAccounting {
+    PublicApiAccounting {
+        locked_surfaces: locked_public_surface_count(),
+        phase_ten_surfaces: PHASE_TEN_SURFACES.len(),
+    }
+}
+
 fn parse_api(document: &str) -> Result<Vec<ApiRow>, String> {
     let mut lines = document.lines();
     if lines.next() != Some(HEADER) {
@@ -140,4 +147,9 @@ struct ApiRow {
     disposition: String,
     destination_owner: String,
     phase: String,
+}
+
+pub(super) struct PublicApiAccounting {
+    pub(super) locked_surfaces: usize,
+    pub(super) phase_ten_surfaces: usize,
 }

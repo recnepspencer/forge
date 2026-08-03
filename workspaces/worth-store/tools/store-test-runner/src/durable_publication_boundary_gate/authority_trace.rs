@@ -190,6 +190,10 @@ const EXPECTED_LANES: &[(&str, &[&str])] = &[
     ),
 ];
 
+pub(super) fn current_authority_lane_count() -> usize {
+    EXPECTED_LANES.len()
+}
+
 #[test]
 fn every_current_authority_lane_resolves_to_ordered_production_sources() {
     let document = read_repository_document(TRACE_DOCUMENT).expect("read C.7 authority trace");
