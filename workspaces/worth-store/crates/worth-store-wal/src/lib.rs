@@ -29,14 +29,14 @@ pub use append::{
 #[cfg(feature = "certification-authority")]
 pub use artifact_store::WalAppendPlanner;
 pub use artifact_store::{
-    inspect_complete_wal_segment, inspect_verified_wal_active_tail, inspect_verified_wal_segment,
-    observe_checkpoint_artifact, observe_wal_frame_artifact, prepare_wal_frame_append,
-    CheckpointArtifactObservation, InterruptedWalTail, VerifiedWalActiveTail,
-    VerifiedWalFramePayload, VerifiedWalSegment, WalArtifactInventory,
-    WalArtifactInventoryIdentity, WalArtifactInventoryScan, WalArtifactObservation,
-    WalArtifactObservationRead, WalArtifactScanCounters, WalArtifactStoreDenial,
-    WalFrameAppendPlan, WalFrameArtifactObservation, WalSegmentArtifactIdentity,
-    WalSegmentInspection,
+    inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
+    inspect_verified_wal_active_tail, inspect_verified_wal_segment, observe_checkpoint_artifact,
+    observe_wal_frame_artifact, prepare_wal_frame_append, CheckpointArtifactObservation,
+    InterruptedWalSegmentStart, InterruptedWalTail, VerifiedWalActiveTail, VerifiedWalFramePayload,
+    VerifiedWalSegment, WalArtifactInventory, WalArtifactInventoryIdentity,
+    WalArtifactInventoryScan, WalArtifactObservation, WalArtifactObservationRead,
+    WalArtifactScanCounters, WalArtifactStoreDenial, WalFrameAppendPlan,
+    WalFrameArtifactObservation, WalSegmentArtifactIdentity, WalSegmentInspection,
 };
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,

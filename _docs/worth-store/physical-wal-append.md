@@ -119,9 +119,19 @@ Reopen first enumerates file names under the admitted inventory bound. It then
 requires canonical segment names and, for each file, checks nonzero metadata
 length and the segment byte limit before allocating or reading that file.
 Complete-segment inspection verifies framing, digests, LSN continuity, and
-cross-segment topology. Noncanonical names, empty or oversized segments,
-allocation failure, damaged frames, generation drift, gaps, overlaps, and
-counter overflow are typed `PhysicalWalOpenFailure` values.
+cross-segment topology. Reopen repairs only final write residue that can be
+placed exactly. An incomplete final frame may be truncated to the complete
+frames already verified in the active segment. An empty or strictly incomplete
+first frame may be removed only when its artifact is the active, exact-next,
+same-generation successor of a fully verified retained segment. The WAL parser
+proves the incomplete frame shape; Store topology proves that it is the lawful
+successor. Neither proof alone has cleanup authority.
+
+A lone or internal partial segment, a noncontiguous or wrong-generation
+successor, a malformed complete header, and a complete frame with digest
+damage remain typed `PhysicalWalOpenFailure` values and are not changed.
+Noncanonical names, oversized segments, allocation failure, gaps, overlaps,
+and counter overflow are likewise denials rather than cleanup candidates.
 
 A nonempty WAL reopened without a namespace-durable checkpoint cutoff remains
 sealed for inspection. When binding-compaction reopen supplies a cutoff inside

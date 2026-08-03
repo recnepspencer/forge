@@ -31,7 +31,7 @@ fn inspect_member_planning(source: &str) -> Result<(), String> {
         "method:mutation",
         "method:resulting_frontier",
         "method:last_lsn_end",
-        "call:ReservedPhysicalWalGroupMembers",
         "call:nonempty",
+        "call:ReservedPhysicalWalGroupMembers",
     ])
 }

@@ -24,8 +24,6 @@ const RECOVERY: &str = "workspaces/worth-store/crates/worth-store/src/physical_r
                         work/recovery/locator/codec.rs";
 const REOPEN: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                       durability/wal/inventory/reopen.rs";
-const INVENTORY: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
-                         durability/wal/inventory/live_segment_inventory.rs";
 const JOURNEY: &str = "workspaces/worth-store/crates/worth-store/tests/\
                        physical_record_journeys/durability_admission/\
                        checkpoint_wal_reclamation.rs";
@@ -152,7 +150,6 @@ struct WalReclamationSources {
     semantics: String,
     recovery: String,
     reopen: String,
-    inventory: String,
     journey: String,
 }
 
@@ -170,7 +167,6 @@ fn sources() -> WalReclamationSources {
         semantics: read(SEMANTICS),
         recovery: read(RECOVERY),
         reopen: read(REOPEN),
-        inventory: read(INVENTORY),
         journey: read(JOURNEY),
     }
 }
@@ -342,7 +338,8 @@ fn inspect_route_and_recovery(source: &WalReclamationSources) -> Result<(), &'st
 }
 
 fn inspect_reopen_and_evidence(source: &WalReclamationSources) -> Result<(), &'static str> {
-    super::wal_reopen_origin::inspect(&source.reopen, &source.inventory)?;
+    super::wal_reopen_origin::inspect(&source.reopen)
+        .map_err(|_| "WAL reopen lost its canonical-origin classification")?;
     require_all(
         &source.reopen,
         &[

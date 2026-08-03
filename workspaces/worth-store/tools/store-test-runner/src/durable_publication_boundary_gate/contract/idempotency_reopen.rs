@@ -1,4 +1,5 @@
 use super::super::read_repository_document;
+use super::wal_source_syntax::ParsedRustSource;
 
 const CONSTRUCTION: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                             instance/construction.rs";
@@ -25,7 +26,7 @@ fn fresh_process_idempotency_reopen_has_one_ordered_streaming_authority_path() {
 }
 
 #[test]
-fn reopen_contract_rejects_bypass_buffering_and_authority_mutants() {
+fn reopen_contract_rejects_authority_and_ordering_bypasses() {
     let source = sources();
 
     let mut bypass = source.clone();
@@ -57,6 +58,11 @@ fn reopen_contract_rejects_bypass_buffering_and_authority_mutants() {
         "impl PhysicalDurabilityRuntimeOwner {\nfn idempotency_authority(&self) {}",
     );
     assert!(inspect(&raw_authority).is_err());
+}
+
+#[test]
+fn reopen_contract_rejects_buffering_inspection_and_fate_bypasses() {
+    let source = sources();
 
     let mut buffered_compaction = source.clone();
     buffered_compaction.compaction = mutate_once(
@@ -77,10 +83,18 @@ fn reopen_contract_rejects_bypass_buffering_and_authority_mutants() {
     let mut weaker_wal_inspection = source.clone();
     weaker_wal_inspection.wal_reopen = mutate_once(
         &weaker_wal_inspection.wal_reopen,
-        "inspect_verified_wal_segment(identity, &bytes)",
-        "inspect_complete_wal_segment(identity, &bytes)",
+        "let admitted = interrupted_active_tail::inspect(",
+        "let admitted = inspect_complete_wal_segment(",
     );
     assert!(inspect(&weaker_wal_inspection).is_err());
+
+    let mut unadmitted_successor = source.clone();
+    unadmitted_successor.wal_reopen = mutate_once(
+        &unadmitted_successor.wal_reopen,
+        "candidate.admit_after(previous)?",
+        "candidate",
+    );
+    assert!(inspect(&unadmitted_successor).is_err());
 
     let mut embedded_fate = source;
     embedded_fate.fate.clear();
@@ -154,13 +168,14 @@ fn read(path: &str) -> String {
     read_repository_document(path).unwrap_or_else(|error| panic!("{error}"))
 }
 
-fn inspect(source: &ReopenSources) -> Result<(), &'static str> {
+fn inspect(source: &ReopenSources) -> Result<(), String> {
     inspect_construction(&source.construction, &source.bootstrap)?;
     inspect_authority(&source.owner)?;
     inspect_generation_cutover(&source.publication)?;
     inspect_streaming(&source.compaction, &source.checkpoint_reopen)?;
     inspect_wal(&source.wal_reopen)?;
-    inspect_fate(&source.registry, &source.compaction, &source.fate)
+    inspect_fate(&source.registry, &source.compaction, &source.fate)?;
+    Ok(())
 }
 
 fn inspect_construction(construction: &str, bootstrap: &str) -> Result<(), &'static str> {
@@ -262,20 +277,14 @@ fn inspect_streaming(compaction: &str, reopen: &str) -> Result<(), &'static str>
     Ok(())
 }
 
-fn inspect_wal(source: &str) -> Result<(), &'static str> {
-    if source.matches("inspect_verified_wal_segment(").count() != 1
-        || source.contains("inspect_complete_wal_segment")
-        || !contains_in_order(
-            &compact(source),
-            &[
-                "inspect_verified_wal_segment(identity,&bytes)",
-                "verified.frames()",
-            ],
-        )
-    {
-        return Err("WAL reopen no longer decodes members from one verified inspection");
-    }
-    Ok(())
+fn inspect_wal(source: &str) -> Result<(), String> {
+    let syntax = ParsedRustSource::parse(source, "WAL reopen owner")?;
+    let reopen = syntax.function("reopen_wal_inventory")?;
+    reopen.require_exact("call:inspect", 1)?;
+    reopen.deny("call:inspect_complete_wal_segment")?;
+    reopen.require_exact("method:admit_after", 1)?;
+    reopen.require_exact("method:frames", 1)?;
+    reopen.require_in_order(&["call:inspect", "method:admit_after", "method:frames"])
 }
 
 fn inspect_fate(registry: &str, compaction: &str, fate: &str) -> Result<(), &'static str> {

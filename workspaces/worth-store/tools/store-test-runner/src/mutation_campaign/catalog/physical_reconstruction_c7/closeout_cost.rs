@@ -17,13 +17,13 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
         id: 113,
         predicate: "c7-case-wall-headroom-regressed",
         source: "tools/store-test-runner/src/courtroom_campaign/bounded_residency_siege/c7_crash_campaign/timing.rs",
-        needle: "const CASE_SECONDARY_WALL_LIMIT_MS: u64 = 120_000;",
-        replacement: "const CASE_SECONDARY_WALL_LIMIT_MS: u64 = 60_000;",
+        needle: "const CASE_SECONDARY_HANG_GUARD_MS: u64 = 180_000;",
+        replacement: "const CASE_SECONDARY_HANG_GUARD_MS: u64 = 60_000;",
         package: "store-test-runner",
         target: MutationTarget::LibraryWithFeatures {
             features: "physical-work-evidence",
         },
-        selector: "courtroom_campaign::bounded_residency_siege::c7_crash_campaign::timing::tests::secondary_wall_limit_retains_canonical_multi_case_headroom",
+        selector: "courtroom_campaign::bounded_residency_siege::c7_crash_campaign::timing::tests::secondary_hang_guard_retains_canonical_multi_case_headroom",
     },
     ControlledMutation {
         id: 114,

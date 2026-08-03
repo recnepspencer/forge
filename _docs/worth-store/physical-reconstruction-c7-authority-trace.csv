@@ -86,13 +86,14 @@ ordinary-wal-inventory-reopen,6,canonical-identity,crates/worth-store/src/physic
 ordinary-wal-inventory-reopen,7,metadata-byte-bound,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,if byte_count > byte_limit,Store WAL reopen admission,preserve
 ordinary-wal-inventory-reopen,8,bounded-allocation,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,try_reserve_exact(allocation),Store WAL bounded memory,preserve
 ordinary-wal-inventory-reopen,9,bounded-read,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,read_exact_at(&artifact,C4 media owner,preserve
-ordinary-wal-inventory-reopen,10,verified-segment-inspection,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,inspect_verified_wal_segment,WAL segment meaning,preserve
-ordinary-wal-inventory-reopen,11,topology-admission,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,WalTopologyScan::from_segment_scan,WAL topology meaning,preserve
-ordinary-wal-inventory-reopen,12,retained-member-transfer,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,inventory.take_members(),Store durability bootstrap,preserve
-ordinary-wal-inventory-reopen,13,idempotency-rebuild,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,rebuild_idempotency(,Store idempotency rebuild,preserve
-ordinary-wal-inventory-reopen,14,wal-runtime-owner,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,PhysicalWalRuntimeOwner::from_reopened,Store WAL runtime owner,preserve
-ordinary-wal-inventory-reopen,15,inspection-seal,crates/worth-store/src/physical_runtime/durability/wal/runtime_owner.rs,sealed: inventory.requires_inspection,Store WAL runtime owner,preserve
-ordinary-wal-inventory-reopen,16,post-reopen-authority,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,durability.install_rebuilt_idempotency(self.rebuilt),Store durability bootstrap,preserve
+ordinary-wal-inventory-reopen,10,active-tail-inspection,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,interrupted_active_tail::inspect,Store WAL interrupted-tail classification,preserve
+ordinary-wal-inventory-reopen,11,interrupted-successor-admission,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,candidate.admit_after(previous),Store WAL exact-successor cleanup admission,preserve
+ordinary-wal-inventory-reopen,12,topology-admission,crates/worth-store/src/physical_runtime/durability/wal/inventory/reopen.rs,WalTopologyScan::from_segment_scan,WAL topology meaning,preserve
+ordinary-wal-inventory-reopen,13,retained-member-transfer,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,inventory.take_members(),Store durability bootstrap,preserve
+ordinary-wal-inventory-reopen,14,idempotency-rebuild,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,rebuild_idempotency(,Store idempotency rebuild,preserve
+ordinary-wal-inventory-reopen,15,wal-runtime-owner,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,PhysicalWalRuntimeOwner::from_reopened,Store WAL runtime owner,preserve
+ordinary-wal-inventory-reopen,16,inspection-seal,crates/worth-store/src/physical_runtime/durability/wal/runtime_owner.rs,sealed: inventory.requires_inspection,Store WAL runtime owner,preserve
+ordinary-wal-inventory-reopen,17,post-reopen-authority,crates/worth-store/src/physical_runtime/instance/durability_bootstrap.rs,durability.install_rebuilt_idempotency(self.rebuilt),Store durability bootstrap,preserve
 ordinary-mutation-lifecycle,1,prepared-start,crates/worth-store/src/physical_runtime/record_serving/publication/durable_preparation/prepared.rs,pub fn start(self),Store mutation start port,preserve
 ordinary-mutation-lifecycle,2,attempt-registration,crates/worth-store/src/physical_runtime/durability/lifecycle/managed_work.rs,fn start(,Store mutation lifecycle owner,preserve
 ordinary-mutation-lifecycle,3,worker-execution,crates/worth-store/src/physical_runtime/durability/lifecycle/managed_work.rs,fn run_worker(,Store mutation lifecycle owner,preserve

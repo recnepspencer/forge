@@ -16,15 +16,20 @@ impl ParsedRustSource {
         let mut blocks = Vec::new();
         collect_named_functions(&self.file.items, name, &mut blocks);
         match blocks.as_slice() {
-            [block] => Ok(FunctionSyntax { name, block }),
+            [block] => Ok(FunctionSyntax {
+                name: name.to_owned(),
+                block,
+            }),
             [] => Err(format!("Rust source omits semantic function `{name}`")),
-            _ => Err(format!("Rust source has competing functions named `{name}`")),
+            _ => Err(format!(
+                "Rust source has competing functions named `{name}`"
+            )),
         }
     }
 }
 
 pub(super) struct FunctionSyntax<'source> {
-    name: &'source str,
+    name: String,
     block: &'source Block,
 }
 
@@ -92,12 +97,7 @@ impl FunctionSyntax<'_> {
                 },
                 _ => None,
             })
-            .ok_or_else(|| {
-                format!(
-                    "`{}` omits semantic binding `{binding}`",
-                    self.name
-                )
-            })
+            .ok_or_else(|| format!("`{}` omits semantic binding `{binding}`", self.name))
     }
 
     fn steps(&self) -> Vec<String> {
@@ -141,17 +141,17 @@ struct SemanticStepCollector {
 
 impl<'ast> Visit<'ast> for SemanticStepCollector {
     fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
+        visit::visit_expr_call(self, call);
         if let Expr::Path(path) = call.func.as_ref() {
             if let Some(segment) = path.path.segments.last() {
                 self.steps.push(format!("call:{}", segment.ident));
             }
         }
-        visit::visit_expr_call(self, call);
     }
 
     fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
-        self.steps.push(format!("method:{}", call.method));
         visit::visit_expr_method_call(self, call);
+        self.steps.push(format!("method:{}", call.method));
     }
 
     fn visit_expr_assign(&mut self, assignment: &'ast syn::ExprAssign) {
@@ -159,8 +159,7 @@ impl<'ast> Visit<'ast> for SemanticStepCollector {
             (assignment.left.as_ref(), assignment.right.as_ref())
         {
             if let (Member::Named(name), syn::Lit::Bool(value)) = (&field.member, &value.lit) {
-                self.steps
-                    .push(format!("assign:{name}={}", value.value));
+                self.steps.push(format!("assign:{name}={}", value.value));
             }
         }
         visit::visit_expr_assign(self, assignment);
@@ -171,5 +170,42 @@ impl<'ast> Visit<'ast> for SemanticStepCollector {
             self.steps.push(format!("path:{}", segment.ident));
         }
         visit::visit_expr_path(self, path);
+    }
+
+    fn visit_pat_tuple_struct(&mut self, pattern: &'ast syn::PatTupleStruct) {
+        if let Some(segment) = pattern.path.segments.last() {
+            self.steps.push(format!("path:{}", segment.ident));
+        }
+        visit::visit_pat_tuple_struct(self, pattern);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParsedRustSource;
+
+    #[test]
+    fn nested_calls_follow_rust_evaluation_order() {
+        let source = ParsedRustSource::parse(
+            r#"
+                fn nested_order() {
+                    owner.release_group_before_effect();
+                    Reserved::from_members(pending).release_after_no_effect();
+                }
+            "#,
+            "nested-call control",
+        )
+        .expect("parse nested-call control");
+        source
+            .function("nested_order")
+            .expect("find nested-call control")
+            .require_in_order(&[
+                "method:release_group_before_effect",
+                "call:from_members",
+                "method:release_after_no_effect",
+            ])
+            .unwrap_or_else(|denial| {
+                panic!("MUTANT_PREDICATE:wal-source-semantic-order-inverted-accepted: {denial}")
+            });
     }
 }

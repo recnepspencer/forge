@@ -2,6 +2,7 @@ package,dependency,kind,optional
 store-test-runner,serde,normal,false
 store-test-runner,serde_json,normal,false
 store-test-runner,sha2,normal,false
+store-test-runner,syn,dev,false
 store-test-runner,tempfile,normal,false
 store-test-runner,trybuild,dev,false
 store-test-runner,worth-proof,dev,false

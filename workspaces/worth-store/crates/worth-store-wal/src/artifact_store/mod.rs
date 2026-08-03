@@ -35,7 +35,8 @@ pub use offline_segment_verification::{
     BoundedWalSegmentObservation, BoundedWalSegmentVerificationRequest,
 };
 pub use segment_inventory::{
-    inspect_complete_wal_segment, inspect_verified_wal_active_tail, inspect_verified_wal_segment,
+    inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
+    inspect_verified_wal_active_tail, inspect_verified_wal_segment, InterruptedWalSegmentStart,
     InterruptedWalTail, VerifiedWalActiveTail, VerifiedWalFramePayload, VerifiedWalSegment,
     WalSegmentArtifactIdentity, WalSegmentInspection,
 };

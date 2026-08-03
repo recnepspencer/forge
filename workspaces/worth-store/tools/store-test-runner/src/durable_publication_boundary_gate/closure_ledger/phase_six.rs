@@ -30,7 +30,11 @@ fn proved_phase_six_wal_segment_lifecycle_tracks_exact_source_closure() {
         "Phase 6 WAL guarantee remains unresolved"
     );
     validate_exact_source_identity(&rows, PHASE_SIX_WAL_GUARANTEE, &source_identity)
-        .unwrap_or_else(|denial| panic!("{denial}"));
+        .unwrap_or_else(|denial| {
+            panic!(
+                "MUTANT_PREDICATE:phase-six-wal-evidence-source-closure-omission-accepted: {denial}"
+            )
+        });
 }
 
 #[test]

@@ -55,13 +55,15 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
         .last()
         .expect("a nonempty retained inventory has one active segment");
     let mut scans = Vec::with_capacity(segments.len());
-    let mut inspections = Vec::with_capacity(segments.len());
+    let mut inspections: Vec<worth_store_wal::WalSegmentInspection> =
+        Vec::with_capacity(segments.len());
     let mut total_frames = 0u64;
     let mut total_bytes = 0u64;
     let mut peak_buffer_bytes = 0u64;
     let mut active_lsn_end = None;
     let mut members = Vec::new();
     let mut interrupted_tail = None;
+    let mut interrupted_segment = None;
     for identity in segments.iter().copied() {
         let artifact = artifact(&directory, identity);
         let byte_count = tree
@@ -91,7 +93,22 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
             &bytes,
             identity == active_identity,
         )?;
-        let (verified, repair) = admitted.into_parts();
+        let (verified, repair) = match admitted {
+            interrupted_active_tail::ActiveTailInspection::Verified {
+                prefix,
+                interrupted_tail,
+            } => (prefix, interrupted_tail),
+            interrupted_active_tail::ActiveTailInspection::InterruptedStart(candidate) => {
+                let previous = inspections
+                    .last()
+                    .ok_or(PhysicalWalOpenFailure::SegmentInspection(
+                        worth_store_wal::WalArtifactStoreDenial::InvalidFrame,
+                    ))?
+                    .identity();
+                interrupted_segment = Some(candidate.admit_after(previous)?);
+                break;
+            }
+        };
         if let Some(repair) = repair {
             interrupted_tail = Some(repair);
         }
@@ -118,14 +135,19 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
             inspection.lsn_range(),
         ));
     }
-    let generation = segments[0].generation();
+    let generation = inspections
+        .first()
+        .expect("an admitted WAL inventory retains a verified segment")
+        .identity()
+        .generation();
     WalTopologyScan::from_segment_scan(scans)
         .admit_replay_cursor(generation)
         .map_err(|denial| PhysicalWalOpenFailure::Topology(denial.kind()))?;
-    let active = *segments
+    let active = inspections
         .last()
-        .expect("a nonempty artifact inventory has one active segment");
-    let segment_count = segments.len() as u32;
+        .expect("a nonempty inspected WAL inventory has one active segment")
+        .identity();
+    let segment_count = inspections.len() as u32;
     let active_artifact = artifact(&directory, active);
     let active_bytes = inspections
         .last()
@@ -138,6 +160,9 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
     require_checkpoint_cutoff_within_retained_wal(cutoff, &segment_inventory, active_lsn_end)?;
     if let Some(interrupted_tail) = interrupted_tail {
         interrupted_tail.truncate_durably(&tree)?;
+    }
+    if let Some(interrupted_segment) = interrupted_segment {
+        interrupted_segment.remove_durably(&tree)?;
     }
     if let Some(trailing_empty) = trailing_empty {
         trailing_empty.remove_durably(&tree)?;

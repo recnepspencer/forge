@@ -1,5 +1,6 @@
 use super::{
-    inspect_complete_wal_segment, inspect_verified_wal_active_tail, WalSegmentArtifactIdentity,
+    inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
+    inspect_verified_wal_active_tail, WalSegmentArtifactIdentity,
 };
 use crate::{
     plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange, WalSegmentGeneration,
@@ -90,4 +91,17 @@ fn active_tail_rejects_partial_first_frame_and_complete_digest_damage() {
     let mut damaged = bytes;
     damaged[116] ^= 0xff;
     assert!(inspect_verified_wal_active_tail(identity(), &damaged).is_err());
+}
+
+#[test]
+fn interrupted_segment_start_is_distinct_from_a_verified_segment() {
+    let bytes = two_frames();
+    let interrupted = inspect_interrupted_wal_segment_start(identity(), &bytes[..37]).unwrap();
+    assert_eq!(interrupted.observed_bytes(), 37);
+    assert!(inspect_interrupted_wal_segment_start(identity(), &[]).is_err());
+    assert!(inspect_interrupted_wal_segment_start(identity(), &bytes).is_err());
+
+    let mut damaged = bytes;
+    damaged[116] ^= 0xff;
+    assert!(inspect_interrupted_wal_segment_start(identity(), &damaged).is_err());
 }

@@ -1,3 +1,4 @@
+use super::current_accounting::validate_current_accounting;
 use super::source_identity::source_identity;
 use super::{
     parse_ledger, read_repository_document, validate_exact_source_identity, LedgerRow,
@@ -50,6 +51,7 @@ fn phase_ten_guarantees_close_the_final_source_and_entire_ledger() {
     let rows = parse_ledger(&document).expect("parse C.7 closure ledger");
     let source_identity = phase_ten_source_identity().expect("hash final C.7 source closure");
     validate_phase_ten_closure(&rows, &source_identity).unwrap_or_else(|denial| panic!("{denial}"));
+    validate_current_accounting(&rows).unwrap_or_else(|denial| panic!("{denial}"));
 }
 
 #[test]

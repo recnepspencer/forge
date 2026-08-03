@@ -6,6 +6,7 @@ use self::source_identity::{
 };
 use super::read_repository_document;
 
+mod current_accounting;
 mod phase_eight;
 mod phase_five;
 mod phase_nine;
@@ -55,6 +56,8 @@ fn living_ledger_covers_the_complete_causal_claim_and_phase_one_controls() {
     let document = read_repository_document(LEDGER).expect("read C.7 closure ledger");
     let rows = parse_ledger(&document).expect("parse C.7 closure ledger");
     validate_ledger(&rows).unwrap_or_else(|denial| panic!("{denial}"));
+    current_accounting::validate_current_accounting(&rows)
+        .unwrap_or_else(|denial| panic!("{denial}"));
 }
 
 #[test]

@@ -247,6 +247,7 @@ const PHASE_SIX_WAL_SOURCE_FILES: &[&str] = &[
     "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/durability_admission/independent_wal_oracle.rs",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/authority_trace.rs",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/contract/wal_segment_lifecycle.rs",
+    "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/contract/wal_source_syntax.rs",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/inventory/mod.rs",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/inventory/removal_ledger.rs",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/inventory/source_discovery.rs",
@@ -262,6 +263,7 @@ const PHASE_SIX_WAL_SOURCE_TREES: &[&str] = &[
     "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/wal/group_reservation",
     "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/wal/inventory",
     "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/durability_admission/independent_wal_oracle",
+    "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/contract/wal_segment_lifecycle",
 ];
 
 pub(super) fn phase_one_source_identity() -> Result<String, String> {

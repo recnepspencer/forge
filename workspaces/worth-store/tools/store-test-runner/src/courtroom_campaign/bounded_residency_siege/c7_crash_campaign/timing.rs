@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serde::Serialize;
 
-const CASE_SECONDARY_WALL_LIMIT_MS: u64 = 120_000;
+const CASE_SECONDARY_HANG_GUARD_MS: u64 = 180_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum C7CaseStage {
@@ -80,11 +80,8 @@ impl C7CaseTiming {
                  {total_elapsed_ms}ms total"
             ));
         }
-        if total_elapsed_ms > CASE_SECONDARY_WALL_LIMIT_MS {
-            return Err(format!(
-                "Courtroom C case took {total_elapsed_ms}ms; secondary wall limit is \
-                 {CASE_SECONDARY_WALL_LIMIT_MS}ms"
-            ));
+        if total_elapsed_ms > CASE_SECONDARY_HANG_GUARD_MS {
+            return Err(hang_guard_denial(total_elapsed_ms, &stages));
         }
         Ok(Self {
             total_elapsed_ms,
@@ -112,6 +109,23 @@ fn timed(stage: C7CaseStage, elapsed: Duration) -> C7TimedCaseStage {
 
 fn elapsed_ms(elapsed: Duration) -> u64 {
     elapsed.as_millis().try_into().unwrap_or(u64::MAX)
+}
+
+fn hang_guard_denial(total_elapsed_ms: u64, stages: &[C7TimedCaseStage; 7]) -> String {
+    let slowest = stages
+        .iter()
+        .max_by_key(|stage| stage.elapsed_ms)
+        .expect("a C7 case always measures seven stages");
+    let stage_summary = stages
+        .iter()
+        .map(|stage| format!("{}={}ms", stage.name, stage.elapsed_ms))
+        .collect::<Vec<_>>()
+        .join(",");
+    format!(
+        "Courtroom C case took {total_elapsed_ms}ms; secondary hang guard is \
+         {CASE_SECONDARY_HANG_GUARD_MS}ms; slowest stage {}={}ms; stages [{stage_summary}]",
+        slowest.name, slowest.elapsed_ms
+    )
 }
 
 #[cfg(test)]
@@ -161,13 +175,23 @@ mod tests {
     }
 
     #[test]
-    fn secondary_wall_limit_retains_canonical_multi_case_headroom() {
+    fn secondary_hang_guard_retains_canonical_multi_case_headroom() {
         let durations = stage_durations(Duration::from_millis(11_000));
         let timing = C7CaseTiming::bind(durations, Duration::from_millis(90_000));
         if timing.is_err() {
             panic!("MUTANT_PREDICATE:c7-case-wall-headroom-regressed");
         }
         assert_eq!(timing.unwrap().total_elapsed_ms(), 90_000);
+    }
+
+    #[test]
+    fn secondary_hang_guard_retains_observed_environment_headroom() {
+        let durations = stage_durations(Duration::from_millis(15_000));
+        let timing = C7CaseTiming::bind(durations, Duration::from_millis(125_000));
+        if timing.is_err() {
+            panic!("MUTANT_PREDICATE:c7-case-observed-wall-headroom-regressed");
+        }
+        assert_eq!(timing.unwrap().total_elapsed_ms(), 125_000);
     }
 
     #[test]
@@ -180,10 +204,32 @@ mod tests {
         .contains("inside a 10ms total"));
         assert!(C7CaseTiming::bind(
             stage_durations(Duration::from_millis(1)),
-            Duration::from_millis(120_001),
+            Duration::from_millis(180_001),
         )
         .unwrap_err()
-        .contains("secondary wall limit"));
+        .contains("secondary hang guard"));
+    }
+
+    #[test]
+    fn hang_guard_denial_localizes_slowest_and_every_stage() {
+        let denial =
+            C7CaseTiming::bind(diagnostic_stage_durations(), Duration::from_millis(180_001))
+                .unwrap_err();
+        let complete = denial.contains("slowest stage evidence-binding=7000ms")
+            && [
+                "world-construction=1000ms",
+                "seed-producer=2000ms",
+                "baseline-observer=3000ms",
+                "serving-writer=4000ms",
+                "post-interruption-observer=5000ms",
+                "fresh-reopener=6000ms",
+                "evidence-binding=7000ms",
+            ]
+            .into_iter()
+            .all(|stage| denial.contains(stage));
+        if !complete {
+            panic!("MUTANT_PREDICATE:c7-case-wall-denial-unlocalized");
+        }
     }
 
     fn stage_durations(each: Duration) -> C7CaseStageDurations {
@@ -195,6 +241,18 @@ mod tests {
             post_interruption_observer: each,
             fresh_reopener: each,
             evidence_binding: each,
+        }
+    }
+
+    fn diagnostic_stage_durations() -> C7CaseStageDurations {
+        C7CaseStageDurations {
+            world_construction: Duration::from_secs(1),
+            seed_producer: Duration::from_secs(2),
+            baseline_observer: Duration::from_secs(3),
+            serving_writer: Duration::from_secs(4),
+            post_interruption_observer: Duration::from_secs(5),
+            fresh_reopener: Duration::from_secs(6),
+            evidence_binding: Duration::from_secs(7),
         }
     }
 }

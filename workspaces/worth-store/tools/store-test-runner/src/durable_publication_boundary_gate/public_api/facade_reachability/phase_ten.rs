@@ -63,8 +63,10 @@ pub(super) fn assert_reachability(durability_exports: &str) {
     let wal = read_repository_document("workspaces/worth-store/crates/worth-store-wal/src/lib.rs")
         .expect("read WAL facade");
     for surface in [
+        "InterruptedWalSegmentStart",
         "InterruptedWalTail",
         "VerifiedWalActiveTail",
+        "inspect_interrupted_wal_segment_start",
         "inspect_verified_wal_active_tail",
     ] {
         assert!(wal.contains(surface));
@@ -81,8 +83,10 @@ fn is_recovery_dependency_surface(surface: &str) -> bool {
     matches!(
         surface,
         "ArtifactTreeMedia::truncate_file_durably"
+            | "InterruptedWalSegmentStart"
             | "InterruptedWalTail"
             | "VerifiedWalActiveTail"
+            | "inspect_interrupted_wal_segment_start"
             | "inspect_verified_wal_active_tail"
     )
 }

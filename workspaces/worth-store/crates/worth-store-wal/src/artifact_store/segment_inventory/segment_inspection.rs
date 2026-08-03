@@ -45,6 +45,14 @@ pub struct InterruptedWalTail {
     observed_bytes: u64,
 }
 
+/// Proof that the complete observed artifact is a strict prefix of its first
+/// WAL frame. This does not prove that the artifact is a lawful segment; the
+/// Store must still bind it to an exact active successor before cleanup.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InterruptedWalSegmentStart {
+    observed_bytes: u64,
+}
+
 enum ActiveTailFrame<'segment> {
     Complete {
         lsn_start: u64,
@@ -128,6 +136,21 @@ pub fn inspect_verified_wal_active_tail(
         verified_prefix,
         interrupted_tail: None,
     })
+}
+
+pub fn inspect_interrupted_wal_segment_start(
+    identity: WalSegmentArtifactIdentity,
+    bytes: &[u8],
+) -> Result<InterruptedWalSegmentStart, WalArtifactStoreDenial> {
+    if bytes.is_empty() {
+        return Err(WalArtifactStoreDenial::InvalidFrame);
+    }
+    match inspect_active_tail_frame(identity, bytes, 0, None)? {
+        ActiveTailFrame::Interrupted => Ok(InterruptedWalSegmentStart {
+            observed_bytes: bytes.len() as u64,
+        }),
+        ActiveTailFrame::Complete { .. } => Err(WalArtifactStoreDenial::InvalidFrame),
+    }
 }
 
 fn inspect_active_tail_frame<'segment>(
@@ -269,6 +292,12 @@ impl InterruptedWalTail {
         self.valid_prefix_bytes
     }
 
+    pub const fn observed_bytes(self) -> u64 {
+        self.observed_bytes
+    }
+}
+
+impl InterruptedWalSegmentStart {
     pub const fn observed_bytes(self) -> u64 {
         self.observed_bytes
     }

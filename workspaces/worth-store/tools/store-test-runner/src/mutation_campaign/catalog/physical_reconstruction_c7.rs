@@ -1,14 +1,24 @@
 use super::{ControlledMutation, MutationTarget};
 
 mod closeout_cost;
+mod ledger_accounting;
 mod process_accounting;
+mod timing_guard;
+mod wal_lifecycle_evidence;
 mod wal_reopen_cleanup;
+mod wal_successor_cleanup;
 
 pub(super) const CLOSEOUT_COST_MUTATIONS: &[ControlledMutation] = closeout_cost::MUTATIONS;
+pub(super) const LEDGER_ACCOUNTING_MUTATIONS: &[ControlledMutation] = ledger_accounting::MUTATIONS;
 pub(super) const PROCESS_ACCOUNTING_MUTATIONS: &[ControlledMutation] =
     process_accounting::MUTATIONS;
+pub(super) const TIMING_GUARD_MUTATIONS: &[ControlledMutation] = timing_guard::MUTATIONS;
+pub(super) const WAL_LIFECYCLE_EVIDENCE_MUTATIONS: &[ControlledMutation] =
+    wal_lifecycle_evidence::MUTATIONS;
 pub(super) const WAL_REOPEN_CLEANUP_MUTATIONS: &[ControlledMutation] =
     wal_reopen_cleanup::MUTATIONS;
+pub(super) const WAL_SUCCESSOR_CLEANUP_MUTATIONS: &[ControlledMutation] =
+    wal_successor_cleanup::MUTATIONS;
 
 pub(super) const MUTATIONS: &[ControlledMutation] = &[
     ControlledMutation {

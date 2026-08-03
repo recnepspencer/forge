@@ -12,6 +12,7 @@ pub(super) fn inspect(source: &str) -> Result<(), String> {
         "method:try_reserve_exact",
         "method:read_exact_at",
         "call:inspect",
+        "method:admit_after",
         "call:from_segment_scan",
         "call:from_reopened",
         "call:require_checkpoint_cutoff_within_retained_wal",

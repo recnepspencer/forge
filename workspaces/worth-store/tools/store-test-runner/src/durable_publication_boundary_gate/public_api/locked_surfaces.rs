@@ -31,12 +31,13 @@ pub(super) const PHASE_NINE_SURFACES: [&str; 17] = [
     "WalFrameDigest",
 ];
 
-pub(super) const PHASE_TEN_SURFACES: [&str; 44] = [
+pub(super) const PHASE_TEN_SURFACES: [&str; 46] = [
     "ArtifactTreeMedia::truncate_file_durably",
     "CheckpointPerformanceExpectation",
     "CloseoutPerformanceExpectation",
     "GroupCommitPerformanceExpectation",
     "IdempotencyPerformanceExpectation",
+    "InterruptedWalSegmentStart",
     "InterruptedWalTail",
     "PageBasisPerformanceExpectation",
     "PhysicalArtifactResidueClassification",
@@ -74,6 +75,7 @@ pub(super) const PHASE_TEN_SURFACES: [&str; 44] = [
     "ServingShutdownOutcome::performance",
     "StorePhysicalDurabilityPerformanceReceiptEvidence",
     "VerifiedWalActiveTail",
+    "inspect_interrupted_wal_segment_start",
     "inspect_verified_wal_active_tail",
     "lower_physical_durability_performance_receipt",
 ];
