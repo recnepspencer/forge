@@ -4,7 +4,7 @@ use std::process::Command;
 use sha2::{Digest, Sha256};
 
 use super::catalog::{ControlledMutation, MutationTarget};
-use super::evidence::MutationObservation;
+use super::evidence::{MutationExecutionClass, MutationExecutionEvidence, MutationObservation};
 use super::source_replacement::InstalledSourceMutation;
 
 const NESTED_EXECUTABLE_MARKER: &str = "CONTROLLED_MUTATION_EXECUTABLE ";
@@ -24,22 +24,28 @@ struct ControlledFailure {
     combined: String,
     binary: PathBuf,
     predicate: String,
+    execution_class: MutationExecutionClass,
+    execution_elapsed: std::time::Duration,
+}
+
+struct ExecutedControlledCase {
+    output: std::process::Output,
+    class: MutationExecutionClass,
+    elapsed: std::time::Duration,
 }
 
 fn classify_failure(
-    output: std::process::Output,
+    executed: ExecutedControlledCase,
     mutation: &ControlledMutation,
 ) -> Result<ControlledFailure, String> {
+    let output = executed.output;
     let combined = format!(
         "{}\n{}",
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
     if output.status.success() {
-        return Err(format!(
-            "mutant {} survived predicate `{}`",
-            mutation.id, mutation.predicate
-        ));
+        return Err(classify_successful_execution(&combined, mutation));
     }
     if combined.contains("could not compile")
         || combined.contains("error[E")
@@ -73,7 +79,50 @@ fn classify_failure(
         combined,
         binary,
         predicate,
+        execution_class: executed.class,
+        execution_elapsed: executed.elapsed,
     })
+}
+
+fn classify_successful_execution(output: &str, mutation: &ControlledMutation) -> String {
+    match executed_test_count(output) {
+        None => format!(
+            "mutant {} selector `{}` emitted no test-result summary",
+            mutation.id, mutation.selector
+        ),
+        Some(0) => format!(
+            "mutant {} selector `{}` executed zero tests",
+            mutation.id, mutation.selector
+        ),
+        Some(_) => format!(
+            "mutant {} survived predicate `{}`",
+            mutation.id, mutation.predicate
+        ),
+    }
+}
+
+fn executed_test_count(output: &str) -> Option<u64> {
+    let summaries = output
+        .lines()
+        .filter(|line| line.contains("test result:"))
+        .collect::<Vec<_>>();
+    if summaries.is_empty() {
+        return None;
+    }
+    summaries.into_iter().try_fold(0_u64, |total, line| {
+        let passed = test_result_field(line, " passed;")?;
+        let failed = test_result_field(line, " failed;")?;
+        total.checked_add(passed)?.checked_add(failed)
+    })
+}
+
+fn test_result_field(line: &str, suffix: &str) -> Option<u64> {
+    line.split_once(suffix)?
+        .0
+        .split_whitespace()
+        .next_back()?
+        .parse()
+        .ok()
 }
 
 fn build_observation(
@@ -81,6 +130,8 @@ fn build_observation(
     mutation: &ControlledMutation,
     failure: ControlledFailure,
 ) -> Result<MutationObservation, String> {
+    let execution =
+        MutationExecutionEvidence::bind(failure.execution_class, failure.execution_elapsed)?;
     Ok(MutationObservation {
         id: mutation.id,
         source_binding: mutation.source.to_owned(),
@@ -93,6 +144,7 @@ fn build_observation(
         expected_failing_predicate: mutation.predicate.to_owned(),
         actual_failing_predicate: failure.predicate,
         localization: panic_localization(&failure.combined),
+        execution,
     })
 }
 
@@ -128,7 +180,8 @@ fn actual_failing_predicate(output: &str, mutant: u8) -> Result<String, String> 
 fn run_test(
     workspace: &Path,
     mutation: &ControlledMutation,
-) -> Result<std::process::Output, String> {
+) -> Result<ExecutedControlledCase, String> {
+    let class = execution_class(mutation.target);
     let mut command = Command::new("cargo");
     command.args(["test", "-j", "1", "-p", mutation.package]);
     match mutation.target {
@@ -162,7 +215,24 @@ fn run_test(
         ])
         .current_dir(workspace)
         .env("CARGO_TARGET_DIR", workspace.join("target"));
-    super::process_execution::run(&mut command, mutation.id)
+    let executed = super::process_execution::run(&mut command, mutation.id, class)?;
+    Ok(ExecutedControlledCase {
+        output: executed.output,
+        class,
+        elapsed: executed.elapsed,
+    })
+}
+
+const fn execution_class(target: MutationTarget) -> MutationExecutionClass {
+    match target {
+        MutationTarget::NestedExecutableLibrary { .. } => {
+            MutationExecutionClass::NestedExecutableCold
+        }
+        MutationTarget::Library
+        | MutationTarget::LibraryWithFeatures { .. }
+        | MutationTarget::Binary(_)
+        | MutationTarget::Integration(_) => MutationExecutionClass::Ordinary,
+    }
 }
 
 fn executed_binary(
@@ -199,8 +269,9 @@ fn nested_executable(output: &str) -> Result<PathBuf, String> {
         .collect::<Vec<_>>();
     let [encoded] = markers.as_slice() else {
         return Err(format!(
-            "nested mutation execution emitted {} executable bindings",
-            markers.len()
+            "nested mutation execution emitted {} executable bindings:\n{}",
+            markers.len(),
+            tail(output, 24)
         ));
     };
     serde_json::from_str::<String>(encoded)
@@ -281,93 +352,5 @@ fn compiler_diagnostics(output: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{actual_failing_predicate, compiler_diagnostics, nested_executable, test_binary};
-
-    #[test]
-    fn mutation_causality_requires_one_runtime_predicate_marker() {
-        assert_eq!(
-            actual_failing_predicate("panic: C5_PREDICATE:page-layout", 6).unwrap(),
-            "page-layout"
-        );
-        assert!(actual_failing_predicate("unrelated panic", 6).is_err());
-        assert!(actual_failing_predicate(
-            "C5_PREDICATE:page-layout C5_PREDICATE:batch-atomicity",
-            6,
-        )
-        .is_err());
-        assert_eq!(
-            actual_failing_predicate("panic: C5_PREDICATE:local-physical-work-scheduler", 43,)
-                .unwrap(),
-            "local-physical-work-scheduler"
-        );
-        assert_eq!(
-            actual_failing_predicate(
-                "panic: MUTANT_PREDICATE:stale-residency-generation-consumed",
-                49,
-            )
-            .unwrap(),
-            "stale-residency-generation-consumed"
-        );
-        assert!(actual_failing_predicate(
-            "C5_PREDICATE:page-layout MUTANT_PREDICATE:foreign-dirty-frame-claimed",
-            50,
-        )
-        .is_err());
-    }
-
-    #[test]
-    fn repeated_nested_process_marker_is_one_causal_predicate() {
-        let output = "child C5_PREDICATE:current-truth\nparent MUTANT_PREDICATE:current-truth";
-        assert_eq!(
-            actual_failing_predicate(output, 8).unwrap(),
-            "current-truth"
-        );
-    }
-
-    #[test]
-    fn cargo_json_binds_the_executed_binary_without_platform_text_parsing() {
-        let output =
-            br#"{"reason":"compiler-artifact","executable":"C:\\target\\debug\\deps\\proof.exe"}
-{"reason":"build-finished","success":true}"#;
-        assert_eq!(
-            test_binary(output).unwrap(),
-            std::path::PathBuf::from(r"C:\target\debug\deps\proof.exe")
-        );
-    }
-
-    #[test]
-    fn nested_execution_binds_the_actual_child_binary_from_json() {
-        let output =
-            r#"CONTROLLED_MUTATION_EXECUTABLE "C:\\target\\physical_store_work_courtroom.exe""#;
-        assert_eq!(
-            nested_executable(output).unwrap(),
-            std::path::PathBuf::from(r"C:\target\physical_store_work_courtroom.exe")
-        );
-        assert!(nested_executable("").is_err());
-        assert!(nested_executable(&format!("{output}\n{output}")).is_err());
-    }
-
-    #[test]
-    fn cargo_json_preserves_compiler_diagnostics_ahead_of_trailing_artifacts() {
-        let diagnostic = r#"{"reason":"compiler-message","message":{"message":"missing authority","rendered":"error[E0425]: cannot find value `authority`\n"}}"#;
-        let mut output = format!("not-json\n{diagnostic}\n");
-        for ordinal in 0..40 {
-            output.push_str(&format!(
-                "{{\"reason\":\"compiler-artifact\",\"target\":{{\"name\":\"artifact-{ordinal}\"}}}}\n"
-            ));
-        }
-        assert_eq!(
-            compiler_diagnostics(&output).unwrap(),
-            "error[E0425]: cannot find value `authority`"
-        );
-    }
-
-    #[test]
-    fn cargo_json_diagnostic_extraction_ignores_malformed_and_empty_messages() {
-        let output = r#"not-json
-{"reason":"compiler-message","message":{"message":"","rendered":""}}
-{"reason":"build-finished","success":false}"#;
-        assert!(compiler_diagnostics(output).is_none());
-    }
-}
+#[path = "execution/tests.rs"]
+mod tests;

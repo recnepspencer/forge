@@ -20,6 +20,28 @@ enum DurableArtifactKind {
     ExtentManifest,
     FreeSpaceManifest,
     FreeSpaceMembershipBlock,
+    WalSegment,
+    Checkpoint,
+    CheckpointCandidate,
+    CatalogCandidate,
+    PhysicalWorkRecoveryObligation,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum DurabilityArtifactManifestStage {
+    CleanBaseline,
+    PostBoundary,
+}
+
+impl DurableArtifactKind {
+    const fn requires_post_boundary(self) -> bool {
+        matches!(
+            self,
+            Self::CheckpointCandidate
+                | Self::CatalogCandidate
+                | Self::PhysicalWorkRecoveryObligation
+        )
+    }
 }
 
 pub(super) fn verify_artifact_manifest(offline: &OfflineObservation) -> Result<u64, String> {
@@ -27,6 +49,41 @@ pub(super) fn verify_artifact_manifest(offline: &OfflineObservation) -> Result<u
         return Err("Courtroom C offline manifest retained recovery work".to_owned());
     }
     verify_paths(offline.artifacts().iter().map(|artifact| artifact.path()))?;
+    artifact_bytes(offline)
+}
+
+pub(super) fn verify_durability_artifact_manifest(
+    offline: &OfflineObservation,
+    stage: DurabilityArtifactManifestStage,
+    expected_recovery_obligations: u64,
+) -> Result<u64, String> {
+    verify_recovery_obligation_count(
+        offline.recovery_obligations(),
+        expected_recovery_obligations,
+        stage,
+    )?;
+    verify_paths_at_stage(
+        offline.artifacts().iter().map(|artifact| artifact.path()),
+        stage == DurabilityArtifactManifestStage::PostBoundary,
+    )?;
+    artifact_bytes(offline)
+}
+
+fn verify_recovery_obligation_count(
+    observed: u64,
+    expected: u64,
+    stage: DurabilityArtifactManifestStage,
+) -> Result<(), String> {
+    if observed == expected {
+        Ok(())
+    } else {
+        Err(format!(
+            "C.7 artifact manifest carried {observed} recovery obligations; expected {expected} at {stage:?}"
+        ))
+    }
+}
+
+fn artifact_bytes(offline: &OfflineObservation) -> Result<u64, String> {
     offline
         .artifacts()
         .iter()
@@ -38,11 +95,23 @@ pub(super) fn verify_artifact_manifest(offline: &OfflineObservation) -> Result<u
 }
 
 fn verify_paths<'path>(paths: impl IntoIterator<Item = &'path str>) -> Result<(), String> {
+    verify_paths_at_stage(paths, false)
+}
+
+fn verify_paths_at_stage<'path>(
+    paths: impl IntoIterator<Item = &'path str>,
+    allow_staged: bool,
+) -> Result<(), String> {
     let mut observed = BTreeSet::new();
     for path in paths {
-        if classify(path).is_none() {
+        let Some(kind) = classify(path) else {
             return Err(format!(
                 "Courtroom C offline manifest retained forbidden artifact `{path}`"
+            ));
+        };
+        if kind.requires_post_boundary() && !allow_staged {
+            return Err(format!(
+                "Courtroom C clean manifest retained staged artifact `{path}`"
             ));
         }
         if !observed.insert(path) {
@@ -66,7 +135,21 @@ fn classify(path: &str) -> Option<DurableArtifactKind> {
         "families/records/bootstrap.catalog" => {
             return Some(DurableArtifactKind::BootstrapCatalog);
         }
+        "families/checkpoint.current" => return Some(DurableArtifactKind::Checkpoint),
         _ => {}
+    }
+
+    if checkpoint_candidate(path) {
+        return Some(DurableArtifactKind::CheckpointCandidate);
+    }
+    if catalog_candidate(path) {
+        return Some(DurableArtifactKind::CatalogCandidate);
+    }
+    if wal_segment(path) {
+        return Some(DurableArtifactKind::WalSegment);
+    }
+    if physical_work_recovery_obligation(path) {
+        return Some(DurableArtifactKind::PhysicalWorkRecoveryObligation);
     }
 
     let (directory, file) = path.rsplit_once('/')?;
@@ -102,6 +185,46 @@ fn classify(path: &str) -> Option<DurableArtifactKind> {
         }
         _ => None,
     }
+}
+
+fn physical_work_recovery_obligation(path: &str) -> bool {
+    let Some(body) = path
+        .strip_prefix("families/physical-work/effect-")
+        .and_then(|body| body.strip_suffix(".pending"))
+    else {
+        return false;
+    };
+    let identities = body.split('-').collect::<Vec<_>>();
+    identities.len() == 3 && identities.into_iter().all(is_lower_hex_16)
+}
+
+fn checkpoint_candidate(path: &str) -> bool {
+    path.strip_prefix("staging/checkpoint-")
+        .and_then(|body| body.strip_suffix(".candidate"))
+        .is_some_and(is_lower_hex_16)
+}
+
+fn catalog_candidate(path: &str) -> bool {
+    path.strip_prefix("staging/records/bootstrap-")
+        .and_then(|body| body.strip_suffix(".candidate"))
+        .is_some_and(is_lower_hex_16)
+}
+
+fn wal_segment(path: &str) -> bool {
+    let Some(body) = path
+        .strip_prefix("families/wal/segment-")
+        .and_then(|body| body.strip_suffix(".wal"))
+    else {
+        return false;
+    };
+    let Some((segment, generation)) = body.split_once("-generation-") else {
+        return false;
+    };
+    decimal_identity(segment) && decimal_identity(generation)
+}
+
+fn decimal_identity(value: &str) -> bool {
+    !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit())
 }
 
 fn one_hex(file: &str, prefix: &str, suffix: &str) -> bool {

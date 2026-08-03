@@ -2,13 +2,17 @@ use sha2::{Digest, Sha256};
 use worth_store::physical_runtime::PhysicalWorkEvidenceDigest;
 
 use super::{
-    super::{execution::BoundedResidencySiegeObservations, world::BoundedResidencySiegeWorld},
+    super::{
+        c7_crash_campaign::C7CrashCampaignEvidence, execution::BoundedResidencySiegeObservations,
+        offline_protocol::OfflineObservation, world::BoundedResidencySiegeWorld,
+    },
     work_reconciliation,
 };
 
 pub(super) fn build(
     world: &BoundedResidencySiegeWorld,
     observations: &BoundedResidencySiegeObservations,
+    c7_campaign: &C7CrashCampaignEvidence,
 ) -> Result<PhysicalWorkEvidenceDigest, String> {
     let mut digest = Sha256::new();
     digest.update(b"courtroom-c-bounded-residency-siege-v7");
@@ -36,13 +40,78 @@ pub(super) fn build(
         &observations.child.work_reconciliation,
     ));
     add_dirty_writeback(&mut digest, observations);
+    add_performance(&mut digest, observations);
     for artifact in observations.offline.artifacts() {
         digest.update(artifact.path().as_bytes());
         digest.update(artifact.byte_length().to_le_bytes());
         digest.update(artifact.digest());
     }
+    add_c7_campaign(&mut digest, c7_campaign);
     PhysicalWorkEvidenceDigest::new(digest.finalize().into())
         .ok_or_else(|| "Courtroom C oracle produced an all-zero digest".to_owned())
+}
+
+fn add_performance(digest: &mut Sha256, observations: &BoundedResidencySiegeObservations) {
+    for receipt in &observations.child.performance {
+        add_text(digest, receipt.claim().label());
+        add_text(digest, receipt.profile().label());
+        digest.update((receipt.counters().len() as u64).to_le_bytes());
+        for counter in receipt.counters() {
+            add_text(digest, counter.name());
+            digest.update(counter.observed_count().to_le_bytes());
+        }
+    }
+}
+
+fn add_c7_campaign(digest: &mut Sha256, campaign: &C7CrashCampaignEvidence) {
+    digest.update((campaign.cases().len() as u64).to_le_bytes());
+    for case in campaign.cases() {
+        add_text(digest, case.seam().label());
+        add_text(digest, case.checkpoint_order().encoded());
+        add_text(digest, case.checkpoint());
+        add_observation(digest, case.baseline());
+        add_observation(digest, case.observed());
+        let reopen = case.reopen();
+        digest.update(reopen.identity().store());
+        digest.update(reopen.identity().generation().to_le_bytes());
+        digest.update(reopen.identity().records().to_le_bytes());
+        digest.update([
+            u8::from(reopen.posture().inspection_required()),
+            u8::from(reopen.posture().residue()),
+            u8::from(reopen.posture().recovery_evidence_damaged()),
+        ]);
+        digest.update(reopen.posture().recovery_obligations().to_le_bytes());
+        add_text(digest, case.rerun().program());
+        digest.update((case.rerun().arguments().len() as u64).to_le_bytes());
+        for argument in case.rerun().arguments() {
+            add_text(digest, argument);
+        }
+    }
+}
+
+fn add_observation(digest: &mut Sha256, observation: &OfflineObservation) {
+    digest.update(observation.process().get().to_le_bytes());
+    let current = observation.current();
+    digest.update(current.store());
+    digest.update(current.generation().to_le_bytes());
+    digest.update(current.records().to_le_bytes());
+    digest.update(current.payload_bytes().to_le_bytes());
+    digest.update(current.payload_digest().bytes());
+    digest.update(observation.recovery_obligations().to_le_bytes());
+    digest.update((observation.artifacts().len() as u64).to_le_bytes());
+    for artifact in observation.artifacts() {
+        add_text(digest, artifact.path());
+        digest.update(artifact.byte_length().to_le_bytes());
+        digest.update(artifact.digest());
+        digest.update((artifact.prefix().len() as u64).to_le_bytes());
+        digest.update(artifact.prefix());
+        digest.update([u8::from(artifact.is_recovery_obligation())]);
+    }
+}
+
+fn add_text(digest: &mut Sha256, value: &str) {
+    digest.update((value.len() as u64).to_le_bytes());
+    digest.update(value.as_bytes());
 }
 
 fn add_generation_fencing(digest: &mut Sha256, observations: &BoundedResidencySiegeObservations) {

@@ -150,6 +150,7 @@ fn media_role(encoded: &str) -> Result<BoundedResidencyMediaRole, String> {
             Ok(BoundedResidencyMediaRole::SynchronizeDirectoryPublication)
         }
         "atomic-replace" => Ok(BoundedResidencyMediaRole::AtomicReplace),
+        "delete" => Ok(BoundedResidencyMediaRole::Delete),
         _ => Err("physical work record named an unknown backend media role".to_owned()),
     }
 }
@@ -206,6 +207,11 @@ fn signal_family(encoded: &str) -> Result<BoundedResidencySignalFamily, String> 
         "exact-writeback" => Ok(BoundedResidencySignalFamily::ExactWriteback),
         "publication" => Ok(BoundedResidencySignalFamily::Publication),
         "lifecycle" => Ok(BoundedResidencySignalFamily::Lifecycle),
+        "wal-append" => Ok(BoundedResidencySignalFamily::WalAppend),
+        "durability-barrier" => Ok(BoundedResidencySignalFamily::DurabilityBarrier),
+        "checkpoint-capture" => Ok(BoundedResidencySignalFamily::CheckpointCapture),
+        "root-publication" => Ok(BoundedResidencySignalFamily::RootPublication),
+        "wal-reclamation" => Ok(BoundedResidencySignalFamily::WalReclamation),
         _ => Err("physical work route named an unknown Signal family".to_owned()),
     }
 }
@@ -271,6 +277,11 @@ fn family(encoded: &str) -> Result<BoundedResidencyWorkFamily, String> {
         "artifact-range-read" => Ok(BoundedResidencyWorkFamily::ArtifactRangeRead),
         "artifact-range-write" => Ok(BoundedResidencyWorkFamily::ArtifactRangeWrite),
         "artifact-publication" => Ok(BoundedResidencyWorkFamily::ArtifactPublication),
+        "wal-append" => Ok(BoundedResidencyWorkFamily::WalAppend),
+        "durability-barrier" => Ok(BoundedResidencyWorkFamily::DurabilityBarrier),
+        "checkpoint-capture" => Ok(BoundedResidencyWorkFamily::CheckpointCapture),
+        "root-publication" => Ok(BoundedResidencyWorkFamily::RootPublication),
+        "wal-reclamation" => Ok(BoundedResidencyWorkFamily::WalReclamation),
         _ => Err("physical work record named an unknown operation family".to_owned()),
     }
 }
@@ -280,6 +291,8 @@ fn effect_fate(encoded: &str) -> Result<BoundedResidencyWorkEffectFate, String> 
         "read-completed" => Ok(BoundedResidencyWorkEffectFate::ReadCompleted),
         "write-completed" => Ok(BoundedResidencyWorkEffectFate::WriteCompleted),
         "publication-completed" => Ok(BoundedResidencyWorkEffectFate::PublicationCompleted),
+        "checkpoint-completed" => Ok(BoundedResidencyWorkEffectFate::CheckpointCompleted),
+        "wal-reclamation-completed" => Ok(BoundedResidencyWorkEffectFate::WalReclamationCompleted),
         _ => Err("physical work record named a non-successful effect fate".to_owned()),
     }
 }

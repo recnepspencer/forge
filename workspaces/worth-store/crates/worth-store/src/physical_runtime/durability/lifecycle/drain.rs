@@ -3,6 +3,22 @@ pub struct PhysicalMutationShutdown {
     observation: crate::physical_runtime::PhysicalMutationObservation,
 }
 
+pub(in crate::physical_runtime) struct PhysicalMutationTerminalState {
+    shutdown: PhysicalMutationShutdown,
+    completed_unobserved: Box<[crate::physical_runtime::CompletedUnobservedPhysicalMutation]>,
+    cost: PhysicalMutationCostSnapshot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::physical_runtime) struct PhysicalMutationCostSnapshot {
+    pub(super) groups_formed: u64,
+    pub(super) data_writes: u64,
+    pub(super) data_bytes: u64,
+    pub(super) records: u64,
+    pub(super) acknowledgments: u64,
+    pub(super) peak_group_members: u64,
+}
+
 impl PhysicalMutationShutdown {
     pub(in crate::physical_runtime) const fn from_observation(
         observation: crate::physical_runtime::PhysicalMutationObservation,
@@ -56,5 +72,42 @@ impl PhysicalMutationShutdown {
 
     pub const fn requires_inspection(self) -> bool {
         self.observation.requires_inspection()
+    }
+}
+
+impl PhysicalMutationTerminalState {
+    pub(in crate::physical_runtime) fn new(
+        shutdown: PhysicalMutationShutdown,
+        completed_unobserved: Vec<crate::physical_runtime::CompletedUnobservedPhysicalMutation>,
+        cost: PhysicalMutationCostSnapshot,
+    ) -> Self {
+        Self {
+            shutdown,
+            completed_unobserved: completed_unobserved.into_boxed_slice(),
+            cost,
+        }
+    }
+
+    pub(in crate::physical_runtime) fn into_parts(
+        self,
+    ) -> (
+        PhysicalMutationShutdown,
+        Box<[crate::physical_runtime::CompletedUnobservedPhysicalMutation]>,
+        PhysicalMutationCostSnapshot,
+    ) {
+        (self.shutdown, self.completed_unobserved, self.cost)
+    }
+}
+
+impl PhysicalMutationCostSnapshot {
+    pub(in crate::physical_runtime) const fn values(self) -> [u64; 6] {
+        [
+            self.groups_formed,
+            self.data_writes,
+            self.data_bytes,
+            self.records,
+            self.acknowledgments,
+            self.peak_group_members,
+        ]
     }
 }

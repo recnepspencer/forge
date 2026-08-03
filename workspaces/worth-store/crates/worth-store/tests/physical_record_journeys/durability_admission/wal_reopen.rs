@@ -17,6 +17,9 @@ use super::wal_append::prepared;
 
 const SEGMENT_BYTES: u64 = 1_656;
 
+#[path = "wal_reopen/interrupted_tail.rs"]
+mod interrupted_tail;
+
 #[test]
 fn hostile_wal_inventories_fail_with_the_exact_reopen_denial() {
     for case in [
@@ -40,6 +43,53 @@ fn hostile_wal_inventories_fail_with_the_exact_reopen_denial() {
             "hostile case {case:?} must fail for its exact cause",
         );
     }
+}
+
+#[test]
+fn trailing_empty_segment_from_interrupted_rotation_is_cleaned_before_reopen() {
+    let parent = tempfile::tempdir().unwrap();
+    let store_root = parent.path().join("store");
+    build_three_segment_inventory_with_limit(&store_root, 4);
+    let trailing = segment_path(&store_root, 4, 1);
+    std::fs::write(&trailing, []).unwrap();
+    let media_owner = media(&store_root);
+    let durability = durability_with_wal_policy(&media_owner, wal_policy(SEGMENT_BYTES, 4));
+    let (format, _, access) = configuration();
+
+    let serving = match media_owner
+        .open_record_store(PhysicalRecordOpen::new(format, access, durability))
+        .into_raw()
+    {
+        TransitionOutcome::Success(serving) => serving,
+        TransitionOutcome::Failed(inspection) => match inspection.cause() {
+            RecordBootstrapFailure::SignalConstruction(
+                PhysicalSignalConstructionFailure::DurabilityStateReopenRejected(
+                    PhysicalDurabilityStateReopenFailure::Wal(failure),
+                ),
+            ) => panic!("MUTANT_PREDICATE:c7-trailing-empty-wal-cleanup-omitted {failure:?}"),
+            other => panic!("MUTANT_PREDICATE:c7-trailing-empty-wal-cleanup-omitted {other:?}"),
+        },
+        _ => panic!("MUTANT_PREDICATE:c7-trailing-empty-wal-cleanup-omitted"),
+    };
+    serving.close();
+    if trailing.exists() {
+        panic!("MUTANT_PREDICATE:c7-trailing-empty-wal-cleanup-omitted");
+    }
+}
+
+#[test]
+fn noncontiguous_empty_tail_is_rejected_without_cleanup() {
+    let parent = tempfile::tempdir().unwrap();
+    let store_root = parent.path().join("store");
+    build_three_segment_inventory_with_limit(&store_root, 4);
+    let noncontiguous = segment_path(&store_root, 5, 1);
+    std::fs::write(&noncontiguous, []).unwrap();
+
+    assert_eq!(
+        reopen_failure(&store_root, wal_policy(SEGMENT_BYTES, 4)),
+        PhysicalWalOpenFailure::Topology(WalTopologyDenialKind::NonContiguousSegment),
+    );
+    assert!(noncontiguous.exists());
 }
 
 #[test]
@@ -179,8 +229,21 @@ impl HostileInventory {
 }
 
 fn build_three_segment_inventory(store_root: &Path) {
+    build_three_segment_inventory_with_limit(store_root, 3);
+}
+
+fn build_three_segment_inventory_with_limit(store_root: &Path, inventory_limit: u32) {
+    build_three_segment_inventory_with_policy(store_root, SEGMENT_BYTES, inventory_limit);
+}
+
+fn build_three_segment_inventory_with_policy(
+    store_root: &Path,
+    segment_bytes: u64,
+    inventory_limit: u32,
+) {
     let media_owner = media(store_root);
-    let durability = durability_with_wal_policy(&media_owner, wal_policy(SEGMENT_BYTES, 3));
+    let durability =
+        durability_with_wal_policy(&media_owner, wal_policy(segment_bytes, inventory_limit));
     let (format, placement, access) = configuration();
     let serving = success(
         media_owner.initialize_record_store(PhysicalRecordInitialization::new(

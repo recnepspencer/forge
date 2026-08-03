@@ -296,13 +296,15 @@ pub use scenario::{
 };
 pub use schedule::{
     execute_physical_schedule, explore_physical_interleavings, AdmittedScheduleOrderingAuthority,
-    CounterMismatchSummary, OracleVerdictKind, OracleVerdictSummary, PartialOrderReductionPosture,
-    PhysicalActorId, PhysicalActorStep, PhysicalActorStepSequence, PhysicalActorStorageExecution,
-    PhysicalFaultLocus, PhysicalInterleavingSchedule, PhysicalScheduleExecution,
-    PhysicalScheduleExecutionError, PhysicalScheduleExploration, PhysicalScheduleOwnerExecution,
-    ReplaySeed, ScheduleExplorationCompletion, ScheduleExplorationCost, ScheduleFailureClass,
-    ScheduleFailureSignature, ScheduleOrderingAuthorityAttempt, ScheduleOrderingAuthorityKind,
-    ScheduleReplayDenial, ScheduleReplayIdentity, ScheduleShrinkTrace, StateSpaceBudget,
+    C7DurabilityCrashSeam, CounterMismatchSummary, OracleVerdictKind, OracleVerdictSummary,
+    PartialOrderReductionPosture, PhysicalActorId, PhysicalActorStep, PhysicalActorStepSequence,
+    PhysicalActorStorageExecution, PhysicalFaultLocus, PhysicalInterleavingSchedule,
+    PhysicalScheduleExecution, PhysicalScheduleExecutionError, PhysicalScheduleExploration,
+    PhysicalScheduleOwnerExecution, ScheduleExplorationCompletion, ScheduleExplorationCost,
+    ScheduleFailureClass, ScheduleFailureSignature, ScheduleOrderingAuthorityAttempt,
+    ScheduleOrderingAuthorityKind, SchedulePerturbationDecision, SchedulePerturbationSeed,
+    SchedulePerturbationTrace, ScheduleReplayDenial, ScheduleReplayIdentity, ScheduleShrinkTrace,
+    SourceClosureScheduleSeeds, StateSpaceBudget, CI_SCHEDULE_PERTURBATION_SEED_COUNT,
 };
 pub use security_scope_harness::{
     SecurityScopeFailureKind, SecurityScopeHarnessCounterSnapshot, SecurityScopeHarnessEvidence,

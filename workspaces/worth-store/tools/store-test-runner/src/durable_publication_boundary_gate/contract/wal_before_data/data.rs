@@ -216,9 +216,14 @@ fn inspect_wal_before_data(
     if submission.contains("pub fn dispatch_wal_durable_data(") {
         return Err("ordinary callers can still drive data dispatch");
     }
-    let managed = function_body(managed_mutation, "fn execute_managed_mutation(")
-        .ok_or("managed mutation driver is absent")?;
-    if !managed.contains("self.dispatch_wal_durable_data(durable)") {
+    let managed = function_body(managed_mutation, "fn progress_managed_mutation(")
+        .ok_or("managed mutation progression is absent")?;
+    if !managed.contains("self.settle_managed_data(basis, durable, attempt)") {
+        return Err("Store-managed mutation bypasses the semantic data progression");
+    }
+    let settlement = function_body(managed_mutation, "fn settle_managed_data(")
+        .ok_or("managed data settlement is absent")?;
+    if !settlement.contains("self.dispatch_wal_durable_data(durable)") {
         return Err("Store-managed mutation bypasses the semantic data owner");
     }
     let owner = function_signature(dispatch, "pub(super) fn dispatch_wal_durable_data(")

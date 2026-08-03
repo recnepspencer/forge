@@ -7,8 +7,8 @@ use super::read_repository_document;
 use facade_reachability::assert_facade_reachability;
 use locked_surfaces::{
     INHERITED_SURFACES, PHASE_EIGHT_SURFACES, PHASE_FIVE_SURFACES, PHASE_FOUR_SURFACES,
-    PHASE_NINE_SURFACES, PHASE_SEVEN_SURFACES, PHASE_SIX_SURFACES, PHASE_THREE_SURFACES,
-    PHASE_TWO_SURFACES,
+    PHASE_NINE_SURFACES, PHASE_SEVEN_SURFACES, PHASE_SIX_SURFACES, PHASE_TEN_SURFACES,
+    PHASE_THREE_SURFACES, PHASE_TWO_SURFACES,
 };
 
 const API_DOCUMENT: &str = "_docs/worth-store/physical-reconstruction-c7-public-api.csv";
@@ -21,6 +21,12 @@ fn every_locked_public_surface_resolves_and_has_one_final_disposition() {
     let rows = parse_api(&document).expect("parse C.7 public API inventory");
     let surfaces = validate_inventory_rows(rows);
     let expected = locked_public_surfaces();
+    for surface in PHASE_TEN_SURFACES {
+        assert!(
+            expected.contains(surface),
+            "MUTANT_PREDICATE:phase-ten-public-surface-family-omitted: {surface}"
+        );
+    }
     assert_eq!(
         expected.len(),
         locked_public_surface_count(),
@@ -66,6 +72,7 @@ fn validate_inventory_rows(rows: Vec<ApiRow>) -> BTreeSet<String> {
                 | "phase-7"
                 | "phase-8"
                 | "phase-9"
+                | "phase-10"
         ));
     }
     surfaces
@@ -82,6 +89,7 @@ fn locked_public_surfaces() -> BTreeSet<&'static str> {
         .chain(PHASE_SEVEN_SURFACES)
         .chain(PHASE_EIGHT_SURFACES)
         .chain(PHASE_NINE_SURFACES)
+        .chain(PHASE_TEN_SURFACES)
         .collect()
 }
 
@@ -95,6 +103,7 @@ fn locked_public_surface_count() -> usize {
         + PHASE_SEVEN_SURFACES.len()
         + PHASE_EIGHT_SURFACES.len()
         + PHASE_NINE_SURFACES.len()
+        + PHASE_TEN_SURFACES.len()
 }
 
 fn parse_api(document: &str) -> Result<Vec<ApiRow>, String> {

@@ -1,6 +1,9 @@
-use super::{classify, verify_paths, DurableArtifactKind};
+use super::{
+    classify, verify_paths, verify_paths_at_stage, verify_recovery_obligation_count,
+    DurabilityArtifactManifestStage, DurableArtifactKind,
+};
 
-const ALLOWED: [&str; 12] = [
+const ALLOWED: [&str; 14] = [
     "namespace/identity",
     "namespace/mutation.lock",
     "families/records/bootstrap.catalog",
@@ -13,6 +16,8 @@ const ALLOWED: [&str; 12] = [
     "families/records/extent-manifests/extent-0000000000000001-0000000000000002.manifest",
     "families/records/free-space/free-space-0000000000000001.manifest",
     "families/records/free-space/free-space-0000000000000001-block-0000000000000002.manifest",
+    "families/wal/segment-1-generation-2.wal",
+    "families/checkpoint.current",
 ];
 
 #[test]
@@ -59,7 +64,44 @@ fn closed_grammar_accepts_every_production_artifact_family() {
         classify(ALLOWED[11]),
         Some(DurableArtifactKind::FreeSpaceMembershipBlock)
     );
+    assert_eq!(classify(ALLOWED[12]), Some(DurableArtifactKind::WalSegment));
+    assert_eq!(classify(ALLOWED[13]), Some(DurableArtifactKind::Checkpoint));
     assert!(verify_paths(ALLOWED).is_ok());
+}
+
+#[test]
+fn only_post_boundary_manifests_admit_exact_staged_candidates() {
+    let checkpoint = "staging/checkpoint-0000000000000001.candidate";
+    let catalog = "staging/records/bootstrap-0000000000000002.candidate";
+    let recovery =
+        "families/physical-work/effect-0000000000000003-0000000000000004-0000000000000005.pending";
+    let paths = ALLOWED.into_iter().chain([checkpoint, catalog, recovery]);
+    assert!(verify_paths_at_stage(paths.clone(), true).is_ok());
+    assert!(verify_paths_at_stage(paths, false).is_err());
+    assert_eq!(
+        classify(recovery),
+        Some(DurableArtifactKind::PhysicalWorkRecoveryObligation)
+    );
+}
+
+#[test]
+fn recovery_obligation_count_is_exact_at_each_stage() {
+    assert!(
+        verify_recovery_obligation_count(0, 0, DurabilityArtifactManifestStage::CleanBaseline,)
+            .is_ok()
+    );
+    assert!(
+        verify_recovery_obligation_count(1, 1, DurabilityArtifactManifestStage::PostBoundary,)
+            .is_ok()
+    );
+    assert!(
+        verify_recovery_obligation_count(0, 1, DurabilityArtifactManifestStage::PostBoundary,)
+            .is_err()
+    );
+    assert!(
+        verify_recovery_obligation_count(2, 1, DurabilityArtifactManifestStage::PostBoundary,)
+            .is_err()
+    );
 }
 
 #[test]
@@ -69,7 +111,6 @@ fn closed_grammar_rejects_forbidden_state_artifacts() {
         "oracle/decoded-expected-records.json",
         "families/records/pool.snapshot",
         "families/records/serving.heap-image",
-        "staging/records/bootstrap-0000000000000001.candidate",
         "fixtures/s2/frame-snapshot.bin",
     ] {
         assert_forbidden(forbidden);
@@ -85,6 +126,8 @@ fn closed_grammar_rejects_malformed_names_inside_allowed_directories() {
         "families/records/extents/extent-0000000000000001-0000000000000002.bin",
         "families/records/free-space/free-space-0000000000000001.tmp",
         "families/records/bootstrap-0000000000000001.candidate",
+        "families/physical-work/effect-0000000000000001-0000000000000002.pending",
+        "families/physical-work/effect-0000000000000001-0000000000000002-xyz.pending",
     ] {
         assert_forbidden(forbidden);
     }

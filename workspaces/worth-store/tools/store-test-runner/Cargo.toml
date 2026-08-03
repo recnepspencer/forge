@@ -11,10 +11,12 @@ serde_json = "1"
 sha2 = "0.10"
 tempfile = "3"
 worth-store = { workspace = true, optional = true }
+worth-store-physical-certification = { workspace = true, optional = true }
 
 [features]
 physical-work-evidence = [
     "dep:worth-store",
+    "dep:worth-store-physical-certification",
     "worth-store/certification-test-authority",
 ]
 

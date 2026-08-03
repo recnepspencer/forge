@@ -139,7 +139,7 @@ fn inspect_owner(source: &str) -> Result<(), &'static str> {
             "(lifecycle.current.clone(),lifecycle.worker.take())",
             "attempt.mark_runtime_closing()",
             "worker.join()",
-            "letlifecycle=self.state()",
+            "letmutlifecycle=self.state()",
             "PhysicalCheckpointShutdown",
         ],
     ) {

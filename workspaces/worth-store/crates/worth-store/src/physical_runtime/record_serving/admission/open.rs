@@ -17,6 +17,7 @@ use super::super::{
     RecordBootstrapDenial, UnsupportedPhysicalRecordFormat,
 };
 
+#[derive(Clone, Copy)]
 struct CurrentRootAdmission<'a> {
     media: &'a QualifiedFilesystemMedia,
     loader: &'a (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
@@ -121,6 +122,15 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         expected_format: bootstrap.format.declaration(),
     };
     let current_root = load_root_manifest(&admission)?;
+    let previous_root = if generation == 1 {
+        None
+    } else {
+        let previous = CurrentRootAdmission {
+            generation: generation - 1,
+            ..admission
+        };
+        Some(load_root_manifest(&previous)?)
+    };
     let free_space = load_free_space_manifest(&admission, &current_root)?;
     let publication_residue = observe_publication_residue(
         &ServingRecordArtifacts::new(media, loader),
@@ -133,6 +143,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         format: bootstrap.format,
         access: bootstrap.access,
         current_root,
+        previous_root,
         publication_residue,
         free_space,
     })

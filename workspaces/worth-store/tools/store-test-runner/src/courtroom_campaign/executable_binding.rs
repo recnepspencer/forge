@@ -14,6 +14,35 @@ mod source_inventory;
 
 const BUILD_TIMEOUT: Duration = Duration::from_secs(300);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct SourceClosureWorkload {
+    source_files: u64,
+    source_bytes: u64,
+}
+
+impl SourceClosureWorkload {
+    pub(super) const fn new(source_files: u64, source_bytes: u64) -> Self {
+        Self {
+            source_files,
+            source_bytes,
+        }
+    }
+
+    pub(super) const fn source_files(self) -> u64 {
+        self.source_files
+    }
+
+    pub(super) const fn source_bytes(self) -> u64 {
+        self.source_bytes
+    }
+}
+
+pub(super) fn bind_source_closure(workspace: &Path) -> Result<PhysicalWorkSourceBinding, String> {
+    Ok(source_inventory::LocalSourceInventory::discover(workspace)?
+        .bind()?
+        .into_binding())
+}
+
 pub(super) struct BoundBinary {
     path: PathBuf,
     binding: PhysicalWorkSourceBinding,
@@ -49,7 +78,7 @@ impl BoundBinary {
 
 pub(super) struct BuiltCourtroomExecutables {
     source_inventory: source_inventory::LocalSourceInventory,
-    source: PhysicalWorkSourceBinding,
+    source: source_inventory::BoundLocalSourceClosure,
     runner: BoundBinary,
     writer: BoundBinary,
     observer: BoundBinary,
@@ -111,7 +140,18 @@ impl BuiltCourtroomExecutables {
     }
 
     pub(super) const fn source(&self) -> &PhysicalWorkSourceBinding {
-        &self.source
+        self.source.binding()
+    }
+
+    pub(super) fn require_source_binding(
+        &self,
+        expected: &PhysicalWorkSourceBinding,
+    ) -> Result<(), String> {
+        if self.source.binding() == expected {
+            Ok(())
+        } else {
+            Err("courtroom source closure changed after schedule-seed derivation".into())
+        }
     }
 
     pub(super) const fn feature_graph(&self) -> &PhysicalWorkFeatureGraphEvidence {
@@ -130,7 +170,7 @@ impl BuiltCourtroomExecutables {
         &self.observer
     }
 
-    pub(super) fn verify_source_unchanged(&self) -> Result<(), String> {
+    pub(super) fn verify_source_unchanged(&self) -> Result<SourceClosureWorkload, String> {
         require_campaign_source(&self.source, self.source_inventory.bind()?)
     }
 
@@ -146,6 +186,10 @@ impl BuiltCourtroomExecutables {
 
     pub(super) const fn binding_timings(&self) -> ExecutableBindingTimings {
         self.binding_timings
+    }
+
+    pub(super) const fn source_workload(&self) -> SourceClosureWorkload {
+        self.source.workload()
     }
 }
 
@@ -168,19 +212,19 @@ impl ExecutableBindingTimings {
 }
 
 fn require_campaign_source(
-    expected: &PhysicalWorkSourceBinding,
-    current: PhysicalWorkSourceBinding,
-) -> Result<(), String> {
+    expected: &source_inventory::BoundLocalSourceClosure,
+    current: source_inventory::BoundLocalSourceClosure,
+) -> Result<SourceClosureWorkload, String> {
     if expected != &current {
         return Err("courtroom source changed during the campaign".to_owned());
     }
-    Ok(())
+    Ok(current.workload())
 }
 
 fn require_stable_source(
-    before: PhysicalWorkSourceBinding,
-    after: PhysicalWorkSourceBinding,
-) -> Result<PhysicalWorkSourceBinding, String> {
+    before: source_inventory::BoundLocalSourceClosure,
+    after: source_inventory::BoundLocalSourceClosure,
+) -> Result<source_inventory::BoundLocalSourceClosure, String> {
     if before != after {
         return Err(
             "courtroom source changed while its evidence binaries were being built".to_owned(),
@@ -241,7 +285,10 @@ fn evidence_digest(bytes: [u8; 32], subject: &str) -> Result<PhysicalWorkEvidenc
 
 #[cfg(test)]
 mod tests {
-    use super::{bind_binary, require_campaign_source, require_stable_source};
+    use super::{
+        bind_binary, require_campaign_source, require_stable_source,
+        source_inventory::BoundLocalSourceClosure, SourceClosureWorkload,
+    };
     use worth_store::physical_runtime::{PhysicalWorkEvidenceDigest, PhysicalWorkSourceBinding};
 
     #[test]
@@ -287,11 +334,14 @@ mod tests {
         assert!(error.contains("executable changed"), "{error}");
     }
 
-    fn source_binding(byte: u8) -> PhysicalWorkSourceBinding {
-        PhysicalWorkSourceBinding::new(
-            "test-source",
-            PhysicalWorkEvidenceDigest::new([byte; 32]).unwrap(),
+    fn source_binding(byte: u8) -> BoundLocalSourceClosure {
+        BoundLocalSourceClosure::new(
+            PhysicalWorkSourceBinding::new(
+                "test-source",
+                PhysicalWorkEvidenceDigest::new([byte; 32]).unwrap(),
+            )
+            .unwrap(),
+            SourceClosureWorkload::new(3, 1_024),
         )
-        .unwrap()
     }
 }

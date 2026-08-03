@@ -1,12 +1,15 @@
 use worth_store_physical_format::{DurablePhysicalRootManifest, RecordArtifactFile};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RetainedPhysicalRoot {
     manifest: DurablePhysicalRootManifest,
     supporting_artifacts: Box<[RecordArtifactFile]>,
 }
 
 impl RetainedPhysicalRoot {
-    pub(super) fn from_manifest(manifest: DurablePhysicalRootManifest) -> Self {
+    pub(in crate::physical_runtime) fn from_manifest(
+        manifest: DurablePhysicalRootManifest,
+    ) -> Self {
         let generation = manifest.generation();
         let mut artifacts = Vec::with_capacity(5);
         artifacts.push(RecordArtifactFile::RootManifest { generation });

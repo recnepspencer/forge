@@ -3,26 +3,44 @@ use std::process::{Command, Output, Stdio};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use super::evidence::MutationExecutionClass;
+
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(15);
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
 
-pub(super) fn run(command: &mut Command, mutant: u8) -> Result<Output, String> {
-    run_with_progress(command, HEARTBEAT_INTERVAL, |elapsed| {
+pub(super) struct TimedControlledCaseOutput {
+    pub(super) output: Output,
+    pub(super) elapsed: Duration,
+}
+
+pub(super) fn run(
+    command: &mut Command,
+    mutant: u8,
+    class: MutationExecutionClass,
+) -> Result<TimedControlledCaseOutput, String> {
+    let started = Instant::now();
+    let output = run_with_progress(command, HEARTBEAT_INTERVAL, class.limit(), |elapsed| {
         println!(
             "mutate: {mutant} still running after {}s",
             elapsed.as_secs()
         );
         let _ = std::io::stdout().flush();
     })
-    .map_err(|error| format!("cannot execute mutant {mutant}: {error}"))
+    .map_err(|error| format!("cannot execute mutant {mutant}: {error}"))?;
+    Ok(TimedControlledCaseOutput {
+        output,
+        elapsed: started.elapsed(),
+    })
 }
 
 fn run_with_progress(
     command: &mut Command,
     heartbeat_interval: Duration,
+    timeout: Duration,
     mut heartbeat: impl FnMut(Duration),
 ) -> Result<Output, String> {
     assert!(!heartbeat_interval.is_zero());
+    assert!(!timeout.is_zero());
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = command
         .spawn()
@@ -47,6 +65,13 @@ fn run_with_progress(
             break status;
         }
         let elapsed = started.elapsed();
+        if elapsed >= timeout {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(format!(
+                "controlled case exceeded its {timeout:?} execution bound"
+            ));
+        }
         if elapsed >= next_heartbeat {
             heartbeat(elapsed);
             next_heartbeat = next_heartbeat.saturating_add(heartbeat_interval);
@@ -94,9 +119,12 @@ mod tests {
     fn concurrent_capture_emits_progress_without_losing_streams() {
         let mut command = fixture();
         let mut heartbeats = Vec::new();
-        let output = run_with_progress(&mut command, Duration::from_millis(10), |elapsed| {
-            heartbeats.push(elapsed)
-        })
+        let output = run_with_progress(
+            &mut command,
+            Duration::from_millis(10),
+            Duration::from_secs(1),
+            |elapsed| heartbeats.push(elapsed),
+        )
         .unwrap();
         assert!(output.status.success());
         assert!(!heartbeats.is_empty());
@@ -106,6 +134,19 @@ mod tests {
         assert!(String::from_utf8(output.stderr)
             .unwrap()
             .contains("mutation-child-stderr"));
+    }
+
+    #[test]
+    fn nonterminating_controlled_case_is_bounded() {
+        let mut command = fixture();
+        let error = run_with_progress(
+            &mut command,
+            Duration::from_millis(5),
+            Duration::from_millis(20),
+            |_| {},
+        )
+        .unwrap_err();
+        assert!(error.contains("controlled case exceeded its 20ms execution bound"));
     }
 
     #[test]

@@ -140,6 +140,7 @@ const fn media_role(role: BoundedResidencyMediaRole) -> &'static str {
             "synchronize-directory-publication"
         }
         BoundedResidencyMediaRole::AtomicReplace => "atomic-replace",
+        BoundedResidencyMediaRole::Delete => "delete",
     }
 }
 
@@ -149,6 +150,11 @@ const fn signal_family(family: BoundedResidencySignalFamily) -> &'static str {
         BoundedResidencySignalFamily::ExactWriteback => "exact-writeback",
         BoundedResidencySignalFamily::Publication => "publication",
         BoundedResidencySignalFamily::Lifecycle => "lifecycle",
+        BoundedResidencySignalFamily::WalAppend => "wal-append",
+        BoundedResidencySignalFamily::DurabilityBarrier => "durability-barrier",
+        BoundedResidencySignalFamily::CheckpointCapture => "checkpoint-capture",
+        BoundedResidencySignalFamily::RootPublication => "root-publication",
+        BoundedResidencySignalFamily::WalReclamation => "wal-reclamation",
     }
 }
 
@@ -198,6 +204,11 @@ const fn family(family: BoundedResidencyWorkFamily) -> &'static str {
         BoundedResidencyWorkFamily::ArtifactRangeRead => "artifact-range-read",
         BoundedResidencyWorkFamily::ArtifactRangeWrite => "artifact-range-write",
         BoundedResidencyWorkFamily::ArtifactPublication => "artifact-publication",
+        BoundedResidencyWorkFamily::WalAppend => "wal-append",
+        BoundedResidencyWorkFamily::DurabilityBarrier => "durability-barrier",
+        BoundedResidencyWorkFamily::CheckpointCapture => "checkpoint-capture",
+        BoundedResidencyWorkFamily::RootPublication => "root-publication",
+        BoundedResidencyWorkFamily::WalReclamation => "wal-reclamation",
     }
 }
 
@@ -206,6 +217,8 @@ const fn effect_fate(fate: BoundedResidencyWorkEffectFate) -> &'static str {
         BoundedResidencyWorkEffectFate::ReadCompleted => "read-completed",
         BoundedResidencyWorkEffectFate::WriteCompleted => "write-completed",
         BoundedResidencyWorkEffectFate::PublicationCompleted => "publication-completed",
+        BoundedResidencyWorkEffectFate::CheckpointCompleted => "checkpoint-completed",
+        BoundedResidencyWorkEffectFate::WalReclamationCompleted => "wal-reclamation-completed",
     }
 }
 

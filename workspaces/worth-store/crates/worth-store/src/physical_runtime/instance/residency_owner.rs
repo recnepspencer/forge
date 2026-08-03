@@ -43,6 +43,16 @@ impl PhysicalResidencyOwner {
         )
     }
 
+    pub(in crate::physical_runtime) fn recovery_allocation_admission(
+        &self,
+    ) -> crate::physical_runtime::PhysicalRecoveryAllocationAdmission {
+        crate::physical_runtime::PhysicalRecoveryAllocationAdmission::new(
+            self.store,
+            self.admitted_policy
+                .scope_bytes(worth_store_buffer_pool::PhysicalOperationAllocationScope::Recovery),
+        )
+    }
+
     pub(in crate::physical_runtime) fn close(
         mut self,
     ) -> worth_store_buffer_pool::PhysicalResidencyShutdown {

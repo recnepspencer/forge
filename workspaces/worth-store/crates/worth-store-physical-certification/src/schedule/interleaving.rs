@@ -5,11 +5,11 @@ use super::actor_step::PhysicalActorStep;
 use super::authority::{AdmittedScheduleOrderingAuthority, ScheduleOrderingAuthorityAttempt};
 use super::budget::{PartialOrderReductionPosture, ScheduleExplorationCost, StateSpaceBudget};
 use super::identity::{ScheduleReplayIdentity, ScheduleReplayIdentityParts};
-use super::{ReplaySeed, ScheduleReplayDenial};
+use super::{SchedulePerturbationSeed, ScheduleReplayDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalInterleavingSchedule {
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
     profile: PhysicalSimulationProfile,
     ordering_authority: AdmittedScheduleOrderingAuthority,
     actor_steps: PhysicalActorStepSequence,
@@ -20,7 +20,7 @@ pub struct PhysicalInterleavingSchedule {
 impl PhysicalInterleavingSchedule {
     pub fn from_lowered_plan(
         plan: &PhysicalSimulationPlan,
-        seed: ReplaySeed,
+        seed: SchedulePerturbationSeed,
         budget: StateSpaceBudget,
     ) -> Result<Self, ScheduleReplayDenial> {
         let ordering_authority =
@@ -30,7 +30,7 @@ impl PhysicalInterleavingSchedule {
 
     pub fn from_lowered_plan_with_ordering_authority(
         plan: &PhysicalSimulationPlan,
-        seed: ReplaySeed,
+        seed: SchedulePerturbationSeed,
         budget: StateSpaceBudget,
         ordering_authority: AdmittedScheduleOrderingAuthority,
     ) -> Result<Self, ScheduleReplayDenial> {
@@ -40,7 +40,7 @@ impl PhysicalInterleavingSchedule {
 
     pub(crate) fn from_ordered_actors(
         plan: &PhysicalSimulationPlan,
-        seed: ReplaySeed,
+        seed: SchedulePerturbationSeed,
         budget: StateSpaceBudget,
         actors: &[crate::PhysicalScenarioActor],
     ) -> Result<Self, ScheduleReplayDenial> {
@@ -57,7 +57,7 @@ impl PhysicalInterleavingSchedule {
 
     fn from_ordered_actor_steps(
         plan: &PhysicalSimulationPlan,
-        seed: ReplaySeed,
+        seed: SchedulePerturbationSeed,
         budget: StateSpaceBudget,
         ordering_authority: AdmittedScheduleOrderingAuthority,
         actor_steps: Vec<PhysicalActorStep>,
@@ -95,7 +95,7 @@ impl PhysicalInterleavingSchedule {
 
     pub fn from_optional_seed(
         plan: &PhysicalSimulationPlan,
-        seed: Option<ReplaySeed>,
+        seed: Option<SchedulePerturbationSeed>,
         budget: StateSpaceBudget,
     ) -> Result<Self, ScheduleReplayDenial> {
         let seed = seed.ok_or(ScheduleReplayDenial::MissingSeed)?;
@@ -106,7 +106,7 @@ impl PhysicalInterleavingSchedule {
         Ok(self)
     }
 
-    pub const fn seed(&self) -> ReplaySeed {
+    pub const fn seed(&self) -> SchedulePerturbationSeed {
         self.seed
     }
 
@@ -150,7 +150,7 @@ impl PhysicalInterleavingSchedule {
 
 fn actor_steps_from_plan(
     plan: &PhysicalSimulationPlan,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
 ) -> Result<Vec<PhysicalActorStep>, ScheduleReplayDenial> {
     let yieldpoint = plan.yieldpoint_binding().declared_yieldpoint().name();
     let mut actors = plan.actors().iter().cloned().collect::<Vec<_>>();
@@ -162,7 +162,10 @@ fn actor_steps_from_plan(
         .collect()
 }
 
-fn deterministically_permute_actors(actors: &mut [crate::PhysicalScenarioActor], seed: ReplaySeed) {
+fn deterministically_permute_actors(
+    actors: &mut [crate::PhysicalScenarioActor],
+    seed: SchedulePerturbationSeed,
+) {
     let mut state = seed.value();
     for upper in (1..actors.len()).rev() {
         state = next_replay_word(state);

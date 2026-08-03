@@ -606,6 +606,7 @@ dependencies = [
  "worth-proof",
  "worth-store",
  "worth-store-io-scheduler",
+ "worth-store-physical-certification",
  "worth-store-physical-isolation",
 ]
 

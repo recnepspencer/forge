@@ -11,6 +11,7 @@ pub(in crate::courtroom_campaign) enum BoundedResidencySiegePhase {
     SiegeServing,
     OfflineObserver,
     FreshReopener,
+    DurabilityTerminationCampaign,
     FinalSourceBinding,
     ExecutableVerification,
     RunProvenance,
@@ -20,7 +21,7 @@ pub(in crate::courtroom_campaign) enum BoundedResidencySiegePhase {
 }
 
 impl BoundedResidencySiegePhase {
-    pub(super) const BEFORE_REPORT: [Self; 16] = [
+    pub(super) const BEFORE_REPORT: [Self; 17] = [
         Self::MutationEvidence,
         Self::World,
         Self::BinaryBuild,
@@ -32,6 +33,7 @@ impl BoundedResidencySiegePhase {
         Self::SiegeServing,
         Self::OfflineObserver,
         Self::FreshReopener,
+        Self::DurabilityTerminationCampaign,
         Self::FinalSourceBinding,
         Self::ExecutableVerification,
         Self::RunProvenance,
@@ -52,6 +54,7 @@ impl BoundedResidencySiegePhase {
             Self::SiegeServing => "serving",
             Self::OfflineObserver => "offline-observer",
             Self::FreshReopener => "fresh-reopener",
+            Self::DurabilityTerminationCampaign => "durability-termination-campaign",
             Self::FinalSourceBinding => "final-source-binding",
             Self::ExecutableVerification => "executable-verification",
             Self::RunProvenance => "run-provenance",

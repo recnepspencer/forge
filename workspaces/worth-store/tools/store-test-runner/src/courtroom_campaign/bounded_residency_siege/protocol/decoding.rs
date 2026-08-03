@@ -17,7 +17,7 @@ use super::{
 };
 use crate::courtroom_campaign::bounded_residency_siege::process_execution::CapturedProcess;
 
-const FIXED_PROTOCOL_MARKERS: usize = 40;
+const FIXED_PROTOCOL_MARKERS: usize = 45;
 
 pub(super) use allocation::parse as parse_allocation;
 #[cfg(test)]
@@ -28,6 +28,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) fn parse(
 ) -> Result<BoundedResidencySiegeObservation, String> {
     let allocation = parse_allocation(process.stdout())?;
     let work_reconciliation = work_reconciliation::parse(process.stdout())?;
+    let performance = super::performance::parse(process.stdout())?;
     let expected_lines = usize::try_from(allocation.trace.event_count)
         .ok()
         .and_then(|events| {
@@ -79,6 +80,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) fn parse(
         speculation: parse_speculation(process.stdout())?,
         work_reconciliation,
         allocation,
+        performance,
         close: parse_close(process.stdout())?,
     })
 }

@@ -24,6 +24,8 @@ const RECOVERY: &str = "workspaces/worth-store/crates/worth-store/src/physical_r
                         work/recovery/locator/codec.rs";
 const REOPEN: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                       durability/wal/inventory/reopen.rs";
+const INVENTORY: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
+                         durability/wal/inventory/live_segment_inventory.rs";
 const JOURNEY: &str = "workspaces/worth-store/crates/worth-store/tests/\
                        physical_record_journeys/durability_admission/\
                        checkpoint_wal_reclamation.rs";
@@ -134,14 +136,6 @@ fn reject_failure_and_reopen_mutants(source: WalReclamationSources) {
         "PhysicalWalReclamationObservation::Reclaimed",
     );
     assert!(inspect(&denied_consumes_truth).is_err());
-
-    let mut reopen_without_checkpoint = source;
-    reopen_without_checkpoint.reopen = mutate_once(
-        &reopen_without_checkpoint.reopen,
-        "let requires_inspection = cutoff.lsn().is_none();",
-        "let requires_inspection = false;",
-    );
-    assert!(inspect(&reopen_without_checkpoint).is_err());
 }
 
 #[derive(Clone)]
@@ -158,6 +152,7 @@ struct WalReclamationSources {
     semantics: String,
     recovery: String,
     reopen: String,
+    inventory: String,
     journey: String,
 }
 
@@ -175,6 +170,7 @@ fn sources() -> WalReclamationSources {
         semantics: read(SEMANTICS),
         recovery: read(RECOVERY),
         reopen: read(REOPEN),
+        inventory: read(INVENTORY),
         journey: read(JOURNEY),
     }
 }
@@ -346,11 +342,11 @@ fn inspect_route_and_recovery(source: &WalReclamationSources) -> Result<(), &'st
 }
 
 fn inspect_reopen_and_evidence(source: &WalReclamationSources) -> Result<(), &'static str> {
+    super::wal_reopen_origin::inspect(&source.reopen, &source.inventory)?;
     require_all(
         &source.reopen,
         &[
             "require_checkpoint_cutoff_within_retained_wal(cutoff, &segment_inventory, active_lsn_end)?",
-            "let requires_inspection = cutoff.lsn().is_none();",
             "if cutoff < first || cutoff > active_lsn_end",
         ],
         "reopen can trust a reclaimed inventory without checkpoint cutoff authority",

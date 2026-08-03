@@ -14,9 +14,11 @@ pub(super) fn verify(
         return Err("Courtroom C omitted serving process-allocation evidence".into());
     }
     if observation.largest_successful_request_bytes >= store_payload_bytes {
-        return Err(
-            "Courtroom C serving process issued a complete-Store allocation request".into(),
-        );
+        return Err(format!(
+            "Courtroom C serving process issued a complete-Store allocation request: \
+             request={} payload={store_payload_bytes}",
+            observation.largest_successful_request_bytes
+        ));
     }
     Ok(())
 }

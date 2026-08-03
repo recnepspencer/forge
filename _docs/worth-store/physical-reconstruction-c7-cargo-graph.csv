@@ -7,10 +7,12 @@ store-test-runner,trybuild,dev,false
 store-test-runner,worth-proof,dev,false
 store-test-runner,worth-store,normal,true
 store-test-runner,worth-store-io-scheduler,dev,false
+store-test-runner,worth-store-physical-certification,normal,true
 store-test-runner,worth-store-physical-isolation,dev,false
 worth-store,getrandom,normal,false
 worth-store,serde,dev,false
 worth-store,serde_json,dev,false
+worth-store,sha2,build,false
 worth-store,sha2,normal,false
 worth-store,stats_alloc,dev,false
 worth-store,tempfile,dev,false

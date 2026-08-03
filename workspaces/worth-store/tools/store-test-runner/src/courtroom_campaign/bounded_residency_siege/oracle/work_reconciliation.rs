@@ -33,7 +33,7 @@ pub(super) fn verify(
         generation,
     };
     let mut signal_bindings =
-        signal_basis::InstalledSignalBindings::require(&evidence.signal_bindings)?;
+        signal_basis::InstalledSignalBindings::require(&evidence.signal_bindings, store)?;
     let mut identities = ObservedIdentities::with_capacity(evidence.records.len());
     let mut counts = ReconciledWorkCounts::default();
     for record in &evidence.records {
@@ -124,6 +124,17 @@ fn verify_causal_route(
         BoundedResidencyWorkFamily::ArtifactPublication => {
             BoundedResidencySignalFamily::Publication
         }
+        BoundedResidencyWorkFamily::WalAppend => BoundedResidencySignalFamily::WalAppend,
+        BoundedResidencyWorkFamily::DurabilityBarrier => {
+            BoundedResidencySignalFamily::DurabilityBarrier
+        }
+        BoundedResidencyWorkFamily::CheckpointCapture => {
+            BoundedResidencySignalFamily::CheckpointCapture
+        }
+        BoundedResidencyWorkFamily::RootPublication => {
+            BoundedResidencySignalFamily::RootPublication
+        }
+        BoundedResidencyWorkFamily::WalReclamation => BoundedResidencySignalFamily::WalReclamation,
     };
     if route.signal_family != expected_family
         || route.signal_binding.iter().all(|byte| *byte == 0)
@@ -171,7 +182,7 @@ impl ObservedIdentities {
 
 #[derive(Default)]
 struct ReconciledWorkCounts {
-    families: [u64; 4],
+    families: [u64; 9],
     metadata_reads: u64,
     positioned_reads: u64,
     positioned_writes: u64,
@@ -184,36 +195,16 @@ impl ReconciledWorkCounts {
         &mut self,
         record: &super::super::protocol::BoundedResidencyWorkRecordObservation,
     ) -> Result<(), String> {
-        let family = match (record.family, record.effect_fate, record.recovery) {
-            (
-                BoundedResidencyWorkFamily::ArtifactMetadataRead,
-                BoundedResidencyWorkEffectFate::ReadCompleted,
-                BoundedResidencyWorkRecovery::NoEffect,
-            ) => 0,
-            (
-                BoundedResidencyWorkFamily::ArtifactRangeRead,
-                BoundedResidencyWorkEffectFate::ReadCompleted,
-                BoundedResidencyWorkRecovery::NoEffect,
-            ) => 1,
-            (
-                BoundedResidencyWorkFamily::ArtifactRangeWrite,
-                BoundedResidencyWorkEffectFate::WriteCompleted,
-                BoundedResidencyWorkRecovery::ContinueSettlement,
-            ) => 2,
-            (
-                BoundedResidencyWorkFamily::ArtifactPublication,
-                BoundedResidencyWorkEffectFate::PublicationCompleted,
-                BoundedResidencyWorkRecovery::ContinueSettlement,
-            ) => 3,
-            _ => {
-                return Err(
-                    "physical work reconciliation admitted an inexact effect fate or recovery"
-                        .to_owned(),
-                );
-            }
-        };
+        let family = exact_family(record)?;
         self.families[family] = self.families[family].saturating_add(1);
-        match record.backend_role {
+        self.record_backend_role(record.backend_role);
+        require_exact_backend_role(record.family, record.backend_role)?;
+        self.record_terminal_fate(record.terminal);
+        Ok(())
+    }
+
+    fn record_backend_role(&mut self, role: BoundedResidencyMediaRole) {
+        match role {
             BoundedResidencyMediaRole::ReadMetadata => {
                 self.metadata_reads = self.metadata_reads.saturating_add(1);
             }
@@ -225,8 +216,13 @@ impl ReconciledWorkCounts {
             }
             _ => {}
         }
-        require_exact_backend_role(record.family, record.backend_role)?;
-        match record.terminal {
+    }
+
+    fn record_terminal_fate(
+        &mut self,
+        terminal: super::super::protocol::BoundedResidencyWorkTerminalFate,
+    ) {
+        match terminal {
             super::super::protocol::BoundedResidencyWorkTerminalFate::Settled => {
                 self.settled_terminal_fates = self.settled_terminal_fates.saturating_add(1);
             }
@@ -235,8 +231,66 @@ impl ReconciledWorkCounts {
                     self.continued_terminal_fates.saturating_add(1);
             }
         }
-        Ok(())
     }
+}
+
+fn exact_family(
+    record: &super::super::protocol::BoundedResidencyWorkRecordObservation,
+) -> Result<usize, String> {
+    let family = match (record.family, record.effect_fate, record.recovery) {
+        (
+            BoundedResidencyWorkFamily::ArtifactMetadataRead,
+            BoundedResidencyWorkEffectFate::ReadCompleted,
+            BoundedResidencyWorkRecovery::NoEffect,
+        ) => 0,
+        (
+            BoundedResidencyWorkFamily::ArtifactRangeRead,
+            BoundedResidencyWorkEffectFate::ReadCompleted,
+            BoundedResidencyWorkRecovery::NoEffect,
+        ) => 1,
+        (
+            BoundedResidencyWorkFamily::ArtifactRangeWrite,
+            BoundedResidencyWorkEffectFate::WriteCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 2,
+        (
+            BoundedResidencyWorkFamily::ArtifactPublication,
+            BoundedResidencyWorkEffectFate::PublicationCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 3,
+        (
+            BoundedResidencyWorkFamily::WalAppend,
+            BoundedResidencyWorkEffectFate::WriteCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 4,
+        (
+            BoundedResidencyWorkFamily::DurabilityBarrier,
+            BoundedResidencyWorkEffectFate::PublicationCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 5,
+        (
+            BoundedResidencyWorkFamily::CheckpointCapture,
+            BoundedResidencyWorkEffectFate::CheckpointCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 6,
+        (
+            BoundedResidencyWorkFamily::RootPublication,
+            BoundedResidencyWorkEffectFate::PublicationCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 7,
+        (
+            BoundedResidencyWorkFamily::WalReclamation,
+            BoundedResidencyWorkEffectFate::WalReclamationCompleted,
+            BoundedResidencyWorkRecovery::ContinueSettlement,
+        ) => 8,
+        _ => {
+            return Err(
+                "physical work reconciliation admitted an inexact effect fate or recovery"
+                    .to_owned(),
+            );
+        }
+    };
+    Ok(family)
 }
 
 fn require_exact_counts(
@@ -302,6 +356,25 @@ fn require_exact_backend_role(
                 | BoundedResidencyMediaRole::SynchronizeDirectoryPublication
                 | BoundedResidencyMediaRole::AtomicReplace
         ),
+        BoundedResidencyWorkFamily::WalAppend => role == BoundedResidencyMediaRole::PositionedWrite,
+        BoundedResidencyWorkFamily::DurabilityBarrier => {
+            role == BoundedResidencyMediaRole::SynchronizeFileState
+        }
+        BoundedResidencyWorkFamily::CheckpointCapture => matches!(
+            role,
+            BoundedResidencyMediaRole::CreateNew
+                | BoundedResidencyMediaRole::PositionedWrite
+                | BoundedResidencyMediaRole::SynchronizeFileState
+                | BoundedResidencyMediaRole::SynchronizeDirectoryPublication
+                | BoundedResidencyMediaRole::AtomicReplace
+        ),
+        BoundedResidencyWorkFamily::RootPublication => matches!(
+            role,
+            BoundedResidencyMediaRole::SynchronizeFileState
+                | BoundedResidencyMediaRole::SynchronizeDirectoryPublication
+                | BoundedResidencyMediaRole::AtomicReplace
+        ),
+        BoundedResidencyWorkFamily::WalReclamation => role == BoundedResidencyMediaRole::Delete,
     };
     if exact {
         Ok(())

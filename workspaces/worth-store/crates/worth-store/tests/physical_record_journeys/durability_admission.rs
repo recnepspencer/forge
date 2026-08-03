@@ -16,6 +16,10 @@ mod checkpoint_pressure;
 mod checkpoint_retained_wal_tail;
 #[path = "durability_admission/checkpoint_wal_reclamation.rs"]
 mod checkpoint_wal_reclamation;
+#[path = "durability_admission/closeout_handoff.rs"]
+mod closeout_handoff;
+#[path = "durability_admission/closeout_source_identity.rs"]
+mod closeout_source_identity;
 #[path = "durability_admission/data_durability.rs"]
 mod data_durability;
 #[path = "durability_admission/durability_documentation.rs"]

@@ -13,34 +13,29 @@ pub(super) struct InstalledSourceMutation {
     restored: bool,
 }
 
+struct PreparedSourceMutation {
+    source: PathBuf,
+    original: Box<[u8]>,
+    mutated: Box<[u8]>,
+}
+
+pub(super) fn validate_bindings(
+    workspace: &Path,
+    mutations: &[&ControlledMutation],
+) -> Result<(), String> {
+    for mutation in mutations {
+        prepare(workspace, mutation)?;
+    }
+    Ok(())
+}
+
 impl InstalledSourceMutation {
     pub(super) fn apply(workspace: &Path, mutation: &ControlledMutation) -> Result<Self, String> {
-        let source = workspace.join(mutation.source);
-        let original = std::fs::read(&source).map_err(|error| {
-            format!("cannot read mutation source {}: {error}", source.display())
-        })?;
-        let text = std::str::from_utf8(&original)
-            .map_err(|_| format!("mutation source {} is not valid UTF-8", source.display()))?;
-        let occurrences = mutation.source_occurrences(text);
-        if occurrences != 1 {
-            return Err(format!(
-                "mutant {} requires one exact source seam in {}, found {occurrences}",
-                mutation.id,
-                source.display()
-            ));
-        }
-        let needle = mutation.source_needle(text);
-        let replacement = mutation.source_replacement(text);
-        let mutated = text
-            .replacen(needle.as_ref(), replacement.as_ref(), 1)
-            .into_bytes();
-        if mutated == original {
-            return Err(format!("mutant {} made no source change", mutation.id));
-        }
+        let prepared = prepare(workspace, mutation)?;
         let mut installed = Self {
-            source,
-            original: original.into_boxed_slice(),
-            mutated: mutated.into_boxed_slice(),
+            source: prepared.source,
+            original: prepared.original,
+            mutated: prepared.mutated,
             restored: true,
         };
         installed.install(mutation)?;
@@ -91,6 +86,38 @@ impl InstalledSourceMutation {
     }
 }
 
+fn prepare(
+    workspace: &Path,
+    mutation: &ControlledMutation,
+) -> Result<PreparedSourceMutation, String> {
+    let source = workspace.join(mutation.source);
+    let original = std::fs::read(&source)
+        .map_err(|error| format!("cannot read mutation source {}: {error}", source.display()))?;
+    let text = std::str::from_utf8(&original)
+        .map_err(|_| format!("mutation source {} is not valid UTF-8", source.display()))?;
+    let occurrences = mutation.source_occurrences(text);
+    if occurrences != 1 {
+        return Err(format!(
+            "mutant {} requires one exact source seam in {}, found {occurrences}",
+            mutation.id,
+            source.display()
+        ));
+    }
+    let needle = mutation.source_needle(text);
+    let replacement = mutation.source_replacement(text);
+    let mutated = text
+        .replacen(needle.as_ref(), replacement.as_ref(), 1)
+        .into_bytes();
+    if mutated == original {
+        return Err(format!("mutant {} made no source change", mutation.id));
+    }
+    Ok(PreparedSourceMutation {
+        source,
+        original: original.into_boxed_slice(),
+        mutated: mutated.into_boxed_slice(),
+    })
+}
+
 impl Drop for InstalledSourceMutation {
     fn drop(&mut self) {
         if !self.restored {
@@ -124,7 +151,7 @@ fn is_transient_source_lock(error: &std::io::Error) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{retry_transient_source_lock, InstalledSourceMutation};
+    use super::{retry_transient_source_lock, validate_bindings, InstalledSourceMutation};
     use crate::mutation_campaign::catalog::{ControlledMutation, MutationTarget};
 
     #[test]
@@ -157,6 +184,30 @@ mod tests {
             assert_eq!(std::fs::read(&source).unwrap(), b"mutated seam\n");
         }
         assert_eq!(std::fs::read(source).unwrap(), original);
+    }
+
+    #[test]
+    fn binding_preflight_is_read_only_and_uses_execution_preparation() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.rs");
+        let original = b"before\nexact seam\nafter\n";
+        std::fs::write(&source, original).unwrap();
+        let mutation = fixture_mutation();
+
+        validate_bindings(directory.path(), &[&mutation]).unwrap();
+
+        assert_eq!(std::fs::read(source).unwrap(), original);
+    }
+
+    #[test]
+    fn binding_preflight_rejects_a_stale_catalog_seam() {
+        let directory = tempfile::tempdir().unwrap();
+        std::fs::write(directory.path().join("source.rs"), b"renamed seam\n").unwrap();
+        let mutation = fixture_mutation();
+
+        let error = validate_bindings(directory.path(), &[&mutation]).unwrap_err();
+
+        assert!(error.contains("found 0"), "{error}");
     }
 
     #[test]

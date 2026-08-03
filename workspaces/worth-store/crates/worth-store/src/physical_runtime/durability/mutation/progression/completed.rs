@@ -144,6 +144,12 @@ impl CompletedPhysicalMutationFact {
         self.breadth
     }
 
+    pub(in crate::physical_runtime) const fn group_binding(
+        &self,
+    ) -> PhysicalDurabilityGroupMemberBinding {
+        self.group_binding
+    }
+
     pub(in crate::physical_runtime) fn persisted_records(&self) -> &[PersistedRecordIdentity] {
         &self.records
     }

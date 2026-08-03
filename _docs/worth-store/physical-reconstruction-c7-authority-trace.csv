@@ -106,3 +106,12 @@ ordinary-mutation-settlement,3,proven-no-effect-fate,crates/worth-store/src/phys
 ordinary-mutation-settlement,4,indeterminate-fate,crates/worth-store/src/physical_runtime/durability/settlement/indeterminate.rs,pub struct IndeterminatePhysicalMutation,Store settlement,preserve
 ordinary-mutation-settlement,5,executed-evidence-projection,crates/worth-store/src/physical_runtime/durability/settlement/acknowledgment.rs,pub fn executed_boundary_evidence,Store evidence projection,preserve
 ordinary-mutation-settlement,6,diagnostic-evidence-projection,crates/worth-store/src/physical_runtime/durability/settlement/indeterminate.rs,pub const fn diagnostic_evidence,Store evidence projection,preserve
+c8-recovery-handoff,1,checkpoint-drain,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,checkpoint.stop_and_drain(),Store shutdown progression,preserve
+c8-recovery-handoff,2,mutation-drain,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,publication.mutations.into_parts(),Store mutation lifecycle owner,preserve
+c8-recovery-handoff,3,root-and-wal-extraction,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,recovery_roots: Some(publication.roots),Store publication drain,preserve
+c8-recovery-handoff,4,operation-fate-reconstruction,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,self.durability_owner.into_recovery_basis,Store idempotency closeout owner,preserve
+c8-recovery-handoff,5,checkpoint-basis,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,PhysicalRecoveryCheckpointBasis::from_latest,Store checkpoint closeout owner,preserve
+c8-recovery-handoff,6,residue-classification,crates/worth-store/src/physical_runtime/instance/lifecycle.rs,PhysicalArtifactResidueClassification::new,Store publication residue owner,preserve
+c8-recovery-handoff,7,source-profile-binding,crates/worth-store/src/physical_runtime/durability/closeout/handoff.rs,PhysicalDurabilitySourceProfileIdentity::bind,Store durability closeout owner,preserve
+c8-recovery-handoff,8,closeout-progression,crates/worth-store/src/physical_runtime/durability/closeout/handoff.rs,fn finalize(,Store sealed closeout progression,preserve
+c8-recovery-handoff,9,successor-extraction,crates/worth-store/src/physical_runtime/instance/termination/outcome.rs,pub fn into_recovery_handoff,Store close outcome,preserve

@@ -39,6 +39,8 @@ struct PhysicalCheckpointLifecycleState {
     proven_no_effect: u64,
     indeterminate: u64,
     worker_panics: u64,
+    encoded_bytes: u64,
+    dirty_records: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,7 +50,14 @@ pub struct PhysicalCheckpointShutdown {
     proven_no_effect: u64,
     indeterminate: u64,
     worker_panics: u64,
+    encoded_bytes: u64,
+    dirty_records: u64,
     latest_publication: Option<worth_store_physical_format::PhysicalCheckpointIdentity>,
+}
+
+pub(in crate::physical_runtime) struct PhysicalCheckpointTerminalState {
+    shutdown: PhysicalCheckpointShutdown,
+    latest_publication: Option<super::CompletedPhysicalCheckpoint>,
 }
 
 impl PhysicalCheckpointRuntimeOwner {
@@ -70,6 +79,8 @@ impl PhysicalCheckpointRuntimeOwner {
                 proven_no_effect: 0,
                 indeterminate: 0,
                 worker_panics: 0,
+                encoded_bytes: 0,
+                dirty_records: 0,
             }),
         })
     }
@@ -167,7 +178,7 @@ impl PhysicalCheckpointRuntimeOwner {
 
     pub(in crate::physical_runtime) fn stop_and_drain(
         self: Arc<Self>,
-    ) -> PhysicalCheckpointShutdown {
+    ) -> PhysicalCheckpointTerminalState {
         let (attempt, worker) = {
             let mut lifecycle = self.state();
             lifecycle.accepting = false;
@@ -179,7 +190,7 @@ impl PhysicalCheckpointRuntimeOwner {
         if let Some(worker) = worker {
             let _ = worker.join();
         }
-        let lifecycle = self.state();
+        let mut lifecycle = self.state();
         let latest_publication = lifecycle.latest_publication.as_ref().map(|publication| {
             assert_eq!(
                 publication.namespace_sync().action(),
@@ -188,12 +199,23 @@ impl PhysicalCheckpointRuntimeOwner {
             );
             publication.basis().identity()
         });
-        PhysicalCheckpointShutdown {
+        let shutdown = PhysicalCheckpointShutdown {
             started: lifecycle.started,
             completed: lifecycle.completed,
             proven_no_effect: lifecycle.proven_no_effect,
             indeterminate: lifecycle.indeterminate,
             worker_panics: lifecycle.worker_panics,
+            encoded_bytes: lifecycle.encoded_bytes,
+            dirty_records: lifecycle.dirty_records,
+            latest_publication,
+        };
+        let latest_publication = lifecycle
+            .latest_publication
+            .take()
+            .map(|publication| publication.completed_observation());
+        drop(lifecycle);
+        PhysicalCheckpointTerminalState {
+            shutdown,
             latest_publication,
         }
     }
@@ -203,6 +225,13 @@ impl PhysicalCheckpointRuntimeOwner {
         let mut lifecycle = self.state();
         lifecycle.current_terminal = true;
         if let Some(publication) = result.into_publication() {
+            let completed = publication.completed_observation();
+            lifecycle.encoded_bytes = lifecycle
+                .encoded_bytes
+                .saturating_add(completed.encoded_bytes());
+            lifecycle.dirty_records = lifecycle
+                .dirty_records
+                .saturating_add(completed.dirty_records());
             lifecycle.latest_publication = Some(publication);
         }
         match terminal {
@@ -225,6 +254,17 @@ impl PhysicalCheckpointRuntimeOwner {
         self.lifecycle
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+impl PhysicalCheckpointTerminalState {
+    pub(in crate::physical_runtime) fn into_parts(
+        self,
+    ) -> (
+        PhysicalCheckpointShutdown,
+        Option<super::CompletedPhysicalCheckpoint>,
+    ) {
+        (self.shutdown, self.latest_publication)
     }
 }
 
@@ -256,6 +296,14 @@ impl PhysicalCheckpointShutdown {
 
     pub const fn worker_panics(self) -> u64 {
         self.worker_panics
+    }
+
+    pub const fn encoded_bytes(self) -> u64 {
+        self.encoded_bytes
+    }
+
+    pub const fn dirty_records(self) -> u64 {
+        self.dirty_records
     }
 
     pub const fn latest_publication(

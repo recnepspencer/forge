@@ -1,5 +1,6 @@
 mod admission;
 mod checkpoint;
+mod closeout;
 mod data;
 mod evidence_projection;
 mod grouping;
@@ -43,6 +44,18 @@ pub use checkpoint::{
     PhysicalCheckpointProvenNoEffectCause, PhysicalCheckpointRequest, PhysicalCheckpointShutdown,
     PhysicalCheckpointSubmission, ProvenNoEffectPhysicalCheckpoint, RetainedWalSegment,
 };
+pub(in crate::physical_runtime) use closeout::PhysicalIdempotencyCloseoutDenial;
+pub use closeout::{
+    PhysicalArtifactResidueClassification, PhysicalBackendDurabilityCloseoutEvidence,
+    PhysicalDurabilityCloseoutDenial, PhysicalDurabilityCloseoutOutcome,
+    PhysicalDurabilityRecoveryHandoff, PhysicalDurabilitySourceIdentity,
+    PhysicalDurabilitySourceProfileIdentity, PhysicalRecoveryAllocationAdmission,
+    PhysicalRecoveryAttemptBindingFact, PhysicalRecoveryCheckpointBasis,
+    PhysicalRecoveryCompletedMutationFact, PhysicalRecoveryOperationFact,
+    PhysicalRecoveryOperationFate, PhysicalRecoveryOperationFateCounts,
+    PhysicalRecoveryOperationFates, PhysicalRecoveryRootBasis, PhysicalRecoveryWalAttemptBinding,
+    PhysicalRecoveryWalSegment, PhysicalRecoveryWalTail, PhysicalRootNamespaceDurabilityEvidence,
+};
 pub(in crate::physical_runtime) use data::{
     join_dispatched_data, CompletionBoundPhysicalDataSettlement, PhysicalDataPlanBindingDenial,
     PreparedPhysicalDataFrame, PreparedPhysicalDataPlan, WalBoundPhysicalDataFrame,
@@ -57,8 +70,15 @@ pub use data::{
     PhysicalRedoTargetClaim,
 };
 pub use evidence_projection::{
-    IndeterminatePhysicalMutationEvidence, PhysicalMutationExecutedBoundaryEvidence,
-    PhysicalMutationPerformanceEvidence, ProvenNoEffectPhysicalMutationEvidence,
+    lower_physical_durability_performance_receipt, CheckpointPerformanceExpectation,
+    CloseoutPerformanceExpectation, GroupCommitPerformanceExpectation,
+    IdempotencyPerformanceExpectation, IndeterminatePhysicalMutationEvidence,
+    PageBasisPerformanceExpectation, PhysicalDurabilityPerformanceClaim,
+    PhysicalDurabilityPerformanceContract, PhysicalDurabilityPerformanceEvidenceDenial,
+    PhysicalDurabilityPerformanceSummary, PhysicalIoPerformanceExpectation,
+    PhysicalMutationExecutedBoundaryEvidence, PhysicalMutationPerformanceEvidence,
+    PhysicalQueuePerformanceExpectation, PhysicalTrafficPerformanceExpectation,
+    ProvenNoEffectPhysicalMutationEvidence, StorePhysicalDurabilityPerformanceReceiptEvidence,
 };
 pub use grouping::{
     AdmittedPhysicalDurabilityGroup, AdmittedPhysicalDurabilityGroupMember,
@@ -87,7 +107,8 @@ pub use lifecycle::{
     CertificationPhysicalMutationCheckpoint, CertificationPhysicalMutationPauseGate,
 };
 pub(in crate::physical_runtime) use lifecycle::{
-    PhysicalMutationRuntimeOwner, PhysicalMutationStartPort,
+    PhysicalMutationCostSnapshot, PhysicalMutationRuntimeOwner, PhysicalMutationStartPort,
+    PhysicalMutationTerminalState,
 };
 pub(in crate::physical_runtime) use mutation::{
     rebuild_idempotency, AdmittedPhysicalMutation, AllocatedPhysicalMutationAttemptBinding,

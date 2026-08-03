@@ -31,12 +31,19 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
         .map(|value| vec![value; 3_000])
         .collect::<Vec<_>>();
     let writeback_baseline = SegmentWritebackBaseline::capture(&serving);
-    let published = publish_single(
-        &serving,
-        placement,
-        PhysicalMutationIdempotencyMaterial::new([161; 32]),
-        RecordAppendBatch::try_from_iter(records.iter()).unwrap(),
-    );
+    let published = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        publish_single(
+            &serving,
+            placement,
+            PhysicalMutationIdempotencyMaterial::new([161; 32]),
+            RecordAppendBatch::try_from_iter(records.iter()).unwrap(),
+        )
+    }))
+    .unwrap_or_else(|_| {
+        panic!(
+            "C5_PREDICATE:identity-placement-seam: persisted placements must retain admitted record identities"
+        )
+    });
     let member = &published.settled_members()[0];
     assert_eq!(member.persisted_records().len(), 15);
     assert_eq!(member.observation().segment_artifacts(), 4);
@@ -315,9 +322,17 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     let serving = success(initialize_record_store!(media(&root), |durability| {
         PhysicalRecordInitialization::new(format, placement, access, durability)
     }));
-    let first = publish_single(
-        &serving,
-        placement,
+    let publish = |material, batch| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            publish_single(&serving, placement, material, batch)
+        }))
+        .unwrap_or_else(|_| {
+            panic!(
+                "C5_PREDICATE:page-layout: copy-on-write publication must retain the admitted slot layout"
+            )
+        })
+    };
+    let first = publish(
         PhysicalMutationIdempotencyMaterial::new([163; 32]),
         RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
     );
@@ -326,9 +341,7 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     )
     .unwrap();
     let old_offset = old_page[88..92].to_vec();
-    publish_single(
-        &serving,
-        placement,
+    publish(
         PhysicalMutationIdempotencyMaterial::new([164; 32]),
         RecordAppendBatch::try_from_iter([b"gamma".as_slice(), b"delta".as_slice()]).unwrap(),
     );

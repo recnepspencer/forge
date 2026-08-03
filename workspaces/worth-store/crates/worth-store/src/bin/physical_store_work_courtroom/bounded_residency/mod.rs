@@ -1,8 +1,7 @@
-use std::path::Path;
-
 mod allocation_pressure;
 mod cancellation;
-mod configuration;
+mod checkpoint;
+pub(super) mod configuration;
 mod generation_fencing;
 mod producer;
 mod protocol;
@@ -13,10 +12,6 @@ mod speculative_pressure;
 mod work_reconciliation;
 mod workload;
 mod writeback_pressure;
-
-pub(super) fn validate_configuration(path: &Path) -> Result<(), String> {
-    configuration::BoundedResidencyConfiguration::read(path).map(|_| ())
-}
 
 pub(super) fn produce(
     invocation: super::arguments::BoundedResidencyProducerInvocation,

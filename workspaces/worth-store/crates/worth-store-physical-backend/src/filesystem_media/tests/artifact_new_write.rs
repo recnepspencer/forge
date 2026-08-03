@@ -125,6 +125,32 @@ fn existing_new_artifact_target_is_denied_before_effect() {
 }
 
 #[test]
+fn durable_artifact_truncation_shortens_only_an_existing_file() {
+    let parent = tempfile::tempdir().unwrap();
+    let media = qualified(
+        &parent.path().join("truncate"),
+        MediaFaultSchedule::default(),
+    );
+    let (_logical, physical) = root_manifest_artifact(&media, 20);
+    let tree = media.artifact_tree();
+    tree.write_new(&physical, b"verified-prefix-interrupted-tail")
+        .unwrap();
+
+    tree.truncate_file_durably(&physical, 15).unwrap();
+    assert_eq!(
+        tree.read_bounded(&physical, 15).unwrap(),
+        b"verified-prefix"
+    );
+    assert_eq!(
+        tree.truncate_file_durably(&physical, 15)
+            .unwrap_err()
+            .kind(),
+        ArtifactTreeFailureKind::AccessLimitExceeded,
+    );
+    media.close();
+}
+
+#[test]
 fn denied_exact_write_after_create_is_indeterminate() {
     let baseline_parent = tempfile::tempdir().unwrap();
     let baseline = qualified(

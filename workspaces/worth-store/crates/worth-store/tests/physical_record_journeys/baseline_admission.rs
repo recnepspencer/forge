@@ -201,7 +201,14 @@ fn namespace_residue_cannot_elect_current_truth() {
         root.join("families/records/roots/root-ffffffffffffffff.manifest"),
     )
     .unwrap();
-    let reopened = serving_from_open(&root);
+    let reopened = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        serving_from_open(&root)
+    }))
+    .unwrap_or_else(|_| {
+        panic!(
+            "C5_PREDICATE:independent-decision-path: unselected root artifacts cannot elect current truth"
+        )
+    });
     assert!(reopened.observed_non_authoritative_residue());
     reopened.close();
 }

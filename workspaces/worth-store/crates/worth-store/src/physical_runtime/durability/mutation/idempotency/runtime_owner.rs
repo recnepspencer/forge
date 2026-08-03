@@ -66,6 +66,28 @@ impl PhysicalMutationIdempotencyRuntimeOwner {
             owner: Arc::clone(owner),
         }
     }
+
+    pub(in crate::physical_runtime) fn into_recovery_operation_fates(
+        owner: Arc<Self>,
+        completed_unobserved: Box<[crate::physical_runtime::CompletedUnobservedPhysicalMutation]>,
+    ) -> Result<
+        crate::physical_runtime::PhysicalRecoveryOperationFates,
+        crate::physical_runtime::durability::PhysicalIdempotencyCloseoutDenial,
+    > {
+        let owner = Arc::try_unwrap(owner).map_err(|_| {
+            crate::physical_runtime::durability::PhysicalIdempotencyCloseoutDenial::LiveCompactionAuthority
+        })?;
+        let registry = owner
+            .registry
+            .into_inner()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        Ok(
+            crate::physical_runtime::PhysicalRecoveryOperationFates::new(
+                registry,
+                completed_unobserved,
+            ),
+        )
+    }
 }
 
 impl PhysicalMutationBindingCompactionRuntimeAuthority {

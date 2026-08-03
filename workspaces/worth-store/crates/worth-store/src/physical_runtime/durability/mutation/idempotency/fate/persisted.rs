@@ -49,6 +49,28 @@ pub(in crate::physical_runtime) enum DuplicatePhysicalMutationTerminal {
     Indeterminate(IndeterminatePhysicalMutation),
 }
 
+impl PersistedCompletedPhysicalMutation {
+    pub(in crate::physical_runtime::durability) fn into_parts(
+        self,
+    ) -> (
+        PersistedPhysicalMutationAttemptBinding,
+        Arc<CompletedPhysicalMutationFact>,
+    ) {
+        (self.binding, self.fact)
+    }
+}
+
+impl PersistedIndeterminatePhysicalMutation {
+    pub(in crate::physical_runtime::durability) fn into_parts(
+        self,
+    ) -> (
+        PersistedIndeterminatePhysicalMutationBasis,
+        IndeterminatePhysicalMutation,
+    ) {
+        (self.basis, self.fate)
+    }
+}
+
 impl PersistedPhysicalMutationFate {
     pub(in crate::physical_runtime) const fn proven_no_effect(
         terminal: ProvenNoEffectPhysicalMutation,

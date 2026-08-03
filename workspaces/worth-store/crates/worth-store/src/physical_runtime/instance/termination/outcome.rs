@@ -57,6 +57,20 @@ impl PhysicalStoreCloseOutcome {
         matches!(self, Self::InspectionRequired { .. })
     }
 
+    pub const fn recovery_handoff(
+        &self,
+    ) -> Option<&crate::physical_runtime::PhysicalDurabilityRecoveryHandoff> {
+        self.shutdown().durability_closeout().recovery_handoff()
+    }
+
+    pub fn into_recovery_handoff(
+        self,
+    ) -> Option<crate::physical_runtime::PhysicalDurabilityRecoveryHandoff> {
+        self.into_shutdown()
+            .into_durability_closeout()
+            .into_recovery_handoff()
+    }
+
     pub fn into_shutdown(self) -> ServingShutdownOutcome<ClosedRuntime> {
         match self {
             Self::Closed { shutdown, .. } | Self::InspectionRequired { shutdown, .. } => shutdown,
@@ -97,6 +111,7 @@ fn shutdown_requires_inspection<Terminal>(shutdown: &ServingShutdownOutcome<Term
         || shutdown.work().drain().requires_inspection()
         || shutdown.signal() != PhysicalSignalShutdownOutcome::Disposed
         || shutdown.signal_cancellation_failures() != 0
+        || shutdown.durability_closeout().requires_inspection()
         || shutdown
             .signal_summary()
             .is_none_or(|summary| summary.active_in_flight_node_count() != 0)

@@ -5,6 +5,11 @@
 )]
 mod bounded_physical_record_access_examples;
 
+#[path = "physical_runtime_authority_ui/document_examples.rs"]
+mod document_examples;
+
+use document_examples::assert_bounded_physical_record_access_examples_are_compile_bound;
+
 #[test]
 fn external_consumers_cannot_forge_or_duplicate_runtime_authority() {
     assert_bounded_physical_record_access_examples_are_compile_bound();
@@ -71,6 +76,21 @@ fn durability_policy_cases(cases: &trybuild::TestCases) {
     );
     cases.compile_fail(
         "tests/physical_runtime_authority/physical_mutation_preparation_authority_is_sealed.rs",
+    );
+}
+
+#[test]
+fn phase_ten_c8_recovery_handoff_is_compile_sealed() {
+    let cases = trybuild::TestCases::new();
+    cases.compile_fail(
+        "tests/physical_runtime_authority/c8_recovery_handoff_constructor_is_sealed.rs",
+    );
+    cases.compile_fail("tests/physical_runtime_authority/c8_recovery_handoff_is_linear.rs");
+    cases.compile_fail(
+        "tests/physical_runtime_authority/c8_recovery_handoff_rejects_report_conversion.rs",
+    );
+    cases.compile_fail(
+        "tests/physical_runtime_authority/c8_recovery_operation_fact_cannot_mint_handoff.rs",
     );
 }
 
@@ -267,7 +287,7 @@ fn assert_completion_observation_mutants_rejected(
     ];
     for (name, planning, data, observation) in mutants {
         assert!(
-            !completion_observation_contract(&observation, &projection, &planning, &data),
+            !completion_observation_contract(&observation, projection, &planning, &data),
             "controlled mutant survived: {name}"
         );
     }
@@ -344,43 +364,6 @@ fn record_chunk_view_cases(cases: &trybuild::TestCases) {
     );
     cases
         .compile_fail("tests/physical_runtime_authority/opened_physical_record_alias_is_absent.rs");
-}
-
-fn assert_bounded_physical_record_access_examples_are_compile_bound() {
-    assert_document_examples_are_compile_bound(
-        "../../../../_docs/worth-store/bounded-physical-record-access.md",
-        "tests/physical_runtime_authority/bounded_physical_record_access_examples.rs",
-        5,
-    );
-}
-
-fn assert_document_examples_are_compile_bound(
-    document_path: &str,
-    specimen_path: &str,
-    expected_blocks: usize,
-) {
-    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let document = std::fs::read_to_string(crate_root.join(document_path)).unwrap();
-    let specimen = std::fs::read_to_string(crate_root.join(specimen_path)).unwrap();
-    let specimen = normalized_rust(&specimen);
-    let blocks = document
-        .split("```rust")
-        .skip(1)
-        .map(|tail| tail.split("```").next().unwrap())
-        .collect::<Vec<_>>();
-
-    assert_eq!(
-        blocks.len(),
-        expected_blocks,
-        "every public Rust block must be inventoried"
-    );
-    for block in blocks {
-        let normalized = normalized_rust(block);
-        assert!(
-            specimen.contains(&normalized),
-            "a public Rust block drifted from its compiler specimen:\n{block}",
-        );
-    }
 }
 
 fn normalized_rust(source: &str) -> String {

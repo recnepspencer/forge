@@ -20,11 +20,13 @@ struct ParsedArguments {
     shard_index: Option<usize>,
     shard_count: Option<usize>,
     list: bool,
+    preflight: bool,
     target_root: Option<PathBuf>,
     report: Option<PathBuf>,
     mutant_report: Option<PathBuf>,
     schedule_seed: Option<u64>,
     ci_schedule_lane: Option<CiScheduleLane>,
+    crash_seam: Option<String>,
     mutation_scope: Option<MutationCampaignScope>,
     mutant: Option<u8>,
     first_mutant: Option<u8>,
@@ -50,11 +52,13 @@ impl ParsedArguments {
             shard_index: None,
             shard_count: None,
             list: false,
+            preflight: false,
             target_root: None,
             report: None,
             mutant_report: None,
             schedule_seed: None,
             ci_schedule_lane: None,
+            crash_seam: None,
             mutation_scope: None,
             mutant: None,
             first_mutant: None,
@@ -81,6 +85,7 @@ impl ParsedArguments {
             "--ci-schedule-lane" => {
                 self.ci_schedule_lane = Some(CiScheduleLane::parse(&value(arguments, &option)?)?)
             }
+            "--crash-seam" => self.crash_seam = Some(value(arguments, &option)?),
             "--mutation-scope" => {
                 self.mutation_scope =
                     Some(MutationCampaignScope::parse(&value(arguments, &option)?)?)
@@ -91,6 +96,7 @@ impl ParsedArguments {
             "--mutant" => self.mutant = Some(mutant_id(arguments, &option)?),
             "--from-mutant" => self.first_mutant = Some(mutant_id(arguments, &option)?),
             "--list" => self.list = true,
+            "--preflight" => self.preflight = true,
             unknown => return Err(format!("unknown argument `{unknown}`\n{}", super::usage())),
         }
         Ok(())
@@ -146,12 +152,24 @@ impl ParsedArguments {
         if !matches!(product, TestProduct::Mutants)
             && (self.mutant.is_some()
                 || self.first_mutant.is_some()
-                || self.mutation_scope.is_some())
+                || self.mutation_scope.is_some()
+                || self.preflight)
         {
             return Err("mutation scope and selectors are valid only for mutants".into());
         }
         if self.mutant.is_some() && self.first_mutant.is_some() {
             return Err("--mutant and --from-mutant are mutually exclusive".into());
+        }
+        if self.preflight
+            && (self.list
+                || self.mutant.is_some()
+                || self.first_mutant.is_some()
+                || self.report.is_some())
+        {
+            return Err(
+                "--preflight checks the complete selected scope and rejects listing, reports, and execution selectors"
+                    .into(),
+            );
         }
         if let Some(id) = self.mutant.or(self.first_mutant) {
             let scope = self.mutation_scope.unwrap_or(MutationCampaignScope::All);
@@ -182,7 +200,9 @@ impl ParsedArguments {
         if !matches!(product, TestProduct::Courtrooms { .. }) && self.mutant_report.is_some() {
             return Err("--mutant-report is valid only for courtrooms".into());
         }
-        if (self.schedule_seed.is_some() || self.ci_schedule_lane.is_some())
+        if (self.schedule_seed.is_some()
+            || self.ci_schedule_lane.is_some()
+            || self.crash_seam.is_some())
             && !matches!(
                 product,
                 TestProduct::Courtrooms {
@@ -194,6 +214,11 @@ impl ParsedArguments {
         }
         if self.schedule_seed.is_some() && self.ci_schedule_lane.is_some() {
             return Err("--schedule-seed and --ci-schedule-lane are mutually exclusive".into());
+        }
+        if self.ci_schedule_lane.is_some() && self.crash_seam.is_some() {
+            return Err(
+                "--ci-schedule-lane derives its crash seam and rejects --crash-seam".into(),
+            );
         }
         if matches!(product, TestProduct::Courtrooms { .. }) {
             self.validate_courtroom_execution()?;
@@ -208,6 +233,7 @@ impl ParsedArguments {
                 || self.target_root.is_some()
                 || self.schedule_seed.is_some()
                 || self.ci_schedule_lane.is_some()
+                || self.crash_seam.is_some()
             {
                 return Err(
                     "courtroom --list does not accept execution or report arguments".into(),
@@ -228,11 +254,13 @@ impl ParsedArguments {
         Arguments {
             product,
             list: self.list,
+            preflight: self.preflight,
             target_root: self.target_root,
             report: self.report,
             mutant_report: self.mutant_report,
             schedule_seed: self.schedule_seed,
             ci_schedule_lane: self.ci_schedule_lane,
+            crash_seam: self.crash_seam,
             mutation_scope: self.mutation_scope.unwrap_or(MutationCampaignScope::All),
             mutant: self.mutant,
             first_mutant: self.first_mutant,

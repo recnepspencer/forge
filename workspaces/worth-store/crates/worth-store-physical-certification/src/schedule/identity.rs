@@ -15,7 +15,7 @@ use super::actor_sequence::PhysicalActorStepSequence;
 use super::actor_step::actor_role_token;
 use super::authority::AdmittedScheduleOrderingAuthority;
 use super::budget::{PartialOrderReductionPosture, ScheduleExplorationCost};
-use super::{ReplaySeed, ScheduleReplayDenial};
+use super::{SchedulePerturbationSeed, ScheduleReplayDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScheduleReplayIdentity {
@@ -24,7 +24,7 @@ pub struct ScheduleReplayIdentity {
 
 pub(crate) struct ScheduleReplayIdentityParts<'a> {
     pub(crate) plan: &'a PhysicalSimulationPlan,
-    pub(crate) seed: ReplaySeed,
+    pub(crate) seed: SchedulePerturbationSeed,
     pub(crate) ordering_authority: AdmittedScheduleOrderingAuthority,
     pub(crate) actor_steps: &'a PhysicalActorStepSequence,
     pub(crate) exploration_cost: ScheduleExplorationCost,

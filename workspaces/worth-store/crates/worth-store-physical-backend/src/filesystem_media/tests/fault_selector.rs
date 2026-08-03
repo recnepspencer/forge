@@ -126,6 +126,28 @@ fn activated_selector_consumes_exactly_one_later_identified_operation() {
 }
 
 #[test]
+fn activated_selector_can_choose_the_second_matching_identified_operation() {
+    let activation = CertificationMediaFaultActivation::for_certification();
+    let rule = MediaFaultRule::for_certification(
+        MediaOperationRole::PositionedRead,
+        1,
+        MediaFaultDirective::PauseBefore(MediaPauseGate::for_certification()),
+    )
+    .for_nth_identified_operation_after_activation(
+        activation.clone(),
+        std::num::NonZeroU64::new(2).unwrap(),
+    );
+
+    assert!(!rule.matches(identified_read_context(17)));
+    activation.arm().unwrap();
+    assert!(!rule.matches(identified_read_context(18)));
+    assert!(!activation.is_consumed());
+    assert!(rule.matches(identified_read_context(19)));
+    assert!(activation.is_consumed());
+    assert!(!rule.matches(identified_read_context(20)));
+}
+
+#[test]
 fn activated_selector_is_one_shot_under_concurrent_matching_operations() {
     let activation = CertificationMediaFaultActivation::for_certification();
     let rule = std::sync::Arc::new(

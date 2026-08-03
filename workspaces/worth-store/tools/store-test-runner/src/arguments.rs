@@ -12,11 +12,13 @@ pub(crate) use schedule_lane::CiScheduleLane;
 pub(crate) struct Arguments {
     pub(crate) product: TestProduct,
     pub(crate) list: bool,
+    pub(crate) preflight: bool,
     pub(crate) target_root: Option<PathBuf>,
     pub(crate) report: Option<PathBuf>,
     pub(crate) mutant_report: Option<PathBuf>,
     pub(crate) schedule_seed: Option<u64>,
     pub(crate) ci_schedule_lane: Option<CiScheduleLane>,
+    pub(crate) crash_seam: Option<String>,
     pub(crate) mutation_scope: MutationCampaignScope,
     pub(crate) mutant: Option<u8>,
     pub(crate) first_mutant: Option<u8>,
@@ -37,7 +39,9 @@ pub(super) fn usage() -> String {
      [--shard-index N --shard-count N] \
      [--mutation-scope all|physical-work|bounded-residency] \
      [--mutant N|--from-mutant N] [--mutant-report PATH] \
-     [--schedule-seed U64|--ci-schedule-lane 0..15] [--list] [--target-root PATH] [--report PATH]"
+     [--preflight] \
+     [--schedule-seed U64 [--crash-seam NAME]|--ci-schedule-lane 0..15] \
+     [--list] [--target-root PATH] [--report PATH]"
         .into()
 }
 
@@ -76,6 +80,7 @@ mod tests {
         ])
         .unwrap();
         assert!(parsed.list);
+        assert!(!parsed.preflight);
         assert_eq!(
             parsed.product,
             TestProduct::Owner {
@@ -229,6 +234,73 @@ mod tests {
             }
         );
         assert_eq!(parsed.schedule_seed, Some(u64::MAX));
+    }
+
+    #[test]
+    fn parses_complete_mutation_source_preflight() {
+        let parsed = Arguments::parse([
+            "mutants".into(),
+            "--mutation-scope".into(),
+            "bounded-residency".into(),
+            "--preflight".into(),
+        ])
+        .unwrap();
+
+        assert!(parsed.preflight);
+        assert_eq!(
+            parsed.mutation_scope,
+            MutationCampaignScope::BoundedResidency
+        );
+        for incompatible in ["--list", "--mutant", "--from-mutant", "--report"] {
+            let mut arguments = vec![
+                "mutants".to_owned(),
+                "--mutation-scope".to_owned(),
+                "bounded-residency".to_owned(),
+                "--preflight".to_owned(),
+                incompatible.to_owned(),
+            ];
+            if incompatible != "--list" {
+                arguments.push(if incompatible == "--report" {
+                    "report.json".to_owned()
+                } else {
+                    "42".to_owned()
+                });
+            }
+            assert!(Arguments::parse(arguments).is_err());
+        }
+    }
+
+    #[test]
+    fn explicit_c7_crash_seam_is_confined_to_courtroom_c() {
+        let parsed = Arguments::parse([
+            "courtrooms".into(),
+            "--courtroom".into(),
+            "c".into(),
+            "--mutant-report".into(),
+            "mutants.json".into(),
+            "--report".into(),
+            "courtroom-c.json".into(),
+            "--schedule-seed".into(),
+            "17".into(),
+            "--crash-seam".into(),
+            "before-wal-append".into(),
+        ])
+        .unwrap();
+        assert_eq!(parsed.crash_seam.as_deref(), Some("before-wal-append"));
+
+        let denied = Arguments::parse([
+            "courtrooms".into(),
+            "--courtroom".into(),
+            "b".into(),
+            "--mutant-report".into(),
+            "mutants.json".into(),
+            "--report".into(),
+            "courtroom-b.json".into(),
+            "--crash-seam".into(),
+            "before-wal-append".into(),
+        ])
+        .unwrap_err();
+        assert!(denied.contains("Courtroom C"), "{denied}");
     }
 
     #[test]

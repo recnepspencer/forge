@@ -120,6 +120,12 @@ impl PhysicalWalAppendPort {
         self.owner.checkpoint_source_range()
     }
 
+    pub(in crate::physical_runtime) fn recovery_tail(
+        &self,
+    ) -> crate::physical_runtime::PhysicalRecoveryWalTail {
+        self.owner.recovery_tail()
+    }
+
     pub(in crate::physical_runtime::durability) fn checkpoint_cutover(
         &self,
     ) -> Option<super::PhysicalWalCheckpointCutover<'_>> {

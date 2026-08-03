@@ -21,7 +21,7 @@ use super::binding_compaction::DecodedPhysicalMutationBindingRecord;
 use super::persisted_binding::PhysicalBindingDecodingContext;
 use super::registry::{
     PhysicalMutationIdempotencyBindingState, PhysicalMutationIdempotencyRegistry,
-    RebuiltPhysicalMutationBindingState,
+    PhysicalMutationWalBindingDenial, RebuiltPhysicalMutationBindingState,
 };
 use super::runtime_owner::PhysicalMutationIdempotencyRuntimeOwner;
 use super::PhysicalNamespaceDurableCheckpointGeneration;
@@ -232,9 +232,7 @@ impl PhysicalIdempotencyRegistryRebuilder {
         }
         let identity = persisted.key().identity();
         if self.registry.bindings.contains_key(&identity) {
-            self.registry
-                .record_wal_binding(persisted)
-                .map_err(|_denial| PhysicalIdempotencyReopenFailure::WalBindingConflict)?;
+            classify_reopened_wal_binding(self.registry.record_wal_binding(persisted))?;
             return Ok(());
         }
         let basis = super::registry::PhysicalMutationBindingBasis::new(
@@ -302,6 +300,15 @@ impl PhysicalIdempotencyRegistryRebuilder {
 
     fn finish(self) -> PhysicalMutationIdempotencyRegistry {
         self.registry
+    }
+}
+
+fn classify_reopened_wal_binding(
+    result: Result<(), PhysicalMutationWalBindingDenial>,
+) -> Result<(), PhysicalIdempotencyReopenFailure> {
+    match result {
+        Ok(()) | Err(PhysicalMutationWalBindingDenial::AlreadyWalBound) => Ok(()),
+        Err(_) => Err(PhysicalIdempotencyReopenFailure::WalBindingConflict),
     }
 }
 

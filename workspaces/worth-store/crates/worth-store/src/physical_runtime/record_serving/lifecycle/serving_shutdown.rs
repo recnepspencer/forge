@@ -62,42 +62,23 @@ impl RecordServingTerminalObservation {
 }
 
 pub struct ServingShutdownOutcome<Terminal> {
-    media: MediaShutdownOutcome<Terminal>,
-    records: RecordServingTerminalObservation,
-    mutation: crate::physical_runtime::PhysicalMutationShutdown,
-    checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
-    residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
-    work: crate::physical_runtime::PhysicalWorkShutdownObservation,
-    signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
-    signal_summary: Option<worth_signal::facade::ResourceRuntimeSummary>,
-    signal_cancellation_failures: u64,
+    pub(in crate::physical_runtime) media: MediaShutdownOutcome<Terminal>,
+    pub(in crate::physical_runtime) records: RecordServingTerminalObservation,
+    pub(in crate::physical_runtime) mutation: crate::physical_runtime::PhysicalMutationShutdown,
+    pub(in crate::physical_runtime) checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
+    pub(in crate::physical_runtime) residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
+    pub(in crate::physical_runtime) work: crate::physical_runtime::PhysicalWorkShutdownObservation,
+    pub(in crate::physical_runtime) signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
+    pub(in crate::physical_runtime) signal_summary:
+        Option<worth_signal::facade::ResourceRuntimeSummary>,
+    pub(in crate::physical_runtime) signal_cancellation_failures: u64,
+    pub(in crate::physical_runtime) durability_closeout:
+        crate::physical_runtime::PhysicalDurabilityCloseoutOutcome,
+    pub(in crate::physical_runtime) performance:
+        crate::physical_runtime::PhysicalDurabilityPerformanceSummary,
 }
 
 impl<Terminal> ServingShutdownOutcome<Terminal> {
-    pub(in crate::physical_runtime) const fn new(
-        media: MediaShutdownOutcome<Terminal>,
-        records: RecordServingTerminalObservation,
-        mutation: crate::physical_runtime::PhysicalMutationShutdown,
-        checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
-        residency: worth_store_buffer_pool::PhysicalResidencyShutdown,
-        work: crate::physical_runtime::PhysicalWorkShutdownObservation,
-        signal: crate::physical_runtime::PhysicalSignalShutdownOutcome,
-        signal_summary: Option<worth_signal::facade::ResourceRuntimeSummary>,
-        signal_cancellation_failures: u64,
-    ) -> Self {
-        Self {
-            media,
-            records,
-            mutation,
-            checkpoint,
-            residency,
-            work,
-            signal,
-            signal_summary,
-            signal_cancellation_failures,
-        }
-    }
-
     pub const fn terminal(&self) -> &Terminal {
         self.media.terminal()
     }
@@ -136,5 +117,23 @@ impl<Terminal> ServingShutdownOutcome<Terminal> {
 
     pub const fn signal_cancellation_failures(&self) -> u64 {
         self.signal_cancellation_failures
+    }
+
+    pub const fn durability_closeout(
+        &self,
+    ) -> &crate::physical_runtime::PhysicalDurabilityCloseoutOutcome {
+        &self.durability_closeout
+    }
+
+    pub(in crate::physical_runtime) fn into_durability_closeout(
+        self,
+    ) -> crate::physical_runtime::PhysicalDurabilityCloseoutOutcome {
+        self.durability_closeout
+    }
+
+    pub const fn performance(
+        &self,
+    ) -> crate::physical_runtime::PhysicalDurabilityPerformanceSummary {
+        self.performance
     }
 }

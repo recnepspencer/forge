@@ -3,6 +3,7 @@ use crate::courtroom_campaign::bounded_residency_siege::protocol::{
 };
 
 #[cfg(test)]
+#[path = "dirty_close/tests.rs"]
 mod tests;
 
 pub(super) fn verify_dirty_and_close(
@@ -22,6 +23,13 @@ pub(super) fn verify_dirty_and_close(
 }
 
 pub(super) fn verify_dirty(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
+    verify_publications(dirty)?;
+    verify_dirty_saturation(dirty)?;
+    verify_writebehind_pressure(dirty)?;
+    verify_writeback_settlement(dirty)
+}
+
+fn verify_publications(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
     if dirty.primary_publication == 0
         || dirty.retry_publication == 0
         || dirty.primary_publication == dirty.retry_publication
@@ -37,6 +45,10 @@ pub(super) fn verify_dirty(dirty: BoundedResidencyDirtyObservation) -> Result<()
     {
         return Err("Courtroom C ordinary append publications did not reconcile".into());
     }
+    Ok(())
+}
+
+fn verify_dirty_saturation(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
     if dirty.dirty_at_dispatch != 1
         || dirty.dirty_peak != 2
         || dirty.dirty_after_denial != 1
@@ -46,6 +58,10 @@ pub(super) fn verify_dirty(dirty: BoundedResidencyDirtyObservation) -> Result<()
     {
         return Err("Courtroom C dirty-frame saturation or cleanup did not reconcile".into());
     }
+    Ok(())
+}
+
+fn verify_writebehind_pressure(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
     if dirty.active_writebehind_at_dispatch != 1
         || dirty.peak_writebehind != 1
         || dirty.terminal_writebehind != 0
@@ -60,6 +76,10 @@ pub(super) fn verify_dirty(dirty: BoundedResidencyDirtyObservation) -> Result<()
     {
         return Err("Courtroom C write-behind saturation did not reconcile".into());
     }
+    Ok(())
+}
+
+fn verify_writeback_settlement(dirty: BoundedResidencyDirtyObservation) -> Result<(), String> {
     let candidate_writebacks = dirty
         .primary_candidate_writebacks
         .saturating_add(dirty.retry_candidate_writebacks);

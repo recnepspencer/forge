@@ -123,7 +123,9 @@ fn whole_groups_rotate_twice_and_reopen_reconstructs_the_exact_bounded_inventory
     assert_eq!(observation.reopened_bytes(), expected_bytes);
     assert!(observation.reopen_peak_buffer_bytes() <= SEGMENT_BYTES);
     assert_eq!(observation.last_lsn_end(), Some(6));
-    assert!(observation.sealed_for_inspection());
+    if observation.sealed_for_inspection() {
+        panic!("MUTANT_PREDICATE:canonical-wal-origin-sealed");
+    }
     reopened.close();
 }
 

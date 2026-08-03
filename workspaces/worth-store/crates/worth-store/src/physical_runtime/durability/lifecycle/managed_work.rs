@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex, Weak};
 use std::thread::JoinHandle;
@@ -30,6 +30,12 @@ struct PhysicalMutationLifecycleState {
     >,
     workers: Vec<JoinHandle<()>>,
     counters: PhysicalMutationObservationCounters,
+    completed_unobserved: Vec<crate::physical_runtime::CompletedUnobservedPhysicalMutation>,
+    completed_groups: HashSet<crate::physical_runtime::PhysicalDurabilityGroupIdentity>,
+    data_writes: u64,
+    data_bytes: u64,
+    records: u64,
+    peak_group_members: u64,
 }
 
 impl PhysicalMutationRuntimeOwner {
@@ -43,6 +49,12 @@ impl PhysicalMutationRuntimeOwner {
                 attempts: HashMap::new(),
                 workers: Vec::new(),
                 counters: PhysicalMutationObservationCounters::default(),
+                completed_unobserved: Vec::new(),
+                completed_groups: HashSet::new(),
+                data_writes: 0,
+                data_bytes: 0,
+                records: 0,
+                peak_group_members: 0,
             }),
             #[cfg(feature = "certification-test-authority")]
             yieldpoint: super::yieldpoint::PhysicalMutationYieldpointOwner::new(),
@@ -137,7 +149,9 @@ impl PhysicalMutationRuntimeOwner {
         handle
     }
 
-    pub(in crate::physical_runtime) fn stop_and_drain(&self) -> PhysicalMutationShutdown {
+    pub(in crate::physical_runtime) fn stop_and_drain(
+        &self,
+    ) -> super::PhysicalMutationTerminalState {
         let (attempts, workers) = {
             let mut state = self.state();
             state.accepting = false;
@@ -154,8 +168,18 @@ impl PhysicalMutationRuntimeOwner {
         for worker in workers {
             let _ = worker.join();
         }
-        let state = self.state();
-        PhysicalMutationShutdown::from_observation(state.counters.snapshot())
+        let mut state = self.state();
+        let shutdown = PhysicalMutationShutdown::from_observation(state.counters.snapshot());
+        let completed_unobserved = std::mem::take(&mut state.completed_unobserved);
+        let cost = super::PhysicalMutationCostSnapshot {
+            groups_formed: state.completed_groups.len() as u64,
+            data_writes: state.data_writes,
+            data_bytes: state.data_bytes,
+            records: state.records,
+            acknowledgments: shutdown.completed(),
+            peak_group_members: state.peak_group_members,
+        };
+        super::PhysicalMutationTerminalState::new(shutdown, completed_unobserved, cost)
     }
 
     pub(in crate::physical_runtime) fn observation(
@@ -170,6 +194,7 @@ impl PhysicalMutationRuntimeOwner {
     ) {
         let mut state = self.state();
         state.counters.record_completed_unobserved(event);
+        state.completed_unobserved.push(event);
     }
 
     pub(in crate::physical_runtime) fn record_cancellation(
@@ -199,6 +224,17 @@ impl PhysicalMutationRuntimeOwner {
                 PhysicalMutationTerminalClass::Indeterminate
             }
         };
+        let completed_cost = match &terminal {
+            PhysicalMutationTerminalFact::Completed(fact) => Some((
+                fact.group_binding().group_identity(),
+                u64::from(fact.breadth().data_effect_count()),
+                fact.observation().bytes_completed(),
+                fact.persisted_records().len() as u64,
+                u64::from(fact.group_binding().member_count().get()),
+            )),
+            PhysicalMutationTerminalFact::ProvenNoEffect(_)
+            | PhysicalMutationTerminalFact::Indeterminate(_) => None,
+        };
         attempt.install_terminal(terminal);
         let completed_unobserved =
             matches!(terminal_class, PhysicalMutationTerminalClass::Completed)
@@ -206,8 +242,16 @@ impl PhysicalMutationRuntimeOwner {
                 .flatten();
         let mut state = self.state();
         state.counters.record_terminal(terminal_class, panicked);
+        if let Some((group, data_writes, data_bytes, records, group_members)) = completed_cost {
+            state.completed_groups.insert(group);
+            state.data_writes = state.data_writes.saturating_add(data_writes);
+            state.data_bytes = state.data_bytes.saturating_add(data_bytes);
+            state.records = state.records.saturating_add(records);
+            state.peak_group_members = state.peak_group_members.max(group_members);
+        }
         if let Some(event) = completed_unobserved {
             state.counters.record_completed_unobserved(event);
+            state.completed_unobserved.push(event);
         }
         drop(state);
         attempt.publish_terminal();

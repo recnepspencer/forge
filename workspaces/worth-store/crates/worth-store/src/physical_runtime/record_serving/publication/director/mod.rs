@@ -53,7 +53,14 @@ pub(in crate::physical_runtime) struct RecordPublicationDirector {
 
 pub(in crate::physical_runtime) struct RecordPublicationTerminalState {
     pub(in crate::physical_runtime) residue: RecordPublicationResidueObservation,
-    pub(in crate::physical_runtime) mutations: crate::physical_runtime::PhysicalMutationShutdown,
+    pub(in crate::physical_runtime) mutations:
+        crate::physical_runtime::durability::PhysicalMutationTerminalState,
+    pub(in crate::physical_runtime) roots: crate::physical_runtime::PhysicalRecoveryRootBasis,
+    pub(in crate::physical_runtime) wal_tail: crate::physical_runtime::PhysicalRecoveryWalTail,
+    pub(in crate::physical_runtime) wal_observation:
+        crate::physical_runtime::PhysicalWalObservation,
+    pub(in crate::physical_runtime) performance_witness:
+        worth_store_aspect_native::StorePhysicalBoundaryWitness,
 }
 
 pub(in crate::physical_runtime) struct RecordPublicationFoundation {
@@ -74,6 +81,7 @@ pub(in crate::physical_runtime) struct RecordPublicationFoundation {
     pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime) current_root: DurablePhysicalRootManifest,
+    pub(in crate::physical_runtime) previous_root: Option<DurablePhysicalRootManifest>,
     pub(in crate::physical_runtime) free_space: DurableFreeSpaceManifestHeader,
     pub(in crate::physical_runtime) allocation_frontier: RecordAllocationFrontier,
     pub(in crate::physical_runtime) residue: RecordPublicationResidueObservation,
@@ -107,6 +115,7 @@ impl RecordPublicationDirector {
             root_owner: crate::physical_runtime::durability::PhysicalCurrentRootOwner::new(
                 runtime,
                 foundation.current_root.clone(),
+                foundation.previous_root,
                 foundation.free_space.clone(),
             ),
             residency: PhysicalResidencyWorkPort::new(

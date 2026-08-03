@@ -30,6 +30,7 @@ use super::{
 
 mod cancellation;
 mod generation_fencing;
+mod performance;
 mod work_reconciliation;
 
 pub(super) struct BoundedResidencyWorldEvidence {
@@ -93,6 +94,7 @@ pub(super) fn emit(evidence: BoundedResidencyEvidence) -> Result<(), String> {
     emit_speculation(&evidence.speculation);
     work_reconciliation::emit(&evidence.work_reconciliation);
     emit_allocation(&evidence.allocation);
+    performance::emit(&evidence.close)?;
     emit_close(&evidence.close);
     std::io::stdout()
         .flush()

@@ -12,4 +12,5 @@ mod root_planning_observation;
 mod semantic_vocabulary;
 mod wal_before_data;
 mod wal_reclamation;
+mod wal_reopen_origin;
 mod wal_segment_lifecycle;

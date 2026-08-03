@@ -263,7 +263,8 @@ fn paused_evidence(input: PausedEvidenceInput<'_>) -> Result<PausedAppendPressur
         || writebehind_attempts != 2
         || writebehind_admissions != 1
         || writebehind_denials != 1
-        || positioned_write_delta != 3
+        || positioned_write_delta
+            != super::CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL.saturating_add(1)
         || pressure.requested() != 1
         || pressure.admitted() != 1
         || pressure.limit() != 1

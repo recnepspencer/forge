@@ -1,6 +1,7 @@
 mod phase_eight;
 mod phase_seven;
 mod phase_six;
+mod phase_ten;
 
 use super::super::read_repository_document;
 use super::locked_surfaces::PHASE_TWO_PREPARATION_EXPORTS;
@@ -119,6 +120,7 @@ pub(super) fn assert_facade_reachability() {
     phase_six::assert_reachability(durability_exports);
     phase_seven::assert_reachability(durability_exports);
     phase_eight::assert_reachability(durability_exports);
+    phase_ten::assert_reachability(durability_exports);
 }
 
 fn assert_phase_two_reachability(runtime: &str, durability_exports: &str) {

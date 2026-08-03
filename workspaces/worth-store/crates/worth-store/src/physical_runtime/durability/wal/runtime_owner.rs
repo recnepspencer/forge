@@ -193,6 +193,20 @@ impl PhysicalWalRuntimeOwner {
             state.sealed,
         )
     }
+
+    pub(in crate::physical_runtime) fn recovery_tail(
+        &self,
+    ) -> crate::physical_runtime::PhysicalRecoveryWalTail {
+        let state = self
+            .shared
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::physical_runtime::PhysicalRecoveryWalTail::from_inventory(
+            state.durable_lsn_end,
+            state.segments.entries(),
+            state.sealed,
+        )
+    }
 }
 
 impl PhysicalWalRuntimeState {

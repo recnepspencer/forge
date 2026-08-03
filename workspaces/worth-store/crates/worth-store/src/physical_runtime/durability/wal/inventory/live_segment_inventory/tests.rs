@@ -76,3 +76,24 @@ fn reclamation_consumes_only_the_exact_oldest_inventory_entry() {
     assert_eq!(inventory.consume_reclaimed_head(oldest), Ok(oldest));
     assert_eq!(inventory.entries(), &[successor]);
 }
+
+#[test]
+fn canonical_wal_origin_requires_first_segment_generation_and_lsn() {
+    let mut canonical = PhysicalWalSegmentInventory::empty();
+    canonical
+        .record_completed_append(identity(1, 1), range(1, 3), 80)
+        .unwrap();
+    assert!(canonical.retains_canonical_wal_origin());
+
+    for (identity, range) in [
+        (identity(2, 1), range(1, 3)),
+        (identity(1, 2), range(1, 3)),
+        (identity(1, 1), range(2, 3)),
+    ] {
+        let mut missing_origin = PhysicalWalSegmentInventory::empty();
+        missing_origin
+            .record_completed_append(identity, range, 80)
+            .unwrap();
+        assert!(!missing_origin.retains_canonical_wal_origin());
+    }
+}

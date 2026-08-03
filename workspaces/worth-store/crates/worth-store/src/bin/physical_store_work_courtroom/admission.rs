@@ -51,12 +51,25 @@ pub(super) fn require_serving<Denial>(
         TransitionOutcome::Deferred(_) => Err(format!("{operation} was deferred")),
         TransitionOutcome::Stale(_) => Err(format!("{operation} was stale")),
         TransitionOutcome::RebindRequired(_) => Err(format!("{operation} required rebinding")),
-        TransitionOutcome::Failed(_) => Err(format!("{operation} required inspection")),
+        TransitionOutcome::Failed(inspection) => Err(format!(
+            "{operation} required inspection: {:?}",
+            inspection.cause()
+        )),
     }
 }
 
 pub(super) fn admit_durability(
     media: &MediaOwnedPhysicalRuntime,
+) -> Result<AdmittedPhysicalDurabilityPolicy, String> {
+    admit_durability_with_checkpoint_memory(
+        media,
+        CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
+    )
+}
+
+pub(super) fn admit_durability_with_checkpoint_memory(
+    media: &MediaOwnedPhysicalRuntime,
+    checkpoint_memory: CheckpointMemoryLimit,
 ) -> Result<AdmittedPhysicalDurabilityPolicy, String> {
     let basis = media
         .physical_durability_admission_basis()
@@ -76,7 +89,7 @@ pub(super) fn admit_durability(
             LiveIdempotencyBindingLimit::new(NonZeroU32::new(4_096).unwrap()),
         ))
         .checkpoint(PhysicalCheckpointPolicy::fuzzy(
-            CheckpointMemoryLimit::new(NonZeroU64::new(16 * 1024 * 1024).unwrap()),
+            checkpoint_memory,
             RetainedWalTailLimit::new(NonZeroU64::new(64 * 1024 * 1024).unwrap()),
         ))
         .admit(basis)

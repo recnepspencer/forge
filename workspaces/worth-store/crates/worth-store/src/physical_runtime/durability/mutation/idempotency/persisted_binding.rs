@@ -90,6 +90,10 @@ impl PersistedPhysicalMutationAttemptBinding {
         self.mutation
     }
 
+    pub(in crate::physical_runtime) const fn redo_digest(&self) -> [u8; 32] {
+        self.redo_digest
+    }
+
     fn encode(&self) -> Vec<u8> {
         let lease = self.key.lease();
         let range = self.member.lsn_range();

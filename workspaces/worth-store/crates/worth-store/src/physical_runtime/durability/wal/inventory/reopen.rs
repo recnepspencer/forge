@@ -2,8 +2,8 @@ use worth_store_physical_backend::{
     ArtifactTreeDirectory, ArtifactTreeFile, QualifiedFilesystemMedia,
 };
 use worth_store_wal::{
-    inspect_verified_wal_segment, WalAppendFrontier, WalSegmentArtifactIdentity,
-    WalSegmentGeneration, WalSegmentId, WalSegmentScanRecord, WalTopologyScan,
+    WalAppendFrontier, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+    WalSegmentScanRecord, WalTopologyScan,
 };
 
 use crate::physical_runtime::PhysicalWalPolicy;
@@ -13,6 +13,9 @@ use super::{
     PhysicalWalSegmentInventoryUpdateDenial, ReopenedPhysicalWalInventory,
     ReopenedPhysicalWalMember,
 };
+
+mod interrupted_active_tail;
+mod trailing_empty_segment;
 
 pub(in crate::physical_runtime) fn reopen_wal_inventory(
     media: &QualifiedFilesystemMedia,
@@ -45,8 +48,12 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
         })
         .collect::<Result<Vec<_>, _>>()?;
     segments.sort_unstable();
+    let trailing_empty = trailing_empty_segment::separate(&tree, &directory, &mut segments)?;
 
     let byte_limit = policy.segment_byte_limit().get().get();
+    let active_identity = *segments
+        .last()
+        .expect("a nonempty retained inventory has one active segment");
     let mut scans = Vec::with_capacity(segments.len());
     let mut inspections = Vec::with_capacity(segments.len());
     let mut total_frames = 0u64;
@@ -54,6 +61,7 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
     let mut peak_buffer_bytes = 0u64;
     let mut active_lsn_end = None;
     let mut members = Vec::new();
+    let mut interrupted_tail = None;
     for identity in segments.iter().copied() {
         let artifact = artifact(&directory, identity);
         let byte_count = tree
@@ -77,8 +85,16 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
         bytes.resize(allocation, 0);
         tree.read_exact_at(&artifact, 0, &mut bytes)
             .map_err(PhysicalWalOpenFailure::Media)?;
-        let verified = inspect_verified_wal_segment(identity, &bytes)
-            .map_err(PhysicalWalOpenFailure::SegmentInspection)?;
+        let admitted = interrupted_active_tail::inspect(
+            identity,
+            &artifact,
+            &bytes,
+            identity == active_identity,
+        )?;
+        let (verified, repair) = admitted.into_parts();
+        if let Some(repair) = repair {
+            interrupted_tail = Some(repair);
+        }
         for frame in verified.frames().iter().copied() {
             if let Some(member) = ReopenedPhysicalWalMember::decode_retained_frame(cutoff, frame)
                 .map_err(|_denial| PhysicalWalOpenFailure::MemberPayloadRejected)?
@@ -111,15 +127,23 @@ pub(in crate::physical_runtime) fn reopen_wal_inventory(
         .expect("a nonempty artifact inventory has one active segment");
     let segment_count = segments.len() as u32;
     let active_artifact = artifact(&directory, active);
-    let active_bytes = tree
-        .file_length(&active_artifact)
-        .map_err(PhysicalWalOpenFailure::Media)?;
+    let active_bytes = inspections
+        .last()
+        .expect("a nonempty inspected WAL inventory has one active segment")
+        .byte_count();
     let active_lsn_end =
         active_lsn_end.expect("a nonempty inspected WAL inventory has one active LSN frontier");
     let segment_inventory =
         PhysicalWalSegmentInventory::from_reopened(inspections).map_err(map_inventory_failure)?;
     require_checkpoint_cutoff_within_retained_wal(cutoff, &segment_inventory, active_lsn_end)?;
-    let requires_inspection = cutoff.lsn().is_none();
+    if let Some(interrupted_tail) = interrupted_tail {
+        interrupted_tail.truncate_durably(&tree)?;
+    }
+    if let Some(trailing_empty) = trailing_empty {
+        trailing_empty.remove_durably(&tree)?;
+    }
+    let requires_inspection =
+        cutoff.lsn().is_none() && !segment_inventory.retains_canonical_wal_origin();
     Ok(ReopenedPhysicalWalInventory {
         frontier: WalAppendFrontier::observed(
             active.segment(),

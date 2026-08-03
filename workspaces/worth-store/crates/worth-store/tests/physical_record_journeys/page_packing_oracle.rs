@@ -23,12 +23,20 @@ fn batch_packing_matches_an_independent_page_oracle() {
         RecordAppendBatch::try_from_iter(payloads).unwrap(),
     );
     let published = &completed.settled_members()[0];
-    assert_eq!(published.observation().records(), 3);
+    assert_eq!(
+        published.observation().records(),
+        3,
+        "C5_PREDICATE:batch-atomicity: every admitted batch member must reach one publication"
+    );
     assert_eq!(
         published.observation().transfer_count(),
         published.data_effect_count() as u64
     );
-    assert_eq!(published.observation().explicit_copy_count(), 3);
+    assert_eq!(
+        published.observation().explicit_copy_count(),
+        3,
+        "C5_PREDICATE:batch-atomicity: every admitted batch member must perform its required copy"
+    );
     assert_eq!(published.observation().copied_bytes(), 8);
 
     let page = std::fs::read(

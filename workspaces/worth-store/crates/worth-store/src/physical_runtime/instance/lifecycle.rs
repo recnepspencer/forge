@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+mod closeout_performance;
+
+use closeout_performance::{closeout_performance_summary, PhysicalCloseoutPerformanceObservation};
+
 use crate::physical_runtime::{
     lifecycle::LifecycleTerminationGuard,
     record_serving::{
@@ -32,7 +36,16 @@ struct ShutdownProtocol<State, Terminate> {
     record_owner: RecordServingOwner,
     publication_residue: RecordPublicationResidueObservation,
     mutation: crate::physical_runtime::PhysicalMutationShutdown,
+    mutation_cost: crate::physical_runtime::PhysicalMutationCostSnapshot,
     checkpoint: crate::physical_runtime::PhysicalCheckpointShutdown,
+    completed_unobserved:
+        Option<Box<[crate::physical_runtime::CompletedUnobservedPhysicalMutation]>>,
+    latest_checkpoint: Option<crate::physical_runtime::CompletedPhysicalCheckpoint>,
+    recovery_roots: Option<crate::physical_runtime::PhysicalRecoveryRootBasis>,
+    recovery_wal_tail: Option<crate::physical_runtime::PhysicalRecoveryWalTail>,
+    recovery_allocation: Option<crate::physical_runtime::PhysicalRecoveryAllocationAdmission>,
+    wal_observation: crate::physical_runtime::PhysicalWalObservation,
+    performance_witness: worth_store_aspect_native::StorePhysicalBoundaryWitness,
     health: Option<ServingHealth>,
     residency_owner: Option<PhysicalResidencyOwner>,
     durability_owner: crate::physical_runtime::durability::ReopenedPhysicalDurabilityRuntimeOwner,
@@ -105,13 +118,14 @@ impl<Terminate> ShutdownProtocol<CheckpointDrained, Terminate> {
             residency,
             durability,
         } = parts;
-        let checkpoint = checkpoint.stop_and_drain();
+        let (checkpoint, latest_checkpoint) = checkpoint.stop_and_drain().into_parts();
         let publication =
             crate::physical_runtime::record_serving::RecordPublicationDirector::stop_and_extract(
                 publication,
             );
         let publication_residue = publication.residue;
-        let mutation = publication.mutations;
+        let (mutation, completed_unobserved, mutation_cost) = publication.mutations.into_parts();
+        let recovery_allocation = residency.recovery_allocation_admission();
         let protocol = Self {
             termination,
             signal_owner: None,
@@ -120,7 +134,15 @@ impl<Terminate> ShutdownProtocol<CheckpointDrained, Terminate> {
             record_owner,
             publication_residue,
             mutation,
+            mutation_cost,
             checkpoint,
+            completed_unobserved: Some(completed_unobserved),
+            latest_checkpoint,
+            recovery_roots: Some(publication.roots),
+            recovery_wal_tail: Some(publication.wal_tail),
+            recovery_allocation: Some(recovery_allocation),
+            wal_observation: publication.wal_observation,
+            performance_witness: publication.performance_witness,
             health: None,
             residency_owner: Some(residency),
             durability_owner: durability,
@@ -235,11 +257,49 @@ impl<Terminate> ShutdownProtocol<SignalDisposed, Terminate> {
 }
 
 impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
-    fn release_media<Terminal>(self) -> ServingShutdownOutcome<Terminal>
+    fn release_media<Terminal>(mut self) -> ServingShutdownOutcome<Terminal>
     where
         Terminate: FnOnce(PhysicalRuntimeCore) -> Terminal,
     {
-        drop(self.durability_owner);
+        let durability_closeout = if matches!(self.stop, PhysicalWorkStopKind::Close) {
+            match self.durability_owner.into_recovery_basis(
+                self.completed_unobserved
+                    .take()
+                    .expect("mutation drain retained completed-unobserved facts"),
+            ) {
+                Ok((policy, operations)) => {
+                    crate::physical_runtime::PhysicalDurabilityCloseoutOutcome::RecoveryHandoff(
+                        crate::physical_runtime::PhysicalDurabilityRecoveryHandoff::finalize(
+                            policy,
+                            self.recovery_roots
+                                .take()
+                                .expect("publication drain retained root lineage"),
+                            crate::physical_runtime::PhysicalRecoveryCheckpointBasis::from_latest(
+                                self.latest_checkpoint.take(),
+                            ),
+                            self.recovery_wal_tail
+                                .take()
+                                .expect("publication drain retained WAL inventory"),
+                            operations,
+                            self.recovery_allocation
+                                .take()
+                                .expect("residency owner supplied recovery admission"),
+                            crate::physical_runtime::PhysicalArtifactResidueClassification::new(
+                                self.publication_residue,
+                            ),
+                        ),
+                    )
+                }
+                Err(denial) => {
+                    crate::physical_runtime::PhysicalDurabilityCloseoutOutcome::InspectionRequired(
+                        denial,
+                    )
+                }
+            }
+        } else {
+            drop(self.durability_owner);
+            crate::physical_runtime::PhysicalDurabilityCloseoutOutcome::NotProducedForAbort
+        };
         drop(self.termination);
         let residency = self.residency.expect("residency phase completed");
         let record_counters = self.record_owner.into_terminal_snapshot();
@@ -254,6 +314,21 @@ impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
             self.publication_residue,
             record_counters,
         );
+        let performance = closeout_performance_summary(PhysicalCloseoutPerformanceObservation {
+            witness: self.performance_witness,
+            mutation: self.mutation,
+            mutation_cost: self.mutation_cost,
+            checkpoint: self.checkpoint,
+            wal: self.wal_observation,
+            records: record_counters,
+            residency,
+            work: self
+                .work
+                .as_ref()
+                .expect("dispatch settlement phase completed"),
+            residue: self.publication_residue,
+            closeout: &durability_closeout,
+        });
         let media_release = self
             .executor
             .expect("phase owns physical executor")
@@ -263,17 +338,19 @@ impl<Terminate> ShutdownProtocol<ResidencyClosed, Terminate> {
         let media = MediaShutdownOutcome::new(terminal, media_release);
         self.progress
             .record(super::PhysicalStoreClosePhase::MediaReleased);
-        ServingShutdownOutcome::new(
+        ServingShutdownOutcome {
             media,
             records,
-            self.mutation,
-            self.checkpoint,
+            mutation: self.mutation,
+            checkpoint: self.checkpoint,
             residency,
-            self.work.expect("dispatch settlement phase completed"),
-            self.signal.expect("Signal phase completed"),
-            self.signal_summary,
-            self.signal_cancellation_failures,
-        )
+            work: self.work.expect("dispatch settlement phase completed"),
+            signal: self.signal.expect("Signal phase completed"),
+            signal_summary: self.signal_summary,
+            signal_cancellation_failures: self.signal_cancellation_failures,
+            durability_closeout,
+            performance,
+        }
     }
 }
 
@@ -287,7 +364,15 @@ impl<State, Terminate> ShutdownProtocol<State, Terminate> {
             record_owner: self.record_owner,
             publication_residue: self.publication_residue,
             mutation: self.mutation,
+            mutation_cost: self.mutation_cost,
             checkpoint: self.checkpoint,
+            completed_unobserved: self.completed_unobserved,
+            latest_checkpoint: self.latest_checkpoint,
+            recovery_roots: self.recovery_roots,
+            recovery_wal_tail: self.recovery_wal_tail,
+            recovery_allocation: self.recovery_allocation,
+            wal_observation: self.wal_observation,
+            performance_witness: self.performance_witness,
             health: self.health,
             residency_owner: self.residency_owner,
             durability_owner: self.durability_owner,

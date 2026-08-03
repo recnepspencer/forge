@@ -1,6 +1,7 @@
 mod artifact_append;
 mod artifact_append_outcome;
 mod directory_listing;
+mod durable_truncation;
 mod exact_read_effect;
 mod exact_write_effect;
 mod failure;

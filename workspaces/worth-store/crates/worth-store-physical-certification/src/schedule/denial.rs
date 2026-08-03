@@ -4,6 +4,11 @@ use worth_foundational::canonicalization_api::lower_lane::digest::CanonicalDiges
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScheduleReplayDenial {
     MissingSeed,
+    MissingSourceClosureDigest,
+    ScheduleSeedCollision,
+    EmptyPerturbationDecision,
+    EmptyPerturbationTrace,
+    DuplicatePerturbationDecisionFamily,
     MissingActorId,
     EmptyActorStepSchedule,
     NonCanonicalActorStepOrder,

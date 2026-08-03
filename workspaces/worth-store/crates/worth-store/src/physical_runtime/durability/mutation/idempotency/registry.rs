@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 mod admission;
 mod binding_state;
+mod closeout;
 
 pub(super) use binding_state::{
     PhysicalMutationBindingBasis, PhysicalMutationIdempotencyBindingState,
@@ -28,7 +29,7 @@ use super::{
     PhysicalMutationIdempotencyLease, PhysicalMutationIdempotencyMaterial,
 };
 
-pub(super) struct PhysicalMutationIdempotencyRegistry {
+pub(in crate::physical_runtime::durability) struct PhysicalMutationIdempotencyRegistry {
     store: StableStoreIdentity,
     runtime: RuntimeIdentity,
     policy: PhysicalDurabilityPolicyIdentity,

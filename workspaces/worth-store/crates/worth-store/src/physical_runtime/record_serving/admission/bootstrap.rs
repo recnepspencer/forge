@@ -19,6 +19,7 @@ pub(in crate::physical_runtime) struct RecordServingState {
     pub(in crate::physical_runtime) format: AdmittedPhysicalRecordFormat,
     pub(in crate::physical_runtime) access: AdmittedRecordAccessPolicy,
     pub(in crate::physical_runtime) current_root: DurablePhysicalRootManifest,
+    pub(in crate::physical_runtime) previous_root: Option<DurablePhysicalRootManifest>,
     pub(in crate::physical_runtime) publication_residue: RecordPublicationResidueObservation,
     pub(in crate::physical_runtime) free_space: DurableFreeSpaceManifestHeader,
 }

@@ -35,6 +35,7 @@ pub use request::{PhysicalMutationDeadline, PhysicalMutationRequest};
 pub use request_fingerprint::PhysicalMutationRequestFingerprint;
 
 pub(in crate::physical_runtime) use admission::AdmittedPhysicalMutation;
+pub(in crate::physical_runtime::durability) use idempotency::PhysicalMutationIdempotencyRegistry;
 pub(in crate::physical_runtime) use idempotency::{
     rebuild_idempotency, AllocatedPhysicalMutationAttemptBinding,
     PersistedPhysicalMutationAttemptBinding, PhysicalMutationBindingCompactionCutover,

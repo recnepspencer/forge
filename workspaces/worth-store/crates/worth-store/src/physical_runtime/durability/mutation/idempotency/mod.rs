@@ -24,6 +24,7 @@ pub use key::{
 };
 pub use lease::{PhysicalMutationIdempotencyLease, PhysicalNamespaceDurableCheckpointGeneration};
 pub(in crate::physical_runtime) use persisted_binding::PersistedPhysicalMutationAttemptBinding;
+pub(in crate::physical_runtime::durability) use registry::PhysicalMutationIdempotencyRegistry;
 pub(in crate::physical_runtime) use registry::{
     PhysicalMutationGroupSealingBinding, PhysicalMutationIdempotencyGroupSealDenial,
     PhysicalMutationIdempotencyRegistryAdmission,

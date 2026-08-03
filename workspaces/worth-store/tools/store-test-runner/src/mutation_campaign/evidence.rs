@@ -1,6 +1,64 @@
 use serde::{Deserialize, Serialize};
 
+const ORDINARY_EXECUTION_LIMIT_MS: u64 = 180_000;
+const NESTED_EXECUTABLE_COLD_LIMIT_MS: u64 = 300_000;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(super) enum MutationExecutionClass {
+    Ordinary,
+    NestedExecutableCold,
+}
+
+impl MutationExecutionClass {
+    pub(super) const fn limit_ms(self) -> u64 {
+        match self {
+            Self::Ordinary => ORDINARY_EXECUTION_LIMIT_MS,
+            Self::NestedExecutableCold => NESTED_EXECUTABLE_COLD_LIMIT_MS,
+        }
+    }
+
+    pub(super) const fn limit(self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.limit_ms())
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct MutationExecutionEvidence {
+    class: MutationExecutionClass,
+    elapsed_ms: u64,
+    budget_ms: u64,
+}
+
+impl MutationExecutionEvidence {
+    pub(super) fn bind(
+        class: MutationExecutionClass,
+        elapsed: std::time::Duration,
+    ) -> Result<Self, String> {
+        let elapsed_ms = elapsed.as_millis().try_into().unwrap_or(u64::MAX);
+        let evidence = Self {
+            class,
+            elapsed_ms,
+            budget_ms: class.limit_ms(),
+        };
+        evidence.validate()?;
+        Ok(evidence)
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        if self.budget_ms != self.class.limit_ms() {
+            return Err("mutation execution budget does not match its cost class".into());
+        }
+        if self.elapsed_ms > self.budget_ms {
+            return Err("mutation execution exceeded its declared budget".into());
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct MutationObservation {
     pub(crate) id: u8,
     pub(crate) source_binding: String,
@@ -13,6 +71,7 @@ pub(crate) struct MutationObservation {
     pub(crate) expected_failing_predicate: String,
     pub(crate) actual_failing_predicate: String,
     pub(crate) localization: String,
+    pub(crate) execution: MutationExecutionEvidence,
 }
 
 pub(super) fn encode(observation: &MutationObservation) -> Result<String, String> {
@@ -32,6 +91,7 @@ pub(crate) fn decode_physical_work_localization(
 
     let observation: MutationObservation = serde_json::from_str(encoded)
         .map_err(|error| format!("cannot decode mutation evidence: {error}"))?;
+    observation.execution.validate()?;
     if observation.expected_failing_predicate != observation.actual_failing_predicate {
         return Err("mutation evidence predicate binding is inconsistent".into());
     }
@@ -86,12 +146,14 @@ fn binding_denial(
 
 #[cfg(all(test, feature = "physical-work-evidence"))]
 mod tests {
-    use super::decode_physical_work_localization;
+    use super::{
+        decode_physical_work_localization, MutationExecutionClass, MutationExecutionEvidence,
+    };
 
     #[test]
     fn emitted_mutation_schema_retains_complete_physical_work_provenance() {
         let encoded = format!(
-            r#"{{"id":15,"source_binding":"causal.rs","source_sha256":"{source}","mutant_sha256":"{mutant}","binary_binding":"proof.exe","binary_sha256":"{binary}","profile_binding":"test","scenario_binding":"trace","expected_failing_predicate":"settlement","actual_failing_predicate":"settlement","localization":"trace.rs:68"}}"#,
+            r#"{{"id":15,"source_binding":"causal.rs","source_sha256":"{source}","mutant_sha256":"{mutant}","binary_binding":"proof.exe","binary_sha256":"{binary}","profile_binding":"test","scenario_binding":"trace","expected_failing_predicate":"settlement","actual_failing_predicate":"settlement","localization":"trace.rs:68","execution":{{"class":"ordinary","elapsed_ms":12,"budget_ms":180000}}}}"#,
             source = "11".repeat(32),
             mutant = "22".repeat(32),
             binary = "33".repeat(32),
@@ -102,5 +164,46 @@ mod tests {
         assert_eq!(localization.binding().execution().scenario(), "trace");
         assert_eq!(localization.binding().binary().path(), "proof.exe");
         assert!(localization.killed());
+    }
+
+    #[test]
+    fn nested_executable_cases_retain_distinct_cold_build_headroom() {
+        if MutationExecutionClass::NestedExecutableCold.limit_ms() != 300_000 {
+            panic!("MUTANT_PREDICATE:c7-nested-case-cost-class-collapsed");
+        }
+        assert_eq!(MutationExecutionClass::Ordinary.limit_ms(), 180_000);
+        assert!(MutationExecutionEvidence::bind(
+            MutationExecutionClass::NestedExecutableCold,
+            std::time::Duration::from_millis(240_000),
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn execution_evidence_rejects_substituted_and_exceeded_budgets() {
+        let mut substituted = MutationExecutionEvidence::bind(
+            MutationExecutionClass::Ordinary,
+            std::time::Duration::from_millis(10),
+        )
+        .unwrap();
+        substituted.budget_ms += 1;
+        assert!(substituted.validate().is_err());
+
+        let exceeded = MutationExecutionEvidence {
+            class: MutationExecutionClass::Ordinary,
+            elapsed_ms: 180_001,
+            budget_ms: 180_000,
+        };
+        assert!(exceeded.validate().is_err());
+    }
+
+    #[test]
+    fn execution_evidence_requires_its_exact_closed_schema() {
+        let missing_budget = r#"{"class":"ordinary","elapsed_ms":12}"#;
+        let unknown_field =
+            r#"{"class":"ordinary","elapsed_ms":12,"budget_ms":180000,"surplus_ms":1}"#;
+
+        assert!(serde_json::from_str::<MutationExecutionEvidence>(missing_budget).is_err());
+        assert!(serde_json::from_str::<MutationExecutionEvidence>(unknown_field).is_err());
     }
 }

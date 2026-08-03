@@ -3,6 +3,7 @@ use std::num::NonZeroU32;
 mod cancellation;
 mod decoding;
 mod generation_fencing;
+mod performance;
 mod work_reconciliation;
 
 pub(super) use cancellation::{
@@ -17,6 +18,9 @@ pub(super) use generation_fencing::{
     BoundedResidencyGenerationCleanup, BoundedResidencyGenerationDenial,
     BoundedResidencyGenerationFenceCase, BoundedResidencyGenerationFenceEffects,
     BoundedResidencyGenerationFencingObservation,
+};
+pub(super) use performance::{
+    BoundedResidencyPerformanceClaim, BoundedResidencyPerformanceReceiptObservation,
 };
 #[cfg(test)]
 pub(super) use work_reconciliation::exact_route_fixture;
@@ -272,6 +276,7 @@ pub(super) struct BoundedResidencySiegeObservation {
     pub(super) speculation: BoundedResidencySpeculationObservation,
     pub(super) work_reconciliation: BoundedResidencyWorkReconciliationObservation,
     pub(super) allocation: BoundedResidencyAllocationObservation,
+    pub(super) performance: [BoundedResidencyPerformanceReceiptObservation; 5],
     pub(super) close: BoundedResidencyCloseObservation,
 }
 

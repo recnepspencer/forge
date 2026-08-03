@@ -296,11 +296,10 @@ fn source(id: u8) -> &'static str {
         19 | 24 | 25 | 27 => {
             "crates/worth-store/src/physical_runtime/instance/work_lifecycle.rs"
         }
-        20 => "crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_runtime/physical_work/batch_execution.rs",
+        20 | 34 => "crates/worth-store/src/physical_runtime/instance/work_runtime.rs",
         21 => "crates/worth-store/src/physical_runtime/record_serving/lifecycle/serving_health.rs",
         22 => "crates/worth-store/src/physical_runtime/instance/signal_owner/reconciliation.rs",
         23 => "crates/worth-store/src/physical_runtime/work/submission/capacity_lease.rs",
-        34 => "crates/worth-store/src/physical_runtime/instance/work_runtime.rs",
         28 | 29 => "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
         26 | 30 => "crates/worth-store/src/physical_runtime/instance/signal_owner/mod.rs",
         31 => "crates/worth-store/src/physical_runtime/work/profile/aspect_bindings.rs",

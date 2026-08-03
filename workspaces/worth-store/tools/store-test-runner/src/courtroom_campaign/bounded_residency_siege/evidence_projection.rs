@@ -7,19 +7,21 @@ use super::{
 use crate::physical_work_evidence::{hex, mutant_value, run_environment_value, source_value};
 
 mod allocation;
+mod c7_crash_campaign;
 mod campaign;
 mod cancellation;
 mod dirty_writeback;
 mod generation_fencing;
 mod json_object;
 mod lifecycle;
+mod performance;
 mod process_allocation;
 mod read_pressure;
 mod schedule;
 mod speculation;
 mod work_reconciliation;
 
-const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency-siege.v11";
+const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency-siege.v15";
 const ARTIFACT_MANIFEST_STAGE: &str = "after-siege-writer-close-before-fresh-reopen";
 
 pub(super) fn encode(
@@ -39,6 +41,10 @@ pub(super) fn encode(
     encoded.field("environment", &run_environment_value(run.environment()))?;
     encoded.field("workload_seed", &evidence.workload_seed())?;
     encoded.field("schedule", &schedule::value(evidence))?;
+    encoded.field(
+        "c7_crash_campaign",
+        &c7_crash_campaign::value(evidence.crash_campaign()),
+    )?;
     encoded.field("configuration", &campaign::configuration())?;
     encoded.field(
         "timings",
@@ -76,6 +82,7 @@ pub(super) fn encode(
         &work_reconciliation::WorkReconciliationProjection(&child.work_reconciliation),
     )?;
     encoded.field("close", &lifecycle::close(child.close))?;
+    encoded.field("performance", &performance::value(evidence, timings)?)?;
     encoded.field(
         "offline_current",
         &lifecycle::current(evidence.offline().current()),
@@ -118,13 +125,27 @@ pub(super) fn encode(
 }
 
 fn timing(phase: &TimedSiegePhase) -> Value {
-    json!({
-        "name": phase.name(),
-        "elapsed_ms": phase.elapsed_ms(),
-    })
+    match (phase.case_count(), phase.source_workload()) {
+        (None, Some(workload)) => json!({
+            "name": phase.name(),
+            "elapsed_ms": phase.elapsed_ms(),
+            "source_files": workload.source_files(),
+            "source_bytes": workload.source_bytes(),
+        }),
+        (Some(case_count), None) => json!({
+            "name": phase.name(),
+            "elapsed_ms": phase.elapsed_ms(),
+            "case_count": case_count,
+        }),
+        (None, None) => json!({
+            "name": phase.name(),
+            "elapsed_ms": phase.elapsed_ms(),
+        }),
+        (Some(_), Some(_)) => unreachable!("timing phase cannot mix case and source workload"),
+    }
 }
 
-fn artifact(artifact: &super::offline_protocol::OfflineArtifactObservation) -> Value {
+pub(super) fn artifact(artifact: &super::offline_protocol::OfflineArtifactObservation) -> Value {
     json!({
         "path": artifact.path(),
         "byte_length": artifact.byte_length(),
@@ -143,11 +164,20 @@ mod tests {
     fn schema_is_versioned_and_courtroom_specific() {
         assert_eq!(
             SCHEMA,
-            "worth.store.physical-work-courtroom.bounded-residency-siege.v11"
+            "worth.store.physical-work-courtroom.bounded-residency-siege.v15"
         );
         assert_eq!(
             ARTIFACT_MANIFEST_STAGE,
             "after-siege-writer-close-before-fresh-reopen"
         );
+    }
+
+    #[test]
+    fn c7_report_schema_requires_termination_process_projection() {
+        let source = include_str!("evidence_projection/c7_crash_campaign.rs");
+        let seam = "        \"processes\": process_values(campaign.processes()),";
+        if source.matches(seam).count() != 1 {
+            panic!("MUTANT_PREDICATE:c7-termination-process-report-omitted");
+        }
     }
 }

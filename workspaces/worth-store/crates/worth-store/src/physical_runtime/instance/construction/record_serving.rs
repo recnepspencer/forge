@@ -128,6 +128,7 @@ impl PhysicalRecordServingAssembly {
                 format: self.state.format,
                 access: self.state.access,
                 current_root: self.state.current_root,
+                previous_root: self.state.previous_root,
                 free_space: self.state.free_space,
                 allocation_frontier: self.allocation,
                 residue: self.state.publication_residue,

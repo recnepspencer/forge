@@ -14,6 +14,7 @@ pub enum CertificationPhysicalMutationCheckpoint {
     AfterGroupSeal,
     AfterWalDurability,
     DuringDataSettlement,
+    AfterDataSettlement,
     DuringRootPublication,
     BeforeTerminalFinalization,
     RuntimeClosingMarked,

@@ -22,6 +22,8 @@ pub(in crate::physical_runtime) struct PhysicalCurrentRootOwner {
 
 struct PhysicalCurrentRootState {
     current_root: DurablePhysicalRootManifest,
+    previous_root: Option<RetainedPhysicalRoot>,
+    namespace_evidence: crate::physical_runtime::PhysicalRootNamespaceDurabilityEvidence,
     free_space: DurableFreeSpaceManifestHeader,
 }
 
@@ -57,11 +59,17 @@ impl PhysicalCurrentRootOwner {
     pub(in crate::physical_runtime) fn new(
         runtime: &std::sync::Arc<crate::physical_runtime::instance::PhysicalStoreWorkRuntime>,
         current_root: DurablePhysicalRootManifest,
+        previous_root: Option<DurablePhysicalRootManifest>,
         free_space: DurableFreeSpaceManifestHeader,
     ) -> Self {
         Self {
             state: Mutex::new(PhysicalCurrentRootState {
+                namespace_evidence:
+                    crate::physical_runtime::PhysicalRootNamespaceDurabilityEvidence::ReopenedCurrentRoot {
+                        root: current_root.root_cell(),
+                    },
                 current_root,
+                previous_root: previous_root.map(RetainedPhysicalRoot::from_manifest),
                 free_space,
             }),
             transition: PhysicalRootPublicationTransitionOwner::new(runtime),
@@ -105,6 +113,18 @@ impl PhysicalCurrentRootOwner {
                 IndeterminatePhysicalCurrentRootAdvance::new(durable, cause),
             );
         }
+        let namespace_evidence =
+            crate::physical_runtime::PhysicalRootNamespaceDurabilityEvidence::PublishedCurrentRoot {
+                group: durable.group_basis(),
+                source_generation: durable.source_root_generation(),
+                current_generation: durable.current_root_generation(),
+                replacement: durable
+                    .replacement_effect_identity()
+                    .expect("a namespace-durable root has a replacement effect"),
+                namespace_synchronization: durable
+                    .namespace_effect_identity()
+                    .expect("a namespace-durable root has a namespace synchronization effect"),
+            };
         let (core, _replacement, _namespace_synchronization) = durable.into_parts();
         let group = core.group();
         let member_identities = core.members().to_vec().into_boxed_slice();
@@ -118,6 +138,8 @@ impl PhysicalCurrentRootOwner {
         ) = candidate.into_root_parts();
         let retained_root = RetainedPhysicalRoot::from_manifest(source_root);
         state.current_root = current_root.clone();
+        state.previous_root = Some(retained_root.clone());
+        state.namespace_evidence = namespace_evidence;
         state.free_space = successor_free_space;
         PhysicalCurrentRootAdvanceOutcome::Advanced(CompletedPhysicalRootPublication {
             group,
@@ -128,6 +150,20 @@ impl PhysicalCurrentRootOwner {
             retained_root,
             root_planning_observation,
         })
+    }
+
+    pub(in crate::physical_runtime) fn into_recovery_root_basis(
+        self,
+    ) -> crate::physical_runtime::PhysicalRecoveryRootBasis {
+        let state = self
+            .state
+            .into_inner()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        crate::physical_runtime::PhysicalRecoveryRootBasis::new(
+            state.current_root,
+            state.previous_root,
+            state.namespace_evidence,
+        )
     }
 }
 

@@ -158,7 +158,10 @@ fn reconciliation_rejects_omission_stale_row_and_family_drift() {
         BTreeMap::from([("page-lsn".to_owned(), 1)]),
     )]);
     let row = controlled_row(BTreeMap::from([("page-lsn".to_owned(), 1)]));
-    assert!(reconcile(&discovered, &BTreeMap::new()).is_err());
+    assert!(
+        reconcile(&discovered, &BTreeMap::new()).is_err(),
+        "MUTANT_PREDICATE:phase-ten-removal-inventory-unclassified-source-accepted"
+    );
     assert!(reconcile(
         &BTreeMap::new(),
         &BTreeMap::from([("crates/live.rs".to_owned(), row)])

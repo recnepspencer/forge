@@ -10,7 +10,7 @@ use super::super::super::protocol::{
 
 pub(super) fn digest(evidence: &BoundedResidencyWorkReconciliationObservation) -> [u8; 32] {
     let mut digest = Sha256::new();
-    digest.update(b"bounded-residency-work-reconciliation-v4");
+    digest.update(b"bounded-residency-work-reconciliation-v5");
     digest.update(evidence.causal_overflow.to_le_bytes());
     digest.update(evidence.terminal_overflow.to_le_bytes());
     digest.update(evidence.safe_evidence_elided.to_le_bytes());
@@ -121,6 +121,7 @@ const fn media_role(role: BoundedResidencyMediaRole) -> u8 {
         BoundedResidencyMediaRole::SynchronizeFileState => 5,
         BoundedResidencyMediaRole::SynchronizeDirectoryPublication => 6,
         BoundedResidencyMediaRole::AtomicReplace => 7,
+        BoundedResidencyMediaRole::Delete => 8,
     }
 }
 
@@ -130,6 +131,11 @@ const fn signal_family(family: BoundedResidencySignalFamily) -> u8 {
         BoundedResidencySignalFamily::ExactWriteback => 2,
         BoundedResidencySignalFamily::Publication => 3,
         BoundedResidencySignalFamily::Lifecycle => 4,
+        BoundedResidencySignalFamily::WalAppend => 5,
+        BoundedResidencySignalFamily::DurabilityBarrier => 6,
+        BoundedResidencySignalFamily::CheckpointCapture => 7,
+        BoundedResidencySignalFamily::RootPublication => 8,
+        BoundedResidencySignalFamily::WalReclamation => 9,
     }
 }
 
@@ -169,6 +175,11 @@ const fn family(family: BoundedResidencyWorkFamily) -> u8 {
         BoundedResidencyWorkFamily::ArtifactRangeRead => 2,
         BoundedResidencyWorkFamily::ArtifactRangeWrite => 3,
         BoundedResidencyWorkFamily::ArtifactPublication => 4,
+        BoundedResidencyWorkFamily::WalAppend => 5,
+        BoundedResidencyWorkFamily::DurabilityBarrier => 6,
+        BoundedResidencyWorkFamily::CheckpointCapture => 7,
+        BoundedResidencyWorkFamily::RootPublication => 8,
+        BoundedResidencyWorkFamily::WalReclamation => 9,
     }
 }
 
@@ -177,6 +188,8 @@ const fn effect_fate(fate: BoundedResidencyWorkEffectFate) -> u8 {
         BoundedResidencyWorkEffectFate::ReadCompleted => 1,
         BoundedResidencyWorkEffectFate::WriteCompleted => 2,
         BoundedResidencyWorkEffectFate::PublicationCompleted => 3,
+        BoundedResidencyWorkEffectFate::CheckpointCompleted => 4,
+        BoundedResidencyWorkEffectFate::WalReclamationCompleted => 5,
     }
 }
 

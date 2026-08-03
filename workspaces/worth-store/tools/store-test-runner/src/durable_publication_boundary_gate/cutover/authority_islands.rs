@@ -66,7 +66,7 @@ fn inspect_path_inventory<'path>(
     forbidden_paths: impl IntoIterator<Item = &'path str>,
     required_paths: impl IntoIterator<Item = &'path str>,
 ) -> Result<(), String> {
-    for path in forbidden_paths {
+    if let Some(path) = forbidden_paths.into_iter().next() {
         return Err(format!("displaced authority path remains: {path}"));
     }
     let required = required_paths.into_iter().collect::<BTreeSet<_>>();

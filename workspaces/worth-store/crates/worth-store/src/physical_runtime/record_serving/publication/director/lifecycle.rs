@@ -9,9 +9,17 @@ impl RecordPublicationDirector {
         let mutations = director.mutations.stop_and_drain();
         let director = Arc::try_unwrap(director)
             .unwrap_or_else(|_| unreachable!("submission capabilities retain only weak authority"));
+        let wal_tail = director.wal.recovery_tail();
+        let wal_observation = director.wal.observation();
+        let performance_witness = director.durability_policy_basis.physical_witness();
+        let roots = director.root_owner.into_recovery_root_basis();
         RecordPublicationTerminalState {
             residue: director.residue,
             mutations,
+            roots,
+            wal_tail,
+            wal_observation,
+            performance_witness,
         }
     }
 }

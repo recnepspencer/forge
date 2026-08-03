@@ -1,6 +1,8 @@
 use crate::{PhysicalScenarioActor, PhysicalSimulationPlan};
 
-use super::{PhysicalInterleavingSchedule, ReplaySeed, ScheduleReplayDenial, StateSpaceBudget};
+use super::{
+    PhysicalInterleavingSchedule, SchedulePerturbationSeed, ScheduleReplayDenial, StateSpaceBudget,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScheduleExplorationCompletion {
@@ -18,7 +20,7 @@ pub struct PhysicalScheduleExploration {
 
 pub fn explore_physical_interleavings(
     plan: &PhysicalSimulationPlan,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
     budget: StateSpaceBudget,
 ) -> Result<PhysicalScheduleExploration, ScheduleReplayDenial> {
     let mut actors = plan.actors().iter().cloned().collect::<Vec<_>>();
@@ -49,7 +51,7 @@ pub fn explore_physical_interleavings(
         }
         schedules.push(PhysicalInterleavingSchedule::from_ordered_actors(
             plan,
-            ReplaySeed::from_u64(seed.value().wrapping_add(ordinal)),
+            SchedulePerturbationSeed::from_u64(seed.value().wrapping_add(ordinal)),
             budget,
             &actors,
         )?);

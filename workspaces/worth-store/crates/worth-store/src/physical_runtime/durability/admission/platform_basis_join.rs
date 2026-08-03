@@ -85,6 +85,40 @@ impl ReopenedPhysicalDurabilityRuntimeOwner {
     ) -> PhysicalDurabilityGroupingRuntimeAuthority {
         PhysicalDurabilityGroupingRuntimeOwner::authority(&self.bound.grouping)
     }
+
+    pub(in crate::physical_runtime) fn into_recovery_basis(
+        self,
+        completed_unobserved: Box<[crate::physical_runtime::CompletedUnobservedPhysicalMutation]>,
+    ) -> Result<
+        (
+            AdmittedPhysicalDurabilityPolicy,
+            crate::physical_runtime::PhysicalRecoveryOperationFates,
+        ),
+        crate::physical_runtime::PhysicalDurabilityCloseoutDenial,
+    > {
+        let Self {
+            bound,
+            idempotency,
+            reopen: _reopen,
+        } = self;
+        let PhysicalDurabilityRuntimeOwner {
+            policy,
+            runtime: _runtime,
+            grouping,
+        } = bound;
+        drop(grouping);
+        let operations =
+            PhysicalMutationIdempotencyRuntimeOwner::into_recovery_operation_fates(
+                idempotency,
+                completed_unobserved,
+            )
+            .map_err(|denial| match denial {
+                crate::physical_runtime::durability::PhysicalIdempotencyCloseoutDenial::LiveCompactionAuthority => {
+                    crate::physical_runtime::PhysicalDurabilityCloseoutDenial::LiveIdempotencyCompactionAuthority
+                }
+            })?;
+        Ok((policy, operations))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

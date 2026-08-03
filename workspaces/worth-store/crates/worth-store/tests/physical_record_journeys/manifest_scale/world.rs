@@ -123,6 +123,10 @@ pub(super) fn observe_scale_world(record_count: u16) -> ScaleObservation {
     runtime.observation.point_allocations = point_allocations;
     runtime.observation.scan_allocations = scan_allocations;
     runtime.observation.invalid_worlds = invalid.count();
+    assert!(
+        runtime.observation.point_blocks <= runtime.observation.whole_blocks,
+        "C5_PREDICATE:locate-open-scale: point lookup cannot read more routing blocks than the whole manifest"
+    );
     let processes = [runtime.process, allocation_process];
     super::evidence::emit(ScaleCourtroomEvidence {
         root: &seeded.root,

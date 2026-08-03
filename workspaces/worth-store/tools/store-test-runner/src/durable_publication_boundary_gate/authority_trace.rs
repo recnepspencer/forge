@@ -174,6 +174,20 @@ const EXPECTED_LANES: &[(&str, &[&str])] = &[
             "diagnostic-evidence-projection",
         ],
     ),
+    (
+        "c8-recovery-handoff",
+        &[
+            "checkpoint-drain",
+            "mutation-drain",
+            "root-and-wal-extraction",
+            "operation-fate-reconstruction",
+            "checkpoint-basis",
+            "residue-classification",
+            "source-profile-binding",
+            "closeout-progression",
+            "successor-extraction",
+        ],
+    ),
 ];
 
 #[test]
@@ -262,8 +276,13 @@ fn validate_shape(rows: &[TraceRow]) -> Result<(), String> {
             .map(|(_, step)| step.as_str())
             .collect::<Vec<_>>();
         if actual_steps != *expected {
+            let predicate = if *lane == "c8-recovery-handoff" {
+                "MUTANT_PREDICATE:c8-handoff-authority-lane-omitted: "
+            } else {
+                ""
+            };
             return Err(format!(
-                "C.7 authority lane `{lane}` changed; expected {expected:?}, actual {actual_steps:?}"
+                "{predicate}C.7 authority lane `{lane}` changed; expected {expected:?}, actual {actual_steps:?}"
             ));
         }
     }

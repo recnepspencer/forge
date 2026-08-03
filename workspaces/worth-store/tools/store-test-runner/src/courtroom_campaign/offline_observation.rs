@@ -207,9 +207,17 @@ fn parse_artifact(marker: &str) -> Result<OfflineArtifactObservation, String> {
         path: path.into_boxed_str(),
         byte_length: number(fields[2], "artifact byte length")?,
         digest: fixed_hex(fields[3], "artifact digest")?,
-        prefix: hex(fields[4], "artifact prefix")?.into_boxed_slice(),
+        prefix: artifact_prefix(fields[4])?,
         recovery_obligation: boolean(fields[5], "recovery obligation")?,
     })
+}
+
+fn artifact_prefix(encoded: &str) -> Result<Box<[u8]>, String> {
+    if encoded == "-" {
+        Ok(Box::default())
+    } else {
+        hex(encoded, "artifact prefix").map(Vec::into_boxed_slice)
+    }
 }
 
 fn parse_summary(marker: &str) -> Result<(u64, u64, u64), String> {
@@ -281,7 +289,21 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{OfflineArtifactContentStability, OfflineArtifactObservation};
+    use super::{parse_artifact, OfflineArtifactContentStability, OfflineArtifactObservation};
+
+    #[test]
+    fn explicit_empty_prefix_token_decodes_without_field_ambiguity() {
+        let observation = parse_artifact(
+            "C5_1_OFFLINE_ARTIFACT 61 0 \
+             e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 - false",
+        )
+        .unwrap();
+
+        assert_eq!(observation.path(), "a");
+        assert_eq!(observation.byte_length(), 0);
+        assert!(observation.prefix().is_empty());
+        assert!(!observation.is_recovery_obligation());
+    }
 
     #[test]
     fn only_the_mutation_owner_observation_has_mutable_content() {

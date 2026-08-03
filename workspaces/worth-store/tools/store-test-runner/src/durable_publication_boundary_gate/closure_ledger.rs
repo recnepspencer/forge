@@ -11,6 +11,7 @@ mod phase_five;
 mod phase_nine;
 mod phase_seven;
 mod phase_six;
+mod phase_ten;
 mod source_identity;
 
 const LEDGER: &str = "_docs/worth-store/physical-reconstruction-c7-closure-ledger.md";

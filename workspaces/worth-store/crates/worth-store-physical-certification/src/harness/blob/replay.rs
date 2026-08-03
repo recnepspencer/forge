@@ -10,8 +10,8 @@ use crate::{
     PhysicalCounterExecutionSources, PhysicalCoverageRegistry, PhysicalExecutedCounterEvidence,
     PhysicalFixtureBuilder, PhysicalInterleavingSchedule, PhysicalMutationCoverageEvidence,
     PhysicalSimulationDriver, PhysicalSimulationObserver, ProductionBackedFixtureMaterialization,
-    ReplaySeed, ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationReplayBundle,
-    StateSpaceBudget,
+    ReusablePhysicalOracleFamily, SchedulePerturbationSeed, ShortcutRejectionObservation,
+    SimulationReplayBundle, StateSpaceBudget,
 };
 use worth_store_blob_chunks::certification_test_authority::{
     execute_blob_harness, materialize_blob_executed_lifecycle_evidence, BlobHarnessExecutionInput,
@@ -63,7 +63,7 @@ pub fn coverage_matrix_for_seed(seed: BlobHarnessScenarioSeed) -> GeneratedCover
 fn schedule_for_plan(lowered: &BlobHarnessLoweredSeedPlan) -> PhysicalInterleavingSchedule {
     PhysicalInterleavingSchedule::from_lowered_plan(
         lowered.plan(),
-        ReplaySeed::from_u64(22),
+        SchedulePerturbationSeed::from_u64(22),
         StateSpaceBudget::bounded_steps(12).unwrap(),
     )
     .unwrap()

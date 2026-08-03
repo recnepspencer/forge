@@ -4,13 +4,34 @@ use worth_store_physical_format::PhysicalCheckpointIdentity;
 
 use super::*;
 use crate::physical_runtime::durability::mutation::idempotency::persisted_binding::PhysicalBindingDecodingContext;
-use crate::physical_runtime::durability::mutation::idempotency::registry::PhysicalMutationIdempotencyRegistryAdmission;
+use crate::physical_runtime::durability::mutation::idempotency::registry::{
+    PhysicalMutationIdempotencyRegistryAdmission, PhysicalMutationWalBindingDenial,
+};
 use crate::physical_runtime::durability::mutation::idempotency::test_support::{
     fingerprint, fixture, idempotency_policy, mutation, RegistryFixture,
 };
 use crate::physical_runtime::{
     PhysicalDurabilityGroupIdentity, PhysicalMutationIdempotencyMaterial,
 };
+
+#[test]
+fn reopen_accepts_only_new_or_exactly_repeated_wal_bindings() {
+    assert_eq!(classify_reopened_wal_binding(Ok(())), Ok(()));
+    if classify_reopened_wal_binding(Err(PhysicalMutationWalBindingDenial::AlreadyWalBound))
+        .is_err()
+    {
+        panic!("MUTANT_PREDICATE:c7-reopen-exact-wal-overlap-rejected");
+    }
+    for denial in [
+        PhysicalMutationWalBindingDenial::BindingMismatch,
+        PhysicalMutationWalBindingDenial::ProvenNoEffect,
+    ] {
+        assert_eq!(
+            classify_reopened_wal_binding(Err(denial)),
+            Err(PhysicalIdempotencyReopenFailure::WalBindingConflict)
+        );
+    }
+}
 
 #[test]
 fn compaction_rebuild_rejects_reordered_records_and_independent_bounds() {

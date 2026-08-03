@@ -10,6 +10,8 @@ const RUNTIME_OWNER: &str = "workspaces/worth-store/crates/worth-store/src/physi
                              durability/wal/runtime_owner.rs";
 const REOPEN: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
                       durability/wal/inventory/reopen.rs";
+const INVENTORY: &str = "workspaces/worth-store/crates/worth-store/src/physical_runtime/\
+                         durability/wal/inventory/live_segment_inventory.rs";
 const JOURNEY: &str = "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/\
                        durability_admission/wal_group_continuation.rs";
 
@@ -63,13 +65,6 @@ fn wal_segment_lifecycle_gate_rejects_rotation_continuation_and_reopen_mutants()
         "if false && byte_count > byte_limit {",
     );
     assert!(inspect(&oversized_read).is_err());
-
-    let mut unsealed_reopen = source;
-    unsealed_reopen.reopen = unsealed_reopen.reopen.replace(
-        "let requires_inspection = cutoff.lsn().is_none();",
-        "let requires_inspection = false;",
-    );
-    assert!(inspect(&unsealed_reopen).is_err());
 }
 
 #[derive(Clone)]
@@ -79,6 +74,7 @@ struct WalSegmentLifecycleSources {
     group_port: String,
     runtime_owner: String,
     reopen: String,
+    inventory: String,
     journey: String,
 }
 
@@ -90,6 +86,7 @@ fn sources() -> WalSegmentLifecycleSources {
         group_port: read_repository_document(GROUP_PORT).expect("read WAL group port"),
         runtime_owner: read_repository_document(RUNTIME_OWNER).expect("read WAL runtime owner"),
         reopen: read_repository_document(REOPEN).expect("read WAL inventory reopen"),
+        inventory: read_repository_document(INVENTORY).expect("read WAL segment inventory"),
         journey: read_repository_document(JOURNEY).expect("read WAL continuation journey"),
     }
 }
@@ -97,7 +94,7 @@ fn sources() -> WalSegmentLifecycleSources {
 fn inspect(source: &WalSegmentLifecycleSources) -> Result<(), &'static str> {
     inspect_whole_group_reservation(&source.reservation, &source.member_planning)?;
     inspect_exact_continuation(&source.group_port, &source.runtime_owner)?;
-    inspect_bounded_reopen(&source.reopen)?;
+    inspect_bounded_reopen(&source.reopen, &source.inventory)?;
     inspect_journey(&source.journey)?;
     Ok(())
 }
@@ -182,7 +179,8 @@ fn inspect_exact_continuation(group_port: &str, runtime_owner: &str) -> Result<(
     Ok(())
 }
 
-fn inspect_bounded_reopen(source: &str) -> Result<(), &'static str> {
+fn inspect_bounded_reopen(source: &str, inventory: &str) -> Result<(), &'static str> {
+    super::wal_reopen_origin::inspect(source, inventory)?;
     let reopen = compact(
         function_body(source, "fn reopen_wal_inventory(")
             .ok_or("bounded WAL reopen owner is absent")?,
@@ -201,7 +199,7 @@ fn inspect_bounded_reopen(source: &str) -> Result<(), &'static str> {
             "WalTopologyScan::from_segment_scan(scans)",
             "PhysicalWalSegmentInventory::from_reopened(inspections)",
             "require_checkpoint_cutoff_within_retained_wal(cutoff,&segment_inventory,active_lsn_end)",
-            "letrequires_inspection=cutoff.lsn().is_none()",
+            "letrequires_inspection=cutoff.lsn().is_none()&&!segment_inventory.retains_canonical_wal_origin()",
             "requires_inspection,",
         ],
     ) {

@@ -2308,8 +2308,10 @@ green, missing mutant, source restoration residue, temporary courtroom hooks,
 and successor access to live runtime state.
 
 **Evidence:** owner, smoke, CI, release, and hardware products; exact replay;
-complete mutation report; independent artifact report; final source identity;
-constitution and line-cap gates; and reverse ledger attack.
+complete controlled-case report binding every case to its closed execution-cost
+class, measured elapsed time, and class-derived budget; independent artifact
+report; final source identity; constitution and line-cap gates; and reverse
+ledger attack.
 
 **Next may trust:** C.8 receives real persisted durability facts rather than
 mechanism vocabulary.
@@ -2459,13 +2461,17 @@ Closeout evidence includes:
   and completed-but-unobserved outcomes;
 - exact file, directory, sync, byte, frame, queue, memory, and amplification
   counters;
+- exact per-case world, producer, baseline-observer, serving-writer,
+  post-interruption-observer, fresh-reopener, evidence-binding, and total timing;
 - independent inspector report;
 - fresh reopener report;
 - deletion/dependency/feature/source gates;
 - documentation compilation and link evidence;
 - all 16 CI schedule reports;
 - canonical all-seam release report;
-- complete catalog-derived mutation report; and
+- complete catalog-derived controlled-case report whose every observation binds
+  its closed execution-cost class, measured elapsed time, and exact
+  class-derived budget; and
 - sealed C.8 handoff construction proof.
 
 No row closes from a previous source closure, a different revision or backend

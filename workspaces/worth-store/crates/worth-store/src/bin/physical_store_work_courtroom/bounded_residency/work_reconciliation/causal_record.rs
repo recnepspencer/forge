@@ -98,34 +98,7 @@ fn require_signal_family(
     operation: PhysicalWorkOperationFamily,
     family: worth_store::physical_runtime::PhysicalWorkSignalFamily,
 ) -> Result<(), String> {
-    use worth_store::physical_runtime::PhysicalWorkSignalFamily;
-    let exact = matches!(
-        (operation, family),
-        (
-            PhysicalWorkOperationFamily::ArtifactMetadataRead
-                | PhysicalWorkOperationFamily::ArtifactRangeRead,
-            PhysicalWorkSignalFamily::ReadFault,
-        ) | (
-            PhysicalWorkOperationFamily::ArtifactRangeWrite,
-            PhysicalWorkSignalFamily::ExactWriteback,
-        ) | (
-            PhysicalWorkOperationFamily::ArtifactPublication,
-            PhysicalWorkSignalFamily::Publication,
-        ) | (
-            PhysicalWorkOperationFamily::WalAppend,
-            PhysicalWorkSignalFamily::WalAppend,
-        ) | (
-            PhysicalWorkOperationFamily::DurabilityBarrier,
-            PhysicalWorkSignalFamily::DurabilityBarrier,
-        ) | (
-            PhysicalWorkOperationFamily::CheckpointCapture,
-            PhysicalWorkSignalFamily::CheckpointCapture,
-        ) | (
-            PhysicalWorkOperationFamily::WalReclamation,
-            PhysicalWorkSignalFamily::WalReclamation,
-        )
-    );
-    if !exact {
+    if operation.required_signal_family() != family {
         return Err("physical work route carried the wrong Signal family".to_owned());
     }
     Ok(())

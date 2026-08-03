@@ -1,4 +1,6 @@
-use super::{inspect_complete_wal_segment, WalSegmentArtifactIdentity};
+use super::{
+    inspect_complete_wal_segment, inspect_verified_wal_active_tail, WalSegmentArtifactIdentity,
+};
 use crate::{
     plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange, WalSegmentGeneration,
     WalSegmentId,
@@ -62,4 +64,30 @@ fn incomplete_or_identity_substituted_segment_is_rejected() {
     let substituted =
         WalSegmentArtifactIdentity::new(WalSegmentId::new(8).unwrap(), identity().generation());
     assert!(inspect_complete_wal_segment(substituted, &bytes).is_err());
+}
+
+#[test]
+fn active_tail_admits_only_a_partial_frame_after_a_verified_prefix() {
+    let bytes = two_frames();
+    let first_bytes = inspect_complete_wal_segment(identity(), &bytes)
+        .unwrap()
+        .byte_count()
+        - (116 + b"payload-b".len() + 32) as u64;
+    let retained = first_bytes as usize + 37;
+    let active = inspect_verified_wal_active_tail(identity(), &bytes[..retained]).unwrap();
+    let interrupted = active.interrupted_tail().unwrap();
+    assert_eq!(interrupted.valid_prefix_bytes(), first_bytes);
+    assert_eq!(interrupted.observed_bytes(), retained as u64);
+    let prefix = active.into_verified_prefix().inspection();
+    assert_eq!(prefix.frame_count(), 1);
+    assert_eq!(prefix.byte_count(), first_bytes);
+}
+
+#[test]
+fn active_tail_rejects_partial_first_frame_and_complete_digest_damage() {
+    let bytes = two_frames();
+    assert!(inspect_verified_wal_active_tail(identity(), &bytes[..37]).is_err());
+    let mut damaged = bytes;
+    damaged[116] ^= 0xff;
+    assert!(inspect_verified_wal_active_tail(identity(), &damaged).is_err());
 }

@@ -2,11 +2,13 @@ mod actor_sequence;
 mod actor_step;
 mod authority;
 mod budget;
+mod crash_seam;
 mod denial;
 mod execution;
 mod exploration;
 mod identity;
 mod interleaving;
+mod perturbation_trace;
 mod seed;
 mod shrink;
 
@@ -17,6 +19,7 @@ pub use authority::{
     ScheduleOrderingAuthorityKind,
 };
 pub use budget::{PartialOrderReductionPosture, ScheduleExplorationCost, StateSpaceBudget};
+pub use crash_seam::C7DurabilityCrashSeam;
 pub use denial::ScheduleReplayDenial;
 pub use execution::{
     execute_physical_schedule, PhysicalActorStorageExecution, PhysicalScheduleExecution,
@@ -27,7 +30,10 @@ pub use exploration::{
 };
 pub use identity::ScheduleReplayIdentity;
 pub use interleaving::PhysicalInterleavingSchedule;
-pub use seed::ReplaySeed;
+pub use perturbation_trace::{SchedulePerturbationDecision, SchedulePerturbationTrace};
+pub use seed::{
+    SchedulePerturbationSeed, SourceClosureScheduleSeeds, CI_SCHEDULE_PERTURBATION_SEED_COUNT,
+};
 pub use shrink::{
     CounterMismatchSummary, OracleVerdictKind, OracleVerdictSummary, PhysicalFaultLocus,
     ScheduleFailureClass, ScheduleFailureSignature, ScheduleShrinkTrace,

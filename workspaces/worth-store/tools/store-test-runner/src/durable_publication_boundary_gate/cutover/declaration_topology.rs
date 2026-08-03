@@ -66,7 +66,7 @@ fn inspect_paths<'path>(
     forbidden_paths: impl IntoIterator<Item = &'path str>,
     required_paths: impl IntoIterator<Item = &'path str>,
 ) -> Result<(), String> {
-    for path in forbidden_paths {
+    if let Some(path) = forbidden_paths.into_iter().next() {
         return Err(format!("old durable-publication path remains: {path}"));
     }
     let actual = required_paths.into_iter().collect::<BTreeSet<_>>();
