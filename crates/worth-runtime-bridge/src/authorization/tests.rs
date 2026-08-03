@@ -1,26 +1,13 @@
 use worth_foundational::facade::CanonicalDigestId;
-use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
-use worth_query_declaration::{worth_query_application_schema, worth_query_entity};
 
 use super::{
-    BridgeAuthorizationClauseContract, BridgeAuthorizationClauseObservation,
-    BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
-    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
-    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
-    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationBindingIdentity, BridgeAuthorizationClauseContract,
+    BridgeAuthorizationClauseObservation, BridgeAuthorizationDependencyCardinality,
+    BridgeAuthorizationInstallationRequest, BridgeAuthorizationObservation,
+    BridgeAuthorizationRequirementContract, BridgeAuthorizationRequirementObservation,
+    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
+    BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
-
-worth_query_application_schema! {
-    schema BridgeAuthorizationSchema {
-        owner: bridge_authorization_test,
-        version: (1, 0),
-        members: |schema| {
-            schema.entity(BridgePrincipal::reference())
-        }
-    }
-}
-
-worth_query_entity!(BridgePrincipal in BridgeAuthorizationSchema);
 
 #[test]
 fn installed_correspondence_retains_nested_signal_decision_and_dependency_identity() {
@@ -168,8 +155,8 @@ fn clause_observation(
     )
 }
 
-fn binding_identity() -> ApplicationSchemaBindingIdentity {
-    ApplicationSchemaBindingIdentity::from_installed_parts(
+fn binding_identity() -> BridgeAuthorizationBindingIdentity {
+    BridgeAuthorizationBindingIdentity::new(
         1,
         1,
         CanonicalDigestId::new([11; 32]),

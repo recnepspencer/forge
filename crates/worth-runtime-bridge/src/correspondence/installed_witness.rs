@@ -63,13 +63,12 @@ impl ProvenCorrespondenceTargets {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeCorrespondenceBasis {
-    pub(crate) query_installation_identity: Arc<str>,
-    pub(crate) query_basis: Arc<str>,
-    pub(crate) query_runtime_authority: u64,
-    pub(crate) query_installation_generation: u64,
+    pub(crate) source_installation_identity: Arc<str>,
+    pub(crate) source_basis: Arc<str>,
+    pub(crate) source_runtime_authority: u64,
+    pub(crate) source_installation_generation: u64,
+    pub(crate) source_authority_binding_identity: Arc<str>,
     pub(crate) declared_graph_role: Arc<str>,
-    pub(crate) graph_authority:
-        Arc<worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority>,
     pub(crate) graph_participation_identity: Arc<str>,
     pub(crate) graph_adapter_identity: Arc<str>,
     pub(crate) authoritative_source_profile:
@@ -80,16 +79,16 @@ pub struct BridgeCorrespondenceBasis {
 }
 
 impl BridgeCorrespondenceBasis {
-    pub fn query_basis(&self) -> &str {
-        &self.query_basis
+    pub fn source_basis(&self) -> &str {
+        &self.source_basis
     }
 
-    pub const fn query_runtime_authority(&self) -> u64 {
-        self.query_runtime_authority
+    pub const fn source_runtime_authority(&self) -> u64 {
+        self.source_runtime_authority
     }
 
-    pub const fn query_installation_generation(&self) -> u64 {
-        self.query_installation_generation
+    pub const fn source_installation_generation(&self) -> u64 {
+        self.source_installation_generation
     }
 
     pub fn declared_graph_role(&self) -> &str {

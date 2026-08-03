@@ -1,3 +1,4 @@
+mod bridge_lowering;
 mod compute_bridge;
 mod delivery;
 mod evaluation;
@@ -5,6 +6,7 @@ mod installation;
 mod reentry;
 mod registry;
 
+pub(crate) use bridge_lowering::query_location_from_bridge_candidate;
 pub(crate) use compute_bridge::QueryComputeProvider;
 pub use delivery::{
     WorthQueryConditionalAuthoritativeChangeDeliveryRequest, WorthQueryConditionalDeliveryDenial,

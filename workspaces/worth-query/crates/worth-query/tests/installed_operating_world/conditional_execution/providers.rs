@@ -51,7 +51,6 @@ impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for Static
 impl worth_runtime_bridge::facade::BridgeConditionalConditionProvider for StaticCondition {
     fn resolve(
         &self,
-        _declaration: &domain::WorthQueryPortableConditionalNodeDeclaration,
         _context: worth_runtime_bridge::facade::BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
         Ok(self.0)

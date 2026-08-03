@@ -42,12 +42,10 @@ impl PreparedCorrespondenceBatch<'_> {
 
     pub(crate) fn condition_aspects(
         &self,
-        dependencies: &[worth_query_installation::facade::WorthQuerySemanticTruthDependency],
+        dependency_ordinals: &[usize],
     ) -> worth_signal::facade::AspectMask {
         self.aspect_mask_for(|candidate| {
-            dependencies
-                .iter()
-                .any(|dependency| candidate.matches_declared_dependency(dependency))
+            dependency_ordinals.contains(&candidate.dependency_ordinal())
         })
     }
 

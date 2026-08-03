@@ -1,5 +1,28 @@
 use worth_foundational::facade::CanonicalDigestId;
-use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BridgeAuthorizationBindingIdentity {
+    runtime_ordinal: u64,
+    generation: u64,
+    package_identity: CanonicalDigestId,
+    schema_identity: CanonicalDigestId,
+}
+
+impl BridgeAuthorizationBindingIdentity {
+    pub const fn new(
+        runtime_ordinal: u64,
+        generation: u64,
+        package_identity: CanonicalDigestId,
+        schema_identity: CanonicalDigestId,
+    ) -> Self {
+        Self {
+            runtime_ordinal,
+            generation,
+            package_identity,
+            schema_identity,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BridgeAuthorizationCorrespondenceIdentity(pub(crate) [u8; 32]);
@@ -80,7 +103,7 @@ impl BridgeAuthorizationRuleContract {
 
 pub struct BridgeAuthorizationInstallationRequest {
     pub(crate) correspondence: BridgeAuthorizationCorrespondenceIdentity,
-    pub(crate) binding_identity: ApplicationSchemaBindingIdentity,
+    pub(crate) binding_identity: BridgeAuthorizationBindingIdentity,
     pub(crate) ability: String,
     pub(crate) scope_entity: String,
     pub(crate) policy: String,
@@ -90,7 +113,7 @@ pub struct BridgeAuthorizationInstallationRequest {
 impl BridgeAuthorizationInstallationRequest {
     pub fn new(
         installed_policy_identity: &CanonicalDigestId,
-        binding_identity: ApplicationSchemaBindingIdentity,
+        binding_identity: BridgeAuthorizationBindingIdentity,
         ability: impl Into<String>,
         scope_entity: impl Into<String>,
         policy: impl Into<String>,

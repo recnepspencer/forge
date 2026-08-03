@@ -2247,8 +2247,6 @@ dependencies = [
  "worth-foundational",
  "worth-harness",
  "worth-proof",
- "worth-query-declaration",
- "worth-query-installation",
  "worth-signal",
 ]
 

@@ -56,10 +56,9 @@ impl WorthQueryRuntime {
         let operation = super::operation_key::<D, O, F>();
         let Some(targets) = self.installed_live_routes.target_index.conditional_targets(
             operation,
-            receipt
-                .change_set()
-                .dependency()
-                .conditional_node_location(),
+            &crate::domain_installation::query_location_from_bridge_candidate(
+                receipt.change_set().dependency(),
+            ),
         ) else {
             return;
         };

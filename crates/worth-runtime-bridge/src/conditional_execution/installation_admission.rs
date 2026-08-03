@@ -1,5 +1,3 @@
-use worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration;
-
 use super::{
     BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalInstallationRequest,
 };
@@ -7,19 +5,22 @@ use super::{
 pub(super) fn validate_declaration_pairing(
     request: &BridgeConditionalInstallationRequest,
 ) -> Result<(), BridgeConditionalDenial> {
-    if request.location.node_identity() != request.declaration.identity() {
+    if !request.location.is_valid()
+        || !request.contract.is_valid()
+        || request.location.node_identity() != request.contract.identity()
+    {
         return Err(denial(
             BridgeConditionalDenialKind::DeclarationLocationMismatch,
-            "conditional location does not name the retained declaration",
+            "conditional location does not name the retained Bridge contract",
         ));
     }
-    if request.registrations.len() != request.declaration.dependencies().len() {
+    if request.registrations.len() != request.contract.dependency_count() {
         return Err(denial(
             BridgeConditionalDenialKind::DeclarationCorrespondenceMismatch,
             "conditional correspondence count differs from the declared dependency count",
         ));
     }
-    for (ordinal, dependency) in request.declaration.dependencies().iter().enumerate() {
+    for ordinal in 0..request.contract.dependency_count() {
         let registration = request
             .registrations
             .iter()
@@ -30,40 +31,15 @@ pub(super) fn validate_declaration_pairing(
                     "conditional correspondence omitted or duplicated a dependency ordinal",
                 )
             })?;
-        if registration.dependency().conditional_node_location() != &request.location
-            || !registration
-                .dependency()
-                .matches_declared_dependency(dependency)
+        let dependency = registration.dependency();
+        if dependency.source_node_identity() != request.location.node_identity()
+            || dependency.source_stage_identity.as_deref() != request.location.stage_identity()
         {
             return Err(denial(
                 BridgeConditionalDenialKind::DeclarationCorrespondenceMismatch,
-                "conditional correspondence belongs to another declaration or semantic dependency",
+                "conditional correspondence belongs to another source declaration",
             ));
         }
-    }
-    Ok(())
-}
-
-pub(super) fn validate_supported_postures(
-    declaration: &WorthQueryPortableConditionalNodeDeclaration,
-) -> Result<(), BridgeConditionalDenial> {
-    use worth_query_installation::facade::{
-        WorthQueryArtifactPosture, WorthQueryMaintenancePosture,
-    };
-    if matches!(
-        declaration.maintenance(),
-        WorthQueryMaintenancePosture::EagerOnEligibleInvalidation
-    ) {
-        return Err(denial(
-            BridgeConditionalDenialKind::UnsupportedMaintenancePosture,
-            "eager invalidation requires a scheduler-owned execution lane that is not installed",
-        ));
-    }
-    if matches!(declaration.artifact(), WorthQueryArtifactPosture::Durable) {
-        return Err(denial(
-            BridgeConditionalDenialKind::UnsupportedArtifactPosture,
-            "durable conditional artifacts require an installed persistence authority",
-        ));
     }
     Ok(())
 }

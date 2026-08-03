@@ -11,8 +11,14 @@ struct ConditionalOperationKey {
 
 pub(crate) struct WorthQueryInstalledConditionalNode {
     pub(crate) lowering: Arc<worth_runtime_bridge::facade::BridgeInstalledConditionalLowering>,
+    pub(crate) location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+    pub(crate) declaration:
+        worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    pub(crate) graph_authority:
+        Arc<worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority>,
     pub(crate) operation_identity: String,
     pub(crate) runtime_authority: u64,
+    pub(crate) installation_runtime_authority: u64,
     pub(crate) installation_generation: u64,
     pub(crate) resource_support: crate::domain_installation::WorthQueryExecutionResourceSupport,
 }
@@ -55,9 +61,11 @@ impl WorthQueryConditionalExecutionRegistry {
         node: WorthQueryInstalledConditionalNode,
     ) -> Result<(), ()> {
         let key = operation_key::<D, O, F>();
-        if self.authoritative.iter().any(|installed| {
-            installed.key == key && installed.node.lowering.location() == node.lowering.location()
-        }) {
+        if self
+            .authoritative
+            .iter()
+            .any(|installed| installed.key == key && installed.node.location == node.location)
+        {
             return Err(());
         }
         let node = Arc::new(node);
@@ -68,7 +76,7 @@ impl WorthQueryConditionalExecutionRegistry {
             });
         let nodes = self.by_operation.entry(key).or_default();
         nodes.push(node);
-        nodes.sort_by(|left, right| left.lowering.location().cmp(right.lowering.location()));
+        nodes.sort_by(|left, right| left.location.cmp(&right.location));
         Ok(())
     }
 
@@ -100,7 +108,7 @@ impl WorthQueryConditionalExecutionRegistry {
             || current
                 .iter()
                 .zip(donor)
-                .any(|(current, donor)| current.lowering.location() != donor.lowering.location())
+                .any(|(current, donor)| current.location != donor.location)
         {
             return Err("donor conditional lowering inventory does not match recipient");
         }
@@ -110,8 +118,12 @@ impl WorthQueryConditionalExecutionRegistry {
             .map(|(current, donor)| {
                 Arc::new(WorthQueryInstalledConditionalNode {
                     lowering: Arc::clone(&donor.lowering),
+                    location: current.location.clone(),
+                    declaration: donor.declaration.clone(),
+                    graph_authority: Arc::clone(&donor.graph_authority),
                     operation_identity: current.operation_identity.clone(),
                     runtime_authority,
+                    installation_runtime_authority: current.installation_runtime_authority,
                     installation_generation,
                     resource_support: donor.resource_support.clone(),
                 })
@@ -153,7 +165,7 @@ impl WorthQueryConditionalExecutionRegistry {
                 .push(Arc::clone(&installed.node));
         }
         for nodes in rebuilt.values_mut() {
-            nodes.sort_by(|left, right| left.lowering.location().cmp(right.lowering.location()));
+            nodes.sort_by(|left, right| left.location.cmp(&right.location));
         }
         rebuilt
     }

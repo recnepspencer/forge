@@ -76,8 +76,12 @@ fn workflow_stage_dependency_resolves_only_through_its_exact_stage_location() {
         )
         .expect("exact workflow-stage dependency should resolve");
     assert_eq!(
-        registration.dependency().conditional_node_location(),
-        &stage_location
+        registration.dependency().source_stage_identity(),
+        Some("publish")
+    );
+    assert_eq!(
+        registration.dependency().source_node_identity(),
+        "publish-when-changed"
     );
 
     let operation_location =

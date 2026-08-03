@@ -228,7 +228,7 @@ fn operation_conditional_supports(
 ) -> Vec<(String, WorthQueryExecutionResourceSupport)> {
     nodes
         .iter()
-        .filter_map(|node| match node.lowering.location() {
+        .filter_map(|node| match &node.location {
             WorthQueryConditionalNodeLocation::Operation { node_identity } => Some((
                 format!("operation:{node_identity}"),
                 node.resource_support.clone(),
@@ -244,7 +244,7 @@ fn stage_conditional_supports(
 ) -> Vec<(String, WorthQueryExecutionResourceSupport)> {
     nodes
         .iter()
-        .filter_map(|node| match node.lowering.location() {
+        .filter_map(|node| match &node.location {
             WorthQueryConditionalNodeLocation::WorkflowStage {
                 stage_identity,
                 node_identity,

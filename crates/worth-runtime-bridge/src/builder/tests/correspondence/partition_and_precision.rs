@@ -144,7 +144,7 @@ fn every_mapping_widening_class_has_one_exact_admission_counter() {
         );
         let mut graph = SignalGraph::new();
         let node = graph.node().build();
-        let query_dependency = if policy == SliceWideningPolicy::RegisteredPartitionWidening {
+        let semantic_dependency = if policy == SliceWideningPolicy::RegisteredPartitionWidening {
             dependency("query:partition")
         } else {
             dependency("query:one")
@@ -153,12 +153,12 @@ fn every_mapping_widening_class_has_one_exact_admission_counter() {
             mapping,
             registration,
             vec![super::registration(
-                query_dependency.clone(),
+                semantic_dependency.clone(),
                 vec![target(&graph, node)],
             )],
         );
         let TransitionOutcome::Success(correspondence) =
-            runtime.install_semantic_correspondence(query_dependency, &graph)
+            runtime.install_semantic_correspondence(semantic_dependency, &graph)
         else {
             panic!("declared {policy:?} must admit its exact widening class");
         };

@@ -104,8 +104,10 @@ The following work is directionally correct and remains the foundation:
 - Relational owns exact graph truth, traversal, field and adjacency
   observations, negative facts, complete path witnesses, currentness, touched
   scope, and invariant mechanics.
-- Runtime Bridge owns installed correspondence and lowering between Query
-  contracts, Relational observations, and Signal policy inputs and evidence.
+- Query owns translation from Query declarations and installed authority into
+  neutral Bridge requests. Runtime Bridge owns installed neutral correspondence,
+  crossing admission, and lowering from Relational observations to Signal
+  policy inputs and evidence.
 - Signal owns installed policy evaluation, including required and prohibited
   composition and its typed evaluation evidence.
 - Query installation owns typed application-query, operation, capability,
@@ -280,7 +282,8 @@ be promoted into session evidence.
 | Responsibility | Owner | Query may do | Query may not do |
 |---|---|---|---|
 | Graph truth, traversal, negative facts, path witnesses, exact touched scope | Relational | Request work through its facade and retain returned evidence | Reconstruct graph truth or infer touch authority |
-| Installed cross-runtime correspondence and lowering | Runtime Bridge | Select installed correspondence and consume sealed evidence | Recreate Signal or Relational meaning |
+| Query declaration translation and Query authority continuity | Query | Validate portable meaning, retain installed Query authority, and emit neutral Bridge requests | Delegate Query comparison or authority interpretation to Runtime Bridge |
+| Installed neutral cross-runtime correspondence and lowering | Runtime Bridge | Select installed correspondence and consume sealed evidence | Import Query packages or recreate Query, Signal, or Relational meaning |
 | Required/prohibited policy composition and decision evidence | Signal | Consume Bridge-retained policy evidence | Re-evaluate policy branches locally |
 | Installed obligation composition, selection, admission, phase progression, lifecycle | Query | Compose the exact lower proofs into attempt authority | Treat lower observations or receipts as authority by themselves |
 | Proposed state and invariant graph mechanics | Relational through the provider session | Sequence installed invariants and consume their verdicts | Substitute callbacks or selection rows for execution |
@@ -850,7 +853,10 @@ not duplicate or contradict the progression.
 
 - all closed historical milestone statuses and closeout evidence;
 - Relational ownership of graph truth and exact mechanics;
-- Runtime Bridge ownership of installed correspondence and lowering;
+- Query ownership of Query-to-neutral translation, portable conditional
+  comparison, and Query authority continuity;
+- Runtime Bridge ownership of installed neutral correspondence, crossing
+  admission, and Signal-facing lowering;
 - Signal ownership of policy evaluation evidence;
 - Query ownership of legal composition and compiler-visible phase progression;
 - Foundational ownership of canonical encoding and SHA mechanics at bounded

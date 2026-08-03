@@ -101,7 +101,11 @@ pub fn classify_owner_delivered_impact(
     preflight_owner_delivery(closure, delivery, &mut counters)?;
     let change_set = delivery.change_set();
     counters.conditional_location_checks += 1;
-    if conditional.location() != change_set.dependency().conditional_node_location() {
+    let location =
+        crate::domain_installation::conditional_execution::query_location_from_bridge_candidate(
+            change_set.dependency(),
+        );
+    if conditional.location() != &location {
         return Err(impact_denial(
             WorthQueryImpactAdmissionDenialKind::ForeignConditionalOutcome,
             counters,
@@ -158,7 +162,7 @@ fn preflight_owner_delivery(
     let change_set = delivery.change_set();
     counters.runtime_authority_checks += 1;
     if closure.affinity.installation_runtime_authority
-        != change_set.basis().query_runtime_authority()
+        != change_set.basis().source_runtime_authority()
     {
         return Err(impact_denial(
             WorthQueryImpactAdmissionDenialKind::ForeignRuntime,
@@ -167,7 +171,7 @@ fn preflight_owner_delivery(
     }
     counters.installation_generation_checks += 1;
     if closure.affinity.installation_generation
-        != change_set.basis().query_installation_generation()
+        != change_set.basis().source_installation_generation()
     {
         return Err(impact_denial(
             WorthQueryImpactAdmissionDenialKind::StaleInstallation,
@@ -175,16 +179,19 @@ fn preflight_owner_delivery(
         ));
     }
     counters.operation_affinity_checks += 1;
-    if closure.affinity.operation_identity != change_set.basis().query_basis() {
+    if closure.affinity.operation_identity != change_set.basis().source_basis() {
         return Err(impact_denial(
             WorthQueryImpactAdmissionDenialKind::ForeignOperation,
             *counters,
         ));
     }
-    let location = change_set.dependency().conditional_node_location();
+    let location =
+        crate::domain_installation::conditional_execution::query_location_from_bridge_candidate(
+            change_set.dependency(),
+        );
     counters.dependency_membership_lookups += 1;
     if !closure
-        .contains_conditional_dependency(location, change_set.dependency().dependency_ordinal())
+        .contains_conditional_dependency(&location, change_set.dependency().dependency_ordinal())
     {
         return Err(impact_denial(
             WorthQueryImpactAdmissionDenialKind::ForeignConditionalOutcome,

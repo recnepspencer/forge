@@ -1,18 +1,15 @@
 use std::sync::Arc;
 
-use worth_foundational::facade::CanonicalMismatchKind;
-use worth_query_installation::facade::{
-    WorthQueryConditionalNodeLocation, WorthQueryPortableConditionalDimension,
-};
 use worth_signal::facade::{Aspect, NodeEvaluationResult, PartitionToken, SignalGraph};
 
-use super::real_query_dependencies::{
-    conditional_node, conditional_node_always_eligible, dependency, freshly_installed_dependency,
+use super::semantic_dependencies::{
+    always_eligible_contract, conditional_contract, dependency, freshly_installed_dependency,
 };
 use super::{exact_mapping, registration, runtime, BridgeAspectRegistrationId};
 use crate::facade::{
     BridgeConditionalComputeProvider, BridgeConditionalContinuityMismatch,
-    BridgeConditionalExecutionAffinityMismatch, BridgeConditionalInstallationRequest,
+    BridgeConditionalContract, BridgeConditionalExecutionAffinityMismatch,
+    BridgeConditionalInstallationRequest, BridgeConditionalLocation,
     BridgeConditionalProviderSemantics, BridgeConditionalProviderSet,
     BridgeInstalledConditionalLowering, BridgeOwnedSignalRuntime,
     BridgeSignalAspectTargetDeclaration,
@@ -44,39 +41,39 @@ impl BridgeConditionalComputeProvider for Compute {
 }
 
 pub(super) fn install(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     partition: &str,
 ) -> (
     BridgeOwnedSignalRuntime,
     Arc<BridgeInstalledConditionalLowering>,
 ) {
     install_with(
-        declaration,
+        contract,
         partition,
         BridgeConditionalProviderSet::new().compute(Compute(1)),
     )
 }
 
 fn install_with(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     partition: &str,
     providers: BridgeConditionalProviderSet,
 ) -> (
     BridgeOwnedSignalRuntime,
     Arc<BridgeInstalledConditionalLowering>,
 ) {
-    install_with_target_partitions(declaration, &[partition], providers)
+    install_with_target_partitions(contract, &[partition], providers)
 }
 
 fn install_with_target_partitions(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     partitions: &[&str],
     providers: BridgeConditionalProviderSet,
 ) -> (
     BridgeOwnedSignalRuntime,
     Arc<BridgeInstalledConditionalLowering>,
 ) {
-    let (mut owner, request) = installation_fixture(declaration, partitions, providers);
+    let (mut owner, request) = installation_fixture(contract, partitions, providers);
     let lowering = owner
         .install(request)
         .expect("owner-bound conditional lowering installs");
@@ -84,18 +81,18 @@ fn install_with_target_partitions(
 }
 
 fn installation_fixture(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     partitions: &[&str],
     providers: BridgeConditionalProviderSet,
 ) -> (
     BridgeOwnedSignalRuntime,
     BridgeConditionalInstallationRequest,
 ) {
-    installation_fixture_with_baseline(declaration, partitions, providers, &[])
+    installation_fixture_with_baseline(contract, partitions, providers, &[])
 }
 
 fn installation_fixture_with_baseline(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     partitions: &[&str],
     providers: BridgeConditionalProviderSet,
     baseline_labels: &[&str],
@@ -166,9 +163,8 @@ fn installation_fixture_with_baseline(
     (
         owner,
         BridgeConditionalInstallationRequest {
-            declaration,
-            location: WorthQueryConditionalNodeLocation::operation("query:one")
-                .expect("valid operation location"),
+            contract,
+            location: BridgeConditionalLocation::operation("query:one"),
             registrations: vec![request_registration],
             providers,
         },

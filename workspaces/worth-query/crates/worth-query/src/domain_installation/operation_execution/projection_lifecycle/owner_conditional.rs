@@ -30,18 +30,18 @@ pub(super) fn evaluate_owner_delivered_conditional<
     delivery: &worth_runtime_bridge::facade::BridgeCorrespondenceDeliveryReceipt,
     workspace: &mut crate::runtime::WorthQueryWorkspace,
 ) -> Result<WorthQueryOwnerConditionalEvaluation, WorthQueryLifecycleConditionalCoreStop> {
-    let location = delivery
-        .change_set()
-        .dependency()
-        .conditional_node_location();
+    let location =
+        crate::domain_installation::conditional_execution::query_location_from_bridge_candidate(
+            delivery.change_set().dependency(),
+        );
     let mut counters = WorthQueryProjectionPromotionCounters::default();
     counters.lifecycle_attempts = 1;
-    require_owner_conditional_location(source, location, counters)?;
+    require_owner_conditional_location(source, &location, counters)?;
     let snapshot = owner_snapshot(delivery, counters)?;
     let attempt = NEXT_OWNER_DELIVERY_ATTEMPT.fetch_add(1, Ordering::Relaxed);
     let execution_identity = owner_execution_identity(delivery, &snapshot, attempt);
-    let scope = owner_conditional_scope(location);
-    let (resources, resource_evidence) = match location {
+    let scope = owner_conditional_scope(&location);
+    let (resources, resource_evidence) = match &location {
         worth_query_installation::facade::WorthQueryConditionalNodeLocation::Operation {
             ..
         } => (
@@ -84,12 +84,12 @@ pub(super) fn evaluate_owner_delivered_conditional<
                     resource_evidence,
                     counters: &mut operation_counters,
                 },
-                location,
+                location: &location,
             },
         )
         .map_err(|stop| owner_evaluation_stop(stop, counters))?
         .into_iter()
-        .find(|provenance| provenance.location() == location)
+        .find(|provenance| provenance.location() == &location)
         .ok_or_else(|| {
             owner_reentry_stop(
                 "owner delivery conditional was not evaluated by the retained operation",
@@ -132,15 +132,15 @@ pub(super) fn reenter_owner_delivered_conditional<
         work,
     } = pass;
     work.begin_conditional_decision_reentry();
-    let location = delivery
-        .change_set()
-        .dependency()
-        .conditional_node_location();
+    let location =
+        crate::domain_installation::conditional_execution::query_location_from_bridge_candidate(
+            delivery.change_set().dependency(),
+        );
     let counters = WorthQueryProjectionPromotionCounters::default();
-    require_owner_conditional_location(source, location, counters)?;
+    require_owner_conditional_location(source, &location, counters)?;
     let snapshot = owner_snapshot(delivery, counters)?;
     let bound = source.bound_operation();
-    let node = installed_owner_conditional_node(bound, location, counters)?;
+    let node = installed_owner_conditional_node(bound, &location, counters)?;
     let authority =
         crate::domain_installation::conditional_execution::admit_conditional_authority(bound, node)
             .map_err(|_| {
@@ -216,7 +216,7 @@ fn installed_owner_conditional_node<'a, D, O, F, L: BasisOperationLane>(
     bound
         .conditional_nodes()
         .iter()
-        .find(|node| node.lowering.location() == location)
+        .find(|node| &node.location == location)
         .map(std::sync::Arc::as_ref)
         .ok_or_else(|| {
             owner_reentry_stop(

@@ -47,9 +47,9 @@ pub(super) fn require_execution_sharing<D, O, F, L: BasisOperationLane>(
         use worth_query_installation::facade::{
             WorthQueryArtifactPosture, WorthQueryArtifactReuseEquivalence,
         };
-        node.lowering.declaration().artifact() == WorthQueryArtifactPosture::ReusableWhenEquivalent
+        node.declaration.artifact() == WorthQueryArtifactPosture::ReusableWhenEquivalent
             && !matches!(
-                node.lowering.declaration().artifact_reuse_equivalence(),
+                node.declaration.artifact_reuse_equivalence(),
                 WorthQueryArtifactReuseEquivalence::NotReusable
             )
     });

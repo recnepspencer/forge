@@ -42,7 +42,8 @@ pub struct RuntimeBridge {
         std::sync::Arc<crate::execution_basis::BridgeExecutionBasisReservationRegistry>,
     pub(crate) correspondence_allocations:
         crate::correspondence::SharedCorrespondenceAllocationRegistry,
-    pub(crate) query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,
+    pub(crate) semantic_dependency_registry:
+        crate::correspondence::AdmittedSemanticDependencyRegistry,
 }
 
 impl std::fmt::Debug for RuntimeBridge {

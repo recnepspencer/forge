@@ -8,31 +8,31 @@ use super::{
 };
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct AdmittedQueryDependencyRegistry {
+pub(crate) struct AdmittedSemanticDependencyRegistry {
     authoritative: Vec<BridgeSemanticCorrespondenceRegistration>,
     index: BTreeMap<String, BridgeSemanticCorrespondenceRegistration>,
     by_authority: BTreeMap<String, BridgeSemanticCorrespondenceRegistration>,
     signal_graph_instance_id: Option<u64>,
 }
 
-pub(crate) struct AdmittedQueryDependencyExtension {
+pub(crate) struct AdmittedSemanticDependencyExtension {
     registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
     new_registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
-    counters: QueryDependencyExtensionCounters,
+    counters: SemanticDependencyExtensionCounters,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(crate) struct QueryDependencyExtensionCounters {
+pub(crate) struct SemanticDependencyExtensionCounters {
     pub(crate) existing_key_lookups: usize,
     pub(crate) batch_key_lookups: usize,
 }
 
-pub(crate) struct QueryDependencyExtensionDenial {
+pub(crate) struct SemanticDependencyExtensionDenial {
     pub(crate) error: BridgeBuildError,
-    pub(crate) counters: QueryDependencyExtensionCounters,
+    pub(crate) counters: SemanticDependencyExtensionCounters,
 }
 
-impl AdmittedQueryDependencyRegistry {
+impl AdmittedSemanticDependencyRegistry {
     pub(crate) fn freeze(
         mut registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
     ) -> Result<Self, BridgeBuildError> {
@@ -58,8 +58,8 @@ impl AdmittedQueryDependencyRegistry {
             if let Some(existing) = by_authority.get(&authority_key) {
                 if existing != &registration {
                     return Err(BridgeBuildError::new(
-                        BridgeBuildErrorKind::AmbiguousQueryDependencyRegistration,
-                        "One installed Query dependency authority resolved to conflicting semantic meaning.",
+                        BridgeBuildErrorKind::AmbiguousSemanticDependencyRegistration,
+                        "One installed source dependency authority resolved to conflicting semantic meaning.",
                     ));
                 }
             }
@@ -68,8 +68,8 @@ impl AdmittedQueryDependencyRegistry {
                     continue;
                 }
                 return Err(BridgeBuildError::new(
-                    BridgeBuildErrorKind::AmbiguousQueryDependencyRegistration,
-                    "Query dependency registration key resolved to conflicting semantic meaning.",
+                    BridgeBuildErrorKind::AmbiguousSemanticDependencyRegistration,
+                    "Semantic dependency registration key resolved to conflicting meaning.",
                 ));
             }
             index.insert(key, registration.clone());
@@ -113,8 +113,8 @@ impl AdmittedQueryDependencyRegistry {
     pub(crate) fn admit_extension(
         &self,
         registrations: &[BridgeSemanticCorrespondenceRegistration],
-    ) -> Result<AdmittedQueryDependencyExtension, QueryDependencyExtensionDenial> {
-        let mut counters = QueryDependencyExtensionCounters::default();
+    ) -> Result<AdmittedSemanticDependencyExtension, SemanticDependencyExtensionDenial> {
+        let mut counters = SemanticDependencyExtensionCounters::default();
         let mut batch_by_key = BTreeMap::new();
         let mut batch_by_authority = BTreeMap::new();
         let mut new_registrations = Vec::new();
@@ -143,7 +143,7 @@ impl AdmittedQueryDependencyRegistry {
             batch_by_key.insert(key, registration.clone());
             new_registrations.push(registration.clone());
         }
-        Ok(AdmittedQueryDependencyExtension {
+        Ok(AdmittedSemanticDependencyExtension {
             registrations: registrations.to_vec(),
             new_registrations,
             counters,
@@ -151,16 +151,16 @@ impl AdmittedQueryDependencyRegistry {
     }
 }
 
-impl AdmittedQueryDependencyExtension {
+impl AdmittedSemanticDependencyExtension {
     pub(crate) fn registrations(&self) -> &[BridgeSemanticCorrespondenceRegistration] {
         &self.registrations
     }
 
-    pub(crate) const fn counters(&self) -> QueryDependencyExtensionCounters {
+    pub(crate) const fn counters(&self) -> SemanticDependencyExtensionCounters {
         self.counters
     }
 
-    pub(crate) fn commit(self, registry: &mut AdmittedQueryDependencyRegistry) -> usize {
+    pub(crate) fn commit(self, registry: &mut AdmittedSemanticDependencyRegistry) -> usize {
         let committed = self.new_registrations.len();
         for registration in self.new_registrations {
             let key = registration.dependency.canonical_registration_key();
@@ -179,10 +179,10 @@ impl AdmittedQueryDependencyExtension {
 }
 
 fn require_compatible_signal_graph(
-    registry: &AdmittedQueryDependencyRegistry,
+    registry: &AdmittedSemanticDependencyRegistry,
     registration: &BridgeSemanticCorrespondenceRegistration,
-    counters: QueryDependencyExtensionCounters,
-) -> Result<(), QueryDependencyExtensionDenial> {
+    counters: SemanticDependencyExtensionCounters,
+) -> Result<(), SemanticDependencyExtensionDenial> {
     if registry
         .signal_graph_instance_id
         .is_some_and(|installed| installed != registration.signal_graph_instance_id())
@@ -199,12 +199,12 @@ fn require_compatible_signal_graph(
 fn require_compatible_registration(
     existing: Option<&BridgeSemanticCorrespondenceRegistration>,
     candidate: &BridgeSemanticCorrespondenceRegistration,
-    counters: QueryDependencyExtensionCounters,
-) -> Result<(), QueryDependencyExtensionDenial> {
+    counters: SemanticDependencyExtensionCounters,
+) -> Result<(), SemanticDependencyExtensionDenial> {
     if existing.is_some_and(|existing| existing != candidate) {
         return Err(extension_denial(
-            BridgeBuildErrorKind::AmbiguousQueryDependencyRegistration,
-            "An installed Query dependency registration conflicts with the admitted extension.",
+            BridgeBuildErrorKind::AmbiguousSemanticDependencyRegistration,
+            "An installed semantic dependency registration conflicts with the admitted extension.",
             counters,
         ));
     }
@@ -214,9 +214,9 @@ fn require_compatible_registration(
 fn extension_denial(
     kind: BridgeBuildErrorKind,
     detail: &str,
-    counters: QueryDependencyExtensionCounters,
-) -> QueryDependencyExtensionDenial {
-    QueryDependencyExtensionDenial {
+    counters: SemanticDependencyExtensionCounters,
+) -> SemanticDependencyExtensionDenial {
+    SemanticDependencyExtensionDenial {
         error: BridgeBuildError::new(kind, detail),
         counters,
     }

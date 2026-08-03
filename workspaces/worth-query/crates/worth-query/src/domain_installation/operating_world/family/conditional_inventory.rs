@@ -30,7 +30,7 @@ pub(super) fn admit_conditional_inventory(
         node.operation_identity == definition.canonical_identity()
             && node.runtime_authority == owner.runtime_authority
             && node.installation_generation == owner.installation_generation
-            && declared.contains(&location_key(node.lowering.location()))
+            && declared.contains(&location_key(&node.location))
     }) {
         ConditionalInventoryAdmission::Admitted
     } else {

@@ -20,7 +20,7 @@ use super::{
 
 struct BridgeInstalledAuthorizationCorrespondence {
     identity: BridgeAuthorizationCorrespondenceIdentity,
-    binding_identity: worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+    binding_identity: super::BridgeAuthorizationBindingIdentity,
     ability: String,
     scope_entity: String,
     policy: String,
@@ -90,7 +90,7 @@ impl BridgeAuthorizationRuntime {
     pub fn matches_installed_policy(
         &self,
         correspondence: BridgeAuthorizationCorrespondenceIdentity,
-        binding_identity: &worth_query_installation::facade::ApplicationSchemaBindingIdentity,
+        binding_identity: &super::BridgeAuthorizationBindingIdentity,
         ability: &str,
         scope_entity: &str,
         policy: &str,

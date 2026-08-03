@@ -192,7 +192,7 @@ where
     let correspondence = bridge
         .install(BridgeAuthorizationInstallationRequest::new(
             installed_paths.identity(),
-            schema.binding_identity(),
+            super::bridge_authorization_binding_identity(&schema.binding_identity()),
             &key.ability,
             &key.scope_entity,
             &key.policy,

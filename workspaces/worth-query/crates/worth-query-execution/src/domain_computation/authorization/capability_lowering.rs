@@ -74,7 +74,7 @@ where
     let correspondence = bridge
         .install(BridgeAuthorizationInstallationRequest::new(
             source.identity().digest(),
-            schema.binding_identity(),
+            super::bridge_authorization_binding_identity(&schema.binding_identity()),
             contract.name(),
             scope_entity,
             contract.operation(),

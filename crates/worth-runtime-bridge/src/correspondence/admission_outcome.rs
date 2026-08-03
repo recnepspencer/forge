@@ -14,7 +14,7 @@ pub enum BridgeCorrespondenceDenialKind {
     SignalNodeContractMismatch,
     MixedGraphTargetSet,
     PortableDependencyNotOwnedByOperation,
-    StaleQueryInstallation,
+    StaleSourceInstallation,
     GraphParticipationNotOwnedByOperation,
     AuthoritativeSourceMismatch,
     CommittedPatchRequestMismatch,
@@ -50,7 +50,7 @@ impl BridgeCorrespondenceDenial {
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct CorrespondenceAdmissionCounters {
-    pub(crate) query_dependency_lookups: usize,
+    pub(crate) semantic_dependency_lookups: usize,
     pub(crate) provided_registration_reads: usize,
     pub(crate) registered_targets_materialized: usize,
     pub(crate) source_profile_cache_reads: usize,
@@ -78,7 +78,7 @@ pub struct CorrespondenceAdmissionCounters {
 impl CorrespondenceAdmissionCounters {
     pub const fn zero() -> Self {
         Self {
-            query_dependency_lookups: 0,
+            semantic_dependency_lookups: 0,
             provided_registration_reads: 0,
             registered_targets_materialized: 0,
             source_profile_cache_reads: 0,
@@ -104,8 +104,8 @@ impl CorrespondenceAdmissionCounters {
         }
     }
 
-    pub const fn query_dependency_lookups(self) -> usize {
-        self.query_dependency_lookups
+    pub const fn semantic_dependency_lookups(self) -> usize {
+        self.semantic_dependency_lookups
     }
 
     pub const fn provided_registration_reads(self) -> usize {
@@ -204,7 +204,7 @@ pub enum BridgeCorrespondenceDeferred {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeCorrespondenceStale {
-    QueryOrBridgeBasis,
+    BridgeRuntimeBasis,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

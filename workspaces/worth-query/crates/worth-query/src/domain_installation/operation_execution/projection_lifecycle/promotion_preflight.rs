@@ -140,7 +140,7 @@ pub(in crate::domain_installation::operation_execution) fn admit_projection_prom
     for node in bound
         .conditional_nodes()
         .iter()
-        .filter(|node| source.admits_conditional_location(node.lowering.location()))
+        .filter(|node| source.admits_conditional_location(&node.location))
     {
         counters.conditional_lowerings_checked += 1;
         if node.lowering.admit_live_conditional_lowering().is_err() {
@@ -253,7 +253,7 @@ fn live_support_is_admitted<
         .bound_operation()
         .conditional_nodes()
         .iter()
-        .any(|node| source.admits_conditional_location(node.lowering.location()))
+        .any(|node| source.admits_conditional_location(&node.location))
     {
         return true;
     }

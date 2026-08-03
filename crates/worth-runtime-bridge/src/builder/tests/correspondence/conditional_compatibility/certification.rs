@@ -4,7 +4,7 @@ use super::*;
 fn installation_cost_is_independent_of_unrelated_admitted_dependencies() {
     let install = |name: &str, baseline: &[&str]| {
         let (mut owner, request) = installation_fixture_with_baseline(
-            conditional_node("query:one"),
+            conditional_contract("query:one"),
             &["bridge-main"],
             BridgeConditionalProviderSet::new().compute(Compute(1)),
             baseline,
@@ -15,7 +15,10 @@ fn installation_cost_is_independent_of_unrelated_admitted_dependencies() {
                 denial.detail()
             )
         });
-        (owner.active_query_dependency_count(), lowering.counters())
+        (
+            owner.active_semantic_dependency_count(),
+            lowering.counters(),
+        )
     };
     let (narrow_count, narrow) = install("narrow", &["query:first"]);
     let (wide_count, wide) = install(
@@ -42,7 +45,7 @@ fn installation_cost_is_independent_of_unrelated_admitted_dependencies() {
 fn conditional_execution_cost_ignores_unrelated_signal_nodes_and_dependencies() {
     let execute = |baseline: &[&str]| {
         let (mut owner, request) = installation_fixture_with_baseline(
-            conditional_node_always_eligible("query:one"),
+            always_eligible_contract("query:one"),
             &["bridge-main"],
             BridgeConditionalProviderSet::new().compute(Compute(1)),
             baseline,
@@ -78,7 +81,7 @@ fn conditional_execution_cost_ignores_unrelated_signal_nodes_and_dependencies() 
 
 #[test]
 fn target_work_scales_with_the_owner_installed_correspondence_width() {
-    let declaration = conditional_node("query:one");
+    let declaration = conditional_contract("query:one");
     let (_current_owner, current) = install_with_target_partitions(
         declaration.clone(),
         &["bridge-a", "bridge-b"],
@@ -92,8 +95,7 @@ fn target_work_scales_with_the_owner_installed_correspondence_width() {
 
     let continuity = current.compare_semantic_continuity(&candidate).unwrap();
     let installed = current.counters();
-    assert_eq!(installed.declaration_checks, 1);
-    assert_eq!(installed.posture_checks, 1);
+    assert_eq!(installed.contract_admission_checks, 1);
     assert_eq!(installed.correspondence_registrations_inspected, 1);
     assert_eq!(installed.correspondence_targets_inspected, 2);
     assert_eq!(installed.signal_graph_checks, 1);
@@ -112,13 +114,13 @@ fn target_work_scales_with_the_owner_installed_correspondence_width() {
     assert_eq!(installed.signal_contract_installations, 1);
     assert_eq!(continuity.work().correspondences_inspected(), 1);
     assert_eq!(continuity.work().targets_inspected(), 2);
-    assert_eq!(continuity.work().portable_foundational_comparisons(), 62);
+    assert_eq!(continuity.work().bridge_contract_comparisons(), 2);
 }
 
 #[test]
 fn provider_denial_reports_exact_zero_downstream_installation_work() {
     let (mut owner, request) = installation_fixture(
-        conditional_node("query:one"),
+        conditional_contract("query:one"),
         &["bridge-main"],
         BridgeConditionalProviderSet::new(),
     );
@@ -127,8 +129,7 @@ fn provider_denial_reports_exact_zero_downstream_installation_work() {
         Err(denial) => denial,
     };
     let counters = denial.lowering_counters();
-    assert_eq!(counters.declaration_checks, 1);
-    assert_eq!(counters.posture_checks, 1);
+    assert_eq!(counters.contract_admission_checks, 1);
     assert_eq!(counters.provider_checks, 7);
     assert_eq!(counters.correspondence_registrations_inspected, 0);
     assert_eq!(counters.correspondence_targets_inspected, 0);
@@ -140,8 +141,8 @@ fn provider_denial_reports_exact_zero_downstream_installation_work() {
 
 #[test]
 fn equivalent_reinstallation_preserves_semantics_but_not_execution_affinity() {
-    let (_current_owner, current) = install(conditional_node("query:one"), "bridge-main");
-    let (_candidate_owner, candidate) = install(conditional_node("query:one"), "bridge-main");
+    let (_current_owner, current) = install(conditional_contract("query:one"), "bridge-main");
+    let (_candidate_owner, candidate) = install(conditional_contract("query:one"), "bridge-main");
 
     assert_ne!(
         current.signal_graph_instance_id(),
@@ -175,7 +176,7 @@ fn equivalent_reinstallation_preserves_semantics_but_not_execution_affinity() {
 
 #[test]
 fn exact_affinity_rechecks_revocable_owner_issued_liveness() {
-    let (mut owner, lowering) = install(conditional_node("query:one"), "bridge-main");
+    let (mut owner, lowering) = install(conditional_contract("query:one"), "bridge-main");
     let affinity = lowering
         .compare_execution_affinity(&lowering)
         .expect("the exact installed lowering retains affinity with itself");
@@ -206,7 +207,7 @@ fn exact_affinity_rechecks_revocable_owner_issued_liveness() {
 #[test]
 fn dropping_the_owner_revokes_liveness_but_retains_prior_meaning() {
     let lowering = {
-        let (_owner, lowering) = install(conditional_node("query:one"), "bridge-main");
+        let (_owner, lowering) = install(conditional_contract("query:one"), "bridge-main");
         assert!(lowering
             .admit_live_conditional_lowering()
             .expect("installed lowering starts live")
@@ -221,8 +222,8 @@ fn dropping_the_owner_revokes_liveness_but_retains_prior_meaning() {
 
 #[test]
 fn target_partition_drift_denies_semantic_continuity() {
-    let (_current_owner, current) = install(conditional_node("query:one"), "bridge-main");
-    let (_candidate_owner, candidate) = install(conditional_node("query:one"), "bridge-other");
+    let (_current_owner, current) = install(conditional_contract("query:one"), "bridge-main");
+    let (_candidate_owner, candidate) = install(conditional_contract("query:one"), "bridge-other");
 
     assert!(matches!(
         current
@@ -237,37 +238,29 @@ fn target_partition_drift_denies_semantic_continuity() {
 }
 
 #[test]
-fn declaration_drift_preserves_query_and_foundational_mismatch_evidence() {
-    let (_current_owner, current) = install(conditional_node("query:one"), "bridge-main");
+fn neutral_contract_drift_denies_before_correspondence_work() {
+    let (_current_owner, current) = install(conditional_contract("query:one"), "bridge-main");
     let (_candidate_owner, candidate) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+        install(always_eligible_contract("query:one"), "bridge-main");
 
     let denial = current.compare_semantic_continuity(&candidate).unwrap_err();
-    let BridgeConditionalContinuityMismatch::PortableDeclarationMismatched {
-        dimension,
-        foundational,
-    } = denial.mismatch()
-    else {
-        panic!("condition drift must retain structured owner-native mismatch evidence");
-    };
     assert_eq!(
-        *dimension,
-        WorthQueryPortableConditionalDimension::ConditionClass
+        denial.mismatch(),
+        &BridgeConditionalContinuityMismatch::ConditionalContract
     );
-    assert_eq!(foundational.kind(), CanonicalMismatchKind::ValueMismatch);
-    assert!(denial.work().portable_foundational_comparisons() > 0);
+    assert_eq!(denial.work().bridge_contract_comparisons(), 1);
 
     let affinity_denial = current.compare_execution_affinity(&candidate).unwrap_err();
     assert!(matches!(
         affinity_denial.mismatch(),
         BridgeConditionalExecutionAffinityMismatch::Continuity(
-            BridgeConditionalContinuityMismatch::PortableDeclarationMismatched { .. }
+            BridgeConditionalContinuityMismatch::ConditionalContract
         )
     ));
     assert_eq!(affinity_denial.work().liveness_checks(), 2);
     assert_eq!(
-        affinity_denial.work().portable_foundational_comparisons(),
-        denial.work().portable_foundational_comparisons()
+        affinity_denial.work().bridge_contract_comparisons(),
+        denial.work().bridge_contract_comparisons()
     );
 }
 
@@ -305,18 +298,18 @@ fn successor_preserves_builder_authority_without_carrying_conditional_registrati
         .expect("Bridge owns the runtime with builder authority");
     owner
         .install(BridgeConditionalInstallationRequest {
-            declaration: conditional_node("query:one"),
-            location: WorthQueryConditionalNodeLocation::operation("query:one").unwrap(),
+            contract: conditional_contract("query:one"),
+            location: BridgeConditionalLocation::operation("query:one"),
             registrations: vec![conditional],
             providers: BridgeConditionalProviderSet::new().compute(Compute(1)),
         })
         .expect("conditional authority extends the baseline registry");
-    assert_eq!(owner.baseline_query_dependency_count(), 1);
-    assert_eq!(owner.active_query_dependency_count(), 2);
+    assert_eq!(owner.baseline_semantic_dependency_count(), 1);
+    assert_eq!(owner.active_semantic_dependency_count(), 2);
 
     let successor = owner
         .successor_installation_runtime()
         .expect("successor stages from the exact builder baseline");
-    assert_eq!(successor.baseline_query_dependency_count(), 1);
-    assert_eq!(successor.active_query_dependency_count(), 1);
+    assert_eq!(successor.baseline_semantic_dependency_count(), 1);
+    assert_eq!(successor.active_semantic_dependency_count(), 1);
 }

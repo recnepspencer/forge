@@ -46,7 +46,7 @@ where
             })?;
         if !self.authorization.bridge().matches_installed_policy(
             installed.correspondence,
-            capability.binding_identity(),
+            &super::bridge_authorization_binding_identity(capability.binding_identity()),
             installed.contract.name(),
             &installed.request.resource_entity,
             installed.contract.operation(),

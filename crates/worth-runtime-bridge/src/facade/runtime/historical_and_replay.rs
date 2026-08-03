@@ -187,7 +187,7 @@ impl RuntimeBridge {
         mapping_registry: FrozenMappingRegistry,
         aspect_registry: FrozenAspectMappingRegistry,
         subscription_family_registry: FrozenSubscriptionFamilyRegistry,
-        query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,
+        semantic_dependency_registry: crate::correspondence::AdmittedSemanticDependencyRegistry,
     ) -> Self {
         let diagnostics = BridgeDiagnosticsFacade::new(policy);
         let diagnostic_sink = diagnostic_sink.unwrap_or_else(|| Arc::new(diagnostics.clone()));
@@ -215,7 +215,7 @@ impl RuntimeBridge {
             signal_aspect_lowering_owner: worth_signal::facade::SignalAspectLoweringOwner::fresh(),
             execution_basis_reservations: Default::default(),
             correspondence_allocations: Default::default(),
-            query_dependency_registry,
+            semantic_dependency_registry,
         }
     }
 }

@@ -5068,7 +5068,6 @@ dependencies = [
  "worth-foundational",
  "worth-harness",
  "worth-proof",
- "worth-query-installation",
  "worth-signal",
 ]
 

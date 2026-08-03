@@ -139,8 +139,8 @@ pub(super) fn aspect_mapping(mapping: &BridgeMappingRegistration) -> BridgeAspec
     )
 }
 
-pub(super) fn dependency(query_identity: &str) -> BridgeSemanticDependencyCandidate {
-    super::real_query_dependencies::dependency(query_identity)
+pub(super) fn dependency(source_identity: &str) -> BridgeSemanticDependencyCandidate {
+    super::semantic_dependencies::dependency(source_identity)
 }
 
 pub(super) fn target(

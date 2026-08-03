@@ -2,6 +2,7 @@ mod admission;
 mod admitted_operation;
 mod application_commit_authorization;
 mod authorization_revalidation;
+mod bridge_binding;
 mod bridge_observation;
 mod capability_admission;
 mod capability_binding_lowering;
@@ -26,6 +27,7 @@ mod time_basis;
 pub use admitted_operation::WorthQueryAdmittedApplicationOperation;
 pub(in crate::domain_computation) use admitted_operation::WorthQueryOperationAdmissionIdentity;
 pub(in crate::domain_computation) use application_commit_authorization::WorthQueryApplicationCommitAuthorization;
+pub(super) use bridge_binding::bridge_authorization_binding_identity;
 pub(in crate::domain_computation) use capability_decision_fact::{
     WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
 };

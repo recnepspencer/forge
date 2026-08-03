@@ -1,9 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use worth_proof::TransitionOutcome;
-use worth_query_installation::facade::{
-    WorthQueryConditionalNodeLocation, WorthQueryPortableConditionalNodeDeclaration,
-};
 use worth_signal::facade::SignalGraph;
 
 use super::{
@@ -16,8 +13,8 @@ use crate::correspondence::{
 use crate::facade::RuntimeBridge;
 
 pub struct BridgeConditionalInstallationRequest {
-    pub declaration: WorthQueryPortableConditionalNodeDeclaration,
-    pub location: WorthQueryConditionalNodeLocation,
+    pub contract: super::BridgeConditionalContract,
+    pub location: super::BridgeConditionalLocation,
     pub registrations: Vec<crate::correspondence::BridgeSemanticCorrespondenceRegistration>,
     pub providers: BridgeConditionalProviderSet,
 }
@@ -26,7 +23,7 @@ struct AdmittedConditionalInstallationRequest {
     request: BridgeConditionalInstallationRequest,
     provider_admission: super::provider_admission::BridgeConditionalProviderAdmission,
     node: worth_signal::facade::NodeId,
-    dependency_extension: crate::correspondence::AdmittedQueryDependencyExtension,
+    dependency_extension: crate::correspondence::AdmittedSemanticDependencyExtension,
     semantic_observation_plan:
         Option<super::semantic_observation_plan::BridgeConditionalSemanticObservationPlan>,
     counters: BridgeInstalledConditionalLoweringCounters,
@@ -36,7 +33,8 @@ struct AdmittedConditionalInstallationRequest {
 /// graph; Query never receives a raw graph or a detached node capability.
 pub struct BridgeOwnedSignalRuntime {
     pub(super) bridge: RuntimeBridge,
-    baseline_query_dependency_registry: crate::correspondence::AdmittedQueryDependencyRegistry,
+    baseline_semantic_dependency_registry:
+        crate::correspondence::AdmittedSemanticDependencyRegistry,
     pub(super) graph: SignalGraph,
     pub(super) conditional_lowerings:
         BTreeMap<worth_signal::facade::NodeId, Arc<BridgeInstalledConditionalLowering>>,
@@ -51,7 +49,7 @@ impl BridgeOwnedSignalRuntime {
         mut bridge: RuntimeBridge,
         mut graph: SignalGraph,
     ) -> Result<Self, BridgeConditionalDenial> {
-        let baseline_query_dependency_registry = bridge.query_dependency_registry.clone();
+        let baseline_semantic_dependency_registry = bridge.semantic_dependency_registry.clone();
         crate::correspondence::isolate_allocation_state(&mut bridge).map_err(|_| {
             BridgeConditionalDenial::new(
                 BridgeConditionalDenialKind::CorrespondenceAdmission,
@@ -68,7 +66,7 @@ impl BridgeOwnedSignalRuntime {
             })?;
         Ok(Self {
             bridge,
-            baseline_query_dependency_registry,
+            baseline_semantic_dependency_registry,
             graph,
             conditional_lowerings: BTreeMap::new(),
             conditional_observations: std::collections::BTreeMap::new(),
@@ -108,10 +106,10 @@ impl BridgeOwnedSignalRuntime {
         })?;
         let dependency_aspects = prepared.dependency_aspects();
         let condition_aspects =
-            prepared.condition_aspects(admitted.request.declaration.condition().dependencies());
+            prepared.condition_aspects(admitted.request.contract.condition_dependency_ordinals());
         counters.signal_contract_lowerings += 1;
         let definition = super::lowering::lower_signal_contract(
-            &admitted.request.declaration,
+            &admitted.request.contract,
             dependency_aspects,
             condition_aspects,
         )
@@ -139,15 +137,12 @@ impl BridgeOwnedSignalRuntime {
         mut request: BridgeConditionalInstallationRequest,
     ) -> Result<AdmittedConditionalInstallationRequest, BridgeConditionalDenial> {
         let mut counters = BridgeInstalledConditionalLoweringCounters::default();
-        counters.declaration_checks += 1;
+        counters.contract_admission_checks += 1;
         super::installation_admission::validate_declaration_pairing(&request)
-            .map_err(|denial| denial.with_lowering_counters(counters))?;
-        counters.posture_checks += 1;
-        super::installation_admission::validate_supported_postures(&request.declaration)
             .map_err(|denial| denial.with_lowering_counters(counters))?;
         counters.provider_checks += super::provider_admission::PROVIDER_DIMENSION_CHECK_COUNT;
         let provider_admission =
-            super::provider_admission::admit_provider_set(&request.declaration, &request.providers)
+            super::provider_admission::admit_provider_set(&request.contract, &request.providers)
                 .map_err(|denial| denial.with_lowering_counters(counters))?;
         let node =
             self.admit_conditional_signal_target(&mut request.registrations, &mut counters)?;
@@ -156,7 +151,7 @@ impl BridgeOwnedSignalRuntime {
         counters.semantic_observation_plan_compilations += 1;
         let semantic_observation_plan =
             super::semantic_observation_plan::compile_semantic_observation_plan(
-                &request.declaration,
+                &request.contract,
                 &request.registrations,
             )
             .map_err(|denial| denial.with_lowering_counters(counters))?;
@@ -208,12 +203,12 @@ impl BridgeOwnedSignalRuntime {
         &self,
         registrations: &[crate::correspondence::BridgeSemanticCorrespondenceRegistration],
         counters: &mut BridgeInstalledConditionalLoweringCounters,
-    ) -> Result<crate::correspondence::AdmittedQueryDependencyExtension, BridgeConditionalDenial>
+    ) -> Result<crate::correspondence::AdmittedSemanticDependencyExtension, BridgeConditionalDenial>
     {
         counters.dependency_registry_compilations += 1;
         let extension = self
             .bridge
-            .query_dependency_registry
+            .semantic_dependency_registry
             .admit_extension(registrations)
             .map_err(|denial| {
                 counters.dependency_registry_existing_key_lookups =
@@ -240,7 +235,7 @@ impl BridgeOwnedSignalRuntime {
     ) -> Result<Arc<BridgeInstalledConditionalLowering>, BridgeConditionalDenial> {
         counters.dependency_registry_commits = admitted
             .dependency_extension
-            .commit(&mut self.bridge.query_dependency_registry);
+            .commit(&mut self.bridge.semantic_dependency_registry);
         counters.correspondence_admissions = correspondences.len();
         counters.signal_targets_joined = correspondences
             .iter()
@@ -252,7 +247,7 @@ impl BridgeOwnedSignalRuntime {
                 super::lowering_identity::installed_lowering_identity(
                     self.bridge.signal_runtime_key,
                     &signal_contract,
-                    admitted.request.declaration.identity(),
+                    admitted.request.contract.identity(),
                     &correspondences,
                 ),
             );
@@ -260,7 +255,7 @@ impl BridgeOwnedSignalRuntime {
             bridge_runtime_key: self.bridge.signal_runtime_key,
             _authority: authority,
             projection,
-            declaration: admitted.request.declaration,
+            contract: admitted.request.contract,
             location: admitted.request.location,
             correspondences,
             semantic_observation_plan: admitted.semantic_observation_plan,
@@ -277,17 +272,19 @@ impl BridgeOwnedSignalRuntime {
 
     pub fn successor_installation_runtime(&self) -> Result<Self, BridgeConditionalDenial> {
         let mut bridge = self.bridge.clone();
-        bridge.query_dependency_registry = self.baseline_query_dependency_registry.clone();
+        bridge.semantic_dependency_registry = self.baseline_semantic_dependency_registry.clone();
         Self::new(bridge, self.graph.clone())
     }
 
-    pub fn baseline_query_dependency_count(&self) -> usize {
-        self.baseline_query_dependency_registry
+    pub fn baseline_semantic_dependency_count(&self) -> usize {
+        self.baseline_semantic_dependency_registry
             .authoritative_count()
     }
 
-    pub fn active_query_dependency_count(&self) -> usize {
-        self.bridge.query_dependency_registry.authoritative_count()
+    pub fn active_semantic_dependency_count(&self) -> usize {
+        self.bridge
+            .semantic_dependency_registry
+            .authoritative_count()
     }
 
     pub fn revoke_conditional_liveness(&mut self) {

@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-use worth_query_installation::facade::{
-    WorthQueryConditionalNodeLocation, WorthQueryPortableConditionalNodeDeclaration,
-};
 use worth_signal::facade::InstalledSignalConditionalContract;
 
 use super::{BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalProviderSet};
@@ -10,8 +7,7 @@ use crate::correspondence::BridgeInstalledSemanticCorrespondence;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct BridgeInstalledConditionalLoweringCounters {
-    pub declaration_checks: usize,
-    pub posture_checks: usize,
+    pub contract_admission_checks: usize,
     pub correspondence_registrations_inspected: usize,
     pub correspondence_targets_inspected: usize,
     pub signal_graph_checks: usize,
@@ -36,8 +32,8 @@ pub struct BridgeInstalledConditionalLowering {
     pub(super) _authority:
         super::lowering_authority::BridgeInstalledConditionalLoweringAuthorityIdentity,
     pub(crate) projection: super::BridgeConditionalLoweringProjectionIdentity,
-    pub(crate) declaration: WorthQueryPortableConditionalNodeDeclaration,
-    pub(crate) location: WorthQueryConditionalNodeLocation,
+    pub(crate) contract: super::BridgeConditionalContract,
+    pub(crate) location: super::BridgeConditionalLocation,
     pub(crate) correspondences: Vec<BridgeInstalledSemanticCorrespondence>,
     pub(super) semantic_observation_plan:
         Option<super::semantic_observation_plan::BridgeConditionalSemanticObservationPlan>,
@@ -52,11 +48,11 @@ impl BridgeInstalledConditionalLowering {
     pub fn projection(&self) -> &super::BridgeConditionalLoweringProjectionIdentity {
         &self.projection
     }
-    pub fn location(&self) -> &WorthQueryConditionalNodeLocation {
+    pub fn location(&self) -> &super::BridgeConditionalLocation {
         &self.location
     }
-    pub fn declaration(&self) -> &WorthQueryPortableConditionalNodeDeclaration {
-        &self.declaration
+    pub fn contract(&self) -> &super::BridgeConditionalContract {
+        &self.contract
     }
     pub fn signal_graph_instance_id(&self) -> u64 {
         self.signal_contract.graph_instance_id()
@@ -69,42 +65,6 @@ impl BridgeInstalledConditionalLowering {
     }
     pub fn correspondence_count(&self) -> usize {
         self.correspondences.len()
-    }
-
-    pub fn validate_query_authority_continuity(
-        &self,
-        operation_identity: &str,
-        runtime_authority: u64,
-        installation_generation: u64,
-        graph_authorities: &[(
-            &str,
-            &Arc<worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority>,
-        )],
-    ) -> Result<(), BridgeConditionalDenial> {
-        if self.correspondences.iter().any(|correspondence| {
-            let basis = correspondence.basis();
-            basis.query_basis.as_ref() != operation_identity
-                || basis.query_runtime_authority() != runtime_authority
-                || basis.query_installation_generation() != installation_generation
-        }) {
-            return Err(BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::OperationAuthorityMismatch,
-                "conditional lowering no longer joins the bound operation authority basis",
-            ));
-        }
-        if self.correspondences.iter().any(|correspondence| {
-            let basis = correspondence.basis();
-            !graph_authorities.iter().any(|(role, authority)| {
-                *role == basis.declared_graph_role()
-                    && Arc::ptr_eq(authority, &basis.graph_authority)
-            })
-        }) {
-            return Err(BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::GraphAuthorityMismatch,
-                "conditional lowering graph participation is absent from the bound operation",
-            ));
-        }
-        Ok(())
     }
 
     pub fn validate_signal_decision_contract(

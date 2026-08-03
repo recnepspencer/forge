@@ -1,14 +1,13 @@
-use super::super::real_query_dependencies::conditional_node_always_eligible;
+use super::super::semantic_dependencies::always_eligible_contract;
 use super::install;
 use crate::facade::{BridgeConditionalDecisionReentryRequest, BridgeConditionalDenialKind};
 
 #[test]
 fn retained_decision_denies_a_foreign_bridge_runtime() {
-    let (mut owner, lowering) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (mut owner, lowering) = install(always_eligible_contract("query:one"), "bridge-main");
     let evidence = execute(&mut owner, &lowering, "snapshot-a");
     let seed = evidence.retain_for_reentry();
-    let (foreign, _) = install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (foreign, _) = install(always_eligible_contract("query:one"), "bridge-main");
 
     let Err(denial) =
         foreign.reenter_retained_conditional_decision(reentry(&seed, &lowering, "snapshot-a"))
@@ -27,12 +26,11 @@ fn retained_decision_denies_a_foreign_bridge_runtime() {
 
 #[test]
 fn retained_decision_denies_a_nonidentical_installed_lowering() {
-    let (mut owner, lowering) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (mut owner, lowering) = install(always_eligible_contract("query:one"), "bridge-main");
     let evidence = execute(&mut owner, &lowering, "snapshot-a");
     let seed = evidence.retain_for_reentry();
     let (_candidate_owner, candidate) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+        install(always_eligible_contract("query:one"), "bridge-main");
 
     let Err(denial) =
         owner.reenter_retained_conditional_decision(reentry(&seed, &candidate, "snapshot-a"))
@@ -50,8 +48,7 @@ fn retained_decision_denies_a_nonidentical_installed_lowering() {
 
 #[test]
 fn retained_decision_denies_snapshot_drift() {
-    let (mut owner, lowering) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (mut owner, lowering) = install(always_eligible_contract("query:one"), "bridge-main");
     let evidence = execute(&mut owner, &lowering, "snapshot-a");
     let seed = evidence.retain_for_reentry();
 
@@ -75,8 +72,7 @@ fn retained_decision_denies_snapshot_drift() {
 
 #[test]
 fn copied_projections_cannot_change_query_continuation_authority() {
-    let (mut owner, lowering) =
-        install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (mut owner, lowering) = install(always_eligible_contract("query:one"), "bridge-main");
     let evidence = execute(&mut owner, &lowering, "snapshot-a");
     let copied_signal_projection = evidence.signal().projection().label().to_string();
     let copied_lowering_projection = lowering.projection().label().to_string();
@@ -123,8 +119,8 @@ fn copied_projections_cannot_change_query_continuation_authority() {
 
 #[test]
 fn stale_lowering_denial_reports_zero_downstream_bridge_and_signal_work() {
-    let (_owner, lowering) = install(conditional_node_always_eligible("query:one"), "bridge-main");
-    let (mut foreign, _) = install(conditional_node_always_eligible("query:one"), "bridge-main");
+    let (_owner, lowering) = install(always_eligible_contract("query:one"), "bridge-main");
+    let (mut foreign, _) = install(always_eligible_contract("query:one"), "bridge-main");
     let denial = match foreign.execute(
         crate::facade::BridgeConditionalExecutionRequest {
             lowering: &lowering,

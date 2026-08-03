@@ -5,9 +5,9 @@ use crate::facade::{
     BridgeConditionalTriggerProvider, BridgeConditionalWakeProvider,
 };
 
-use super::super::real_query_dependencies::{
-    conditional_node_domain_condition, conditional_node_on_demand,
-    conditional_node_registered_comparator, conditional_node_temporal,
+use super::super::semantic_dependencies::{
+    on_demand_contract, registered_comparator_contract, runtime_predicate_contract,
+    temporal_contract,
 };
 
 struct Trigger(bool);
@@ -37,7 +37,6 @@ impl BridgeConditionalProviderSemantics for Decision {
 impl BridgeConditionalConditionProvider for Decision {
     fn resolve(
         &self,
-        _declaration: &worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
         _context: BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
         Ok(self.0)
@@ -47,7 +46,6 @@ impl BridgeConditionalConditionProvider for Decision {
 impl BridgeConditionalWakeProvider for Decision {
     fn resolve(
         &self,
-        _declaration: &worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
         _context: BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
         Ok(self.0)
@@ -95,15 +93,14 @@ impl BridgeConditionalComparatorProvider for Comparator {
 }
 
 fn assert_provider_semantic_drift(
-    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
+    contract: crate::facade::BridgeConditionalContract,
     current_providers: BridgeConditionalProviderSet,
     candidate_providers: BridgeConditionalProviderSet,
     role: BridgeConditionalProviderRole,
 ) {
     let (_current_owner, current) =
-        install_with(declaration.clone(), "bridge-main", current_providers);
-    let (_candidate_owner, candidate) =
-        install_with(declaration, "bridge-main", candidate_providers);
+        install_with(contract.clone(), "bridge-main", current_providers);
+    let (_candidate_owner, candidate) = install_with(contract, "bridge-main", candidate_providers);
     let denial = current.compare_semantic_continuity(&candidate).unwrap_err();
     assert!(matches!(
         denial.mismatch(),
@@ -116,7 +113,7 @@ fn assert_provider_semantic_drift(
 #[test]
 fn compute_configuration_drift_denies_continuity() {
     assert_provider_semantic_drift(
-        conditional_node("query:one"),
+        conditional_contract("query:one"),
         BridgeConditionalProviderSet::new().compute(Compute(1)),
         BridgeConditionalProviderSet::new().compute(Compute(2)),
         BridgeConditionalProviderRole::Compute,
@@ -125,7 +122,7 @@ fn compute_configuration_drift_denies_continuity() {
 
 #[test]
 fn alternate_implementations_may_share_one_typed_semantic_contract() {
-    let declaration = conditional_node("query:one");
+    let declaration = conditional_contract("query:one");
     let (_current_owner, current) = install_with(
         declaration.clone(),
         "bridge-main",
@@ -145,7 +142,7 @@ fn alternate_implementations_may_share_one_typed_semantic_contract() {
 #[test]
 fn trigger_configuration_drift_denies_continuity() {
     assert_provider_semantic_drift(
-        conditional_node_on_demand("query:one"),
+        on_demand_contract("query:one"),
         BridgeConditionalProviderSet::new()
             .trigger(Trigger(true))
             .compute(Compute(1)),
@@ -159,7 +156,7 @@ fn trigger_configuration_drift_denies_continuity() {
 #[test]
 fn wake_decision_drift_denies_continuity() {
     assert_provider_semantic_drift(
-        conditional_node_temporal("query:one"),
+        temporal_contract("query:one"),
         BridgeConditionalProviderSet::new()
             .wake(Decision(
                 worth_signal::facade::InstalledSignalConditionDecision::Eligible,
@@ -177,7 +174,7 @@ fn wake_decision_drift_denies_continuity() {
 #[test]
 fn condition_decision_drift_denies_continuity() {
     assert_provider_semantic_drift(
-        conditional_node_domain_condition("query:one"),
+        runtime_predicate_contract("query:one"),
         BridgeConditionalProviderSet::new()
             .condition(Decision(
                 worth_signal::facade::InstalledSignalConditionDecision::Eligible,
@@ -195,7 +192,7 @@ fn condition_decision_drift_denies_continuity() {
 #[test]
 fn comparator_configuration_drift_denies_continuity() {
     assert_provider_semantic_drift(
-        conditional_node_registered_comparator("query:one"),
+        registered_comparator_contract("query:one"),
         BridgeConditionalProviderSet::new()
             .dependency_comparator(Comparator(true))
             .compute(Compute(1)),

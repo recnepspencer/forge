@@ -2,6 +2,13 @@ root_manifest = "Cargo.toml"
 forbidden_root_prefixes = ["cad/workspaces/"]
 
 [[dependency_denials]]
+workspace_manifest = "Cargo.toml"
+sources = ["worth-runtime-bridge"]
+forbidden_targets = []
+forbidden_target_prefixes = ["worth-query"]
+guidance = "Runtime Bridge owns neutral crossing contracts and must not import Query declaration, installation, execution, replay, or monolith authority"
+
+[[dependency_denials]]
 workspace_manifest = "workspaces/worth-store/Cargo.toml"
 sources = [
   "worth-store-authority",

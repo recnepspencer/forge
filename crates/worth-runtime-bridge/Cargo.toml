@@ -13,13 +13,11 @@ worth-foundational = { path = "../worth-foundational" }
 worth-harness = { path = "../worth-harness" }
 worth-proof = { path = "../worth-proof" }
 worth-signal = { path = "../worth-signal" }
-worth-query-installation = { path = "../../workspaces/worth-query/crates/worth-query-installation" }
 serde_json = "1"
 sha2 = "0.10"
 
 [dev-dependencies]
 trybuild.workspace = true
-worth-query-declaration = { path = "../../workspaces/worth-query/crates/worth-query-declaration" }
 
 [lints]
 workspace = true

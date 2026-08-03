@@ -2,23 +2,51 @@ use std::sync::Arc;
 
 use worth_foundational::facade::{
     AspectBinding, AspectContract, AspectMask, AuthoritativeAspectChangeKind, ProjectionMask,
+    TruthPartitionRole,
 };
-use worth_query_installation::facade::WorthQueryInstalledConditionalDependencyAuthority;
-use worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority;
 
 use super::{BridgeCorrespondenceDenial, BridgeCorrespondenceDenialKind};
 
-pub use worth_query_installation::facade::WorthQuerySemanticLocality as BridgeSemanticLocality;
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum BridgeSemanticLocality {
+    SourceRecord,
+    SourcePartition(TruthPartitionRole),
+    WholeLogicalGraph,
+}
+
+#[derive(Debug, Clone)]
+pub struct BridgeSemanticDependencyCandidateParts {
+    pub source_installation_identity: Arc<str>,
+    pub source_basis: Arc<str>,
+    pub source_runtime_authority: u64,
+    pub source_installation_generation: u64,
+    pub source_authority_binding_identity: Arc<str>,
+    pub source_stage_identity: Option<Arc<str>>,
+    pub source_node_identity: Arc<str>,
+    pub dependency_ordinal: usize,
+    pub declared_graph_role: Arc<str>,
+    pub graph_participation_identity: Arc<str>,
+    pub graph_adapter_identity: Arc<str>,
+    pub source_record_identity:
+        Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+    pub contract: AspectContract,
+    pub projection_mask: AspectMask<ProjectionMask>,
+    pub binding: AspectBinding,
+    pub locality: BridgeSemanticLocality,
+    pub relevant_changes: Vec<AuthoritativeAspectChangeKind>,
+}
 
 #[derive(Debug, Clone)]
 pub struct BridgeSemanticDependencyCandidate {
-    pub(crate) query_authority: Arc<WorthQueryInstalledConditionalDependencyAuthority>,
-    pub(crate) query_installation_identity: Arc<str>,
-    pub(crate) query_basis: Arc<str>,
-    pub(crate) query_runtime_authority: u64,
-    pub(crate) query_installation_generation: u64,
+    pub(crate) source_installation_identity: Arc<str>,
+    pub(crate) source_basis: Arc<str>,
+    pub(crate) source_runtime_authority: u64,
+    pub(crate) source_installation_generation: u64,
+    pub(crate) source_authority_binding_identity: Arc<str>,
+    pub(crate) source_stage_identity: Option<Arc<str>>,
+    pub(crate) source_node_identity: Arc<str>,
+    pub(crate) dependency_ordinal: usize,
     pub(crate) declared_graph_role: Arc<str>,
-    pub(crate) graph_authority: Arc<WorthQueryInstalledGraphParticipationAuthority>,
     pub(crate) graph_participation_identity: Arc<str>,
     pub(crate) graph_adapter_identity: Arc<str>,
     pub(crate) source_record_identity:
@@ -31,82 +59,55 @@ pub struct BridgeSemanticDependencyCandidate {
 }
 
 impl BridgeSemanticDependencyCandidate {
-    /// Joins an opaque Query-installed dependency to one runtime graph-binding
-    /// projection. Portable semantic fields cannot be supplied independently.
-    pub fn from_query_authority(
-        query_authority: WorthQueryInstalledConditionalDependencyAuthority,
-        graph_authority: Arc<WorthQueryInstalledGraphParticipationAuthority>,
-        source_record_identity: Option<
-            crate::relational_identity::RelationalBridgeRecordIdentityParts,
-        >,
+    /// Admits one owner-validated semantic dependency projection into Bridge.
+    /// The source owner remains responsible for its own installation authority;
+    /// this value grants only Bridge correspondence admission.
+    pub fn admit(
+        parts: BridgeSemanticDependencyCandidateParts,
     ) -> Result<Self, BridgeCorrespondenceDenial> {
-        let query_authority = Arc::new(query_authority);
-        let dependency = query_authority.dependency();
-        let contract = dependency.contract().clone();
-        let projection_mask = dependency.projection_mask().clone();
-        let binding = dependency.binding().clone();
-        let locality = dependency.locality().clone();
-        let relevant_changes = dependency.relevant_changes().to_vec();
-        contract
-            .admits_projection_mask(&projection_mask)
+        parts
+            .contract
+            .admits_projection_mask(&parts.projection_mask)
             .map_err(|_| {
                 BridgeCorrespondenceDenial::without_admission(
                     BridgeCorrespondenceDenialKind::ProjectionMaskNotAdmitted,
                 )
             })?;
-        let query_installation_identity: Arc<str> = Arc::from(format!(
-            "{}|generation={}|operation={}|node={}|dependency={}",
-            query_authority.owner(),
-            query_authority.generation().ordinal(),
-            query_authority.operation_slot(),
-            query_authority.location().node_identity(),
-            query_authority.dependency_ordinal(),
-        ));
-        let query_basis: Arc<str> = Arc::from(query_authority.operation_canonical_identity());
-        let query_runtime_authority = query_authority.runtime_ordinal();
-        let query_installation_generation = query_authority.generation().ordinal();
-        let declared_graph_role: Arc<str> = Arc::from(dependency.graph_read_role().as_str());
-        if graph_authority.runtime_ordinal() != query_runtime_authority
-            || graph_authority.role() != declared_graph_role.as_ref()
-        {
-            return Err(BridgeCorrespondenceDenial::without_admission(
-                BridgeCorrespondenceDenialKind::GraphParticipationNotOwnedByOperation,
-            ));
-        }
-        let graph_participation_identity: Arc<str> =
-            Arc::from(graph_authority.authority_identity());
-        let graph_adapter_identity: Arc<str> = Arc::from(graph_authority.provider_identity());
-        if query_installation_identity.trim().is_empty()
-            || query_basis.trim().is_empty()
-            || query_runtime_authority == 0
-            || query_installation_generation == 0
-            || declared_graph_role.trim().is_empty()
-            || graph_participation_identity.trim().is_empty()
-            || graph_adapter_identity.trim().is_empty()
-            || relevant_changes.is_empty()
-            || matches!(locality, BridgeSemanticLocality::SourceRecord)
-                != source_record_identity.is_some()
+        if parts.source_installation_identity.trim().is_empty()
+            || parts.source_basis.trim().is_empty()
+            || parts.source_runtime_authority == 0
+            || parts.source_installation_generation == 0
+            || parts.source_authority_binding_identity.trim().is_empty()
+            || parts.source_node_identity.trim().is_empty()
+            || parts.declared_graph_role.trim().is_empty()
+            || parts.graph_participation_identity.trim().is_empty()
+            || parts.graph_adapter_identity.trim().is_empty()
+            || parts.relevant_changes.is_empty()
+            || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
+                != parts.source_record_identity.is_some()
         {
             return Err(BridgeCorrespondenceDenial::without_admission(
                 BridgeCorrespondenceDenialKind::InvalidPortableDependency,
             ));
         }
         Ok(Self {
-            query_authority,
-            query_installation_identity,
-            query_basis,
-            query_runtime_authority,
-            query_installation_generation,
-            declared_graph_role,
-            graph_authority,
-            graph_participation_identity,
-            graph_adapter_identity,
-            source_record_identity,
-            contract,
-            projection_mask,
-            binding,
-            locality,
-            relevant_changes,
+            source_installation_identity: parts.source_installation_identity,
+            source_basis: parts.source_basis,
+            source_runtime_authority: parts.source_runtime_authority,
+            source_installation_generation: parts.source_installation_generation,
+            source_authority_binding_identity: parts.source_authority_binding_identity,
+            source_stage_identity: parts.source_stage_identity,
+            source_node_identity: parts.source_node_identity,
+            dependency_ordinal: parts.dependency_ordinal,
+            declared_graph_role: parts.declared_graph_role,
+            graph_participation_identity: parts.graph_participation_identity,
+            graph_adapter_identity: parts.graph_adapter_identity,
+            source_record_identity: parts.source_record_identity,
+            contract: parts.contract,
+            projection_mask: parts.projection_mask,
+            binding: parts.binding,
+            locality: parts.locality,
+            relevant_changes: parts.relevant_changes,
         })
     }
 
@@ -142,29 +143,24 @@ impl BridgeSemanticDependencyCandidate {
         &self.relevant_changes
     }
 
-    pub fn conditional_node_location(
-        &self,
-    ) -> &worth_query_installation::facade::WorthQueryConditionalNodeLocation {
-        self.query_authority.location()
+    pub fn source_node_identity(&self) -> &str {
+        &self.source_node_identity
     }
 
-    pub fn dependency_ordinal(&self) -> usize {
-        self.query_authority.dependency_ordinal()
+    pub fn source_stage_identity(&self) -> Option<&str> {
+        self.source_stage_identity.as_deref()
     }
 
-    /// Reports whether both candidates retain the same installed Query and
-    /// graph-participation authorities. Semantic fields alone cannot establish
-    /// this correspondence.
-    pub fn retains_same_installed_authority_as(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.query_authority, &other.query_authority)
-            && Arc::ptr_eq(&self.graph_authority, &other.graph_authority)
+    pub const fn dependency_ordinal(&self) -> usize {
+        self.dependency_ordinal
     }
 
-    pub(crate) fn matches_declared_dependency(
-        &self,
-        dependency: &worth_query_installation::facade::WorthQuerySemanticTruthDependency,
-    ) -> bool {
-        self.query_authority.dependency() == dependency
+    pub fn retains_same_source_authority_as(&self, other: &Self) -> bool {
+        self.source_authority_binding_identity == other.source_authority_binding_identity
+            && self.source_runtime_authority == other.source_runtime_authority
+            && self.source_installation_generation == other.source_installation_generation
+            && self.graph_participation_identity == other.graph_participation_identity
+            && self.graph_adapter_identity == other.graph_adapter_identity
     }
 
     pub(crate) fn canonical_registration_key(&self) -> String {
@@ -198,18 +194,17 @@ impl BridgeSemanticDependencyCandidate {
             .collect::<Vec<_>>()
             .join("|");
         [
-            self.query_installation_identity.to_string(),
-            self.query_basis.to_string(),
-            self.query_runtime_authority.to_string(),
-            self.query_installation_generation.to_string(),
-            self.query_authority.authority_binding_identity().to_owned(),
-            self.query_authority
-                .location()
-                .stage_identity()
+            self.source_installation_identity.to_string(),
+            self.source_basis.to_string(),
+            self.source_runtime_authority.to_string(),
+            self.source_installation_generation.to_string(),
+            self.source_authority_binding_identity.to_string(),
+            self.source_stage_identity
+                .as_deref()
                 .unwrap_or("operation")
                 .to_string(),
-            self.query_authority.location().node_identity().to_string(),
-            self.query_authority.dependency_ordinal().to_string(),
+            self.source_node_identity.to_string(),
+            self.dependency_ordinal.to_string(),
             self.declared_graph_role.to_string(),
             self.graph_participation_identity.to_string(),
             self.graph_adapter_identity.to_string(),
@@ -229,9 +224,9 @@ impl BridgeSemanticDependencyCandidate {
 
     pub(crate) fn authority_registration_key(&self) -> String {
         [
-            self.query_runtime_authority.to_string(),
-            self.query_installation_generation.to_string(),
-            self.query_authority.authority_binding_identity().to_owned(),
+            self.source_runtime_authority.to_string(),
+            self.source_installation_generation.to_string(),
+            self.source_authority_binding_identity.to_string(),
             self.graph_participation_identity.to_string(),
             self.graph_adapter_identity.to_string(),
             source_record_identity_token(self.source_record_identity),
@@ -244,14 +239,15 @@ impl BridgeSemanticDependencyCandidate {
 
 impl PartialEq for BridgeSemanticDependencyCandidate {
     fn eq(&self, other: &Self) -> bool {
-        self.query_authority.authority_binding_identity()
-            == other.query_authority.authority_binding_identity()
-            && self.query_installation_identity == other.query_installation_identity
-            && self.query_basis == other.query_basis
-            && self.query_runtime_authority == other.query_runtime_authority
-            && self.query_installation_generation == other.query_installation_generation
+        self.source_authority_binding_identity == other.source_authority_binding_identity
+            && self.source_installation_identity == other.source_installation_identity
+            && self.source_basis == other.source_basis
+            && self.source_runtime_authority == other.source_runtime_authority
+            && self.source_installation_generation == other.source_installation_generation
+            && self.source_stage_identity == other.source_stage_identity
+            && self.source_node_identity == other.source_node_identity
+            && self.dependency_ordinal == other.dependency_ordinal
             && self.declared_graph_role == other.declared_graph_role
-            && self.graph_authority == other.graph_authority
             && self.graph_participation_identity == other.graph_participation_identity
             && self.graph_adapter_identity == other.graph_adapter_identity
             && self.source_record_identity == other.source_record_identity

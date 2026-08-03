@@ -117,7 +117,7 @@ pub(super) fn compare_owner_delivery(
     if staged_set.basis() != owner_set.basis()
         || !staged_set
             .dependency()
-            .retains_same_installed_authority_as(owner_set.dependency())
+            .retains_same_source_authority_as(owner_set.dependency())
     {
         return (false, WorthQueryStagedOwnerDeliveryAdmission::default());
     }

@@ -53,7 +53,7 @@ pub struct RuntimeBridgeBuilder<
     pub(super) diagnostic_sink: Option<Arc<dyn DiagnosticSink>>,
     pub(super) mapping_registrations: MappingState,
     pub(super) aspect_registrations: Vec<BridgeAspectRegistration>,
-    pub(super) query_dependency_registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
+    pub(super) semantic_dependency_registrations: Vec<BridgeSemanticCorrespondenceRegistration>,
 }
 
 impl Default
@@ -96,7 +96,7 @@ impl
             diagnostic_sink: None,
             mapping_registrations: MissingMappingRegistrations,
             aspect_registrations: Vec::new(),
-            query_dependency_registrations: Vec::new(),
+            semantic_dependency_registrations: Vec::new(),
         }
     }
 }

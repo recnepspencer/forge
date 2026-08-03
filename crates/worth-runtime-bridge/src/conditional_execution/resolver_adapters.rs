@@ -106,12 +106,12 @@ impl worth_signal::facade::InstalledSignalConditionResolver for ConditionAdapter
         }
         if let Some(provider) = &self.lowering.providers.condition {
             return provider
-                .resolve(&self.lowering.declaration, bridge_context)
+                .resolve(bridge_context)
                 .map_err(worth_signal::facade::SignalError::invalid_input);
         }
         if let Some(provider) = &self.lowering.providers.wake {
             return provider
-                .resolve(&self.lowering.declaration, bridge_context)
+                .resolve(bridge_context)
                 .map_err(worth_signal::facade::SignalError::invalid_input);
         }
         Err(worth_signal::facade::SignalError::invalid_input(

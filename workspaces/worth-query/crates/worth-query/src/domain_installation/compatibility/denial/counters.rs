@@ -14,6 +14,7 @@ pub struct WorthQueryCompatibilityCounters {
     pub required_domain_rebind_receipts_inspected: usize,
     pub conditional_lowerings_compared: usize,
     pub conditional_foundational_comparisons: usize,
+    pub conditional_bridge_contract_comparisons: usize,
     pub conditional_liveness_checks: usize,
     pub conditional_correspondences_inspected: usize,
     pub conditional_targets_inspected: usize,

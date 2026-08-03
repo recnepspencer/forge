@@ -234,7 +234,7 @@ where
             }
             if !self.authorization.bridge().matches_installed_policy(
                 installed.correspondence,
-                binding_identity,
+                &super::bridge_authorization_binding_identity(binding_identity),
                 requirement.ability(),
                 requirement.scope_entity(),
                 requirement.policy(),

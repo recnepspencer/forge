@@ -74,9 +74,9 @@ mod runtime;
 mod standard_path;
 
 pub use crate::authorization::{
-    BridgeAuthorizationClauseContract, BridgeAuthorizationClauseObservation,
-    BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationDecisionEvidence,
-    BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
+    BridgeAuthorizationBindingIdentity, BridgeAuthorizationClauseContract,
+    BridgeAuthorizationClauseObservation, BridgeAuthorizationCorrespondenceIdentity,
+    BridgeAuthorizationDecisionEvidence, BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
     BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
     BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
     BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,

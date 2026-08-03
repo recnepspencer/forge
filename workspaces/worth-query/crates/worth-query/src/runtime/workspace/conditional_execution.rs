@@ -43,7 +43,7 @@ impl WorthQueryWorkspace {
             .runtime
             .conditional_nodes::<D, O, F>()
             .into_iter()
-            .find(|node| node.lowering.location() == &location)
+            .find(|node| node.location == location)
             .ok_or(
                 crate::domain_installation::WorthQueryConditionalDeliveryDenial::NodeNotInstalled,
             )?;

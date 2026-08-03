@@ -14,6 +14,7 @@ mod provider_semantics;
 mod providers;
 mod resolver_adapters;
 mod retained_decision;
+mod semantic_contract;
 mod semantic_observation_plan;
 mod semantic_observations;
 
@@ -47,4 +48,8 @@ pub use providers::{
 };
 pub use retained_decision::{
     BridgeConditionalDecisionReentryRequest, BridgeRetainedConditionalDecisionSeed,
+};
+pub use semantic_contract::{
+    BridgeConditionalCondition, BridgeConditionalContract, BridgeConditionalContractParts,
+    BridgeConditionalLocation,
 };
