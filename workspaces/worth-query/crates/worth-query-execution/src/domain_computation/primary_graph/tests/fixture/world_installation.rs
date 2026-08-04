@@ -1,10 +1,11 @@
 use super::*;
 
 #[derive(Clone, Copy)]
-enum CapabilityGrantPopulation {
+pub(super) enum CapabilityGrantPopulation {
     None,
     Current,
     CurrentAndFutureReplacement,
+    Delegated,
 }
 
 pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
@@ -141,62 +142,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_blocked_authorizat
     )
 }
 
-pub(in crate::domain_computation::primary_graph) fn installed_capability_authorization_world(
-) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[],
-        false,
-        1,
-        "primary",
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::Current,
-    )
-}
-
-pub(in crate::domain_computation::primary_graph) fn installed_capability_world_with_label(
-    label: &str,
-) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[],
-        false,
-        1,
-        label,
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::Current,
-    )
-}
-
-pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world(
-) -> AuthorizationWorld {
-    installed_capability_live_world_with_label("primary")
-}
-
-pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world_with_label(
-    label: &str,
-) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[("principal-1", "account-1")],
-        false,
-        2,
-        label,
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::Current,
-    )
-}
-
-pub(in crate::domain_computation::primary_graph) fn installed_capability_replacement_world(
-) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[],
-        false,
-        1,
-        "primary",
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::CurrentAndFutureReplacement,
-    )
-}
-
-fn installed_authorization_world_with_principal_count(
+pub(super) fn installed_authorization_world_with_principal_count(
     owner_bindings: &[(&str, &str)],
     include_blocked_relation: bool,
     principal_count: usize,
@@ -307,14 +253,16 @@ fn installed_authorization_world_with_principal_count(
             ))
             .unwrap();
     }
-    if !matches!(capability_grants, CapabilityGrantPopulation::None) {
-        super::capability_seed::bind_grant(&mut bootstrap);
-    }
-    if matches!(
-        capability_grants,
-        CapabilityGrantPopulation::CurrentAndFutureReplacement
-    ) {
-        super::capability_seed::bind_future_replacement_grant(&mut bootstrap);
+    match capability_grants {
+        CapabilityGrantPopulation::None => {}
+        CapabilityGrantPopulation::Current => super::capability_seed::bind_grant(&mut bootstrap),
+        CapabilityGrantPopulation::CurrentAndFutureReplacement => {
+            super::capability_seed::bind_grant(&mut bootstrap);
+            super::capability_seed::bind_future_replacement_grant(&mut bootstrap);
+        }
+        CapabilityGrantPopulation::Delegated => {
+            super::capability_seed::bind_delegated_grants(&mut bootstrap)
+        }
     }
     let invariant = bootstrap.retain_invariant_projection_authority();
     let application = bootstrap

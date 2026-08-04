@@ -2,7 +2,7 @@
 
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::capability_observation::observe_capability;
+use super::delegation_admission::observe_capability;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -92,6 +92,7 @@ where
                     request,
                     &sample,
                     Some(authorization.grant()),
+                    Some(authorization.decision()),
                 )
             };
             runtime.snapshots().release_snapshot(&snapshot);

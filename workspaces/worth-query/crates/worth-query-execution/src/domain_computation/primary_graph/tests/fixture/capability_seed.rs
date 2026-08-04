@@ -1,5 +1,5 @@
 use super::capability::*;
-use super::IdentityExecutionSchema;
+use super::{IdentityExecutionSchema, Principal};
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityKey, WorthQueryApplicationEntitySeed,
     WorthQueryApplicationRelationSeed, WorthQueryPrimaryGraphBootstrap,
@@ -15,11 +15,111 @@ pub(super) fn bind_future_replacement_grant(
     bind_grant_window(bootstrap, "capability-2", 111, 200);
 }
 
+pub(super) fn bind_delegated_grants(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+) {
+    bind_delegation_root(bootstrap, "capability-grandparent", 80, 120, 3);
+    bind_grant_entity(bootstrap, "capability-parent", 90, 110, 2);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        "capability-parent-grantee",
+        "principal-1",
+        "capability-parent",
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        "capability-parent-grantor",
+        "principal-1",
+        "capability-parent",
+    );
+    bind_resource(bootstrap, "capability-parent", "account-1");
+    bind_parent(bootstrap, "capability-parent", "capability-grandparent");
+
+    bind_delegation_root(bootstrap, "capability-alternate", 70, 130, 4);
+
+    bind_grant_entity(bootstrap, "capability-child", 95, 105, 1);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        "capability-child-grantee",
+        "principal-0",
+        "capability-child",
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        "capability-child-grantor",
+        "principal-1",
+        "capability-child",
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityCustodian::reference(),
+        "capability-child-custodian",
+        "principal-0",
+        "capability-child",
+    );
+    bind_resource(bootstrap, "capability-child", "account-1");
+    bind_parent(bootstrap, "capability-child", "capability-parent");
+}
+
+fn bind_delegation_root(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    grant: &str,
+    not_before: u64,
+    not_after: u64,
+    remaining: u64,
+) {
+    bind_grant_entity(bootstrap, grant, not_before, not_after, remaining);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        &format!("{grant}-grantee"),
+        "principal-1",
+        grant,
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        &format!("{grant}-grantor"),
+        "principal-1",
+        grant,
+    );
+    bind_resource(bootstrap, grant, "account-1");
+}
+
 fn bind_grant_window(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
     key: &str,
     not_before: u64,
     not_after: u64,
+) {
+    bind_grant_entity(bootstrap, key, not_before, not_after, 0);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        &format!("{key}-grantee"),
+        "principal-0",
+        key,
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        &format!("{key}-grantor"),
+        "principal-0",
+        key,
+    );
+    bind_resource(bootstrap, key, "account-1");
+}
+
+fn bind_grant_entity(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    key: &str,
+    not_before: u64,
+    not_after: u64,
+    delegation_limit: u64,
 ) {
     bootstrap
         .bind_entity(
@@ -41,31 +141,62 @@ fn bind_grant_window(
             .field(CapabilityWorkflowField::reference(), "open".to_owned())
             .field(CapabilityNotBeforeField::reference(), not_before)
             .field(CapabilityNotAfterField::reference(), not_after)
-            .field(CapabilityDelegationLimitField::reference(), 0_u64),
+            .field(
+                CapabilityDelegationLimitField::reference(),
+                delegation_limit,
+            ),
         )
         .unwrap();
+}
+
+fn bind_actor_relation<Relation>(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    relation: worth_query_declaration::facade::application_schema::ApplicationRelationRef<
+        IdentityExecutionSchema,
+        Relation,
+        Principal,
+        CapabilityGrant,
+    >,
+    key: &str,
+    principal: &str,
+    grant: &str,
+) {
     bootstrap
         .bind_relation(WorthQueryApplicationRelationSeed::new(
-            CapabilityGrantee::reference(),
-            format!("{key}-grantee"),
-            WorthQueryApplicationEntityKey::new("principal-0").unwrap(),
-            WorthQueryApplicationEntityKey::new(key).unwrap(),
+            relation,
+            key,
+            WorthQueryApplicationEntityKey::new(principal).unwrap(),
+            WorthQueryApplicationEntityKey::new(grant).unwrap(),
         ))
         .unwrap();
-    bootstrap
-        .bind_relation(WorthQueryApplicationRelationSeed::new(
-            CapabilityGrantor::reference(),
-            format!("{key}-grantor"),
-            WorthQueryApplicationEntityKey::new("principal-0").unwrap(),
-            WorthQueryApplicationEntityKey::new(key).unwrap(),
-        ))
-        .unwrap();
+}
+
+fn bind_resource(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    grant: &str,
+    resource: &str,
+) {
     bootstrap
         .bind_relation(WorthQueryApplicationRelationSeed::new(
             CapabilityResource::reference(),
-            format!("{key}-resource"),
-            WorthQueryApplicationEntityKey::new(key).unwrap(),
-            WorthQueryApplicationEntityKey::new("account-1").unwrap(),
+            format!("{grant}-resource"),
+            WorthQueryApplicationEntityKey::new(grant).unwrap(),
+            WorthQueryApplicationEntityKey::new(resource).unwrap(),
+        ))
+        .unwrap();
+}
+
+fn bind_parent(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    child: &str,
+    parent: &str,
+) {
+    bootstrap
+        .bind_relation(WorthQueryApplicationRelationSeed::new(
+            CapabilityParent::reference(),
+            format!("{child}-parent"),
+            WorthQueryApplicationEntityKey::new(child).unwrap(),
+            WorthQueryApplicationEntityKey::new(parent).unwrap(),
         ))
         .unwrap();
 }

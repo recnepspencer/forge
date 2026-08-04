@@ -76,6 +76,41 @@ use super::WorthQueryRetainedCapabilityAuthorization;
 /// }
 /// ```
 ///
+/// Exact delegation lineage is private decision evidence, not a consumer
+/// inspection or reconstruction surface:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
+/// use worth_query_execution::facade::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess;
+///
+/// fn cannot_extract_lineage<Schema, Capability, Operation, Input>(
+///     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+/// ) where
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     let _lineage = access.delegation_lineage();
+/// }
+/// ```
+///
+/// A portable provenance marker cannot be promoted into access authority:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::application_capability::{
+///     ApplicationCapabilityProvenanceRef, ApplicationCapabilityRequest,
+/// };
+/// use worth_query_execution::facade::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess;
+///
+/// fn cannot_promote_provenance<Schema, Capability, Operation, Input, Provenance>(
+///     provenance: ApplicationCapabilityProvenanceRef<Schema, Provenance>,
+/// ) where
+///     Input: ApplicationCapabilityRequest<Schema, Capability>,
+/// {
+///     let _: WorthQueryAdmittedApplicationCapabilityAccess<
+///         Schema, Capability, Operation, Input,
+///     > = provenance;
+/// }
+/// ```
+///
 /// The operation marker is exact and cannot be repurposed:
 ///
 /// ```compile_fail

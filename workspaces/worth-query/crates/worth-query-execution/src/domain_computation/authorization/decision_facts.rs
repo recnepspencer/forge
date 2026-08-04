@@ -1,60 +1,15 @@
-use std::sync::Arc;
-
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationObservationCounters, RelationalAuthorizationObservationEvidence,
-    RelationalAuthorizationObservationFreshness,
-};
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuntime,
-};
+use worth_relational::facade::authorization::RelationalAuthorizationObservationCounters;
+use worth_runtime_bridge::facade::BridgeAuthorizationRuntime;
 
 use super::{
     WorthQueryCapabilityCommitBasis, WorthQueryOperationAdmissionIdentity,
     WorthQueryRetainedCapabilityAuthorization,
 };
+mod authorization;
 mod principal_currentness;
+pub(in crate::domain_computation) use authorization::WorthQueryAuthorizationDecisionFact;
+pub(in crate::domain_computation::authorization) use authorization::WorthQueryDelegationDecisionFact;
 pub(in crate::domain_computation) use principal_currentness::WorthQueryPrincipalCurrentnessDependency;
-
-#[derive(Clone)]
-pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
-    pub(in crate::domain_computation) session_identity:
-        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-    pub(in crate::domain_computation) relational: Arc<RelationalAuthorizationObservationEvidence>,
-    pub(in crate::domain_computation) bridge: Arc<BridgeAuthorizationDecisionEvidence>,
-}
-
-impl WorthQueryAuthorizationDecisionFact {
-    pub(in crate::domain_computation) fn new(
-        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
-        relational: RelationalAuthorizationObservationEvidence,
-        bridge: BridgeAuthorizationDecisionEvidence,
-    ) -> Self {
-        Self {
-            session_identity,
-            relational: Arc::new(relational),
-            bridge: Arc::new(bridge),
-        }
-    }
-
-    pub(in crate::domain_computation) const fn session_identity(
-        &self,
-    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
-        self.session_identity
-    }
-
-    pub(super) fn remains_current_in(
-        &self,
-        runtime: &worth_relational::facade::runtime::RelationalRuntime,
-        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-        bridge: &BridgeAuthorizationRuntime,
-    ) -> bool {
-        bridge.retains(&self.bridge)
-            && self.bridge.is_allowed()
-            && self.bridge.dependency_identity() == self.relational.observation_identity().bytes()
-            && runtime.compare_authorization_observation(&self.relational, snapshot.clone())
-                == RelationalAuthorizationObservationFreshness::Fresh
-    }
-}
 
 pub(in crate::domain_computation) enum WorthQueryRetainedAuthorizationDecisionFacts {
     Principal(WorthQueryPrincipalCurrentnessDependency),
@@ -130,7 +85,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         decisions(self).fold(
             RelationalAuthorizationObservationCounters::default(),
             |mut total, fact| {
-                let counters = fact.relational.counters();
+                let counters = fact.relational_counters();
                 total.paths_evaluated += counters.paths_evaluated;
                 total.adjacency_lists_read += counters.adjacency_lists_read;
                 total.adjacency_edges_inspected += counters.adjacency_edges_inspected;
@@ -150,23 +105,12 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
 
     pub(super) fn signal_dependency_count(&self) -> usize {
         decisions(self)
-            .map(|fact| {
-                let counters = fact.bridge.counters();
-                counters.entities_depended_on
-                    + counters.relations_depended_on
-                    + counters.adjacency_lists_depended_on
-                    + counters.fields_depended_on
-            })
+            .map(|fact| fact.signal_dependency_count())
             .sum()
     }
 
     pub(super) fn bridge_is_retained(&self, bridge: &BridgeAuthorizationRuntime) -> bool {
-        decisions(self).all(|fact| {
-            bridge.retains(&fact.bridge)
-                && fact.bridge.is_allowed()
-                && fact.bridge.dependency_identity()
-                    == fact.relational.observation_identity().bytes()
-        })
+        decisions(self).all(|fact| fact.bridge_is_retained(bridge))
     }
 
     pub(in crate::domain_computation) fn validate_currentness_in(

@@ -39,11 +39,13 @@ use super::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityAction {
     Touch,
+    Inspect,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityPurpose {
     AccountMaintenance,
+    Audit,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -83,9 +85,13 @@ macro_rules! string_value {
     };
 }
 
-string_value!(CapabilityAction, { CapabilityAction::Touch => "touch" });
+string_value!(CapabilityAction, {
+    CapabilityAction::Touch => "touch",
+    CapabilityAction::Inspect => "inspect"
+});
 string_value!(CapabilityPurpose, {
-    CapabilityPurpose::AccountMaintenance => "account-maintenance"
+    CapabilityPurpose::AccountMaintenance => "account-maintenance",
+    CapabilityPurpose::Audit => "audit"
 });
 string_value!(CapabilityStatus, {
     CapabilityStatus::Active => "active",
@@ -368,7 +374,7 @@ fn capability_composition() -> ApplicationCapabilityComposition {
         ),
         ApplicationCapabilityPropagationComposition::new(
             ApplicationCapabilityDelegationRule::narrow_all_dimensions(
-                worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(8)
+                worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(2)
                     .unwrap(),
             ),
             ApplicationCapabilityDisclosureRule::permit([

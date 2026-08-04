@@ -1,4 +1,4 @@
-use super::{
+use super::scope_narrowing::{
     ApplicationCapabilityAmountScope, ApplicationCapabilityAmountValue,
     ApplicationCapabilityContextScope, ApplicationCapabilityDelegationScope,
     ApplicationCapabilityLimitScope, ApplicationCapabilityOptionalValueSet,

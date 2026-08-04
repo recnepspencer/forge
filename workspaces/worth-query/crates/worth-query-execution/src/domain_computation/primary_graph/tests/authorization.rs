@@ -18,6 +18,10 @@ use worth_query_declaration::facade::application_schema::{
 mod canonical_work_budgets;
 #[path = "authorization/capability_commit_revalidation.rs"]
 mod capability_commit_revalidation;
+#[path = "authorization/capability_delegation.rs"]
+mod capability_delegation;
+#[path = "authorization/capability_delegation_mutation.rs"]
+mod capability_delegation_mutation;
 #[path = "authorization/capability_path_revalidation.rs"]
 mod capability_path_revalidation;
 #[path = "authorization/capability_progression.rs"]

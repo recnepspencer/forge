@@ -19,6 +19,8 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityDele
     pub(in crate::domain_computation::authorization) parent: RelationalAuthorizationTraversal,
     pub(in crate::domain_computation::authorization) grantor: RelationalAuthorizationTraversal,
     pub(in crate::domain_computation::authorization) grantee: RelationalAuthorizationTraversal,
+    pub(in crate::domain_computation::authorization) grantee_from_grant:
+        RelationalAuthorizationTraversal,
     pub(in crate::domain_computation::authorization) resource: RelationalAuthorizationTraversal,
     pub(in crate::domain_computation::authorization) related:
         Option<RelationalAuthorizationTraversal>,
@@ -60,6 +62,11 @@ impl WorthQueryCapabilityDelegationBindings {
                 layout,
                 delegation.grantee(),
                 RelationalAuthorizationTraversalDirection::Forward,
+            )?,
+            grantee_from_grant: relation(
+                layout,
+                delegation.grantee(),
+                RelationalAuthorizationTraversalDirection::Reverse,
             )?,
             resource: relation(
                 layout,

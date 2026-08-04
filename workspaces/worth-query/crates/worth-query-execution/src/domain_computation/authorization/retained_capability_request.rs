@@ -10,6 +10,7 @@ use super::capability_request_resolution::{
     WorthQueryCapabilityContextKey, WorthQueryResolvedCapabilityRequest,
 };
 
+#[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
     pub(super) capability_identity: [u8; 32],
     pub(super) principal: worth_relational::facade::identity::EntityId,
@@ -29,6 +30,15 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
 }
 
 impl WorthQueryRetainedCapabilityRequest {
+    pub(super) fn for_principal(
+        &self,
+        principal: worth_relational::facade::identity::EntityId,
+    ) -> Self {
+        let mut request = self.clone();
+        request.principal = principal;
+        request
+    }
+
     pub(super) fn capture<Schema, Scope, Context>(
         capability_identity: [u8; 32],
         principal: worth_relational::facade::identity::EntityId,

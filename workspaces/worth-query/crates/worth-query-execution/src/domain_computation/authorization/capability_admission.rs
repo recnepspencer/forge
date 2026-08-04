@@ -8,8 +8,8 @@ use worth_query_installation::facade::{
 
 use super::admission::admit_request;
 use super::admitted_operation::WorthQueryOperationAdmissionIdentity;
-use super::capability_observation::observe_capability;
 use super::capability_request_resolution::resolve_capability_request;
+use super::delegation_admission::observe_capability;
 use super::graph_work_session::start_capability_graph_work;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
@@ -176,6 +176,7 @@ where
                     installed,
                     &revalidation,
                     &sample,
+                    None,
                     None,
                 )?;
                 Ok((resolved, revalidation, authorization))

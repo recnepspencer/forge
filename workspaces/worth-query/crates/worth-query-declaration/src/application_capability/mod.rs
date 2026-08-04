@@ -10,6 +10,7 @@ mod reference;
 mod request_projection;
 mod rule_clause;
 mod scope;
+#[cfg(test)]
 mod scope_narrowing;
 
 #[cfg(test)]
@@ -61,11 +62,4 @@ pub use scope::{
     ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityTargetDefinition, ApplicationCapabilityValueBinding,
-};
-pub use scope_narrowing::{
-    ApplicationCapabilityAmountScope, ApplicationCapabilityAmountValue,
-    ApplicationCapabilityContextScope, ApplicationCapabilityDelegationScope,
-    ApplicationCapabilityLimitScope, ApplicationCapabilityOptionalValueSet,
-    ApplicationCapabilityScope, ApplicationCapabilityTargetScope,
-    ApplicationCapabilityValidityWindow, ApplicationCapabilityValue, ApplicationCapabilityValueSet,
 };

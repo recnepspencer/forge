@@ -1,10 +1,5 @@
 use std::sync::Arc;
 
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationObservationEvidence, RelationalAuthorizationObservationFreshness,
-};
-use worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence;
-
 use crate::domain_computation::authorization::WorthQueryPrincipalCurrentnessDependency;
 
 #[derive(Clone)]
@@ -15,8 +10,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphAppl
     Authorization {
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         locator: Arc<str>,
-        observation: Arc<RelationalAuthorizationObservationEvidence>,
-        bridge: Arc<BridgeAuthorizationDecisionEvidence>,
+        decision: crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact,
     },
 }
 
@@ -37,17 +31,12 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         requirement_ordinal: usize,
         dependency: crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact,
     ) -> Self {
-        let crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact {
-            session_identity: session,
-            relational: observation,
-            bridge,
-        } = dependency;
+        let session = dependency.session_identity();
         let locator = format!("application-authorization:{requirement_ordinal}");
         let fact = Self::Authorization {
             session,
             locator: Arc::from(locator),
-            observation,
-            bridge,
+            decision: dependency,
         };
         debug_assert_eq!(fact.session_identity(), Some(session));
         fact
@@ -80,16 +69,7 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         match self {
             Self::Application(fact) => fact.remains_equal_in(runtime, snapshot),
             Self::Principal(dependency) => dependency.remains_current_in(runtime, snapshot),
-            Self::Authorization {
-                observation,
-                bridge,
-                ..
-            } => {
-                bridge.is_allowed()
-                    && bridge.dependency_identity() == observation.observation_identity().bytes()
-                    && runtime.compare_authorization_observation(observation, snapshot.clone())
-                        == RelationalAuthorizationObservationFreshness::Fresh
-            }
+            Self::Authorization { decision, .. } => decision.remains_equal_in(runtime, snapshot),
         }
     }
 }

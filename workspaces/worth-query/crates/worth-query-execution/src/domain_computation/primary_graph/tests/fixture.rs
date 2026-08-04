@@ -9,6 +9,8 @@ pub(super) mod capability;
 mod capability_access_fixture;
 #[path = "fixture/capability_seed.rs"]
 mod capability_seed;
+#[path = "fixture/capability_world_installation.rs"]
+mod capability_world_installation;
 pub(in crate::domain_computation::primary_graph) use capability_access_fixture::admit_touch_account_capability;
 #[path = "fixture/capability_status_mutation.rs"]
 mod capability_status_mutation;
@@ -77,13 +79,16 @@ mod schema_types;
 mod world_authentication;
 #[path = "fixture/world_installation.rs"]
 mod world_installation;
+pub(in crate::domain_computation::primary_graph) use capability_world_installation::{
+    installed_capability_authorization_world, installed_capability_live_world,
+    installed_capability_live_world_with_label, installed_capability_replacement_world,
+    installed_capability_world_with_label, installed_delegated_capability_world,
+};
 pub(in crate::domain_computation::primary_graph) use schema_types::*;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
     installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
-    installed_capability_authorization_world, installed_capability_live_world,
-    installed_capability_live_world_with_label, installed_capability_replacement_world,
-    installed_capability_world_with_label, AuthorizationWorld,
+    AuthorizationWorld,
 };
 pub(super) use world_installation::{
     installed_two_principal_authorization_world, installed_world, installed_world_with_policy_fact,

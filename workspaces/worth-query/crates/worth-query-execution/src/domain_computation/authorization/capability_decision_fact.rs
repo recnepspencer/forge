@@ -71,15 +71,11 @@ impl WorthQueryRetainedCapabilityAuthorization {
     }
 
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
-        self.decision.relational.counters()
+        self.decision.relational_counters()
     }
 
     pub(super) fn signal_dependency_count(&self) -> usize {
-        let counters = self.decision.bridge.counters();
-        counters.entities_depended_on
-            + counters.relations_depended_on
-            + counters.adjacency_lists_depended_on
-            + counters.fields_depended_on
+        self.decision.signal_dependency_count()
     }
 
     pub(in crate::domain_computation) fn capability_authority_identity(&self) -> &str {
@@ -87,7 +83,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
     }
 
     pub(in crate::domain_computation) fn decision_identity(&self) -> [u8; 32] {
-        *self.decision.relational.observation_identity().bytes()
+        self.decision.primary_identity()
     }
 
     pub(super) const fn timeline(&self) -> ApplicationCapabilityValidityTimeline {
@@ -112,6 +108,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         if self.capability_authority_identity.as_ref() != capability_authority_identity
             || self.grant != grant
             || self.sample.timeline() != sample.timeline()
+            || !self.decision.has_same_lineage(&decision)
         {
             return Err(());
         }

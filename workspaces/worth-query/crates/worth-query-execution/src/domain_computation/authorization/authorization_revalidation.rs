@@ -2,8 +2,8 @@
 
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::capability_observation::observe_capability;
 use super::decision_facts::WorthQueryObservedCommitBasis;
+use super::delegation_admission::observe_capability;
 use super::{
     WorthQueryApplicationCommitAuthorization, WorthQueryCapabilityCommitBasis,
     WorthQueryCommitAuthorizationBasis, WorthQueryOperationAuthorizationDenial,
@@ -247,6 +247,7 @@ where
                     capability.request(),
                     &sample,
                     Some(capability.grant()),
+                    Some(capability.decision()),
                 )
                 .map(drop)
             };
@@ -316,6 +317,7 @@ where
                     capability.request(),
                     &sample,
                     Some(capability.grant()),
+                    Some(capability.decision()),
                 )
                 .map(drop)
             };

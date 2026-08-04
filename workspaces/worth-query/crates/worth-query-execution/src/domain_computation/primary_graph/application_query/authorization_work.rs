@@ -23,7 +23,7 @@ impl WorthQueryApplicationAuthorizationWorkEvidence {
                 ..Self::default()
             },
             |mut total, dependency| {
-                let relational = dependency.relational.counters();
+                let relational = dependency.relational_counters();
                 total.paths_evaluated = total
                     .paths_evaluated
                     .saturating_add(relational.paths_evaluated);
@@ -51,12 +51,7 @@ impl WorthQueryApplicationAuthorizationWorkEvidence {
                 total.reconstructive_relation_records_scanned = total
                     .reconstructive_relation_records_scanned
                     .saturating_add(relational.reconstructive_relation_records_scanned);
-                let bridge = dependency.bridge.counters();
-                let signal_dependencies = bridge
-                    .entities_depended_on
-                    .saturating_add(bridge.relations_depended_on)
-                    .saturating_add(bridge.adjacency_lists_depended_on)
-                    .saturating_add(bridge.fields_depended_on);
+                let signal_dependencies = dependency.signal_dependency_count();
                 total.signal_dependency_count = total
                     .signal_dependency_count
                     .saturating_add(signal_dependencies);

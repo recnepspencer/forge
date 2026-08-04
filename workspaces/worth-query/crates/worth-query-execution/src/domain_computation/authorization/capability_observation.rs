@@ -34,6 +34,13 @@ pub(super) struct WorthQueryObservedCapabilityDecision {
 }
 
 impl WorthQueryObservedCapabilityDecision {
+    pub(super) const fn new(
+        decision: WorthQueryAuthorizationDecisionFact,
+        grant: worth_relational::facade::identity::EntityId,
+    ) -> Self {
+        Self { decision, grant }
+    }
+
     pub(super) fn into_parts(
         self,
     ) -> (
@@ -44,7 +51,7 @@ impl WorthQueryObservedCapabilityDecision {
     }
 }
 
-pub(super) fn observe_capability(
+pub(super) fn observe_capability_policy(
     session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
