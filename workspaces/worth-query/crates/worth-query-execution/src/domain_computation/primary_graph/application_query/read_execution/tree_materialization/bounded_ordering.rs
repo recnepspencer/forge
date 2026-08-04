@@ -25,8 +25,12 @@ pub(super) fn order_collection(
         .filter(|term| term.collection_path() == collection_path)
         .map(|term| {
             governance
-                .admit_internal_field(term.field(), ApplicationQueryObservableInfluence::Ordering)
-                .map(|computation| AdmittedOrdering { term, computation })
+                .admit_internal_projection(
+                    term.field(),
+                    term.field_key(),
+                    ApplicationQueryObservableInfluence::Ordering,
+                )
+                .map(|projection| AdmittedOrdering { term, projection })
                 .ok_or_else(|| projection_denial(term.result_path()))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -38,7 +42,7 @@ pub(super) fn order_collection(
 
 struct AdmittedOrdering<'a> {
     term: &'a WorthQueryInstalledGraphOrdering,
-    computation: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalFieldAdmission<'a>,
+    projection: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalProjectionAdmission<'a>,
 }
 
 fn heap_sort(
@@ -92,8 +96,9 @@ fn compare_rows(
 ) -> Result<Ordering, WorthQueryApplicationReadExecutionDenial> {
     for admitted in ordering {
         let term = admitted.term;
-        let _projection_mask = admitted.computation.projection_mask();
-        let _diagnostic_mask = admitted.computation.diagnostic_mask();
+        if admitted.projection.field_key() != term.field_key() {
+            return Err(projection_denial(term.result_path()));
+        }
         work.charge_ordering_comparison(term.result_path())?;
         let left_value = left
             .field(term.slot_type())

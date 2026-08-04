@@ -56,7 +56,7 @@ where
     if !released {
         return Err(WorthQueryLiveProjectionFinalizationDenial::BasisRelease);
     }
-    let [node] = raw.rows.as_slice() else {
+    let Some(node) = raw.rows.only() else {
         return Err(WorthQueryLiveProjectionFinalizationDenial::ResultShape);
     };
     let result = QueryResult::project(&WorthQueryApplicationProjectionRow::new(

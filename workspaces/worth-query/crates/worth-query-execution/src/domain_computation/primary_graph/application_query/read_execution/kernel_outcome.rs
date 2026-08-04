@@ -63,15 +63,15 @@ where
         mut raw,
         result_buffer,
     } = kernel;
-    let raw_rows = std::mem::take(&mut raw.rows);
-    let mut rows = Vec::with_capacity(raw_rows.len());
-    for node in raw_rows {
+    let mut rows = Vec::with_capacity(raw.rows.raw_rows().len());
+    for node in raw.rows.iter() {
         validate()?;
         rows.push(
-            QueryResult::project(&WorthQueryApplicationProjectionRow::new(&node, governance))
+            QueryResult::project(&WorthQueryApplicationProjectionRow::new(node, governance))
                 .map_err(&map_projection_denial)?,
         );
     }
+    raw.rows.clear();
     let result_count = rows.len();
     let truncation_count = usize::from(raw.has_more);
     Ok(ProjectedNonLiveKernelOutcome {

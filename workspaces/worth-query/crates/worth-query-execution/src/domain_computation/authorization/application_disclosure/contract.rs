@@ -19,7 +19,7 @@ pub(super) struct WorthQueryAdmittedApplicationDisclosureField {
     aspect: String,
     field: String,
     projection_mask: AspectMask<ProjectionMask>,
-    diagnostic_mask: AspectMask<DiagnosticMask>,
+    _diagnostic_mask: AspectMask<DiagnosticMask>,
 }
 
 impl WorthQueryAdmittedApplicationDisclosureField {
@@ -29,10 +29,6 @@ impl WorthQueryAdmittedApplicationDisclosureField {
 
     pub(super) const fn projection_mask(&self) -> &AspectMask<ProjectionMask> {
         &self.projection_mask
-    }
-
-    pub(super) const fn diagnostic_mask(&self) -> &AspectMask<DiagnosticMask> {
-        &self.diagnostic_mask
     }
 }
 
@@ -251,7 +247,7 @@ fn admit_field_masks(
         aspect: field.1.to_string(),
         field: field.2.to_string(),
         projection_mask,
-        diagnostic_mask,
+        _diagnostic_mask: diagnostic_mask,
     })
 }
 

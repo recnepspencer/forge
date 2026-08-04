@@ -164,15 +164,19 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
             .ok_or_else(|| traversal_denial(guard.field().as_str()))?;
         let computation = plan
             .governance
-            .admit_internal_field(
+            .admit_internal_projection(
                 (
                     guard.entity(),
                     guard.aspect().as_str(),
                     guard.field().as_str(),
                 ),
+                guard.field(),
                 ApplicationQueryObservableInfluence::RowPresence,
             )
             .ok_or_else(|| traversal_denial(guard.field().as_str()))?;
+        if !computation.admits_locator(&layout.locator) {
+            return Err(traversal_denial(guard.field().as_str()));
+        }
         let read = read_governed_root_guard(
             runtime,
             computation,
@@ -197,7 +201,7 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
 #[allow(clippy::too_many_arguments)]
 fn read_governed_root_guard(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    computation: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalFieldAdmission<'_>,
+    _projection: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalProjectionAdmission<'_>,
     frontier: &BTreeSet<EntityId>,
     entity_kind: worth_relational::facade::identity::KindId,
     locator: &worth_foundational::facade::AspectFieldLocator,
@@ -208,8 +212,6 @@ fn read_governed_root_guard(
     worth_relational::facade::runtime::BoundedFrontierFieldEqualityTruthRead,
     worth_relational::facade::runtime::FrontierFieldEqualityTruthReadLimitExceeded,
 > {
-    let _projection_mask = computation.projection_mask();
-    let _diagnostic_mask = computation.diagnostic_mask();
     runtime
         .read_truth()
         .bounded_entity_field_equals_for_frontier_at_version(

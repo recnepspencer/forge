@@ -1,18 +1,13 @@
 use std::collections::BTreeMap;
 
-use worth_foundational::facade::{
-    AspectMask, AspectValue, CanonicalDigestId, DiagnosticMask, ProjectionMask,
-};
+use worth_foundational::facade::{AspectValue, CanonicalDigestId};
 use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
 use worth_query_installation::facade::WorthQueryInstalledApplicationQueryIdentity;
 use worth_relational::facade::{
     history::BranchId, identity::EntityId, runtime::RelationalExecutionBasisIdentity,
 };
 
-use super::contract::{
-    AdmittedDisclosureRule, WorthQueryAdmittedApplicationDisclosureContract,
-    WorthQueryAdmittedApplicationDisclosureField,
-};
+use super::contract::{AdmittedDisclosureRule, WorthQueryAdmittedApplicationDisclosureContract};
 use super::influence_validation::GovernedInternalFieldRules;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 use crate::domain_computation::provider_session::{
@@ -22,7 +17,13 @@ use crate::domain_computation::provider_session::{
 
 use super::super::WorthQueryRetainedCapabilityAuthorization;
 
+mod field_admission;
 mod governance;
+
+pub(in crate::domain_computation) use field_admission::{
+    WorthQueryApplicationDisclosedProjectionAdmission,
+    WorthQueryApplicationInternalProjectionAdmission,
+};
 
 pub(in crate::domain_computation) struct WorthQueryPendingApplicationQueryGovernance {
     capability_name: String,
@@ -80,56 +81,6 @@ pub(in crate::domain_computation) enum WorthQueryApplicationQueryGovernance {
         disclosure: WorthQueryApplicationDisclosureDecision,
         authorization: WorthQueryRetainedCapabilityAuthorization,
     },
-}
-
-pub(in crate::domain_computation) struct WorthQueryApplicationInternalFieldAdmission<'a> {
-    field: Option<&'a WorthQueryAdmittedApplicationDisclosureField>,
-}
-
-pub(in crate::domain_computation) struct WorthQueryApplicationDisclosedFieldAdmission<'a> {
-    field: Option<&'a WorthQueryAdmittedApplicationDisclosureField>,
-}
-
-impl WorthQueryApplicationInternalFieldAdmission<'_> {
-    pub(in crate::domain_computation) fn projection_mask(
-        &self,
-    ) -> Option<&AspectMask<ProjectionMask>> {
-        self.field.map(|field| field.projection_mask())
-    }
-
-    pub(in crate::domain_computation) fn diagnostic_mask(
-        &self,
-    ) -> Option<&AspectMask<DiagnosticMask>> {
-        self.field.map(|field| field.diagnostic_mask())
-    }
-
-    pub(in crate::domain_computation) fn admits_projection(
-        &self,
-        field: &worth_foundational::facade::FieldKey,
-    ) -> bool {
-        self.field.is_none_or(|admitted| {
-            admitted
-                .projection_mask()
-                .paths()
-                .iter()
-                .any(|path| path.fields() == std::slice::from_ref(field))
-        })
-    }
-}
-
-impl WorthQueryApplicationDisclosedFieldAdmission<'_> {
-    pub(in crate::domain_computation) fn admits_projection(
-        &self,
-        field: &worth_foundational::facade::FieldKey,
-    ) -> bool {
-        self.field.is_none_or(|admitted| {
-            admitted
-                .projection_mask()
-                .paths()
-                .iter()
-                .any(|path| path.fields() == std::slice::from_ref(field))
-        })
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

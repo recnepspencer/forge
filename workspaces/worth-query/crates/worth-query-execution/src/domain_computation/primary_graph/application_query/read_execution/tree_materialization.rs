@@ -16,8 +16,9 @@ use super::{
     WorthQueryApplicationReadExecutionDenialKind,
 };
 use crate::domain_computation::primary_graph::application_query::projection::{
-    WorthQueryApplicationProjectedField, WorthQueryApplicationProjectedRelation,
-    WorthQueryApplicationProjectionNode,
+    WorthQueryApplicationDisclosedProjectionTree, WorthQueryApplicationProjectedField,
+    WorthQueryApplicationProjectedRelation, WorthQueryApplicationProjectionNode,
+    WorthQueryApplicationWorkingProjectionTree,
 };
 use crate::domain_computation::primary_graph::application_query::resource_lifecycle::WorthQueryApplicationResultBufferReservation;
 
@@ -31,7 +32,7 @@ use relation_attachment::{advance_omitted_relation, attach_relation};
 use work::ResultTreeWork;
 
 pub(super) struct MaterializedApplicationResultTree {
-    pub(super) rows: Vec<WorthQueryApplicationProjectionNode>,
+    pub(super) rows: WorthQueryApplicationDisclosedProjectionTree,
     pub(super) projected_records: usize,
     pub(super) projected_fields: usize,
     pub(super) adjacency_lists_read: usize,
@@ -99,6 +100,8 @@ pub(super) fn materialize_result_tree(
         result_buffer,
     )?;
     order_collection(contract, governance, "root", &mut rows, &mut work)?;
+    let rows = WorthQueryApplicationWorkingProjectionTree::new(rows)
+        .into_disclosed(governance, result_buffer);
     Ok(MaterializedApplicationResultTree {
         rows,
         projected_records: work.projected_records,
@@ -277,19 +280,22 @@ fn direct_projections<'a>(
         .filter(|projection| {
             let field = (projection.entity(), projection.aspect(), projection.field());
             let disclosed = governance
-                .admit_disclosed_field(projection.slot_key_identity().as_ref(), field)
-                .is_some_and(|admission| admission.admits_projection(projection.field_key()));
+                .admit_disclosed_projection(
+                    projection.slot_key_identity().as_ref(),
+                    field,
+                    projection.field_key(),
+                )
+                .is_some();
             let internal_ordering = contract.ordering().iter().any(|ordering| {
                 ordering.collection_path() == parent
                     && ordering.field() == field
                     && governance
-                        .admit_internal_field(
+                        .admit_internal_projection(
                             ordering.field(),
+                            ordering.field_key(),
                             worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence::Ordering,
                         )
-                        .is_some_and(|admission| {
-                            admission.admits_projection(projection.field_key())
-                        })
+                        .is_some()
             });
             parent_path(projection.result_path()) == Some(parent)
                 && (disclosed || internal_ordering)

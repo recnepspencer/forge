@@ -15,8 +15,9 @@ mod projected_tree;
 pub use disclosed::{WorthQueryApplicationDisclosed, WorthQueryApplicationOmission};
 
 pub(super) use projected_tree::{
+    WorthQueryApplicationDisclosedProjectionNode, WorthQueryApplicationDisclosedProjectionTree,
     WorthQueryApplicationProjectedField, WorthQueryApplicationProjectedRelation,
-    WorthQueryApplicationProjectionNode,
+    WorthQueryApplicationProjectionNode, WorthQueryApplicationWorkingProjectionTree,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,13 +45,14 @@ pub struct WorthQueryApplicationProjectionDenial {
 /// slot, path meaning, field or relation contract, and cardinality match the
 /// installed application query.
 pub struct WorthQueryApplicationProjectionRow<'row, Schema, Query> {
-    node: &'row WorthQueryApplicationProjectionNode,
+    node: WorthQueryApplicationDisclosedProjectionNode<'row>,
     governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
     _marker: PhantomData<fn() -> (Schema, Query)>,
 }
 
 pub struct WorthQueryApplicationProjectionRows<'row, Schema, Query> {
     rows: &'row [WorthQueryApplicationProjectionNode],
+    disclosure_parent: WorthQueryApplicationDisclosedProjectionNode<'row>,
     governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
     _marker: PhantomData<fn() -> (Schema, Query)>,
 }
@@ -131,7 +133,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         match relation.rows() {
             [] => Ok(None),
             [row] => Ok(Some(WorthQueryApplicationProjectionRow::new(
-                row,
+                self.node.child(row),
                 self.governance,
             ))),
             _ => Err(relation_cardinality_denial(relation)),
@@ -162,7 +164,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         let relation = self.relation(&selector)?;
         match relation.rows() {
             [row] => Ok(WorthQueryApplicationProjectionRow::new(
-                row,
+                self.node.child(row),
                 self.governance,
             )),
             _ => Err(relation_cardinality_denial(relation)),
@@ -193,6 +195,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         let relation = self.relation(&selector)?;
         Ok(WorthQueryApplicationProjectionRows {
             rows: relation.rows(),
+            disclosure_parent: self.node,
             governance: self.governance,
             _marker: PhantomData,
         })
@@ -222,7 +225,7 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
     }
 
     pub(super) const fn new(
-        node: &'row WorthQueryApplicationProjectionNode,
+        node: WorthQueryApplicationDisclosedProjectionNode<'row>,
         governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
     ) -> Self {
         Self {
@@ -245,9 +248,12 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRows<'row, Schema, Quer
     pub fn iter(
         &self,
     ) -> impl ExactSizeIterator<Item = WorthQueryApplicationProjectionRow<'_, Schema, Query>> {
-        self.rows
-            .iter()
-            .map(|row| WorthQueryApplicationProjectionRow::new(row, self.governance))
+        self.rows.iter().map(|row| {
+            WorthQueryApplicationProjectionRow::new(
+                self.disclosure_parent.child(row),
+                self.governance,
+            )
+        })
     }
 }
 

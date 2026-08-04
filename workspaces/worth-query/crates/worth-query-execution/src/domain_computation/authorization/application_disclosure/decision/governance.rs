@@ -7,8 +7,9 @@ use worth_relational::facade::identity::EntityId;
 
 use super::super::WorthQueryApplicationDisclosureReceipt;
 use super::{
-    WorthQueryApplicationDisclosedFieldAdmission, WorthQueryApplicationInternalFieldAdmission,
-    WorthQueryApplicationQueryGovernance, WorthQueryPendingApplicationQueryGovernance,
+    WorthQueryApplicationDisclosedProjectionAdmission,
+    WorthQueryApplicationInternalProjectionAdmission, WorthQueryApplicationQueryGovernance,
+    WorthQueryPendingApplicationQueryGovernance,
 };
 use crate::domain_computation::authorization::WorthQueryRetainedCapabilityAuthorization;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
@@ -59,31 +60,32 @@ impl WorthQueryApplicationQueryGovernance {
         }
     }
 
-    pub(in crate::domain_computation) fn admit_disclosed_field(
+    pub(in crate::domain_computation) fn admit_disclosed_projection(
         &self,
         slot: &ApplicationQueryResultSlotKey,
         field: (&str, &str, &str),
-    ) -> Option<WorthQueryApplicationDisclosedFieldAdmission<'_>> {
+        field_key: &worth_foundational::facade::FieldKey,
+    ) -> Option<WorthQueryApplicationDisclosedProjectionAdmission> {
         match self {
-            Self::Public => Some(WorthQueryApplicationDisclosedFieldAdmission { field: None }),
+            Self::Public => Some(WorthQueryApplicationDisclosedProjectionAdmission::public()),
             Self::Governed { disclosure, .. } => {
                 let admitted = disclosure.disclosed.get(slot)?.field()?;
-                admitted
-                    .matches(field)
-                    .then_some(WorthQueryApplicationDisclosedFieldAdmission {
-                        field: Some(admitted),
-                    })
+                admitted.matches(field).then_some(())?;
+                WorthQueryApplicationDisclosedProjectionAdmission::governed(admitted, field_key)
             }
         }
     }
 
-    pub(in crate::domain_computation) fn admit_internal_field(
-        &self,
+    pub(in crate::domain_computation) fn admit_internal_projection<'a>(
+        &'a self,
         field: (&str, &str, &str),
+        field_key: &'a worth_foundational::facade::FieldKey,
         surface: ApplicationQueryObservableInfluence,
-    ) -> Option<WorthQueryApplicationInternalFieldAdmission<'_>> {
+    ) -> Option<WorthQueryApplicationInternalProjectionAdmission<'a>> {
         match self {
-            Self::Public => Some(WorthQueryApplicationInternalFieldAdmission { field: None }),
+            Self::Public => Some(WorthQueryApplicationInternalProjectionAdmission::public(
+                field_key,
+            )),
             Self::Governed { computation, .. } => {
                 let key = (
                     field.0.to_string(),
@@ -96,8 +98,8 @@ impl WorthQueryApplicationQueryGovernance {
                     .first()?
                     .field()
                     .filter(|field| field.matches(field_tuple(&key)))?;
-                admitted
-                    .then_some(WorthQueryApplicationInternalFieldAdmission { field: Some(field) })
+                admitted.then_some(())?;
+                WorthQueryApplicationInternalProjectionAdmission::governed(field, field_key)
             }
         }
     }

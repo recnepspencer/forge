@@ -81,7 +81,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn read_live
     }
     super::verify_result_tree_accounting(
         &result_buffer,
-        &tree.rows,
+        tree.rows.raw_rows(),
         tree.rows.capacity(),
         plan.query.name(),
     )?;
@@ -149,8 +149,9 @@ fn resolve_live_target<
     let target = live.target_identity();
     let computation = plan
         .governance
-        .admit_internal_field(
+        .admit_internal_projection(
             (target.entity(), target.aspect(), target.field()),
+            target.field_key(),
             ApplicationQueryObservableInfluence::LiveMembership,
         )
         .ok_or_else(|| {
@@ -167,6 +168,12 @@ fn resolve_live_target<
                 target.result_path(),
             )
         })?;
+    if !computation.admits_locator(&layout.locator) {
+        return Err(read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::TargetIdentityIndexUnavailable,
+            target.result_path(),
+        ));
+    }
     let request = BoundedEntityFieldLookupRequest::new(
         plan.basis.snapshot_handle().clone(),
         layout.equality_index_id.ok_or_else(|| {
@@ -186,12 +193,8 @@ fn resolve_live_target<
             target.result_path(),
         )
     })?;
-    let _projection_mask = computation.projection_mask();
-    let _diagnostic_mask = computation.diagnostic_mask();
-    let lookup = runtime
-        .index_access()
-        .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
-        .map_err(|_| {
+    let lookup =
+        execute_governed_live_target_lookup(runtime, computation, request).map_err(|_| {
             read_execution_denial(
                 WorthQueryApplicationReadExecutionDenialKind::TargetIdentityIndexUnavailable,
                 target.result_path(),
@@ -214,4 +217,17 @@ fn resolve_live_target<
         examined_entry_count: lookup.examined_entry_count(),
         generation_id: Some(lookup.generation_id()),
     })
+}
+
+fn execute_governed_live_target_lookup(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    _projection: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalProjectionAdmission<'_>,
+    request: BoundedEntityFieldLookupRequest,
+) -> Result<
+    worth_relational::facade::indexes::BoundedEntityFieldLookupOutcome,
+    worth_relational::facade::indexes::BoundedEntityFieldLookupDenial,
+> {
+    runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
 }

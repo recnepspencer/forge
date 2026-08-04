@@ -31,6 +31,14 @@ worth_query_application_query!(
     name "forbidden_influence"
 );
 
+worth_query_application_query!(
+    pub ResultRulePredicateQuery in IdentityExecutionSchema,
+    parameters AccountSummaryParameters,
+    result AccountSummaryResult,
+    scope Account,
+    name "result_rule_predicate"
+);
+
 pub(super) fn incomplete_disclosure_definition() -> ApplicationQueryDefinition<
     IdentityExecutionSchema,
     IncompleteDisclosureQuery,
@@ -86,6 +94,35 @@ pub(super) fn forbidden_influence_definition() -> ApplicationQueryDefinition<
     definition(
         ForbiddenInfluenceQuery::reference(),
         shape,
+        disclosure,
+        true,
+    )
+}
+
+pub(super) fn result_rule_predicate_definition() -> ApplicationQueryDefinition<
+    IdentityExecutionSchema,
+    ResultRulePredicateQuery,
+    AccountSummaryParameters,
+    AccountSummaryResult,
+    Account,
+> {
+    let disclosure = ApplicationQueryDisclosureContract::governed_by(
+        "result-rule-predicate",
+        TouchAccountCapability::reference(),
+    )
+    .disclose_field_by(
+        status_result_field::<ResultRulePredicateQuery>(),
+        CapabilityDisclosure::AccountActivity,
+        ApplicationQueryInfluenceContract::permit_all(),
+    )
+    .disclose_field_by(
+        label_result_field::<ResultRulePredicateQuery>(),
+        CapabilityDisclosure::AccountActivity,
+        ApplicationQueryInfluenceContract::permit_all(),
+    );
+    definition(
+        ResultRulePredicateQuery::reference(),
+        shape::<ResultRulePredicateQuery>(),
         disclosure,
         true,
     )

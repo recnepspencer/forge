@@ -49,8 +49,12 @@ mod governed_omission_query;
 pub(in crate::domain_computation::primary_graph) use governed_omission_query::{
     GovernedAccountOmissionQuery, GovernedAccountOmissionResult,
 };
+#[path = "fixture/governed_hidden_ordering_query.rs"]
+mod governed_hidden_ordering_query;
+pub(in crate::domain_computation::primary_graph) use governed_hidden_ordering_query::GovernedHiddenOrderingQuery;
 #[path = "fixture/invalid_disclosure_queries.rs"]
 mod invalid_disclosure_queries;
+pub(super) use invalid_disclosure_queries::ResultRulePredicateQuery;
 #[path = "fixture/schema_types.rs"]
 mod schema_types;
 #[path = "fixture/world_authentication.rs"]
@@ -288,8 +292,14 @@ worth_query_application_schema! {
                 .application_query(live_account_query::live_account_activity_definition())
                 .application_query(governed_live_query::governed_live_account_definition())
                 .application_query(governed_omission_query::governed_account_omission_definition())
+                .application_query(
+                    governed_hidden_ordering_query::governed_hidden_ordering_definition(),
+                )
                 .application_query(invalid_disclosure_queries::incomplete_disclosure_definition())
-                .application_query(invalid_disclosure_queries::forbidden_influence_definition());
+                .application_query(invalid_disclosure_queries::forbidden_influence_definition())
+                .application_query(
+                    invalid_disclosure_queries::result_rule_predicate_definition(),
+                );
             capability::install(schema)
         }
     }

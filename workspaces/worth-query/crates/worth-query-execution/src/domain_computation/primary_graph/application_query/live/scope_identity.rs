@@ -46,8 +46,9 @@ pub(super) fn read_scope_identity<
     let identity = live.scope_identity();
     let computation = plan
         .governance
-        .admit_internal_field(
+        .admit_internal_projection(
             (identity.entity(), identity.aspect(), identity.field()),
+            identity.field_key(),
             ApplicationQueryObservableInfluence::LiveMembership,
         )
         .ok_or_else(|| projection_denial(identity.result_path()))?;
@@ -58,16 +59,7 @@ pub(super) fn read_scope_identity<
         .read_truth()
         .project_snapshot(plan.basis.snapshot_handle())
         .ok_or_else(|| projection_denial(identity.result_path()))?;
-    let projection_fields = computation.projection_mask().map_or_else(
-        || vec![identity.field_key().clone()],
-        |mask| {
-            mask.paths()
-                .iter()
-                .flat_map(|path| path.fields().iter().cloned())
-                .collect()
-        },
-    );
-    let _diagnostic_mask = computation.diagnostic_mask();
+    let projection_fields = computation.projection_fields();
     let scope = ProjectionAspectScope::fields(identity.aspect_key().clone(), projection_fields);
     let value = view
         .entity_record_with_projection_scope(plan.scope.entity_id(), scope, |record| {

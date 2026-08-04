@@ -7,7 +7,10 @@ mod tree_materialization;
 
 use super::resource_lifecycle::WorthQueryApplicationResultBufferReservation;
 use super::{
-    projection::WorthQueryApplicationProjectionNode, WorthQueryAdmittedApplicationQueryPlan,
+    projection::{
+        WorthQueryApplicationDisclosedProjectionTree, WorthQueryApplicationProjectionNode,
+    },
+    WorthQueryAdmittedApplicationQueryPlan,
 };
 pub(super) use denial::read_execution_denial;
 pub(super) use denial::{
@@ -21,7 +24,7 @@ use tree_materialization::{OrderedCollectionWindow, ResultTreeCollectionSelectio
 use worth_relational::facade::indexes::{DerivedIndexGenerationId, RelatedEntityOrderingBoundary};
 
 pub(super) struct RawOneShotRows {
-    pub(super) rows: Vec<WorthQueryApplicationProjectionNode>,
+    pub(super) rows: WorthQueryApplicationDisclosedProjectionTree,
     pub(super) examined_candidates: usize,
     pub(super) predicate_work_units: usize,
     pub(super) predicate_index_generation:
@@ -99,7 +102,7 @@ pub(super) fn read_bounded_root_rows<
     }
     verify_result_tree_accounting(
         &result_buffer,
-        &tree.rows,
+        tree.rows.raw_rows(),
         tree.rows.capacity(),
         plan.query.name(),
     )?;
@@ -208,7 +211,7 @@ pub(super) fn read_continuation_page<
     })?;
     verify_result_tree_accounting(
         &result_buffer,
-        &tree.rows,
+        tree.rows.raw_rows(),
         tree.rows.capacity(),
         plan.query.name(),
     )?;
