@@ -9,6 +9,8 @@ mod capability_delegation_mutation;
 mod capability_delegation_narrowing;
 #[path = "authorization/capability_delegation_performance.rs"]
 mod capability_delegation_performance;
+#[path = "authorization/capability_delegation_progression.rs"]
+mod capability_delegation_progression;
 #[path = "authorization/capability_delegation_session.rs"]
 mod capability_delegation_session;
 #[path = "authorization/capability_path_revalidation.rs"]
