@@ -1,0 +1,30 @@
+use super::super::ResourceRuntimeState;
+use crate::data::resource::*;
+use crate::data::telemetry::ResourceTelemetry;
+
+impl ResourceRuntimeState {
+    pub(in crate::logic::transaction::runtime::state::resource) fn deny_cancellation(
+        &mut self,
+        request_id: ResourceRequestId,
+        class: ResourceCancellationDenialClass,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceCancellationReport {
+        telemetry.resource_cancellation_denial_count += 1;
+        match class {
+            ResourceCancellationDenialClass::UnknownOrStaleRequest => {
+                telemetry.resource_stale_cancellation_denial_count += 1
+            }
+            ResourceCancellationDenialClass::NonActiveRequest => {
+                telemetry.resource_non_active_cancellation_denial_count += 1
+            }
+        }
+        let performance = Self::record_boundary_performance(
+            telemetry,
+            ResourceBoundaryPerformanceEnvelope::cancellation(0, 1),
+        );
+        ResourceCancellationReport::denied(
+            DeniedResourceCancellation::new(request_id, class),
+            performance,
+        )
+    }
+}

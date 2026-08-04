@@ -151,7 +151,6 @@ crates/worth-signal/src/logic/transaction/runtime/state/merge/plan.rs
 crates/worth-signal/src/logic/transaction/runtime/state/merge/proof.rs
 crates/worth-signal/src/logic/transaction/runtime/state/observer.rs
 crates/worth-signal/src/logic/transaction/runtime/state/reconstructability.rs
-crates/worth-signal/src/logic/transaction/runtime/state/resource.rs
 crates/worth-signal/src/logic/transaction/runtime/state/runtime_observation.rs
 crates/worth-signal/src/logic/transaction/runtime/state/runtime_state.rs
 crates/worth-signal/src/logic/transaction/runtime/state/temporal.rs

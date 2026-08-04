@@ -26,14 +26,14 @@ impl ResourceRetryBudgetCharge {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub(in crate::logic::transaction::runtime) struct ResourceRetryBudgetLedger {
+pub(in crate::logic::transaction::runtime::state::resource) struct ResourceRetryBudgetLedger {
     spend_by_generation: BTreeMap<ResourceGeneration, u32>,
     spend_by_node: BTreeMap<ResourceNodeId, u32>,
     runtime_spend: u32,
 }
 
 impl ResourceRetryBudgetLedger {
-    pub(in crate::logic::transaction::runtime) fn charge_for(
+    pub(in crate::logic::transaction::runtime::state::resource) fn charge_for(
         &self,
         in_flight: &InFlightResourceRequest,
         retry_budget_scope: Option<ResourceRetryBudgetScope>,
@@ -63,7 +63,7 @@ impl ResourceRetryBudgetLedger {
         })
     }
 
-    pub(in crate::logic::transaction::runtime) fn consume(
+    pub(in crate::logic::transaction::runtime::state::resource) fn consume(
         &mut self,
         in_flight: &InFlightResourceRequest,
         charge: ResourceRetryBudgetCharge,
@@ -85,7 +85,7 @@ impl ResourceRetryBudgetLedger {
         }
     }
 
-    pub(in crate::logic::transaction::runtime) fn clear_request_generation(
+    pub(in crate::logic::transaction::runtime::state::resource) fn clear_request_generation(
         &mut self,
         generation: ResourceGeneration,
     ) {
