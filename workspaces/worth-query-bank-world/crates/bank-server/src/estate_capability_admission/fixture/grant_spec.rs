@@ -36,6 +36,13 @@ impl GrantSpec {
         }
     }
 
+    pub(crate) fn governance_view() -> Self {
+        Self {
+            field: Some(RestrictedBankField::GovernanceMetadata),
+            ..Self::view()
+        }
+    }
+
     pub(crate) fn freeze() -> Self {
         Self {
             operation: EstateCapabilityOperation::FreezeAccount,

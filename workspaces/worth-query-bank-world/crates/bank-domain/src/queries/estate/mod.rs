@@ -3,6 +3,7 @@ mod customer_disclosure_projection;
 mod customer_disclosure_selectors;
 mod customer_disclosure_shape;
 mod governance;
+mod governance_disclosure;
 mod governance_fields;
 mod governance_projection;
 mod governance_relations;

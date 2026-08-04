@@ -20,16 +20,18 @@ pub enum RestrictedBankField {
     AccountDetails,
     PostingHistory,
     AuditTrail,
+    GovernanceMetadata,
 }
 
 impl RestrictedBankField {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::CustomerIdentity,
         Self::BeneficiaryIdentity,
         Self::LegalDocument,
         Self::AccountDetails,
         Self::PostingHistory,
         Self::AuditTrail,
+        Self::GovernanceMetadata,
     ];
 
     pub const fn classification(self) -> BankDisclosureClassification {
@@ -37,9 +39,10 @@ impl RestrictedBankField {
             Self::CustomerIdentity | Self::AccountDetails => {
                 BankDisclosureClassification::Restricted
             }
-            Self::BeneficiaryIdentity | Self::PostingHistory | Self::AuditTrail => {
-                BankDisclosureClassification::HighlyRestricted
-            }
+            Self::BeneficiaryIdentity
+            | Self::PostingHistory
+            | Self::AuditTrail
+            | Self::GovernanceMetadata => BankDisclosureClassification::HighlyRestricted,
             Self::LegalDocument => BankDisclosureClassification::LegalSealed,
         }
     }
@@ -71,6 +74,9 @@ impl RestrictedBankField {
                 purpose,
                 EstateCapabilityPurpose::LegalCompliance | EstateCapabilityPurpose::MandatoryReview
             ),
+            Self::GovernanceMetadata => {
+                matches!(purpose, EstateCapabilityPurpose::EstateAdministration)
+            }
         }
     }
 }

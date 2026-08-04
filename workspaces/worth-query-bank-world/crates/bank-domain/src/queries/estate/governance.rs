@@ -1,18 +1,18 @@
 use worth_query_decl::facade::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
-    ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
+    ApplicationQueryLaneEligibility,
 };
 use worth_query_decl::facade::worth_query_application_query;
 
 use crate::{
     authorization::ViewEstateCase,
-    estate::EstateCaseId,
+    estate::{EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField},
     reads::EstateGovernanceContext,
-    schema::{BankSchema, EstateCase, ViewEstateAdministrationCapability},
+    schema::{BankSchema, EstateCase},
 };
 
-use super::governance_shape::governance_shape;
+use super::{governance_disclosure::governance_disclosure, governance_shape::governance_shape};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EstateGovernanceQueryParameters;
@@ -25,6 +25,14 @@ pub struct EstateGovernanceRequest {
 impl EstateGovernanceRequest {
     pub const fn estate(self) -> EstateCaseId {
         self.estate
+    }
+
+    pub const fn capability_request(self) -> EstateAction {
+        EstateAction::ViewRestrictedEstate {
+            estate: self.estate,
+            field: RestrictedBankField::GovernanceMetadata,
+            purpose: EstateCapabilityPurpose::EstateAdministration,
+        }
     }
 }
 
@@ -54,10 +62,7 @@ pub fn estate_governance_definition() -> ApplicationQueryDefinition<
         governance_shape(),
         ApplicationQueryCardinality::ExactlyOne,
         ApplicationQueryDependencyCeiling::bounded(3, 9, 21),
-        ApplicationQueryDisclosureContract::governed_by(
-            "estate-governance-context",
-            ViewEstateAdministrationCapability::reference(),
-        ),
+        governance_disclosure(),
         ApplicationQueryBasisSupport::current_and_pinned(),
         ApplicationQueryLaneEligibility::one_shot(),
         ViewEstateCase::reference(),

@@ -9,9 +9,9 @@ use worth_query_host::facade::domain::{
     WorthQueryApplicationOperationInstallationDenial,
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationAttemptDenial, WorthQueryInvariantDecisionPlanDenial,
-    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
-    WorthQueryEntityResolutionDenial, WorthQueryInvariantProjectionTraversalDenial,
+    WorthQueryApplicationAttemptDenial, WorthQueryElevationApprovalAuthorizationDenial,
+    WorthQueryElevationCloseAuthorizationDenial, WorthQueryEntityResolutionDenial,
+    WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantProjectionTraversalDenial,
     WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationProjectionDenial,
 };

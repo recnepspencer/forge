@@ -73,6 +73,7 @@ fn estate_view_contract_installs_exact_role_and_disclosure_composition() {
             RestrictedBankField::BeneficiaryIdentity,
             RestrictedBankField::AccountDetails,
             RestrictedBankField::PostingHistory,
+            RestrictedBankField::GovernanceMetadata,
         ])
     );
 }

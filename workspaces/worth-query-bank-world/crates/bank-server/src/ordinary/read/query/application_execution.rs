@@ -23,8 +23,9 @@ use worth_query_host::facade::{
 
 use super::BankReadyQuery;
 use crate::application_query::{
-    execute_estate_customer_disclosure, execute_one_shot, execute_preview,
-    BankApplicationQueryDenial, BankApplicationQueryInvocation, BankPreviewSession,
+    execute_estate_customer_disclosure, execute_estate_governance, execute_one_shot,
+    execute_preview, BankApplicationQueryDenial, BankApplicationQueryInvocation,
+    BankPreviewSession,
 };
 
 impl BankReadyQuery<'_, '_, AccountSummaryRequest> {
@@ -222,7 +223,7 @@ impl BankReadyQuery<'_, '_, EstateCustomerDisclosureRequest> {
         execute_estate_customer_disclosure(
             self.runtime,
             self.principal,
-            self.query.estate(),
+            self.query,
             self.controls.application_query_controls(),
         )
     }
@@ -235,17 +236,11 @@ impl BankReadyQuery<'_, '_, EstateGovernanceRequest> {
         WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>,
         BankApplicationQueryDenial,
     > {
-        let controls = self.controls.application_query_controls();
-        execute_one_shot(
+        execute_estate_governance(
             self.runtime,
             self.principal,
-            BankApplicationQueryInvocation::new(
-                EstateGovernanceQuery::reference(),
-                EstateCaseIdentityField::reference(),
-                self.query.estate(),
-                ApplicationQueryParameterSet::<EstateGovernanceQuery>::new(),
-                controls,
-            ),
+            self.query,
+            self.controls.application_query_controls(),
         )
     }
 }

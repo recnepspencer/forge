@@ -1,8 +1,7 @@
 use bank_domain::{
     estate::EstateAction,
     schema::{
-        BankSchema, CompleteEstateMandatoryReviewCapability,
-        CompleteEstateMandatoryReviewOperation,
+        BankSchema, CompleteEstateMandatoryReviewCapability, CompleteEstateMandatoryReviewOperation,
     },
 };
 use worth_query_host::facade::{
@@ -60,9 +59,7 @@ impl BankIdentityRuntime {
                     bank_domain::schema::EstateCase,
                 >::default(),
             )
-            .map_err(|denial| {
-                BankEstateProgressionDenial::ReviewAuthorization(Box::new(denial))
-            })?;
+            .map_err(|denial| BankEstateProgressionDenial::ReviewAuthorization(Box::new(denial)))?;
         let projected = self
             .invariant_projection()
             .project_admitted_operation(&admission, |reader, _| {

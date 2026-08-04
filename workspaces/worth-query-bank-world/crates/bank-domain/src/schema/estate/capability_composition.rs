@@ -95,6 +95,7 @@ fn view_allow_rule() -> ApplicationCapabilityGraphRule {
                 RestrictedBankField::AccountDetails,
                 RestrictedBankField::PostingHistory,
                 RestrictedBankField::AuditTrail,
+                RestrictedBankField::GovernanceMetadata,
             ],
         ),
         guarded_employee_path(EmployeeRole::Compliance, RestrictedBankField::ALL),

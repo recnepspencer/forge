@@ -7,7 +7,9 @@ use worth_query_decl::facade::application_query::{
 use worth_query_decl::facade::worth_query_application_query;
 
 use crate::authorization::ViewEstateCase;
-use crate::estate::{BankDisclosure, EstateCaseId};
+use crate::estate::{
+    BankDisclosure, EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField,
+};
 use crate::model::BankPrincipalId;
 use crate::schema::{BankSchema, EstateCase, ViewEstateIdentityVerificationCapability};
 
@@ -30,6 +32,14 @@ pub struct EstateCustomerDisclosure {
 impl EstateCustomerDisclosureRequest {
     pub const fn estate(self) -> EstateCaseId {
         self.estate
+    }
+
+    pub const fn capability_request(self) -> EstateAction {
+        EstateAction::ViewRestrictedEstate {
+            estate: self.estate,
+            field: RestrictedBankField::CustomerIdentity,
+            purpose: EstateCapabilityPurpose::IdentityVerification,
+        }
     }
 }
 

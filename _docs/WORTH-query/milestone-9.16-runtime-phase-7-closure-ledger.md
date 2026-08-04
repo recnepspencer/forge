@@ -150,6 +150,8 @@ Query product.
 | Q7.86 | Critical | Bank's revoke projection discarded `EstateAction::RevokeEmergencyAccess.access` and supplied no `EstateEmergencyAccessSlot`, while Query's close binder requires the exact selected elevation subject. The future Phase 7.7 revoke cutover was therefore impossible despite the contract compiling. | **CLOSED** | The Bank revoke projection now selects the exact emergency-access identity in the installed elevation slot, matching approval and review subject binding. A direct projection test proves the one exact slot, entity kind, and identity value. |
 | Q7.87 | Critical | Query automatically anchored every grant-kind traversal in installed composition policy to the grant authorizing the current command. A context-anchored approval or review actor path that traversed the lifecycle's carried governed grant therefore could not match when command and carried authority were honestly distinct, silently disabling requester/approver separation. | **CLOSED** | Capability lowering now retains the command-grant anchor only until an exact context anchor has selected the lifecycle object; a later grant traversal remains the carried relationship fact instead of impersonating command authority. Bank's causal control gives one principal independent approval-command authority and proves that principal may approve another request but cannot approve its own. A distinct approver commits the public Query approval transition while all 46 generic elevation tests remain green. |
 | Q7.88 | Critical | Capability observation required the projected context set to equal only the context anchors traversed by graph policy. Bank's revoke command correctly selected the emergency-access subject required by Query's close binder, but its simple employee authorization graph did not traverse that subject, so Query rejected the honest command before lifecycle authority. The generic close fixture concealed the defect by embedding its subject in an authorization path. | **CLOSED** | Observation still requires every graph-policy anchor but permits additional schema-declared, exactly resolved operation context. Such context opens no graph authority, remains part of the retained request, is recomputed at operation progression, and is consumed by the specialized lifecycle binder. The public Bank close proves an unanchored command subject reaches exact receipt comparison; the complete 496-test execution suite proves ordinary capability and elevation behavior remain intact. |
+| Q7.89 | Critical | Bank's public `EstateGovernanceRequest` entered the generic ungoverned query executor, while its governed disclosure declaration supplied no rule for any of the 30 result slots. The only public outcome was therefore `DisclosureContractInvalid`; adding a capability proof alone still could not execute the query. The public result types also exposed no observation methods. | **CLOSED** | Both governed Bank queries now derive their exact capability request from domain-owned request meaning and execute behind responsibility-specific governed-query modules. `GovernanceMetadata` is a distinct highly restricted field class permitted only for estate administration, and every declared governance result slot requires it. One exact public grant discloses all 30 slots with governed receipt evidence; missing, wrong-purpose, and wrong-field worlds deny at capability admission. Read-only result accessors make the admitted result consumable without exposing construction or authority. |
+| Q7.90 | High | The declared `EstateGovernanceContext` is still a bounded summary rather than a complete capability-scope projection: grant field, account, amount ceiling, parent lineage, institution, and branch are absent, while emergency issued/expiry and mandatory-review facts are also absent. A later Bank command must not treat this summary as exact request or lifecycle authority. | **OPEN** | Either extend Query's typed result contract to represent the exact optional scope and lifecycle dimensions with honest disclosure, or narrow/rename the public result so completeness cannot be inferred. Until then, public command cutover must derive exact dimensions from command input and current Query admission rather than this summary. Full R7.13 and cross-lane R7.14 closure remain unavailable. |
 
 ## Phase 7.1 closure evidence
 
@@ -1020,6 +1022,39 @@ estate commands, cross-lane elevated-use re-admission, complete typed
 diagnostic/publication comparison, warm locality across every named growth
 axis, Bank-oracle authority removal, and final residue/courtroom certification.
 Q7.52, R7.13-R7.15, R7.27-R7.28, and R7.L remain open.
+
+### Phase 7.7C administration-governed estate query checkpoint
+
+The public `EstateGovernanceRequest` now derives one exact
+`ViewRestrictedEstate / GovernanceMetadata / EstateAdministration` request
+from Bank-domain meaning. Bank resolves the installed administration
+capability, obtains current Query access, and passes that move-only proof to
+`admit_governed_application_query` before one-shot execution. The former call
+through the generic ungoverned executor is removed.
+
+The first honest execution exposed Q7.89: the declaration had no disclosure
+rules and could not compile a governed result even when supplied with exact
+capability access. `GovernanceMetadata` now names the composite projection
+without impersonating customer identity, account detail, posting history, or
+audit authority. It is highly restricted, permitted only for estate
+administration, and required independently by every one of the query's 30
+result slots. The positive public receipt proves all 30 decisions were
+disclosed under that exact class. Missing capability, wrong purpose, and wrong
+field deny at capability admission rather than falling through to generic
+query admission.
+
+Both existing governed Bank query families derive their request from the
+domain request type. Their execution implementations are siblings behind a
+crate-private governed-query facade; neither the public query facade nor a
+generic executor owns capability meaning. The governance result now exposes
+read-only observation without exporting constructors or Query authority.
+
+Ledger QA also opened Q7.90. The installed result is still a bounded summary,
+not the complete optional capability/elevation scope. No later command or
+cross-lane proof may consume it as exact authority. This checkpoint therefore
+advances R7.13 but does not close it; R7.14-R7.15, R7.27-R7.28, Q7.52, Q7.90,
+and R7.L remain open with the other command, cross-lane, locality, diagnostic,
+oracle-removal, and certification work.
 
 ## Test-selection policy
 

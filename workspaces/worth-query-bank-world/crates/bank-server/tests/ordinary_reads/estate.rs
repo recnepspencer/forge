@@ -6,8 +6,8 @@ use bank_domain::{
     model::EmployeeRole,
 };
 use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
-use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryAdmissionDenialKind;
 use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryBasisPosture;
+use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
 
 use super::estate_fixture::estate_read_world;
 use crate::support::request_scope;
@@ -154,7 +154,7 @@ fn estate_preview_preserves_canonical_query_meaning_and_releases_authority() {
 }
 
 #[test]
-fn incomplete_governance_context_fails_closed_before_governance_admission() {
+fn missing_capability_fails_the_public_governance_query_at_capability_admission() {
     let fixture = estate_read_world("estate-governance-boundary");
     let specialist = fixture.authenticate(1);
     let denial = fixture
@@ -169,9 +169,9 @@ fn incomplete_governance_context_fails_closed_before_governance_admission() {
         panic!("the governance context unexpectedly executed")
     };
     match denial {
-        BankApplicationQueryDenial::Admission(denial) => assert_eq!(
+        BankApplicationQueryDenial::CapabilityAdmission(denial) => assert_eq!(
             denial.kind(),
-            WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid,
+            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
             "{denial:#?}"
         ),
         denial => panic!("unexpected governance boundary denial: {denial:#?}"),

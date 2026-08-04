@@ -6,8 +6,8 @@ use bank_domain::estate::{
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationIdempotencyBinding, WorthQueryElevationApprovalOutcome,
-    WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
-    WorthQueryMandatoryReviewOutcome,
+    WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind,
+    WorthQueryElevationRequestOutcome, WorthQueryMandatoryReviewOutcome,
 };
 
 use super::fixture::{
@@ -243,7 +243,10 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
     let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
         panic!("the exact close should commit once: {close:?}");
     };
-    assert_eq!(mandatory.closure_kind(), WorthQueryElevationClosureKind::Revoked);
+    assert_eq!(
+        mandatory.closure_kind(),
+        WorthQueryElevationClosureKind::Revoked
+    );
     assert_eq!(mandatory.close_commit_receipt().changed_record_count(), 2);
 
     let reviewer = fixture.authenticate_reviewer();
@@ -285,10 +288,7 @@ fn approve_elevation(
                 estate: ESTATE,
                 access: EmergencyAccessId::new(access).unwrap(),
             },
-            WorthQueryApplicationIdempotencyBinding::new(
-                [idempotency; 32],
-                [idempotency + 1; 32],
-            ),
+            WorthQueryApplicationIdempotencyBinding::new([idempotency; 32], [idempotency + 1; 32]),
             &request_scope(),
         )
         .expect("the terminal lifecycle prerequisite approval should commit");
@@ -319,10 +319,7 @@ fn request_elevation(
                 field: RestrictedBankField::AccountDetails,
                 duration: Duration::from_secs(300),
             },
-            WorthQueryApplicationIdempotencyBinding::new(
-                [idempotency; 32],
-                [idempotency + 1; 32],
-            ),
+            WorthQueryApplicationIdempotencyBinding::new([idempotency; 32], [idempotency + 1; 32]),
             &request_scope(),
         )
         .expect("the approval prerequisite request should commit");

@@ -32,6 +32,26 @@ impl EstateEmergencyContext {
             approver,
         }
     }
+
+    pub const fn id(&self) -> EmergencyAccessId {
+        self.id
+    }
+
+    pub const fn reason(&self) -> EmergencyAccessReason {
+        self.reason
+    }
+
+    pub const fn status(&self) -> EmergencyAccessStatus {
+        self.status
+    }
+
+    pub const fn requester(&self) -> BankPrincipalId {
+        self.requester
+    }
+
+    pub const fn approver(&self) -> Option<BankPrincipalId> {
+        self.approver
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -79,6 +99,50 @@ impl EstateCapabilityContext {
             emergencies: value.emergencies,
         }
     }
+
+    pub const fn id(&self) -> CapabilityGrantId {
+        self.id
+    }
+
+    pub const fn operation(&self) -> EstateCapabilityOperation {
+        self.operation
+    }
+
+    pub const fn purpose(&self) -> EstateCapabilityPurpose {
+        self.purpose
+    }
+
+    pub const fn valid_from(&self) -> EstateMoment {
+        self.valid_from
+    }
+
+    pub const fn valid_through(&self) -> EstateMoment {
+        self.valid_through
+    }
+
+    pub const fn delegation(&self) -> DelegationLimit {
+        self.delegation
+    }
+
+    pub const fn workflow_stage(&self) -> EstateWorkflowStage {
+        self.workflow_stage
+    }
+
+    pub const fn status(&self) -> CapabilityGrantStatus {
+        self.status
+    }
+
+    pub const fn grantee(&self) -> BankPrincipalId {
+        self.grantee
+    }
+
+    pub const fn grantor(&self) -> BankPrincipalId {
+        self.grantor
+    }
+
+    pub fn emergencies(&self) -> &[EstateEmergencyContext] {
+        &self.emergencies
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -105,5 +169,25 @@ impl EstateGovernanceContext {
             assignments,
             capabilities,
         }
+    }
+
+    pub const fn estate(&self) -> EstateCaseId {
+        self.estate
+    }
+
+    pub const fn stage(&self) -> EstateWorkflowStage {
+        self.stage
+    }
+
+    pub fn beneficiaries(&self) -> &[BankPrincipalId] {
+        &self.beneficiaries
+    }
+
+    pub fn assignments(&self) -> &[EstateAssignmentView] {
+        &self.assignments
+    }
+
+    pub fn capabilities(&self) -> &[EstateCapabilityContext] {
+        &self.capabilities
     }
 }

@@ -8,12 +8,10 @@ mod grant_spec;
 mod world;
 
 pub(super) use authentication::request_scope;
-pub(super) use grant_spec::GrantSpec;
 use authentication::{
     authentication_configuration, block_on, external_identity, TestAuthenticationAdapter,
     TestCredential,
 };
-use world::{install_fixture_world, FixtureWorldSpec};
 use bank_domain::estate::{
     BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityValidity,
     DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction, EstateActorContext,
@@ -24,11 +22,11 @@ use bank_domain::estate::{
 use bank_domain::model::{
     AccountId, BankPrincipalId, EmployeeAssignmentId, EmployeeRole, InstitutionId,
 };
+pub(super) use grant_spec::GrantSpec;
+use world::{install_fixture_world, FixtureWorldSpec};
 use worth_query_host::facade::declaration::authentication::WorthQueryExternalPrincipalIdentity;
 
-use crate::{
-    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankIdentityRuntime,
-};
+use crate::{BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankIdentityRuntime};
 
 pub(super) const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
 pub(super) const BRANCH: BranchId = BranchId::new(2).unwrap();
@@ -40,11 +38,9 @@ pub(super) const SPECIALIST: BankPrincipalId = BankPrincipalId::new(7).unwrap();
 pub(super) const EXECUTOR: BankPrincipalId = BankPrincipalId::new(8).unwrap();
 pub(super) const ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(9).unwrap();
 pub(super) const APPROVER: BankPrincipalId = BankPrincipalId::new(13).unwrap();
-pub(super) const APPROVER_ASSIGNMENT: EmployeeAssignmentId =
-    EmployeeAssignmentId::new(14).unwrap();
+pub(super) const APPROVER_ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(14).unwrap();
 pub(super) const REVIEWER: BankPrincipalId = BankPrincipalId::new(15).unwrap();
-pub(super) const REVIEWER_ASSIGNMENT: EmployeeAssignmentId =
-    EmployeeAssignmentId::new(16).unwrap();
+pub(super) const REVIEWER_ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(16).unwrap();
 pub(super) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
 pub(super) const OTHER_AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(11).unwrap();
 pub(super) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();

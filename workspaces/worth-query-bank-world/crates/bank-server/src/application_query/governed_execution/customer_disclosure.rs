@@ -1,8 +1,7 @@
-use bank_domain::estate::{
-    EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField,
-};
 use bank_domain::model::BankPrincipalId;
-use bank_domain::queries::{EstateCustomerDisclosure, EstateCustomerDisclosureQuery};
+use bank_domain::queries::{
+    EstateCustomerDisclosure, EstateCustomerDisclosureQuery, EstateCustomerDisclosureRequest,
+};
 use bank_domain::schema::{
     BankSchema, EstateCase, EstateCaseIdentityField, Principal,
     ViewEstateIdentityVerificationCapability, ViewRestrictedEstateOperation,
@@ -16,13 +15,13 @@ use worth_query_host::facade::publication::domain_computation::{
     publish_application_result, WorthQueryPublishedApplicationResult,
 };
 
-use super::BankApplicationQueryDenial;
+use super::super::BankApplicationQueryDenial;
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 
 pub(crate) fn execute_estate_customer_disclosure(
     runtime: &BankIdentityRuntime,
     principal: &BankAuthenticatedPrincipal,
-    estate: EstateCaseId,
+    request: EstateCustomerDisclosureRequest,
     controls: WorthQueryApplicationQueryControls<'_, BankSchema>,
 ) -> Result<
     WorthQueryPublishedApplicationResult<EstateCustomerDisclosureQuery, EstateCustomerDisclosure>,
@@ -40,23 +39,18 @@ pub(crate) fn execute_estate_customer_disclosure(
             ViewRestrictedEstateOperation::reference(),
         )
         .map_err(BankApplicationQueryDenial::CapabilityInstallation)?;
-    let action = EstateAction::ViewRestrictedEstate {
-        estate,
-        field: RestrictedBankField::CustomerIdentity,
-        purpose: EstateCapabilityPurpose::IdentityVerification,
-    };
     let capability_access = application
         .admit_capability_access(
             principal.query(),
             &capability,
-            action,
+            request.capability_request(),
             controls.request_scope(),
         )
         .map_err(BankApplicationQueryDenial::CapabilityAdmission)?;
     let scope = application
         .resolve_entity(
             EstateCaseIdentityField::reference(),
-            estate,
+            request.estate(),
             controls.request_scope(),
             WorthQueryPrincipalResolutionMode::Ordinary,
         )

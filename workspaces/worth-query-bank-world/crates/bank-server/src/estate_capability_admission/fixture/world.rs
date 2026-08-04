@@ -12,9 +12,7 @@ use super::{
     CLOSE_GRANT, COMMAND_GRANT, DECEASED, EXECUTOR, GRANT, INSTITUTION, OTHER_ACCOUNT, REVIEWER,
     REVIEWER_ASSIGNMENT, REVIEW_GRANT, SELF_APPROVAL_GRANT, SPECIALIST,
 };
-use crate::{
-    BankEmployeeAssignmentSeed, BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed,
-};
+use crate::{BankEmployeeAssignmentSeed, BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed};
 
 pub(super) struct FixtureWorldSpec<'a> {
     pub(super) scenario: &'a str,
@@ -140,16 +138,8 @@ fn install_lifecycle_grants(estate: BankEstateWorld) -> BankEstateWorld {
             APPROVER,
             GrantSpec::emergency_view(),
         ))
-        .with_grant(grant(
-            CLOSE_GRANT,
-            APPROVER,
-            GrantSpec::emergency_close(),
-        ))
-        .with_grant(grant(
-            REVIEW_GRANT,
-            REVIEWER,
-            GrantSpec::mandatory_review(),
-        ))
+        .with_grant(grant(CLOSE_GRANT, APPROVER, GrantSpec::emergency_close()))
+        .with_grant(grant(REVIEW_GRANT, REVIEWER, GrantSpec::mandatory_review()))
 }
 
 fn seed(
