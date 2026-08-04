@@ -3,6 +3,7 @@ use std::any::TypeId;
 use worth_foundational::facade::ScalarAspectType;
 
 use super::{ApplicationQueryCardinality, ApplicationQueryResultTraversalDirection};
+use crate::application_schema::ApplicationFieldPresence;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ApplicationQueryResultSlotKey {
@@ -20,6 +21,7 @@ enum ApplicationQueryResultSlotContract {
         output_name: &'static str,
         scalar_family: ScalarAspectType,
         value_type: &'static str,
+        presence: ApplicationFieldPresence,
     },
     Relation {
         relation: &'static str,
@@ -38,6 +40,7 @@ pub(super) struct ApplicationQueryResultFieldSlotContract {
     pub output_name: &'static str,
     pub scalar_family: ScalarAspectType,
     pub value_type: &'static str,
+    pub presence: ApplicationFieldPresence,
 }
 
 pub(super) struct ApplicationQueryResultRelationSlotContract {
@@ -63,6 +66,7 @@ impl ApplicationQueryResultSlotKey {
                 output_name: contract.output_name,
                 scalar_family: contract.scalar_family,
                 value_type: contract.value_type,
+                presence: contract.presence,
             },
         }
     }

@@ -33,6 +33,12 @@ pub trait DeclaredApplicationFieldValue {
     const PRESENCE: ApplicationFieldPresence;
 }
 
+/// Marker for a schema field whose value must exist on every live record.
+pub trait RequiredApplicationFieldValue: DeclaredApplicationFieldValue {}
+
+/// Marker for a schema field whose value may be lawfully absent.
+pub trait OptionalApplicationFieldValue: DeclaredApplicationFieldValue {}
+
 /// A typed application value that can be recovered from an authoritative
 /// Foundational scalar without parsing application strings.
 ///

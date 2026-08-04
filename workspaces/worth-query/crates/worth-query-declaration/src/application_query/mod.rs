@@ -42,7 +42,9 @@ pub use parameters::{
     ApplicationQueryParameterDefinition, ApplicationQueryParameterRef, ApplicationQueryParameterSet,
 };
 pub use reference::ApplicationQueryReference;
-pub use result_field_selector::ApplicationQueryResultFieldRef;
+pub use result_field_selector::{
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+};
 pub use result_relation_selector::{
     ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef, ExactlyOneResult,
     ManyResults, OptionalOneResult,

@@ -98,6 +98,7 @@ pub use schema_member::{
     ApplicationSchemaMember,
 };
 pub use values::{
-    DeclaredApplicationFieldValue, TypedApplicationIdentityValue, TypedApplicationReadableValue,
+    DeclaredApplicationFieldValue, OptionalApplicationFieldValue, RequiredApplicationFieldValue,
+    TypedApplicationIdentityValue, TypedApplicationReadableValue,
     TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedCurrencyApplicationValue,
 };

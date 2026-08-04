@@ -118,6 +118,8 @@ macro_rules! worth_query_field {
                 $crate::facade::application_schema::ApplicationFieldPresence::Optional;
         }
 
+        impl $crate::facade::application_schema::OptionalApplicationFieldValue for $Field {}
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -153,6 +155,8 @@ macro_rules! worth_query_field {
                 $crate::facade::application_schema::ApplicationFieldPresence::Optional;
         }
 
+        impl $crate::facade::application_schema::OptionalApplicationFieldValue for $Field {}
+
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
                 $Schema,
@@ -183,6 +187,8 @@ macro_rules! worth_query_field {
             const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
                 $crate::facade::application_schema::ApplicationFieldPresence::Required;
         }
+
+        impl $crate::facade::application_schema::RequiredApplicationFieldValue for $Field {}
 
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
@@ -218,6 +224,8 @@ macro_rules! worth_query_field {
             const PRESENCE: $crate::facade::application_schema::ApplicationFieldPresence =
                 $crate::facade::application_schema::ApplicationFieldPresence::Required;
         }
+
+        impl $crate::facade::application_schema::RequiredApplicationFieldValue for $Field {}
 
         impl $Field {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationFieldRef<
