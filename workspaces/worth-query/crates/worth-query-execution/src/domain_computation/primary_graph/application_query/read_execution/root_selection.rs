@@ -104,7 +104,7 @@ pub(super) fn select_bounded_roots<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -148,7 +148,7 @@ fn select_indexed_root<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -162,15 +162,12 @@ fn select_indexed_root<
     predicate: &worth_query_installation::facade::WorthQueryInstalledGraphPredicate,
 ) -> Result<BoundedRootSelection, WorthQueryApplicationReadExecutionDenial> {
     let (entity, aspect, field) = predicate.field();
-    let layout = graph
-        .layout
-        .equality_field(entity, aspect, field)
-        .ok_or_else(|| {
-            read_execution_denial(
-                WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
-                field,
-            )
-        })?;
+    let layout = graph.equality_field(entity, aspect, field).ok_or_else(|| {
+        read_execution_denial(
+            WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
+            field,
+        )
+    })?;
     let expected = plan
         .parameters
         .bindings()

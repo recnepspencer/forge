@@ -74,6 +74,7 @@ fn authority(
             WorthQueryInstallationGeneration::initial(),
             runtime.retain_current_generation(),
         ),
+        graph_work_affinity: None,
     }
 }
 
@@ -240,6 +241,7 @@ pub(crate) fn workflow_authority(
             WorthQueryInstallationGeneration::initial(),
             runtime.retain_current_generation(),
         ),
+        graph_work_affinity: None,
     }
 }
 

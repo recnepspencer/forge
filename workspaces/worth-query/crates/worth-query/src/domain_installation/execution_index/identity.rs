@@ -17,7 +17,6 @@ pub(super) fn execution_index_identity(
     families: &BTreeMap<InstalledDeclarationFamilySlot, String>,
     policies: &BTreeMap<InstalledDomainOwner, Vec<String>>,
     invariants: &BTreeMap<InstalledInvariantSlot, String>,
-    obligations: &[String],
 ) -> WorthQueryEvidenceIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::InstalledDomainExecutionIndex)
         .field_value_sequence(WorthQueryEvidenceTag::new("package"), packages)
@@ -51,6 +50,5 @@ pub(super) fn execution_index_identity(
                 .iter()
                 .map(|(slot, meaning)| format!("{}:{meaning}", slot.terminal_projection())),
         )
-        .field_value_sequence(WorthQueryEvidenceTag::new("obligation"), obligations)
         .seal()
 }

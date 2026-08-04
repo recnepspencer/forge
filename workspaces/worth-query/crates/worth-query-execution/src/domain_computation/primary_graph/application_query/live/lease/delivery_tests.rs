@@ -88,10 +88,10 @@ fn committed_live_cause_projects_with_bounded_result_buffer_evidence() {
     assert!(buffer.peak_bytes() <= buffer.limit_bytes());
     assert_eq!(observer.observe().active_buffers(), 0);
     assert_eq!(observer.observe().retained_bytes(), 0);
-    assert_eq!(
-        lease.close(),
-        WorthQueryApplicationLiveCloseOutcome::Completed
-    );
+    let WorthQueryApplicationLiveCloseOutcome::Completed(completion) = lease.close() else {
+        panic!("live close must complete its opening graph-read session");
+    };
+    assert_eq!(completion.release().released_reservation_count(), 1);
 }
 
 #[test]

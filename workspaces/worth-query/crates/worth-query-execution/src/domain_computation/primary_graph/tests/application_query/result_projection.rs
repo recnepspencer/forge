@@ -51,6 +51,8 @@ fn nested_projection_preserves_sibling_slots_cardinality_and_direction() {
             current_controls(&request),
         )
         .unwrap();
+    let admitted_session = plan.graph_work_session_identity();
+    let admitted_basis = plan.basis_identity().clone();
 
     let buffer_observer = world.application.result_buffer_observer();
     let outcome = world.application.execute_application_query_one_shot(plan);
@@ -98,6 +100,33 @@ fn nested_projection_preserves_sibling_slots_cardinality_and_direction() {
         .graph_read_plan()
         .requirements()
         .requires_kind(WorthQueryGraphReadAccessRequirementKind::OrderingSupport));
+    let completion = result.receipt().read_completion();
+    assert_eq!(completion.session_identity(), admitted_session);
+    assert_eq!(completion.basis_identity(), &admitted_basis);
+    assert!(completion.basis_release().released());
+    assert_eq!(completion.basis_release().identity(), &admitted_basis);
+    assert_eq!(completion.release().released_reservation_count(), 1);
+    assert_eq!(
+        completion.release().scope(),
+        worth_query_admission::integration::WorthQueryExecutionCapacityReservationScope::GraphWork
+    );
+    let dependencies = completion.dependencies();
+    assert!(dependencies.includes_predicate_and_negative_space());
+    assert!(dependencies.includes_ordering());
+    assert!(dependencies.includes_membership_and_traversal());
+    assert!(dependencies.includes_projection());
+    assert_eq!(
+        dependencies.examined_candidates(),
+        result.receipt().examined_candidate_count()
+    );
+    assert_eq!(
+        dependencies.projected_records(),
+        result.receipt().projected_record_count()
+    );
+    assert_eq!(
+        dependencies.projected_fields(),
+        result.receipt().projected_field_count()
+    );
     assert_eq!(buffer_observer.observe().active_buffers(), 0);
     assert_eq!(buffer_observer.observe().retained_bytes(), 0);
     assert_eq!(

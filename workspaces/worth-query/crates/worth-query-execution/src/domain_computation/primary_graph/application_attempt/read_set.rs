@@ -77,7 +77,7 @@ where
 {
     pub fn begin_application_read_attempt<Operation, Input, Scope>(
         &self,
-        admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
+        mut admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
     ) -> Result<
         WorthQueryApplicationReadAttempt<Schema, Operation, Input, Scope>,
         WorthQueryApplicationAttemptDenial,
@@ -104,12 +104,18 @@ where
             )
         })?;
         let read_scope = WorthQueryApplicationReadScope::root_only(admission.scope_entity_id());
+        let lease = admission
+            .graph_work_mut()
+            .take_mutation_lease()
+            .ok_or_else(|| {
+                denial(
+                    WorthQueryApplicationAttemptDenialKind::CurrentAuthorityDenied,
+                    admission.operation(),
+                )
+            })?;
         Ok(WorthQueryApplicationReadAttempt {
             admission,
-            lease: WorthQueryApplicationSnapshotLease::acquire(
-                graph.integration_handle(),
-                Arc::clone(&graph.layout),
-            ),
+            lease,
             layout: Arc::clone(&graph.layout),
             runtime_authority: self.runtime.authority_identity(),
             read_scope,

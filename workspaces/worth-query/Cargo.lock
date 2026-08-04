@@ -660,6 +660,7 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query",
+ "worth-query-admission",
  "worth-query-decl",
  "worth-query-execution",
  "worth-query-host",

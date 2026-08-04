@@ -3,7 +3,6 @@ use crate::identity::hash_parts;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryReadCompositionExtensionHookFamily {
     DomainReadFamilyLowering,
-    DomainInvariantPack,
     DomainDecoder,
     DomainResultCertification,
 }
@@ -12,7 +11,6 @@ impl WorthQueryReadCompositionExtensionHookFamily {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::DomainReadFamilyLowering => "domain_read_family_lowering",
-            Self::DomainInvariantPack => "domain_invariant_pack",
             Self::DomainDecoder => "domain_decoder",
             Self::DomainResultCertification => "domain_result_certification",
         }
@@ -22,7 +20,6 @@ impl WorthQueryReadCompositionExtensionHookFamily {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryReadCompositionExtensionHookBoundary {
     Lowering,
-    InvariantPack,
     Decoder,
     Certification,
 }
@@ -31,7 +28,6 @@ impl WorthQueryReadCompositionExtensionHookBoundary {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Lowering => "lowering",
-            Self::InvariantPack => "invariant-pack",
             Self::Decoder => "decoder",
             Self::Certification => "certification",
         }

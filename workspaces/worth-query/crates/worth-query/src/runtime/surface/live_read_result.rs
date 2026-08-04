@@ -1,7 +1,4 @@
-use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryGraphObligationAttachmentEvidence,
-    WorthQueryIntentExecutionProvenance, WorthQueryLiveGraphReadAccessReceipt,
-};
+use crate::runtime::{WorthQueryIntentExecutionProvenance, WorthQueryLiveGraphReadAccessReceipt};
 
 use super::super::WorthQueryIntentDecisionTraceEnvelope;
 use super::WorthQueryLiveReadReceipt;
@@ -19,20 +16,6 @@ impl WorthQueryLiveReadResult {
 
     pub fn receipt(&self) -> &WorthQueryLiveReadReceipt {
         &self.receipt
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.receipt.graph_obligation_dispatch()
-    }
-
-    pub fn graph_obligation_evidence(&self) -> Option<WorthQueryGraphObligationAttachmentEvidence> {
-        self.receipt.graph_obligation_evidence()
-    }
-
-    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.receipt.graph_obligation_envelope_digest()
     }
 
     pub fn live_graph_read_access(&self) -> Option<&WorthQueryLiveGraphReadAccessReceipt> {
@@ -53,13 +36,6 @@ impl WorthQueryLiveReadResult {
     ) {
         self.receipt.decision_trace_envelope = Some(decision_trace_envelope);
         self.receipt.execution_provenance = Some(execution_provenance);
-    }
-
-    pub(in crate::runtime) fn attach_graph_obligation_dispatch(
-        &mut self,
-        dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
-    ) {
-        self.receipt.graph_obligation_dispatch = dispatch;
     }
 
     pub(in crate::runtime) fn attach_live_graph_read_access(

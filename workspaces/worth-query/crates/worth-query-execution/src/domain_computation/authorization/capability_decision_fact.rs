@@ -59,6 +59,17 @@ impl WorthQueryRetainedCapabilityAuthorization {
         2
     }
 
+    pub(in crate::domain_computation) fn installed_capability_identity(&self) -> [u8; 32] {
+        self.request.capability_identity
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        self.principal.session_identity() == session && self.decision.session_identity() == session
+    }
+
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
         self.decision.relational.counters()
     }
@@ -87,6 +98,10 @@ impl WorthQueryRetainedCapabilityAuthorization {
         self.sample.value()
     }
 
+    pub(super) fn retained_time_sample(&self) -> WorthQueryAuthorizationTimeSample {
+        self.sample.clone()
+    }
+
     pub(super) fn replace_current_decision(
         &mut self,
         capability_authority_identity: &str,
@@ -102,6 +117,23 @@ impl WorthQueryRetainedCapabilityAuthorization {
         }
         self.sample = sample;
         self.decision = decision;
+        Ok(())
+    }
+
+    pub(super) fn replace_current_session_decision(
+        &mut self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        capability_authority_identity: &str,
+        grant: worth_relational::facade::identity::EntityId,
+        sample: WorthQueryAuthorizationTimeSample,
+        decision: WorthQueryAuthorizationDecisionFact,
+    ) -> Result<(), ()> {
+        if decision.session_identity() != session {
+            return Err(());
+        }
+        let principal = self.principal.retained_for_session(session);
+        self.replace_current_decision(capability_authority_identity, grant, sample, decision)?;
+        self.principal = principal;
         Ok(())
     }
 
@@ -147,6 +179,13 @@ pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
 }
 
 impl WorthQueryCapabilityCommitBasis {
+    pub(super) fn belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        self.principal.session_identity() == session && self.decision.session_identity() == session
+    }
+
     pub(super) fn principal(&self) -> &WorthQueryPrincipalCurrentnessDependency {
         &self.principal
     }

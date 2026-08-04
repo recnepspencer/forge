@@ -210,7 +210,8 @@ fn physical_adapter_is_not_semantic_domain_authority() {
 fn installation_grammar_freezes_order_fields_and_owners() {
     let grammar = worth_query_domain_installation_grammar();
     assert_eq!(grammar.stages().len(), 7);
-    assert_eq!(grammar.package_fields().len(), 10);
+    assert_eq!(grammar.package_fields().len(), 9);
+    assert!(!grammar.package_fields().contains(&"graph-obligations"));
     assert_eq!(grammar.transcript_owners().len(), grammar.stages().len());
     assert_eq!(
         grammar.stages()[4],

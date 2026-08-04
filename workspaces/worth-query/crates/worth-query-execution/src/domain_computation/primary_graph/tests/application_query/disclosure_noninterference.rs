@@ -97,6 +97,9 @@ fn execute(world: &AuthorizationWorld) -> ConsumerObservation {
         .application_query(GovernedAccountOmissionQuery::reference())
         .unwrap();
     let capability = admit_touch_account_capability(world, &principal, &request).unwrap();
+    let capability_session = capability.graph_work_session_identity();
+    let capability_run = capability.graph_work_managed_run_identity();
+    let capability_branch = capability.graph_work_branch().clone();
     let access = WorthQueryApplicationQueryAccessContext::new(&principal, &account);
     let plan = world
         .application
@@ -112,6 +115,11 @@ fn execute(world: &AuthorizationWorld) -> ConsumerObservation {
             ),
         )
         .unwrap();
+    assert_ne!(plan.graph_work_session_identity(), capability_session);
+    assert_ne!(plan.graph_work_managed_run_identity(), capability_run);
+    assert_eq!(plan.graph_work_branch(), &capability_branch);
+    assert!(plan.graph_work_capability_identity().is_some());
+    assert!(plan.graph_work_decision_fact_count() >= 3);
     let result = world
         .application
         .execute_application_query_one_shot(plan)

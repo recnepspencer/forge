@@ -46,6 +46,10 @@ fn activity_pages_keep_one_exact_basis_across_a_new_commit() {
         .expect("a continuation page must name its ordered index generation");
     assert!(first_receipt.basis_released());
     let continuation = continuation.expect("first page must continue");
+    let terminal = first_receipt.read_completion();
+    assert_eq!(terminal.basis_identity(), first_receipt.basis_identity());
+    assert!(terminal.basis_release().released());
+    assert_eq!(terminal.release().released_reservation_count(), 1);
 
     let mutation = fixture
         .world

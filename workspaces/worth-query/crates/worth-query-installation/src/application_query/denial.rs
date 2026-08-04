@@ -21,6 +21,7 @@ pub enum WorthQueryApplicationQueryInstallationDenialKind {
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,
     CanonicalDigestSlotRejected,
+    InvalidGraphObligationContract,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

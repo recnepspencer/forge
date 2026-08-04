@@ -89,12 +89,13 @@ fn distinct_abilities_sharing_one_policy_retain_exact_provider_cardinality() {
         )
         .unwrap();
 
-    assert!(matches!(
-        world
-            .application
-            .compare_and_commit_application(effects.finish().unwrap(), idempotency(32, 32),),
-        WorthQueryApplicationCommitOutcome::Committed(_)
-    ));
+    let outcome = world
+        .application
+        .compare_and_commit_application(effects.finish().unwrap(), idempotency(32, 32));
+    assert!(
+        matches!(outcome, WorthQueryApplicationCommitOutcome::Committed(_)),
+        "complete two-ability decision set should commit: {outcome:?}",
+    );
 }
 
 fn revoke_account_ownership(

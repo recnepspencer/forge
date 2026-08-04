@@ -24,6 +24,7 @@ pub mod primary_graph {
         WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationCommitDenial,
         WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
         WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
+        WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
         WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
         WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
         WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
@@ -83,9 +84,9 @@ pub mod primary_graph {
         WorthQueryOrdinaryReadProjection, WorthQueryOrdinaryReadVersion, WorthQueryPrimaryGraph,
         WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrimaryGraphBootstrap,
         WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
-        WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
-        WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
-        WorthQueryProjectedApplicationMutation,
+        WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,
+        WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
+        WorthQueryPrincipalResolutionMode, WorthQueryProjectedApplicationMutation,
     };
 }
 

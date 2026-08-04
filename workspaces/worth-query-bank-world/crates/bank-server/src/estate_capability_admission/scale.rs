@@ -2,6 +2,7 @@ use super::{
     current_admission::view_action,
     fixture::{capability_world, request_scope, GrantSpec},
 };
+use crate::{queries, BankReadControls};
 use bank_domain::{
     estate::EstateWorkflowStage,
     schema::{ViewEstateAdministrationCapability, ViewRestrictedEstateOperation},
@@ -90,5 +91,58 @@ fn unrelated_grant_population_does_not_enter_warm_capability_work() {
         assert_eq!(work.sha256_input_bytes(), 0);
         assert_eq!(work.sha256_compression_blocks(), 0);
         assert_eq!(work.digest_text_materializations(), 0);
+    }
+}
+
+#[test]
+fn unrelated_grant_population_does_not_widen_terminal_publication() {
+    let baseline = capability_world(
+        "publication-scale-baseline",
+        GrantSpec::identity_verification(),
+        EstateWorkflowStage::Administration,
+        false,
+        0,
+    );
+    let expanded = capability_world(
+        "publication-scale-expanded",
+        GrantSpec::identity_verification(),
+        EstateWorkflowStage::Administration,
+        false,
+        128,
+    );
+    let baseline_principal = baseline.authenticate();
+    let expanded_principal = expanded.authenticate();
+    let baseline_controls = BankReadControls::current(request_scope(), 1, 256).unwrap();
+    let expanded_controls = BankReadControls::current(request_scope(), 1, 256).unwrap();
+
+    let baseline_result = baseline
+        .runtime
+        .query(queries::estate_customer_identity(super::fixture::ESTATE))
+        .as_principal(&baseline_principal)
+        .controls(baseline_controls)
+        .execute()
+        .unwrap();
+    let expanded_result = expanded
+        .runtime
+        .query(queries::estate_customer_identity(super::fixture::ESTATE))
+        .as_principal(&expanded_principal)
+        .controls(expanded_controls)
+        .execute()
+        .unwrap();
+    let baseline_publication = baseline_result.receipt().inspect();
+    let expanded_publication = expanded_result.receipt().inspect();
+
+    assert_eq!(baseline_result.rows(), expanded_result.rows());
+    assert_eq!(baseline_publication.result_count(), 1);
+    assert_eq!(expanded_publication.result_count(), 1);
+    assert_eq!(
+        baseline_publication.ordinary_work_units(),
+        expanded_publication.ordinary_work_units()
+    );
+    for publication in [baseline_publication, expanded_publication] {
+        assert!(publication.terminal_resources_released());
+        assert_eq!(publication.publication_canonical_entries(), 0);
+        assert_eq!(publication.publication_sha256_compression_blocks(), 0);
+        assert_eq!(publication.publication_identity_text_materializations(), 0);
     }
 }

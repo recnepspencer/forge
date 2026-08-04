@@ -11,47 +11,65 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
 };
+use worth_query_host::facade::publication::domain_computation::{
+    publish_application_commit, WorthQueryApplicationCommitPublicationReceipt,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BankCommitReceipt {
-    application: WorthQueryApplicationCommitReceipt,
+    application: WorthQueryApplicationCommitPublicationReceipt,
 }
 
 impl BankCommitReceipt {
     pub const fn commit_id(&self) -> u64 {
-        self.application.commit_id().0
+        self.application.terminal().commit_id().0
     }
 
     pub const fn changed_record_count(&self) -> usize {
-        self.application.changed_record_count()
+        self.application.terminal().changed_record_count()
     }
 
     pub const fn emitted_effect_count(&self) -> usize {
-        self.application.emitted_effect_count()
+        self.application.terminal().emitted_effect_count()
     }
 
     pub const fn expected_version_count(&self) -> usize {
         self.application
+            .terminal()
             .precondition_comparison()
             .expected_version_count()
     }
 
     pub const fn expected_fact_count(&self) -> usize {
         self.application
+            .terminal()
             .precondition_comparison()
             .expected_fact_count()
     }
 
     pub const fn precondition_comparison_identity(&self) -> Option<&[u8; 32]> {
-        self.application.precondition_comparison().identity()
+        self.application
+            .terminal()
+            .precondition_comparison()
+            .identity()
     }
 
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
-        self.application.canonical_work()
+        self.application.terminal().canonical_work()
+    }
+
+    pub const fn publication(&self) -> &WorthQueryApplicationCommitPublicationReceipt {
+        &self.application
+    }
+
+    pub fn is_same_authoritative_commit(&self, other: &Self) -> bool {
+        self.application
+            .terminal()
+            .is_same_authoritative_commit(other.application.terminal())
     }
 
     pub(crate) const fn application(&self) -> &WorthQueryApplicationCommitReceipt {
-        &self.application
+        self.application.terminal()
     }
 }
 
@@ -119,7 +137,7 @@ pub(crate) fn commit_receipt(
     receipt: worth_query_host::facade::primary_graph::WorthQueryApplicationCommitReceipt,
 ) -> BankCommitReceipt {
     BankCommitReceipt {
-        application: receipt,
+        application: publish_application_commit(receipt).into_receipt(),
     }
 }
 

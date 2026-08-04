@@ -1,5 +1,5 @@
 use worth_foundational::facade::CanonicalDigestWorkBudget;
-use worth_query_admission::facade::graph_read_access::{
+use worth_query_admission::integration::{
     derive_canonical_graph_read_access_requirements, WorthQueryCanonicalGraphReadPlanningInput,
     WorthQueryGraphReadPlanningIdentity, WorthQueryGraphReadPlanningOrderingField,
     WorthQueryGraphReadPlanningPredicateField, WorthQueryGraphReadPlanningRelation,

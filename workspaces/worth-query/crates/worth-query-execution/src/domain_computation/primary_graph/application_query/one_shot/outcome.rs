@@ -37,6 +37,7 @@ pub(super) fn finalize_one_shot<
     >,
     kernel: RawNonLiveKernelOutcome,
     authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
+    read_proof: crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof,
 ) -> Result<
     WorthQueryApplicationOneShotResult<Query, QueryResult>,
     WorthQueryApplicationOneShotDenial,
@@ -48,7 +49,8 @@ where
     let request = plan.controls.request_scope();
     let basis_identity = plan.basis.identity().clone();
     let basis_version = plan.basis.version_id();
-    let released = plan.basis.release().released();
+    let basis_release = plan.basis.release();
+    let released = basis_release.released();
     if !released {
         return Err(denial(
             WorthQueryApplicationOneShotDenialKind::BasisReleaseFailed,
@@ -73,6 +75,19 @@ where
     admit_request(request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
+    let read_completion = plan
+        .graph_work
+        .complete_query_read(
+            read_proof,
+            kernel_receipt.observed_graph_read_work(),
+            basis_release,
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryApplicationOneShotDenialKind::ForeignPlan,
+                plan.query.name(),
+            )
+        })?;
     let receipt = WorthQueryApplicationQueryAccessReceipt::from_non_live_kernel(
         WorthQueryApplicationQueryReceiptIdentity {
             query_identity: plan.query.identity().clone(),
@@ -89,7 +104,7 @@ where
             freshness: plan.controls.freshness(),
             released,
         },
-        plan.graph_read_plan,
+        read_completion,
         plan.canonical_work,
         authorization_work,
         plan.governance.receipt(),

@@ -20,7 +20,7 @@ pub(super) fn read_scope_identity<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -31,14 +31,19 @@ pub(super) fn read_scope_identity<
         PrincipalIdentity,
         Scope,
     >,
-) -> Result<AspectValue, WorthQueryApplicationReadExecutionDenial> {
+) -> Result<
+    (
+        AspectValue,
+        crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork,
+    ),
+    WorthQueryApplicationReadExecutionDenial,
+> {
     let live = plan
         .query
         .live()
         .ok_or_else(|| projection_denial(plan.query.name()))?;
     let identity = live.scope_identity();
     let expected_kind = graph
-        .layout
         .entity_kind(identity.entity())
         .ok_or_else(|| projection_denial(identity.result_path()))?;
     let view = runtime
@@ -49,16 +54,27 @@ pub(super) fn read_scope_identity<
         identity.aspect_key().clone(),
         [identity.field_key().clone()],
     );
-    view.entity_record_with_projection_scope(plan.scope.entity_id(), scope, |record| {
-        (record.kind_id() == expected_kind && record.lifecycle() == RecordLifecycleState::Live)
-            .then(|| {
-                record
-                    .aspect_field_value(identity.aspect_key(), identity.field_key())
-                    .cloned()
-            })
-            .flatten()
-    })
-    .ok_or_else(|| projection_denial(identity.result_path()))
+    let value = view
+        .entity_record_with_projection_scope(plan.scope.entity_id(), scope, |record| {
+            (record.kind_id() == expected_kind && record.lifecycle() == RecordLifecycleState::Live)
+                .then(|| {
+                    record
+                        .aspect_field_value(identity.aspect_key(), identity.field_key())
+                        .cloned()
+                })
+                .flatten()
+        })
+        .ok_or_else(|| projection_denial(identity.result_path()))?;
+    Ok((
+        value,
+        crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork {
+            examined_candidates: 1,
+            projected_records: 1,
+            projected_fields: 1,
+            relation_records_examined: 0,
+            ordering_comparisons: 0,
+        },
+    ))
 }
 
 fn projection_denial(subject: impl Into<String>) -> WorthQueryApplicationReadExecutionDenial {

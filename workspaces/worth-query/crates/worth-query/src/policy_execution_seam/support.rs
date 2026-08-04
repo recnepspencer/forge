@@ -12,7 +12,6 @@ pub enum PolicyExecutionSeamSurface {
     LiveAdmission,
     DeliveryShape,
     OptimizerInput,
-    GraphMutationGate,
     StoreBackedRetainedHistoricalExecution,
     DurablePolicyCursor,
     DurablePolicyArtifactReload,
@@ -28,7 +27,6 @@ impl PolicyExecutionSeamSurface {
             Self::LiveAdmission => "policy_aware_live_admission",
             Self::DeliveryShape => "policy_aware_delivery_shape",
             Self::OptimizerInput => "policy_aware_optimizer_input",
-            Self::GraphMutationGate => "policy_aware_graph_mutation_gate",
             Self::StoreBackedRetainedHistoricalExecution => {
                 "policy_aware_store_backed_retained_historical_execution"
             }
@@ -86,20 +84,6 @@ impl PolicyExecutionSeamSupportProfile {
     pub fn profile_digest(&self) -> &str {
         &self.profile_digest
     }
-}
-
-#[cfg(test)]
-pub fn graph_mutation_gate_certification_anchors() -> &'static [&'static str] {
-    &[
-        "scalar_policy_gate_allow",
-        "scalar_policy_gate_deny",
-        "scalar_policy_gate_advise",
-        "wrong_mode_policy_context_denial",
-        "no_match_policy_context_has_no_gate_evidence",
-        "command_batch_policy_gate",
-        "graph_composition_policy_gate",
-        "read_write_policy_basis_parity",
-    ]
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -232,10 +216,6 @@ pub fn runtime_backed_policy_execution_seam_support_profile() -> PolicyExecution
         ),
         (
             PolicyExecutionSeamSurface::OptimizerInput,
-            PolicyExecutionSeamSupportStatus::Verified,
-        ),
-        (
-            PolicyExecutionSeamSurface::GraphMutationGate,
             PolicyExecutionSeamSupportStatus::Verified,
         ),
         (

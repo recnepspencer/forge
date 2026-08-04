@@ -15,6 +15,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationQueryControls, WorthQueryPrincipalResolutionMode,
 };
 mod disclosure_noninterference;
+mod graph_work_capacity;
 mod identity_convergence;
 mod lane_hostility;
 mod lane_parity;
@@ -172,6 +173,16 @@ fn execution_runtime_mints_plan_from_exact_mapped_principal_and_typed_scope() {
     assert_eq!(plan.query_identity(), query.identity());
     assert_eq!(plan.scope().binding_identity(), query.binding_identity());
     assert!(plan.graph_read_plan().is_admitted());
+    assert_eq!(plan.graph_work_branch(), plan.basis_identity().branch_id());
+    assert_eq!(
+        plan.graph_work_principal_entity_id(),
+        principal.principal_entity_id()
+    );
+    assert_eq!(plan.graph_work_scope_entity_id(), Some(account.entity_id()));
+    assert!(plan.graph_work_runtime_ordinal() > 0);
+    assert!(plan.graph_work_managed_run_identity().as_u64() > 0);
+    assert!(plan.graph_work_decision_fact_count() > 0);
+    assert!(!plan.graph_work_provider().is_empty());
     assert_eq!(
         plan.graph_read_plan()
             .budget_check()

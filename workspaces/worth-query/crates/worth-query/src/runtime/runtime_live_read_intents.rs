@@ -110,12 +110,10 @@ impl WorthQueryRuntime {
         &self,
         handoff: WorthQueryLiveReadExecutionHandoff,
     ) -> Result<WorthQueryLiveReadExecutionBinding, WorthQueryRuntimeError> {
-        let graph_obligation_dispatch = self.live_read_obligation_dispatch(&handoff)?;
         let live_graph_read_access_plan =
             self.plan_live_graph_read_access_for_installation(handoff.installation())?;
         Ok(WorthQueryLiveReadExecutionBinding::from_handoff(
             handoff,
-            graph_obligation_dispatch,
             live_graph_read_access_plan,
         ))
     }
@@ -168,12 +166,8 @@ impl WorthQueryRuntime {
                 live_graph_access_counters,
             );
         result.attach_live_graph_read_access(live_graph_access_receipt);
-        result.attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
-        let obligation_dispatch_envelope_digest = binding
-            .graph_obligation_dispatch()
-            .and_then(|dispatch| dispatch.envelope_digest());
         let decision_trace_envelope =
-            WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
+            WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
                 binding.family(),
                 binding.entrypoint(),
                 binding.installation().view_name(),
@@ -182,7 +176,6 @@ impl WorthQueryRuntime {
                 binding.handoff().decision_digest(),
                 binding.handoff().handoff_digest(),
                 binding.execution_seam(),
-                obligation_dispatch_envelope_digest,
                 binding.installation().view_name(),
                 result.receipt().result_digest(),
                 "live-view-read",

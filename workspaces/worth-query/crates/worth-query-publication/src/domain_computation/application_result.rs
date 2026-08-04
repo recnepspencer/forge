@@ -1,11 +1,16 @@
-use worth_query_execution::facade::primary_graph::{
-    WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationQueryAccessReceipt,
-};
+use worth_query_execution::facade::primary_graph::WorthQueryAdmittedDisclosedApplicationResult;
+
+mod inspection;
+mod receipt;
+
+pub use inspection::WorthQueryApplicationQueryPublicationInspection;
+pub use receipt::WorthQueryApplicationQueryPublicationReceipt;
 
 /// Publication-owned result whose input was already governed before domain
 /// projection. Publication performs no field-policy decision or redaction.
 pub struct WorthQueryPublishedApplicationResult<Query, QueryResult> {
     admitted: WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
+    receipt: WorthQueryApplicationQueryPublicationReceipt,
 }
 
 /// Accepts only Query's admitted disclosed shape.
@@ -31,7 +36,8 @@ pub struct WorthQueryPublishedApplicationResult<Query, QueryResult> {
 pub fn publish_application_result<Query, QueryResult>(
     admitted: WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
 ) -> WorthQueryPublishedApplicationResult<Query, QueryResult> {
-    WorthQueryPublishedApplicationResult { admitted }
+    let receipt = WorthQueryApplicationQueryPublicationReceipt::from_terminal(admitted.receipt());
+    WorthQueryPublishedApplicationResult { admitted, receipt }
 }
 
 impl<Query, QueryResult> WorthQueryPublishedApplicationResult<Query, QueryResult> {
@@ -39,7 +45,7 @@ impl<Query, QueryResult> WorthQueryPublishedApplicationResult<Query, QueryResult
         self.admitted.rows()
     }
 
-    pub const fn receipt(&self) -> &WorthQueryApplicationQueryAccessReceipt {
-        self.admitted.receipt()
+    pub const fn receipt(&self) -> &WorthQueryApplicationQueryPublicationReceipt {
+        &self.receipt
     }
 }

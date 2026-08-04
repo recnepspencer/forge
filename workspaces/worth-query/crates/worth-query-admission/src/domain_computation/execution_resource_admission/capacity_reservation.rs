@@ -8,6 +8,22 @@ pub struct WorthQueryCapacityReservedExecutionResourcePlan {
     provider_reservations: Vec<Box<dyn WorthQueryExecutionCapacityReservation>>,
 }
 
+pub(crate) struct WorthQueryReservedGraphProviderCapacity {
+    support_identity: String,
+    reservation: Box<dyn WorthQueryExecutionCapacityReservation>,
+}
+
+impl WorthQueryReservedGraphProviderCapacity {
+    pub(crate) fn release(self) -> WorthQueryExecutionCapacityReleaseReceipt {
+        drop(self.reservation);
+        WorthQueryExecutionCapacityReleaseReceipt {
+            resource_plan_identity: self.support_identity,
+            scope: WorthQueryExecutionCapacityReservationScope::GraphWork,
+            released_reservation_count: 1,
+        }
+    }
+}
+
 impl WorthQueryCapacityReservedExecutionResourcePlan {
     fn reserve(resources: WorthQueryAdmittedExecutionResourcePlan) -> Option<Self> {
         let reservations = reserve_plans([&resources])?;
@@ -80,6 +96,7 @@ impl WorthQueryCapacityReservedWorkflowResourcePlan {
 pub enum WorthQueryExecutionCapacityReservationScope {
     Direct,
     Workflow,
+    GraphWork,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -119,6 +136,15 @@ pub fn reserve_workflow_resource_plan(
     let mut reserved = WorthQueryCapacityReservedWorkflowResourcePlan::reserve(resources)?;
     reserved.resources_mut().record_capacity_reservation();
     Some(reserved)
+}
+
+pub(crate) fn reserve_graph_provider_capacity(
+    support: &WorthQueryExecutionResourceSupport,
+) -> Option<WorthQueryReservedGraphProviderCapacity> {
+    Some(WorthQueryReservedGraphProviderCapacity {
+        support_identity: support.identity().to_owned(),
+        reservation: support.capacity().try_reserve()?,
+    })
 }
 
 fn release_reservations(

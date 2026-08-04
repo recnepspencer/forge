@@ -77,11 +77,20 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
     assert_eq!(activity.account(), fixture.personal_account);
     assert_eq!(activity.entries().len(), 1);
     assert_eq!(update.receipt().projected_record_count(), 3);
-    assert!(update.commit_ordinal() > 0);
+    let delivery_terminal = update.receipt().read_completion();
     assert_eq!(
-        live.close(),
-        worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed
+        delivery_terminal.basis_identity(),
+        update.receipt().basis_identity()
     );
+    assert_eq!(delivery_terminal.release().released_reservation_count(), 1);
+    assert!(update.commit_ordinal() > 0);
+    let worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed(
+        close_terminal,
+    ) = live.close()
+    else {
+        panic!("live close must return its read-only terminal");
+    };
+    assert_eq!(close_terminal.release().released_reservation_count(), 1);
 }
 
 #[test]
@@ -128,10 +137,10 @@ fn live_consumer_fanout_keeps_each_delivery_free_of_canonical_work() {
     }
     assert_eq!(delivered, CONSUMER_COUNT);
     for lease in leases {
-        assert_eq!(
+        assert!(matches!(
             lease.close(),
-            worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed
-        );
+            worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed(_)
+        ));
     }
 }
 

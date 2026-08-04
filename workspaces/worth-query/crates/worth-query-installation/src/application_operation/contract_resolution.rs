@@ -5,7 +5,7 @@ use worth_query_declaration::facade::application_schema::{
 
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
 
-use super::installed::operation_denial;
+use super::installed_contract_support::operation_denial;
 use super::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind, WorthQueryInstalledAbilityRequirement,

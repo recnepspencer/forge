@@ -45,6 +45,7 @@ impl WorthQueryObservedCapabilityDecision {
 }
 
 pub(super) fn observe_capability(
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     bridge: &BridgeAuthorizationRuntime,
@@ -163,7 +164,11 @@ pub(super) fn observe_capability(
         ));
     }
     Ok(WorthQueryObservedCapabilityDecision {
-        decision: WorthQueryAuthorizationDecisionFact::new(evidence, bridge_evidence),
+        decision: WorthQueryAuthorizationDecisionFact::new(
+            session_identity,
+            evidence,
+            bridge_evidence,
+        ),
         grant,
     })
 }

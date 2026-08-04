@@ -14,18 +14,10 @@ fn runtime_stop_class_taxonomy_covers_representative_runtime_error_variants() {
             | WorthQueryStopClass::MutationBindingDenied { .. }
             | WorthQueryStopClass::MutationContinuityDenied { .. }
             | WorthQueryStopClass::MutationContractDenied { .. }
-            | WorthQueryStopClass::GraphObligationTouchDescriptorDenied { .. }
-            | WorthQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. }
-            | WorthQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. }
-            | WorthQueryStopClass::GraphMutationPolicyContextDenied { .. }
-            | WorthQueryStopClass::GraphMutationPolicyGateDenied { .. }
-            | WorthQueryStopClass::GraphObligationDenied { .. }
             | WorthQueryStopClass::GraphCompositionDenied { .. }
-            | WorthQueryStopClass::GraphCompositionDomainInvariantDenied { .. }
             | WorthQueryStopClass::MutationNamingDenied { .. }
             | WorthQueryStopClass::MutationTargetReferenceDenied { .. }
             | WorthQueryStopClass::ReadCompositionDenied { .. }
-            | WorthQueryStopClass::ReadCompositionDomainInvariantDenied { .. }
             | WorthQueryStopClass::Workspace { .. }
             | WorthQueryStopClass::Program { .. }
             | WorthQueryStopClass::RuntimeLookupFailed { .. }

@@ -1,5 +1,3 @@
-use crate::admission_digest::hash_parts_with_digests;
-
 use super::{
     derive_graph_read_cost_evidence, estimate_graph_read_access_cost,
     match_graph_index_inventory_for_requirements, WorthQueryGraphIndexInventory,
@@ -12,7 +10,6 @@ use super::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphReadPlanReview {
-    digest: String,
     requirements: WorthQueryGraphReadAccessRequirementSet,
     cost_estimate: WorthQueryGraphReadAccessCostEstimate,
     budget_check: WorthQueryGraphReadBudgetCheck,
@@ -22,21 +19,7 @@ pub struct WorthQueryGraphReadPlanReview {
     denial: Option<WorthQueryGraphReadPlanReviewDenial>,
 }
 
-pub struct WorthQueryGraphReadPlanReviewParts {
-    pub requirements: WorthQueryGraphReadAccessRequirementSet,
-    pub cost_estimate: WorthQueryGraphReadAccessCostEstimate,
-    pub budget_check: WorthQueryGraphReadBudgetCheck,
-    pub inventory: WorthQueryGraphIndexInventory,
-    pub inventory_match: WorthQueryGraphIndexInventoryMatchReport,
-    pub posture: WorthQueryGraphReadAccessAdmissionPosture,
-    pub denial: Option<WorthQueryGraphReadPlanReviewDenial>,
-}
-
 impl WorthQueryGraphReadPlanReview {
-    pub fn digest(&self) -> &str {
-        &self.digest
-    }
-
     pub fn requirements(&self) -> &WorthQueryGraphReadAccessRequirementSet {
         &self.requirements
     }
@@ -68,20 +51,9 @@ impl WorthQueryGraphReadPlanReview {
     pub const fn is_admitted(&self) -> bool {
         self.denial.is_none()
     }
-
-    pub fn into_parts(self) -> WorthQueryGraphReadPlanReviewParts {
-        WorthQueryGraphReadPlanReviewParts {
-            requirements: self.requirements,
-            cost_estimate: self.cost_estimate,
-            budget_check: self.budget_check,
-            inventory: self.inventory,
-            inventory_match: self.inventory_match,
-            posture: self.posture,
-            denial: self.denial,
-        }
-    }
 }
 
+#[doc(hidden)]
 pub fn review_graph_read_access(
     requirements: WorthQueryGraphReadAccessRequirementSet,
     inventory: WorthQueryGraphIndexInventory,
@@ -92,25 +64,7 @@ pub fn review_graph_read_access(
     let budget_check = budget.check_supported_cost(&estimate);
     let inventory_match = match_graph_index_inventory_for_requirements(&requirements, &inventory);
     let (posture, denial) = review_posture(&requirements, &budget_check, &inventory_match);
-    let digest = hash_parts_with_digests(
-        &[
-            "worth_query_graph_read_plan_review_v1".to_string(),
-            format!("cost:{}", estimate.digest().as_str()),
-            format!("budget:{}", budget_check.budget_digest()),
-            format!("inventory:{}", inventory.digest()),
-            format!("inventory_match:{}", inventory_match.digest()),
-            format!("posture:{}", posture.as_str()),
-            format!(
-                "denial:{}",
-                denial
-                    .as_ref()
-                    .map_or("none", WorthQueryGraphReadPlanReviewDenial::as_str)
-            ),
-        ],
-        &[requirements.digest().as_digest()],
-    );
     WorthQueryGraphReadPlanReview {
-        digest,
         requirements,
         cost_estimate: estimate,
         budget_check,

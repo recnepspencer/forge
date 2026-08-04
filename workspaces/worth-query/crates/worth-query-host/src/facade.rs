@@ -7,4 +7,9 @@ pub use worth_query_execution::facade::installed;
 pub use worth_query_execution::facade::primary_graph;
 pub use worth_query_execution::facade::runtime;
 pub use worth_query_installation::facade as domain;
+pub use worth_query_installation::facade::{
+    inspect_installed_graph_obligations, WorthQueryGraphObligationAdoptionDenial,
+    WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof,
+    WorthQueryGraphObligationAdoptionRow,
+};
 pub use worth_query_publication::facade as publication;

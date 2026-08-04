@@ -68,6 +68,36 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         )
     }
 
+    /// Opens the current immutable snapshot for one exact branch.
+    ///
+    /// This is the branch-qualified counterpart to [`Self::snapshot`]. It
+    /// refuses to infer another branch when the requested branch has no
+    /// current head or when retained version ownership disagrees.
+    pub fn snapshot_for_branch(
+        &mut self,
+        branch_id: &crate::history::data::BranchId,
+    ) -> Option<SnapshotHandle> {
+        let version_id = self
+            .runtime
+            .history()
+            .branch_head(branch_id)
+            .map(|head| head.version_id)
+            .or_else(|| {
+                (branch_id == &self.runtime.config.history.main_branch)
+                    .then(|| self.runtime.current_version_id())
+            })?;
+        let handle = self.open_active_snapshot(
+            version_id,
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        if &handle.branch_id == branch_id {
+            Some(handle)
+        } else {
+            self.release_snapshot(&handle);
+            None
+        }
+    }
+
     pub fn pin_snapshot(
         &mut self,
         version_id: crate::identity::data::VersionId,

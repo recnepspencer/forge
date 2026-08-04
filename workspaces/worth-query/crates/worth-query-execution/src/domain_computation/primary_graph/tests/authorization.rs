@@ -25,6 +25,8 @@ mod capability_progression;
 #[path = "authorization/commit_authorization_lifecycle.rs"]
 mod commit_authorization_lifecycle;
 mod decision_ownership;
+#[path = "authorization/graph_work_capacity.rs"]
+mod graph_work_capacity;
 
 impl OperationExpectsFact<TouchAccountOperation> for AccountLabel {}
 
@@ -80,6 +82,30 @@ fn current_installed_membership_mints_exact_operation_admission() {
 
     assert_eq!(admitted.operation(), "TouchAccountOperation");
     assert_eq!(admitted.authorization_requirement_count(), 1);
+    assert_ne!(
+        admitted.graph_work_session_identity(),
+        retried.graph_work_session_identity()
+    );
+    assert_ne!(
+        admitted.graph_work_managed_run_identity(),
+        retried.graph_work_managed_run_identity()
+    );
+    assert_eq!(admitted.graph_work_branch(), retried.graph_work_branch());
+    assert_eq!(
+        admitted.graph_work_decision_fact_count(),
+        admitted.authorization_decision_fact_count()
+    );
+    assert_eq!(
+        admitted.graph_work_principal_entity_id(),
+        principal.principal_entity_id()
+    );
+    assert_eq!(
+        admitted.graph_work_scope_entity_id(),
+        Some(account.entity_id())
+    );
+    assert!(admitted.graph_work_capability_identity().is_none());
+    assert!(admitted.graph_work_runtime_ordinal() > 0);
+    assert!(!admitted.graph_work_provider().is_empty());
     assert_eq!(admitted.allowed_graph_contract(), operation.contracts());
     assert_eq!(admitted.relational_counters().reconstructive_graph_scans, 0);
     assert!(admitted.signal_dependency_count() >= 2);

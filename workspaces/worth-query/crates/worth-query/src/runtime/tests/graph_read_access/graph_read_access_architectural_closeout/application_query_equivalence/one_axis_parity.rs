@@ -1,9 +1,8 @@
 use worth_query_admission::facade::{
-    application_query::{
-        derive_graph_read_access_requirements_for_contract, WorthQueryApplicationQueryLane,
-    },
+    application_query::WorthQueryApplicationQueryLane,
     graph_read_access::WorthQueryGraphReadAccessRequirementSet,
 };
+use worth_query_admission::integration::derive_graph_read_access_requirements_for_contract;
 use worth_query_declaration::facade::application_query::{
     ApplicationQueryCardinality, ApplicationQueryOrderingDirection,
 };

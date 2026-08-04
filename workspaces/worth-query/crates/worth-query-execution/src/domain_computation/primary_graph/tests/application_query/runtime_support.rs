@@ -1,15 +1,15 @@
 use worth_query_admission::facade::{
-    application_query::{
-        admit_application_query_parameters, derive_graph_read_access_requirements_for_contract,
-        WorthQueryApplicationQueryLane,
-    },
+    application_query::{admit_application_query_parameters, WorthQueryApplicationQueryLane},
     graph_read_access::{
-        review_graph_read_access, WorthQueryGraphIndexInventory,
-        WorthQueryGraphIndexLifecycleClass, WorthQueryGraphIndexLifecycleOwner,
-        WorthQueryGraphIndexPosture, WorthQueryGraphIndexSupportState,
-        WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementSet,
-        WorthQueryGraphReadBudget, WorthQueryGraphReadPlanReviewDenialKind,
+        WorthQueryGraphIndexInventory, WorthQueryGraphIndexLifecycleClass,
+        WorthQueryGraphIndexLifecycleOwner, WorthQueryGraphIndexPosture,
+        WorthQueryGraphIndexSupportState, WorthQueryGraphReadAccessRequirementKind,
+        WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadBudget,
+        WorthQueryGraphReadPlanReviewDenialKind,
     },
+};
+use worth_query_admission::integration::{
+    derive_graph_read_access_requirements_for_contract, review_graph_read_access,
 };
 use worth_query_declaration::facade::{
     application_query::ApplicationQueryParameterSet, application_schema::ApplicationSchema,

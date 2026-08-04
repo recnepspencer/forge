@@ -13,6 +13,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphAppl
     Application(super::super::application_attempt::WorthQueryApplicationObservedFact),
     Principal(WorthQueryPrincipalCurrentnessDependency),
     Authorization {
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         locator: Arc<str>,
         observation: Arc<RelationalAuthorizationObservationEvidence>,
         bridge: Arc<BridgeAuthorizationDecisionEvidence>,
@@ -37,14 +38,29 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         dependency: crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact,
     ) -> Self {
         let crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact {
+            session_identity: session,
             relational: observation,
             bridge,
         } = dependency;
         let locator = format!("application-authorization:{requirement_ordinal}");
-        Self::Authorization {
+        let fact = Self::Authorization {
+            session,
             locator: Arc::from(locator),
             observation,
             bridge,
+        };
+        debug_assert_eq!(fact.session_identity(), Some(session));
+        fact
+    }
+
+    pub(super) fn session_identity(
+        &self,
+    ) -> Option<crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity>
+    {
+        match self {
+            Self::Principal(dependency) => Some(dependency.session_identity()),
+            Self::Authorization { session, .. } => Some(*session),
+            Self::Application(_) => None,
         }
     }
 

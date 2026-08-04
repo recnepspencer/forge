@@ -46,7 +46,27 @@ where
             relational,
         } = basis;
         match bridge.finalize(disposition) {
-            Ok(_) => true,
+            Ok(_) => {
+                let Some(graph_work) = self.graph_work.take() else {
+                    return self.read_completion.is_some();
+                };
+                let Some(read_proof) = self.read_proof.take() else {
+                    return false;
+                };
+                let Some(observed) = self.initial_read_work.take() else {
+                    return false;
+                };
+                let Some(basis_release) = self.basis_release.take() else {
+                    return false;
+                };
+                match graph_work.complete_query_read(read_proof, observed, basis_release) {
+                    Ok(completion) => {
+                        self.read_completion = Some(completion);
+                        true
+                    }
+                    Err(_) => false,
+                }
+            }
             Err(failure) => {
                 self.basis = Some(
                     crate::domain_computation::managed_run::WorthQueryManagedLowerExecutionBasis {

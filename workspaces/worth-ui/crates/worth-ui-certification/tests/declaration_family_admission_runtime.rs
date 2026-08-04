@@ -1,11 +1,8 @@
-use worth_ui::facade::app::{
-    WorthUi, WorthUiApplicationPreparationDenial, WorthUiApplicationPreparationPhase,
-};
+use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationFamily, UiDeclarationFamilyAdmissionDenial,
     UiDeclarationFamilyCatalog, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
-    UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureApplicability,
-    UiDeclaredQueryBindingPosture,
+    UiDeclaredPostureApplicability, UiDeclaredQueryBindingPosture,
 };
 use worth_ui_certification::{
     WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
@@ -98,24 +95,29 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
         Some(&UiDeclaredQueryBindingPosture::AttachedViewBinding)
     );
 
-    let denial = freeze_denial(
-        "worth-ui.certification.family.freeze-path.standalone",
-        standalone_query_binding_spec(),
-    );
-    assert_eq!(
-        denial.phase(),
-        WorthUiApplicationPreparationPhase::GraphHandoff
-    );
-    assert_eq!(
-        denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::QueryBinding,
-                    },
-            },
+    let standalone_app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(
+                "worth-ui.certification.family.freeze-path.standalone",
+            )
+            .with_semantic_artifact_spec(standalone_query_binding_spec()),
         )
+        .freeze()
+        .expect("standalone query bindings route outside structural graph handoff");
+    let standalone =
+        artifact_from_file_provenance(&standalone_app, "app/query_binding_roles.wui", 0);
+    assert!(matches!(
+        standalone.family().unwrap(),
+        UiDeclarationFamily::QueryBinding(_)
+    ));
+    assert_eq!(
+        standalone
+            .declared_posture()
+            .unwrap()
+            .query_binding()
+            .admitted(),
+        Some(&UiDeclaredQueryBindingPosture::StandaloneBinding)
     );
 }
 

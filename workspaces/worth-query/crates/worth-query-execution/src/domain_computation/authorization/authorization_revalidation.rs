@@ -21,13 +21,21 @@ where
     pub(in crate::domain_computation) fn readmit_retained_authorization(
         &self,
         authorization: &mut WorthQueryRetainedAuthorizationDecisionFacts,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        if !authorization.belongs_to_session(session) {
+            return Err(inconsistent_authorization());
+        }
         if let Some(capability) = authorization.capability_authorization_mut() {
-            return self.refresh_capability_authorization(capability);
+            return self.refresh_capability_authorization_for_session(capability, session, branch);
         }
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_branch(branch)
+                .ok_or_else(inconsistent_authorization)?;
             let current = validate_retained_currentness(
                 authorization,
                 runtime,
@@ -65,12 +73,14 @@ where
         >,
         WorthQueryOperationAuthorizationDenial,
     > {
+        let session = admission.graph_work_session_identity();
+        let branch = admission.graph_work_branch().clone();
         let Some(authorization) = admission.authorization_mut() else {
             return Err(WorthQueryOperationAuthorizationDenial::inconsistent(
                 admission.operation(),
             ));
         };
-        self.readmit_retained_authorization(authorization)?;
+        self.readmit_retained_authorization(authorization, session, &branch)?;
         Ok(WorthQueryApplicationCommitAuthorization::mint(
             serialization,
             admission,
@@ -106,7 +116,11 @@ where
         let authorization = admission.authorization().ok_or_else(|| {
             WorthQueryOperationAuthorizationDenial::inconsistent(admission.operation())
         })?;
-        self.validate_retained_authorization(authorization)?;
+        self.validate_retained_authorization(
+            authorization,
+            admission.graph_work_session_identity(),
+            admission.graph_work_branch(),
+        )?;
         Ok(WorthQueryApplicationCommitAuthorization::mint(
             serialization,
             admission,
@@ -140,12 +154,14 @@ where
         >,
         WorthQueryOperationAuthorizationDenial,
     > {
-        if basis.admission_identity() != admission.admission_identity() {
+        if basis.admission_identity() != admission.admission_identity()
+            || !basis.belongs_to_session(admission.graph_work_session_identity())
+        {
             return Err(WorthQueryOperationAuthorizationDenial::inconsistent(
                 admission.operation(),
             ));
         }
-        self.readmit_commit_basis(basis)?;
+        self.readmit_commit_basis(basis, admission.graph_work_branch())?;
         Ok(WorthQueryApplicationCommitAuthorization::mint(
             serialization,
             admission,
@@ -155,26 +171,31 @@ where
     fn readmit_commit_basis(
         &self,
         basis: &WorthQueryCommitAuthorizationBasis,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         match basis {
             WorthQueryCommitAuthorizationBasis::Observed {
                 authorization: observed,
                 ..
-            } => self.readmit_observed_commit_basis(observed),
+            } => self.readmit_observed_commit_basis(observed, branch),
             WorthQueryCommitAuthorizationBasis::Capability {
                 authorization: capability,
                 ..
-            } => self.readmit_capability_commit_basis(capability),
+            } => self.readmit_capability_commit_basis(capability, branch),
         }
     }
 
     fn readmit_observed_commit_basis(
         &self,
         observed: &WorthQueryObservedCommitBasis,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_branch(branch)
+                .ok_or_else(inconsistent_authorization)?;
             let current = validate_observed_currentness(
                 observed,
                 runtime,
@@ -189,6 +210,7 @@ where
     fn readmit_capability_commit_basis(
         &self,
         capability: &WorthQueryCapabilityCommitBasis,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let installed = self.installed_capability_plan(capability.request())?;
         if capability.capability_authority_identity()
@@ -199,7 +221,10 @@ where
         let sample = self.sample_capability_time(installed)?;
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_branch(branch)
+                .ok_or_else(inconsistent_authorization)?;
             let principal_current = capability
                 .principal()
                 .remains_current_in(runtime, &snapshot);
@@ -214,6 +239,7 @@ where
                 Err(stale_authorization())
             } else {
                 observe_capability(
+                    capability.decision().session_identity(),
                     runtime,
                     snapshot.clone(),
                     self.authorization.bridge(),
@@ -232,11 +258,19 @@ where
     fn validate_retained_authorization(
         &self,
         authorization: &WorthQueryRetainedAuthorizationDecisionFacts,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        if !authorization.belongs_to_session(session) {
+            return Err(inconsistent_authorization());
+        }
         let Some(capability) = authorization.capability_authorization() else {
             let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
             return graph.integration_handle().with_runtime_mut(|runtime| {
-                let snapshot = runtime.snapshots().snapshot();
+                let snapshot = runtime
+                    .snapshots()
+                    .snapshot_for_branch(branch)
+                    .ok_or_else(inconsistent_authorization)?;
                 let current = validate_retained_currentness(
                     authorization,
                     runtime,
@@ -256,7 +290,10 @@ where
         let sample = self.sample_capability_time(installed)?;
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_branch(branch)
+                .ok_or_else(inconsistent_authorization)?;
             let principal_current = capability
                 .principal()
                 .remains_current_in(runtime, &snapshot);
@@ -271,6 +308,7 @@ where
                 Err(stale_authorization())
             } else {
                 observe_capability(
+                    capability.decision().session_identity(),
                     runtime,
                     snapshot.clone(),
                     self.authorization.bridge(),
@@ -290,6 +328,13 @@ where
 fn foreign_runtime() -> WorthQueryOperationAuthorizationDenial {
     WorthQueryOperationAuthorizationDenial::new(
         WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+        "application-authorization",
+    )
+}
+
+fn inconsistent_authorization() -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(
+        WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
         "application-authorization",
     )
 }

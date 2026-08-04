@@ -34,14 +34,17 @@ pub use crate::domain_computation::authorization::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
     WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
 };
+pub(in crate::domain_computation) use application_attempt::application_resource_request;
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
 };
+pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationSnapshotLease;
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectEntity,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitTerminalEvidence,
+    WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationEffectEntity,
     WorthQueryApplicationEffectProgram, WorthQueryApplicationEffectProgramBuilder,
     WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationIdempotencyResolution,
     WorthQueryApplicationIdempotencyResolutionDenial,
@@ -50,6 +53,7 @@ pub use application_attempt::{
     WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
 };
+pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
     WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
@@ -128,6 +132,7 @@ pub use principal_key::{
     WorthQueryApplicationPrincipalKey, WorthQueryApplicationPrincipalKeyDenial,
 };
 pub(in crate::domain_computation) use provider::WorthQueryApplicationCommitSerialization;
+pub use provider::WorthQueryPrimaryMutationWorkEvidence;
 pub(in crate::domain_computation) use resolution::validate_freshness_at_snapshot;
 pub use resolution::WorthQueryPrincipalResolutionMode;
 pub use resolution_denial::{

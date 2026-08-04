@@ -39,6 +39,7 @@ pub(super) fn finalize_continuation_page<
     >,
     kernel: RawNonLiveKernelOutcome,
     authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
+    read_proof: crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof,
 ) -> Result<
     WorthQueryApplicationContinuationPageResult<Schema, Query, Parameters, QueryResult, Scope>,
     WorthQueryApplicationContinuationDenial,
@@ -61,7 +62,8 @@ where
         .continuation_state
         .as_ref()
         .map_or(2, |state| state.page_ordinal.saturating_add(1));
-    let released = plan.basis.release().released();
+    let basis_release = plan.basis.release();
+    let released = basis_release.released();
     if !released {
         return Err(denial(
             WorthQueryApplicationContinuationDenialKind::BasisReleaseFailed,
@@ -141,7 +143,18 @@ where
             freshness: plan.controls.freshness(),
             released,
         },
-        plan.graph_read_plan,
+        plan.graph_work
+            .complete_query_read(
+                read_proof,
+                kernel_receipt.observed_graph_read_work(),
+                basis_release,
+            )
+            .map_err(|_| {
+                denial(
+                    WorthQueryApplicationContinuationDenialKind::ForeignPlan,
+                    plan.query.name(),
+                )
+            })?,
         plan.canonical_work,
         authorization_work,
         plan.governance.receipt(),

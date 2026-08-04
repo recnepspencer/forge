@@ -66,7 +66,10 @@ where
                 access.operation.as_ref(),
             ));
         }
-        self.refresh_capability_authorization(&mut access.authorization)?;
+        self.refresh_capability_authorization_for_graph_work(
+            &mut access.authorization,
+            &access.graph_work,
+        )?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
@@ -87,7 +90,17 @@ where
             )
         })?;
         validate_access_lifecycle(&access)?;
-        WorthQueryAdmittedApplicationOperation::mint(
+        let session_identity = access.graph_work.identity();
+        let authorization =
+            WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization);
+        if !authorization.belongs_to_session(session_identity) {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                operation.operation(),
+            ));
+        }
+        Ok(WorthQueryAdmittedApplicationOperation::mint(
+            access.operation_admission_identity,
             self.runtime.authority_identity(),
             operation.binding_identity().clone(),
             operation.operation().to_string(),
@@ -107,17 +120,12 @@ where
             operation.contracts().clone(),
             preconditions,
             access.canonical_work,
-            WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization),
+            authorization,
             WorthQueryOperationAuthorizationBasis::Capability {
                 input: access.input,
             },
-        )
-        .map_err(|_| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
-                operation.operation(),
-            )
-        })
+            access.graph_work,
+        ))
     }
 }
 
@@ -149,6 +157,15 @@ where
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
             access.operation.as_ref(),
+        ));
+    }
+    if access.graph_work.binding() != operation.binding_identity()
+        || access.graph_work.obligation() != operation.graph_obligations().identity()
+        || access.graph_work.subject_authority() != operation.authority_identity()
+    {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            operation.operation(),
         ));
     }
     if !operation.contracts().authorization().requires_capability() {

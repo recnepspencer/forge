@@ -15,7 +15,6 @@ use crate::planning::ExecutionPlanBundle;
 use crate::policy_plan::PolicyAwareCurrentPlan;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{RelationshipProofAdmission, RelationshipProofSupportProfile};
-use crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch;
 use crate::runtime::WorthQueryIntentExecutionProvenance;
 use crate::schema_view::QuerySchemaView;
 use crate::validation::ValidatedQueryBundle;
@@ -367,7 +366,6 @@ pub struct WorthQueryReadReceipt {
         Option<crate::runtime::WorthQueryGraphReadAccessReceiptSummary>,
     pub(super) graph_read_access_complexity_counters:
         Option<crate::runtime::WorthQueryGraphReadAccessComplexityCounters>,
-    pub(super) graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     pub(super) decision_trace_envelope: Option<WorthQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<WorthQueryIntentExecutionProvenance>,
 }

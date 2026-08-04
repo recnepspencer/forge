@@ -59,15 +59,12 @@ where
         (
             WorthQueryAdmittedApplicationQueryParameters,
             WorthQueryApplicationQueryControls<'a, Schema>,
-            WorthQueryRetainedAuthorizationDecisionFacts,
-            WorthQueryApplicationAuthorizationWorkEvidence,
         ),
         WorthQueryApplicationQueryAdmissionDenial,
     > {
         validate_admission_request(controls.request_scope(), query.name())?;
         self.validate_installed_query(query)?;
-        let (authorization, authorization_work) =
-            self.validate_access(query, access, controls.request_scope())?;
+        self.validate_access_authority(query, access, controls.request_scope())?;
         validate_controls(query, &controls)?;
         let parameters =
             admit_application_query_parameters(query, parameters).map_err(|denial| {
@@ -76,7 +73,7 @@ where
                     denial.parameter(),
                 )
             })?;
-        Ok((parameters, controls, authorization, authorization_work))
+        Ok((parameters, controls))
     }
 
     fn validate_installed_query<Query, Parameters, QueryResult, Scope>(
@@ -104,7 +101,14 @@ where
             })
     }
 
-    fn validate_access<Principal, PrincipalIdentity, Scope, Query, Parameters, QueryResult>(
+    fn validate_access_authority<
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Query,
+        Parameters,
+        QueryResult,
+    >(
         &self,
         query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
         access: &WorthQueryApplicationQueryAccessContext<
@@ -115,13 +119,7 @@ where
             Scope,
         >,
         request: &WorthQueryRequestScope,
-    ) -> Result<
-        (
-            WorthQueryRetainedAuthorizationDecisionFacts,
-            WorthQueryApplicationAuthorizationWorkEvidence,
-        ),
-        WorthQueryApplicationQueryAdmissionDenial,
-    > {
+    ) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
         self.validate_authenticated_principal(access.principal(), request)
             .map_err(|denial| {
                 WorthQueryApplicationQueryAdmissionDenial::new(
@@ -151,6 +149,42 @@ where
                 scope.entity_name(),
             ));
         }
+        self.runtime.primary_graph().ok_or_else(|| {
+            denial(
+                WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
+                query.name(),
+            )
+        })?;
+        Ok(())
+    }
+
+    pub(super) fn observe_application_query_access<
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Query,
+        Parameters,
+        QueryResult,
+    >(
+        &self,
+        graph_work: &mut crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+        query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+        access: &WorthQueryApplicationQueryAccessContext<
+            '_,
+            Schema,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+    ) -> Result<
+        (
+            WorthQueryRetainedAuthorizationDecisionFacts,
+            WorthQueryApplicationAuthorizationWorkEvidence,
+        ),
+        WorthQueryApplicationQueryAdmissionDenial,
+    > {
+        let session_identity = graph_work.identity();
+        let scope = access.scope();
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
@@ -172,35 +206,51 @@ where
             .external_identity()
             .clone()
             .into_foundational_value();
-        let principal_currentness =
-            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
+        let principal_currentness = WorthQueryPrincipalCurrentnessDependency::capture(
+            session_identity,
+            principal,
+            &principal_layout,
+        );
         let policy = graph.integration_handle().with_runtime_mut(|runtime| {
             let snapshot = runtime.snapshots().snapshot();
-            let result = validate_freshness_at_snapshot(
-                runtime,
-                &snapshot,
-                principal,
-                &principal_layout,
-                &expected_external_identity,
-            )
-            .map_err(|_| {
-                denial(
-                    WorthQueryApplicationQueryAdmissionDenialKind::StalePrincipal,
-                    principal.binding(),
+            let result = if !graph_work.admits_snapshot(&snapshot) {
+                Err(denial(
+                    WorthQueryApplicationQueryAdmissionDenialKind::GraphWorkAdmissionUnavailable,
+                    query.name(),
+                ))
+            } else {
+                validate_freshness_at_snapshot(
+                    runtime,
+                    &snapshot,
+                    principal,
+                    &principal_layout,
+                    &expected_external_identity,
                 )
-            })
-            .and_then(|()| {
-                validate_entity_freshness_at_snapshot(runtime, &snapshot, scope).map_err(|_| {
+                .map_err(|_| {
                     denial(
-                        WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
-                        query.name(),
+                        WorthQueryApplicationQueryAdmissionDenialKind::StalePrincipal,
+                        principal.binding(),
                     )
                 })
-            })
-            .and_then(|()| {
-                self.observe_query_authorization(runtime, snapshot.clone(), query, access)
+                .and_then(|()| {
+                    validate_entity_freshness_at_snapshot(runtime, &snapshot, scope).map_err(|_| {
+                        denial(
+                            WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
+                            query.name(),
+                        )
+                    })
+                })
+                .and_then(|()| {
+                    self.observe_query_authorization(
+                        session_identity,
+                        runtime,
+                        snapshot.clone(),
+                        query,
+                        access,
+                    )
                     .map_err(map_authorization_denial)
-            });
+                })
+            };
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })?;

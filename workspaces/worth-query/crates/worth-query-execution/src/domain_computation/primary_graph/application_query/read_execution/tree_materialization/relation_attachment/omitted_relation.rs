@@ -11,7 +11,7 @@ use crate::domain_computation::primary_graph::application_query::read_execution:
 
 pub(in crate::domain_computation::primary_graph::application_query::read_execution::tree_materialization) fn advance_omitted_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     relation: &WorthQueryInstalledGraphRelation,
     parents: &[WorthQueryApplicationProjectionNode],
     work: &mut ResultTreeWork,
@@ -20,10 +20,10 @@ pub(in crate::domain_computation::primary_graph::application_query::read_executi
     let ActiveResultTreeCollectionSelection::Ordered(window) = collection_selection else {
         return Ok(());
     };
-    if !window
+    if window
         .request
         .as_ref()
-        .is_some_and(|request| request.collection_path == relation.result_path())
+        .is_none_or(|request| request.collection_path != relation.result_path())
     {
         return Ok(());
     }
@@ -35,7 +35,6 @@ pub(in crate::domain_computation::primary_graph::application_query::read_executi
         return Err(traversal_denial(relation.result_path()));
     };
     let child_kind = graph
-        .layout
         .entity_kind(relation.child_entity())
         .ok_or_else(|| traversal_denial(relation.result_path()))?;
     let mut lookup = BoundedRelatedEntityOrderedLookupRequest::new(

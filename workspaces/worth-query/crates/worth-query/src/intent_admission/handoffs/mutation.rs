@@ -6,10 +6,10 @@ use crate::intent_admission::{
     WorthQueryAuthoritativeMutationBatchExecutionPlan, WorthQueryAuthoritativeMutationExecutionPlan,
 };
 use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryBackendAdmissibleMutation,
-    WorthQueryGraphCompositionBreadth, WorthQueryGraphCompositionProgram,
-    WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial,
-    WorthQueryVerifiedExistingTruthAssertion, WorthQueryWriteCommand,
+    WorthQueryBackendAdmissibleMutation, WorthQueryGraphCompositionBreadth,
+    WorthQueryGraphCompositionProgram, WorthQueryGraphTouchDescriptor,
+    WorthQueryGraphTouchDescriptorDenial, WorthQueryVerifiedExistingTruthAssertion,
+    WorthQueryWriteCommand,
 };
 
 use super::{
@@ -22,7 +22,6 @@ pub struct WorthQueryAuthoritativeMutationExecutionHandoff {
     command: WorthQueryWriteCommand,
     verified_existing_truth_assertion: Option<WorthQueryVerifiedExistingTruthAssertion>,
     admitted_mutation: WorthQueryBackendAdmissibleMutation,
-    obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: WorthQueryIntentEligibilityTraceEvidence,
@@ -35,7 +34,6 @@ pub struct WorthQueryAuthoritativeMutationBatchExecutionHandoff {
     commands: Vec<WorthQueryWriteCommand>,
     graph_composition_breadth: WorthQueryGraphCompositionBreadth,
     graph_composition_program: WorthQueryGraphCompositionProgram,
-    obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: WorthQueryIntentEligibilityTraceEvidence,
@@ -49,7 +47,6 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
             command: plan.command().clone(),
             verified_existing_truth_assertion: plan.verified_existing_truth_assertion().cloned(),
             admitted_mutation: plan.admitted_mutation().clone(),
-            obligation_dispatch: None,
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
             eligibility_trace: plan.eligibility_trace().clone(),
@@ -61,7 +58,6 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
                     .expect("authoritative mutation handoff requires execution seam"),
                 plan.decision_digest(),
                 command_handoff_fingerprint(plan.command()),
-                None,
             ),
         }
     }
@@ -82,24 +78,6 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
         WorthQueryIntentAdmissionExecutionSeam::BackendWriteAuthorityRoute
     }
 
-    pub(crate) fn with_obligation_dispatch(
-        mut self,
-        obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
-    ) -> Self {
-        self.obligation_dispatch = obligation_dispatch;
-        self.handoff_digest = mutation_handoff_digest(
-            self.family(),
-            self.entrypoint(),
-            self.execution_seam(),
-            &self.decision_digest,
-            command_handoff_fingerprint(&self.command),
-            self.obligation_dispatch
-                .as_ref()
-                .map(WorthQueryAuthoritativeMutationObligationDispatch::dispatch_digest),
-        );
-        self
-    }
-
     pub fn command(&self) -> &WorthQueryWriteCommand {
         &self.command
     }
@@ -108,12 +86,6 @@ impl WorthQueryAuthoritativeMutationExecutionHandoff {
         &self,
     ) -> Option<&WorthQueryVerifiedExistingTruthAssertion> {
         self.verified_existing_truth_assertion.as_ref()
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -144,7 +116,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionHandoff {
             commands: commands.clone(),
             graph_composition_breadth: plan.batch_seed().graph_composition_breadth().clone(),
             graph_composition_program: plan.batch_seed().graph_composition_program().clone(),
-            obligation_dispatch: plan.obligation_dispatch().cloned(),
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
             eligibility_trace: plan.eligibility_trace().clone(),
@@ -156,7 +127,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionHandoff {
                     .expect("authoritative mutation batch handoff requires execution seam"),
                 plan.decision_digest(),
                 batch_handoff_fingerprint(&commands),
-                None,
             ),
         }
     }
@@ -171,24 +141,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionHandoff {
 
     pub fn execution_seam(&self) -> WorthQueryIntentAdmissionExecutionSeam {
         WorthQueryIntentAdmissionExecutionSeam::BackendWriteAuthorityRoute
-    }
-
-    pub(crate) fn with_obligation_dispatch(
-        mut self,
-        obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
-    ) -> Self {
-        self.obligation_dispatch = obligation_dispatch;
-        self.handoff_digest = mutation_handoff_digest(
-            self.family(),
-            self.entrypoint(),
-            self.execution_seam(),
-            &self.decision_digest,
-            batch_handoff_fingerprint(&self.commands),
-            self.obligation_dispatch
-                .as_ref()
-                .map(WorthQueryAuthoritativeMutationObligationDispatch::dispatch_digest),
-        );
-        self
     }
 
     pub fn commands(&self) -> &[WorthQueryWriteCommand] {
@@ -211,12 +163,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionHandoff {
             &self.graph_composition_breadth,
             &self.commands,
         )
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -246,7 +192,6 @@ fn mutation_handoff_digest(
     execution_seam: WorthQueryIntentAdmissionExecutionSeam,
     decision_digest: &str,
     fingerprint: WorthQueryEvidenceIdentity,
-    obligation_dispatch_digest: Option<&str>,
 ) -> String {
     let decision_identity = worth_query_evidence_identity(
         WorthQueryEvidenceScope::AuthoritativeMutationExecutionHandoff,
@@ -266,10 +211,6 @@ fn mutation_handoff_digest(
         )
         .field_evidence_identity(WorthQueryEvidenceTag::new("decision"), &decision_identity)
         .field_evidence_identity(WorthQueryEvidenceTag::new("fingerprint"), &fingerprint)
-        .optional_value(
-            WorthQueryEvidenceTag::new("obligation_dispatch"),
-            obligation_dispatch_digest,
-        )
         .seal()
         .as_str()
         .to_string()

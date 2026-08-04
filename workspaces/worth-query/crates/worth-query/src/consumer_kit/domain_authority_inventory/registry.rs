@@ -5,8 +5,6 @@ use super::{
 const DOMAIN_IDENTITY: &str = "src/domain_installation/package_authority/identity.rs";
 const DOMAIN_INVARIANTS: &str =
     "src/domain_installation/package_authority/package_definitions/invariant.rs";
-const DOMAIN_OBLIGATIONS: &str =
-    "src/domain_installation/package_authority/package_definitions/graph_obligation.rs";
 const DOMAIN_OPERATIONS: &str =
     "src/domain_installation/package_authority/package_definitions/graph_read_operation.rs";
 const DOMAIN_DECLARATION_FAMILIES: &str =
@@ -36,10 +34,6 @@ const CORE_ROWS: &[Row] = &[
     runtime_core_package_type("WorthQueryDomainIdentityDeclaration", DOMAIN_IDENTITY),
     package_type("WorthQueryDomainInvariantDefinition", DOMAIN_INVARIANTS),
     package_type(
-        "WorthQueryDomainGraphObligationDefinition",
-        DOMAIN_OBLIGATIONS,
-    ),
-    package_type(
         "WorthQueryDomainGraphReadOperationDefinition",
         DOMAIN_OPERATIONS,
     ),
@@ -59,14 +53,6 @@ const CORE_ROWS: &[Row] = &[
     package_input(
         "WorthQueryDomainInvariantDefinition::new",
         DOMAIN_INVARIANTS,
-    ),
-    package_input(
-        "WorthQueryDomainGraphObligationDefinition::new",
-        DOMAIN_OBLIGATIONS,
-    ),
-    package_input(
-        "WorthQueryDomainGraphObligationDefinition::with_support_posture",
-        DOMAIN_OBLIGATIONS,
     ),
     package_input(
         "WorthQueryDomainGraphReadOperationDefinition::new",
@@ -102,7 +88,6 @@ const CORE_ROWS: &[Row] = &[
         DOMAIN_PACKAGE,
     ),
     package_input("WorthQueryDomainPackage::invariant", DOMAIN_PACKAGE),
-    package_input("WorthQueryDomainPackage::graph_obligation", DOMAIN_PACKAGE),
     package_input(
         "WorthQueryDomainPackage::graph_read_operation",
         DOMAIN_PACKAGE,

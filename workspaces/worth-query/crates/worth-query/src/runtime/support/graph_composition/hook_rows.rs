@@ -4,7 +4,6 @@ use crate::runtime::mutation::GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphCompositionExtensionHookBoundary {
     Lowering,
-    InvariantPack,
     Interpretation,
 }
 
@@ -12,7 +11,6 @@ impl WorthQueryGraphCompositionExtensionHookBoundary {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Lowering => "lowering",
-            Self::InvariantPack => "invariant-pack",
             Self::Interpretation => "interpretation",
         }
     }
@@ -65,7 +63,7 @@ impl WorthQueryGraphCompositionExtensionHookSupportRow {
 
 pub(crate) fn default_graph_composition_extension_hook_support_rows(
 ) -> Vec<WorthQueryGraphCompositionExtensionHookSupportRow> {
-    debug_assert_eq!(GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES.len(), 3);
+    debug_assert_eq!(GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES.len(), 2);
     vec![
         WorthQueryGraphCompositionExtensionHookSupportRow::new(
             GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES[0],
@@ -74,11 +72,6 @@ pub(crate) fn default_graph_composition_extension_hook_support_rows(
         ),
         WorthQueryGraphCompositionExtensionHookSupportRow::new(
             GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES[1],
-            WorthQueryGraphCompositionExtensionHookBoundary::InvariantPack,
-            false,
-        ),
-        WorthQueryGraphCompositionExtensionHookSupportRow::new(
-            GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES[2],
             WorthQueryGraphCompositionExtensionHookBoundary::Interpretation,
             false,
         ),

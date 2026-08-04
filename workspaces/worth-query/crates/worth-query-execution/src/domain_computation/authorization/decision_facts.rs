@@ -12,26 +12,34 @@ use super::{
     WorthQueryCapabilityCommitBasis, WorthQueryOperationAdmissionIdentity,
     WorthQueryRetainedCapabilityAuthorization,
 };
-use crate::domain_computation::primary_graph::{
-    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryPrincipalBindingLayout,
-    WorthQueryPrincipalFreshnessEvidence,
-};
+mod principal_currentness;
+pub(in crate::domain_computation) use principal_currentness::WorthQueryPrincipalCurrentnessDependency;
 
 #[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
+    pub(in crate::domain_computation) session_identity:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     pub(in crate::domain_computation) relational: Arc<RelationalAuthorizationObservationEvidence>,
     pub(in crate::domain_computation) bridge: Arc<BridgeAuthorizationDecisionEvidence>,
 }
 
 impl WorthQueryAuthorizationDecisionFact {
     pub(in crate::domain_computation) fn new(
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         relational: RelationalAuthorizationObservationEvidence,
         bridge: BridgeAuthorizationDecisionEvidence,
     ) -> Self {
         Self {
+            session_identity,
             relational: Arc::new(relational),
             bridge: Arc::new(bridge),
         }
+    }
+
+    pub(in crate::domain_computation) const fn session_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
+        self.session_identity
     }
 
     pub(super) fn remains_current_in(
@@ -45,35 +53,6 @@ impl WorthQueryAuthorizationDecisionFact {
             && self.bridge.dependency_identity() == self.relational.observation_identity().bytes()
             && runtime.compare_authorization_observation(&self.relational, snapshot.clone())
                 == RelationalAuthorizationObservationFreshness::Fresh
-    }
-}
-
-#[derive(Clone)]
-pub(in crate::domain_computation) struct WorthQueryPrincipalCurrentnessDependency {
-    binding: Arc<str>,
-    layout: WorthQueryPrimaryPrincipalBindingLayout,
-    freshness: WorthQueryPrincipalFreshnessEvidence,
-}
-
-impl WorthQueryPrincipalCurrentnessDependency {
-    pub(in crate::domain_computation) fn capture<Schema, Principal, PrincipalIdentity>(
-        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
-        layout: &WorthQueryPrimaryPrincipalBindingLayout,
-    ) -> Self {
-        Self {
-            binding: Arc::from(principal.binding()),
-            layout: layout.clone(),
-            freshness: principal.freshness().clone(),
-        }
-    }
-
-    pub(in crate::domain_computation) fn remains_current_in(
-        &self,
-        runtime: &worth_relational::facade::runtime::RelationalRuntime,
-        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    ) -> bool {
-        self.freshness
-            .remains_current_in(runtime, snapshot, &self.layout, &self.binding)
     }
 }
 
@@ -137,6 +116,14 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
 
     pub(in crate::domain_computation) fn exact_fact_count(&self) -> usize {
         1usize.saturating_add(self.policy_count())
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        principal(self).session_identity() == session
+            && decisions(self).all(|fact| fact.session_identity() == session)
     }
 
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
@@ -332,6 +319,16 @@ impl WorthQueryCommitAuthorizationBasis {
             } => *admission_identity,
         }
     }
+
+    pub(super) fn belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        match self {
+            Self::Observed { authorization, .. } => authorization.belongs_to_session(session),
+            Self::Capability { authorization, .. } => authorization.belongs_to_session(session),
+        }
+    }
 }
 
 pub(in crate::domain_computation) struct WorthQueryObservedCommitBasis {
@@ -348,6 +345,17 @@ impl WorthQueryObservedCommitBasis {
             principal,
             decisions,
         }
+    }
+
+    fn belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        self.principal.session_identity() == session
+            && self
+                .decisions
+                .iter()
+                .all(|fact| fact.session_identity() == session)
     }
 
     pub(super) fn principal_remains_current_in(

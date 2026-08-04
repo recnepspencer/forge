@@ -9,10 +9,6 @@ use crate::application::{
     WorthQueryRelationalTruthAuthority, WorthQuerySignalCompatiblePosture,
 };
 use crate::authoring::RelationName;
-use crate::runtime::{
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationOperatingWorldSelector,
-    WorthQueryGraphTouchSelector,
-};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct StableDomain;
@@ -99,13 +95,6 @@ fn fully_populated_failing_package() -> WorthQueryAdmittedDomainPackage<FailingD
             vec![KindId::new(2)],
             1,
         ),
-    ))
-    .graph_obligation(WorthQueryDomainGraphObligationDefinition::new(
-        WorthQueryDomainIdentityName::new("required-relation").unwrap(),
-        WorthQueryDomainSemanticVersion::new(1, 0),
-        WorthQueryGraphObligationKind::BlockingInvariant,
-        WorthQueryGraphTouchSelector::relation_kind("required").unwrap(),
-        WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
     ))
     .graph_read_operation(
         WorthQueryDomainGraphReadOperationDefinition::new(

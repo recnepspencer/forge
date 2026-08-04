@@ -89,7 +89,10 @@ where
             .map_err(WorthQueryApplicationIdempotencyResolutionDenial::from_authorization)?;
         let resolution = proof
             .govern((), |()| {
-                self.primary_provider.resolve_idempotency_binding(binding)
+                self.primary_provider.resolve_idempotency_binding(
+                    binding,
+                    admission.graph_work().branch().relational(),
+                )
             })
             .map_err(|()| {
                 WorthQueryApplicationIdempotencyResolutionDenial::from_authorization(
@@ -102,7 +105,7 @@ where
             }
             Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => Ok(
                 WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(
-                    WorthQueryApplicationCommitReceipt::from_provider(
+                    WorthQueryApplicationCommitReceipt::from_recovered_provider(
                         receipt,
                         recover_equivalent_commit_evidence(admission.mutation_preconditions()),
                         admission.canonical_work(),

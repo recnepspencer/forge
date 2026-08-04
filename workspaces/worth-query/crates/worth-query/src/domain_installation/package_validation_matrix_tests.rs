@@ -8,10 +8,7 @@ use crate::application::{
     WorthQuerySignalCompatiblePosture,
 };
 use crate::authoring::RelationName;
-use crate::runtime::{
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationOperatingWorldSelector,
-    WorthQueryGraphReadTraversalOperator, WorthQueryGraphTouchSelector,
-};
+use crate::runtime::WorthQueryGraphReadTraversalOperator;
 
 use super::*;
 
@@ -94,23 +91,6 @@ fn operation(name: &str, relation: &str) -> WorthQueryDomainGraphReadOperationDe
     .lowers_to(WorthQueryGraphReadTraversalOperator::DeclarationTraversal)
 }
 
-fn obligation(name: &str, blocking: bool) -> WorthQueryDomainGraphObligationDefinition {
-    let selector = WorthQueryGraphTouchSelector::relation_kind("topology.adjacent").unwrap();
-    let world = WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority();
-    let kind = if blocking {
-        WorthQueryGraphObligationKind::BlockingInvariant
-    } else {
-        WorthQueryGraphObligationKind::SchemaContractValidator
-    };
-    WorthQueryDomainGraphObligationDefinition::new(
-        WorthQueryDomainIdentityName::new(name).unwrap(),
-        WorthQueryDomainSemanticVersion::new(1, 0),
-        kind,
-        selector,
-        world,
-    )
-}
-
 fn family<F: WorthQueryDeclarationFamilyMarker<MatrixDomain>>(
     version: u32,
 ) -> WorthQueryDomainDeclarationFamilyDefinition {
@@ -122,10 +102,6 @@ fn full_package(ordering_mask: u8) -> WorthQueryDomainPackage<MatrixDomain> {
     let mut invariants = vec![
         invariant("shell-membership", 0, 1),
         invariant("loop-successor", 0, 2),
-    ];
-    let mut obligations = vec![
-        obligation("shell-membership", false),
-        obligation("loop-successor", true),
     ];
     let mut operations = vec![
         operation("incidences", "incident_to"),
@@ -140,22 +116,16 @@ fn full_package(ordering_mask: u8) -> WorthQueryDomainPackage<MatrixDomain> {
         invariants.reverse();
     }
     if ordering_mask & 0b00010 != 0 {
-        obligations.reverse();
-    }
-    if ordering_mask & 0b00100 != 0 {
         operations.reverse();
     }
-    if ordering_mask & 0b01000 != 0 {
+    if ordering_mask & 0b00100 != 0 {
         families.reverse();
     }
-    if ordering_mask & 0b10000 != 0 {
+    if ordering_mask & 0b01000 != 0 {
         contributions.reverse();
     }
     for definition in invariants {
         package = package.invariant(definition);
-    }
-    for registration in obligations {
-        package = package.graph_obligation(registration);
     }
     for definition in operations {
         package = package.graph_read_operation(definition);
@@ -189,15 +159,14 @@ fn representative_package_orderings_converge() {
     // A fully reversed package and a mixed-axis permutation exercise the two
     // ordering equivalence classes without reconstructing the same installed
     // authority for every bit-mask combination.
-    for ordering_mask in [0b11111, 0b10101] {
+    for ordering_mask in [0b1111, 0b1010] {
         let permuted = full_package(ordering_mask).validate().unwrap();
         assert_eq!(
             permuted.identity(),
             &canonical_identity,
-            "canonical package identity drifted for independent ordering mask {ordering_mask:05b}"
+            "canonical package identity drifted for independent ordering mask {ordering_mask:04b}"
         );
         assert_eq!(permuted.invariant_count(), 2);
-        assert_eq!(permuted.graph_obligation_count(), 2);
         assert_eq!(permuted.graph_read_operation_count(), 2);
         assert_eq!(permuted.declaration_family_count(), 2);
         assert_eq!(permuted.contribution_category_count(), 2);
@@ -209,7 +178,7 @@ fn representative_package_orderings_converge() {
         assert_eq!(
             installation.certification_snapshot(),
             canonical_installation_snapshot,
-            "compiled installation products drifted for independent ordering mask {ordering_mask:05b}"
+            "compiled installation products drifted for independent ordering mask {ordering_mask:04b}"
         );
     }
 }
@@ -228,27 +197,6 @@ fn duplicate_and_conflicting_invariant_slots_deny() {
                 .invariant(invariant("loop-successor", 1, 2))
         ),
         WorthQueryDomainPackageValidationDenialKind::ConflictingInvariant
-    );
-}
-
-#[test]
-fn duplicate_and_conflicting_obligation_slots_deny() {
-    let exact = obligation("loop-successor", true);
-    assert_eq!(
-        denial_kind(
-            base_package()
-                .graph_obligation(exact.clone())
-                .graph_obligation(exact)
-        ),
-        WorthQueryDomainPackageValidationDenialKind::DuplicateGraphObligation
-    );
-    assert_eq!(
-        denial_kind(
-            base_package()
-                .graph_obligation(obligation("loop-successor", true))
-                .graph_obligation(obligation("loop-successor", false))
-        ),
-        WorthQueryDomainPackageValidationDenialKind::ConflictingGraphObligation
     );
 }
 

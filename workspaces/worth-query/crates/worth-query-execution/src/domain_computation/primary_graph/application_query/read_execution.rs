@@ -60,7 +60,7 @@ pub(super) fn read_bounded_root_rows<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -140,7 +140,7 @@ pub(super) fn read_continuation_page<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,

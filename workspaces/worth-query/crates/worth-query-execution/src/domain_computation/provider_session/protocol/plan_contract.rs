@@ -68,6 +68,8 @@ pub struct WorthQueryProviderExecutionPlanContract {
         Arc<[worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement]>,
     transaction_posture: Arc<str>,
     reconciliation_posture: Arc<str>,
+    graph_work_session: Option<u64>,
+    graph_work_managed_run: Option<u64>,
 }
 
 impl WorthQueryProviderExecutionPlanContract {
@@ -93,6 +95,7 @@ impl WorthQueryProviderExecutionPlanContract {
         });
         let transaction_posture = operation.commit_posture().as_str();
         let reconciliation_posture = material.declarations.reconciliation_posture();
+        let graph_work = operation.graph_work_affinity();
         Some(Self {
             identity: execution.resource_attempt_identity.into(),
             operation_identity: operation.operation_identity().into(),
@@ -118,6 +121,8 @@ impl WorthQueryProviderExecutionPlanContract {
             invariant_requirements: invariant_requirements.into(),
             transaction_posture: transaction_posture.into(),
             reconciliation_posture: reconciliation_posture.into(),
+            graph_work_session: graph_work.map(|affinity| affinity.session.as_u64()),
+            graph_work_managed_run: graph_work.map(|affinity| affinity.managed_run.as_u64()),
         })
     }
 
@@ -219,6 +224,14 @@ impl WorthQueryProviderExecutionPlanContract {
 
     pub fn reconciliation_posture(&self) -> &str {
         &self.reconciliation_posture
+    }
+
+    pub const fn graph_work_session_identity(&self) -> Option<u64> {
+        self.graph_work_session
+    }
+
+    pub const fn graph_work_managed_run_identity(&self) -> Option<u64> {
+        self.graph_work_managed_run
     }
 
     pub(super) fn closure_width(&self) -> usize {

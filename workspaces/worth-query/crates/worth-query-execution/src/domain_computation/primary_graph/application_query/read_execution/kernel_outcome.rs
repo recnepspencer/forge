@@ -30,6 +30,20 @@ impl<QueryResult> ProjectedNonLiveKernelOutcome<QueryResult> {
     }
 }
 
+impl NonLiveKernelReceiptEvidence {
+    pub(in crate::domain_computation::primary_graph::application_query) fn observed_graph_read_work(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork {
+        crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork {
+            examined_candidates: self.read.examined_candidates,
+            projected_records: self.read.projected_records,
+            projected_fields: self.read.projected_fields,
+            relation_records_examined: self.read.relation_records_examined,
+            ordering_comparisons: self.read.ordering_comparisons,
+        }
+    }
+}
+
 pub(in crate::domain_computation::primary_graph::application_query) fn project_non_live_kernel<
     Schema,
     Query,

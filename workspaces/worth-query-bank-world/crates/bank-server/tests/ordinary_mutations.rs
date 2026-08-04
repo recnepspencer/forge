@@ -1,3 +1,5 @@
+#[path = "ordinary_mutations/assertions.rs"]
+mod assertions;
 #[allow(
     dead_code,
     reason = "the shared read fixture has discovery-only helpers exercised by its owning test binary"
@@ -6,6 +8,8 @@
 mod fixture;
 #[path = "ordinary_mutations/preconditions.rs"]
 mod preconditions;
+#[path = "ordinary_mutations/publication.rs"]
+mod publication;
 mod support;
 
 use std::time::{Duration, Instant};
@@ -17,15 +21,15 @@ use bank_domain::schema::{
     GrantAccountAuthorization, InitiateBusinessPayment, PostingPurpose, RejectPayment,
     ReversalReason, ReverseJournal, RevokeAccountAuthorization, SendMoney, Withdraw,
 };
-use bank_server::{
-    mutations, queries, BankMutationControls, BankMutationOutcome, BankMutationStatus,
-    BankReadControls,
-};
+use bank_server::{mutations, queries, BankMutationControls, BankMutationStatus, BankReadControls};
 use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
-use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryControls;
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationQueryControls,
+};
 
+use assertions::{assert_committed, assert_emitting_commit};
 use fixture::{ordinary_read_world, principal_id, APPROVER, OWNER, RECIPIENT, STRANGER, TELLER};
 use support::request_scope;
 
@@ -132,10 +136,17 @@ fn public_consumer_executes_every_typed_mutation_family() {
         mutations::send_money(send.clone()),
         "send",
     ));
-    assert!(matches!(
-        execute!(fixture, owner, mutations::send_money(send), "send").status(),
-        BankMutationStatus::AlreadyCommitted(_)
-    ));
+    let retry = execute!(fixture, owner, mutations::send_money(send), "send");
+    let BankMutationStatus::AlreadyCommitted(receipt) = retry.status() else {
+        panic!("equivalent public retry must recover the commit");
+    };
+    let publication = receipt.publication().inspect();
+    assert_eq!(
+        publication.kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
+    assert!(publication.executed_session_identity().is_none());
+    assert!(publication.attempt_resources_released().is_none());
 
     let initiation = execute!(
         fixture,
@@ -305,22 +316,6 @@ fn public_mutation_controls_preserve_interruptions_permissions_and_intent_drift(
         BankMutationStatus::Denied(bank_server::BankMutationDenial::IdempotencyIntentDrift)
     ));
     assert!(drift.metadata().provider_work_units() > 0);
-}
-
-fn assert_committed(outcome: BankMutationOutcome) {
-    assert!(
-        matches!(outcome.status(), BankMutationStatus::Committed(_)),
-        "unexpected mutation outcome: {outcome:?}"
-    );
-    assert!(outcome.metadata().projection_work().is_some());
-}
-
-fn assert_emitting_commit(outcome: BankMutationOutcome) {
-    let BankMutationStatus::Committed(receipt) = outcome.status() else {
-        panic!("unexpected mutation outcome: {outcome:?}");
-    };
-    assert!(receipt.emitted_effect_count() > 0);
-    assert!(outcome.metadata().provider_work_units() > 0);
 }
 
 fn pending_payments(

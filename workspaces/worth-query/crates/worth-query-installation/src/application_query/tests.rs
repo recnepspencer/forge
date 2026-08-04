@@ -236,6 +236,22 @@ fn equivalent_installed_queries_converge_and_identity_dimensions_do_not_alias() 
         left.read_family_binding().canonical_planning_identity(),
         left.read_graph().canonical_planning_basis().digest()
     );
+    assert_eq!(
+        left.graph_obligations().identity(),
+        equivalent.graph_obligations().identity()
+    );
+    assert_eq!(left.graph_obligations().rows().len(), 1);
+    assert_eq!(
+        left.graph_obligations().rows()[0].kind(),
+        crate::graph_obligation::WorthQueryInstalledGraphObligationKind::GraphRead
+    );
+    assert_eq!(
+        left.graph_obligations()
+            .installation_evidence()
+            .canonical_work()
+            .digest_text_materializations(),
+        0
+    );
     assert_ne!(
         definition(ApplicationQueryOrderingDirection::Descending, "sequence")
             .into_erased()

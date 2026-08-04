@@ -46,6 +46,45 @@ pub(super) struct MergeExecutionAccounting {
 }
 
 impl AuthoritativeCommitContext {
+    pub(crate) fn from_validated_mutation(
+        candidate: crate::transactions::logic::ValidatedRelationalMutation,
+    ) -> Self {
+        let crate::transactions::logic::ValidatedRelationalMutation {
+            transaction_id,
+            options,
+            prepared,
+            commit_boundary,
+            validated_against_commit,
+            validated_against_version,
+            batch_count,
+            ..
+        } = candidate;
+        let bulk_mutation_telemetry =
+            super::bulk_mutation_telemetry::summarize_bulk_mutation_telemetry(
+                &prepared.merged_plan,
+                batch_count,
+            );
+        Self {
+            transaction_id,
+            options,
+            phase_timing: prepared.phase_timing.clone(),
+            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Mutation(
+                prepared.merged_plan,
+            )),
+            prepared_scope: Some(PreparedAuthorityScope {
+                structural_summary: prepared.structural_summary,
+                working_state: prepared.working_state,
+                phase_timing: prepared.phase_timing,
+            }),
+            merge_execution_accounting: None,
+            bulk_mutation_telemetry,
+            prevalidated_commit_boundary: Some(commit_boundary),
+            validated_against_commit_id: validated_against_commit,
+            validated_against_version_id: Some(validated_against_version),
+            strategy_commit_artifacts: None,
+        }
+    }
+
     pub(super) fn from_mutation(
         transaction_id: TransactionId,
         options: TransactionOptions,

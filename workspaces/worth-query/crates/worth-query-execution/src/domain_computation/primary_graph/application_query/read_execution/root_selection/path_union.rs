@@ -23,7 +23,7 @@ pub(super) fn select_root_path_union<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -55,7 +55,7 @@ pub(super) fn select_root_path_union<
 
 fn traverse_path<Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, Scope>(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -76,11 +76,10 @@ fn traverse_path<Schema, Query, Parameters, QueryResult, Principal, PrincipalIde
             break;
         }
         let layout = graph
-            .layout
             .relation(step.relation())
             .filter(|layout| {
-                graph.layout.entity_kind(step.from()) == Some(layout.from)
-                    && graph.layout.entity_kind(step.to()) == Some(layout.to)
+                graph.entity_kind(step.from()) == Some(layout.from)
+                    && graph.entity_kind(step.to()) == Some(layout.to)
             })
             .ok_or_else(|| traversal_denial(step.relation()))?;
         let read = match step.direction() {
@@ -131,7 +130,7 @@ fn traverse_path<Schema, Query, Parameters, QueryResult, Principal, PrincipalIde
 
 fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, Scope>(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -156,7 +155,6 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
             break;
         }
         let layout = graph
-            .layout
             .equality_field(
                 guard.entity(),
                 guard.aspect().as_str(),

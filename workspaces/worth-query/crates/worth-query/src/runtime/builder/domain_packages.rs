@@ -40,8 +40,6 @@ impl WorthQueryRuntimeBuilder {
         self.queued_invariant_registrations
             .custom_invariants
             .extend(compiled.custom_invariants);
-        self.queued_graph_obligation_registrations
-            .extend(compiled.graph_obligations);
     }
 
     pub(crate) fn with_precompiled_domain_installations(

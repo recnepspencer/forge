@@ -20,12 +20,6 @@ pub(super) fn map_portable_validation_denial(
         (DenialKind::ConflictingDefinition, Some(DefinitionKind::Invariant)) => {
             WorthQueryDomainPackageValidationDenialKind::ConflictingInvariant
         }
-        (DenialKind::DuplicateDefinition, Some(DefinitionKind::GraphObligation)) => {
-            WorthQueryDomainPackageValidationDenialKind::DuplicateGraphObligation
-        }
-        (DenialKind::ConflictingDefinition, Some(DefinitionKind::GraphObligation)) => {
-            WorthQueryDomainPackageValidationDenialKind::ConflictingGraphObligation
-        }
         (DenialKind::DuplicateDefinition, Some(DefinitionKind::GraphReadOperation)) => {
             WorthQueryDomainPackageValidationDenialKind::DuplicateGraphReadOperation
         }

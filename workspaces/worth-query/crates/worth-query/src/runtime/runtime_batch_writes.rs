@@ -15,7 +15,7 @@ mod runtime_batch_write_symbolics;
 
 use runtime_batch_write_bridge_refs::bridge_symbolic_target_reference;
 use runtime_batch_write_receipt_context::{
-    batch_decision_trace_envelope, batch_execution_provenance, batch_obligation_dispatch,
+    batch_decision_trace_envelope, batch_execution_provenance,
 };
 use runtime_batch_write_symbolics::{
     admit_atomic_batch_symbolic_references, record_planned_same_batch_symbolic_target,
@@ -373,7 +373,6 @@ impl WorthQueryRuntime {
             summary.refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
-            batch_obligation_dispatch(shared_admission.as_ref()),
         )?;
         self.journal_replay.record_batch_receipt(&receipt);
         Ok(receipt)

@@ -22,7 +22,7 @@ pub(in crate::domain_computation::primary_graph::application_query) fn read_live
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -131,7 +131,7 @@ fn resolve_live_target<
     Scope,
 >(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     plan: &WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -147,7 +147,6 @@ fn resolve_live_target<
 ) -> Result<ResolvedLiveTarget, WorthQueryApplicationReadExecutionDenial> {
     let target = live.target_identity();
     let layout = graph
-        .layout
         .equality_field(target.entity(), target.aspect(), target.field())
         .ok_or_else(|| {
             read_execution_denial(

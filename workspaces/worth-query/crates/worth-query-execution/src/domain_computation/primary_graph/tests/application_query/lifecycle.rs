@@ -63,6 +63,7 @@ fn retained_continuation_holds_identity_but_no_relational_basis() {
         )
         .unwrap();
     let basis = plan.basis_identity().clone();
+    let session = plan.graph_work_session_identity();
     assert!(basis_is_live(&world, &basis));
 
     let page = world
@@ -74,6 +75,15 @@ fn retained_continuation_holds_identity_but_no_relational_basis() {
 
     assert_eq!(continuation.page_ordinal(), 2);
     assert!(receipt.basis_released());
+    assert_eq!(receipt.read_completion().session_identity(), session);
+    assert_eq!(receipt.read_completion().basis_identity(), &basis);
+    assert_eq!(
+        receipt
+            .read_completion()
+            .release()
+            .released_reservation_count(),
+        1
+    );
     assert!(!basis_is_live(&world, &basis));
     drop(continuation);
     assert!(!basis_is_live(&world, &basis));

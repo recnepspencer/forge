@@ -32,7 +32,7 @@ pub(super) use omitted_relation::advance_omitted_relation;
 pub(super) fn attach_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     relation: &WorthQueryInstalledGraphRelation,
@@ -42,11 +42,10 @@ pub(super) fn attach_relation(
     result_buffer: &mut WorthQueryApplicationResultBufferReservation,
 ) -> Result<(), WorthQueryApplicationReadExecutionDenial> {
     let layout = graph
-        .layout
         .relation(relation.relation())
         .filter(|layout| {
-            graph.layout.entity_kind(relation.from()) == Some(layout.from)
-                && graph.layout.entity_kind(relation.to()) == Some(layout.to)
+            graph.entity_kind(relation.from()) == Some(layout.from)
+                && graph.entity_kind(relation.to()) == Some(layout.to)
         })
         .ok_or_else(|| traversal_denial(relation.result_path()))?;
     let frontier = parents
@@ -172,7 +171,7 @@ pub(super) fn attach_relation(
 fn attach_ordered_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     relation: &WorthQueryInstalledGraphRelation,
@@ -189,7 +188,6 @@ fn attach_ordered_relation(
         return Err(traversal_denial(relation.result_path()));
     };
     let child_kind = graph
-        .layout
         .entity_kind(relation.child_entity())
         .ok_or_else(|| traversal_denial(relation.result_path()))?;
     let mut lookup = BoundedRelatedEntityOrderedLookupRequest::new(
@@ -248,7 +246,7 @@ fn attach_ordered_relation(
 fn attach_targeted_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     relation: &WorthQueryInstalledGraphRelation,
@@ -261,7 +259,6 @@ fn attach_targeted_relation(
         return Err(traversal_denial(relation.result_path()));
     };
     let layout = graph
-        .layout
         .relation(relation.relation())
         .ok_or_else(|| traversal_denial(relation.result_path()))?;
     let frontier = BTreeSet::from([target.child_entity_id]);

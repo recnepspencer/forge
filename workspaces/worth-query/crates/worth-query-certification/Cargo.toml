@@ -16,6 +16,7 @@ trybuild.workspace = true
 worth-foundational.workspace = true
 worth-query.workspace = true
 worth-query-decl.workspace = true
+worth-query-admission = { path = "../worth-query-admission" }
 worth-query-execution = { path = "../worth-query-execution" }
 worth-proof.workspace = true
 worth-relational.workspace = true

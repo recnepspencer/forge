@@ -2,23 +2,25 @@ use worth_relational::facade::snapshots::SnapshotHandle;
 
 use super::super::WorthQueryPrimaryGraphIntegrationHandle;
 
-pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationSnapshotLease {
+pub(in crate::domain_computation) struct WorthQueryApplicationSnapshotLease {
     handle: WorthQueryPrimaryGraphIntegrationHandle,
     snapshot: Option<SnapshotHandle>,
     pub(super) layout: std::sync::Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
 }
 
 impl WorthQueryApplicationSnapshotLease {
-    pub(super) fn acquire(
+    pub(in crate::domain_computation) fn acquire(
         handle: WorthQueryPrimaryGraphIntegrationHandle,
         layout: std::sync::Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
-    ) -> Self {
-        let snapshot = handle.with_runtime_mut(|runtime| runtime.snapshots().snapshot());
-        Self {
+        branch: &worth_relational::facade::history::BranchId,
+    ) -> Option<Self> {
+        let snapshot =
+            handle.with_runtime_mut(|runtime| runtime.snapshots().snapshot_for_branch(branch))?;
+        Some(Self {
             handle,
             snapshot: Some(snapshot),
             layout,
-        }
+        })
     }
 
     pub(in crate::domain_computation::primary_graph) fn from_existing(
@@ -33,14 +35,21 @@ impl WorthQueryApplicationSnapshotLease {
         }
     }
 
-    pub(super) fn snapshot(&self) -> &SnapshotHandle {
+    pub(in crate::domain_computation) fn snapshot(&self) -> &SnapshotHandle {
         self.snapshot
             .as_ref()
             .expect("application snapshot lease remains live until consumed")
     }
 
-    pub(super) fn handle(&self) -> &WorthQueryPrimaryGraphIntegrationHandle {
+    pub(in crate::domain_computation) fn handle(&self) -> &WorthQueryPrimaryGraphIntegrationHandle {
         &self.handle
+    }
+
+    pub(in crate::domain_computation) fn release(mut self) -> bool {
+        self.snapshot.take().is_some_and(|snapshot| {
+            self.handle
+                .with_runtime_mut(|runtime| runtime.snapshots().release_snapshot(&snapshot))
+        })
     }
 }
 

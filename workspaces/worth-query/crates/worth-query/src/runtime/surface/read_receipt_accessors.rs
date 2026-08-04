@@ -5,9 +5,7 @@ use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::relationship_proof::{
     RelationshipProofAdmission, RelationshipProofSupportProfile, RelationshipProofSupportStatus,
 };
-use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryIntentExecutionProvenance,
-};
+use crate::runtime::WorthQueryIntentExecutionProvenance;
 
 use super::read_receipt_support::relationship_proof_support_surface_count;
 use super::{
@@ -205,26 +203,6 @@ impl WorthQueryReadReceipt {
         self.graph_read_access_complexity_counters.as_ref()
     }
 
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
-    }
-
-    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.graph_obligation_dispatch
-            .as_ref()
-            .and_then(WorthQueryAuthoritativeMutationObligationDispatch::envelope_digest)
-    }
-
-    pub fn graph_obligation_evidence(
-        &self,
-    ) -> Option<crate::runtime::WorthQueryGraphObligationAttachmentEvidence> {
-        self.graph_obligation_dispatch
-            .as_ref()
-            .map(|dispatch| dispatch.attachment_evidence())
-    }
-
     pub(in crate::runtime) fn with_materialized_fact_posture(
         mut self,
         posture: Option<ProjectionMaterializedFactPosture>,
@@ -329,7 +307,6 @@ impl WorthQueryReadReceipt {
             graph_read_streaming_receipt: None,
             graph_read_access_summary: None,
             graph_read_access_complexity_counters: None,
-            graph_obligation_dispatch: None,
             decision_trace_envelope: None,
             execution_provenance: None,
         }

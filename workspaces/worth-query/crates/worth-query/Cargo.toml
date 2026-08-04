@@ -38,10 +38,6 @@ name = "runtime_public_journeys"
 path = "tests/runtime_public_journeys.rs"
 
 [[test]]
-name = "graph_obligation_journeys"
-path = "tests/graph_obligation_journeys.rs"
-
-[[test]]
 name = "installed_operating_world"
 path = "tests/installed_operating_world.rs"
 

@@ -1,3 +1,4 @@
+mod commit_terminal;
 mod compare_and_commit;
 mod denial;
 mod effect_program;
@@ -15,6 +16,10 @@ mod read_scope;
 mod read_set;
 pub(super) mod snapshot_lease;
 
+pub use commit_terminal::{
+    WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
+};
+pub(in crate::domain_computation::primary_graph) use compare_and_commit::WorthQueryPendingApplicationCommitReceipt;
 pub use compare_and_commit::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
@@ -38,9 +43,11 @@ pub use idempotency_resolution::{
     WorthQueryApplicationIdempotencyResolutionDenialKind,
 };
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
+pub(in crate::domain_computation) use provider_execution::application_resource_request;
 pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;
 pub use read_phase::{WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation};
 pub use read_set::{
     WorthQueryApplicationReadAttempt, WorthQueryCompleteApplicationReadSet,
     WorthQueryObservedApplicationRelation,
 };
+pub(in crate::domain_computation) use snapshot_lease::WorthQueryApplicationSnapshotLease;

@@ -3,8 +3,6 @@ use crate::application::{
     WorthQueryDeclarationEntryProgressionError, WorthQueryDeclarationFamilyMarker,
     WorthQueryDeclarationInput, WorthQueryDeclarationLegalityDenial,
     WorthQueryDeclarationProgressionTerminalError, WorthQueryDomainEntryMarker,
-    WorthQueryGraphObligationOrchestrationDispatch,
-    WorthQueryGraphObligationOrchestrationDispatchError,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,8 +23,6 @@ pub struct WorthQueryGroupedDeclarationStop {
     declaration_family_key: &'static str,
     stop_kind: WorthQueryGroupedDeclarationStopKind,
     reason: String,
-    graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
-    graph_obligation_dispatch_error: Option<WorthQueryGraphObligationOrchestrationDispatchError>,
 }
 
 impl WorthQueryGroupedDeclarationStop {
@@ -41,39 +37,6 @@ impl WorthQueryGroupedDeclarationStop {
             declaration_family_key,
             stop_kind,
             reason: reason.into(),
-            graph_obligation_dispatch: None,
-            graph_obligation_dispatch_error: None,
-        }
-    }
-
-    pub(super) fn graph_obligation_dispatch_failed(
-        member_index: usize,
-        declaration_family_key: &'static str,
-        error: WorthQueryGraphObligationOrchestrationDispatchError,
-    ) -> Self {
-        Self {
-            member_index,
-            declaration_family_key,
-            stop_kind: WorthQueryGroupedDeclarationStopKind::Failed,
-            reason: format!("graph obligation orchestration dispatch failed: {error:?}"),
-            graph_obligation_dispatch: None,
-            graph_obligation_dispatch_error: Some(error),
-        }
-    }
-
-    pub(super) fn graph_obligation_denied(
-        member_index: usize,
-        declaration_family_key: &'static str,
-        dispatch: WorthQueryGraphObligationOrchestrationDispatch,
-    ) -> Self {
-        Self {
-            member_index,
-            declaration_family_key,
-            stop_kind: WorthQueryGroupedDeclarationStopKind::Denied,
-            reason: "grouped declaration denied by graph obligation orchestration dispatch"
-                .to_string(),
-            graph_obligation_dispatch: Some(dispatch),
-            graph_obligation_dispatch_error: None,
         }
     }
 
@@ -91,18 +54,6 @@ impl WorthQueryGroupedDeclarationStop {
 
     pub fn reason(&self) -> &str {
         &self.reason
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
-    }
-
-    pub fn graph_obligation_dispatch_error(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatchError> {
-        self.graph_obligation_dispatch_error.as_ref()
     }
 }
 

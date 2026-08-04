@@ -118,10 +118,10 @@ pub enum WorthQueryApplicationLiveCauseDenialKind {
     ResultShapeUnavailable,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[must_use]
 pub enum WorthQueryApplicationLiveCloseOutcome {
-    Completed,
+    Completed(crate::domain_computation::provider_session::WorthQueryGraphReadCompletion),
     Unavailable,
 }
 

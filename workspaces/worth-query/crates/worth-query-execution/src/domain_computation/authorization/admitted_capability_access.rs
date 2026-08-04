@@ -130,6 +130,9 @@ where
     pub(super) request_scope: WorthQueryRequestScope,
     pub(super) canonical_work: WorthQueryCanonicalWorkEvidence,
     pub(super) authorization: WorthQueryRetainedCapabilityAuthorization,
+    pub(super) operation_admission_identity: super::WorthQueryOperationAdmissionIdentity,
+    pub(super) graph_work:
+        crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     _marker: PhantomData<fn() -> (Capability, Operation)>,
 }
 
@@ -160,6 +163,8 @@ where
         request_scope: WorthQueryRequestScope,
         canonical_work: WorthQueryCanonicalWorkEvidence,
         authorization: WorthQueryRetainedCapabilityAuthorization,
+        operation_admission_identity: super::WorthQueryOperationAdmissionIdentity,
+        graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     ) -> Self {
         Self {
             runtime_authority,
@@ -175,8 +180,26 @@ where
             request_scope,
             canonical_work,
             authorization,
+            operation_admission_identity,
+            graph_work,
             _marker: PhantomData,
         }
+    }
+
+    pub fn graph_work_session_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
+        self.graph_work.identity()
+    }
+
+    pub fn graph_work_managed_run_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkManagedRunIdentity {
+        self.graph_work.managed_run_identity()
+    }
+
+    pub fn graph_work_branch(&self) -> &worth_relational::facade::history::BranchId {
+        self.graph_work.branch().relational()
     }
 
     pub fn operation(&self) -> &str {

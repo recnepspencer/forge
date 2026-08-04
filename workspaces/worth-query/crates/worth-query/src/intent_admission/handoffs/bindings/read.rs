@@ -1,7 +1,6 @@
 use crate::query_context::ScopedQueryBasisContext;
 use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryAuthoritativeMutationObligationDispatch,
-    WorthQueryLiveGraphReadAccessPlan, WorthQueryReadFamily,
+    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryLiveGraphReadAccessPlan, WorthQueryReadFamily,
     WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 
@@ -15,7 +14,6 @@ use crate::intent_admission::{
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryReadExecutionBinding {
     handoff: WorthQueryReadExecutionHandoff,
-    graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     graph_read_access_plan: WorthQueryAdmittedGraphReadAccessPlan,
     binding_digest: String,
 }
@@ -23,7 +21,6 @@ pub struct WorthQueryReadExecutionBinding {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryLiveReadExecutionBinding {
     handoff: WorthQueryLiveReadExecutionHandoff,
-    graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     live_graph_read_access_plan: WorthQueryLiveGraphReadAccessPlan,
     binding_digest: String,
 }
@@ -31,7 +28,6 @@ pub struct WorthQueryLiveReadExecutionBinding {
 impl WorthQueryReadExecutionBinding {
     pub(crate) fn from_handoff(
         handoff: WorthQueryReadExecutionHandoff,
-        graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
         graph_read_access_plan: WorthQueryAdmittedGraphReadAccessPlan,
     ) -> Self {
         let binding_digest = handoff_execution_binding_identity(
@@ -44,7 +40,6 @@ impl WorthQueryReadExecutionBinding {
         );
         Self {
             handoff,
-            graph_obligation_dispatch,
             graph_read_access_plan,
             binding_digest,
         }
@@ -74,12 +69,6 @@ impl WorthQueryReadExecutionBinding {
         &self.handoff
     }
 
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
-    }
-
     pub fn graph_read_access_plan(&self) -> &WorthQueryAdmittedGraphReadAccessPlan {
         &self.graph_read_access_plan
     }
@@ -92,7 +81,6 @@ impl WorthQueryReadExecutionBinding {
 impl WorthQueryLiveReadExecutionBinding {
     pub(crate) fn from_handoff(
         handoff: WorthQueryLiveReadExecutionHandoff,
-        graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
         live_graph_read_access_plan: WorthQueryLiveGraphReadAccessPlan,
     ) -> Self {
         let binding_digest = handoff_execution_binding_identity(
@@ -105,7 +93,6 @@ impl WorthQueryLiveReadExecutionBinding {
         );
         Self {
             handoff,
-            graph_obligation_dispatch,
             live_graph_read_access_plan,
             binding_digest,
         }
@@ -129,12 +116,6 @@ impl WorthQueryLiveReadExecutionBinding {
 
     pub fn handoff(&self) -> &WorthQueryLiveReadExecutionHandoff {
         &self.handoff
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
     }
 
     pub fn live_graph_read_access_plan(&self) -> &WorthQueryLiveGraphReadAccessPlan {

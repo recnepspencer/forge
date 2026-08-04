@@ -1,9 +1,7 @@
 use worth_relational::facade::runtime::CustomInvariantRegistration;
 
 use crate::application::WorthQueryDomainEntryMarker;
-use crate::runtime::{
-    WorthQueryGraphObligationRegistration, WorthQueryGraphReadOperationRegistration,
-};
+use crate::runtime::WorthQueryGraphReadOperationRegistration;
 
 use super::super::{
     WorthQueryAdmittedDomainPackage, WorthQueryDomainInstallationDenial,
@@ -13,7 +11,6 @@ use super::invariant::compile_invariant_definition;
 
 pub(in super::super) struct WorthQueryLoweredPackageSubstrates {
     pub(in super::super) graph_read_operations: Vec<WorthQueryGraphReadOperationRegistration>,
-    pub(in super::super) graph_obligations: Vec<WorthQueryGraphObligationRegistration>,
 }
 
 pub(in super::super) fn lower_package_substrates<D: WorthQueryDomainEntryMarker>(
@@ -30,19 +27,8 @@ pub(in super::super) fn lower_package_substrates<D: WorthQueryDomainEntryMarker>
             )
         })
         .collect();
-    let graph_obligations = package
-        .graph_obligations
-        .iter()
-        .map(|definition| {
-            definition.lower_with_owner(
-                &candidate.domain_owner,
-                candidate.substrate_provenance.clone(),
-            )
-        })
-        .collect();
     WorthQueryLoweredPackageSubstrates {
         graph_read_operations,
-        graph_obligations,
     }
 }
 

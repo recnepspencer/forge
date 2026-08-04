@@ -15,6 +15,20 @@ fn installed_application_operation_compiles_existing_authority_contract_families
         .unwrap();
     index.validate_application_operation(&operation).unwrap();
 
+    let obligations = operation.graph_obligations();
+    assert_eq!(obligations.rows().len(), 5);
+    assert!(obligations.rows().iter().any(|row| {
+        row.kind() == crate::facade::WorthQueryInstalledGraphObligationKind::InvariantExecution
+            && row.invariant_requirement().is_some()
+    }));
+    assert_eq!(
+        obligations
+            .installation_evidence()
+            .canonical_work()
+            .digest_text_materializations(),
+        0
+    );
+
     let authorization = &operation.contracts().ability_requirements()[0];
     assert_ne!(authorization.identity().bytes(), &[0; 32]);
     assert!(

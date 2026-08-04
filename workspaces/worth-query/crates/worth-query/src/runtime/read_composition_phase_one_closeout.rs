@@ -24,16 +24,16 @@ impl WorthQueryReadCompositionPhaseOneCloseout {
         read_support: &WorthQueryReadCompositionSupportReport,
     ) -> Self {
         let safe_to_build_now = vec![
-            "compose_read, compose_read_with_invariant_pack, define_read_family, define_read_family_with_invariant_pack, execute_read_family, and execute_read_family_in_basis_context form one public read-composition product instead of separate helper stories".to_string(),
+            "compose_read, define_read_family, execute_read_family, and execute_read_family_in_basis_context form one read-composition product instead of separate helper stories".to_string(),
             "the canonical read artifact is ReadGraph and every admitted execution returns a ReadReceipt with scope class, graph family, breadth, fallback posture, and relationship-proof admission identity".to_string(),
             "the Phase 1 runtime taxonomy now freezes query_runtime_current, query_runtime_historical, and fallback classes as public read-kernel posture".to_string(),
             "scope classes are kernel-owned and freeze local_neighborhood, anchored_expansion, and explicit_broad_search at the shared boundary instead of letting callers relabel the same lowered read".to_string(),
             "operator-owned graph lanes now cover direct_edge, successor_walk, shared_endpoint, shared_attachment, bounded_ancestor, bounded_descendant, anchored_frontier, and frontier_search".to_string(),
             "traversal-bearing reads now admit descriptor-backed synthetic runtime relationship proof before execution instead of reporting only a receipt heuristic".to_string(),
-            "invariant packs can narrow an admitted read graph before execution and deny through a typed domain-invariant lane with an attached rejected-graph summary".to_string(),
-            "reusable ReadFamily artifacts are part of kernel completeness and keep admission history in their digest so invariant-admitted families do not collapse into plain reusable reads".to_string(),
+            "installed provider sessions own invariant execution; compose_read does not accept a caller-authored invariant callback or create a competing runtime authority lane".to_string(),
+            "reusable ReadFamily artifacts are part of kernel completeness and retain canonical admission history in their digest".to_string(),
             "operator-owned builders keep traversal ownership mechanical because the exported operator-builder boundary hides traverse and is compile-fail certified".to_string(),
-            "later domain adoption must extend through the frozen read-composition hooks for domain_read_family_lowering, domain_invariant_pack, domain_decoder, and domain_result_certification instead of rebuilding a second local read stack".to_string(),
+            "later domain adoption must extend through domain_read_family_lowering, domain_decoder, and domain_result_certification instead of rebuilding a second local read stack; invariant authority remains installed provider-session work".to_string(),
         ];
         let must_not_assume_yet = vec![
             "do not assume this Phase 1 kernel artifact by itself certifies Worth topology migration; that closure lives in the Worth topology-domain closeout surfaces".to_string(),
@@ -42,7 +42,7 @@ impl WorthQueryReadCompositionPhaseOneCloseout {
         ];
         let migration_guidance = vec![
             "for new domain adoption, start by moving one bounded read family onto compose_read plus a domain-owned decoded view before widening the family set".to_string(),
-            "bind each new domain family through the frozen lowering, invariant-pack, decoder, and certification hook boundaries instead of inventing local extension seams".to_string(),
+            "bind each new domain family through the frozen lowering, decoder, and certification hook boundaries instead of inventing local extension seams".to_string(),
             "prefer an operator-owned read lane whenever the domain shape matches one of the admitted built-in operators instead of open-coding traverse in the Worth facade".to_string(),
             "for topology snapshot read-only posture, use the admitted historical basis-aware read-family path instead of carrying stale fallback debt wording".to_string(),
             "for later Worth domains, do not resume domain-specific widening until that domain has an aggregate closeout proof naming any remaining fallback consumers as debt rows".to_string(),

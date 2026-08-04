@@ -92,8 +92,6 @@ mod workflow;
 #[cfg(test)]
 mod future_signal_test_support;
 pub use consumer_kit::hard_prohibition_boundary_audit;
-#[cfg(test)]
-pub(crate) use consumer_kit::*;
 pub(crate) use consumer_kit::{
     hard_prohibition_registry, WorthQueryBoundaryAuditError, WorthQueryBoundaryAuditErrorKind,
     WorthQueryBoundaryAuditSource, WorthQueryBoundaryAuditSourceInventory,

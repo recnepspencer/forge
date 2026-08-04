@@ -77,9 +77,9 @@ artifact, orchestration, grouping, and recovery model.
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspections()?.inspect` alone):
   [capabilities/cross-runtime-causal-inspection.md](./capabilities/cross-runtime-causal-inspection.md)
-- if you need graph touch obligation selection, support rows, or downstream
-  graph-obligation proof:
-  [authoring/graph-touch-obligation-authority.md](./authoring/graph-touch-obligation-authority.md)
+- if you need the installed obligation, graph-read plan, session, owner
+  execution, terminal, and publication chain:
+  [domain-capabilities/canonical-graph-obligation-progression.md](./domain-capabilities/canonical-graph-obligation-progression.md)
 - if you need graph read access planning, admitted access postures, required
   index/materialization capability, or no-N+1 receipt proof:
   [authoring/graph-read-access-planning.md](./authoring/graph-read-access-planning.md)
@@ -108,7 +108,6 @@ artifact, orchestration, grouping, and recovery model.
 - [Graph Composition Authoring](./authoring/graph-composition-authoring.md)
 - [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
 - [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
-- [Graph Obligation Consumer Kit](./authoring/graph-obligation-consumer-kit.md)
 
 ## Execution (feature docs)
 
@@ -134,6 +133,7 @@ artifact, orchestration, grouping, and recovery model.
 
 ## Domain capabilities
 
+- [Canonical graph obligation progression](./domain-capabilities/canonical-graph-obligation-progression.md)
 - [Runtime-installed domains and operations](./domain-capabilities/runtime-installed-domains.md)
 - [Conditional installed operations](./domain-capabilities/conditional-installed-operations.md)
 - [Installed operation re-execution and replay](./domain-capabilities/installed-operation-reexecution-and-replay.md)

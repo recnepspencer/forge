@@ -152,19 +152,19 @@ where
     } else {
         None
     };
-    let graph = application.runtime.primary_graph().ok_or_else(|| {
+    application.runtime.primary_graph().ok_or_else(|| {
         denial(
             WorthQueryBoundedLaneDenialKind::StaleInstalledQuery,
             plan.query.name(),
         )
     })?;
     let result_buffer = application.result_buffers.reserve(
-        plan.graph_read_plan
+        plan.graph_read_plan()
             .budget_check()
             .max_inline_result_bytes(),
     );
-    let (raw, authorization_work) =
-        execute_authorized_read(application, graph, &plan, |runtime, graph, plan| {
+    let (raw, authorization_work, read_proof) =
+        execute_authorized_read(application, &plan, |runtime, graph, plan| {
             read_bounded_root_rows(runtime, graph, plan, result_buffer)
         })
         .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
@@ -172,7 +172,8 @@ where
 
     let basis_identity = plan.basis.identity().clone();
     let basis_version = plan.basis.version_id();
-    let released = plan.basis.release().released();
+    let basis_release = plan.basis.release();
+    let released = basis_release.released();
     if !released {
         return Err(denial(
             WorthQueryBoundedLaneDenialKind::BasisReleaseFailed,
@@ -195,6 +196,19 @@ where
     admit_request(&request, plan.query.name())?;
     validate_authentication_lifetime(plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
+    let read_completion = plan
+        .graph_work
+        .complete_query_read(
+            read_proof,
+            kernel_receipt.observed_graph_read_work(),
+            basis_release,
+        )
+        .map_err(|_| {
+            denial(
+                WorthQueryBoundedLaneDenialKind::ForeignPlan,
+                plan.query.name(),
+            )
+        })?;
     let receipt = WorthQueryApplicationQueryAccessReceipt::from_non_live_kernel(
         WorthQueryApplicationQueryReceiptIdentity {
             query_identity: plan.query.identity().clone(),
@@ -211,7 +225,7 @@ where
             freshness: plan.controls.freshness(),
             released,
         },
-        plan.graph_read_plan,
+        read_completion,
         plan.canonical_work,
         authorization_work,
         plan.governance.receipt(),
@@ -322,6 +336,9 @@ fn map_authorized_read_denial(
         ),
         WorthQueryAuthorizedApplicationReadDenial::Read(read) => {
             denial(map_read_denial(read.kind()), read.subject())
+        }
+        WorthQueryAuthorizedApplicationReadDenial::Session => {
+            denial(WorthQueryBoundedLaneDenialKind::ForeignPlan, subject)
         }
     }
 }

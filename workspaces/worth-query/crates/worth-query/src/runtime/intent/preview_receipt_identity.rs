@@ -61,18 +61,11 @@ pub(super) fn preview_intent_admission_identity(
 
 pub(super) fn preview_intent_receipt_identity(
     admission_identity: &WorthQueryEvidenceIdentity,
-    obligation_dispatch: Option<&crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch>,
 ) -> WorthQueryEvidenceIdentity {
     worth_query_evidence_identity(WorthQueryEvidenceScope::PreviewIntentReceipt)
         .field_evidence_identity(
             WorthQueryEvidenceTag::new("admission_identity"),
             admission_identity,
-        )
-        .optional_value(
-            WorthQueryEvidenceTag::new("graph_obligation_dispatch"),
-            obligation_dispatch.map(
-                crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch::dispatch_digest,
-            ),
         )
         .field_shape(
             WorthQueryEvidenceTag::new("posture"),

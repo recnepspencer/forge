@@ -1,7 +1,3 @@
-use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryGraphObligationAttachmentEvidence,
-};
-
 use super::{WorthQueryReadExecutionProduct, WorthQueryReadReceipt};
 
 /// A count aggregate produced from one admitted collection read.
@@ -21,16 +17,6 @@ impl WorthQueryCountResult {
 
     pub fn receipt(&self) -> &WorthQueryReadReceipt {
         &self.receipt
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.receipt.graph_obligation_dispatch()
-    }
-
-    pub fn graph_obligation_evidence(&self) -> Option<WorthQueryGraphObligationAttachmentEvidence> {
-        self.receipt.graph_obligation_evidence()
     }
 
     pub(in crate::runtime) fn new(count: u64, receipt: WorthQueryReadReceipt) -> Self {

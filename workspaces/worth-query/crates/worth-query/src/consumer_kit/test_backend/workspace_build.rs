@@ -67,9 +67,6 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
         runtime = runtime
             .aspect_contracts(schema.contracts().cloned())
             .map_err(workspace_error)?;
-        for obligation in compiled.graph_obligations {
-            runtime = runtime.graph_obligation(obligation);
-        }
         let runtime = runtime.build().map_err(workspace_error)?;
         let workspace = WorthQueryWorkspace::new(name, runtime).map_err(workspace_error)?;
         Ok((workspace, seed))

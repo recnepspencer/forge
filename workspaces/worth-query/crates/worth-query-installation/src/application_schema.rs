@@ -3,13 +3,21 @@ use std::marker::PhantomData;
 mod canonical_identity;
 mod capability;
 mod compilation;
+mod denial;
 mod principal_binding_match;
+
+pub use denial::{
+    WorthQueryInstalledApplicationSchemaDenial, WorthQueryInstalledApplicationSchemaDenialKind,
+};
 
 use crate::application_ability::{
     WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
     WorthQueryInstalledAbility,
 };
-use crate::application_capability::{compile_capability_registry, ApplicationCapabilityRegistry};
+use crate::application_capability::{
+    compile_capability_registry, ApplicationCapabilityRegistry,
+    WorthQueryInstalledApplicationCapability,
+};
 use crate::application_operation::{
     compile_authorization_policy_registry, ApplicationAuthorizationPolicyRegistry,
     WorthQueryApplicationOperationInstallationDenial, WorthQueryInstalledAbilityRequirement,
@@ -38,60 +46,6 @@ use worth_query_declaration::facade::application_schema::{
     ErasedApplicationSchemaDeclaration, TypedApplicationValue, TypedEffectIntentBuilder,
     TypedOperationBuilder, TypedReadDeclarationBuilder,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryInstalledApplicationSchemaDenialKind {
-    DomainNotInstalled,
-    SchemaNotInstalled,
-    SchemaMeaningChanged,
-    ForeignRuntime,
-    StaleGeneration,
-    PackageIdentityChanged,
-    AdmissionIdentityChanged,
-    AuthorityMismatch,
-    CapabilityInstallationDenied,
-    CanonicalEntryBudgetExceeded,
-    CanonicalEncodedByteBudgetExceeded,
-    CanonicalDigestSlotRejected,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryInstalledApplicationSchemaDenial {
-    kind: WorthQueryInstalledApplicationSchemaDenialKind,
-    subject: String,
-}
-
-impl WorthQueryInstalledApplicationSchemaDenial {
-    pub(crate) fn new(
-        kind: WorthQueryInstalledApplicationSchemaDenialKind,
-        subject: impl Into<String>,
-    ) -> Self {
-        Self {
-            kind,
-            subject: subject.into(),
-        }
-    }
-
-    pub const fn kind(&self) -> WorthQueryInstalledApplicationSchemaDenialKind {
-        self.kind
-    }
-
-    pub fn subject(&self) -> &str {
-        &self.subject
-    }
-}
-
-impl std::fmt::Display for WorthQueryInstalledApplicationSchemaDenial {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            formatter,
-            "installed application schema denied: {:?} ({})",
-            self.kind, self.subject
-        )
-    }
-}
-
-impl std::error::Error for WorthQueryInstalledApplicationSchemaDenial {}
 
 /// Opaque proof that one typed schema declaration belongs to an exact
 /// installed package, runtime, and generation.
@@ -351,6 +305,23 @@ where
         WorthQueryApplicationOperationInstallationDenial,
     > {
         WorthQueryInstalledApplicationOperation::from_installed_schema(self, operation.name())
+    }
+
+    #[doc(hidden)]
+    pub fn installed_operation_for_capability<Capability, Operation, Input>(
+        &self,
+        capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
+    ) -> Result<
+        crate::application_operation::WorthQueryInstalledApplicationOperationGraphAuthority<
+            Schema,
+            Operation,
+            Input,
+        >,
+        WorthQueryApplicationOperationInstallationDenial,
+    > {
+        WorthQueryInstalledApplicationOperation::graph_authority_from_installed_schema(
+            self, capability,
+        )
     }
 
     pub fn validate_installed_query<Query, Parameters, QueryResult, Scope>(

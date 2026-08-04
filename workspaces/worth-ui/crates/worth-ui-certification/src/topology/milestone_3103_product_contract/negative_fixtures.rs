@@ -29,8 +29,11 @@ path = "tests/executable_world.rs"
 required-features = ["executable-world"]
 [dependencies]
 eframe = { workspace = true, features = ["wgpu"] }
+notify = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+worth-query-decl = { workspace = true }
+worth-query-host = { workspace = true }
 worth-ui = { workspace = true }
 worth-ui-host-egui = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
@@ -108,7 +111,7 @@ fn product_source_rejects_an_executable_world_feature_branch() {
 #[test]
 fn protocol_rejects_a_missing_lifecycle_outcome() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 3;
+const SCHEMA_VERSION: u16 = 5;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -117,6 +120,9 @@ const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    NativeInputReached(PlatformPulseNativeInputReached),
+    QueryProjectionIssued(PlatformPulseQueryProjectionIssued),
+    QueryProjectionPublished(PlatformPulseQueryProjectionPublished),
     VisualSnapshotCaptured(PlatformPulseVisualSnapshotCaptured),
     VisualPointTrace(PlatformPulseVisualPointTrace),
     VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
@@ -129,6 +135,9 @@ pub enum PlatformPulseLifecycleObservation {
 }
 pub struct PlatformPulseProcessStarted {}
 pub struct PlatformPulseFirstFramePublished { value: u64 }
+pub struct PlatformPulseNativeInputReached { value: u64 }
+pub struct PlatformPulseQueryProjectionIssued { value: u64 }
+pub struct PlatformPulseQueryProjectionPublished { value: u64 }
 pub struct PlatformPulseVisualSnapshotCaptured { value: u64 }
 pub struct PlatformPulseVisualPointTrace { value: u64 }
 pub struct PlatformPulseVisualOverlayPublished { value: u64 }
@@ -147,7 +156,7 @@ pub struct PlatformPulseTerminalFailure { value: u64 }
 #[test]
 fn protocol_rejects_public_raw_payload_fields() {
     let envelope = r#"
-const SCHEMA_VERSION: u16 = 3;
+const SCHEMA_VERSION: u16 = 5;
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
 const ID: &str = "worth-ui.platform-pulse.lifecycle-observation";
 const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
@@ -156,6 +165,9 @@ const PREFIX: &str = "WORTH_UI_PLATFORM_PULSE_EVENT ";
 pub enum PlatformPulseLifecycleObservation {
     ProcessStarted(PlatformPulseProcessStarted),
     FirstFramePublished(PlatformPulseFirstFramePublished),
+    NativeInputReached(PlatformPulseNativeInputReached),
+    QueryProjectionIssued(PlatformPulseQueryProjectionIssued),
+    QueryProjectionPublished(PlatformPulseQueryProjectionPublished),
     VisualSnapshotCaptured(PlatformPulseVisualSnapshotCaptured),
     VisualPointTrace(PlatformPulseVisualPointTrace),
     VisualOverlayPublished(PlatformPulseVisualOverlayPublished),
@@ -169,6 +181,9 @@ pub enum PlatformPulseLifecycleObservation {
 }
 pub struct PlatformPulseProcessStarted {}
 pub struct PlatformPulseFirstFramePublished { pub frame: u64 }
+pub struct PlatformPulseNativeInputReached { value: u64 }
+pub struct PlatformPulseQueryProjectionIssued { value: u64 }
+pub struct PlatformPulseQueryProjectionPublished { value: u64 }
 pub struct PlatformPulseVisualSnapshotCaptured { value: u64 }
 pub struct PlatformPulseVisualPointTrace { value: u64 }
 pub struct PlatformPulseVisualOverlayPublished { value: u64 }

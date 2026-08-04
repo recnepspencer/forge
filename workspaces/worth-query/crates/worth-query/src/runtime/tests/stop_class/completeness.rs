@@ -4,15 +4,15 @@ use super::completeness_support::{
     representative_runtime_stop_errors, runtime_error_variant_key, stop_class_variant_key,
 };
 
-const PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 52;
-const PHASE_THREE_STOP_CLASS_VARIANT_COUNT: usize = 31;
+const COVERED_RUNTIME_ERROR_VARIANT_COUNT: usize = 49;
+const STOP_CLASS_VARIANT_COUNT: usize = 27;
 
 #[test]
 fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants() {
     let representative_errors = representative_runtime_stop_errors();
     assert_eq!(
         representative_errors.len(),
-        PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT
+        COVERED_RUNTIME_ERROR_VARIANT_COUNT
     );
 
     let runtime_variant_keys = representative_errors
@@ -21,8 +21,8 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
         .collect::<BTreeSet<_>>();
     assert_eq!(
         runtime_variant_keys.len(),
-        PHASE_THREE_COVERED_RUNTIME_ERROR_VARIANT_COUNT,
-        "phase-3 covered runtime error representatives must include one unique example per variant"
+        COVERED_RUNTIME_ERROR_VARIANT_COUNT,
+        "runtime error representatives must include one unique example per current variant"
     );
 
     let stop_class_variant_keys = representative_errors
@@ -31,8 +31,8 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
         .collect::<BTreeSet<_>>();
     assert_eq!(
         stop_class_variant_keys.len(),
-        PHASE_THREE_STOP_CLASS_VARIANT_COUNT,
-        "phase-3 stop-class closure must classify through the full typed taxonomy with no fallback bucket"
+        STOP_CLASS_VARIANT_COUNT,
+        "stop-class closure must classify through the full current typed taxonomy with no fallback bucket"
     );
 
     let preview_promotion_count = representative_errors
@@ -77,7 +77,7 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
         .count();
     assert_eq!(
         shared_read_stale_basis_count, 1,
-        "shared-read stale basis must stay inside the phase-3 typed taxonomy representatives"
+        "shared-read stale basis must stay inside the typed taxonomy representatives"
     );
     let journal_replay_denial_count = representative_errors
         .iter()
@@ -91,6 +91,6 @@ fn runtime_stop_class_classifier_is_complete_for_covered_runtime_error_variants(
     let classifier_source = include_str!("../../error/stop_classify.rs");
     assert!(
         !classifier_source.contains("_ =>"),
-        "phase-3 stop-class classifier must not contain a wildcard escape hatch"
+        "stop-class classifier must not contain a wildcard escape hatch"
     );
 }

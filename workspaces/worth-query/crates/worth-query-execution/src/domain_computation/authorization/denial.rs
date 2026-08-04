@@ -19,6 +19,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     CapabilityExpired,
     StaleAuthorization,
     AdmissionIdentityExhausted,
+    GraphWorkAdmissionUnavailable,
     ScopeMismatch,
     PolicyNotInstalled,
     InvalidInstalledPolicy,

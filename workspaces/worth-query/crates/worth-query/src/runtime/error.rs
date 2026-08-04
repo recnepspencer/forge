@@ -1,10 +1,8 @@
 use super::*;
 
-mod graph_obligation_denial;
 mod stop_class;
 mod stop_classify;
 
-pub use graph_obligation_denial::WorthQueryGraphObligationDenial;
 #[cfg(test)]
 pub(crate) use stop_class::{
     WorthQueryRuntimeDeclarationFailureKind, WorthQueryRuntimeLookupFailureKind,
@@ -31,26 +29,10 @@ pub enum WorthQueryRuntimeError {
     MutationBindingDenied(WorthQueryExistingTruthBindingDenial),
     MutationContinuityDenied(WorthQueryContinuityMutationDenial),
     MutationContractDenied(crate::runtime::WorthQueryMutationContractDenial),
-    GraphObligationTouchDescriptorDenied(WorthQueryGraphTouchDescriptorDenial),
-    GraphObligationEffectTouchDescriptorMissing {
-        effect_name: String,
-    },
-    GraphObligationIntentTouchDescriptorMissing {
-        intent_name: String,
-    },
-    GraphMutationPolicyContextDenied {
-        expected: crate::policy_basis::PolicyExecutionModeRequest,
-        actual: crate::policy_basis::PolicyExecutionModeRequest,
-        policy_tenant_admission_digest: String,
-    },
-    GraphMutationPolicyGateDenied(crate::runtime::WorthQueryGraphMutationPolicyGateEvidence),
-    GraphObligationDenied(WorthQueryGraphObligationDenial),
     GraphCompositionDenied(WorthQueryGraphCompositionDenial),
-    GraphCompositionDomainInvariantDenied(WorthQueryGraphCompositionDomainInvariantDenial),
     MutationNamingDenied(WorthQueryNamingMutationDenial),
     MutationTargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenial),
     ReadCompositionDenied(WorthQueryReadDenial),
-    ReadCompositionDomainInvariantDenied(WorthQueryReadDomainInvariantDenial),
     InstalledDomainAuthorityDenied(crate::domain_installation::WorthQueryDomainHandleDenial),
     Workspace(WorthQueryWorkspaceError),
     Program(WorthQueryProgramError),
@@ -182,48 +164,10 @@ impl std::fmt::Display for WorthQueryRuntimeError {
             Self::MutationBindingDenied(denial) => write!(f, "{denial}"),
             Self::MutationContinuityDenied(denial) => write!(f, "{denial}"),
             Self::MutationContractDenied(denial) => write!(f, "{denial}"),
-            Self::GraphObligationTouchDescriptorDenied(denial) => write!(
-                f,
-                "graph obligation dispatch denied malformed touch descriptor: {denial}"
-            ),
-            Self::GraphObligationEffectTouchDescriptorMissing { effect_name } => write!(
-                f,
-                "effect-triggered write intent `{effect_name}` cannot execute while graph obligations are registered until pending delivery payload declares a graph touch descriptor"
-            ),
-            Self::GraphObligationIntentTouchDescriptorMissing { intent_name } => write!(
-                f,
-                "intent `{intent_name}` cannot execute through preview or branch lanes while graph obligations are registered until the declaration carries a graph touch descriptor"
-            ),
-            Self::GraphMutationPolicyContextDenied {
-                expected,
-                actual,
-                policy_tenant_admission_digest,
-            } => write!(
-                f,
-                "graph mutation policy context denied: expected {} admission, got {} admission for policy tenant context {}",
-                expected.as_str(),
-                actual.as_str(),
-                policy_tenant_admission_digest
-            ),
-            Self::GraphMutationPolicyGateDenied(evidence) => write!(
-                f,
-                "graph mutation policy gate denied mutation: verdict {}, policy tenant context {}, gate evidence {}",
-                evidence.verdict().as_str(),
-                evidence.policy_tenant_admission_digest(),
-                evidence.evidence_digest()
-            ),
-            Self::GraphObligationDenied(denial) => write!(
-                f,
-                "graph obligation dispatch denied mutation: {} blocking obligation(s), projection {}",
-                denial.blocking_count(),
-                denial.projection_digest()
-            ),
             Self::GraphCompositionDenied(denial) => write!(f, "{denial}"),
-            Self::GraphCompositionDomainInvariantDenied(denial) => write!(f, "{denial}"),
             Self::MutationNamingDenied(denial) => write!(f, "{denial}"),
             Self::MutationTargetReferenceDenied(denial) => write!(f, "{denial}"),
             Self::ReadCompositionDenied(denial) => write!(f, "{denial}"),
-            Self::ReadCompositionDomainInvariantDenied(denial) => write!(f, "{denial}"),
             Self::InstalledDomainAuthorityDenied(denial) => write!(f, "{denial}"),
             Self::Workspace(error) => write!(f, "{error}"),
             Self::Program(error) => write!(f, "{error}"),

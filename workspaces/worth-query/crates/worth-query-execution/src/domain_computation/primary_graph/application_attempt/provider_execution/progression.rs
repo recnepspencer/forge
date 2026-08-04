@@ -4,11 +4,12 @@ use super::super::provider_binding::WorthQueryPreparedApplicationProviderAttempt
 use super::super::{
     provider_recomparison::{certify_provider_recomparison, recover_equivalent_commit_evidence},
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialStage as DenialStage,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationStaleAttempt,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationIdempotencyBinding,
+    WorthQueryApplicationStaleAttempt, WorthQueryPendingApplicationCommitReceipt,
 };
 use super::decision_facts::bind_provider_decision_facts;
-use super::support::{denied, parse_provider_receipt};
+use super::outcome::{progression_denied, WorthQueryProviderProgressionOutcome};
+use super::support::parse_provider_receipt;
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::{
     WorthQueryDecisionReadSetFreshnessOutcome, WorthQueryInvariantStateLocator,
@@ -32,7 +33,9 @@ pub(super) fn execute_provider_progression<Schema, Operation, Input, Scope>(
     authorization: crate::domain_computation::authorization::WorthQueryProviderAuthorizationDecisionFacts,
     commit_authorization: crate::domain_computation::authorization::WorthQueryCommitAuthorizationBasis,
     idempotency: WorthQueryApplicationIdempotencyBinding,
-) -> WorthQueryApplicationCommitOutcome
+    mutation_run: &crate::domain_computation::provider_session::WorthQueryMutationRunBinding,
+    serialization: &super::super::super::provider::WorthQueryApplicationCommitSerialization<'_>,
+) -> WorthQueryProviderProgressionOutcome
 where
     Schema: worth_query_installation::facade::ApplicationSchema,
 {
@@ -42,8 +45,12 @@ where
         .and_then(|session| session.prepare())
     {
         Ok(prepared_session) => prepared_session.bind_reads_and_effects(),
-        Err(_) => return denied(DenialStage::ProviderPlan),
+        Err(_) => return progression_denied(DenialStage::ProviderPlan),
     };
+    if !mutation_run.admits(staged.plan()) {
+        let _ = staged.abort();
+        return progression_denied(DenialStage::ProviderPlan);
+    }
     let session_identity = staged.token_identity().to_owned();
     let WorthQueryPreparedApplicationProviderAttempt {
         facts,
@@ -53,7 +60,7 @@ where
     } = prepared;
     let (facts, requests) = match bind_provider_decision_facts(facts, authorization) {
         Ok(bound) => bound,
-        Err(()) => return denied(DenialStage::DecisionReadSet),
+        Err(()) => return progression_denied(DenialStage::DecisionReadSet),
     };
     if provider
         .register_application_attempt(
@@ -63,32 +70,34 @@ where
             batch,
             emissions,
             idempotency,
+            admission.graph_work().branch().relational().clone(),
+            admission.graph_work_session_identity(),
+            admission.graph_work_decision_fact_count(),
         )
         .is_err()
     {
         let _ = staged.abort();
-        return denied(DenialStage::ProviderPlan);
+        return progression_denied(DenialStage::ProviderPlan);
     }
     let receipt = match staged.read_authority().capture_decision_read_set(requests) {
         Ok(receipt) => receipt,
         Err(_) => {
             let _ = staged.abort();
-            return denied(DenialStage::DecisionReadSet);
+            return progression_denied(DenialStage::DecisionReadSet);
         }
     };
     let fresh = match staged.read_authority().compare_decision_read_set(receipt) {
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Fresh(fresh)) => fresh,
         Ok(WorthQueryDecisionReadSetFreshnessOutcome::Stale(stale)) => {
-            let serialization = provider.serialize_application_commit();
             let proof = match application.authorize_application_commit(
                 admission,
                 &commit_authorization,
-                &serialization,
+                serialization,
             ) {
                 Ok(proof) => proof,
                 Err(_) => {
                     let _ = staged.abort();
-                    return denied(DenialStage::DecisionReadSet);
+                    return progression_denied(DenialStage::DecisionReadSet);
                 }
             };
             let resolution = proof.govern((), |()| {
@@ -97,12 +106,12 @@ where
             match resolution {
                 Err(()) => {
                     let _ = staged.abort();
-                    return denied(DenialStage::DecisionReadSet);
+                    return progression_denied(DenialStage::DecisionReadSet);
                 }
                 Ok(Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt))) => {
                     let _ = staged.abort();
-                    return WorthQueryApplicationCommitOutcome::AlreadyCommitted(
-                        WorthQueryApplicationCommitReceipt::from_provider(
+                    return WorthQueryProviderProgressionOutcome::AlreadyCommitted(
+                        WorthQueryApplicationCommitReceipt::from_recovered_provider(
                             receipt,
                             recover_equivalent_commit_evidence(admission.mutation_preconditions()),
                             admission.canonical_work(),
@@ -111,25 +120,25 @@ where
                 }
                 Ok(Ok(WorthQueryProviderIdempotencyResolution::Drift)) => {
                     let _ = staged.abort();
-                    return WorthQueryApplicationCommitOutcome::Denied(
+                    return WorthQueryProviderProgressionOutcome::Denied(
                         WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
                     );
                 }
                 Ok(Ok(WorthQueryProviderIdempotencyResolution::Absent)) => {}
                 Ok(Err(_)) => {
                     let _ = staged.abort();
-                    return denied(DenialStage::Idempotency);
+                    return progression_denied(DenialStage::Idempotency);
                 }
             }
             let count = stale.stale_fact_count();
             let _ = staged.abort();
-            return WorthQueryApplicationCommitOutcome::Stale(
+            return WorthQueryProviderProgressionOutcome::Stale(
                 WorthQueryApplicationStaleAttempt::new(count),
             );
         }
         Err(_) => {
             let _ = staged.abort();
-            return denied(DenialStage::DecisionReadSet);
+            return progression_denied(DenialStage::DecisionReadSet);
         }
     };
     let lowered = match staged
@@ -139,12 +148,12 @@ where
         Ok(lowered) => lowered,
         Err(_) => {
             let _ = staged.abort();
-            return denied(DenialStage::EffectLowering);
+            return progression_denied(DenialStage::EffectLowering);
         }
     };
     let inspection = match staged.begin_provisional_attempt(fresh, lowered) {
         Ok(attempt) => attempt.materialize_proposed_state().inspect(),
-        Err(_) => return denied(DenialStage::ProvisionalState),
+        Err(_) => return progression_denied(DenialStage::ProvisionalState),
     };
     let locators = inspection
         .facts()
@@ -162,33 +171,32 @@ where
         Ok(receipt) => receipt,
         Err(_) => {
             inspection.discard();
-            return denied(DenialStage::InvariantExecution);
+            return progression_denied(DenialStage::InvariantExecution);
         }
     };
     let progression = match inspection.admit_invariant_progression([receipt]) {
         Ok(progression) => progression,
         Err(_) => {
             inspection.discard();
-            return denied(DenialStage::InvariantExecution);
+            return progression_denied(DenialStage::InvariantExecution);
         }
     };
     let candidate = match inspection.bind_invariant_progression(progression) {
         Ok(candidate) => candidate,
         Err((_, inspection)) => {
             inspection.discard();
-            return denied(DenialStage::InvariantExecution);
+            return progression_denied(DenialStage::InvariantExecution);
         }
     };
-    let serialization = provider.serialize_application_commit();
     let proof = match application.authorize_application_commit(
         admission,
         &commit_authorization,
-        &serialization,
+        serialization,
     ) {
         Ok(proof) => proof,
         Err(_) => {
             candidate.discard();
-            return denied(DenialStage::DecisionReadSet);
+            return progression_denied(DenialStage::DecisionReadSet);
         }
     };
     let outcome = proof.govern(candidate, |candidate| {
@@ -197,13 +205,14 @@ where
                 candidate.compare_and_commit(),
                 provider,
                 idempotency,
+                admission.graph_work().branch().relational(),
                 admission.mutation_preconditions(),
                 admission.canonical_work(),
             ),
             Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
                 candidate.discard();
-                WorthQueryApplicationCommitOutcome::AlreadyCommitted(
-                    WorthQueryApplicationCommitReceipt::from_provider(
+                WorthQueryProviderProgressionOutcome::AlreadyCommitted(
+                    WorthQueryApplicationCommitReceipt::from_recovered_provider(
                         receipt,
                         recover_equivalent_commit_evidence(admission.mutation_preconditions()),
                         admission.canonical_work(),
@@ -212,13 +221,13 @@ where
             }
             Ok(WorthQueryProviderIdempotencyResolution::Drift) => {
                 candidate.discard();
-                WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryProviderProgressionOutcome::Denied(
                     WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
                 )
             }
             Err(_) => {
                 candidate.discard();
-                denied(DenialStage::Idempotency)
+                progression_denied(DenialStage::Idempotency)
             }
         }
     });
@@ -226,7 +235,7 @@ where
         Ok(outcome) => outcome,
         Err(candidate) => {
             candidate.discard();
-            WorthQueryApplicationCommitOutcome::Cancelled
+            WorthQueryProviderProgressionOutcome::Cancelled
         }
     }
 }
@@ -235,32 +244,47 @@ fn finish_authorized_compare(
     compared: WorthQueryProviderCompareAndCommitOutcome,
     provider: &super::super::super::provider::WorthQueryPrimaryGraphProvider,
     idempotency: WorthQueryApplicationIdempotencyBinding,
+    branch: &worth_relational::facade::history::BranchId,
     preconditions: &super::super::precondition_binding::WorthQueryBoundMutationPreconditions,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
-) -> WorthQueryApplicationCommitOutcome {
+) -> WorthQueryProviderProgressionOutcome {
     match compared {
         WorthQueryProviderCompareAndCommitOutcome::Committed {
             provider_receipt, ..
-        } => parse_provider_receipt(&provider_receipt).map_or_else(
-            || WorthQueryApplicationCommitOutcome::Indeterminate,
-            |receipt| {
-                WorthQueryApplicationCommitOutcome::Committed(
-                    WorthQueryApplicationCommitReceipt::from_provider(
-                        receipt,
-                        certify_provider_recomparison(preconditions),
-                        canonical_work,
-                    ),
-                )
-            },
-        ),
+        } => parse_provider_receipt(&provider_receipt, branch)
+            .and_then(|receipt| {
+                provider
+                    .completed_mutation_work()
+                    .map(|work| receipt.with_mutation_work(work))
+            })
+            .map_or_else(
+                || WorthQueryProviderProgressionOutcome::Indeterminate,
+                |receipt| {
+                    WorthQueryProviderProgressionOutcome::Committed(
+                        WorthQueryPendingApplicationCommitReceipt::from_provider(
+                            receipt,
+                            certify_provider_recomparison(preconditions),
+                            canonical_work,
+                        ),
+                    )
+                },
+            ),
         WorthQueryProviderCompareAndCommitOutcome::Stale(stale) => {
-            WorthQueryApplicationCommitOutcome::Stale(WorthQueryApplicationStaleAttempt::new(
+            WorthQueryProviderProgressionOutcome::Stale(WorthQueryApplicationStaleAttempt::new(
                 stale.stale_fact_count(),
             ))
         }
-        WorthQueryProviderCompareAndCommitOutcome::Denied(_) => denied(DenialStage::ProviderCommit),
+        WorthQueryProviderCompareAndCommitOutcome::Denied(_) => {
+            progression_denied(DenialStage::ProviderCommit)
+        }
         WorthQueryProviderCompareAndCommitOutcome::Indeterminate(_) => {
-            resolve_indeterminate_commit(provider, idempotency, preconditions, canonical_work)
+            resolve_indeterminate_commit(
+                provider,
+                idempotency,
+                branch,
+                preconditions,
+                canonical_work,
+            )
         }
     }
 }
@@ -268,24 +292,28 @@ fn finish_authorized_compare(
 fn resolve_indeterminate_commit(
     provider: &super::super::super::provider::WorthQueryPrimaryGraphProvider,
     idempotency: WorthQueryApplicationIdempotencyBinding,
+    branch: &worth_relational::facade::history::BranchId,
     preconditions: &super::super::precondition_binding::WorthQueryBoundMutationPreconditions,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
-) -> WorthQueryApplicationCommitOutcome {
-    match provider.resolve_idempotency_binding(idempotency) {
+) -> WorthQueryProviderProgressionOutcome {
+    match provider.resolve_idempotency_binding(idempotency, branch) {
         Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
-            WorthQueryApplicationCommitOutcome::Committed(
-                WorthQueryApplicationCommitReceipt::from_provider(
-                    receipt,
-                    certify_provider_recomparison(preconditions),
-                    canonical_work,
+            match provider.completed_mutation_work() {
+                Some(work) => WorthQueryProviderProgressionOutcome::Committed(
+                    WorthQueryPendingApplicationCommitReceipt::from_provider(
+                        receipt.with_mutation_work(work),
+                        certify_provider_recomparison(preconditions),
+                        canonical_work,
+                    ),
                 ),
-            )
+                None => WorthQueryProviderProgressionOutcome::Indeterminate,
+            }
         }
         Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
-            WorthQueryApplicationCommitOutcome::Aborted
+            WorthQueryProviderProgressionOutcome::Aborted
         }
         Ok(WorthQueryProviderIdempotencyResolution::Drift) | Err(_) => {
-            WorthQueryApplicationCommitOutcome::Indeterminate
+            WorthQueryProviderProgressionOutcome::Indeterminate
         }
     }
 }

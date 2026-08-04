@@ -1,6 +1,5 @@
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::application_query::WorthQueryApplicationQueryLane;
-use worth_query_admission::facade::graph_read_access::WorthQueryGraphReadPlanReview;
 use worth_query_installation::facade::{
     WorthQueryCanonicalWorkPhases, WorthQueryInstalledApplicationQueryIdentity,
 };
@@ -37,7 +36,7 @@ pub struct WorthQueryApplicationQueryAccessReceipt {
     predicate_index_generation: Option<DerivedIndexGenerationId>,
     target_identity_index_generation: Option<DerivedIndexGenerationId>,
     ordered_index_generation: Option<DerivedIndexGenerationId>,
-    graph_read_plan: WorthQueryGraphReadPlanReview,
+    read_completion: crate::domain_computation::provider_session::WorthQueryGraphReadCompletion,
     canonical_work: WorthQueryCanonicalWorkPhases,
     authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
     examined_candidate_count: usize,
@@ -73,7 +72,7 @@ pub(super) struct WorthQueryApplicationQueryAccessReceiptParts {
     pub predicate_index_generation: Option<DerivedIndexGenerationId>,
     pub target_identity_index_generation: Option<DerivedIndexGenerationId>,
     pub ordered_index_generation: Option<DerivedIndexGenerationId>,
-    pub graph_read_plan: WorthQueryGraphReadPlanReview,
+    pub read_completion: crate::domain_computation::provider_session::WorthQueryGraphReadCompletion,
     pub canonical_work: WorthQueryCanonicalWorkPhases,
     pub authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
     pub examined_candidate_count: usize,
@@ -116,7 +115,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
     pub(super) fn from_non_live_kernel(
         identity: WorthQueryApplicationQueryReceiptIdentity,
         basis: WorthQueryApplicationQueryReceiptBasis,
-        graph_read_plan: WorthQueryGraphReadPlanReview,
+        read_completion: crate::domain_computation::provider_session::WorthQueryGraphReadCompletion,
         canonical_work: WorthQueryCanonicalWorkPhases,
         authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
         disclosure: WorthQueryApplicationDisclosureReceipt,
@@ -137,7 +136,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
             predicate_index_generation: raw.predicate_index_generation,
             target_identity_index_generation: raw.target_identity_index_generation,
             ordered_index_generation: raw.ordered_index_generation,
-            graph_read_plan,
+            read_completion,
             canonical_work,
             authorization_work,
             examined_candidate_count: raw.examined_candidates,
@@ -212,8 +211,16 @@ impl WorthQueryApplicationQueryAccessReceipt {
         self.target_identity_index_generation
     }
 
-    pub const fn graph_read_plan(&self) -> &WorthQueryGraphReadPlanReview {
-        &self.graph_read_plan
+    pub const fn graph_read_plan(
+        &self,
+    ) -> &worth_query_admission::facade::graph_read_access::WorthQueryGraphReadPlanReview {
+        self.read_completion.review()
+    }
+
+    pub const fn read_completion(
+        &self,
+    ) -> &crate::domain_computation::provider_session::WorthQueryGraphReadCompletion {
+        &self.read_completion
     }
 
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
@@ -313,7 +320,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
             predicate_index_generation: parts.predicate_index_generation,
             target_identity_index_generation: parts.target_identity_index_generation,
             ordered_index_generation: parts.ordered_index_generation,
-            graph_read_plan: parts.graph_read_plan,
+            read_completion: parts.read_completion,
             canonical_work: parts.canonical_work,
             authorization_work: parts.authorization_work,
             examined_candidate_count: parts.examined_candidate_count,

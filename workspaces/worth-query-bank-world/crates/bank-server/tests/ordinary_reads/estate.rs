@@ -138,6 +138,13 @@ fn estate_preview_preserves_canonical_query_meaning_and_releases_authority() {
     assert_eq!(preview.receipt().fallback_count(), 0);
     assert_eq!(preview.receipt().per_result_neighbor_lookup_count(), 0);
     assert!(preview.receipt().basis_released());
+    let terminal = preview.receipt().read_completion();
+    assert_eq!(
+        terminal.basis_identity(),
+        preview.receipt().basis_identity()
+    );
+    assert!(terminal.basis_release().released());
+    assert_eq!(terminal.release().released_reservation_count(), 1);
 
     let discard = session
         .discard()

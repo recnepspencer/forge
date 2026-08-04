@@ -19,7 +19,6 @@ pub struct WorthQueryPreviewIntentReceipt {
     basis_evidence: Vec<String>,
     basis_evidence_identity: WorthQueryEvidenceIdentity,
     admission_identity: WorthQueryEvidenceIdentity,
-    obligation_dispatch: Option<crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch>,
     receipt_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -29,9 +28,6 @@ impl WorthQueryPreviewIntentReceipt {
         effect_policy: WorthQueryEffectPolicy,
         basis_admission: &WorthQueryPreviewBasisAdmission,
         admission: WorthQueryEffectAdmission,
-        obligation_dispatch: Option<
-            crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch,
-        >,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
@@ -44,8 +40,7 @@ impl WorthQueryPreviewIntentReceipt {
             admission,
             &canonical_input_digest,
         );
-        let receipt_identity =
-            preview_intent_receipt_identity(&admission_identity, obligation_dispatch.as_ref());
+        let receipt_identity = preview_intent_receipt_identity(&admission_identity);
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -57,7 +52,6 @@ impl WorthQueryPreviewIntentReceipt {
             basis_evidence,
             basis_evidence_identity,
             admission_identity,
-            obligation_dispatch,
             receipt_identity,
         }
     }
@@ -104,12 +98,6 @@ impl WorthQueryPreviewIntentReceipt {
 
     pub fn admission_digest(&self) -> &str {
         self.admission_identity.as_str()
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
     }
 
     pub fn receipt_digest(&self) -> &str {

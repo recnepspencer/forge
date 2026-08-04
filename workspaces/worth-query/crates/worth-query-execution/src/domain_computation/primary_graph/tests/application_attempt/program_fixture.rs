@@ -12,7 +12,8 @@ type Account = super::super::fixture::Account;
 type Input = super::super::fixture::TouchAccountInput;
 type World = super::super::fixture::AuthorizationWorld;
 type Preconditions = TypedMutationPreconditions<Schema, TouchAccountOperation, Account>;
-type Program = WorthQueryApplicationEffectProgram<Schema, TouchAccountOperation, Input, Account>;
+pub(super) type Program =
+    WorthQueryApplicationEffectProgram<Schema, TouchAccountOperation, Input, Account>;
 
 pub(super) fn admitted_program(
     world: &World,

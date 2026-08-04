@@ -1,7 +1,7 @@
 mod lane;
 mod parameter_binding;
 mod parameter_canonical_basis;
-mod requirements;
+pub(crate) mod requirements;
 #[cfg(test)]
 mod tests;
 
@@ -11,4 +11,5 @@ pub use parameter_binding::{
     WorthQueryApplicationQueryParameterDenial, WorthQueryApplicationQueryParameterDenialKind,
 };
 pub use parameter_canonical_basis::WorthQueryApplicationParameterCanonicalArtifact;
-pub use requirements::derive_graph_read_access_requirements_for_contract;
+#[cfg(test)]
+pub(crate) use requirements::derive_graph_read_access_requirements_for_contract;

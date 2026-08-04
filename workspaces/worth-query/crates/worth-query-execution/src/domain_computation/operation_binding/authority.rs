@@ -44,6 +44,15 @@ pub struct WorthQueryExecutionBoundOperationAuthority {
         Option<Arc<worth_query_installation::facade::WorthQueryInstalledArtifactContractAuthority>>,
     installed_support: WorthQueryInstalledOperationExecutionSupport,
     installed_domain: Arc<WorthQueryInstalledDomainExecutionAuthority>,
+    graph_work_affinity: Option<WorthQueryApplicationGraphWorkAffinity>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct WorthQueryApplicationGraphWorkAffinity {
+    pub(crate) session:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    pub(crate) managed_run:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkManagedRunIdentity,
 }
 
 impl std::fmt::Debug for WorthQueryExecutionBoundOperationAuthority {
@@ -65,6 +74,12 @@ struct WorthQueryWorkflowStageResourceAuthority {
 }
 
 impl WorthQueryExecutionBoundOperationAuthority {
+    pub(crate) const fn graph_work_affinity(
+        &self,
+    ) -> Option<WorthQueryApplicationGraphWorkAffinity> {
+        self.graph_work_affinity
+    }
+
     pub fn binding_identity(&self) -> &str {
         &self.binding_identity
     }

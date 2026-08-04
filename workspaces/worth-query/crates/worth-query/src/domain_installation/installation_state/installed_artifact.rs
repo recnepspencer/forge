@@ -12,9 +12,9 @@ use crate::runtime::{
 
 use super::{
     WorthQueryAdmittedDomainPackage, WorthQueryDomainDeclarationFamilyDefinition,
-    WorthQueryDomainGraphObligationDefinition, WorthQueryDomainInvariantDefinition,
-    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainPackageIdentity,
-    WorthQueryDomainSemanticVersion, WorthQueryPendingPackageCandidate,
+    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainPackageIdentity, WorthQueryDomainSemanticVersion,
+    WorthQueryPendingPackageCandidate,
 };
 use crate::domain_installation::WorthQueryDomainOperationGraphParticipationRecord;
 use crate::domain_installation::WorthQueryDomainOperationRequiredDomainRecord;
@@ -36,7 +36,6 @@ pub(crate) struct WorthQueryInstalledDomainArtifact {
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
     pub(crate) substrate_provenance: WorthQueryInstalledDomainSubstrateProvenance,
     pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
-    pub(crate) graph_obligation_definitions: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryGraphReadOperationRegistration>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
     pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
@@ -66,7 +65,6 @@ pub(super) fn assemble_installed_domain_artifact<D: WorthQueryDomainEntryMarker>
         operating_requirements: package.operating_requirements,
         substrate_provenance: candidate.substrate_provenance.clone(),
         invariant_definitions: package.invariant_definitions,
-        graph_obligation_definitions: package.graph_obligations,
         graph_read_operations,
         declaration_families: package.declaration_families,
         domain_operations: package.domain_operations,

@@ -4,8 +4,8 @@ use super::fixture::{
     installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationIdempotencyBinding,
-    WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitTerminalKind,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryPrincipalResolutionMode,
 };
 #[path = "application_attempt/authority_lifecycle.rs"]
 mod authority_lifecycle;
@@ -19,6 +19,10 @@ mod decision_manifest_ceiling;
 mod effect_authority;
 #[path = "application_attempt/emitted_effects.rs"]
 mod emitted_effects;
+#[path = "application_attempt/mutation_terminal_lifecycle.rs"]
+mod mutation_terminal_lifecycle;
+#[path = "application_attempt/mutation_work_scale.rs"]
+mod mutation_work_scale;
 #[path = "application_attempt/program_fixture.rs"]
 mod program_fixture;
 #[path = "application_attempt/terminal_failures.rs"]
@@ -90,7 +94,16 @@ fn equivalent_retry_recovers_original_receipt_while_intent_drift_is_denied() {
     else {
         panic!("an equivalent retry must recover the original commit");
     };
-    assert_eq!(recovered, original);
+    assert!(recovered.is_same_authoritative_commit(&original));
+    assert_eq!(
+        original.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Executed
+    );
+    assert_eq!(
+        recovered.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
+    assert!(recovered.terminal().retry_inspection().is_none());
 
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
@@ -134,7 +147,13 @@ fn concurrent_equivalent_attempts_publish_one_transaction() {
             unexpected => panic!("unexpected concurrent outcome: {unexpected:?}"),
         })
         .collect::<Vec<_>>();
-    assert_eq!(receipts[0], receipts[1]);
+    assert!(receipts[0].is_same_authoritative_commit(&receipts[1]));
+    let terminal_kinds = receipts
+        .iter()
+        .map(|receipt| receipt.terminal().kind())
+        .collect::<Vec<_>>();
+    assert!(terminal_kinds.contains(&WorthQueryApplicationCommitTerminalKind::Executed));
+    assert!(terminal_kinds.contains(&WorthQueryApplicationCommitTerminalKind::Recovered));
 }
 
 #[test]
@@ -172,14 +191,14 @@ fn concurrent_independent_attempts_both_commit() {
         });
         (left.join().unwrap(), right.join().unwrap())
     });
-    assert!(matches!(
-        left,
-        WorthQueryApplicationCommitOutcome::Committed(_)
-    ));
-    assert!(matches!(
-        right,
-        WorthQueryApplicationCommitOutcome::Committed(_)
-    ));
+    assert!(
+        matches!(left, WorthQueryApplicationCommitOutcome::Committed(_)),
+        "first independent outcome: {left:?}"
+    );
+    assert!(
+        matches!(right, WorthQueryApplicationCommitOutcome::Committed(_)),
+        "second independent outcome: {right:?}"
+    );
 }
 
 #[test]
@@ -216,7 +235,15 @@ fn response_loss_resolves_the_published_commit_before_returning() {
     else {
         panic!("retry must recover the transaction published before response loss");
     };
-    assert_eq!(receipt, first_receipt);
+    assert!(receipt.is_same_authoritative_commit(&first_receipt));
+    assert_eq!(
+        first_receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Executed
+    );
+    assert_eq!(
+        receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
     assert_eq!(
         receipt.precondition_comparison().expected_version_count(),
         0

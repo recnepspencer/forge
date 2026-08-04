@@ -19,7 +19,6 @@ impl WorthQueryLowerRuntimeSyntheticTailRow {
 pub(crate) fn required_phase_six_concrete_seams() -> &'static [WorthQueryLowerRuntimeSeamKey] {
     &[
         WorthQueryLowerRuntimeSeamKey::ComposeRead,
-        WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamily,
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamilyInBasisContext,
         WorthQueryLowerRuntimeSeamKey::ExecuteRuntimeCurrentReadGraph,

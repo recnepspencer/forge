@@ -20,6 +20,7 @@ mod canonical_work;
 mod domain_computation;
 mod domain_operation;
 mod generation;
+mod graph_obligation;
 mod installed_domain_operation;
 mod installed_graph_participation;
 mod installed_handle_denial;
@@ -110,11 +111,13 @@ pub mod facade {
         WorthQueryApplicationOperationInstallationDenialKind,
         WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
         WorthQueryInstalledApplicationOperation,
-        WorthQueryInstalledApplicationOperationAuthorization, WorthQueryInstalledAuthorizationPath,
-        WorthQueryInstalledMutationPrecondition, APPLICATION_AUTHORIZATION_FACT_FAMILY,
-        APPLICATION_DECISION_FACT_FAMILY, APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY,
-        APPLICATION_EXECUTION_ALLOCATOR_FAMILY, APPLICATION_EXECUTION_PROVIDER_FAMILY,
-        APPLICATION_EXECUTION_SAFE_POINT_FAMILY, APPLICATION_INVARIANT_SLOT,
+        WorthQueryInstalledApplicationOperationAuthorization,
+        WorthQueryInstalledApplicationOperationGraphAuthority,
+        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledMutationPrecondition,
+        APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
+        APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY, APPLICATION_EXECUTION_ALLOCATOR_FAMILY,
+        APPLICATION_EXECUTION_PROVIDER_FAMILY, APPLICATION_EXECUTION_SAFE_POINT_FAMILY,
+        APPLICATION_INVARIANT_SLOT,
     };
     pub use crate::application_principal_binding::{
         WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
@@ -150,6 +153,21 @@ pub mod facade {
     pub use crate::domain_operation::*;
     pub use crate::generation::{
         WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
+    };
+    pub use crate::graph_obligation::{
+        inspect_installed_graph_obligations, WorthQueryGraphObligationAdoptionDenial,
+        WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof,
+        WorthQueryGraphObligationAdoptionRow, WorthQueryInstalledGraphAuthorizationRequirement,
+        WorthQueryInstalledGraphCapabilityRequirement, WorthQueryInstalledGraphObligation,
+        WorthQueryInstalledGraphObligationEffectPosture,
+        WorthQueryInstalledGraphObligationIdentity, WorthQueryInstalledGraphObligationInspection,
+        WorthQueryInstalledGraphObligationInstallationEvidence,
+        WorthQueryInstalledGraphObligationKind, WorthQueryInstalledGraphObligationLookup,
+        WorthQueryInstalledGraphObligationOwner, WorthQueryInstalledGraphObligationResourcePosture,
+        WorthQueryInstalledGraphObligationSelectionBasis, WorthQueryInstalledGraphObligationSet,
+        WorthQueryInstalledGraphObligationSetIdentity,
+        WorthQueryInstalledGraphObligationSubjectKind,
+        WorthQueryInstalledGraphObligationTerminalRequirement,
     };
     pub use crate::installed_domain_operation::{
         WorthQueryConditionalDependencyLookupDenial,

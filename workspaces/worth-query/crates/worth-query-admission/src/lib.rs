@@ -12,16 +12,30 @@ mod application_query;
 mod authenticated_principal;
 mod canonical_identity_derivation;
 mod domain_computation;
+mod graph_obligation;
 mod graph_read_access;
 
 pub mod facade;
 
 #[doc(hidden)]
 pub mod integration {
+    pub use crate::application_query::requirements::derive_graph_read_access_requirements_for_contract;
     pub use crate::domain_computation::execution_resource_admission::{
         admit_execution_resource_plan, reserve_execution_resource_plan,
         reserve_workflow_resource_plan, WorthQueryCapacityReservedExecutionResourcePlan,
         WorthQueryCapacityReservedWorkflowResourcePlan, WorthQueryExecutionCapacityReleaseReceipt,
         WorthQueryExecutionCapacityReservationScope,
+    };
+    pub use crate::graph_obligation::{
+        admit_application_operation_graph_work, admit_application_operation_read_graph_work,
+        admit_application_query_graph_work, review_application_query_graph_work,
+        select_installed_graph_obligations, WorthQueryReviewedApplicationQueryGraphWork,
+    };
+    pub use crate::graph_read_access::plan_review::review_graph_read_access;
+    pub use crate::graph_read_access::{
+        derive_canonical_graph_read_access_requirements, WorthQueryCanonicalGraphReadPlanningInput,
+        WorthQueryGraphReadPlanningIdentity, WorthQueryGraphReadPlanningOrderingField,
+        WorthQueryGraphReadPlanningPredicateField, WorthQueryGraphReadPlanningRelation,
+        WorthQueryGraphReadPlanningShape,
     };
 }

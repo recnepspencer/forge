@@ -14,9 +14,23 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub(in crate::domain_computation) fn refresh_capability_authorization(
+    pub(in crate::domain_computation) fn refresh_capability_authorization_for_graph_work(
         &self,
         authorization: &mut WorthQueryRetainedCapabilityAuthorization,
+        graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        self.refresh_capability_authorization_for_session(
+            authorization,
+            graph_work.identity(),
+            graph_work.branch().relational(),
+        )
+    }
+
+    pub(in crate::domain_computation) fn refresh_capability_authorization_for_session(
+        &self,
+        authorization: &mut WorthQueryRetainedCapabilityAuthorization,
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        branch: &worth_relational::facade::history::BranchId,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let request = authorization.request();
         let installed = self.installed_capability_plan(request)?;
@@ -28,7 +42,11 @@ where
                 installed.contract.name(),
             ));
         }
-        let sample = self.sample_capability_time(installed)?;
+        let sample = if authorization.belongs_to_session(session_identity) {
+            self.sample_capability_time(installed)?
+        } else {
+            authorization.retained_time_sample()
+        };
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
@@ -36,27 +54,37 @@ where
             )
         })?;
         let observed = graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
-            let principal_current = authorization
+            let Some(snapshot) = runtime.snapshots().snapshot_for_branch(branch) else {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
+                ));
+            };
+            let result = if snapshot.branch_id != *branch {
+                Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
+                ))
+            } else if !authorization
                 .principal()
-                .remains_current_in(runtime, &snapshot);
-            let decision_current = authorization.decision().remains_current_in(
-                runtime,
-                &snapshot,
-                self.authorization.bridge(),
-            );
-            let result = if !principal_current {
+                .remains_current_in(runtime, &snapshot)
+            {
                 Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
                     installed.contract.name(),
                 ))
-            } else if !decision_current {
+            } else if !authorization.decision().remains_current_in(
+                runtime,
+                &snapshot,
+                self.authorization.bridge(),
+            ) {
                 Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
                     installed.contract.name(),
                 ))
             } else {
                 observe_capability(
+                    session_identity,
                     runtime,
                     snapshot.clone(),
                     self.authorization.bridge(),
@@ -71,7 +99,8 @@ where
         })?;
         let (fact, grant) = observed.into_parts();
         authorization
-            .replace_current_decision(
+            .replace_current_session_decision(
+                session_identity,
                 installed.capability_authority_identity.as_ref(),
                 grant,
                 sample,
@@ -82,8 +111,7 @@ where
                     WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
                     installed.contract.name(),
                 )
-            })?;
-        Ok(())
+            })
     }
 
     pub(super) fn installed_capability_plan(

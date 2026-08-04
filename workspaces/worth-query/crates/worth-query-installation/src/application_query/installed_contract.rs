@@ -13,7 +13,13 @@ use worth_query_declaration::facade::{
 use crate::{
     application_operation::WorthQueryInstalledAbilityRequirement,
     application_schema::WorthQueryInstalledApplicationSchema,
-    authority_cryptography::AuthoritySeal, installed_index::WorthQueryInstalledPackageAuthority,
+    authority_cryptography::AuthoritySeal,
+    graph_obligation::{
+        bind_query_obligations, WorthQueryGraphObligationInstallationDenial,
+        WorthQueryInstalledGraphCapabilityRequirement,
+        WorthQueryInstalledGraphObligationInspection, WorthQueryInstalledGraphObligationSet,
+    },
+    installed_index::WorthQueryInstalledPackageAuthority,
 };
 
 use super::{
@@ -52,6 +58,7 @@ pub struct WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryR
     live: Option<WorthQueryInstalledApplicationLiveContract>,
     disclosure: ApplicationQueryDisclosureContract,
     authorization: WorthQueryInstalledApplicationQueryAuthorization,
+    obligations: WorthQueryInstalledGraphObligationSet,
     basis_support: ApplicationQueryBasisSupport,
     lanes: ApplicationQueryLaneEligibility,
     _marker: PhantomData<fn(Parameters) -> (Schema, Query, QueryResult, Scope)>,
@@ -100,6 +107,17 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             continuation.as_ref(),
         )?;
         let authorization = install_authorization(schema, definition)?;
+        let disclosure_capabilities =
+            install_disclosure_capabilities(schema, definition.disclosure());
+        let obligations = bind_query_obligations(
+            &binding_identity,
+            definition.name(),
+            &identity,
+            &read_graph,
+            &authorization,
+            &disclosure_capabilities,
+        )
+        .map_err(|denial| graph_obligation_denial(definition.name(), denial))?;
         let installation_canonical_work = schema.installation_canonical_work().combine(
             read_graph
                 .canonical_basis()
@@ -112,13 +130,15 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
                         .map_or(WorthQueryCanonicalWorkEvidence::zero(), |contract| {
                             contract.canonical_basis().work()
                         }),
-                ),
+                )
+                .combine(obligations.installation_evidence().canonical_work()),
         );
         let read_family = WorthQueryInstalledApplicationReadFamilyBinding::bind(read_graph);
         let authority_identity = derive_installed_query_authority_seal(
             &schema.package_authority.authority_key,
             &binding_identity,
             &identity,
+            obligations.identity(),
         );
         Ok(Self {
             binding_identity,
@@ -137,6 +157,7 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             live,
             disclosure: definition.disclosure().clone(),
             authorization,
+            obligations,
             basis_support: definition.basis_support(),
             lanes: definition.lanes(),
             _marker: PhantomData,
@@ -213,6 +234,15 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         &self.authorization
     }
 
+    pub const fn graph_obligations(&self) -> WorthQueryInstalledGraphObligationInspection<'_> {
+        self.obligations.inspect()
+    }
+
+    #[doc(hidden)]
+    pub fn retain_graph_obligations_for_admission(&self) -> WorthQueryInstalledGraphObligationSet {
+        self.obligations.clone()
+    }
+
     pub const fn basis_support(&self) -> ApplicationQueryBasisSupport {
         self.basis_support
     }
@@ -227,8 +257,52 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
             &package.authority_key,
             &self.binding_identity,
             &self.identity,
+            self.obligations.identity(),
         )
     }
+}
+
+fn install_disclosure_capabilities<Schema>(
+    schema: &WorthQueryInstalledApplicationSchema<Schema>,
+    disclosure: &ApplicationQueryDisclosureContract,
+) -> Vec<WorthQueryInstalledGraphCapabilityRequirement>
+where
+    Schema: ApplicationSchema,
+{
+    let (Some(name), Some(capability_type)) =
+        (disclosure.capability_name(), disclosure.capability_type())
+    else {
+        return Vec::new();
+    };
+    schema
+        .capability_registry
+        .values()
+        .filter(|compiled| {
+            compiled.contract().name() == name
+                && compiled.contract().capability_type() == capability_type
+        })
+        .map(|compiled| {
+            WorthQueryInstalledGraphCapabilityRequirement::new(
+                compiled.identity().clone(),
+                compiled.contract().clone(),
+            )
+        })
+        .collect()
+}
+
+fn graph_obligation_denial(
+    subject: &str,
+    denial: WorthQueryGraphObligationInstallationDenial,
+) -> WorthQueryApplicationQueryInstallationDenial {
+    let kind = match denial {
+        WorthQueryGraphObligationInstallationDenial::InvalidContract => {
+            WorthQueryApplicationQueryInstallationDenialKind::InvalidGraphObligationContract
+        }
+        WorthQueryGraphObligationInstallationDenial::Canonical(denial) => {
+            return canonical_work_denial(subject, denial)
+        }
+    };
+    WorthQueryApplicationQueryInstallationDenial::new(kind, subject)
 }
 
 fn canonical_work_denial(

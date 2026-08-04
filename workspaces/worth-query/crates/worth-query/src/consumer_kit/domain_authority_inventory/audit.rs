@@ -210,7 +210,6 @@ fn is_candidate_type(name: &str) -> bool {
             | "WorthQueryDomainSemanticVersion"
             | "WorthQueryDomainIdentityDeclaration"
             | "WorthQueryDomainInvariantDefinition"
-            | "WorthQueryDomainGraphObligationDefinition"
             | "WorthQueryDomainGraphReadOperationDefinition"
             | "WorthQueryDomainDeclarationFamilyDefinition"
             | "WorthQueryDomainPackage"
@@ -256,8 +255,7 @@ fn is_candidate_method(owner: &str, name: &str) -> bool {
                     | "for_lower_runtime_target"
                     | "for_lower_runtime_boundary_source"
             ))
-        || (owner == "WorthQueryRuntimeBuilder"
-            && (name.contains("invariant") || name.contains("graph_obligation")))
+        || (owner == "WorthQueryRuntimeBuilder" && name.contains("invariant"))
         || (owner == "WorthQueryRuntimeBuilder"
             && matches!(
                 name,
@@ -302,9 +300,6 @@ fn is_package_input_method(owner: &str, name: &str) -> bool {
             "WorthQueryDomainInvariantPredicate",
             "requires_outgoing_relations"
         ) | (
-            "WorthQueryDomainGraphObligationDefinition",
-            "new" | "with_support_posture"
-        ) | (
             "WorthQueryDomainGraphReadOperationDefinition",
             "new" | "accepts_relation" | "lowers_to" | "requires_support_family"
         ) | ("WorthQueryDomainDeclarationFamilyDefinition", "from_marker")
@@ -315,7 +310,6 @@ fn is_package_input_method(owner: &str, name: &str) -> bool {
                     | "requires_configuration"
                     | "requires_operating_posture"
                     | "invariant"
-                    | "graph_obligation"
                     | "graph_read_operation"
                     | "declaration_family"
                     | "declaration_families"

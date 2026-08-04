@@ -1,4 +1,5 @@
 mod aspect_patch_publication;
+mod branch_snapshot_affinity;
 mod bulk_mutation_planning;
 mod commit_artifact_summaries;
 mod entity_field_patch_denials;

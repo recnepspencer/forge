@@ -85,7 +85,8 @@ fn consumer_authenticates_authorizes_and_prepares_a_send_proposal() {
     .unwrap();
     assert!(matches!(
         retry,
-        BankSendMoneyPreparation::AlreadyCommitted { receipt: resolved, .. } if resolved == receipt
+        BankSendMoneyPreparation::AlreadyCommitted { receipt: resolved, .. }
+            if resolved.is_same_authoritative_commit(&receipt)
     ));
 
     let drift_admission = world

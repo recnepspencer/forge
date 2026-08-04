@@ -93,10 +93,15 @@ exports = [
 [[facades]]
 package = "worth-query-host"
 exports = [
+    "WorthQueryGraphObligationAdoptionDenial",
+    "WorthQueryGraphObligationAdoptionDenialKind",
+    "WorthQueryGraphObligationAdoptionProof",
+    "WorthQueryGraphObligationAdoptionRow",
     "admission",
     "convergence_epoch",
     "declaration",
     "domain",
+    "inspect_installed_graph_obligations",
     "installed",
     "primary_graph",
     "publication",
@@ -106,10 +111,15 @@ exports = [
 [[facades]]
 package = "worth-query-host::installed"
 exports = [
+    "WorthQueryGraphObligationAdoptionDenial",
+    "WorthQueryGraphObligationAdoptionDenialKind",
+    "WorthQueryGraphObligationAdoptionProof",
+    "WorthQueryGraphObligationAdoptionRow",
     "admission",
     "convergence_epoch",
     "declaration",
     "domain",
+    "inspect_installed_graph_obligations",
     "installed",
     "primary_graph",
     "publication",

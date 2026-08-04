@@ -7,6 +7,7 @@ use crate::domain_computation::primary_graph::tests::fixture::{
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitTerminalKind,
 };
 
 #[test]
@@ -123,7 +124,15 @@ fn response_loss_recovers_emit_receipt_without_duplicate_publication() {
     else {
         panic!("retry must recover the exact emit commit");
     };
-    assert_eq!(recovered, original);
+    assert!(recovered.is_same_authoritative_commit(&original));
+    assert_eq!(
+        original.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Executed
+    );
+    assert_eq!(
+        recovered.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
     assert_eq!(recovered.emitted_effect_count(), 1);
     assert_eq!(
         world
@@ -206,7 +215,11 @@ fn receipt_recovery_survives_live_source_eviction() {
     else {
         panic!("provider idempotency must recover after live-source eviction");
     };
-    assert_eq!(recovered, original);
+    assert!(recovered.is_same_authoritative_commit(&original));
+    assert_eq!(
+        recovered.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
     assert_eq!(recovered.emitted_effect_count(), 1);
 }
 

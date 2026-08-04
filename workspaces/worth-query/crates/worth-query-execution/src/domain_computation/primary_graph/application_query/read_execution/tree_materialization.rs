@@ -71,7 +71,7 @@ pub(super) struct OrderedCollectionProgress {
 pub(super) fn materialize_result_tree(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     root_ids: &[EntityId],
@@ -159,7 +159,7 @@ impl ActiveOrderedCollectionWindow {
 fn project_nodes(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
-    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraph,
+    graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     result_path: &str,
@@ -179,7 +179,6 @@ fn project_nodes(
     )?;
     let scope = projection_scope(&fields);
     let kind = graph
-        .layout
         .entity_kind(entity_name)
         .ok_or_else(|| projection_denial(entity_name))?;
     for entity_id in entity_ids {

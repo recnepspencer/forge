@@ -9,7 +9,6 @@ pub struct WorthQueryDomainInstalledDefinitionCounts {
     required_configuration_sections: usize,
     operating_requirements: usize,
     invariants: usize,
-    graph_obligations: usize,
     graph_read_operations: usize,
     declaration_families: usize,
     domain_operations: usize,
@@ -17,17 +16,16 @@ pub struct WorthQueryDomainInstalledDefinitionCounts {
 }
 
 impl WorthQueryDomainInstalledDefinitionCounts {
-    pub(crate) const fn new(values: [usize; 9]) -> Self {
+    pub(crate) const fn new(values: [usize; 8]) -> Self {
         Self {
             required_capabilities: values[0],
             required_configuration_sections: values[1],
             operating_requirements: values[2],
             invariants: values[3],
-            graph_obligations: values[4],
-            graph_read_operations: values[5],
-            declaration_families: values[6],
-            domain_operations: values[7],
-            contribution_categories: values[8],
+            graph_read_operations: values[4],
+            declaration_families: values[5],
+            domain_operations: values[6],
+            contribution_categories: values[7],
         }
     }
 
@@ -42,9 +40,6 @@ impl WorthQueryDomainInstalledDefinitionCounts {
     }
     pub const fn invariants(self) -> usize {
         self.invariants
-    }
-    pub const fn graph_obligations(self) -> usize {
-        self.graph_obligations
     }
     pub const fn graph_read_operations(self) -> usize {
         self.graph_read_operations
@@ -65,7 +60,6 @@ pub struct WorthQueryDomainInstallationConstructionCounters {
     package_validation_proof_checks: usize,
     package_lowerings: usize,
     invariant_index_entries: usize,
-    graph_obligation_index_entries: usize,
     graph_read_operation_index_entries: usize,
     declaration_family_index_entries: usize,
     domain_operation_index_entries: usize,
@@ -107,7 +101,6 @@ impl WorthQueryDomainInstallationLookupCounters {
 impl WorthQueryDomainInstallationConstructionCounters {
     pub(crate) fn for_package(
         invariant_count: usize,
-        graph_obligation_count: usize,
         graph_read_operation_count: usize,
         declaration_family_count: usize,
         domain_operation_count: usize,
@@ -117,7 +110,6 @@ impl WorthQueryDomainInstallationConstructionCounters {
             package_validation_proof_checks: 1,
             package_lowerings: 1,
             invariant_index_entries: invariant_count,
-            graph_obligation_index_entries: graph_obligation_count,
             graph_read_operation_index_entries: graph_read_operation_count,
             declaration_family_index_entries: declaration_family_count,
             domain_operation_index_entries: domain_operation_count,
@@ -134,9 +126,6 @@ impl WorthQueryDomainInstallationConstructionCounters {
     }
     pub const fn invariant_index_entries(self) -> usize {
         self.invariant_index_entries
-    }
-    pub const fn graph_obligation_index_entries(self) -> usize {
-        self.graph_obligation_index_entries
     }
     pub const fn graph_read_operation_index_entries(self) -> usize {
         self.graph_read_operation_index_entries
@@ -221,7 +210,6 @@ pub struct WorthQueryDomainExecutionIndexRebuildReport {
     active_identity: String,
     rebuilt_identity: String,
     invariant_count: usize,
-    graph_obligation_count: usize,
     operation_count: usize,
     domain_operation_count: usize,
     operation_graph_participation_count: usize,
@@ -242,7 +230,6 @@ impl WorthQueryDomainExecutionIndexRebuildReport {
             active_identity,
             rebuilt_identity,
             invariant_count: shape.invariant_count,
-            graph_obligation_count: shape.graph_obligation_count,
             operation_count: shape.operation_count,
             domain_operation_count: shape.domain_operation_count,
             operation_graph_participation_count: shape.operation_graph_participation_count,
@@ -261,9 +248,6 @@ impl WorthQueryDomainExecutionIndexRebuildReport {
     }
     pub const fn invariant_count(&self) -> usize {
         self.invariant_count
-    }
-    pub const fn graph_obligation_count(&self) -> usize {
-        self.graph_obligation_count
     }
     pub const fn operation_count(&self) -> usize {
         self.operation_count

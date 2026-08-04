@@ -43,6 +43,7 @@ pub enum WorthQueryApplicationQueryAdmissionDenialKind {
     WorkLimitExceeded,
     CanonicalWorkDenied,
     GraphReadPlan(WorthQueryGraphReadPlanReviewDenialKind),
+    GraphWorkAdmissionUnavailable,
     ExecutionShapeUnsupported,
 }
 

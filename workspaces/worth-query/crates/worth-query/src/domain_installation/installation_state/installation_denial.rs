@@ -4,7 +4,6 @@ pub enum WorthQueryDomainInstallationDenialKind {
     DuplicatePackageIdentity,
     ConflictingDomainOwner,
     ConflictingInvariant,
-    ConflictingGraphObligation,
     ConflictingGraphReadOperation,
     AmbiguousGraphReadRelationScope,
     ConflictingDeclarationFamily,
@@ -56,9 +55,6 @@ fn installation_denial_stage(kind: WorthQueryDomainInstallationDenialKind) -> &'
         WorthQueryDomainInstallationDenialKind::DuplicatePackageIdentity => "package admission",
         WorthQueryDomainInstallationDenialKind::ConflictingDomainOwner => "owner admission",
         WorthQueryDomainInstallationDenialKind::ConflictingInvariant => "invariant lowering",
-        WorthQueryDomainInstallationDenialKind::ConflictingGraphObligation => {
-            "graph-obligation lowering"
-        }
         WorthQueryDomainInstallationDenialKind::ConflictingGraphReadOperation => {
             "graph-read operation lowering"
         }

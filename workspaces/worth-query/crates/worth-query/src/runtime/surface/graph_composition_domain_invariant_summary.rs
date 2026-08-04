@@ -3,12 +3,6 @@ use crate::evidence_identity::{
     WorthQueryEvidenceTag,
 };
 
-use super::{
-    WorthQueryGraphCompositionBreadth, WorthQueryGraphCompositionProgram,
-    WorthQueryGraphCompositionProgramStepKind,
-};
-use crate::runtime::WorthQueryWriteCommand;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphCompositionDomainInvariantSummary {
     declared_collections: Vec<String>,
@@ -22,141 +16,6 @@ pub struct WorthQueryGraphCompositionDomainInvariantSummary {
 }
 
 impl WorthQueryGraphCompositionDomainInvariantSummary {
-    pub(crate) fn derive(
-        program: &WorthQueryGraphCompositionProgram,
-        breadth: &WorthQueryGraphCompositionBreadth,
-        commands: &[WorthQueryWriteCommand],
-    ) -> Self {
-        let mut declared_collections = Vec::new();
-        let mut declared_symbols = Vec::new();
-        for step in program.steps() {
-            if !declared_collections
-                .iter()
-                .any(|collection| collection == step.declared_collection())
-            {
-                declared_collections.push(step.declared_collection().to_string());
-            }
-            if let Some(symbol) = step
-                .declared_symbol()
-                .filter(|symbol| !declared_symbols.iter().any(|candidate| candidate == symbol))
-            {
-                declared_symbols.push(symbol.to_string());
-            }
-        }
-
-        let mut target_combination_families = Vec::new();
-        if breadth.symbolic_entity_declaration_count() > 0
-            && program.steps().iter().any(|step| {
-                matches!(
-                    step.kind(),
-                    WorthQueryGraphCompositionProgramStepKind::RelationDeclaration
-                        | WorthQueryGraphCompositionProgramStepKind::SymbolicRelationDeclaration
-                ) && commands
-                    .get(step.component_index())
-                    .is_some_and(command_carries_symbolic_relation_identity_edge)
-            })
-        {
-            target_combination_families
-                .push("same_batch_entity_relation_identity_edges".to_string());
-        }
-        if breadth.symbolic_entity_declaration_count() > 0
-            && program.steps().iter().any(|step| {
-                matches!(
-                    step.kind(),
-                    WorthQueryGraphCompositionProgramStepKind::ExistingTargetFollowupMutation
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetRetarget
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetSupersession
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetRetirement
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedFollowupMutation
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedSupersession
-                        | WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement
-                ) && commands
-                    .get(step.component_index())
-                    .is_some_and(command_carries_mixed_existing_and_symbolic_identity_edge)
-            })
-        {
-            target_combination_families
-                .push("mixed_existing_and_symbolic_entity_identity_edges".to_string());
-        }
-
-        let mut lifecycle_families = Vec::new();
-        for step in program.steps() {
-            let family = match step.kind() {
-                WorthQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration
-                | WorthQueryGraphCompositionProgramStepKind::RelationDeclaration
-                | WorthQueryGraphCompositionProgramStepKind::SymbolicRelationDeclaration => {
-                    None
-                }
-                WorthQueryGraphCompositionProgramStepKind::SymbolicEntityFollowupMutation => {
-                    Some("same_batch_symbolic_entity_followup_mutation")
-                }
-                WorthQueryGraphCompositionProgramStepKind::SymbolicRelationFollowupMutation => {
-                    Some("same_batch_symbolic_relation_followup_mutation")
-                }
-                WorthQueryGraphCompositionProgramStepKind::SymbolicRelationRetirement => {
-                    Some("same_batch_symbolic_relation_retirement")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetFollowupMutation => {
-                    Some("mixed_existing_target_followup_mutation")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetRetarget => {
-                    Some("mixed_existing_target_retarget")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetSupersession => {
-                    Some("mixed_existing_target_supersession")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetRetirement => {
-                    Some("mixed_existing_target_retirement")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedFollowupMutation => {
-                    Some("mixed_existing_target_verified_followup_mutation")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget => {
-                    Some("mixed_existing_target_verified_retarget")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedSupersession => {
-                    Some("mixed_existing_target_verified_supersession")
-                }
-                WorthQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement => {
-                    Some("mixed_existing_target_verified_retirement")
-                }
-            };
-            if let Some(family) = family.filter(|family| {
-                !lifecycle_families
-                    .iter()
-                    .any(|candidate| candidate == family)
-            }) {
-                lifecycle_families.push(family.to_string());
-            }
-        }
-
-        let counter_snapshot = diagnostic_counter_snapshot(&[
-            ("components", breadth.component_count()),
-            (
-                "symbolic_entities",
-                breadth.symbolic_entity_declaration_count(),
-            ),
-            (
-                "symbolic_relations",
-                breadth.symbolic_relation_declaration_count(),
-            ),
-            ("declared_collections", declared_collections.len()),
-            ("declared_symbols", declared_symbols.len()),
-            ("target_combinations", target_combination_families.len()),
-            ("lifecycle_families", lifecycle_families.len()),
-        ]);
-        Self::from_parts(
-            declared_collections,
-            declared_symbols,
-            target_combination_families,
-            lifecycle_families,
-            program.program_evidence_digest().clone(),
-            breadth.breadth_evidence_digest().clone(),
-            counter_snapshot,
-        )
-    }
-
     pub(crate) fn from_parts(
         declared_collections: Vec<String>,
         declared_symbols: Vec<String>,
@@ -254,27 +113,4 @@ impl WorthQueryGraphCompositionDomainInvariantSummary {
     pub fn summary_evidence_digest(&self) -> &WorthQueryEvidenceIdentity {
         &self.summary_digest
     }
-}
-
-fn diagnostic_counter_snapshot(fields: &[(&str, usize)]) -> String {
-    let mut snapshot = String::new();
-    for (index, (label, value)) in fields.iter().enumerate() {
-        if index > 0 {
-            snapshot.push(';');
-        }
-        snapshot.push_str(label);
-        snapshot.push('=');
-        snapshot.push_str(&value.to_string());
-    }
-    snapshot
-}
-
-fn command_carries_symbolic_relation_identity_edge(command: &WorthQueryWriteCommand) -> bool {
-    !command.symbolic_aspect_references().is_empty()
-}
-
-fn command_carries_mixed_existing_and_symbolic_identity_edge(
-    command: &WorthQueryWriteCommand,
-) -> bool {
-    command.existing_truth_binding().is_some() && !command.symbolic_aspect_references().is_empty()
 }

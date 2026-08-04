@@ -1,7 +1,6 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryPortableDefinitionKind {
     Invariant,
-    GraphObligation,
     GraphReadOperation,
     DeclarationFamily,
     DomainOperation,
@@ -11,7 +10,6 @@ impl WorthQueryPortableDefinitionKind {
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Self::Invariant => "invariant",
-            Self::GraphObligation => "graph-obligation",
             Self::GraphReadOperation => "graph-read-operation",
             Self::DeclarationFamily => "declaration-family",
             Self::DomainOperation => "domain-operation",
@@ -34,14 +32,6 @@ pub struct WorthQueryPortableDefinition {
 impl WorthQueryPortableDefinition {
     pub fn invariant(slot: impl Into<String>, semantics: impl Into<String>) -> Self {
         Self::new(WorthQueryPortableDefinitionKind::Invariant, slot, semantics)
-    }
-
-    pub fn graph_obligation(slot: impl Into<String>, semantics: impl Into<String>) -> Self {
-        Self::new(
-            WorthQueryPortableDefinitionKind::GraphObligation,
-            slot,
-            semantics,
-        )
     }
 
     pub fn graph_read_operation(slot: impl Into<String>, semantics: impl Into<String>) -> Self {

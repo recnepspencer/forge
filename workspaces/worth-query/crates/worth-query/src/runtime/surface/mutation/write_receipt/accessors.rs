@@ -250,36 +250,6 @@ impl WorthQueryWriteReceipt {
         self.execution_provenance.as_ref()
     }
 
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
-    }
-
-    pub fn graph_obligation_evidence(
-        &self,
-    ) -> Option<crate::runtime::WorthQueryGraphObligationAttachmentEvidence> {
-        self.obligation_dispatch
-            .as_ref()
-            .map(|dispatch| dispatch.attachment_evidence())
-    }
-
-    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.obligation_dispatch
-            .as_ref()
-            .and_then(|dispatch| dispatch.envelope_digest())
-    }
-
-    pub(in crate::runtime) fn with_obligation_dispatch(
-        mut self,
-        obligation_dispatch: Option<
-            crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch,
-        >,
-    ) -> Self {
-        self.obligation_dispatch = obligation_dispatch;
-        self
-    }
-
     pub fn execution_provenance_chain_digest(&self) -> Option<&str> {
         self.execution_provenance.as_ref().map(
             crate::runtime::WorthQueryIntentExecutionProvenance::execution_provenance_chain_digest,
@@ -406,7 +376,6 @@ impl WorthQueryWriteReceipt {
             refresh_fallback: false,
             decision_trace_envelope: None,
             execution_provenance: None,
-            obligation_dispatch: None,
         }
     }
 }

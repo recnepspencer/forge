@@ -4,7 +4,6 @@ pub(crate) mod domain_authority_inventory;
 pub(crate) mod downstream_authority_adoption;
 pub(crate) mod evidence_report;
 pub(crate) mod evidence_report_adoption;
-pub(crate) mod graph_obligation_adoption;
 pub(crate) mod graph_read_bypass_audit;
 pub(crate) mod native_value_authority_inventory;
 pub(crate) mod prohibition_registry;
@@ -63,21 +62,6 @@ pub use evidence_report_adoption::{
     WorthQueryEvidenceReportAdoptionResidueClassification,
     WorthQueryEvidenceReportAdoptionResidueRow, WorthQueryEvidenceReportAdoptionSource,
     WorthQueryEvidenceReportAdoptionSourceSet, WorthQueryEvidenceReportAdoptionSyntaxClass,
-};
-pub use graph_obligation_adoption::{
-    graph_obligation_consumer_kit, WorthQueryGraphObligationAdoptionManifest,
-    WorthQueryGraphObligationAdoptionProof, WorthQueryGraphObligationConsumerKit,
-    WorthQueryGraphObligationConsumerKitError, WorthQueryGraphObligationConsumerKitErrorKind,
-    WorthQueryGraphObligationConsumerRegistrationDeclaration,
-    WorthQueryGraphObligationExecutionBackedAdoptionProof, WorthQueryGraphObligationExecutionProof,
-    WorthQueryGraphObligationExecutionProofRow, WorthQueryGraphObligationInMemoryProof,
-    WorthQueryGraphObligationInMemorySelectedObligation,
-    WorthQueryGraphObligationInMemoryTestWorkspace, WorthQueryGraphObligationLocalCeremonyAudit,
-    WorthQueryGraphObligationLocalCeremonyFinding, WorthQueryGraphObligationResidueCertification,
-    WorthQueryGraphObligationResidueManifest, WorthQueryGraphObligationResidueRow,
-    WorthQueryGraphObligationSelectorCoverageDeclaration,
-    WorthQueryGraphObligationSelectorCoverageRow, WorthQueryGraphObligationSupportPin,
-    WorthQueryGraphObligationSupportPinFinding,
 };
 pub use graph_read_bypass_audit::{
     graph_read_bypass_adoption, graph_read_bypass_audit, worth_query_graph_read_bypass_registry,

@@ -26,6 +26,10 @@ pub(crate) struct WorthQueryApplicationOperationBindingInput<'a> {
     pub(crate) contracts: &'a WorthQueryCompiledApplicationOperationContracts,
     pub(crate) graph: &'a WorthQueryInstalledGraphParticipationAuthority,
     pub(crate) support: WorthQueryExecutionResourceSupportSnapshot,
+    pub(crate) graph_work_session:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    pub(crate) graph_work_managed_run:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkManagedRunIdentity,
 }
 
 impl WorthQueryExecutionBoundOperationAuthority {
@@ -68,6 +72,10 @@ impl WorthQueryExecutionBoundOperationAuthority {
                 input.runtime.installed_packages().generation(),
                 input.runtime.retain_current_generation(),
             ),
+            graph_work_affinity: Some(super::WorthQueryApplicationGraphWorkAffinity {
+                session: input.graph_work_session,
+                managed_run: input.graph_work_managed_run,
+            }),
         }
     }
 }

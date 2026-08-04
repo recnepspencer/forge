@@ -25,12 +25,6 @@ pub(super) fn batch_execution_provenance(
     })
 }
 
-pub(super) fn batch_obligation_dispatch(
-    shared_admission: Option<&WorthQueryWriteAdmissionExecutionRecord>,
-) -> Option<WorthQueryAuthoritativeMutationObligationDispatch> {
-    shared_admission.and_then(|record| record.obligation_dispatch.clone())
-}
-
 pub(super) fn batch_decision_trace_envelope(
     shared_admission: Option<&WorthQueryWriteAdmissionExecutionRecord>,
     combined_receipt: &WorthQueryMutationReceipt,
@@ -42,11 +36,7 @@ pub(super) fn batch_decision_trace_envelope(
             .evidence_identity()
             .reporting_projection()
             .to_string();
-        let obligation_dispatch_envelope_digest = record
-            .obligation_dispatch
-            .as_ref()
-            .and_then(WorthQueryAuthoritativeMutationObligationDispatch::envelope_digest);
-        WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
+        WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
             record.family,
             record.entrypoint,
             &record.request_detail,
@@ -55,7 +45,6 @@ pub(super) fn batch_decision_trace_envelope(
             &record.decision_digest,
             &record.handoff_digest,
             record.execution_seam,
-            obligation_dispatch_envelope_digest,
             batch_request_detail,
             &commit_label,
             "mutation-batch-write",

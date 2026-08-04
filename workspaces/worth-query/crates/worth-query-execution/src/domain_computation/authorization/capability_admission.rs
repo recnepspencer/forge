@@ -7,8 +7,10 @@ use worth_query_installation::facade::{
 };
 
 use super::admission::admit_request;
+use super::admitted_operation::WorthQueryOperationAdmissionIdentity;
 use super::capability_observation::observe_capability;
 use super::capability_request_resolution::resolve_capability_request;
+use super::graph_work_session::start_capability_graph_work;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
@@ -19,6 +21,7 @@ use crate::domain_computation::primary_graph::{
     validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+use crate::domain_computation::provider_session::WorthQueryGraphWorkAccessContextAffinity;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -82,6 +85,33 @@ where
                 capability.contract().operation(),
             )
         })?;
+        let operation = self
+            .installed_schema
+            .installed_operation_for_capability(capability)
+            .map_err(|_| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
+                    capability.contract().operation(),
+                )
+            })?;
+        let operation_admission_identity = WorthQueryOperationAdmissionIdentity::mint()
+            .ok_or_else(|| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
+                    capability.contract().operation(),
+                )
+            })?;
+        let resource_binding_identity = operation_admission_identity.resource_binding_identity();
+        let mut graph_work = start_capability_graph_work(
+            self,
+            &operation,
+            &resource_binding_identity,
+            principal.principal_entity_id(),
+            WorthQueryGraphWorkAccessContextAffinity::installed_capability(
+                *capability.identity().bytes(),
+            ),
+        )?;
+        let session_identity = graph_work.identity();
         let principal_layout = graph
             .layout()
             .principal_binding(principal.binding())
@@ -96,53 +126,61 @@ where
             .external_identity()
             .clone()
             .into_foundational_value();
-        let principal_currentness =
-            WorthQueryPrincipalCurrentnessDependency::capture(principal, &principal_layout);
-        let (resolved, revalidation, authorization) =
-            graph.integration_handle().with_runtime_mut(|runtime| {
-                let snapshot = runtime.snapshots().snapshot();
-                let result = (|| {
-                    validate_freshness_at_snapshot(
-                        runtime,
-                        &snapshot,
-                        principal,
-                        &principal_layout,
-                        &expected_external_identity,
+        let principal_currentness = WorthQueryPrincipalCurrentnessDependency::capture(
+            session_identity,
+            principal,
+            &principal_layout,
+        );
+        let snapshot = graph_work
+            .mutation_snapshot()
+            .expect("a capability session owns its admitted snapshot")
+            .clone();
+        let handle = graph_work
+            .mutation_handle()
+            .expect("a capability session owns its graph handle")
+            .clone();
+        let (resolved, revalidation, authorization) = handle.with_runtime_mut(|runtime| {
+            (|| {
+                validate_freshness_at_snapshot(
+                    runtime,
+                    &snapshot,
+                    principal,
+                    &principal_layout,
+                    &expected_external_identity,
+                )
+                .map_err(|_| {
+                    denial(
+                        WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
+                        principal.binding(),
                     )
-                    .map_err(|_| {
-                        denial(
-                            WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-                            principal.binding(),
-                        )
-                    })?;
-                    let resolved = resolve_capability_request(
-                        runtime,
-                        &snapshot,
-                        graph.layout(),
-                        &self.installed_schema,
-                        &projection,
-                        self.runtime.authority_identity(),
-                    )?;
-                    let revalidation = WorthQueryRetainedCapabilityRequest::capture(
-                        *capability.identity().bytes(),
-                        principal.principal_entity_id(),
-                        &projection,
-                        &resolved,
-                    );
-                    let authorization = observe_capability(
-                        runtime,
-                        snapshot.clone(),
-                        self.authorization.bridge(),
-                        installed,
-                        &revalidation,
-                        &sample,
-                        None,
-                    )?;
-                    Ok((resolved, revalidation, authorization))
-                })();
-                runtime.snapshots().release_snapshot(&snapshot);
-                result
-            })?;
+                })?;
+                let resolved = resolve_capability_request(
+                    runtime,
+                    &snapshot,
+                    graph.layout(),
+                    &self.installed_schema,
+                    &projection,
+                    self.runtime.authority_identity(),
+                )?;
+                let revalidation = WorthQueryRetainedCapabilityRequest::capture(
+                    *capability.identity().bytes(),
+                    principal.principal_entity_id(),
+                    &projection,
+                    &resolved,
+                );
+                let authorization = observe_capability(
+                    session_identity,
+                    runtime,
+                    snapshot.clone(),
+                    self.authorization.bridge(),
+                    installed,
+                    &revalidation,
+                    &sample,
+                    None,
+                )?;
+                Ok((resolved, revalidation, authorization))
+            })()
+        })?;
         let (authorization, grant) = authorization.into_parts();
         admit_request(request, capability.contract().operation())?;
         if principal.is_expired() {
@@ -151,6 +189,7 @@ where
                 principal.binding(),
             ));
         }
+        graph_work.record_decision_facts(2);
         Ok(WorthQueryAdmittedApplicationCapabilityAccess::mint(
             self.runtime.authority_identity(),
             capability.binding_identity().clone(),
@@ -172,6 +211,8 @@ where
                 revalidation,
                 sample,
             ),
+            operation_admission_identity,
+            graph_work,
         ))
     }
 }

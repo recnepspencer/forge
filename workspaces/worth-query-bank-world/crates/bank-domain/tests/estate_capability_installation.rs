@@ -150,6 +150,46 @@ fn every_estate_capability_installs_once_with_distinct_canonical_identity() {
     );
 
     assert_eq!(identities.len(), 17);
+
+    let restricted_view_capability = bank
+        .capability(
+            ViewEstateAdministrationCapability::reference(),
+            ViewRestrictedEstateOperation::reference(),
+        )
+        .unwrap();
+    let restricted_view = bank
+        .installed_operation_for_capability(&restricted_view_capability)
+        .unwrap();
+    let graph_obligations = restricted_view.graph_obligations();
+    let adoption =
+        worth_query_host::facade::inspect_installed_graph_obligations(
+            "bank-domain",
+            graph_obligations,
+        )
+        .expect("Bank must inspect the installed obligation set without rebuilding authority");
+    assert_eq!(adoption.consumer_name(), "bank-domain");
+    assert_eq!(adoption.subject_name(), "ViewRestrictedEstateOperation");
+    assert_eq!(adoption.rows().len(), graph_obligations.rows().len());
+    assert_eq!(
+        adoption.installed_set_identity(),
+        graph_obligations.identity().bytes()
+    );
+    let authorization = graph_obligations
+        .rows()
+        .iter()
+        .find_map(|obligation| obligation.authorization_requirement())
+        .expect("the installed operation must carry its capability authorization obligation");
+    let worth_query_host::facade::domain::WorthQueryInstalledGraphAuthorizationRequirement::Capabilities(
+        requirements,
+    ) = authorization
+    else {
+        panic!("the restricted view must remain capability-authorized")
+    };
+    assert_eq!(requirements.len(), 1);
+    assert_eq!(
+        requirements[0].identity(),
+        restricted_view_capability.identity()
+    );
 }
 
 #[test]

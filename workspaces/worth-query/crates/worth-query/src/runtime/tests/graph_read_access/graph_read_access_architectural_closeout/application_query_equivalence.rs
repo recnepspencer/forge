@@ -8,15 +8,13 @@ use worth_foundational::facade::{
     CanonicalComparisonOutcome, CanonicalEquivalenceBasis, CanonicalMismatchKind,
 };
 use worth_query_admission::facade::{
-    application_query::{
-        admit_application_query_parameters, derive_graph_read_access_requirements_for_contract,
-        WorthQueryApplicationQueryLane,
-    },
+    application_query::{admit_application_query_parameters, WorthQueryApplicationQueryLane},
     graph_read_access::{
         WorthQueryGraphReadAccessRequirementRow, WorthQueryGraphReadOrderingPosture,
         WorthQueryGraphReadResultPressure,
     },
 };
+use worth_query_admission::integration::derive_graph_read_access_requirements_for_contract;
 use worth_query_installation::facade::{
     WorthQueryReadGraphOrderingMechanism, WorthQueryReadGraphPlanningContract,
 };

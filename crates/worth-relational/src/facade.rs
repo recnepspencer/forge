@@ -1,5 +1,4 @@
 //! Public API boundary for `worth-relational`.
-
 #[path = "facade/authorization.rs"]
 pub mod authorization;
 mod runtime_validation_exports;
@@ -372,8 +371,6 @@ pub mod symbols {
 }
 
 pub mod transactions {
-    pub use worth_foundational::facade::AspectFieldLocator;
-
     pub use crate::transactions::data::{
         ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectEmissionTrace,
         AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
@@ -396,5 +393,8 @@ pub mod transactions {
         TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
         WorkerIntentBatch,
     };
-    pub use crate::transactions::logic::RelationalTransaction;
+    pub use crate::transactions::logic::{
+        RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
+    };
+    pub use worth_foundational::facade::AspectFieldLocator;
 }

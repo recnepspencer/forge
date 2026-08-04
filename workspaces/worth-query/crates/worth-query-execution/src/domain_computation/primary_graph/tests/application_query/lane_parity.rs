@@ -91,6 +91,28 @@ fn historical_and_current_share_meaning_but_bind_distinct_truth() {
         WorthQueryApplicationQueryFreshness::Historical
     );
     assert!(historical.receipt().basis_released());
+    assert_eq!(
+        historical
+            .receipt()
+            .read_completion()
+            .review()
+            .requirements()
+            .read_graph_digest(),
+        current
+            .receipt()
+            .read_completion()
+            .review()
+            .requirements()
+            .read_graph_digest()
+    );
+    assert_ne!(
+        historical.receipt().read_completion().session_identity(),
+        current.receipt().read_completion().session_identity()
+    );
+    assert_ne!(
+        historical.receipt().read_completion().basis_identity(),
+        current.receipt().read_completion().basis_identity()
+    );
 }
 
 #[test]
@@ -161,6 +183,24 @@ fn application_preview_retains_its_declared_snapshot_after_main_advances() {
     assert_eq!(
         result.receipt().query_identity(),
         current.receipt().query_identity()
+    );
+    assert_eq!(
+        result
+            .receipt()
+            .read_completion()
+            .review()
+            .requirements()
+            .read_graph_digest(),
+        current
+            .receipt()
+            .read_completion()
+            .review()
+            .requirements()
+            .read_graph_digest()
+    );
+    assert_ne!(
+        result.receipt().read_completion().session_identity(),
+        current.receipt().read_completion().session_identity()
     );
     assert!(session.discard().unwrap().discarded());
 }

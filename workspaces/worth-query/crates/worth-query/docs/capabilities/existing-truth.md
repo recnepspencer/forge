@@ -23,9 +23,11 @@ executes.
 - `WorthQueryExistingTruthTargetBinding::from_entity_target(...)`
 - `WorthQueryExistingTruthTargetBinding::from_relation_target(...)`
 - `workspace.compose_graph(...)`
-- `workspace.compose_graph_with_invariant_pack(...)`
 - `runtime.probe_existing_intent(...)`
 - `workspace.probe_existing_intent(...)`
+
+Installed application invariants are not an existing-truth callback. They run
+through the managed provider session after proposed state exists.
 
 Direct workspace binding, update, assertion, verification, delete, and probe
 helpers are sealed from consumers. They are not the public existing-truth

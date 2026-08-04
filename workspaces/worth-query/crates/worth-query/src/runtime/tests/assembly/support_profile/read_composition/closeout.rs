@@ -20,7 +20,7 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
     assert!(closeout
         .safe_to_build_now()
         .iter()
-        .any(|line| line.contains("compose_read, compose_read_with_invariant_pack")));
+        .any(|line| line.contains("compose_read, define_read_family")));
     assert!(closeout
         .safe_to_build_now()
         .iter()
@@ -46,6 +46,10 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
         .iter()
         .any(|line| line.contains("domain_read_family_lowering")));
     assert!(closeout
+        .safe_to_build_now()
+        .iter()
+        .any(|line| line.contains("does not accept a caller-authored invariant callback")));
+    assert!(closeout
         .must_not_assume_yet()
         .iter()
         .any(|line| line.contains("by itself certifies Worth topology migration")));
@@ -60,7 +64,11 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
     assert!(closeout
         .migration_guidance()
         .iter()
-        .any(|line| line.contains("lowering, invariant-pack, decoder, and certification hook")));
+        .any(|line| line.contains("lowering, decoder, and certification hook boundaries")));
+    assert!(!closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("invariant-pack")));
     assert!(closeout
         .migration_guidance()
         .iter()

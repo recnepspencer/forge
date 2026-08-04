@@ -165,11 +165,17 @@ mod tests {
         );
         let lease = context.open();
         let (bridge, relational) = observers(&lease);
+        let provider_session_baseline = context.world.application.provider_session_resource_count();
         assert_live(&context, &bridge, &relational);
 
+        let WorthQueryApplicationLiveCloseOutcome::Completed(completion) = lease.close() else {
+            panic!("live close must complete its opening graph-read session");
+        };
+        assert_eq!(completion.release().released_reservation_count(), 1);
+        assert!(completion.basis_release().released());
         assert_eq!(
-            lease.close(),
-            WorthQueryApplicationLiveCloseOutcome::Completed
+            context.world.application.provider_session_resource_count(),
+            provider_session_baseline
         );
         assert_terminal(
             &context,

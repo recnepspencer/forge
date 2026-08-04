@@ -5,6 +5,7 @@ mod contract_resolution;
 mod contracts;
 mod denial;
 mod installed;
+mod installed_contract_support;
 mod precondition_contract;
 
 pub use authorization_mode::WorthQueryInstalledApplicationOperationAuthorization;
@@ -24,5 +25,7 @@ pub use denial::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind,
 };
-pub use installed::WorthQueryInstalledApplicationOperation;
+pub use installed::{
+    WorthQueryInstalledApplicationOperation, WorthQueryInstalledApplicationOperationGraphAuthority,
+};
 pub use precondition_contract::WorthQueryInstalledMutationPrecondition;

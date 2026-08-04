@@ -54,7 +54,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         &self,
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<String, WorthQueryProviderSessionFailure> {
-        let attempt = {
+        let (attempt, candidate, work, branch) = {
             let mut sessions = self
                 .sessions
                 .lock()
@@ -69,7 +69,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                     )
                 })?;
             sessions.overlays.remove(&overlay);
-            sessions
+            let attempt = sessions
                 .application_attempts
                 .remove(session.identity())
                 .ok_or_else(|| {
@@ -77,7 +77,27 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                         WorthQueryProviderSessionProtocolStage::Commit,
                         "primary graph session lost its application attempt",
                     )
-                })?
+                })?;
+            let branch = attempt.branch.clone();
+            let candidate = sessions
+                .validated_mutations
+                .remove(session.identity())
+                .ok_or_else(|| {
+                    provider_failure(
+                        WorthQueryProviderSessionProtocolStage::Commit,
+                        "primary graph session has no owner-validated mutation candidate",
+                    )
+                })?;
+            let work = sessions
+                .invariant_work
+                .remove(session.identity())
+                .ok_or_else(|| {
+                    provider_failure(
+                        WorthQueryProviderSessionProtocolStage::Commit,
+                        "primary graph session has no invariant work evidence",
+                    )
+                })?;
+            (attempt, candidate, work, branch)
         };
         #[cfg(test)]
         if self.take_rejected_commit_before_transaction() {
@@ -86,14 +106,25 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                 "injected rejection before the atomic application transaction",
             ));
         }
+        if attempt.decision_fact_count != attempt.facts.len()
+            || attempt.graph_work_session.as_u64() == 0
+            || work.decision_fact_count() != attempt.decision_fact_count
+            || work.proposed_fact_count() != attempt.expected_steps.len()
+        {
+            return Err(provider_failure(
+                WorthQueryProviderSessionProtocolStage::Commit,
+                "application attempt lost its complete session decision facts",
+            ));
+        }
         let emissions = attempt.emissions;
         self.graph.with_runtime_mut(|runtime| {
-            let before = runtime.snapshots().snapshot();
-            let mut transaction = runtime.begin_transaction(
-                worth_relational::facade::transactions::TransactionOptions::default(),
-            );
-            transaction.push_batch(attempt.batch);
-            let committed = match transaction.commit() {
+            let Some(before) = runtime.snapshots().snapshot_for_branch(&branch) else {
+                return Err(provider_failure(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    "application branch has no current pre-commit snapshot",
+                ));
+            };
+            let committed = match runtime.commit_validated_mutation(candidate) {
                 Ok(committed) => committed,
                 Err(_) => {
                     let _ = runtime.snapshots().release_snapshot(&before);
@@ -105,7 +136,17 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
             };
             let commit_id = committed.envelope().commit.commit_id;
             let changed = committed.patch().len();
-            let after = runtime.snapshots().snapshot();
+            self.sessions
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .completed_mutation_work = Some(work);
+            let Some(after) = runtime.snapshots().snapshot_for_branch(&branch) else {
+                let _ = runtime.snapshots().release_snapshot(&before);
+                return Err(provider_failure(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    "application branch has no current post-commit snapshot",
+                ));
+            };
             let runtime_instance_id = after.runtime_instance_id;
             self.graph
                 .aggregate_projections
@@ -129,7 +170,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
             let indexes = runtime.index_authority().build_for_commit(
                 worth_relational::facade::indexes::DerivedIndexBuildRequest {
                     source_commit_id: commit_id,
-                    branch_id: worth_relational::facade::history::BranchId("main".to_owned()),
+                    branch_id: branch,
                     index_ids: self.graph.primary_index_ids.to_vec(),
                 },
             );
@@ -165,6 +206,8 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
             sessions.overlays.remove(&overlay);
         }
         sessions.application_attempts.remove(session.identity());
+        sessions.validated_mutations.remove(session.identity());
+        sessions.invariant_work.remove(session.identity());
         Ok(format!("primary-application-abort:{}", session.identity()))
     }
 }

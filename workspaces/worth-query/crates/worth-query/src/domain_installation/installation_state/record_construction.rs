@@ -92,7 +92,6 @@ fn installation_receipt(
         generation,
         WorthQueryDomainInstallationConstructionCounters::for_package(
             artifact.invariant_definitions.len(),
-            artifact.graph_obligation_definitions.len(),
             artifact.graph_read_operations.len(),
             artifact.declaration_families.len(),
             artifact.domain_operations.len(),
@@ -110,7 +109,6 @@ fn installed_definition_counts(
         artifact.required_configuration.len(),
         artifact.operating_requirements.len(),
         artifact.invariant_definitions.len(),
-        artifact.graph_obligation_definitions.len(),
         artifact.graph_read_operations.len(),
         artifact.declaration_families.len(),
         artifact.domain_operations.len(),

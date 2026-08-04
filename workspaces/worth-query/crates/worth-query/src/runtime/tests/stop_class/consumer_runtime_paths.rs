@@ -3,7 +3,6 @@ use super::completeness_support::runtime_paths::{
     intent_commit_denied_error, intent_execution_routing_failed_error,
     preview_promotion_atomic_batch_unsupported_error, preview_promotion_rebinding_required_error,
     preview_promotion_stale_basis_error, preview_promotion_write_failed_error,
-    read_domain_invariant_denied_error,
 };
 use super::consumer_support::routing::{route_consumer_stop_class, ConsumerStopRoute};
 use super::consumer_support::runtime_errors::temporal_public_family_admission_error;
@@ -53,15 +52,6 @@ fn consumer_router_handles_runtime_generated_stop_classes_without_string_matchin
             ConsumerStopRoute::PreviewPromotionDenied(expected_kind)
         );
     }
-
-    let read_error = read_domain_invariant_denied_error();
-    assert_eq!(
-        route_consumer_stop_class(&read_error),
-        ConsumerStopRoute::ReadCompositionDomainInvariantDenied {
-            hook_family: "domain_invariant_pack_hook",
-            invariant_family: "no_traversal_reads",
-        }
-    );
 
     let routing_error = intent_execution_routing_failed_error();
     assert_eq!(

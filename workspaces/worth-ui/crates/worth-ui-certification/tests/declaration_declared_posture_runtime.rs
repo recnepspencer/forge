@@ -1,9 +1,8 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApplicationPreparationDenial};
 use worth_ui::facade::declaration::{
     UiDeclarationArtifact, UiDeclarationFamilyKind, UiDeclarationGraphHandoffDenial,
-    UiDeclarationStructuralSemanticsAdmissionDenial, UiDeclaredPostureAdmissionDenial,
-    UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind, UiDeclaredQueryBindingPosture,
-    UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
+    UiDeclaredPostureAdmissionDenial, UiDeclaredPostureApplicability, UiDeclaredPostureLaneKind,
+    UiDeclaredQueryBindingPosture, UiDeclaredServiceUsagePosture, UiDeclaredTouchMeaningPosture,
 };
 use worth_ui_certification::{
     WorthUiCertificationBuilderExt, WorthUiRustAuthoredDeclarationFixture,
@@ -120,37 +119,51 @@ fn public_freeze_preserves_representative_family_applicability_shapes() {
         ],
     );
 
-    let query_binding_denial = freeze_denial(
+    let query_binding = freeze_nonstructural(
         "worth-ui.certification.declared-posture.classification.query-binding",
         query_binding_spec(),
     );
+    let query_binding =
+        artifact_from_file_provenance(&query_binding, "app/declared_posture_classification.wui", 0);
     assert_eq!(
-        query_binding_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::QueryBinding,
-                    },
-            },
-        )
+        query_binding.family().unwrap().kind(),
+        UiDeclarationFamilyKind::QueryBinding
+    );
+    assert_eq!(
+        query_binding
+            .declared_posture()
+            .unwrap()
+            .query_binding()
+            .admitted(),
+        Some(&UiDeclaredQueryBindingPosture::StandaloneBinding)
     );
 
     let intent_denial = freeze_denial(
         "worth-ui.certification.declared-posture.classification.intent",
         intent_spec(),
     );
+    let WorthUiApplicationPreparationDenial::RuntimePreparation(intent_denial) = intent_denial
+    else {
+        panic!("standalone intent must stop at typed intent declaration admission")
+    };
     assert_eq!(
-        intent_denial,
-        WorthUiApplicationPreparationDenial::GraphHandoff(
-            UiDeclarationGraphHandoffDenial::StructuralSemanticsNotAdmitted {
-                denial: UiDeclarationStructuralSemanticsAdmissionDenial::
-                    FamilyDoesNotProjectStructuralSemantics {
-                        family: UiDeclarationFamilyKind::Intent,
-                    },
-            },
-        )
+        intent_denial.stop(),
+        worth_ui::facade::source::WorthUiSemanticHandoffPreparationStop::IntentDeclaration
     );
+}
+
+fn freeze_nonstructural(
+    package_name: &'static str,
+    spec: UiDslSemanticArtifactSpec,
+) -> worth_ui::facade::app::WorthUiApp {
+    WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .with_rust_authored_declaration_fixture(
+            WorthUiRustAuthoredDeclarationFixture::named(package_name)
+                .with_semantic_artifact_spec(spec),
+        )
+        .freeze()
+        .expect("non-structural declarations route outside graph handoff")
 }
 
 #[test]

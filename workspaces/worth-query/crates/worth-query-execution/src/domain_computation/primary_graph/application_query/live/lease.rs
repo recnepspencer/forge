@@ -66,6 +66,16 @@ pub struct WorthQueryApplicationLiveLease<
     governance: super::super::disclosure::WorthQueryApplicationQueryGovernance,
     scope_identity: AspectValue,
     basis: Option<WorthQueryManagedLowerExecutionBasis>,
+    graph_work:
+        Option<crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession>,
+    read_proof:
+        Option<crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof>,
+    initial_read_work:
+        Option<crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork>,
+    basis_release:
+        Option<worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt>,
+    read_completion:
+        Option<crate::domain_computation::provider_session::WorthQueryGraphReadCompletion>,
     queue: WorthQueryLiveCauseQueue<Binding::Payload>,
     _target: PhantomData<fn() -> (Target, Binding)>,
     _thread_affinity: PhantomData<Rc<()>>,
@@ -100,6 +110,15 @@ where
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
     Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
 {
+    pub fn graph_work_session_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
+        self.graph_work
+            .as_ref()
+            .expect("an open live lease retains its graph-work session")
+            .identity()
+    }
+
     pub fn buffered_cause_count(&self) -> usize {
         self.queue.buffered_cause_count()
     }
@@ -200,17 +219,17 @@ where
             let _ = plan.basis.release();
             return self.handle_read_denial(denial);
         }
-        let Some(graph) = self.runtime.runtime.primary_graph() else {
+        let Some(_) = self.runtime.runtime.primary_graph() else {
             let _ = plan.basis.release();
             return WorthQueryApplicationLiveOutcome::Unavailable;
         };
         let result_buffer = self.runtime.result_buffers.reserve(
-            plan.graph_read_plan
+            plan.graph_read_plan()
                 .budget_check()
                 .max_inline_result_bytes(),
         );
-        let (raw, authorization_work) =
-            match execute_authorized_read(self.runtime, graph, &plan, |runtime, graph, plan| {
+        let (raw, authorization_work, read_proof) =
+            match execute_authorized_read(self.runtime, &plan, |runtime, graph, plan| {
                 read_live_target(runtime, graph, plan, target_identity, result_buffer)
             }) {
                 Ok(raw) => raw,
@@ -222,7 +241,7 @@ where
                     return self.handle_read_denial(denial);
                 }
             };
-        match finalize_live_projection(plan, raw, authorization_work) {
+        match finalize_live_projection(plan, raw, authorization_work, read_proof) {
             Ok((result, receipt, governance)) => {
                 self.governance = governance;
                 if !self.acknowledge_front() {
@@ -325,6 +344,9 @@ where
                     ),
                 _ => WorthQueryApplicationLiveOutcome::Unavailable,
             },
+            WorthQueryAuthorizedApplicationReadDenial::Session => {
+                WorthQueryApplicationLiveOutcome::Unavailable
+            }
         }
     }
 
@@ -356,7 +378,10 @@ where
 
     pub fn close(mut self) -> WorthQueryApplicationLiveCloseOutcome {
         if self.terminate(BridgeExecutionBasisTerminalDisposition::Completed) {
-            WorthQueryApplicationLiveCloseOutcome::Completed
+            self.read_completion.take().map_or(
+                WorthQueryApplicationLiveCloseOutcome::Unavailable,
+                WorthQueryApplicationLiveCloseOutcome::Completed,
+            )
         } else {
             WorthQueryApplicationLiveCloseOutcome::Unavailable
         }

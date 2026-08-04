@@ -73,6 +73,10 @@ fn account_activity_reads_one_real_prior_bank_commit() {
     );
     assert_eq!(receipt.fallback_count(), 0);
     assert_eq!(receipt.per_result_neighbor_lookup_count(), 0);
+    let terminal = receipt.read_completion();
+    assert_eq!(terminal.basis_identity(), receipt.basis_identity());
+    assert!(terminal.basis_release().released());
+    assert_eq!(terminal.release().released_reservation_count(), 1);
     assert!(receipt.basis_released());
 }
 

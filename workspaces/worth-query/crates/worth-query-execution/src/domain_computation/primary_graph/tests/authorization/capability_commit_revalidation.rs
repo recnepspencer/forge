@@ -22,7 +22,7 @@ use super::capability_progression::{
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationIdempotencyResolutionDenialKind,
+    WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationIdempotencyResolutionDenialKind,
     WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalResolutionMode,
 };
 
@@ -187,7 +187,11 @@ fn unrelated_graph_drift_preserves_current_idempotent_recovery() {
     else {
         panic!("unrelated drift must preserve lawful idempotent recovery");
     };
-    assert_eq!(recovered, committed);
+    assert!(recovered.is_same_authoritative_commit(&committed));
+    assert_eq!(
+        recovered.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
 }
 
 fn current_retry_world() -> World {

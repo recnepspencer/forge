@@ -113,7 +113,7 @@ impl WorthQueryReadCompositionPhaseGate {
             WorthQueryReadCompositionPhaseGateRow::new(
                 WorthQueryReadCompositionPhaseGateFamily::PhaseTwoWorthAdoptionReady,
                 WorthQueryReadCompositionPhaseGateStatus::Satisfied,
-                "Worth may begin domain adoption through the frozen lowering, invariant-pack, decoder, and certification hooks, starting with loop_cycle_neighborhood",
+                "Worth may begin domain adoption through the frozen lowering, decoder, and certification hooks, while installed provider sessions retain invariant authority, starting with loop_cycle_neighborhood",
             ),
             WorthQueryReadCompositionPhaseGateRow::new(
                 WorthQueryReadCompositionPhaseGateFamily::PhaseThreeAggregateProofComplete,

@@ -160,6 +160,17 @@ where
         self.authorization.capability_compilation()
     }
 
+    pub(in crate::domain_computation) fn graph_work_resource_support(
+        &self,
+    ) -> worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceSupportSnapshot
+    {
+        self.primary_provider.application_resource_support()
+    }
+
+    pub(in crate::domain_computation) fn graph_work_provider_identity(&self) -> &str {
+        self.primary_graph_authority.provider_identity()
+    }
+
     #[cfg(test)]
     pub(crate) fn script_authorization_time(
         &mut self,
@@ -201,6 +212,23 @@ where
     #[cfg(test)]
     pub(crate) fn fail_next_index_publication(&self) {
         self.primary_provider.fail_next_index_publication();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn completed_mutation_work(
+        &self,
+    ) -> Option<super::provider::WorthQueryPrimaryMutationWorkEvidence> {
+        self.primary_provider.completed_mutation_work()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn skip_next_invariant_owner_execution(&self) {
+        self.primary_provider.skip_next_invariant_owner_execution();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn violate_next_relational_invariant(&self) {
+        self.primary_provider.violate_next_relational_invariant();
     }
 
     pub fn resolve_authenticated_principal<Binding, Mapping, Principal, PrincipalIdentity>(

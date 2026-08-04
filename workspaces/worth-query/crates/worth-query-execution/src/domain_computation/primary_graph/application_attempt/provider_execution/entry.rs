@@ -1,11 +1,9 @@
 use worth_query_admission::facade::basis::basis_lifecycle;
-use worth_query_admission::facade::resource_admission::WorthQueryExecutionResourceAdmissionCounters;
-use worth_query_admission::integration::admit_execution_resource_plan;
 use worth_query_installation::facade::ApplicationSchema;
 use worth_relational::facade::bridge::bridge_snapshot_identity_for_handle;
 use worth_runtime_bridge::facade::{
     BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgeReplayMode, BridgeTruthViewSelector,
-    HistoricalEvaluationDeclaration, SnapshotReadPacket, TruthBranchIdentity,
+    HistoricalEvaluationDeclaration, SnapshotReadPacket,
 };
 
 use super::super::provider_binding::prepare_provider_attempt;
@@ -15,8 +13,9 @@ use super::super::{
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationIdempotencyBinding,
 };
+use super::outcome::WorthQueryProviderProgressionOutcome;
 use super::progression::execute_provider_progression;
-use super::support::{application_resource_request, denied};
+use super::support::denied;
 use crate::domain_computation::operation_binding::WorthQueryApplicationOperationBindingInput;
 use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
@@ -48,20 +47,21 @@ where
         }
         {
             let serialization = self.primary_provider.serialize_application_commit();
+            let idempotency_branch = admission.graph_work().branch().relational().clone();
             let proof = match self.authorize_retained_idempotency(&mut admission, &serialization) {
                 Ok(proof) => proof,
                 Err(_) => return denied(DenialStage::DecisionReadSet),
             };
             let resolution = proof.govern((), |()| {
                 self.primary_provider
-                    .resolve_idempotency_binding(idempotency)
+                    .resolve_idempotency_binding(idempotency, &idempotency_branch)
             });
             match resolution {
                 Err(()) => return denied(DenialStage::DecisionReadSet),
                 Ok(Ok(WorthQueryProviderIdempotencyResolution::Absent)) => {}
                 Ok(Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt))) => {
                     return WorthQueryApplicationCommitOutcome::AlreadyCommitted(
-                        WorthQueryApplicationCommitReceipt::from_provider(
+                        WorthQueryApplicationCommitReceipt::from_recovered_provider(
                             receipt,
                             recover_equivalent_commit_evidence(admission.mutation_preconditions()),
                             admission.canonical_work(),
@@ -91,7 +91,7 @@ where
             Err(_) => return denied(DenialStage::ProposalBinding),
         };
         let snapshot = read_set.lease.snapshot();
-        let branch = TruthBranchIdentity::from_relational_branch_id("main");
+        let branch = admission.graph_work().branch().truth().clone();
         let bridge_snapshot = bridge_snapshot_identity_for_handle(snapshot);
         if self
             .bridge
@@ -113,7 +113,7 @@ where
         }
         let basis_path = match basis_lifecycle()
             .branch_snapshot(
-                "main",
+                admission.graph_work_branch().0.clone(),
                 format!(
                     "relational-snapshot:{}:{}",
                     snapshot.snapshot_id.0, snapshot.version_id.0
@@ -138,23 +138,18 @@ where
                 contracts: admission.allowed_graph_contract(),
                 graph: &self.primary_graph_authority,
                 support: self.primary_provider.application_resource_support(),
+                graph_work_session: admission.graph_work_session_identity(),
+                graph_work_managed_run: admission.graph_work_managed_run_identity(),
             },
         );
-        let request = match application_resource_request(admission.allowed_graph_contract()) {
-            Some(request) => request,
+        let reserved = match admission.graph_work_mut().take_operation_capacity() {
+            Some(reserved) => reserved,
             None => return denied(DenialStage::ResourceAdmission),
         };
-        let plan = match admit_execution_resource_plan(
-            operation.binding_identity(),
-            admission.allowed_graph_contract().resources(),
-            &request,
-            self.primary_provider.application_resource_support(),
-            WorthQueryExecutionResourceAdmissionCounters::default(),
-        ) {
-            Ok(plan) => plan,
-            Err(_) => return denied(DenialStage::ResourceAdmission),
-        };
-        let attempt = match self.runtime.start_direct_resource_attempt(&operation, plan) {
+        let attempt = match self
+            .runtime
+            .start_reserved_direct_resource_attempt(&operation, reserved)
+        {
             Ok(attempt) => attempt,
             Err(_) => return denied(DenialStage::ResourceAdmission),
         };
@@ -172,6 +167,16 @@ where
             Ok(admitted) => admitted.start(),
             Err(_) => return denied(DenialStage::ManagedRunAdmission),
         };
+        let mutation_run = match admission.graph_work().bind_mutation_run(&running) {
+            Some(binding) => binding,
+            None => {
+                let _ = running
+                    .terminate_for_convergence(WorthQueryManagedRunTerminalKind::Failed)
+                    .cleanup();
+                return denied(DenialStage::ManagedRunAdmission);
+            }
+        };
+        let serialization = self.primary_provider.serialize_application_commit();
         let outcome = execute_provider_progression(
             self,
             &mut running,
@@ -182,23 +187,31 @@ where
             authorization,
             commit_authorization,
             idempotency,
+            &mutation_run,
+            &serialization,
         );
-        let terminal = if matches!(
-            outcome,
-            WorthQueryApplicationCommitOutcome::Committed(_)
-                | WorthQueryApplicationCommitOutcome::AlreadyCommitted(_)
-        ) {
-            WorthQueryManagedRunTerminalKind::Completed
-        } else {
-            WorthQueryManagedRunTerminalKind::Failed
+        let terminal = match &outcome {
+            WorthQueryProviderProgressionOutcome::Committed(_)
+            | WorthQueryProviderProgressionOutcome::AlreadyCommitted(_)
+            | WorthQueryProviderProgressionOutcome::Stale(_) => {
+                WorthQueryManagedRunTerminalKind::Completed
+            }
+            WorthQueryProviderProgressionOutcome::Cancelled => {
+                WorthQueryManagedRunTerminalKind::Cancelled
+            }
+            WorthQueryProviderProgressionOutcome::Denied(_)
+            | WorthQueryProviderProgressionOutcome::Aborted
+            | WorthQueryProviderProgressionOutcome::Indeterminate => {
+                WorthQueryManagedRunTerminalKind::Failed
+            }
         };
-        if running
-            .terminate_for_convergence(terminal)
-            .cleanup()
-            .is_err()
-        {
-            return WorthQueryApplicationCommitOutcome::Indeterminate;
-        }
+        let snapshot_released = read_set.lease.release();
+        let completion = match mutation_run.finish(running, terminal, snapshot_released) {
+            Ok(completion) => completion,
+            Err(()) => return WorthQueryApplicationCommitOutcome::Indeterminate,
+        };
         outcome
+            .finish(completion)
+            .unwrap_or(WorthQueryApplicationCommitOutcome::Indeterminate)
     }
 }

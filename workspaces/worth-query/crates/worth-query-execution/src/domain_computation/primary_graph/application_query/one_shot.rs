@@ -111,23 +111,23 @@ where
         refresh_governed_authorization(self, &mut plan)
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
 
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
+        self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryApplicationOneShotDenialKind::StaleInstalledQuery,
                 plan.query.name(),
             )
         })?;
         let result_buffer = self.result_buffers.reserve(
-            plan.graph_read_plan
+            plan.graph_read_plan()
                 .budget_check()
                 .max_inline_result_bytes(),
         );
-        let (raw, authorization_work) =
-            execute_authorized_read(self, graph, &plan, |runtime, graph, plan| {
+        let (raw, authorization_work, read_proof) =
+            execute_authorized_read(self, &plan, |runtime, graph, plan| {
                 read_bounded_root_rows(runtime, graph, plan, result_buffer)
             })
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
-        finalize_one_shot(plan, raw, authorization_work)
+        finalize_one_shot(plan, raw, authorization_work, read_proof)
     }
 }
 
@@ -187,6 +187,10 @@ fn map_authorized_read_denial(
             };
             (kind, read.subject().to_string())
         }
+        WorthQueryAuthorizedApplicationReadDenial::Session => (
+            WorthQueryApplicationOneShotDenialKind::ForeignPlan,
+            subject.to_string(),
+        ),
     };
     denial(kind, subject)
 }

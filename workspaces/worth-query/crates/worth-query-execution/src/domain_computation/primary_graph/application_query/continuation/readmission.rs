@@ -204,7 +204,7 @@ where
         >,
         WorthQueryApplicationQueryAdmissionDenial,
     > {
-        let (parameters, query_controls, authorization, authorization_work) =
+        let (parameters, query_controls) =
             self.prepare_application_query_admission(query, access, parameters, query_controls)?;
         if !parameters
             .canonical_basis()
@@ -220,8 +220,6 @@ where
             access,
             parameters,
             query_controls,
-            authorization,
-            authorization_work,
             pending,
         )?;
         plan.continuation_state = Some(WorthQueryAdmittedContinuationState {

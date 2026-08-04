@@ -20,7 +20,6 @@ impl WorthQueryRuntimeBuilder {
                 message: "queued Query-owned invariant registrations cannot be applied after selecting an explicit runtime backend; lower them through WorthQueryRuntimeBuilder before backend(...) or relational_runtime(...)".to_string(),
             });
         }
-        self.assemble_graph_obligation_registration_catalog()?;
         let mut backend = self
             .backend
             .ok_or(WorthQueryRuntimeError::MissingBackend)??;
@@ -29,13 +28,6 @@ impl WorthQueryRuntimeBuilder {
                 &backend.support_profile(),
             )
             .with_runtime_overrides(self.consumer_support_postures);
-        let graph_obligation_registration_catalog = match self.graph_obligation_registration_catalog
-        {
-            Some(result) => result?,
-            None => WorthQueryGraphObligationRegistrationCatalog::empty(),
-        };
-        let graph_obligation_index =
-            WorthQueryGraphObligationIndex::from_catalog(&graph_obligation_registration_catalog);
         let installed_domain_artifacts = self.pending_domain_installations.into_artifacts();
         let execution_runtime_installation = match self.host_execution_installation.take() {
             Some(installation) => installation,
@@ -157,8 +149,6 @@ impl WorthQueryRuntimeBuilder {
             derived_dependency_index: WorthQueryComputedDependencyIndex::default(),
             effects: BTreeMap::new(),
             effect_index: WorthQueryEffectIndex::default(),
-            graph_obligation_registration_catalog,
-            graph_obligation_index,
             managed_live_resource_capability: WorthQueryManagedLiveWorkspaceCapability::shared(),
             next_run_id: 0,
         })

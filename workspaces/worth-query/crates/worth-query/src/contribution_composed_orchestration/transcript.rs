@@ -1,9 +1,7 @@
-mod graph_dispatch;
-
 use crate::application::{
     WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationInput,
     WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryGraphObligationOrchestrationDispatch, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 
@@ -24,9 +22,6 @@ use super::outcome::{
     WorthQueryContributionComposedOrchestrationCheckedKind,
     WorthQueryContributionComposedOrchestrationOutcome,
 };
-use graph_dispatch::{
-    dispatch_contribution_orchestration_graph_obligations, ContributionOrchestrationGraphDispatch,
-};
 
 pub struct WorthQueryContributionComposedOrchestrationTranscript<
     D: WorthQueryDomainEntryMarker,
@@ -40,14 +35,12 @@ pub struct WorthQueryContributionComposedOrchestrationTranscript<
     linked_artifacts: WorthQueryBindingLinkedArtifacts,
     contribution_digest: Option<String>,
     composition_classification: Option<WorthQueryContributionComposedClassification>,
-    graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
     intent_results: Vec<WorthQueryContributionComposedIntentResult>,
 }
 
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
     WorthQueryContributionComposedOrchestrationTranscript<D, I>
 {
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         request_descriptor: String,
         request_digest: String,
@@ -57,7 +50,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         linked_artifacts: WorthQueryBindingLinkedArtifacts,
         contribution_digest: Option<String>,
         composition_classification: Option<WorthQueryContributionComposedClassification>,
-        graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
         intent_results: Vec<WorthQueryContributionComposedIntentResult>,
     ) -> Self {
         Self {
@@ -69,7 +61,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
             linked_artifacts,
             contribution_digest,
             composition_classification,
-            graph_obligation_dispatch,
             intent_results,
         }
     }
@@ -110,12 +101,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
 
     pub fn intent_results(&self) -> &[WorthQueryContributionComposedIntentResult] {
         &self.intent_results
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
     }
 
     pub fn into_checked(self) -> WorthQueryContributionComposedOrchestrationChecked<D, I> {
@@ -159,37 +144,11 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
                 linked.clone(),
                 contribution_digest,
                 None,
-                None,
                 Vec::new(),
             );
         }
     };
     let linked = linked_artifacts_for_envelope(&declaration.envelope);
-    let graph_obligation_dispatch = match dispatch_contribution_orchestration_graph_obligations(
-        handle,
-        &declaration,
-        &linked,
-    ) {
-        ContributionOrchestrationGraphDispatch::Continue(dispatch) => dispatch,
-        ContributionOrchestrationGraphDispatch::Stop(outcome) => {
-            let graph_obligation_dispatch = outcome.graph_obligation_dispatch().cloned();
-            return WorthQueryContributionComposedOrchestrationTranscript::new(
-                request_descriptor_value,
-                request_digest_value,
-                materialization_policy,
-                WorthQueryContributionComposedDeclarationRecord::from_envelope(
-                    &declaration.envelope,
-                    &linked,
-                ),
-                outcome,
-                linked,
-                None,
-                None,
-                graph_obligation_dispatch,
-                Vec::new(),
-            );
-        }
-    };
     let intent_results = process_contributions(
         declaration.target.clone(),
         declaration.declaration_aspect_record.clone(),
@@ -203,7 +162,6 @@ pub(crate) fn orchestrate_declaration_with_contributions_on_handle<
         materialization_policy,
         declaration,
         linked,
-        graph_obligation_dispatch,
         intent_results,
     )
 }
@@ -214,7 +172,6 @@ fn finalize_transcript<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationI
     materialization_policy: &'static str,
     declaration: DeclarationLowering<D, I>,
     linked: WorthQueryBindingLinkedArtifacts,
-    graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
     intent_results: Vec<WorthQueryContributionComposedIntentResult>,
 ) -> WorthQueryContributionComposedOrchestrationTranscript<D, I> {
     let declaration_record = WorthQueryContributionComposedDeclarationRecord::from_envelope(
@@ -230,13 +187,10 @@ fn finalize_transcript<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationI
                 request_digest,
                 materialization_policy,
                 declaration_record,
-                WorthQueryContributionComposedOrchestrationOutcome::Bound(
-                    composed.with_graph_obligation_dispatch(graph_obligation_dispatch.clone()),
-                ),
+                WorthQueryContributionComposedOrchestrationOutcome::Bound(composed),
                 linked,
                 contribution_digest,
                 composition_classification,
-                graph_obligation_dispatch,
                 intent_results,
             )
         }
@@ -251,8 +205,7 @@ fn finalize_transcript<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationI
                 Some(contribution_digest.clone()),
                 declaration_record.aspect_record().cloned(),
                 primary_intent_descriptor(&intent_results).cloned(),
-            )
-            .with_graph_obligation_dispatch(graph_obligation_dispatch.clone());
+            );
             WorthQueryContributionComposedOrchestrationTranscript::new(
                 request_descriptor,
                 request_digest,
@@ -262,7 +215,6 @@ fn finalize_transcript<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationI
                 linked,
                 Some(contribution_digest),
                 None,
-                graph_obligation_dispatch,
                 intent_results,
             )
         }
@@ -297,7 +249,6 @@ fn empty_contribution_transcript<
         ),
         outcome,
         WorthQueryBindingLinkedArtifacts::new(),
-        None,
         None,
         None,
         Vec::new(),

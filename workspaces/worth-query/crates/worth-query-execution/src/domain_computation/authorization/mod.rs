@@ -16,6 +16,7 @@ mod capability_request_resolution;
 mod capability_revalidation;
 mod decision_facts;
 mod denial;
+mod graph_work_session;
 mod installed_policy;
 mod lowering;
 mod operation_scope_binding;

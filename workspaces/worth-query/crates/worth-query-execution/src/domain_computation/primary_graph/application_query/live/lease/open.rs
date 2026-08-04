@@ -237,7 +237,7 @@ where
             controls.maximum_work_per_delivery(),
             controls.request(),
         );
-        let (admitted_parameters, query_controls, authorization, authorization_work) = self
+        let (admitted_parameters, query_controls) = self
             .prepare_application_query_admission(
                 &query,
                 &access,
@@ -251,8 +251,6 @@ where
                 &access,
                 admitted_parameters,
                 query_controls,
-                authorization,
-                authorization_work,
                 pending_governance,
             )
             .map_err(open_admission_denial)?;
@@ -266,26 +264,28 @@ where
                 query.name(),
             )
         })?;
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
+        self.runtime.primary_graph().ok_or_else(|| {
             open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
                 query.name(),
             )
         })?;
-        let (scope_identity, _) = execute_authorized_read(self, graph, &plan, read_scope_identity)
-            .map_err(|_| {
+        let ((scope_identity, initial_read_work), _, read_proof) =
+            execute_authorized_read(self, &plan, read_scope_identity).map_err(|_| {
                 open_denial(
                     WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
                     query.name(),
                 )
             })?;
         let governance = plan.take_governance();
-        if !plan.basis.release().released() {
+        let basis_release = plan.basis.release();
+        if !basis_release.released() {
             return Err(open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::BasisReleaseFailed,
                 query.name(),
             ));
         }
+        let graph_work = plan.graph_work;
         let version = self
             .primary_provider
             .graph
@@ -310,7 +310,7 @@ where
         );
         let request = WorthQueryManagedTruthReadRequest::new(
             version,
-            worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id("main"),
+            graph_work.branch().truth().clone(),
             worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
         );
         let request_bridge = self.bridge.fork_managed_request_lane();
@@ -336,6 +336,11 @@ where
             governance,
             scope_identity,
             basis: Some(basis),
+            graph_work: Some(graph_work),
+            read_proof: Some(read_proof),
+            initial_read_work: Some(initial_read_work),
+            basis_release: Some(basis_release),
+            read_completion: None,
             queue: WorthQueryLiveCauseQueue::open(&self.primary_provider.live_delivery),
             _target: PhantomData,
             _thread_affinity: PhantomData,

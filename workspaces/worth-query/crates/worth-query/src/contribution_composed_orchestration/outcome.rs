@@ -1,7 +1,6 @@
 use crate::application::{
     WorthQueryDeclarationEntryOrchestrationStage, WorthQueryDeclarationInput,
-    WorthQueryDomainEntryMarker, WorthQueryGraphObligationOrchestrationDispatch,
-    WorthQueryGraphObligationOrchestrationDispatchError,
+    WorthQueryDomainEntryMarker,
 };
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 use crate::ordinary_outcome::{
@@ -38,8 +37,6 @@ pub struct WorthQueryContributionComposedOrchestrationPosture<
     contribution_digest: Option<String>,
     declaration_aspect_record: Option<WorthQueryContributionComposedDeclarationAspectRecord>,
     primary_intent_descriptor: Option<WorthQueryContributionComposedIntentRequestDescriptor>,
-    graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
-    graph_obligation_dispatch_error: Option<WorthQueryGraphObligationOrchestrationDispatchError>,
     _marker: std::marker::PhantomData<(D, I)>,
 }
 
@@ -65,26 +62,8 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
             contribution_digest,
             declaration_aspect_record,
             primary_intent_descriptor,
-            graph_obligation_dispatch: None,
-            graph_obligation_dispatch_error: None,
             _marker: std::marker::PhantomData,
         }
-    }
-
-    pub(crate) fn with_graph_obligation_dispatch(
-        mut self,
-        dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
-    ) -> Self {
-        self.graph_obligation_dispatch = dispatch;
-        self
-    }
-
-    pub(crate) fn with_graph_obligation_dispatch_error(
-        mut self,
-        error: WorthQueryGraphObligationOrchestrationDispatchError,
-    ) -> Self {
-        self.graph_obligation_dispatch_error = Some(error);
-        self
     }
 
     pub fn kind(&self) -> WorthQueryContributionComposedOrchestrationCheckedKind {
@@ -121,102 +100,6 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
         &self,
     ) -> Option<&WorthQueryContributionComposedIntentRequestDescriptor> {
         self.primary_intent_descriptor.as_ref()
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
-    }
-
-    pub fn graph_obligation_dispatch_error(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatchError> {
-        self.graph_obligation_dispatch_error.as_ref()
-    }
-}
-
-impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
-    WorthQueryContributionComposedOrchestrationOutcome<D, I>
-{
-    pub(crate) fn with_graph_obligation_dispatch(
-        self,
-        dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
-    ) -> Self {
-        match self {
-            Self::Bound(value) => Self::Bound(value.with_graph_obligation_dispatch(dispatch)),
-            Self::Deferred(value) => Self::Deferred(value.with_graph_obligation_dispatch(dispatch)),
-            Self::DeclarationDenied(value) => {
-                Self::DeclarationDenied(value.with_graph_obligation_dispatch(dispatch))
-            }
-            Self::ContributionDenied(value) => {
-                Self::ContributionDenied(value.with_graph_obligation_dispatch(dispatch))
-            }
-            Self::Stale(value) => Self::Stale(value.with_graph_obligation_dispatch(dispatch)),
-            Self::RebindRequired(value) => {
-                Self::RebindRequired(value.with_graph_obligation_dispatch(dispatch))
-            }
-            Self::Unsupported(value) => {
-                Self::Unsupported(value.with_graph_obligation_dispatch(dispatch))
-            }
-            Self::Failed(value) => Self::Failed(value.with_graph_obligation_dispatch(dispatch)),
-        }
-    }
-
-    pub(crate) fn with_graph_obligation_dispatch_error(
-        self,
-        error: WorthQueryGraphObligationOrchestrationDispatchError,
-    ) -> Self {
-        match self {
-            Self::Bound(value) => Self::Bound(value),
-            Self::Deferred(value) => {
-                Self::Deferred(value.with_graph_obligation_dispatch_error(error))
-            }
-            Self::DeclarationDenied(value) => {
-                Self::DeclarationDenied(value.with_graph_obligation_dispatch_error(error))
-            }
-            Self::ContributionDenied(value) => {
-                Self::ContributionDenied(value.with_graph_obligation_dispatch_error(error))
-            }
-            Self::Stale(value) => Self::Stale(value.with_graph_obligation_dispatch_error(error)),
-            Self::RebindRequired(value) => {
-                Self::RebindRequired(value.with_graph_obligation_dispatch_error(error))
-            }
-            Self::Unsupported(value) => {
-                Self::Unsupported(value.with_graph_obligation_dispatch_error(error))
-            }
-            Self::Failed(value) => Self::Failed(value.with_graph_obligation_dispatch_error(error)),
-        }
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatch> {
-        match self {
-            Self::Bound(value) => value.graph_obligation_dispatch(),
-            Self::Deferred(value)
-            | Self::DeclarationDenied(value)
-            | Self::ContributionDenied(value)
-            | Self::Stale(value)
-            | Self::RebindRequired(value)
-            | Self::Unsupported(value)
-            | Self::Failed(value) => value.graph_obligation_dispatch(),
-        }
-    }
-
-    pub fn graph_obligation_dispatch_error(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatchError> {
-        match self {
-            Self::Bound(_) => None,
-            Self::Deferred(value)
-            | Self::DeclarationDenied(value)
-            | Self::ContributionDenied(value)
-            | Self::Stale(value)
-            | Self::RebindRequired(value)
-            | Self::Unsupported(value)
-            | Self::Failed(value) => value.graph_obligation_dispatch_error(),
-        }
     }
 }
 

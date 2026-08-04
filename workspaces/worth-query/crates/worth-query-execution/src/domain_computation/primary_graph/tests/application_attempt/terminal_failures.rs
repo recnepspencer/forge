@@ -4,6 +4,7 @@ use super::{
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitTerminalKind,
 };
 
 #[test]
@@ -96,7 +97,67 @@ fn index_publication_failure_recovers_the_committed_transaction_before_returning
     else {
         panic!("index reconstruction must recover the committed idempotency record");
     };
-    assert_eq!(receipt, first_receipt);
+    assert!(receipt.is_same_authoritative_commit(&first_receipt));
+    assert_eq!(
+        first_receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Executed
+    );
+    assert_eq!(
+        receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
     assert!(receipt.changed_record_count() >= 2);
     let _committed = resolved_account(&world, "index-replacement", &live_scope());
+}
+
+#[test]
+fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let rejected = admitted_program(
+        &world,
+        &principal,
+        &account,
+        &request,
+        "must-not-bypass-relational",
+    );
+
+    world.application.skip_next_invariant_owner_execution();
+    let outcome = world
+        .application
+        .compare_and_commit_application(rejected, idempotency(22, 22));
+    if !matches!(outcome, WorthQueryApplicationCommitOutcome::Aborted) {
+        panic!("a verdict without Relational's sealed candidate must not commit");
+    }
+    let _still_open = resolved_account(&world, "open", &live_scope());
+}
+
+#[test]
+fn relational_invariant_violation_denies_before_provider_commit() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let rejected = admitted_program(
+        &world,
+        &principal,
+        &account,
+        &request,
+        "must-not-pass-relational-invariant",
+    );
+
+    world.application.violate_next_relational_invariant();
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application(rejected, idempotency(23, 23))
+    else {
+        panic!("the installed Relational invariant violation must deny");
+    };
+    assert_eq!(
+        denial.stage(),
+        WorthQueryApplicationCommitDenialStage::InvariantExecution
+    );
+    let _still_open = resolved_account(&world, "open", &live_scope());
 }

@@ -27,34 +27,12 @@ pub(in crate::runtime::tests::stop_class) fn runtime_error_variant_key(
         WorthQueryRuntimeError::MutationBindingDenied(_) => "mutation_binding_denied",
         WorthQueryRuntimeError::MutationContinuityDenied(_) => "mutation_continuity_denied",
         WorthQueryRuntimeError::MutationContractDenied(_) => "mutation_contract_denied",
-        WorthQueryRuntimeError::GraphObligationTouchDescriptorDenied(_) => {
-            "graph_obligation_touch_descriptor_denied"
-        }
-        WorthQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing { .. } => {
-            "graph_obligation_effect_touch_descriptor_missing"
-        }
-        WorthQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing { .. } => {
-            "graph_obligation_intent_touch_descriptor_missing"
-        }
-        WorthQueryRuntimeError::GraphMutationPolicyContextDenied { .. } => {
-            "graph_mutation_policy_context_denied"
-        }
-        WorthQueryRuntimeError::GraphMutationPolicyGateDenied(_) => {
-            "graph_mutation_policy_gate_denied"
-        }
-        WorthQueryRuntimeError::GraphObligationDenied(_) => "graph_obligation_denied",
         WorthQueryRuntimeError::GraphCompositionDenied(_) => "graph_composition_denied",
-        WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(_) => {
-            "graph_composition_domain_invariant_denied"
-        }
         WorthQueryRuntimeError::MutationNamingDenied(_) => "mutation_naming_denied",
         WorthQueryRuntimeError::MutationTargetReferenceDenied(_) => {
             "mutation_target_reference_denied"
         }
         WorthQueryRuntimeError::ReadCompositionDenied(_) => "read_composition_denied",
-        WorthQueryRuntimeError::ReadCompositionDomainInvariantDenied(_) => {
-            "read_composition_domain_invariant_denied"
-        }
         WorthQueryRuntimeError::Workspace(_) => "workspace",
         WorthQueryRuntimeError::Program(_) => "program",
         WorthQueryRuntimeError::UnknownProgram(_) => "unknown_program",
@@ -117,34 +95,12 @@ pub(in crate::runtime::tests::stop_class) fn stop_class_variant_key(
         WorthQueryStopClass::MutationBindingDenied { .. } => "mutation_binding_denied",
         WorthQueryStopClass::MutationContinuityDenied { .. } => "mutation_continuity_denied",
         WorthQueryStopClass::MutationContractDenied { .. } => "mutation_contract_denied",
-        WorthQueryStopClass::GraphObligationTouchDescriptorDenied { .. } => {
-            "graph_obligation_touch_descriptor_denied"
-        }
-        WorthQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. } => {
-            "graph_obligation_effect_touch_descriptor_missing"
-        }
-        WorthQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. } => {
-            "graph_obligation_intent_touch_descriptor_missing"
-        }
-        WorthQueryStopClass::GraphMutationPolicyContextDenied { .. } => {
-            "graph_mutation_policy_context_denied"
-        }
-        WorthQueryStopClass::GraphMutationPolicyGateDenied { .. } => {
-            "graph_mutation_policy_gate_denied"
-        }
-        WorthQueryStopClass::GraphObligationDenied { .. } => "graph_obligation_denied",
         WorthQueryStopClass::GraphCompositionDenied { .. } => "graph_composition_denied",
-        WorthQueryStopClass::GraphCompositionDomainInvariantDenied { .. } => {
-            "graph_composition_domain_invariant_denied"
-        }
         WorthQueryStopClass::MutationNamingDenied { .. } => "mutation_naming_denied",
         WorthQueryStopClass::MutationTargetReferenceDenied { .. } => {
             "mutation_target_reference_denied"
         }
         WorthQueryStopClass::ReadCompositionDenied { .. } => "read_composition_denied",
-        WorthQueryStopClass::ReadCompositionDomainInvariantDenied { .. } => {
-            "read_composition_domain_invariant_denied"
-        }
         WorthQueryStopClass::Workspace { .. } => "workspace",
         WorthQueryStopClass::Program { .. } => "program",
         WorthQueryStopClass::RuntimeLookupFailed { .. } => "runtime_lookup_failed",

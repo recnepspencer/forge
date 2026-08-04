@@ -64,14 +64,10 @@ fn runtime_authoritative_mutation_support_exposes_graph_composition_hook_rows() 
     );
     let rows = support.graph_composition_extension_hook_support_rows();
 
-    assert_eq!(rows.len(), 3);
+    assert_eq!(rows.len(), 2);
     assert!(rows.iter().any(|row| {
         row.hook_family() == "domain_lowering_hook"
             && row.boundary() == WorthQueryGraphCompositionExtensionHookBoundary::Lowering
-    }));
-    assert!(rows.iter().any(|row| {
-        row.hook_family() == "domain_invariant_pack_hook"
-            && row.boundary() == WorthQueryGraphCompositionExtensionHookBoundary::InvariantPack
     }));
     assert!(rows.iter().any(|row| {
         row.hook_family() == "domain_interpretation_hook"

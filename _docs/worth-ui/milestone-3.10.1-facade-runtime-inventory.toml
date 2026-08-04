@@ -329,7 +329,7 @@ expected_files = 5
 # Milestone 3.11 recognizes the product-owned permanent visual pulse contract
 # without admitting executable-world or workflow authority. Milestone 3.12
 # replaces the predecessor source-lowering denial with its typed attempt failure.
-content_fingerprint = "cb49575be076b1a5"
+content_fingerprint = "f3d91ad8a67bd3c3"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"

@@ -87,6 +87,10 @@ impl WorthQueryPrimaryGraph {
         &self.layout
     }
 
+    pub(in crate::domain_computation) fn retain_layout(&self) -> Arc<WorthQueryPrimaryGraphLayout> {
+        Arc::clone(&self.layout)
+    }
+
     pub(crate) fn integration_handle(&self) -> WorthQueryPrimaryGraphIntegrationHandle {
         let principal_identity_index_ids = self
             .layout
@@ -111,6 +115,15 @@ impl WorthQueryPrimaryGraph {
             primary_index_ids,
             aggregate_projections: Arc::clone(&self.aggregate_projections),
         }
+    }
+
+    pub(in crate::domain_computation) fn query_session_port(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphReadOwnerPort {
+        crate::domain_computation::provider_session::WorthQueryGraphReadOwnerPort::new(
+            self.binding_identity.clone(),
+            self.integration_handle(),
+        )
     }
 }
 
@@ -156,6 +169,17 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         mutate(&mut runtime)
     }
 
+    pub(in crate::domain_computation) fn with_query_runtime_mut<T>(
+        &self,
+        read: impl FnOnce(&mut RelationalRuntime, &WorthQueryPrimaryGraphLayout) -> T,
+    ) -> T {
+        let mut runtime = self
+            .runtime
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        read(&mut runtime, &self.layout)
+    }
+
     pub(crate) fn relational_bridge_source(
         &self,
     ) -> worth_relational::facade::bridge::RuntimeBridgeRelationalSource {
@@ -173,6 +197,19 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         let Some(head) = runtime.history().latest_commit().cloned() else {
             return Ok(());
         };
+        self.ensure_primary_indexes_for_commit(runtime, head)
+    }
+
+    pub(crate) fn ensure_primary_indexes_current_for_branch(
+        &self,
+        runtime: &mut RelationalRuntime,
+        branch: &worth_relational::facade::history::BranchId,
+    ) -> Result<(), &'static str> {
+        let head = runtime
+            .history()
+            .branch_head(branch)
+            .cloned()
+            .ok_or("primary graph branch has no authoritative head")?;
         self.ensure_primary_indexes_for_commit(runtime, head)
     }
 

@@ -99,19 +99,19 @@ where
             .continuation_state
             .as_ref()
             .map(|state| state.boundary.clone());
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
+        self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryApplicationContinuationDenialKind::StaleInstalledQuery,
                 plan.query.name(),
             )
         })?;
         let result_buffer = self.result_buffers.reserve(
-            plan.graph_read_plan
+            plan.graph_read_plan()
                 .budget_check()
                 .max_inline_result_bytes(),
         );
-        let (raw, authorization_work) =
-            execute_authorized_read(self, graph, &plan, |runtime, graph, plan| {
+        let (raw, authorization_work, read_proof) =
+            execute_authorized_read(self, &plan, |runtime, graph, plan| {
                 read_continuation_page(runtime, graph, plan, after, result_buffer)
             })
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
@@ -122,7 +122,7 @@ where
                 plan.query.name(),
             ));
         }
-        finalize_continuation_page(plan, raw, authorization_work)
+        finalize_continuation_page(plan, raw, authorization_work, read_proof)
     }
 }
 
@@ -236,6 +236,10 @@ fn map_authorized_read_denial(
             };
             (kind, read.subject().to_string())
         }
+        WorthQueryAuthorizedApplicationReadDenial::Session => (
+            WorthQueryApplicationContinuationDenialKind::ForeignPlan,
+            subject.to_string(),
+        ),
     };
     denial(kind, subject)
 }

@@ -5,6 +5,7 @@ mod decision_facts;
 mod graph_participation;
 mod idempotency;
 mod invariant_execution;
+mod mutation_work;
 mod provisional_state;
 mod resource_support;
 mod session_lifecycle;
@@ -16,6 +17,7 @@ use super::WorthQueryPrimaryGraphIntegrationHandle;
 pub(super) use application_decision_fact::WorthQueryPrimaryGraphApplicationDecisionFact;
 pub(super) use committed_application::WorthQueryPrimaryGraphCommittedApplication;
 pub(super) use idempotency::WorthQueryProviderIdempotencyResolution;
+pub use mutation_work::WorthQueryPrimaryMutationWorkEvidence;
 
 pub(super) struct WorthQueryPrimaryGraphProvider {
     pub(super) graph: WorthQueryPrimaryGraphIntegrationHandle,
@@ -31,6 +33,10 @@ pub(super) struct WorthQueryPrimaryGraphProvider {
     reject_next_commit_before_transaction: std::sync::atomic::AtomicBool,
     #[cfg(test)]
     fail_next_index_publication: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    skip_next_invariant_owner_execution: std::sync::atomic::AtomicBool,
+    #[cfg(test)]
+    violate_next_relational_invariant: std::sync::atomic::AtomicBool,
 }
 
 pub(in crate::domain_computation) struct WorthQueryApplicationCommitSerialization<'provider> {
@@ -42,6 +48,10 @@ pub(super) struct WorthQueryPrimaryGraphProviderSessions {
     pub(super) overlays: BTreeMap<String, WorthQueryPrimaryGraphOverlay>,
     pub(super) session_overlays: BTreeMap<String, String>,
     pub(super) application_attempts: BTreeMap<String, WorthQueryPrimaryGraphApplicationAttempt>,
+    pub(super) validated_mutations:
+        BTreeMap<String, worth_relational::facade::transactions::ValidatedRelationalMutation>,
+    pub(super) invariant_work: BTreeMap<String, WorthQueryPrimaryMutationWorkEvidence>,
+    pub(super) completed_mutation_work: Option<WorthQueryPrimaryMutationWorkEvidence>,
     pub(super) next_overlay: u64,
 }
 
@@ -55,6 +65,10 @@ pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
     pub(super) batch: worth_relational::facade::transactions::WorkerIntentBatch,
     pub(super) emissions: super::application_attempt::WorthQueryAdmittedApplicationEmissionBatch,
     pub(super) idempotency: super::application_attempt::WorthQueryApplicationIdempotencyBinding,
+    pub(super) branch: worth_relational::facade::history::BranchId,
+    pub(super) graph_work_session:
+        crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    pub(super) decision_fact_count: usize,
 }
 
 impl WorthQueryPrimaryGraphProvider {
@@ -78,6 +92,10 @@ impl WorthQueryPrimaryGraphProvider {
             reject_next_commit_before_transaction: std::sync::atomic::AtomicBool::new(false),
             #[cfg(test)]
             fail_next_index_publication: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            skip_next_invariant_owner_execution: std::sync::atomic::AtomicBool::new(false),
+            #[cfg(test)]
+            violate_next_relational_invariant: std::sync::atomic::AtomicBool::new(false),
         });
         let anchor = Arc::new(
             crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor::install_invariant_capable::<
@@ -103,6 +121,10 @@ impl WorthQueryPrimaryGraphProvider {
         mut batch: worth_relational::facade::transactions::WorkerIntentBatch,
         emissions: super::application_attempt::WorthQueryAdmittedApplicationEmissionBatch,
         idempotency: super::application_attempt::WorthQueryApplicationIdempotencyBinding,
+        branch: worth_relational::facade::history::BranchId,
+        graph_work_session:
+            crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        retained_authorization_fact_count: usize,
     ) -> Result<(), &'static str> {
         let emitted_effect_count = u64::try_from(emissions.len())
             .map_err(|_| "application emission count exceeds provider representation")?;
@@ -111,10 +133,26 @@ impl WorthQueryPrimaryGraphProvider {
             idempotency,
             emitted_effect_count,
         ));
+        if facts
+            .iter()
+            .filter_map(WorthQueryPrimaryGraphApplicationDecisionFact::session_identity)
+            .any(|session| session != graph_work_session)
+            || facts
+                .iter()
+                .filter_map(WorthQueryPrimaryGraphApplicationDecisionFact::session_identity)
+                .count()
+                != retained_authorization_fact_count
+        {
+            return Err("provider decision facts do not close over the graph-work session");
+        }
+        let decision_fact_count = facts.len();
         let facts = facts
             .into_iter()
             .map(|fact| (fact.locator_identity(), fact))
             .collect::<BTreeMap<_, _>>();
+        if facts.len() != decision_fact_count {
+            return Err("provider decision facts contain duplicate identities");
+        }
         let mut sessions = self
             .sessions
             .lock()
@@ -129,6 +167,9 @@ impl WorthQueryPrimaryGraphProvider {
                     batch,
                     emissions,
                     idempotency,
+                    branch,
+                    graph_work_session,
+                    decision_fact_count,
                 },
             )
             .is_some()
@@ -174,6 +215,18 @@ impl WorthQueryPrimaryGraphProvider {
     }
 
     #[cfg(test)]
+    pub(crate) fn skip_next_invariant_owner_execution(&self) {
+        self.skip_next_invariant_owner_execution
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn violate_next_relational_invariant(&self) {
+        self.violate_next_relational_invariant
+            .store(true, std::sync::atomic::Ordering::Release);
+    }
+
+    #[cfg(test)]
     pub(super) fn take_lost_commit_response(&self) -> bool {
         self.lose_next_commit_response
             .swap(false, std::sync::atomic::Ordering::AcqRel)
@@ -194,6 +247,25 @@ impl WorthQueryPrimaryGraphProvider {
     #[cfg(test)]
     pub(super) fn take_failed_index_publication(&self) -> bool {
         self.fail_next_index_publication
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+
+    pub(crate) fn completed_mutation_work(&self) -> Option<WorthQueryPrimaryMutationWorkEvidence> {
+        self.sessions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .completed_mutation_work
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_skipped_invariant_owner_execution(&self) -> bool {
+        self.skip_next_invariant_owner_execution
+            .swap(false, std::sync::atomic::Ordering::AcqRel)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_relational_invariant_violation(&self) -> bool {
+        self.violate_next_relational_invariant
             .swap(false, std::sync::atomic::Ordering::AcqRel)
     }
 }

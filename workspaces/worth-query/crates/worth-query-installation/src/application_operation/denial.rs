@@ -11,6 +11,7 @@ pub enum WorthQueryApplicationOperationInstallationDenialKind {
     CanonicalEntryBudgetExceeded,
     CanonicalEncodedByteBudgetExceeded,
     CanonicalDigestSlotRejected,
+    InvalidGraphObligationContract,
     ForeignRuntime,
     StaleGeneration,
     SchemaMeaningChanged,

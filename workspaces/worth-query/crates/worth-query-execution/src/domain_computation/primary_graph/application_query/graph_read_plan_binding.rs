@@ -1,8 +1,5 @@
 use worth_foundational::facade::CanonicalDigestId;
-use worth_query_admission::facade::{
-    application_query::WorthQueryAdmittedApplicationQueryParameters,
-    graph_read_access::WorthQueryGraphReadPlanReview,
-};
+use worth_query_admission::facade::application_query::WorthQueryAdmittedApplicationQueryParameters;
 use worth_query_installation::facade::{
     WorthQueryCanonicalWorkPhases, WorthQueryInstalledApplicationQuery,
     WorthQueryInstalledApplicationQueryIdentity,
@@ -42,11 +39,12 @@ pub struct WorthQueryAdmittedApplicationQueryPlan<
     pub(super) scope: &'a WorthQueryApplicationEntityIdentity<Schema, Scope>,
     pub(super) parameters: WorthQueryAdmittedApplicationQueryParameters,
     pub(super) controls: WorthQueryAdmittedApplicationQueryControls<'a>,
-    pub(super) graph_read_plan: WorthQueryGraphReadPlanReview,
     pub(super) canonical_work: WorthQueryCanonicalWorkPhases,
     pub(super) continuation_index_id: Option<DerivedIndexId>,
     pub(super) continuation_state: Option<WorthQueryAdmittedContinuationState>,
     pub(super) basis: WorthQueryApplicationBasisLease,
+    pub(super) graph_work:
+        crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     pub(super) authorization:
         crate::domain_computation::authorization::WorthQueryRetainedAuthorizationDecisionFacts,
     pub(super) authorization_work: super::WorthQueryApplicationAuthorizationWorkEvidence,
@@ -83,8 +81,10 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
         &self.controls
     }
 
-    pub fn graph_read_plan(&self) -> &WorthQueryGraphReadPlanReview {
-        &self.graph_read_plan
+    pub fn graph_read_plan(
+        &self,
+    ) -> &worth_query_admission::facade::graph_read_access::WorthQueryGraphReadPlanReview {
+        self.graph_work.graph_read_review()
     }
 
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
@@ -96,7 +96,51 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
     }
 
     pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
-        self.basis.identity()
+        self.graph_work
+            .query_basis()
+            .expect("an application-query graph-work session retains its exact basis")
+    }
+
+    pub fn graph_work_session_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
+        self.graph_work.identity()
+    }
+
+    pub fn graph_work_managed_run_identity(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkManagedRunIdentity {
+        self.graph_work.managed_run_identity()
+    }
+
+    pub fn graph_work_branch(&self) -> &worth_relational::facade::history::BranchId {
+        self.graph_work.branch().relational()
+    }
+
+    pub fn graph_work_decision_fact_count(&self) -> usize {
+        self.graph_work.retained_decision_facts()
+    }
+
+    pub fn graph_work_runtime_ordinal(&self) -> u64 {
+        self.graph_work.runtime_ordinal()
+    }
+
+    pub fn graph_work_principal_entity_id(&self) -> worth_relational::facade::identity::EntityId {
+        self.graph_work.principal()
+    }
+
+    pub fn graph_work_scope_entity_id(
+        &self,
+    ) -> Option<worth_relational::facade::identity::EntityId> {
+        self.graph_work.entity_access_context()
+    }
+
+    pub fn graph_work_capability_identity(&self) -> Option<[u8; 32]> {
+        self.graph_work.capability_access_context()
+    }
+
+    pub fn graph_work_provider(&self) -> &str {
+        self.graph_work.provider()
     }
 
     pub fn principal(

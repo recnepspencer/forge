@@ -7,16 +7,11 @@ use crate::runtime::{
     WorthQueryGraphCompositionDomainInvariantSummary,
 };
 
-use super::hooks::{
-    WorthQueryGraphCompositionInvariantPackContext,
-    WorthQueryGraphCompositionInvariantPackViolation,
-};
-
-const DOMAIN_INVARIANT_PACK_HOOK_FAMILY: &str = "domain_invariant_pack_hook";
+const CONTRIBUTED_INVARIANT_OWNER_FAMILY: &str = "domain_capability_invariant_owner";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphCompositionDomainInvariantDenial {
-    hook_family: String,
+    owner_family: String,
     invariant_family: String,
     message: String,
     domain_invariant_summary: WorthQueryGraphCompositionDomainInvariantSummary,
@@ -25,18 +20,6 @@ pub struct WorthQueryGraphCompositionDomainInvariantDenial {
 }
 
 impl WorthQueryGraphCompositionDomainInvariantDenial {
-    pub(crate) fn from_violation(
-        violation: WorthQueryGraphCompositionInvariantPackViolation,
-        context: &WorthQueryGraphCompositionInvariantPackContext<'_>,
-    ) -> Self {
-        Self::build(
-            violation.invariant_family().to_string(),
-            violation.message().to_string(),
-            context.graph_composition_domain_invariant_summary(),
-            violation.violation_evidence_digest().clone(),
-        )
-    }
-
     pub(crate) fn from_contributed(
         invariant_family: impl Into<String>,
         message: impl Into<String>,
@@ -44,20 +27,24 @@ impl WorthQueryGraphCompositionDomainInvariantDenial {
     ) -> Self {
         let invariant_family = invariant_family.into();
         let message = message.into();
-        let violation = WorthQueryGraphCompositionInvariantPackViolation::new(
-            invariant_family.clone(),
-            message.clone(),
-        );
+        let violation_digest = worth_query_evidence_identity(
+            WorthQueryEvidenceScope::GraphCompositionInvariantViolation,
+        )
+        .field_shape(
+            WorthQueryEvidenceTag::new("invariant_family"),
+            invariant_family.as_str(),
+        )
+        .seal();
         Self::build(
             invariant_family,
             message,
             domain_invariant_summary,
-            violation.violation_evidence_digest().clone(),
+            violation_digest,
         )
     }
 
-    pub fn hook_family(&self) -> &str {
-        &self.hook_family
+    pub fn owner_family(&self) -> &str {
+        &self.owner_family
     }
 
     pub fn invariant_family(&self) -> &str {
@@ -108,8 +95,8 @@ impl WorthQueryGraphCompositionDomainInvariantDenial {
             WorthQueryEvidenceScope::GraphCompositionDomainInvariantDenial,
         )
         .field_shape(
-            WorthQueryEvidenceTag::new("hook_family"),
-            DOMAIN_INVARIANT_PACK_HOOK_FAMILY,
+            WorthQueryEvidenceTag::new("owner_family"),
+            CONTRIBUTED_INVARIANT_OWNER_FAMILY,
         )
         .field_shape(
             WorthQueryEvidenceTag::new("invariant_family"),
@@ -131,7 +118,7 @@ impl WorthQueryGraphCompositionDomainInvariantDenial {
         .as_str()
         .to_string();
         Self {
-            hook_family: DOMAIN_INVARIANT_PACK_HOOK_FAMILY.to_string(),
+            owner_family: CONTRIBUTED_INVARIANT_OWNER_FAMILY.to_string(),
             invariant_family,
             message,
             domain_invariant_summary,
@@ -146,7 +133,7 @@ impl std::fmt::Display for WorthQueryGraphCompositionDomainInvariantDenial {
         write!(
             f,
             "graph composition denied by {} for invariant `{}`: {}",
-            self.hook_family, self.invariant_family, self.message
+            self.owner_family, self.invariant_family, self.message
         )
     }
 }

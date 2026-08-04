@@ -154,66 +154,28 @@ local list of required family names is not real pinning.
 
 ## Graph Obligation Rows
 
-Graph touch obligation support rows must name the same covered obligation kinds
-as the graph authority, certification, and Consumer Kit docs:
+Installed application queries and operations carry sealed graph-obligation
+rows. The fixed kind vocabulary is:
 
-- `BlockingInvariant`
-- `SchemaContractValidator`
-- `AdvisoryObligation`
-- `PreflightSequencingObligation`
-- `CapabilityGapScreen`
-- `OperatingContextGate`
+- `GraphRead`
+- `AuthorizationObservation`
+- `MutationTouch`
+- `EffectApplication`
+- `InvariantExecution`
 
-They must use the same support status vocabulary:
+Each row also carries exact owner requirements, selection basis, resource and
+effect posture, and a required terminal. Support is admitted through the
+installed selection, graph-read review, execution-resource profile, and
+capacity reservation. A support row or selected kind is never execution
+evidence.
 
-- `Supported`
-- `Unsupported`
-- `NotApplicable`
-- `DiagnosticOnly`
-- `DeferredToBackstop`
+Application code does not register these rows or pin a consumer-authored
+support table. Downstream code may inspect the installed set through
+`worth_query_host::facade::inspect_installed_graph_obligations`, which grants no
+selection, planning, or execution transition.
 
-Budget posture is part of row honesty. Docs and support rows must name
-`BudgetExceeded`, `budget-exceeded`, state-load counters, cost classes such as
-`sparse-topology`, and artifact-policy-gated diagnostics when large graph or
-boolean-like operations can exceed the admitted proof budget.
-
-Canonical kind labels are `blocking-invariant`,
-`schema-contract-validator`, `advisory-obligation`,
-`preflight-sequencing-obligation`, `capability-gap-screen`, and
-`operating-context-gate`. Canonical support status labels are `supported`,
-`unsupported`, `not-applicable`, `diagnostic-only`, and
-`deferred-to-backstop`.
-
-The graph touch obligation hostile certification matrix uses this covered lane
-vocabulary:
-
-- graph composition
-- authoritative command batch
-- scalar mutation
-- effect-triggered write intent
-- declaration entry
-- contribution orchestration
-- read family
-- live read
-- preview mutation
-- preview intent
-- branch intent
-- policy-aware graph mutation
-- primitive construction birth
-- worth-topo operator catalog
-- worth-kernel phase chain
-
-Canonical covered lane labels are `graph-composition`,
-`authoritative-command-batch`, `scalar-mutation`,
-`effect-triggered-write-intent`, `declaration-entry`,
-`contribution-orchestration`, `read-family`, `live-read`,
-`preview-mutation`, `preview-intent`, `branch-intent`,
-`policy-aware-graph-mutation`, `primitive-construction-birth`,
-`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
-
-Support rows may deny, defer, or mark a lane not applicable, but they must keep
-the lane visible. A collapsed "batch" row is not a graph obligation support
-row.
+See [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
+for the owner and terminal map.
 
 ## Graph Read Access Planning Rows
 
@@ -484,7 +446,7 @@ For deeper checks:
 - [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
 - [Graph Touch Obligation Authority](../authoring/graph-touch-obligation-authority.md)
-- [Graph Obligation Consumer Kit](../authoring/graph-obligation-consumer-kit.md)
+- [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
 - [Workspace Overview](workspace-overview.md)
 - [State](state.md)
 - [Intent Admission](../execution/intent-admission.md)

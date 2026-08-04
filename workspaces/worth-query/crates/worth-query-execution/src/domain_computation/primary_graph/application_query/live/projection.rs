@@ -35,6 +35,7 @@ pub(super) fn finalize_live_projection<
     >,
     kernel: RawLiveKernelOutcome,
     authorization_work: WorthQueryApplicationAuthorizationWorkEvidence,
+    read_proof: crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof,
 ) -> Result<
     (
         QueryResult,
@@ -50,7 +51,8 @@ where
     let RawLiveKernelOutcome { raw, result_buffer } = kernel;
     let basis_identity = plan.basis.identity().clone();
     let basis_version = plan.basis.version_id();
-    let released = plan.basis.release().released();
+    let basis_release = plan.basis.release();
+    let released = basis_release.released();
     if !released {
         return Err(WorthQueryLiveProjectionFinalizationDenial::BasisRelease);
     }
@@ -64,6 +66,20 @@ where
     .map_err(|denial| WorthQueryLiveProjectionFinalizationDenial::Projection(denial.kind()))?;
     drop(raw.rows);
     let result_buffer = result_buffer.release();
+    let read_completion = plan
+        .graph_work
+        .complete_query_read(
+            read_proof,
+            crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork {
+                examined_candidates: raw.examined_candidates,
+                projected_records: raw.projected_records,
+                projected_fields: raw.projected_fields,
+                relation_records_examined: raw.relation_records_examined,
+                ordering_comparisons: raw.ordering_comparisons,
+            },
+            basis_release,
+        )
+        .map_err(|_| WorthQueryLiveProjectionFinalizationDenial::ResultShape)?;
     let receipt = WorthQueryApplicationQueryAccessReceipt::new(
         WorthQueryApplicationQueryAccessReceiptParts {
             query_identity: plan.query.identity().clone(),
@@ -79,7 +95,7 @@ where
             predicate_index_generation: raw.predicate_index_generation,
             target_identity_index_generation: raw.target_identity_index_generation,
             ordered_index_generation: raw.ordered_index_generation,
-            graph_read_plan: plan.graph_read_plan,
+            read_completion,
             canonical_work: plan.canonical_work,
             authorization_work,
             examined_candidate_count: raw.examined_candidates,

@@ -53,35 +53,34 @@ pub(crate) fn admit_graph_read_access_for_family_in_authority_with_inventory_and
     let requirements = explain_graph_read_access_requirements_for_family_in_authority_with_lookup(
         family, authority, lookup,
     )?;
-    let review = worth_query_admission::facade::graph_read_access::review_graph_read_access(
+    let review = worth_query_admission::integration::review_graph_read_access(
         requirements,
         inventory,
         WorthQueryGraphReadBudget::inline_ephemeral_default(),
-    )
-    .into_parts();
+    );
     let case_registry = WorthQueryGraphReadAccessCaseRegistry::exhaustive();
-    if let Some(denial) = review.denial {
-        let denial = map_denial(denial.kind(), &review.cost_estimate, &review.budget_check);
+    if let Some(denial) = review.denial() {
+        let denial = map_denial(denial.kind(), review.cost_estimate(), review.budget_check());
         return Ok(WorthQueryGraphReadAccessAdmission::denied_in_authority(
-            review.requirements,
-            review.cost_estimate,
-            review.budget_check,
+            review.requirements().clone(),
+            review.cost_estimate().clone(),
+            review.budget_check().clone(),
             case_registry,
-            review.inventory,
-            review.inventory_match,
+            review.inventory().clone(),
+            review.inventory_match().clone(),
             authority.receipt().clone(),
             denial,
         ));
     }
     Ok(WorthQueryGraphReadAccessAdmission::admitted_in_authority(
-        review.requirements,
-        review.cost_estimate,
-        review.budget_check,
+        review.requirements().clone(),
+        review.cost_estimate().clone(),
+        review.budget_check().clone(),
         case_registry,
-        review.inventory,
-        review.inventory_match,
+        review.inventory().clone(),
+        review.inventory_match().clone(),
         authority.receipt().clone(),
-        review.posture,
+        review.posture().clone(),
     ))
 }
 

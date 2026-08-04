@@ -112,27 +112,6 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
             ),
         ),
         (
-            WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(
-                WorthQueryGraphCompositionDomainInvariantDenial::from_contributed(
-                    "graph.family",
-                    "graph domain invariant failed",
-                    WorthQueryGraphCompositionDomainInvariantSummary::from_parts(
-                        vec!["Task".to_string()],
-                        vec!["task_symbol".to_string()],
-                        vec!["same_batch_entity_relation_identity_edges".to_string()],
-                        vec!["mixed_existing_target_followup_mutation".to_string()],
-                        graph_domain_fixture_digest("program"),
-                        graph_domain_fixture_digest("breadth"),
-                        "components=1".to_string(),
-                    ),
-                ),
-            ),
-            ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
-                hook_family: "domain_invariant_pack_hook",
-                invariant_family: "graph.family",
-            },
-        ),
-        (
             WorthQueryRuntimeError::MutationNamingDenied(WorthQueryNamingMutationDenial::new(
                 &WorthQueryNamingMutationIntent::attach_new_target(
                     crate::runtime::WorthQueryMutationAuthorityIdentity::naming_attachment(
@@ -252,21 +231,4 @@ fn consumer_router_handles_manually_constructed_stop_classes_without_string_matc
     for (error, expected) in manual_cases {
         assert_eq!(route_consumer_stop_class(&error), expected);
     }
-}
-
-fn graph_domain_fixture_digest(
-    role: &'static str,
-) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
-    crate::evidence_identity::worth_query_evidence_identity(
-        crate::evidence_identity::WorthQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("role"),
-        "consumer-graph-domain-fixture",
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("fixture"),
-        role,
-    )
-    .seal()
 }

@@ -231,6 +231,21 @@ impl WorthQueryApplicationQueryGovernance {
         }
     }
 
+    pub(in crate::domain_computation::primary_graph::application_query) fn installed_capability_identity(
+        &self,
+    ) -> Option<[u8; 32]> {
+        self.authorization()
+            .map(WorthQueryRetainedCapabilityAuthorization::installed_capability_identity)
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_query) fn authorization_belongs_to_session(
+        &self,
+        session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    ) -> bool {
+        self.authorization()
+            .is_none_or(|authorization| authorization.belongs_to_session(session))
+    }
+
     pub(in crate::domain_computation::primary_graph::application_query) fn receipt(
         &self,
     ) -> WorthQueryApplicationDisclosureReceipt {

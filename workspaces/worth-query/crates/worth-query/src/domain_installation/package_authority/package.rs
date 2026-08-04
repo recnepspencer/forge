@@ -1,8 +1,8 @@
 use super::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinition,
-    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainOperationDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainOperationGraphParticipationRecord,
     WorthQueryDomainOperationRequiredDomainRecord, WorthQueryDomainPackageValidationDenial,
     WorthQueryValidatedDomainPackage,
 };
@@ -25,7 +25,6 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
     pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
-    pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
     pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
@@ -46,7 +45,6 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
             required_configuration: Vec::new(),
             operating_requirements: Vec::new(),
             invariant_definitions: Vec::new(),
-            graph_obligations: Vec::new(),
             graph_read_operations: Vec::new(),
             declaration_families: Vec::new(),
             domain_operations: Vec::new(),
@@ -82,15 +80,6 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
     #[must_use]
     pub fn invariant(mut self, definition: WorthQueryDomainInvariantDefinition) -> Self {
         self.invariant_definitions.push(definition);
-        self
-    }
-
-    #[must_use]
-    pub fn graph_obligation(
-        mut self,
-        definition: WorthQueryDomainGraphObligationDefinition,
-    ) -> Self {
-        self.graph_obligations.push(definition);
         self
     }
 

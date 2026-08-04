@@ -23,7 +23,6 @@ mod domain_entry;
 mod domain_handle;
 #[cfg(test)]
 pub(crate) mod domain_test_support;
-mod graph_obligation_orchestration;
 mod support;
 
 pub use capability::{
@@ -250,10 +249,6 @@ pub use domain_handle::{
     WorthQueryDomainOperatingContextIdentityError, WorthQueryDomainOperatingRequirement,
     WorthQueryInstalledDomainDeclarationContext,
 };
-pub use graph_obligation_orchestration::{
-    WorthQueryGraphObligationOrchestrationBoundary, WorthQueryGraphObligationOrchestrationDispatch,
-    WorthQueryGraphObligationOrchestrationDispatchError,
-};
 #[cfg(test)]
 pub(crate) use support::scan_shared_read_mint_forbidden_patterns;
 #[cfg(test)]
@@ -363,7 +358,6 @@ pub(crate) use declaration_signal_compatibility::{
     worth_query_checked_declaration_signal_compatibility_on_handle,
 };
 pub(crate) use domain_handle::checked_route_plan_from_progressed_with_profile;
-pub(crate) use graph_obligation_orchestration::dispatch_graph_obligations_for_orchestration;
 
 #[cfg(test)]
 mod tests;

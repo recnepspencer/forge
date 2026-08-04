@@ -69,6 +69,20 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
     );
     assert!(disclosure.decision_identity().is_some());
     assert!(disclosure.decision_fact_count() > 0);
+
+    let publication = published.receipt().inspect();
+    assert!(publication.session_identity() > 0);
+    assert!(publication.managed_run_identity() > 0);
+    assert!(publication.admitted_plan_identity() > 0);
+    assert_eq!(publication.result_count(), published.rows().len());
+    assert_eq!(
+        publication.relational_branch(),
+        &publication.terminal().basis_identity().branch_id().0
+    );
+    assert!(publication.terminal_resources_released());
+    assert_eq!(publication.publication_canonical_entries(), 0);
+    assert_eq!(publication.publication_sha256_compression_blocks(), 0);
+    assert_eq!(publication.publication_identity_text_materializations(), 0);
 }
 
 #[test]

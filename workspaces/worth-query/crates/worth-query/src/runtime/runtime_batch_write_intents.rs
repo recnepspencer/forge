@@ -56,38 +56,7 @@ impl WorthQueryRuntime {
         &self,
         review: crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData,
     ) -> Result<WorthQueryAuthoritativeMutationBatchExecutionHandoff, WorthQueryRuntimeError> {
-        let handoff = admitted_authoritative_mutation_batch_handoff_from_review(review)?;
-        let obligation_dispatch =
-            self.authoritative_mutation_batch_obligation_dispatch(&handoff)?;
-        Ok(handoff.with_obligation_dispatch(obligation_dispatch))
-    }
-
-    pub(crate) fn resolve_reviewed_admitted_authoritative_write_batch_handoff_with_graph_obligation_execution_context(
-        &self,
-        review: crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData,
-        execution_context: WorthQueryGraphObligationExecutionContext,
-    ) -> Result<WorthQueryAuthoritativeMutationBatchExecutionHandoff, WorthQueryRuntimeError> {
-        let handoff = admitted_authoritative_mutation_batch_handoff_from_review(review)?;
-        let obligation_dispatch = self
-            .authoritative_mutation_batch_obligation_dispatch_with_execution_context(
-                &handoff,
-                execution_context,
-            )?;
-        Ok(handoff.with_obligation_dispatch(obligation_dispatch))
-    }
-
-    pub(crate) fn resolve_reviewed_admitted_authoritative_write_batch_handoff_with_policy_context(
-        &self,
-        review: crate::intent_admission::dx::WorthQueryRuntimeIntentAdmissionReviewData,
-        policy_context: &crate::policy_basis::AdmittedPolicyTenantContext,
-    ) -> Result<WorthQueryAuthoritativeMutationBatchExecutionHandoff, WorthQueryRuntimeError> {
-        let handoff = admitted_authoritative_mutation_batch_handoff_from_review(review)?;
-        let obligation_dispatch = self
-            .authoritative_mutation_batch_obligation_dispatch_with_policy_context(
-                &handoff,
-                policy_context,
-            )?;
-        Ok(handoff.with_obligation_dispatch(obligation_dispatch))
+        admitted_authoritative_mutation_batch_handoff_from_review(review)
     }
 
     pub(crate) fn prepare_authoritative_mutation_batch_execution_binding(
@@ -113,7 +82,6 @@ impl WorthQueryRuntime {
             decision_digest: handoff.decision_digest().to_string(),
             handoff_digest: handoff.handoff_digest().to_string(),
             binding_digest: binding.binding_digest().to_string(),
-            obligation_dispatch: binding.obligation_dispatch().cloned(),
         };
         self.execute_authoritative_write_batch_direct(
             handoff.commands().to_vec(),

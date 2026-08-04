@@ -21,14 +21,20 @@ use super::{
 };
 use crate::domain_computation::primary_graph::WorthQueryBoundMutationPreconditions;
 
+mod graph_work_inspection;
+
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(in crate::domain_computation) struct WorthQueryOperationAdmissionIdentity(u64);
 
 impl WorthQueryOperationAdmissionIdentity {
-    fn mint() -> Option<Self> {
+    pub(super) fn mint() -> Option<Self> {
         Self::mint_from(&NEXT_OPERATION_ADMISSION_IDENTITY)
+    }
+
+    pub(super) fn resource_binding_identity(self) -> Arc<str> {
+        Arc::from(format!("worth-query-application-admission:{}", self.0))
     }
 
     fn mint_from(counter: &AtomicU64) -> Option<Self> {
@@ -79,6 +85,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     mutation_preconditions: WorthQueryBoundMutationPreconditions,
     authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
     authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
+    graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
 }
 
@@ -86,6 +93,7 @@ impl<Schema, Operation, Input, Scope>
     WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>
 {
     pub(super) fn mint(
+        admission_identity: WorthQueryOperationAdmissionIdentity,
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         operation: String,
@@ -101,19 +109,16 @@ impl<Schema, Operation, Input, Scope>
         authorization_admission_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
         authorization: WorthQueryRetainedAuthorizationDecisionFacts,
         authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
-    ) -> Result<Self, ()> {
-        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or(())?;
-        let resource_binding_identity = Arc::<str>::from(format!(
-            "worth-query-application-admission:{}",
-            admission_identity.0
-        ));
+        graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    ) -> Self {
+        let resource_binding_identity = admission_identity.resource_binding_identity();
         let canonical_work = WorthQueryCanonicalWorkPhases::new(
             contracts.canonical_work(),
             mutation_preconditions
                 .canonical_work()
                 .combine(authorization_admission_work),
         );
-        Ok(Self {
+        Self {
             runtime_authority,
             binding_identity,
             operation,
@@ -131,8 +136,9 @@ impl<Schema, Operation, Input, Scope>
             mutation_preconditions,
             authorization: Some(authorization),
             authorization_basis,
+            graph_work,
             _marker: PhantomData,
-        })
+        }
     }
 
     pub fn binding_identity(&self) -> &ApplicationSchemaBindingIdentity {

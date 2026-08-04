@@ -17,7 +17,6 @@ pub struct WorthQueryBranchIntentReceipt {
     basis_evidence: Vec<String>,
     basis_snapshot_identity: WorthQuerySnapshotIdentity,
     admission_identity: WorthQueryEvidenceIdentity,
-    obligation_dispatch: Option<crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch>,
     receipt_identity: WorthQueryEvidenceIdentity,
 }
 
@@ -28,84 +27,67 @@ impl WorthQueryBranchIntentReceipt {
         basis_admission: &WorthQueryBranchBasisAdmission,
         basis_snapshot_identity: &WorthQuerySnapshotIdentity,
         admission: WorthQueryEffectAdmission,
-        obligation_dispatch: Option<
-            crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch,
-        >,
     ) -> Self {
         let basis_evidence = basis_admission.evidence().to_vec();
         let canonical_input_digest = declaration.input_digest();
-        let admission_identity = worth_query_evidence_identity(
-            WorthQueryEvidenceScope::BranchIntentAdmission,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("intent_name"),
-            declaration.name(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("strategy_identity"),
-            declaration.strategy_name(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("strategy_version"),
-            declaration.strategy_version(),
-        )
-        .field_value(
-            WorthQueryEvidenceTag::new("canonical_input_digest"),
-            &canonical_input_digest,
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("source_lane"),
-            declaration.source_lane().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("target_lane"),
-            declaration.target_lane().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("effect_policy"),
-            effect_policy.as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("admitted_action"),
-            admission.action().as_str(),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("admitted_lane"),
-            admission.target_lane().as_str(),
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("basis_admission_identity"),
-            basis_admission.admission_identity(),
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("basis_snapshot_identity"),
-            &basis_snapshot_identity.evidence_identity(),
-        )
-        .optional_value(
-            WorthQueryEvidenceTag::new("graph_obligation_dispatch"),
-            obligation_dispatch.as_ref().map(
-                crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch::dispatch_digest,
-            ),
-        )
-        .seal();
-        let receipt_identity = worth_query_evidence_identity(
-            WorthQueryEvidenceScope::BranchIntentReceipt,
-        )
-        .field_evidence_identity(
-            WorthQueryEvidenceTag::new("admission_identity"),
-            &admission_identity,
-        )
-        .optional_value(
-            WorthQueryEvidenceTag::new("graph_obligation_dispatch"),
-            obligation_dispatch.as_ref().map(
-                crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch::dispatch_digest,
-            ),
-        )
-        .field_shape(
-            WorthQueryEvidenceTag::new("posture"),
-            "branch-local-staged-no-authoritative-execution",
-        )
-        .seal();
+        let admission_identity =
+            worth_query_evidence_identity(WorthQueryEvidenceScope::BranchIntentAdmission)
+                .field_shape(
+                    WorthQueryEvidenceTag::new("intent_name"),
+                    declaration.name(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("strategy_identity"),
+                    declaration.strategy_name(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("strategy_version"),
+                    declaration.strategy_version(),
+                )
+                .field_value(
+                    WorthQueryEvidenceTag::new("canonical_input_digest"),
+                    &canonical_input_digest,
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("source_lane"),
+                    declaration.source_lane().as_str(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("target_lane"),
+                    declaration.target_lane().as_str(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("effect_policy"),
+                    effect_policy.as_str(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("admitted_action"),
+                    admission.action().as_str(),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("admitted_lane"),
+                    admission.target_lane().as_str(),
+                )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("basis_admission_identity"),
+                    basis_admission.admission_identity(),
+                )
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("basis_snapshot_identity"),
+                    &basis_snapshot_identity.evidence_identity(),
+                )
+                .seal();
+        let receipt_identity =
+            worth_query_evidence_identity(WorthQueryEvidenceScope::BranchIntentReceipt)
+                .field_evidence_identity(
+                    WorthQueryEvidenceTag::new("admission_identity"),
+                    &admission_identity,
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("posture"),
+                    "branch-local-staged-no-authoritative-execution",
+                )
+                .seal();
         Self {
             intent_name: declaration.name().to_string(),
             strategy_identity: declaration.strategy_name().to_string(),
@@ -117,7 +99,6 @@ impl WorthQueryBranchIntentReceipt {
             basis_evidence,
             basis_snapshot_identity: basis_snapshot_identity.clone(),
             admission_identity,
-            obligation_dispatch,
             receipt_identity,
         }
     }
@@ -164,12 +145,6 @@ impl WorthQueryBranchIntentReceipt {
 
     pub fn admission_digest(&self) -> &str {
         self.admission_identity.as_str()
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&crate::runtime::WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
     }
 
     pub fn receipt_digest(&self) -> &str {

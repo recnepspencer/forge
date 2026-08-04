@@ -101,16 +101,12 @@ impl<'a> WorthQueryBranchSession<'a> {
             message: denial.message().to_string(),
             evidence: WorthQueryIntentDenialEvidence::new(&declaration, &denial, None),
         })?;
-        let obligation_dispatch = self
-            .runtime
-            .branch_intent_obligation_dispatch(&declaration)?;
         let receipt = WorthQueryBranchIntentReceipt::new(
             &declaration,
             self.effect_policy,
             &self.basis_admission,
             &self.basis_snapshot_identity,
             admission,
-            obligation_dispatch,
         );
         self.intent_receipts.push(receipt.clone());
         Ok(receipt)

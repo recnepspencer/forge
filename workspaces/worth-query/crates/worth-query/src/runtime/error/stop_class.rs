@@ -62,31 +62,8 @@ pub enum WorthQueryStopClass<'a> {
     MutationContractDenied {
         denial: &'a crate::runtime::WorthQueryMutationContractDenial,
     },
-    GraphObligationTouchDescriptorDenied {
-        denial: &'a WorthQueryGraphTouchDescriptorDenial,
-    },
-    GraphObligationEffectTouchDescriptorMissing {
-        effect_name: &'a str,
-    },
-    GraphObligationIntentTouchDescriptorMissing {
-        intent_name: &'a str,
-    },
-    GraphMutationPolicyContextDenied {
-        expected: crate::policy_basis::PolicyExecutionModeRequest,
-        actual: crate::policy_basis::PolicyExecutionModeRequest,
-        policy_tenant_admission_digest: &'a str,
-    },
-    GraphMutationPolicyGateDenied {
-        evidence: &'a crate::runtime::WorthQueryGraphMutationPolicyGateEvidence,
-    },
-    GraphObligationDenied {
-        denial: &'a WorthQueryGraphObligationDenial,
-    },
     GraphCompositionDenied {
         denial: &'a WorthQueryGraphCompositionDenial,
-    },
-    GraphCompositionDomainInvariantDenied {
-        denial: &'a WorthQueryGraphCompositionDomainInvariantDenial,
     },
     MutationNamingDenied {
         denial: &'a WorthQueryNamingMutationDenial,
@@ -96,9 +73,6 @@ pub enum WorthQueryStopClass<'a> {
     },
     ReadCompositionDenied {
         denial: &'a WorthQueryReadDenial,
-    },
-    ReadCompositionDomainInvariantDenied {
-        denial: &'a WorthQueryReadDomainInvariantDenial,
     },
     Workspace {
         error: &'a WorthQueryWorkspaceError,
