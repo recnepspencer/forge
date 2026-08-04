@@ -13,8 +13,8 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::capability_registry::{
-    WorthQueryCapabilityPlanCompilationEvidence, WorthQueryInstalledCapabilityPlan,
-    WorthQueryInstalledCapabilityRegistry,
+    WorthQueryCapabilityPlanCompilationEvidence, WorthQueryElevationLifecycleOperationRole,
+    WorthQueryInstalledCapabilityPlan, WorthQueryInstalledCapabilityRegistry,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
@@ -144,6 +144,14 @@ impl WorthQueryInstalledAuthorizationRegistry {
         capability_identity: &[u8; 32],
     ) -> Option<&WorthQueryInstalledCapabilityPlan> {
         self.capabilities.plan_by_identity(capability_identity)
+    }
+
+    pub(in crate::domain_computation) fn elevation_lifecycle_operation<Operation, Input>(
+        &self,
+        operation: &str,
+    ) -> Result<Option<([u8; 32], WorthQueryElevationLifecycleOperationRole)>, ()> {
+        self.capabilities
+            .elevation_lifecycle_operation::<Operation, Input>(operation)
     }
 
     pub(in crate::domain_computation) const fn capability_compilation(

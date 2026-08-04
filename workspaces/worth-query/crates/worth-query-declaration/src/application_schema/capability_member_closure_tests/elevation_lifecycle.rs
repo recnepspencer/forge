@@ -8,6 +8,8 @@ use crate::application_schema::ApplicationFieldPresence;
 
 #[path = "elevation_lifecycle/canonical_identity.rs"]
 mod canonical_identity;
+#[path = "elevation_lifecycle/ownership.rs"]
+mod ownership;
 
 struct Elevation;
 struct ElevationFacts;

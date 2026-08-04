@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use crate::application_capability::ErasedApplicationCapabilityContract;
+use crate::application_capability::{
+    ApplicationCapabilityElevationRule, ErasedApplicationCapabilityContract,
+};
 
 use super::member_closure::ClosureIndex;
 use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
@@ -24,6 +26,9 @@ pub(super) fn validate_application_capability_members(
     if contracts.len() > MAXIMUM_CAPABILITY_CONTRACTS {
         return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability);
     }
+    if !lifecycle_operations_have_one_owner(&contracts) {
+        return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationCapability);
+    }
     let mut identities = BTreeSet::new();
     for contract in contracts {
         if !identities.insert((contract.name(), contract.capability_type())) {
@@ -32,6 +37,20 @@ pub(super) fn validate_application_capability_members(
         validate_contract(members, &closure, &dimensions, contract)?;
     }
     Ok(())
+}
+
+fn lifecycle_operations_have_one_owner(contracts: &[&ErasedApplicationCapabilityContract]) -> bool {
+    let mut operations = BTreeSet::new();
+    contracts.iter().all(|contract| {
+        let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
+            return true;
+        };
+        elevation
+            .lifecycle()
+            .operations()
+            .into_iter()
+            .all(|operation| operations.insert((operation.operation(), operation.input_type())))
+    })
 }
 
 fn capability_contracts(

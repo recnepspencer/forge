@@ -26,7 +26,7 @@ pub(super) use capability::{
     CapabilityIdentity, CapabilityPurpose, CapabilityRequestContext, CapabilityStatus,
     CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
     ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
-    TouchAccountCapability,
+    RequestCapabilityElevationOperation, TouchAccountCapability,
 };
 pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
 #[path = "fixture/application_queries.rs"]

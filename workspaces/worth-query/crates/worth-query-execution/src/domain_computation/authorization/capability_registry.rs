@@ -29,6 +29,9 @@ mod elevation;
 pub(super) use elevation::{
     WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationTemporalBindings,
 };
+mod elevation_lifecycle;
+pub(super) use elevation_lifecycle::WorthQueryElevationLifecycleOperationRole;
+use elevation_lifecycle::WorthQueryInstalledElevationLifecycleRegistry;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {
@@ -38,6 +41,7 @@ pub struct WorthQueryCapabilityPlanCompilationEvidence {
     clause_count: usize,
     guard_count: usize,
     context_anchor_count: usize,
+    elevation_lifecycle_operation_count: usize,
     canonical_basis_preparations: usize,
     digest_derivations: usize,
     digest_text_materializations: usize,
@@ -66,6 +70,10 @@ impl WorthQueryCapabilityPlanCompilationEvidence {
 
     pub const fn context_anchor_count(self) -> usize {
         self.context_anchor_count
+    }
+
+    pub const fn elevation_lifecycle_operation_count(self) -> usize {
+        self.elevation_lifecycle_operation_count
     }
 
     pub const fn canonical_basis_preparations(self) -> usize {
@@ -100,6 +108,7 @@ impl WorthQueryCapabilityPlanCompilationEvidence {
 
 pub(super) struct WorthQueryInstalledCapabilityRegistry {
     plans: BTreeMap<[u8; 32], WorthQueryInstalledCapabilityPlan>,
+    elevation_lifecycles: WorthQueryInstalledElevationLifecycleRegistry,
     compilation: WorthQueryCapabilityPlanCompilationEvidence,
 }
 
@@ -113,10 +122,19 @@ impl WorthQueryInstalledCapabilityRegistry {
         Schema: ApplicationSchema,
     {
         let mut plans = BTreeMap::new();
+        let mut elevation_lifecycles = WorthQueryInstalledElevationLifecycleRegistry::default();
         let mut compilation = WorthQueryCapabilityPlanCompilationEvidence::default();
         for source in schema.capability_plan_sources() {
             let plan = compile_capability_plan(schema, source, layout, bridge)?;
             compilation.record(&plan);
+            elevation_lifecycles
+                .install(*source.identity().bytes(), source.contract())
+                .map_err(|()| {
+                    super::authorization_denial(
+                        source.contract().name(),
+                        "competing installed elevation lifecycle operation",
+                    )
+                })?;
             if plans.insert(*source.identity().bytes(), plan).is_some() {
                 return Err(super::authorization_denial(
                     source.contract().name(),
@@ -124,7 +142,12 @@ impl WorthQueryInstalledCapabilityRegistry {
                 ));
             }
         }
-        Ok(Self { plans, compilation })
+        compilation.elevation_lifecycle_operation_count = elevation_lifecycles.len();
+        Ok(Self {
+            plans,
+            elevation_lifecycles,
+            compilation,
+        })
     }
 
     pub(super) fn plan<Schema, Capability, Operation, Input>(
@@ -139,6 +162,14 @@ impl WorthQueryInstalledCapabilityRegistry {
         capability_identity: &[u8; 32],
     ) -> Option<&WorthQueryInstalledCapabilityPlan> {
         self.plans.get(capability_identity)
+    }
+
+    pub(super) fn elevation_lifecycle_operation<Operation, Input>(
+        &self,
+        operation: &str,
+    ) -> Result<Option<([u8; 32], WorthQueryElevationLifecycleOperationRole)>, ()> {
+        self.elevation_lifecycles
+            .operation::<Operation, Input>(operation)
     }
 
     pub(super) const fn compilation(&self) -> WorthQueryCapabilityPlanCompilationEvidence {

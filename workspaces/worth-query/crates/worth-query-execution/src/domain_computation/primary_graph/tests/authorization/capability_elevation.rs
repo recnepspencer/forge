@@ -19,7 +19,7 @@ use super::super::fixture::{
     CapabilityElevationScenario, CapabilityElevationStatus, CapabilityElevationStatusField,
     CapabilityPurpose, CapabilityRequestContext, CapabilityTouchOperation,
     ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
-    TouchAccountCapability,
+    RequestCapabilityElevationOperation, TouchAccountCapability,
 };
 use super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
@@ -31,9 +31,36 @@ mod approver_conflict;
 #[path = "capability_elevation/validity.rs"]
 mod validity;
 
+struct AliasedRequestCapabilityElevationOperation;
+
 #[test]
 fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_authority() {
     let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    assert_eq!(
+        world
+            .application
+            .capability_plan_compilation_evidence()
+            .elevation_lifecycle_operation_count(),
+        4
+    );
+    let (_, request_role) = world
+        .application
+        .authorization
+        .elevation_lifecycle_operation::<
+            RequestCapabilityElevationOperation,
+            ElevatedCapabilityTouchInput,
+        >("RequestCapabilityElevationOperation")
+        .expect("the request marker must match installed lifecycle identity")
+        .expect("the request operation must have one lifecycle owner");
+    assert_eq!(format!("{request_role:?}"), "Request");
+    assert!(world
+        .application
+        .authorization
+        .elevation_lifecycle_operation::<
+            AliasedRequestCapabilityElevationOperation,
+            ElevatedCapabilityTouchInput,
+        >("RequestCapabilityElevationOperation")
+        .is_err());
     world
         .application
         .script_authorization_time([time(100), time(100)]);

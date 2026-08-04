@@ -128,6 +128,7 @@ Query product.
 | Q7.64 | Critical | The first active-use checkpoint proved only that an approver relation existed and was distinct from the requester. It never evaluated the installed conflict graph for that approver, so a conflicted beneficiary could approve emergency elevation while Query still minted active-use authority. Bank compounded the omission by classifying restricted-estate beneficiary meaning as generic deny even though its independent oracle and Phase 7 contract identify it as conflict. | **CLOSED** | Governed elevation installation now requires the capability's installed conflict graph, rebases its exact requirements through requester to selected elevation to approver, and submits the rebased prohibited rule to the same Bridge correspondence. Exact conflict denies as `ElevationApproverConflict`; adding conflict after admission stales retained authority. Bank declares restricted-estate beneficiary meaning as conflict, and its 11-test installation consumer proves the corrected contract. |
 | Q7.65 | Critical | The governed elevation declaration exposed active and revoked posture but omitted explicit expired posture and elevation-owned issue/expiry fields. Active-use admission therefore had no installed way to distinguish not-yet-issued, current, and expired elevation time independently of the linked grant's wider validity window. The first repair also coupled both temporal predicates, which would have classified a not-yet-issued elevation as expired. | **CLOSED** | Elevation identity and member closure now require explicit expired posture plus same-owner, same-type fields on one installed scalar timeline. Query samples its private trusted clock, lowers start and end comparisons as separate exact-elevation Relational paths inside the existing Bridge decision, classifies pre-issue as inactive and elapsed end as expired, and re-evaluates at operation progression. Four one-axis tests isolate explicit expiry, pre-issue, post-expiry while the grant remains current, and expiry between access and operation; Bank installs and inspects the exact issue/expiry fields. |
 | Q7.66 | High | The first four Phase 7.6 checkpoints named seven lifecycle states but did not require their values to be distinct, and the request, approval, revocation, and review-completion operations plus their context slots remained unbound Bank schema members. A governed capability could therefore install aliased states, reuse or omit lifecycle operations, swap operation roles without changing capability identity, or point a transition at the wrong context entity. | **CLOSED** | The governed elevation contract now owns exact elevation and review slots plus typed request, approve, revoke, and complete-review operation-role bindings. Canonical identity includes every slot and operation marker/input dimension. Member closure requires seven distinct state values, distinct review-required/completed values, exact context/entity slot topology, present lifecycle operations, four distinct roles, and no reuse of the active-use operation. Seven causal declaration tests cover the valid contract and each hostile axis; Bank binds and inspects its exact lifecycle roles. |
+| Q7.67 | Critical | The installed lifecycle contract closed role uniqueness only inside one governed capability. Two different governed capabilities could claim the same executable operation name and input under different Rust marker types, leaving no single authority for deciding which lifecycle and role an admitted operation progresses. Comparing marker type as part of ownership would not close the defect because installed executable operation identity is name plus input type. | **CLOSED** | Declaration member closure now rejects lifecycle operation reuse across all governed capabilities by exact executable name/input before installation. The runtime compiler independently indexes each canonical marker/name/input role to one capability identity and rejects duplicate executable ownership defensively. An adversarial schema uses two different request marker types over the same executable operation and is rejected; the production elevated runtime compiles exactly four roles and resolves the exact typed request role. |
 
 ## Phase 7.1 closure evidence
 
@@ -620,6 +621,36 @@ R7.12 and Q7.62 remain open. This checkpoint installs transition vocabulary and
 role identity only; it does not yet execute request, approval, close, or review,
 terminate delivery after expiry or revocation, prove exact non-reusable review,
 or expose the Bank request consumer.
+
+### Phase 7.6 lifecycle authority-index checkpoint
+
+The sixth Phase 7.6 checkpoint closes Q7.67 without claiming a transition.
+Lifecycle role identity is no longer merely embedded in each governed
+capability. Declaration closure enforces one owner for every executable
+operation name/input pair across the complete schema, including when two Rust
+marker types attempt to alias the same installed operation. This is the
+earliest boundary that sees all candidate owners and therefore prevents a
+mixed or competing lifecycle from reaching installation.
+
+Execution cold compilation retains an exact marker/name/input role index from
+request, approve, revoke, and complete-review operations to the canonical
+owning capability identity. The index is built once beside the installed
+capability plans; warm progression will consume it without scanning contracts,
+rebuilding canonical identity, or asking Bank to classify an operation.
+Consumers receive only the aggregate compilation count, not a forgeable role
+or capability-authority surface.
+
+The causal evidence is one cross-capability alias attack in declaration and
+one production runtime compilation assertion proving four roles plus exact
+typed request lookup. The existing fourteen-test elevation family remains
+green against the indexed contract. Strict affected-package Clippy,
+constitutional checks, and dirty-file structure scrutiny form the checkpoint
+delivery gate.
+
+R7.12 and Q7.62 remain open. The role index supplies the single cold authority
+needed by progression, but request, approve, active, close, review-required,
+and reviewed receipts and their exact graph mutations are not implemented by
+this checkpoint.
 
 ## Test-selection policy
 
