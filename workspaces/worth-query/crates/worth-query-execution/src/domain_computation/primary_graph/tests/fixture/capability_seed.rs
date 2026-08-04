@@ -6,20 +6,20 @@ use crate::domain_computation::primary_graph::{
 };
 
 pub(super) fn bind_grant(bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>) {
-    bind_grant_window(bootstrap, "capability-1", 90, 110);
+    bind_grant_window(bootstrap, "capability-1", 90, 110, 50);
 }
 
 pub(super) fn bind_future_replacement_grant(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
 ) {
-    bind_grant_window(bootstrap, "capability-2", 111, 200);
+    bind_grant_window(bootstrap, "capability-2", 111, 200, 50);
 }
 
 pub(super) fn bind_delegated_grants(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
 ) {
-    bind_delegation_root(bootstrap, "capability-grandparent", 80, 120, 3);
-    bind_grant_entity(bootstrap, "capability-parent", 90, 110, 2);
+    bind_delegation_root(bootstrap, "capability-grandparent", 80, 120, 3, 100);
+    bind_grant_entity(bootstrap, "capability-parent", 90, 110, 2, 75);
     bind_actor_relation(
         bootstrap,
         CapabilityGrantee::reference(),
@@ -35,11 +35,12 @@ pub(super) fn bind_delegated_grants(
         "capability-parent",
     );
     bind_resource(bootstrap, "capability-parent", "account-1");
+    bind_related(bootstrap, "capability-parent", "account-2");
     bind_parent(bootstrap, "capability-parent", "capability-grandparent");
 
-    bind_delegation_root(bootstrap, "capability-alternate", 70, 130, 4);
+    bind_delegation_root(bootstrap, "capability-alternate", 70, 130, 4, 100);
 
-    bind_grant_entity(bootstrap, "capability-child", 95, 105, 1);
+    bind_grant_entity(bootstrap, "capability-child", 95, 105, 1, 50);
     bind_actor_relation(
         bootstrap,
         CapabilityGrantee::reference(),
@@ -62,6 +63,7 @@ pub(super) fn bind_delegated_grants(
         "capability-child",
     );
     bind_resource(bootstrap, "capability-child", "account-1");
+    bind_related(bootstrap, "capability-child", "account-2");
     bind_parent(bootstrap, "capability-child", "capability-parent");
 }
 
@@ -71,8 +73,9 @@ fn bind_delegation_root(
     not_before: u64,
     not_after: u64,
     remaining: u64,
+    amount: u64,
 ) {
-    bind_grant_entity(bootstrap, grant, not_before, not_after, remaining);
+    bind_grant_entity(bootstrap, grant, not_before, not_after, remaining, amount);
     bind_actor_relation(
         bootstrap,
         CapabilityGrantee::reference(),
@@ -88,6 +91,7 @@ fn bind_delegation_root(
         grant,
     );
     bind_resource(bootstrap, grant, "account-1");
+    bind_related(bootstrap, grant, "account-2");
 }
 
 fn bind_grant_window(
@@ -95,8 +99,9 @@ fn bind_grant_window(
     key: &str,
     not_before: u64,
     not_after: u64,
+    amount: u64,
 ) {
-    bind_grant_entity(bootstrap, key, not_before, not_after, 0);
+    bind_grant_entity(bootstrap, key, not_before, not_after, 0, amount);
     bind_actor_relation(
         bootstrap,
         CapabilityGrantee::reference(),
@@ -112,6 +117,7 @@ fn bind_grant_window(
         key,
     );
     bind_resource(bootstrap, key, "account-1");
+    bind_related(bootstrap, key, "account-2");
 }
 
 fn bind_grant_entity(
@@ -120,6 +126,7 @@ fn bind_grant_entity(
     not_before: u64,
     not_after: u64,
     delegation_limit: u64,
+    amount: u64,
 ) {
     bootstrap
         .bind_entity(
@@ -141,11 +148,27 @@ fn bind_grant_entity(
             .field(CapabilityWorkflowField::reference(), "open".to_owned())
             .field(CapabilityNotBeforeField::reference(), not_before)
             .field(CapabilityNotAfterField::reference(), not_after)
+            .field(CapabilityAmountField::reference(), amount)
             .field(
                 CapabilityDelegationLimitField::reference(),
                 delegation_limit,
             ),
         )
+        .unwrap();
+}
+
+fn bind_related(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    grant: &str,
+    related: &str,
+) {
+    bootstrap
+        .bind_relation(WorthQueryApplicationRelationSeed::new(
+            CapabilityRelated::reference(),
+            format!("{grant}-related"),
+            WorthQueryApplicationEntityKey::new(grant).unwrap(),
+            WorthQueryApplicationEntityKey::new(related).unwrap(),
+        ))
         .unwrap();
 }
 

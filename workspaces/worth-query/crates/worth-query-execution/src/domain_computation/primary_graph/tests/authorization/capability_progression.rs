@@ -237,6 +237,8 @@ pub(super) fn admitted_capability_access(
             action: CapabilityAction::Touch,
             purpose: CapabilityPurpose::AccountMaintenance,
             disclosure: super::super::fixture::CapabilityDisclosure::AccountActivity,
+            related_account: "account-2".to_owned(),
+            amount: 50,
             caller_time,
         },
         request,

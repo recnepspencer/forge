@@ -39,6 +39,8 @@ pub(in crate::domain_computation::primary_graph) fn admit_touch_account_capabili
             action: CapabilityAction::Touch,
             purpose: CapabilityPurpose::AccountMaintenance,
             disclosure: CapabilityDisclosure::AccountActivity,
+            related_account: "account-2".to_owned(),
+            amount: 50,
             caller_time: 100,
         },
         request,

@@ -42,11 +42,7 @@ where
                 installed.contract.name(),
             ));
         }
-        let sample = if authorization.belongs_to_session(session_identity) {
-            self.sample_capability_time(installed)?
-        } else {
-            authorization.retained_time_sample()
-        };
+        let sample = self.sample_capability_time(installed)?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,

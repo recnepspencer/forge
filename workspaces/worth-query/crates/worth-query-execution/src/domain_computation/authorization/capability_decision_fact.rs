@@ -94,10 +94,6 @@ impl WorthQueryRetainedCapabilityAuthorization {
         self.sample.value()
     }
 
-    pub(super) fn retained_time_sample(&self) -> WorthQueryAuthorizationTimeSample {
-        self.sample.clone()
-    }
-
     pub(super) fn replace_current_decision(
         &mut self,
         capability_authority_identity: &str,
