@@ -47,9 +47,13 @@ pub(in crate::domain_computation) use decision_facts::{
 pub use denial::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-pub use elevation_progression::WorthQueryElevationApprovalAuthorizationDenial;
+pub use elevation_progression::{
+    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
+    WorthQueryMandatoryReviewAuthorizationDenial,
+};
 pub(in crate::domain_computation) use elevation_progression::{
-    WorthQueryElevationApprovalBinding, WorthQueryElevationRequestBinding,
+    WorthQueryElevationApprovalBinding, WorthQueryElevationCloseBinding,
+    WorthQueryElevationRequestBinding, WorthQueryMandatoryReviewBinding,
 };
 pub(in crate::domain_computation) use installed_policy::WorthQueryInstalledAuthorizationRegistry;
 pub use operation_scope_binding::{

@@ -21,9 +21,14 @@ use super::{
 };
 use crate::domain_computation::primary_graph::WorthQueryBoundMutationPreconditions;
 
+mod authorization_basis;
 mod elevation_approval;
+mod elevation_close;
 mod elevation_request;
 mod graph_work_inspection;
+mod mandatory_review;
+
+pub(super) use authorization_basis::WorthQueryOperationAuthorizationBasis;
 
 static NEXT_OPERATION_ADMISSION_IDENTITY: AtomicU64 = AtomicU64::new(1);
 
@@ -50,21 +55,6 @@ impl WorthQueryOperationAdmissionIdentity {
 }
 
 use super::WorthQueryOperationScopeBinding;
-
-pub(super) enum WorthQueryOperationAuthorizationBasis<Input> {
-    Conventional,
-    Capability {
-        input: Input,
-    },
-    ElevationRequest {
-        input: Input,
-        binding: super::WorthQueryElevationRequestBinding,
-    },
-    ElevationApproval {
-        input: Input,
-        binding: super::WorthQueryElevationApprovalBinding,
-    },
-}
 
 /// Query-owned proof that one installed operation was authorized for one exact
 /// current principal and typed scope.
@@ -246,12 +236,11 @@ impl<Schema, Operation, Input, Scope>
     }
 
     pub const fn capability_input(&self) -> Option<&Input> {
-        match &self.authorization_basis {
-            WorthQueryOperationAuthorizationBasis::Conventional => None,
-            WorthQueryOperationAuthorizationBasis::Capability { input }
-            | WorthQueryOperationAuthorizationBasis::ElevationRequest { input, .. }
-            | WorthQueryOperationAuthorizationBasis::ElevationApproval { input, .. } => Some(input),
-        }
+        self.authorization_basis.capability_input()
+    }
+
+    pub(in crate::domain_computation) const fn has_elevation_lifecycle_binding(&self) -> bool {
+        self.authorization_basis.is_elevation_lifecycle()
     }
 
     pub fn installed_capability_authority_identity(&self) -> Option<&str> {

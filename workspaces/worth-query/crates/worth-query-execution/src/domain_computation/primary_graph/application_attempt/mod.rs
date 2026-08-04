@@ -5,11 +5,17 @@ mod effect_program;
 mod effect_validation;
 mod elevation_approval_outcome;
 mod elevation_approval_program;
+mod elevation_close_outcome;
+mod elevation_close_program;
+mod elevation_lifecycle_effects;
+mod elevation_lifecycle_facts;
 mod elevation_request_outcome;
 mod elevation_request_program;
 mod fact;
 mod idempotency;
 mod idempotency_resolution;
+mod mandatory_review_outcome;
+mod mandatory_review_program;
 mod observation;
 pub(in crate::domain_computation::primary_graph) mod precondition_binding;
 mod provider_binding;
@@ -43,6 +49,12 @@ pub use elevation_approval_outcome::{
 };
 pub(super) use elevation_approval_program::validate_elevation_approval_program;
 pub use elevation_approval_program::WorthQueryElevationApprovalProgram;
+pub(super) use elevation_close_outcome::closed_outcome;
+pub use elevation_close_outcome::{
+    WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind, WorthQueryMandatoryReview,
+};
+pub(super) use elevation_close_program::validate_elevation_close_program;
+pub use elevation_close_program::WorthQueryElevationCloseProgram;
 pub(super) use elevation_request_outcome::requested_outcome;
 pub use elevation_request_outcome::{
     WorthQueryElevationRequestOutcome, WorthQueryRequestedElevation,
@@ -58,6 +70,10 @@ pub use idempotency_resolution::{
     WorthQueryApplicationIdempotencyResolution, WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind,
 };
+pub(super) use mandatory_review_outcome::reviewed_outcome;
+pub use mandatory_review_outcome::{WorthQueryMandatoryReviewOutcome, WorthQueryReviewedElevation};
+pub(super) use mandatory_review_program::validate_mandatory_review_program;
+pub use mandatory_review_program::WorthQueryMandatoryReviewProgram;
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
 pub(in crate::domain_computation) use provider_execution::application_resource_request;
 pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;

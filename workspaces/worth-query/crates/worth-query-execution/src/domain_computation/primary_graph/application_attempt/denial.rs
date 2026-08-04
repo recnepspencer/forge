@@ -21,6 +21,8 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     ElevationTransitionRequired,
     ElevationRequestProgramMismatch,
     ElevationApprovalProgramMismatch,
+    ElevationCloseProgramMismatch,
+    MandatoryReviewProgramMismatch,
 }
 
 #[derive(Debug)]

@@ -62,6 +62,62 @@ impl WorthQueryApprovedElevation {
         self.review
     }
 
+    pub const fn action(&self) -> &worth_foundational::facade::AspectValue {
+        self.requested.upper_bound.action()
+    }
+
+    pub const fn purpose(&self) -> &worth_foundational::facade::AspectValue {
+        self.requested.upper_bound.purpose()
+    }
+
+    pub const fn field(&self) -> Option<&worth_foundational::facade::AspectValue> {
+        self.requested.upper_bound.field()
+    }
+
+    pub const fn amount(&self) -> Option<&worth_foundational::facade::AspectValue> {
+        self.requested.upper_bound.amount()
+    }
+
+    pub const fn cardinality(&self) -> u32 {
+        self.requested.upper_bound.cardinality()
+    }
+
+    pub const fn reason(&self) -> &worth_foundational::facade::AspectValue {
+        &self.requested.reason
+    }
+
+    pub const fn issued_at(&self) -> &worth_foundational::facade::AspectValue {
+        &self.requested.issued_at
+    }
+
+    pub const fn expires_at(&self) -> &worth_foundational::facade::AspectValue {
+        &self.requested.expires_at
+    }
+
+    pub(in crate::domain_computation) fn belongs_to_lifecycle(
+        &self,
+        runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+        branch: &worth_relational::facade::history::BranchId,
+        capability_identity: [u8; 32],
+        capability_authority_identity: &str,
+    ) -> bool {
+        self.requested.runtime_authority == runtime_authority
+            && &self.requested.branch == branch
+            && self.requested.capability_identity == capability_identity
+            && self.requested.capability_authority_identity.as_ref()
+                == capability_authority_identity
+            && self.request_commit.terminal().branch() == branch
+            && self.approval_commit.terminal().branch() == branch
+            && self.request_commit.provider_runtime_instance_id()
+                == self.approval_commit.provider_runtime_instance_id()
+    }
+
+    pub(in crate::domain_computation) const fn request_binding(
+        &self,
+    ) -> &WorthQueryElevationRequestBinding {
+        &self.requested
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(in crate::domain_computation) fn admits_active_use(
         &self,
@@ -73,16 +129,12 @@ impl WorthQueryApprovedElevation {
         elevation: EntityId,
         grant: EntityId,
     ) -> bool {
-        self.requested.runtime_authority == runtime_authority
-            && &self.requested.branch == branch
-            && self.requested.capability_identity == capability_identity
-            && self.requested.upper_bound.capability_identity() == capability_identity
-            && self.requested.capability_authority_identity.as_ref()
-                == capability_authority_identity
-            && self.request_commit.terminal().branch() == branch
-            && self.approval_commit.terminal().branch() == branch
-            && self.request_commit.provider_runtime_instance_id()
-                == self.approval_commit.provider_runtime_instance_id()
+        self.belongs_to_lifecycle(
+            runtime_authority,
+            branch,
+            capability_identity,
+            capability_authority_identity,
+        ) && self.requested.upper_bound.capability_identity() == capability_identity
             && self.elevation == elevation
             && self
                 .requested

@@ -28,6 +28,8 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     ElevationLifecycleRoleMismatch,
     ElevationRequestRejected,
     ElevationApprovalRejected,
+    ElevationCloseRejected,
+    MandatoryReviewRejected,
     ElevationDurationExceeded,
     DelegationRejected,
     DelegationDepthExceeded,

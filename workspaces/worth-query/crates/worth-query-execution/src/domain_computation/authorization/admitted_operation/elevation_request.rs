@@ -33,9 +33,7 @@ impl<Schema, Operation, Input, Scope>
             WorthQueryOperationAuthorizationBasis::ElevationRequest { binding, .. } => {
                 Some(binding)
             }
-            WorthQueryOperationAuthorizationBasis::Conventional
-            | WorthQueryOperationAuthorizationBasis::Capability { .. }
-            | WorthQueryOperationAuthorizationBasis::ElevationApproval { .. } => None,
+            _ => None,
         }
     }
 

@@ -19,7 +19,7 @@ use super::super::{
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
     CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
     CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityGrant, CapabilityGrantor,
-    CapabilityResource, CapabilityReviewIdentity, CapabilityReviewStatusField,
+    CapabilityResource, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityReviewer,
 };
 use super::{constraints, delegation, propagation, target};
 use crate::domain_computation::primary_graph::tests::fixture::{
@@ -31,7 +31,7 @@ pub(super) fn install(
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
     let operation = ApproveCapabilityElevationOperation::reference();
     schema
-        .operation_decision_fact_budget(operation, 11)
+        .operation_decision_fact_budget(operation, 12)
         .operation_projection_work_budget(operation, 96)
         .operation_read_field(operation, CapabilityElevationIdentity::reference())
         .operation_read_field(operation, CapabilityElevationReason::reference())
@@ -44,6 +44,7 @@ pub(super) fn install(
         .operation_read_relation(operation, CapabilityElevationApprover::reference())
         .operation_read_relation(operation, CapabilityElevationGrant::reference())
         .operation_read_relation(operation, CapabilityElevationReview::reference())
+        .operation_read_relation(operation, CapabilityReviewer::reference())
         .operation_write(operation, CapabilityElevationStatusField::reference())
         .operation_link(operation, CapabilityElevationApprover::reference())
         .capability(contract())

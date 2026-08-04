@@ -18,6 +18,7 @@ pub(in crate::domain_computation) struct WorthQueryElevationApprovalBinding {
     pub(in crate::domain_computation) elevation_entity: String,
     pub(in crate::domain_computation) status_field: AspectFieldLocator,
     pub(in crate::domain_computation) approver_relation: KindId,
+    pub(in crate::domain_computation) reviewer_relation: KindId,
     pub(in crate::domain_computation) required_decision_reads:
         Vec<ApplicationOperationDecisionReadTarget>,
     pub(in crate::domain_computation) required_program_targets:

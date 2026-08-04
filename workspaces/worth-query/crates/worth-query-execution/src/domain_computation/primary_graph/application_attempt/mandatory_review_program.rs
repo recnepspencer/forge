@@ -15,13 +15,9 @@ use super::{
     WorthQueryApplicationEffectProgram, WorthQueryCompleteApplicationReadSet,
     WorthQueryProjectedApplicationMutation,
 };
-use crate::domain_computation::authorization::WorthQueryElevationApprovalBinding;
+use crate::domain_computation::authorization::WorthQueryMandatoryReviewBinding;
 
-/// Exact approval mutation derived from Query-owned lifecycle authority.
-///
-/// Callers cannot construct this wrapper or choose its status, approver, or
-/// relation effects. Query derives them after re-observing the requested state.
-pub struct WorthQueryElevationApprovalProgram<Schema, Operation, Input, Scope> {
+pub struct WorthQueryMandatoryReviewProgram<Schema, Operation, Input, Scope> {
     program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
 }
 
@@ -34,19 +30,19 @@ impl<Schema, Operation, Input, Scope>
         WorthQueryProjectedApplicationMutation,
     >
 {
-    pub fn materialize_elevation_approval_program(
+    pub fn materialize_mandatory_review_program(
         self,
     ) -> Result<
-        WorthQueryElevationApprovalProgram<Schema, Operation, Input, Scope>,
+        WorthQueryMandatoryReviewProgram<Schema, Operation, Input, Scope>,
         WorthQueryApplicationAttemptDenial,
     > {
         let binding = self
             .admission
-            .elevation_approval_binding()
+            .mandatory_review_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
         validate_installed_contract(binding, &self)?;
         validate_lifecycle_facts(binding, &self.facts)?;
-        let effects = approval_effects(binding)?;
+        let effects = review_effects(binding)?;
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -60,13 +56,13 @@ impl<Schema, Operation, Input, Scope>
             emission_retained_bytes: 0,
             emission_retained_bytes_ceiling,
         };
-        validate_elevation_approval_program(&program)?;
-        Ok(WorthQueryElevationApprovalProgram { program })
+        validate_mandatory_review_program(&program)?;
+        Ok(WorthQueryMandatoryReviewProgram { program })
     }
 }
 
 impl<Schema, Operation, Input, Scope>
-    WorthQueryElevationApprovalProgram<Schema, Operation, Input, Scope>
+    WorthQueryMandatoryReviewProgram<Schema, Operation, Input, Scope>
 {
     pub(super) fn into_inner(
         self,
@@ -75,7 +71,7 @@ impl<Schema, Operation, Input, Scope>
     }
 }
 
-pub(in crate::domain_computation::primary_graph) fn validate_elevation_approval_program<
+pub(in crate::domain_computation::primary_graph) fn validate_mandatory_review_program<
     Schema,
     Operation,
     Input,
@@ -86,11 +82,11 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_approval_
     let binding = program
         .read_set
         .admission
-        .elevation_approval_binding()
+        .mandatory_review_binding()
         .ok_or_else(|| transition_required(program.read_set.admission.operation()))?;
     validate_installed_contract(binding, &program.read_set)?;
     validate_lifecycle_facts(binding, &program.read_set.facts)?;
-    let expected = approval_effects(binding)?;
+    let expected = review_effects(binding)?;
     if lifecycle_effects_are_exact(&program.effects, &expected)
         && program.emission_retained_bytes == 0
         && expected.len() == 2
@@ -102,7 +98,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_approval_
 }
 
 fn validate_installed_contract<Schema, Operation, Input, Scope>(
-    binding: &WorthQueryElevationApprovalBinding,
+    binding: &WorthQueryMandatoryReviewBinding,
     read_set: &WorthQueryCompleteApplicationReadSet<
         Schema,
         Operation,
@@ -112,6 +108,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
     >,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
     let expected_reads = binding
+        .draft
         .required_decision_reads
         .iter()
         .collect::<BTreeSet<_>>();
@@ -122,6 +119,7 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .iter()
         .collect::<BTreeSet<_>>();
     let expected_targets = binding
+        .draft
         .required_program_targets
         .iter()
         .collect::<BTreeSet<_>>();
@@ -131,29 +129,30 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         .program()
         .iter()
         .collect::<BTreeSet<_>>();
-    if expected_reads.len() == binding.required_decision_reads.len()
+    if expected_reads.len() == binding.draft.required_decision_reads.len()
         && expected_reads == installed_reads
-        && expected_targets.len() == binding.required_program_targets.len()
+        && expected_targets.len() == binding.draft.required_program_targets.len()
         && expected_targets == installed_targets
     {
         Ok(())
     } else {
-        Err(program_mismatch("elevation approval operation contract"))
+        Err(program_mismatch("mandatory review operation contract"))
     }
 }
 
 fn validate_lifecycle_facts(
-    binding: &WorthQueryElevationApprovalBinding,
+    binding: &WorthQueryMandatoryReviewBinding,
     facts: &[super::WorthQueryApplicationObservedFact],
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let requested = &binding.requested;
+    let approved = binding.mandatory.approved();
+    let requested = approved.request_binding();
     if lifecycle_facts_are_exact(
         facts,
         WorthQueryElevationLifecycleFactExpectation {
-            elevation: binding.elevation,
-            review: binding.review,
+            elevation: binding.draft.elevation,
+            review: binding.draft.review,
             requester: requested.requester(),
-            approver: WorthQueryExpectedLifecycleRelation::Absent,
+            approver: WorthQueryExpectedLifecycleRelation::Present(approved.approver()),
             grant: requested.grant(),
             reviewer: WorthQueryExpectedLifecycleRelation::Absent,
             elevation_identity: (
@@ -161,7 +160,7 @@ fn validate_lifecycle_facts(
                 &requested.elevation_identity,
             ),
             reason: (&requested.reason_field, &requested.reason),
-            status: (&requested.status_field, &requested.requested_status),
+            status: (&requested.status_field, &binding.draft.terminal_status),
             not_before: (&requested.not_before_field, &requested.issued_at),
             not_after: (&requested.not_after_field, &requested.expires_at),
             review_identity: (&requested.review_identity_field, &requested.review_identity),
@@ -170,40 +169,44 @@ fn validate_lifecycle_facts(
                 &requested.review_required_status,
             ),
             requester_relation: requested.requester_relation,
-            approver_relation: binding.approver_relation,
+            approver_relation: binding.draft.approver_relation,
             grant_relation: requested.grant_relation,
             review_relation: requested.review_relation,
-            reviewer_relation: binding.reviewer_relation,
+            reviewer_relation: binding.draft.reviewer_relation,
         },
     ) {
         Ok(())
     } else {
-        Err(program_mismatch("requested elevation lifecycle facts"))
+        Err(program_mismatch("closed elevation review facts"))
     }
 }
 
-fn approval_effects(
-    binding: &WorthQueryElevationApprovalBinding,
+fn review_effects(
+    binding: &WorthQueryMandatoryReviewBinding,
 ) -> Result<Vec<WorthQueryApplicationRealizedEffect>, WorthQueryApplicationAttemptDenial> {
-    let fields = BTreeMap::from([(
-        binding.status_field.clone(),
-        binding.approved_status.clone(),
-    )]);
     let key = canonical_key(
-        binding.requested.elevation_key.clone(),
-        "elevation approval",
+        binding
+            .mandatory
+            .approved()
+            .request_binding()
+            .review_key
+            .clone(),
+        "mandatory review",
     )?;
     Ok(vec![
         WorthQueryApplicationRealizedEffect::UpdateEntity {
-            entity: binding.elevation_entity.clone(),
-            entity_id: binding.elevation,
-            fields,
+            entity: binding.draft.review_entity.clone(),
+            entity_id: binding.draft.review,
+            fields: BTreeMap::from([(
+                binding.draft.review_status_field.clone(),
+                binding.draft.completed_status.clone(),
+            )]),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
-            kind: binding.approver_relation,
+            kind: binding.draft.reviewer_relation,
             key,
-            from: EntityReference::Existing(binding.approver),
-            to: EntityReference::Existing(binding.elevation),
+            from: EntityReference::Existing(binding.draft.reviewer),
+            to: EntityReference::Existing(binding.draft.review),
         },
     ])
 }
@@ -217,7 +220,7 @@ fn transition_required(subject: impl Into<String>) -> WorthQueryApplicationAttem
 
 fn program_mismatch(subject: impl Into<String>) -> WorthQueryApplicationAttemptDenial {
     denial(
-        WorthQueryApplicationAttemptDenialKind::ElevationApprovalProgramMismatch,
+        WorthQueryApplicationAttemptDenialKind::MandatoryReviewProgramMismatch,
         subject,
     )
 }

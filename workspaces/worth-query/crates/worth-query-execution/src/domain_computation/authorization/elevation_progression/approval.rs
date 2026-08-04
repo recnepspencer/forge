@@ -2,8 +2,7 @@ use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
-    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget, ApplicationSchema,
-    WorthQueryInstalledApplicationOperation,
+    ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
 use super::super::capability_operation_progression::progress_capability_operation;
@@ -16,6 +15,7 @@ use super::super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 use super::approval_binding::WorthQueryElevationApprovalBinding;
+use super::transition_contract::{approval_program_targets, lifecycle_decision_reads};
 use crate::domain_computation::primary_graph::{
     resolve_at_snapshot, WorthQueryPrimaryGraphApplicationRuntime,
     WorthQueryPrincipalResolutionMode, WorthQueryRequestedElevation,
@@ -124,7 +124,6 @@ where
             .identity(),
         &requested_binding.elevation_identity,
     )? != elevation
-        || access.principal_entity_id == requested_binding.requester()
     {
         return Err(approval_rejected(installed.contract.name()));
     }
@@ -139,8 +138,9 @@ where
         elevation_entity: elevation_definition.status().entity().to_string(),
         status_field: lifecycle.lifecycle.status.clone(),
         approver_relation: lifecycle.lifecycle.approver_relation,
-        required_decision_reads: required_decision_reads(installed),
-        required_program_targets: required_program_targets(installed),
+        reviewer_relation: lifecycle.lifecycle.reviewer_relation,
+        required_decision_reads: lifecycle_decision_reads(installed),
+        required_program_targets: approval_program_targets(installed),
     })
 }
 
@@ -295,64 +295,6 @@ where
             installed.contract.name(),
         )),
     }
-}
-
-fn required_decision_reads(
-    installed: &WorthQueryInstalledCapabilityPlan,
-) -> Vec<ApplicationOperationDecisionReadTarget> {
-    let elevation = installed.contract.elevation().definition().unwrap();
-    let review = elevation.review();
-    let mut reads = [
-        elevation.identity(),
-        elevation.reason(),
-        elevation.status(),
-        elevation.validity().not_before(),
-        elevation.validity().not_after(),
-        review.identity(),
-        review.status(),
-    ]
-    .into_iter()
-    .map(|field| ApplicationOperationDecisionReadTarget::Field {
-        entity: field.entity().to_string(),
-        aspect: field.aspect().to_string(),
-        field: field.field().to_string(),
-    })
-    .collect::<Vec<_>>();
-    reads.extend(
-        [
-            elevation.requester(),
-            elevation.approver(),
-            elevation.grant(),
-            review.relation(),
-        ]
-        .into_iter()
-        .map(
-            |relation| ApplicationOperationDecisionReadTarget::Relation {
-                relation: relation.relation().to_string(),
-                from: relation.from().to_string(),
-                to: relation.to().to_string(),
-            },
-        ),
-    );
-    reads
-}
-
-fn required_program_targets(
-    installed: &WorthQueryInstalledCapabilityPlan,
-) -> Vec<ApplicationOperationProgramTarget> {
-    let elevation = installed.contract.elevation().definition().unwrap();
-    vec![
-        ApplicationOperationProgramTarget::Write {
-            entity: elevation.status().entity().to_string(),
-            aspect: elevation.status().aspect().to_string(),
-            field: elevation.status().field().to_string(),
-        },
-        ApplicationOperationProgramTarget::Link {
-            relation: elevation.approver().relation().to_string(),
-            from: elevation.approver().from().to_string(),
-            to: elevation.approver().to().to_string(),
-        },
-    ]
 }
 
 fn approval_denial(
