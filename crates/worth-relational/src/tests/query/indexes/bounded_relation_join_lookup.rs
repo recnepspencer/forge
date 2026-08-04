@@ -34,12 +34,50 @@ fn relation_join_isolates_both_exact_endpoints_and_certifies_storage_parity() {
 
     assert_eq!(production.candidate_entity_ids(), &[selected]);
     assert_eq!(production.examined_entry_count(), 1);
+    assert_eq!(production.verified_entity_record_count(), 3);
+    assert_eq!(production.verified_relation_record_count(), 2);
     assert!(!production.overflowed());
     assert_eq!(
         production.candidate_entity_ids(),
         certified.candidate_entity_ids()
     );
     assert_eq!(production.overflowed(), certified.overflowed());
+}
+
+#[test]
+fn relation_join_certification_rejects_a_missing_candidate() {
+    let mut runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&mut runtime, "left");
+    let right = create_entity(&mut runtime, "right");
+    let selected = create_entity(&mut runtime, "selected");
+    bind_chain(&mut runtime, left, selected, right, "selected");
+    let index = register_relation_join(&mut runtime, 84);
+    build_current_generation(&mut runtime, index.index_id);
+    let key = RelationJoinKey::new(left, right);
+    let generation = runtime
+        .indexes
+        .generations
+        .get_mut(&index.index_id)
+        .and_then(|generations| generations.last_mut())
+        .unwrap();
+    let DerivedIndexEntries::RelationJoin(entries) = &mut generation.entries else {
+        panic!("relation join generation expected");
+    };
+    entries.remove(&key);
+    let snapshot = runtime.visibility_authority().snapshot();
+
+    let denial = runtime
+        .index_access()
+        .execute_bounded_relation_join_lookup(
+            join_request(snapshot, index.index_id, left, right, 2),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        denial.kind(),
+        BoundedRelationJoinLookupDenialKind::StorageParityMismatch
+    );
 }
 
 #[test]

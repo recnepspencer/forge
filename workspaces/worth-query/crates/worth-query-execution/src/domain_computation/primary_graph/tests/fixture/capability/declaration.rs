@@ -9,9 +9,9 @@ use worth_query_declaration::facade::{
 };
 use worth_query_declaration::{
     worth_query_aspect, worth_query_capability, worth_query_capability_context,
-    worth_query_capability_provenance, worth_query_entity, worth_query_field,
-    worth_query_operation, worth_query_operation_reads, worth_query_operation_writes,
-    worth_query_relation,
+    worth_query_capability_context_entity_slot, worth_query_capability_provenance,
+    worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_reads,
+    worth_query_operation_writes, worth_query_relation,
 };
 
 use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal};
@@ -124,6 +124,16 @@ worth_query_field!(
     pub CapabilityDelegationLimitField in IdentityExecutionSchema, CapabilityGrant, CapabilityFacts:
     u64, read_write, no_equality
 );
+worth_query_entity!(pub CapabilityActionRecord in IdentityExecutionSchema);
+worth_query_aspect!(
+    pub CapabilityActionRecordFacts in IdentityExecutionSchema,
+    CapabilityActionRecord
+);
+worth_query_field!(
+    pub CapabilityActionRecordIdentity in IdentityExecutionSchema,
+    CapabilityActionRecord, CapabilityActionRecordFacts:
+    String, read_only, equality
+);
 worth_query_relation!(
     pub CapabilityGrantee in IdentityExecutionSchema,
     Principal => CapabilityGrant
@@ -158,13 +168,25 @@ worth_query_relation!(
 );
 worth_query_relation!(
     pub CapabilityRequestActor in IdentityExecutionSchema,
-    Principal => Account
+    Principal => CapabilityActionRecord
 );
 worth_query_relation!(
     pub CapabilityPriorActor in IdentityExecutionSchema,
-    Principal => Account
+    Principal => CapabilityActionRecord
+);
+worth_query_relation!(
+    pub CapabilityActionResource in IdentityExecutionSchema,
+    CapabilityActionRecord => Account
 );
 worth_query_capability_context!(pub CapabilityRequestContext in IdentityExecutionSchema);
+worth_query_capability_context_entity_slot!(
+    pub CapabilityRequestActorSlot in IdentityExecutionSchema,
+    CapabilityRequestContext => CapabilityActionRecord
+);
+worth_query_capability_context_entity_slot!(
+    pub CapabilityPriorActorSlot in IdentityExecutionSchema,
+    CapabilityRequestContext => CapabilityActionRecord
+);
 worth_query_capability_provenance!(pub CapabilityProvenance in IdentityExecutionSchema);
 worth_query_capability!(pub TouchAccountCapability in IdentityExecutionSchema);
 worth_query_capability!(pub ComposedTouchAccountCapability in IdentityExecutionSchema);
@@ -176,6 +198,8 @@ pub struct CapabilityTouchInput {
     pub purpose: CapabilityPurpose,
     pub disclosure: CapabilityDisclosure,
     pub related_account: String,
+    pub request_record: String,
+    pub prior_record: String,
     pub amount: u64,
     pub caller_time: u64,
 }
@@ -203,7 +227,9 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapabilit
         ApplicationCapabilityRequestProjection<IdentityExecutionSchema, Self::Scope, Self::Context>,
         ApplicationCapabilityRequestProjectionDenial,
     > {
-        self.project_capability_request()
+        self.project_capability_request(ApplicationCapabilityRequestContext::new(
+            CapabilityRequestContext::reference(),
+        ))
     }
 }
 
@@ -219,13 +245,33 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, ComposedTouchAccountC
         ApplicationCapabilityRequestProjection<IdentityExecutionSchema, Self::Scope, Self::Context>,
         ApplicationCapabilityRequestProjectionDenial,
     > {
-        self.project_capability_request()
+        self.project_capability_request(
+            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference())
+                .entity(
+                    CapabilityRequestActorSlot::reference(),
+                    ApplicationCapabilityEntitySelector::new(
+                        CapabilityActionRecordIdentity::reference(),
+                        self.request_record.clone(),
+                    ),
+                )
+                .entity(
+                    CapabilityPriorActorSlot::reference(),
+                    ApplicationCapabilityEntitySelector::new(
+                        CapabilityActionRecordIdentity::reference(),
+                        self.prior_record.clone(),
+                    ),
+                ),
+        )
     }
 }
 
 impl CapabilityTouchInput {
     fn project_capability_request(
         &self,
+        context: ApplicationCapabilityRequestContext<
+            IdentityExecutionSchema,
+            CapabilityRequestContext,
+        >,
     ) -> Result<
         ApplicationCapabilityRequestProjection<
             IdentityExecutionSchema,
@@ -241,7 +287,7 @@ impl CapabilityTouchInput {
             ),
             self.action,
             self.purpose,
-            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()),
+            context,
         )
         .related_entity(ApplicationCapabilityRelatedEntitySelector::new(
             CapabilityRelated::reference(),

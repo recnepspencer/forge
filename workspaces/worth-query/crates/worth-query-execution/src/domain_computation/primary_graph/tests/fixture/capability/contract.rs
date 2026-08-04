@@ -10,12 +10,12 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
         ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
         ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPropagationComposition,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
-        ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+        ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::{
         ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
@@ -81,6 +81,15 @@ fn install_grant_facts(
             CapabilityGrant::reference(),
             CapabilityDelegationLimitField::reference(),
         )
+        .entity(CapabilityActionRecord::reference())
+        .aspect(
+            CapabilityActionRecord::reference(),
+            CapabilityActionRecordFacts::reference(),
+        )
+        .field(
+            CapabilityActionRecord::reference(),
+            CapabilityActionRecordIdentity::reference(),
+        )
 }
 
 fn install_grant_relations(
@@ -130,11 +139,16 @@ fn install_grant_relations(
         .relation(
             CapabilityRequestActor::reference(),
             Principal::reference(),
-            Account::reference(),
+            CapabilityActionRecord::reference(),
         )
         .relation(
             CapabilityPriorActor::reference(),
             Principal::reference(),
+            CapabilityActionRecord::reference(),
+        )
+        .relation(
+            CapabilityActionResource::reference(),
+            CapabilityActionRecord::reference(),
             Account::reference(),
         )
 }
@@ -144,6 +158,8 @@ fn install_capability_operations(
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
     schema
         .capability_context(CapabilityRequestContext::reference())
+        .capability_context_entity_slot(CapabilityRequestActorSlot::reference())
+        .capability_context_entity_slot(CapabilityPriorActorSlot::reference())
         .capability_provenance(CapabilityProvenance::reference())
         .operation(CapabilityTouchOperation::reference())
         .operation_decision_fact_budget(CapabilityTouchOperation::reference(), 1)
@@ -300,14 +316,29 @@ fn composed_capability_composition() -> ApplicationCapabilityComposition {
     let conflict = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
         .forward(CapabilityConflictingBeneficiary::reference())
         .deny(Account::reference());
-    let request_actor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
-        .forward(CapabilityRequestActor::reference())
-        .deny(Account::reference());
-    let prior_actor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
-        .forward(CapabilityPriorActor::reference())
-        .deny(Account::reference());
+    let request_actor = ApplicationCapabilityGraphClause::new(
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .forward(CapabilityRequestActor::reference())
+            .forward(CapabilityActionResource::reference())
+            .deny(Account::reference()),
+    )
+    .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
+        CapabilityRequestActor::reference(),
+        CapabilityRequestActorSlot::reference(),
+    )]);
+    let prior_actor = ApplicationCapabilityGraphClause::new(
+        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+            .forward(CapabilityPriorActor::reference())
+            .forward(CapabilityActionResource::reference())
+            .deny(Account::reference()),
+    )
+    .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
+        CapabilityPriorActor::reference(),
+        CapabilityPriorActorSlot::reference(),
+    )]);
     let graph =
         |path| ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(path)]);
+    let anchored_graph = |clause| ApplicationCapabilityGraphRule::any([clause]);
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(graph(assignment)),
@@ -315,8 +346,8 @@ fn composed_capability_composition() -> ApplicationCapabilityComposition {
             ApplicationCapabilityConflictRule::when(graph(conflict)),
         ),
         ApplicationCapabilityActorComposition::new(
-            ApplicationCapabilitySeparationOfDutyRule::when(graph(request_actor)),
-            ApplicationCapabilityDistinctActorRule::when(graph(prior_actor)),
+            ApplicationCapabilitySeparationOfDutyRule::when(anchored_graph(request_actor)),
+            ApplicationCapabilityDistinctActorRule::when(anchored_graph(prior_actor)),
         ),
         capability_propagation(),
     )

@@ -240,6 +240,8 @@ pub(super) fn admitted_capability_access(
             related_account: "account-2".to_owned(),
             amount: 50,
             caller_time,
+            request_record: "selected-request".to_owned(),
+            prior_record: "selected-prior".to_owned(),
         },
         request,
     )

@@ -42,6 +42,8 @@ pub(in crate::domain_computation::primary_graph) fn admit_touch_account_capabili
             related_account: "account-2".to_owned(),
             amount: 50,
             caller_time: 100,
+            request_record: "selected-request".to_owned(),
+            prior_record: "selected-prior".to_owned(),
         },
         request,
     )

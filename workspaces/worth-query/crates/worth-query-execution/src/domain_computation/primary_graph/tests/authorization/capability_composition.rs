@@ -8,7 +8,9 @@ use super::super::fixture::{
     CapabilityAction, CapabilityCompositionScenario, CapabilityDisclosure, CapabilityPurpose,
     CapabilityTouchInput, IdentityExecutionSchema, Principal,
 };
-use super::capability_composition_mutation::{add_policy_relation, remove_policy_relation};
+use super::capability_composition_mutation::{
+    add_action_policy_relation, add_policy_relation, remove_policy_relation,
+};
 use super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryApplicationCommitDenialKind,
@@ -72,6 +74,17 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
 }
 
 #[test]
+fn unrelated_actor_records_do_not_poison_the_selected_transition() {
+    let mut world =
+        installed_composed_capability_world(CapabilityCompositionScenario::UnrelatedActorRecords);
+    world.application.script_authorization_time([time(100)]);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+
+    admit_composed_access(&world, &principal, &request).unwrap();
+}
+
+#[test]
 fn required_assignment_loss_denies_at_operation_progression() {
     let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
     world
@@ -115,10 +128,11 @@ fn new_prior_actor_denies_final_commit_before_effect_authority() {
     let principal = authenticated_principal(&world, &request);
     let program = composed_program(&world, &principal, &request);
 
-    add_policy_relation(
+    add_action_policy_relation(
         &world,
         CapabilityPriorActor::reference(),
         "late-prior-actor",
+        "selected-prior",
     );
 
     let WorthQueryApplicationCommitOutcome::Denied(denial) = world
@@ -221,5 +235,7 @@ fn composed_input() -> CapabilityTouchInput {
         related_account: "account-2".to_owned(),
         amount: 50,
         caller_time: 100,
+        request_record: "selected-request".to_owned(),
+        prior_record: "selected-prior".to_owned(),
     }
 }

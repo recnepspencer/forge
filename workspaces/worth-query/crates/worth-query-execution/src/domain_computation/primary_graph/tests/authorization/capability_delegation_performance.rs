@@ -23,7 +23,22 @@ fn warm_work_has_an_exact_per_link_slope() {
     let one_link = admission_work(installed_delegated_capability_world_at_depth(1));
     let two_links = admission_work(installed_delegated_capability_world_at_depth(2));
 
-    assert_eq!(root.relational.paths_evaluated, 6);
+    assert_eq!(
+        root.relational,
+        RelationalAuthorizationObservationCounters {
+            paths_evaluated: 6,
+            adjacency_lists_read: 11,
+            adjacency_edges_inspected: 10,
+            relation_records_inspected: 12,
+            entity_records_inspected: 35,
+            predicate_fields_inspected: 18,
+            relation_join_index_lookups: 1,
+            relation_join_candidates_inspected: 1,
+            maximum_frontier_width: 1,
+            reconstructive_graph_scans: 0,
+            reconstructive_relation_records_scanned: 0,
+        }
+    );
     assert_eq!(one_link.relational.paths_evaluated, 13);
     assert_eq!(two_links.relational.paths_evaluated, 20);
     assert_same_link_delta(root, one_link, two_links);

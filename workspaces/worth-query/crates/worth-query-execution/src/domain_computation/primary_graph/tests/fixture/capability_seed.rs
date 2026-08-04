@@ -1,81 +1,18 @@
 use super::capability::*;
-use super::{Account, IdentityExecutionSchema, Principal};
+use super::{IdentityExecutionSchema, Principal};
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityKey, WorthQueryApplicationEntitySeed,
     WorthQueryApplicationRelationSeed, WorthQueryPrimaryGraphBootstrap,
 };
 
+#[path = "capability_seed/composition.rs"]
+mod composition;
+
+pub(super) use composition::bind_composed_grant;
+pub(in crate::domain_computation::primary_graph) use composition::CapabilityCompositionScenario;
+
 pub(super) fn bind_grant(bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>) {
     bind_grant_window(bootstrap, "capability-1", 90, 110, 50);
-}
-
-#[derive(Clone, Copy, Debug)]
-pub(in crate::domain_computation::primary_graph) enum CapabilityCompositionScenario {
-    Lawful,
-    MissingAssignment,
-    ExplicitDeny,
-    ConflictingBeneficiary,
-    RequestActor,
-    PriorActor,
-    AccumulatedProhibitions,
-}
-
-pub(super) fn bind_composed_grant(
-    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
-    scenario: CapabilityCompositionScenario,
-) {
-    bind_grant(bootstrap);
-    if !matches!(scenario, CapabilityCompositionScenario::MissingAssignment) {
-        bind_account_actor(
-            bootstrap,
-            super::AccountOwner::reference(),
-            "composed-assignment",
-        );
-    }
-    if matches!(
-        scenario,
-        CapabilityCompositionScenario::ExplicitDeny
-            | CapabilityCompositionScenario::AccumulatedProhibitions
-    ) {
-        bind_account_actor(
-            bootstrap,
-            CapabilityExplicitDeny::reference(),
-            "composed-explicit-deny",
-        );
-    }
-    if matches!(
-        scenario,
-        CapabilityCompositionScenario::ConflictingBeneficiary
-            | CapabilityCompositionScenario::AccumulatedProhibitions
-    ) {
-        bind_account_actor(
-            bootstrap,
-            CapabilityConflictingBeneficiary::reference(),
-            "composed-conflicting-beneficiary",
-        );
-    }
-    if matches!(
-        scenario,
-        CapabilityCompositionScenario::RequestActor
-            | CapabilityCompositionScenario::AccumulatedProhibitions
-    ) {
-        bind_account_actor(
-            bootstrap,
-            CapabilityRequestActor::reference(),
-            "composed-request-actor",
-        );
-    }
-    if matches!(
-        scenario,
-        CapabilityCompositionScenario::PriorActor
-            | CapabilityCompositionScenario::AccumulatedProhibitions
-    ) {
-        bind_account_actor(
-            bootstrap,
-            CapabilityPriorActor::reference(),
-            "composed-prior-actor",
-        );
-    }
 }
 
 pub(super) fn bind_future_replacement_grant(
@@ -307,26 +244,6 @@ pub(super) fn bind_actor_relation<Relation>(
             key,
             WorthQueryApplicationEntityKey::new(principal).unwrap(),
             WorthQueryApplicationEntityKey::new(grant).unwrap(),
-        ))
-        .unwrap();
-}
-
-fn bind_account_actor<Relation>(
-    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
-    relation: worth_query_declaration::facade::application_schema::ApplicationRelationRef<
-        IdentityExecutionSchema,
-        Relation,
-        Principal,
-        Account,
-    >,
-    key: &str,
-) {
-    bootstrap
-        .bind_relation(WorthQueryApplicationRelationSeed::new(
-            relation,
-            key,
-            WorthQueryApplicationEntityKey::new("principal-0").unwrap(),
-            WorthQueryApplicationEntityKey::new("account-1").unwrap(),
         ))
         .unwrap();
 }
