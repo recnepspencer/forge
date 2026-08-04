@@ -1,17 +1,19 @@
 use bank_domain::{
-    estate::{CapabilityGrantStatus, RestrictedBankField},
+    estate::{CapabilityGrantStatus, EmergencyAccessStatus, RestrictedBankField},
     schema::{
         ApproveEstateEmergencyAccessCapability, ApproveEstateEmergencyAccessOperation,
         CompleteEstateMandatoryReviewCapability, CompleteEstateMandatoryReviewOperation,
         RecognizeEstateExecutorCapability, RecognizeEstateExecutorOperation,
         RequestEstateEmergencyAccessCapability, RequestEstateEmergencyAccessOperation,
-        ViewEstateAdministrationCapability, ViewRestrictedEstateOperation,
+        ViewEstateAdministrationCapability, ViewEstateEmergencyProtectionCapability,
+        ViewRestrictedEstateOperation,
     },
 };
 use worth_query_host::facade::{
     declaration::{
         application_capability::{
             ApplicationCapabilityDisclosureRule, ApplicationCapabilityGraphRule,
+            ApplicationCapabilityValidityTimeline,
         },
         application_schema::TypedApplicationValue,
     },
@@ -134,6 +136,39 @@ fn emergency_approval_contract_installs_conflict_and_requester_separation() {
         composition.propagation().disclosure(),
         ApplicationCapabilityDisclosureRule::NotApplicable
     ));
+}
+
+#[test]
+fn emergency_view_installs_expired_posture_and_its_own_validity_window() {
+    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
+    let capability = bank
+        .capability(
+            ViewEstateEmergencyProtectionCapability::reference(),
+            ViewRestrictedEstateOperation::reference(),
+        )
+        .unwrap();
+    let elevation = capability
+        .contract()
+        .elevation()
+        .definition()
+        .expect("emergency protection view is elevation governed");
+
+    assert_eq!(
+        elevation.states().expired().value(),
+        &EmergencyAccessStatus::Expired.into_foundational_value()
+    );
+    assert_eq!(
+        elevation.validity().timeline(),
+        ApplicationCapabilityValidityTimeline::UnixEpochSeconds
+    );
+    assert_eq!(
+        elevation.validity().not_before().field(),
+        "EmergencyAccessIssuedAtField"
+    );
+    assert_eq!(
+        elevation.validity().not_after().field(),
+        "EmergencyAccessExpiresAtField"
+    );
 }
 
 #[test]

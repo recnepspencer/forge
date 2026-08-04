@@ -20,6 +20,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     ElevationRequired,
     ElevationNotApplicable,
     ElevationProjectionRejected,
+    ElevationExpired,
     ElevationInactive,
     ElevationSelfApproval,
     ElevationApproverConflict,

@@ -21,6 +21,7 @@ pub enum CapabilityElevationStatus {
     Requested,
     Approved,
     Active,
+    Expired,
     Revoked,
     ReviewRequired,
     Reviewed,
@@ -54,6 +55,7 @@ string_value!(CapabilityElevationStatus, {
     CapabilityElevationStatus::Requested => "requested",
     CapabilityElevationStatus::Approved => "approved",
     CapabilityElevationStatus::Active => "active",
+    CapabilityElevationStatus::Expired => "expired",
     CapabilityElevationStatus::Revoked => "revoked",
     CapabilityElevationStatus::ReviewRequired => "review-required",
     CapabilityElevationStatus::Reviewed => "reviewed"
@@ -68,6 +70,8 @@ worth_query_aspect!(pub CapabilityElevationFacts in IdentityExecutionSchema, Cap
 worth_query_field!(pub CapabilityElevationIdentity in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: String, read_only, equality);
 worth_query_field!(pub CapabilityElevationReason in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: String, read_only, no_equality);
 worth_query_field!(pub CapabilityElevationStatusField in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: CapabilityElevationStatus, read_write, no_equality);
+worth_query_field!(pub CapabilityElevationNotBefore in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: u64, read_write, no_equality);
+worth_query_field!(pub CapabilityElevationNotAfter in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: u64, read_write, no_equality);
 worth_query_entity!(pub CapabilityReview in IdentityExecutionSchema);
 worth_query_aspect!(pub CapabilityReviewFacts in IdentityExecutionSchema, CapabilityReview);
 worth_query_field!(pub CapabilityReviewIdentity in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: String, read_only, equality);

@@ -5,9 +5,9 @@ use super::{
     CapabilityGrant, CapabilityGrantIdentityField, CapabilityGrantStatusField,
     CapabilityOperationField, CapabilityPurposeField, CapabilityValidFromField,
     CapabilityValidThroughField, CapabilityWorkflowStageField, EmergencyAccess,
-    EmergencyAccessIdentityField, EmergencyAccessReasonField, EmergencyAccessStatusField,
-    MandatoryReview, MandatoryReviewIdentityField, MandatoryReviewKindField,
-    MandatoryReviewStatusField,
+    EmergencyAccessExpiresAtField, EmergencyAccessIdentityField, EmergencyAccessIssuedAtField,
+    EmergencyAccessReasonField, EmergencyAccessStatusField, MandatoryReview,
+    MandatoryReviewIdentityField, MandatoryReviewKindField, MandatoryReviewStatusField,
 };
 use crate::schema::BankSchema;
 
@@ -78,6 +78,14 @@ fn install_elevation_fields(
         .field(
             EmergencyAccess::reference(),
             EmergencyAccessStatusField::reference(),
+        )
+        .field(
+            EmergencyAccess::reference(),
+            EmergencyAccessIssuedAtField::reference(),
+        )
+        .field(
+            EmergencyAccess::reference(),
+            EmergencyAccessExpiresAtField::reference(),
         )
         .field(
             MandatoryReview::reference(),

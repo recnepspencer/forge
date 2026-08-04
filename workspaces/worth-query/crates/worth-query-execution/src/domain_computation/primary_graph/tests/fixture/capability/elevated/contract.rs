@@ -37,12 +37,12 @@ use super::super::declaration::{
 };
 use super::{
     CapabilityElevation, CapabilityElevationApprover, CapabilityElevationFacts,
-    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationReason,
-    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatus,
-    CapabilityElevationStatusField, CapabilityReview, CapabilityReviewFacts,
-    CapabilityReviewIdentity, CapabilityReviewStatus, CapabilityReviewStatusField,
-    CapabilityReviewer, ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation,
-    ElevatedTouchAccountCapability,
+    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
+    CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
+    CapabilityElevationReview, CapabilityElevationStatus, CapabilityElevationStatusField,
+    CapabilityReview, CapabilityReviewFacts, CapabilityReviewIdentity, CapabilityReviewStatus,
+    CapabilityReviewStatusField, CapabilityReviewer, ElevatedCapabilityTouchInput,
+    ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
 };
 
 pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn install(
@@ -65,6 +65,14 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
         .field(
             CapabilityElevation::reference(),
             CapabilityElevationStatusField::reference(),
+        )
+        .field(
+            CapabilityElevation::reference(),
+            CapabilityElevationNotBefore::reference(),
+        )
+        .field(
+            CapabilityElevation::reference(),
+            CapabilityElevationNotAfter::reference(),
         )
         .entity(CapabilityReview::reference())
         .aspect(
@@ -242,9 +250,19 @@ fn elevation() -> ApplicationCapabilityElevationRule {
             state(CapabilityElevationStatus::Requested),
             state(CapabilityElevationStatus::Approved),
             state(CapabilityElevationStatus::Active),
+            state(CapabilityElevationStatus::Expired),
             state(CapabilityElevationStatus::Revoked),
             state(CapabilityElevationStatus::ReviewRequired),
             state(CapabilityElevationStatus::Reviewed),
+        ),
+        ApplicationCapabilityValidityDefinition::new(
+            ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
+            ApplicationCapabilityFieldBinding::from_reference(
+                CapabilityElevationNotBefore::reference(),
+            ),
+            ApplicationCapabilityFieldBinding::from_reference(
+                CapabilityElevationNotAfter::reference(),
+            ),
         ),
         ApplicationCapabilityRelationBinding::from_reference(
             CapabilityElevationRequester::reference(),

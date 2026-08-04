@@ -70,12 +70,28 @@ fn append_elevation(
         ("requested", elevation.states().requested()),
         ("approved", elevation.states().approved()),
         ("active", elevation.states().active()),
+        ("expired", elevation.states().expired()),
         ("revoked", elevation.states().revoked()),
         ("review-required", elevation.states().review_required()),
         ("reviewed", elevation.states().reviewed()),
     ] {
         append_value_binding(components, &format!("elevation.state.{name}"), state);
     }
+    text(
+        components,
+        "elevation.validity.timeline",
+        elevation.validity().timeline().canonical_name(),
+    );
+    append_field(
+        components,
+        "elevation.validity.not-before",
+        elevation.validity().not_before(),
+    );
+    append_field(
+        components,
+        "elevation.validity.not-after",
+        elevation.validity().not_after(),
+    );
     append_relation(components, "elevation.requester", elevation.requester());
     append_relation(components, "elevation.approver", elevation.approver());
     append_relation(components, "elevation.grant", elevation.grant());

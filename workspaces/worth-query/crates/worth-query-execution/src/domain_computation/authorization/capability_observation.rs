@@ -5,13 +5,10 @@ use std::collections::BTreeSet;
 use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityCardinalityDimension, ApplicationCapabilityRelationDimension,
 };
-use worth_relational::facade::authorization::{
-    RelationalAuthorizationEntityAnchor, RelationalAuthorizationObservationPlan,
-};
+use worth_relational::facade::authorization::RelationalAuthorizationObservationPlan;
 use worth_runtime_bridge::facade::BridgeAuthorizationRuntime;
 
 use super::capability_registry::WorthQueryInstalledCapabilityPlan;
-use super::capability_request_resolution::WorthQueryCapabilityContextKey;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
@@ -20,7 +17,9 @@ use super::{
 use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
 
 mod bridge_observation;
+mod elevation;
 mod grant_selection;
+mod path_preparation;
 
 pub(super) struct WorthQueryObservedCapabilityDecision {
     decision: WorthQueryAuthorizationDecisionFact,
@@ -64,7 +63,8 @@ pub(super) fn observe_capability_policy(
         sample,
         exact_grant,
     )?;
-    let paths = prepare_exact_policy_paths(installed, request, sample, exact_grant)?;
+    let paths =
+        path_preparation::prepare_exact_policy_paths(installed, request, sample, exact_grant)?;
     let evidence = observe_exact_policy(relational, snapshot, installed, request, paths)?;
     let bridge_evidence = evaluate_exact_policy(bridge, installed, request, &evidence)?;
     let grant = extract_exact_grant(installed, &evidence)?;
@@ -106,73 +106,6 @@ fn resolve_exact_grant(
                 .map(grant_selection::SelectedCapabilityGrant::into_parts)
         }
     }
-}
-
-fn prepare_exact_policy_paths(
-    installed: &WorthQueryInstalledCapabilityPlan,
-    request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
-    exact_grant: worth_relational::facade::identity::EntityId,
-) -> Result<
-    Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
-    WorthQueryOperationAuthorizationDenial,
-> {
-    let grant_path_index = installed.grant_witness.path_index();
-    installed
-        .paths
-        .iter()
-        .enumerate()
-        .map(|(index, template)| {
-            let plan = if index == grant_path_index {
-                grant_selection::prepare_grant_path(installed, request, sample)?
-            } else {
-                template.plan.clone()
-            };
-            let mut anchors = template
-                .context_anchors
-                .iter()
-                .map(|anchor| {
-                    let key = context_key(anchor);
-                    request
-                        .context
-                        .get(&key)
-                        .copied()
-                        .map(|entity| {
-                            RelationalAuthorizationEntityAnchor::new(
-                                anchor.ordinal,
-                                anchor.kind,
-                                entity,
-                            )
-                        })
-                        .ok_or_else(|| projection_denial(&anchor.slot))
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-            if let Some(ordinal) = template.grant_ordinal {
-                anchors.push(RelationalAuthorizationEntityAnchor::new(
-                    ordinal,
-                    installed.grant_kind,
-                    exact_grant,
-                ));
-            }
-            if !template.elevation_ordinals.is_empty() {
-                let elevation = request
-                    .elevation
-                    .ok_or_else(|| projection_denial(installed.contract.name()))?;
-                let bindings = installed
-                    .elevation
-                    .as_ref()
-                    .ok_or_else(|| invalid_policy(installed.contract.name()))?;
-                anchors.extend(template.elevation_ordinals.iter().map(|ordinal| {
-                    RelationalAuthorizationEntityAnchor::new(
-                        *ordinal,
-                        bindings.elevation_kind,
-                        elevation,
-                    )
-                }));
-            }
-            Ok(plan.with_entity_anchors(anchors))
-        })
-        .collect()
 }
 
 fn observe_exact_policy(
@@ -291,7 +224,11 @@ fn validate_projection_shape(
     let expected_context = installed
         .paths
         .iter()
-        .flat_map(|path| path.context_anchors.iter().map(context_key))
+        .flat_map(|path| {
+            path.context_anchors
+                .iter()
+                .map(path_preparation::context_key)
+        })
         .collect::<BTreeSet<_>>();
     if expected_context.len() != projection.context.len()
         || !expected_context
@@ -308,13 +245,24 @@ fn elevation_denial_kind(
     evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
 ) -> Option<WorthQueryOperationAuthorizationDenialKind> {
     let elevation = installed.elevation.as_ref()?;
-    let required = evidence.paths().get(elevation.required_path_index)?;
+    let active = evidence.paths().get(elevation.active_path_index)?;
+    let not_before = evidence
+        .paths()
+        .get(elevation.temporal.not_before_path_index)?;
+    let not_after = evidence
+        .paths()
+        .get(elevation.temporal.not_after_path_index)?;
+    let expired = evidence.paths().get(elevation.expired_path_index)?;
     let self_approval = evidence.paths().get(elevation.self_approval_path_index)?;
     if self_approval.matched() {
         Some(WorthQueryOperationAuthorizationDenialKind::ElevationSelfApproval)
     } else if requirements_match(evidence, &elevation.approver_conflict_requirements) {
         Some(WorthQueryOperationAuthorizationDenialKind::ElevationApproverConflict)
-    } else if !required.matched() {
+    } else if expired.matched()
+        || (active.matched() && not_before.matched() && !not_after.matched())
+    {
+        Some(WorthQueryOperationAuthorizationDenialKind::ElevationExpired)
+    } else if !active.matched() || !not_before.matched() {
         Some(WorthQueryOperationAuthorizationDenialKind::ElevationInactive)
     } else {
         None
@@ -345,18 +293,6 @@ const fn cardinality_admitted(
         ApplicationCapabilityCardinalityDimension::Bounded(maximum) => {
             requested > 0 && requested <= maximum
         }
-    }
-}
-
-fn context_key(
-    anchor: &super::capability_registry::WorthQueryCapabilityContextAnchor,
-) -> WorthQueryCapabilityContextKey {
-    WorthQueryCapabilityContextKey {
-        context: anchor.context.clone(),
-        context_type: anchor.context_type.clone(),
-        slot: anchor.slot.clone(),
-        slot_type: anchor.slot_type.clone(),
-        entity: anchor.entity.clone(),
     }
 }
 

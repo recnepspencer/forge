@@ -1,0 +1,116 @@
+//! Exact request anchors and trusted-time predicates for installed policy paths.
+
+use worth_relational::facade::authorization::RelationalAuthorizationEntityAnchor;
+
+use super::super::capability_registry::{
+    WorthQueryCapabilityContextAnchor, WorthQueryCapabilityPathTemplate,
+    WorthQueryInstalledCapabilityPlan,
+};
+use super::super::capability_request_resolution::WorthQueryCapabilityContextKey;
+use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
+use super::super::{
+    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind,
+};
+
+pub(super) fn prepare_exact_policy_paths(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: worth_relational::facade::identity::EntityId,
+) -> Result<
+    Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
+    WorthQueryOperationAuthorizationDenial,
+> {
+    let grant_path_index = installed.grant_witness.path_index();
+    installed
+        .paths
+        .iter()
+        .enumerate()
+        .map(|(index, template)| {
+            let plan = if index == grant_path_index {
+                super::grant_selection::prepare_grant_path(installed, request, sample)?
+            } else if is_temporal_path(installed, index) {
+                super::elevation::prepare_temporal_path(installed, template, sample, index)?
+            } else {
+                template.plan.clone()
+            };
+            Ok(plan.with_entity_anchors(exact_anchors(installed, request, template, exact_grant)?))
+        })
+        .collect()
+}
+
+fn exact_anchors(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    template: &WorthQueryCapabilityPathTemplate,
+    exact_grant: worth_relational::facade::identity::EntityId,
+) -> Result<Vec<RelationalAuthorizationEntityAnchor>, WorthQueryOperationAuthorizationDenial> {
+    let mut anchors = template
+        .context_anchors
+        .iter()
+        .map(|anchor| {
+            request
+                .context
+                .get(&context_key(anchor))
+                .copied()
+                .map(|entity| {
+                    RelationalAuthorizationEntityAnchor::new(anchor.ordinal, anchor.kind, entity)
+                })
+                .ok_or_else(|| projection_denial(&anchor.slot))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    if let Some(ordinal) = template.grant_ordinal {
+        anchors.push(RelationalAuthorizationEntityAnchor::new(
+            ordinal,
+            installed.grant_kind,
+            exact_grant,
+        ));
+    }
+    if !template.elevation_ordinals.is_empty() {
+        let elevation = request
+            .elevation
+            .ok_or_else(|| projection_denial(installed.contract.name()))?;
+        let bindings = installed
+            .elevation
+            .as_ref()
+            .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+        anchors.extend(template.elevation_ordinals.iter().map(|ordinal| {
+            RelationalAuthorizationEntityAnchor::new(*ordinal, bindings.elevation_kind, elevation)
+        }));
+    }
+    Ok(anchors)
+}
+
+fn is_temporal_path(installed: &WorthQueryInstalledCapabilityPlan, index: usize) -> bool {
+    installed.elevation.as_ref().is_some_and(|bindings| {
+        index == bindings.temporal.not_before_path_index
+            || index == bindings.temporal.not_after_path_index
+    })
+}
+
+pub(super) fn context_key(
+    anchor: &WorthQueryCapabilityContextAnchor,
+) -> WorthQueryCapabilityContextKey {
+    WorthQueryCapabilityContextKey {
+        context: anchor.context.clone(),
+        context_type: anchor.context_type.clone(),
+        slot: anchor.slot.clone(),
+        slot_type: anchor.slot_type.clone(),
+        entity: anchor.entity.clone(),
+    }
+}
+
+fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(
+        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
+        subject,
+    )
+}
+
+fn invalid_policy(subject: &str) -> WorthQueryOperationAuthorizationDenial {
+    WorthQueryOperationAuthorizationDenial::new(
+        WorthQueryOperationAuthorizationDenialKind::InvalidInstalledPolicy,
+        subject,
+    )
+}

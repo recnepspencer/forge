@@ -26,7 +26,9 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 mod delegation;
 pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
 mod elevation;
-pub(super) use elevation::WorthQueryCapabilityElevationBindings;
+pub(super) use elevation::{
+    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationTemporalBindings,
+};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {

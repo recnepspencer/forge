@@ -112,6 +112,14 @@ worth_query_field!(
     EmergencyAccessStatus, read_write, equality
 );
 worth_query_field!(
+    pub EmergencyAccessIssuedAtField in BankSchema, EmergencyAccess, EmergencyAccessRecord:
+    EstateMoment, read_write, equality
+);
+worth_query_field!(
+    pub EmergencyAccessExpiresAtField in BankSchema, EmergencyAccess, EmergencyAccessRecord:
+    EstateMoment, read_write, equality
+);
+worth_query_field!(
     pub MandatoryReviewIdentityField in BankSchema, MandatoryReview, MandatoryReviewRecord:
     MandatoryReviewId, read_only, equality
 );

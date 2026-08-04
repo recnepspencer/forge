@@ -14,6 +14,7 @@ pub enum EmergencyAccessStatus {
     Requested,
     Approved,
     Active,
+    Expired,
     Revoked,
     ReviewRequired,
     Reviewed,

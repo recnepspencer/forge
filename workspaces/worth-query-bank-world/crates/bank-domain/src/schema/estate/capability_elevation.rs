@@ -2,6 +2,7 @@ use worth_query_decl::facade::application_capability::{
     ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
     ApplicationCapabilityElevationStates, ApplicationCapabilityFieldBinding,
     ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
     ApplicationCapabilityValueBinding,
 };
 
@@ -28,9 +29,19 @@ pub(super) fn rule(
             elevation_status(EmergencyAccessStatus::Requested),
             elevation_status(EmergencyAccessStatus::Approved),
             elevation_status(EmergencyAccessStatus::Active),
+            elevation_status(EmergencyAccessStatus::Expired),
             elevation_status(EmergencyAccessStatus::Revoked),
             elevation_status(EmergencyAccessStatus::ReviewRequired),
             elevation_status(EmergencyAccessStatus::Reviewed),
+        ),
+        ApplicationCapabilityValidityDefinition::new(
+            ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
+            ApplicationCapabilityFieldBinding::from_reference(
+                EmergencyAccessIssuedAtField::reference(),
+            ),
+            ApplicationCapabilityFieldBinding::from_reference(
+                EmergencyAccessExpiresAtField::reference(),
+            ),
         ),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyRequester::reference()),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyApprover::reference()),

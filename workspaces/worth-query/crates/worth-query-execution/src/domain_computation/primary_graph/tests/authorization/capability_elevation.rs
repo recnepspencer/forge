@@ -28,6 +28,8 @@ use crate::domain_computation::primary_graph::{
 
 #[path = "capability_elevation/approver_conflict.rs"]
 mod approver_conflict;
+#[path = "capability_elevation/validity.rs"]
+mod validity;
 
 #[test]
 fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_authority() {

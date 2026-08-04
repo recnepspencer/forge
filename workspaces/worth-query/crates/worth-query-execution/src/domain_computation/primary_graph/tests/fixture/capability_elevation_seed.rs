@@ -10,6 +10,7 @@ use crate::domain_computation::primary_graph::{
 pub(in crate::domain_computation::primary_graph) enum CapabilityElevationScenario {
     Active,
     ConflictedApprover,
+    Expired,
     Revoked,
     SelfApproved,
     WrongGrant,
@@ -24,6 +25,7 @@ pub(super) fn bind_elevated_capability(
         bind_future_replacement_grant(bootstrap);
     }
     let status = match scenario {
+        CapabilityElevationScenario::Expired => CapabilityElevationStatus::Expired,
         CapabilityElevationScenario::Revoked => CapabilityElevationStatus::Revoked,
         CapabilityElevationScenario::Active
         | CapabilityElevationScenario::ConflictedApprover
@@ -44,7 +46,9 @@ pub(super) fn bind_elevated_capability(
                 CapabilityElevationReason::reference(),
                 "protect-customer".to_owned(),
             )
-            .field(CapabilityElevationStatusField::reference(), status),
+            .field(CapabilityElevationStatusField::reference(), status)
+            .field(CapabilityElevationNotBefore::reference(), 95)
+            .field(CapabilityElevationNotAfter::reference(), 105),
         )
         .unwrap();
     bootstrap

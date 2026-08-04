@@ -112,6 +112,8 @@ fn elevation_dependencies_exist(
         elevation.identity(),
         elevation.reason(),
         elevation.status(),
+        elevation.validity().not_before(),
+        elevation.validity().not_after(),
         review.identity(),
         review.status(),
     ]
@@ -148,6 +150,14 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
     let review_entity = review.identity().entity();
     elevation.reason().entity() == elevation_entity
         && elevation.status().entity() == elevation_entity
+        && elevation.validity().not_before().entity() == elevation_entity
+        && elevation.validity().not_after().entity() == elevation_entity
+        && elevation.validity().not_before().value_type()
+            == elevation.validity().not_after().value_type()
+        && elevation.validity().not_before().scalar_family()
+            == elevation.validity().timeline().scalar_family()
+        && elevation.validity().not_after().scalar_family()
+            == elevation.validity().timeline().scalar_family()
         && elevation
             .states()
             .values()

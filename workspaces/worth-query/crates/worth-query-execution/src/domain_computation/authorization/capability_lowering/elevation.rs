@@ -4,27 +4,24 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityElevationDefinition, ErasedApplicationCapabilityContract,
 };
 use worth_relational::facade::authorization::{
-    RelationalAuthorizationPathPlan, RelationalAuthorizationTraversal,
-    RelationalAuthorizationTraversalDirection,
+    RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 use worth_relational::facade::identity::KindId;
-use worth_runtime_bridge::facade::{
-    BridgeAuthorizationRuleContract, BridgeAuthorizationRuleEffect,
-};
+use worth_runtime_bridge::facade::BridgeAuthorizationRuleContract;
 
-use super::{bridge_rule, clause_identity};
 use crate::domain_computation::authorization::capability_binding_lowering::{
-    kind, predicate, relation,
+    field_locator, kind, relation,
 };
 use crate::domain_computation::authorization::capability_registry::{
-    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityPathTemplate,
-    WorthQueryCapabilityRequestGuard,
+    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationTemporalBindings,
+    WorthQueryCapabilityPathTemplate,
 };
 use crate::domain_computation::authorization::{
     authorization_denial, WorthQueryOperationAuthorizationDenial,
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
+mod active_use;
 mod approver_conflict;
 
 #[allow(clippy::too_many_arguments)]
@@ -43,6 +40,13 @@ pub(super) fn compile_elevation_rules(
         return Ok(None);
     };
     let elevation_kind = kind(layout, elevation.identity().entity())?;
+    if elevation.validity().timeline() != contract.constraints().currentness().validity().timeline()
+    {
+        return Err(authorization_denial(
+            contract.name(),
+            "elevation and grant validity timelines differ",
+        ));
+    }
     let relations = lower_relations(layout, contract, elevation)?;
     relations.validate_endpoints(
         contract,
@@ -52,36 +56,18 @@ pub(super) fn compile_elevation_rules(
         scope_kind,
     )?;
 
-    let required_path_index = paths.len();
-    paths.push(required_path(
+    let active = active_use::compile(
         layout,
         capability,
         elevation,
         elevation_kind,
-        required_path_index,
         &relations,
-    )?);
-    push_rule(
-        BridgeAuthorizationRuleEffect::Required,
-        required_path_index,
-        paths,
-        rules,
-        rule_path_indices,
-    );
-
-    let self_approval_path_index = paths.len();
-    paths.push(self_approval_path(
-        capability,
-        self_approval_path_index,
-        &relations,
-    ));
-    push_rule(
-        BridgeAuthorizationRuleEffect::Prohibited,
-        self_approval_path_index,
-        paths,
-        rules,
-        rule_path_indices,
-    );
+        active_use::ElevationRuleSinks {
+            paths: &mut *paths,
+            rules: &mut *rules,
+            rule_path_indices: &mut *rule_path_indices,
+        },
+    )?;
     let approver_conflict_requirements = approver_conflict::compile(
         contract,
         layout,
@@ -93,8 +79,16 @@ pub(super) fn compile_elevation_rules(
     )?;
     Ok(Some(WorthQueryCapabilityElevationBindings::new(
         elevation_kind,
-        required_path_index,
-        self_approval_path_index,
+        active.active,
+        active.expired,
+        active.self_approval,
+        WorthQueryCapabilityElevationTemporalBindings::new(
+            elevation.validity().timeline(),
+            active.not_before,
+            active.not_after,
+            field_locator(layout, elevation.validity().not_before())?,
+            field_locator(layout, elevation.validity().not_after())?,
+        ),
         approver_conflict_requirements,
     )))
 }
@@ -164,70 +158,4 @@ fn lower_relations(
             RelationalAuthorizationTraversalDirection::Forward,
         )?,
     })
-}
-
-fn required_path(
-    layout: &WorthQueryPrimaryGraphLayout,
-    capability: &[u8; 32],
-    elevation: &ApplicationCapabilityElevationDefinition,
-    elevation_kind: KindId,
-    path_index: usize,
-    relations: &ElevationRelations,
-) -> Result<WorthQueryCapabilityPathTemplate, WorthQueryOperationAuthorizationDenial> {
-    Ok(WorthQueryCapabilityPathTemplate {
-        plan: RelationalAuthorizationPathPlan::new(
-            [
-                relations.requester.clone(),
-                relations.approver_reverse.clone(),
-                relations.approver_forward.clone(),
-                relations.grant.clone(),
-                relations.resource.clone(),
-            ],
-            [predicate(
-                layout,
-                1,
-                elevation_kind,
-                elevation.states().active(),
-            )?],
-        ),
-        identity: clause_identity(capability, path_index),
-        guard: WorthQueryCapabilityRequestGuard::Unconditional,
-        grant_ordinal: Some(4),
-        elevation_ordinals: vec![1, 3],
-        context_anchors: Vec::new(),
-    })
-}
-
-fn self_approval_path(
-    capability: &[u8; 32],
-    path_index: usize,
-    relations: &ElevationRelations,
-) -> WorthQueryCapabilityPathTemplate {
-    WorthQueryCapabilityPathTemplate {
-        plan: RelationalAuthorizationPathPlan::new(
-            [
-                relations.approver_forward.clone(),
-                relations.grant.clone(),
-                relations.resource.clone(),
-            ],
-            [],
-        ),
-        identity: clause_identity(capability, path_index),
-        guard: WorthQueryCapabilityRequestGuard::Unconditional,
-        grant_ordinal: Some(2),
-        elevation_ordinals: vec![1],
-        context_anchors: Vec::new(),
-    }
-}
-
-fn push_rule(
-    effect: BridgeAuthorizationRuleEffect,
-    path_index: usize,
-    paths: &[WorthQueryCapabilityPathTemplate],
-    rules: &mut Vec<BridgeAuthorizationRuleContract>,
-    rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
-) {
-    let requirements = vec![vec![path_index]];
-    rules.push(bridge_rule(effect, requirements.clone(), paths));
-    rule_path_indices.push(requirements);
 }
