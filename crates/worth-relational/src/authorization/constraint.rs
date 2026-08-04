@@ -9,6 +9,7 @@ pub enum RelationalAuthorizationFieldComparison {
     Equal,
     AtMost,
     AtLeast,
+    StrictlyLess,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -80,6 +81,7 @@ impl RelationalAuthorizationPredicate {
             RelationalAuthorizationFieldComparison::Equal => observed == &self.expected,
             RelationalAuthorizationFieldComparison::AtMost => observed <= &self.expected,
             RelationalAuthorizationFieldComparison::AtLeast => observed >= &self.expected,
+            RelationalAuthorizationFieldComparison::StrictlyLess => observed < &self.expected,
         }
     }
 }
@@ -153,6 +155,7 @@ impl RelationalAuthorizationFieldConstraint {
             RelationalAuthorizationFieldComparison::Equal => left == right,
             RelationalAuthorizationFieldComparison::AtMost => left <= right,
             RelationalAuthorizationFieldComparison::AtLeast => left >= right,
+            RelationalAuthorizationFieldComparison::StrictlyLess => left < right,
         }
     }
 }

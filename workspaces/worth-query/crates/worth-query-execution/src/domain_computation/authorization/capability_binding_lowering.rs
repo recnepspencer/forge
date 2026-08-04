@@ -215,7 +215,7 @@ pub(super) fn operand(
     ))
 }
 
-fn field_locator(
+pub(super) fn field_locator(
     layout: &WorthQueryPrimaryGraphLayout,
     binding: &ApplicationCapabilityFieldBinding,
 ) -> Result<AspectFieldLocator, WorthQueryOperationAuthorizationDenial> {

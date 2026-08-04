@@ -13,6 +13,7 @@ pub(super) enum Axis {
     ValidityTimeline,
     Validity,
     Delegation,
+    DelegationDepth,
     Provenance,
     Context,
     Rule(usize),

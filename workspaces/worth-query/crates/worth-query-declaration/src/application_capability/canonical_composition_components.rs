@@ -4,7 +4,7 @@ use crate::application_schema::{
 use worth_foundational::facade::canonical_basis_value_for_aspect_value;
 
 use super::{
-    canonical_components::{append_field, append_relation, structural_count, text},
+    canonical_components::{append_field, append_relation, structural_count, text, unsigned},
     ApplicationCapabilityCanonicalComponent, ApplicationCapabilityConflictRule,
     ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
     ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
@@ -203,11 +203,23 @@ fn append_delegation(
     prefix: &str,
     rule: ApplicationCapabilityDelegationRule,
 ) {
-    let posture = match rule {
-        ApplicationCapabilityDelegationRule::Forbidden => "forbidden",
-        ApplicationCapabilityDelegationRule::NarrowAllDimensions => "narrow-all-dimensions",
-    };
-    text(components, format!("{prefix}.posture"), posture);
+    match rule {
+        ApplicationCapabilityDelegationRule::Forbidden => {
+            text(components, format!("{prefix}.posture"), "forbidden");
+        }
+        ApplicationCapabilityDelegationRule::NarrowAllDimensions { maximum_depth } => {
+            text(
+                components,
+                format!("{prefix}.posture"),
+                "narrow-all-dimensions",
+            );
+            unsigned(
+                components,
+                format!("{prefix}.maximum-depth"),
+                maximum_depth.maximum(),
+            );
+        }
+    }
 }
 
 fn append_disclosure(

@@ -39,7 +39,7 @@ pub use currentness::{
     ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityValidityDefinition,
     ApplicationCapabilityValidityTimeline, ApplicationCapabilityWorkflowDefinition,
 };
-pub use delegation::ApplicationCapabilityDelegationRule;
+pub use delegation::{ApplicationCapabilityDelegationDepth, ApplicationCapabilityDelegationRule};
 pub use disclosure::ApplicationCapabilityDisclosureRule;
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,

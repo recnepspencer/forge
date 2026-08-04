@@ -367,7 +367,10 @@ fn capability_composition() -> ApplicationCapabilityComposition {
             ApplicationCapabilityDistinctActorRule::not_applicable(),
         ),
         ApplicationCapabilityPropagationComposition::new(
-            ApplicationCapabilityDelegationRule::narrow_all_dimensions(),
+            ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+                worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(8)
+                    .unwrap(),
+            ),
             ApplicationCapabilityDisclosureRule::permit([
                 ApplicationCapabilityScopeGuard::requiring([
                     ApplicationCapabilityAcceptedValues::one_of(

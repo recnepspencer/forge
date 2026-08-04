@@ -264,7 +264,12 @@ fn composition(axis: Option<Axis>) -> ApplicationCapabilityComposition {
             if changed(5) {
                 ApplicationCapabilityDelegationRule::forbidden()
             } else {
-                ApplicationCapabilityDelegationRule::narrow_all_dimensions()
+                ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+                    worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(
+                        if matches!(axis, Some(Axis::DelegationDepth)) { 7 } else { 8 },
+                    )
+                    .unwrap(),
+                )
             },
             ApplicationCapabilityDisclosureRule::permit([
                 ApplicationCapabilityScopeGuard::requiring([

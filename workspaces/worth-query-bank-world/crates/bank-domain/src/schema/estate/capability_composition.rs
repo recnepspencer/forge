@@ -37,7 +37,10 @@ pub(super) fn composition(
             distinct_actor_rule(action),
         ),
         ApplicationCapabilityPropagationComposition::new(
-            ApplicationCapabilityDelegationRule::narrow_all_dimensions(),
+            ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+                worth_query_decl::facade::application_capability::ApplicationCapabilityDelegationDepth::new(8)
+                    .expect("eight delegation links fit the platform bound"),
+            ),
             disclosure_rule(action, purpose),
         ),
     )

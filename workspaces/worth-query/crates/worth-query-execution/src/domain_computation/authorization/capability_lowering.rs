@@ -22,6 +22,7 @@ use super::capability_binding_lowering::{
     capability_principal, clause_identity, kind, lower_context_anchors, operand, predicate,
     relation, request_bindings,
 };
+use super::capability_registry::WorthQueryCapabilityDelegationBindings;
 use super::capability_registry::{
     field_binding, WorthQueryCapabilityGrantWitnessBinding, WorthQueryCapabilityPathTemplate,
     WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
@@ -90,6 +91,7 @@ where
         scope_kind,
         grant_witness,
         request: request_bindings(contract, layout)?,
+        delegation: WorthQueryCapabilityDelegationBindings::compile(contract, layout)?,
         paths,
         bridge_rules: rules,
         rule_path_indices,

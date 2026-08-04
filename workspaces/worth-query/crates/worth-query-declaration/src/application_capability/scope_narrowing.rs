@@ -243,7 +243,7 @@ impl ApplicationCapabilityDelegationScope {
     }
 
     fn is_within(&self, parent: &Self) -> bool {
-        self.remaining <= parent.remaining && self.provenance.starts_with(&parent.provenance)
+        self.remaining < parent.remaining && self.provenance.starts_with(&parent.provenance)
     }
 }
 

@@ -23,6 +23,9 @@ use super::capability_lowering::compile_capability_plan;
 use super::WorthQueryOperationAuthorizationDenial;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
+mod delegation;
+pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {
     capability_count: usize,
@@ -151,6 +154,7 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
     pub(super) rule_path_indices: Vec<Vec<Vec<usize>>>,
     pub(super) request: WorthQueryCapabilityRequestBindings,
+    pub(super) delegation: WorthQueryCapabilityDelegationBindings,
 }
 
 #[derive(Clone, Copy)]
