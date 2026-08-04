@@ -98,7 +98,7 @@ pub(super) const BRANCHES_SOURCE: &str =
 pub(super) const LIFECYCLE_SOURCE: &str =
     include_str!("../../logic/transaction/runtime/state/branching/lifecycle.rs");
 pub(super) const RUNTIME_STATE_SOURCE: &str =
-    include_str!("../../logic/transaction/runtime/state/runtime_state.rs");
+    include_str!("../../logic/transaction/runtime/state/runtime_state/transfer_packets.rs");
 pub(super) const SNAPSHOT_RESTORE_SOURCE: &str =
     include_str!("../../data/graph/diagnostics_access/artifacts.rs");
 pub(super) const RUNTIME_SNAPSHOTTING_SOURCE: &str =
