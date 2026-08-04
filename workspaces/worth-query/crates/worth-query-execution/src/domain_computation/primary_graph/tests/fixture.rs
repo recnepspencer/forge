@@ -44,6 +44,11 @@ pub(in crate::domain_computation::primary_graph) use governed_live_query::{
     governed_live_account_parameters, GovernedLiveAccountActivityCause,
     GovernedLiveAccountActivityQuery, GovernedLiveAccountActivityResult,
 };
+#[path = "fixture/governed_root_guard_query.rs"]
+mod governed_root_guard_query;
+pub(in crate::domain_computation::primary_graph) use governed_root_guard_query::{
+    ForbiddenRootGuardQuery, GovernedRootGuardQuery,
+};
 #[path = "fixture/governed_omission_query.rs"]
 mod governed_omission_query;
 pub(in crate::domain_computation::primary_graph) use governed_omission_query::{
@@ -54,7 +59,9 @@ mod governed_hidden_ordering_query;
 pub(in crate::domain_computation::primary_graph) use governed_hidden_ordering_query::GovernedHiddenOrderingQuery;
 #[path = "fixture/invalid_disclosure_queries.rs"]
 mod invalid_disclosure_queries;
-pub(super) use invalid_disclosure_queries::ResultRulePredicateQuery;
+pub(super) use invalid_disclosure_queries::{
+    ForbiddenInfluenceQuery, IncompleteDisclosureQuery, ResultRulePredicateQuery,
+};
 #[path = "fixture/schema_types.rs"]
 mod schema_types;
 #[path = "fixture/world_authentication.rs"]
@@ -66,8 +73,8 @@ pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
     installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
     installed_capability_authorization_world, installed_capability_live_world,
-    installed_capability_replacement_world, installed_capability_world_with_label,
-    AuthorizationWorld,
+    installed_capability_live_world_with_label, installed_capability_replacement_world,
+    installed_capability_world_with_label, AuthorizationWorld,
 };
 pub(super) use world_installation::{
     installed_two_principal_authorization_world, installed_world, installed_world_with_policy_fact,
@@ -295,6 +302,8 @@ worth_query_application_schema! {
                 .application_query(
                     governed_hidden_ordering_query::governed_hidden_ordering_definition(),
                 )
+                .application_query(governed_root_guard_query::governed_root_guard_definition())
+                .application_query(governed_root_guard_query::forbidden_root_guard_definition())
                 .application_query(invalid_disclosure_queries::incomplete_disclosure_definition())
                 .application_query(invalid_disclosure_queries::forbidden_influence_definition())
                 .application_query(

@@ -1,20 +1,19 @@
 use std::num::NonZeroUsize;
 use std::time::{Duration, UNIX_EPOCH};
 
-use worth_query_declaration::facade::application_query::ApplicationQueryParameterSet;
-
 use super::super::super::fixture::{
-    admit_touch_account_capability, installed_capability_world_with_label, live_scope,
-    status_parameter, Account, AccountIdentity, AuthorizationWorld, ForbiddenInfluenceQuery,
-    IdentityExecutionSchema, IncompleteDisclosureQuery, Principal, ResultRulePredicateQuery,
+    admit_touch_account_capability, installed_capability_world_with_label, live_scope, Account,
+    AccountIdentity, AuthorizationWorld, ForbiddenRootGuardQuery, GovernedRootGuardQuery,
+    IdentityExecutionSchema, Principal,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryApplicationQueryAccessContext,
     WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryControls,
     WorthQueryAuthenticatedPrincipal, WorthQueryPrincipalResolutionMode,
 };
+use worth_query_declaration::facade::application_query::ApplicationQueryParameterSet;
 
-struct AdmissionContext {
+struct RootGuardContext {
     world: AuthorizationWorld,
     request: worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
     principal: WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
@@ -22,44 +21,22 @@ struct AdmissionContext {
 }
 
 #[test]
-fn result_disclosure_rule_cannot_open_a_predicate_read() {
-    let context = admission_context();
-    let query = context
-        .world
-        .application
-        .installed_schema()
-        .application_query(ResultRulePredicateQuery::reference())
-        .unwrap();
-    let capability =
-        admit_touch_account_capability(&context.world, &context.principal, &context.request)
-            .unwrap();
-    let access = WorthQueryApplicationQueryAccessContext::new(&context.principal, &context.account);
-    let denial = context
-        .world
-        .application
-        .admit_governed_application_query(
-            &query,
-            &access,
-            capability,
-            ApplicationQueryParameterSet::new().bind(status_parameter(), "open".to_owned()),
-            controls(&context.request),
-        )
-        .err()
-        .expect("result disclosure must not counterfeit internal authority");
-    assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid
-    );
+fn governed_root_guard_changes_membership_only_with_explicit_influence() {
+    let matching = execute_governed_root_guard("guard-match");
+    let different = execute_governed_root_guard("different-protected-label");
+
+    assert_eq!(matching, 2);
+    assert_eq!(different, 0);
 }
 
 #[test]
-fn incomplete_result_contract_denies_before_result_construction() {
-    let context = admission_context();
+fn forbidden_root_guard_influence_denies_before_result_construction() {
+    let context = root_guard_context("guard-match");
     let query = context
         .world
         .application
         .installed_schema()
-        .application_query(IncompleteDisclosureQuery::reference())
+        .application_query(ForbiddenRootGuardQuery::reference())
         .unwrap();
     let capability =
         admit_touch_account_capability(&context.world, &context.principal, &context.request)
@@ -72,50 +49,52 @@ fn incomplete_result_contract_denies_before_result_construction() {
             &query,
             &access,
             capability,
-            ApplicationQueryParameterSet::<IncompleteDisclosureQuery>::new(),
-            controls(&context.request),
+            ApplicationQueryParameterSet::<ForbiddenRootGuardQuery>::new(),
+            current_controls(&context.request),
         )
         .err()
-        .expect("every result slot requires an explicit disclosure rule");
+        .expect("a guard without row-presence influence must fail admission");
+
     assert_eq!(
         denial.kind(),
         WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid
     );
 }
 
-#[test]
-fn forbidden_predicate_influence_denies_before_result_construction() {
-    let context = admission_context();
+fn execute_governed_root_guard(label: &str) -> usize {
+    let context = root_guard_context(label);
     let query = context
         .world
         .application
         .installed_schema()
-        .application_query(ForbiddenInfluenceQuery::reference())
+        .application_query(GovernedRootGuardQuery::reference())
         .unwrap();
     let capability =
         admit_touch_account_capability(&context.world, &context.principal, &context.request)
             .unwrap();
     let access = WorthQueryApplicationQueryAccessContext::new(&context.principal, &context.account);
-    let denial = context
+    let plan = context
         .world
         .application
         .admit_governed_application_query(
             &query,
             &access,
             capability,
-            ApplicationQueryParameterSet::new().bind(status_parameter(), "open".to_owned()),
-            controls(&context.request),
+            ApplicationQueryParameterSet::<GovernedRootGuardQuery>::new(),
+            current_controls(&context.request),
         )
-        .err()
-        .expect("predicate reads require row-presence and count influence");
-    assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid
-    );
+        .unwrap();
+    let result = context
+        .world
+        .application
+        .execute_application_query_one_shot(plan)
+        .unwrap();
+    assert!(result.receipt().basis_released());
+    result.rows().len()
 }
 
-fn admission_context() -> AdmissionContext {
-    let mut world = installed_capability_world_with_label("private");
+fn root_guard_context(label: &str) -> RootGuardContext {
+    let mut world = installed_capability_world_with_label(label);
     world.application.script_authorization_time([
         UNIX_EPOCH + Duration::from_secs(100),
         UNIX_EPOCH + Duration::from_secs(100),
@@ -140,7 +119,7 @@ fn admission_context() -> AdmissionContext {
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
         .unwrap();
-    AdmissionContext {
+    RootGuardContext {
         world,
         request,
         principal,
@@ -148,12 +127,12 @@ fn admission_context() -> AdmissionContext {
     }
 }
 
-fn controls(
+fn current_controls(
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
 ) -> WorthQueryApplicationQueryControls<'_, IdentityExecutionSchema> {
     WorthQueryApplicationQueryControls::current_one_shot(
-        NonZeroUsize::new(1).unwrap(),
-        NonZeroUsize::new(256).unwrap(),
+        NonZeroUsize::new(2).unwrap(),
+        NonZeroUsize::new(512).unwrap(),
         request,
     )
 }
