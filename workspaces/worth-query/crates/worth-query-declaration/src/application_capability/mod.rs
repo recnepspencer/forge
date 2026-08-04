@@ -6,6 +6,7 @@ mod contract;
 mod currentness;
 mod delegation;
 mod disclosure;
+mod elevation;
 mod reference;
 mod request_projection;
 mod rule_clause;
@@ -38,6 +39,10 @@ pub use currentness::{
 };
 pub use delegation::{ApplicationCapabilityDelegationDepth, ApplicationCapabilityDelegationRule};
 pub use disclosure::ApplicationCapabilityDisclosureRule;
+pub use elevation::{
+    ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
+    ApplicationCapabilityElevationStates, ApplicationCapabilityMandatoryReviewDefinition,
+};
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
 };

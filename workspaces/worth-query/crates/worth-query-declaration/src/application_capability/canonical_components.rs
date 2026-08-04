@@ -3,10 +3,10 @@ use worth_foundational::facade::{
 };
 
 use super::{
-    canonical_composition_components::append_composition, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityRelationDimension, ApplicationCapabilityValueBinding,
-    ErasedApplicationCapabilityContract,
+    canonical_composition_components::append_composition, ApplicationCapabilityElevationRule,
+    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+    ApplicationCapabilityValueBinding, ErasedApplicationCapabilityContract,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,7 +50,42 @@ pub fn application_capability_canonical_components(
     append_constraints(&mut components, contract);
     append_delegation(&mut components, contract);
     append_composition(&mut components, contract);
+    append_elevation(&mut components, contract);
     components
+}
+
+fn append_elevation(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    contract: &ErasedApplicationCapabilityContract,
+) {
+    let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
+        text(components, "elevation.posture", "not-applicable");
+        return;
+    };
+    text(components, "elevation.posture", "governed");
+    append_field(components, "elevation.identity", elevation.identity());
+    append_field(components, "elevation.reason", elevation.reason());
+    append_field(components, "elevation.status", elevation.status());
+    for (name, state) in [
+        ("requested", elevation.states().requested()),
+        ("approved", elevation.states().approved()),
+        ("active", elevation.states().active()),
+        ("revoked", elevation.states().revoked()),
+        ("review-required", elevation.states().review_required()),
+        ("reviewed", elevation.states().reviewed()),
+    ] {
+        append_value_binding(components, &format!("elevation.state.{name}"), state);
+    }
+    append_relation(components, "elevation.requester", elevation.requester());
+    append_relation(components, "elevation.approver", elevation.approver());
+    append_relation(components, "elevation.grant", elevation.grant());
+    let review = elevation.review();
+    append_relation(components, "elevation.review.relation", review.relation());
+    append_field(components, "elevation.review.identity", review.identity());
+    append_relation(components, "elevation.review.reviewer", review.reviewer());
+    append_field(components, "elevation.review.status", review.status());
+    append_value_binding(components, "elevation.review.required", review.required());
+    append_value_binding(components, "elevation.review.completed", review.completed());
 }
 
 fn append_target(

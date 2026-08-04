@@ -72,6 +72,7 @@ macro_rules! install_contract {
         .composition(super::capability_composition::composition(
             $action, $purpose,
         ))
+        .elevation(super::capability_elevation::rule($action, $purpose))
         .build();
         $schema.capability(contract)
     }};

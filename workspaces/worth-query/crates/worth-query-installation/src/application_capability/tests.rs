@@ -8,16 +8,17 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
         ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
         ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
-        ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
-        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
-        ApplicationCapabilityWorkflowDefinition, ErasedApplicationCapabilityContract,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRequirement,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
+        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+        ErasedApplicationCapabilityContract,
     },
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
@@ -119,6 +120,7 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     .constraints(constraints(axis, context))
     .delegation(delegation(axis, provenance))
     .composition(composition(axis))
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build();
     contract.erased().clone()
 }

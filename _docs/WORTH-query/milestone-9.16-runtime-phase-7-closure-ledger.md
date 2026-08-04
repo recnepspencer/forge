@@ -2,7 +2,7 @@
 
 **Owner:** Runtime Hardening Track, Phase 7
 **Canonical specification:** `milestone-9.16.md`
-**Status:** Phase 7.4 re-closed after the Q7.58 corrective batch; Phase 7.5 QA is in progress — Milestone 9.16.1 is
+**Status:** Phase 7.5 closed after exact-actor and ledger QA; Phase 7.6 is open — Milestone 9.16.1 is
 closed and its managed graph-work session handoff remains the Phase 7 substrate
 **Policy:** A requirement is `PROVED` only when its production owner, public
 consumer evidence, adversarial evidence, performance posture, and residue
@@ -38,8 +38,8 @@ Query product.
 | R7.8 | 7.3 | Internal computation authority is distinct from consumer disclosure authority and both narrow Foundational projection/diagnostic masks. | **PROVED** | Foundational rejects diagnostic-as-projection substitution; Query rejects a selector whose real projection mask exceeds the installed `AspectContract`; internal influence denial has positive/negative predicate, guard, ordering, live-scope, and live-target twins; the canonical protected-label pair is equal across one-shot, continuation, history, preview, and live observables. |
 | R7.9 | 7.3 | Publication accepts only typed disclosed-or-omitted results and cannot inspect protected values or decide policy. | **PROVED** | Execution denies consumer construction of the admitted result; publication rejects raw values plus projection and diagnostic masks; the Bank public consumer publishes only the admitted shape; certification proves no protected-value/policy token lane in publication. |
 | R7.10 | 7.4 | Delegation is a Query-owned proof-carrying transition in which every child grant is equal to or narrower than its exact current parent across scope, purpose, disclosure, validity, workflow, and downstream delegation posture. | **PROVED** | Production admission proves a lawful multi-link chain and one-axis action, resource, relation, field, purpose, amount, workflow, validity-start, validity-end, and downstream-posture widening attacks. Q7.55 proves installed policy paths cannot borrow an alternate grant. |
-| R7.11 | 7.5 | Allow, deny, conflict, separation-of-duty, and distinct-actor rules form one installed decision over exact actor and touched-graph facts. | **OPEN** | Contract-derived interaction matrix and hostile drift sequences without Cartesian expansion. |
-| R7.12 | 7.6 | Emergency elevation is a linear installed typestate with a bounded upper authority and mandatory distinct-actor review. | **BLOCKED BY 7.5** | Lawful lifecycle plus self-approval, conflict, widening, expiry, revocation, copying, and repeated-review denial. |
+| R7.11 | 7.5 | Allow, deny, conflict, separation-of-duty, and distinct-actor rules form one installed decision over exact actor and touched-graph facts. | **PROVED** | One production composition covers every independent predicate and their accumulated interaction. Exact context selectors derive from the operation input; selected-record negatives, unrelated-record positives, assignment/conflict drift at operation progression, and selected-versus-unrelated actor drift at final commit prove exact retained actor identity without a Cartesian matrix. Bank installation preserves exact requester, approver, legal-authority, and reviewer anchors. |
+| R7.12 | 7.6 | Emergency elevation is a linear installed typestate with a bounded upper authority and mandatory distinct-actor review. | **OPEN** | Lawful lifecycle plus self-approval, conflict, widening, expiry, revocation, copying, and repeated-review denial. |
 | R7.13 | 7.7 | Bank estate operations use the public Query progression with no bank-local authority executor. | **BLOCKED BY 7.6** | Complete estate courtroom, consumer transcript, dependency direction, and legacy residue. |
 | R7.14 | 7.7 | Every supported query lane re-admits identical capability, purpose, disclosure, and conflict meaning without changing query identity or result meaning. | **BLOCKED BY 7.6** | One-shot, continuation, history, preview, and live consumer evidence. |
 | R7.15 | 7.7 | Warm authorization work depends only on declared touched evidence, not unrelated grants, relationships, fields, cases, rows, or consumers. | **BLOCKED BY 7.6** | Growth measurements with exact-zero canonical preparation, hashing, digest text, and fallback. |
@@ -54,6 +54,8 @@ Query product.
 | R7.24 | 7.4 | Every parent grant's active status, freshly sampled trusted-time validity, workflow, resource relationship, grantor/grantee relationship, and installed policy decision remain part of the retained currentness evidence consumed by the canonical operation, governed-query/session, provider-comparison, idempotency, and commit progression boundaries. | **PROVED** | Parent revocation, expiry across a fresh session, workflow drift, resource drift, grantor/grantee drift, alternate-parent substitution, and policy-path drift deny before consumer or effect authority. Direct final-commit and idempotency-receipt proofs demonstrate that the composite parent fact survives both privileged boundaries. Phase 7.7 R7.14 remains the sole complete cross-lane parity cutover. |
 | R7.25 | 7.4 | Delegation depth is explicitly installed and identity-bearing; each grant has at most one parent; cycles, excessive depth, and width deny before authority; warm work scales with the exact chain and touched adjacency rather than total grant population. | **PROVED** | Installed-depth identity twins, depth/width/cycle attacks, exact per-link counter slope, both independent unrelated-population axes, exact-pair overflow, and exact-zero warm canonical/SHA/text work pass across generic and same-estate Bank populations. |
 | R7.26 | 7.4 | Exact delegation lineage remains private non-reusable Query evidence. Any later portable provenance attachment is downstream descriptive material and cannot construct, replace, or re-admit a grant, lineage, access context, or operation authority. | **PROVED** | Facade/compiler/residue evidence proves private lineage construction, move-only access, no authority constructor from provenance, and no reverse Foundational/Relational/Runtime-Bridge dependency. |
+| R7.27 | 7.7 | Public authorization and elevation explanations preserve typed missing-capability, scope, purpose, conflict, separation-of-duty, field-omission, elevation-required, elevation-denied, elevation-expired, and review-required meaning without reconstructing policy from generic denials or strings. | **BLOCKED BY 7.6** | Public consumer and publication transcripts over every semantically distinct denial family, with compiler and residue proof that explanation material carries no Query authority. |
+| R7.28 | 7.7 | Query's exact authorization, disclosure, elevation, and review outcomes lower into Foundational diagnostic categories, provenance, boundary-evidence receipt posture, and target-aware profiles only after the exact Query transition, without replacing or reopening Query authority. | **BLOCKED BY 7.6** | Structured Foundational comparison, publication materialization, profile narrowing, authority non-promotion, and residue evidence across ordinary and emergency Bank outcomes. |
 | R7.L | all | The ledger maps every normative Phase 7 requirement, causal dependency, relevant risk category, consumer boundary, and performance claim without duplicating tests into a Cartesian matrix. | **OPEN** | Skeptical ledger audit at every gate closure; discoveries append findings and block unfinished causal rows or create an append-only corrective phase. |
 
 ## Finding ledger
@@ -119,6 +121,9 @@ Query product.
 | Q7.57 | High | The Phase 7.4 evidence named provider, idempotency, and commit re-admission, but directly exercised parent drift only at access, operation, and fresh-session boundaries. A leaf-only provider conversion could therefore drop the composite parent fact while the broad suite remained green. | **CLOSED** | Production-world tests establish a real committed idempotency receipt, revoke the parent after program admission, and prove both final commit and receipt inspection deny at the decision-read-set boundary. |
 | Q7.58 | High | Phase 7.5 consumer QA exposed that 128 unrelated Bank grants on the same estate inflate warm admission from `12/10` adjacency-list/edge work to `140/266` and maximum frontier width from `1` to `129`. The generic unrelated-grant fixture varied the resource and therefore failed to falsify this same-resource population path. | **CLOSED** | Relational owns a rebuildable exact-generation relation-pair index from principal and resource to candidate grant, verifies every candidate against current endpoint and relation truth, and exposes bounded work. Query uses it only for candidate narrowing before exact anchored Relational observation and Bridge decision. Generic same-resource and same-principal populations, exact-pair overflow, exact per-link slope, and the original Bank reproducer all pass. |
 | Q7.59 | Medium | The initial Q7.58 proof pinned join lookups and candidate count but not the external-endpoint and relation-record verification work folded into Query's aggregate counters. Removing that aggregation could therefore leave locality equality green while Q7.56 became false again; certification also lacked a fault proving that a silently omitted valid candidate is detected. | **CLOSED** | Relational pins one-candidate work at exactly three entity records and two relation records and certification rejects a removed valid candidate as `StorageParityMismatch`. Query pins the complete root admission counter vector, including `35` entity and `12` relation records, so dropping preparatory verification work fails the canonical slope proof. |
+| Q7.60 | High | The initial Phase 7.5 fixture represented request and prior actors as principal-to-resource relations. An actor on a different action record concerning the same resource would therefore poison the selected transition, while the test suite could not prove that exact action identity survived re-admission. | **CLOSED** | The production request derives typed action-record context selectors from the operation input, both actor rules anchor their exact context entities, selected records deny, unrelated records allow, and adding selected versus unrelated actor relations after admission produces opposite final-commit outcomes. |
+| Q7.61 | Medium | The Bank installation proof still compared the delegation rule to the removed unit-form `NarrowAllDimensions` variant. The harness no longer compiled after installed maximum depth became identity-bearing, leaving current Bank actor-contract evidence unavailable. | **CLOSED** | The consumer now asserts the public semantic `maximum_depth()` value of `8`; the complete 11-test installation harness, full Bank domain suite, and strict Bank Clippy pass. |
+| Q7.62 | High | Phase 7.6 boundary review found Bank emergency-access and mandatory-review meaning, but the generic capability contract had no explicit elevation dimension. Omitting the dimension could silently treat non-emergency contracts as globally elevation-compatible and left Bank's emergency truth outside installed Query identity and member closure. | **OPEN** | The declaration checkpoint now requires an explicit `NotApplicable` or governed elevation rule, installs Bank's existing emergency/review fields and relations, and includes the rule in canonical identity and member closure. Runtime typestate, exact actor/currentness observation, hostility, and consumer evidence remain required before this finding and R7.12 can close. |
 
 ## Phase 7.1 closure evidence
 
@@ -409,6 +414,78 @@ unrelated baseline into Phase 7 debt.
 
 This corrective audit re-closes R7.25 and Q7.56/Q7.58, records Q7.59 as closed,
 and returns R7.11 to `OPEN`. It does not close Phase 7.5 or any later gate.
+
+### Phase 7.5 closure
+
+Phase 7.5 closes one installed decision rather than introducing separate
+conflict or actor executors. Declaration retains the combined allow, deny,
+conflict, separation-of-duty, and distinct-actor grammar. Query resolves the
+exact operation-derived context entities, Relational observes the anchored
+current paths, Runtime Bridge evaluates the installed composition, and Query
+alone retains the attempt-bound decision through operation and commit
+progression.
+
+The QA loop opened and closed Q7.60 after the original fixture's
+principal-to-resource actor relations proved only resource-wide separation.
+The repaired world gives every request and prior action an identity-bearing
+entity and maps each to the same resource. Selected actor records deny;
+unrelated records do not poison admission; selected actor drift stales final
+commit; and unrelated request plus prior actor drift still permits the already
+admitted transition. This pair would fail if initial observation or retained
+re-admission dropped the context anchors.
+
+Q7.61 records the independent Bank harness defect rather than treating a stale
+unit-variant assertion as product failure. The installation consumer now
+observes the public identity-bearing delegation-depth meaning and again proves
+the exact requester, approver, legal-authority, and reviewer anchors installed
+by Bank.
+
+Closure verification on the final Phase 7.5 source:
+
+- the focused composition family passes all `7` allow/absence, deny, conflict,
+  selected-actor, unrelated-actor, accumulated-interaction, operation-drift,
+  and final-commit cases;
+- the complete Query workspace passes, including all `450` execution tests,
+  compiler fences, certification, integration, and documentation lanes;
+- the complete Bank domain suite passes, including all `11` estate capability
+  installation tests, and the Bank server admission family passes all `10`
+  tests;
+- strict no-dependency Clippy passes for Query execution and Bank domain;
+- the Worth UI workspace check and both constitutional checks pass; and
+- the ledger audit adds R7.27-R7.28 for the previously omitted typed-
+  explanation and post-Query publication-lowering guarantees. Those rows
+  remain blocked until Phase 7.6 supplies the elevation meaning consumed by
+  Phase 7.7.
+
+This audit closes R7.11 and Q7.60-Q7.61, opens R7.12, and leaves R7.13-R7.15,
+R7.27-R7.28, Q7.52, and R7.L unresolved at their declared later gates. It does
+not claim emergency lifecycle, Bank cutover, cross-lane parity, publication
+lowering, or complete Runtime Phase 7 closure.
+
+### Phase 7.6 declaration checkpoint
+
+The first Phase 7.6 checkpoint makes elevation an explicit, identity-bearing
+dimension of every capability contract. Contracts must install either
+`NotApplicable` or a governed definition; absence can no longer masquerade as
+global compatibility. The governed definition names exact elevation identity,
+reason, status, lifecycle values, requester, approver, linked grant, mandatory
+review entity, reviewer, review status, and required/completed review values.
+
+Bank's `ViewRestrictedEstate` emergency-protection contract binds that generic
+meaning to the existing estate emergency-access and mandatory-review schema.
+Query installation includes the dimension in canonical identity and member
+closure. The versioned canonical-work envelope moves to `v3`, `384` entries,
+and `128 KiB`, with hostile entry and byte-limit proofs retained at the new
+boundary. The contract builder was split into its own semantic module so every
+touched Rust file remains within the 400-line law.
+
+Checkpoint verification passes the complete Query workspace, the focused
+seven-case composition family, all eleven Bank estate installation proofs,
+the Worth UI workspace check, boundary enforcement, and generated-context
+validation. Repository-wide line-cap enforcement remains red on pre-existing,
+untouched files; every file in this checkpoint is below 400 lines. Q7.62 and
+R7.12 remain open because this checkpoint does not yet implement or prove the
+runtime elevation lifecycle.
 
 ## Test-selection policy
 

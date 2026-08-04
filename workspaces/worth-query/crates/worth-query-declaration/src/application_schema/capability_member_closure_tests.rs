@@ -1,5 +1,9 @@
-use worth_foundational::facade::ScalarAspectType;
-
+use super::{
+    capability_member_closure::validate_application_capability_members,
+    ApplicationAuthorizationPathBuilder, ApplicationEntityRef, ApplicationFieldRef,
+    ApplicationOperationRef, ApplicationRelationRef, ApplicationSchemaDeclarationDenial,
+    ApplicationSchemaMember, EqualityPredicate, NoApplicationCurrency, ReadOnly,
+};
 use crate::application_capability::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityActorComposition,
     ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
@@ -9,23 +13,18 @@ use crate::application_capability::{
     ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
     ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
     ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-    ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-    ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
-    ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
-    ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
-    ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
-    ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+    ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
+    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+    ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
+    ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+    ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+    ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+    ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+    ApplicationCapabilityWorkflowDefinition,
 };
-
-use super::{
-    capability_member_closure::validate_application_capability_members,
-    ApplicationAuthorizationPathBuilder, ApplicationEntityRef, ApplicationFieldRef,
-    ApplicationOperationRef, ApplicationRelationRef, ApplicationSchemaDeclarationDenial,
-    ApplicationSchemaMember, EqualityPredicate, NoApplicationCurrency, ReadOnly,
-};
+use worth_foundational::facade::ScalarAspectType;
 
 struct Schema;
 struct Capability;
@@ -199,6 +198,7 @@ fn contract_with_name_and_composition(
     .constraints(constraint_definition())
     .delegation(delegation_definition())
     .composition(composition)
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build()
     .erased()
     .clone()

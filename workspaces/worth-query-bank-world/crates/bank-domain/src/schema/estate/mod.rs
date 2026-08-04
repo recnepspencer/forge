@@ -2,6 +2,7 @@ mod authority_relation_installation;
 mod capability_composition;
 mod capability_contract_installation;
 mod capability_contracts;
+mod capability_elevation;
 mod capability_installation;
 mod entities;
 mod estate_relation_installation;

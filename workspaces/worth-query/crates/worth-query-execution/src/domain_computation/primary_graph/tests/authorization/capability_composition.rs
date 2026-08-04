@@ -1,7 +1,7 @@
 use super::super::application_attempt::{authenticated_principal, idempotency, resolved_account};
 use super::super::fixture::capability::{
-    CapabilityConflictingBeneficiary, CapabilityPriorActor, ComposedCapabilityTouchOperation,
-    ComposedTouchAccountCapability,
+    CapabilityConflictingBeneficiary, CapabilityPriorActor, CapabilityRequestActor,
+    ComposedCapabilityTouchOperation, ComposedTouchAccountCapability,
 };
 use super::super::fixture::{
     installed_composed_capability_world, live_scope, Account, AccountLabel, AuthorizationWorld,
@@ -149,6 +149,37 @@ fn new_prior_actor_denies_final_commit_before_effect_authority() {
         denial.stage(),
         WorthQueryApplicationCommitDenialStage::DecisionReadSet,
     );
+}
+
+#[test]
+fn unrelated_actor_drift_does_not_stale_the_selected_transition() {
+    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world
+        .application
+        .script_authorization_time(vec![time(100); 16]);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let program = composed_program(&world, &principal, &request);
+
+    add_action_policy_relation(
+        &world,
+        CapabilityRequestActor::reference(),
+        "late-unrelated-request-actor",
+        "other-request",
+    );
+    add_action_policy_relation(
+        &world,
+        CapabilityPriorActor::reference(),
+        "late-unrelated-prior-actor",
+        "other-prior",
+    );
+
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(program, idempotency(76, 76)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
 }
 
 fn admit_composed_access(

@@ -8,14 +8,15 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
         ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
         ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
-        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::{
         ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
@@ -202,6 +203,7 @@ fn capability_contract() -> ApplicationCapabilityContract<
     .constraints(capability_constraints())
     .delegation(capability_delegation())
     .composition(capability_composition())
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build()
 }
 
@@ -220,6 +222,7 @@ fn composed_capability_contract() -> ApplicationCapabilityContract<
     .constraints(capability_constraints())
     .delegation(capability_delegation())
     .composition(composed_capability_composition())
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build()
 }
 

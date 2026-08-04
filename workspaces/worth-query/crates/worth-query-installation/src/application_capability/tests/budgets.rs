@@ -9,7 +9,7 @@ use crate::application_capability::{
 #[test]
 fn capability_canonical_bytes_are_bounded_before_identity_derivation() {
     struct LongContext;
-    let long_name = "x".repeat(70 * 1_024);
+    let long_name = "x".repeat(192 * 1_024);
     let context = ApplicationCapabilityContextRef::<Schema, LongContext>::from_schema_identifier(
         Box::leak(long_name.into_boxed_str()),
     );

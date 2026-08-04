@@ -11,8 +11,7 @@ use bank_domain::{
 use worth_query_host::facade::{
     declaration::{
         application_capability::{
-            ApplicationCapabilityDelegationRule, ApplicationCapabilityDisclosureRule,
-            ApplicationCapabilityGraphRule,
+            ApplicationCapabilityDisclosureRule, ApplicationCapabilityGraphRule,
         },
         application_schema::TypedApplicationValue,
     },
@@ -49,8 +48,13 @@ fn estate_view_contract_installs_exact_role_and_disclosure_composition() {
     assert_eq!(path_relations(deny), vec!["EstateBeneficiary"]);
     assert!(composition.decision().conflict().graph().is_none());
     assert_eq!(
-        composition.propagation().delegation(),
-        ApplicationCapabilityDelegationRule::NarrowAllDimensions
+        composition
+            .propagation()
+            .delegation()
+            .maximum_depth()
+            .expect("estate delegation must retain its installed depth")
+            .maximum(),
+        8
     );
 
     let ApplicationCapabilityDisclosureRule::Permit(guards) =

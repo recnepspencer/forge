@@ -1,7 +1,7 @@
 use crate::application_capability::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-    ErasedApplicationCapabilityContract,
+    ApplicationCapabilityElevationRule, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityRelationDimension, ErasedApplicationCapabilityContract,
 };
 
 use super::super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
@@ -60,6 +60,7 @@ pub(super) fn dependencies_are_closed(
         && relation_exists(members, contract.delegation().grantor())
         && relation_exists(members, contract.delegation().grantee())
         && field_exists(members, contract.delegation().limit())
+        && elevation_dependencies_exist(members, contract.elevation())
     {
         Ok(())
     } else {
@@ -96,6 +97,87 @@ pub(super) fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) 
         && delegation.grantee().to() == grant
         && field_dimension_belongs_to(target.field(), grant)
         && field_dimension_belongs_to(constraints.amount(), grant)
+        && elevation_topology_is_valid(contract)
+}
+
+fn elevation_dependencies_exist(
+    members: &[ApplicationSchemaMember],
+    elevation: &ApplicationCapabilityElevationRule,
+) -> bool {
+    let ApplicationCapabilityElevationRule::Governed(elevation) = elevation else {
+        return true;
+    };
+    let review = elevation.review();
+    [
+        elevation.identity(),
+        elevation.reason(),
+        elevation.status(),
+        review.identity(),
+        review.status(),
+    ]
+    .into_iter()
+    .chain(
+        elevation
+            .states()
+            .values()
+            .into_iter()
+            .map(|state| state.field()),
+    )
+    .chain([review.required().field(), review.completed().field()])
+    .all(|field| field_exists(members, field))
+        && [
+            elevation.requester(),
+            elevation.approver(),
+            elevation.grant(),
+            review.relation(),
+            review.reviewer(),
+        ]
+        .into_iter()
+        .all(|relation| relation_exists(members, relation))
+}
+
+fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -> bool {
+    let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
+        return true;
+    };
+    let Some(principal) = capability_principal(contract) else {
+        return false;
+    };
+    let elevation_entity = elevation.identity().entity();
+    let review = elevation.review();
+    let review_entity = review.identity().entity();
+    elevation.reason().entity() == elevation_entity
+        && elevation.status().entity() == elevation_entity
+        && elevation
+            .states()
+            .values()
+            .into_iter()
+            .all(|state| state.field() == elevation.status())
+        && elevation.requester().from() == principal
+        && elevation.requester().to() == elevation_entity
+        && elevation.approver().from() == principal
+        && elevation.approver().to() == elevation_entity
+        && elevation.grant().from() == elevation_entity
+        && elevation.grant().to() == contract.grant_entity()
+        && review.relation().from() == elevation_entity
+        && review.relation().to() == review_entity
+        && review.status().entity() == review_entity
+        && review.reviewer().from() == principal
+        && review.reviewer().to() == review_entity
+        && review.required().field() == review.status()
+        && review.completed().field() == review.status()
+}
+
+fn capability_principal(contract: &ErasedApplicationCapabilityContract) -> Option<&str> {
+    contract
+        .composition()
+        .decision()
+        .allow()
+        .graph()
+        .requirements()
+        .first()
+        .and_then(|requirement| requirement.clauses().first())
+        .map(|clause| clause.path().principal_entity())
 }
 
 fn operation_exists(
