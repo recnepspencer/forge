@@ -1,12 +1,44 @@
 use crate::application_schema::ApplicationOperationRef;
 
-use super::ApplicationCapabilityContextEntitySlotBinding;
+use super::{ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityRef};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityOperationBinding {
     operation: String,
     operation_type: String,
     input_type: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ApplicationCapabilityTransitionBinding {
+    capability: String,
+    capability_type: String,
+    operation: ApplicationCapabilityOperationBinding,
+}
+
+impl ApplicationCapabilityTransitionBinding {
+    pub fn from_references<Schema, Capability, Operation, Input>(
+        capability: ApplicationCapabilityRef<Schema, Capability>,
+        operation: ApplicationOperationRef<Schema, Operation, Input>,
+    ) -> Self {
+        Self {
+            capability: capability.name().to_string(),
+            capability_type: capability.marker_type().to_string(),
+            operation: ApplicationCapabilityOperationBinding::from_reference(operation),
+        }
+    }
+
+    pub fn capability(&self) -> &str {
+        &self.capability
+    }
+
+    pub fn capability_type(&self) -> &str {
+        &self.capability_type
+    }
+
+    pub const fn operation(&self) -> &ApplicationCapabilityOperationBinding {
+        &self.operation
+    }
 }
 
 impl ApplicationCapabilityOperationBinding {
@@ -37,20 +69,20 @@ impl ApplicationCapabilityOperationBinding {
 pub struct ApplicationCapabilityElevationLifecycleDefinition {
     elevation_slot: ApplicationCapabilityContextEntitySlotBinding,
     review_slot: ApplicationCapabilityContextEntitySlotBinding,
-    request: ApplicationCapabilityOperationBinding,
-    approve: ApplicationCapabilityOperationBinding,
-    revoke: ApplicationCapabilityOperationBinding,
-    complete_review: ApplicationCapabilityOperationBinding,
+    request: ApplicationCapabilityTransitionBinding,
+    approve: ApplicationCapabilityTransitionBinding,
+    revoke: ApplicationCapabilityTransitionBinding,
+    complete_review: ApplicationCapabilityTransitionBinding,
 }
 
 impl ApplicationCapabilityElevationLifecycleDefinition {
     pub fn new(
         elevation_slot: ApplicationCapabilityContextEntitySlotBinding,
         review_slot: ApplicationCapabilityContextEntitySlotBinding,
-        request: ApplicationCapabilityOperationBinding,
-        approve: ApplicationCapabilityOperationBinding,
-        revoke: ApplicationCapabilityOperationBinding,
-        complete_review: ApplicationCapabilityOperationBinding,
+        request: ApplicationCapabilityTransitionBinding,
+        approve: ApplicationCapabilityTransitionBinding,
+        revoke: ApplicationCapabilityTransitionBinding,
+        complete_review: ApplicationCapabilityTransitionBinding,
     ) -> Self {
         Self {
             elevation_slot,
@@ -70,23 +102,23 @@ impl ApplicationCapabilityElevationLifecycleDefinition {
         &self.review_slot
     }
 
-    pub const fn request(&self) -> &ApplicationCapabilityOperationBinding {
+    pub const fn request(&self) -> &ApplicationCapabilityTransitionBinding {
         &self.request
     }
 
-    pub const fn approve(&self) -> &ApplicationCapabilityOperationBinding {
+    pub const fn approve(&self) -> &ApplicationCapabilityTransitionBinding {
         &self.approve
     }
 
-    pub const fn revoke(&self) -> &ApplicationCapabilityOperationBinding {
+    pub const fn revoke(&self) -> &ApplicationCapabilityTransitionBinding {
         &self.revoke
     }
 
-    pub const fn complete_review(&self) -> &ApplicationCapabilityOperationBinding {
+    pub const fn complete_review(&self) -> &ApplicationCapabilityTransitionBinding {
         &self.complete_review
     }
 
-    pub fn operations(&self) -> [&ApplicationCapabilityOperationBinding; 4] {
+    pub fn transitions(&self) -> [&ApplicationCapabilityTransitionBinding; 4] {
         [
             &self.request,
             &self.approve,

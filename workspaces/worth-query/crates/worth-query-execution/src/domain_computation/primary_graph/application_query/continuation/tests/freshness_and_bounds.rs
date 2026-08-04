@@ -9,10 +9,10 @@ use crate::domain_computation::primary_graph::application_query::WorthQueryAppli
 
 #[test]
 fn authentication_expiry_denies_resume_without_a_basis() {
-    let context = ContinuationTestContext::new(Duration::from_millis(500));
+    let mut context = ContinuationTestContext::new(Duration::from_secs(60));
     let continuation = context.issue();
     let acquisitions = context.basis_acquisitions();
-    std::thread::sleep(Duration::from_millis(550));
+    context.expire_authentication();
     let request = crate::domain_computation::primary_graph::tests::fixture::live_scope();
 
     let denial = context.readmit_denial(continuation, "account-1", &request, 1, 10_000);

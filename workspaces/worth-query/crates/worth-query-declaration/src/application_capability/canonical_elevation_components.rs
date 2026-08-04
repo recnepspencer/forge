@@ -4,7 +4,8 @@ use super::canonical_components::{
 };
 use super::{
     ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityElevationRule,
-    ApplicationCapabilityOperationBinding, ErasedApplicationCapabilityContract,
+    ApplicationCapabilityOperationBinding, ApplicationCapabilityTransitionBinding,
+    ErasedApplicationCapabilityContract,
 };
 
 pub(super) fn append_elevation(
@@ -59,6 +60,8 @@ pub(super) fn append_elevation(
     let review = elevation.review();
     append_relation(components, "elevation.review.relation", review.relation());
     append_field(components, "elevation.review.identity", review.identity());
+    append_value_binding(components, "elevation.review.kind", review.kind());
+    append_relation(components, "elevation.review.scope", review.scope());
     append_relation(components, "elevation.review.reviewer", review.reviewer());
     append_field(components, "elevation.review.status", review.status());
     append_value_binding(components, "elevation.review.required", review.required());
@@ -79,18 +82,36 @@ fn append_lifecycle(
         "elevation.lifecycle.review-slot",
         lifecycle.review_slot(),
     );
-    for (role, operation) in [
+    for (role, transition) in [
         ("request", lifecycle.request()),
         ("approve", lifecycle.approve()),
         ("revoke", lifecycle.revoke()),
         ("complete-review", lifecycle.complete_review()),
     ] {
-        append_operation(
+        append_transition(
             components,
             &format!("elevation.lifecycle.{role}"),
-            operation,
+            transition,
         );
     }
+}
+
+fn append_transition(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    prefix: &str,
+    transition: &ApplicationCapabilityTransitionBinding,
+) {
+    text(
+        components,
+        format!("{prefix}.capability"),
+        transition.capability(),
+    );
+    text(
+        components,
+        format!("{prefix}.capability-type"),
+        transition.capability_type(),
+    );
+    append_operation(components, prefix, transition.operation());
 }
 
 fn append_slot(

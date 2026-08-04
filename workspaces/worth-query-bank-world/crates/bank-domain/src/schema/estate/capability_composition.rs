@@ -26,6 +26,13 @@ pub(super) fn composition(
     action: EstateCapabilityOperation,
     purpose: EstateCapabilityPurpose,
 ) -> ApplicationCapabilityComposition {
+    compose(action, disclosure_rule(action, purpose))
+}
+
+fn compose(
+    action: EstateCapabilityOperation,
+    disclosure: ApplicationCapabilityDisclosureRule,
+) -> ApplicationCapabilityComposition {
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(allow_rule(action)),
@@ -41,7 +48,7 @@ pub(super) fn composition(
                 worth_query_decl::facade::application_capability::ApplicationCapabilityDelegationDepth::new(8)
                     .expect("eight delegation links fit the platform bound"),
             ),
-            disclosure_rule(action, purpose),
+            disclosure,
         ),
     )
 }
@@ -64,55 +71,11 @@ fn allow_rule(action: EstateCapabilityOperation) -> ApplicationCapabilityGraphRu
             EmployeeRole::Legal,
         ]
     };
-    let role_requirement = ApplicationCapabilityGraphRequirement::any(
+    ApplicationCapabilityGraphRule::all([ApplicationCapabilityGraphRequirement::any(
         roles
             .into_iter()
             .map(|role| ApplicationCapabilityGraphClause::new(employee_allow_path(role))),
-    );
-    match action_actor_requirement(action) {
-        Some(actor_requirement) => {
-            ApplicationCapabilityGraphRule::all([role_requirement, actor_requirement])
-        }
-        None => ApplicationCapabilityGraphRule::all([role_requirement]),
-    }
-}
-
-fn action_actor_requirement(
-    action: EstateCapabilityOperation,
-) -> Option<ApplicationCapabilityGraphRequirement> {
-    let clause = match action {
-        EstateCapabilityOperation::RequestEmergencyAccess => Some(
-            ApplicationCapabilityGraphClause::new(emergency_actor_path(
-                EmergencyRequester::reference(),
-                ApplicationAuthorizationPathEffect::Allow,
-            ))
-            .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-                EmergencyRequester::reference(),
-                EstateEmergencyAccessSlot::reference(),
-            )]),
-        ),
-        EstateCapabilityOperation::ApproveEmergencyAccess => Some(
-            ApplicationCapabilityGraphClause::new(emergency_actor_path(
-                EmergencyApprover::reference(),
-                ApplicationAuthorizationPathEffect::Allow,
-            ))
-            .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-                EmergencyApprover::reference(),
-                EstateEmergencyAccessSlot::reference(),
-            )]),
-        ),
-        EstateCapabilityOperation::CompleteMandatoryReview => Some(
-            ApplicationCapabilityGraphClause::new(review_actor_path(
-                ApplicationAuthorizationPathEffect::Allow,
-            ))
-            .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-                ReviewPrincipal::reference(),
-                EstateMandatoryReviewSlot::reference(),
-            )]),
-        ),
-        _ => None,
-    };
-    clause.map(|clause| ApplicationCapabilityGraphRequirement::any([clause]))
+    )])
 }
 
 fn view_allow_rule() -> ApplicationCapabilityGraphRule {
@@ -293,20 +256,16 @@ fn emergency_review_actor_clause<Relation>(
             .forward(ReviewEstate::reference())
             .deny(EstateCase::reference()),
     )
-    .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-        EmergencyReview::reference(),
-        EstateMandatoryReviewSlot::reference(),
-    )])
-}
-
-fn review_actor_path(effect: ApplicationAuthorizationPathEffect) -> ApplicationAuthorizationPath {
-    let path = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
-        .forward(ReviewPrincipal::reference())
-        .forward(ReviewEstate::reference());
-    match effect {
-        ApplicationAuthorizationPathEffect::Allow => path.allow(EstateCase::reference()),
-        ApplicationAuthorizationPathEffect::Deny => path.deny(EstateCase::reference()),
-    }
+    .anchored([
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            relation,
+            EstateEmergencyAccessSlot::reference(),
+        ),
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            EmergencyReview::reference(),
+            EstateMandatoryReviewSlot::reference(),
+        ),
+    ])
 }
 
 fn disclosure_rule(

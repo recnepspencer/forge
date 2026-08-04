@@ -12,6 +12,7 @@ pub(super) enum WorthQueryExpectedLifecycleRelation {
 pub(super) struct WorthQueryElevationLifecycleFactExpectation<'a> {
     pub(super) elevation: EntityId,
     pub(super) review: EntityId,
+    pub(super) resource: EntityId,
     pub(super) requester: EntityId,
     pub(super) approver: WorthQueryExpectedLifecycleRelation,
     pub(super) grant: EntityId,
@@ -22,11 +23,13 @@ pub(super) struct WorthQueryElevationLifecycleFactExpectation<'a> {
     pub(super) not_before: (&'a AspectFieldLocator, &'a AspectValue),
     pub(super) not_after: (&'a AspectFieldLocator, &'a AspectValue),
     pub(super) review_identity: (&'a AspectFieldLocator, &'a AspectValue),
+    pub(super) review_type: (&'a AspectFieldLocator, &'a AspectValue),
     pub(super) review_status: (&'a AspectFieldLocator, &'a AspectValue),
     pub(super) requester_relation: KindId,
     pub(super) approver_relation: KindId,
     pub(super) grant_relation: KindId,
     pub(super) review_relation: KindId,
+    pub(super) review_scope_relation: KindId,
     pub(super) reviewer_relation: KindId,
 }
 
@@ -41,9 +44,10 @@ pub(super) fn lifecycle_facts_are_exact(
         (expected.elevation, expected.not_before),
         (expected.elevation, expected.not_after),
         (expected.review, expected.review_identity),
+        (expected.review, expected.review_type),
         (expected.review, expected.review_status),
     ];
-    facts.len() == 12
+    facts.len() == 14
         && fields
             .into_iter()
             .all(|(entity, (locator, value))| exact_field(facts, entity, locator, value))
@@ -74,6 +78,13 @@ pub(super) fn lifecycle_facts_are_exact(
             expected.elevation,
             WorthQueryApplicationAdjacencyDirection::Outgoing,
             WorthQueryExpectedLifecycleRelation::Present(expected.review),
+        )
+        && exact_relation_set(
+            facts,
+            expected.review_scope_relation,
+            expected.review,
+            WorthQueryApplicationAdjacencyDirection::Outgoing,
+            WorthQueryExpectedLifecycleRelation::Present(expected.resource),
         )
         && exact_relation_set(
             facts,

@@ -101,7 +101,7 @@ where
         let request = plan.controls.request_scope();
         admit_request(request, plan.query.name())?;
         validate_basis_lifetime(&plan.controls, plan.query.name())?;
-        validate_authentication_lifetime(plan.principal, plan.query.name())?;
+        validate_authentication_lifetime(self, plan.principal, plan.query.name())?;
         if !plan.basis.is_live() {
             return Err(denial(
                 WorthQueryApplicationOneShotDenialKind::BasisUnavailable,
@@ -127,7 +127,7 @@ where
                 read_bounded_root_rows(runtime, graph, plan, result_buffer)
             })
             .map_err(|read| map_authorized_read_denial(read, plan.query.name()))?;
-        finalize_one_shot(plan, raw, authorization_work, read_proof)
+        finalize_one_shot(self, plan, raw, authorization_work, read_proof)
     }
 }
 
@@ -196,10 +196,11 @@ fn map_authorized_read_denial(
 }
 
 fn validate_authentication_lifetime<Schema, Principal, PrincipalIdentity>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     subject: &str,
 ) -> Result<(), WorthQueryApplicationOneShotDenial> {
-    if principal.is_expired() {
+    if application.authentication_is_expired(principal.valid_until()) {
         Err(denial(
             WorthQueryApplicationOneShotDenialKind::StalePrincipal,
             subject,

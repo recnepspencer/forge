@@ -1,5 +1,5 @@
 use super::capability::*;
-use super::capability_seed::{bind_future_replacement_grant, bind_grant};
+use super::capability_seed::{bind_command_grant, bind_future_replacement_grant, bind_grant};
 use super::IdentityExecutionSchema;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityKey, WorthQueryApplicationEntitySeed,
@@ -18,33 +18,29 @@ pub(super) fn bind_elevated_capability(
     scenario: CapabilityElevationScenario,
 ) {
     bind_grant(bootstrap);
-    super::capability_seed::bind_actor_relation(
+    bind_command_grant(
         bootstrap,
-        CapabilityGrantee::reference(),
-        "capability-1-approval-grantee",
+        "capability-request-command",
+        "principal-0",
+        CapabilityAction::RequestElevation,
+    );
+    bind_command_grant(
+        bootstrap,
+        "capability-approve-command",
         "principal-1",
-        "capability-1",
+        CapabilityAction::ApproveElevation,
     );
-    super::capability_seed::bind_actor_relation(
+    bind_command_grant(
         bootstrap,
-        CapabilityGrantor::reference(),
-        "capability-1-approval-grantor",
+        "capability-revoke-command",
         "principal-1",
-        "capability-1",
+        CapabilityAction::RevokeElevation,
     );
-    super::capability_seed::bind_actor_relation(
+    bind_command_grant(
         bootstrap,
-        CapabilityGrantee::reference(),
-        "capability-1-review-grantee",
+        "capability-review-command",
         "principal-2",
-        "capability-1",
-    );
-    super::capability_seed::bind_actor_relation(
-        bootstrap,
-        CapabilityGrantor::reference(),
-        "capability-1-review-grantor",
-        "principal-2",
-        "capability-1",
+        CapabilityAction::CompleteReview,
     );
     if scenario == CapabilityElevationScenario::WrongGrant {
         bind_future_replacement_grant(bootstrap);
@@ -78,6 +74,10 @@ pub(super) fn bind_elevated_capability(
                 WorthQueryApplicationEntityKey::new("review-1").unwrap(),
             )
             .field(CapabilityReviewIdentity::reference(), "review-1".to_owned())
+            .field(
+                CapabilityReviewKindField::reference(),
+                CapabilityReviewKind::Elevation,
+            )
             .field(
                 CapabilityReviewStatusField::reference(),
                 CapabilityReviewStatus::Required,
@@ -115,6 +115,13 @@ pub(super) fn bind_elevated_capability(
         "elevation-review-1",
         "elevation-1",
         "review-1",
+    );
+    bind_relation(
+        bootstrap,
+        CapabilityReviewResource::reference(),
+        "review-resource-1",
+        "review-1",
+        "account-1",
     );
     if scenario == CapabilityElevationScenario::ConflictedApprover {
         bind_relation(

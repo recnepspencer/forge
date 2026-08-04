@@ -5,7 +5,7 @@ use super::{
     WorthQueryCapabilityCommitBasis, WorthQueryOperationAdmissionIdentity,
     WorthQueryRetainedCapabilityAuthorization,
 };
-mod authorization;
+pub(super) mod authorization;
 mod principal_currentness;
 pub(in crate::domain_computation) use authorization::WorthQueryAuthorizationDecisionFact;
 pub(in crate::domain_computation::authorization) use authorization::WorthQueryDelegationDecisionFact;
@@ -65,7 +65,7 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         match self {
             Self::Principal(_) => 0,
             Self::Abilities { decisions, .. } => decisions.len(),
-            Self::Capability(_) => 1,
+            Self::Capability(authorization) => authorization.exact_fact_count() - 1,
         }
     }
 
@@ -77,11 +77,19 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         &self,
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     ) -> bool {
-        principal(self).session_identity() == session
-            && decisions(self).all(|fact| fact.session_identity() == session)
+        match self {
+            Self::Capability(authorization) => authorization.belongs_to_session(session),
+            Self::Principal(_) | Self::Abilities { .. } => {
+                principal(self).session_identity() == session
+                    && decisions(self).all(|fact| fact.session_identity() == session)
+            }
+        }
     }
 
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
+        if let Self::Capability(authorization) = self {
+            return authorization.relational_counters();
+        }
         decisions(self).fold(
             RelationalAuthorizationObservationCounters::default(),
             |mut total, fact| {
@@ -104,13 +112,21 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
     }
 
     pub(super) fn signal_dependency_count(&self) -> usize {
-        decisions(self)
-            .map(|fact| fact.signal_dependency_count())
-            .sum()
+        match self {
+            Self::Capability(authorization) => authorization.signal_dependency_count(),
+            Self::Principal(_) | Self::Abilities { .. } => decisions(self)
+                .map(|fact| fact.signal_dependency_count())
+                .sum(),
+        }
     }
 
     pub(super) fn bridge_is_retained(&self, bridge: &BridgeAuthorizationRuntime) -> bool {
-        decisions(self).all(|fact| fact.bridge_is_retained(bridge))
+        match self {
+            Self::Capability(authorization) => authorization.bridge_is_retained(bridge),
+            Self::Principal(_) | Self::Abilities { .. } => {
+                decisions(self).all(|fact| fact.bridge_is_retained(bridge))
+            }
+        }
     }
 
     pub(in crate::domain_computation) fn validate_currentness_in(
@@ -141,7 +157,14 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
         bridge: &BridgeAuthorizationRuntime,
     ) -> bool {
-        decisions(self).all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
+        match self {
+            Self::Capability(authorization) => authorization
+                .validate_currentness_in(runtime, snapshot, bridge)
+                .is_ok(),
+            Self::Principal(_) | Self::Abilities { .. } => {
+                decisions(self).all(|fact| fact.remains_current_in(runtime, snapshot, bridge))
+            }
+        }
     }
 
     pub(in crate::domain_computation) fn into_provider_parts(
@@ -177,9 +200,9 @@ impl WorthQueryRetainedAuthorizationDecisionFacts {
                 )
             }
             Self::Capability(authorization) => {
-                let (principal, decision, commit) = authorization.into_parts();
+                let (principal, decisions, commit) = authorization.into_parts();
                 (
-                    WorthQueryProviderAuthorizationDecisionFacts::new(principal, vec![decision]),
+                    WorthQueryProviderAuthorizationDecisionFacts::new(principal, decisions),
                     WorthQueryCommitAuthorizationBasis::Capability {
                         admission_identity,
                         authorization: commit,

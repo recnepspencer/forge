@@ -91,6 +91,7 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
+        access.authorization.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::Revoke,
     )?;

@@ -58,6 +58,7 @@ where
 }
 
 pub(super) fn validate_execution_lifetimes<Schema, Principal, PrincipalIdentity>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     controls: &WorthQueryAdmittedApplicationQueryControls<'_>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
 ) -> Result<(), WorthQueryApplicationQueryExecutionValidationDenial> {
@@ -65,7 +66,7 @@ pub(super) fn validate_execution_lifetimes<Schema, Principal, PrincipalIdentity>
     if controls.basis_is_expired() {
         return Err(WorthQueryApplicationQueryExecutionValidationDenial::ExpiredBasis);
     }
-    if principal.is_expired() {
+    if application.authentication_is_expired(principal.valid_until()) {
         return Err(WorthQueryApplicationQueryExecutionValidationDenial::StalePrincipal);
     }
     Ok(())

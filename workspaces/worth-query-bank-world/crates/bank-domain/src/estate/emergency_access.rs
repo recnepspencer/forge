@@ -1,6 +1,6 @@
 use crate::model::BankPrincipalId;
 
-use super::{CapabilityGrantId, EmergencyAccessId, MandatoryReviewId};
+use super::{CapabilityGrantId, EmergencyAccessId, EstateMoment, MandatoryReviewId};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EmergencyAccessReason {
@@ -13,11 +13,8 @@ pub enum EmergencyAccessReason {
 pub enum EmergencyAccessStatus {
     Requested,
     Approved,
-    Active,
     Expired,
     Revoked,
-    ReviewRequired,
-    Reviewed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,4 +27,6 @@ pub struct EstateEmergencyAccess {
     pub review: MandatoryReviewId,
     pub reason: EmergencyAccessReason,
     pub status: EmergencyAccessStatus,
+    pub issued_at: EstateMoment,
+    pub expires_at: EstateMoment,
 }

@@ -14,10 +14,10 @@ use crate::domain_computation::execution_runtime::{
 
 use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
-    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphBootstrap,
-    WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
-    WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
-    WorthQueryPrincipalResolutionMode,
+    authentication_clock::WorthQueryAuthenticationClock, WorthQueryAuthenticatedPrincipal,
+    WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphInstallationDenial,
+    WorthQueryPrimaryGraphInstallationDenialKind, WorthQueryPrimaryGraphPublication,
+    WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionMode,
 };
 use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 
@@ -44,6 +44,7 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     publication: WorthQueryPrimaryGraphPublication,
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
     pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
+    authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
     pub(super) primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
@@ -119,6 +120,7 @@ where
             publication,
             authorization,
             authorization_clock: WorthQueryAuthorizationClock::system(),
+            authentication_clock: WorthQueryAuthenticationClock::system(),
             relational_source,
             bridge,
             primary_provider,
@@ -127,6 +129,20 @@ where
             basis_leases: Default::default(),
             next_preview_session: AtomicU64::new(1),
         })
+    }
+}
+
+impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
+    pub(in crate::domain_computation::primary_graph) fn authentication_is_expired(
+        &self,
+        valid_until: std::time::Instant,
+    ) -> bool {
+        self.authentication_clock.is_expired(valid_until)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fix_authentication_time(&mut self, now: std::time::Instant) {
+        self.authentication_clock = WorthQueryAuthenticationClock::fixed(now);
     }
 }
 

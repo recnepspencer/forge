@@ -39,8 +39,9 @@ use super::{
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
     CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationSlot,
     CapabilityElevationStatusField, CapabilityReview, CapabilityReviewFacts,
-    CapabilityReviewIdentity, CapabilityReviewSlot, CapabilityReviewStatusField,
-    CapabilityReviewer, CompleteCapabilityReviewOperation, ElevatedCapabilityTouchInput,
+    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
+    CapabilityReviewSlot, CapabilityReviewStatusField, CapabilityReviewer,
+    CompleteCapabilityReviewOperation, ElevatedCapabilityTouchInput,
     ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
     RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
 };
@@ -96,6 +97,10 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
         )
         .field(
             CapabilityReview::reference(),
+            CapabilityReviewKindField::reference(),
+        )
+        .field(
+            CapabilityReview::reference(),
             CapabilityReviewStatusField::reference(),
         )
         .relation(
@@ -117,6 +122,11 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
             CapabilityElevationReview::reference(),
             CapabilityElevation::reference(),
             CapabilityReview::reference(),
+        )
+        .relation(
+            CapabilityReviewResource::reference(),
+            CapabilityReview::reference(),
+            Account::reference(),
         )
         .relation(
             CapabilityReviewer::reference(),
@@ -182,9 +192,51 @@ pub(super) fn target() -> ApplicationCapabilityTargetDefinition {
     )
 }
 
+pub(super) fn command_target(action: CapabilityAction) -> ApplicationCapabilityTargetDefinition {
+    ApplicationCapabilityTargetDefinition::new(
+        ApplicationCapabilityValueBinding::new(CapabilityActionField::reference(), action),
+        ApplicationCapabilityRelationBinding::from_reference(CapabilityResource::reference()),
+        ApplicationCapabilityRelationDimension::not_applicable(),
+        ApplicationCapabilityFieldDimension::not_applicable(),
+        ApplicationCapabilityValueBinding::new(
+            CapabilityPurposeField::reference(),
+            CapabilityPurpose::AccountMaintenance,
+        ),
+    )
+}
+
 pub(super) fn constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
         ApplicationCapabilityAmountDimension::bound(CapabilityAmountField::reference()),
+        ApplicationCapabilityCardinalityDimension::One,
+        ApplicationCapabilityCurrentnessDefinition::new(
+            ApplicationCapabilityValueBinding::new(
+                CapabilityStatusField::reference(),
+                CapabilityStatus::Active,
+            ),
+            ApplicationCapabilityWorkflowDefinition::new(
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityWorkflowField::reference(),
+                ),
+                ApplicationCapabilityFieldBinding::from_reference(AccountStatus::reference()),
+            ),
+            ApplicationCapabilityValidityDefinition::new(
+                ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityNotBeforeField::reference(),
+                ),
+                ApplicationCapabilityFieldBinding::from_reference(
+                    CapabilityNotAfterField::reference(),
+                ),
+            ),
+        ),
+        CapabilityRequestContext::reference(),
+    )
+}
+
+pub(super) fn command_constraints() -> ApplicationCapabilityConstraintDefinition {
+    ApplicationCapabilityConstraintDefinition::new(
+        ApplicationCapabilityAmountDimension::not_applicable(),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(
@@ -224,6 +276,16 @@ pub(super) fn delegation() -> ApplicationCapabilityDelegationDefinition {
 }
 
 pub(super) fn composition() -> ApplicationCapabilityComposition {
+    composition_with_propagation(propagation())
+}
+
+pub(super) fn command_composition() -> ApplicationCapabilityComposition {
+    composition_with_propagation(command_propagation())
+}
+
+fn composition_with_propagation(
+    propagation: ApplicationCapabilityPropagationComposition,
+) -> ApplicationCapabilityComposition {
     let allow = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
         .forward(CapabilityGrantor::reference())
         .forward(CapabilityResource::reference())
@@ -245,7 +307,7 @@ pub(super) fn composition() -> ApplicationCapabilityComposition {
             ApplicationCapabilitySeparationOfDutyRule::not_applicable(),
             ApplicationCapabilityDistinctActorRule::not_applicable(),
         ),
-        propagation(),
+        propagation,
     )
 }
 
@@ -260,5 +322,14 @@ pub(super) fn propagation() -> ApplicationCapabilityPropagationComposition {
                 [CapabilityDisclosure::AccountActivity],
             )],
         )]),
+    )
+}
+
+pub(super) fn command_propagation() -> ApplicationCapabilityPropagationComposition {
+    ApplicationCapabilityPropagationComposition::new(
+        ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+            ApplicationCapabilityDelegationDepth::new(2).unwrap(),
+        ),
+        ApplicationCapabilityDisclosureRule::not_applicable(),
     )
 }

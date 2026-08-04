@@ -149,7 +149,14 @@ impl WorthQueryInstalledAuthorizationRegistry {
     pub(in crate::domain_computation) fn elevation_lifecycle_operation<Operation, Input>(
         &self,
         operation: &str,
-    ) -> Result<Option<([u8; 32], WorthQueryElevationLifecycleOperationRole)>, ()> {
+    ) -> Result<
+        Option<(
+            [u8; 32],
+            [u8; 32],
+            WorthQueryElevationLifecycleOperationRole,
+        )>,
+        (),
+    > {
         self.capabilities
             .elevation_lifecycle_operation::<Operation, Input>(operation)
     }

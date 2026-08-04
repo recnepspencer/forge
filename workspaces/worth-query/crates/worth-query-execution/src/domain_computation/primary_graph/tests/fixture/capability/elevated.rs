@@ -33,6 +33,11 @@ pub enum CapabilityReviewStatus {
     Completed,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilityReviewKind {
+    Elevation,
+}
+
 macro_rules! string_value {
     ($type:ty, {$($variant:path => $value:literal),+ $(,)?}) => {
         impl TypedApplicationValue for $type {
@@ -61,6 +66,9 @@ string_value!(CapabilityReviewStatus, {
     CapabilityReviewStatus::Required => "required",
     CapabilityReviewStatus::Completed => "completed"
 });
+string_value!(CapabilityReviewKind, {
+    CapabilityReviewKind::Elevation => "elevation"
+});
 
 worth_query_entity!(pub CapabilityElevation in IdentityExecutionSchema);
 worth_query_aspect!(pub CapabilityElevationFacts in IdentityExecutionSchema, CapabilityElevation);
@@ -72,11 +80,13 @@ worth_query_field!(pub CapabilityElevationNotAfter in IdentityExecutionSchema, C
 worth_query_entity!(pub CapabilityReview in IdentityExecutionSchema);
 worth_query_aspect!(pub CapabilityReviewFacts in IdentityExecutionSchema, CapabilityReview);
 worth_query_field!(pub CapabilityReviewIdentity in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: String, read_only, equality);
+worth_query_field!(pub CapabilityReviewKindField in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: CapabilityReviewKind, read_only, equality);
 worth_query_field!(pub CapabilityReviewStatusField in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: CapabilityReviewStatus, read_write, no_equality);
 worth_query_relation!(pub CapabilityElevationRequester in IdentityExecutionSchema, Principal => CapabilityElevation);
 worth_query_relation!(pub CapabilityElevationApprover in IdentityExecutionSchema, Principal => CapabilityElevation);
 worth_query_relation!(pub CapabilityElevationGrant in IdentityExecutionSchema, CapabilityElevation => CapabilityGrant);
 worth_query_relation!(pub CapabilityElevationReview in IdentityExecutionSchema, CapabilityElevation => CapabilityReview);
+worth_query_relation!(pub CapabilityReviewResource in IdentityExecutionSchema, CapabilityReview => Account);
 worth_query_relation!(pub CapabilityReviewer in IdentityExecutionSchema, Principal => CapabilityReview);
 worth_query_capability_context_entity_slot!(pub CapabilityElevationSlot in IdentityExecutionSchema, CapabilityRequestContext => CapabilityElevation);
 worth_query_capability_context_entity_slot!(pub CapabilityReviewSlot in IdentityExecutionSchema, CapabilityRequestContext => CapabilityReview);
@@ -107,7 +117,6 @@ pub struct RequestElevationInput {
     pub reason: String,
     pub duration: std::time::Duration,
     pub action: CapabilityAction,
-    pub purpose: CapabilityPurpose,
     pub target_purpose: CapabilityPurpose,
     pub disclosure: CapabilityDisclosure,
     pub amount: u64,
@@ -117,10 +126,6 @@ pub struct RequestElevationInput {
 pub struct ApproveElevationInput {
     pub account: String,
     pub elevation: String,
-    pub action: CapabilityAction,
-    pub purpose: CapabilityPurpose,
-    pub disclosure: CapabilityDisclosure,
-    pub amount: u64,
 }
 
 worth_query_operation!(pub ElevatedCapabilityTouchOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
@@ -130,9 +135,9 @@ worth_query_operation_reads!(ElevatedCapabilityTouchOperation => [AccountLabel])
 worth_query_operation_writes!(ElevatedCapabilityTouchOperation => [AccountLabel]);
 worth_query_operation_reads!(RequestCapabilityElevationOperation => [AccountLabel]);
 worth_query_operation_creates!(RequestCapabilityElevationOperation => [CapabilityElevation, CapabilityReview]);
-worth_query_operation_writes!(RequestCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField]);
-worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationReview]);
-worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewer]);
+worth_query_operation_writes!(RequestCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField]);
+worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource]);
+worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
 worth_query_operation_writes!(ApproveCapabilityElevationOperation => [CapabilityElevationStatusField]);
 worth_query_operation_links!(ApproveCapabilityElevationOperation => [CapabilityElevationApprover]);
 
@@ -219,8 +224,8 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, ApproveElevationCapab
                 AccountIdentity::reference(),
                 self.account.clone(),
             ),
-            self.action,
-            self.purpose,
+            CapabilityAction::ApproveElevation,
+            CapabilityPurpose::AccountMaintenance,
             ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()).entity(
                 CapabilityElevationSlot::reference(),
                 ApplicationCapabilityEntitySelector::new(
@@ -228,9 +233,7 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, ApproveElevationCapab
                     self.elevation.clone(),
                 ),
             ),
-        )
-        .field(self.disclosure)
-        .amount(self.amount))
+        ))
     }
 }
 
@@ -286,7 +289,15 @@ impl RequestElevationInput {
         Account,
         CapabilityRequestContext,
     > {
-        self.projection(&self.account, self.purpose)
+        ApplicationCapabilityRequestProjection::new(
+            ApplicationCapabilityEntitySelector::new(
+                AccountIdentity::reference(),
+                self.account.clone(),
+            ),
+            CapabilityAction::RequestElevation,
+            CapabilityPurpose::AccountMaintenance,
+            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()),
+        )
     }
 
     fn target_projection(
@@ -296,25 +307,13 @@ impl RequestElevationInput {
         Account,
         CapabilityRequestContext,
     > {
-        self.projection(&self.target_account, self.target_purpose)
-    }
-
-    fn projection(
-        &self,
-        account: &str,
-        purpose: CapabilityPurpose,
-    ) -> ApplicationCapabilityRequestProjection<
-        IdentityExecutionSchema,
-        Account,
-        CapabilityRequestContext,
-    > {
         ApplicationCapabilityRequestProjection::new(
             ApplicationCapabilityEntitySelector::new(
                 AccountIdentity::reference(),
-                account.to_owned(),
+                self.target_account.clone(),
             ),
             self.action,
-            purpose,
+            self.target_purpose,
             ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()),
         )
         .field(self.disclosure)
@@ -322,12 +321,18 @@ impl RequestElevationInput {
     }
 }
 
+#[path = "elevated/account_activity_query.rs"]
+mod account_activity_query;
 #[path = "elevated/close.rs"]
 mod close;
 #[path = "elevated/contract.rs"]
 mod contract;
 #[path = "elevated/review.rs"]
 mod review;
+pub(in crate::domain_computation::primary_graph) use account_activity_query::{
+    elevated_account_activity_definition, elevated_account_activity_parameters,
+    ElevatedAccountActivityCause, ElevatedAccountActivityQuery, ElevatedAccountActivityResult,
+};
 pub use close::*;
 pub(super) use contract::install;
 pub use review::*;

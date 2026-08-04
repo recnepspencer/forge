@@ -35,6 +35,28 @@ where
         .copied()
 }
 
+pub(super) fn selected_review_entity<Schema, Capability, Operation, Input>(
+    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+    installed: &WorthQueryInstalledCapabilityPlan,
+) -> Option<EntityId>
+where
+    Input: ApplicationCapabilityRequest<Schema, Capability>,
+{
+    let lifecycle = installed.contract.elevation().definition()?.lifecycle();
+    let slot = lifecycle.review_slot();
+    access
+        .resolved
+        .context
+        .get(&WorthQueryCapabilityContextKey {
+            context: slot.context().to_string(),
+            context_type: slot.context_type().to_string(),
+            slot: slot.slot().to_string(),
+            slot_type: slot.slot_type().to_string(),
+            entity: slot.entity().to_string(),
+        })
+        .copied()
+}
+
 pub(super) fn resolve_lifecycle_identity<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,

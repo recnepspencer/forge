@@ -4,6 +4,7 @@ mod application_branch;
 mod application_query;
 mod application_runtime;
 mod authenticated_principal;
+mod authentication_clock;
 mod bootstrap;
 mod bootstrap_publication;
 mod denial;

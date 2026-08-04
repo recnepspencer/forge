@@ -2,6 +2,8 @@ use std::collections::BTreeSet;
 
 #[path = "estate_capability_installation/composition_contracts.rs"]
 mod composition_contracts;
+#[path = "estate_capability_installation/transition_dimensions.rs"]
+mod transition_dimensions;
 
 use bank_domain::{estate::EstateAction, schema::*};
 use worth_query_host::facade::declaration::application_schema::ApplicationOperationRef;
@@ -161,12 +163,11 @@ fn every_estate_capability_installs_once_with_distinct_canonical_identity() {
         .installed_operation_for_capability(&restricted_view_capability)
         .unwrap();
     let graph_obligations = restricted_view.graph_obligations();
-    let adoption =
-        worth_query_host::facade::inspect_installed_graph_obligations(
-            "bank-domain",
-            graph_obligations,
-        )
-        .expect("Bank must inspect the installed obligation set without rebuilding authority");
+    let adoption = worth_query_host::facade::inspect_installed_graph_obligations(
+        "bank-domain",
+        graph_obligations,
+    )
+    .expect("Bank must inspect the installed obligation set without rebuilding authority");
     assert_eq!(adoption.consumer_name(), "bank-domain");
     assert_eq!(adoption.subject_name(), "ViewRestrictedEstateOperation");
     assert_eq!(adoption.rows().len(), graph_obligations.rows().len());

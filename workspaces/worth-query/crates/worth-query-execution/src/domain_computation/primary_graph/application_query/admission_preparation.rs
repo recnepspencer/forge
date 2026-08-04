@@ -120,6 +120,12 @@ where
         >,
         request: &WorthQueryRequestScope,
     ) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
+        if self.authentication_is_expired(access.principal().valid_until()) {
+            return Err(denial(
+                WorthQueryApplicationQueryAdmissionDenialKind::StalePrincipal,
+                access.principal().binding(),
+            ));
+        }
         self.validate_authenticated_principal(access.principal(), request)
             .map_err(|denial| {
                 WorthQueryApplicationQueryAdmissionDenial::new(

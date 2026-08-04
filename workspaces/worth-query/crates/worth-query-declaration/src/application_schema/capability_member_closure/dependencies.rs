@@ -119,6 +119,7 @@ fn elevation_dependencies_exist(
         elevation.validity().not_before(),
         elevation.validity().not_after(),
         review.identity(),
+        review.kind().field(),
         review.status(),
     ]
     .into_iter()
@@ -136,6 +137,7 @@ fn elevation_dependencies_exist(
             elevation.approver(),
             elevation.grant(),
             review.relation(),
+            review.scope(),
             review.reviewer(),
         ]
         .into_iter()
@@ -143,9 +145,9 @@ fn elevation_dependencies_exist(
         && dimensions.entity_slot_exists(lifecycle.elevation_slot())
         && dimensions.entity_slot_exists(lifecycle.review_slot())
         && lifecycle
-            .operations()
+            .transitions()
             .into_iter()
-            .all(|operation| operation_binding_exists(members, operation))
+            .all(|transition| transition_binding_exists(members, transition))
 }
 
 fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -> bool {
@@ -184,6 +186,9 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
         && review.relation().from() == elevation_entity
         && review.relation().to() == review_entity
         && review_entity != elevation_entity
+        && review.kind().field().entity() == review_entity
+        && review.scope().from() == review_entity
+        && review.scope().to() == contract.target().resource().to()
         && review.status().entity() == review_entity
         && review.reviewer().from() == principal
         && review.reviewer().to() == review_entity
@@ -234,14 +239,18 @@ fn distinct_lifecycle_operations(contract: &ErasedApplicationCapabilityContract)
     let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
         return true;
     };
-    let operations = elevation.lifecycle().operations();
-    operations
+    let transitions = elevation.lifecycle().transitions();
+    transitions
         .iter()
-        .map(|operation| (operation.operation(), operation.input_type()))
+        .map(|transition| {
+            let operation = transition.operation();
+            (operation.operation(), operation.input_type())
+        })
         .collect::<BTreeSet<_>>()
         .len()
-        == operations.len()
-        && operations.into_iter().all(|operation| {
+        == transitions.len()
+        && transitions.into_iter().all(|transition| {
+            let operation = transition.operation();
             operation.operation() != contract.operation()
                 || operation.input_type() != contract.input_type()
         })
@@ -274,18 +283,19 @@ fn operation_exists(
     })
 }
 
-fn operation_binding_exists(
+fn transition_binding_exists(
     members: &[ApplicationSchemaMember],
-    binding: &crate::application_capability::ApplicationCapabilityOperationBinding,
+    binding: &crate::application_capability::ApplicationCapabilityTransitionBinding,
 ) -> bool {
     members.iter().any(|member| {
         matches!(
             member,
-            ApplicationSchemaMember::Operation {
-                operation,
-                input_type,
-            } if operation == binding.operation()
-                && input_type == binding.input_type()
+            ApplicationSchemaMember::ApplicationCapability { contract }
+                if contract.name() == binding.capability()
+                    && contract.capability_type() == binding.capability_type()
+                    && contract.operation() == binding.operation().operation()
+                    && contract.operation_type() == binding.operation().operation_type()
+                    && contract.input_type() == binding.operation().input_type()
         )
     })
 }

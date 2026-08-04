@@ -15,6 +15,30 @@ pub(super) fn bind_grant(bootstrap: &mut WorthQueryPrimaryGraphBootstrap<Identit
     bind_grant_window(bootstrap, "capability-1", 90, 110, 50);
 }
 
+pub(super) fn bind_command_grant(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    key: &str,
+    principal: &str,
+    action: CapabilityAction,
+) {
+    bind_grant_entity_with_action(bootstrap, key, 90, 110, 0, 0, action);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        &format!("{key}-grantee"),
+        principal,
+        key,
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        &format!("{key}-grantor"),
+        principal,
+        key,
+    );
+    bind_resource(bootstrap, key, "account-1");
+}
+
 pub(super) fn bind_future_replacement_grant(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
 ) {
@@ -182,6 +206,27 @@ pub(super) fn bind_grant_entity(
     delegation_limit: u64,
     amount: u64,
 ) {
+    bind_grant_entity_with_action(
+        bootstrap,
+        key,
+        not_before,
+        not_after,
+        delegation_limit,
+        amount,
+        CapabilityAction::Touch,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn bind_grant_entity_with_action(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    key: &str,
+    not_before: u64,
+    not_after: u64,
+    delegation_limit: u64,
+    amount: u64,
+    action: CapabilityAction,
+) {
     bootstrap
         .bind_entity(
             WorthQueryApplicationEntitySeed::new(
@@ -189,7 +234,7 @@ pub(super) fn bind_grant_entity(
                 WorthQueryApplicationEntityKey::new(key).unwrap(),
             )
             .field(CapabilityIdentity::reference(), key.to_owned())
-            .field(CapabilityActionField::reference(), CapabilityAction::Touch)
+            .field(CapabilityActionField::reference(), action)
             .field(
                 CapabilityPurposeField::reference(),
                 CapabilityPurpose::AccountMaintenance,

@@ -9,11 +9,12 @@ use worth_query_declaration::{
 };
 
 use super::{
-    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover, CapabilityElevationGrant,
+    CapabilityAction, CapabilityElevationApprover, CapabilityElevationGrant,
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
     CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
     CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityPurpose,
-    CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewStatusField,
+    CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewSlot, CapabilityReviewStatusField,
     CapabilityReviewer,
 };
 use crate::domain_computation::primary_graph::tests::fixture::{
@@ -26,14 +27,11 @@ worth_query_capability!(pub CompleteElevationReviewCapability in IdentityExecuti
 pub struct CompleteElevationReviewInput {
     pub account: String,
     pub elevation: String,
-    pub action: CapabilityAction,
-    pub purpose: CapabilityPurpose,
-    pub disclosure: CapabilityDisclosure,
-    pub amount: u64,
+    pub review: String,
 }
 
 worth_query_operation!(pub CompleteCapabilityReviewOperation(CompleteElevationReviewInput) in IdentityExecutionSchema);
-worth_query_operation_reads!(CompleteCapabilityReviewOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewer]);
+worth_query_operation_reads!(CompleteCapabilityReviewOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
 worth_query_operation_writes!(CompleteCapabilityReviewOperation => [CapabilityReviewStatusField]);
 worth_query_operation_links!(CompleteCapabilityReviewOperation => [CapabilityReviewer]);
 
@@ -58,17 +56,23 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, CompleteElevationRevi
                 AccountIdentity::reference(),
                 self.account.clone(),
             ),
-            self.action,
-            self.purpose,
-            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()).entity(
-                CapabilityElevationSlot::reference(),
-                ApplicationCapabilityEntitySelector::new(
-                    CapabilityElevationIdentity::reference(),
-                    self.elevation.clone(),
+            CapabilityAction::CompleteReview,
+            CapabilityPurpose::AccountMaintenance,
+            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference())
+                .entity(
+                    CapabilityElevationSlot::reference(),
+                    ApplicationCapabilityEntitySelector::new(
+                        CapabilityElevationIdentity::reference(),
+                        self.elevation.clone(),
+                    ),
+                )
+                .entity(
+                    CapabilityReviewSlot::reference(),
+                    ApplicationCapabilityEntitySelector::new(
+                        CapabilityReviewIdentity::reference(),
+                        self.review.clone(),
+                    ),
                 ),
-            ),
-        )
-        .field(self.disclosure)
-        .amount(self.amount))
+        ))
     }
 }

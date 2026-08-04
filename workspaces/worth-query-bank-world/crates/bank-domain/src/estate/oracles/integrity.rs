@@ -68,7 +68,9 @@ fn validate_estate_record_action(
     estate: &EstateCase,
 ) -> Result<(), EstateDenial> {
     match action {
-        EstateAction::NotifyDeath { notice, subject } => {
+        EstateAction::NotifyDeath {
+            notice, subject, ..
+        } => {
             let notice = world
                 .death_notice(notice)
                 .ok_or(EstateDenial::LegalAuthorityMissing)?;
@@ -128,7 +130,7 @@ fn validate_legal_action(
                 return Err(EstateDenial::MandatoryReviewIncomplete);
             }
         }
-        EstateAction::CompleteMandatoryReview { review } => {
+        EstateAction::CompleteMandatoryReview { review, .. } => {
             let review = world
                 .review(review)
                 .ok_or(EstateDenial::MandatoryReviewIncomplete)?;
@@ -170,7 +172,7 @@ fn validate_capability_action(
     estate: &EstateCase,
 ) -> Result<(), EstateDenial> {
     match action {
-        EstateAction::DelegateCapability { parent, child } => {
+        EstateAction::DelegateCapability { parent, child, .. } => {
             let parent = world
                 .grant(parent)
                 .ok_or(EstateDenial::DelegationParentMissing)?;
@@ -190,7 +192,7 @@ fn validate_capability_action(
                 return Err(EstateDenial::DelegationWidensAuthority);
             }
         }
-        EstateAction::RevokeCapability { grant } => {
+        EstateAction::RevokeCapability { grant, .. } => {
             validate_target_grant(world, grant, estate)?;
         }
         _ => {}
@@ -205,9 +207,9 @@ fn validate_emergency_action(
     estate: &EstateCase,
 ) -> Result<(), EstateDenial> {
     match action {
-        EstateAction::RequestEmergencyAccess { access }
-        | EstateAction::ApproveEmergencyAccess { access }
-        | EstateAction::RevokeEmergencyAccess { access } => {
+        EstateAction::RequestEmergencyAccess { access, .. }
+        | EstateAction::ApproveEmergencyAccess { access, .. }
+        | EstateAction::RevokeEmergencyAccess { access, .. } => {
             let access = validate_access(world, access, estate)?;
             if matches!(action, EstateAction::RequestEmergencyAccess { .. })
                 && (access.requester != actor.principal
@@ -270,10 +272,13 @@ pub(super) fn validate_access<'a>(
         .review(access.review)
         .ok_or(EstateDenial::MandatoryReviewIncomplete)?;
     let review_state_matches = match access.status {
-        EmergencyAccessStatus::Reviewed => {
-            review.status == MandatoryReviewStatus::Completed && review.reviewer.is_some()
+        EmergencyAccessStatus::Requested | EmergencyAccessStatus::Approved => {
+            review.status == MandatoryReviewStatus::Required && review.reviewer.is_none()
         }
-        _ => review.status == MandatoryReviewStatus::Required,
+        EmergencyAccessStatus::Expired | EmergencyAccessStatus::Revoked => match review.status {
+            MandatoryReviewStatus::Required => review.reviewer.is_none(),
+            MandatoryReviewStatus::Completed => review.reviewer.is_some(),
+        },
     };
     if review.estate != estate.id
         || review.kind != MandatoryReviewKind::EmergencyAccess

@@ -134,11 +134,8 @@ string_application_value!(EmergencyAccessReason, {
 string_application_value!(EmergencyAccessStatus, {
     EmergencyAccessStatus::Requested => "requested",
     EmergencyAccessStatus::Approved => "approved",
-    EmergencyAccessStatus::Active => "active",
     EmergencyAccessStatus::Expired => "expired",
     EmergencyAccessStatus::Revoked => "revoked",
-    EmergencyAccessStatus::ReviewRequired => "review-required",
-    EmergencyAccessStatus::Reviewed => "reviewed",
 });
 string_application_value!(MandatoryReviewStatus, {
     MandatoryReviewStatus::Required => "required",

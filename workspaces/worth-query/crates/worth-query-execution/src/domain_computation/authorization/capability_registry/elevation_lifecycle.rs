@@ -1,8 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_query_declaration::facade::application_capability::{
-    ApplicationCapabilityElevationRule, ErasedApplicationCapabilityContract,
+    ApplicationCapabilityElevationRule, ApplicationCapabilityTransitionBinding,
+    ErasedApplicationCapabilityContract,
 };
+
+use super::WorthQueryInstalledCapabilityPlan;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation) enum WorthQueryElevationLifecycleOperationRole {
@@ -13,7 +16,8 @@ pub(in crate::domain_computation) enum WorthQueryElevationLifecycleOperationRole
 }
 
 pub(super) struct WorthQueryInstalledElevationLifecycleOperation {
-    capability_identity: [u8; 32],
+    governed_capability_identity: [u8; 32],
+    command_capability_identity: [u8; 32],
     role: WorthQueryElevationLifecycleOperationRole,
 }
 
@@ -29,14 +33,15 @@ pub(super) struct WorthQueryInstalledElevationLifecycleRegistry {
 impl WorthQueryInstalledElevationLifecycleRegistry {
     pub(super) fn install(
         &mut self,
-        capability_identity: [u8; 32],
+        governed_capability_identity: [u8; 32],
+        plans: &BTreeMap<[u8; 32], WorthQueryInstalledCapabilityPlan>,
         contract: &ErasedApplicationCapabilityContract,
     ) -> Result<(), ()> {
         let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
             return Ok(());
         };
         let lifecycle = elevation.lifecycle();
-        for (role, operation) in [
+        for (role, transition) in [
             (
                 WorthQueryElevationLifecycleOperationRole::Request,
                 lifecycle.request(),
@@ -54,6 +59,8 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
                 lifecycle.complete_review(),
             ),
         ] {
+            let operation = transition.operation();
+            let command_capability_identity = command_capability(plans, transition).ok_or(())?;
             if !self.executable_operations.insert((
                 operation.operation().to_owned(),
                 operation.input_type().to_owned(),
@@ -69,7 +76,8 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
                 .insert(
                     operation.operation_type().to_owned(),
                     WorthQueryInstalledElevationLifecycleOperation {
-                        capability_identity,
+                        governed_capability_identity,
+                        command_capability_identity,
                         role,
                     },
                 )
@@ -84,7 +92,14 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
     pub(super) fn operation<Operation, Input>(
         &self,
         operation: &str,
-    ) -> Result<Option<([u8; 32], WorthQueryElevationLifecycleOperationRole)>, ()> {
+    ) -> Result<
+        Option<(
+            [u8; 32],
+            [u8; 32],
+            WorthQueryElevationLifecycleOperationRole,
+        )>,
+        (),
+    > {
         let Some(inputs) = self.operations.get(operation) else {
             return Ok(None);
         };
@@ -92,10 +107,30 @@ impl WorthQueryInstalledElevationLifecycleRegistry {
             return Ok(None);
         };
         let installed = markers.get(std::any::type_name::<Operation>()).ok_or(())?;
-        Ok(Some((installed.capability_identity, installed.role)))
+        Ok(Some((
+            installed.governed_capability_identity,
+            installed.command_capability_identity,
+            installed.role,
+        )))
     }
 
     pub(super) fn len(&self) -> usize {
         self.executable_operations.len()
     }
+}
+
+fn command_capability(
+    plans: &BTreeMap<[u8; 32], WorthQueryInstalledCapabilityPlan>,
+    binding: &ApplicationCapabilityTransitionBinding,
+) -> Option<[u8; 32]> {
+    plans.iter().find_map(|(identity, plan)| {
+        let contract = &plan.contract;
+        (contract.name() == binding.capability()
+            && contract.capability_type() == binding.capability_type()
+            && contract.operation() == binding.operation().operation()
+            && contract.operation_type() == binding.operation().operation_type()
+            && contract.input_type() == binding.operation().input_type()
+            && contract.elevation().definition().is_none())
+        .then_some(*identity)
+    })
 }

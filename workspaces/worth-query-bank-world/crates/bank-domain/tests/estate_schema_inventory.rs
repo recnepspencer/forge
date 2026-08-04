@@ -49,7 +49,7 @@ fn required_estate_topology_and_policy_contributions_are_present() {
 }
 
 #[test]
-fn estate_capabilities_are_declared_without_premature_execution_authority() {
+fn estate_capabilities_and_phase_seven_lifecycle_programs_are_declared() {
     let declaration = BankSchema::declaration().unwrap();
     let members = declaration.erased().members();
     assert_required_subset_present(
@@ -67,9 +67,20 @@ fn estate_capabilities_are_declared_without_premature_execution_authority() {
         .iter()
         .filter_map(operation_program_name)
         .collect::<BTreeSet<_>>();
-    assert!(
-        executable_operations.is_disjoint(&estate_operations()),
-        "Phase 7.1 declares installed meaning but must not mint estate execution authority"
+    assert_eq!(
+        executable_operations
+            .intersection(&estate_operations())
+            .copied()
+            .collect::<BTreeSet<_>>(),
+        [
+            "ApproveEstateEmergencyAccessOperation",
+            "CompleteEstateMandatoryReviewOperation",
+            "RequestEstateEmergencyAccessOperation",
+            "RevokeEstateEmergencyAccessOperation",
+        ]
+        .into_iter()
+        .collect(),
+        "Phase 7.7 installs the exact emergency lifecycle programs before its consumer cutover"
     );
 
     let sources = [

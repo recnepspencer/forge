@@ -8,6 +8,7 @@ mod entities;
 mod estate_relation_installation;
 mod fields;
 mod member_installation;
+mod operation_program_installation;
 mod policies;
 mod policy_installation;
 mod relations;
@@ -32,5 +33,6 @@ pub(crate) fn install_estate_world(
     let schema = estate_relation_installation::install(schema);
     let schema = authority_relation_installation::install(schema);
     let schema = policy_installation::install(schema);
-    capability_contract_installation::install(schema)
+    let schema = capability_contract_installation::install(schema);
+    operation_program_installation::install(schema)
 }

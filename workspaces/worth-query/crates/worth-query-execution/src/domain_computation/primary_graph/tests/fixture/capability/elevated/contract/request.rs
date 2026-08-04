@@ -10,10 +10,12 @@ use super::super::{
     CapabilityElevation, CapabilityElevationGrant, CapabilityElevationIdentity,
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
     CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatusField,
-    CapabilityGrant, CapabilityReview, CapabilityReviewIdentity, CapabilityReviewStatusField,
-    RequestCapabilityElevationOperation, RequestElevationCapability, RequestElevationInput,
+    CapabilityGrant, CapabilityReview, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewStatusField, RequestCapabilityElevationOperation,
+    RequestElevationCapability, RequestElevationInput,
 };
-use super::{composition, constraints, delegation, target};
+use super::{command_composition, command_constraints, command_target, delegation};
+use crate::domain_computation::primary_graph::tests::fixture::CapabilityAction;
 use crate::domain_computation::primary_graph::tests::fixture::{
     AccountLabel, IdentityExecutionSchema,
 };
@@ -62,6 +64,10 @@ pub(super) fn install(
         )
         .operation_write(
             RequestCapabilityElevationOperation::reference(),
+            CapabilityReviewKindField::reference(),
+        )
+        .operation_write(
+            RequestCapabilityElevationOperation::reference(),
             CapabilityReviewStatusField::reference(),
         )
         .operation_link(
@@ -75,6 +81,10 @@ pub(super) fn install(
         .operation_link(
             RequestCapabilityElevationOperation::reference(),
             CapabilityElevationReview::reference(),
+        )
+        .operation_link(
+            RequestCapabilityElevationOperation::reference(),
+            CapabilityReviewResource::reference(),
         )
         .capability(request_contract())
 }
@@ -90,10 +100,10 @@ fn request_contract() -> ApplicationCapabilityContract<
         RequestCapabilityElevationOperation::reference(),
         CapabilityGrant::reference(),
     )
-    .target(target())
-    .constraints(constraints())
+    .target(command_target(CapabilityAction::RequestElevation))
+    .constraints(command_constraints())
     .delegation(delegation())
-    .composition(composition())
+    .composition(command_composition())
     .elevation(ApplicationCapabilityElevationRule::not_applicable())
     .build()
 }

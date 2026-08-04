@@ -152,6 +152,7 @@ fn validate_lifecycle_facts(
         WorthQueryElevationLifecycleFactExpectation {
             elevation: binding.elevation,
             review: binding.review,
+            resource: requested.resource(),
             requester: requested.requester(),
             approver: WorthQueryExpectedLifecycleRelation::Absent,
             grant: requested.grant(),
@@ -165,6 +166,7 @@ fn validate_lifecycle_facts(
             not_before: (&requested.not_before_field, &requested.issued_at),
             not_after: (&requested.not_after_field, &requested.expires_at),
             review_identity: (&requested.review_identity_field, &requested.review_identity),
+            review_type: (&requested.review_type_field, &requested.review_type),
             review_status: (
                 &requested.review_status_field,
                 &requested.review_required_status,
@@ -173,6 +175,7 @@ fn validate_lifecycle_facts(
             approver_relation: binding.approver_relation,
             grant_relation: requested.grant_relation,
             review_relation: requested.review_relation,
+            review_scope_relation: requested.review_scope_relation,
             reviewer_relation: binding.reviewer_relation,
         },
     ) {

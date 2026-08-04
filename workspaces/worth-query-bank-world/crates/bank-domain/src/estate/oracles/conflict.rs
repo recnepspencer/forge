@@ -10,7 +10,7 @@ pub(super) fn validate(
     _capability_use: EstateCapabilityUse,
     estate: &EstateCase,
 ) -> Result<(), EstateDenial> {
-    if let EstateAction::ApproveEmergencyAccess { access } = action {
+    if let EstateAction::ApproveEmergencyAccess { access, .. } = action {
         let access = world
             .emergency_access(access)
             .ok_or(EstateDenial::EmergencyAccessMissing)?;

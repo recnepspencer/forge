@@ -10,9 +10,11 @@ use super::super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::super::super::capability_request_resolution::{
     resolve_capability_request, resolve_erased_selector,
 };
+use super::super::super::delegation_admission::observe_elevation_upper_bound;
+use super::super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryRetainedCapabilitySupport,
 };
 use super::super::request_binding::WorthQueryElevationRequestBinding;
 use super::super::WorthQueryElevationUpperBound;
@@ -29,13 +31,17 @@ pub(super) fn bind_request<Schema, Capability, Operation, Input>(
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
     >,
-) -> Result<WorthQueryElevationRequestBinding, WorthQueryOperationAuthorizationDenial>
+) -> Result<
+    (
+        WorthQueryElevationRequestBinding,
+        WorthQueryRetainedCapabilitySupport,
+    ),
+    WorthQueryOperationAuthorizationDenial,
+>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let upper_bound =
-        resolve_upper_bound(runtime, capability_identity, installed, access, proposed)?;
     let elevation = installed
         .elevation
         .as_ref()
@@ -49,42 +55,56 @@ where
                 installed.contract.name(),
             )
         })?;
-    let lifecycle = &elevation.lifecycle;
-    Ok(WorthQueryElevationRequestBinding {
-        runtime_authority: runtime.runtime.authority_identity(),
-        branch: access.graph_work.branch().relational().clone(),
+    let (upper_bound, supporting) = resolve_upper_bound(
+        runtime,
         capability_identity,
-        capability_authority_identity: Arc::clone(&installed.capability_authority_identity),
-        upper_bound,
-        elevation_kind: elevation.elevation_kind,
-        review_kind: lifecycle.review_kind,
-        elevation_key: proposed.elevation_key().to_string(),
-        elevation_identity_field: lifecycle.identity.clone(),
-        elevation_identity: proposed.elevation_identity().value().clone(),
-        reason_field: lifecycle.reason.clone(),
-        reason: proposed.reason().value().clone(),
-        status_field: lifecycle.status.clone(),
-        requested_status: lifecycle.requested.clone(),
-        not_before_field: elevation.temporal.not_before.clone(),
-        issued_at: interval.issued.value().clone(),
-        not_after_field: elevation.temporal.not_after.clone(),
-        expires_at: interval.expires,
-        review_key: proposed.review_key().to_string(),
-        review_identity_field: lifecycle.review_identity.clone(),
-        review_identity: proposed.review_identity().value().clone(),
-        review_status_field: lifecycle.review_status.clone(),
-        review_required_status: lifecycle.review_required.clone(),
-        requester_relation: lifecycle.requester_relation,
-        grant_relation: lifecycle.grant_relation,
-        review_relation: lifecycle.review_relation,
-        required_program_targets: required_program_targets(
-            installed
-                .contract
-                .elevation()
-                .definition()
-                .expect("installed elevation plan retains its governed declaration"),
-        ),
-    })
+        installed,
+        access,
+        proposed,
+        &interval.issued,
+    )?;
+    let lifecycle = &elevation.lifecycle;
+    Ok((
+        WorthQueryElevationRequestBinding {
+            runtime_authority: runtime.runtime.authority_identity(),
+            branch: access.graph_work.branch().relational().clone(),
+            capability_identity,
+            capability_authority_identity: Arc::clone(&installed.capability_authority_identity),
+            upper_bound,
+            elevation_kind: elevation.elevation_kind,
+            review_kind: lifecycle.review_kind,
+            elevation_key: proposed.elevation_key().to_string(),
+            elevation_identity_field: lifecycle.identity.clone(),
+            elevation_identity: proposed.elevation_identity().value().clone(),
+            reason_field: lifecycle.reason.clone(),
+            reason: proposed.reason().value().clone(),
+            status_field: lifecycle.status.clone(),
+            requested_status: lifecycle.requested.clone(),
+            not_before_field: elevation.temporal.not_before.clone(),
+            issued_at: interval.issued.value().clone(),
+            not_after_field: elevation.temporal.not_after.clone(),
+            expires_at: interval.expires,
+            review_key: proposed.review_key().to_string(),
+            review_identity_field: lifecycle.review_identity.clone(),
+            review_identity: proposed.review_identity().value().clone(),
+            review_type_field: lifecycle.review_type.clone(),
+            review_type: lifecycle.review_type_value.clone(),
+            review_status_field: lifecycle.review_status.clone(),
+            review_required_status: lifecycle.review_required.clone(),
+            requester_relation: lifecycle.requester_relation,
+            grant_relation: lifecycle.grant_relation,
+            review_relation: lifecycle.review_relation,
+            review_scope_relation: lifecycle.review_scope_relation,
+            required_program_targets: required_program_targets(
+                installed
+                    .contract
+                    .elevation()
+                    .definition()
+                    .expect("installed elevation plan retains its governed declaration"),
+            ),
+        },
+        supporting,
+    ))
 }
 
 fn resolve_upper_bound<Schema, Capability, Operation, Input>(
@@ -97,7 +117,14 @@ fn resolve_upper_bound<Schema, Capability, Operation, Input>(
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
     >,
-) -> Result<WorthQueryElevationUpperBound, WorthQueryOperationAuthorizationDenial>
+    sample: &super::super::super::WorthQueryAuthorizationTimeSample,
+) -> Result<
+    (
+        WorthQueryElevationUpperBound,
+        WorthQueryRetainedCapabilitySupport,
+    ),
+    WorthQueryOperationAuthorizationDenial,
+>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
@@ -139,16 +166,47 @@ where
     })?;
     if target.resource.entity_id() != access.resolved.resource.entity_id()
         || grant.entity_kind != installed.grant_kind
-        || grant.entity_id != access.authorization.grant()
     {
         return Err(projection_denial(installed.contract.name()));
     }
-    Ok(WorthQueryElevationUpperBound::capture(
+    let retained = WorthQueryRetainedCapabilityRequest::capture(
         capability_identity,
         access.principal_entity_id,
         proposed.target(),
         &target,
-        grant.entity_id,
+    );
+    let observed = handle.with_runtime(|relational| {
+        observe_elevation_upper_bound(
+            access.graph_work.identity(),
+            relational,
+            snapshot,
+            runtime.authorization.bridge(),
+            installed,
+            &retained,
+            sample,
+            grant.entity_id,
+            None,
+        )
+    })?;
+    let (decision, observed_grant) = observed.into_parts();
+    if observed_grant != grant.entity_id {
+        return Err(projection_denial(installed.contract.name()));
+    }
+    Ok((
+        WorthQueryElevationUpperBound::capture(
+            capability_identity,
+            access.principal_entity_id,
+            proposed.target(),
+            &target,
+            grant.entity_id,
+        ),
+        WorthQueryRetainedCapabilitySupport::new(
+            decision,
+            Arc::clone(&installed.capability_authority_identity),
+            grant.entity_id,
+            retained,
+            sample.clone(),
+        ),
     ))
 }
 
@@ -172,6 +230,7 @@ fn required_program_targets(
             elevation.validity().not_before(),
             elevation.validity().not_after(),
             review.identity(),
+            review.kind().field(),
             review.status(),
         ]
         .into_iter()
@@ -182,13 +241,18 @@ fn required_program_targets(
         }),
     );
     targets.extend(
-        [elevation.requester(), elevation.grant(), review.relation()]
-            .into_iter()
-            .map(|relation| ApplicationOperationProgramTarget::Link {
-                relation: relation.relation().to_string(),
-                from: relation.from().to_string(),
-                to: relation.to().to_string(),
-            }),
+        [
+            elevation.requester(),
+            elevation.grant(),
+            review.relation(),
+            review.scope(),
+        ]
+        .into_iter()
+        .map(|relation| ApplicationOperationProgramTarget::Link {
+            relation: relation.relation().to_string(),
+            from: relation.from().to_string(),
+            to: relation.to().to_string(),
+        }),
     );
     targets
 }

@@ -54,7 +54,12 @@ pub(super) fn observe_capability_policy(
     sample: &WorthQueryAuthorizationTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
-    validate_projection_shape(installed, request)?;
+    validate_projection_shape(
+        installed,
+        request,
+        installed.paths.len(),
+        installed.elevation.is_some(),
+    )?;
     let (exact_grant, preparatory_relational_work) = resolve_exact_grant(
         relational,
         snapshot.clone(),
@@ -83,6 +88,68 @@ pub(super) fn observe_capability_policy(
         .with_preparatory_relational_work(preparatory_relational_work),
         grant,
     })
+}
+
+pub(super) fn observe_upper_bound_policy(
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: worth_relational::facade::identity::EntityId,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
+    let upper_bound = installed
+        .upper_bound
+        .as_ref()
+        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+    validate_projection_shape(installed, request, upper_bound.path_count, false)?;
+    let paths = path_preparation::prepare_upper_bound_policy_paths(
+        installed,
+        request,
+        sample,
+        exact_grant,
+    )?;
+    let evidence = observe_exact_policy(relational, snapshot, installed, request, paths)?;
+    let dependency_identity = *evidence.observation_identity().bytes();
+    let observation = bridge_observation::lower_upper_bound_observation(
+        installed,
+        request,
+        &evidence,
+        dependency_identity,
+    )?;
+    let bridge_evidence = bridge.evaluate(observation).map_err(|_| {
+        WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::BridgeEvaluationRejected,
+            installed.contract.name(),
+        )
+    })?;
+    if bridge_evidence.dependency_identity() != evidence.observation_identity().bytes()
+        || !bridge.retains(&bridge_evidence)
+    {
+        return Err(WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            installed.contract.name(),
+        ));
+    }
+    if !bridge_evidence.is_allowed() {
+        return Err(WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            installed.contract.name(),
+        ));
+    }
+    let observed_grant = extract_exact_grant(installed, &evidence)?;
+    if observed_grant != exact_grant {
+        return Err(WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            installed.contract.name(),
+        ));
+    }
+    Ok(WorthQueryObservedCapabilityDecision::new(
+        WorthQueryAuthorizationDecisionFact::new(session_identity, evidence, bridge_evidence),
+        observed_grant,
+    ))
 }
 
 fn resolve_exact_grant(
@@ -194,6 +261,8 @@ fn extract_exact_grant(
 fn validate_projection_shape(
     installed: &WorthQueryInstalledCapabilityPlan,
     projection: &WorthQueryRetainedCapabilityRequest,
+    path_count: usize,
+    elevation_required: bool,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
     let request = &installed.request;
     if projection.action != request.action
@@ -204,7 +273,7 @@ fn validate_projection_shape(
         || !cardinality_admitted(request.cardinality, projection.cardinality)
         || projection.field.is_some() != request.field.is_some()
         || projection.amount.is_some() != request.amount.is_some()
-        || projection.elevation.is_some() != installed.elevation.is_some()
+        || projection.elevation.is_some() != elevation_required
     {
         return Err(projection_denial(installed.contract.name()));
     }
@@ -224,6 +293,7 @@ fn validate_projection_shape(
     let expected_context = installed
         .paths
         .iter()
+        .take(path_count)
         .flat_map(|path| {
             path.context_anchors
                 .iter()

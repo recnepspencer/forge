@@ -105,6 +105,19 @@ pub(in crate::domain_computation::primary_graph) fn installed_elevated_capabilit
     capability_world(3, "primary", CapabilityGrantPopulation::Elevated(scenario))
 }
 
+pub(in crate::domain_computation::primary_graph) fn installed_elevated_capability_live_world(
+    scenario: super::capability_elevation_seed::CapabilityElevationScenario,
+) -> AuthorizationWorld {
+    installed_authorization_world_with_principal_count(
+        &[("principal-2", "account-1")],
+        false,
+        3,
+        "primary",
+        WorthQueryApplicationQueryResourceProfile::default(),
+        CapabilityGrantPopulation::Elevated(scenario),
+    )
+}
+
 fn capability_world(
     principal_count: usize,
     label: &str,

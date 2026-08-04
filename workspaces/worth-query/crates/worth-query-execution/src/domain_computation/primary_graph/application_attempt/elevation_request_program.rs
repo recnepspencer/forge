@@ -88,7 +88,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_request_p
     let expected = request_effects(binding)?;
     if same_effects(&program.effects, &expected)
         && program.emission_retained_bytes == 0
-        && expected.len() == 5
+        && expected.len() == 6
     {
         Ok(())
     } else {
@@ -132,7 +132,7 @@ fn request_effects(
         },
         WorthQueryApplicationRealizedEffect::CreateEntity {
             kind: binding.review_kind,
-            key: review_key,
+            key: review_key.clone(),
             fields: review_fields,
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
@@ -149,9 +149,15 @@ fn request_effects(
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: binding.review_relation,
-            key: elevation_key,
+            key: elevation_key.clone(),
             from: elevation,
-            to: review,
+            to: review.clone(),
+        },
+        WorthQueryApplicationRealizedEffect::CreateRelation {
+            kind: binding.review_scope_relation,
+            key: review_key,
+            from: review,
+            to: EntityReference::Existing(binding.resource()),
         },
     ])
 }
@@ -193,12 +199,13 @@ fn review_fields(
     exact_fields(
         [
             (&binding.review_identity_field, &binding.review_identity),
+            (&binding.review_type_field, &binding.review_type),
             (
                 &binding.review_status_field,
                 &binding.review_required_status,
             ),
         ],
-        2,
+        3,
         "mandatory review fields",
     )
 }

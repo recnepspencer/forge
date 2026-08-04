@@ -20,6 +20,11 @@ use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSche
 pub enum CapabilityAction {
     Touch,
     Inspect,
+    Disburse,
+    RequestElevation,
+    ApproveElevation,
+    RevokeElevation,
+    CompleteReview,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,7 +72,12 @@ macro_rules! string_value {
 
 string_value!(CapabilityAction, {
     CapabilityAction::Touch => "touch",
-    CapabilityAction::Inspect => "inspect"
+    CapabilityAction::Inspect => "inspect",
+    CapabilityAction::Disburse => "disburse",
+    CapabilityAction::RequestElevation => "request-elevation",
+    CapabilityAction::ApproveElevation => "approve-elevation",
+    CapabilityAction::RevokeElevation => "revoke-elevation",
+    CapabilityAction::CompleteReview => "complete-review"
 });
 string_value!(CapabilityPurpose, {
     CapabilityPurpose::AccountMaintenance => "account-maintenance",

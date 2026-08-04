@@ -12,6 +12,7 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationR
 
 pub(super) fn installed_lifecycle_owner<'runtime, Schema, Operation, Input>(
     runtime: &'runtime WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    command_capability_identity: [u8; 32],
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
     expected_role: WorthQueryElevationLifecycleOperationRole,
 ) -> Result<
@@ -21,14 +22,14 @@ pub(super) fn installed_lifecycle_owner<'runtime, Schema, Operation, Input>(
 where
     Schema: ApplicationSchema,
 {
-    let Some((capability, role)) = runtime
+    let Some((capability, command_capability, role)) = runtime
         .authorization
         .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
         .map_err(|()| stale_operation(operation.operation()))?
     else {
         return Err(role_mismatch(operation.operation()));
     };
-    if role != expected_role {
+    if role != expected_role || command_capability != command_capability_identity {
         return Err(role_mismatch(operation.operation()));
     }
     let installed = runtime

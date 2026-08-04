@@ -85,7 +85,7 @@ where
                 plan.query.name(),
             ));
         }
-        validate_execution_lifetimes(&plan.controls, plan.principal)
+        validate_execution_lifetimes(self, &plan.controls, plan.principal)
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
         validate_live_basis(plan.basis.is_live())
             .map_err(|denial| map_validation_denial(denial, plan.query.name()))?;
@@ -122,7 +122,7 @@ where
                 plan.query.name(),
             ));
         }
-        finalize_continuation_page(plan, raw, authorization_work, read_proof)
+        finalize_continuation_page(self, plan, raw, authorization_work, read_proof)
     }
 }
 

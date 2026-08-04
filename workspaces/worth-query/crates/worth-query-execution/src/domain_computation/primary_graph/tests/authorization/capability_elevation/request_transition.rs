@@ -43,14 +43,14 @@ fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt()
         .materialize_elevation_request_program()
         .unwrap();
 
-    let WorthQueryElevationRequestOutcome::Requested(receipt) = world
+    let outcome = world
         .application
-        .compare_and_commit_elevation_request(program, idempotency(71, 71))
-    else {
-        panic!("the exact request transition must commit");
+        .compare_and_commit_elevation_request(program, idempotency(71, 71));
+    let WorthQueryElevationRequestOutcome::Requested(receipt) = outcome else {
+        panic!("the exact request transition must commit: {outcome:?}");
     };
 
-    assert_eq!(receipt.commit_receipt().changed_record_count(), 6);
+    assert_eq!(receipt.commit_receipt().changed_record_count(), 7);
     assert_eq!(receipt.commit_receipt().emitted_effect_count(), 0);
     assert_eq!(receipt.elevation_key(), "elevation-request-2");
     assert_eq!(receipt.review_key(), "review-request-2");
@@ -180,7 +180,7 @@ fn request_upper_bound_cannot_widen_scope_or_swap_purpose() {
 }
 
 #[test]
-fn proposed_grant_must_be_the_exact_grant_that_authorized_the_request() {
+fn proposed_grant_must_independently_authorize_the_governed_upper_bound() {
     let mut world = installed_elevated_capability_world(CapabilityElevationScenario::WrongGrant);
     world
         .application
@@ -205,7 +205,7 @@ fn proposed_grant_must_be_the_exact_grant_that_authorized_the_request() {
         .expect("a different grant cannot become the elevation upper bound");
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
     );
 }
 
@@ -350,7 +350,6 @@ pub(super) fn honest_input() -> RequestElevationInput {
         reason: "protect-customer".to_owned(),
         duration: Duration::from_secs(5),
         action: CapabilityAction::Touch,
-        purpose: CapabilityPurpose::AccountMaintenance,
         target_purpose: CapabilityPurpose::AccountMaintenance,
         disclosure: CapabilityDisclosure::AccountActivity,
         amount: 50,

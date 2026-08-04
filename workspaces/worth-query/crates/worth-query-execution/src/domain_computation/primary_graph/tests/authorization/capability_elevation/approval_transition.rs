@@ -3,11 +3,11 @@ use std::time::Duration;
 use super::super::super::application_attempt::idempotency;
 use super::super::super::fixture::{
     installed_elevated_capability_world, live_scope, Account, ApproveCapabilityElevationOperation,
-    ApproveElevationCapability, ApproveElevationInput, CapabilityAction, CapabilityDisclosure,
-    CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
-    CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
-    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationScenario,
-    CapabilityElevationStatusField, CapabilityPurpose, CapabilityReviewIdentity,
+    ApproveElevationCapability, ApproveElevationInput, CapabilityElevationApprover,
+    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
+    CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
+    CapabilityElevationReview, CapabilityElevationScenario, CapabilityElevationStatusField,
+    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
     CapabilityReviewStatusField, CapabilityReviewer, IdentityExecutionSchema, Principal,
 };
 use super::super::capability_progression::time;
@@ -99,6 +99,29 @@ fn approval_after_the_exact_request_window_returns_the_request_receipt() {
     );
 }
 
+#[test]
+fn approval_command_cannot_select_a_different_elevation_subject() {
+    let (world, request, requested) = requested_world(CapabilityElevationScenario::Active);
+    let approver = authenticated(&world, "bob", &request);
+    let access = approval_access_for_elevation(&world, &approver, &request, "elevation-1")
+        .expect("the approver independently holds command authority for elevation-1");
+
+    let denial = world
+        .application
+        .authorize_elevation_approval(
+            requested,
+            access,
+            &approval_operation(&world),
+            Default::default(),
+        )
+        .err()
+        .expect("command authority for another subject must not consume this request");
+    assert_eq!(
+        denial.denial().kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected
+    );
+}
+
 pub(super) fn requested_world(
     scenario: CapabilityElevationScenario,
 ) -> (
@@ -139,6 +162,16 @@ pub(super) fn approval_access(
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
 ) -> Result<Access, crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial>
 {
+    approval_access_for_elevation(world, principal, request, "elevation-2")
+}
+
+fn approval_access_for_elevation(
+    world: &World,
+    principal: &Authenticated,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    elevation: &str,
+) -> Result<Access, crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial>
+{
     let capability = world
         .application
         .installed_schema()
@@ -152,11 +185,7 @@ pub(super) fn approval_access(
         &capability,
         ApproveElevationInput {
             account: "account-1".to_owned(),
-            elevation: "elevation-2".to_owned(),
-            action: CapabilityAction::Touch,
-            purpose: CapabilityPurpose::AccountMaintenance,
-            disclosure: CapabilityDisclosure::AccountActivity,
-            amount: 50,
+            elevation: elevation.to_owned(),
         },
         request,
     )
@@ -210,6 +239,9 @@ pub(super) fn seal_approval_facts(
         .require_decision_field(&review, CapabilityReviewIdentity::reference())
         .unwrap();
     reader
+        .require_decision_field(&review, CapabilityReviewKindField::reference())
+        .unwrap();
+    reader
         .require_decision_field(&review, CapabilityReviewStatusField::reference())
         .unwrap();
     reader
@@ -223,6 +255,9 @@ pub(super) fn seal_approval_facts(
         .unwrap();
     reader
         .decision_relations_from(CapabilityElevationReview::reference(), &elevation)
+        .unwrap();
+    reader
+        .decision_relations_from(CapabilityReviewResource::reference(), &review)
         .unwrap();
     reader
         .decision_relations_to(CapabilityReviewer::reference(), &review)

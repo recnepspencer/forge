@@ -1,18 +1,22 @@
 //! Re-admission of retained authorization at privileged transitions.
 
+mod currentness;
+
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::decision_facts::WorthQueryObservedCommitBasis;
-use super::delegation_admission::observe_capability;
+use super::delegation_admission::{observe_capability, observe_elevation_upper_bound};
 use super::{
     WorthQueryApplicationCommitAuthorization, WorthQueryCapabilityCommitBasis,
-    WorthQueryCommitAuthorizationBasis, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryRetainedAuthorizationDecisionFacts,
+    WorthQueryCapabilitySupportCommitBasis, WorthQueryCommitAuthorizationBasis,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRetainedAuthorizationDecisionFacts,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitSerialization,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+use currentness::*;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -251,6 +255,9 @@ where
                 )
                 .map(drop)
             };
+            let result = result.and_then(|()| {
+                self.readmit_capability_support(capability.supporting(), runtime, &snapshot)
+            });
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })
@@ -321,64 +328,72 @@ where
                 )
                 .map(drop)
             };
+            let result = result.and_then(|()| {
+                let Some(supporting) = capability.supporting() else {
+                    return Ok(());
+                };
+                let installed = self.installed_capability_plan(supporting.request())?;
+                if supporting.capability_authority_identity()
+                    != installed.capability_authority_identity.as_ref()
+                    || !supporting.decision().remains_current_in(
+                        runtime,
+                        &snapshot,
+                        self.authorization.bridge(),
+                    )
+                {
+                    return Err(stale_authorization());
+                }
+                let sample = self.sample_capability_time(installed)?;
+                observe_elevation_upper_bound(
+                    supporting.decision().session_identity(),
+                    runtime,
+                    snapshot.clone(),
+                    self.authorization.bridge(),
+                    installed,
+                    supporting.request(),
+                    &sample,
+                    supporting.grant(),
+                    Some(supporting.decision()),
+                )
+                .map(drop)
+            });
             runtime.snapshots().release_snapshot(&snapshot);
             result
         })
     }
-}
 
-fn foreign_runtime() -> WorthQueryOperationAuthorizationDenial {
-    WorthQueryOperationAuthorizationDenial::new(
-        WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
-        "application-authorization",
-    )
-}
-
-fn inconsistent_authorization() -> WorthQueryOperationAuthorizationDenial {
-    WorthQueryOperationAuthorizationDenial::new(
-        WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-        "application-authorization",
-    )
-}
-
-fn stale_authorization() -> WorthQueryOperationAuthorizationDenial {
-    WorthQueryOperationAuthorizationDenial::new(
-        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
-        "application-authorization",
-    )
-}
-
-fn stale_principal() -> WorthQueryOperationAuthorizationDenial {
-    WorthQueryOperationAuthorizationDenial::new(
-        WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
-        "application-authorization",
-    )
-}
-
-fn validate_retained_currentness(
-    authorization: &WorthQueryRetainedAuthorizationDecisionFacts,
-    runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    authorization
-        .validate_currentness_in(runtime, snapshot, bridge)
-        .map_err(|kind| {
-            WorthQueryOperationAuthorizationDenial::new(kind, "application-authorization")
-        })
-}
-
-fn validate_observed_currentness(
-    authorization: &WorthQueryObservedCommitBasis,
-    runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
-    bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    if !authorization.principal_remains_current_in(runtime, snapshot) {
-        return Err(stale_principal());
+    fn readmit_capability_support(
+        &self,
+        supporting: Option<&WorthQueryCapabilitySupportCommitBasis>,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        let Some(supporting) = supporting else {
+            return Ok(());
+        };
+        let installed = self.installed_capability_plan(supporting.request())?;
+        if supporting.capability_authority_identity()
+            != installed.capability_authority_identity.as_ref()
+            || !supporting.decision().remains_current_in(
+                runtime,
+                snapshot,
+                self.authorization.bridge(),
+            )
+        {
+            return Err(stale_authorization());
+        }
+        let sample = self.sample_capability_time(installed)?;
+        observe_elevation_upper_bound(
+            supporting.decision().session_identity(),
+            runtime,
+            snapshot.clone(),
+            self.authorization.bridge(),
+            installed,
+            supporting.request(),
+            &sample,
+            supporting.grant(),
+            Some(supporting.decision()),
+        )
+        .map(drop)
     }
-    authorization
-        .decisions_remain_current_in(runtime, snapshot, bridge)
-        .then_some(())
-        .ok_or_else(stale_authorization)
 }

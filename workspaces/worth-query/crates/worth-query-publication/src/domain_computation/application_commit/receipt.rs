@@ -28,7 +28,7 @@ impl std::ops::Deref for WorthQueryApplicationCommitPublicationReceipt {
 }
 
 impl WorthQueryApplicationCommitPublicationReceipt {
-    pub(super) const fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
+    pub(crate) const fn from_terminal(terminal: WorthQueryApplicationCommitReceipt) -> Self {
         Self { terminal }
     }
 

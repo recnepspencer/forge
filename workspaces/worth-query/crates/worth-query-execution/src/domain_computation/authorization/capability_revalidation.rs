@@ -2,7 +2,7 @@
 
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::delegation_admission::observe_capability;
+use super::delegation_admission::{observe_capability, observe_elevation_upper_bound};
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -95,6 +95,7 @@ where
             result
         })?;
         let (fact, grant) = observed.into_parts();
+        let supporting_sample = sample.clone();
         authorization
             .replace_current_session_decision(
                 session_identity,
@@ -108,7 +109,79 @@ where
                     WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
                     installed.contract.name(),
                 )
-            })
+            })?;
+        self.refresh_supporting_authorization(
+            authorization,
+            session_identity,
+            branch,
+            &supporting_sample,
+        )
+    }
+
+    fn refresh_supporting_authorization(
+        &self,
+        authorization: &mut WorthQueryRetainedCapabilityAuthorization,
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        branch: &worth_relational::facade::history::BranchId,
+        primary_sample: &super::WorthQueryAuthorizationTimeSample,
+    ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+        let Some(supporting) = authorization.supporting_mut() else {
+            return Ok(());
+        };
+        let installed = self.installed_capability_plan(supporting.request())?;
+        if supporting.capability_authority_identity()
+            != installed.capability_authority_identity.as_ref()
+        {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
+                installed.contract.name(),
+            ));
+        }
+        let sample = if installed.request.timeline == primary_sample.timeline() {
+            primary_sample.clone()
+        } else {
+            self.sample_capability_time(installed)?
+        };
+        let graph = self.runtime.primary_graph().ok_or_else(|| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+                installed.contract.name(),
+            )
+        })?;
+        let observed = graph.integration_handle().with_runtime_mut(|runtime| {
+            let Some(snapshot) = runtime.snapshots().snapshot_for_branch(branch) else {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
+                ));
+            };
+            let result = observe_elevation_upper_bound(
+                session_identity,
+                runtime,
+                snapshot.clone(),
+                self.authorization.bridge(),
+                installed,
+                supporting.request(),
+                &sample,
+                supporting.grant(),
+                Some(supporting.decision()),
+            );
+            runtime.snapshots().release_snapshot(&snapshot);
+            result
+        })?;
+        let (decision, grant) = observed.into_parts();
+        if grant != supporting.grant() {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                installed.contract.name(),
+            ));
+        }
+        supporting.replace_current(sample, decision).map_err(|()| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                installed.contract.name(),
+            )
+        })
     }
 
     pub(super) fn installed_capability_plan(

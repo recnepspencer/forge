@@ -2381,14 +2381,20 @@ the contract, and each privileged transition boundary.
 
 #### Runtime Phase 7.6: Governed Emergency Elevation And Mandatory Review
 
-Runtime Phase 7.6 makes emergency elevation a narrow installed lifecycle whose
-states expose only their legal next transition.
+Runtime Phase 7.6 makes emergency elevation a narrow installed state machine
+whose states expose only their legal next transition. The state machine is not
+the authorization graph: transition-command authority and the governed
+authority carried through the lifecycle are two independent installed axes.
 
 It must:
 
 - represent requested, approved, active, expired, revoked, review-required,
   and reviewed posture with exact requester, approver, reviewer, reason, scope,
   purpose, fields, actions, time, grant, and audit identity;
+- bind each lifecycle role to one exact command capability and operation while
+  preserving a separately authorized, immutable governed upper bound; a grant
+  for the upper bound cannot authorize request, approval, revocation, or review,
+  and a transition-command grant cannot widen or replace the upper bound;
 - require a non-conflicted distinct approver and preserve the ordinary
   capability, disclosure, invariant, irreversible-commit, and provider
   boundaries underneath the elevated upper bound;
@@ -2405,8 +2411,8 @@ elevation scope, disclosure, purpose, or authority.
 
 Proof requires the lawful request-approve-use-close-review sequence and hostile
 self-approval, scope widening, purpose swapping, expired use, revoked use,
-conflicted approval, copied state, repeated review, and forbidden disbursement
-attempts.
+conflicted approval, command/upper-bound grant substitution, copied state,
+repeated review, wrong-review selection, and forbidden disbursement attempts.
 
 #### Runtime Phase 7.7: Bank Estate Cutover, Cross-Lane Re-admission, And Certification
 

@@ -1,8 +1,13 @@
-use std::future::Future;
-use std::pin::pin;
-use std::task::{Context, Poll, Waker};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "fixture/authentication.rs"]
+mod authentication;
+
+pub(super) use authentication::request_scope;
+use authentication::{
+    authentication_configuration, block_on, external_identity, TestAuthenticationAdapter,
+    TestCredential,
+};
 use bank_domain::estate::{
     BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityGrantStatus,
     CapabilityValidity, DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction,
@@ -18,17 +23,11 @@ use bank_domain::model::{
 };
 use bank_domain::proposals::BankSnapshotBuilder;
 use bank_domain::schema::AccountStatus;
-use worth_query_host::facade::admission::authenticated_principal::{
-    WorthQueryAuthenticationAdapter, WorthQueryAuthenticationAdapterFailure,
-    WorthQueryAuthenticationAdapterFailureKind, WorthQueryAuthenticationAudience,
-    WorthQueryAuthenticationFuture, WorthQueryAuthenticationMethod, WorthQueryCancellationSource,
-    WorthQueryRequestScope, WorthQueryValidatedExternalPrincipal,
-};
 use worth_query_host::facade::declaration::authentication::WorthQueryExternalPrincipalIdentity;
 
 use crate::{
-    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankAuthenticationConfiguration,
-    BankEmployeeAssignmentSeed, BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed,
+    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankEmployeeAssignmentSeed,
+    BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed,
 };
 
 pub(super) const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
@@ -43,6 +42,7 @@ pub(super) const ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(9)
 pub(super) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
 pub(super) const OTHER_AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(11).unwrap();
 pub(super) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();
+pub(super) const COMMAND_GRANT: CapabilityGrantId = CapabilityGrantId::new(21).unwrap();
 
 pub(super) struct GrantSpec {
     pub(super) operation: EstateCapabilityOperation,
@@ -84,6 +84,23 @@ impl GrantSpec {
     pub(super) fn identity_verification() -> Self {
         Self {
             purpose: EstateCapabilityPurpose::IdentityVerification,
+            ..Self::view()
+        }
+    }
+
+    pub(super) fn emergency_view() -> Self {
+        Self {
+            purpose: EstateCapabilityPurpose::EmergencyProtection,
+            field: Some(RestrictedBankField::AccountDetails),
+            ..Self::view()
+        }
+    }
+
+    pub(super) fn emergency_request() -> Self {
+        Self {
+            operation: EstateCapabilityOperation::RequestEmergencyAccess,
+            purpose: EstateCapabilityPurpose::EmergencyProtection,
+            field: None,
             ..Self::view()
         }
     }
@@ -158,6 +175,32 @@ pub(super) fn capability_world(
     specialist_holds_authority: bool,
     unrelated_grants: usize,
 ) -> CapabilityFixture {
+    capability_world_with_command_grant(
+        scenario,
+        spec,
+        case_stage,
+        specialist_holds_authority,
+        unrelated_grants,
+        false,
+    )
+}
+
+pub(super) fn emergency_request_world(
+    scenario: &str,
+    upper_bound: GrantSpec,
+    case_stage: EstateWorkflowStage,
+) -> CapabilityFixture {
+    capability_world_with_command_grant(scenario, upper_bound, case_stage, false, 0, true)
+}
+
+fn capability_world_with_command_grant(
+    scenario: &str,
+    spec: GrantSpec,
+    case_stage: EstateWorkflowStage,
+    specialist_holds_authority: bool,
+    unrelated_grants: usize,
+    install_command_grant: bool,
+) -> CapabilityFixture {
     let identities = [
         external_identity(scenario, "deceased"),
         external_identity(scenario, "specialist"),
@@ -194,6 +237,13 @@ pub(super) fn capability_world(
         EXECUTOR
     };
     let mut estate = base_estate(case_stage, holder).with_grant(grant(GRANT, SPECIALIST, spec));
+    if install_command_grant {
+        estate = estate.with_grant(grant(
+            COMMAND_GRANT,
+            SPECIALIST,
+            GrantSpec::emergency_request(),
+        ));
+    }
     for ordinal in 0..unrelated_grants {
         estate = estate.with_grant(grant(
             CapabilityGrantId::new(2_000 + ordinal as u64).unwrap(),
@@ -314,72 +364,4 @@ fn grant(
 
 fn extra_principal(ordinal: usize) -> BankPrincipalId {
     BankPrincipalId::new(1_000 + ordinal as u64).unwrap()
-}
-
-fn external_identity(scenario: &str, subject: &str) -> WorthQueryExternalPrincipalIdentity {
-    WorthQueryExternalPrincipalIdentity::new(
-        format!("https://{scenario}.bank.test.invalid"),
-        subject,
-    )
-    .unwrap()
-}
-
-pub(super) fn request_scope() -> WorthQueryRequestScope {
-    WorthQueryRequestScope::new(
-        Instant::now() + Duration::from_secs(60),
-        WorthQueryCancellationSource::new().token(),
-    )
-}
-
-fn authentication_configuration() -> BankAuthenticationConfiguration {
-    BankAuthenticationConfiguration::new(
-        WorthQueryAuthenticationAudience::new("bank-phase-7-capability-test").unwrap(),
-        WorthQueryAuthenticationMethod::new("causal-phase-7-adapter").unwrap(),
-    )
-}
-
-struct TestCredential(WorthQueryExternalPrincipalIdentity);
-struct TestAuthenticationAdapter;
-
-impl WorthQueryAuthenticationAdapter for TestAuthenticationAdapter {
-    type Credential = TestCredential;
-
-    fn configuration_identity(&self) -> &str {
-        "bank-phase-7-capability-adapter-v1"
-    }
-
-    fn validate<'a>(
-        &'a self,
-        credential: Self::Credential,
-        _scope: &'a WorthQueryRequestScope,
-    ) -> WorthQueryAuthenticationFuture<'a> {
-        Box::pin(async move {
-            let now = SystemTime::now();
-            WorthQueryValidatedExternalPrincipal::new(
-                credential.0,
-                WorthQueryAuthenticationAudience::new("bank-phase-7-capability-test").unwrap(),
-                WorthQueryAuthenticationMethod::new("causal-phase-7-adapter").unwrap(),
-                now,
-                now + Duration::from_secs(60),
-                Vec::new(),
-            )
-            .map_err(|_| {
-                WorthQueryAuthenticationAdapterFailure::new(
-                    WorthQueryAuthenticationAdapterFailureKind::ProtocolViolation,
-                )
-            })
-        })
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let waker = Waker::noop();
-    let mut context = Context::from_waker(waker);
-    loop {
-        match future.as_mut().poll(&mut context) {
-            Poll::Ready(output) => return output,
-            Poll::Pending => std::thread::yield_now(),
-        }
-    }
 }

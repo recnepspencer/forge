@@ -15,6 +15,7 @@ use crate::domain_computation::primary_graph::application_query::{
     WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationAuthorizationWorkEvidence,
     WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessReceipt,
 };
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 pub(super) fn finalize_one_shot<
     Schema,
@@ -25,6 +26,7 @@ pub(super) fn finalize_one_shot<
     PrincipalIdentity,
     Scope,
 >(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     plan: WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -59,7 +61,7 @@ where
     }
     validate_basis_lifetime(&plan.controls, plan.query.name())?;
     admit_request(request, plan.query.name())?;
-    validate_authentication_lifetime(plan.principal, plan.query.name())?;
+    validate_authentication_lifetime(application, plan.principal, plan.query.name())?;
 
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         kernel,
@@ -73,7 +75,7 @@ where
         },
     )?;
     admit_request(request, plan.query.name())?;
-    validate_authentication_lifetime(plan.principal, plan.query.name())?;
+    validate_authentication_lifetime(application, plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
     let read_completion = plan
         .graph_work

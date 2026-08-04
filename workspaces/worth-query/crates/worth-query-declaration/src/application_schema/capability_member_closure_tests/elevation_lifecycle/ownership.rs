@@ -1,7 +1,6 @@
 use super::*;
 
 struct OtherCapability;
-struct OtherRequestOperation;
 
 #[test]
 fn one_lifecycle_operation_cannot_serve_two_governed_capability_owners() {
@@ -19,7 +18,7 @@ fn one_lifecycle_operation_cannot_serve_two_governed_capability_owners() {
     let aliased_lifecycle = ApplicationCapabilityElevationLifecycleDefinition::new(
         ordinary.lifecycle().elevation_slot().clone(),
         ordinary.lifecycle().review_slot().clone(),
-        operation_binding::<OtherRequestOperation>("Request"),
+        transition_binding::<RequestCapability, RequestOperation>("RequestCapability", "Request"),
         ordinary.lifecycle().approve().clone(),
         ordinary.lifecycle().revoke().clone(),
         ordinary.lifecycle().complete_review().clone(),

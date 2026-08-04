@@ -1,5 +1,17 @@
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 use worth_relational::facade::identity::KindId;
+use worth_runtime_bridge::facade::{
+    BridgeAuthorizationCorrespondenceIdentity, BridgeAuthorizationRuleContract,
+};
+
+pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityUpperBoundBindings {
+    pub(in crate::domain_computation::authorization) correspondence:
+        BridgeAuthorizationCorrespondenceIdentity,
+    pub(in crate::domain_computation::authorization) path_count: usize,
+    pub(in crate::domain_computation::authorization) bridge_rules:
+        Vec<BridgeAuthorizationRuleContract>,
+    pub(in crate::domain_computation::authorization) rule_path_indices: Vec<Vec<Vec<usize>>>,
+}
 
 pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElevationBindings {
     pub(in crate::domain_computation::authorization) elevation_kind: KindId,
@@ -25,12 +37,17 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElev
         worth_foundational::facade::AspectFieldLocator,
     pub(in crate::domain_computation::authorization) review_identity:
         worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) review_type:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) review_type_value:
+        worth_foundational::facade::AspectValue,
     pub(in crate::domain_computation::authorization) review_status:
         worth_foundational::facade::AspectFieldLocator,
     pub(in crate::domain_computation::authorization) requester_relation: KindId,
     pub(in crate::domain_computation::authorization) approver_relation: KindId,
     pub(in crate::domain_computation::authorization) grant_relation: KindId,
     pub(in crate::domain_computation::authorization) review_relation: KindId,
+    pub(in crate::domain_computation::authorization) review_scope_relation: KindId,
     pub(in crate::domain_computation::authorization) reviewer_relation: KindId,
     pub(in crate::domain_computation::authorization) requested:
         worth_foundational::facade::AspectValue,

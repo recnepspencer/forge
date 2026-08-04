@@ -10,7 +10,7 @@ use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-use super::context_identity::selected_elevation_entity;
+use super::context_identity::{selected_elevation_entity, selected_review_entity};
 use super::mandatory_review_binding::WorthQueryMandatoryReviewDraft;
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{lifecycle_decision_reads, review_program_targets};
@@ -88,6 +88,7 @@ where
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
+        access.authorization.installed_capability_identity(),
         operation,
         WorthQueryElevationLifecycleOperationRole::CompleteReview,
     )?;
@@ -106,6 +107,9 @@ where
         return Err(review_rejected(installed.contract.name()));
     }
     let review = mandatory.review();
+    if selected_review_entity(access, installed) != Some(review) {
+        return Err(review_rejected(installed.contract.name()));
+    }
     let lifecycle = installed.elevation.as_ref().unwrap();
     let sample = runtime
         .authorization_clock

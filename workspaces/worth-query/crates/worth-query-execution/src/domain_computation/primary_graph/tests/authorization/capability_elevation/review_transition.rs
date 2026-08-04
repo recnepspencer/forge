@@ -1,5 +1,5 @@
 use super::super::super::application_attempt::idempotency;
-use super::super::super::fixture::CapabilityReviewStatus;
+use super::super::super::fixture::{CapabilityReviewStatus, CompleteElevationReviewInput};
 use super::super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationAttemptDenialKind, WorthQueryMandatoryReviewOutcome,
@@ -112,6 +112,44 @@ fn mandatory_review_receipt_cannot_cross_runtime_authority() {
         .authorize_mandatory_review(mandatory, access, &operation, Default::default())
         .err()
         .expect("foreign-runtime lifecycle receipts must fail before review authority");
+    assert_eq!(
+        denial.denial().kind(),
+        WorthQueryOperationAuthorizationDenialKind::MandatoryReviewRejected
+    );
+}
+
+#[test]
+fn mandatory_review_receipt_rejects_a_different_selected_review() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+    let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
+    let reviewer = super::approval_transition::authenticated(&world, "carol", &request);
+    let access = super::terminal_lifecycle_support::review_access_with_input(
+        &world,
+        &reviewer,
+        &request,
+        CompleteElevationReviewInput {
+            review: "review-1".to_owned(),
+            account: "account-1".to_owned(),
+            elevation: "elevation-2".to_owned(),
+        },
+    )
+    .unwrap();
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(
+            super::super::super::fixture::CompleteCapabilityReviewOperation::reference(),
+        )
+        .unwrap();
+
+    let denial = world
+        .application
+        .authorize_mandatory_review(mandatory, access, &operation, Default::default())
+        .err()
+        .expect("a different selected review must not consume the obligation");
     assert_eq!(
         denial.denial().kind(),
         WorthQueryOperationAuthorizationDenialKind::MandatoryReviewRejected

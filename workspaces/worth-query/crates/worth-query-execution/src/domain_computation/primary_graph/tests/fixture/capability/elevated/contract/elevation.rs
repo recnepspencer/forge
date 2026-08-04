@@ -2,19 +2,22 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityElevationDefinition,
     ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityElevationRule,
     ApplicationCapabilityElevationStates, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityOperationBinding,
-    ApplicationCapabilityRelationBinding, ApplicationCapabilityValidityDefinition,
+    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityTransitionBinding, ApplicationCapabilityValidityDefinition,
     ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
 };
 
 use super::super::{
-    ApproveCapabilityElevationOperation, CapabilityElevationApprover, CapabilityElevationGrant,
-    CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
-    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
-    CapabilityElevationSlot, CapabilityElevationStatus, CapabilityElevationStatusField,
-    CapabilityReviewIdentity, CapabilityReviewSlot, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer, CompleteCapabilityReviewOperation,
-    RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
+    ApproveCapabilityElevationOperation, ApproveElevationCapability, CapabilityElevationApprover,
+    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
+    CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
+    CapabilityElevationReview, CapabilityElevationSlot, CapabilityElevationStatus,
+    CapabilityElevationStatusField, CapabilityReviewIdentity, CapabilityReviewKind,
+    CapabilityReviewKindField, CapabilityReviewResource, CapabilityReviewSlot,
+    CapabilityReviewStatus, CapabilityReviewStatusField, CapabilityReviewer,
+    CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
+    RequestCapabilityElevationOperation, RequestElevationCapability,
+    RevokeCapabilityElevationOperation, RevokeElevationCapability,
 };
 
 pub(super) fn definition() -> ApplicationCapabilityElevationRule {
@@ -57,16 +60,20 @@ pub(super) fn definition() -> ApplicationCapabilityElevationRule {
             ApplicationCapabilityContextEntitySlotBinding::from_reference(
                 CapabilityReviewSlot::reference(),
             ),
-            ApplicationCapabilityOperationBinding::from_reference(
+            ApplicationCapabilityTransitionBinding::from_references(
+                RequestElevationCapability::reference(),
                 RequestCapabilityElevationOperation::reference(),
             ),
-            ApplicationCapabilityOperationBinding::from_reference(
+            ApplicationCapabilityTransitionBinding::from_references(
+                ApproveElevationCapability::reference(),
                 ApproveCapabilityElevationOperation::reference(),
             ),
-            ApplicationCapabilityOperationBinding::from_reference(
+            ApplicationCapabilityTransitionBinding::from_references(
+                RevokeElevationCapability::reference(),
                 RevokeCapabilityElevationOperation::reference(),
             ),
-            ApplicationCapabilityOperationBinding::from_reference(
+            ApplicationCapabilityTransitionBinding::from_references(
+                CompleteElevationReviewCapability::reference(),
                 CompleteCapabilityReviewOperation::reference(),
             ),
         ),
@@ -75,6 +82,13 @@ pub(super) fn definition() -> ApplicationCapabilityElevationRule {
                 CapabilityElevationReview::reference(),
             ),
             ApplicationCapabilityFieldBinding::from_reference(CapabilityReviewIdentity::reference()),
+            ApplicationCapabilityValueBinding::new(
+                CapabilityReviewKindField::reference(),
+                CapabilityReviewKind::Elevation,
+            ),
+            ApplicationCapabilityRelationBinding::from_reference(
+                CapabilityReviewResource::reference(),
+            ),
             ApplicationCapabilityRelationBinding::from_reference(CapabilityReviewer::reference()),
             ApplicationCapabilityFieldBinding::from_reference(
                 CapabilityReviewStatusField::reference(),

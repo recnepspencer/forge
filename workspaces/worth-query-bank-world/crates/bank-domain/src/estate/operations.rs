@@ -1,9 +1,9 @@
 use crate::model::{AccountId, BankPrincipalId, Money, SignedMoney, USD};
 
 use super::{
-    CapabilityGrantId, DeathNoticeId, EmergencyAccessId, EstateCapabilityOperation,
-    EstateCapabilityPurpose, EstateCaseId, LegalAuthorityId, MandatoryReviewId,
-    RestrictedBankField,
+    CapabilityGrantId, DeathNoticeId, EmergencyAccessId, EmergencyAccessReason,
+    EstateCapabilityOperation, EstateCapabilityPurpose, EstateCaseId, LegalAuthorityId,
+    MandatoryReviewId, RestrictedBankField,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +25,7 @@ pub struct EstateDisbursement {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EstateAction {
     NotifyDeath {
+        estate: EstateCaseId,
         notice: DeathNoticeId,
         subject: BankPrincipalId,
     },
@@ -42,22 +43,34 @@ pub enum EstateAction {
         authority: LegalAuthorityId,
     },
     DelegateCapability {
+        estate: EstateCaseId,
         parent: CapabilityGrantId,
         child: CapabilityGrantId,
     },
     RevokeCapability {
+        estate: EstateCaseId,
         grant: CapabilityGrantId,
     },
     RequestEmergencyAccess {
+        estate: EstateCaseId,
         access: EmergencyAccessId,
+        review: MandatoryReviewId,
+        grant: CapabilityGrantId,
+        reason: EmergencyAccessReason,
+        field: RestrictedBankField,
+        duration: std::time::Duration,
     },
     ApproveEmergencyAccess {
+        estate: EstateCaseId,
         access: EmergencyAccessId,
     },
     RevokeEmergencyAccess {
+        estate: EstateCaseId,
         access: EmergencyAccessId,
     },
     CompleteMandatoryReview {
+        estate: EstateCaseId,
+        access: EmergencyAccessId,
         review: MandatoryReviewId,
     },
     ReleaseEstate {
@@ -98,19 +111,19 @@ impl EstateAction {
 
     pub const fn estate(self) -> Option<EstateCaseId> {
         match self {
-            Self::FreezeAccount { estate, .. }
+            Self::NotifyDeath { estate, .. }
+            | Self::FreezeAccount { estate, .. }
             | Self::OpenEstateCase { estate, .. }
             | Self::RecognizeExecutor { estate, .. }
+            | Self::DelegateCapability { estate, .. }
+            | Self::RevokeCapability { estate, .. }
+            | Self::RequestEmergencyAccess { estate, .. }
+            | Self::ApproveEmergencyAccess { estate, .. }
+            | Self::RevokeEmergencyAccess { estate, .. }
+            | Self::CompleteMandatoryReview { estate, .. }
             | Self::ReleaseEstate { estate }
             | Self::ViewRestrictedEstate { estate, .. } => Some(estate),
             Self::DisburseEstate(disbursement) => Some(disbursement.estate),
-            Self::NotifyDeath { .. }
-            | Self::DelegateCapability { .. }
-            | Self::RevokeCapability { .. }
-            | Self::RequestEmergencyAccess { .. }
-            | Self::ApproveEmergencyAccess { .. }
-            | Self::RevokeEmergencyAccess { .. }
-            | Self::CompleteMandatoryReview { .. } => None,
         }
     }
 

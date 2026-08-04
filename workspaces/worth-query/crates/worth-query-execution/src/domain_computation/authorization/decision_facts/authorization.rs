@@ -157,7 +157,7 @@ fn bridge_dependency_count(evidence: &BridgeAuthorizationDecisionEvidence) -> us
         + counters.fields_depended_on
 }
 
-pub(super) fn add_counters(
+pub(in crate::domain_computation::authorization) fn add_counters(
     total: &mut RelationalAuthorizationObservationCounters,
     counters: RelationalAuthorizationObservationCounters,
 ) {

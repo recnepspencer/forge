@@ -29,7 +29,12 @@ where
 {
     pub fn authorize_elevation_request<Capability, Operation, Input>(
         &self,
-        access: WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+        mut access: WorthQueryAdmittedApplicationCapabilityAccess<
+            Schema,
+            Capability,
+            Operation,
+            Input,
+        >,
         operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
         preconditions: TypedMutationPreconditions<
             Schema,
@@ -60,16 +65,29 @@ where
                 rejection.subject(),
             )
         })?;
-        let (capability_identity, installed) = installed_request_lifecycle(self, operation)?;
+        let (capability_identity, installed) =
+            installed_request_lifecycle(self, &access, operation)?;
         validate_request_projection(installed, &access, &proposed)?;
-        let binding = bind_request(self, capability_identity, installed, &access, &proposed)?;
+        let (binding, supporting) =
+            bind_request(self, capability_identity, installed, &access, &proposed)?;
+        access
+            .authorization
+            .retain_supporting(supporting)
+            .map_err(|()| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
+                )
+            })?;
+        access.graph_work.record_decision_facts(1);
         progress_capability_operation(self, access, operation, preconditions, true)?
             .bind_elevation_request(binding)
     }
 }
 
-fn installed_request_lifecycle<'runtime, Schema, Operation, Input>(
+fn installed_request_lifecycle<'runtime, Schema, Capability, Operation, Input>(
     runtime: &'runtime WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
 ) -> Result<
     ([u8; 32], &'runtime WorthQueryInstalledCapabilityPlan),
@@ -77,8 +95,9 @@ fn installed_request_lifecycle<'runtime, Schema, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
+    Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let Some((capability, role)) = runtime
+    let Some((capability, command_capability, role)) = runtime
         .authorization
         .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
         .map_err(|()| stale_operation(operation.operation()))?
@@ -88,7 +107,9 @@ where
             operation.operation(),
         ));
     };
-    if role != WorthQueryElevationLifecycleOperationRole::Request {
+    if role != WorthQueryElevationLifecycleOperationRole::Request
+        || access.authorization.installed_capability_identity() != command_capability
+    {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::ElevationLifecycleRoleMismatch,
             operation.operation(),

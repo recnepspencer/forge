@@ -164,7 +164,7 @@ fn emergency_reviewer_cannot_be_the_approver() {
             estate: courtroom.estate,
             kind: MandatoryReviewKind::EmergencyAccess,
             reviewer: Some(courtroom.manager),
-            status: MandatoryReviewStatus::Required,
+            status: MandatoryReviewStatus::Completed,
         })
         .with_grant(grant)
         .with_emergency_access(EstateEmergencyAccess {
@@ -175,7 +175,9 @@ fn emergency_reviewer_cannot_be_the_approver() {
             grant: grant.id,
             review: courtroom.emergency_review,
             reason: EmergencyAccessReason::PreventImmediateLoss,
-            status: EmergencyAccessStatus::Active,
+            status: EmergencyAccessStatus::Revoked,
+            issued_at: EstateMoment::from_epoch_seconds(100),
+            expires_at: EstateMoment::from_epoch_seconds(200),
         });
     assert_denied(
         &world,
@@ -209,6 +211,8 @@ fn employee_executor_cannot_complete_their_own_release_review() {
         &world,
         &courtroom,
         EstateAction::CompleteMandatoryReview {
+            estate: courtroom.estate,
+            access: EmergencyAccessId::new(166).unwrap(),
             review: MandatoryReviewId::new(20).unwrap(),
         },
         grant.id,

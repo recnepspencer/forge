@@ -29,7 +29,7 @@ use super::capability_registry::WorthQueryCapabilityDelegationBindings;
 use super::capability_registry::{
     field_binding, WorthQueryCapabilityGrantWitnessBinding, WorthQueryCapabilityPathTemplate,
     WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
-    WorthQueryInstalledCapabilityPlan,
+    WorthQueryCapabilityUpperBoundBindings, WorthQueryInstalledCapabilityPlan,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
@@ -85,6 +85,9 @@ where
         &mut rules,
         &mut rule_path_indices,
     )?;
+    let upper_bound_path_count = paths.len();
+    let upper_bound_rules = rules.clone();
+    let upper_bound_rule_path_indices = rule_path_indices.clone();
     let elevation = elevation::compile_elevation_rules(
         contract,
         layout,
@@ -96,6 +99,29 @@ where
         &mut rules,
         &mut rule_path_indices,
     )?;
+    let upper_bound = if elevation.is_some() {
+        let identity = source.elevation_upper_bound_identity();
+        let correspondence = bridge
+            .install(BridgeAuthorizationInstallationRequest::new(
+                &identity,
+                super::bridge_authorization_binding_identity(&schema.binding_identity()),
+                format!("{}:elevation-upper-bound", contract.name()),
+                scope_entity,
+                format!("{}:elevation-upper-bound", contract.operation()),
+                upper_bound_rules.iter().cloned(),
+            ))
+            .map_err(|denial| {
+                authorization_denial(denial.subject(), "Bridge rejected elevation upper bound")
+            })?;
+        Some(WorthQueryCapabilityUpperBoundBindings {
+            correspondence,
+            path_count: upper_bound_path_count,
+            bridge_rules: upper_bound_rules,
+            rule_path_indices: upper_bound_rule_path_indices,
+        })
+    } else {
+        None
+    };
     let correspondence = bridge
         .install(BridgeAuthorizationInstallationRequest::new(
             source.identity().digest(),
@@ -118,6 +144,7 @@ where
         request: request_bindings(contract, layout)?,
         delegation: WorthQueryCapabilityDelegationBindings::compile(contract, layout)?,
         elevation,
+        upper_bound,
         paths,
         bridge_rules: rules,
         rule_path_indices,

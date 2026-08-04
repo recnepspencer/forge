@@ -28,7 +28,7 @@ pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
 mod elevation;
 pub(super) use elevation::{
     WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationLifecycleBindings,
-    WorthQueryCapabilityElevationTemporalBindings,
+    WorthQueryCapabilityElevationTemporalBindings, WorthQueryCapabilityUpperBoundBindings,
 };
 mod elevation_lifecycle;
 pub(super) use elevation_lifecycle::WorthQueryElevationLifecycleOperationRole;
@@ -128,20 +128,22 @@ impl WorthQueryInstalledCapabilityRegistry {
         for source in schema.capability_plan_sources() {
             let plan = compile_capability_plan(schema, source, layout, bridge)?;
             compilation.record(&plan);
-            elevation_lifecycles
-                .install(*source.identity().bytes(), source.contract())
-                .map_err(|()| {
-                    super::authorization_denial(
-                        source.contract().name(),
-                        "competing installed elevation lifecycle operation",
-                    )
-                })?;
             if plans.insert(*source.identity().bytes(), plan).is_some() {
                 return Err(super::authorization_denial(
                     source.contract().name(),
                     "duplicate installed capability plan",
                 ));
             }
+        }
+        for (capability_identity, plan) in &plans {
+            elevation_lifecycles
+                .install(*capability_identity, &plans, &plan.contract)
+                .map_err(|()| {
+                    super::authorization_denial(
+                        plan.contract.name(),
+                        "invalid or competing installed elevation lifecycle transition",
+                    )
+                })?;
         }
         compilation.elevation_lifecycle_operation_count = elevation_lifecycles.len();
         Ok(Self {
@@ -168,7 +170,14 @@ impl WorthQueryInstalledCapabilityRegistry {
     pub(super) fn elevation_lifecycle_operation<Operation, Input>(
         &self,
         operation: &str,
-    ) -> Result<Option<([u8; 32], WorthQueryElevationLifecycleOperationRole)>, ()> {
+    ) -> Result<
+        Option<(
+            [u8; 32],
+            [u8; 32],
+            WorthQueryElevationLifecycleOperationRole,
+        )>,
+        (),
+    > {
         self.elevation_lifecycles
             .operation::<Operation, Input>(operation)
     }
@@ -193,6 +202,7 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) request: WorthQueryCapabilityRequestBindings,
     pub(super) delegation: WorthQueryCapabilityDelegationBindings,
     pub(super) elevation: Option<WorthQueryCapabilityElevationBindings>,
+    pub(super) upper_bound: Option<WorthQueryCapabilityUpperBoundBindings>,
 }
 
 #[derive(Clone, Copy)]

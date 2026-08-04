@@ -51,7 +51,7 @@ where
         || capability.binding_identity() != query.binding_identity()
         || capability.principal_entity_id() != access.principal().principal_entity_id()
         || capability.resource_entity_id() != access.scope().entity_id()
-        || capability.authentication_valid_until() <= std::time::Instant::now()
+        || runtime.authentication_is_expired(capability.authentication_valid_until())
     {
         return Err(denial(
             WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch,

@@ -6,7 +6,7 @@ use worth_query_declaration::facade::application_capability::ApplicationCapabili
 use worth_runtime_bridge::facade::BridgeAuthorizationRuntime;
 
 use super::capability_observation::{
-    observe_capability_policy, WorthQueryObservedCapabilityDecision,
+    observe_capability_policy, observe_upper_bound_policy, WorthQueryObservedCapabilityDecision,
 };
 use super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::decision_facts::WorthQueryDelegationDecisionFact;
@@ -38,7 +38,66 @@ pub(super) fn observe_capability(
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
-    let leaf = observe_capability_policy(
+    observe_capability_with_posture(
+        session_identity,
+        relational,
+        snapshot,
+        bridge,
+        installed,
+        request,
+        sample,
+        exact_grant,
+        expected,
+        CapabilityObservationPosture::Active,
+    )
+}
+
+pub(super) fn observe_elevation_upper_bound(
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: worth_relational::facade::identity::EntityId,
+    expected: Option<&WorthQueryAuthorizationDecisionFact>,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
+    observe_capability_with_posture(
+        session_identity,
+        relational,
+        snapshot,
+        bridge,
+        installed,
+        request,
+        sample,
+        Some(exact_grant),
+        expected,
+        CapabilityObservationPosture::UpperBound,
+    )
+}
+
+#[derive(Clone, Copy)]
+enum CapabilityObservationPosture {
+    Active,
+    UpperBound,
+}
+
+#[allow(clippy::too_many_arguments)]
+fn observe_capability_with_posture(
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: Option<worth_relational::facade::identity::EntityId>,
+    expected: Option<&WorthQueryAuthorizationDecisionFact>,
+    posture: CapabilityObservationPosture,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
+    let leaf = observe_policy(
+        posture,
         session_identity,
         relational,
         snapshot.clone(),
@@ -59,6 +118,7 @@ pub(super) fn observe_capability(
         sample,
         leaf_grant,
         leaf_policy,
+        posture,
     )?;
     if expected.is_some_and(|expected| !expected.has_same_lineage(&decision)) {
         return Err(denial(
@@ -82,6 +142,7 @@ fn observe_lineage(
     sample: &WorthQueryAuthorizationTimeSample,
     leaf_grant: worth_relational::facade::identity::EntityId,
     leaf_policy: WorthQueryAuthorizationDecisionFact,
+    posture: CapabilityObservationPosture,
 ) -> Result<WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial> {
     let mut visited = BTreeSet::from([leaf_grant]);
     let mut frames: Vec<DelegationFrame> = Vec::new();
@@ -133,7 +194,8 @@ fn observe_lineage(
             parent_grant,
         )?;
         let parent_request = request.for_principal(transition.grantor);
-        let parent = observe_capability_policy(
+        let parent = observe_policy(
+            posture,
             session_identity,
             relational,
             snapshot.clone(),
@@ -160,6 +222,47 @@ fn observe_lineage(
         current_grant = parent_grant;
         current_principal = transition.grantor;
         current_policy = parent_policy;
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn observe_policy(
+    posture: CapabilityObservationPosture,
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: Option<worth_relational::facade::identity::EntityId>,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
+    match posture {
+        CapabilityObservationPosture::Active => observe_capability_policy(
+            session_identity,
+            relational,
+            snapshot,
+            bridge,
+            installed,
+            request,
+            sample,
+            exact_grant,
+        ),
+        CapabilityObservationPosture::UpperBound => observe_upper_bound_policy(
+            session_identity,
+            relational,
+            snapshot,
+            bridge,
+            installed,
+            request,
+            sample,
+            exact_grant.ok_or_else(|| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected,
+                    installed.contract.name(),
+                )
+            })?,
+        ),
     }
 }
 

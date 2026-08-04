@@ -1,5 +1,8 @@
 use super::super::super::application_attempt::idempotency;
-use super::super::super::fixture::{CapabilityElevationStatus, ElevatedCapabilityTouchOperation};
+use super::super::super::fixture::{
+    CapabilityElevationStatus, CloseElevationInput, ElevatedCapabilityTouchOperation,
+    RevokeCapabilityElevationOperation,
+};
 use super::super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitOutcome,
@@ -67,6 +70,40 @@ fn query_time_selects_expired_instead_of_accepting_caller_authored_terminal_stat
     assert_eq!(
         mandatory.closed_at(),
         &worth_foundational::facade::AspectValue::UInt64(106)
+    );
+}
+
+#[test]
+fn close_command_cannot_select_a_different_elevation_subject() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 8));
+    let closer = super::approval_transition::authenticated(&world, "bob", &request);
+    let access = super::terminal_lifecycle_support::close_access_with_input(
+        &world,
+        &closer,
+        &request,
+        CloseElevationInput {
+            account: "account-1".to_owned(),
+            elevation: "elevation-1".to_owned(),
+        },
+    )
+    .expect("the closer independently holds command authority for elevation-1");
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(RevokeCapabilityElevationOperation::reference())
+        .unwrap();
+
+    let denial = world
+        .application
+        .authorize_elevation_close(approved, access, &operation, Default::default())
+        .err()
+        .expect("command authority for another subject must not close this elevation");
+    assert_eq!(
+        denial.denial().kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationCloseRejected
     );
 }
 

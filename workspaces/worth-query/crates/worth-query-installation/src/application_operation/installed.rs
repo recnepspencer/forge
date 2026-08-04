@@ -237,6 +237,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
+            schema.lifecycle_request_support_fact_count(operation, input_type),
             mutation_preconditions,
         );
         let binding_identity = schema.binding_identity();
@@ -357,6 +358,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                     decision_reads,
                     decision_fact_budget,
                     projection_work_budget,
+                    self.contracts.additional_authorization_fact_count(),
                     mutation_preconditions,
                 ) == self.contracts
             }

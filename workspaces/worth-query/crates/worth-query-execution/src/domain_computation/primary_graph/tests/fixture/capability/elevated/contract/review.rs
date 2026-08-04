@@ -18,13 +18,14 @@ use super::super::{
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
     CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
     CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityGrant, CapabilityGrantor,
-    CapabilityResource, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityReviewer,
-    CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
+    CapabilityResource, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewSlot, CapabilityReviewStatusField,
+    CapabilityReviewer, CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
     CompleteElevationReviewInput,
 };
-use super::{constraints, delegation, propagation, target};
+use super::{command_constraints, command_propagation, command_target, delegation};
 use crate::domain_computation::primary_graph::tests::fixture::{
-    Account, IdentityExecutionSchema, Principal,
+    Account, CapabilityAction, IdentityExecutionSchema, Principal,
 };
 
 pub(super) fn install(
@@ -32,7 +33,7 @@ pub(super) fn install(
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
     let operation = CompleteCapabilityReviewOperation::reference();
     schema
-        .operation_decision_fact_budget(operation, 12)
+        .operation_decision_fact_budget(operation, 14)
         .operation_projection_work_budget(operation, 96)
         .operation_read_field(operation, CapabilityElevationIdentity::reference())
         .operation_read_field(operation, CapabilityElevationReason::reference())
@@ -40,11 +41,13 @@ pub(super) fn install(
         .operation_read_field(operation, CapabilityElevationNotBefore::reference())
         .operation_read_field(operation, CapabilityElevationNotAfter::reference())
         .operation_read_field(operation, CapabilityReviewIdentity::reference())
+        .operation_read_field(operation, CapabilityReviewKindField::reference())
         .operation_read_field(operation, CapabilityReviewStatusField::reference())
         .operation_read_relation(operation, CapabilityElevationRequester::reference())
         .operation_read_relation(operation, CapabilityElevationApprover::reference())
         .operation_read_relation(operation, CapabilityElevationGrant::reference())
         .operation_read_relation(operation, CapabilityElevationReview::reference())
+        .operation_read_relation(operation, CapabilityReviewResource::reference())
         .operation_read_relation(operation, CapabilityReviewer::reference())
         .operation_write(operation, CapabilityReviewStatusField::reference())
         .operation_link(operation, CapabilityReviewer::reference())
@@ -62,8 +65,8 @@ fn contract() -> ApplicationCapabilityContract<
         CompleteCapabilityReviewOperation::reference(),
         CapabilityGrant::reference(),
     )
-    .target(target())
-    .constraints(constraints())
+    .target(command_target(CapabilityAction::CompleteReview))
+    .constraints(command_constraints())
     .delegation(delegation())
     .composition(composition())
     .elevation(ApplicationCapabilityElevationRule::not_applicable())
@@ -81,25 +84,37 @@ fn composition() -> ApplicationCapabilityComposition {
     let requester = ApplicationCapabilityGraphClause::new(
         ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
             .forward(CapabilityElevationRequester::reference())
-            .forward(CapabilityElevationGrant::reference())
-            .forward(CapabilityResource::reference())
+            .forward(CapabilityElevationReview::reference())
+            .forward(CapabilityReviewResource::reference())
             .deny(Account::reference()),
     )
-    .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-        CapabilityElevationRequester::reference(),
-        CapabilityElevationSlot::reference(),
-    )]);
+    .anchored([
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            CapabilityElevationRequester::reference(),
+            CapabilityElevationSlot::reference(),
+        ),
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            CapabilityElevationReview::reference(),
+            CapabilityReviewSlot::reference(),
+        ),
+    ]);
     let approver = ApplicationCapabilityGraphClause::new(
         ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
             .forward(CapabilityElevationApprover::reference())
-            .forward(CapabilityElevationGrant::reference())
-            .forward(CapabilityResource::reference())
+            .forward(CapabilityElevationReview::reference())
+            .forward(CapabilityReviewResource::reference())
             .deny(Account::reference()),
     )
-    .anchored([ApplicationCapabilityPathContextAnchor::after_forward(
-        CapabilityElevationApprover::reference(),
-        CapabilityElevationSlot::reference(),
-    )]);
+    .anchored([
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            CapabilityElevationApprover::reference(),
+            CapabilityElevationSlot::reference(),
+        ),
+        ApplicationCapabilityPathContextAnchor::after_forward(
+            CapabilityElevationReview::reference(),
+            CapabilityReviewSlot::reference(),
+        ),
+    ]);
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(ApplicationCapabilityGraphRule::any([
@@ -116,6 +131,6 @@ fn composition() -> ApplicationCapabilityComposition {
                 requester, approver,
             ])),
         ),
-        propagation(),
+        command_propagation(),
     )
 }

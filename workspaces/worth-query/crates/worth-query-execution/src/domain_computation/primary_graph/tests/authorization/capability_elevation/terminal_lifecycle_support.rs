@@ -3,11 +3,11 @@ use worth_query_declaration::facade::application_schema::OperationReads;
 use super::super::super::application_attempt::idempotency;
 use super::super::super::fixture::capability::{CapabilityElevation, CapabilityReview};
 use super::super::super::fixture::{
-    Account, CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover,
-    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
-    CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
-    CapabilityElevationReview, CapabilityElevationStatusField, CapabilityPurpose,
-    CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityReviewer, CloseElevationInput,
+    Account, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
+    CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
+    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatusField,
+    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
+    CapabilityReviewStatusField, CapabilityReviewer, CloseElevationInput,
     CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
     CompleteElevationReviewInput, IdentityExecutionSchema, RevokeCapabilityElevationOperation,
     RevokeElevationCapability,
@@ -54,6 +54,23 @@ pub(super) fn close_access(
     >,
     WorthQueryOperationAuthorizationDenial,
 > {
+    close_access_with_input(world, principal, request, close_input())
+}
+
+pub(super) fn close_access_with_input(
+    world: &World,
+    principal: &Authenticated,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    input: CloseElevationInput,
+) -> Result<
+    crate::domain_computation::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess<
+        IdentityExecutionSchema,
+        RevokeElevationCapability,
+        RevokeCapabilityElevationOperation,
+        CloseElevationInput,
+    >,
+    WorthQueryOperationAuthorizationDenial,
+> {
     let capability = world
         .application
         .installed_schema()
@@ -64,13 +81,30 @@ pub(super) fn close_access(
         .unwrap();
     world
         .application
-        .admit_capability_access(principal, &capability, close_input(), request)
+        .admit_capability_access(principal, &capability, input, request)
 }
 
 pub(super) fn review_access(
     world: &World,
     principal: &Authenticated,
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> Result<
+    crate::domain_computation::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess<
+        IdentityExecutionSchema,
+        CompleteElevationReviewCapability,
+        CompleteCapabilityReviewOperation,
+        CompleteElevationReviewInput,
+    >,
+    WorthQueryOperationAuthorizationDenial,
+> {
+    review_access_with_input(world, principal, request, review_input())
+}
+
+pub(super) fn review_access_with_input(
+    world: &World,
+    principal: &Authenticated,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    input: CompleteElevationReviewInput,
 ) -> Result<
     crate::domain_computation::primary_graph::WorthQueryAdmittedApplicationCapabilityAccess<
         IdentityExecutionSchema,
@@ -90,7 +124,7 @@ pub(super) fn review_access(
         .unwrap();
     world
         .application
-        .admit_capability_access(principal, &capability, review_input(), request)
+        .admit_capability_access(principal, &capability, input, request)
 }
 
 pub(super) fn materialize_close(
@@ -223,11 +257,13 @@ pub(super) fn seal_lifecycle_facts<Operation>(
     CapabilityElevationNotBefore: OperationReads<Operation>,
     CapabilityElevationNotAfter: OperationReads<Operation>,
     CapabilityReviewIdentity: OperationReads<Operation>,
+    CapabilityReviewKindField: OperationReads<Operation>,
     CapabilityReviewStatusField: OperationReads<Operation>,
     CapabilityElevationRequester: OperationReads<Operation>,
     CapabilityElevationApprover: OperationReads<Operation>,
     CapabilityElevationGrant: OperationReads<Operation>,
     CapabilityElevationReview: OperationReads<Operation>,
+    CapabilityReviewResource: OperationReads<Operation>,
     CapabilityReviewer: OperationReads<Operation>,
 {
     let elevation = reader
@@ -257,6 +293,7 @@ fn seal_lifecycle_fields<Operation>(
     CapabilityElevationNotBefore: OperationReads<Operation>,
     CapabilityElevationNotAfter: OperationReads<Operation>,
     CapabilityReviewIdentity: OperationReads<Operation>,
+    CapabilityReviewKindField: OperationReads<Operation>,
     CapabilityReviewStatusField: OperationReads<Operation>,
 {
     reader
@@ -278,6 +315,9 @@ fn seal_lifecycle_fields<Operation>(
         .require_decision_field(review, CapabilityReviewIdentity::reference())
         .unwrap();
     reader
+        .require_decision_field(review, CapabilityReviewKindField::reference())
+        .unwrap();
+    reader
         .require_decision_field(review, CapabilityReviewStatusField::reference())
         .unwrap();
 }
@@ -294,6 +334,7 @@ fn seal_lifecycle_relations<Operation>(
     CapabilityElevationApprover: OperationReads<Operation>,
     CapabilityElevationGrant: OperationReads<Operation>,
     CapabilityElevationReview: OperationReads<Operation>,
+    CapabilityReviewResource: OperationReads<Operation>,
     CapabilityReviewer: OperationReads<Operation>,
 {
     reader
@@ -309,6 +350,9 @@ fn seal_lifecycle_relations<Operation>(
         .decision_relations_from(CapabilityElevationReview::reference(), elevation)
         .unwrap();
     reader
+        .decision_relations_from(CapabilityReviewResource::reference(), review)
+        .unwrap();
+    reader
         .decision_relations_to(CapabilityReviewer::reference(), review)
         .unwrap();
 }
@@ -317,10 +361,6 @@ fn close_input() -> CloseElevationInput {
     CloseElevationInput {
         account: "account-1".to_owned(),
         elevation: "elevation-2".to_owned(),
-        action: CapabilityAction::Touch,
-        purpose: CapabilityPurpose::AccountMaintenance,
-        disclosure: CapabilityDisclosure::AccountActivity,
-        amount: 50,
     }
 }
 
@@ -328,9 +368,6 @@ fn review_input() -> CompleteElevationReviewInput {
     CompleteElevationReviewInput {
         account: "account-1".to_owned(),
         elevation: "elevation-2".to_owned(),
-        action: CapabilityAction::Touch,
-        purpose: CapabilityPurpose::AccountMaintenance,
-        disclosure: CapabilityDisclosure::AccountActivity,
-        amount: 50,
+        review: "review-2".to_owned(),
     }
 }

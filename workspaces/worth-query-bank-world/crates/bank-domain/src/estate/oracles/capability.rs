@@ -88,9 +88,23 @@ fn validate_emergency(
         return Err(EstateDenial::EmergencyReviewerConflict);
     }
     match access.status {
-        EmergencyAccessStatus::Active => Ok(()),
-        EmergencyAccessStatus::ReviewRequired => Err(EstateDenial::EmergencyReviewRequired),
-        _ => Err(EstateDenial::EmergencyAccessInactive),
+        EmergencyAccessStatus::Approved
+            if access.issued_at.epoch_seconds() <= capability_use.now.epoch_seconds()
+                && capability_use.now.epoch_seconds() < access.expires_at.epoch_seconds() =>
+        {
+            Ok(())
+        }
+        EmergencyAccessStatus::Expired | EmergencyAccessStatus::Revoked
+            if world.review(access.review).is_some_and(|review| {
+                review.status == super::super::MandatoryReviewStatus::Required
+            }) =>
+        {
+            Err(EstateDenial::EmergencyReviewRequired)
+        }
+        EmergencyAccessStatus::Requested
+        | EmergencyAccessStatus::Approved
+        | EmergencyAccessStatus::Expired
+        | EmergencyAccessStatus::Revoked => Err(EstateDenial::EmergencyAccessInactive),
     }
 }
 

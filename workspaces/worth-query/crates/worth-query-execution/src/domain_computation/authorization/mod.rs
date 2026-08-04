@@ -34,7 +34,8 @@ pub(in crate::domain_computation) use admitted_operation::WorthQueryOperationAdm
 pub(in crate::domain_computation) use application_commit_authorization::WorthQueryApplicationCommitAuthorization;
 pub(super) use bridge_binding::bridge_authorization_binding_identity;
 pub(in crate::domain_computation) use capability_decision_fact::{
-    WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
+    WorthQueryCapabilityCommitBasis, WorthQueryCapabilitySupportCommitBasis,
+    WorthQueryRetainedCapabilityAuthorization, WorthQueryRetainedCapabilitySupport,
 };
 #[cfg(test)]
 pub(in crate::domain_computation) use capability_elevation_projection::validate_elevation_projection;

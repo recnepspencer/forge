@@ -7,14 +7,62 @@ use worth_query_decl::facade::application_capability::{
 use crate::{
     estate::EstateAction,
     schema::{
-        AccountIdentity, BankSchema, CapabilityAccount, DisburseEstateCapability,
-        EstateActionContext, EstateCase, EstateCaseIdentityField, EstateLegalAuthoritySlot,
-        FreezeEstateAccountCapability, LegalAuthorityIdentityField,
-        RecognizeEstateExecutorCapability, ViewEstateAdministrationCapability,
+        AccountIdentity, BankSchema, CapabilityAccount, DelegateEstateCapability,
+        DisburseEstateCapability, EstateActionContext, EstateCase, EstateCaseIdentityField,
+        EstateLegalAuthoritySlot, FreezeEstateAccountCapability, LegalAuthorityIdentityField,
+        NotifyDeathEstateCapability, OpenEstateCaseCapability, RecognizeEstateExecutorCapability,
+        ReleaseEstateCapability, RevokeEstateCapability, ViewEstateAdministrationCapability,
         ViewEstateEmergencyProtectionCapability, ViewEstateIdentityVerificationCapability,
         ViewEstateLegalComplianceCapability, ViewEstateMandatoryReviewCapability,
     },
 };
+
+#[path = "request_projection/emergency_elevation.rs"]
+mod emergency_elevation;
+
+macro_rules! simple_estate_request {
+    ($capability:ty, $operation:pat) => {
+        impl ApplicationCapabilityRequest<BankSchema, $capability> for EstateAction {
+            type Scope = EstateCase;
+            type Context = EstateActionContext;
+
+            fn capability_request(
+                &self,
+            ) -> Result<
+                ApplicationCapabilityRequestProjection<BankSchema, Self::Scope, Self::Context>,
+                ApplicationCapabilityRequestProjectionDenial,
+            > {
+                let $operation = *self else {
+                    return Err(ApplicationCapabilityRequestProjectionDenial::input_variant(
+                        "estate operation input",
+                    ));
+                };
+                Ok(estate_request(
+                    self,
+                    self.estate().expect("matched estate operation"),
+                ))
+            }
+        }
+    };
+}
+
+simple_estate_request!(
+    NotifyDeathEstateCapability,
+    EstateAction::NotifyDeath { .. }
+);
+simple_estate_request!(
+    OpenEstateCaseCapability,
+    EstateAction::OpenEstateCase { .. }
+);
+simple_estate_request!(
+    DelegateEstateCapability,
+    EstateAction::DelegateCapability { .. }
+);
+simple_estate_request!(
+    RevokeEstateCapability,
+    EstateAction::RevokeCapability { .. }
+);
+simple_estate_request!(ReleaseEstateCapability, EstateAction::ReleaseEstate { .. });
 
 macro_rules! view_request {
     ($capability:ty) => {

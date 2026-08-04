@@ -21,19 +21,21 @@ pub(in crate::domain_computation::primary_graph) use capability_access_fixture::
 #[path = "fixture/capability_status_mutation.rs"]
 mod capability_status_mutation;
 pub(super) use capability::{
-    ApproveCapabilityElevationOperation, ApproveElevationCapability, ApproveElevationInput,
-    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover, CapabilityElevationGrant,
-    CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
-    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
-    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityIdentity,
-    CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer, CapabilityStatus, CapabilityStatusField,
-    CapabilityTouchInput, CapabilityTouchOperation, CloseElevationInput,
-    CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
-    CompleteElevationReviewInput, ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation,
-    ElevatedTouchAccountCapability, RequestCapabilityElevationOperation,
-    RequestElevationCapability, RequestElevationInput, RevokeCapabilityElevationOperation,
-    RevokeElevationCapability, TouchAccountCapability,
+    elevated_account_activity_parameters, ApproveCapabilityElevationOperation,
+    ApproveElevationCapability, ApproveElevationInput, CapabilityAction, CapabilityDisclosure,
+    CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
+    CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
+    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatus,
+    CapabilityElevationStatusField, CapabilityIdentity, CapabilityPurpose,
+    CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewStatus, CapabilityReviewStatusField,
+    CapabilityReviewer, CapabilityStatus, CapabilityStatusField, CapabilityTouchInput,
+    CapabilityTouchOperation, CloseElevationInput, CompleteCapabilityReviewOperation,
+    CompleteElevationReviewCapability, CompleteElevationReviewInput, ElevatedAccountActivityCause,
+    ElevatedAccountActivityQuery, ElevatedAccountActivityResult, ElevatedCapabilityTouchInput,
+    ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
+    RequestCapabilityElevationOperation, RequestElevationCapability, RequestElevationInput,
+    RevokeCapabilityElevationOperation, RevokeElevationCapability, TouchAccountCapability,
 };
 pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
 #[path = "fixture/application_queries.rs"]
@@ -101,7 +103,8 @@ pub(in crate::domain_computation::primary_graph) use capability_world_installati
     installed_capability_world_with_exact_pair_population, installed_capability_world_with_label,
     installed_capability_world_with_same_resource_unrelated, installed_composed_capability_world,
     installed_delegated_capability_world, installed_delegated_capability_world_at_depth,
-    installed_delegated_capability_world_with_unrelated, installed_elevated_capability_world,
+    installed_delegated_capability_world_with_unrelated, installed_elevated_capability_live_world,
+    installed_elevated_capability_world,
 };
 pub(in crate::domain_computation::primary_graph) use schema_types::*;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
@@ -331,6 +334,7 @@ worth_query_application_schema! {
                 .application_query(forged_selector::forged_selector_definition())
                 .application_query(live_account_query::live_account_activity_definition())
                 .application_query(governed_live_query::governed_live_account_definition())
+                .application_query(capability::elevated_account_activity_definition())
                 .application_query(governed_omission_query::governed_account_omission_definition())
                 .application_query(
                     governed_hidden_ordering_query::governed_hidden_ordering_definition(),

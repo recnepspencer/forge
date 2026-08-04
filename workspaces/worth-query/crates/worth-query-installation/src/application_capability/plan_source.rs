@@ -1,3 +1,5 @@
+use sha2::{Digest, Sha256};
+use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::application_capability::ErasedApplicationCapabilityContract;
 
 use crate::application_schema::WorthQueryInstalledApplicationSchema;
@@ -48,6 +50,13 @@ impl<'a> WorthQueryInstalledApplicationCapabilityPlanSource<'a> {
 
     pub const fn canonical(&self) -> &'a WorthQueryCapabilityCanonicalArtifact {
         self.canonical
+    }
+
+    pub fn elevation_upper_bound_identity(&self) -> CanonicalDigestId {
+        let mut hasher = Sha256::new();
+        hasher.update(b"worth-query:elevation-upper-bound:v1");
+        hasher.update(self.identity.bytes());
+        CanonicalDigestId::new(hasher.finalize().into())
     }
 }
 

@@ -2,10 +2,12 @@ use super::*;
 use crate::application_capability::{
     ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityElevationDefinition,
     ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityElevationStates,
-    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityOperationBinding,
+    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityTransitionBinding,
 };
 use crate::application_schema::ApplicationFieldPresence;
 
+#[path = "elevation_lifecycle/bindings.rs"]
+mod bindings;
 #[path = "elevation_lifecycle/canonical_identity.rs"]
 mod canonical_identity;
 #[path = "elevation_lifecycle/duration.rs"]
@@ -15,30 +17,8 @@ mod member_fixture;
 #[path = "elevation_lifecycle/ownership.rs"]
 mod ownership;
 
+use bindings::*;
 use member_fixture::*;
-
-struct Elevation;
-struct ElevationFacts;
-struct Review;
-struct ReviewFacts;
-struct ElevationIdentity;
-struct ElevationReason;
-struct ElevationStatus;
-struct ElevationNotBefore;
-struct ElevationNotAfter;
-struct ReviewIdentity;
-struct ReviewStatus;
-struct Requester;
-struct Approver;
-struct ElevationGrant;
-struct ElevationReview;
-struct Reviewer;
-struct ElevationSlot;
-struct ReviewSlot;
-struct RequestOperation;
-struct ApproveOperation;
-struct RevokeOperation;
-struct CompleteReviewOperation;
 
 #[test]
 fn governed_elevation_requires_one_closed_distinct_lifecycle() {
@@ -100,6 +80,19 @@ fn lifecycle_operation_must_exist_in_the_same_schema() {
 }
 
 #[test]
+fn lifecycle_role_must_name_the_exact_installed_command_capability() {
+    let contract = elevation_contract(
+        StatePosture::Distinct,
+        ReviewPosture::Distinct,
+        LifecyclePosture::MissingCapability,
+    );
+    assert_eq!(
+        build_from_members(elevation_members(contract)),
+        Err(ApplicationSchemaDeclarationDenial::MissingApplicationCapabilityDependency)
+    );
+}
+
+#[test]
 fn lifecycle_context_slots_must_name_the_exact_elevation_and_review_entities() {
     assert_eq!(
         build_from_members(elevation_members(elevation_contract(
@@ -128,6 +121,7 @@ enum LifecyclePosture {
     Distinct,
     DuplicateOperation,
     MissingOperation,
+    MissingCapability,
     WrongElevationSlot,
     SwappedOperations,
 }
@@ -209,6 +203,8 @@ fn elevation_definition(
                 "Review",
             ),
             review_binding::<ReviewIdentity>("ReviewIdentity"),
+            ApplicationCapabilityValueBinding::new(review_field::<ReviewKind>("ReviewKind"), 1_u64),
+            relation::<ReviewScope, Review, Resource>("ReviewScope", "Review", "Resource"),
             relation::<Reviewer, Principal, Review>("Reviewer", "Principal", "Review"),
             review_binding::<ReviewStatus>("ReviewStatus"),
             review_value(1),
@@ -224,7 +220,9 @@ fn lifecycle_definition(
         LifecyclePosture::DuplicateOperation => ("Request", "Request"),
         LifecyclePosture::MissingOperation => ("Missing", "Approve"),
         LifecyclePosture::SwappedOperations => ("Approve", "Request"),
-        LifecyclePosture::Distinct | LifecyclePosture::WrongElevationSlot => ("Request", "Approve"),
+        LifecyclePosture::Distinct
+        | LifecyclePosture::WrongElevationSlot
+        | LifecyclePosture::MissingCapability => ("Request", "Approve"),
     };
     let elevation_slot = match posture {
         LifecyclePosture::WrongElevationSlot => {
@@ -252,10 +250,20 @@ fn lifecycle_definition(
         >(
             "ReviewSlot", "Review"
         )),
-        operation_binding::<RequestOperation>(request),
-        operation_binding::<ApproveOperation>(approve),
-        operation_binding::<RevokeOperation>("Revoke"),
-        operation_binding::<CompleteReviewOperation>("CompleteReview"),
+        transition_binding::<RequestCapability, RequestOperation>(
+            if matches!(posture, LifecyclePosture::MissingCapability) {
+                "MissingCapability"
+            } else {
+                "RequestCapability"
+            },
+            request,
+        ),
+        transition_binding::<ApproveCapability, ApproveOperation>("ApproveCapability", approve),
+        transition_binding::<RevokeCapability, RevokeOperation>("RevokeCapability", "Revoke"),
+        transition_binding::<CompleteReviewCapability, CompleteReviewOperation>(
+            "CompleteReviewCapability",
+            "CompleteReview",
+        ),
     )
 }
 
@@ -274,11 +282,13 @@ fn elevation_members(
         elevation_field_member("ElevationNotBefore"),
         elevation_field_member("ElevationNotAfter"),
         review_field_member("ReviewIdentity"),
+        review_field_member("ReviewKind"),
         review_field_member("ReviewStatus"),
         relation_member("Requester", "Principal", "Elevation"),
         relation_member("Approver", "Principal", "Elevation"),
         relation_member("ElevationGrant", "Elevation", "Grant"),
         relation_member("ElevationReview", "Elevation", "Review"),
+        relation_member("ReviewScope", "Review", "Resource"),
         relation_member("Reviewer", "Principal", "Review"),
         context_slot_member(
             "ElevationSlot",
@@ -290,74 +300,30 @@ fn elevation_members(
         operation_member("Approve"),
         operation_member("Revoke"),
         operation_member("CompleteReview"),
+        ApplicationSchemaMember::ApplicationCapability {
+            contract: transition_contract::<RequestCapability, RequestOperation>(
+                "RequestCapability",
+                "Request",
+            ),
+        },
+        ApplicationSchemaMember::ApplicationCapability {
+            contract: transition_contract::<ApproveCapability, ApproveOperation>(
+                "ApproveCapability",
+                "Approve",
+            ),
+        },
+        ApplicationSchemaMember::ApplicationCapability {
+            contract: transition_contract::<RevokeCapability, RevokeOperation>(
+                "RevokeCapability",
+                "Revoke",
+            ),
+        },
+        ApplicationSchemaMember::ApplicationCapability {
+            contract: transition_contract::<CompleteReviewCapability, CompleteReviewOperation>(
+                "CompleteReviewCapability",
+                "CompleteReview",
+            ),
+        },
     ]);
     result
-}
-
-fn elevation_value(value: u64) -> ApplicationCapabilityValueBinding {
-    ApplicationCapabilityValueBinding::new(
-        elevation_field::<ElevationStatus>("ElevationStatus"),
-        value,
-    )
-}
-
-fn review_value(value: u64) -> ApplicationCapabilityValueBinding {
-    ApplicationCapabilityValueBinding::new(review_field::<ReviewStatus>("ReviewStatus"), value)
-}
-
-fn elevation_binding<Field>(name: &'static str) -> ApplicationCapabilityFieldBinding {
-    ApplicationCapabilityFieldBinding::from_reference(elevation_field::<Field>(name))
-}
-
-fn review_binding<Field>(name: &'static str) -> ApplicationCapabilityFieldBinding {
-    ApplicationCapabilityFieldBinding::from_reference(review_field::<Field>(name))
-}
-
-fn elevation_field<Field>(
-    name: &'static str,
-) -> ApplicationFieldRef<
-    Schema,
-    Elevation,
-    ElevationFacts,
-    Field,
-    u64,
-    ReadOnly,
-    EqualityPredicate,
-    NoApplicationCurrency,
-> {
-    ApplicationFieldRef::from_schema_identifiers("Elevation", "ElevationFacts", name)
-}
-
-fn review_field<Field>(
-    name: &'static str,
-) -> ApplicationFieldRef<
-    Schema,
-    Review,
-    ReviewFacts,
-    Field,
-    u64,
-    ReadOnly,
-    EqualityPredicate,
-    NoApplicationCurrency,
-> {
-    ApplicationFieldRef::from_schema_identifiers("Review", "ReviewFacts", name)
-}
-
-fn context_slot<Slot, Entity>(
-    slot: &'static str,
-    entity: &'static str,
-) -> ApplicationCapabilityContextEntitySlotRef<Schema, Context, Slot, Entity> {
-    ApplicationCapabilityContextEntitySlotRef::from_schema_identifiers(
-        ApplicationCapabilityContextRef::from_schema_identifier("Context"),
-        slot,
-        ApplicationEntityRef::from_schema_identifier(entity),
-    )
-}
-
-fn operation<Marker>(name: &'static str) -> ApplicationOperationRef<Schema, Marker, ()> {
-    ApplicationOperationRef::from_schema_identifier(name)
-}
-
-fn operation_binding<Marker>(name: &'static str) -> ApplicationCapabilityOperationBinding {
-    ApplicationCapabilityOperationBinding::from_reference(operation::<Marker>(name))
 }

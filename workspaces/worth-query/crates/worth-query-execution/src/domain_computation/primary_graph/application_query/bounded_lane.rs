@@ -7,52 +7,19 @@ use worth_query_declaration::facade::application_schema::ApplicationSchema;
 use super::access_receipt::{
     WorthQueryApplicationQueryReceiptBasis, WorthQueryApplicationQueryReceiptIdentity,
 };
-use super::authorized_read::{
-    execute_authorized_read, refresh_governed_authorization,
-    WorthQueryAuthorizedApplicationReadDenial,
-};
-use super::read_execution::{
-    project_non_live_kernel, read_bounded_root_rows, WorthQueryApplicationReadExecutionDenialKind,
-};
+use super::authorized_read::{execute_authorized_read, refresh_governed_authorization};
+use super::read_execution::{project_non_live_kernel, read_bounded_root_rows};
 use super::{
     WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationProjection,
-    WorthQueryApplicationProjectionDenialKind, WorthQueryApplicationQueryAccessReceipt,
+    WorthQueryApplicationQueryAccessReceipt,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryAuthenticatedPrincipal, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthQueryBoundedLaneDenialKind {
-    ForeignPlan,
-    StaleInstalledQuery,
-    StalePrincipal,
-    StaleScope,
-    StaleBasisScope(crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind),
-    Authorization(WorthQueryOperationAuthorizationDenialKind),
-    Cancelled,
-    DeadlineExceeded,
-    StalePreviewSession,
-    BasisUnavailable,
-    ExpiredBasis,
-    BasisReleaseFailed,
-    PredicateIndexUnavailable,
-    PredicateLookupOverflow,
-    ResultLimitExceeded,
-    CardinalityMismatch,
-    TraversalUnavailable,
-    ProjectionUnavailable,
-    Projection(WorthQueryApplicationProjectionDenialKind),
-    ResultBufferLimitExceeded,
-    WorkLimitExceeded,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryBoundedLaneDenial {
-    kind: WorthQueryBoundedLaneDenialKind,
-    subject: String,
-}
+mod denial;
+use denial::{denial, map_authorized_read_denial};
+pub use denial::{WorthQueryBoundedLaneDenial, WorthQueryBoundedLaneDenialKind};
 
 pub(super) struct WorthQueryBoundedLaneResult<QueryResult> {
     rows: Vec<QueryResult>,
@@ -64,28 +31,6 @@ impl<QueryResult> WorthQueryBoundedLaneResult<QueryResult> {
         (self.rows, self.receipt)
     }
 }
-
-impl WorthQueryBoundedLaneDenial {
-    pub const fn kind(&self) -> WorthQueryBoundedLaneDenialKind {
-        self.kind
-    }
-
-    pub fn subject(&self) -> &str {
-        &self.subject
-    }
-}
-
-impl std::fmt::Display for WorthQueryBoundedLaneDenial {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            formatter,
-            "application query bounded lane denied: {:?} ({})",
-            self.kind, self.subject
-        )
-    }
-}
-
-impl std::error::Error for WorthQueryBoundedLaneDenial {}
 
 pub(super) fn execute_bounded_lane<
     Schema,
@@ -128,7 +73,7 @@ where
             plan.query.name(),
         ));
     }
-    validate_authentication_lifetime(plan.principal, plan.query.name())?;
+    validate_authentication_lifetime(application, plan.principal, plan.query.name())?;
     if !plan.basis.is_live() {
         return Err(denial(
             WorthQueryBoundedLaneDenialKind::BasisUnavailable,
@@ -181,7 +126,7 @@ where
         ));
     }
     admit_request(&request, plan.query.name())?;
-    validate_authentication_lifetime(plan.principal, plan.query.name())?;
+    validate_authentication_lifetime(application, plan.principal, plan.query.name())?;
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         raw,
         &plan.governance,
@@ -194,7 +139,7 @@ where
         },
     )?;
     admit_request(&request, plan.query.name())?;
-    validate_authentication_lifetime(plan.principal, plan.query.name())?;
+    validate_authentication_lifetime(application, plan.principal, plan.query.name())?;
     let (rows, kernel_receipt) = projected.into_parts();
     let read_completion = plan
         .graph_work
@@ -286,10 +231,11 @@ where
 }
 
 fn validate_authentication_lifetime<Schema, Principal, PrincipalIdentity>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
     subject: &str,
 ) -> Result<(), WorthQueryBoundedLaneDenial> {
-    if principal.is_expired() {
+    if application.authentication_is_expired(principal.valid_until()) {
         Err(denial(
             WorthQueryBoundedLaneDenialKind::StalePrincipal,
             subject,
@@ -312,83 +258,5 @@ fn admit_request(
             subject,
         )),
         None => Ok(()),
-    }
-}
-
-fn map_authorized_read_denial(
-    value: WorthQueryAuthorizedApplicationReadDenial,
-    subject: &str,
-) -> WorthQueryBoundedLaneDenial {
-    match value {
-        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => {
-            denial(WorthQueryBoundedLaneDenialKind::StalePrincipal, subject)
-        }
-        WorthQueryAuthorizedApplicationReadDenial::StaleScope => {
-            denial(WorthQueryBoundedLaneDenialKind::StaleScope, subject)
-        }
-        WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(kind) => denial(
-            WorthQueryBoundedLaneDenialKind::StaleBasisScope(kind),
-            subject,
-        ),
-        WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, subject) => denial(
-            WorthQueryBoundedLaneDenialKind::Authorization(kind),
-            subject,
-        ),
-        WorthQueryAuthorizedApplicationReadDenial::Read(read) => {
-            denial(map_read_denial(read.kind()), read.subject())
-        }
-        WorthQueryAuthorizedApplicationReadDenial::Session => {
-            denial(WorthQueryBoundedLaneDenialKind::ForeignPlan, subject)
-        }
-    }
-}
-
-fn map_read_denial(
-    kind: WorthQueryApplicationReadExecutionDenialKind,
-) -> WorthQueryBoundedLaneDenialKind {
-    match kind {
-        WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable => {
-            WorthQueryBoundedLaneDenialKind::PredicateIndexUnavailable
-        }
-        WorthQueryApplicationReadExecutionDenialKind::PredicateLookupOverflow => {
-            WorthQueryBoundedLaneDenialKind::PredicateLookupOverflow
-        }
-        WorthQueryApplicationReadExecutionDenialKind::ResultLimitExceeded => {
-            WorthQueryBoundedLaneDenialKind::ResultLimitExceeded
-        }
-        WorthQueryApplicationReadExecutionDenialKind::CardinalityMismatch => {
-            WorthQueryBoundedLaneDenialKind::CardinalityMismatch
-        }
-        WorthQueryApplicationReadExecutionDenialKind::ProjectionUnavailable => {
-            WorthQueryBoundedLaneDenialKind::ProjectionUnavailable
-        }
-        WorthQueryApplicationReadExecutionDenialKind::ResultBufferLimitExceeded => {
-            WorthQueryBoundedLaneDenialKind::ResultBufferLimitExceeded
-        }
-        WorthQueryApplicationReadExecutionDenialKind::WorkLimitExceeded => {
-            WorthQueryBoundedLaneDenialKind::WorkLimitExceeded
-        }
-        WorthQueryApplicationReadExecutionDenialKind::TargetIdentityIndexUnavailable
-        | WorthQueryApplicationReadExecutionDenialKind::TargetIdentityLookupOverflow
-        | WorthQueryApplicationReadExecutionDenialKind::TargetIdentityNotFound => {
-            WorthQueryBoundedLaneDenialKind::ProjectionUnavailable
-        }
-        WorthQueryApplicationReadExecutionDenialKind::TraversalUnavailable
-        | WorthQueryApplicationReadExecutionDenialKind::ContinuationIndexUnavailable
-        | WorthQueryApplicationReadExecutionDenialKind::ContinuationBoundaryRejected
-        | WorthQueryApplicationReadExecutionDenialKind::ContinuationGenerationChanged
-        | WorthQueryApplicationReadExecutionDenialKind::ContinuationPageWidthInvalid => {
-            WorthQueryBoundedLaneDenialKind::TraversalUnavailable
-        }
-    }
-}
-
-fn denial(
-    kind: WorthQueryBoundedLaneDenialKind,
-    subject: impl Into<String>,
-) -> WorthQueryBoundedLaneDenial {
-    WorthQueryBoundedLaneDenial {
-        kind,
-        subject: subject.into(),
     }
 }

@@ -39,6 +39,7 @@ fn administrative_targets_cannot_escape_the_capability_estate() {
         &world,
         specialist(&courtroom),
         EstateAction::RevokeCapability {
+            estate: courtroom.estate,
             grant: foreign_target.id,
         },
         revoke_authority.id,
@@ -151,7 +152,9 @@ fn active_elevation_requires_distinct_actors_and_an_exact_review() {
             grant: grant.id,
             review: MandatoryReviewId::new(999).unwrap(),
             reason: EmergencyAccessReason::PreventImmediateLoss,
-            status: EmergencyAccessStatus::Active,
+            status: EmergencyAccessStatus::Approved,
+            issued_at: EstateMoment::from_epoch_seconds(100),
+            expires_at: EstateMoment::from_epoch_seconds(200),
         });
     assert_denied(
         &world,
@@ -171,7 +174,9 @@ fn active_elevation_requires_distinct_actors_and_an_exact_review() {
         grant: grant.id,
         review: courtroom.emergency_review,
         reason: EmergencyAccessReason::PreventImmediateLoss,
-        status: EmergencyAccessStatus::Active,
+        status: EmergencyAccessStatus::Approved,
+        issued_at: EstateMoment::from_epoch_seconds(100),
+        expires_at: EstateMoment::from_epoch_seconds(200),
     });
     assert_denied(
         &world,
@@ -191,7 +196,9 @@ fn active_elevation_requires_distinct_actors_and_an_exact_review() {
         grant: grant.id,
         review: courtroom.emergency_review,
         reason: EmergencyAccessReason::PreventImmediateLoss,
-        status: EmergencyAccessStatus::Active,
+        status: EmergencyAccessStatus::Approved,
+        issued_at: EstateMoment::from_epoch_seconds(100),
+        expires_at: EstateMoment::from_epoch_seconds(200),
     });
     assert_denied(
         &world,
@@ -211,7 +218,9 @@ fn active_elevation_requires_distinct_actors_and_an_exact_review() {
         grant: grant.id,
         review: courtroom.emergency_review,
         reason: EmergencyAccessReason::PreventImmediateLoss,
-        status: EmergencyAccessStatus::Active,
+        status: EmergencyAccessStatus::Approved,
+        issued_at: EstateMoment::from_epoch_seconds(100),
+        expires_at: EstateMoment::from_epoch_seconds(200),
     });
     assert_eq!(
         BankEstateOracles::evaluate(

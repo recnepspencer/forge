@@ -59,6 +59,8 @@ impl ApplicationCapabilityElevationStates {
 pub struct ApplicationCapabilityMandatoryReviewDefinition {
     relation: ApplicationCapabilityRelationBinding,
     identity: ApplicationCapabilityFieldBinding,
+    kind: ApplicationCapabilityValueBinding,
+    scope: ApplicationCapabilityRelationBinding,
     reviewer: ApplicationCapabilityRelationBinding,
     status: ApplicationCapabilityFieldBinding,
     required: ApplicationCapabilityValueBinding,
@@ -66,9 +68,12 @@ pub struct ApplicationCapabilityMandatoryReviewDefinition {
 }
 
 impl ApplicationCapabilityMandatoryReviewDefinition {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         relation: ApplicationCapabilityRelationBinding,
         identity: ApplicationCapabilityFieldBinding,
+        kind: ApplicationCapabilityValueBinding,
+        scope: ApplicationCapabilityRelationBinding,
         reviewer: ApplicationCapabilityRelationBinding,
         status: ApplicationCapabilityFieldBinding,
         required: ApplicationCapabilityValueBinding,
@@ -77,6 +82,8 @@ impl ApplicationCapabilityMandatoryReviewDefinition {
         Self {
             relation,
             identity,
+            kind,
+            scope,
             reviewer,
             status,
             required,
@@ -90,6 +97,14 @@ impl ApplicationCapabilityMandatoryReviewDefinition {
 
     pub const fn identity(&self) -> &ApplicationCapabilityFieldBinding {
         &self.identity
+    }
+
+    pub const fn kind(&self) -> &ApplicationCapabilityValueBinding {
+        &self.kind
+    }
+
+    pub const fn scope(&self) -> &ApplicationCapabilityRelationBinding {
+        &self.scope
     }
 
     pub const fn reviewer(&self) -> &ApplicationCapabilityRelationBinding {

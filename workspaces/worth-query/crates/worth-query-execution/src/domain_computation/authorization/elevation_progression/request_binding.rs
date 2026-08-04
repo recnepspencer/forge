@@ -30,11 +30,14 @@ pub(in crate::domain_computation) struct WorthQueryElevationRequestBinding {
     pub(in crate::domain_computation) review_key: String,
     pub(in crate::domain_computation) review_identity_field: AspectFieldLocator,
     pub(in crate::domain_computation) review_identity: AspectValue,
+    pub(in crate::domain_computation) review_type_field: AspectFieldLocator,
+    pub(in crate::domain_computation) review_type: AspectValue,
     pub(in crate::domain_computation) review_status_field: AspectFieldLocator,
     pub(in crate::domain_computation) review_required_status: AspectValue,
     pub(in crate::domain_computation) requester_relation: KindId,
     pub(in crate::domain_computation) grant_relation: KindId,
     pub(in crate::domain_computation) review_relation: KindId,
+    pub(in crate::domain_computation) review_scope_relation: KindId,
     pub(in crate::domain_computation) required_program_targets:
         Vec<ApplicationOperationProgramTarget>,
 }

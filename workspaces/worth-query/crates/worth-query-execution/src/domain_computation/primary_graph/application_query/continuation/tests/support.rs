@@ -156,6 +156,12 @@ impl ContinuationTestContext {
             .acquisitions()
     }
 
+    pub(super) fn expire_authentication(&mut self) {
+        self.world
+            .application
+            .fix_authentication_time(self.principal.valid_until());
+    }
+
     pub(super) fn assert_resource_baseline(&self) {
         let basis = self
             .world

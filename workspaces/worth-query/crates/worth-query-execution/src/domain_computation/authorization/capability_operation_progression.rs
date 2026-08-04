@@ -217,7 +217,7 @@ where
             operation.operation(),
         ));
     }
-    if access.authorization.exact_fact_count() != 2 {
+    if access.authorization.exact_fact_count() != access.graph_work.retained_decision_facts() {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
             operation.operation(),

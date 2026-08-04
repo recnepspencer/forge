@@ -47,9 +47,12 @@ fn lifecycle_operations_have_one_owner(contracts: &[&ErasedApplicationCapability
         };
         elevation
             .lifecycle()
-            .operations()
+            .transitions()
             .into_iter()
-            .all(|operation| operations.insert((operation.operation(), operation.input_type())))
+            .all(|transition| {
+                let operation = transition.operation();
+                operations.insert((operation.operation(), operation.input_type()))
+            })
     })
 }
 

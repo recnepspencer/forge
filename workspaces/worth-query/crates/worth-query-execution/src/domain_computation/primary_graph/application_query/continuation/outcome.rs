@@ -17,6 +17,7 @@ use crate::domain_computation::primary_graph::application_query::{
     WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationAuthorizationWorkEvidence,
     WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessReceipt,
 };
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 pub(super) fn finalize_continuation_page<
     Schema,
@@ -27,6 +28,7 @@ pub(super) fn finalize_continuation_page<
     PrincipalIdentity,
     Scope,
 >(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     plan: WorthQueryAdmittedApplicationQueryPlan<
         '_,
         Schema,
@@ -72,7 +74,7 @@ where
     }
     validate_request(request)
         .map_err(|validation| denial(map_validation_denial(validation), plan.query.name()))?;
-    if plan.principal.is_expired() {
+    if application.authentication_is_expired(plan.principal.valid_until()) {
         return Err(denial(
             WorthQueryApplicationContinuationDenialKind::StalePrincipal,
             plan.query.name(),

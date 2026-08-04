@@ -176,6 +176,23 @@ where
             .count()
     }
 
+    pub(crate) fn lifecycle_request_support_fact_count(
+        &self,
+        operation: &str,
+        input_type: &str,
+    ) -> usize {
+        usize::from(self.capability_registry.values().any(|capability| {
+            capability
+                .contract()
+                .elevation()
+                .definition()
+                .is_some_and(|definition| {
+                    let request = definition.lifecycle().request().operation();
+                    request.operation() == operation && request.input_type() == input_type
+                })
+        }))
+    }
+
     pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
         self.installation_canonical_work
     }

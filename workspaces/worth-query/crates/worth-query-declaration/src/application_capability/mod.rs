@@ -48,6 +48,7 @@ pub use elevation::{
 };
 pub use elevation_lifecycle::{
     ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityOperationBinding,
+    ApplicationCapabilityTransitionBinding,
 };
 pub use elevation_transition::{
     ApplicationCapabilityElevationRequest, ApplicationCapabilityElevationRequestProjection,

@@ -19,17 +19,56 @@ pub(super) fn lower_bridge_observation(
     evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
     dependency_identity: [u8; 32],
 ) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
-    if installed.bridge_rules.len() != installed.rule_path_indices.len()
-        || evidence.paths().len() != installed.paths.len()
-    {
+    lower_observation(
+        installed,
+        projection,
+        evidence,
+        dependency_identity,
+        installed.correspondence,
+        &installed.bridge_rules,
+        &installed.rule_path_indices,
+        installed.paths.len(),
+    )
+}
+
+pub(super) fn lower_upper_bound_observation(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    projection: &WorthQueryRetainedCapabilityRequest,
+    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
+    dependency_identity: [u8; 32],
+) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
+    let upper_bound = installed
+        .upper_bound
+        .as_ref()
+        .ok_or_else(|| super::invalid_policy(installed.contract.name()))?;
+    lower_observation(
+        installed,
+        projection,
+        evidence,
+        dependency_identity,
+        upper_bound.correspondence,
+        &upper_bound.bridge_rules,
+        &upper_bound.rule_path_indices,
+        upper_bound.path_count,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn lower_observation(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    projection: &WorthQueryRetainedCapabilityRequest,
+    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
+    dependency_identity: [u8; 32],
+    correspondence: worth_runtime_bridge::facade::BridgeAuthorizationCorrespondenceIdentity,
+    bridge_rules: &[worth_runtime_bridge::facade::BridgeAuthorizationRuleContract],
+    rule_path_indices: &[Vec<Vec<usize>>],
+    path_count: usize,
+) -> Result<BridgeAuthorizationObservation, WorthQueryOperationAuthorizationDenial> {
+    if bridge_rules.len() != rule_path_indices.len() || evidence.paths().len() != path_count {
         return Err(super::invalid_policy(installed.contract.name()));
     }
-    let mut rules = Vec::with_capacity(installed.bridge_rules.len());
-    for (rule, requirements) in installed
-        .bridge_rules
-        .iter()
-        .zip(&installed.rule_path_indices)
-    {
+    let mut rules = Vec::with_capacity(bridge_rules.len());
+    for (rule, requirements) in bridge_rules.iter().zip(rule_path_indices) {
         let observed_requirements = requirements
             .iter()
             .map(|indices| {
@@ -46,7 +85,7 @@ pub(super) fn lower_bridge_observation(
         ));
     }
     Ok(BridgeAuthorizationObservation::new(
-        installed.correspondence,
+        correspondence,
         dependency_identity,
         rules,
     ))

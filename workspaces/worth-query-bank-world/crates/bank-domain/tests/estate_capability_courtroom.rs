@@ -113,11 +113,16 @@ fn beneficiary_branch_manager_cannot_read_approve_or_disburse_for_self() {
             review: courtroom.emergency_review,
             reason: EmergencyAccessReason::PreventImmediateLoss,
             status: EmergencyAccessStatus::Requested,
+            issued_at: NOW,
+            expires_at: EstateMoment::from_epoch_seconds(NOW.epoch_seconds() + 60),
         });
     assert_denied(
         &world,
         manager(&courtroom),
-        EstateAction::ApproveEmergencyAccess { access: access_id },
+        EstateAction::ApproveEmergencyAccess {
+            estate: courtroom.estate,
+            access: access_id,
+        },
         51,
         None,
         EstateDenial::EmergencySelfApproval,
@@ -199,7 +204,9 @@ fn delegation_and_emergency_access_cannot_widen_or_bypass_conflict() {
             grant: emergency_grant.id,
             review: courtroom.emergency_review,
             reason: EmergencyAccessReason::ProtectVulnerableCustomer,
-            status: EmergencyAccessStatus::Active,
+            status: EmergencyAccessStatus::Approved,
+            issued_at: EstateMoment::from_epoch_seconds(100),
+            expires_at: EstateMoment::from_epoch_seconds(200),
         });
     assert_denied(
         &world,

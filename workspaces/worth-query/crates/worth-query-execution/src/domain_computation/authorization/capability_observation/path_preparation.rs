@@ -40,6 +40,36 @@ pub(super) fn prepare_exact_policy_paths(
         .collect()
 }
 
+pub(super) fn prepare_upper_bound_policy_paths(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: worth_relational::facade::identity::EntityId,
+) -> Result<
+    Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
+    WorthQueryOperationAuthorizationDenial,
+> {
+    let upper_bound = installed
+        .upper_bound
+        .as_ref()
+        .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+    let grant_path_index = installed.grant_witness.path_index();
+    installed
+        .paths
+        .iter()
+        .take(upper_bound.path_count)
+        .enumerate()
+        .map(|(index, template)| {
+            let plan = if index == grant_path_index {
+                super::grant_selection::prepare_grant_path(installed, request, sample)?
+            } else {
+                template.plan.clone()
+            };
+            Ok(plan.with_entity_anchors(exact_anchors(installed, request, template, exact_grant)?))
+        })
+        .collect()
+}
+
 fn exact_anchors(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,

@@ -27,8 +27,12 @@ mod approval_transition;
 mod approver_conflict;
 #[path = "capability_elevation/close_transition.rs"]
 mod close_transition;
+#[path = "capability_elevation/delivery_cutoff.rs"]
+mod delivery_cutoff;
 #[path = "capability_elevation/mutation.rs"]
 mod mutation;
+#[path = "capability_elevation/request_commit_revalidation.rs"]
+mod request_commit_revalidation;
 #[path = "capability_elevation/request_support.rs"]
 mod request_support;
 #[path = "capability_elevation/request_transition.rs"]
@@ -54,7 +58,7 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
             .elevation_lifecycle_operation_count(),
         4
     );
-    let (_, request_role) = world
+    let (_, _, request_role) = world
         .application
         .authorization
         .elevation_lifecycle_operation::<

@@ -12,6 +12,7 @@ mod domain_package;
 mod error;
 #[cfg(test)]
 mod estate_capability_admission;
+mod estate_progression;
 mod graph_bootstrap;
 mod identity_runtime;
 mod operation_admission;
@@ -34,6 +35,7 @@ pub use error::{
     BankAuthenticationBoundaryBuildError, BankIdentityRuntimeBuildError,
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
+pub use estate_progression::BankEstateProgressionDenial;
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};
 pub use operation_admission::{BankAdmittedOperation, BankOperationAdmissionError};
 pub use operation_commit::{

@@ -53,6 +53,7 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
     decision_fact_budget: usize,
     projection_work_budget: usize,
+    additional_authorization_fact_count: usize,
     mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
 }
 
@@ -64,6 +65,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
         mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
         decision_fact_budget: usize,
         projection_work_budget: usize,
+        additional_authorization_fact_count: usize,
         mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
     ) -> Self {
         ability_requirements.sort();
@@ -72,7 +74,9 @@ impl WorthQueryCompiledApplicationOperationContracts {
         program.dedup();
         decision_reads.sort();
         decision_reads.dedup();
-        let authorization_fact_count = authorization.exact_fact_count(ability_requirements.len());
+        let authorization_fact_count = authorization
+            .exact_fact_count(ability_requirements.len())
+            .saturating_add(additional_authorization_fact_count);
         let primary_role = "primary".to_string();
         let graph_reads = WorthQueryOperationGraphReadContract::Declared {
             roles: vec![WorthQueryOperationGraphReadRole {
@@ -124,6 +128,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
+            additional_authorization_fact_count,
             mutation_preconditions,
         }
     }
@@ -202,6 +207,10 @@ impl WorthQueryCompiledApplicationOperationContracts {
 
     pub const fn projection_work_budget(&self) -> usize {
         self.projection_work_budget
+    }
+
+    pub(crate) const fn additional_authorization_fact_count(&self) -> usize {
+        self.additional_authorization_fact_count
     }
 }
 

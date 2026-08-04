@@ -16,6 +16,7 @@ pub(super) fn lifecycle_decision_reads(
         elevation.validity().not_before(),
         elevation.validity().not_after(),
         review.identity(),
+        review.kind().field(),
         review.status(),
     ]
     .into_iter()
@@ -31,6 +32,7 @@ pub(super) fn lifecycle_decision_reads(
             elevation.approver(),
             elevation.grant(),
             review.relation(),
+            review.scope(),
             review.reviewer(),
         ]
         .into_iter()
