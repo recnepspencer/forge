@@ -6,11 +6,13 @@ use serde_json::{json, Value};
 use worth_server::{
     WorthServer, WorthServerCompatibilityPreparedRequest, WorthServerProductAdapterExecutionError,
     WorthServerProductApplicationAdapter, WorthServerProductApplicationAdapterRegistration,
-    WorthServerProductOperationDeclaration, WorthServerProductOperationDenial,
-    WorthServerProductOperationErrorMaps, WorthServerProductOperationInput,
-    WorthServerProductOperationPayload, WorthServerProductOperationSuccess,
-    WorthServerProductOperationSupportSnapshot, WorthServerProductSession,
-    WorthServerProductSessionCreationRequest, WorthServerWorthNativeSession,
+    WorthServerProductOperationAuthorizer, WorthServerProductOperationDeclaration,
+    WorthServerProductOperationDenial, WorthServerProductOperationErrorMaps,
+    WorthServerProductOperationInput, WorthServerProductOperationPayload,
+    WorthServerProductOperationSuccess, WorthServerProductOperationSupportSnapshot,
+    WorthServerProductSession, WorthServerProductSessionCreationRequest,
+    WorthServerTransportCallerVerifier, WorthServerWorthNativeSession,
+    WorthServerWorthNativeSessionInput,
 };
 
 #[path = "../product_adapter_phase_nine/fixture.rs"]
@@ -194,8 +196,41 @@ pub fn build_server(backend: &StatefulEditorLikeBackend) -> WorthServer {
     product_adapter_phase_nine_fixture::build_server(vec![backend.registration()])
 }
 
+pub fn build_server_with_operation_authority(
+    backend: &StatefulEditorLikeBackend,
+    verifier: Arc<dyn WorthServerTransportCallerVerifier>,
+    authorizer: Arc<dyn WorthServerProductOperationAuthorizer>,
+) -> WorthServer {
+    product_adapter_phase_nine_fixture::build_server_with_operation_authority(
+        vec![backend.registration()],
+        verifier,
+        authorizer,
+    )
+}
+
 pub fn direct_session(server: &WorthServer) -> WorthServerWorthNativeSession {
     product_adapter_phase_nine_fixture::direct_session(server)
+}
+
+pub fn direct_session_with_proof(
+    server: &WorthServer,
+    proof_identity: &str,
+) -> WorthServerWorthNativeSession {
+    use worth_proof::TransitionOutcome;
+
+    match server.worth_native().session(
+        WorthServerWorthNativeSessionInput::builder()
+            .with_authenticated_principal_id("principal-7")
+            .with_tenant_id("tenant-a")
+            .with_workspace_id("workspace-42")
+            .with_branch_id("branch-9")
+            .with_application_authority_proof_identity(proof_identity)
+            .build()
+            .unwrap(),
+    ) {
+        TransitionOutcome::Success(session) => session,
+        other => panic!("expected authorized Worth-native session, got {other:?}"),
+    }
 }
 
 pub fn open_mutation_session(

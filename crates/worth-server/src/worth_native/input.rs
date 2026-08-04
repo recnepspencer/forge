@@ -5,6 +5,7 @@ pub struct WorthServerWorthNativeSessionInput {
     authenticated_principal_id: String,
     tenant_id: String,
     workspace_id: String,
+    application_authority_proof_identity: Option<String>,
     branch_target: RawWorthServerWorthNativeBranchTarget,
     diagnostics_profile: Option<DiagnosticRichnessProfile>,
 }
@@ -26,6 +27,10 @@ impl WorthServerWorthNativeSessionInput {
         &self.workspace_id
     }
 
+    pub(crate) fn application_authority_proof_identity(&self) -> Option<&str> {
+        self.application_authority_proof_identity.as_deref()
+    }
+
     pub(crate) fn branch_target(&self) -> &RawWorthServerWorthNativeBranchTarget {
         &self.branch_target
     }
@@ -40,6 +45,7 @@ pub struct WorthServerWorthNativeSessionInputBuilder {
     authenticated_principal_id: Option<String>,
     tenant_id: Option<String>,
     workspace_id: Option<String>,
+    application_authority_proof_identity: Option<String>,
     branch_target: Option<RawWorthServerWorthNativeBranchTarget>,
     diagnostics_profile: Option<DiagnosticRichnessProfile>,
 }
@@ -50,6 +56,7 @@ impl Default for WorthServerWorthNativeSessionInputBuilder {
             authenticated_principal_id: None,
             tenant_id: None,
             workspace_id: None,
+            application_authority_proof_identity: None,
             branch_target: Some(RawWorthServerWorthNativeBranchTarget::Main),
             diagnostics_profile: None,
         }
@@ -72,6 +79,14 @@ impl WorthServerWorthNativeSessionInputBuilder {
 
     pub fn with_workspace_id(mut self, workspace_id: impl Into<String>) -> Self {
         self.workspace_id = Some(workspace_id.into());
+        self
+    }
+
+    pub fn with_application_authority_proof_identity(
+        mut self,
+        proof_identity: impl Into<String>,
+    ) -> Self {
+        self.application_authority_proof_identity = Some(proof_identity.into());
         self
     }
 
@@ -115,6 +130,7 @@ impl WorthServerWorthNativeSessionInputBuilder {
             workspace_id: self
                 .workspace_id
                 .ok_or(WorthServerWorthNativeSessionInputError::MissingWorkspaceId)?,
+            application_authority_proof_identity: self.application_authority_proof_identity,
             branch_target: self
                 .branch_target
                 .ok_or(WorthServerWorthNativeSessionInputError::MissingBranchTarget)?,

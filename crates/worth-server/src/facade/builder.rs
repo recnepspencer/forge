@@ -33,6 +33,7 @@ pub struct WorthServerBuilder {
     product_session_clock: Option<Arc<dyn WorthServerProductSessionClock>>,
     product_session_termination_observers: Vec<SharedProductSessionTerminationObserver>,
     transport_caller_verifier: Option<Arc<dyn crate::WorthServerTransportCallerVerifier>>,
+    product_operation_authorizer: Option<Arc<dyn crate::WorthServerProductOperationAuthorizer>>,
 }
 
 impl WorthServerBuilder {
@@ -99,6 +100,14 @@ impl WorthServerBuilder {
         self
     }
 
+    pub fn with_product_operation_authorizer(
+        mut self,
+        authorizer: Arc<dyn crate::WorthServerProductOperationAuthorizer>,
+    ) -> Self {
+        self.product_operation_authorizer = Some(authorizer);
+        self
+    }
+
     pub fn build(self) -> Result<WorthServer, WorthServerBuildError> {
         let config = self.config.ok_or(WorthServerBuildError::MissingConfig)?;
         let counters = Arc::new(WorthServerCounters::default());
@@ -110,7 +119,8 @@ impl WorthServerBuilder {
                 .map_err(WorthServerBuildError::InvalidOperationRegistry)?;
         let product_adapter_registry =
             WorthServerProductAdapterRegistry::build(self.product_adapter_registrations)
-                .map_err(WorthServerBuildError::InvalidProductAdapterRegistry)?;
+                .map_err(WorthServerBuildError::InvalidProductAdapterRegistry)?
+                .with_operation_authorizer(self.product_operation_authorizer);
         let route_assembly = crate::transport::WorthServerRouteAssembly::assemble(
             &crate::surfaces::CompatHttpSurfaceRoot::new(&surface_registry),
             &operation_registry,

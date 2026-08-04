@@ -6,10 +6,11 @@ use crate::{
     WorthServerOperationAdmissionFacade, WorthServerOperationFamily, WorthServerOperationRegistry,
     WorthServerOperationRequestFacade, WorthServerOperationSchedulerCounters,
     WorthServerProductAdapterRegistry, WorthServerProductApplicationAdapter,
-    WorthServerProductOperationDeclaration, WorthServerProductOperationInput,
+    WorthServerProductOperationAuthorizationRequest, WorthServerProductOperationDeclaration,
+    WorthServerProductOperationExecutionBoundary, WorthServerProductOperationInput,
     WorthServerProductOperationOutcome, WorthServerProductOperationSurfaceDenial,
-    WorthServerProductOperationSurfaceDenialCode, WorthServerQueryHandoffConfig,
-    WorthServerScheduledProductOperation,
+    WorthServerProductOperationSurfaceDenialCode, WorthServerProductOperationSurfaceDenialFacts,
+    WorthServerQueryHandoffConfig, WorthServerScheduledProductOperation,
 };
 
 use super::{
@@ -99,6 +100,26 @@ fn prepare_shared_read_slot(
     let request = WorthServerOperationRequestFacade::new(operation_registry.clone())
         .admit_from_worth_native_admission(admission, request_input)
         .map_err(WorthServerProductOperationSurfaceDenial::from_request_denial)?;
+    let application_authorization = adapter_registry
+        .operation_authorizer()
+        .map(|authorizer| {
+            authorizer.authorize(&WorthServerProductOperationAuthorizationRequest::new(
+                declaration.operation_name(),
+                &request,
+            ))
+        })
+        .transpose()
+        .map_err(|denial| {
+            WorthServerProductOperationSurfaceDenial::new(
+                WorthServerProductOperationSurfaceDenialCode::AdmissionDenied,
+                format!("{}: {}", denial.reason_key(), denial.detail()),
+            )
+            .with_facts(
+                WorthServerProductOperationSurfaceDenialFacts::default().with_execution_boundary(
+                    WorthServerProductOperationExecutionBoundary::RejectedBeforeAdapterExecution,
+                ),
+            )
+        })?;
     let operation_admission =
         WorthServerOperationAdmissionFacade::with_operation_registry(operation_registry.clone())
             .admit(
@@ -119,6 +140,7 @@ fn prepare_shared_read_slot(
             operation_admission,
             declaration.clone(),
             payload,
+            application_authorization,
             readiness.support_posture().clone(),
             readiness.precondition_posture().clone(),
             readiness.concurrency_class(),
