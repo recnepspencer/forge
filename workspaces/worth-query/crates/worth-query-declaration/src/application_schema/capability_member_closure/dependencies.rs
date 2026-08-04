@@ -169,6 +169,7 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
             == elevation.validity().timeline().scalar_family()
         && elevation.validity().not_after().scalar_family()
             == elevation.validity().timeline().scalar_family()
+        && elevation_duration_is_valid(elevation)
         && elevation
             .states()
             .values()
@@ -182,6 +183,7 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
         && elevation.grant().to() == contract.grant_entity()
         && review.relation().from() == elevation_entity
         && review.relation().to() == review_entity
+        && review_entity != elevation_entity
         && review.status().entity() == review_entity
         && review.reviewer().from() == principal
         && review.reviewer().to() == review_entity
@@ -208,7 +210,24 @@ fn distinct_elevation_states(
         .map(|state| state.value())
         .collect::<BTreeSet<_>>()
         .len()
-        == 7
+        == 4
+}
+
+fn elevation_duration_is_valid(
+    elevation: &crate::application_capability::ApplicationCapabilityElevationDefinition,
+) -> bool {
+    let duration = elevation.maximum_duration();
+    if duration.is_zero() {
+        return false;
+    }
+    match elevation.validity().timeline() {
+        crate::application_capability::ApplicationCapabilityValidityTimeline::UnixEpochSeconds => {
+            duration.subsec_nanos() == 0
+        }
+        crate::application_capability::ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds => {
+            duration.subsec_nanos() % 1_000_000 == 0
+        }
+    }
 }
 
 fn distinct_lifecycle_operations(contract: &ErasedApplicationCapabilityContract) -> bool {

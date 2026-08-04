@@ -30,7 +30,7 @@ pub(super) fn bind_elevated_capability(
         CapabilityElevationScenario::Active
         | CapabilityElevationScenario::ConflictedApprover
         | CapabilityElevationScenario::SelfApproved
-        | CapabilityElevationScenario::WrongGrant => CapabilityElevationStatus::Active,
+        | CapabilityElevationScenario::WrongGrant => CapabilityElevationStatus::Approved,
     };
     bootstrap
         .bind_entity(

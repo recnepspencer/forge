@@ -4,35 +4,28 @@ use super::{
     ApplicationCapabilityValueBinding,
 };
 
+use std::time::Duration;
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityElevationStates {
     requested: ApplicationCapabilityValueBinding,
     approved: ApplicationCapabilityValueBinding,
-    active: ApplicationCapabilityValueBinding,
     expired: ApplicationCapabilityValueBinding,
     revoked: ApplicationCapabilityValueBinding,
-    review_required: ApplicationCapabilityValueBinding,
-    reviewed: ApplicationCapabilityValueBinding,
 }
 
 impl ApplicationCapabilityElevationStates {
     pub fn new(
         requested: ApplicationCapabilityValueBinding,
         approved: ApplicationCapabilityValueBinding,
-        active: ApplicationCapabilityValueBinding,
         expired: ApplicationCapabilityValueBinding,
         revoked: ApplicationCapabilityValueBinding,
-        review_required: ApplicationCapabilityValueBinding,
-        reviewed: ApplicationCapabilityValueBinding,
     ) -> Self {
         Self {
             requested,
             approved,
-            active,
             expired,
             revoked,
-            review_required,
-            reviewed,
         }
     }
 
@@ -44,10 +37,6 @@ impl ApplicationCapabilityElevationStates {
         &self.approved
     }
 
-    pub const fn active(&self) -> &ApplicationCapabilityValueBinding {
-        &self.active
-    }
-
     pub const fn expired(&self) -> &ApplicationCapabilityValueBinding {
         &self.expired
     }
@@ -56,23 +45,12 @@ impl ApplicationCapabilityElevationStates {
         &self.revoked
     }
 
-    pub const fn review_required(&self) -> &ApplicationCapabilityValueBinding {
-        &self.review_required
-    }
-
-    pub const fn reviewed(&self) -> &ApplicationCapabilityValueBinding {
-        &self.reviewed
-    }
-
-    pub fn values(&self) -> [&ApplicationCapabilityValueBinding; 7] {
+    pub fn values(&self) -> [&ApplicationCapabilityValueBinding; 4] {
         [
             &self.requested,
             &self.approved,
-            &self.active,
             &self.expired,
             &self.revoked,
-            &self.review_required,
-            &self.reviewed,
         ]
     }
 }
@@ -138,6 +116,7 @@ pub struct ApplicationCapabilityElevationDefinition {
     status: ApplicationCapabilityFieldBinding,
     states: ApplicationCapabilityElevationStates,
     validity: ApplicationCapabilityValidityDefinition,
+    maximum_duration: Duration,
     requester: ApplicationCapabilityRelationBinding,
     approver: ApplicationCapabilityRelationBinding,
     grant: ApplicationCapabilityRelationBinding,
@@ -153,6 +132,7 @@ impl ApplicationCapabilityElevationDefinition {
         status: ApplicationCapabilityFieldBinding,
         states: ApplicationCapabilityElevationStates,
         validity: ApplicationCapabilityValidityDefinition,
+        maximum_duration: Duration,
         requester: ApplicationCapabilityRelationBinding,
         approver: ApplicationCapabilityRelationBinding,
         grant: ApplicationCapabilityRelationBinding,
@@ -165,6 +145,7 @@ impl ApplicationCapabilityElevationDefinition {
             status,
             states,
             validity,
+            maximum_duration,
             requester,
             approver,
             grant,
@@ -191,6 +172,10 @@ impl ApplicationCapabilityElevationDefinition {
 
     pub const fn validity(&self) -> &ApplicationCapabilityValidityDefinition {
         &self.validity
+    }
+
+    pub const fn maximum_duration(&self) -> Duration {
+        self.maximum_duration
     }
 
     pub const fn requester(&self) -> &ApplicationCapabilityRelationBinding {

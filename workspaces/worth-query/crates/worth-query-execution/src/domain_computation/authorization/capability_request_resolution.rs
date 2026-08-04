@@ -124,7 +124,7 @@ where
     })
 }
 
-fn resolve_erased_selector<Schema>(
+pub(super) fn resolve_erased_selector<Schema>(
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     layout: &WorthQueryPrimaryGraphLayout,

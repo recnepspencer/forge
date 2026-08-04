@@ -9,6 +9,7 @@ mod delegation;
 mod disclosure;
 mod elevation;
 mod elevation_lifecycle;
+mod elevation_transition;
 mod reference;
 mod request_projection;
 mod rule_clause;
@@ -47,6 +48,10 @@ pub use elevation::{
 };
 pub use elevation_lifecycle::{
     ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityOperationBinding,
+};
+pub use elevation_transition::{
+    ApplicationCapabilityElevationRequest, ApplicationCapabilityElevationRequestProjection,
+    ApplicationCapabilityElevationRequestProjectionDenial,
 };
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,

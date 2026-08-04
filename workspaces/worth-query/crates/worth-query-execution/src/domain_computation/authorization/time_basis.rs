@@ -9,12 +9,18 @@ pub(in crate::domain_computation) enum WorthQueryAuthorizationTimeDenial {
     SourceUnavailable,
     BeforeUnixEpoch,
     TimelineValueOverflow,
+    DurationNotRepresentable,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation) struct WorthQueryAuthorizationTimeSample {
     timeline: ApplicationCapabilityValidityTimeline,
     value: AspectValue,
+}
+
+pub(in crate::domain_computation) struct WorthQueryAuthorizationTimeInterval {
+    pub(in crate::domain_computation) issued: WorthQueryAuthorizationTimeSample,
+    pub(in crate::domain_computation) expires: AspectValue,
 }
 
 impl WorthQueryAuthorizationTimeSample {
@@ -59,12 +65,52 @@ impl WorthQueryAuthorizationClock {
         sample_at(self.source.current_time()?, timeline)
     }
 
+    pub(in crate::domain_computation) fn sample_interval(
+        &self,
+        timeline: ApplicationCapabilityValidityTimeline,
+        duration: std::time::Duration,
+    ) -> Result<WorthQueryAuthorizationTimeInterval, WorthQueryAuthorizationTimeDenial> {
+        let issued = self.sample(timeline)?;
+        let units = duration_units(duration, timeline)?;
+        let AspectValue::UInt64(issued_units) = issued.value() else {
+            return Err(WorthQueryAuthorizationTimeDenial::TimelineValueOverflow);
+        };
+        let expires = issued_units
+            .checked_add(units)
+            .map(AspectValue::UInt64)
+            .ok_or(WorthQueryAuthorizationTimeDenial::TimelineValueOverflow)?;
+        Ok(WorthQueryAuthorizationTimeInterval { issued, expires })
+    }
+
     #[cfg(test)]
     pub(crate) fn scripted(samples: impl IntoIterator<Item = SystemTime>) -> Self {
         Self {
             source: Box::new(WorthQueryScriptedAuthorizationTimeSource {
                 samples: std::sync::Mutex::new(samples.into_iter().collect()),
             }),
+        }
+    }
+}
+
+fn duration_units(
+    duration: std::time::Duration,
+    timeline: ApplicationCapabilityValidityTimeline,
+) -> Result<u64, WorthQueryAuthorizationTimeDenial> {
+    match timeline {
+        ApplicationCapabilityValidityTimeline::UnixEpochSeconds => {
+            if duration.subsec_nanos() != 0 {
+                return Err(WorthQueryAuthorizationTimeDenial::DurationNotRepresentable);
+            }
+            Ok(duration.as_secs())
+        }
+        ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds => {
+            if duration.subsec_nanos() % 1_000_000 != 0 {
+                return Err(WorthQueryAuthorizationTimeDenial::DurationNotRepresentable);
+            }
+            duration
+                .as_millis()
+                .try_into()
+                .map_err(|_| WorthQueryAuthorizationTimeDenial::TimelineValueOverflow)
         }
     }
 }

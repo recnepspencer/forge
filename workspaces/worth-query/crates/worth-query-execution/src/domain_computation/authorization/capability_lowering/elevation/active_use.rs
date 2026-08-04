@@ -113,7 +113,7 @@ fn active_path(
                 layout,
                 1,
                 elevation_kind,
-                elevation.states().active(),
+                elevation.states().approved(),
             )?],
         ),
         identity: clause_identity(capability, path_index),

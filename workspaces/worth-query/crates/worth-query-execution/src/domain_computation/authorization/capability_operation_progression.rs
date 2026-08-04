@@ -30,12 +30,7 @@ where
 {
     pub fn authorize_capability_operation<Capability, Operation, Input>(
         &self,
-        mut access: WorthQueryAdmittedApplicationCapabilityAccess<
-            Schema,
-            Capability,
-            Operation,
-            Input,
-        >,
+        access: WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
         operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
         preconditions: TypedMutationPreconditions<
             Schema,
@@ -54,65 +49,91 @@ where
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>,
     {
-        validate_progression_authority(self, &access, operation)?;
-        validate_current_projection(&access)?;
-        self.refresh_capability_authorization_for_graph_work(
-            &mut access.authorization,
-            &access.graph_work,
-        )?;
-        let preconditions =
-            bind_progression_preconditions(self, &access, operation, preconditions)?;
-        validate_access_lifecycle(&access)?;
-        let session_identity = access.graph_work.identity();
-        let authorization =
-            WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization);
-        if !authorization.belongs_to_session(session_identity) {
-            return Err(denial(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                operation.operation(),
-            ));
-        }
-        Ok(WorthQueryAdmittedApplicationOperation::mint(
-            access.operation_admission_identity,
-            self.runtime.authority_identity(),
-            operation.binding_identity().clone(),
-            operation.operation().to_string(),
-            operation.authority_identity().to_string(),
-            WorthQueryOperationScopeBinding::mint(
-                self.runtime.authority_identity(),
-                operation.binding_identity(),
-                operation.authority_identity(),
-                access.principal_entity_id,
-                access.resolved.resource.entity_id(),
-            ),
-            access.resolved.resource.entity_id(),
-            access.resolved.resource.entity_kind(),
-            access.resolved.resource.entity_name().to_string(),
-            access.authentication_valid_until,
-            access.request_scope,
-            operation.contracts().clone(),
-            preconditions,
-            access.canonical_work,
-            authorization,
-            WorthQueryOperationAuthorizationBasis::Capability {
-                input: access.input,
-            },
-            access.graph_work,
-        ))
+        progress_capability_operation(self, access, operation, preconditions, false)
     }
+}
+
+pub(super) fn progress_capability_operation<Schema, Capability, Operation, Input>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    mut access: WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+    operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    preconditions: TypedMutationPreconditions<
+        Schema,
+        Operation,
+        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
+    >,
+    allow_lifecycle: bool,
+) -> Result<
+    WorthQueryAdmittedApplicationOperation<
+        Schema,
+        Operation,
+        Input,
+        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
+    >,
+    WorthQueryOperationAuthorizationDenial,
+>
+where
+    Schema: ApplicationSchema,
+    Input: ApplicationCapabilityRequest<Schema, Capability>,
+{
+    validate_progression_authority(runtime, &access, operation, allow_lifecycle)?;
+    validate_current_projection(&access)?;
+    runtime.refresh_capability_authorization_for_graph_work(
+        &mut access.authorization,
+        &access.graph_work,
+    )?;
+    let preconditions = bind_progression_preconditions(runtime, &access, operation, preconditions)?;
+    validate_access_lifecycle(&access)?;
+    let session_identity = access.graph_work.identity();
+    let authorization =
+        WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization);
+    if !authorization.belongs_to_session(session_identity) {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            operation.operation(),
+        ));
+    }
+    Ok(WorthQueryAdmittedApplicationOperation::mint(
+        access.operation_admission_identity,
+        runtime.runtime.authority_identity(),
+        operation.binding_identity().clone(),
+        operation.operation().to_string(),
+        operation.authority_identity().to_string(),
+        WorthQueryOperationScopeBinding::mint(
+            runtime.runtime.authority_identity(),
+            operation.binding_identity(),
+            operation.authority_identity(),
+            access.principal_entity_id,
+            access.resolved.resource.entity_id(),
+        ),
+        access.resolved.resource.entity_id(),
+        access.resolved.resource.entity_kind(),
+        access.resolved.resource.entity_name().to_string(),
+        access.authentication_valid_until,
+        access.request_scope,
+        operation.contracts().clone(),
+        preconditions,
+        access.canonical_work,
+        authorization,
+        WorthQueryOperationAuthorizationBasis::Capability {
+            input: access.input,
+        },
+        access.graph_work,
+    ))
 }
 
 fn validate_progression_authority<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    allow_lifecycle: bool,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     validate_access_lifecycle(access)?;
-    validate_installed_operation_identity(runtime, access, operation)?;
+    validate_installed_operation_identity(runtime, access, operation, allow_lifecycle)?;
     validate_graph_work_authority(access, operation)
 }
 
@@ -120,12 +141,13 @@ fn validate_installed_operation_identity<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+    allow_lifecycle: bool,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    runtime
+    let lifecycle = runtime
         .authorization
         .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
         .map_err(|()| {
@@ -134,6 +156,12 @@ where
                 operation.operation(),
             )
         })?;
+    if lifecycle.is_some() && !allow_lifecycle {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired,
+            operation.operation(),
+        ));
+    }
     if access.runtime_authority != runtime.runtime.authority_identity() {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,

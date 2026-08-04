@@ -1,5 +1,5 @@
 use super::canonical_components::{
-    append_field, append_relation, append_value_binding, text,
+    append_field, append_relation, append_value_binding, text, unsigned, unsigned_64,
     ApplicationCapabilityCanonicalComponent,
 };
 use super::{
@@ -22,11 +22,8 @@ pub(super) fn append_elevation(
     for (name, state) in [
         ("requested", elevation.states().requested()),
         ("approved", elevation.states().approved()),
-        ("active", elevation.states().active()),
         ("expired", elevation.states().expired()),
         ("revoked", elevation.states().revoked()),
-        ("review-required", elevation.states().review_required()),
-        ("reviewed", elevation.states().reviewed()),
     ] {
         append_value_binding(components, &format!("elevation.state.{name}"), state);
     }
@@ -44,6 +41,16 @@ pub(super) fn append_elevation(
         components,
         "elevation.validity.not-after",
         elevation.validity().not_after(),
+    );
+    unsigned_64(
+        components,
+        "elevation.validity.maximum-duration-seconds",
+        elevation.maximum_duration().as_secs(),
+    );
+    unsigned(
+        components,
+        "elevation.validity.maximum-duration-subsecond-nanos",
+        elevation.maximum_duration().subsec_nanos(),
     );
     append_relation(components, "elevation.requester", elevation.requester());
     append_relation(components, "elevation.approver", elevation.approver());

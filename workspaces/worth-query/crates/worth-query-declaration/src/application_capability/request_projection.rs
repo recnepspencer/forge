@@ -240,7 +240,7 @@ impl ErasedApplicationCapabilityEntitySelector {
 }
 
 impl<Schema, Entity> ApplicationCapabilityEntitySelector<Schema, Entity> {
-    fn erase(self) -> ErasedApplicationCapabilityEntitySelector {
+    pub(super) fn erase(self) -> ErasedApplicationCapabilityEntitySelector {
         ErasedApplicationCapabilityEntitySelector {
             entity: self.entity,
             aspect: self.aspect,

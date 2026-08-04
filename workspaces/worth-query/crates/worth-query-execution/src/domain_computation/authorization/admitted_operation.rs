@@ -51,7 +51,13 @@ use super::WorthQueryOperationScopeBinding;
 
 pub(super) enum WorthQueryOperationAuthorizationBasis<Input> {
     Conventional,
-    Capability { input: Input },
+    Capability {
+        input: Input,
+    },
+    ElevationRequest {
+        input: Input,
+        binding: super::WorthQueryElevationRequestBinding,
+    },
 }
 
 /// Query-owned proof that one installed operation was authorized for one exact
@@ -236,7 +242,39 @@ impl<Schema, Operation, Input, Scope>
     pub const fn capability_input(&self) -> Option<&Input> {
         match &self.authorization_basis {
             WorthQueryOperationAuthorizationBasis::Conventional => None,
-            WorthQueryOperationAuthorizationBasis::Capability { input, .. } => Some(input),
+            WorthQueryOperationAuthorizationBasis::Capability { input }
+            | WorthQueryOperationAuthorizationBasis::ElevationRequest { input, .. } => Some(input),
+        }
+    }
+
+    pub(in crate::domain_computation) fn bind_elevation_request(
+        mut self,
+        binding: super::WorthQueryElevationRequestBinding,
+    ) -> Result<Self, WorthQueryOperationAuthorizationDenial> {
+        let basis = std::mem::replace(
+            &mut self.authorization_basis,
+            WorthQueryOperationAuthorizationBasis::Conventional,
+        );
+        let WorthQueryOperationAuthorizationBasis::Capability { input } = basis else {
+            return Err(WorthQueryOperationAuthorizationDenial::new(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                &self.operation,
+            ));
+        };
+        self.authorization_basis =
+            WorthQueryOperationAuthorizationBasis::ElevationRequest { input, binding };
+        Ok(self)
+    }
+
+    pub(in crate::domain_computation) fn elevation_request_binding(
+        &self,
+    ) -> Option<&super::WorthQueryElevationRequestBinding> {
+        match &self.authorization_basis {
+            WorthQueryOperationAuthorizationBasis::ElevationRequest { binding, .. } => {
+                Some(binding)
+            }
+            WorthQueryOperationAuthorizationBasis::Conventional
+            | WorthQueryOperationAuthorizationBasis::Capability { .. } => None,
         }
     }
 

@@ -29,11 +29,8 @@ pub(super) fn rule(
         ApplicationCapabilityElevationStates::new(
             elevation_status(EmergencyAccessStatus::Requested),
             elevation_status(EmergencyAccessStatus::Approved),
-            elevation_status(EmergencyAccessStatus::Active),
             elevation_status(EmergencyAccessStatus::Expired),
             elevation_status(EmergencyAccessStatus::Revoked),
-            elevation_status(EmergencyAccessStatus::ReviewRequired),
-            elevation_status(EmergencyAccessStatus::Reviewed),
         ),
         ApplicationCapabilityValidityDefinition::new(
             ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
@@ -44,6 +41,7 @@ pub(super) fn rule(
                 EmergencyAccessExpiresAtField::reference(),
             ),
         ),
+        std::time::Duration::from_secs(20 * 60),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyRequester::reference()),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyApprover::reference()),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyGrant::reference()),

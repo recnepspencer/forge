@@ -259,11 +259,8 @@ fn elevation() -> ApplicationCapabilityElevationRule {
         ApplicationCapabilityElevationStates::new(
             state(CapabilityElevationStatus::Requested),
             state(CapabilityElevationStatus::Approved),
-            state(CapabilityElevationStatus::Active),
             state(CapabilityElevationStatus::Expired),
             state(CapabilityElevationStatus::Revoked),
-            state(CapabilityElevationStatus::ReviewRequired),
-            state(CapabilityElevationStatus::Reviewed),
         ),
         ApplicationCapabilityValidityDefinition::new(
             ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
@@ -274,6 +271,7 @@ fn elevation() -> ApplicationCapabilityElevationRule {
                 CapabilityElevationNotAfter::reference(),
             ),
         ),
+        std::time::Duration::from_secs(20 * 60),
         ApplicationCapabilityRelationBinding::from_reference(
             CapabilityElevationRequester::reference(),
         ),

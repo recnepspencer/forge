@@ -27,7 +27,8 @@ mod delegation;
 pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
 mod elevation;
 pub(super) use elevation::{
-    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationTemporalBindings,
+    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationLifecycleBindings,
+    WorthQueryCapabilityElevationTemporalBindings,
 };
 mod elevation_lifecycle;
 pub(super) use elevation_lifecycle::WorthQueryElevationLifecycleOperationRole;

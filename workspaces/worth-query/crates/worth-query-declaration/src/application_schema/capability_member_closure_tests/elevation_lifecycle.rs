@@ -154,8 +154,8 @@ fn elevation_definition(
     lifecycle: LifecyclePosture,
 ) -> ApplicationCapabilityElevationDefinition {
     let values = match states {
-        StatePosture::Distinct => [1, 2, 3, 4, 5, 6, 7],
-        StatePosture::Duplicate => [1, 2, 3, 4, 5, 6, 6],
+        StatePosture::Distinct => [1, 2, 3, 4],
+        StatePosture::Duplicate => [1, 2, 3, 3],
     };
     let completed = match review {
         ReviewPosture::Distinct => 2,
@@ -170,15 +170,13 @@ fn elevation_definition(
             elevation_value(values[1]),
             elevation_value(values[2]),
             elevation_value(values[3]),
-            elevation_value(values[4]),
-            elevation_value(values[5]),
-            elevation_value(values[6]),
         ),
         ApplicationCapabilityValidityDefinition::new(
             ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
             elevation_binding::<ElevationNotBefore>("ElevationNotBefore"),
             elevation_binding::<ElevationNotAfter>("ElevationNotAfter"),
         ),
+        std::time::Duration::from_secs(20 * 60),
         relation::<Requester, Principal, Elevation>("Requester", "Principal", "Elevation"),
         relation::<Approver, Principal, Elevation>("Approver", "Principal", "Elevation"),
         relation::<ElevationGrant, Elevation, Grant>("ElevationGrant", "Elevation", "Grant"),

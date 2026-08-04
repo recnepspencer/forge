@@ -13,8 +13,8 @@ use crate::domain_computation::authorization::capability_binding_lowering::{
     field_locator, kind, relation,
 };
 use crate::domain_computation::authorization::capability_registry::{
-    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationTemporalBindings,
-    WorthQueryCapabilityPathTemplate,
+    WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationLifecycleBindings,
+    WorthQueryCapabilityElevationTemporalBindings, WorthQueryCapabilityPathTemplate,
 };
 use crate::domain_computation::authorization::{
     authorization_denial, WorthQueryOperationAuthorizationDenial,
@@ -90,7 +90,44 @@ pub(super) fn compile_elevation_rules(
             field_locator(layout, elevation.validity().not_after())?,
         ),
         approver_conflict_requirements,
+        lower_lifecycle(layout, elevation)?,
     )))
+}
+
+fn lower_lifecycle(
+    layout: &WorthQueryPrimaryGraphLayout,
+    elevation: &ApplicationCapabilityElevationDefinition,
+) -> Result<WorthQueryCapabilityElevationLifecycleBindings, WorthQueryOperationAuthorizationDenial>
+{
+    let relation_kind = |binding| {
+        relation(
+            layout,
+            binding,
+            RelationalAuthorizationTraversalDirection::Forward,
+        )
+        .map(|relation| relation.relation_kind())
+    };
+    let review = elevation.review();
+    Ok(WorthQueryCapabilityElevationLifecycleBindings {
+        review_kind: kind(layout, review.identity().entity())?,
+        identity: field_locator(layout, elevation.identity())?,
+        reason: field_locator(layout, elevation.reason())?,
+        status: field_locator(layout, elevation.status())?,
+        review_identity: field_locator(layout, review.identity())?,
+        review_status: field_locator(layout, review.status())?,
+        requester_relation: relation_kind(elevation.requester())?,
+        approver_relation: relation_kind(elevation.approver())?,
+        grant_relation: relation_kind(elevation.grant())?,
+        review_relation: relation_kind(review.relation())?,
+        reviewer_relation: relation_kind(review.reviewer())?,
+        requested: elevation.states().requested().value().clone(),
+        approved: elevation.states().approved().value().clone(),
+        expired: elevation.states().expired().value().clone(),
+        revoked: elevation.states().revoked().value().clone(),
+        review_required: review.required().value().clone(),
+        review_completed: review.completed().value().clone(),
+        maximum_duration: elevation.maximum_duration(),
+    })
 }
 
 struct ElevationRelations {

@@ -10,6 +10,41 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElev
         WorthQueryCapabilityElevationTemporalBindings,
     pub(in crate::domain_computation::authorization) approver_conflict_requirements:
         Vec<Vec<usize>>,
+    pub(in crate::domain_computation::authorization) lifecycle:
+        WorthQueryCapabilityElevationLifecycleBindings,
+}
+
+pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElevationLifecycleBindings
+{
+    pub(in crate::domain_computation::authorization) review_kind: KindId,
+    pub(in crate::domain_computation::authorization) identity:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) reason:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) status:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) review_identity:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) review_status:
+        worth_foundational::facade::AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) requester_relation: KindId,
+    pub(in crate::domain_computation::authorization) approver_relation: KindId,
+    pub(in crate::domain_computation::authorization) grant_relation: KindId,
+    pub(in crate::domain_computation::authorization) review_relation: KindId,
+    pub(in crate::domain_computation::authorization) reviewer_relation: KindId,
+    pub(in crate::domain_computation::authorization) requested:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) approved:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) expired:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) revoked:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) review_required:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) review_completed:
+        worth_foundational::facade::AspectValue,
+    pub(in crate::domain_computation::authorization) maximum_duration: std::time::Duration,
 }
 
 pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElevationTemporalBindings
@@ -32,6 +67,7 @@ impl WorthQueryCapabilityElevationBindings {
         self_approval_path_index: usize,
         temporal: WorthQueryCapabilityElevationTemporalBindings,
         approver_conflict_requirements: Vec<Vec<usize>>,
+        lifecycle: WorthQueryCapabilityElevationLifecycleBindings,
     ) -> Self {
         Self {
             elevation_kind,
@@ -40,6 +76,7 @@ impl WorthQueryCapabilityElevationBindings {
             self_approval_path_index,
             temporal,
             approver_conflict_requirements,
+            lifecycle,
         }
     }
 }

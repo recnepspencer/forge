@@ -19,6 +19,7 @@ mod capability_revalidation;
 mod decision_facts;
 mod delegation_admission;
 mod denial;
+mod elevation_progression;
 mod graph_work_session;
 mod installed_policy;
 mod lowering;
@@ -45,6 +46,7 @@ pub(in crate::domain_computation) use decision_facts::{
 pub use denial::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
+pub(in crate::domain_computation) use elevation_progression::WorthQueryElevationRequestBinding;
 pub(in crate::domain_computation) use installed_policy::WorthQueryInstalledAuthorizationRegistry;
 pub use operation_scope_binding::{
     WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,

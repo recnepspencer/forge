@@ -248,6 +248,20 @@ pub(super) fn unsigned(
     ));
 }
 
+pub(super) fn unsigned_64(
+    components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
+    locus: impl Into<String>,
+    value: u64,
+) {
+    components.push(component(
+        locus,
+        CanonicalBasisValue::UnsignedInteger {
+            width: CanonicalIntegerWidth::Bits64,
+            value: value.into(),
+        },
+    ));
+}
+
 pub(super) fn structural_count(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     locus: impl Into<String>,
