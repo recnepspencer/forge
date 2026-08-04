@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_query_installation::facade::{
-    WorthQueryInstalledGraphProjection, WorthQueryInstalledGraphReadContract,
-    WorthQueryInstalledGraphRelation,
+    ApplicationFieldPresence, WorthQueryInstalledGraphProjection,
+    WorthQueryInstalledGraphReadContract, WorthQueryInstalledGraphRelation,
 };
 use worth_relational::facade::{
     identity::EntityId,
@@ -236,10 +236,17 @@ fn project_fields(
     result_buffer: &mut WorthQueryApplicationResultBufferReservation,
 ) -> Result<Vec<WorthQueryApplicationProjectedField>, WorthQueryApplicationReadExecutionDenial> {
     for projection in fields {
-        let value = record
-            .aspect_field_value(projection.aspect_key(), projection.field_key())
-            .filter(|value| value.value_family() == projection.scalar_family())
-            .ok_or_else(|| projection_denial(projection.result_path()))?;
+        let Some(value) =
+            record.aspect_field_value(projection.aspect_key(), projection.field_key())
+        else {
+            if projection.presence() == ApplicationFieldPresence::Optional {
+                continue;
+            }
+            return Err(projection_denial(projection.result_path()));
+        };
+        if value.value_family() != projection.scalar_family() {
+            return Err(projection_denial(projection.result_path()));
+        }
         result_buffer
             .claim(value.owned_allocation_capacity_bytes())
             .map_err(|()| result_buffer_denial(projection.result_path()))?;

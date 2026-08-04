@@ -2,13 +2,14 @@ use std::sync::Arc;
 
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_query::{
-    ApplicationQueryCardinality, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
-    ApplicationQueryResultSlotKey, ApplicationQueryResultTraversal,
+    ApplicationQueryCardinality, ApplicationQueryOptionalResultFieldRef,
+    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
+    ApplicationQueryResultRelationRef, ApplicationQueryResultSlotKey,
+    ApplicationQueryResultTraversal,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, TypedApplicationValue, WorthQueryInstalledGraphProjection,
-    WorthQueryInstalledGraphRelation,
+    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationValue,
+    WorthQueryInstalledGraphProjection, WorthQueryInstalledGraphRelation,
 };
 use worth_relational::facade::identity::EntityId;
 
@@ -181,6 +182,42 @@ impl WorthQueryApplicationProjectedField {
         >,
     ) -> bool
     where
+        Value: TypedApplicationValue,
+        Currency: ApplicationFieldCurrency,
+        Query: 'static,
+        Slot: 'static,
+    {
+        self.slot_key.as_ref() == &selector.slot_key()
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_query) fn matches_optional<
+        Query,
+        Slot,
+        Schema,
+        Entity,
+        Aspect,
+        Field,
+        Value,
+        Write,
+        Equality,
+        Currency,
+    >(
+        &self,
+        selector: &ApplicationQueryOptionalResultFieldRef<
+            Query,
+            Slot,
+            Schema,
+            Entity,
+            Aspect,
+            Field,
+            Value,
+            Write,
+            Equality,
+            Currency,
+        >,
+    ) -> bool
+    where
+        Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
         Currency: ApplicationFieldCurrency,
         Query: 'static,

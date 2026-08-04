@@ -1,12 +1,13 @@
 use std::marker::PhantomData;
 
 use worth_query_declaration::facade::application_query::{
-    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultTraversal, ExactlyOneResult,
-    ManyResults, OptionalOneResult,
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultTraversal, ExactlyOneResult, ManyResults, OptionalOneResult,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, TypedApplicationReadableValue, WritePosture,
+    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationReadableValue,
+    WritePosture,
 };
 
 mod disclosed;
@@ -105,6 +106,33 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
         Slot: 'static,
     {
         self.disclosed_field(selector)?
+            .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
+    }
+
+    pub fn optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+        &self,
+        selector: ApplicationQueryOptionalResultFieldRef<
+            Query,
+            Slot,
+            Schema,
+            Entity,
+            Aspect,
+            Field,
+            Value,
+            Write,
+            Equality,
+            Currency,
+        >,
+    ) -> Result<Option<Value>, WorthQueryApplicationProjectionDenial>
+    where
+        Field: OptionalApplicationFieldValue<Value = Value>,
+        Value: TypedApplicationReadableValue,
+        Write: WritePosture,
+        Currency: ApplicationFieldCurrency,
+        Query: 'static,
+        Slot: 'static,
+    {
+        self.disclosed_optional_field(selector)?
             .into_required(WorthQueryApplicationProjectionDenialKind::FieldOmitted)
     }
 

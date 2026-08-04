@@ -152,15 +152,7 @@ fn shape_is_closed(
         && shape.fields().iter().all(|field| {
             field.query_type() == query_type
                 && field.entity() == shape.root_entity()
-                && field_matches(
-                    members,
-                    field.entity(),
-                    field.aspect(),
-                    field.field(),
-                    field.scalar_family(),
-                    Some(field.value_type()),
-                    false,
-                )
+                && result_field_matches(members, field)
         })
         && shape.relations().iter().all(|relation| {
             relation.query_type() == query_type
@@ -168,6 +160,31 @@ fn shape_is_closed(
                 && relation_exists(members, relation.relation(), relation.from(), relation.to())
                 && shape_is_closed(members, query_type, relation.nested_shape())
         })
+}
+
+fn result_field_matches(
+    members: &[ApplicationSchemaMember],
+    expected: &crate::application_query::ApplicationQueryResultField,
+) -> bool {
+    members.iter().any(|member| {
+        matches!(
+            member,
+            ApplicationSchemaMember::Field {
+                entity,
+                aspect,
+                field,
+                scalar_family,
+                value_type,
+                presence,
+                ..
+            } if entity == expected.entity()
+                && aspect == expected.aspect()
+                && field == expected.field()
+                && *scalar_family == expected.scalar_family()
+                && value_type == expected.value_type()
+                && *presence == expected.presence()
+        )
+    })
 }
 
 fn relation_shape_endpoints_match(

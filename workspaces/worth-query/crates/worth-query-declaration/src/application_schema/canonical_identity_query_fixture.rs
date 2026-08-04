@@ -18,6 +18,14 @@ pub(super) struct QueryParameters;
 pub(super) struct QueryResult;
 struct QueryFieldSlot;
 
+impl crate::application_schema::DeclaredApplicationFieldValue for QueryField {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for QueryField {}
+
 pub(super) fn application_query(output_name: &'static str) -> ApplicationSchemaMember {
     let entity =
         ApplicationEntityRef::<QuerySchema, QueryEntity>::from_schema_identifier("QueryEntity");

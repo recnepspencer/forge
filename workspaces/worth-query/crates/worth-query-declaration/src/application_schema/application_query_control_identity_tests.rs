@@ -20,6 +20,14 @@ struct QueryResult;
 struct Parameter;
 struct ResultSlot;
 
+impl crate::application_schema::DeclaredApplicationFieldValue for Field {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for Field {}
+
 #[derive(Clone)]
 struct QueryControlFixture {
     name: &'static str,

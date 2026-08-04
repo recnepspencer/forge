@@ -2,13 +2,16 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::ScalarAspectType;
 
-use crate::application_schema::{ApplicationFieldCurrency, TypedApplicationValue};
+use crate::application_schema::{
+    ApplicationFieldCurrency, ApplicationFieldPresence, OptionalApplicationFieldValue,
+    RequiredApplicationFieldValue, TypedApplicationValue,
+};
 
 use super::{
-    ApplicationQueryCardinality, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
-    ApplicationQueryResultSlotKey, ApplicationQueryResultTraversalDirection,
-    ApplicationQueryResultTraversalEndpoints,
+    ApplicationQueryCardinality, ApplicationQueryOptionalResultFieldRef,
+    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
+    ApplicationQueryResultRelationRef, ApplicationQueryResultSlotKey,
+    ApplicationQueryResultTraversalDirection, ApplicationQueryResultTraversalEndpoints,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -22,6 +25,7 @@ pub struct ApplicationQueryResultField {
     output_name: &'static str,
     scalar_family: ScalarAspectType,
     value_type: &'static str,
+    presence: ApplicationFieldPresence,
 }
 
 impl ApplicationQueryResultField {
@@ -59,6 +63,10 @@ impl ApplicationQueryResultField {
 
     pub const fn value_type(&self) -> &'static str {
         self.value_type
+    }
+
+    pub const fn presence(&self) -> ApplicationFieldPresence {
+        self.presence
     }
 }
 
@@ -196,6 +204,7 @@ impl<Schema, Query, Entity, Result>
         >,
     ) -> Self
     where
+        Field: RequiredApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
         Currency: ApplicationFieldCurrency,
         Query: 'static,
@@ -211,6 +220,44 @@ impl<Schema, Query, Entity, Result>
             output_name: field.output_name(),
             scalar_family: Value::SCALAR_FAMILY,
             value_type: std::any::type_name::<Value>(),
+            presence: ApplicationFieldPresence::Required,
+        });
+        self
+    }
+
+    pub fn optional_field<Slot, Aspect, Field, Value, Write, Equality, Currency>(
+        mut self,
+        field: ApplicationQueryOptionalResultFieldRef<
+            Query,
+            Slot,
+            Schema,
+            Entity,
+            Aspect,
+            Field,
+            Value,
+            Write,
+            Equality,
+            Currency,
+        >,
+    ) -> Self
+    where
+        Field: OptionalApplicationFieldValue<Value = Value>,
+        Value: TypedApplicationValue,
+        Currency: ApplicationFieldCurrency,
+        Query: 'static,
+        Slot: 'static,
+    {
+        self.fields.push(ApplicationQueryResultField {
+            slot_key: field.slot_key(),
+            query_type: field.query_type(),
+            slot_type: field.slot_type(),
+            entity: field.entity(),
+            aspect: field.aspect(),
+            field: field.field(),
+            output_name: field.output_name(),
+            scalar_family: Value::SCALAR_FAMILY,
+            value_type: std::any::type_name::<Value>(),
+            presence: ApplicationFieldPresence::Optional,
         });
         self
     }

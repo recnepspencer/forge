@@ -29,6 +29,10 @@ pub(super) fn append_result_shape(
                 field.scalar_family().canonical_name(),
             ),
             text(format!("{field_path}.value-type"), field.value_type()),
+            text(
+                format!("{field_path}.presence"),
+                field_presence_name(field.presence()),
+            ),
         ]);
     }
     for (index, relation) in shape.relations().iter().enumerate() {
@@ -54,6 +58,15 @@ pub(super) fn append_result_shape(
             relation.nested_shape(),
             &format!("{relation_path}.shape"),
         );
+    }
+}
+
+const fn field_presence_name(
+    value: crate::application_schema::ApplicationFieldPresence,
+) -> &'static str {
+    match value {
+        crate::application_schema::ApplicationFieldPresence::Required => "required",
+        crate::application_schema::ApplicationFieldPresence::Optional => "optional",
     }
 }
 

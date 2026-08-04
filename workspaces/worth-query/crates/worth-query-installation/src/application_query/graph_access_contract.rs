@@ -5,6 +5,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryCardinality, ApplicationQueryOrderingDirection, ApplicationQueryResultSlotKey,
     ApplicationQueryResultTraversalDirection,
 };
+use worth_query_declaration::facade::application_schema::ApplicationFieldPresence;
 
 mod compilation;
 
@@ -20,6 +21,7 @@ pub struct WorthQueryInstalledGraphProjection {
     output_name: String,
     scalar_family: ScalarAspectType,
     value_type: String,
+    presence: ApplicationFieldPresence,
 }
 
 impl WorthQueryInstalledGraphProjection {
@@ -77,6 +79,10 @@ impl WorthQueryInstalledGraphProjection {
 
     pub fn value_type(&self) -> &str {
         &self.value_type
+    }
+
+    pub const fn presence(&self) -> ApplicationFieldPresence {
+        self.presence
     }
 }
 

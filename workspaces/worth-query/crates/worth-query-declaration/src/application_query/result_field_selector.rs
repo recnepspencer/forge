@@ -6,7 +6,7 @@ use super::result_slot_key::ApplicationQueryResultFieldSlotContract;
 use super::ApplicationQueryResultSlotKey;
 use crate::application_schema::{
     ApplicationFieldCurrency, ApplicationFieldPresence, ApplicationFieldRef,
-    OptionalApplicationFieldValue, TypedApplicationValue,
+    OptionalApplicationFieldValue, RequiredApplicationFieldValue, TypedApplicationValue,
 };
 
 pub struct ApplicationQueryResultFieldRef<
@@ -157,7 +157,10 @@ where
     pub fn new(
         output_name: &'static str,
         field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
-    ) -> Self {
+    ) -> Self
+    where
+        Field: RequiredApplicationFieldValue<Value = Value>,
+    {
         Self {
             output_name,
             entity: field.entity(),

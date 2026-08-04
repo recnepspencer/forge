@@ -1,11 +1,12 @@
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_query::{
-    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultTraversal, ExactlyOneResult,
-    ManyResults, OptionalOneResult,
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultTraversal, ExactlyOneResult, ManyResults, OptionalOneResult,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, TypedApplicationReadableValue, WritePosture,
+    ApplicationFieldCurrency, OptionalApplicationFieldValue, TypedApplicationReadableValue,
+    WritePosture,
 };
 
 use super::{
@@ -100,6 +101,57 @@ impl<'row, Schema, Query> WorthQueryApplicationProjectionRow<'row, Schema, Query
             )
         })?;
         Ok(WorthQueryApplicationDisclosed::Disclosed(value))
+    }
+
+    pub fn disclosed_optional_field<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+        &self,
+        selector: ApplicationQueryOptionalResultFieldRef<
+            Query,
+            Slot,
+            Schema,
+            Entity,
+            Aspect,
+            Field,
+            Value,
+            Write,
+            Equality,
+            Currency,
+        >,
+    ) -> Result<WorthQueryApplicationDisclosed<Option<Value>>, WorthQueryApplicationProjectionDenial>
+    where
+        Field: OptionalApplicationFieldValue<Value = Value>,
+        Value: TypedApplicationReadableValue,
+        Write: WritePosture,
+        Currency: ApplicationFieldCurrency,
+        Query: 'static,
+        Slot: 'static,
+    {
+        let slot = selector.slot_key();
+        if let Some(omission) = self.omission(&slot) {
+            return Ok(WorthQueryApplicationDisclosed::Omitted(omission));
+        }
+        if !self.governance.is_disclosed(&slot) {
+            return Err(projection_denial(
+                WorthQueryApplicationProjectionDenialKind::FieldContractMismatch,
+                selector.slot_type(),
+            ));
+        }
+        let Some(projected) = self.node.field(selector.slot_type()) else {
+            return Ok(WorthQueryApplicationDisclosed::Disclosed(None));
+        };
+        if !projected.matches_optional(&selector) {
+            return Err(projection_denial(
+                WorthQueryApplicationProjectionDenialKind::FieldContractMismatch,
+                projected.result_path(),
+            ));
+        }
+        let value = Value::from_foundational_value(projected.value()).ok_or_else(|| {
+            projection_denial(
+                WorthQueryApplicationProjectionDenialKind::FieldTypeMismatch,
+                projected.result_path(),
+            )
+        })?;
+        Ok(WorthQueryApplicationDisclosed::Disclosed(Some(value)))
     }
 
     pub fn disclosed_optional<Slot, Relation, From, To, Direction>(

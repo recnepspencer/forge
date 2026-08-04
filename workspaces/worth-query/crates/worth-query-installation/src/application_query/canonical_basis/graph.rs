@@ -95,7 +95,24 @@ fn append_projections(
                 projection.scalar_family().canonical_name(),
             ),
             text(format!("{path}.value-type"), projection.value_type()),
+            text(
+                format!("{path}.presence"),
+                field_presence_name(projection.presence()),
+            ),
         ]);
+    }
+}
+
+const fn field_presence_name(
+    value: worth_query_declaration::facade::application_schema::ApplicationFieldPresence,
+) -> &'static str {
+    match value {
+        worth_query_declaration::facade::application_schema::ApplicationFieldPresence::Required => {
+            "required"
+        }
+        worth_query_declaration::facade::application_schema::ApplicationFieldPresence::Optional => {
+            "optional"
+        }
     }
 }
 

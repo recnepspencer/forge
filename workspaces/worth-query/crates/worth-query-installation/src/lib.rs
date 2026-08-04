@@ -81,6 +81,7 @@ pub mod facade {
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
         EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,
         OperationLinks, OperationReads, OperationUnlinks, OperationWrites,
+        OptionalApplicationFieldValue, RequiredApplicationFieldValue,
         TypedApplicationIdentityValue, TypedApplicationReadableValue,
         TypedApplicationSignedAggregateValue, TypedApplicationValue, WritableCapability,
         WritePosture,

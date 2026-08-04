@@ -28,6 +28,14 @@ struct Relation;
 struct RelationSlot;
 struct ViewEntity;
 
+impl crate::application_schema::DeclaredApplicationFieldValue for Field {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for Field {}
+
 #[test]
 fn result_slot_type_changes_definition_and_schema_identity() {
     let first = definition::<FirstSlot>().unwrap().into_erased();

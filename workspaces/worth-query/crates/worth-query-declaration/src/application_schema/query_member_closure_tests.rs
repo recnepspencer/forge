@@ -25,6 +25,14 @@ struct AccountResult;
 struct AccountIdSlot;
 struct ViewAccount;
 
+impl crate::application_schema::DeclaredApplicationFieldValue for AccountId {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for AccountId {}
+
 #[test]
 fn valid_query_dependencies_and_projection_types_close() {
     assert_eq!(
@@ -37,10 +45,6 @@ fn valid_query_dependencies_and_projection_types_close() {
 fn forged_projection_field_or_value_type_cannot_enter_package_meaning() {
     assert_eq!(
         validate_application_query_members(&members(query("MissingField", "id"))),
-        Err(ApplicationSchemaDeclarationDenial::InvalidApplicationQuery)
-    );
-    assert_eq!(
-        validate_application_query_members(&members(string_query())),
         Err(ApplicationSchemaDeclarationDenial::InvalidApplicationQuery)
     );
 }
@@ -133,19 +137,6 @@ fn query(field_name: &'static str, output_name: &'static str) -> ErasedApplicati
     build_query(output_name, field)
 }
 
-fn string_query() -> ErasedApplicationQueryDefinition {
-    let field = ApplicationFieldRef::<
-        TestSchema,
-        Account,
-        AccountFacts,
-        AccountId,
-        String,
-        ReadOnly,
-        EqualityPredicate,
-    >::from_schema_identifiers("Account", "AccountFacts", "AccountId");
-    build_query("id", field)
-}
-
 fn governed_query() -> ErasedApplicationQueryDefinition {
     let field = ApplicationFieldRef::<
         TestSchema,
@@ -202,21 +193,18 @@ fn governed_query() -> ErasedApplicationQueryDefinition {
     .into_erased()
 }
 
-fn build_query<Value>(
+fn build_query(
     output_name: &'static str,
     field: ApplicationFieldRef<
         TestSchema,
         Account,
         AccountFacts,
         AccountId,
-        Value,
+        u64,
         ReadOnly,
         EqualityPredicate,
     >,
-) -> ErasedApplicationQueryDefinition
-where
-    Value: crate::application_schema::TypedApplicationValue,
-{
+) -> ErasedApplicationQueryDefinition {
     let account = ApplicationEntityRef::<TestSchema, Account>::from_schema_identifier("Account");
     let result_field = ApplicationQueryResultFieldRef::<
         AccountQuery,
@@ -225,7 +213,7 @@ where
         Account,
         AccountFacts,
         AccountId,
-        Value,
+        u64,
         ReadOnly,
         EqualityPredicate,
         crate::application_schema::NoApplicationCurrency,

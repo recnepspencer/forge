@@ -161,6 +161,7 @@ fn flatten_shape(
             output_name: field.output_name().to_string(),
             scalar_family: field.scalar_family(),
             value_type: field.value_type().to_string(),
+            presence: field.presence(),
         }
     }));
     for (index, relation) in shape.relations().iter().enumerate() {

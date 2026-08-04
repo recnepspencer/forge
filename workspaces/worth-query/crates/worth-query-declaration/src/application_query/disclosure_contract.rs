@@ -1,12 +1,14 @@
 use worth_foundational::facade::{AspectMask, AspectValue, CanonicalFieldPath, FieldKey};
 
 use super::{
-    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultTraversal,
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultTraversal,
 };
 use crate::application_capability::ApplicationCapabilityRef;
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, TypedApplicationValue,
+    ApplicationFieldCurrency, ApplicationFieldRef, OptionalApplicationFieldValue,
+    TypedApplicationValue,
 };
 
 mod influence;
@@ -155,6 +157,63 @@ impl ApplicationQueryDisclosureContract {
         influence: ApplicationQueryInfluenceContract,
     ) -> Self
     where
+        Value: TypedApplicationValue,
+        Currency: ApplicationFieldCurrency,
+        DisclosureValue: TypedApplicationValue,
+    {
+        let field = FieldKey::new(selector.field())
+            .expect("typed application-query fields are valid Foundational keys");
+        self.rules.push(ApplicationQueryDisclosureRule {
+            selector: ApplicationQueryDisclosureSelector::Field {
+                slot_key: selector.slot_key(),
+                query_type: selector.query_type(),
+                slot_type: selector.slot_type(),
+                entity: selector.entity(),
+                aspect: selector.aspect(),
+                field: selector.field(),
+                output_name: selector.output_name(),
+                projection_mask: AspectMask::new([CanonicalFieldPath::single(field.clone())]),
+                diagnostic_mask: AspectMask::new([CanonicalFieldPath::single(field)]),
+            },
+            disclosure_value: disclosure_value.into_foundational_value(),
+            influence,
+        });
+        self.rules.sort();
+        self
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn disclose_optional_field_by<
+        Query: 'static,
+        Slot: 'static,
+        Schema,
+        Entity,
+        Aspect,
+        Field,
+        Value,
+        Write,
+        Equality,
+        Currency,
+        DisclosureValue,
+    >(
+        mut self,
+        selector: ApplicationQueryOptionalResultFieldRef<
+            Query,
+            Slot,
+            Schema,
+            Entity,
+            Aspect,
+            Field,
+            Value,
+            Write,
+            Equality,
+            Currency,
+        >,
+        disclosure_value: DisclosureValue,
+        influence: ApplicationQueryInfluenceContract,
+    ) -> Self
+    where
+        Field: OptionalApplicationFieldValue<Value = Value>,
         Value: TypedApplicationValue,
         Currency: ApplicationFieldCurrency,
         DisclosureValue: TypedApplicationValue,

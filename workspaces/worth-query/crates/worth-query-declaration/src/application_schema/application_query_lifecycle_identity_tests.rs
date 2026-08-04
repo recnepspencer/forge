@@ -33,6 +33,22 @@ struct ChildIdentitySlot;
 struct ChildRelationSlot;
 struct Effect;
 
+impl crate::application_schema::DeclaredApplicationFieldValue for RootIdentity {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for RootIdentity {}
+
+impl crate::application_schema::DeclaredApplicationFieldValue for ChildIdentity {
+    type Value = u64;
+    const PRESENCE: crate::application_schema::ApplicationFieldPresence =
+        crate::application_schema::ApplicationFieldPresence::Required;
+}
+
+impl crate::application_schema::RequiredApplicationFieldValue for ChildIdentity {}
+
 #[derive(Clone)]
 struct Cause {
     root: u64,
