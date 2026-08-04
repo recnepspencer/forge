@@ -254,6 +254,7 @@ impl<Schema, Entity> ApplicationCapabilityEntitySelector<Schema, Entity> {
 
 pub struct ApplicationCapabilityRequestProjection<Schema, Scope, Context> {
     resource: ApplicationCapabilityEntitySelector<Schema, Scope>,
+    elevation: Option<ErasedApplicationCapabilityEntitySelector>,
     action: AspectValue,
     purpose: AspectValue,
     related_entity: Option<ApplicationCapabilityRelatedEntitySelector<Schema>>,
@@ -276,6 +277,7 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
     {
         Self {
             resource,
+            elevation: None,
             action: action.into_foundational_value(),
             purpose: purpose.into_foundational_value(),
             related_entity: None,
@@ -284,6 +286,17 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
             cardinality: 1,
             context,
         }
+    }
+
+    /// Selects the exact governed elevation record carried by this operation
+    /// input. The selector is descriptive input; Query resolves and validates
+    /// it against installed elevation meaning before authority can exist.
+    pub fn elevation<Entity>(
+        mut self,
+        elevation: ApplicationCapabilityEntitySelector<Schema, Entity>,
+    ) -> Self {
+        self.elevation = Some(elevation.erase());
+        self
     }
 
     pub fn related_entity(
@@ -311,6 +324,10 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
 
     pub const fn resource(&self) -> &ApplicationCapabilityEntitySelector<Schema, Scope> {
         &self.resource
+    }
+
+    pub const fn elevation_selector(&self) -> Option<&ErasedApplicationCapabilityEntitySelector> {
+        self.elevation.as_ref()
     }
 
     pub const fn action(&self) -> &AspectValue {

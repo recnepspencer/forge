@@ -8,6 +8,7 @@ use worth_query_installation::facade::{
 
 use super::admission::admit_request;
 use super::admitted_operation::WorthQueryOperationAdmissionIdentity;
+use super::capability_elevation_projection::validate_elevation_projection;
 use super::capability_request_resolution::resolve_capability_request;
 use super::delegation_admission::observe_capability;
 use super::graph_work_session::start_capability_graph_work;
@@ -70,6 +71,7 @@ where
                 projection_denial.subject(),
             )
         })?;
+        validate_elevation_projection(&installed.contract, &projection)?;
         let sample = self
             .authorization_clock
             .sample(installed.request.timeline)

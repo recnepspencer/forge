@@ -25,6 +25,8 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 mod delegation;
 pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
+mod elevation;
+pub(super) use elevation::WorthQueryCapabilityElevationBindings;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryCapabilityPlanCompilationEvidence {
@@ -156,6 +158,7 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) rule_path_indices: Vec<Vec<Vec<usize>>>,
     pub(super) request: WorthQueryCapabilityRequestBindings,
     pub(super) delegation: WorthQueryCapabilityDelegationBindings,
+    pub(super) elevation: Option<WorthQueryCapabilityElevationBindings>,
 }
 
 #[derive(Clone, Copy)]
@@ -186,6 +189,7 @@ pub(super) struct WorthQueryCapabilityPathTemplate {
     pub(super) identity: [u8; 32],
     pub(super) guard: WorthQueryCapabilityRequestGuard,
     pub(super) grant_ordinal: Option<usize>,
+    pub(super) elevation_ordinals: Vec<usize>,
     pub(super) context_anchors: Vec<WorthQueryCapabilityContextAnchor>,
 }
 

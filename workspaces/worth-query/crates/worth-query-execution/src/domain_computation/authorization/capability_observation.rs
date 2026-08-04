@@ -154,6 +154,22 @@ fn prepare_exact_policy_paths(
                     exact_grant,
                 ));
             }
+            if !template.elevation_ordinals.is_empty() {
+                let elevation = request
+                    .elevation
+                    .ok_or_else(|| projection_denial(installed.contract.name()))?;
+                let bindings = installed
+                    .elevation
+                    .as_ref()
+                    .ok_or_else(|| invalid_policy(installed.contract.name()))?;
+                anchors.extend(template.elevation_ordinals.iter().map(|ordinal| {
+                    RelationalAuthorizationEntityAnchor::new(
+                        *ordinal,
+                        bindings.elevation_kind,
+                        elevation,
+                    )
+                }));
+            }
             Ok(plan.with_entity_anchors(anchors))
         })
         .collect()
@@ -220,8 +236,10 @@ fn evaluate_exact_policy(
         ));
     }
     if !bridge_evidence.is_allowed() {
+        let kind = elevation_denial_kind(installed, evidence)
+            .unwrap_or(WorthQueryOperationAuthorizationDenialKind::PermissionDenied);
         return Err(WorthQueryOperationAuthorizationDenial::new(
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            kind,
             installed.contract.name(),
         ));
     }
@@ -253,6 +271,7 @@ fn validate_projection_shape(
         || !cardinality_admitted(request.cardinality, projection.cardinality)
         || projection.field.is_some() != request.field.is_some()
         || projection.amount.is_some() != request.amount.is_some()
+        || projection.elevation.is_some() != installed.elevation.is_some()
     {
         return Err(projection_denial(installed.contract.name()));
     }
@@ -282,6 +301,22 @@ fn validate_projection_shape(
         return Err(projection_denial(installed.contract.name()));
     }
     Ok(())
+}
+
+fn elevation_denial_kind(
+    installed: &WorthQueryInstalledCapabilityPlan,
+    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
+) -> Option<WorthQueryOperationAuthorizationDenialKind> {
+    let elevation = installed.elevation.as_ref()?;
+    let required = evidence.paths().get(elevation.required_path_index)?;
+    let self_approval = evidence.paths().get(elevation.self_approval_path_index)?;
+    if self_approval.matched() {
+        Some(WorthQueryOperationAuthorizationDenialKind::ElevationSelfApproval)
+    } else if !required.matched() {
+        Some(WorthQueryOperationAuthorizationDenialKind::ElevationInactive)
+    } else {
+        None
+    }
 }
 
 const fn cardinality_admitted(

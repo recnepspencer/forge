@@ -10,16 +10,22 @@ mod capability_access_fixture;
 #[path = "fixture/capability_seed.rs"]
 mod capability_seed;
 pub(in crate::domain_computation::primary_graph) use capability_seed::CapabilityCompositionScenario;
+#[path = "fixture/capability_elevation_seed.rs"]
+mod capability_elevation_seed;
 #[path = "fixture/capability_population_seed.rs"]
 mod capability_population_seed;
+pub(in crate::domain_computation::primary_graph) use capability_elevation_seed::CapabilityElevationScenario;
 #[path = "fixture/capability_world_installation.rs"]
 mod capability_world_installation;
 pub(in crate::domain_computation::primary_graph) use capability_access_fixture::admit_touch_account_capability;
 #[path = "fixture/capability_status_mutation.rs"]
 mod capability_status_mutation;
 pub(super) use capability::{
-    CapabilityAction, CapabilityDisclosure, CapabilityIdentity, CapabilityPurpose,
-    CapabilityStatus, CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
+    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover,
+    CapabilityElevationIdentity, CapabilityElevationStatus, CapabilityElevationStatusField,
+    CapabilityIdentity, CapabilityPurpose, CapabilityRequestContext, CapabilityStatus,
+    CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
+    ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
     TouchAccountCapability,
 };
 pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
@@ -88,7 +94,7 @@ pub(in crate::domain_computation::primary_graph) use capability_world_installati
     installed_capability_world_with_exact_pair_population, installed_capability_world_with_label,
     installed_capability_world_with_same_resource_unrelated, installed_composed_capability_world,
     installed_delegated_capability_world, installed_delegated_capability_world_at_depth,
-    installed_delegated_capability_world_with_unrelated,
+    installed_delegated_capability_world_with_unrelated, installed_elevated_capability_world,
 };
 pub(in crate::domain_computation::primary_graph) use schema_types::*;
 pub(in crate::domain_computation::primary_graph) use world_installation::{

@@ -9,6 +9,7 @@ mod bridge_observation;
 mod capability_admission;
 mod capability_binding_lowering;
 mod capability_decision_fact;
+mod capability_elevation_projection;
 mod capability_lowering;
 mod capability_observation;
 mod capability_operation_progression;
@@ -33,6 +34,8 @@ pub(super) use bridge_binding::bridge_authorization_binding_identity;
 pub(in crate::domain_computation) use capability_decision_fact::{
     WorthQueryCapabilityCommitBasis, WorthQueryRetainedCapabilityAuthorization,
 };
+#[cfg(test)]
+pub(in crate::domain_computation) use capability_elevation_projection::validate_elevation_projection;
 pub use capability_registry::WorthQueryCapabilityPlanCompilationEvidence;
 pub(in crate::domain_computation) use decision_facts::{
     WorthQueryAuthorizationDecisionFact, WorthQueryCommitAuthorizationBasis,

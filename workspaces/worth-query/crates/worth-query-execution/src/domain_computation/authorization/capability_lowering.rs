@@ -35,6 +35,8 @@ use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
+mod elevation;
+
 pub(super) fn compile_capability_plan<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     source: WorthQueryInstalledApplicationCapabilityPlanSource<'_>,
@@ -83,6 +85,17 @@ where
         &mut rules,
         &mut rule_path_indices,
     )?;
+    let elevation = elevation::compile_elevation_rules(
+        contract,
+        layout,
+        source.identity().bytes(),
+        principal_kind,
+        grant_kind,
+        scope_kind,
+        &mut paths,
+        &mut rules,
+        &mut rule_path_indices,
+    )?;
     let correspondence = bridge
         .install(BridgeAuthorizationInstallationRequest::new(
             source.identity().digest(),
@@ -104,6 +117,7 @@ where
         grant_witness,
         request: request_bindings(contract, layout)?,
         delegation: WorthQueryCapabilityDelegationBindings::compile(contract, layout)?,
+        elevation,
         paths,
         bridge_rules: rules,
         rule_path_indices,
@@ -158,6 +172,7 @@ fn compile_grant_path(
         identity: clause_identity(capability, 0),
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
         grant_ordinal: Some(1),
+        elevation_ordinals: Vec::new(),
         context_anchors: Vec::new(),
     })
 }
@@ -228,6 +243,7 @@ fn compile_graph_rule(
                 identity: clause_identity(capability, path_index),
                 guard,
                 grant_ordinal: grant_ordinal(contract, clause.path())?,
+                elevation_ordinals: Vec::new(),
                 context_anchors: anchors,
             });
             indices.push(path_index);
@@ -260,7 +276,7 @@ fn grant_ordinal(
     Ok(found)
 }
 
-fn bridge_rule(
+pub(super) fn bridge_rule(
     effect: BridgeAuthorizationRuleEffect,
     requirements: Vec<Vec<usize>>,
     paths: &[WorthQueryCapabilityPathTemplate],

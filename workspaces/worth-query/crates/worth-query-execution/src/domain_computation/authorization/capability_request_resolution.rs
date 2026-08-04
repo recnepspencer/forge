@@ -19,6 +19,7 @@ use crate::domain_computation::primary_graph::{
 
 pub(super) struct WorthQueryResolvedCapabilityRequest<Schema, Scope> {
     pub(super) resource: WorthQueryApplicationEntityIdentity<Schema, Scope>,
+    pub(super) elevation: Option<EntityId>,
     pub(super) related: Option<EntityId>,
     pub(super) context: BTreeMap<WorthQueryCapabilityContextKey, EntityId>,
 }
@@ -60,6 +61,20 @@ where
         projection.resource().value(),
         runtime_authority,
     )?;
+    let elevation = projection
+        .elevation_selector()
+        .map(|selector| {
+            resolve_erased_selector(
+                relational,
+                snapshot,
+                layout,
+                schema,
+                selector,
+                runtime_authority,
+            )
+            .map(|evidence| evidence.entity_id)
+        })
+        .transpose()?;
     let related = projection
         .related()
         .map(|related| {
@@ -103,6 +118,7 @@ where
     }
     Ok(WorthQueryResolvedCapabilityRequest {
         resource: WorthQueryApplicationEntityIdentity::mint(resource),
+        elevation,
         related,
         context,
     })

@@ -9,6 +9,7 @@ pub(super) enum CapabilityGrantPopulation {
     ExactPairPopulation(usize),
     Composed(super::capability_seed::CapabilityCompositionScenario),
     Delegated { links: usize, unrelated: usize },
+    Elevated(super::capability_elevation_seed::CapabilityElevationScenario),
 }
 
 pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
@@ -277,6 +278,9 @@ pub(super) fn installed_authorization_world_with_principal_count(
         }
         CapabilityGrantPopulation::Delegated { links, unrelated } => {
             super::capability_seed::bind_delegated_grants(&mut bootstrap, links, unrelated)
+        }
+        CapabilityGrantPopulation::Elevated(scenario) => {
+            super::capability_elevation_seed::bind_elevated_capability(&mut bootstrap, scenario)
         }
     }
     let invariant = bootstrap.retain_invariant_projection_authority();

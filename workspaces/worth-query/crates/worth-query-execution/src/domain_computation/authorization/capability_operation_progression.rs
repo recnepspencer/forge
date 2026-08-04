@@ -213,6 +213,7 @@ fn same_projection<Schema, Scope, Context>(
     actual: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
 ) -> bool {
     same_resource(expected, actual)
+        && expected.elevation_selector() == actual.elevation_selector()
         && expected.action() == actual.action()
         && expected.purpose() == actual.purpose()
         && same_related(expected, actual)

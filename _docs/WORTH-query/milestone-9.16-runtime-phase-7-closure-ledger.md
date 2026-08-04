@@ -39,7 +39,7 @@ Query product.
 | R7.9 | 7.3 | Publication accepts only typed disclosed-or-omitted results and cannot inspect protected values or decide policy. | **PROVED** | Execution denies consumer construction of the admitted result; publication rejects raw values plus projection and diagnostic masks; the Bank public consumer publishes only the admitted shape; certification proves no protected-value/policy token lane in publication. |
 | R7.10 | 7.4 | Delegation is a Query-owned proof-carrying transition in which every child grant is equal to or narrower than its exact current parent across scope, purpose, disclosure, validity, workflow, and downstream delegation posture. | **PROVED** | Production admission proves a lawful multi-link chain and one-axis action, resource, relation, field, purpose, amount, workflow, validity-start, validity-end, and downstream-posture widening attacks. Q7.55 proves installed policy paths cannot borrow an alternate grant. |
 | R7.11 | 7.5 | Allow, deny, conflict, separation-of-duty, and distinct-actor rules form one installed decision over exact actor and touched-graph facts. | **PROVED** | One production composition covers every independent predicate and their accumulated interaction. Exact context selectors derive from the operation input; selected-record negatives, unrelated-record positives, assignment/conflict drift at operation progression, and selected-versus-unrelated actor drift at final commit prove exact retained actor identity without a Cartesian matrix. Bank installation preserves exact requester, approver, legal-authority, and reviewer anchors. |
-| R7.12 | 7.6 | Emergency elevation is a linear installed typestate with a bounded upper authority and mandatory distinct-actor review. | **OPEN** | Lawful lifecycle plus self-approval, conflict, widening, expiry, revocation, copying, and repeated-review denial. |
+| R7.12 | 7.6 | Emergency elevation is a linear installed typestate with a bounded upper authority and mandatory distinct-actor review. | **OPEN** | Exact active-use admission now requires and revalidates the selected elevation, active status, distinct approver, linked exact grant, and exact scope through one installed Relational-to-Bridge decision. Request/approve/close/review transitions, approver-conflict proof, expiry and delivery cutoffs, review exactness, Bank consumption, and the complete hostile lifecycle remain required. |
 | R7.13 | 7.7 | Bank estate operations use the public Query progression with no bank-local authority executor. | **BLOCKED BY 7.6** | Complete estate courtroom, consumer transcript, dependency direction, and legacy residue. |
 | R7.14 | 7.7 | Every supported query lane re-admits identical capability, purpose, disclosure, and conflict meaning without changing query identity or result meaning. | **BLOCKED BY 7.6** | One-shot, continuation, history, preview, and live consumer evidence. |
 | R7.15 | 7.7 | Warm authorization work depends only on declared touched evidence, not unrelated grants, relationships, fields, cases, rows, or consumers. | **BLOCKED BY 7.6** | Growth measurements with exact-zero canonical preparation, hashing, digest text, and fallback. |
@@ -123,7 +123,8 @@ Query product.
 | Q7.59 | Medium | The initial Q7.58 proof pinned join lookups and candidate count but not the external-endpoint and relation-record verification work folded into Query's aggregate counters. Removing that aggregation could therefore leave locality equality green while Q7.56 became false again; certification also lacked a fault proving that a silently omitted valid candidate is detected. | **CLOSED** | Relational pins one-candidate work at exactly three entity records and two relation records and certification rejects a removed valid candidate as `StorageParityMismatch`. Query pins the complete root admission counter vector, including `35` entity and `12` relation records, so dropping preparatory verification work fails the canonical slope proof. |
 | Q7.60 | High | The initial Phase 7.5 fixture represented request and prior actors as principal-to-resource relations. An actor on a different action record concerning the same resource would therefore poison the selected transition, while the test suite could not prove that exact action identity survived re-admission. | **CLOSED** | The production request derives typed action-record context selectors from the operation input, both actor rules anchor their exact context entities, selected records deny, unrelated records allow, and adding selected versus unrelated actor relations after admission produces opposite final-commit outcomes. |
 | Q7.61 | Medium | The Bank installation proof still compared the delegation rule to the removed unit-form `NarrowAllDimensions` variant. The harness no longer compiled after installed maximum depth became identity-bearing, leaving current Bank actor-contract evidence unavailable. | **CLOSED** | The consumer now asserts the public semantic `maximum_depth()` value of `8`; the complete 11-test installation harness, full Bank domain suite, and strict Bank Clippy pass. |
-| Q7.62 | High | Phase 7.6 boundary review found Bank emergency-access and mandatory-review meaning, but the generic capability contract had no explicit elevation dimension. Omitting the dimension could silently treat non-emergency contracts as globally elevation-compatible and left Bank's emergency truth outside installed Query identity and member closure. | **OPEN** | The declaration checkpoint now requires an explicit `NotApplicable` or governed elevation rule, installs Bank's existing emergency/review fields and relations, and includes the rule in canonical identity and member closure. Runtime typestate, exact actor/currentness observation, hostility, and consumer evidence remain required before this finding and R7.12 can close. |
+| Q7.62 | High | Phase 7.6 boundary review found Bank emergency-access and mandatory-review meaning, but the generic capability contract had no explicit elevation dimension. Omitting the dimension could silently treat non-emergency contracts as globally elevation-compatible and left Bank's emergency truth outside installed Query identity and member closure. | **OPEN** | Declaration identity/member closure and exact active-use observation are now installed. Runtime lifecycle transitions, non-conflicted approval, mandatory-review completion, delivery termination, full hostility, and Bank consumer evidence remain required before this finding and R7.12 can close. |
+| Q7.63 | Critical | The first declaration checkpoint made elevation canonical but runtime request projection and policy lowering ignored it. A governed contract could therefore admit the same ordinary capability request with no elevation identity or evidence, defeating the new contract while every declaration test remained green. | **CLOSED** | Governed requests require the exact declared equality selector before graph work; non-governed posture rejects elevation input. Query resolves and retains the exact elevation entity, anchors it twice in the distinct-approver path and once in the self-approval path, anchors the exact selected grant, and submits both rules with ordinary capability meaning to the same installed Runtime Bridge correspondence. Eight tests prove lawful active use, missing, wrong, and non-applicable selector denial, copied/wrong-grant and revoked denial, self-approval denial, and status plus approver drift staleness. |
 
 ## Phase 7.1 closure evidence
 
@@ -486,6 +487,44 @@ validation. Repository-wide line-cap enforcement remains red on pre-existing,
 untouched files; every file in this checkpoint is below 400 lines. Q7.62 and
 R7.12 remain open because this checkpoint does not yet implement or prove the
 runtime elevation lifecycle.
+
+### Phase 7.6 exact active-use admission checkpoint
+
+The second Phase 7.6 checkpoint closes Q7.63 without claiming the lifecycle.
+`ApplicationCapabilityRequestProjection` now carries an optional exact
+elevation selector. Query requires selector presence to agree with the
+installed `Governed` or `NotApplicable` posture and validates the selector
+against the declared elevation identity field before resolving graph input.
+The resolved elevation entity is retained with the exact request and compared
+again when the operation input is reprojected.
+
+Cold capability compilation appends two elevation clauses to the same
+Relational observation and Runtime Bridge correspondence that owns ordinary
+grant and composition meaning. The required clause proves requester to exact
+elevation, a distinct approver back to that same elevation, the exact selected
+grant, exact scope, and active status. The prohibited clause proves that the
+requester is not also an approver for that exact elevation. Query retains the
+resulting witness and dependencies inside the existing move-only authorization
+fact, so elevation status or approver-relation drift makes the fact stale at
+operation progression without inventing another decision authority or
+inflating the operation fact count.
+
+Checkpoint verification currently includes:
+
+- eight focused elevation tests covering lawful active use, missing, wrong, and
+  non-applicable selector input, revoked and copied/wrong-grant state,
+  self-approval, and post-admission status and approver drift;
+- the complete declaration (`97`), execution (`457`), and installation (`151`)
+  unit suites plus their compile-fail documentation tests; and
+- formatting, diff integrity, and dirty-file structural review, with every
+  touched Rust file below the 400-line limit.
+
+R7.12 and Q7.62 remain open. This checkpoint does not yet prove a
+non-conflicted approver, expose linear request/approve/close/review transition
+types, derive expiry posture and terminate every delivery lane, enforce exact
+mandatory-review completion and non-reuse, or make the Bank emergency consumer
+supply the selector. Those are the next Phase 7.6 authority and consumer
+boundaries; R7.13-R7.15 and R7.27-R7.28 remain blocked.
 
 ## Test-selection policy
 

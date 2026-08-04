@@ -16,6 +16,7 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityRequest {
     pub(super) principal: worth_relational::facade::identity::EntityId,
     pub(super) resource: worth_relational::facade::identity::EntityId,
     pub(super) resource_entity: Arc<str>,
+    pub(super) elevation: Option<worth_relational::facade::identity::EntityId>,
     pub(super) action: AspectValue,
     pub(super) purpose: AspectValue,
     pub(super) related_relation: Option<ApplicationCapabilityRelationBinding>,
@@ -50,6 +51,7 @@ impl WorthQueryRetainedCapabilityRequest {
             principal,
             resource: resolved.resource.entity_id(),
             resource_entity: Arc::from(projection.resource().entity()),
+            elevation: resolved.elevation,
             action: projection.action().clone(),
             purpose: projection.purpose().clone(),
             related_relation: projection
