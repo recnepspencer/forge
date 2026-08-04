@@ -4,6 +4,11 @@ use crate::data::telemetry::ResourceTelemetry;
 use crate::data::temporal::TemporalWakeId;
 use std::collections::BTreeSet;
 
+struct ResourceCancellationAdmission {
+    request_id: ResourceRequestId,
+    handle: ResourceRequestHandle,
+}
+
 impl ResourceRuntimeState {
     pub fn cancel_resource_request(
         &mut self,
@@ -12,35 +17,19 @@ impl ResourceRuntimeState {
         telemetry: &mut ResourceTelemetry,
     ) -> ResourceCancellationReport {
         telemetry.resource_hot_in_flight_lookup_count += 1;
-        let request_id = handle.request_id();
-        let Some(in_flight) = self.in_flight_by_request.get(&request_id).cloned() else {
-            return self.deny_cancellation(
-                request_id,
-                ResourceCancellationDenialClass::UnknownOrStaleRequest,
-                telemetry,
-            );
+        let admission = match self.classify_resource_cancellation(handle) {
+            Ok(admission) => admission,
+            Err(class) => return self.deny_cancellation(handle.request_id(), class, telemetry),
         };
-
-        if in_flight.handle() != handle {
-            return self.deny_cancellation(
-                request_id,
-                ResourceCancellationDenialClass::UnknownOrStaleRequest,
-                telemetry,
-            );
-        }
-
-        if in_flight.status() != ResourceInFlightStatus::Active
-            || in_flight.lifecycle() != ResourceLifecycleClass::Pending
-        {
-            return self.deny_cancellation(
-                request_id,
-                ResourceCancellationDenialClass::NonActiveRequest,
-                telemetry,
-            );
-        }
+        let handle = admission.handle;
 
         let applied = self
-            .apply_resource_cancellation(request_id, reason, &mut BTreeSet::new(), telemetry)
+            .apply_resource_cancellation(
+                admission.request_id,
+                reason,
+                &mut BTreeSet::new(),
+                telemetry,
+            )
             .expect("active cancellation should resolve through the runtime");
         let cancelled_width = 1u32.saturating_add(applied.propagated_dependents.len() as u32);
         let dependent_propagation = (!applied.propagated_dependents.is_empty()).then(|| {
@@ -74,6 +63,26 @@ impl ResourceRuntimeState {
             performance,
         )
     }
+
+    fn classify_resource_cancellation(
+        &self,
+        handle: ResourceRequestHandle,
+    ) -> Result<ResourceCancellationAdmission, ResourceCancellationDenialClass> {
+        let request_id = handle.request_id();
+        let Some(in_flight) = self.in_flight_by_request.get(&request_id) else {
+            return Err(ResourceCancellationDenialClass::UnknownOrStaleRequest);
+        };
+        if in_flight.handle() != handle {
+            return Err(ResourceCancellationDenialClass::UnknownOrStaleRequest);
+        }
+        if in_flight.status() != ResourceInFlightStatus::Active
+            || in_flight.lifecycle() != ResourceLifecycleClass::Pending
+        {
+            return Err(ResourceCancellationDenialClass::NonActiveRequest);
+        }
+        Ok(ResourceCancellationAdmission { request_id, handle })
+    }
+
     pub(in crate::logic::transaction::runtime::state::resource) fn collect_active_timeout_wakes_for_cancellation_footprint(
         &self,
         request_id: ResourceRequestId,

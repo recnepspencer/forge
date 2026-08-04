@@ -5,6 +5,32 @@ use crate::data::telemetry::ResourceTelemetry;
 use crate::data::temporal::ClockTick;
 use crate::state::SignalBranchId;
 
+pub(super) struct RequestIntentCoalescingInput {
+    node: ResourceNodeId,
+    descriptor_id: ResourceDescriptorId,
+    request_intent_digest: ResourceRequestIntentDigest,
+    branch_id: SignalBranchId,
+    generation_started_tick: ClockTick,
+}
+
+impl RequestIntentCoalescingInput {
+    pub(super) fn new(
+        node: ResourceNodeId,
+        descriptor_id: ResourceDescriptorId,
+        request_intent_digest: ResourceRequestIntentDigest,
+        branch_id: SignalBranchId,
+        generation_started_tick: ClockTick,
+    ) -> Self {
+        Self {
+            node,
+            descriptor_id,
+            request_intent_digest,
+            branch_id,
+            generation_started_tick,
+        }
+    }
+}
+
 struct RequestIntentCoalescingCandidate {
     active_in_flight: InFlightResourceRequest,
     supersession_plan: ResourceSupersessionDecisionPlan,
@@ -21,27 +47,15 @@ struct PreparedRequestIntentCoalescing {
 impl ResourceRuntimeState {
     pub(in crate::logic::transaction::runtime::state::resource::request) fn try_coalesce_equivalent_request_intent(
         &mut self,
-        node: ResourceNodeId,
-        descriptor_id: ResourceDescriptorId,
-        request_intent_digest: &ResourceRequestIntentDigest,
-        branch_id: SignalBranchId,
-        generation_started_tick: ClockTick,
+        input: RequestIntentCoalescingInput,
         telemetry: &mut ResourceTelemetry,
     ) -> Option<ResourceRequestAdmissionReport> {
-        let candidate =
-            self.request_intent_coalescing_candidate(node, descriptor_id, request_intent_digest)?;
+        let candidate = self.request_intent_coalescing_candidate(&input)?;
         telemetry.resource_supersession_policy_decision_count += 1;
         telemetry.resource_intent_equivalence_coalescing_count += 1;
 
-        let prepared = self.prepare_request_intent_coalescing(
-            node,
-            descriptor_id,
-            request_intent_digest,
-            branch_id,
-            generation_started_tick,
-            &candidate.active_in_flight,
-            telemetry,
-        );
+        let prepared =
+            self.prepare_request_intent_coalescing(&input, &candidate.active_in_flight, telemetry);
         let coalesced_request = prepared.coalesced_request;
         let coalesced_in_flight = prepared.coalesced_in_flight;
         let transition = prepared.transition;
@@ -60,8 +74,7 @@ impl ResourceRuntimeState {
                 )),
         );
         Some(self.build_request_intent_coalescing_report(
-            node,
-            request_intent_digest,
+            &input,
             candidate,
             coalesced_request,
             supersession_ordinal,
@@ -72,21 +85,19 @@ impl ResourceRuntimeState {
 
     fn request_intent_coalescing_candidate(
         &self,
-        node: ResourceNodeId,
-        descriptor_id: ResourceDescriptorId,
-        request_intent_digest: &ResourceRequestIntentDigest,
+        input: &RequestIntentCoalescingInput,
     ) -> Option<RequestIntentCoalescingCandidate> {
-        let active_request_id = self.active_request_by_node.get(&node).copied()?;
+        let active_request_id = self.active_request_by_node.get(&input.node).copied()?;
         let active_in_flight = self.in_flight_by_request.get(&active_request_id)?.clone();
         if active_in_flight.status() != ResourceInFlightStatus::Active
             || active_in_flight.lifecycle() != ResourceLifecycleClass::Pending
-            || active_in_flight.request_intent_digest() != request_intent_digest
+            || active_in_flight.request_intent_digest() != &input.request_intent_digest
         {
             return None;
         }
         let supersession_plan = self
             .descriptors
-            .get(&descriptor_id)?
+            .get(&input.descriptor_id)?
             .supersession_decision_plan()
             .clone();
         supersession_plan
@@ -99,17 +110,13 @@ impl ResourceRuntimeState {
 
     fn prepare_request_intent_coalescing(
         &mut self,
-        node: ResourceNodeId,
-        descriptor_id: ResourceDescriptorId,
-        request_intent_digest: &ResourceRequestIntentDigest,
-        branch_id: SignalBranchId,
-        generation_started_tick: ClockTick,
+        input: &RequestIntentCoalescingInput,
         active_in_flight: &InFlightResourceRequest,
         telemetry: &mut ResourceTelemetry,
     ) -> PreparedRequestIntentCoalescing {
         let request_id = self.issue_request_id();
         let generation = self.issue_generation();
-        let branch_epoch = ResourceBranchEpoch::new(branch_id, self.restore_epoch);
+        let branch_epoch = ResourceBranchEpoch::new(input.branch_id, self.restore_epoch);
         let coalesced_request = AdmittedResourceRequest::new(
             request_id,
             generation,
@@ -120,13 +127,13 @@ impl ResourceRuntimeState {
         let supersession_ordinal = self.issue_supersession_ordinal();
         let (output_continuity, terminal_visibility_classified) = self
             .classify_terminal_output_continuity_for_node(
-                node,
-                descriptor_id,
+                input.node,
+                input.descriptor_id,
                 ResourceTerminalVisibilityCause::Supersession,
                 telemetry,
             );
         let transition = ResourceLifecycleTransition::new(
-            node,
+            input.node,
             ResourceLifecycleClass::Pending,
             ResourceLifecycleClass::Superseded,
             ResourceLifecycleTransitionKind::RequestSuperseded,
@@ -135,12 +142,12 @@ impl ResourceRuntimeState {
         );
         let mut coalesced_in_flight = InFlightResourceRequest::new(
             coalesced_request.handle(),
-            node,
-            descriptor_id,
+            input.node,
+            input.descriptor_id,
             generation,
             ResourceAttemptId::ZERO,
-            request_intent_digest.clone(),
-            generation_started_tick,
+            input.request_intent_digest.clone(),
+            input.generation_started_tick,
             lifecycle_ordinal,
             active_in_flight.timeout_duration(),
             active_in_flight.timeout_due_tick(),
@@ -176,8 +183,7 @@ impl ResourceRuntimeState {
 
     fn build_request_intent_coalescing_report(
         &self,
-        node: ResourceNodeId,
-        request_intent_digest: &ResourceRequestIntentDigest,
+        input: &RequestIntentCoalescingInput,
         candidate: RequestIntentCoalescingCandidate,
         coalesced_request: AdmittedResourceRequest,
         supersession_ordinal: ResourceSupersessionOrdinal,
@@ -186,11 +192,11 @@ impl ResourceRuntimeState {
     ) -> ResourceRequestAdmissionReport {
         let lifecycle = self
             .lifecycle_by_node
-            .get(&node)
+            .get(&input.node)
             .copied()
             .unwrap_or_else(|| {
                 ResourceLifecycleSummary::new(
-                    node,
+                    input.node,
                     ResourceLifecycleClass::Pending,
                     ResourceOutputContinuity::NoPriorOutput,
                     candidate.active_in_flight.lifecycle_ordinal(),
@@ -211,7 +217,7 @@ impl ResourceRuntimeState {
                 supersession_ordinal,
                 candidate.active_in_flight.handle(),
                 coalesced_request,
-                request_intent_digest.clone(),
+                input.request_intent_digest.clone(),
                 candidate.supersession_plan.decision_digest().clone(),
                 transition,
             )),

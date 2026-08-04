@@ -1,5 +1,6 @@
 use super::super::timeout::plan::ScheduledResourceTimeoutAdmission;
 use super::super::ResourceRuntimeState;
+use super::coalescing::RequestIntentCoalescingInput;
 use crate::data::resource::*;
 use crate::data::telemetry::ResourceTelemetry;
 use crate::data::temporal::ClockTick;
@@ -109,41 +110,53 @@ impl ResourceRuntimeState {
             resolved_timeout,
         };
         if allow_intent_equivalence_coalescing {
-            if let Some(coalesced) = self.try_coalesce_equivalent_request_intent(
+            let coalescing_input = RequestIntentCoalescingInput::new(
                 input.node,
                 input.descriptor_id,
-                &input.request_intent_digest,
+                input.request_intent_digest.clone(),
                 input.branch_id,
                 input.generation_started_tick,
-                telemetry,
-            ) {
+            );
+            if let Some(coalesced) =
+                self.try_coalesce_equivalent_request_intent(coalescing_input, telemetry)
+            {
                 return coalesced;
             }
         }
 
-        let prepared = self.prepare_resource_request_admission(input, telemetry);
-        self.install_resource_request_admission(prepared, telemetry)
-    }
-
-    fn prepare_resource_request_admission(
-        &mut self,
-        input: ResourceRequestAdmissionInput,
-        telemetry: &mut ResourceTelemetry,
-    ) -> PreparedResourceRequestAdmission {
-        let request_id = self.issue_request_id();
-        let generation = self.issue_generation();
-        let admitted = AdmittedResourceRequest::new(
-            request_id,
-            generation,
-            ResourceBranchEpoch::new(input.branch_id, self.restore_epoch),
-            ResourceAttemptId::ZERO,
-        );
+        let admitted = self.issue_resource_request_admission_identity(&input);
         let supersession = self.supersede_active_request_for_node(
             input.node,
             admitted.handle(),
             input.descriptor_id,
             telemetry,
         );
+        let prepared =
+            self.prepare_resource_request_admission(input, admitted, supersession, telemetry);
+        self.install_resource_request_admission(prepared, telemetry)
+    }
+
+    fn issue_resource_request_admission_identity(
+        &mut self,
+        input: &ResourceRequestAdmissionInput,
+    ) -> AdmittedResourceRequest {
+        let request_id = self.issue_request_id();
+        let generation = self.issue_generation();
+        AdmittedResourceRequest::new(
+            request_id,
+            generation,
+            ResourceBranchEpoch::new(input.branch_id, self.restore_epoch),
+            ResourceAttemptId::ZERO,
+        )
+    }
+
+    fn prepare_resource_request_admission(
+        &mut self,
+        input: ResourceRequestAdmissionInput,
+        admitted: AdmittedResourceRequest,
+        supersession: Option<ResourceSupersessionRecord>,
+        telemetry: &mut ResourceTelemetry,
+    ) -> PreparedResourceRequestAdmission {
         let from = self
             .lifecycle_by_node
             .get(&input.node)
@@ -172,7 +185,7 @@ impl ResourceRuntimeState {
             admitted.handle(),
             input.node,
             input.descriptor_id,
-            generation,
+            admitted.handle().generation(),
             ResourceAttemptId::ZERO,
             input.request_intent_digest,
             input.generation_started_tick,

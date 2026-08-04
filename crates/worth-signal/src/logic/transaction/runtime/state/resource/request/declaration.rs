@@ -3,12 +3,26 @@ use super::super::ResourceRuntimeState;
 use crate::data::resource::*;
 use crate::data::telemetry::ResourceTelemetry;
 
+struct PreparedResourceDeclaration {
+    node: ResourceNodeId,
+    descriptor: LoweredResourceDescriptor,
+}
+
 impl ResourceRuntimeState {
     pub fn declare_resource_node(
         &mut self,
         declaration: ResourceNodeDeclaration,
         telemetry: &mut ResourceTelemetry,
     ) -> Result<ResourceDeclarationReport, crate::data::error::SignalError> {
+        let prepared = self.prepare_resource_declaration(declaration, telemetry)?;
+        Ok(self.install_resource_declaration(prepared, telemetry))
+    }
+
+    fn prepare_resource_declaration(
+        &mut self,
+        declaration: ResourceNodeDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> Result<PreparedResourceDeclaration, crate::data::error::SignalError> {
         let node = declaration.node();
         if self.descriptors_by_node.contains_key(&node) {
             telemetry.resource_duplicate_declaration_denial_count += 1;
@@ -56,6 +70,16 @@ impl ResourceRuntimeState {
                 return Err(resource_policy_resolution_signal_error(err));
             }
         };
+        Ok(PreparedResourceDeclaration { node, descriptor })
+    }
+
+    fn install_resource_declaration(
+        &mut self,
+        prepared: PreparedResourceDeclaration,
+        telemetry: &mut ResourceTelemetry,
+    ) -> ResourceDeclarationReport {
+        let PreparedResourceDeclaration { node, descriptor } = prepared;
+        let descriptor_id = descriptor.descriptor_id();
         self.descriptors_by_node.insert(node, descriptor_id);
         self.descriptors.insert(descriptor_id, descriptor);
         let ordinal = self.issue_lifecycle_ordinal();
@@ -82,11 +106,6 @@ impl ResourceRuntimeState {
             ResourceBoundaryPerformanceEnvelope::declaration_lowering(1),
         );
 
-        Ok(ResourceDeclarationReport::new(
-            descriptor_id,
-            lifecycle,
-            transition,
-            performance,
-        ))
+        ResourceDeclarationReport::new(descriptor_id, lifecycle, transition, performance)
     }
 }
