@@ -1,7 +1,9 @@
 use super::super::identity::{LiveChangeOrdinal, LiveProgressBasis, LiveProgressError};
 use super::super::patches::{LivePatchEnvelope, LivePatchPayload};
 use super::super::promotion::LiveQueryPlan;
-use super::super::refresh::{LiveCoalescingError, LiveRefreshError, RefreshAdmissionClass};
+use super::super::refresh::{
+    CoalescingDecision, LiveCoalescingError, LiveRefreshError, RefreshAdmissionClass,
+};
 use super::super::relevance::BridgeChangeSummary;
 use super::super::{
     execute_live_change, live_execution_report, patch_envelope_from_payload,
@@ -191,56 +193,55 @@ impl MilestoneFiveLiveAdapter {
         bundle_count: usize,
     ) -> Result<LiveCertificationLane, LiveCoalescingError> {
         let decision = live.request_coalesced_delivery(bundle_count)?;
+        let execution = Self::assemble_coalesced_delivery_execution(live, &decision);
         Ok(LiveCertificationLane::new(
             "coalesced-sequence-replay-parity",
-            LiveExecutionEnvelope {
-                report: live_execution_report(
-                    live,
-                    "coalesced_delivery".to_string(),
-                    format!("{decision:?}"),
-                ),
-                patch_envelope: patch_envelope_from_payload(
-                    live,
-                    LivePatchPayload::Coalesced(decision.clone()),
-                    LivePatchConstructionBasis {
-                        outcome_kind: "coalesced_delivery".to_string(),
-                        outcome_digest: format!("{decision:?}"),
-                        basis_digest: live
-                            .progress_basis()
-                            .current_basis()
-                            .proof()
-                            .digest()
-                            .as_str()
-                            .to_string(),
-                        replay_digest: live.progress_basis().replay_digest().as_str().to_string(),
-                    },
-                ),
-                replay_bundle: replay_bundle_from_patch_envelope(
-                    patch_envelope_from_payload(
-                        live,
-                        LivePatchPayload::Coalesced(decision.clone()),
-                        LivePatchConstructionBasis {
-                            outcome_kind: "coalesced_delivery".to_string(),
-                            outcome_digest: format!("{decision:?}"),
-                            basis_digest: live
-                                .progress_basis()
-                                .current_basis()
-                                .proof()
-                                .digest()
-                                .as_str()
-                                .to_string(),
-                            replay_digest: live
-                                .progress_basis()
-                                .replay_digest()
-                                .as_str()
-                                .to_string(),
-                        },
-                    ),
-                    LivePolicyCounters::from_coalescing_decision(&decision),
-                ),
-                counters: LivePolicyCounters::from_coalescing_decision(&decision),
-            },
+            execution,
         ))
+    }
+
+    fn assemble_coalesced_delivery_execution(
+        live: &LiveQueryPlan,
+        decision: &CoalescingDecision,
+    ) -> LiveExecutionEnvelope {
+        let outcome_kind = "coalesced_delivery".to_string();
+        let outcome_digest = format!("{decision:?}");
+        let patch_envelope =
+            Self::coalesced_delivery_patch_envelope(live, decision, &outcome_kind, &outcome_digest);
+        let counters = LivePolicyCounters::from_coalescing_decision(decision);
+        LiveExecutionEnvelope {
+            report: live_execution_report(live, outcome_kind, outcome_digest),
+            replay_bundle: replay_bundle_from_patch_envelope(
+                patch_envelope.clone(),
+                counters.clone(),
+            ),
+            patch_envelope,
+            counters,
+        }
+    }
+
+    fn coalesced_delivery_patch_envelope(
+        live: &LiveQueryPlan,
+        decision: &CoalescingDecision,
+        outcome_kind: &str,
+        outcome_digest: &str,
+    ) -> LivePatchEnvelope {
+        patch_envelope_from_payload(
+            live,
+            LivePatchPayload::Coalesced(decision.clone()),
+            LivePatchConstructionBasis {
+                outcome_kind: outcome_kind.to_string(),
+                outcome_digest: outcome_digest.to_string(),
+                basis_digest: live
+                    .progress_basis()
+                    .current_basis()
+                    .proof()
+                    .digest()
+                    .as_str()
+                    .to_string(),
+                replay_digest: live.progress_basis().replay_digest().as_str().to_string(),
+            },
+        )
     }
 
     pub fn canonical_lane(
