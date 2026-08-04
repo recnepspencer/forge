@@ -1,4 +1,5 @@
 use super::*;
+use crate::identity::hash_parts;
 #[cfg(test)]
 pub(crate) fn admit_region_scoped_live_plan(
     live: &LiveQueryPlan,
@@ -407,20 +408,24 @@ pub(crate) fn execute_region_scoped_live_change(
             let patch_envelope = patch_envelope_from_payload(
                 plan.live(),
                 payload,
-                "off_region_suppressed".to_string(),
-                format!("off_region:{}", plan.locality().digest().as_str()),
-                plan.live()
-                    .progress_basis()
-                    .current_basis()
-                    .proof()
-                    .digest()
-                    .as_str()
-                    .to_string(),
-                plan.live()
-                    .progress_basis()
-                    .replay_digest()
-                    .as_str()
-                    .to_string(),
+                LivePatchConstructionBasis {
+                    outcome_kind: "off_region_suppressed".to_string(),
+                    outcome_digest: format!("off_region:{}", plan.locality().digest().as_str()),
+                    basis_digest: plan
+                        .live()
+                        .progress_basis()
+                        .current_basis()
+                        .proof()
+                        .digest()
+                        .as_str()
+                        .to_string(),
+                    replay_digest: plan
+                        .live()
+                        .progress_basis()
+                        .replay_digest()
+                        .as_str()
+                        .to_string(),
+                },
             );
             let mut locality_counters = locality_counters;
             locality_counters.add_locality_replay_change_count(1);
