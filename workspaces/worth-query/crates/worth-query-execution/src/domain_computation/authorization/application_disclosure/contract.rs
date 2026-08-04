@@ -11,7 +11,7 @@ use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
 
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
-use super::influence_validation::{validate_influence, GovernedFieldRules};
+use super::influence_validation::{validate_influence, GovernedInternalFieldRules};
 
 #[derive(Clone, Debug)]
 pub(super) struct WorthQueryAdmittedApplicationDisclosureField {
@@ -68,7 +68,7 @@ pub(in crate::domain_computation) enum WorthQueryAdmittedApplicationDisclosureCo
         capability_type: String,
         result_rules: BTreeMap<ApplicationQueryResultSlotKey, AdmittedDisclosureRule>,
         internal_rules: Vec<AdmittedDisclosureRule>,
-        field_rules: GovernedFieldRules,
+        internal_field_rules: GovernedInternalFieldRules,
     },
 }
 
@@ -115,7 +115,7 @@ fn compile_governed_contract<Schema, Query, Parameters, QueryResult, Scope>(
 > {
     let mut result_rules = BTreeMap::new();
     let mut internal_rules = Vec::new();
-    let mut field_rules = BTreeMap::new();
+    let mut internal_field_rules = BTreeMap::new();
     for rule in query.disclosure().rules() {
         admit_rule(
             query,
@@ -123,11 +123,11 @@ fn compile_governed_contract<Schema, Query, Parameters, QueryResult, Scope>(
             rule,
             &mut result_rules,
             &mut internal_rules,
-            &mut field_rules,
+            &mut internal_field_rules,
         )?;
     }
     require_complete_result_shape(query, &result_rules)?;
-    validate_influence(query, &field_rules, &result_rules)?;
+    validate_influence(query, &internal_field_rules, &result_rules)?;
     Ok(WorthQueryAdmittedApplicationDisclosureContract::Governed {
         classification: query.disclosure().classification().to_string(),
         capability_name: query
@@ -142,7 +142,7 @@ fn compile_governed_contract<Schema, Query, Parameters, QueryResult, Scope>(
             .to_string(),
         result_rules,
         internal_rules,
-        field_rules,
+        internal_field_rules,
     })
 }
 
@@ -152,7 +152,7 @@ fn admit_rule<Schema, Query, Parameters, QueryResult, Scope>(
     rule: &ApplicationQueryDisclosureRule,
     result_rules: &mut BTreeMap<ApplicationQueryResultSlotKey, AdmittedDisclosureRule>,
     internal_rules: &mut Vec<AdmittedDisclosureRule>,
-    field_rules: &mut GovernedFieldRules,
+    internal_field_rules: &mut GovernedInternalFieldRules,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
     let field = rule
         .selector()
@@ -164,18 +164,19 @@ fn admit_rule<Schema, Query, Parameters, QueryResult, Scope>(
         influence: rule.influence().clone(),
         field,
     });
-    if let Some(field) = installed.field() {
-        field_rules
-            .entry((
-                field.entity.clone(),
-                field.aspect.clone(),
-                field.field.clone(),
-            ))
-            .or_default()
-            .push(Arc::clone(&installed));
-    }
     match rule.selector() {
         ApplicationQueryDisclosureSelector::InternalField { .. } => {
+            let field = installed
+                .field()
+                .ok_or_else(|| denial(rule.selector().slot_type()))?;
+            internal_field_rules
+                .entry((
+                    field.entity.clone(),
+                    field.aspect.clone(),
+                    field.field.clone(),
+                ))
+                .or_default()
+                .push(Arc::clone(&installed));
             internal_rules.push(installed);
         }
         ApplicationQueryDisclosureSelector::Field { .. } => {

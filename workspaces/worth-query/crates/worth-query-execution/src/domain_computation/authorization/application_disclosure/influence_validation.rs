@@ -9,12 +9,12 @@ use super::contract::{
     denial, AdmittedDisclosureRule, WorthQueryApplicationDisclosureContractDenial,
 };
 
-pub(super) type GovernedFieldRules =
+pub(super) type GovernedInternalFieldRules =
     BTreeMap<(String, String, String), Vec<AdmittedDisclosureRule>>;
 
 pub(super) fn validate_influence<Schema, Query, Parameters, QueryResult, Scope>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
-    fields: &GovernedFieldRules,
+    fields: &GovernedInternalFieldRules,
     results: &BTreeMap<ApplicationQueryResultSlotKey, AdmittedDisclosureRule>,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
     for predicate in query.read_graph().predicates() {
@@ -69,7 +69,7 @@ fn validate_continuation<Schema, Query, Parameters, QueryResult, Scope>(
 
 fn validate_live<Schema, Query, Parameters, QueryResult, Scope>(
     query: &WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
-    fields: &GovernedFieldRules,
+    fields: &GovernedInternalFieldRules,
     results: &BTreeMap<ApplicationQueryResultSlotKey, AdmittedDisclosureRule>,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {
     if query.live().is_none() {
@@ -111,7 +111,7 @@ fn membership_surfaces<Schema, Query, Parameters, QueryResult, Scope>(
 }
 
 fn require_field_influence(
-    fields: &GovernedFieldRules,
+    fields: &GovernedInternalFieldRules,
     field: (&str, &str, &str),
     surfaces: impl IntoIterator<Item = ApplicationQueryObservableInfluence>,
 ) -> Result<(), WorthQueryApplicationDisclosureContractDenial> {

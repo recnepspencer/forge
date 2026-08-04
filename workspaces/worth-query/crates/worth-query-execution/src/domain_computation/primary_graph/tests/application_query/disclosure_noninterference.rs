@@ -133,7 +133,7 @@ fn execute(world: &AuthorizationWorld) -> ConsumerObservation {
         omitted: disclosure.omitted().to_vec(),
         capability_identity_present: disclosure.capability_authority_identity().is_some(),
         decision_identity_present: disclosure.decision_identity().is_some(),
-        decision_fact_count: disclosure.decision_fact_count(),
+        decision_fact_count: disclosure.authorization_decision_fact_count(),
         omission_posture: result.receipt().omission_posture(),
         result_count: result.receipt().result_count(),
         projected_field_count: result.receipt().projected_field_count(),

@@ -347,7 +347,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
                     .saturating_add(parts.projected_field_count),
                 parts.total_work_units,
             ),
-            omission_posture: if parts.disclosure.omitted().is_empty() {
+            omission_posture: if !parts.disclosure.has_omissions() {
                 WorthQueryApplicationQueryOmissionPosture::NoOmission
             } else {
                 WorthQueryApplicationQueryOmissionPosture::GovernedOmission

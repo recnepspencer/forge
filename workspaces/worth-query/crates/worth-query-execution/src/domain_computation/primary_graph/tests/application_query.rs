@@ -252,7 +252,7 @@ fn mapped_stranger_cannot_admit_a_valid_foreign_account_scope() {
 }
 
 #[test]
-fn foreign_scope_and_unimplemented_disclosure_open_no_plan_authority() {
+fn foreign_scope_and_missing_disclosure_governance_open_no_plan_authority() {
     let world = installed_authorization_world(true);
     let foreign = installed_authorization_world(true);
     let request = live_scope();
@@ -312,10 +312,10 @@ fn foreign_scope_and_unimplemented_disclosure_open_no_plan_authority() {
             current_controls(&request),
         )
         .err()
-        .expect("unimplemented disclosure governance must deny");
+        .expect("missing disclosure governance must deny");
     assert_eq!(
         denial.kind(),
-        WorthQueryApplicationQueryAdmissionDenialKind::DisclosureContractInvalid
+        WorthQueryApplicationQueryAdmissionDenialKind::DisclosureGovernanceRequired
     );
 }
 

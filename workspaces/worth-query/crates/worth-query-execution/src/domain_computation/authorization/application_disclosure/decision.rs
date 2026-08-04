@@ -13,7 +13,7 @@ use super::contract::{
     AdmittedDisclosureRule, WorthQueryAdmittedApplicationDisclosureContract,
     WorthQueryAdmittedApplicationDisclosureField,
 };
-use super::influence_validation::GovernedFieldRules;
+use super::influence_validation::GovernedInternalFieldRules;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 use crate::domain_computation::provider_session::{
     WorthQueryGraphWorkManagedRunIdentity, WorthQueryGraphWorkSessionIdentity,
@@ -59,7 +59,7 @@ impl WorthQueryPendingApplicationQueryGovernance {
 
 pub(in crate::domain_computation) struct WorthQueryApplicationInternalComputationAuthority {
     binding: WorthQueryApplicationGovernanceBinding,
-    field_rules: GovernedFieldRules,
+    internal_field_rules: GovernedInternalFieldRules,
     disclosure_value: AspectValue,
 }
 
@@ -155,7 +155,7 @@ pub(in crate::domain_computation) fn admit_application_query_governance(
                 capability_type,
                 result_rules,
                 internal_rules,
-                field_rules,
+                internal_field_rules,
             },
             Some(pending),
         ) => {
@@ -190,7 +190,7 @@ pub(in crate::domain_computation) fn admit_application_query_governance(
                 disclosure_value: pending.disclosure_value.clone(),
                 computation: WorthQueryApplicationInternalComputationAuthority {
                     binding,
-                    field_rules,
+                    internal_field_rules,
                     disclosure_value: pending.disclosure_value,
                 },
                 disclosure: WorthQueryApplicationDisclosureDecision {

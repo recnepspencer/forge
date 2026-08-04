@@ -5,17 +5,16 @@ use worth_query_declaration::facade::application_query::{
 use worth_query_installation::facade::WorthQueryInstalledApplicationQueryIdentity;
 use worth_relational::facade::identity::EntityId;
 
+use super::super::WorthQueryApplicationDisclosureReceipt;
 use super::{
     WorthQueryApplicationDisclosedFieldAdmission, WorthQueryApplicationInternalFieldAdmission,
     WorthQueryApplicationQueryGovernance, WorthQueryPendingApplicationQueryGovernance,
 };
 use crate::domain_computation::authorization::WorthQueryRetainedCapabilityAuthorization;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
-use crate::domain_computation::primary_graph::WorthQueryApplicationDisclosureReceipt;
 use crate::domain_computation::provider_session::{
     WorthQueryGraphWorkSessionIdentity, WorthQueryManagedGraphWorkSession,
 };
-
 impl WorthQueryApplicationQueryGovernance {
     pub(in crate::domain_computation) fn into_pending(
         self,
@@ -91,7 +90,7 @@ impl WorthQueryApplicationQueryGovernance {
                     field.1.to_string(),
                     field.2.to_string(),
                 );
-                let rules = computation.field_rules.get(&key)?;
+                let rules = computation.internal_field_rules.get(&key)?;
                 let admitted = rules.iter().all(|rule| rule.influence().permits(surface));
                 let field = rules
                     .first()?

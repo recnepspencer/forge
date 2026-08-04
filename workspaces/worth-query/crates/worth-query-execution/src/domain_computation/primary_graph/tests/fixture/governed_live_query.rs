@@ -92,6 +92,16 @@ pub(super) fn governed_live_account_definition() -> ApplicationQueryDefinition<
         CapabilityDisclosure::AccountActivity,
         influence.clone(),
     )
+    .use_field_by(
+        ActivityIdentity::reference(),
+        CapabilityDisclosure::AccountActivity,
+        influence.clone(),
+    )
+    .use_field_by(
+        ActivitySequence::reference(),
+        CapabilityDisclosure::AccountActivity,
+        influence.clone(),
+    )
     .disclose_field_by(
         account_identity(),
         CapabilityDisclosure::AccountActivity,

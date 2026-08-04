@@ -29,7 +29,7 @@ pub struct WorthQueryApplicationDisclosureReceipt {
     omitted: Vec<AspectValue>,
     capability_authority_identity: Option<String>,
     decision_identity: Option<[u8; 32]>,
-    decision_fact_count: usize,
+    authorization_decision_fact_count: usize,
 }
 
 impl WorthQueryApplicationDisclosureReceipt {
@@ -42,7 +42,7 @@ impl WorthQueryApplicationDisclosureReceipt {
             omitted: Vec::new(),
             capability_authority_identity: None,
             decision_identity: None,
-            decision_fact_count: 0,
+            authorization_decision_fact_count: 0,
         }
     }
 
@@ -52,9 +52,9 @@ impl WorthQueryApplicationDisclosureReceipt {
         omitted: Vec<(ApplicationQueryResultSlotKey, AspectValue)>,
         capability_authority_identity: impl Into<String>,
         decision_identity: [u8; 32],
-        decision_fact_count: usize,
+        authorization_decision_fact_count: usize,
     ) -> Self {
-        let decisions = disclosed
+        let mut decisions = disclosed
             .iter()
             .map(
                 |(slot, required_disclosure)| WorthQueryApplicationDisclosureDecisionFact {
@@ -70,7 +70,8 @@ impl WorthQueryApplicationDisclosureReceipt {
                     outcome: WorthQueryApplicationDisclosureOutcome::Omitted,
                 }
             }))
-            .collect();
+            .collect::<Vec<_>>();
+        decisions.sort_by_key(|decision| decision.slot);
         Self {
             posture: WorthQueryApplicationDisclosureReceiptPosture::Governed,
             classification: Some(classification.into()),
@@ -79,7 +80,7 @@ impl WorthQueryApplicationDisclosureReceipt {
             omitted: omitted.into_iter().map(|(_, value)| value).collect(),
             capability_authority_identity: Some(capability_authority_identity.into()),
             decision_identity: Some(decision_identity),
-            decision_fact_count,
+            authorization_decision_fact_count,
         }
     }
 
@@ -95,12 +96,20 @@ impl WorthQueryApplicationDisclosureReceipt {
         &self.decisions
     }
 
+    pub const fn disclosure_decision_count(&self) -> usize {
+        self.decisions.len()
+    }
+
     pub fn disclosed(&self) -> &[AspectValue] {
         &self.disclosed
     }
 
     pub fn omitted(&self) -> &[AspectValue] {
         &self.omitted
+    }
+
+    pub const fn has_omissions(&self) -> bool {
+        !self.omitted.is_empty()
     }
 
     pub fn capability_authority_identity(&self) -> Option<&str> {
@@ -111,8 +120,8 @@ impl WorthQueryApplicationDisclosureReceipt {
         self.decision_identity.as_ref()
     }
 
-    pub const fn decision_fact_count(&self) -> usize {
-        self.decision_fact_count
+    pub const fn authorization_decision_fact_count(&self) -> usize {
+        self.authorization_decision_fact_count
     }
 }
 

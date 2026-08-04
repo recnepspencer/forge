@@ -68,7 +68,7 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
         Some(installed_capability.authority_identity())
     );
     assert!(disclosure.decision_identity().is_some());
-    assert!(disclosure.decision_fact_count() > 0);
+    assert!(disclosure.authorization_decision_fact_count() > 0);
 
     let publication = published.receipt().inspect();
     assert!(publication.session_identity() > 0);
