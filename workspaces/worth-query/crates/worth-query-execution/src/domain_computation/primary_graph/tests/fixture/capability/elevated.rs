@@ -8,9 +8,9 @@ use worth_query_declaration::facade::{
     application_schema::{TypedApplicationReadableValue, TypedApplicationValue},
 };
 use worth_query_declaration::{
-    worth_query_aspect, worth_query_capability, worth_query_entity, worth_query_field,
-    worth_query_operation, worth_query_operation_reads, worth_query_operation_writes,
-    worth_query_relation,
+    worth_query_aspect, worth_query_capability, worth_query_capability_context_entity_slot,
+    worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_reads,
+    worth_query_operation_writes, worth_query_relation,
 };
 
 use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal};
@@ -81,6 +81,8 @@ worth_query_relation!(pub CapabilityElevationApprover in IdentityExecutionSchema
 worth_query_relation!(pub CapabilityElevationGrant in IdentityExecutionSchema, CapabilityElevation => CapabilityGrant);
 worth_query_relation!(pub CapabilityElevationReview in IdentityExecutionSchema, CapabilityElevation => CapabilityReview);
 worth_query_relation!(pub CapabilityReviewer in IdentityExecutionSchema, Principal => CapabilityReview);
+worth_query_capability_context_entity_slot!(pub CapabilityElevationSlot in IdentityExecutionSchema, CapabilityRequestContext => CapabilityElevation);
+worth_query_capability_context_entity_slot!(pub CapabilityReviewSlot in IdentityExecutionSchema, CapabilityRequestContext => CapabilityReview);
 worth_query_capability!(pub ElevatedTouchAccountCapability in IdentityExecutionSchema);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -95,6 +97,10 @@ pub struct ElevatedCapabilityTouchInput {
 }
 
 worth_query_operation!(pub ElevatedCapabilityTouchOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
+worth_query_operation!(pub RequestCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
+worth_query_operation!(pub ApproveCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
+worth_query_operation!(pub RevokeCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
+worth_query_operation!(pub CompleteCapabilityReviewOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation_reads!(ElevatedCapabilityTouchOperation => [AccountLabel]);
 worth_query_operation_writes!(ElevatedCapabilityTouchOperation => [AccountLabel]);
 

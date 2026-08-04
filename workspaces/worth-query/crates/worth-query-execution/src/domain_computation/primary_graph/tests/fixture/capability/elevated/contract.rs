@@ -4,20 +4,22 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityAllowRule, ApplicationCapabilityAmountDimension,
         ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
         ApplicationCapabilityConflictRule, ApplicationCapabilityConstraintDefinition,
-        ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationDepth,
-        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-        ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
+        ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityContract,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityDelegationDepth, ApplicationCapabilityDelegationRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationDefinition,
+        ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityElevationRule,
         ApplicationCapabilityElevationStates, ApplicationCapabilityFieldBinding,
         ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
         ApplicationCapabilityGraphRule, ApplicationCapabilityMandatoryReviewDefinition,
-        ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
-        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
-        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
-        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityOperationBinding, ApplicationCapabilityPropagationComposition,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
+        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
+        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
+        ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::{
         ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
@@ -36,13 +38,15 @@ use super::super::declaration::{
     CapabilityStatus, CapabilityStatusField, CapabilityWorkflowField,
 };
 use super::{
-    CapabilityElevation, CapabilityElevationApprover, CapabilityElevationFacts,
-    CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
-    CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
-    CapabilityElevationReview, CapabilityElevationStatus, CapabilityElevationStatusField,
-    CapabilityReview, CapabilityReviewFacts, CapabilityReviewIdentity, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer, ElevatedCapabilityTouchInput,
-    ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
+    ApproveCapabilityElevationOperation, CapabilityElevation, CapabilityElevationApprover,
+    CapabilityElevationFacts, CapabilityElevationGrant, CapabilityElevationIdentity,
+    CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
+    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationSlot,
+    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityReview,
+    CapabilityReviewFacts, CapabilityReviewIdentity, CapabilityReviewSlot, CapabilityReviewStatus,
+    CapabilityReviewStatusField, CapabilityReviewer, CompleteCapabilityReviewOperation,
+    ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
+    RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
 };
 
 pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn install(
@@ -112,7 +116,13 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
             Principal::reference(),
             CapabilityReview::reference(),
         )
+        .capability_context_entity_slot(CapabilityElevationSlot::reference())
+        .capability_context_entity_slot(CapabilityReviewSlot::reference())
         .operation(ElevatedCapabilityTouchOperation::reference())
+        .operation(RequestCapabilityElevationOperation::reference())
+        .operation(ApproveCapabilityElevationOperation::reference())
+        .operation(RevokeCapabilityElevationOperation::reference())
+        .operation(CompleteCapabilityReviewOperation::reference())
         .operation_decision_fact_budget(ElevatedCapabilityTouchOperation::reference(), 1)
         .operation_projection_work_budget(ElevatedCapabilityTouchOperation::reference(), 32)
         .operation_read_field(
@@ -271,6 +281,26 @@ fn elevation() -> ApplicationCapabilityElevationRule {
             CapabilityElevationApprover::reference(),
         ),
         ApplicationCapabilityRelationBinding::from_reference(CapabilityElevationGrant::reference()),
+        ApplicationCapabilityElevationLifecycleDefinition::new(
+            ApplicationCapabilityContextEntitySlotBinding::from_reference(
+                CapabilityElevationSlot::reference(),
+            ),
+            ApplicationCapabilityContextEntitySlotBinding::from_reference(
+                CapabilityReviewSlot::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                RequestCapabilityElevationOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                ApproveCapabilityElevationOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                RevokeCapabilityElevationOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                CompleteCapabilityReviewOperation::reference(),
+            ),
+        ),
         ApplicationCapabilityMandatoryReviewDefinition::new(
             ApplicationCapabilityRelationBinding::from_reference(
                 CapabilityElevationReview::reference(),

@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::application_capability::{
     ApplicationCapabilityElevationRule, ApplicationCapabilityFieldBinding,
     ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
@@ -60,7 +62,7 @@ pub(super) fn dependencies_are_closed(
         && relation_exists(members, contract.delegation().grantor())
         && relation_exists(members, contract.delegation().grantee())
         && field_exists(members, contract.delegation().limit())
-        && elevation_dependencies_exist(members, contract.elevation())
+        && elevation_dependencies_exist(members, dimensions, contract.elevation())
     {
         Ok(())
     } else {
@@ -102,12 +104,14 @@ pub(super) fn topology_is_valid(contract: &ErasedApplicationCapabilityContract) 
 
 fn elevation_dependencies_exist(
     members: &[ApplicationSchemaMember],
+    dimensions: &DeclaredCapabilityDimensions<'_>,
     elevation: &ApplicationCapabilityElevationRule,
 ) -> bool {
     let ApplicationCapabilityElevationRule::Governed(elevation) = elevation else {
         return true;
     };
     let review = elevation.review();
+    let lifecycle = elevation.lifecycle();
     [
         elevation.identity(),
         elevation.reason(),
@@ -136,6 +140,12 @@ fn elevation_dependencies_exist(
         ]
         .into_iter()
         .all(|relation| relation_exists(members, relation))
+        && dimensions.entity_slot_exists(lifecycle.elevation_slot())
+        && dimensions.entity_slot_exists(lifecycle.review_slot())
+        && lifecycle
+            .operations()
+            .into_iter()
+            .all(|operation| operation_binding_exists(members, operation))
 }
 
 fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -> bool {
@@ -148,6 +158,7 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
     let elevation_entity = elevation.identity().entity();
     let review = elevation.review();
     let review_entity = review.identity().entity();
+    let lifecycle = elevation.lifecycle();
     elevation.reason().entity() == elevation_entity
         && elevation.status().entity() == elevation_entity
         && elevation.validity().not_before().entity() == elevation_entity
@@ -176,6 +187,45 @@ fn elevation_topology_is_valid(contract: &ErasedApplicationCapabilityContract) -
         && review.reviewer().to() == review_entity
         && review.required().field() == review.status()
         && review.completed().field() == review.status()
+        && distinct_elevation_states(elevation)
+        && review.required().value() != review.completed().value()
+        && lifecycle.elevation_slot().context() == contract.constraints().context()
+        && lifecycle.elevation_slot().context_type() == contract.constraints().context_type()
+        && lifecycle.elevation_slot().entity() == elevation_entity
+        && lifecycle.review_slot().context() == contract.constraints().context()
+        && lifecycle.review_slot().context_type() == contract.constraints().context_type()
+        && lifecycle.review_slot().entity() == review_entity
+        && distinct_lifecycle_operations(contract)
+}
+
+fn distinct_elevation_states(
+    elevation: &crate::application_capability::ApplicationCapabilityElevationDefinition,
+) -> bool {
+    elevation
+        .states()
+        .values()
+        .into_iter()
+        .map(|state| state.value())
+        .collect::<BTreeSet<_>>()
+        .len()
+        == 7
+}
+
+fn distinct_lifecycle_operations(contract: &ErasedApplicationCapabilityContract) -> bool {
+    let ApplicationCapabilityElevationRule::Governed(elevation) = contract.elevation() else {
+        return true;
+    };
+    let operations = elevation.lifecycle().operations();
+    operations
+        .iter()
+        .map(|operation| (operation.operation(), operation.input_type()))
+        .collect::<BTreeSet<_>>()
+        .len()
+        == operations.len()
+        && operations.into_iter().all(|operation| {
+            operation.operation() != contract.operation()
+                || operation.input_type() != contract.input_type()
+        })
 }
 
 fn capability_principal(contract: &ErasedApplicationCapabilityContract) -> Option<&str> {
@@ -201,6 +251,22 @@ fn operation_exists(
                 operation,
                 input_type,
             } if operation == contract.operation() && input_type == contract.input_type()
+        )
+    })
+}
+
+fn operation_binding_exists(
+    members: &[ApplicationSchemaMember],
+    binding: &crate::application_capability::ApplicationCapabilityOperationBinding,
+) -> bool {
+    members.iter().any(|member| {
+        matches!(
+            member,
+            ApplicationSchemaMember::Operation {
+                operation,
+                input_type,
+            } if operation == binding.operation()
+                && input_type == binding.input_type()
         )
     })
 }

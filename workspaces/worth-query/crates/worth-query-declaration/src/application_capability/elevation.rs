@@ -1,6 +1,7 @@
 use super::{
-    ApplicationCapabilityFieldBinding, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValueBinding,
+    ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityFieldBinding,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityValidityDefinition,
+    ApplicationCapabilityValueBinding,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -140,6 +141,7 @@ pub struct ApplicationCapabilityElevationDefinition {
     requester: ApplicationCapabilityRelationBinding,
     approver: ApplicationCapabilityRelationBinding,
     grant: ApplicationCapabilityRelationBinding,
+    lifecycle: ApplicationCapabilityElevationLifecycleDefinition,
     review: ApplicationCapabilityMandatoryReviewDefinition,
 }
 
@@ -154,6 +156,7 @@ impl ApplicationCapabilityElevationDefinition {
         requester: ApplicationCapabilityRelationBinding,
         approver: ApplicationCapabilityRelationBinding,
         grant: ApplicationCapabilityRelationBinding,
+        lifecycle: ApplicationCapabilityElevationLifecycleDefinition,
         review: ApplicationCapabilityMandatoryReviewDefinition,
     ) -> Self {
         Self {
@@ -165,6 +168,7 @@ impl ApplicationCapabilityElevationDefinition {
             requester,
             approver,
             grant,
+            lifecycle,
             review,
         }
     }
@@ -199,6 +203,10 @@ impl ApplicationCapabilityElevationDefinition {
 
     pub const fn grant(&self) -> &ApplicationCapabilityRelationBinding {
         &self.grant
+    }
+
+    pub const fn lifecycle(&self) -> &ApplicationCapabilityElevationLifecycleDefinition {
+        &self.lifecycle
     }
 
     pub const fn review(&self) -> &ApplicationCapabilityMandatoryReviewDefinition {

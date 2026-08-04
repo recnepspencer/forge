@@ -139,7 +139,7 @@ fn emergency_approval_contract_installs_conflict_and_requester_separation() {
 }
 
 #[test]
-fn emergency_view_installs_expired_posture_and_its_own_validity_window() {
+fn emergency_view_installs_expiry_and_exact_lifecycle_roles() {
     let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
     let capability = bank
         .capability(
@@ -168,6 +168,23 @@ fn emergency_view_installs_expired_posture_and_its_own_validity_window() {
     assert_eq!(
         elevation.validity().not_after().field(),
         "EmergencyAccessExpiresAtField"
+    );
+    let lifecycle = elevation.lifecycle();
+    assert_eq!(
+        lifecycle.elevation_slot().slot(),
+        "EstateEmergencyAccessSlot"
+    );
+    assert_eq!(lifecycle.review_slot().slot(), "EstateMandatoryReviewSlot");
+    assert_eq!(
+        lifecycle
+            .operations()
+            .map(|operation| operation.operation()),
+        [
+            "RequestEstateEmergencyAccessOperation",
+            "ApproveEstateEmergencyAccessOperation",
+            "RevokeEstateEmergencyAccessOperation",
+            "CompleteEstateMandatoryReviewOperation",
+        ]
     );
 }
 

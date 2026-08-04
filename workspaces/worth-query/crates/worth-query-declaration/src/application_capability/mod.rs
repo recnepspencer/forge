@@ -1,5 +1,6 @@
 mod canonical_components;
 mod canonical_composition_components;
+mod canonical_elevation_components;
 mod composition;
 mod context;
 mod contract;
@@ -7,6 +8,7 @@ mod currentness;
 mod delegation;
 mod disclosure;
 mod elevation;
+mod elevation_lifecycle;
 mod reference;
 mod request_projection;
 mod rule_clause;
@@ -42,6 +44,9 @@ pub use disclosure::ApplicationCapabilityDisclosureRule;
 pub use elevation::{
     ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
     ApplicationCapabilityElevationStates, ApplicationCapabilityMandatoryReviewDefinition,
+};
+pub use elevation_lifecycle::{
+    ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityOperationBinding,
 };
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,

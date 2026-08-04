@@ -1,9 +1,10 @@
 use worth_query_decl::facade::application_capability::{
-    ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
+    ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityElevationDefinition,
+    ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityElevationRule,
     ApplicationCapabilityElevationStates, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
-    ApplicationCapabilityValueBinding,
+    ApplicationCapabilityMandatoryReviewDefinition, ApplicationCapabilityOperationBinding,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityValidityDefinition,
+    ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
 };
 
 use super::*;
@@ -46,6 +47,26 @@ pub(super) fn rule(
         ApplicationCapabilityRelationBinding::from_reference(EmergencyRequester::reference()),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyApprover::reference()),
         ApplicationCapabilityRelationBinding::from_reference(EmergencyGrant::reference()),
+        ApplicationCapabilityElevationLifecycleDefinition::new(
+            ApplicationCapabilityContextEntitySlotBinding::from_reference(
+                EstateEmergencyAccessSlot::reference(),
+            ),
+            ApplicationCapabilityContextEntitySlotBinding::from_reference(
+                EstateMandatoryReviewSlot::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                RequestEstateEmergencyAccessOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                ApproveEstateEmergencyAccessOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                RevokeEstateEmergencyAccessOperation::reference(),
+            ),
+            ApplicationCapabilityOperationBinding::from_reference(
+                CompleteEstateMandatoryReviewOperation::reference(),
+            ),
+        ),
         ApplicationCapabilityMandatoryReviewDefinition::new(
             ApplicationCapabilityRelationBinding::from_reference(EmergencyReview::reference()),
             ApplicationCapabilityFieldBinding::from_reference(

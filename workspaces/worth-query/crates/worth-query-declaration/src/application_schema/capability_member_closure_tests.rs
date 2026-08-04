@@ -57,6 +57,7 @@ struct ResourceSlot;
 struct MissingResourceSlot;
 struct OtherContext;
 struct OtherResourceSlot;
+type ErasedContract = crate::application_capability::ErasedApplicationCapabilityContract;
 
 #[path = "capability_member_closure_tests/context_anchors.rs"]
 mod context_anchors;
@@ -64,6 +65,8 @@ mod context_anchors;
 mod contract_validation;
 #[path = "capability_member_closure_tests/declared_dimensions.rs"]
 mod declared_dimensions;
+#[path = "capability_member_closure_tests/elevation_lifecycle.rs"]
+mod elevation_lifecycle;
 #[path = "capability_member_closure_tests/fixture_members.rs"]
 mod fixture_members;
 #[path = "capability_member_closure_tests/population_budget.rs"]
@@ -77,9 +80,7 @@ fn build_from_members(
     validate_application_capability_members(&members)
 }
 
-fn members(
-    contract: crate::application_capability::ErasedApplicationCapabilityContract,
-) -> Vec<ApplicationSchemaMember> {
+fn members(contract: ErasedContract) -> Vec<ApplicationSchemaMember> {
     let mut members = vec![
         ApplicationSchemaMember::Entity {
             entity: "Grant".to_string(),
@@ -161,7 +162,7 @@ fn contract(
     wrong_resource_topology: bool,
     changed_purpose: bool,
     disclosure: bool,
-) -> crate::application_capability::ErasedApplicationCapabilityContract {
+) -> ErasedContract {
     contract_with_name_and_composition(
         "Capability",
         wrong_resource_topology,
@@ -174,7 +175,7 @@ fn contract_with_composition(
     wrong_resource_topology: bool,
     changed_purpose: bool,
     composition: ApplicationCapabilityComposition,
-) -> crate::application_capability::ErasedApplicationCapabilityContract {
+) -> ErasedContract {
     contract_with_name_and_composition(
         "Capability",
         wrong_resource_topology,
@@ -188,7 +189,7 @@ fn contract_with_name_and_composition(
     wrong_resource_topology: bool,
     changed_purpose: bool,
     composition: ApplicationCapabilityComposition,
-) -> crate::application_capability::ErasedApplicationCapabilityContract {
+) -> ErasedContract {
     ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier(capability_name),
         ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
