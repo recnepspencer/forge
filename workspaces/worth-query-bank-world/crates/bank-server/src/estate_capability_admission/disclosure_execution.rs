@@ -5,7 +5,8 @@ use bank_domain::schema::{
 use worth_query_host::facade::domain::TypedApplicationValue;
 use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceiptPosture,
+    WorthQueryOperationAuthorizationDenialKind,
 };
 
 use super::fixture::{capability_world, request_scope, GrantSpec, DECEASED, ESTATE};
@@ -51,9 +52,26 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
     );
     assert_eq!(
         disclosure.disclosed(),
-        &[RestrictedBankField::CustomerIdentity.into_foundational_value()]
+        &[
+            RestrictedBankField::CustomerIdentity.into_foundational_value(),
+            RestrictedBankField::CustomerIdentity.into_foundational_value(),
+        ]
     );
     assert!(disclosure.omitted().is_empty());
+    let decisions = disclosure.decisions();
+    assert_eq!(decisions.len(), 2);
+    assert_eq!(disclosure.disclosure_decision_count(), decisions.len());
+    assert!(decisions[0].slot() < decisions[1].slot());
+    for decision in decisions {
+        assert_eq!(
+            decision.required_disclosure(),
+            &RestrictedBankField::CustomerIdentity.into_foundational_value()
+        );
+        assert_eq!(
+            decision.outcome(),
+            WorthQueryApplicationDisclosureOutcome::Disclosed
+        );
+    }
     let installed_capability = fixture
         .runtime
         .application_runtime()
@@ -71,6 +89,7 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
     assert!(disclosure.authorization_decision_fact_count() > 0);
 
     let publication = published.receipt().inspect();
+    assert_eq!(publication.terminal().disclosure(), disclosure);
     assert!(publication.session_identity() > 0);
     assert!(publication.managed_run_identity() > 0);
     assert!(publication.admitted_plan_identity() > 0);

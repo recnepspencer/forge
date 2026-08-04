@@ -1,4 +1,4 @@
-mod contract;
+pub(in crate::domain_computation) mod contract;
 mod decision;
 mod influence_validation;
 mod receipt;

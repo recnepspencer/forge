@@ -116,6 +116,60 @@ fn retired_graph_obligation_authority_has_one_destination_and_exact_residue() {
     }
 }
 
+#[test]
+fn application_disclosure_has_one_owner_and_publication_has_no_policy_lane() {
+    let root = workspace_root();
+    let execution =
+        root.join("workspaces/worth-query/crates/worth-query-execution/src/domain_computation");
+    let authorization = execution.join("authorization");
+    let application_query = execution.join("primary_graph/application_query");
+    let publication_root =
+        root.join("workspaces/worth-query/crates/worth-query-publication/src/domain_computation");
+
+    let receipt_sources = format!(
+        "{}\n{}",
+        rust_source_under(authorization.clone()),
+        rust_source_under(application_query)
+    );
+    assert_eq!(
+        receipt_sources
+            .matches("pub struct WorthQueryApplicationDisclosureReceipt {")
+            .count(),
+        1,
+        "the terminal disclosure receipt must have one authorization-owned definition"
+    );
+    assert!(
+        !rust_source_under(authorization).contains("primary_graph::application_query"),
+        "authorization must not import its application-query audience"
+    );
+
+    let publication_source = format!(
+        "{}\n{}",
+        production_source_without_docs(publication_root.join("application_result.rs")),
+        production_source_without_docs(publication_root.join("application_result")),
+    );
+    for forbidden in [
+        "AspectValue",
+        "ProjectionMask",
+        "DiagnosticMask",
+        "redact",
+        "classification",
+        "disclosure_value",
+    ] {
+        assert!(
+            !publication_source.contains(forbidden),
+            "publication must not own protected-value or disclosure-policy token `{forbidden}`"
+        );
+    }
+    assert_eq!(
+        publication_source
+            .matches("WorthQueryAdmittedDisclosedApplicationResult")
+            .count(),
+        3,
+        "publication input, storage, and function boundary must retain only the admitted shape"
+    );
+}
+
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
@@ -125,6 +179,10 @@ fn workspace_root() -> PathBuf {
 }
 
 fn rust_source_under(root: PathBuf) -> String {
+    if root.is_file() {
+        return fs::read_to_string(&root)
+            .unwrap_or_else(|error| panic!("{} should read: {error}", root.display()));
+    }
     let mut pending = vec![root];
     let mut source = String::new();
     while let Some(path) = pending.pop() {
@@ -146,4 +204,15 @@ fn rust_source_under(root: PathBuf) -> String {
         }
     }
     source
+}
+
+fn production_source_without_docs(root: PathBuf) -> String {
+    rust_source_under(root)
+        .lines()
+        .filter(|line| {
+            let line = line.trim_start();
+            !line.starts_with("///") && !line.starts_with("//!")
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }

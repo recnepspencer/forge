@@ -15,6 +15,8 @@ mod denial;
 mod disclosure;
 mod execution_shape;
 mod execution_validation;
+#[cfg(test)]
+mod governance_affinity_tests;
 mod graph_read_plan_binding;
 mod historical;
 mod live;

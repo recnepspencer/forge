@@ -7,7 +7,7 @@ error[E0624]: associated function `new` is private
  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/application_query/projection.rs
   |
   | /     pub(super) const fn new(
-  | |         node: &'row WorthQueryApplicationProjectionNode,
+  | |         node: WorthQueryApplicationDisclosedProjectionNode<'row>,
   | |         governance: &'row super::disclosure::WorthQueryApplicationQueryGovernance,
   | |     ) -> Self {
   | |_____________- private associated function defined here

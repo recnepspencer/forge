@@ -33,6 +33,16 @@ pub struct WorthQueryPublishedApplicationResult<Query, QueryResult> {
 /// let mask = AspectMask::<ProjectionMask>::whole_aspect();
 /// let _ = publish_application_result::<(), ()>(mask);
 /// ```
+///
+/// A diagnostic mask is equally incapable of opening publication:
+///
+/// ```compile_fail
+/// use worth_foundational::facade::{AspectMask, DiagnosticMask};
+/// use worth_query_publication::facade::domain_computation::publish_application_result;
+///
+/// let diagnostic = AspectMask::<DiagnosticMask>::whole_aspect();
+/// let _ = publish_application_result::<(), ()>(diagnostic);
+/// ```
 pub fn publish_application_result<Query, QueryResult>(
     admitted: WorthQueryAdmittedDisclosedApplicationResult<Query, QueryResult>,
 ) -> WorthQueryPublishedApplicationResult<Query, QueryResult> {

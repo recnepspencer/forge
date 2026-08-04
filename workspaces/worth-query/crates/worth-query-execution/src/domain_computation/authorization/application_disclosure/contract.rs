@@ -223,6 +223,24 @@ fn admit_field_masks(
     WorthQueryAdmittedApplicationDisclosureField,
     WorthQueryApplicationDisclosureContractDenial,
 > {
+    let (projection_mask, diagnostic_mask) = admit_field_mask_categories(layout, selector, field)?;
+    Ok(WorthQueryAdmittedApplicationDisclosureField {
+        entity: field.0.to_string(),
+        aspect: field.1.to_string(),
+        field: field.2.to_string(),
+        projection_mask,
+        _diagnostic_mask: diagnostic_mask,
+    })
+}
+
+pub(in crate::domain_computation) fn admit_field_mask_categories(
+    layout: &WorthQueryPrimaryGraphLayout,
+    selector: &ApplicationQueryDisclosureSelector,
+    field: (&str, &str, &str),
+) -> Result<
+    (AspectMask<ProjectionMask>, AspectMask<DiagnosticMask>),
+    WorthQueryApplicationDisclosureContractDenial,
+> {
     let aspect_key =
         worth_foundational::facade::AspectKey::new(field.1).ok_or_else(|| denial(field.1))?;
     let contract = layout
@@ -242,13 +260,7 @@ fn admit_field_masks(
     contract
         .admits_diagnostic_mask(&diagnostic_mask)
         .map_err(|_| denial(field.1))?;
-    Ok(WorthQueryAdmittedApplicationDisclosureField {
-        entity: field.0.to_string(),
-        aspect: field.1.to_string(),
-        field: field.2.to_string(),
-        projection_mask,
-        _diagnostic_mask: diagnostic_mask,
-    })
+    Ok((projection_mask, diagnostic_mask))
 }
 
 fn require_complete_result_shape<Schema, Query, Parameters, QueryResult, Scope>(

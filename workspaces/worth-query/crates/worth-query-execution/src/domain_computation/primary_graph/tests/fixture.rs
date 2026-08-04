@@ -57,6 +57,15 @@ pub(in crate::domain_computation::primary_graph) use governed_omission_query::{
 #[path = "fixture/governed_hidden_ordering_query.rs"]
 mod governed_hidden_ordering_query;
 pub(in crate::domain_computation::primary_graph) use governed_hidden_ordering_query::GovernedHiddenOrderingQuery;
+#[path = "fixture/forbidden_hidden_ordering_query.rs"]
+mod forbidden_hidden_ordering_query;
+pub(in crate::domain_computation::primary_graph) use forbidden_hidden_ordering_query::ForbiddenHiddenOrderingQuery;
+#[path = "fixture/forbidden_live_identity_queries.rs"]
+mod forbidden_live_identity_queries;
+pub(in crate::domain_computation::primary_graph) use forbidden_live_identity_queries::{
+    forbidden_live_identity_parameters, ForbiddenLiveScopeIdentityQuery,
+    ForbiddenLiveTargetIdentityQuery,
+};
 #[path = "fixture/invalid_disclosure_queries.rs"]
 mod invalid_disclosure_queries;
 pub(super) use invalid_disclosure_queries::{
@@ -301,6 +310,15 @@ worth_query_application_schema! {
                 .application_query(governed_omission_query::governed_account_omission_definition())
                 .application_query(
                     governed_hidden_ordering_query::governed_hidden_ordering_definition(),
+                )
+                .application_query(
+                    forbidden_hidden_ordering_query::forbidden_hidden_ordering_definition(),
+                )
+                .application_query(
+                    forbidden_live_identity_queries::forbidden_live_scope_identity_definition(),
+                )
+                .application_query(
+                    forbidden_live_identity_queries::forbidden_live_target_identity_definition(),
                 )
                 .application_query(governed_root_guard_query::governed_root_guard_definition())
                 .application_query(governed_root_guard_query::forbidden_root_guard_definition())

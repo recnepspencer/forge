@@ -162,13 +162,18 @@ fn require_field_influence(
     let surfaces = surfaces.into_iter().collect::<Vec<_>>();
     rules
         .iter()
-        .all(|rule| {
-            surfaces
-                .iter()
-                .all(|surface| rule.influence().permits(*surface))
-        })
+        .all(|rule| influence_permits_every(rule.influence(), surfaces.iter().copied()))
         .then_some(())
         .ok_or_else(|| denial(field.2))
+}
+
+fn influence_permits_every(
+    influence: &worth_query_declaration::facade::application_query::ApplicationQueryInfluenceContract,
+    surfaces: impl IntoIterator<Item = ApplicationQueryObservableInfluence>,
+) -> bool {
+    surfaces
+        .into_iter()
+        .all(|surface| influence.permits(surface))
 }
 
 fn require_result_influence(
@@ -240,5 +245,33 @@ mod tests {
                 ApplicationQueryObservableInfluence::LiveMembership,
             ])
         );
+    }
+
+    #[test]
+    fn every_implemented_observable_is_an_independent_required_permission() {
+        let implemented = [
+            ApplicationQueryObservableInfluence::RowPresence,
+            ApplicationQueryObservableInfluence::Ordering,
+            ApplicationQueryObservableInfluence::Pagination,
+            ApplicationQueryObservableInfluence::Count,
+            ApplicationQueryObservableInfluence::HistoricalMembership,
+            ApplicationQueryObservableInfluence::Preview,
+            ApplicationQueryObservableInfluence::LiveMembership,
+        ];
+
+        for missing in implemented {
+            let influence =
+                worth_query_declaration::facade::application_query::ApplicationQueryInfluenceContract::permit(
+                    implemented.into_iter().filter(|surface| *surface != missing),
+                );
+            assert!(
+                !influence_permits_every(&influence, implemented),
+                "omitting {missing:?} must deny the complete observable cone"
+            );
+            assert!(
+                !influence_permits_every(&influence, [missing]),
+                "{missing:?} must not be implied by another permission"
+            );
+        }
     }
 }
