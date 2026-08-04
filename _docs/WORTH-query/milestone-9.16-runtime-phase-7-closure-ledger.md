@@ -130,11 +130,11 @@ Query product.
 | Q7.66 | High | The first four Phase 7.6 checkpoints did not require the lifecycle values to be distinct, and the request, approval, revocation, and review-completion operations plus their context slots remained unbound Bank schema members. A governed capability could therefore install aliased posture, reuse or omit lifecycle operations, swap operation roles without changing capability identity, or point a transition at the wrong context entity. | **CLOSED** | The corrected contract separates four persisted elevation states (`requested`, `approved`, `expired`, `revoked`) from the mandatory-review entity's distinct `required`/`completed` status; active posture is derived from approved state plus Query time. It also owns exact elevation/review slots and four typed operation roles. Canonical identity and member closure cover every value, slot, marker/input dimension, exact context/entity topology, role uniqueness, operation presence, and active-use exclusion. Declaration and runtime role-index evidence was rerun after the correction; Bank retains the exact bindings. |
 | Q7.67 | Critical | The installed lifecycle contract closed role uniqueness only inside one governed capability. Two different governed capabilities could claim the same executable operation name and input under different Rust marker types, leaving no single authority for deciding which lifecycle and role an admitted operation progresses. Comparing marker type as part of ownership would not close the defect because installed executable operation identity is name plus input type. | **CLOSED** | Declaration member closure now rejects lifecycle operation reuse across all governed capabilities by exact executable name/input before installation. The runtime compiler independently indexes each canonical marker/name/input role to one capability identity and rejects duplicate executable ownership defensively. An adversarial schema uses two different request marker types over the same executable operation and is rejected; the production elevated runtime compiles exactly four roles and resolves the exact typed request role. |
 | Q7.68 | Critical | The first lifecycle-index checkpoint queried the exact lifecycle role during ordinary operation progression but discarded a successful lookup. Once an application supplied a matching lifecycle input and operation program, the ordinary authorization and compare-and-commit APIs could have progressed the transition without its dedicated typestate. | **CLOSED** | Ordinary operation progression denies every indexed lifecycle role as `ElevationTransitionRequired`, and ordinary compare-and-commit denies every request, approval, close, or review lifecycle binding. Each role now has one dedicated authorization, non-constructible program, typed outcome, and provider entry. Representative request, approval, and close tests exercise both ordinary cutoffs; the common authorization-basis match makes review part of the same exhaustive structural denial. |
-| Q7.69 | Critical | The initial lifecycle model stored `active`, `review-required`, and `reviewed` beside elevation state while also storing mandatory-review `required`/`completed`, creating competing posture authorities; it also accepted an arbitrary caller duration with no installed maximum. | **OPEN** | The generic Query fixture now persists only requested/approved/expired/revoked, derives active posture from approved plus Query-owned time, and keeps review state on the review entity. The Bank value surface and oracles still admit the legacy active/review-required/reviewed values beside separate review status, so Phase 7.7 consumer migration must remove that competing posture authority before this row can close. The installed maximum-duration correction remains proved. |
+| Q7.69 | Critical | The initial lifecycle model stored `active`, `review-required`, and `reviewed` beside elevation state while also storing mandatory-review `required`/`completed`, creating competing posture authorities; it also accepted an arbitrary caller duration with no installed maximum. | **CLOSED** | Query and Bank both persist only requested/approved/expired/revoked elevation states, derive active posture from approved plus Query-owned time, and keep required/completed state solely on the mandatory-review entity. Bank schema value conversion and its independent integrity oracle accept no legacy active/review-required/reviewed elevation values. The installed maximum duration remains enforced. |
 | Q7.70 | Critical | The first request binder resolved the proposed upper-bound grant only as an entity of the installed grant kind. A requester could therefore persist an elevation linked to a different, revoked, future, or unrelated grant even though the request command itself was authorized. | **CLOSED** | The request binder independently resolves the proposed governed grant, proves that exact grant authorizes the complete governed target under the cold pre-elevation policy, and retains that supporting decision separately from command authority. Hostile same-kind and command-only grants are rejected before lifecycle operation authority or effects exist. |
 | Q7.71 | Critical | The first requested receipt retained lifecycle identity and commit proof but not the exact upper authority that the request proposed. A later approval or active-use path could therefore attach equivalent-looking or independently valid capability scope without proving it was the requested bound. | **CLOSED** | The request binding and receipt retain the exact action, purpose, disclosure field, amount, cardinality, resource, context, principal, authorizing grant, and elevation. Approval carries that bound forward, and approved active use exact-compares every dimension. Narrowed-amount and alternate-valid-elevation attacks deny. |
 | Q7.72 | Critical | Governed active use originally accepted a raw elevation selector through ordinary capability admission, so possessing an approved typestate receipt was not required to open elevated authority. | **CLOSED** | Ordinary admission rejects governed elevation contracts as `ElevationTransitionRequired`. The only active-use entry accepts a borrowed move-only approved receipt, verifies runtime and branch affinity plus the complete retained upper bound, and then reuses the ordinary capability evaluator and current graph/time checks. Raw-selector and foreign-runtime attacks deny. |
-| Q7.73 | Critical | Bank lifecycle capability composition currently requires output actor relationships such as approver and reviewer as preconditions even though the lifecycle transitions are responsible for creating those relationships. That makes the consumer transition circular or impossible. | **OPEN** | The generic approval contract distinguishes input requester evidence from the approver relation it writes. The Phase 7.7 Bank cutover must migrate the corresponding request/approval/review composition and prove each transition from its true pre-state. |
+| Q7.73 | Critical | Bank lifecycle capability composition currently requires output actor relationships such as approver and reviewer as preconditions even though the lifecycle transitions are responsible for creating those relationships. That makes the consumer transition circular or impossible. | **CLOSED** | Bank approval actor composition reads only the exact requester prestate and writes the approver relation; review composition reads requester and approver prestate and writes the reviewer relation. The public Bank request-to-approval journey commits from no approver prestate with a distinct assigned employee, while an independently command-authorized requester is denied self-approval. Existing declaration projection evidence separately proves output actors are not required as prestate. |
 | Q7.74 | Critical | The first shared lifecycle-fact validator represented absent approver or reviewer state as one empty exact source/target pair. A different actor's existing relation could therefore survive while the validator claimed the complete actor set was empty. | **CLOSED** | All five lifecycle relations are now bounded whole-adjacency facts: requester, approver, and reviewer use exact incoming sets; grant and review use exact outgoing sets. Fresh approval rejects any preexisting approver, provider recomparison stales duplicate-approver drift before close, and concurrent completed-review state stales both review status and reviewer adjacency. |
 | Q7.75 | Critical | Mandatory-review status is persisted as `required` at request creation, so treating that value alone as actionable review authority would permit review before the elevation had closed. | **CLOSED** | Only successful revoked/expired close consumes the approved receipt and mints the move-only `WorthQueryMandatoryReview`. Review authorization consumes that obligation, exact program validation also requires terminal elevation state plus required review state, and ordinary review operation progression remains forbidden. |
 | Q7.76 | Critical | A close projection or generic mutation surface that accepted caller-authored terminal posture could label an unexpired revocation as expiry or preserve approved posture after close. | **CLOSED** | Close input carries no status or time. Query samples its private installed timeline, derives `expired` exactly at or after the retained end bound and `revoked` otherwise, materializes one exact status effect, and returns the derived closure kind and time in the mandatory-review receipt. Independent storage observations prove both branches. |
@@ -148,6 +148,8 @@ Query product.
 | Q7.84 | Critical | The generic lifecycle fixture still gave request, approval, revoke, and review the governed `Touch / AccountMaintenance / disclosure / amount` target and let one governed grant authorize every actor. The suite could therefore pass while recreating Q7.82 under fixture names, and close actor authorization still traversed the carried governed grant. | **CLOSED** | The generic world now installs four distinct command actions and four actor-specific command grants with no governed field or amount. Request independently carries the governed grant; approval and review bind exact context subjects; close requires both the command grant and an exact elevation/approver path through review-resource scope without traversing the governed grant. Wrong-elevation approval and close probes prove command authority cannot consume another lifecycle subject. |
 | Q7.85 | High | The two-axis correction proved only that governed view authority could not substitute for request-command authority. It did not prove the reverse direction or that the separately retained governed decision remained current through provider commit. | **CLOSED** | Bank now proves a request-command-only grant cannot become the governed restricted-view upper bound. The generic provider proof materializes an authorized request, revokes the governed grant before commit, and receives `ProviderRejected / DecisionReadSet` with no lifecycle publication. |
 | Q7.86 | Critical | Bank's revoke projection discarded `EstateAction::RevokeEmergencyAccess.access` and supplied no `EstateEmergencyAccessSlot`, while Query's close binder requires the exact selected elevation subject. The future Phase 7.7 revoke cutover was therefore impossible despite the contract compiling. | **CLOSED** | The Bank revoke projection now selects the exact emergency-access identity in the installed elevation slot, matching approval and review subject binding. A direct projection test proves the one exact slot, entity kind, and identity value. |
+| Q7.87 | Critical | Query automatically anchored every grant-kind traversal in installed composition policy to the grant authorizing the current command. A context-anchored approval or review actor path that traversed the lifecycle's carried governed grant therefore could not match when command and carried authority were honestly distinct, silently disabling requester/approver separation. | **CLOSED** | Capability lowering now retains the command-grant anchor only until an exact context anchor has selected the lifecycle object; a later grant traversal remains the carried relationship fact instead of impersonating command authority. Bank's causal control gives one principal independent approval-command authority and proves that principal may approve another request but cannot approve its own. A distinct approver commits the public Query approval transition while all 46 generic elevation tests remain green. |
+| Q7.88 | Critical | Capability observation required the projected context set to equal only the context anchors traversed by graph policy. Bank's revoke command correctly selected the emergency-access subject required by Query's close binder, but its simple employee authorization graph did not traverse that subject, so Query rejected the honest command before lifecycle authority. The generic close fixture concealed the defect by embedding its subject in an authorization path. | **CLOSED** | Observation still requires every graph-policy anchor but permits additional schema-declared, exactly resolved operation context. Such context opens no graph authority, remains part of the retained request, is recomputed at operation progression, and is consumed by the specialized lifecycle binder. The public Bank close proves an unanchored command subject reaches exact receipt comparison; the complete 496-test execution suite proves ordinary capability and elevation behavior remain intact. |
 
 ## Phase 7.1 closure evidence
 
@@ -935,6 +937,89 @@ out-of-scope files: the transitive Clippy run reports `20` findings in
 violations across other workspace families. No reported item is in this QA's
 changed lifecycle surface. R7.13-R7.15 and R7.27-R7.28 remain Phase 7.7 work;
 Q7.69 and Q7.73 remain open at that consumer cutover.
+
+### Phase 7.7A public approval and actor-path QA checkpoint
+
+The first Phase 7.7 progression slice carries a real Bank request receipt into
+the public Query approval transition. Bank resolves the approval command
+capability and operation independently, consumes the move-only requested
+receipt, derives the exact emergency-access and mandatory-review identities
+from that receipt, seals all eight lifecycle fields and six relation
+adjacencies, materializes Query's specialized approval program, and commits the
+derived approved state plus approver relationship. Command authority remains
+separate from the governed restricted-estate upper bound throughout.
+
+Concern QA also corrected the ledger itself. Q7.69's claimed Bank legacy
+statuses and Q7.73's claimed output-actor preconditions were stale against the
+current schema, oracle, and capability composition, so both rows now close on
+source and public-transition evidence. The same hostile journey opened and
+closed Q7.87: automatic command-grant anchoring had made a context-selected
+actor path miss the lifecycle's separately carried grant. Query now stops
+command-grant anchoring after an exact context object has been selected.
+
+Current evidence includes:
+
+- all `46` generic capability-elevation tests;
+- all `25` Bank server unit tests, every Bank server integration target, and
+  all `6` Bank server compile-fail documentation tests;
+- a public lawful request-to-approval journey with distinct command and
+  governed grants, plus a causal self-approval test whose requester first
+  proves independent approval-command authority over another request;
+- strict dependency-excluding `-D warnings` Clippy for Query execution and
+  Bank server, formatting, diff-whitespace validation, and direct dirty-Rust
+  line/function scrutiny;
+- the Road 1 Cargo-topology boundary check and generated agent-context check.
+
+The Bash line-cap wrapper remains unavailable in this Windows environment;
+direct inventory keeps every dirty Rust file below `400` lines. This checkpoint
+does not close Phase 7.7: Bank close, mandatory review, elevated-use query
+consumption across all public lanes, explanation/publication parity, locality,
+legacy oracle removal, and residue still remain under R7.13-R7.15,
+R7.27-R7.28, and Q7.52.
+
+### Phase 7.7B public close and mandatory-review checkpoint
+
+The second Phase 7.7 progression slice completes the public Bank emergency
+lifecycle. A real approved receipt now enters Bank's revoke command, Query
+selects revoked versus expired posture from its installed trusted timeline,
+and the resulting mandatory-review obligation alone can enter completion.
+Bank derives close projection from the exact emergency-access command subject,
+discovers its review through the retained whole `EmergencyReview` adjacency,
+and requires exactly one target. Review completion projects both command
+subjects directly. Query independently compares every selected entity with the
+move-only receipt before materializing either specialized program.
+
+The integrated journey authenticates separate requester, approver, and
+reviewer principals and gives each operation its own command grant. It commits
+request, approval, revoked close, and completed review through the public Bank
+runtime. The lifecycle fact owner now serves all three terminal transitions,
+sealing the same eight fields and six whole-adjacency facts without duplicating
+policy or effect meaning.
+
+QA opened and closed Q7.88. Query had equated operation context with graph-path
+context, rejecting Bank's exact close subject merely because the close allow
+rule did not traverse it. Observation now requires every policy anchor while
+allowing other schema-declared, exactly resolved command context. That context
+does not participate in graph authorization and cannot open authority; it is
+retained, recomputed, and consumed only by the specialized lifecycle binder.
+
+Current evidence includes:
+
+- all `496` Query execution library tests, including all `46` focused
+  capability-elevation tests;
+- the complete Bank server suite with `26` unit tests, every integration
+  target, and all `6` compile-fail documentation tests;
+- strict dependency-excluding `-D warnings` Clippy for Query execution and
+  Bank server; and
+- a direct dirty-file composition inventory with all Rust files below the
+  `400`-line cap.
+
+This checkpoint advances but does not close R7.13. The remaining Phase 7.7
+consumer work is the administration-governed estate query and other installed
+estate commands, cross-lane elevated-use re-admission, complete typed
+diagnostic/publication comparison, warm locality across every named growth
+axis, Bank-oracle authority removal, and final residue/courtroom certification.
+Q7.52, R7.13-R7.15, R7.27-R7.28, and R7.L remain open.
 
 ## Test-selection policy
 

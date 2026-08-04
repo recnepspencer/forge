@@ -300,10 +300,9 @@ fn validate_projection_shape(
                 .map(path_preparation::context_key)
         })
         .collect::<BTreeSet<_>>();
-    if expected_context.len() != projection.context.len()
-        || !expected_context
-            .iter()
-            .all(|key| projection.context.contains_key(key))
+    if !expected_context
+        .iter()
+        .all(|key| projection.context.contains_key(key))
     {
         return Err(projection_denial(installed.contract.name()));
     }

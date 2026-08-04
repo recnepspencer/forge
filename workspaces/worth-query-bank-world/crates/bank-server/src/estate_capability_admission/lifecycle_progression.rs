@@ -5,11 +5,14 @@ use bank_domain::estate::{
     RestrictedBankField,
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationRequestOutcome,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationApprovalOutcome,
+    WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
+    WorthQueryMandatoryReviewOutcome,
 };
 
 use super::fixture::{
-    capability_world, emergency_request_world, request_scope, GrantSpec, ESTATE, GRANT,
+    capability_world, emergency_request_world, request_scope, GrantSpec,
+    APPROVER_UPPER_BOUND_GRANT, ESTATE, GRANT,
 };
 use crate::estate_progression::BankEstateProgressionDenial;
 
@@ -123,4 +126,208 @@ fn request_command_grant_cannot_substitute_for_governed_upper_bound_authority() 
         denial.kind(),
         worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied
     );
+}
+
+#[test]
+fn distinct_approver_commits_the_public_query_approval_transition() {
+    let fixture = emergency_request_world(
+        "estate-emergency-approval",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let requested = request_elevation(&fixture, &requester, GRANT, 331, 332, 61);
+    let approver = fixture.authenticate_approver();
+
+    let outcome = fixture
+        .runtime
+        .approve_estate_emergency_access(
+            &approver,
+            requested,
+            EstateAction::ApproveEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(331).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new([62; 32], [63; 32]),
+            &request_scope(),
+        )
+        .expect("a distinct assigned employee should reach Query approval");
+    let WorthQueryElevationApprovalOutcome::Approved(approved) = outcome else {
+        panic!("the exact approval should commit once: {outcome:?}");
+    };
+
+    assert_ne!(approved.requester(), approved.approver());
+    assert_eq!(approved.approval_commit_receipt().changed_record_count(), 3);
+}
+
+#[test]
+fn requester_cannot_approve_their_own_elevation() {
+    let fixture = emergency_request_world(
+        "estate-emergency-self-approval",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let requested = request_elevation(&fixture, &requester, GRANT, 341, 342, 71);
+    let other_requester = fixture.authenticate_approver();
+    let other_requested = request_elevation(
+        &fixture,
+        &other_requester,
+        APPROVER_UPPER_BOUND_GRANT,
+        343,
+        344,
+        75,
+    );
+
+    fixture
+        .runtime
+        .approve_estate_emergency_access(
+            &requester,
+            other_requested,
+            EstateAction::ApproveEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(343).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new([77; 32], [78; 32]),
+            &request_scope(),
+        )
+        .expect("the requester independently holds approval-command authority");
+
+    let denial = fixture
+        .runtime
+        .approve_estate_emergency_access(
+            &requester,
+            requested,
+            EstateAction::ApproveEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(341).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new([72; 32], [73; 32]),
+            &request_scope(),
+        )
+        .expect_err("the distinct-actor rule must reject self approval");
+    let BankEstateProgressionDenial::Authorization(denial) = denial else {
+        panic!("self approval must fail during command authorization: {denial:?}");
+    };
+    assert_eq!(
+        denial.kind(),
+        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+    );
+}
+
+#[test]
+fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
+    let fixture = emergency_request_world(
+        "estate-emergency-close-review",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let requested = request_elevation(&fixture, &requester, GRANT, 351, 352, 81);
+    let approver = fixture.authenticate_approver();
+    let approved = approve_elevation(&fixture, &approver, requested, 351, 83);
+
+    let close = fixture
+        .runtime
+        .revoke_estate_emergency_access(
+            &approver,
+            approved,
+            EstateAction::RevokeEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(351).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new([85; 32], [86; 32]),
+            &request_scope(),
+        )
+        .expect("the approved elevation should reach Query close");
+    let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
+        panic!("the exact close should commit once: {close:?}");
+    };
+    assert_eq!(mandatory.closure_kind(), WorthQueryElevationClosureKind::Revoked);
+    assert_eq!(mandatory.close_commit_receipt().changed_record_count(), 2);
+
+    let reviewer = fixture.authenticate_reviewer();
+    let review = fixture
+        .runtime
+        .complete_estate_mandatory_review(
+            &reviewer,
+            mandatory,
+            EstateAction::CompleteMandatoryReview {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(351).unwrap(),
+                review: MandatoryReviewId::new(352).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new([87; 32], [88; 32]),
+            &request_scope(),
+        )
+        .expect("a distinct reviewer should reach Query review completion");
+    let WorthQueryMandatoryReviewOutcome::Reviewed(reviewed) = review else {
+        panic!("the exact review should commit once: {review:?}");
+    };
+    assert_ne!(reviewed.reviewer(), reviewed.requester());
+    assert_ne!(reviewed.reviewer(), reviewed.approver());
+    assert_eq!(reviewed.review_commit_receipt().changed_record_count(), 3);
+}
+
+fn approve_elevation(
+    fixture: &super::fixture::CapabilityFixture,
+    approver: &crate::BankAuthenticatedPrincipal,
+    requested: worth_query_host::facade::primary_graph::WorthQueryRequestedElevation,
+    access: u64,
+    idempotency: u8,
+) -> worth_query_host::facade::primary_graph::WorthQueryApprovedElevation {
+    let outcome = fixture
+        .runtime
+        .approve_estate_emergency_access(
+            approver,
+            requested,
+            EstateAction::ApproveEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(access).unwrap(),
+            },
+            WorthQueryApplicationIdempotencyBinding::new(
+                [idempotency; 32],
+                [idempotency + 1; 32],
+            ),
+            &request_scope(),
+        )
+        .expect("the terminal lifecycle prerequisite approval should commit");
+    let WorthQueryElevationApprovalOutcome::Approved(approved) = outcome else {
+        panic!("the terminal prerequisite approval must be fresh: {outcome:?}");
+    };
+    approved
+}
+
+fn request_elevation(
+    fixture: &super::fixture::CapabilityFixture,
+    requester: &crate::BankAuthenticatedPrincipal,
+    grant: bank_domain::estate::CapabilityGrantId,
+    access: u64,
+    review: u64,
+    idempotency: u8,
+) -> worth_query_host::facade::primary_graph::WorthQueryRequestedElevation {
+    let outcome = fixture
+        .runtime
+        .request_estate_emergency_access(
+            requester,
+            EstateAction::RequestEmergencyAccess {
+                estate: ESTATE,
+                access: EmergencyAccessId::new(access).unwrap(),
+                review: MandatoryReviewId::new(review).unwrap(),
+                grant,
+                reason: EmergencyAccessReason::PreventImmediateLoss,
+                field: RestrictedBankField::AccountDetails,
+                duration: Duration::from_secs(300),
+            },
+            WorthQueryApplicationIdempotencyBinding::new(
+                [idempotency; 32],
+                [idempotency + 1; 32],
+            ),
+            &request_scope(),
+        )
+        .expect("the approval prerequisite request should commit");
+    let WorthQueryElevationRequestOutcome::Requested(requested) = outcome else {
+        panic!("the approval prerequisite must be fresh: {outcome:?}");
+    };
+    requested
 }

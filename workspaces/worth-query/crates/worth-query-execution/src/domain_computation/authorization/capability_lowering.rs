@@ -27,9 +27,10 @@ use super::capability_binding_lowering::{
 };
 use super::capability_registry::WorthQueryCapabilityDelegationBindings;
 use super::capability_registry::{
-    field_binding, WorthQueryCapabilityGrantWitnessBinding, WorthQueryCapabilityPathTemplate,
-    WorthQueryCapabilityRequestGuard, WorthQueryCapabilityRequestValueAxis,
-    WorthQueryCapabilityUpperBoundBindings, WorthQueryInstalledCapabilityPlan,
+    field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityGrantWitnessBinding,
+    WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRequestGuard,
+    WorthQueryCapabilityRequestValueAxis, WorthQueryCapabilityUpperBoundBindings,
+    WorthQueryInstalledCapabilityPlan,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
@@ -265,11 +266,12 @@ fn compile_graph_rule(
             let plan = lower_authorization_path(layout, clause.path())?;
             let guard = lower_guard(contract, clause.guard())?;
             let anchors = lower_context_anchors(contract, layout, clause)?;
+            let grant_ordinal = command_grant_ordinal(contract, clause.path(), &anchors)?;
             paths.push(WorthQueryCapabilityPathTemplate {
                 plan,
                 identity: clause_identity(capability, path_index),
                 guard,
-                grant_ordinal: grant_ordinal(contract, clause.path())?,
+                grant_ordinal,
                 elevation_ordinals: Vec::new(),
                 context_anchors: anchors,
             });
@@ -301,6 +303,15 @@ fn grant_ordinal(
         }
     }
     Ok(found)
+}
+
+fn command_grant_ordinal(
+    contract: &ErasedApplicationCapabilityContract,
+    path: &ApplicationAuthorizationPath,
+    context: &[WorthQueryCapabilityContextAnchor],
+) -> Result<Option<usize>, WorthQueryOperationAuthorizationDenial> {
+    let grant = grant_ordinal(contract, path)?;
+    Ok(grant.filter(|grant| !context.iter().any(|anchor| anchor.ordinal < *grant)))
 }
 
 pub(super) fn bridge_rule(

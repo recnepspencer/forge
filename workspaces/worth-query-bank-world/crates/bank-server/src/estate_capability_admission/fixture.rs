@@ -2,32 +2,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[path = "fixture/authentication.rs"]
 mod authentication;
+#[path = "fixture/grant_spec.rs"]
+mod grant_spec;
+#[path = "fixture/world.rs"]
+mod world;
 
 pub(super) use authentication::request_scope;
+pub(super) use grant_spec::GrantSpec;
 use authentication::{
     authentication_configuration, block_on, external_identity, TestAuthenticationAdapter,
     TestCredential,
 };
+use world::{install_fixture_world, FixtureWorldSpec};
 use bank_domain::estate::{
-    BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityGrantStatus,
-    CapabilityValidity, DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction,
-    EstateActorContext, EstateBranch, EstateCapabilityGrant, EstateCapabilityOperation,
-    EstateCapabilityPurpose, EstateCapabilityScope, EstateCapabilityUse, EstateCase, EstateCaseId,
-    EstateCaseStatus, EstateDeathNotice, EstateDecision, EstateEmployeeAssignment,
+    BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityValidity,
+    DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction, EstateActorContext,
+    EstateBranch, EstateCapabilityGrant, EstateCapabilityScope, EstateCapabilityUse, EstateCase,
+    EstateCaseId, EstateCaseStatus, EstateDeathNotice, EstateDecision, EstateEmployeeAssignment,
     EstateLegalAuthority, EstateMoment, EstateWorkflowStage, LegalAuthorityId, LegalAuthorityKind,
-    RestrictedBankField,
 };
 use bank_domain::model::{
-    AccountId, AccountName, BankPrincipalId, BankSnapshotVersion, EmployeeAssignmentId,
-    EmployeeRole, InstitutionId, Money, USD,
+    AccountId, BankPrincipalId, EmployeeAssignmentId, EmployeeRole, InstitutionId,
 };
-use bank_domain::proposals::BankSnapshotBuilder;
-use bank_domain::schema::AccountStatus;
 use worth_query_host::facade::declaration::authentication::WorthQueryExternalPrincipalIdentity;
 
 use crate::{
-    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankEmployeeAssignmentSeed,
-    BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed,
+    BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankIdentityRuntime,
 };
 
 pub(super) const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
@@ -39,93 +39,23 @@ pub(super) const DECEASED: BankPrincipalId = BankPrincipalId::new(6).unwrap();
 pub(super) const SPECIALIST: BankPrincipalId = BankPrincipalId::new(7).unwrap();
 pub(super) const EXECUTOR: BankPrincipalId = BankPrincipalId::new(8).unwrap();
 pub(super) const ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(9).unwrap();
+pub(super) const APPROVER: BankPrincipalId = BankPrincipalId::new(13).unwrap();
+pub(super) const APPROVER_ASSIGNMENT: EmployeeAssignmentId =
+    EmployeeAssignmentId::new(14).unwrap();
+pub(super) const REVIEWER: BankPrincipalId = BankPrincipalId::new(15).unwrap();
+pub(super) const REVIEWER_ASSIGNMENT: EmployeeAssignmentId =
+    EmployeeAssignmentId::new(16).unwrap();
 pub(super) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
 pub(super) const OTHER_AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(11).unwrap();
 pub(super) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();
 pub(super) const COMMAND_GRANT: CapabilityGrantId = CapabilityGrantId::new(21).unwrap();
-
-pub(super) struct GrantSpec {
-    pub(super) operation: EstateCapabilityOperation,
-    pub(super) purpose: EstateCapabilityPurpose,
-    pub(super) account: Option<AccountId>,
-    pub(super) field: Option<RestrictedBankField>,
-    pub(super) amount_ceiling: Option<Money<USD>>,
-    pub(super) status: CapabilityGrantStatus,
-    pub(super) not_before: u64,
-    pub(super) not_after: u64,
-    pub(super) workflow: EstateWorkflowStage,
-}
-
-impl GrantSpec {
-    pub(super) fn view() -> Self {
-        Self {
-            operation: EstateCapabilityOperation::ViewRestrictedEstate,
-            purpose: EstateCapabilityPurpose::EstateAdministration,
-            account: None,
-            field: Some(RestrictedBankField::CustomerIdentity),
-            amount_ceiling: None,
-            status: CapabilityGrantStatus::Active,
-            not_before: 0,
-            not_after: u64::MAX,
-            workflow: EstateWorkflowStage::Administration,
-        }
-    }
-
-    pub(super) fn freeze() -> Self {
-        Self {
-            operation: EstateCapabilityOperation::FreezeAccount,
-            purpose: EstateCapabilityPurpose::EstateAdministration,
-            account: Some(ACCOUNT),
-            field: None,
-            ..Self::view()
-        }
-    }
-
-    pub(super) fn identity_verification() -> Self {
-        Self {
-            purpose: EstateCapabilityPurpose::IdentityVerification,
-            ..Self::view()
-        }
-    }
-
-    pub(super) fn emergency_view() -> Self {
-        Self {
-            purpose: EstateCapabilityPurpose::EmergencyProtection,
-            field: Some(RestrictedBankField::AccountDetails),
-            ..Self::view()
-        }
-    }
-
-    pub(super) fn emergency_request() -> Self {
-        Self {
-            operation: EstateCapabilityOperation::RequestEmergencyAccess,
-            purpose: EstateCapabilityPurpose::EmergencyProtection,
-            field: None,
-            ..Self::view()
-        }
-    }
-
-    pub(super) fn disburse(maximum_minor_units: i64) -> Self {
-        Self {
-            operation: EstateCapabilityOperation::DisburseEstate,
-            purpose: EstateCapabilityPurpose::EstateDisbursement,
-            account: Some(ACCOUNT),
-            field: None,
-            amount_ceiling: Some(Money::from_minor(maximum_minor_units).unwrap()),
-            ..Self::view()
-        }
-    }
-
-    pub(super) fn recognize() -> Self {
-        Self {
-            operation: EstateCapabilityOperation::RecognizeExecutor,
-            purpose: EstateCapabilityPurpose::LegalCompliance,
-            account: None,
-            field: None,
-            ..Self::view()
-        }
-    }
-}
+pub(super) const APPROVAL_GRANT: CapabilityGrantId = CapabilityGrantId::new(22).unwrap();
+pub(super) const SELF_APPROVAL_GRANT: CapabilityGrantId = CapabilityGrantId::new(23).unwrap();
+pub(super) const APPROVER_REQUEST_GRANT: CapabilityGrantId = CapabilityGrantId::new(24).unwrap();
+pub(super) const APPROVER_UPPER_BOUND_GRANT: CapabilityGrantId =
+    CapabilityGrantId::new(25).unwrap();
+pub(super) const CLOSE_GRANT: CapabilityGrantId = CapabilityGrantId::new(26).unwrap();
+pub(super) const REVIEW_GRANT: CapabilityGrantId = CapabilityGrantId::new(27).unwrap();
 
 pub(super) struct CapabilityFixture {
     pub(super) runtime: BankIdentityRuntime,
@@ -133,17 +63,34 @@ pub(super) struct CapabilityFixture {
     workflow_stage: EstateWorkflowStage,
     authentication: BankAuthenticationBoundary<TestAuthenticationAdapter>,
     specialist_identity: WorthQueryExternalPrincipalIdentity,
+    approver_identity: WorthQueryExternalPrincipalIdentity,
+    reviewer_identity: WorthQueryExternalPrincipalIdentity,
 }
 
 impl CapabilityFixture {
     pub(super) fn authenticate(&self) -> BankAuthenticatedPrincipal {
+        self.authenticate_identity(self.specialist_identity.clone())
+    }
+
+    pub(super) fn authenticate_approver(&self) -> BankAuthenticatedPrincipal {
+        self.authenticate_identity(self.approver_identity.clone())
+    }
+
+    pub(super) fn authenticate_reviewer(&self) -> BankAuthenticatedPrincipal {
+        self.authenticate_identity(self.reviewer_identity.clone())
+    }
+
+    fn authenticate_identity(
+        &self,
+        identity: WorthQueryExternalPrincipalIdentity,
+    ) -> BankAuthenticatedPrincipal {
         let request = request_scope();
         block_on(self.runtime.authenticate_with(
             &self.authentication,
-            TestCredential(self.specialist_identity.clone()),
+            TestCredential(identity),
             &request,
         ))
-        .expect("the mapped specialist should authenticate")
+        .expect("the mapped employee should authenticate")
     }
 
     pub(super) fn oracle_decision(&self, action: EstateAction) -> EstateDecision {
@@ -201,88 +148,26 @@ fn capability_world_with_command_grant(
     unrelated_grants: usize,
     install_command_grant: bool,
 ) -> CapabilityFixture {
-    let identities = [
-        external_identity(scenario, "deceased"),
-        external_identity(scenario, "specialist"),
-        external_identity(scenario, "executor"),
-    ];
-    let mut snapshot = BankSnapshotBuilder::new(BankSnapshotVersion::new(1).unwrap())
-        .institution(INSTITUTION)
-        .principal(DECEASED)
-        .principal(SPECIALIST)
-        .principal(EXECUTOR)
-        .personal_account(
-            ACCOUNT,
-            INSTITUTION,
-            DECEASED,
-            AccountName::new("Estate Operating").unwrap(),
-            AccountStatus::Frozen,
-        )
-        .personal_account(
-            OTHER_ACCOUNT,
-            INSTITUTION,
-            EXECUTOR,
-            AccountName::new("Executor Settlement").unwrap(),
-            AccountStatus::Open,
-        );
-    for ordinal in 0..unrelated_grants {
-        snapshot = snapshot.principal(extra_principal(ordinal));
-    }
-    let snapshot = snapshot
-        .build()
-        .expect("capability fixture snapshot should be valid");
-    let holder = if specialist_holds_authority {
-        SPECIALIST
-    } else {
-        EXECUTOR
-    };
-    let mut estate = base_estate(case_stage, holder).with_grant(grant(GRANT, SPECIALIST, spec));
-    if install_command_grant {
-        estate = estate.with_grant(grant(
-            COMMAND_GRANT,
-            SPECIALIST,
-            GrantSpec::emergency_request(),
-        ));
-    }
-    for ordinal in 0..unrelated_grants {
-        estate = estate.with_grant(grant(
-            CapabilityGrantId::new(2_000 + ordinal as u64).unwrap(),
-            extra_principal(ordinal),
-            GrantSpec::view(),
-        ));
-    }
-    let estate_world = estate.clone();
-    let mut seed = BankWorldSeed::new(snapshot)
-        .principal(BankPrincipalSeed::enabled(DECEASED, identities[0].clone()))
-        .principal(BankPrincipalSeed::enabled(
-            SPECIALIST,
-            identities[1].clone(),
-        ))
-        .principal(BankPrincipalSeed::enabled(EXECUTOR, identities[2].clone()))
-        .employee(BankEmployeeAssignmentSeed::new(
-            ASSIGNMENT,
-            INSTITUTION,
-            SPECIALIST,
-            EmployeeRole::EstateSpecialist,
-        ))
-        .estate(estate);
-    for ordinal in 0..unrelated_grants {
-        seed = seed.principal(BankPrincipalSeed::enabled(
-            extra_principal(ordinal),
-            external_identity(scenario, &format!("extra-{ordinal}")),
-        ));
-    }
-    let runtime = BankIdentityRuntime::install_world(seed)
-        .expect("capability fixture runtime should install");
+    let installed = install_fixture_world(FixtureWorldSpec {
+        scenario,
+        spec,
+        case_stage,
+        specialist_holds_authority,
+        unrelated_grants,
+        install_command_grants: install_command_grant,
+    });
+    let runtime = installed.runtime;
     let authentication = runtime
         .admit_authentication_adapter(authentication_configuration(), TestAuthenticationAdapter)
         .expect("the causal test adapter should install");
     CapabilityFixture {
         runtime,
-        estate_world,
+        estate_world: installed.estate_world,
         workflow_stage: case_stage,
         authentication,
-        specialist_identity: identities[1].clone(),
+        specialist_identity: installed.identities[1].clone(),
+        approver_identity: installed.identities[3].clone(),
+        reviewer_identity: installed.identities[4].clone(),
     }
 }
 
@@ -315,6 +200,22 @@ fn base_estate(stage: EstateWorkflowStage, authority_holder: BankPrincipalId) ->
             role: EmployeeRole::EstateSpecialist,
         })
         .with_estate_assignment(ESTATE, ASSIGNMENT)
+        .with_assignment(EstateEmployeeAssignment {
+            id: APPROVER_ASSIGNMENT,
+            principal: APPROVER,
+            institution: INSTITUTION,
+            branch: BRANCH,
+            role: EmployeeRole::EstateSpecialist,
+        })
+        .with_estate_assignment(ESTATE, APPROVER_ASSIGNMENT)
+        .with_assignment(EstateEmployeeAssignment {
+            id: REVIEWER_ASSIGNMENT,
+            principal: REVIEWER,
+            institution: INSTITUTION,
+            branch: BRANCH,
+            role: EmployeeRole::Compliance,
+        })
+        .with_estate_assignment(ESTATE, REVIEWER_ASSIGNMENT)
         .with_legal_authority(EstateLegalAuthority {
             id: AUTHORITY,
             estate: ESTATE,
