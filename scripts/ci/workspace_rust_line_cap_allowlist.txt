@@ -266,7 +266,6 @@ crates/worth-geom/src/algorithms/triangulation/cdt.rs
 crates/worth-geom/src/spatial/acceleration/bsp/merge.rs
 crates/worth-geom/src/surface/eval.rs
 crates/worth-math/src/arithmetic/expansion.rs
-crates/worth-math/src/predicates/vendored.rs
 crates/worth-schema/src/data/authority/gateway.rs
 crates/worth-schema/src/data/explanation/mod.rs
 crates/worth-schema/src/data/seed/primitive_corpus.rs
