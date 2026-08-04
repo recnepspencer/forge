@@ -18,6 +18,7 @@ use super::{
     RelationalAuthorizationTraversalDirection,
 };
 
+mod anchored_paths;
 mod freshness;
 mod witnesses;
 

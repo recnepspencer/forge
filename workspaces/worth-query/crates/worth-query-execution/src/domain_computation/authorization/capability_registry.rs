@@ -184,6 +184,7 @@ pub(super) struct WorthQueryCapabilityPathTemplate {
     pub(super) plan: RelationalAuthorizationPathPlan,
     pub(super) identity: [u8; 32],
     pub(super) guard: WorthQueryCapabilityRequestGuard,
+    pub(super) grant_ordinal: Option<usize>,
     pub(super) context_anchors: Vec<WorthQueryCapabilityContextAnchor>,
 }
 

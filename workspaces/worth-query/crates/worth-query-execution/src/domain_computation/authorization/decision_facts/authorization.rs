@@ -18,6 +18,7 @@ pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
     relational: Arc<RelationalAuthorizationObservationEvidence>,
     bridge: Arc<BridgeAuthorizationDecisionEvidence>,
     delegation: Option<Arc<WorthQueryDelegationDecisionFact>>,
+    preparatory_relational_work: RelationalAuthorizationObservationCounters,
 }
 
 impl WorthQueryAuthorizationDecisionFact {
@@ -31,7 +32,16 @@ impl WorthQueryAuthorizationDecisionFact {
             relational: Arc::new(relational),
             bridge: Arc::new(bridge),
             delegation: None,
+            preparatory_relational_work: RelationalAuthorizationObservationCounters::default(),
         }
+    }
+
+    pub(in crate::domain_computation::authorization) fn with_preparatory_relational_work(
+        mut self,
+        work: RelationalAuthorizationObservationCounters,
+    ) -> Self {
+        add_counters(&mut self.preparatory_relational_work, work);
+        self
     }
 
     pub(in crate::domain_computation::authorization) fn with_delegation(
@@ -56,7 +66,8 @@ impl WorthQueryAuthorizationDecisionFact {
     pub(in crate::domain_computation) fn relational_counters(
         &self,
     ) -> RelationalAuthorizationObservationCounters {
-        let mut counters = self.relational.counters();
+        let mut counters = self.preparatory_relational_work;
+        add_counters(&mut counters, self.relational.counters());
         if let Some(delegation) = &self.delegation {
             delegation.add_relational_counters(&mut counters);
         }

@@ -2,14 +2,13 @@ use worth_query_installation::facade::TypedApplicationValue;
 
 use super::super::application_attempt::authenticated_principal;
 use super::super::fixture::capability::{
-    CapabilityActionField, CapabilityDelegationLimitField, CapabilityDisclosureField,
-    CapabilityGrantee, CapabilityGrantor, CapabilityNotAfterField, CapabilityNotBeforeField,
-    CapabilityPurposeField, CapabilityResource, CapabilityStatusField, CapabilityWorkflowField,
+    CapabilityCustodian, CapabilityGrantee, CapabilityGrantor, CapabilityNotAfterField,
+    CapabilityResource, CapabilityStatusField, CapabilityWorkflowField,
 };
 use super::super::fixture::{installed_delegated_capability_world, live_scope};
 use super::capability_delegation_mutation::{
     account, add_parent, field, grant, relation_kind, relation_source, replace_parent,
-    replace_relation_source, replace_relation_target, update_grant_field,
+    replace_relation_kind, replace_relation_source, replace_relation_target, update_grant_field,
 };
 use super::capability_progression::{admitted_capability_access, time};
 use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
@@ -25,51 +24,12 @@ fn lawful_multi_link_delegation_is_one_composite_exact_authorization_fact() {
         .expect("the narrowed current child and exact parent must admit");
 
     assert_eq!(access.authorization_decision_fact_count(), 2);
-    assert_eq!(access.relational_counters().paths_evaluated, 19);
+    assert_eq!(access.relational_counters().paths_evaluated, 20);
     assert!(access.signal_dependency_count() > 0);
     let work = access.admission_canonical_work();
     assert_eq!(work.basis_preparations(), 0);
     assert_eq!(work.digest_derivations(), 0);
     assert_eq!(work.digest_text_materializations(), 0);
-}
-
-#[derive(Clone, Copy, Debug)]
-enum NarrowingAxis {
-    Action,
-    Purpose,
-    Disclosure,
-    Workflow,
-    ValidityStart,
-    ValidityEnd,
-    DownstreamDelegation,
-}
-
-#[test]
-fn every_stored_narrowing_axis_is_enforced_by_production_admission() {
-    for axis in [
-        NarrowingAxis::Action,
-        NarrowingAxis::Purpose,
-        NarrowingAxis::Disclosure,
-        NarrowingAxis::Workflow,
-        NarrowingAxis::ValidityStart,
-        NarrowingAxis::ValidityEnd,
-        NarrowingAxis::DownstreamDelegation,
-    ] {
-        let mut world = installed_delegated_capability_world();
-        world.application.script_authorization_time([time(100)]);
-        widen_child_axis(&world, axis);
-        let request = live_scope();
-        let principal = authenticated_principal(&world, &request);
-
-        let Err(denial) = admitted_capability_access(&world, &principal, &request, 100) else {
-            panic!("a widened delegated grant must mint no access authority");
-        };
-        assert_eq!(
-            denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::DelegationRejected,
-            "axis {axis:?} escaped the installed narrowing transition"
-        );
-    }
 }
 
 #[test]
@@ -159,13 +119,32 @@ fn resource_and_grantor_grantee_link_drift_deny_at_the_transition() {
 }
 
 #[test]
+fn exact_parent_policy_cannot_borrow_an_alternate_grant_path() {
+    let mut world = installed_delegated_capability_world();
+    world.application.script_authorization_time([time(100)]);
+    replace_parent_grantor_with_child_grantee(&world);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+
+    let Err(denial) = admitted_capability_access(&world, &principal, &request, 100) else {
+        panic!("an alternate grant's allowing path must not authorize the exact parent");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+    );
+}
+
+#[test]
 fn every_parent_currentness_drift_stales_retained_authority() {
     for drift in [
         ParentDrift::Revocation,
         ParentDrift::Expiry,
         ParentDrift::Workflow,
         ParentDrift::Resource,
+        ParentDrift::DelegationGrantor,
         ParentDrift::Grantee,
+        ParentDrift::PolicyPath,
         ParentDrift::Substitute,
     ] {
         let mut world = installed_delegated_capability_world();
@@ -202,7 +181,9 @@ enum ParentDrift {
     Expiry,
     Workflow,
     Resource,
+    DelegationGrantor,
     Grantee,
+    PolicyPath,
     Substitute,
 }
 
@@ -227,7 +208,9 @@ fn apply_parent_drift(world: &super::super::fixture::AuthorizationWorld, drift: 
             "closed".to_owned().into_foundational_value(),
         ),
         ParentDrift::Resource => replace_parent_resource(world),
+        ParentDrift::DelegationGrantor => replace_child_grantor_with_grantee(world),
         ParentDrift::Grantee => replace_parent_grantee(world),
+        ParentDrift::PolicyPath => replace_parent_policy_path(world),
         ParentDrift::Substitute => replace_parent(
             world,
             "capability-child",
@@ -277,45 +260,31 @@ fn replace_parent_grantee(world: &super::super::fixture::AuthorizationWorld) {
     );
 }
 
-fn widen_child_axis(world: &super::super::fixture::AuthorizationWorld, axis: NarrowingAxis) {
-    let (field, value) = match axis {
-        NarrowingAxis::Action => (
-            field(world, CapabilityActionField::reference()),
-            super::super::fixture::CapabilityAction::Inspect.into_foundational_value(),
-        ),
-        NarrowingAxis::Purpose => (
-            field(world, CapabilityPurposeField::reference()),
-            super::super::fixture::CapabilityPurpose::Audit.into_foundational_value(),
-        ),
-        NarrowingAxis::Disclosure => (
-            field(world, CapabilityDisclosureField::reference()),
-            super::super::fixture::CapabilityDisclosure::PrivateLabel.into_foundational_value(),
-        ),
-        NarrowingAxis::Workflow => (
-            field(world, CapabilityWorkflowField::reference()),
-            "closed".to_owned().into_foundational_value(),
-        ),
-        NarrowingAxis::ValidityStart => (
-            field(world, CapabilityNotBeforeField::reference()),
-            89_u64.into_foundational_value(),
-        ),
-        NarrowingAxis::ValidityEnd => (
-            field(world, CapabilityNotAfterField::reference()),
-            111_u64.into_foundational_value(),
-        ),
-        NarrowingAxis::DownstreamDelegation => (
-            field(world, CapabilityDelegationLimitField::reference()),
-            2_u64.into_foundational_value(),
-        ),
-    };
-    let grant = match axis {
-        NarrowingAxis::Action
-        | NarrowingAxis::Purpose
-        | NarrowingAxis::Disclosure
-        | NarrowingAxis::Workflow => "capability-parent",
-        NarrowingAxis::ValidityStart
-        | NarrowingAxis::ValidityEnd
-        | NarrowingAxis::DownstreamDelegation => "capability-child",
-    };
-    update_grant_field(world, grant, field, value);
+fn replace_parent_grantor_with_child_grantee(world: &super::super::fixture::AuthorizationWorld) {
+    let child = grant(world, "capability-child");
+    let parent = grant(world, "capability-parent");
+    let grantor_kind = relation_kind(world, CapabilityGrantor::reference().name());
+    let grantee_kind = relation_kind(world, CapabilityGrantee::reference().name());
+    replace_relation_source(
+        world,
+        grantor_kind,
+        relation_source(world, grantor_kind, parent),
+        relation_source(world, grantee_kind, child),
+        parent,
+        "parent-wrong-grantor",
+    );
+}
+
+fn replace_parent_policy_path(world: &super::super::fixture::AuthorizationWorld) {
+    let parent = grant(world, "capability-parent");
+    let grantor_kind = relation_kind(world, CapabilityGrantor::reference().name());
+    let grantor = relation_source(world, grantor_kind, parent);
+    replace_relation_kind(
+        world,
+        grantor_kind,
+        relation_kind(world, CapabilityCustodian::reference().name()),
+        grantor,
+        parent,
+        "parent-replacement-policy-path",
+    );
 }

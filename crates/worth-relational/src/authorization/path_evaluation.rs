@@ -16,6 +16,8 @@ use super::{
     RelationalAuthorizationTraversal, RelationalAuthorizationTraversalDirection,
 };
 
+mod anchored_traversal;
+
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct RelationalAuthorizationWitness {
     entities: Vec<EntityId>,
@@ -80,7 +82,13 @@ pub(super) fn evaluate_path(
         state.counters.maximum_frontier_width.max(frontier.len());
     apply_constraints(&context, path, 0, &mut frontier, &mut state);
     for (index, traversal) in path.traversals().iter().enumerate() {
-        frontier = traverse_frontier(&context, traversal, &frontier, &mut state);
+        frontier = traverse_frontier(
+            &context,
+            traversal,
+            anchored_traversal::unique_anchor_at(path, index + 1),
+            &frontier,
+            &mut state,
+        );
         apply_constraints(&context, path, index + 1, &mut frontier, &mut state);
         state.counters.maximum_frontier_width =
             state.counters.maximum_frontier_width.max(frontier.len());
@@ -103,13 +111,19 @@ pub(super) fn evaluate_path(
 fn traverse_frontier(
     context: &PathReadContext<'_, '_, '_, '_>,
     traversal: &RelationalAuthorizationTraversal,
+    next_anchor: Option<EntityId>,
     frontier: &BTreeSet<RelationalAuthorizationWitness>,
     state: &mut PathEvaluationState<'_>,
 ) -> BTreeSet<RelationalAuthorizationWitness> {
     let mut next = BTreeSet::new();
     for witness in frontier {
         let entity = witness.current();
-        let relation_ids = relation_ids_for_step(context, entity, traversal, state);
+        let relation_ids = match next_anchor {
+            Some(anchor) => anchored_traversal::relation_ids_for_anchored_step(
+                context, anchor, traversal, state,
+            ),
+            None => relation_ids_for_step(context, entity, traversal, state),
+        };
         for relation_id in relation_ids {
             state.counters.relation_records_inspected += 1;
             let Some(candidate) = traverse_relation(
@@ -121,7 +135,9 @@ fn traverse_frontier(
             ) else {
                 continue;
             };
-            if entity_is_live_kind(context.view, candidate.0, candidate.1, state.counters) {
+            if next_anchor.is_none_or(|anchor| candidate.0 == anchor)
+                && entity_is_live_kind(context.view, candidate.0, candidate.1, state.counters)
+            {
                 state.dependencies.entities.insert(candidate.0);
                 next.insert(witness.extend(candidate.0));
             }

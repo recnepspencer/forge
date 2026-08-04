@@ -4,6 +4,9 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityFieldBinding, ApplicationCapabilityGraphRule,
     ApplicationCapabilityScopeGuard, ErasedApplicationCapabilityContract,
 };
+use worth_query_declaration::facade::application_schema::{
+    ApplicationAuthorizationPath, ApplicationAuthorizationTraversalDirection,
+};
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationCapabilityPlanSource,
     WorthQueryInstalledApplicationSchema,
@@ -145,6 +148,7 @@ fn compile_grant_path(
             .with_field_constraints([workflow_constraint]),
         identity: clause_identity(capability, 0),
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
+        grant_ordinal: Some(1),
         context_anchors: Vec::new(),
     })
 }
@@ -214,6 +218,7 @@ fn compile_graph_rule(
                 plan,
                 identity: clause_identity(capability, path_index),
                 guard,
+                grant_ordinal: grant_ordinal(contract, clause.path())?,
                 context_anchors: anchors,
             });
             indices.push(path_index);
@@ -223,6 +228,27 @@ fn compile_graph_rule(
     rules.push(bridge_rule(effect, requirements.clone(), paths));
     rule_path_indices.push(requirements);
     Ok(())
+}
+
+fn grant_ordinal(
+    contract: &ErasedApplicationCapabilityContract,
+    path: &ApplicationAuthorizationPath,
+) -> Result<Option<usize>, WorthQueryOperationAuthorizationDenial> {
+    let grant = contract.grant_entity();
+    let mut found = (path.principal_entity() == grant).then_some(0);
+    for (index, traversal) in path.traversals().iter().enumerate() {
+        let entity = match traversal.direction() {
+            ApplicationAuthorizationTraversalDirection::Forward => traversal.to(),
+            ApplicationAuthorizationTraversalDirection::Reverse => traversal.from(),
+        };
+        if entity == grant && found.replace(index + 1).is_some() {
+            return Err(authorization_denial(
+                contract.name(),
+                "capability policy path traverses the grant kind more than once",
+            ));
+        }
+    }
+    Ok(found)
 }
 
 fn bridge_rule(

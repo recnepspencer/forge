@@ -17,26 +17,38 @@ pub(super) fn bind_future_replacement_grant(
 
 pub(super) fn bind_delegated_grants(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    links: usize,
+    unrelated: usize,
 ) {
-    bind_delegation_root(bootstrap, "capability-grandparent", 80, 120, 3, 100);
-    bind_grant_entity(bootstrap, "capability-parent", 90, 110, 2, 75);
-    bind_actor_relation(
-        bootstrap,
-        CapabilityGrantee::reference(),
-        "capability-parent-grantee",
-        "principal-1",
-        "capability-parent",
+    assert!(
+        links <= 2,
+        "the installed fixture contract admits at most two links"
     );
-    bind_actor_relation(
-        bootstrap,
-        CapabilityGrantor::reference(),
-        "capability-parent-grantor",
-        "principal-1",
-        "capability-parent",
-    );
-    bind_resource(bootstrap, "capability-parent", "account-1");
-    bind_related(bootstrap, "capability-parent", "account-2");
-    bind_parent(bootstrap, "capability-parent", "capability-grandparent");
+    if links == 2 {
+        bind_delegation_root(bootstrap, "capability-grandparent", 80, 120, 3, 100);
+    }
+    if links >= 1 {
+        bind_grant_entity(bootstrap, "capability-parent", 90, 110, 2, 75);
+        bind_actor_relation(
+            bootstrap,
+            CapabilityGrantee::reference(),
+            "capability-parent-grantee",
+            "principal-1",
+            "capability-parent",
+        );
+        bind_actor_relation(
+            bootstrap,
+            CapabilityGrantor::reference(),
+            "capability-parent-grantor",
+            "principal-1",
+            "capability-parent",
+        );
+        bind_resource(bootstrap, "capability-parent", "account-1");
+        bind_related(bootstrap, "capability-parent", "account-2");
+        if links == 2 {
+            bind_parent(bootstrap, "capability-parent", "capability-grandparent");
+        }
+    }
 
     bind_delegation_root(bootstrap, "capability-alternate", 70, 130, 4, 100);
 
@@ -64,7 +76,43 @@ pub(super) fn bind_delegated_grants(
     );
     bind_resource(bootstrap, "capability-child", "account-1");
     bind_related(bootstrap, "capability-child", "account-2");
-    bind_parent(bootstrap, "capability-child", "capability-parent");
+    if links >= 1 {
+        bind_parent(bootstrap, "capability-child", "capability-parent");
+    }
+    for ordinal in 0..unrelated {
+        bind_unrelated_root(bootstrap, ordinal);
+    }
+}
+
+fn bind_unrelated_root(
+    bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
+    ordinal: usize,
+) {
+    let grant = format!("unrelated-capability-{ordinal}");
+    bind_grant_entity(bootstrap, &grant, 70, 130, 4, 100);
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        &format!("{grant}-grantee"),
+        "principal-0",
+        &grant,
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        &format!("{grant}-grantor"),
+        "principal-1",
+        &grant,
+    );
+    bind_actor_relation(
+        bootstrap,
+        CapabilityCustodian::reference(),
+        &format!("{grant}-custodian"),
+        "principal-1",
+        &grant,
+    );
+    bind_resource(bootstrap, &grant, "account-2");
+    bind_related(bootstrap, &grant, "account-1");
 }
 
 fn bind_delegation_root(

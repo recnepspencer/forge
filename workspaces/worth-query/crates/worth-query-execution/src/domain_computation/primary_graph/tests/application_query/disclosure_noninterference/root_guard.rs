@@ -95,10 +95,9 @@ fn execute_governed_root_guard(label: &str) -> usize {
 
 fn root_guard_context(label: &str) -> RootGuardContext {
     let mut world = installed_capability_world_with_label(label);
-    world.application.script_authorization_time([
-        UNIX_EPOCH + Duration::from_secs(100),
-        UNIX_EPOCH + Duration::from_secs(100),
-    ]);
+    world
+        .application
+        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let request = live_scope();
     let external = world.authenticate("alice", Duration::from_secs(60), &request);
     let principal = world

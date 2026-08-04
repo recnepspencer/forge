@@ -177,6 +177,18 @@ pub(super) fn replace_relation_target(
     replace_relation(world, relation, kind, source, new_target, key);
 }
 
+pub(super) fn replace_relation_kind(
+    world: &AuthorizationWorld,
+    old_kind: KindId,
+    new_kind: KindId,
+    source: EntityId,
+    target: EntityId,
+    key: &str,
+) {
+    let relation = current_relation(world, old_kind, source, target);
+    replace_relation(world, relation, new_kind, source, target, key);
+}
+
 fn current_relation(
     world: &AuthorizationWorld,
     kind: KindId,

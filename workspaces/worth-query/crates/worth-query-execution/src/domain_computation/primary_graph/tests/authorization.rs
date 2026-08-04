@@ -5,6 +5,10 @@ mod capability_commit_revalidation;
 mod capability_delegation;
 #[path = "authorization/capability_delegation_mutation.rs"]
 mod capability_delegation_mutation;
+#[path = "authorization/capability_delegation_narrowing.rs"]
+mod capability_delegation_narrowing;
+#[path = "authorization/capability_delegation_performance.rs"]
+mod capability_delegation_performance;
 #[path = "authorization/capability_delegation_session.rs"]
 mod capability_delegation_session;
 #[path = "authorization/capability_path_revalidation.rs"]

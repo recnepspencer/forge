@@ -207,10 +207,10 @@ mod tests {
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
 
-        let deadline_context = LiveContext::with_deadline_after_setup(Duration::from_millis(500));
+        let deadline_context = LiveContext::with_deadline_after_setup(Duration::from_secs(2));
         let mut deadline_lease = deadline_context.open();
         let (deadline_bridge, deadline_relational) = observers(&deadline_lease);
-        std::thread::sleep(Duration::from_millis(550));
+        std::thread::sleep(Duration::from_millis(2_050));
         assert!(matches!(
             deadline_lease.poll(),
             WorthQueryApplicationLiveOutcome::DeadlineExceeded

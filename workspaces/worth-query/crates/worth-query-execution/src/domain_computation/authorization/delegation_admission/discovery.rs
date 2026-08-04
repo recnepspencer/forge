@@ -1,7 +1,7 @@
 use worth_relational::facade::authorization::{
     RelationalAuthorizationEntityAnchor, RelationalAuthorizationObservationEvidence,
     RelationalAuthorizationObservationPlan, RelationalAuthorizationPathPlan,
-    RelationalAuthorizationTraversal,
+    RelationalAuthorizationRelatedEntityConstraint, RelationalAuthorizationTraversal,
 };
 
 use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
@@ -33,16 +33,12 @@ pub(super) fn observe_parent(
         installed.grant_kind,
         grant,
     )]);
-    let grantee_path = RelationalAuthorizationPathPlan::new(
-        [
+    let grantee_path = RelationalAuthorizationPathPlan::new([], []).with_related_entities([
+        RelationalAuthorizationRelatedEntityConstraint::new(
+            0,
             installed.delegation.grantee_from_grant.clone(),
-            installed.delegation.grantee.clone(),
-        ],
-        [],
-    )
-    .with_entity_anchors([
-        RelationalAuthorizationEntityAnchor::new(1, installed.principal_kind, expected_grantee),
-        RelationalAuthorizationEntityAnchor::new(2, installed.grant_kind, grant),
+            expected_grantee,
+        ),
     ]);
     let plan = RelationalAuthorizationObservationPlan::try_new(
         snapshot,
@@ -65,10 +61,6 @@ pub(super) fn observe_parent(
     };
     if !grantee_path.matched()
         || !grantee_path.exhaustive()
-        || grantee_path
-            .witness()
-            .and_then(|witness| witness.entity_at(1))
-            != Some(expected_grantee)
         || !parent_path.exhaustive()
         || evidence.counters().maximum_frontier_width > 1
     {

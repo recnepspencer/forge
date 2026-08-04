@@ -44,7 +44,33 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_replace
 
 pub(in crate::domain_computation::primary_graph) fn installed_delegated_capability_world(
 ) -> AuthorizationWorld {
-    capability_world(2, "primary", CapabilityGrantPopulation::Delegated)
+    installed_delegated_capability_world_at_depth(2)
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_delegated_capability_world_at_depth(
+    links: usize,
+) -> AuthorizationWorld {
+    capability_world(
+        2,
+        "primary",
+        CapabilityGrantPopulation::Delegated {
+            links,
+            unrelated: 0,
+        },
+    )
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_delegated_capability_world_with_unrelated(
+    unrelated: usize,
+) -> AuthorizationWorld {
+    capability_world(
+        2,
+        "primary",
+        CapabilityGrantPopulation::Delegated {
+            links: 2,
+            unrelated,
+        },
+    )
 }
 
 fn capability_world(

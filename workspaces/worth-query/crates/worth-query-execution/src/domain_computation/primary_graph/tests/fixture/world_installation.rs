@@ -5,7 +5,7 @@ pub(super) enum CapabilityGrantPopulation {
     None,
     Current,
     CurrentAndFutureReplacement,
-    Delegated,
+    Delegated { links: usize, unrelated: usize },
 }
 
 pub(in crate::domain_computation::primary_graph) struct AuthorizationWorld {
@@ -260,8 +260,8 @@ pub(super) fn installed_authorization_world_with_principal_count(
             super::capability_seed::bind_grant(&mut bootstrap);
             super::capability_seed::bind_future_replacement_grant(&mut bootstrap);
         }
-        CapabilityGrantPopulation::Delegated => {
-            super::capability_seed::bind_delegated_grants(&mut bootstrap)
+        CapabilityGrantPopulation::Delegated { links, unrelated } => {
+            super::capability_seed::bind_delegated_grants(&mut bootstrap, links, unrelated)
         }
     }
     let invariant = bootstrap.retain_invariant_projection_authority();

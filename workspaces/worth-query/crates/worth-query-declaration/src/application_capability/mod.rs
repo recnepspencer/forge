@@ -10,13 +10,9 @@ mod reference;
 mod request_projection;
 mod rule_clause;
 mod scope;
-#[cfg(test)]
-mod scope_narrowing;
 
 #[cfg(test)]
 mod request_projection_tests;
-#[cfg(test)]
-mod scope_narrowing_tests;
 
 pub use canonical_components::{
     application_capability_canonical_components, ApplicationCapabilityCanonicalComponent,

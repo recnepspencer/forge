@@ -83,6 +83,8 @@ pub(in crate::domain_computation::primary_graph) use capability_world_installati
     installed_capability_authorization_world, installed_capability_live_world,
     installed_capability_live_world_with_label, installed_capability_replacement_world,
     installed_capability_world_with_label, installed_delegated_capability_world,
+    installed_delegated_capability_world_at_depth,
+    installed_delegated_capability_world_with_unrelated,
 };
 pub(in crate::domain_computation::primary_graph) use schema_types::*;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
