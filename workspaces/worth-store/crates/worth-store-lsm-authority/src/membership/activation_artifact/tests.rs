@@ -5,8 +5,9 @@ use super::event::PersistedMembershipActivation;
 use super::frame::{decode_activation, encode_activation, HEADER_BYTES};
 use crate::membership::LsmMembershipDenial;
 use crate::{
-    BlobWalRecordIdentity, BlobWalRecordKind, CheckpointDurablePublicationScope,
-    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,
+    BlobWalRecordIdentity, BlobWalRecordKind, CheckpointPublicationScope, LogSequenceNumber,
+    StoreCheckpointRecordIdentity, WalFramePublicationScope, WalLsnRange, WalSegmentGeneration,
+    WalSegmentId,
 };
 use std::path::PathBuf;
 
@@ -73,12 +74,18 @@ fn activation() -> PersistedMembershipActivation {
         selected_base: None,
         output_identity: BlobWalRecordIdentity::new(13, BlobWalRecordKind::GenerationPublication)
             .unwrap(),
-        output_scope: WalFrameDurablePublicationScope::new(1, 2, 13, 14, "output-digest", 4096)
-            .unwrap(),
+        output_scope: WalFramePublicationScope::new(
+            WalSegmentId::new(1).unwrap(),
+            WalSegmentGeneration::new(2).unwrap(),
+            WalLsnRange::new(LogSequenceNumber::new(13), LogSequenceNumber::new(14)).unwrap(),
+            "output-digest",
+            4096,
+        )
+        .unwrap(),
         output_path: PathBuf::from("output.bin"),
         output_offset: 0,
         output_bytes: 4096,
-        scope: CheckpointDurablePublicationScope::new(
+        scope: CheckpointPublicationScope::new(
             StoreCheckpointRecordIdentity::new(7),
             "manifest-digest".to_owned(),
             10,

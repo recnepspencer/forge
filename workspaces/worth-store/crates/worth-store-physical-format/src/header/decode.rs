@@ -1,4 +1,4 @@
-use super::layout::{RESERVED_CHECKSUM_OFFSET, RESERVED_RECOVERY_LSN_OFFSET};
+use super::layout::{RESERVED_CHECKSUM_OFFSET, RESERVED_TAIL_OFFSET};
 use super::reject_generation_owner_coordinates;
 use crate::{
     PhysicalByteOrder, PhysicalFrameKind, PhysicalGeneration, PhysicalHeaderDecodeCounterSnapshot,
@@ -233,16 +233,9 @@ fn read_reserved_fields(
             bytes[RESERVED_CHECKSUM_OFFSET + 2],
             bytes[RESERVED_CHECKSUM_OFFSET + 3],
         ]),
-        byte_order.read_u64([
-            bytes[RESERVED_RECOVERY_LSN_OFFSET],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 1],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 2],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 3],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 4],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 5],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 6],
-            bytes[RESERVED_RECOVERY_LSN_OFFSET + 7],
-        ]),
+        bytes[RESERVED_TAIL_OFFSET..RESERVED_TAIL_OFFSET + 8]
+            .try_into()
+            .expect("fixed-width reserved tail"),
     )
 }
 

@@ -5,34 +5,32 @@ use worth_store::physical_runtime::{
 };
 
 use super::{
-    super::{configuration, serving_from_initialization, serving_from_open},
+    super::{configuration, durable_publication, serving_from_initialization, serving_from_open},
     hex, unhex, LOCATOR_ENV,
 };
 
 pub(super) fn writer(root: &Path) {
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(root);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"alpha".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("cross-process-record-round-trip", 1),
+        RecordAppendBatch::try_from_iter([b"alpha".as_slice()]).unwrap(),
+    );
     let first = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        published.record_id(0).unwrap(),
+        published.settled_members()[0].record_id(0).unwrap(),
     );
-    let successor = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"beta".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let successor = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("cross-process-record-round-trip", 2),
+        RecordAppendBatch::try_from_iter([b"beta".as_slice()]).unwrap(),
+    );
     let second = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        successor.record_id(0).unwrap(),
+        successor.settled_members()[0].record_id(0).unwrap(),
     );
     println!("C5_LOCATOR {}", hex(&first.encode()));
     println!("C5_LOCATOR_2 {}", hex(&second.encode()));

@@ -1,7 +1,7 @@
 use super::{
     CrashStableFreeReusePosture, OldReachabilityPreservation,
     PhysicalPublicationFoundationalEvidence, PublicationEpochPair, ReleasedOldReachability,
-    RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
+    RootSwapOrderingContract,
 };
 use crate::{CurrentPhysicalRoot, PhysicalReadPlanReleaseReceipt};
 use worth_store_physical_backend::StorageBoundaryExecutionIdentity;
@@ -60,16 +60,6 @@ impl PhysicalPublicationCounterSnapshot {
         }
     }
 
-    pub(crate) const fn with_readiness_join(mut self) -> Self {
-        self.readiness_joins += 1;
-        self
-    }
-
-    pub(crate) const fn with_root_swap(mut self) -> Self {
-        self.root_swaps += 1;
-        self
-    }
-
     pub const fn intent_validations(self) -> u64 {
         self.intent_validations
     }
@@ -116,29 +106,6 @@ impl PhysicalPublicationCounterSnapshot {
 }
 
 impl PhysicalPublicationReceipt {
-    pub(crate) fn from_publish(
-        intent: &ValidatedPhysicalPublicationIntent,
-        ordering: RootSwapOrderingContract,
-        release_posture: PhysicalPublicationReleasePosture,
-        free_reuse: Option<CrashStableFreeReusePosture>,
-        counters: PhysicalPublicationCounterSnapshot,
-        storage_boundary_execution: Option<StorageBoundaryExecutionIdentity>,
-    ) -> Self {
-        Self {
-            old_root: intent.old_root(),
-            new_root: intent.new_root(),
-            old_root_validation: intent.old_root_validation(),
-            new_root_validation: intent.new_root_validation(),
-            epochs: intent.epochs(),
-            old_reachability: intent.old_reachability(),
-            ordering,
-            release_posture,
-            free_reuse,
-            counters,
-            storage_boundary_execution,
-        }
-    }
-
     pub const fn old_root(&self) -> CurrentPhysicalRoot {
         self.old_root
     }

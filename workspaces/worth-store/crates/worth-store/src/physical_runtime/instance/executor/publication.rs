@@ -44,6 +44,7 @@ impl PhysicalWorkExecutor {
                 (
                     PhysicalExecutorOutcome::NewArtifactCompleted {
                         physical,
+                        coordinate,
                         scheduler,
                     },
                     recovery,
@@ -58,8 +59,11 @@ impl PhysicalWorkExecutor {
                 },
                 PhysicalEffectRecoveryObligation::Cleared,
             ),
-            ScheduledArtifactNewWriteOutcome::Indeterminate(failure) => (
-                PhysicalExecutorOutcome::NewArtifactIndeterminate(failure),
+            ScheduledArtifactNewWriteOutcome::Indeterminate(physical) => (
+                PhysicalExecutorOutcome::NewArtifactIndeterminate {
+                    physical,
+                    coordinate,
+                },
                 PhysicalEffectRecoveryObligation::Retained,
             ),
         };
@@ -70,6 +74,7 @@ impl PhysicalWorkExecutor {
     pub(super) fn dispatch_publication_effect(
         &self,
         command: PhysicalPublicationExecutorCommand,
+        root_publication: bool,
     ) -> Result<PhysicalExecutorDispatch, crate::physical_runtime::PhysicalWorkPreEffectDenial>
     {
         let PhysicalPublicationExecutorCommand {
@@ -121,7 +126,7 @@ impl PhysicalWorkExecutor {
             );
         }
         let (outcome, physical_recovery) =
-            classify_publication_effect(plan, physical, artifact, effect);
+            classify_publication_effect(plan, physical, artifact, effect, root_publication);
         let recovery = self.finish_effect_recovery(prepared, physical_recovery);
         Ok(PhysicalExecutorDispatch::new(dispatched, outcome, recovery))
     }
@@ -132,6 +137,7 @@ fn classify_publication_effect(
     physical: ScheduledArtifactTreePublicationEffectOutcome,
     artifact: worth_store_physical_format::RecordArtifactFile,
     effect: PhysicalPublicationEffect,
+    root_publication: bool,
 ) -> (PhysicalExecutorOutcome, PhysicalEffectRecoveryObligation) {
     match physical {
         ScheduledArtifactTreePublicationEffectOutcome::Completed(completed) => {
@@ -152,9 +158,11 @@ fn classify_publication_effect(
         ScheduledArtifactTreePublicationEffectOutcome::DeniedBeforeEffect(failure) => (
             PhysicalExecutorOutcome::DeniedBeforeEffect {
                 failure,
-                retry: crate::physical_runtime::work::PhysicalRetryPayload::PublicationEffect(
-                    effect,
-                ),
+                retry: if root_publication {
+                    crate::physical_runtime::work::PhysicalRetryPayload::RootPublicationEffect
+                } else {
+                    crate::physical_runtime::work::PhysicalRetryPayload::PublicationEffect(effect)
+                },
             },
             PhysicalEffectRecoveryObligation::Cleared,
         ),

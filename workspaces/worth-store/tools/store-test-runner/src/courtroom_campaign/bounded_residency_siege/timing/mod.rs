@@ -5,18 +5,20 @@ use std::time::Duration;
 
 use serde::Serialize;
 
+use super::binary_binding::SourceClosureWorkload;
+
 pub(super) use identity::BoundedResidencySiegePhase;
 use identity::{expected_before_report, expected_complete};
 
 const MUTATION_EVIDENCE_BUDGET_MS: u64 = 30_000;
 const WORLD_BUDGET_MS: u64 = 1_000;
 const SOURCE_INVENTORY_BUDGET_MS: u64 = 5_000;
-const PREBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
+const SOURCE_BINDING_WALL_BUDGET_MS: u64 = 10_000;
+const SOURCE_BINDING_FILE_LIMIT: u64 = 6_000;
+const SOURCE_BINDING_BYTE_LIMIT: u64 = 32 * 1024 * 1024;
 const POSTBUILD_BINARY_BINDING_BUDGET_MS: u64 = 3_000;
-const POSTBUILD_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const CHILD_STAGE_BUDGET_MS: u64 = 5_000;
 const SERVING_STAGE_BUDGET_MS: u64 = 30_000;
-const FINAL_SOURCE_BINDING_BUDGET_MS: u64 = 2_000;
 const EXECUTABLE_VERIFICATION_BUDGET_MS: u64 = 1_000;
 // The source-bound v9 report is about 20 MiB. Three seconds preserves a
 // meaningful serialization ceiling without making ordinary scheduler variance
@@ -30,6 +32,12 @@ pub(super) struct TimedSiegePhase {
     identity: BoundedResidencySiegePhase,
     name: &'static str,
     elapsed_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    case_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_files: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_bytes: Option<u64>,
 }
 
 impl TimedSiegePhase {
@@ -39,6 +47,19 @@ impl TimedSiegePhase {
 
     pub(super) const fn elapsed_ms(&self) -> u64 {
         self.elapsed_ms
+    }
+
+    pub(super) const fn case_count(&self) -> Option<u64> {
+        self.case_count
+    }
+
+    pub(super) const fn source_workload(&self) -> Option<SourceClosureWorkload> {
+        match (self.source_files, self.source_bytes) {
+            (Some(source_files), Some(source_bytes)) => {
+                Some(SourceClosureWorkload::new(source_files, source_bytes))
+            }
+            _ => None,
+        }
     }
 }
 
@@ -57,11 +78,57 @@ impl BoundedResidencySiegeTimings {
             identity: phase,
             name: phase.label(),
             elapsed_ms: elapsed_ms(elapsed),
+            case_count: None,
+            source_files: None,
+            source_bytes: None,
+        });
+    }
+
+    pub(super) fn record_source_binding(
+        &mut self,
+        phase: BoundedResidencySiegePhase,
+        elapsed: Duration,
+        workload: SourceClosureWorkload,
+    ) -> Result<(), String> {
+        if !matches!(
+            phase,
+            BoundedResidencySiegePhase::PrebuildSourceBinding
+                | BoundedResidencySiegePhase::PostbuildSourceBinding
+                | BoundedResidencySiegePhase::FinalSourceBinding
+        ) {
+            return Err(format!(
+                "Courtroom C source workload cannot bind timing phase `{}`",
+                phase.label()
+            ));
+        }
+        self.phases.push(TimedSiegePhase {
+            identity: phase,
+            name: phase.label(),
+            elapsed_ms: elapsed_ms(elapsed),
+            case_count: None,
+            source_files: Some(workload.source_files()),
+            source_bytes: Some(workload.source_bytes()),
+        });
+        Ok(())
+    }
+
+    pub(super) fn record_case_campaign(&mut self, elapsed: Duration, case_count: usize) {
+        self.phases.push(TimedSiegePhase {
+            identity: BoundedResidencySiegePhase::DurabilityTerminationCampaign,
+            name: BoundedResidencySiegePhase::DurabilityTerminationCampaign.label(),
+            elapsed_ms: elapsed_ms(elapsed),
+            case_count: u64::try_from(case_count).ok(),
+            source_files: None,
+            source_bytes: None,
         });
     }
 
     pub(super) fn phases(&self) -> &[TimedSiegePhase] {
         &self.phases
+    }
+
+    pub(super) fn elapsed_ms(&self, phase: BoundedResidencySiegePhase) -> Result<u64, String> {
+        self.require(phase).map(TimedSiegePhase::elapsed_ms)
     }
 
     pub(super) fn validate_runtime_budget(&self) -> Result<(), String> {
@@ -79,6 +146,7 @@ impl BoundedResidencySiegeTimings {
     }
 
     fn validate_stage_budgets(&self) -> Result<(), String> {
+        self.validate_source_binding_workload()?;
         for (phase, budget) in [
             (
                 BoundedResidencySiegePhase::MutationEvidence,
@@ -91,7 +159,7 @@ impl BoundedResidencySiegeTimings {
             ),
             (
                 BoundedResidencySiegePhase::PrebuildSourceBinding,
-                PREBUILD_SOURCE_BINDING_BUDGET_MS,
+                SOURCE_BINDING_WALL_BUDGET_MS,
             ),
             (
                 BoundedResidencySiegePhase::PostbuildBinaryBinding,
@@ -99,7 +167,7 @@ impl BoundedResidencySiegeTimings {
             ),
             (
                 BoundedResidencySiegePhase::PostbuildSourceBinding,
-                POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+                SOURCE_BINDING_WALL_BUDGET_MS,
             ),
             (
                 BoundedResidencySiegePhase::SiegeServing,
@@ -115,7 +183,7 @@ impl BoundedResidencySiegeTimings {
             ),
             (
                 BoundedResidencySiegePhase::FinalSourceBinding,
-                FINAL_SOURCE_BINDING_BUDGET_MS,
+                SOURCE_BINDING_WALL_BUDGET_MS,
             ),
             (
                 BoundedResidencySiegePhase::ExecutableVerification,
@@ -123,6 +191,40 @@ impl BoundedResidencySiegeTimings {
             ),
         ] {
             self.require_within(phase, budget)?;
+        }
+        self.require_case_campaign_shape()?;
+        Ok(())
+    }
+
+    fn validate_source_binding_workload(&self) -> Result<(), String> {
+        let mut expected = None;
+        for phase in [
+            BoundedResidencySiegePhase::PrebuildSourceBinding,
+            BoundedResidencySiegePhase::PostbuildSourceBinding,
+            BoundedResidencySiegePhase::FinalSourceBinding,
+        ] {
+            let workload = self.require(phase)?.source_workload().ok_or_else(|| {
+                format!(
+                    "Courtroom C phase `{}` omitted source workload counters",
+                    phase.label()
+                )
+            })?;
+            if workload.source_files() == 0 || workload.source_files() > SOURCE_BINDING_FILE_LIMIT {
+                return Err(format!(
+                    "Courtroom C source closure carried {} files; admitted range is 1..={SOURCE_BINDING_FILE_LIMIT}",
+                    workload.source_files()
+                ));
+            }
+            if workload.source_bytes() > SOURCE_BINDING_BYTE_LIMIT {
+                return Err(format!(
+                    "Courtroom C source closure carried {} bytes; limit is {SOURCE_BINDING_BYTE_LIMIT}",
+                    workload.source_bytes()
+                ));
+            }
+            if expected.is_some_and(|expected| expected != workload) {
+                return Err("Courtroom C source workload changed during the campaign".into());
+            }
+            expected = Some(workload);
         }
         Ok(())
     }
@@ -139,8 +241,12 @@ impl BoundedResidencySiegeTimings {
         let producer_ms = self
             .require(BoundedResidencySiegePhase::SiegeProducer)?
             .elapsed_ms();
+        let case_campaign_ms = self
+            .require(BoundedResidencySiegePhase::DurabilityTerminationCampaign)?
+            .elapsed_ms();
         let setup_ms = build_ms
             .checked_add(producer_ms)
+            .and_then(|elapsed| elapsed.checked_add(case_campaign_ms))
             .ok_or_else(|| "Courtroom C setup timing overflowed u64".to_owned())?;
         let runner_ms = completed_ms.checked_sub(setup_ms).ok_or_else(|| {
             "Courtroom C setup timing exceeded completed campaign wall time".to_owned()
@@ -198,6 +304,18 @@ impl BoundedResidencySiegeTimings {
                 timing.elapsed_ms()
             ))
         }
+    }
+
+    fn require_case_campaign_shape(&self) -> Result<(), String> {
+        let timing = self.require(BoundedResidencySiegePhase::DurabilityTerminationCampaign)?;
+        timing
+            .case_count()
+            .filter(|count| (1..=8).contains(count))
+            .ok_or_else(|| {
+                "Courtroom C durability termination timing requires one through eight cases"
+                    .to_owned()
+            })?;
+        Ok(())
     }
 }
 

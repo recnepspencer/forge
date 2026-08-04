@@ -20,6 +20,7 @@ pub(super) struct CourtroomCampaignRequest<'path> {
     pub(super) report: Option<&'path Path>,
     pub(super) schedule_seed: Option<u64>,
     pub(super) ci_schedule_lane: Option<CiScheduleLane>,
+    pub(super) crash_seam: Option<&'path str>,
 }
 
 pub(super) fn run(workspace: &Path, request: CourtroomCampaignRequest<'_>) -> Result<(), String> {
@@ -68,11 +69,14 @@ pub(super) fn run(workspace: &Path, request: CourtroomCampaignRequest<'_>) -> Re
                 .ok_or_else(|| "Courtroom C requires an output report".to_owned())?;
             bounded_residency_siege::run(
                 workspace,
-                request.target_root,
-                mutant_report,
-                report,
-                request.schedule_seed,
-                request.ci_schedule_lane,
+                bounded_residency_siege::BoundedResidencySiegeRequest {
+                    target_root: request.target_root,
+                    controlled_case_report: mutant_report,
+                    report,
+                    schedule_seed: request.schedule_seed,
+                    ci_schedule_lane: request.ci_schedule_lane,
+                    termination_point: request.crash_seam,
+                },
             )
         }
     }

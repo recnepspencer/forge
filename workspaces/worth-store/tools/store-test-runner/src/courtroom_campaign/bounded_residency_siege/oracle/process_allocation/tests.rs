@@ -19,7 +19,8 @@ fn request_observation_rejects_one_complete_store_request() {
             STORE_PAYLOAD_BYTES,
         )
         .unwrap_err(),
-        "Courtroom C serving process issued a complete-Store allocation request"
+        "Courtroom C serving process issued a complete-Store allocation request: \
+         request=114486784 payload=114486784"
     );
 }
 

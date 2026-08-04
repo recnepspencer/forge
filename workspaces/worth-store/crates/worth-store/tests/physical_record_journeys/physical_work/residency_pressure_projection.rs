@@ -1,15 +1,17 @@
 use std::num::{NonZeroU32, NonZeroU64};
 use std::time::{Duration, Instant};
 
-use worth_proof::TransitionOutcome;
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, AdmittedPhysicalRecordResidencyPolicy, FilesystemMediaAdmission,
-    PhysicalOperationAllocationScope, PhysicalRecordInitialization, PhysicalRecordOpen,
-    PhysicalRecordResidencyPolicy, PhysicalResidencyAllocationSnapshot,
-    PhysicalResidencyCounterSnapshot, PhysicalResidencyDimension, PhysicalResidencyRetryPosture,
-    PhysicalRuntimeAdmission, PhysicalSpeculativeWorkKind, PhysicalStore, PhysicalWorkEffectFate,
-    RecordAppendBatch, RecordAppendDenial, RecordByteLimit, RecordPublicationStage,
-    RecordReadDenial, RecordReadLimits, RecordServingTerminalPosture,
+    certification::CertificationDurableMutationInput, AdmittedPhysicalRecordFormat,
+    AdmittedPhysicalRecordResidencyPolicy, DataDispatchedPhysicalMutation,
+    FilesystemMediaAdmission, PhysicalDataDispatchFailureCause, PhysicalDataDispatchOutcome,
+    PhysicalDataEffectSource, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalOperationAllocationScope,
+    PhysicalRecordInitialization, PhysicalRecordOpen, PhysicalRecordResidencyPolicy,
+    PhysicalResidencyDimension, PhysicalResidencyRetryPosture, PhysicalRuntimeAdmission,
+    PhysicalSpeculativeWorkKind, PhysicalStore, PhysicalWorkEffectFate, RecordAppendBatch,
+    RecordServingTerminalPosture,
 };
 use worth_store_physical_backend::{
     FilesystemAccessPosture, MediaFaultDirective, MediaOperationRole,
@@ -17,127 +19,17 @@ use worth_store_physical_backend::{
 
 use super::{configuration, media, success};
 
-#[test]
-fn public_read_and_append_pressure_retains_exact_pre_effect_basis() {
-    let parent = tempfile::tempdir().unwrap();
-    let root = parent.path().join("public-residency-pressure");
-    let (format, placement, access) = configuration();
-    let seeded = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
-    let published = seeded
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"first".as_slice(), b"second".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let first_record = published.record_id(0).unwrap();
-    let second_record = published.record_id(1).unwrap();
-    assert!(!seeded.close().residency().requires_inspection());
-
-    let policy = one_page_operation_policy(format);
-    let serving =
-        success(media(&root).open_record_store(
-            PhysicalRecordOpen::new(format, access).with_residency_policy(policy),
-        ));
-    let store = serving.store_identity();
-    let observation = serving.residency_observation();
-    let generation = observation.store_generation();
-    let counters: PhysicalResidencyCounterSnapshot = observation.counters();
-    let allocations: PhysicalResidencyAllocationSnapshot = observation.allocations();
-    assert_eq!(observation.store_identity(), store);
-    assert_eq!(observation.admitted_policy(), policy);
-    assert_eq!(allocations.store_identity(), store);
-    assert_eq!(
-        allocations
-            .for_dimension(PhysicalResidencyDimension::MetadataBytes)
-            .active_units(),
-        counters.metadata_bytes(),
-    );
-    let page_bytes = u64::from(format.declaration().page_size().bytes());
-    let read_limits = RecordReadLimits::new(RecordByteLimit::new(16).unwrap());
-
-    let held = serving.records().open(first_record, read_limits).unwrap();
-    let before_read_denial = serving.media_counters();
-    let read_error = match serving.records().open(second_record, read_limits) {
-        Err(error) => error,
-        Ok(_) => panic!("the second read must not spend the held read allocation"),
-    };
-    assert_eq!(read_error.denial(), RecordReadDenial::PhysicalPressure);
-    let read_pressure = read_error.pressure().unwrap();
-    assert_eq!(read_pressure.basis().store_identity(), store);
-    assert_eq!(read_pressure.basis().record(), Some(second_record));
-    assert_eq!(read_pressure.store_generation(), generation);
-    assert_eq!(
-        read_pressure.scope(),
-        PhysicalOperationAllocationScope::ForegroundRead
-    );
-    assert_eq!(
-        read_pressure.dimension(),
-        PhysicalResidencyDimension::OperationScope(
-            PhysicalOperationAllocationScope::ForegroundRead,
-        )
-    );
-    assert_eq!(read_pressure.requested(), page_bytes);
-    assert_eq!(read_pressure.admitted(), page_bytes);
-    assert_eq!(read_pressure.limit(), page_bytes);
-    assert_eq!(
-        read_pressure.retry_posture(),
-        PhysicalResidencyRetryPosture::AfterAllocationRelease
-    );
-    assert!(!read_pressure.effect_may_have_started());
-    assert_eq!(serving.media_counters(), before_read_denial);
-    drop(held);
-
-    let before_append_denial = serving.media_counters();
-    let append_error = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"blocked".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap_err();
-    assert_eq!(
-        append_error.pressure_denial(),
-        Some(RecordAppendDenial::PhysicalPressure)
-    );
-    let append_pressure = append_error.pressure().unwrap();
-    assert_eq!(append_pressure.basis().store_identity(), store);
-    assert_eq!(append_pressure.basis().record(), None);
-    assert_eq!(append_pressure.store_generation(), generation);
-    assert_eq!(
-        append_pressure.scope(),
-        PhysicalOperationAllocationScope::ForegroundWrite
-    );
-    assert_eq!(
-        append_pressure.dimension(),
-        PhysicalResidencyDimension::OperationScope(
-            PhysicalOperationAllocationScope::ForegroundWrite,
-        )
-    );
-    assert!(append_pressure.requested() > page_bytes);
-    assert_eq!(append_pressure.admitted(), 0);
-    assert_eq!(append_pressure.limit(), page_bytes);
-    assert_eq!(
-        append_pressure.retry_posture(),
-        PhysicalResidencyRetryPosture::AfterConfigurationChange
-    );
-    assert!(!append_pressure.effect_may_have_started());
-    assert_eq!(serving.media_counters(), before_append_denial);
-    assert!(!serving.close().residency().requires_inspection());
-}
+#[path = "residency_pressure_projection/public_pre_effect_basis.rs"]
+mod public_pre_effect_basis;
 
 #[test]
-fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
+fn canonical_writebehind_pressure_cleans_extent_residue_before_retry() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("writebehind-pressure-cleanup");
     let (format, placement, access) = configuration();
-    let initialized = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let initialized = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert!(!initialized.close().residency().requires_inspection());
 
     let admission =
@@ -148,7 +40,7 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
         .schedule(vec![authority
             .rule(
                 MediaOperationRole::PositionedWrite,
-                2,
+                4,
                 MediaFaultDirective::PauseBefore(gate.clone()),
             )
             .for_identified_operation_ordinal()])
@@ -161,17 +53,32 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
         TransitionOutcome::Success(media) => media,
         _ => panic!("writebehind pressure media must admit"),
     };
-    let serving = success(
-        media.open_record_store(
-            PhysicalRecordOpen::new(format, access)
-                .with_residency_policy(two_append_writebehind_policy(format)),
-        ),
-    );
+    let serving = success(open_record_store!(media, |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+            .with_residency_policy(two_append_writebehind_policy(format))
+    },));
     let payload = vec![73_u8; 1024 * 1024];
     let residency_before = serving.residency_observation().counters();
-    let submission = serving.record_submission();
-    let primary_batch = RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap();
-    let primary = std::thread::spawn(move || submission.append_batch(primary_batch, placement));
+    let (group_basis, durable_group) = serving.certification_prepare_wal_durable_group(
+        placement,
+        PhysicalManifestCapacityTransition::PreserveCurrent,
+        NonEmpty::new(
+            CertificationDurableMutationInput::new(
+                PhysicalMutationIdempotencyMaterial::new([0xA1; 32]),
+                RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
+            ),
+            vec![CertificationDurableMutationInput::new(
+                PhysicalMutationIdempotencyMaterial::new([0xA2; 32]),
+                RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
+            )],
+        ),
+    );
+    let mut durable_group = durable_group.into_vec().into_iter();
+    let primary_durable = durable_group.next().unwrap();
+    let denied_durable = durable_group.next().unwrap();
+    assert!(durable_group.next().is_none());
+    let submission = serving.certification_record_submission();
+    let primary = std::thread::spawn(move || submission.dispatch_wal_durable_data(primary_durable));
 
     let deadline = Instant::now() + Duration::from_secs(5);
     while gate.reached_context().is_none() && Instant::now() < deadline {
@@ -179,22 +86,40 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
     }
     let context = gate
         .reached_context()
-        .expect("primary append must reach candidate writeback");
+        .expect("primary canonical mutation must reach candidate writeback");
     assert_eq!(context.role(), MediaOperationRole::PositionedWrite);
-    assert_eq!(context.identified_operation_ordinal(), Some(2));
+    assert_eq!(context.identified_operation_ordinal(), Some(4));
     let residency_at_dispatch = serving.residency_observation().counters();
     let before_denial = serving.media_counters();
 
-    let denial = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap_err();
-    let pressure = denial
-        .pressure()
-        .expect("writebehind pressure must project");
+    let (retry_durable, pressure) = match serving
+        .certification_record_submission()
+        .dispatch_wal_durable_data(denied_durable)
+    {
+        PhysicalDataDispatchOutcome::RetryableAfterCleanup(retry) => {
+            assert!(!retry.discarded_effects().is_empty());
+            assert!(!retry.deleted_artifacts().is_empty());
+            let pressure = retry.pressure();
+            (retry.into_durable(), pressure)
+        }
+        PhysicalDataDispatchOutcome::NotStarted {
+            durable,
+            cause: PhysicalDataDispatchFailureCause::PhysicalPressure(_),
+        } => {
+            drop(durable);
+            panic!("writebehind pressure denied before exercising cleanup")
+        }
+        PhysicalDataDispatchOutcome::NotStarted { cause, .. } => {
+            panic!("canonical dispatch omitted pressure evidence: {cause:?}")
+        }
+        PhysicalDataDispatchOutcome::Dispatched(_) => {
+            panic!("competing canonical dispatch bypassed pressure")
+        }
+        PhysicalDataDispatchOutcome::Indeterminate(indeterminate) => panic!(
+            "competing canonical dispatch became indeterminate: {:?}",
+            indeterminate.cause()
+        ),
+    };
     assert_eq!(
         pressure.dimension(),
         PhysicalResidencyDimension::SpeculativeFrames(PhysicalSpeculativeWorkKind::WriteBehind)
@@ -215,19 +140,47 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
     let residency_after_denial = serving.residency_observation().counters();
 
     gate.release();
-    let primary = primary.join().unwrap().unwrap();
-    assert_eq!(primary.record_ids().len(), 1);
-    let primary_writebacks = assert_extent_candidate_trace(&primary);
+    let primary_dispatched = match primary.join().unwrap() {
+        PhysicalDataDispatchOutcome::Dispatched(dispatched) => dispatched,
+        PhysicalDataDispatchOutcome::RetryableAfterCleanup(_) => {
+            panic!("primary canonical dispatch unexpectedly required cleanup retry")
+        }
+        PhysicalDataDispatchOutcome::NotStarted { cause, .. } => {
+            panic!("primary canonical dispatch did not start: {cause:?}")
+        }
+        PhysicalDataDispatchOutcome::Indeterminate(indeterminate) => panic!(
+            "primary canonical dispatch became indeterminate: {:?}",
+            indeterminate.cause()
+        ),
+    };
+    let primary_writebacks = assert_extent_candidate_trace(&primary_dispatched);
     let residency_after_primary = serving.residency_observation().counters();
-    let retry = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    assert_eq!(retry.record_ids().len(), 1);
-    let retry_writebacks = assert_extent_candidate_trace(&retry);
+    let retry_dispatched = match serving
+        .certification_record_submission()
+        .dispatch_wal_durable_data(retry_durable)
+    {
+        PhysicalDataDispatchOutcome::Dispatched(dispatched) => dispatched,
+        PhysicalDataDispatchOutcome::RetryableAfterCleanup(_) => {
+            panic!("canonical retry required repeated cleanup")
+        }
+        PhysicalDataDispatchOutcome::NotStarted { cause, .. } => {
+            panic!("canonical retry did not start: {cause:?}")
+        }
+        PhysicalDataDispatchOutcome::Indeterminate(indeterminate) => panic!(
+            "canonical retry became indeterminate: {:?}",
+            indeterminate.cause()
+        ),
+    };
+    let retry_writebacks = assert_extent_candidate_trace(&retry_dispatched);
+    let completed = serving.certification_complete_dispatched_group(
+        group_basis,
+        NonEmpty::new(primary_dispatched, vec![retry_dispatched]),
+    );
+    assert_eq!(completed.settled_members().len(), 2);
+    assert!(completed
+        .settled_members()
+        .iter()
+        .all(|member| member.persisted_records().len() == 1));
     let counters = serving.residency_observation().counters();
     let successful_writebacks = primary_writebacks + retry_writebacks;
     assert_eq!(counters.writebacks(), successful_writebacks);
@@ -262,67 +215,33 @@ fn ordinary_writebehind_pressure_cleans_extent_residue_before_retry() {
     assert!(!close.residency().requires_inspection());
 }
 
-fn assert_extent_candidate_trace(
-    published: &worth_store::physical_runtime::PublishedRecordBatch,
-) -> u64 {
-    let fates = published
-        .physical_work()
+fn assert_extent_candidate_trace(dispatched: &DataDispatchedPhysicalMutation) -> u64 {
+    let fates = dispatched
         .effects()
         .iter()
-        .filter(|effect| effect.stage() == RecordPublicationStage::CandidateDataWrite)
-        .map(|effect| effect.settlement().unwrap().effect_fate())
+        .map(|effect| (effect.source(), effect.effect_fate()))
         .collect::<Vec<_>>();
     assert_eq!(
         fates
             .iter()
-            .filter(|fate| **fate == PhysicalWorkEffectFate::PublicationCompleted)
+            .filter(|(source, fate)| {
+                *source == PhysicalDataEffectSource::NewArtifact
+                    && *fate == PhysicalWorkEffectFate::PublicationCompleted
+            })
             .count(),
         1,
         "an extent append creates exactly one candidate artifact"
     );
     let writebacks = fates
         .iter()
-        .filter(|fate| **fate == PhysicalWorkEffectFate::WriteCompleted)
+        .filter(|(source, fate)| {
+            *source == PhysicalDataEffectSource::ExistingArtifactWriteback
+                && *fate == PhysicalWorkEffectFate::WriteCompleted
+        })
         .count() as u64;
     assert!(writebacks > 0, "the hostile extent must require writeback");
     assert_eq!(fates.len() as u64, writebacks + 1);
     writebacks
-}
-
-fn one_page_operation_policy(
-    format: AdmittedPhysicalRecordFormat,
-) -> AdmittedPhysicalRecordResidencyPolicy {
-    use PhysicalOperationAllocationScope as Scope;
-    use PhysicalSpeculativeWorkKind as Kind;
-
-    let page = u64::from(format.declaration().page_size().bytes());
-    let metadata = 16 * 1024;
-    let resident = page * 4;
-    let mut builder = PhysicalRecordResidencyPolicy::builder()
-        .total_bytes(nonzero(metadata + resident + page + page))
-        .resident_bytes(nonzero(resident))
-        .metadata_bytes(nonzero(metadata))
-        .frame_entries(nonzero_count(4))
-        .pinned_frames(nonzero_count(4))
-        .pin_leases(nonzero_count(4))
-        .dirty_frames(nonzero_count(2))
-        .dirty_replacement_bytes(nonzero(page))
-        .operation_bytes(nonzero(page));
-    for scope in [
-        Scope::ForegroundRead,
-        Scope::ForegroundWrite,
-        Scope::Recovery,
-        Scope::Scrub,
-        Scope::Maintenance,
-        Scope::Verification,
-        Scope::Blob,
-    ] {
-        builder = builder.scope_bytes(scope, nonzero(page));
-    }
-    for kind in [Kind::ReadAhead, Kind::Prefetch, Kind::WriteBehind] {
-        builder = builder.speculative_frames(kind, nonzero_count(2));
-    }
-    builder.admit(format).into_result().unwrap()
 }
 
 fn two_append_writebehind_policy(

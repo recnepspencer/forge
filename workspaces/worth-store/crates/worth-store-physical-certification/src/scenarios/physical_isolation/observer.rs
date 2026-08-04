@@ -1,55 +1,31 @@
 use crate::{
-    CheckpointInterlockObservation, CompactionInterlockObservation, CoverageGapDenial,
-    IndependentVerifierObservation, ObservedPhysicalTrace, PhysicalInterleavingSchedule,
-    PhysicalIsolationCompactionMutationObservationSet, PhysicalSimulationBoundaryObservation,
+    CheckpointInterlockObservation, CoverageGapDenial, IndependentVerifierObservation,
+    ObservedPhysicalTrace, PhysicalInterleavingSchedule, PhysicalSimulationBoundaryObservation,
     PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationScenarioFamily,
     ShortcutRejectionObservation,
 };
 
 pub struct PhysicalIsolationTraceFixtures {
-    compaction_interlock: Option<CompactionInterlockObservation>,
-    compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
     independent_verifier: Option<IndependentVerifierObservation>,
 }
 
 impl PhysicalIsolationTraceFixtures {
     pub const fn complete(
-        compaction_interlock: CompactionInterlockObservation,
-        compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
         checkpoint_interlock: CheckpointInterlockObservation,
         independent_verifier: IndependentVerifierObservation,
     ) -> Self {
         Self {
-            compaction_interlock: Some(compaction_interlock),
-            compaction_mutations,
             checkpoint_interlock: Some(checkpoint_interlock),
             independent_verifier: Some(independent_verifier),
         }
     }
 
     pub const fn new(
-        compaction_interlock: CompactionInterlockObservation,
-        compaction_mutations: Option<PhysicalIsolationCompactionMutationObservationSet>,
         checkpoint_interlock: CheckpointInterlockObservation,
         independent_verifier: IndependentVerifierObservation,
     ) -> Self {
-        Self::complete(
-            compaction_interlock,
-            compaction_mutations,
-            checkpoint_interlock,
-            independent_verifier,
-        )
-    }
-
-    pub fn without_compaction_interlock(mut self) -> Self {
-        self.compaction_interlock = None;
-        self
-    }
-
-    pub fn without_compaction_mutations(mut self) -> Self {
-        self.compaction_mutations = None;
-        self
+        Self::complete(checkpoint_interlock, independent_verifier)
     }
 
     pub fn without_checkpoint_interlock(mut self) -> Self {
@@ -79,20 +55,6 @@ pub fn observe_physical_isolation_trace(
         .with_shortcut_rejection_observation(
             ShortcutRejectionObservation::private_mutation_denied(),
         );
-    let builder = if let Some(observation) = fixtures.compaction_interlock {
-        builder.with_compaction_interlock_observation(observation)
-    } else {
-        builder
-    };
-    let builder = if requires_compaction_mutation_observations(plan.scenario_family()) {
-        builder.with_scheduled_compaction_mutation_lanes(
-            fixtures
-                .compaction_mutations
-                .ok_or(CoverageGapDenial::MissingMutationResult)?,
-        )
-    } else {
-        builder
-    };
     let trace = match plan.scenario_family() {
         PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
         | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {
@@ -115,15 +77,4 @@ pub fn observe_physical_isolation_trace(
         _ => builder.complete().unwrap(),
     };
     Ok(trace)
-}
-
-fn requires_compaction_mutation_observations(family: PhysicalSimulationScenarioFamily) -> bool {
-    matches!(
-        family,
-        PhysicalSimulationScenarioFamily::PhysicalIsolationCompactionInterlock
-            | PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
-            | PhysicalSimulationScenarioFamily::PhysicalIsolationReclaimReachability
-            | PhysicalSimulationScenarioFamily::PhysicalIsolationTierMovementStability
-            | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover
-    )
 }

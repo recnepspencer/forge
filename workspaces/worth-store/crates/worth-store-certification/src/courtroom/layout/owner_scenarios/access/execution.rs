@@ -13,7 +13,6 @@ pub(in crate::courtroom::layout::owner_scenarios) fn execute(
     let evidence = super::btree::execute_lookup(ledger);
     super::btree::execute_replay(ledger);
     super::degraded_scan::execute(ledger);
-    super::lsm::execute(ledger);
     super::imported_blob::execute(ledger);
     evidence
 }

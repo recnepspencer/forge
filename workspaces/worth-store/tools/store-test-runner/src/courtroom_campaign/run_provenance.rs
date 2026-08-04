@@ -2,12 +2,17 @@ use std::path::{Path, PathBuf};
 
 use worth_store::physical_runtime::PhysicalWorkRerunEvidence;
 
+pub(super) struct CourtroomRerunRequest<'path> {
+    pub(super) courtroom: &'path str,
+    pub(super) target_root: Option<&'path Path>,
+    pub(super) controlled_case_report: &'path Path,
+    pub(super) report: &'path Path,
+    pub(super) schedule_seed: Option<u64>,
+    pub(super) termination_point: Option<&'path str>,
+}
+
 pub(super) fn rerun(
-    courtroom: &str,
-    target_root: Option<&Path>,
-    mutant_report: &Path,
-    report: &Path,
-    schedule_seed: Option<u64>,
+    request: CourtroomRerunRequest<'_>,
 ) -> Result<PhysicalWorkRerunEvidence, String> {
     let program = std::env::current_exe()
         .map_err(|error| format!("cannot locate courtroom runner for rerun: {error}"))?
@@ -16,20 +21,25 @@ pub(super) fn rerun(
     let mut arguments = vec![
         "courtrooms".to_owned(),
         "--courtroom".to_owned(),
-        courtroom.to_owned(),
+        request.courtroom.to_owned(),
         "--mutant-report".to_owned(),
-        absolute(mutant_report)?.display().to_string(),
+        absolute(request.controlled_case_report)?
+            .display()
+            .to_string(),
         "--report".to_owned(),
-        absolute(report)?.display().to_string(),
+        absolute(request.report)?.display().to_string(),
     ];
-    if let Some(target_root) = target_root {
+    if let Some(target_root) = request.target_root {
         arguments.extend([
             "--target-root".to_owned(),
             absolute(target_root)?.display().to_string(),
         ]);
     }
-    if let Some(schedule_seed) = schedule_seed {
+    if let Some(schedule_seed) = request.schedule_seed {
         arguments.extend(["--schedule-seed".to_owned(), schedule_seed.to_string()]);
+    }
+    if let Some(termination_point) = request.termination_point {
+        arguments.extend(["--crash-seam".to_owned(), termination_point.to_owned()]);
     }
     PhysicalWorkRerunEvidence::new(program.display().to_string(), arguments)
         .map_err(|denial| format!("courtroom rerun evidence denied: {denial:?}"))

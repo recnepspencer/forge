@@ -1,16 +1,17 @@
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, ManifestEntryCapacity, PhysicalPageSizeClass,
+    AdmittedPhysicalRecordFormat, ManifestEntryCapacity, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalMutationPreparationDenial, PhysicalPageSizeClass,
     PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration, PhysicalRecordInitialization,
     PhysicalRecordOpen, PhysicalRecordPlacementPolicy, RecordAppendBatch, RecordAppendDenial,
-    RecordAppendError, RecordBootstrapDenial, RecordByteLimit, RecordReadLimits,
+    RecordBootstrapDenial, RecordByteLimit, RecordReadLimits,
 };
 use worth_store_physical_backend::MediaOperationRole;
 use worth_store_physical_format::DurableExtentManifest;
 
 use super::{
-    configuration, media, read_record, scenario_configuration::dense_configuration,
-    serving_from_initialization, success,
+    configuration, durable_publication, media, read_record,
+    scenario_configuration::dense_configuration, serving_from_initialization, success,
 };
 
 fn format_64k() -> AdmittedPhysicalRecordFormat {
@@ -30,13 +31,10 @@ fn cross_format_configuration_is_denied_before_initialization_or_open_effects() 
     let access_64k = PhysicalRecordAccessPolicy::builder()
         .admit(format_64k())
         .unwrap();
-    let initialize = media(&root)
-        .initialize_record_store(PhysicalRecordInitialization::new(
-            format_16k,
-            placement_16k,
-            access_64k,
-        ))
-        .into_raw();
+    let initialize = initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format_16k, placement_16k, access_64k, durability)
+    })
+    .into_raw();
     let TransitionOutcome::Denied(denial) = initialize else {
         panic!("cross-format initialization must be denied");
     };
@@ -47,21 +45,19 @@ fn cross_format_configuration_is_denied_before_initialization_or_open_effects() 
     assert!(!root.join("families/records").exists());
     let runtime = denial.into_runtime();
 
-    let serving = match runtime
-        .initialize_record_store(PhysicalRecordInitialization::new(
-            format_16k,
-            placement_16k,
-            access_16k,
-        ))
-        .into_raw()
+    let serving = match initialize_record_store!(runtime, |durability| {
+        PhysicalRecordInitialization::new(format_16k, placement_16k, access_16k, durability)
+    })
+    .into_raw()
     {
         TransitionOutcome::Success(serving) => serving,
         _ => panic!("matching configuration must initialize"),
     };
     serving.close();
-    let open = media(&root)
-        .open_record_store(PhysicalRecordOpen::new(format_16k, access_64k))
-        .into_raw();
+    let open = open_record_store!(media(&root), |durability| PhysicalRecordOpen::new(
+        format_16k, access_64k, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = open else {
         panic!("cross-format open must be denied");
     };
@@ -82,15 +78,19 @@ fn cross_format_placement_cannot_publish_an_unreopenable_root() {
         .unwrap();
     let serving = serving_from_initialization(&root);
     let before = serving.media_counters();
-    assert_eq!(
-        serving.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"wrong format".as_slice()]).unwrap(),
+    assert!(matches!(
+        durable_publication::prepare_single(
+            &serving.record_submission(),
             placement_64k,
-        ),
-        Err(RecordAppendError::Denied(
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([212; 32]),
+            RecordAppendBatch::try_from_iter([b"wrong format".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
             RecordAppendDenial::PlacementFormatMismatch
         ))
-    );
+    ));
     let after = serving.media_counters();
     assert_eq!(
         after.attempts_for(MediaOperationRole::PositionedWrite),
@@ -110,22 +110,17 @@ fn extent_geometry_is_format_owned_and_survives_access_policy_narrowing() {
         .scratch_limit(RecordByteLimit::new(65_536).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root).initialize_record_store(PhysicalRecordInitialization::new(
-            format,
-            placement,
-            wide_access,
-        )),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, wide_access, durability)
+    }));
     let payload = vec![0x5a; 40_000];
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("extent-geometry-access-narrowing", 1),
+        RecordAppendBatch::try_from_iter([payload.as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     serving.close();
 
     let manifest_bytes = std::fs::read(root.join(
@@ -136,8 +131,9 @@ fn extent_geometry_is_format_owned_and_survives_access_policy_narrowing() {
     assert_eq!(manifest.maximum_frame_bytes(), 16_384);
 
     let (_, _, narrow_access) = configuration();
-    let reopened =
-        success(media(&root).open_record_store(PhysicalRecordOpen::new(format, narrow_access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, narrow_access, durability)
+    }));
     let session = reopened
         .records()
         .open(

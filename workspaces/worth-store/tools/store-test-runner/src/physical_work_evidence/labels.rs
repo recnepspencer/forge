@@ -72,6 +72,8 @@ pub(super) const fn effect_fate(value: PhysicalWorkEffectFateEvidence) -> &'stat
         PhysicalWorkEffectFateEvidence::ReadIncomplete => "read-incomplete",
         PhysicalWorkEffectFateEvidence::WriteCompleted => "write-completed",
         PhysicalWorkEffectFateEvidence::PublicationCompleted => "publication-completed",
+        PhysicalWorkEffectFateEvidence::CheckpointCompleted => "checkpoint-completed",
+        PhysicalWorkEffectFateEvidence::WalReclamationCompleted => "wal-reclamation-completed",
         PhysicalWorkEffectFateEvidence::WrittenButSchedulerRejected => {
             "written-but-scheduler-rejected"
         }
@@ -141,6 +143,28 @@ mod tests {
         assert_ne!(
             incomplete,
             effect_fate(PhysicalWorkEffectFateEvidence::ReadCompleted)
+        );
+    }
+
+    #[test]
+    fn checkpoint_completion_has_its_own_terminal_label() {
+        let checkpoint = effect_fate(PhysicalWorkEffectFateEvidence::CheckpointCompleted);
+
+        assert_eq!(checkpoint, "checkpoint-completed");
+        assert_ne!(
+            checkpoint,
+            effect_fate(PhysicalWorkEffectFateEvidence::PublicationCompleted)
+        );
+    }
+
+    #[test]
+    fn wal_reclamation_completion_has_its_own_terminal_label() {
+        let reclamation = effect_fate(PhysicalWorkEffectFateEvidence::WalReclamationCompleted);
+
+        assert_eq!(reclamation, "wal-reclamation-completed");
+        assert_ne!(
+            reclamation,
+            effect_fate(PhysicalWorkEffectFateEvidence::CheckpointCompleted)
         );
     }
 }

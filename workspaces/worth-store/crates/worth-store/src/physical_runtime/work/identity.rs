@@ -19,6 +19,10 @@ impl PhysicalOperationIdentity {
     pub const fn get(self) -> u64 {
         self.0.get()
     }
+
+    pub(in crate::physical_runtime) const fn from_reopened(identity: NonZeroU64) -> Self {
+        Self(identity)
+    }
 }
 
 /// The lifecycle generation to which physical work is fenced.

@@ -1,8 +1,8 @@
-use worth_store_recovery_physics::certified_durable_wal_publication_for_test;
+use worth_store_physical_backend::BackendTargetProfile;
+use worth_store_recovery_physics::{DurabilityReplayIdentity, DurabilityReplayKind};
 use worth_store_security::{
     readmitted_foreign_wal_security_scope_for_test, readmitted_wal_security_scope_for_test,
 };
-use worth_store_wal::WalFrameDurablePublicationScope;
 
 mod storage_recovery;
 
@@ -89,7 +89,7 @@ fn duplicate_is_stale_and_resume_preserves_source_lineage() {
 }
 
 #[test]
-fn replay_declaration_cannot_substitute_for_durable_publication_identity() {
+fn replay_declaration_cannot_substitute_for_observed_replay_identity() {
     let scope = readmitted_wal_security_scope_for_test();
     let authority = scope.current_authority().clone();
     let durable = publication(10, 20, "sha256:actual");
@@ -352,14 +352,15 @@ fn source(
     .unwrap()
 }
 
-fn publication(
-    first_lsn: u64,
-    last_lsn: u64,
-    digest: &str,
-) -> worth_store_recovery_physics::DurableWalPublication {
-    certified_durable_wal_publication_for_test(
-        WalFrameDurablePublicationScope::new(1, 1, first_lsn, last_lsn, digest, 128).unwrap(),
+fn publication(first_lsn: u64, last_lsn: u64, digest: &str) -> DurabilityReplayIdentity {
+    DurabilityReplayIdentity::new(
+        DurabilityReplayKind::WalFrame,
+        BackendTargetProfile::PosixFileFsyncDirSync,
+        digest,
+        first_lsn,
+        last_lsn,
     )
+    .unwrap()
 }
 
 fn published_progress(

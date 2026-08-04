@@ -4,7 +4,7 @@ use super::{
 };
 use sha2::{Digest, Sha256};
 
-const PROFILE_DOMAIN: &[u8] = b"worth-store.physical-signal-profile.v3";
+const PROFILE_DOMAIN: &[u8] = b"worth-store.physical-signal-profile.v4";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PhysicalSignalProfileIdentity(pub(super) [u8; 32]);
@@ -56,6 +56,11 @@ const fn family_code(family: super::PhysicalWorkSignalFamily) -> u8 {
         super::PhysicalWorkSignalFamily::ExactWriteback => 2,
         super::PhysicalWorkSignalFamily::Publication => 3,
         super::PhysicalWorkSignalFamily::Lifecycle => 4,
+        super::PhysicalWorkSignalFamily::WalAppend => 5,
+        super::PhysicalWorkSignalFamily::DurabilityBarrier => 6,
+        super::PhysicalWorkSignalFamily::CheckpointCapture => 7,
+        super::PhysicalWorkSignalFamily::RootPublication => 8,
+        super::PhysicalWorkSignalFamily::WalReclamation => 9,
     }
 }
 
@@ -69,7 +74,7 @@ fn update_aspect(digest: &mut Sha256, aspect: &PhysicalSignalAspectDeclaration) 
         PhysicalSignalAspectRole::Output => 2,
         PhysicalSignalAspectRole::DependencyAndOutput => 3,
     }]);
-    digest.update([aspect.families().bits()]);
+    digest.update(aspect.families().bits().to_le_bytes());
     match aspect.partition() {
         Some(partition) => {
             digest.update([1]);

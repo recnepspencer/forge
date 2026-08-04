@@ -193,7 +193,9 @@ fn blob_ingest_preserves_page_or_wal_foreground(
     request.pressure.class() == super::BackgroundIoPressureClass::IngestPressure
         && matches!(
             request.foreground.lane(),
-            ForegroundIoLaneKind::CommitCriticalWalWrite | ForegroundIoLaneKind::OrdinaryPageWrite
+            ForegroundIoLaneKind::CommitCriticalWalAppend
+                | ForegroundIoLaneKind::CommitCriticalWalWrite
+                | ForegroundIoLaneKind::OrdinaryPageWrite
         )
 }
 

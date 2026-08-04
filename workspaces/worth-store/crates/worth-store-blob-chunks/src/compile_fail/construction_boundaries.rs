@@ -236,11 +236,11 @@
 //! Copied durable publication declarations cannot make blobs visible:
 //! ```compile_fail
 //! use worth_store_blob_chunks::BlobVisibleGeneration;
-//! use worth_store_wal::DurablePublicationDeclaration;
+//! use worth_store_wal::PublicationDeclaration;
 //!
 //! fn requires_visible(_: BlobVisibleGeneration) {}
 //!
-//! let record: DurablePublicationDeclaration = todo!();
+//! let record: PublicationDeclaration = todo!();
 //! requires_visible(record);
 //! ```
 //! Semantic references cannot make blobs visible:

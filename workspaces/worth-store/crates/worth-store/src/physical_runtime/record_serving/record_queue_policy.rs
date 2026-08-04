@@ -8,7 +8,7 @@ use worth_foundational::{
 };
 use worth_store_io_scheduler::{QueueDurabilityClass, QueueWorkDeclaration};
 
-pub(super) fn admit_record_queue_policy(
+pub(in crate::physical_runtime) fn admit_record_queue_policy(
     work: &QueueWorkDeclaration,
 ) -> FoundationalPolicyAdmissionReceipt {
     let budget = work.requested_budget();
@@ -21,14 +21,50 @@ pub(super) fn admit_record_queue_policy(
             FoundationalPerformanceWorkClass::PublicationDelivery
         }
     };
+    admit_exact_queue_policy(
+        budget,
+        work_class,
+        FoundationalPerformanceAccessPatternPosture::PointLookup,
+        FoundationalPerformanceExecutionTemperature::HotPath,
+    )
+}
+
+pub(in crate::physical_runtime) fn admit_checkpoint_background_policy(
+    budget: worth_store_io_scheduler::BackgroundResourceBudget,
+) -> FoundationalPolicyAdmissionReceipt {
+    admit_exact_queue_policy(
+        budget,
+        FoundationalPerformanceWorkClass::AuthoritativeMutation,
+        FoundationalPerformanceAccessPatternPosture::RebuildCapable,
+        FoundationalPerformanceExecutionTemperature::ColdPath,
+    )
+}
+
+pub(in crate::physical_runtime) fn admit_wal_reclamation_background_policy(
+    budget: worth_store_io_scheduler::BackgroundResourceBudget,
+) -> FoundationalPolicyAdmissionReceipt {
+    admit_exact_queue_policy(
+        budget,
+        FoundationalPerformanceWorkClass::AuthoritativeMutation,
+        FoundationalPerformanceAccessPatternPosture::RebuildCapable,
+        FoundationalPerformanceExecutionTemperature::ColdPath,
+    )
+}
+
+fn admit_exact_queue_policy(
+    budget: worth_store_io_scheduler::BackgroundResourceBudget,
+    work_class: FoundationalPerformanceWorkClass,
+    access_pattern: FoundationalPerformanceAccessPatternPosture,
+    temperature: FoundationalPerformanceExecutionTemperature,
+) -> FoundationalPolicyAdmissionReceipt {
     let claim = performance()
         .claim()
         .policy_admission()
         .boundary(FoundationalPerformanceBoundary::AuthoritativeExecution)
         .evidence_strength(FoundationalPerformanceEvidenceStrength::RuntimePolicyAdmission)
         .breadth_locality(FoundationalPerformanceBreadthLocalityPosture::DeltaBound)
-        .access_pattern(FoundationalPerformanceAccessPatternPosture::PointLookup)
-        .execution_temperature(FoundationalPerformanceExecutionTemperature::HotPath)
+        .access_pattern(access_pattern)
+        .execution_temperature(temperature)
         .freshness_retention(FoundationalPerformanceFreshnessRetentionPosture::ExactBasisCurrent)
         .fallback_debt(FoundationalPerformanceFallbackDebtPosture::Verified)
         .include_work(work_class)

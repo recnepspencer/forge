@@ -153,15 +153,15 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
     },
     ControlledMutation {
         id: 59,
-        predicate: "revision-schedule-lanes-collapse",
-        source: "tools/store-test-runner/src/courtroom_campaign/bounded_residency_siege/schedule/seed.rs",
-        needle: "    ScheduleSeed::new(revision_identity | lane as u64)",
-        replacement: "    ScheduleSeed::new(revision_identity)",
+        predicate: "source-closure-schedule-lanes-collapse",
+        source: "crates/worth-store-physical-certification/src/schedule/seed.rs",
+        needle: "digest.update((lane as u64).to_le_bytes());",
+        replacement: "digest.update(0_u64.to_le_bytes());",
         package: "store-test-runner",
         target: MutationTarget::LibraryWithFeatures {
             features: "physical-work-evidence",
         },
-        selector: "courtroom_campaign::bounded_residency_siege::schedule::tests::one_revision_bijects_sixteen_lanes_to_every_decision_trace",
+        selector: "courtroom_campaign::bounded_residency_siege::schedule::tests::one_source_closure_derives_sixteen_distinct_replayable_lane_seeds",
     },
     ControlledMutation {
         id: 60,

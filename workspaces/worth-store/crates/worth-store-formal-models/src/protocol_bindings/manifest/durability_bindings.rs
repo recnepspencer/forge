@@ -14,22 +14,10 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
     use ProtocolFamily::DurabilityRecovery;
 
     vec![
-        OwnerBoundaryBinding::to::<worth_store_wal::AdmittedWalAppendReceipt>(
+        OwnerBoundaryBinding::to::<worth_store_wal::PublicationDeclaration>(
             DurabilityRecovery,
             Wal,
-            WalAppendAdmission,
-            DurableAuthoritativeReceipt,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_wal::AdmittedCheckpointPublicationReceipt>(
-            DurabilityRecovery,
-            Wal,
-            CheckpointPublicationAdmission,
-            DurableAuthoritativeReceipt,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_wal::DurablePublicationDeclaration>(
-            DurabilityRecovery,
-            Wal,
-            DurablePublicationDeclaration,
+            PublicationDeclaration,
             ForbiddenAuthoritySubstitute,
         ),
         OwnerBoundaryBinding::to::<worth_store_wal::WalReplayTailRecordReport>(
@@ -39,57 +27,26 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             ReopenedObservedReceipt,
         ),
         OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_recovery_physics::WalAppendPlan<
-                worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
-            >,
-        >(
-            DurabilityRecovery,
-            RecoveryPhysics,
-            WalAppendPlanning,
-            ForbiddenAuthoritySubstitute,
-            OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
-        ),
-        OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_recovery_physics::WalAppendProgress<
-                worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
-            >,
-        >(
-            DurabilityRecovery,
-            RecoveryPhysics,
-            WalAppendProgress,
-            EphemeralDiagnosticTrace,
-            OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
-        ),
-        OwnerBoundaryBinding::to_polymorphic::<
             worth_store_recovery_physics::WalAppendReceipt<
                 worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
             >,
         >(
             DurabilityRecovery,
             RecoveryPhysics,
-            WalAppendExecution,
-            DurableAuthoritativeReceipt,
+            WalAppendObservation,
+            ReopenedObservedReceipt,
             OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
         ),
         OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_recovery_physics::DurableAckReceipt<
+            worth_store_recovery_physics::WalDurabilityObservation<
                 worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
             >,
         >(
             DurabilityRecovery,
             RecoveryPhysics,
-            DurableAcknowledgement,
-            DurableAuthoritativeReceipt,
+            WalDurabilityObservation,
+            ReopenedObservedReceipt,
             OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
-        ),
-        OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_physical_backend::StoreDurabilityExecutionProof<&'static str>,
-        >(
-            DurabilityRecovery,
-            PhysicalBackend,
-            BackendDurabilityExecution,
-            DurableAuthoritativeReceipt,
-            OwnerSourcePolymorphism::AcrossOwnerScopeTypes,
         ),
         OwnerBoundaryBinding::to::<worth_store_physical_backend::AdmittedBackendCapabilityWitness>(
             DurabilityRecovery,

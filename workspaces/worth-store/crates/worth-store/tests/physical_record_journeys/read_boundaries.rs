@@ -6,7 +6,9 @@ use worth_store::physical_runtime::{
 };
 use worth_store_physical_backend::MediaOperationRole;
 
-use super::{configuration, media, serving_from_initialization, success};
+use super::{
+    configuration, durable_publication::publish_single, media, serving_from_initialization, success,
+};
 
 fn permissive_access() -> (AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy) {
     let (format, _, _) = configuration();
@@ -24,15 +26,13 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(&root);
-    let record_id = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"bounded".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([164; 32]),
+        RecordAppendBatch::try_from_iter([b"bounded".as_slice()]).unwrap(),
+    );
+    let record_id = publication.settled_members()[0].record_id(0).unwrap();
     let locator = ExternalPhysicalRecordLocator::new(serving.store_identity(), record_id);
     serving.close();
 
@@ -45,7 +45,9 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
         .set_len(16_385)
         .unwrap();
     let (format, access) = permissive_access();
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     reopened
         .certification_physical_residency()
         .drain_unpinned_clean_frames();
@@ -61,7 +63,7 @@ fn permissive_access_policy_cannot_expand_fixed_page_reads() {
     assert_eq!(
         after.completed_bytes_for(MediaOperationRole::PositionedRead)
             - before.completed_bytes_for(MediaOperationRole::PositionedRead),
-        288,
+        208 + 2 * super::durable_frame_oracle::HEADER_BYTES as u64,
         "the oversized data artifact is rejected by length before a frame allocation or page read",
     );
     reopened.close();
@@ -72,6 +74,8 @@ fn permissive_access_policy_cannot_expand_current_root_bootstrap() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     serving_from_initialization(&root).close();
+    let expected_catalog_bytes =
+        super::durable_frame_oracle::artifact_bytes(&root, &["families/records/bootstrap.catalog"]);
     std::fs::OpenOptions::new()
         .write(true)
         .open(root.join("families/records/roots/root-0000000000000001.manifest"))
@@ -82,9 +86,10 @@ fn permissive_access_policy_cannot_expand_current_root_bootstrap() {
     let (format, access) = permissive_access();
     let open_media = media(&root);
     let before = open_media.media_counters();
-    let denied = open_media
-        .open_record_store(PhysicalRecordOpen::new(format, access))
-        .into_raw();
+    let denied = open_record_store!(open_media, |durability| PhysicalRecordOpen::new(
+        format, access, durability
+    ))
+    .into_raw();
     let TransitionOutcome::Denied(denial) = denied else {
         panic!("oversized current root must be denied");
     };
@@ -94,7 +99,7 @@ fn permissive_access_policy_cannot_expand_current_root_bootstrap() {
     assert_eq!(
         after.completed_bytes_for(MediaOperationRole::PositionedRead)
             - before.completed_bytes_for(MediaOperationRole::PositionedRead),
-        74
+        expected_catalog_bytes
     );
     returned.close();
 }

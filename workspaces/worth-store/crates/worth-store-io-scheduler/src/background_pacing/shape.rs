@@ -31,6 +31,13 @@ impl BackgroundIoPressureShape {
         )
     }
 
+    pub const fn filesystem_admitted_checkpoint_flush() -> Self {
+        Self::new(
+            BackgroundIoPressureClass::CheckpointFlush,
+            IoSchedulerBackendCapabilityRequirement::FilesystemAdmittedFsync,
+        )
+    }
+
     pub const fn scrub_scan() -> Self {
         Self::new(
             BackgroundIoPressureClass::ScrubScan,
@@ -78,15 +85,6 @@ impl BackgroundIoPressureShape {
             BackgroundIoPressureClass::VerificationPressure,
             IoSchedulerBackendCapabilityRequirement::DirectIo,
         )
-    }
-
-    pub const fn secure_frame_repair_scan() -> Self {
-        Self {
-            class: BackgroundIoPressureClass::RepairScan,
-            requested: BackgroundResourceBudget::new(),
-            backend_requirement: IoSchedulerBackendCapabilityRequirement::SecureFrameIo,
-            secure_scope_required: true,
-        }
     }
 
     pub const fn requesting(mut self, requested: BackgroundResourceBudget) -> Self {

@@ -177,8 +177,10 @@ The initial world fixes:
 - a page size and WAL segment size that force multiple pages and at least two
   WAL rotations during the workload;
 - a bounded dirty-frame budget and a bounded checkpoint WAL-tail budget;
-- three distinct physical mutations eligible for one shared barrier;
-- stable, caller-supplied physical idempotency keys with no branch meaning;
+- four distinct physical mutation requests, three of which become eligible for
+  one shared barrier while one remains cancellable before group sealing;
+- stable caller-supplied physical idempotency material bound to Store-issued
+  retention leases, with no branch meaning;
 - one current and one retainable previous physical root generation;
 - separate workload and schedule seeds;
 - exact media, WAL, page, checkpoint, root, allocation, queue, and
@@ -191,7 +193,8 @@ runtime's classifiers and output projection.
 
 ### Crash-seam matrix
 
-The serving process is killed in a fresh Store copy at each exact seam:
+The serving process is killed against an independently produced fresh Store
+root at each exact seam:
 
 1. before WAL append;
 2. during WAL append after a strict nonzero prefix but before the complete
@@ -205,16 +208,24 @@ The serving process is killed in a fresh Store copy at each exact seam:
 8. after complete physical durability but before acknowledgment is observed by
    the caller.
 
-Each scenario changes only the crash seam. A distinct fixture must not
-preconstruct its expected answer.
+Each scenario changes only the crash seam. The producer deterministically
+creates a new Store root from the same workload seed before each serving
+process begins. A distinct fixture must not preconstruct its expected answer.
+No scenario may copy a post-run Store root, workspace tree, archive or zip,
+serialized runtime, derived cache, or writer memory into another seam.
 
 ### Group-commit identity blender
 
-Three mutations share one admitted barrier opportunity:
+Four requests attack the boundary between candidate admission and sealed group
+membership:
 
-- one is cancelled while still proven pre-effect;
-- one completes and returns its physical acknowledgment; and
-- one completes physically but loses caller observation at the final seam.
+- one is cancelled while still proven pre-effect, before group sealing and WAL
+  range reservation, and never becomes a group member;
+- one sealed member completes and returns its physical acknowledgment;
+- one sealed member completes physically but loses caller observation at the
+  final seam; and
+- one sealed member has data settlement and completion delivery delayed while
+  the other sealed members settle, then returns its own acknowledgment.
 
 The schedule may reorder member admission, WAL-range allocation, scheduler
 dispatch, data settlement, and completion delivery only where prerequisites
@@ -224,14 +235,17 @@ The courtroom requires:
 
 - one exact shared barrier execution;
 - one exact shared root publication when the sealed group plan declares it;
-- three permanently distinct operation and idempotency identities;
-- one exact WAL subrange and data-effect set per member;
+- four permanently distinct operation and idempotency identities;
+- exactly three sealed members;
+- one exact WAL subrange and data-effect set per sealed member;
+- no WAL range, data effect, or group membership for the pre-seal cancelled
+  request;
 - no group-level terminal fate;
 - no cancellation or acknowledgment propagation between members;
 - no semantic order inferred from group position;
-- one completed acknowledged member;
-- one proven-no-effect cancelled member; and
-- one completed-but-unobserved physical fact left for C.8 reconciliation.
+- two independently completed acknowledged members;
+- one proven-no-effect pre-seal cancelled request; and
+- one completed-but-unobserved sealed-member fact left for C.8 reconciliation.
 
 ### Checkpoint pressure siege
 
@@ -283,9 +297,9 @@ The courtroom must prove:
 
 - every acknowledged mutation has one exact complete WAL frame and admitted
   durable WAL basis;
-- every persisted pageLSN equals the greatest exact redo-record LSN reflected
-  in that page image, its payload digest matches that ordered redo basis, and
-  the complete basis is covered by independently observed durable WAL;
+- every persisted pageLSN equals the greatest exact redo-record LSN in its newly
+  applied delta, its certified prior-page digest and resulting payload digest
+  match, and independently observed durable WAL covers the complete new delta;
 - no data effect dispatches before its matching WAL barrier proof;
 - every WAL, barrier, checkpoint, root, and reused ExactWriteback effect joins
   its exact installed Signal basis, scheduler admission, executor effect, and
@@ -333,6 +347,7 @@ The replay identity contains:
 
 ```text
 source revision
+source-closure digest
 binary identity
 workload seed
 schedule seed
@@ -362,11 +377,19 @@ production scheduler, or select the crash seam implicitly. The seam is an
 explicit scenario input so identical replay inputs select an identical kill
 boundary.
 
-CI uses exactly 16 distinct revision-derived schedule seeds. The eight crash
-seams are rotated so every seam appears in at least two lanes. Release
-certification runs the canonical schedule at every seam and runs the complete
-current C.7 mutation corpus. Scheduled hardware qualification may run the full
-seed-by-seam matrix at larger scale on each genuinely admitted profile.
+The source-closure digest covers every local package, test, tool, configuration,
+manifest, and harness input capable of changing the certified behavior. It
+excludes report destinations and other products generated by the run, avoiding
+self-reference. Git revision remains descriptive identity; it cannot substitute
+for the digest when the checked-out source is dirty.
+
+CI uses exactly 16 distinct schedule seeds. Seed `i` is derived from the final
+source-closure digest, lane index `i in 0..16`, and domain separator
+`store.physical-reconstruction.c7.schedule.v1`. The eight crash seams are
+rotated so every seam appears in at least two lanes. Release certification runs
+the canonical schedule at every seam and runs the complete current C.7 mutation
+corpus. Scheduled hardware qualification may run the full seed-by-seam matrix
+at larger scale on each genuinely admitted profile.
 
 Every failure emits one exact rerun command.
 
@@ -378,11 +401,16 @@ The initial corpus contains a causal controlled defect for each disputed edge:
 - dispatch data before matching WAL durability;
 - persist a pageLSN ahead of durable WAL;
 - choose an unrelated but range-contained pageLSN or omit one applied redo
-  record from the page basis;
+  record from the new page delta;
+- substitute the certified prior-page identity, pageLSN, or digest;
+- carry a page's lifetime redo history through the ordinary path;
 - collapse group-member identities;
 - substitute another member's otherwise valid receipt;
 - execute a duplicate same-fingerprint idempotency request twice;
 - accept one idempotency key with a different physical fingerprint;
+- silently reuse an expired idempotency key;
+- reclaim the last authoritative attempt binding or retain every historical
+  terminal binding;
 - include allocated operation, group, WAL-member, or WAL-range identity in the
   request fingerprint so a lawful retry conflicts with itself;
 - omit effect-relevant policy, scope, payload, operation-family, or security
@@ -392,6 +420,7 @@ The initial corpus contains a causal controlled defect for each disputed edge:
 - treat atomic replacement as durable root publication;
 - clean a frame before exact C.6 settlement;
 - automatically retry an indeterminate effect;
+- make caller-handle drop cancel, abandon settlement, or evade close draining;
 - accept a stale runtime, Store, WAL, checkpoint, or root generation;
 - recycle WAL without a covering checkpoint and contiguous retained tail;
 - bypass C.5.1 with one direct media effect;
@@ -402,6 +431,8 @@ The initial corpus contains a causal controlled defect for each disputed edge:
   authoritative mutation progression;
 - ignore checkpoint-tail or queue admission;
 - stop the schedule seed from affecting one declared decision;
+- derive the schedule seed from Git revision while ignoring a dirty
+  behavior-affecting source-closure change;
 - preserve a competing ordinary WAL, checkpoint, or root execution lane; and
 - serialize the complete mutation lifecycle under one whole-Store lock.
 
@@ -483,38 +514,48 @@ The milestone must mechanically reject:
 14. Automatic retry requires proven no effect and the original exact
     idempotency identity. Indeterminate work opens no retry door before C.8
     reconciliation.
-15. Checkpoint capture is fuzzy or non-blocking, carries an exact source range,
+15. Every physical idempotency identity includes a Store-issued
+    `PhysicalMutationIdempotencyLease` whose expiry is expressed in durable
+    checkpoint generations. The admitted policy fixes one nonzero finite
+    retention-generation count, one nonzero pending-unresolved bound, and one
+    independent nonzero total-live-binding bound. Attempt deadlines and ambient
+    time do not alter that lease. Unresolved bindings never expire; terminal
+    bindings remain
+    authoritative until lease expiry and at least one later namespace-durable
+    checkpoint compacts their fate. An expired identity is denied and requires
+    a newly issued key; it never silently creates another attempt.
+16. Checkpoint capture is fuzzy or non-blocking, carries an exact source range,
     and has hard memory, queue, and retained-WAL bounds. Whole-Store capture and
     unbounded tail growth are forbidden.
-16. Root publication retains one canonical current-root authority. Any
+17. Root publication retains one canonical current-root authority. Any
     publication history needed by C.8 or C.10 derives from that progression; a
     second root authority or `root-publications.log` writer is forbidden.
-17. The immediately previous root and required WAL/checkpoint bases remain
+18. The immediately previous root and required WAL/checkpoint bases remain
     physically retained until a later owner proves reclamation eligibility.
     C.7 does not infer semantic liveness.
-18. Worth Signal derives dependency readiness and generic async lifecycle only.
+19. Worth Signal derives dependency readiness and generic async lifecycle only.
     The scheduler admits resources only. The Store decides order and settlement;
     the executor alone performs effects.
-19. `worth-proof` supplies outcome, progression, basis, and structural
+20. `worth-proof` supplies outcome, progression, basis, and structural
     collection mechanics. C.4 owns platform durability semantics and exact
     capability claims; Store owns their sealed admission join and physical
     progression. A copied proof, digest, generic marker, or declaration cannot
     become admission or completed-effect evidence.
-20. Worth Foundational and Store aspect-native contracts retain semantic aspect
+21. Worth Foundational and Store aspect-native contracts retain semantic aspect
     identity, derived routing bases, scheduler policy admission, and
     descriptive evidence projection. They do not own backend profile,
     physical fate, current root, or acknowledgment. No generic `Durable`,
     `Committed`, or `Published` Foundational flag becomes physical authority.
-21. JSON exists only at the terminal evidence projection or an explicitly named
+22. JSON exists only at the terminal evidence projection or an explicitly named
     external compatibility edge. It is forbidden from mutation admission,
     progression, Signal binding, scheduling, settlement, or acknowledgment.
-22. C.7 adds no branch registry, branch queue, semantic transaction id, semantic
+23. C.7 adds no branch registry, branch queue, semantic transaction id, semantic
     commit receipt, MVCC generation, or global semantic lock.
-23. C.7 may serialize the exact WAL-allocation, barrier, and current-root
+24. C.7 may serialize the exact WAL-allocation, barrier, and current-root
     cutover scopes. It may not hold a whole-Store mutation lock across framing,
     data work, checkpoint capture, or caller observation; physically disjoint
     work remains concurrently admissible.
-24. The product is unreleased. Cutover deletes obsolete paths, aliases,
+25. The product is unreleased. Cutover deletes obsolete paths, aliases,
     compatibility adapters, fallback executors, and legacy features in the same
     phase that replaces their last consumer.
 
@@ -524,12 +565,19 @@ The following distinctions are normative:
 
 - **physical mutation**: one Store-owned operation with exact scope and
   idempotency identity; never a semantic transaction;
+- **idempotency lease**: Store-issued validity and retention authority expressed
+  in durable checkpoint generations; never an execution deadline, wall-clock
+  expiry, or completed fate;
 - **request fingerprint**: versioned canonical equivalence of effect-relevant
   request inputs; never an attempt, operation, group, member, LSN, or WAL-range
   identity;
 - **attempt binding**: the persisted relationship between one idempotency
-  key/fingerprint and its allocated physical operation, group/member, and WAL
-  facts; never request equivalence or completed fate;
+  key/lease/fingerprint and its allocated physical operation, group/member, and
+  WAL facts; never request equivalence or completed fate;
+- **binding compaction**: namespace-durable checkpoint-side authority preserving
+  unexpired terminal and every unresolved attempt binding after its original
+  WAL segment becomes reclaimable; never a derived in-memory index or an
+  all-history registry;
 - **WAL range reserved**: stable LSN identity exists; no durability claim;
 - **WAL appended**: complete bytes were observed written; required barriers may
   still be absent;
@@ -567,6 +615,15 @@ let durability_basis: PhysicalDurabilityAdmissionBasis =
 
 let durability = match PhysicalDurabilityDeclaration::builder()
     .group_commit(GroupCommitLimit::new(32)?, GroupCommitDelay::new(...)?)
+    .wal(PhysicalWalPolicy::segmented(
+        WalSegmentByteLimit::new(...)?,
+        WalSegmentInventoryLimit::new(...)?,
+    ))
+    .idempotency(PhysicalIdempotencyPolicy::new(
+        IdempotencyRetentionGenerations::new(...)?,
+        PendingUnresolvedMutationLimit::new(...)?,
+        LiveIdempotencyBindingLimit::new(...)?,
+    ))
     .checkpoint(PhysicalCheckpointPolicy::fuzzy(
         CheckpointMemoryLimit::new(...)?,
         RetainedWalTailLimit::new(...)?,
@@ -634,10 +691,13 @@ construct the sealed basis or satisfy this join.
 The common path requests the strongest admitted ordinary physical boundary:
 
 ```rust
-let request = PhysicalMutationRequest::platform_durable(
-    PhysicalMutationIdempotencyKey::new(caller_key)?,
-    PhysicalMutationDeadline::at(deadline),
-);
+let idempotency = serving
+    .record_submission()
+    .issue_idempotency_key(caller_key)?;
+let deadline = PhysicalMutationDeadline::after_milliseconds(deadline_ms)
+    .ok_or(InvalidMutationDeadline)?;
+
+let request = PhysicalMutationRequest::platform_durable(idempotency, deadline);
 
 let prepared = match serving
     .record_submission()
@@ -656,7 +716,9 @@ let prepared = match serving
     TransitionOutcome::Failed(failure) => return inspect_mutation_failure(failure),
 };
 
-match prepared.execute() {
+let mutation: PhysicalMutationHandle = prepared.start();
+
+match mutation.wait() {
     PhysicalMutationOutcome::Completed(completed) => {
         let acknowledgment: PhysicalMutationAcknowledgment =
             completed.into_acknowledgment();
@@ -680,6 +742,21 @@ This example fixes the public semantics, not every private method name.
   deferred, stale, rebind-required, and failed branches. It does not compress
   them into one error or convert admission failure into physical effect fate.
 - `PreparedPhysicalMutation` is consuming and non-`Clone`.
+- `PreparedPhysicalMutation::start(self)` returns one
+  `PhysicalMutationHandle`; an optional blocking `execute(self)` is only a
+  transparent `start().wait()` convenience.
+- `PhysicalMutationHandle` exposes immutable mutation/idempotency identity,
+  typed `poll`, consuming `wait`, and `request_cancellation` operations.
+- Dropping the handle abandons caller observation only. It never requests
+  cancellation, changes effect fate, releases Store settlement ownership, or
+  permits a second attempt.
+- `request_cancellation` returns a typed outcome distinguishing pre-effect
+  cancellation accepted, settlement already effectful, already terminal, stale
+  handle, and runtime closing. It cannot report aggregate proven-no-effect once
+  a complete WAL member exists.
+- The Store runtime owns every started mutation until terminal settlement.
+  Managed close stops new admission and drains started work even when every
+  caller handle has been dropped.
 - Deadlines are evaluated through the admitted C.5.1/Signal monotonic clock
   basis; wall clock, sleep duration, and ambient process time are not
   correctness inputs.
@@ -713,11 +790,13 @@ equivalence and contains:
 - operation-family identity; and
 - every security or authority basis that can change the lawful physical effect.
 
-It excludes attempt-local facts: runtime generation, operation identity,
-group identity, WAL member or range, queue placement, schedule choice,
-deadline, cancellation state, completion-delivery correlation, and observation
-metadata. Those facts can differ across a lawful retry without changing the
-requested physical mutation.
+It excludes attempt-local facts: idempotency lease and its issuance/expiry
+frontiers, runtime generation, operation identity, group identity, WAL member
+or range, queue placement, schedule choice, deadline, cancellation state,
+completion-delivery correlation, and observation metadata. Those facts can
+differ across separately keyed lawful requests without changing the requested
+physical mutation; exact retry identity still requires the original complete
+idempotency key.
 
 The fingerprint uses the Store aspect-native
 `StoreDigestEquivalenceBasis` and a new admitted
@@ -741,9 +820,21 @@ The closed canonical registry is extended honestly rather than reusing
 The source is a validated native Store request-basis record, not a terminal
 digest string, compatibility text, debug object, or raw JSON payload.
 
+Public key issuance binds validated caller material to the current
+`PhysicalMutationIdempotencyLease`. The resulting
+`PhysicalMutationIdempotencyKey` carries Store identity, issuance checkpoint
+generation, expiry checkpoint generation, and opaque caller material. Callers
+must preserve that complete key for retry; copied raw caller material cannot
+reconstruct an expired identity.
+
+Namespace-durable Store initialization defines idempotency-retention generation
+zero. Each later namespace-durable checkpoint advances that generation exactly
+once; a failed, staged, renamed-but-not-namespace-durable, or copied checkpoint
+cannot advance lease issuance or expiry.
+
 Allocation creates a distinct `PhysicalMutationAttemptBinding` containing:
 
-- the idempotency key and request fingerprint;
+- the idempotency key, lease, and request fingerprint;
 - the Store/runtime and physical operation identities;
 - any sealed group-member identity; and
 - the later exact WAL member identity and range.
@@ -754,6 +845,27 @@ recover the same retry relationship. An in-memory map may accelerate lookup
 during one runtime generation, but it is derived, bounded, and disposable. It
 is never the only idempotency authority.
 
+The admitted policy fixes a nonzero finite
+`idempotency_retention_generations`. A terminal binding remains live until both
+its lease expiry frontier is namespace durable and its terminal fate has
+appeared in at least one later namespace-durable binding compaction. An
+unresolved binding remains live regardless of nominal expiry and counts against
+the admitted pending-unresolved bound. Reaching that bound backpressures or
+denies new mutation admission; it cannot grow retained authority without limit.
+
+Every namespace-durable checkpoint publishes a
+`PhysicalMutationBindingCompaction` containing exactly:
+
+- all live unresolved bindings and their inspection bases;
+- all unexpired terminal bindings and exact terminal fates; and
+- any expired terminal binding not yet protected by the required later
+  namespace-durable checkpoint.
+
+The compaction is authoritative persisted input to duplicate admission and C.8.
+The in-memory idempotency registry is rebuilt from the latest admitted
+compaction, or the empty generation-zero basis before the first checkpoint,
+plus the retained WAL tail. It remains a bounded derived index.
+
 A duplicate request with the same key and fingerprint:
 
 - joins or observes the existing in-flight attempt without a second effect;
@@ -763,6 +875,12 @@ A duplicate request with the same key and fingerprint:
 A duplicate key with a different fingerprint is denied before effects as an
 idempotency conflict. It cannot silently select the first payload, replace it,
 or create another WAL member.
+
+Presenting an expired key returns the exact pre-effect
+`PhysicalMutationIdempotencyExpired` admission denial. The caller must obtain a
+new idempotency key for any newly intended mutation. The Store never treats
+expired key material as an implicit retry or silently rebinds it to a new
+attempt.
 
 A request fingerprint that includes its allocated attempt, operation, group,
 or WAL identity is invalid by construction: it would make the same retry
@@ -785,7 +903,8 @@ let checkpoint = match serving
     .checkpoints()
     .start(PhysicalCheckpointRequest::fuzzy(
         PhysicalCheckpointIdempotencyKey::new(key)?,
-        PhysicalCheckpointDeadline::at(deadline),
+        PhysicalCheckpointDeadline::after_milliseconds(deadline_ms)
+            .ok_or(InvalidCheckpointDeadline)?,
     ))
     .into_raw()
 {
@@ -837,6 +956,9 @@ Observation exposes bounded, read-only facts:
 - WAL frames, bytes, ranges, rotations, and barriers;
 - page/extent writes and pageLSN bindings;
 - checkpoint captures, covered ranges, retained tails, and denials;
+- fresh-process checkpoint artifact bytes, exact bytes read, skipped dirty-body
+  bytes, binding records read, retained WAL members read, and peak WAL reopen
+  buffer bytes;
 - root replacements, file syncs, directory syncs, and retained generations;
 - completed, proven-no-effect, indeterminate, cancelled, timed-out, stale, and
   completed-but-unobserved mutation counts;
@@ -960,17 +1082,27 @@ cannot be dispatched until Store consumes:
 - exact range inclusion; and
 - current lifecycle and health authority.
 
-Every candidate page image carries an ordered `PageWalBasis` naming each redo
-record reflected in its bytes. Its encoded pageLSN equals the greatest exact
-redo-record LSN applied to that image, not an arbitrary member-range start,
-end, frontier, or counter. Every lower included redo record must belong to the
-same admitted image basis and the resulting payload digest must match.
+Every candidate page image carries one bounded `PageWalBasis` containing:
+
+- a `CertifiedPriorPageBasis` with exact page identity, prior encoded pageLSN,
+  and prior payload digest; and
+- a canonical ordered nonempty delta naming only the exact redo records newly
+  applied to that prior image.
+
+The resulting encoded pageLSN equals the greatest exact redo-record LSN in the
+new delta and must advance consistently from the certified prior pageLSN. It is
+not an arbitrary member-range start, end, frontier, or counter. Every delta
+record must belong to the same admitted image basis, the resulting payload
+digest must match, and the durable WAL frontier must cover the complete new
+delta.
 
 Physical format encodes the pageLSN supplied by the admitted Store plan. It
 cannot choose, advance, or validate WAL durability. A data dispatch is lawful
-only when the durable WAL frontier covers the complete `PageWalBasis`. C.8
-later compares stored pageLSN and redo identity to recovered WAL; C.7 proves
-the written image never outran or misidentified its exact durable basis.
+only when the durable WAL frontier covers the complete newly applied delta.
+C.8 later composes the checkpoint-certified prior image with the retained WAL
+tail; C.7 proves the written image never outran or misidentified that bounded
+causal extension. No ordinary page, frame, request, or checkpoint carries a
+page's lifetime redo vector.
 
 A raw `LogSequenceNumber`, range comparison, queue class, or barrier counter is
 not dispatch authority.
@@ -1010,12 +1142,37 @@ A fuzzy checkpoint captures:
 - the physical root and dirty-generation bases it observed;
 - bounded capture memory and I/O;
 - exact concurrent-mutation posture;
-- one published checkpoint artifact; and
+- one published checkpoint artifact;
+- one authoritative `PhysicalMutationBindingCompaction`; and
 - one contiguous retained WAL tail beginning at the checkpoint boundary.
 
 Checkpoint capture does not freeze all mutation authority. A short,
 responsibility-named cutover fence may protect the final publication boundary;
 it cannot span full capture or whole-Store traversal.
+
+Binding compaction and reopen are incremental. Publication encodes one retained
+binding record at a time from the locked registry; it does not retain a second
+encoded record set. Fresh-process admission reads only the fixed checkpoint
+header, compaction header, footer, and one bounded binding record at a time,
+skipping the dirty-record body. Total rebuild memory is bounded by the admitted
+total-live-binding count plus one checkpoint record and one WAL segment buffer,
+not by historical WAL or checkpoint dirty cardinality.
+
+The latest namespace-durable compaction and retained WAL suffix after its exact
+cutoff are one `PhysicalDurabilityReopenBasis`. WAL framing and integrity
+are verified once; idempotency consumes borrowed verified payload views and is
+the only owner that interprets attempt-binding meaning. The pre-reopen policy
+owner exposes observation only. A distinct post-reopen owner is required to
+obtain idempotency, grouping, binding-compaction, WAL, or checkpoint authority,
+making authority distribution before rebuild unavailable by type.
+
+Compaction preserves `ReopenedUnresolved` obligations without granting them
+fresh cancellation or group-sealing authority. Retained WAL may upgrade only
+the exact matching obligation. Persisted terminal outcomes live behind the
+closed `idempotency/fate/` seam; the registry stores that fate but does not own
+its encoding vocabulary. Reopen rejects noncanonical order or encoding,
+duplicates, foreign Store/policy, invalid leases, discontinuous WAL, incomplete
+or substituted groups, and either admitted registry bound being exceeded.
 
 WAL deletion or recycling requires:
 
@@ -1024,11 +1181,23 @@ WAL deletion or recycling requires:
 - a covering LSN range;
 - a contiguous retained tail;
 - absence of unresolved physical obligations requiring the candidate segment;
-  and
+- a namespace-durable `PhysicalMutationBindingCompaction` containing every live
+  attempt binding for which the candidate segment holds the last authoritative
+  copy;
+- proof that every binding in the candidate segment is either still present in
+  the retained WAL tail, present in that compaction, or terminal, expired, and
+  protected by the required later namespace-durable checkpoint; and
 - later retention/recovery constraints already admitted to C.7.
 
 WAL age, file count, disk pressure, checkpoint existence, or a copied tail
 range is not eligibility.
+
+`physical_runtime/durability/wal/reclamation/` is the sole owner of eligibility,
+proof-bearing deletion authority, C.4 removal execution, and the resulting WAL
+inventory transition. Inventory reports physical facts; checkpoint reports its
+namespace-durable compaction and tail; neither may delete on its own. Failed or
+indeterminate removal remains explicit residue and does not advance inventory
+as if the segment disappeared.
 
 `ContiguousRetainedWalTail` is constructed from Worth Proof
 `NonEmpty<RetainedWalSegment>` and admitted only after the owner-defined order
@@ -1036,6 +1205,11 @@ validates into `CanonicalVec<RetainedWalSegment>`. The Store wrapper adds
 adjacency, range-coverage, checkpoint-boundary, and no-required-gap proof.
 `CanonicalVec` supplies stable ordering only; it never proves nonemptiness,
 contiguity, or retention eligibility by itself.
+
+WAL is not an all-history idempotency registry. Once the binding-compaction and
+lease-expiry proofs above exist, deleting the superseded WAL copy is required.
+Conversely, WAL recycling is forbidden while it would delete the last
+authoritative copy of any live binding.
 
 ## Failure, Cancellation, And Acknowledgment Contract
 
@@ -1151,17 +1325,28 @@ Foundational owns stable aspect meaning, contract admission, validated values,
 authoritative state, patches, and distinct projection/mutation/diagnostic mask
 laws.
 
-C.7 installs these exact derived work-basis contracts:
+C.7 installs these exact derived work-basis contracts. The fifth mutation
+contract, WAL reclamation, was populated with the Phase 6 retention boundary;
+it is part of the final C.7 contract rather than a generic durability aspect.
 
 | Store aspect-native contract key | Basis posture and role | Masks | Signal family | Exact partition |
 | --- | --- | --- | --- | --- |
-| `store.physical.durability.policy-binding-basis` | projection; `Dependency` | projection only | `WalAppend`, `DurabilityBarrier`, `CheckpointCapture`, and `RootPublication` | admitted durability-policy basis identity |
-| `store.physical.durability.wal-append-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalAppend` only | writable WAL segment plus Store/runtime generation |
-| `store.physical.durability.barrier-basis` | mutation; `DependencyAndOutput` | projection and mutation | `DurabilityBarrier` only | exact WAL, file, or parent-namespace barrier scope and artifact identity |
-| `store.physical.durability.checkpoint-capture-basis` | mutation; `DependencyAndOutput` | projection and mutation | `CheckpointCapture` only | checkpoint identity and admitted capture range |
-| `store.physical.durability.root-publication-basis` | mutation; `DependencyAndOutput` | projection and mutation | `RootPublication` only | candidate-root publication identity and Store/runtime generation |
+| `store.physical.durability.policy-binding-basis` | projection; `Dependency` | projection only | `WalAppend`, `DurabilityBarrier`, `CheckpointCapture`, `RootPublication`, and `WalReclamation` | exact admitted durability-policy identity |
+| `store.physical.durability.wal-append-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalAppend` only | exact stable Store identity |
+| `store.physical.durability.wal-barrier-basis` | mutation; `DependencyAndOutput` | projection and mutation | `DurabilityBarrier` only | exact stable Store identity |
+| `store.physical.durability.checkpoint-capture-basis` | mutation; `DependencyAndOutput` | projection and mutation | `CheckpointCapture` only | exact stable Store identity |
+| `store.physical.durability.root-publication-basis` | mutation; `DependencyAndOutput` | projection and mutation | `RootPublication` only | exact stable Store identity |
+| `store.physical.durability.wal-reclamation-basis` | mutation; `DependencyAndOutput` | projection and mutation | `WalReclamation` only | exact stable Store identity |
 
-These are derived routing and invalidation bases. They are not authoritative
+These are derived routing and invalidation bases. Artifact-specific WAL range,
+barrier, checkpoint, root-candidate, and reclaim identities remain in the
+typed Store work declaration and executor command; copying them into an aspect
+partition would create a second physical truth lane. The stable Store
+partition prevents cross-Store invalidation. Each installed Signal graph is
+already owned by one runtime incarnation; adding that ephemeral identity to
+the partition would destabilize the semantic profile across lawful reopen.
+Exact runtime identity remains in typed Store work and progression authority.
+These contracts are not authoritative
 “WAL generation,” “durability-profile generation,” “current-root generation,”
 or “checkpoint generation” state. In particular,
 `root-publication-basis` does not name or advance the current root.
@@ -1215,14 +1400,19 @@ forbidden as internal authority.
 | --- | --- | --- | --- | --- | --- |
 | `PhysicalDurabilityAdmissionBasis` | C.4 physical-backend owner from `QualifiedFilesystemMedia`, `RootProfileQualificationBasis`, and exact `AdmittedBackendCapabilityWitness` claims | the qualified media generation satisfies the requested filesystem capability vocabulary | Store durability-policy admission only | an effect, barrier completion, current root, or acknowledgment | `PhysicalDurabilityDeclaration::admit` |
 | `AdmittedPhysicalDurabilityPolicy` | Store from declaration plus consumed `PhysicalDurabilityAdmissionBasis` through `ProofOutcome` | exact supported C.4 profile, barrier posture, and finite C.7 limits | construction of the matching C.7 runtime owner | effect completion | Store instance construction |
-| `PhysicalMutationIdempotencyKey` | caller through validated public constructor | stable physical retry identity | admission lookup and duplicate correlation | operation scope, success, semantic transaction identity | Store mutation admission |
+| `PhysicalMutationIdempotencyLease` | Store from the current namespace-durable checkpoint generation and admitted retention-generation count | exact Store-scoped issuance and expiry checkpoint frontiers | issuance of a bounded physical idempotency key | execution deadline, effect, or terminal fate | public key issuance and binding retention |
+| `PhysicalMutationIdempotencyKey` | Store public issuance from validated caller material plus current `PhysicalMutationIdempotencyLease` | stable bounded physical retry identity | admission lookup and duplicate correlation | operation scope, success, semantic transaction identity | Store mutation admission |
 | `PhysicalMutationRequestFingerprint` | Store from the admitted canonical request basis | exact effect-relevant request equivalence independent of any attempt | same-key duplicate comparison | operation/group/WAL identity, execution, or success | idempotency admission and WAL attempt binding |
-| `PhysicalMutationAttemptBinding` | Store admission and WAL reservation | exact key/fingerprint relationship to one operation and later group/member/range | continuation and fresh-process reconciliation of that one attempt | equivalence of a different request or completed fate | WAL frame, progression, and C.8 |
+| `PhysicalMutationAttemptBinding` | Store admission and WAL reservation | exact key/lease/fingerprint relationship to one operation and later group/member/range | continuation and fresh-process reconciliation of that one attempt | equivalence of a different request or completed fate | WAL frame, progression, and C.8 |
+| `PhysicalMutationBindingCompaction` | Store checkpoint owner from the prior compaction, retained WAL tail, exact lease frontiers, and terminal settlements | bounded authoritative set of every unexpired terminal and unresolved attempt binding whose original WAL may be reclaimed | duplicate admission, WAL-reclamation eligibility, and C.8 handoff | all-history retention, semantic liveness, or effect completion | checkpoint publication, Store reopen, and C.8 |
+| `PhysicalMutationHandle` | Store when `PreparedPhysicalMutation::start` consumes one admitted preparation | exact started-mutation identity and caller observation/cancellation relationship while Store retains settlement ownership | typed poll, wait, and cancellation request for that mutation | effect execution, forged no-effect, drop-implies-cancellation, or settlement abandonment | caller observation and Store lifecycle drain |
 | `AdmittedPhysicalMutation` | Store | current identity, scope, policy, generation, and no effect yet | WAL planning | media access or acknowledgment | WAL reservation |
 | `SealedPhysicalDurabilityGroupMembers` | Store from `NonEmpty` members plus preserving-order `UniqueVec` identity validation | nonempty exact members with unique mutation, member, and idempotency identities | group-policy admission | effect, group barrier, or member fate | group admission |
 | `AdmittedPhysicalDurabilityGroup` | Store from `SealedPhysicalDurabilityGroupMembers` | immutable group membership and allowed shared effects | one group barrier and declared shared root plan | member identity, fate, or acknowledgment | group execution |
 | `WalRangeReservedPhysicalMutation` | Store plus WAL owner | exact immutable WAL range and bytes for one member | WAL append declaration | WAL durability or data dispatch | physical work lowering |
 | `WalDurablePhysicalMutation` | Store from matching append and barrier receipts | exact member WAL basis is durable under profile | matching data dispatch | another member, root publication, or acknowledgment | executor lowering |
+| `CertifiedPriorPageBasis` | Store from the currently admitted page image and its exact identity, encoded pageLSN, and payload digest | fixed-size prior image basis from which one new mutation delta begins | construction of the matching bounded `PageWalBasis` | WAL durability, a different page, or lifetime redo history | Store data-effect planning |
+| `PageWalBasis` | Store from one `CertifiedPriorPageBasis` plus canonical ordered nonempty newly applied redo | exact bounded causal extension and resulting pageLSN/digest basis | matching data dispatch after the new delta is WAL durable | arbitrary pageLSN advance or whole-history carriage | physical-format encoding, data settlement, and C.8 |
 | `PhysicalWritebackSettlement` | existing C.6 Store progression | exact frame effect fate and Signal settlement | C.6 clean/retry/inspection transition | WAL or root durability | C.7 data-settlement join |
 | `DataSettledPhysicalMutation` | Store | every required member data effect has exact terminal fate | root publication when completed | semantic visibility | root progression |
 | `RootNamespaceDurablePhysicalMutation` | Store from exact root and namespace receipts | required current-root publication barriers completed | final physical completion | branch-head or semantic commit | completion |
@@ -1264,8 +1454,13 @@ workspaces/worth-store/crates/worth-store/src/physical_runtime/
 │   ├── mutation/
 │   │   ├── identity.rs                              # create
 │   │   ├── request_fingerprint.rs                   # create
-│   │   ├── attempt_binding.rs                       # create
-│   │   ├── idempotency_registry.rs                  # create; bounded derived index
+│   │   ├── idempotency/                             # create; bounded retry-authority family
+│   │   │   ├── key.rs                               # create
+│   │   │   ├── lease.rs                             # create
+│   │   │   ├── attempt_binding.rs                   # create
+│   │   │   ├── binding_compaction.rs                # create; persisted authority
+│   │   │   └── registry.rs                          # create; bounded derived index
+│   │   ├── handle.rs                                # create; caller observation/cancellation
 │   │   ├── outcome.rs                               # create
 │   │   └── progression/
 │   │       ├── admitted.rs                          # create
@@ -1288,7 +1483,8 @@ workspaces/worth-store/crates/worth-store/src/physical_runtime/
 │   │   ├── canonical_redo.rs                        # create
 │   │   └── barrier_join.rs                          # create
 │   ├── data/
-│   │   ├── page_wal_basis.rs                        # create
+│   │   ├── prior_page_basis.rs                      # create; fixed-size certified basis
+│   │   ├── page_wal_basis.rs                        # create; bounded redo delta join
 │   │   └── writeback_join.rs                        # create
 │   ├── checkpoint/
 │   │   ├── handle.rs                                # create
@@ -1340,6 +1536,35 @@ The dominant axis of `physical_runtime/durability/` is Store-owned physical
 durability authority. It contains cross-owner ordering and settlement only. WAL
 grammar, media mechanics, residency mechanics, recovery decisions, integrity,
 stable-reader policy, semantic commit, and certification are excluded.
+
+Phase 6 refines the required destination with these populated or immediately
+required semantic owners:
+
+```text
+physical_runtime/
+  durability/mutation/idempotency/
+    bootstrap.rs
+    binding_compaction.rs
+    binding_compaction/{encoding.rs,decoding.rs}
+    persisted_binding.rs
+    persisted_binding/decoding.rs
+    fate/persisted.rs
+  durability/checkpoint/
+    reopen.rs
+    reopen/binding_compaction.rs
+  durability/wal/
+    inventory/{reopen.rs,reopened_member.rs}
+    reclamation/{eligibility.rs,authority.rs,execution.rs,inventory_transition.rs}
+  instance/
+    durability_bootstrap.rs
+    construction/{work_runtime.rs,record_serving.rs}
+```
+
+`reclamation/` may begin with one populated file if only one of those
+responsibilities is implemented in the first coherent slice; the directory is
+still correct because eligibility, authority, execution, and inventory
+transition are committed distinct growth points. A one-file directory is not
+an excuse to combine them into a WAL or checkpoint god file.
 
 `mutation/`, `grouping/`, `checkpoint/`, `publication/`, `settlement/`, and
 `observation/` are distinct because they have different identity,
@@ -1548,7 +1773,8 @@ Dependency, visibility, feature, and source gates must prove:
 - `evidence_projection/` has no reverse dependency into admission,
   progression, execution, or settlement;
 - request-fingerprint construction has no dependency on operation, group, WAL
-  allocation, scheduler, or observation modules; and
+  allocation, idempotency lease/registry, scheduler, or observation modules;
+  and
 - all ordinary durability APIs are reachable from semantic physical roots
   without internal module archaeology.
 
@@ -1590,6 +1816,13 @@ declared mutation bytes
 
 It may not scale with total Store size, total historical WAL, consumer count,
 diagnostic richness, mutation-corpus size, or offline-verifier work.
+
+`PageWalBasis` carriage scales only with the newly applied redo delta plus one
+fixed-size certified prior-page basis. Idempotency authority scales only with
+the admitted unresolved-attempt bound, the admitted retention-generation
+window, and mutation arrival within that window; expiry and checkpoint
+compaction must prevent total historical mutations from becoming retained
+ordinary state.
 
 Group commit must expose logical-to-physical amplification:
 
@@ -1661,6 +1894,26 @@ The following decisions are fixed:
 A replacement is incomplete while its predecessor compiles in an ordinary
 feature graph.
 
+## Living Requirement-And-Evidence Ledger
+
+Phase 1 creates
+`_docs/worth-store/physical-reconstruction-c7-closure-ledger.md` as the one
+living requirement-and-evidence ledger. It is implementation control, not a
+Phase 10 closeout artifact.
+
+The initial ledger derives guarantees and causally relevant risks from the
+complete C.7 claim: authority, public API, progression, failure and cancellation
+posture, idempotency retention, performance, cleanup, documentation, courtroom,
+and successor handoff. It must expose omissions and competing interpretations,
+not merely restate headings or count requirements.
+
+Each implementation phase updates the same ledger with current source identity,
+the evidence actually earned, open findings, affected guarantees, and deletion
+state. A correction reopens every guarantee whose causal evidence changed.
+Historical evidence remains history and cannot close a current-source row.
+Phase 10 attacks, reconciles, and closes the living ledger; it does not first
+invent it.
+
 At closeout, checks must prove:
 
 - one ordinary WAL effect route;
@@ -1672,6 +1925,12 @@ At closeout, checks must prove:
 - zero `root-publications.log` writer or parallel root runtime;
 - zero public progression constructors;
 - zero allocated attempt or WAL facts in request-fingerprint construction;
+- zero idempotency-lease or registry dependency in request-fingerprint
+  construction;
+- zero all-history idempotency registry or last-authority WAL reclamation;
+- zero lifetime-redo-vector carriage in ordinary page work;
+- zero caller-handle drop path that requests cancellation or abandons
+  settlement;
 - zero generic durability/profile aspects or generic authority-marker bounds;
 - zero evidence-projection imports in admission, progression, execution, or
   settlement;
@@ -1692,8 +1951,10 @@ It must explain:
 - physical durability versus semantic commit;
 - the public mutation request and typed outcome topology;
 - request-fingerprint equivalence versus attempt/WAL binding;
-- idempotency, cancellation, timeout, completed-but-unobserved, and
-  indeterminate behavior;
+- idempotency issuance, durable-generation retention, expiry, compaction,
+  cancellation, timeout, completed-but-unobserved, and indeterminate behavior;
+- mutation-handle ownership, drop-as-observation-abandonment, cancellation
+  outcomes, and close-time draining;
 - backend-profile-relative durability;
 - C.4 capability admission versus Worth Proof progression mechanics;
 - group commit without identity merging;
@@ -1714,7 +1975,7 @@ Revise:
   declarations, not ordinary execution or final acknowledgment;
 - the C.6 bounded access guide to link dirty/writeback settlement to the C.7
   durability guide without claiming dirty implies durable;
-- `storage-foundation-aspect-native-gate.md` to name the five exact C.7 derived
+- `storage-foundation-aspect-native-gate.md` to name the six exact C.7 derived
   work-basis contracts, roles, masks, families, and partitions, and to state
   that none owns physical truth;
 - the physical reality audit rows for WAL execution, backend durability,
@@ -1750,13 +2011,16 @@ directions and receives one final disposition.
 production call paths.
 
 **Establishes:** the C.7 removal ledger, semantic vocabulary lock, authority
-type ledger, final API decision, and destination topology.
+type ledger, final API decision, destination topology, and the initial living
+requirement-and-evidence ledger derived from the complete C.7 causal claim.
 
 **Mechanically forbids:** new C.7 production methods, crates, aliases, or
 compatibility paths before their owner and proof boundary are named.
 
 **Evidence:** manual source traces, Cargo dependency inventory, ordinary
-feature graph, public API inventory, and focused mechanism probes.
+feature graph, public API inventory, focused mechanism probes, and a
+bidirectional ledger-completeness attack against every normative section and
+causally relevant risk.
 
 **Next may trust:** no current mechanism is being promoted by name alone and no
 duplicate path is accidentally omitted from cutover.
@@ -1769,8 +2033,8 @@ whose disposition needs no replacement.
 **Becomes true:** one Store runtime consumes a sealed
 `PhysicalDurabilityAdmissionBasis` from its `QualifiedFilesystemMedia`, and
 every mutation has exact canonical request equivalence, operation,
-idempotency, scope, profile, lifecycle, and bounded-resource identity before
-effects.
+idempotency key and durable-generation lease, scope, profile, lifecycle, and
+bounded-resource identity before effects.
 
 **Consumes:** C.4 `QualifiedFilesystemMedia`,
 `RootProfileQualificationBasis`, exact `AdmittedBackendCapabilityWitness`
@@ -1782,16 +2046,19 @@ durability policy, `PhysicalMutationRequestFingerprint` canonical
 family/source/role/lane, mutation request, the attempt-binding contract that
 Phase 3 must complete after allocation, internal admission types, exact
 `ProofOutcome` denial topology, durability-policy binding work basis,
-group/checkpoint limits, and exhaustive runtime lifecycle propagation.
+group/checkpoint limits, nonzero finite idempotency-retention generations, exact
+expired-key denial, and exhaustive runtime lifecycle propagation.
 
 **Mechanically forbids:** optional durability owners, booleans, generic
 authority markers, Foundational profiles as backend authority, raw profile
 labels, ambient idempotency, allocation facts in request fingerprints, omitted
-effect-relevant fingerprint fields, and incomplete construction.
+effect-relevant fingerprint fields, wall-clock or deadline-derived retention,
+silent expired-key reuse, and incomplete construction.
 
 **Evidence:** builder/admission tests, profile-denial tests, construction-total
-compiler failures, fingerprint version/golden vectors, retry-equivalence and
-conflict mutants, basis-substitution attacks, and zero-effect rejection proofs.
+compiler failures, fingerprint version/golden vectors, lease issuance/expiry
+tests, retry-equivalence and conflict mutants, basis-substitution attacks,
+expired-key-reuse mutant, and zero-effect rejection proofs.
 
 **Next may trust:** every later phase starts from one exact admitted physical
 mutation under one real profile.
@@ -1810,8 +2077,9 @@ C.4 media.
 
 **Establishes:** reserved and appended phase types, append declarations,
 completion of `PhysicalMutationAttemptBinding` with exact member/range
-identity, canonical ordered nonempty redo, WAL-append work basis, matching
-Foundational policy admission, exact append settlement, and WAL observation.
+identity and lease frontier, canonical ordered nonempty redo, WAL-append work
+basis, matching Foundational policy admission, exact append settlement, and WAL
+observation.
 
 **Mechanically forbids:** direct WAL filesystem execution, final
 acknowledgment, data dispatch, recovery-physics ordinary execution, and any WAL
@@ -1836,14 +2104,16 @@ data-dispatchable mutation, and every persisted pageLSN is bound to that proof.
 writeback claim and settlement, physical-format pageLSN encoding.
 
 **Establishes:** WAL-durable, data-dispatched, and data-settled types, exact
-page/extent WAL bases, and the exact durability-barrier work basis and policy
+bounded page/extent WAL bases composed from one certified prior basis plus the
+new nonempty redo delta, and the exact durability-barrier work basis and policy
 receipt join.
 
 **Mechanically forbids:** queue labels, counters, raw LSN comparisons, foreign
 receipts, early frame cleaning, and scheduler-derived settlement.
 
 **Evidence:** compile-fail progression cases, WAL-before-data inversion mutant,
-pageLSN-ahead mutant, stale/foreign receipt matrix, and real C.6 writeback join.
+pageLSN-ahead and lifetime-redo-vector mutants, prior-basis/delta substitution,
+stale/foreign receipt matrix, and real C.6 writeback join.
 
 **Next may trust:** completed data never outran its exact durable WAL basis.
 
@@ -1869,9 +2139,10 @@ bounds.
 receipt substitution, fixed-arity runtime groups, semantic ordering, and
 unbounded batching.
 
-**Evidence:** three-member identity blender, cancellation/delay/reorder
-schedule, barrier/root amplification counters, duplicate/conflicting
-idempotency cases, and member-collapse/substitution mutants.
+**Evidence:** four-request/three-sealed-member identity blender, pre-seal
+cancellation plus sealed-member delay/reorder schedule, barrier/root
+amplification counters, duplicate/conflicting idempotency cases, and
+member-collapse/substitution mutants.
 
 **Next may trust:** shared physical effects reduce cost without changing
 individual truth or admitting partial group visibility.
@@ -1888,24 +2159,49 @@ and proof-gated retention.
 **Consumes:** WAL/data progression, C.6 scoped allocations and pressure,
 checkpoint artifact semantics, scheduler resources.
 
-**Establishes:** checkpoint `ProofOutcome`, handle, exact checkpoint-capture
-work basis and policy receipt, capture progress, publication candidate,
-covered range, canonical nonempty `ContiguousRetainedWalTail`, and retention
-eligibility.
+**Establishes:** admitted nonzero WAL segment-byte and segment-inventory limits,
+bounded rotation and reopen, checkpoint `ProofOutcome`, handle, exact
+checkpoint-capture work basis and policy receipt, capture progress,
+publication candidate, covered range, canonical nonempty
+`ContiguousRetainedWalTail`, authoritative
+`PhysicalMutationBindingCompaction`, and retention eligibility proving that no
+WAL deletion removes the last live attempt binding. The exact checkpoint,
+compaction cutoff, retained suffix, and live inventory mint a private
+per-segment no-last-copy proof; no individual input can mint it alone. Eligible
+deletion uses the dedicated `WalReclamation` Signal family, Store semantic
+basis, Foundational background policy, scheduled C4 removal, and exact recovery
+locator. Only the completed removal receipt advances the oldest inventory
+entry. WAL segment sizing and inventory breadth are WAL policy; neither is
+inferred from checkpoint memory or retained-tail limits. Binding compaction and
+reopen stream one bounded record at a time, and the idempotency policy
+independently bounds pending unresolved bindings and total live bindings. One
+checkpoint-plus-retained-WAL reopen basis must install the post-reopen
+durability owner before mutation authority is available.
 
 **Mechanically forbids:** stop-the-world capture, whole-Store materialization,
 fire-and-forget checkpoint work, tail-budget escape, and checkpoint-existence
-deletion.
+deletion, all-history idempotency retention, and reclamation before binding
+compaction. It also forbids an in-memory encoded compaction copy, authority
+distribution from the pre-reopen owner, terminal-fate encoding embedded in the
+registry, and WAL deletion outside `wal/reclamation/`.
 
 **Evidence:** 32-times-resident checkpoint pressure siege, exact allocation and
-I/O counters, continued foreground progress, tail-bound denial, and premature
-retention mutant.
+I/O counters, continued foreground progress, tail-bound denial, fresh-process
+reopen from compaction plus the post-reclamation retained WAL, deterministic
+fail-before and indeterminate-after-effect delete seams, unresolved-binding
+retention, expired terminal binding reclamation, and partial-authority,
+premature-retention, last-binding-deletion, receipt-substitution, and unsafe-
+reopen mutants.
 
 **Next may trust:** a published checkpoint can later bound recovery without
 having claimed recovery.
 
 **Cleanup:** remove sharp/demo checkpoint execution, duplicate retention
-decisions, and unbounded capture helpers not used by the canonical path.
+decisions, unbounded capture helpers, generation-zero production shortcuts,
+direct WAL initialization that bypasses durability reopen, and every deletion
+decision outside the canonical reclamation owner. Preserve no copied deletion
+inventory, direct filesystem helper, compatibility recovery record, or
+duplicate reclamation queue.
 
 ### Phase 7: Join Root Replacement To Namespace Durability
 
@@ -1941,19 +2237,23 @@ indeterminate outcomes; only completion yields physical acknowledgment.
 **Consumes:** full WAL/data/root progression and C.5.1 cancellation/settlement.
 
 **Establishes:** final public mutation and checkpoint APIs, inherited
-`ProofOutcome` admission topology, Store-owned physical fate, exact
-observation, completed-but-unobserved evidence, one-way
+`ProofOutcome` admission topology, Store-owned `PhysicalMutationHandle`,
+typed polling/wait/cancellation, drop-as-observation-abandonment, Store-owned
+settlement after caller loss, exact observation, completed-but-unobserved
+evidence, one-way
 `StoreExecutedBoundaryReceiptEvidence` and diagnostic projections, and
 lifecycle drain.
 
 **Mechanically forbids:** generic success/error acknowledgment, hidden weak
 durability, automatic indeterminate retry, semantic commit interpretation, and
-accepting any Foundational evidence projection back as authority.
+accepting any Foundational evidence projection back as authority, drop-implies-
+cancellation, and caller-handle ownership of settlement.
 
-**Evidence:** compiled caller examples, cancellation at every effect boundary,
+**Evidence:** compiled caller examples, handle-drop before and after every
+effect boundary, typed cancellation at every effect boundary,
 acknowledgment-loss seam, stale-generation delivery, public UI compiler tests,
 reverse-evidence-projection compile failures, and close with work in every
-lifecycle phase.
+lifecycle phase and no surviving caller handles.
 
 **Next may trust:** every ordinary caller uses one honest physical outcome
 surface.
@@ -1994,10 +2294,12 @@ CI schedules, the canonical release schedule, the checkpoint pressure siege,
 the complete current mutation corpus, and named hardware qualification.
 
 **Consumes:** final source, complete progression, independent inspector,
-schedule harness, mutation catalog, removal ledger, and documentation.
+schedule harness, mutation catalog, removal ledger, living
+requirement/evidence ledger, and documentation.
 
-**Establishes:** requirement/evidence closure ledger and the one C.8 physical
-durability handoff, plus counter-backed
+**Establishes:** final reconciliation and adversarial closure of the living
+requirement/evidence ledger and the one bounded C.8 physical durability
+handoff, plus counter-backed
 `StorePerformanceReceiptEvidence<FoundationalAuthoritativePerformanceClaim>`
 for each governed performance claim.
 
@@ -2006,8 +2308,10 @@ green, missing mutant, source restoration residue, temporary courtroom hooks,
 and successor access to live runtime state.
 
 **Evidence:** owner, smoke, CI, release, and hardware products; exact replay;
-complete mutation report; independent artifact report; final source identity;
-constitution and line-cap gates; and reverse ledger attack.
+complete controlled-case report binding every case to its closed execution-cost
+class, measured elapsed time, and class-derived budget; independent artifact
+report; final source identity; constitution and line-cap gates; and reverse
+ledger attack.
 
 **Next may trust:** C.8 receives real persisted durability facts rather than
 mechanism vocabulary.
@@ -2025,16 +2329,22 @@ C.7 exposes one sealed, branch-agnostic recovery input containing:
 - namespace-durable root-publication evidence;
 - latest namespace-durable checkpoint identity and exact covered LSN range;
 - contiguous retained WAL tail inventory;
-- stable physical operation and idempotency identities, canonical request
-  fingerprints, and persisted attempt/WAL bindings;
-- completed, proven-no-effect, completed-but-unobserved, and indeterminate
-  physical mutation facts;
+- the bounded set of unexpired terminal and every unresolved physical operation
+  and idempotency identity, each with its lease frontier, canonical request
+  fingerprint, persisted attempt/WAL binding, and compacted fate when present;
+- corresponding live completed, proven-no-effect, completed-but-unobserved, and
+  indeterminate physical mutation facts;
 - exact backend durability profile and barrier evidence;
 - bounded recovery allocation admission from C.6; and
 - classified staged or partial artifact residue.
 
 C.8 may consume those facts to decide physical source precedence, redo, root
 selection, and operation-fate reconciliation in a fresh process.
+
+C.8 does not receive every historical physical mutation. Expired terminal
+bindings protected by the required later namespace-durable checkpoint are
+absent by construction; unresolved bindings remain bounded by C.7 admission
+and cannot be reclaimed until C.8 produces a lawful fate.
 
 C.8 does not receive:
 
@@ -2069,6 +2379,8 @@ C.7 is incomplete without:
 - completed, proven-no-effect, and indeterminate public outcomes;
 - physical acknowledgment available only from exact completion;
 - bounded queue, memory, WAL-tail, and amplification contracts;
+- bounded durable-generation idempotency leases and checkpoint-side binding
+  compaction, with expired-key denial and no last-authority WAL deletion;
 - current read-only observation and operator checkpoint lifecycle;
 - exact Store aspect-native work bases for policy binding, WAL append,
   barriers, checkpoint capture, and root publication;
@@ -2080,7 +2392,7 @@ C.7 is incomplete without:
 - compile-time authority and progression denial;
 - actual process death at every named seam;
 - independent offline artifact observation;
-- 16 revision-derived replayable CI schedules;
+- 16 source-closure-derived replayable CI schedules;
 - canonical release execution at all crash seams;
 - append-only mutation regression closure; and
 - the sealed C.8 handoff.
@@ -2122,12 +2434,14 @@ C.7 does not:
 
 Closeout evidence includes:
 
-- source, binary, Store, runtime, format, profile, and harness identities;
+- Git revision, complete source-closure digest, binary, Store, runtime, format,
+  profile, and harness identities;
 - admitted durability and checkpoint policy;
 - workload seed, schedule seed, crash seam, scale tier, and exact rerun command;
 - complete operation/idempotency/group/member identity trace;
 - request-fingerprint canonical version, input-basis identity, golden-vector
-  digest, and persisted attempt/WAL binding;
+  digest, idempotency lease frontier, persisted attempt/WAL binding, and current
+  binding-compaction identity;
 - C.4 durability admission basis and exact backend capability-claim identities;
 - C.7 Foundational work-basis contract revisions, roles, masks, families, and
   partitions;
@@ -2140,23 +2454,29 @@ Closeout evidence includes:
 - page/extent effects and pageLSN bindings;
 - C.6 dirty/writeback settlements;
 - checkpoint capture, publication, covered range, and retained-tail evidence;
+- binding-compaction coverage, expiry, unresolved-retention, and WAL-reclamation
+  evidence;
 - root candidate, replacement, namespace durability, and retained-root facts;
 - completed, proven-no-effect, indeterminate, cancellation, timeout, stale,
   and completed-but-unobserved outcomes;
 - exact file, directory, sync, byte, frame, queue, memory, and amplification
   counters;
+- exact per-case world, producer, baseline-observer, serving-writer,
+  post-interruption-observer, fresh-reopener, evidence-binding, and total timing;
 - independent inspector report;
 - fresh reopener report;
 - deletion/dependency/feature/source gates;
 - documentation compilation and link evidence;
 - all 16 CI schedule reports;
 - canonical all-seam release report;
-- complete catalog-derived mutation report; and
+- complete catalog-derived controlled-case report whose every observation binds
+  its closed execution-cost class, measured elapsed time, and exact
+  class-derived budget; and
 - sealed C.8 handoff construction proof.
 
-No row closes from a previous revision, a different backend profile, a
-different harness identity, or a report whose source restoration is not
-byte-identical.
+No row closes from a previous source closure, a different revision or backend
+profile, a different harness identity, or a report whose source restoration is
+not byte-identical.
 
 ## Closeout Gate
 

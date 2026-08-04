@@ -4,7 +4,8 @@ use worth_store::physical_runtime::certification::{
     CertificationPhysicalExecutionCheckpoint, MediaFaultDirective,
 };
 use worth_store::physical_runtime::{
-    FilesystemMediaAdmission, PhysicalRecordInitialization, PhysicalRecordOpen,
+    FilesystemMediaAdmission, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalRecordInitialization, PhysicalRecordOpen,
     PhysicalWorkFilesystemProfileEvidence, RecordAppendBatch, ServingPhysicalRuntime,
 };
 use worth_store_physical_backend::{FilesystemAccessPosture, MediaOperationRole};
@@ -37,18 +38,20 @@ pub(super) fn run(invocation: WriteInvocation) -> Result<(), String> {
 fn seed_prior_truth(root: &std::path::Path, payload: &[u8]) -> Result<(), String> {
     let (format, placement, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(root, None)?;
+    let durability = super::admission::admit_durability(&media)?;
     let serving = super::admission::require_serving(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+        media.initialize_record_store(PhysicalRecordInitialization::new(
+            format, placement, access, durability,
+        )),
         "record-store initialization",
     )?;
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload])
-                .map_err(|denial| format!("seed batch denied: {denial:?}"))?,
-            placement,
-        )
-        .map_err(|failure| format!("seed publication failed: {failure:?}"))?;
+    let published = serving.certification_publish_single_durable_mutation(
+        placement,
+        PhysicalManifestCapacityTransition::PreserveCurrent,
+        PhysicalMutationIdempotencyMaterial::new([0xC7; 32]),
+        RecordAppendBatch::try_from_iter([payload])
+            .map_err(|denial| format!("seed batch denied: {denial:?}"))?,
+    );
     let media = serving
         .observer()
         .media_snapshot()
@@ -59,8 +62,12 @@ fn seed_prior_truth(root: &std::path::Path, payload: &[u8]) -> Result<(), String
     println!(
         "C5_1_COURTROOM_SEEDED {} {} {}",
         std::process::id(),
-        published.root_generation(),
-        published.record_ids().len(),
+        published.current_root().generation(),
+        published
+            .settled_members()
+            .iter()
+            .map(|member| member.persisted_records().len())
+            .sum::<usize>(),
     );
     std::io::stdout()
         .flush()
@@ -146,7 +153,8 @@ fn open_with_profile(
 ) -> Result<ServingPhysicalRuntime, String> {
     let (format, _, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(root, schedule)?;
-    let mut request = PhysicalRecordOpen::new(format, access);
+    let durability = super::admission::admit_durability(&media)?;
+    let mut request = PhysicalRecordOpen::new(format, access, durability);
     if let Some(profile) = profile {
         request = request.with_physical_work_profile(profile);
     }
@@ -157,9 +165,11 @@ fn append(serving: &ServingPhysicalRuntime, payload: &[u8]) -> Result<(), String
     let (_, placement, _) = super::configuration::record_configuration();
     let batch = RecordAppendBatch::try_from_iter([payload])
         .map_err(|denial| format!("crash batch denied: {denial:?}"))?;
-    serving
-        .record_submission()
-        .append_batch(batch, placement)
-        .map(|_| ())
-        .map_err(|failure| format!("crash publication failed early: {failure:?}"))
+    let _ = serving.certification_publish_single_durable_mutation(
+        placement,
+        PhysicalManifestCapacityTransition::PreserveCurrent,
+        PhysicalMutationIdempotencyMaterial::new([0xC8; 32]),
+        batch,
+    );
+    Ok(())
 }

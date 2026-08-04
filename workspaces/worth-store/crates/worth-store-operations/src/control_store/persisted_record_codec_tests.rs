@@ -111,44 +111,6 @@ fn implemented_control_records_round_trip_without_a_parallel_schema() {
                 disposition_basis: [15; 32],
             },
         ),
-        record(
-            49,
-            OperationalControlRecordKind::RecoveryPublicationPrepared {
-                binding: super::control_record::RecoveryPublicationControlBinding::from_persisted(
-                    1, [7; 32], [10; 32], [8; 32], [9; 32], [11; 32], [12; 32],
-                    authority_posture(),
-                    worth_store_authority::RecoveryAuthorityAdmissionPolicy::fully_trusted_only(),
-                ),
-            },
-        ),
-        record(
-            50,
-            OperationalControlRecordKind::RecoveryPublicationPending {
-                binding: super::control_record::RecoveryPublicationControlBinding::from_persisted(
-                    1, [7; 32], [10; 32], [8; 32], [9; 32], [11; 32], [12; 32],
-                    authority_posture(),
-                    worth_store_authority::RecoveryAuthorityAdmissionPolicy::fully_trusted_only(),
-                ),
-            },
-        ),
-        record(
-            51,
-            OperationalControlRecordKind::RecoveryPublicationDisposition {
-                publication_identity: [8; 32],
-                disposition_tag: 1,
-                disposition_basis: [13; 32],
-                observed_authority: worth_store_authority::StoreCurrentAuthorityIdentity::from_persisted_fingerprint([14; 32]),
-            },
-        ),
-        record(
-            52,
-            OperationalControlRecordKind::RecoveryPublicationFenceReleased {
-                publication_identity: [8; 32],
-                fence_identity: [11; 32],
-                fence_plan_fingerprint: [12; 32],
-                disposition_tag: 1,
-            },
-        ),
     ]);
 
     for expected in records {
@@ -159,18 +121,6 @@ fn implemented_control_records_round_trip_without_a_parallel_schema() {
             .expect("domain admission");
         assert_eq!(decoded, expected);
     }
-}
-
-fn authority_posture() -> worth_store_authority::RecoveryAuthorityAdmissionPosture {
-    let trusted = worth_store_authority::RecoveryAuthorityRegionPosture::observed([21; 32], 3)
-        .expect("trusted regions");
-    let empty = worth_store_authority::RecoveryAuthorityRegionPosture::observed([0; 32], 0)
-        .expect("empty regions");
-    worth_store_authority::RecoveryAuthorityAdmissionPosture::from_independent_post_verification(
-        [20; 32],
-        [trusted, empty, empty, empty, empty],
-    )
-    .expect("authority posture")
 }
 
 #[test]

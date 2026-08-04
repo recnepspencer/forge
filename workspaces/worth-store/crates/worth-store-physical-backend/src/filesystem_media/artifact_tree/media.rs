@@ -161,7 +161,7 @@ impl ArtifactTreeMedia<'_> {
     pub fn read_bounded(
         &self,
         artifact: &ArtifactTreeFile,
-        limit: u32,
+        limit: u64,
     ) -> Result<Vec<u8>, ArtifactTreeFailure> {
         let directory = self.open_directory(&artifact.directory)?;
         let mut options = OpenOptions::new();
@@ -190,7 +190,7 @@ impl ArtifactTreeMedia<'_> {
             }
         };
         let length = artifact_file_length(self.owner, &file)?;
-        if length > u64::from(limit) || length > usize::MAX as u64 {
+        if length > limit || length > usize::MAX as u64 {
             return Err(ArtifactTreeFailure::structural(
                 ArtifactTreeFailureKind::AccessLimitExceeded,
             ));

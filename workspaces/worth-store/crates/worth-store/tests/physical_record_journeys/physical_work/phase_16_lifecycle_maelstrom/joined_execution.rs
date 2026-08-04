@@ -38,10 +38,7 @@ pub(super) fn execute(world: &MaelstromWorld, model: &LifecycleMaelstromModel) -
     let post_dispatch_cancellation = prove_reordered_reads(world, first, second, model);
     let retry = prove_clock_retry(world, write, model);
     let writeback = prove_exact_writeback(world, model);
-    let append =
-        super::append_preparation::prepare_and_publish_independently(&world.serving, &world.gates);
-    assert_eq!(append.generations, model.append_generations);
-    assert_causal_evidence(world, &append.work, retry, writeback);
+    assert_causal_evidence(world, retry, writeback);
     JoinedTrace {
         denial,
         pre_dispatch_cancellation,
@@ -179,21 +176,10 @@ fn prove_exact_writeback(
 
 fn assert_causal_evidence(
     world: &MaelstromWorld,
-    append_work: &[PhysicalWorkIdentity],
     retry: PhysicalWorkIdentity,
     writeback: PhysicalWorkIdentity,
 ) {
     let causal = world.observer.causal().records();
-    for identity in append_work {
-        assert_eq!(
-            causal
-                .iter()
-                .filter(|record| record.identity() == *identity)
-                .count(),
-            1,
-            "each append effect must have one causal settlement"
-        );
-    }
     assert!(causal.iter().any(|record| record.identity() == retry));
     assert!(causal.iter().any(|record| record.identity() == writeback));
     assert!(causal.iter().all(|record| {

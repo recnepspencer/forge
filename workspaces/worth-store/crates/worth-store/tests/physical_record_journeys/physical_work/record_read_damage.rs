@@ -1,11 +1,13 @@
+use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    PhysicalWorkEffectFate, PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition,
-    RecordAppendBatch, RecordAppendDenial, RecordAppendError, RecordByteLimit, RecordReadDenial,
-    RecordReadLimits,
+    PhysicalManifestCapacityTransition, PhysicalMutationIdempotencyMaterial,
+    PhysicalMutationPreparationDenial, PhysicalWorkEffectFate, PhysicalWorkOperationFamily,
+    PhysicalWorkRecoveryDisposition, RecordAppendBatch, RecordAppendDenial, RecordByteLimit,
+    RecordReadDenial, RecordReadLimits,
 };
 use worth_store_physical_backend::{MediaFaultDirective, MediaOperationRole};
 
-use super::super::serving_from_open;
+use super::super::{durable_publication, serving_from_open};
 use super::record_read_signal_cleanup::await_read_signal_cleanup;
 use super::{configuration, serving_from_initialization};
 
@@ -17,15 +19,13 @@ fn partial_backend_read_is_denied_at_the_public_read_boundary_and_revokes_health
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("record-read-partial-damage", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let calibration = serving_from_open(&root);
@@ -110,15 +110,13 @@ fn truncated_segment_is_structural_damage_before_range_dispatch_and_revokes_heal
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("record-read-indeterminate-damage", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
     std::fs::OpenOptions::new()
         .write(true)
@@ -184,15 +182,18 @@ fn truncated_segment_is_structural_damage_before_range_dispatch_and_revokes_heal
             .attempts_for(MediaOperationRole::ReadMetadata)
             > media_before.attempts_for(MediaOperationRole::ReadMetadata)
     );
-    assert_eq!(
-        serving
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"fenced".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap_err(),
-        RecordAppendError::Denied(RecordAppendDenial::ServingRequiresInspection)
-    );
+    assert!(matches!(
+        durable_publication::prepare_single(
+            &serving.record_submission(),
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([214; 32]),
+            RecordAppendBatch::try_from_iter([b"fenced".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
+            RecordAppendDenial::ServingRequiresInspection
+        ))
+    ));
     assert!(serving.close_plan().execute().requires_inspection());
 }

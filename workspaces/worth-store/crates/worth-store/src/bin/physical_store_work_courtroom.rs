@@ -4,6 +4,8 @@ mod admission;
 mod arguments;
 #[path = "physical_store_work_courtroom/bounded_residency/mod.rs"]
 mod bounded_residency;
+#[path = "physical_store_work_courtroom/c7_crash.rs"]
+mod c7_crash;
 #[path = "physical_store_work_courtroom/checkpoint.rs"]
 mod checkpoint;
 #[path = "physical_store_work_courtroom/configuration.rs"]
@@ -43,5 +45,6 @@ fn run() -> Result<(), String> {
         arguments::CourtroomInvocation::BoundedResidencyServing(invocation) => {
             bounded_residency::serve(invocation)
         }
+        arguments::CourtroomInvocation::C7Crash(invocation) => c7_crash::run(invocation),
     }
 }

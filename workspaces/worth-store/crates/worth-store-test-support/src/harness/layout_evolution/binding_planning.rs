@@ -108,8 +108,8 @@ fn observe_rollback_planning() -> Vec<OwnerCaseObservation<RollbackPlanningCaseI
     let declaration = world::declaration(LayoutInterruptionPolicy::ResumeDeclaredMigration);
     let authority = world::authority("store.layout_evolution.rollback_planning");
     let replacement = world::authority("store.layout_evolution.rollback_planning.rebind");
-    let migrated = world::execute_migration(declaration, &authority, 11_101);
-    let target = migrated.target_binding().clone();
+    let target =
+        world::source_binding_at_version(declaration, &authority, declaration.rollback_source());
 
     let ready = layout_rollback_operation().plan(
         LayoutRollbackRequest::new(declaration, target.clone(), target.admitted_family()),
@@ -119,8 +119,11 @@ fn observe_rollback_planning() -> Vec<OwnerCaseObservation<RollbackPlanningCaseI
         world::other_declared_family(),
         LayoutInterruptionPolicy::ResumeDeclaredMigration,
     );
-    let foreign_migrated = world::execute_migration(foreign_declaration, &authority, 11_102);
-    let foreign = foreign_migrated.target_binding().clone();
+    let foreign = world::source_binding_at_version(
+        foreign_declaration,
+        &authority,
+        foreign_declaration.rollback_source(),
+    );
     let denied = layout_rollback_operation().plan(
         LayoutRollbackRequest::new(declaration, foreign.clone(), foreign.admitted_family()),
         &authority,

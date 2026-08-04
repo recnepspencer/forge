@@ -7,10 +7,7 @@ pub mod compaction;
 pub mod epoch_scope;
 #[cfg(feature = "certification-world")]
 pub mod interleaving_resources;
-#[cfg(all(test, feature = "certification-world"))]
-mod owner_case_tests;
 pub mod publication;
-mod publication_runtime_fixture;
 pub mod read_plan;
 #[cfg(feature = "certification-world")]
 pub mod reclaim;
@@ -18,6 +15,5 @@ pub mod reclaim;
 mod yield_schedule;
 
 pub use boundary_fact::physical_isolation_boundary_fact;
-pub use publication_runtime_fixture::{publish_in_temporary_store, PhysicalRootPublicationFixture};
 #[cfg(feature = "certification-world")]
 pub use yield_schedule::physical_isolation_boundary_yieldpoint;

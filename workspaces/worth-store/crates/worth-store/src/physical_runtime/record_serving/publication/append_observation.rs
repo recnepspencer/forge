@@ -1,8 +1,3 @@
-use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
-use worth_store_physical_format::PersistedRecordIdentity;
-
-use super::super::PhysicalRecordId;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime::record_serving) struct PublicationObservation {
     pub(in crate::physical_runtime::record_serving) records: u64,
@@ -34,20 +29,13 @@ impl PublicationObservation {
         self.peak_scratch_bytes = self.peak_scratch_bytes.max(bytes as u64);
     }
 
-    pub(in crate::physical_runtime::record_serving) fn complete(
+    pub(in crate::physical_runtime::record_serving) fn settle_data_effects(
         &mut self,
-        before: MediaCounterSnapshot,
-        after: MediaCounterSnapshot,
+        effect_count: usize,
     ) {
         self.completed_bytes = self.logical_bytes;
-        self.transfer_count = transfer_attempts(after).saturating_sub(transfer_attempts(before));
+        self.transfer_count = u64::try_from(effect_count).unwrap_or(u64::MAX);
     }
-}
-
-const fn transfer_attempts(counters: MediaCounterSnapshot) -> u64 {
-    counters
-        .attempts_for(MediaOperationRole::PositionedRead)
-        .saturating_add(counters.attempts_for(MediaOperationRole::PositionedWrite))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,7 +43,20 @@ pub struct RecordAppendObservation {
     value: PublicationObservation,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecordRootPlanningObservation {
+    manifest_blocks_read: u64,
+    manifest_comparisons: u64,
+    manifest_bytes_read: u64,
+}
+
 impl RecordAppendObservation {
+    pub(in crate::physical_runtime::record_serving) const fn from_publication(
+        value: PublicationObservation,
+    ) -> Self {
+        Self { value }
+    }
+
     pub const fn records(self) -> u64 {
         self.value.records
     }
@@ -98,64 +99,66 @@ impl RecordAppendObservation {
     pub const fn manifest_bytes_read(self) -> u64 {
         self.value.manifest_bytes_read
     }
+
+    pub(in crate::physical_runtime) const fn persisted_fields(self) -> [u64; 13] {
+        [
+            self.value.records,
+            self.value.logical_bytes,
+            self.value.completed_bytes,
+            self.value.segment_artifacts,
+            self.value.extent_artifacts,
+            self.value.transfer_count,
+            self.value.peak_transfer_width,
+            self.value.explicit_copy_count,
+            self.value.copied_bytes,
+            self.value.peak_scratch_bytes,
+            self.value.manifest_blocks_read,
+            self.value.manifest_comparisons,
+            self.value.manifest_bytes_read,
+        ]
+    }
+
+    pub(in crate::physical_runtime) const fn from_persisted_fields(fields: [u64; 13]) -> Self {
+        Self {
+            value: PublicationObservation {
+                records: fields[0],
+                logical_bytes: fields[1],
+                completed_bytes: fields[2],
+                segment_artifacts: fields[3],
+                extent_artifacts: fields[4],
+                transfer_count: fields[5],
+                peak_transfer_width: fields[6],
+                explicit_copy_count: fields[7],
+                copied_bytes: fields[8],
+                peak_scratch_bytes: fields[9],
+                manifest_blocks_read: fields[10],
+                manifest_comparisons: fields[11],
+                manifest_bytes_read: fields[12],
+            },
+        }
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PublishedRecordBatch {
-    record_ids: Vec<PhysicalRecordId>,
-    root_generation: u64,
-    publication_identity: u64,
-    observation: RecordAppendObservation,
-    work: super::RecordPublicationWorkTrace,
-    counters_before: MediaCounterSnapshot,
-    counters_after: MediaCounterSnapshot,
-}
-
-impl PublishedRecordBatch {
-    pub fn record_ids(&self) -> &[PhysicalRecordId] {
-        &self.record_ids
-    }
-    pub fn record_id(&self, index: usize) -> Option<PhysicalRecordId> {
-        self.record_ids.get(index).copied()
-    }
-    pub const fn root_generation(&self) -> u64 {
-        self.root_generation
-    }
-    pub const fn publication_identity(&self) -> u64 {
-        self.publication_identity
-    }
-    pub const fn observation(&self) -> RecordAppendObservation {
-        self.observation
-    }
-    pub const fn physical_work(&self) -> &super::RecordPublicationWorkTrace {
-        &self.work
-    }
-    pub const fn media_counters_before(&self) -> MediaCounterSnapshot {
-        self.counters_before
-    }
-    pub const fn media_counters_after(&self) -> MediaCounterSnapshot {
-        self.counters_after
-    }
-    pub(in crate::physical_runtime::record_serving) fn from_publication(
-        records: Vec<PersistedRecordIdentity>,
-        root_generation: u64,
-        publication_identity: u64,
-        observation: PublicationObservation,
-        work: super::RecordPublicationWorkTrace,
-        counters_before: MediaCounterSnapshot,
-        counters_after: MediaCounterSnapshot,
+impl RecordRootPlanningObservation {
+    pub(in crate::physical_runtime::record_serving) const fn from_publication(
+        value: PublicationObservation,
     ) -> Self {
         Self {
-            record_ids: records
-                .into_iter()
-                .map(PhysicalRecordId::from_persisted)
-                .collect(),
-            root_generation,
-            publication_identity,
-            observation: RecordAppendObservation { value: observation },
-            work,
-            counters_before,
-            counters_after,
+            manifest_blocks_read: value.manifest_blocks_read,
+            manifest_comparisons: value.manifest_comparisons,
+            manifest_bytes_read: value.manifest_bytes_read,
         }
+    }
+
+    pub const fn manifest_blocks_read(self) -> u64 {
+        self.manifest_blocks_read
+    }
+
+    pub const fn manifest_comparisons(self) -> u64 {
+        self.manifest_comparisons
+    }
+
+    pub const fn manifest_bytes_read(self) -> u64 {
+        self.manifest_bytes_read
     }
 }

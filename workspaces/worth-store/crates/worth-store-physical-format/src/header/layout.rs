@@ -9,7 +9,7 @@ pub(crate) const OWNER_PRIMARY_OFFSET: usize = 18;
 pub(crate) const OWNER_SECONDARY_OFFSET: usize = 26;
 pub(crate) const OWNER_TERTIARY_OFFSET: usize = 34;
 pub(crate) const RESERVED_CHECKSUM_OFFSET: usize = 36;
-pub(crate) const RESERVED_RECOVERY_LSN_OFFSET: usize = 40;
+pub(crate) const RESERVED_TAIL_OFFSET: usize = 40;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PhysicalPageHeader {

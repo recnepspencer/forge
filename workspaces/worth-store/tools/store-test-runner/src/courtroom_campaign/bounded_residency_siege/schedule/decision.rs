@@ -1,4 +1,4 @@
-use super::ScheduleSeed;
+use super::SchedulePerturbationSeed;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::courtroom_campaign::bounded_residency_siege) enum ScheduleDecision {
@@ -6,6 +6,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum ScheduleDecision
     EquivalentContenderIdentity(EquivalentContenderIdentity),
     GateReleaseOrder(GateReleaseOrder),
     IndependentReadyWorkSelection(IndependentReadyWorkSelection),
+    DurabilityCheckpointOrder(DurabilityCheckpointOrder),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,12 +33,32 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum IndependentReady
     SecondWorkerThenFirst,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::courtroom_campaign::bounded_residency_siege) enum DurabilityCheckpointOrder {
+    CheckpointBeforeTarget,
+    TargetSealedBeforeCheckpoint,
+}
+
+impl DurabilityCheckpointOrder {
+    pub(in crate::courtroom_campaign::bounded_residency_siege) const fn encoded(
+        self,
+    ) -> &'static str {
+        match self {
+            Self::CheckpointBeforeTarget => "durability-checkpoint-order=checkpoint-before-target",
+            Self::TargetSealedBeforeCheckpoint => {
+                "durability-checkpoint-order=target-sealed-before-checkpoint"
+            }
+        }
+    }
+}
+
 impl ScheduleDecision {
-    pub(in crate::courtroom_campaign::bounded_residency_siege) const VOCABULARY: [&'static str; 4] = [
+    pub(in crate::courtroom_campaign::bounded_residency_siege) const VOCABULARY: [&'static str; 5] = [
         "worker-start-order",
         "equivalent-contender-identity",
         "gate-release-order",
         "independent-ready-work-selection",
+        "durability-checkpoint-order",
     ];
 
     pub(in crate::courtroom_campaign::bounded_residency_siege) const fn family(
@@ -48,6 +69,7 @@ impl ScheduleDecision {
             Self::EquivalentContenderIdentity(_) => Self::VOCABULARY[1],
             Self::GateReleaseOrder(_) => Self::VOCABULARY[2],
             Self::IndependentReadyWorkSelection(_) => Self::VOCABULARY[3],
+            Self::DurabilityCheckpointOrder(_) => Self::VOCABULARY[4],
         }
     }
 
@@ -71,17 +93,33 @@ impl ScheduleDecision {
             Self::IndependentReadyWorkSelection(
                 IndependentReadyWorkSelection::SecondWorkerThenFirst,
             ) => "second-worker-then-first",
+            Self::DurabilityCheckpointOrder(DurabilityCheckpointOrder::CheckpointBeforeTarget) => {
+                "checkpoint-before-target"
+            }
+            Self::DurabilityCheckpointOrder(
+                DurabilityCheckpointOrder::TargetSealedBeforeCheckpoint,
+            ) => "target-sealed-before-checkpoint",
         }
     }
 
     pub(in crate::courtroom_campaign::bounded_residency_siege) fn encoded(&self) -> String {
         format!("{}={}", self.family(), self.choice())
     }
+
+    pub(in crate::courtroom_campaign::bounded_residency_siege) fn canonical_trace_decision(
+        self,
+    ) -> worth_store_physical_certification::SchedulePerturbationDecision {
+        worth_store_physical_certification::SchedulePerturbationDecision::new(
+            self.family(),
+            self.choice(),
+        )
+        .expect("the Courtroom C decision vocabulary is nonempty")
+    }
 }
 
 pub(in crate::courtroom_campaign::bounded_residency_siege) fn derive(
-    seed: ScheduleSeed,
-) -> [ScheduleDecision; 4] {
+    seed: SchedulePerturbationSeed,
+) -> [ScheduleDecision; 5] {
     let decision_bits = seed.value();
     [
         ScheduleDecision::WorkerStartOrder(if decision_bits & 1 == 0 {
@@ -103,6 +141,11 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) fn derive(
             IndependentReadyWorkSelection::FirstWorkerThenSecond
         } else {
             IndependentReadyWorkSelection::SecondWorkerThenFirst
+        }),
+        ScheduleDecision::DurabilityCheckpointOrder(if decision_bits & 16 == 0 {
+            DurabilityCheckpointOrder::CheckpointBeforeTarget
+        } else {
+            DurabilityCheckpointOrder::TargetSealedBeforeCheckpoint
         }),
     ]
 }

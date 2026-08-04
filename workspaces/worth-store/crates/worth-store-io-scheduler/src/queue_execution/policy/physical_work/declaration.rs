@@ -23,6 +23,7 @@ pub struct PhysicalForegroundWorkDeclaration {
 enum PhysicalForegroundOperationPosture {
     Read,
     BufferedWrite,
+    WalAppend,
     DurableWrite,
 }
 
@@ -71,6 +72,18 @@ impl PhysicalForegroundWorkDeclaration {
         )
     }
 
+    pub fn wal_append(
+        reservation: ForegroundReservationReceipt,
+        locality: QueueLocalityIdentity,
+        resources: QueueProducerResourceShape,
+        flush_epoch: u64,
+    ) -> Self {
+        Self::from_inputs(
+            PhysicalForegroundWorkInputs::new(reservation, locality, resources, flush_epoch),
+            PhysicalForegroundOperationPosture::WalAppend,
+        )
+    }
+
     pub const fn with_secure_io_scope(mut self, secure_io: SecureIoPreservationReceipt) -> Self {
         self.secure_io = Some(secure_io);
         self
@@ -114,6 +127,7 @@ impl PhysicalForegroundOperationPosture {
         match self {
             Self::Read => QueueDurabilityClass::ReadOnly,
             Self::BufferedWrite => QueueDurabilityClass::BufferedWrite,
+            Self::WalAppend => QueueDurabilityClass::WalCommit,
             Self::DurableWrite => QueueDurabilityClass::PlatformDurable,
         }
     }
@@ -122,6 +136,7 @@ impl PhysicalForegroundOperationPosture {
         match self {
             Self::Read => QueueWritebackPolicy::None,
             Self::BufferedWrite => QueueWritebackPolicy::DeferredWithinFlushEpoch,
+            Self::WalAppend => QueueWritebackPolicy::Immediate,
             Self::DurableWrite => QueueWritebackPolicy::Immediate,
         }
     }

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 mod phase_16;
 mod physical_reconstruction_c6;
+mod physical_reconstruction_c7;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct ControlledMutation {
@@ -59,6 +60,16 @@ pub(super) fn mutations() -> &'static [ControlledMutation] {
             .iter()
             .chain(phase_16::MUTATIONS)
             .chain(physical_reconstruction_c6::MUTATIONS)
+            .chain(physical_reconstruction_c7::MUTATIONS)
+            .chain(physical_reconstruction_c7::CLOSEOUT_COST_MUTATIONS)
+            .chain(physical_reconstruction_c7::PROCESS_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_REOPEN_CLEANUP_MUTATIONS)
+            .chain(physical_reconstruction_c7::LEDGER_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_LIFECYCLE_EVIDENCE_MUTATIONS)
+            .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
+            .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
             .copied()
             .collect::<Vec<_>>()
             .into_boxed_slice()
@@ -74,6 +85,22 @@ pub(super) const fn physical_reconstruction_c6_mutations() -> &'static [Controll
     physical_reconstruction_c6::MUTATIONS
 }
 
+#[cfg(test)]
+pub(super) fn physical_reconstruction_c7_mutations(
+) -> impl Iterator<Item = &'static ControlledMutation> {
+    physical_reconstruction_c7::MUTATIONS
+        .iter()
+        .chain(physical_reconstruction_c7::CLOSEOUT_COST_MUTATIONS)
+        .chain(physical_reconstruction_c7::PROCESS_ACCOUNTING_MUTATIONS)
+        .chain(physical_reconstruction_c7::WAL_REOPEN_CLEANUP_MUTATIONS)
+        .chain(physical_reconstruction_c7::LEDGER_ACCOUNTING_MUTATIONS)
+        .chain(physical_reconstruction_c7::WAL_LIFECYCLE_EVIDENCE_MUTATIONS)
+        .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
+        .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
+        .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+        .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
+}
+
 pub(super) fn bounded_residency_mutations() -> &'static [ControlledMutation] {
     static BOUNDED: std::sync::OnceLock<Box<[ControlledMutation]>> = std::sync::OnceLock::new();
     BOUNDED.get_or_init(|| {
@@ -81,6 +108,16 @@ pub(super) fn bounded_residency_mutations() -> &'static [ControlledMutation] {
             .iter()
             .filter(|mutation| matches!(mutation.id, 42..=44))
             .chain(physical_reconstruction_c6::MUTATIONS)
+            .chain(physical_reconstruction_c7::MUTATIONS)
+            .chain(physical_reconstruction_c7::CLOSEOUT_COST_MUTATIONS)
+            .chain(physical_reconstruction_c7::PROCESS_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_REOPEN_CLEANUP_MUTATIONS)
+            .chain(physical_reconstruction_c7::LEDGER_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_LIFECYCLE_EVIDENCE_MUTATIONS)
+            .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
+            .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
+            .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
             .copied()
             .collect::<Vec<_>>()
             .into_boxed_slice()
@@ -107,22 +144,22 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         1,
         "publication-durability",
-        "crates/worth-store/src/physical_runtime/record_serving/publication/manifest_progression.rs",
-        "stage\n        .synchronize_artifact(artifact)\n        .and_then(|_| stage.synchronize_artifact_parent(artifact))",
-        "stage.synchronize_artifact_parent(artifact)",
+        "crates/worth-store/src/physical_runtime/record_serving/publication/director/root_candidate_execution.rs",
+        "for index in 0..candidate.candidate().artifacts().len() {",
+        "for index in 0..candidate.candidate().artifacts().len().saturating_sub(1) {",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_recovery_faults::manifest_sync_failure_cannot_erase_the_accepted_candidate_write"
+        "durability_admission::data_durability::root_projection_carriage::exact_settled_group_advances_only_after_replacement_and_namespace_durability"
     ),
     mutation!(
         2,
         "outcome-order",
-        "crates/worth-store/src/physical_runtime/record_serving/publication/publication_progression.rs",
-        "let namespace_synchronized =\n        synchronize_namespace(media, &artifacts, catalog_replaced, counters_before)?;",
-        "let namespace_synchronized = NamespaceSynchronized(catalog_replaced.0);",
+        "crates/worth-store/src/physical_runtime/durability/publication/namespace_durability.rs",
+        "PhysicalRootPublicationWorkAction::SynchronizeParentNamespace,",
+        "PhysicalRootPublicationWorkAction::ReplaceBootstrapCatalog,",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_faults::possible_catalog_cutover_is_typed_indeterminate_and_close_adds_no_publication_effect"
+        "durability_admission::data_durability::root_signal_progression::root_candidate_signal_completion_precedes_replacement_and_current_root_advance"
     ),
     mutation!(
         3,
@@ -132,7 +169,7 @@ const MUTATIONS: &[ControlledMutation] = &[
         "identities.iter().copied().zip(batch.records).take(1)",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_mutants::premature_identity_subset_and_success_mutants_fail_causally"
+        "page_packing_oracle::batch_packing_matches_an_independent_page_oracle"
     ),
     mutation!(
         4,
@@ -142,7 +179,7 @@ const MUTATIONS: &[ControlledMutation] = &[
         "let allocation_epoch = [1_u8; 16];",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "extent_streaming::abandoned_candidate_identity_is_never_reused_by_a_later_publication"
+        "identity_process::admission_denials_have_no_effect_and_successors_receive_fresh_identity"
     ),
     mutation!(
         5,
@@ -167,19 +204,19 @@ const MUTATIONS: &[ControlledMutation] = &[
     mutation!(
         7,
         "lifecycle",
-        "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
-        "RecordFamilyInventory::ProvenAbsent => {\n            return Err(BootstrapTransitionFailure::Denied(\n                RecordBootstrapDenial::RecordFamilyAbsent,\n            ));\n        }",
-        "RecordFamilyInventory::ProvenAbsent => {\n            let placement = super::PhysicalRecordPlacementPolicy::builder().admit(request.format).unwrap();\n            return super::initialization::initialize(media, super::PhysicalRecordInitialization::new(request.format, placement, request.access));\n        }",
+        "crates/worth-store/src/physical_runtime/record_serving/admission/transition.rs",
+        "        Err(failure) => return open_failure(runtime, failure),\n    };\n    match record_open::load_current_root(",
+        "        Err(BootstrapTransitionFailure::Denied(\n            super::super::RecordBootstrapDenial::RecordFamilyAbsent,\n        )) => {\n            let placement = crate::physical_runtime::PhysicalRecordPlacementPolicy::builder()\n                .admit(format)\n                .unwrap();\n            match initialization::initialize(\n                runtime.record_serving_media(),\n                format,\n                placement,\n                access,\n            ) {\n                Ok(bootstrap) => bootstrap,\n                Err(failure) => return open_failure(runtime, failure),\n            }\n        }\n        Err(failure) => return open_failure(runtime, failure),\n    };\n    match record_open::load_current_root(",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "initialize_and_open_never_substitute_for_each_other"
+        "baseline_admission::initialize_and_open_never_substitute_for_each_other"
     ),
     mutation!(
         8,
         "current-truth",
         "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
         "RecordFamilyInventory::Residue => {\n            return Err(BootstrapTransitionFailure::Denied(\n                RecordBootstrapDenial::AmbiguousRecordFamilyResidue,\n            ));\n        }",
-        "RecordFamilyInventory::Residue => {\n            let generation = worth_store_physical_format::CurrentRootCatalogGeneration::new(2).unwrap();\n            return Ok(PhysicalRecordBootstrapOwner { format: request.format, access: request.access, current_root: worth_store_physical_format::CurrentRootCatalogEntry::new(generation), observed_staging_residue: true });\n        }",
+        "RecordFamilyInventory::Residue => {\n            let generation = worth_store_physical_format::CurrentRootCatalogGeneration::new(2).unwrap();\n            return Ok(PhysicalRecordBootstrapOwner { format, access, current_root: worth_store_physical_format::CurrentRootCatalogEntry::new(generation), observed_staging_residue: true });\n        }",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
         "manifest_scale::bounded_scale_identity_format_and_policy_courtroom"
@@ -189,10 +226,10 @@ const MUTATIONS: &[ControlledMutation] = &[
         "independent-decision-path",
         "crates/worth-store/src/physical_runtime/record_serving/admission/open.rs",
         "let generation = bootstrap.current_root.generation().get();",
-        "let catalog_generation = bootstrap.current_root.generation().get();\n    let successor = catalog_generation.saturating_add(1);\n    let generation = if ServingRecordArtifacts::new(media, loader).load_bounded(RecordArtifactFile::RootManifest { generation: successor }, limits.current_root_bytes().get()).is_ok() { successor } else { catalog_generation };",
+        "let catalog_generation = bootstrap.current_root.generation().get();\n    let successor = catalog_generation.saturating_add(1);\n    let generation = if ServingRecordArtifacts::new(media, loader).load_bounded(allocation, RecordArtifactFile::RootManifest { generation: successor }, limits.current_root_bytes().get()).is_ok() { successor } else { catalog_generation };",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
-        "publication_failure_topology::publication_cutover_never_invents_current_truth"
+        "baseline_admission::namespace_residue_cannot_elect_current_truth"
     ),
     mutation!(
         10,
@@ -219,7 +256,7 @@ const MUTATIONS: &[ControlledMutation] = &[
         "locate-open-scale",
         "crates/worth-store/src/physical_runtime/record_serving/access/manifest_routing/reader.rs",
         "if !reference.contains(record) {",
-        "let mut pending = vec![reference];\n        while let Some(candidate) = pending.pop() {\n            if let PhysicalRootRoutingBlock::Branch { children, .. } = self.read_block(candidate, counters)? { pending.extend(children); }\n        }\n        if !reference.contains(record) {",
+        "let mut pending = vec![reference];\n        while let Some(candidate) = pending.pop() {\n            if let PhysicalRootRoutingBlock::Branch { children, .. } = self.read_block(allocation, candidate, counters)? { pending.extend(children); }\n        }\n        if !reference.contains(record) {",
         "worth-store",
         MutationTarget::Integration("physical_record_journeys"),
         "manifest_scale::bounded_scale_identity_format_and_policy_courtroom"

@@ -13,7 +13,6 @@ worth-store-physical-backend.workspace = true
 
 [features]
 default = []
-phase23-layout-rule-construction = []
 
 [lints]
 workspace = true

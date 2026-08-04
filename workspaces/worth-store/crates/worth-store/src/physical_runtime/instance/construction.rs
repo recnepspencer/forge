@@ -1,22 +1,19 @@
 use worth_store_physical_backend::QualifiedFilesystemMedia;
 
+mod record_serving;
+mod work_runtime;
+
+use record_serving::PhysicalRecordServingAssembly;
+use work_runtime::prepare_work_runtime;
+
 use crate::physical_runtime::{
-    record_serving::{
-        CanonicalRecordMutationPort, RecordAllocationFrontier, RecordPublicationDirector,
-        RecordPublicationFoundation, RecordServingOwner, RecordServingState, RecordWorkAdmission,
-        ServingHealth,
-    },
+    record_serving::{RecordAllocationFrontier, RecordServingOwner, RecordServingState},
     runtime::PhysicalRuntimeCore,
-    work::{
-        PhysicalWorkAdmissionAuthority, PhysicalWorkSubmissionFoundation,
-        PhysicalWorkSubmissionOwner,
-    },
 };
 
 use super::{
-    PhysicalResidencyOwner, PhysicalSchedulerAdmissionOwner, PhysicalSignalConstructionFailure,
-    PhysicalStoreInstanceParts, PhysicalStoreWorkRuntime, PhysicalWorkExecutor,
-    PhysicalWorkSignalOwner,
+    reopen_durability_basis, PhysicalResidencyOwner, PhysicalSignalConstructionFailure,
+    PhysicalStoreInstanceParts,
 };
 
 pub(in crate::physical_runtime) struct PhysicalStoreInstanceFoundation {
@@ -29,6 +26,8 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceFoundation {
     pub(in crate::physical_runtime) residency: PhysicalResidencyOwner,
     pub(in crate::physical_runtime) work_profile:
         crate::physical_runtime::PhysicalWorkProfileDeclaration,
+    pub(in crate::physical_runtime) durability:
+        crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
 }
 
 pub(in crate::physical_runtime) struct PhysicalStoreInstanceConstructionFailure {
@@ -36,6 +35,7 @@ pub(in crate::physical_runtime) struct PhysicalStoreInstanceConstructionFailure 
     media: QualifiedFilesystemMedia,
     core: PhysicalRuntimeCore,
     residency: PhysicalResidencyOwner,
+    durability: crate::physical_runtime::durability::PhysicalDurabilityRuntimeOwner,
     cause: PhysicalSignalConstructionFailure,
 }
 
@@ -51,121 +51,73 @@ impl PhysicalStoreInstanceParts {
             allocation_frontier,
             residency,
             work_profile,
+            durability,
         } = foundation;
         let frame_ports = residency.ports().clone();
         let runtime_identity = core.runtime_identity();
         let lifecycle_generation = core.lifecycle_generation();
-        let store_identity = media.store_identity();
         let record_owner = RecordServingOwner::new();
-        let (record_work, work_profile) = match RecordWorkAdmission::install(work_profile) {
-            Ok(installed) => installed,
-            Err(denial) => {
+        let prepared_work = match prepare_work_runtime(
+            &media,
+            &core,
+            work_profile,
+            durability.observation(),
+            !bootstrap.publication_residue.is_empty(),
+        ) {
+            Ok(prepared) => prepared,
+            Err(cause) => {
                 return Err(PhysicalStoreInstanceConstructionFailure {
                     termination,
                     media,
                     core,
                     residency,
-                    cause: PhysicalSignalConstructionFailure::ProfileRejected(denial),
+                    durability,
+                    cause,
                 })
             }
         };
-        let record_work = std::sync::Arc::new(record_work);
-        let work_capacity = work_profile.capacity();
-        let recovery = PhysicalWorkExecutor::inspect_recovery(&media, work_capacity.commands());
-        let health = ServingHealth::new(
-            !bootstrap.publication_residue.is_empty() || recovery.requires_inspection(),
-        );
-        let signal_owner =
-            match PhysicalWorkSignalOwner::build_foundation(lifecycle_generation, work_profile) {
-                Ok(owner) => owner,
-                Err(cause) => {
+        let signal_profile = prepared_work.signal_profile();
+        let durability_reopen =
+            match reopen_durability_basis(&media, runtime_identity, signal_profile, &durability) {
+                Ok(reopened) => reopened,
+                Err(failure) => {
                     return Err(PhysicalStoreInstanceConstructionFailure {
                         termination,
                         media,
                         core,
                         residency,
-                        cause,
+                        durability,
+                        cause: PhysicalSignalConstructionFailure::DurabilityStateReopenRejected(
+                            failure,
+                        ),
                     })
                 }
             };
-        let work_submission = PhysicalWorkSubmissionOwner::new(PhysicalWorkSubmissionFoundation {
-            store: store_identity,
-            runtime: runtime_identity,
-            generation: lifecycle_generation,
-            lifecycle: core.lifecycle_state(),
-            signal_profile: signal_owner.profile(),
-            bindings: signal_owner.bindings(),
-            signal_admission: signal_owner.admission_status(),
-            abandonment: signal_owner.abandonment_publisher(),
-        });
-        let scheduler_admission = match PhysicalSchedulerAdmissionOwner::new(&media, work_capacity)
-        {
-            Ok(owner) => owner,
-            Err(denial) => {
-                return Err(PhysicalStoreInstanceConstructionFailure {
-                    termination,
-                    media,
-                    core,
-                    residency,
-                    cause: PhysicalSignalConstructionFailure::SchedulerCapabilityRejected(denial),
-                })
-            }
-        };
-        let work_admission = PhysicalWorkAdmissionAuthority::from_qualified_instance(
-            &media,
-            runtime_identity,
+        let reopened = durability_reopen.install(durability);
+        let installed_work = prepared_work.install(media);
+        let record_serving = PhysicalRecordServingAssembly::new(
+            bootstrap,
+            allocation_frontier,
+            frame_ports,
             lifecycle_generation,
-        );
-        let executor = PhysicalWorkExecutor::new(media);
-        let work_runtime = PhysicalStoreWorkRuntime::new(
-            work_submission,
-            signal_owner,
-            executor,
-            health,
-            recovery,
-        );
-        let planning_read = crate::physical_runtime::record_serving::CanonicalRecordReadPort::new(
-            &work_runtime,
-            lifecycle_generation,
-            work_admission,
-            scheduler_admission.clone(),
-            std::sync::Arc::clone(&record_work),
-        );
-        let mutation = CanonicalRecordMutationPort::new(
-            &work_runtime,
-            lifecycle_generation,
-            work_admission,
-            scheduler_admission.clone(),
-            std::sync::Arc::clone(&record_work),
-        );
-        let publication = RecordPublicationDirector::new(
-            &work_runtime,
-            planning_read,
-            mutation,
-            RecordPublicationFoundation {
-                format: bootstrap.format,
-                access: bootstrap.access,
-                current_root: bootstrap.current_root,
-                free_space: bootstrap.free_space,
-                allocation_frontier,
-                residue: bootstrap.publication_residue,
-                frame_ports: frame_ports.clone(),
-                generation: lifecycle_generation,
-            },
-        );
+            signal_profile,
+        )
+        .install(&installed_work, &reopened);
 
         Ok(Self {
             termination,
-            work_admission,
-            work_runtime,
-            scheduler_admission,
+            work_admission: installed_work.admission,
+            work_runtime: installed_work.runtime,
+            scheduler_admission: installed_work.scheduler,
             record_owner,
-            record_work,
+            record_work: installed_work.record_work,
             core,
-            format: bootstrap.format,
-            access: bootstrap.access,
-            publication,
+            format: record_serving.format,
+            access: record_serving.access,
+            publication: record_serving.publication,
+            checkpoint: record_serving.checkpoint,
             residency,
+            durability: reopened.durability,
         })
     }
 }
@@ -181,6 +133,7 @@ impl PhysicalStoreInstanceConstructionFailure {
         let identity = self.core.runtime_identity();
         let _residency = self.residency.close();
         drop(self.termination);
+        drop(self.durability);
         let release = self.media.close();
         let terminal =
             crate::physical_runtime::MediaShutdownOutcome::new(self.core.abort(), release);

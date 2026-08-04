@@ -1,16 +1,16 @@
 #![forbid(unsafe_code)]
+#![deny(unreachable_pub)]
 
 pub mod append;
 pub mod artifact_store;
 pub mod checkpoint;
-pub mod layout_access;
 pub mod recovery_read;
 pub mod wal_topology;
 
 mod blob_records;
 mod durability;
-mod durable_publication;
 mod operation_denial;
+mod publication_declaration;
 mod security_metadata;
 #[cfg(test)]
 mod security_metadata_tests;
@@ -23,30 +23,35 @@ pub enum DurablePublicationPhase {
     Recovered,
 }
 
-pub use append::admit_durable_append;
-pub use artifact_store::{
-    prepare_wal_frame_append, AdmittedWalArtifactStore, WalAppendPlanner, WalArtifactScanCounters,
-    WalArtifactStoreDenial, WalFrameAppendPlan, WalPersistedArtifact, WalPersistedArtifactRead,
-    WalPersistedArtifactSet, WalStoreIdentity,
+pub use append::{
+    plan_wal_frame_append, PlannedWalFrameAppend, WalAppendFrontier, WalFramePlanningDenial,
 };
+pub use artifact_store::{
+    inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
+    inspect_verified_wal_active_tail, inspect_verified_wal_segment, observe_checkpoint_artifact,
+    observe_wal_frame_artifact, prepare_wal_frame_append, CheckpointArtifactObservation,
+    InterruptedWalSegmentStart, InterruptedWalTail, VerifiedWalActiveTail, VerifiedWalFramePayload,
+    VerifiedWalSegment, WalArtifactInventory, WalArtifactInventoryIdentity,
+    WalArtifactInventoryScan, WalArtifactObservation, WalArtifactObservationRead,
+    WalArtifactScanCounters, WalArtifactStoreDenial, WalFrameAppendPlan,
+    WalFrameArtifactObservation, WalSegmentArtifactIdentity, WalSegmentInspection,
+};
+#[cfg(feature = "certification-authority")]
+pub use artifact_store::{WalAppendPlanner, WalAppendPlannerDenial};
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
     BlobWalReplayRebuildWitness,
 };
-pub use checkpoint::{admit_checkpoint_cutover, admit_checkpoint_publication};
 pub use durability::{WalQueueExecutionDeclaration, WalQueueExecutionKind, WalQueueGroupingScope};
-pub use durable_publication::{
-    CheckpointDurablePublicationScope, DurablePublicationDeclaration, DurablePublicationScope,
-    WalFrameDurablePublicationScope,
-};
-pub use layout_access::{
-    AdmittedCheckpointPublicationReceipt, AdmittedReplayTailCursor, AdmittedWalAppendReceipt,
-    CheckpointPublicationLayoutReport, WalAppendLayoutReport, WalReplayTailCursorReport,
-    WalReplayTailRecordReport,
-};
 pub use operation_denial::{WalOperationDenial, WalOperationDenialKind};
+pub use publication_declaration::{
+    CheckpointPublicationScope, PublicationDeclaration, PublicationScope, WalFramePublicationScope,
+};
 pub use recovery_read::{admit_replay_cursor, inspect_replay_tail_record};
+pub use recovery_read::{
+    AdmittedReplayTailCursor, WalReplayTailCursorReport, WalReplayTailRecordReport,
+};
 pub use security_metadata::{
     CheckpointRecordSecurityMetadataEnvelope, StoreCheckpointRecordIdentity,
     StoreWalRecordIdentity, WalRecordSecurityMetadataEnvelope, WalSecurityMetadataCarrier,

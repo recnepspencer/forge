@@ -38,12 +38,6 @@ pub(super) fn classify_persisted_crash_edge(
                 digest,
             )
         }
-        PartialPublicationCrashEdge::AfterAckBeforePageFlush { .. } => classification(
-            UnacknowledgedPublicationOutcome::AcknowledgedBeforePageFlush,
-            RecoveredOrRejectedPartialPublication::AcknowledgedWorkAwaitingPageFlush { counters },
-            counters,
-            digest,
-        ),
         PartialPublicationCrashEdge::DuringCheckpointCutover { checkpoint_digest } => {
             let counters = counters.with_ambiguous_outcome();
             let report = AmbiguousPublicationReport::insufficient_persisted_evidence(

@@ -229,6 +229,7 @@ impl PoolInner {
                 allocation_scope: scope,
                 pins: 1,
                 dirty: true,
+                dirty_generation: None,
                 writeback_claimed: false,
                 bytes: u64::from(key.coordinate.length()),
                 older_evictable: None,
@@ -269,7 +270,7 @@ impl PoolInner {
             self.changed.notify_all();
             return Err(Self::deny(&mut state, PhysicalResidencyDenial::PoolClosed));
         }
-        let Some(entry) = state.frames.get_mut(&key.coordinate) else {
+        let Some(entry) = state.frames.get(&key.coordinate) else {
             return Err(Self::deny(
                 &mut state,
                 PhysicalResidencyDenial::FrameNotResident,
@@ -281,7 +282,15 @@ impl PoolInner {
                 PhysicalResidencyDenial::FrameAlreadyResident,
             ));
         }
+        let generation = state
+            .advance_dirty_generation()
+            .map_err(|denial| Self::deny(&mut state, denial))?;
+        let entry = state
+            .frames
+            .get_mut(&key.coordinate)
+            .expect("validated candidate remains reserved");
         entry.state = FrameState::Resident(Arc::clone(&bytes));
+        entry.dirty_generation = Some(generation);
         state.loading_frames -= 1;
         state.accounting.finish_loading();
         self.changed.notify_all();

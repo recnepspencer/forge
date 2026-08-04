@@ -1,6 +1,6 @@
 use worth_store_physical_backend::{
-    ArtifactRangeWriteDurabilityRequirement, ArtifactTreeDirectory, ArtifactTreeFailure,
-    ArtifactTreeFile, ArtifactTreeMedia, BackendQueueExecutionAdaptation,
+    ArtifactNewWriteRange, ArtifactRangeWriteDurabilityRequirement, ArtifactTreeDirectory,
+    ArtifactTreeFailure, ArtifactTreeFile, ArtifactTreeMedia, BackendQueueExecutionAdaptation,
     BackendQueueExecutionPlanBinding, BackendQueueSpeculativeScope, QualifiedFilesystemMedia,
     ScheduledArtifactMetadataReadOutcome, ScheduledArtifactNewWriteOutcome,
     ScheduledArtifactRangeReadOutcome, ScheduledArtifactRangeWriteOutcome,
@@ -213,7 +213,8 @@ impl<'media> PhysicalRecordArtifactTree<'media> {
     ) -> ScheduledArtifactNewWriteOutcome {
         self.tree.write_scheduled_new_exact(
             &self.artifact(coordinate.artifact()),
-            coordinate,
+            ArtifactNewWriteRange::new(u64::from(coordinate.length()))
+                .expect("record frame coordinates are nonempty"),
             bytes,
             binding,
             adaptation,

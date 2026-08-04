@@ -43,6 +43,7 @@ impl PhysicalResidencyPool {
                     loading_frames: 0,
                     next_loading_ordinal: 1,
                     active_candidate_publications: 0,
+                    dirty_generation: PhysicalDirtyGeneration::GENESIS,
                     accepting: true,
                     closed: false,
                 }),

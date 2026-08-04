@@ -5,10 +5,6 @@ pub mod checkpoint_durability;
 pub mod checkpoint_publication;
 pub mod closeout;
 #[cfg(feature = "certification-world")]
-pub mod compaction_mutation;
-#[cfg(feature = "certification-world")]
-pub mod compaction_observation;
-#[cfg(feature = "certification-world")]
 pub mod counter_evidence;
 #[cfg(feature = "certification-world")]
 pub mod coverage;

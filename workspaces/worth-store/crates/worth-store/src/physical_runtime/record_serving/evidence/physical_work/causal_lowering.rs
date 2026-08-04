@@ -272,6 +272,12 @@ const fn lower_fate(fate: PhysicalWorkEffectFate) -> PhysicalWorkEffectFateEvide
         PhysicalWorkEffectFate::PublicationCompleted => {
             PhysicalWorkEffectFateEvidence::PublicationCompleted
         }
+        PhysicalWorkEffectFate::CheckpointCompleted => {
+            PhysicalWorkEffectFateEvidence::CheckpointCompleted
+        }
+        PhysicalWorkEffectFate::WalReclamationCompleted => {
+            PhysicalWorkEffectFateEvidence::WalReclamationCompleted
+        }
         PhysicalWorkEffectFate::WrittenButSchedulerRejected => {
             PhysicalWorkEffectFateEvidence::WrittenButSchedulerRejected
         }
@@ -308,5 +314,18 @@ const fn lower_signal_settlement(
         PhysicalSignalSettlementOutcome::DerivedStateUnavailable => {
             PhysicalWorkSignalSettlementEvidence::DerivedStateUnavailable
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{lower_fate, PhysicalWorkEffectFate, PhysicalWorkEffectFateEvidence};
+
+    #[test]
+    fn checkpoint_completion_remains_distinct_in_causal_evidence() {
+        assert_eq!(
+            lower_fate(PhysicalWorkEffectFate::CheckpointCompleted),
+            PhysicalWorkEffectFateEvidence::CheckpointCompleted
+        );
     }
 }

@@ -6,9 +6,7 @@ use super::super::{
     world::{BoundedResidencySiegeWorld, DIRTY_FRAMES, PINNED_FRAMES, PIN_LEASES, RESIDENT_BYTES},
 };
 
-mod dirty_close;
-
-use dirty_close::verify_dirty_and_close;
+use super::dirty_close::verify_dirty_and_close;
 
 const EVICTION_PROTECTED_FRAMES: u32 = 3;
 

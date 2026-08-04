@@ -8,11 +8,22 @@ use worth_store::physical_runtime::{
 use super::arguments::ReopenInvocation;
 
 pub(super) fn run(invocation: ReopenInvocation) -> Result<(), String> {
-    super::configuration::validate_supported(&invocation.configuration)?;
+    let configuration = super::configuration::ReopenConfiguration::read(&invocation.configuration)?;
     let (format, _, access) = super::configuration::record_configuration();
     let media = super::admission::admit_media(&invocation.root, None)?;
+    let durability = match configuration {
+        super::configuration::ReopenConfiguration::Standard => {
+            super::admission::admit_durability(&media)?
+        }
+        super::configuration::ReopenConfiguration::BoundedResidency(configuration) => {
+            super::admission::admit_durability_with_checkpoint_memory(
+                &media,
+                configuration.checkpoint_memory_limit(),
+            )?
+        }
+    };
     let serving = super::admission::require_serving(
-        media.open_record_store(PhysicalRecordOpen::new(format, access)),
+        media.open_record_store(PhysicalRecordOpen::new(format, access, durability)),
         "record-store reopen",
     )?;
     let residue = serving.observed_non_authoritative_residue();

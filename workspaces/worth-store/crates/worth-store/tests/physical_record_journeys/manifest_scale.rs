@@ -20,20 +20,34 @@ fn bounded_scale_identity_format_and_policy_courtroom() {
     assert_eq!(observations.map(|value| value.point_media_reads), [2, 2, 2]);
     assert_eq!(
         observations.map(|value| value.point_media_bytes),
-        [16_504, 16_504, 16_544]
+        [16_512, 16_512, 16_552]
     );
     assert_eq!(
         observations.map(|value| value.point_manifest_bytes),
-        [288, 816, 1_312]
+        observations.map(|value| {
+            [208, 616, 992][match value.record_count {
+                1 => 0,
+                9 => 1,
+                65 => 2,
+                _ => unreachable!(),
+            }] + value.point_blocks * super::durable_frame_oracle::HEADER_BYTES as u64
+        })
     );
     assert_eq!(observations.map(|value| value.scan_media_reads), [0, 7, 64]);
     assert_eq!(
         observations.map(|value| value.scan_media_bytes),
-        [0, 1_696, 31_520]
+        [0, 1_752, 32_024]
     );
     assert_eq!(
         observations.map(|value| value.scan_manifest_bytes),
-        [288, 5_568, 41_784]
+        observations.map(|value| {
+            [208, 4_368, 33_624][match value.record_count {
+                1 => 0,
+                9 => 1,
+                65 => 2,
+                _ => unreachable!(),
+            }] + value.scan_blocks * super::durable_frame_oracle::HEADER_BYTES as u64
+        })
     );
     assert!(observations.iter().all(|value| {
         value.point_media_reads == value.point_faults && value.scan_media_reads == value.scan_faults

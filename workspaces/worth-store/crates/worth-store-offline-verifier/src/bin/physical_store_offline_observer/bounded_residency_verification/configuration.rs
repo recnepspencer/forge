@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency.configuration.v2";
-const FIXED_FIELDS: [(&str, u64); 24] = [
+const SCHEMA: &str = "worth.store.physical-work-courtroom.bounded-residency.configuration.v3";
+const FIXED_FIELDS: [(&str, u64); 25] = [
     ("inline-record-bytes", 3_000),
     ("inline-records", 64),
     ("extent-record-bytes", 1_048_576),
@@ -17,6 +17,7 @@ const FIXED_FIELDS: [(&str, u64); 24] = [
     ("dirty-frames", 2),
     ("dirty-replacement-bytes", 65_536),
     ("operation-bytes", 6_815_744),
+    ("checkpoint-memory-bytes", 1_048_576),
     ("scope-foreground-read-bytes", 2_097_152),
     ("scope-foreground-write-bytes", 6_815_744),
     ("scope-recovery-bytes", 2_359_296),
@@ -113,7 +114,7 @@ mod tests {
     use super::BoundedResidencyConfiguration;
 
     const CURRENT_PROFILE: &str = "\
-worth.store.physical-work-courtroom.bounded-residency.configuration.v2
+worth.store.physical-work-courtroom.bounded-residency.configuration.v3
 seed=7312955904608109267
 inline-record-bytes=3000
 inline-records=64
@@ -129,6 +130,7 @@ pin-leases=6
 dirty-frames=2
 dirty-replacement-bytes=65536
 operation-bytes=6815744
+checkpoint-memory-bytes=1048576
 scope-foreground-read-bytes=2097152
 scope-foreground-write-bytes=6815744
 scope-recovery-bytes=2359296
@@ -145,7 +147,10 @@ speculative-write-behind-frames=1
     fn current_hostile_profile_is_accepted_independently() {
         let file = tempfile::NamedTempFile::new().unwrap();
         std::fs::write(file.path(), CURRENT_PROFILE).unwrap();
-        let configuration = BoundedResidencyConfiguration::read(file.path()).unwrap();
+        let configuration =
+            BoundedResidencyConfiguration::read(file.path()).unwrap_or_else(|failure| {
+                panic!("MUTANT_PREDICATE:c7-offline-bounded-schema-v3-rejected {failure}")
+            });
         assert_eq!(configuration.record_count(), 173);
     }
 
@@ -157,6 +162,10 @@ speculative-write-behind-frames=1
             CURRENT_PROFILE.replace("extent-records=109", "extent-records=108"),
             CURRENT_PROFILE.replace("total-bytes=6979584", "total-bytes=6815744"),
             CURRENT_PROFILE.replace("operation-bytes=6815744", "operation-bytes=4194304"),
+            CURRENT_PROFILE.replace(
+                "checkpoint-memory-bytes=1048576",
+                "checkpoint-memory-bytes=16777216",
+            ),
         ] {
             std::fs::write(file.path(), stale).unwrap();
             assert!(BoundedResidencyConfiguration::read(file.path()).is_err());

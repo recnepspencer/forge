@@ -14,7 +14,9 @@ impl PhysicalRecordId {
         self.0.ordinal()
     }
 
-    pub(super) const fn from_persisted(identity: PersistedRecordIdentity) -> Self {
+    pub(in crate::physical_runtime) const fn from_persisted(
+        identity: PersistedRecordIdentity,
+    ) -> Self {
         Self(identity)
     }
 

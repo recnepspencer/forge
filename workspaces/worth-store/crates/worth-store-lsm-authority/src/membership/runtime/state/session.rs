@@ -1,7 +1,7 @@
 use super::super::super::model::{
     LsmMembershipKey, LsmMembershipReadmissionAuthority, LsmMembershipRecord,
 };
-use crate::{AdmittedWalArtifactStore, PublishedLsmMembershipReplacement};
+use crate::{PublishedLsmMembershipReplacement, WalArtifactInventory};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -88,7 +88,7 @@ pub(in crate::membership::runtime) struct KeyState {
 #[derive(Debug)]
 pub struct LsmMembershipSession {
     pub(in crate::membership::runtime) keys: HashMap<LsmMembershipKey, KeyState>,
-    pub(in crate::membership::runtime) store: AdmittedWalArtifactStore,
+    pub(in crate::membership::runtime) store: WalArtifactInventory,
     pub(in crate::membership::runtime) store_binding: String,
     pub(in crate::membership::runtime) readmission_authority: LsmMembershipReadmissionAuthority,
     pub(in crate::membership::runtime) segment_id: u64,

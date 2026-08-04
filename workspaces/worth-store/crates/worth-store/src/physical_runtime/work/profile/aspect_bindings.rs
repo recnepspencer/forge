@@ -254,14 +254,6 @@ impl PhysicalSignalAspectSubscription {
     pub const fn is_partitioned(&self) -> bool {
         self.partition.is_some()
     }
-
-    pub(in crate::physical_runtime) const fn signal_mask(&self) -> AspectMask {
-        self.signal_mask
-    }
-
-    pub(in crate::physical_runtime) const fn partition(&self) -> Option<&PartitionSubscription> {
-        self.partition.as_ref()
-    }
 }
 
 fn binding(
@@ -291,9 +283,10 @@ fn binding_digest(
     partition: Option<&PartitionSubscription>,
 ) -> PhysicalSignalAspectBindingDigest {
     let mut digest = Sha256::new();
-    digest.update(b"worth-store.physical-signal-aspect-binding.v3");
+    digest.update(b"worth-store.physical-signal-aspect-binding.v4");
     digest.update(contract.binding_stamp().as_bytes());
-    digest.update([role_code(role), families.bits()]);
+    digest.update([role_code(role)]);
+    digest.update(families.bits().to_le_bytes());
     if let Some(partition) = partition {
         digest.update([1]);
         digest.update((partition.partition.0.len() as u64).to_le_bytes());

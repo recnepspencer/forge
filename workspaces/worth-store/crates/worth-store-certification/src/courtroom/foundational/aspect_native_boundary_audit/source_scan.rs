@@ -88,8 +88,11 @@ fn foundational_adoption_family_count(
 
 fn public_facade_surface_count(root: &Path) -> Result<usize, AspectNativeBoundaryAuditDenial> {
     let facade = read_workspace_file(root, "workspaces/worth-store/crates/worth-store/src/lib.rs")?;
+    let certification_facade = read_workspace_file(
+        root,
+        "workspaces/worth-store/crates/worth-store-certification/src/public_api.rs",
+    )?;
     let aspect_native = facade_module_body(&facade, "aspect_native")?;
-    let certification = facade_module_body(&facade, "certification")?;
     let terminal_projection = facade_module_body(&facade, "terminal_projection")?;
 
     require_module_exports(
@@ -101,7 +104,7 @@ fn public_facade_surface_count(root: &Path) -> Result<usize, AspectNativeBoundar
         ],
     )?;
     require_module_exports(
-        certification,
+        &certification_facade,
         &[
             "certify_store_json_residue_inventory",
             "StoreJsonResidueInventory",

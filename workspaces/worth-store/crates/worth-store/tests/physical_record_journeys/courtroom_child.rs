@@ -12,68 +12,72 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
     let records = super::courtroom_oracle::read(&oracle);
     assert_eq!(records.len(), 1_402);
     let (format, placement, access) = super::scenario_configuration::courtroom_configuration();
-    let serving = super::success(
-        super::media(root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(super::media(root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let counters_before_workload = serving.media_counters();
-    let first = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload(records[0])]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let first_id = first.record_id(0).unwrap();
+    let first = super::durable_publication::publish_single(
+        &serving,
+        placement,
+        super::durable_publication::certification_material("c5-mixed-record-courtroom", 1),
+        RecordAppendBatch::try_from_iter([payload(records[0])]).unwrap(),
+    );
+    let first_id = first.settled_members()[0].record_id(0).unwrap();
     let inline = records[1..1_400].iter().copied().map(payload);
-    let inline = serving
-        .record_submission()
-        .append_batch(RecordAppendBatch::try_from_iter(inline).unwrap(), placement)
-        .unwrap();
-    let boundary = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([payload(records[1_400])]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let inline = super::durable_publication::publish_single(
+        &serving,
+        placement,
+        super::durable_publication::certification_material("c5-mixed-record-courtroom", 2),
+        RecordAppendBatch::try_from_iter(inline).unwrap(),
+    );
+    let boundary = super::durable_publication::publish_single(
+        &serving,
+        placement,
+        super::durable_publication::certification_material("c5-mixed-record-courtroom", 3),
+        RecordAppendBatch::try_from_iter([payload(records[1_400])]).unwrap(),
+    );
     let large = records[1_401];
-    let large = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::builder()
-                .push_source(super::stream_fixture::RepeatedByteSource::new(
-                    large.payload_bytes as u64,
-                    large.byte,
-                ))
-                .build()
-                .unwrap(),
-            placement,
-        )
-        .unwrap();
+    let large = super::durable_publication::publish_single(
+        &serving,
+        placement,
+        super::durable_publication::certification_material("c5-mixed-record-courtroom", 4),
+        RecordAppendBatch::builder()
+            .push_source(super::stream_fixture::RepeatedByteSource::new(
+                large.payload_bytes as u64,
+                large.byte,
+            ))
+            .build()
+            .unwrap(),
+    );
+    let inline_member = &inline.settled_members()[0];
+    let boundary_member = &boundary.settled_members()[0];
+    let large_member = &large.settled_members()[0];
 
     let mut writer = std::io::BufWriter::new(std::fs::File::create(locators).unwrap());
     write_locator(&mut writer, serving.store_identity(), first_id);
-    for record in inline.record_ids().iter().copied() {
+    for index in 0..inline_member.persisted_records().len() {
+        let record = inline_member
+            .record_id(index)
+            .expect("every persisted courtroom record has one serving identity");
         write_locator(&mut writer, serving.store_identity(), record);
     }
     write_locator(
         &mut writer,
         serving.store_identity(),
-        boundary.record_id(0).unwrap(),
+        boundary_member.record_id(0).unwrap(),
     );
     write_locator(
         &mut writer,
         serving.store_identity(),
-        large.record_id(0).unwrap(),
+        large_member.record_id(0).unwrap(),
     );
     writer.flush().unwrap();
     super::scenario_evidence::emit_process("writer", &serving);
     let counters = serving.media_counters();
     println!(
         "C5_COURTROOM_WRITER {} {} {} {} {} {}",
-        large.root_generation(),
-        large.publication_identity(),
+        large.current_root().generation(),
+        large_member.mutation_identity().operation_identity().get(),
         counters
             .attempts_for(MediaOperationRole::PositionedWrite)
             .saturating_sub(
@@ -102,9 +106,9 @@ pub(super) fn writer(root: &Path, locators: std::path::PathBuf, oracle: std::pat
 
 pub(super) fn reopener(root: &Path, evidence: std::path::PathBuf) {
     let (format, _, access) = super::scenario_configuration::courtroom_configuration();
-    let serving = super::success(
-        super::media(root).open_record_store(PhysicalRecordOpen::new(format, access)),
-    );
+    let serving = super::success(open_record_store!(super::media(root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let mut rows = std::fs::read_to_string(evidence)
         .unwrap()
         .lines()

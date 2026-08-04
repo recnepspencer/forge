@@ -23,6 +23,21 @@ pub struct WalAppendPlanner {
     state: Mutex<WalPlannerState>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Why a path-bound WAL append planner could not produce the next plan.
+pub enum WalAppendPlannerDenial {
+    /// Durable artifact inspection or frame construction failed with this cause.
+    Artifact(WalArtifactStoreDenial),
+    /// A panic poisoned planner state; discard this planner and reopen a fresh one.
+    StatePoisoned,
+}
+
+impl From<WalArtifactStoreDenial> for WalAppendPlannerDenial {
+    fn from(denial: WalArtifactStoreDenial) -> Self {
+        Self::Artifact(denial)
+    }
+}
+
 #[derive(Debug)]
 struct WalPlannerState {
     tail: WalPrefixScan,
@@ -34,9 +49,9 @@ impl WalAppendPlanner {
         root: impl Into<PathBuf>,
         segment_id: u64,
         generation: u64,
-    ) -> Result<Self, WalArtifactStoreDenial> {
+    ) -> Result<Self, WalAppendPlannerDenial> {
         if segment_id == 0 || generation == 0 {
-            return Err(WalArtifactStoreDenial::InvalidFrame);
+            return Err(WalArtifactStoreDenial::InvalidFrame.into());
         }
         let root = root.into();
         let mut scan_buffer = vec![0; WAL_SCAN_BUFFER_BYTES];
@@ -56,7 +71,7 @@ impl WalAppendPlanner {
         lsn_end: u64,
         declared_digest: &str,
         payload: &[u8],
-    ) -> Result<WalFrameAppendPlan, WalArtifactStoreDenial> {
+    ) -> Result<WalFrameAppendPlan, WalAppendPlannerDenial> {
         let mut state = lock_state(&self.state)?;
         let prior = state.tail;
         state.tail = scan_segment_suffix_with_buffer(
@@ -67,7 +82,7 @@ impl WalAppendPlanner {
             prior.last_lsn_end,
             &mut state.scan_buffer,
         )?;
-        encode_append(
+        Ok(encode_append(
             self.segment_id,
             self.generation,
             lsn_start,
@@ -75,7 +90,7 @@ impl WalAppendPlanner {
             declared_digest,
             payload,
             state.tail,
-        )
+        )?)
     }
 
     pub fn root(&self) -> &Path {
@@ -101,6 +116,39 @@ impl WalAppendPlanner {
 
 fn lock_state(
     state: &Mutex<WalPlannerState>,
-) -> Result<MutexGuard<'_, WalPlannerState>, WalArtifactStoreDenial> {
-    state.lock().map_err(|_| WalArtifactStoreDenial::Io)
+) -> Result<MutexGuard<'_, WalPlannerState>, WalAppendPlannerDenial> {
+    state
+        .lock()
+        .map_err(|_| WalAppendPlannerDenial::StatePoisoned)
+}
+
+#[cfg(test)]
+mod lock_failure_tests {
+    use super::*;
+
+    #[test]
+    fn poisoned_planner_state_is_not_reported_as_media_io() {
+        let state = Mutex::new(WalPlannerState {
+            tail: WalPrefixScan {
+                valid_prefix_bytes: 0,
+                observed_file_bytes: 0,
+                last_lsn_end: None,
+                bytes_scanned: 0,
+            },
+            scan_buffer: Vec::new(),
+        });
+        let _ = std::panic::catch_unwind(|| {
+            let _locked = state.lock().expect("acquire planner state");
+            panic!("poison planner state");
+        });
+        let denial = match lock_state(&state) {
+            Ok(_) => panic!("poisoned planner state was accepted"),
+            Err(denial) => denial,
+        };
+        assert_eq!(
+            denial,
+            WalAppendPlannerDenial::StatePoisoned,
+            "MUTANT_PREDICATE:wal-planner-poison-misclassified"
+        );
+    }
 }

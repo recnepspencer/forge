@@ -48,11 +48,16 @@ impl Serialize for SignalFamilies<'_> {
         S: Serializer,
     {
         let families = self.0.families;
-        let mut map = serializer.serialize_map(Some(4))?;
+        let mut map = serializer.serialize_map(Some(9))?;
         map.serialize_entry("read_fault", &families.read_fault)?;
         map.serialize_entry("exact_writeback", &families.exact_writeback)?;
         map.serialize_entry("publication", &families.publication)?;
         map.serialize_entry("lifecycle", &families.lifecycle)?;
+        map.serialize_entry("wal_append", &families.wal_append)?;
+        map.serialize_entry("durability_barrier", &families.durability_barrier)?;
+        map.serialize_entry("checkpoint_capture", &families.checkpoint_capture)?;
+        map.serialize_entry("root_publication", &families.root_publication)?;
+        map.serialize_entry("wal_reclamation", &families.wal_reclamation)?;
         map.end()
     }
 }

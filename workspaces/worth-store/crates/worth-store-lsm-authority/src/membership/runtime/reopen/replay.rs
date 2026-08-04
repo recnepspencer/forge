@@ -14,9 +14,9 @@ use super::super::replacement::{
 };
 use super::super::state::{LsmMembershipDenial, LsmMembershipSession, RecordState};
 use crate::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
-    PublishedLsmMembershipIdentity, PublishedLsmMembershipReplacement,
-    WalFrameDurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, LogSequenceNumber, PublicationDeclaration,
+    PublishedLsmMembershipIdentity, PublishedLsmMembershipReplacement, WalFramePublicationScope,
+    WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
 use std::path::{Path, PathBuf};
 
@@ -103,7 +103,7 @@ fn replay_record(
     session: &mut LsmMembershipSession,
     record: LsmMembershipRecord,
 ) -> Result<(), LsmMembershipDenial> {
-    if !session.store.admits_persisted_path(&record.persisted_path)
+    if !session.store.admits_path(&record.persisted_path)
         || record.durable_scope.segment_id() != session.segment_id
         || record.durable_scope.generation() != session.generation
     {
@@ -132,23 +132,71 @@ fn replay_activation(
     path: PathBuf,
     persisted_bytes: u64,
 ) -> Result<(), LsmMembershipDenial> {
-    let PersistedMembershipActivation {
-        key,
-        selected_version,
-        selected_identities,
-        selected_base,
-        output_identity,
-        output_scope,
-        output_path,
-        output_offset,
-        output_bytes,
-        scope,
-    } = activation;
+    let selected = selected_membership_for_activation(session, &activation)?;
+    if !session.store.admits_path(&path)
+        || !manifest_matches_membership(
+            &selected,
+            activation.output_identity,
+            &activation.output_scope,
+            &activation.scope,
+            &path,
+            persisted_bytes,
+        )
+    {
+        return Err(LsmMembershipDenial::ManifestMembershipMismatch);
+    }
+    if !replacement_output_matches(
+        &selected,
+        activation.output_identity,
+        &activation.output_scope,
+        &activation.output_path,
+        activation.output_offset,
+        activation.output_bytes,
+    ) {
+        return Err(LsmMembershipDenial::ReplacementOutputMismatch);
+    }
+    let key = activation.key;
     let state = session
         .keys
         .get_mut(&key)
         .ok_or(LsmMembershipDenial::MembershipStale)?;
-    if !selected_state_matches(state, selected_identities, selected_base, selected_version) {
+    for entry in &mut state.records {
+        entry
+            .as_mut()
+            .ok_or(LsmMembershipDenial::MembershipIncomplete)?
+            .retired = true;
+    }
+    state.published_replacement = Some(PublishedLsmMembershipReplacement::issued(
+        identity,
+        key,
+        selected.identity_set(),
+        activation.output_identity,
+        activation.output_scope,
+        activation.scope,
+        super::super::replacement::PublishedLsmMembershipOutputArtifact::new(
+            activation.output_path,
+            activation.output_offset,
+            activation.output_bytes,
+        ),
+    ));
+    state.version = state.version.saturating_add(1);
+    Ok(())
+}
+
+fn selected_membership_for_activation(
+    session: &LsmMembershipSession,
+    activation: &PersistedMembershipActivation,
+) -> Result<LsmCompactionMembership, LsmMembershipDenial> {
+    let state = session
+        .keys
+        .get(&activation.key)
+        .ok_or(LsmMembershipDenial::MembershipStale)?;
+    if !selected_state_matches(
+        state,
+        activation.selected_identities,
+        activation.selected_base,
+        activation.selected_version,
+    ) {
         return Err(LsmMembershipDenial::ManifestMembershipMismatch);
     }
     let value = state.records[0]
@@ -166,60 +214,21 @@ fn replay_activation(
         .ok_or(LsmMembershipDenial::TombstoneRecordRequired)?
         .record
         .clone();
-    let record_set =
-        crate::membership::LsmCompactionRecordSet::issue(key, value, generation, tombstone)?;
-    let selected = LsmCompactionMembership {
-        key,
+    let record_set = crate::membership::LsmCompactionRecordSet::issue(
+        activation.key,
+        value,
+        generation,
+        tombstone,
+    )?;
+    Ok(LsmCompactionMembership {
+        key: activation.key,
         record_set,
         base: state.published_replacement.clone(),
-        version: selected_version,
+        version: activation.selected_version,
         store_binding: session.store_binding.clone(),
         partition_probes: 1,
         component_probes: 3,
-    };
-    if !session.store.admits_persisted_path(&path)
-        || !manifest_matches_membership(
-            &selected,
-            output_identity,
-            &output_scope,
-            &scope,
-            &path,
-            persisted_bytes,
-        )
-    {
-        return Err(LsmMembershipDenial::ManifestMembershipMismatch);
-    }
-    if !replacement_output_matches(
-        &selected,
-        output_identity,
-        &output_scope,
-        &output_path,
-        output_offset,
-        output_bytes,
-    ) {
-        return Err(LsmMembershipDenial::ReplacementOutputMismatch);
-    }
-    for entry in &mut state.records {
-        entry
-            .as_mut()
-            .ok_or(LsmMembershipDenial::MembershipIncomplete)?
-            .retired = true;
-    }
-    state.published_replacement = Some(PublishedLsmMembershipReplacement::issued(
-        identity,
-        key,
-        selected.identity_set(),
-        output_identity,
-        output_scope,
-        scope,
-        super::super::replacement::PublishedLsmMembershipOutputArtifact::new(
-            output_path,
-            output_offset,
-            output_bytes,
-        ),
-    ));
-    state.version = state.version.saturating_add(1);
-    Ok(())
+    })
 }
 
 fn decode_record_artifact(
@@ -250,19 +259,11 @@ fn decode_record_artifact(
     let key = decode_key(authority, row[1], row[2], row[3])?;
     let kind = decode_kind(number(row[5])?)
         .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
-    let scope = WalFrameDurablePublicationScope::new(
-        number(row[6])?,
-        number(row[7])?,
-        number(row[8])?,
-        number(row[9])?,
-        decode_text(row[10])?,
-        number(row[11])?,
-    )
-    .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    let scope = decode_record_publication_scope(&row)?;
     let envelope = BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(number(row[4])?, kind)
             .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)?,
-        DurablePublicationDeclaration::wal_frame(scope.clone()),
+        PublicationDeclaration::wal_frame(scope.clone()),
         decode_text(row[12])?,
     )
     .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
@@ -274,6 +275,28 @@ fn decode_record_artifact(
         persisted_offset: offset,
         persisted_bytes: artifact.len() as u64,
     }))
+}
+
+fn decode_record_publication_scope(
+    row: &[&str],
+) -> Result<WalFramePublicationScope, LsmMembershipDenial> {
+    let segment = WalSegmentId::new(number(row[6])?)
+        .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    let generation = WalSegmentGeneration::new(number(row[7])?)
+        .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    let lsn_range = WalLsnRange::new(
+        LogSequenceNumber::new(number(row[8])?),
+        LogSequenceNumber::new(number(row[9])?),
+    )
+    .map_err(|_| LsmMembershipDenial::PersistedMembershipArtifactInvalid)?;
+    WalFramePublicationScope::new(
+        segment,
+        generation,
+        lsn_range,
+        decode_text(row[10])?,
+        number(row[11])?,
+    )
+    .ok_or(LsmMembershipDenial::PersistedMembershipArtifactInvalid)
 }
 
 fn decode_key(

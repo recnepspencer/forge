@@ -13,10 +13,11 @@ use super::super::{
     },
     publication::publication_residue::observe_publication_residue,
     residency::artifact_tree::RecordFamilyInventory,
-    PhysicalRecordFormatMismatch, PhysicalRecordOpen, RecordBootstrapDenial,
-    UnsupportedPhysicalRecordFormat,
+    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, PhysicalRecordFormatMismatch,
+    RecordBootstrapDenial, UnsupportedPhysicalRecordFormat,
 };
 
+#[derive(Clone, Copy)]
 struct CurrentRootAdmission<'a> {
     media: &'a QualifiedFilesystemMedia,
     loader: &'a (dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
@@ -30,15 +31,16 @@ pub(in crate::physical_runtime::record_serving) fn open(
     media: &QualifiedFilesystemMedia,
     loader: &(dyn super::super::residency::frame_ports::FrameLoadPort + Send + Sync),
     allocation: &worth_store_buffer_pool::OperationAllocationGrant,
-    request: PhysicalRecordOpen,
+    format: AdmittedPhysicalRecordFormat,
+    access: AdmittedRecordAccessPolicy,
 ) -> Result<PhysicalRecordBootstrapOwner, BootstrapTransitionFailure> {
-    if !request.access.admits(request.format) {
+    if !access.admits(format) {
         return Err(BootstrapTransitionFailure::Denied(
             RecordBootstrapDenial::ConfigurationMismatch,
         ));
     }
     let artifacts = ServingRecordArtifacts::new(media, loader);
-    let limits = BootstrapCatalogReadLimits::for_format(request.format, request.access);
+    let limits = BootstrapCatalogReadLimits::for_format(format, access);
     match artifacts.inventory().map_err(backend_before_effect)? {
         RecordFamilyInventory::ProvenAbsent => {
             return Err(BootstrapTransitionFailure::Denied(
@@ -84,10 +86,10 @@ pub(in crate::physical_runtime::record_serving) fn open(
             RecordServingRebindReason::StoreIdentityMismatch,
         ));
     }
-    if catalog.format() != request.format.declaration() {
+    if catalog.format() != format.declaration() {
         return Err(BootstrapTransitionFailure::Denied(
             RecordBootstrapDenial::PhysicalRecordFormatMismatch(PhysicalRecordFormatMismatch::new(
-                request.format.declaration(),
+                format.declaration(),
                 catalog.format(),
             )),
         ));
@@ -96,8 +98,8 @@ pub(in crate::physical_runtime::record_serving) fn open(
         .has_staging_residue()
         .map_err(backend_before_effect)?;
     Ok(PhysicalRecordBootstrapOwner {
-        format: request.format,
-        access: request.access,
+        format,
+        access,
         current_root: catalog.current_root(),
         observed_staging_residue,
     })
@@ -120,6 +122,15 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         expected_format: bootstrap.format.declaration(),
     };
     let current_root = load_root_manifest(&admission)?;
+    let previous_root = if generation == 1 {
+        None
+    } else {
+        let previous = CurrentRootAdmission {
+            generation: generation - 1,
+            ..admission
+        };
+        Some(load_root_manifest(&previous)?)
+    };
     let free_space = load_free_space_manifest(&admission, &current_root)?;
     let publication_residue = observe_publication_residue(
         &ServingRecordArtifacts::new(media, loader),
@@ -132,6 +143,7 @@ pub(in crate::physical_runtime::record_serving) fn load_current_root(
         format: bootstrap.format,
         access: bootstrap.access,
         current_root,
+        previous_root,
         publication_residue,
         free_space,
     })

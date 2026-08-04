@@ -1,17 +1,24 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    ArtifactTreeFailure, CompletedArtifactMetadataRead, CompletedArtifactNewWrite,
-    CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    CompletedArtifactTreePublicationEffect, IndeterminateArtifactNewWrite,
-    IndeterminateArtifactRangeWrite, IndeterminateArtifactTreePublicationEffect,
+    ArtifactTreeFailure, CompletedArtifactAppend, CompletedArtifactMetadataRead,
+    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    CompletedArtifactTreePublicationEffect, IndeterminateArtifactAppend,
+    IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
+    IndeterminateArtifactTreePublicationEffect,
 };
 use worth_store_physical_format::RecordArtifactFile;
 
 use super::PhysicalPublicationEffect;
 
+mod checkpoint;
 mod residency_writeback;
+mod wal_reclamation;
 
+pub use checkpoint::CompletedPhysicalCheckpointAction;
+pub(in crate::physical_runtime) use checkpoint::IndeterminatePhysicalCheckpointAction;
 pub(in crate::physical_runtime) use residency_writeback::PhysicalResidencyWritebackCompletion;
+pub use wal_reclamation::CompletedPhysicalWalReclamationAction;
+pub(in crate::physical_runtime) use wal_reclamation::IndeterminatePhysicalWalReclamationAction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(in crate::physical_runtime) enum PhysicalEffectRecoveryObligation {
@@ -38,7 +45,17 @@ pub(in crate::physical_runtime) struct IndeterminatePhysicalPublicationEffect {
     effect: PhysicalPublicationEffect,
 }
 
-pub enum PhysicalExecutorOutcome {
+pub struct CompletedPhysicalWalBarrier {
+    physical: CompletedArtifactTreePublicationEffect,
+    artifact: worth_store_physical_backend::ArtifactTreeFile,
+}
+
+pub(in crate::physical_runtime) struct IndeterminatePhysicalWalBarrier {
+    physical: IndeterminateArtifactTreePublicationEffect,
+    artifact: worth_store_physical_backend::ArtifactTreeFile,
+}
+
+pub(in crate::physical_runtime) enum PhysicalExecutorOutcome {
     DeniedBeforeEffect {
         failure: ArtifactTreeFailure,
         retry: super::PhysicalRetryPayload,
@@ -66,15 +83,44 @@ pub enum PhysicalExecutorOutcome {
     },
     NewArtifactCompleted {
         physical: CompletedArtifactNewWrite,
+        coordinate: worth_store_physical_format::RecordFrameCoordinate,
         scheduler: QueueExecutionOutcome,
     },
     PublicationEffectCompleted {
         physical: CompletedPhysicalPublicationEffect,
         scheduler: QueueExecutionOutcome,
     },
+    WalAppendCompleted {
+        physical: CompletedArtifactAppend,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalSegmentCreateCompleted {
+        physical: CompletedArtifactNewWrite,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalBarrierCompleted {
+        physical: CompletedPhysicalWalBarrier,
+        scheduler: QueueExecutionOutcome,
+    },
+    CheckpointCompleted {
+        physical: CompletedPhysicalCheckpointAction,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalReclamationCompleted {
+        physical: CompletedPhysicalWalReclamationAction,
+        scheduler: QueueExecutionOutcome,
+    },
     Indeterminate(IndeterminateArtifactRangeWrite),
-    NewArtifactIndeterminate(IndeterminateArtifactNewWrite),
+    NewArtifactIndeterminate {
+        physical: IndeterminateArtifactNewWrite,
+        coordinate: worth_store_physical_format::RecordFrameCoordinate,
+    },
     PublicationEffectIndeterminate(IndeterminatePhysicalPublicationEffect),
+    WalAppendIndeterminate(IndeterminateArtifactAppend),
+    WalSegmentCreateIndeterminate(IndeterminateArtifactNewWrite),
+    WalBarrierIndeterminate(IndeterminatePhysicalWalBarrier),
+    CheckpointIndeterminate(IndeterminatePhysicalCheckpointAction),
+    WalReclamationIndeterminate(IndeterminatePhysicalWalReclamationAction),
 }
 
 impl PhysicalEffectRecoveryObligation {
@@ -213,6 +259,44 @@ impl IndeterminatePhysicalPublicationEffect {
         &self,
     ) -> crate::physical_runtime::PhysicalWorkRecoveryTarget {
         publication_recovery_target(self.effect, self.artifact)
+    }
+}
+
+impl CompletedPhysicalWalBarrier {
+    pub(in crate::physical_runtime) const fn new(
+        physical: CompletedArtifactTreePublicationEffect,
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+    ) -> Self {
+        Self { physical, artifact }
+    }
+
+    pub const fn physical(&self) -> &CompletedArtifactTreePublicationEffect {
+        &self.physical
+    }
+
+    pub const fn artifact(&self) -> &worth_store_physical_backend::ArtifactTreeFile {
+        &self.artifact
+    }
+}
+
+impl IndeterminatePhysicalWalBarrier {
+    pub(in crate::physical_runtime) const fn new(
+        physical: IndeterminateArtifactTreePublicationEffect,
+        artifact: worth_store_physical_backend::ArtifactTreeFile,
+    ) -> Self {
+        Self { physical, artifact }
+    }
+
+    pub(in crate::physical_runtime) const fn physical(
+        &self,
+    ) -> &IndeterminateArtifactTreePublicationEffect {
+        &self.physical
+    }
+
+    pub(in crate::physical_runtime) const fn artifact(
+        &self,
+    ) -> &worth_store_physical_backend::ArtifactTreeFile {
+        &self.artifact
     }
 }
 

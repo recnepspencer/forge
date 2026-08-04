@@ -7,17 +7,13 @@ use crate::physical_isolation_shortcut_report as shortcut_report;
 use worth_store_test_support::harness::physical_isolation::interleaving_resources as resources;
 use worth_store_test_support::harness::recovery::checkpoint_publication as checkpoint_support;
 use worth_store_test_support::harness::recovery::closeout as closeout_fixture;
-use worth_store_test_support::harness::recovery::compaction_mutation as compaction_mutation_support;
-use worth_store_test_support::harness::recovery::compaction_observation as compaction_interlock_trace;
 use worth_store_test_support::harness::recovery::coverage as coverage_support;
 
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, register_physical_isolation_certification_lane,
     CheckpointInterlockObservation, HarnessCoverageStage, IndependentVerifierObservation,
     PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule,
-    PhysicalIsolationCertificationLaneRegistration,
-    PhysicalIsolationCompactionMutationObservationSet,
-    PhysicalIsolationCompactionMutationReplayBinding, PhysicalIsolationCorrectnessNonClaimEvidence,
+    PhysicalIsolationCertificationLaneRegistration, PhysicalIsolationCorrectnessNonClaimEvidence,
     PhysicalIsolationHarnessReadinessReceipt, PhysicalSimulationPlan, SimulationPlanningContext,
 };
 use worth_store_physical_isolation::{
@@ -30,7 +26,6 @@ pub(crate) fn complete_context() -> SimulationPlanningContext {
         .get_or_init(|| {
             worth_store_certification::physical_isolation_ci_certification_planning_context(
                 physical_isolation_lane_registration(),
-                compaction_mutation_support::compaction_mutation_origin(),
             )
         })
         .clone()
@@ -38,14 +33,12 @@ pub(crate) fn complete_context() -> SimulationPlanningContext {
 
 pub(crate) fn context_without_physical_isolation_lane_registration() -> SimulationPlanningContext {
     worth_store_certification::physical_isolation_ci_certification_context_without_lane_registration(
-        compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
 pub(crate) fn developer_smoke_context() -> SimulationPlanningContext {
     worth_store_certification::physical_isolation_planning_context(
         physical_isolation_lane_registration(),
-        compaction_mutation_support::compaction_mutation_origin(),
     )
 }
 
@@ -80,12 +73,10 @@ pub(crate) fn replay_bundle_from_trace(
 }
 
 pub(crate) fn trace_fixtures(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
+    _plan: &PhysicalSimulationPlan,
+    _schedule: &PhysicalInterleavingSchedule,
 ) -> worth_store_certification::PhysicalIsolationTraceFixtures {
     worth_store_certification::PhysicalIsolationTraceFixtures::complete(
-        compaction_interlock_observation(),
-        compaction_mutations(plan, schedule).ok(),
         checkpoint_interlock_observation(),
         independent_verifier_observation(),
     )
@@ -93,25 +84,6 @@ pub(crate) fn trace_fixtures(
 
 pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
     worth_store_test_support::deterministic_ci_certification_schedule(plan).unwrap()
-}
-
-pub(crate) fn compaction_mutations(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-) -> Result<
-    PhysicalIsolationCompactionMutationObservationSet,
-    worth_store_physical_certification::CoverageGapDenial,
-> {
-    let binding =
-        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
-    let lanes =
-        compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(plan, schedule)?;
-    PhysicalIsolationCompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
-}
-
-pub(crate) fn compaction_interlock_observation(
-) -> worth_store_physical_certification::CompactionInterlockObservation {
-    compaction_interlock_trace::store_compaction_observation()
 }
 
 pub(crate) fn checkpoint_interlock_observation() -> CheckpointInterlockObservation {

@@ -9,8 +9,9 @@ use crate::physical_runtime::work::{
 pub struct ResourceAdmittedPhysicalWork {
     ready: ReadyPhysicalWork,
     queue_plan: QueueExecutionReadyPlan,
-    scheduler_capacity:
+    scheduler_capacity: Option<
         worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundCapacityLease,
+    >,
 }
 
 impl ResourceAdmittedPhysicalWork {
@@ -18,7 +19,7 @@ impl ResourceAdmittedPhysicalWork {
         ready: ReadyPhysicalWork,
         queue_plan: QueueExecutionReadyPlan,
         scheduler_capacity:
-            worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundCapacityLease,
+            Option<worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundCapacityLease>,
     ) -> Self {
         ready.admitted.mark_stage(PhysicalWorkTerminalStage::Queued);
         Self {
@@ -71,7 +72,7 @@ impl ResourceAdmittedPhysicalWork {
                 admitted,
                 signal,
                 effect_activity: Some(effect_activity),
-                scheduler_capacity: Some(scheduler_capacity),
+                scheduler_capacity,
                 scheduler_binding: queue_plan
                     .backend_completion_binding()
                     .backend_execution_binding(),

@@ -5,25 +5,17 @@ mod mutation_shape;
 mod operational_repair;
 #[cfg(test)]
 mod operational_repair_tests;
-mod publication;
 mod rebuild;
 #[cfg(test)]
 pub(crate) mod test_support;
 #[cfg(test)]
 pub(crate) mod tests;
 pub use live::{
-    copy_on_write_layout_mutation_execution, copy_on_write_layout_mutation_execution_cases,
-    layout_mutation_admission, layout_mutation_admission_cases, live_exact_maintenance,
-    live_exact_maintenance_cases, live_maintenance_posture, live_maintenance_posture_cases,
-    AdvisoryMaintenanceCapability, CopyOnWriteLayoutMutationExecution,
-    CopyOnWriteLayoutMutationExecutionCaseId, CopyOnWriteLayoutMutationExecutionOutcome,
-    CopyOnWriteLayoutMutationExecutionView, CopyOnWriteLayoutMutationPlan,
-    CopyOnWriteLayoutMutationReceipt, CopyOnWriteLayoutMutationRequest, DeferredMaintenanceWitness,
+    layout_mutation_admission, layout_mutation_admission_cases, live_maintenance_posture,
+    live_maintenance_posture_cases, AdvisoryMaintenanceCapability, DeferredMaintenanceWitness,
     IndexLagWitness, IndexMaintenanceFailureOutcome, IndexPublicationProtocol,
     LayoutMutationAdmission, LayoutMutationAdmissionCaseId, LayoutMutationAdmissionOutcome,
     LayoutMutationAdmissionView, LayoutMutationPlan, LazyMaintenanceCapability,
-    LiveExactMaintenance, LiveExactMaintenanceCaseId, LiveExactMaintenanceOutcome,
-    LiveExactMaintenanceRequest, LiveExactMaintenanceView, LiveExactMaintenanceWitness,
     LiveMaintenancePosture, LiveMaintenancePostureAdmission, LiveMaintenancePostureCaseId,
     LiveMaintenancePostureOutcome, LiveMaintenancePostureView, LiveMaintenanceRequest,
     MigrationMaintenanceCapability, RebuildOnlyMaintenanceCapability,
@@ -45,11 +37,6 @@ pub use mutation_shape::PhysicalMutationShape;
 pub use operational_repair::{
     DerivedIndexRepairExecutionDenial, DerivedIndexRepairPlan, DerivedIndexRepairReceipt,
     DerivedIndexRepairRequest, LayoutOperationalRepairOwner,
-};
-pub use publication::{
-    exact_btree_publication_cases, layout_exact_publication, ExactBTreePublicationCaseId,
-    ExactBTreePublicationDenied, ExactBTreePublicationEvidence, ExactBTreePublicationOutcome,
-    ExactBTreePublicationRequest, ExactBTreePublicationView, LayoutExactPublication,
 };
 #[cfg(test)]
 pub(crate) use rebuild::DerivedIndexParityView;

@@ -39,7 +39,7 @@ fn observe_source(
     stage: ReplicationAdmissionStage,
     delivery_kind: Option<ReplicationDeliveryKind>,
 ) -> ReplicationAdmissionObservation {
-    let replay = source.durable_publication().replay_identity();
+    let replay = source.replay_identity();
     ReplicationAdmissionObservation {
         stage,
         peer_id: source.peer_id().as_str().to_owned(),

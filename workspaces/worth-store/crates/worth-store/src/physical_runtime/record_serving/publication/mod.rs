@@ -1,39 +1,56 @@
 pub(super) mod append;
 pub(super) mod append_observation;
 pub(super) mod batch;
-mod candidate_data;
-mod catalog_candidate_progression;
-mod catalog_cutover_preflight;
+mod completion_projection;
+mod data_image;
 mod director;
+mod durable_data_plan;
+mod durable_preparation;
 pub(super) mod extent_publication;
-mod failure;
-mod manifest_progression;
-pub(super) mod payload_progression;
 mod plan;
-pub(super) mod publication_outcome;
-pub(super) mod publication_progression;
 pub(super) mod publication_residue;
-mod replacement_eligibility;
+mod root_candidate;
+mod root_candidate_writes;
 pub(super) mod segment_publication;
 mod stage;
 pub(super) mod streaming;
-mod work_trace;
 
-pub(in crate::physical_runtime::record_serving) use candidate_data::write_candidate_data;
-pub use director::{PhysicalRecordSubmission, PreparedRecordAppend};
+pub(in crate::physical_runtime) use completion_projection::PreparedRecordCompletionProjection;
+pub(in crate::physical_runtime::record_serving) use data_image::ExistingDataFrameImage;
+#[cfg(feature = "certification-test-authority")]
+pub use director::CertificationPhysicalRecordSubmission;
+pub use director::PhysicalRecordSubmission;
 pub(in crate::physical_runtime) use director::{
     RecordPublicationDirector, RecordPublicationFoundation,
 };
-pub(in crate::physical_runtime::record_serving) use failure::{
-    indeterminate_physical_work, unpublished_candidate_frame_contract, unpublished_frame_writeback,
-    unpublished_physical_work, unpublished_prepared_physical_work, unpublished_residency,
-    unpublished_semantic, unpublished_stream,
+pub(in crate::physical_runtime::record_serving) use durable_data_plan::materialize_durable_data;
+pub(in crate::physical_runtime::record_serving) use durable_preparation::{
+    prepare_canonical_payload, record_append_scope_identity, CanonicalPayloadPreparationError,
+    CanonicalRecordAppendPayload,
+};
+pub use durable_preparation::{
+    PhysicalManifestCapacityTransition, PhysicalMutationAdmissionDisposition,
+    PhysicalMutationPreparationDeferred, PhysicalMutationPreparationDenial,
+    PhysicalMutationPreparationFailure, PhysicalMutationPreparationOutcome,
+    PhysicalMutationPreparationRebindRequired, PhysicalMutationPreparationStale,
+    PhysicalMutationPreparationSuccess, PhysicalMutationResourceShape,
+    PhysicalPreSealCancellationDenial, PhysicalPreSealCancellationOutcome,
+    PreparedPhysicalMutation,
+};
+pub(in crate::physical_runtime) use durable_preparation::{
+    PlannedPhysicalMutationParts, PreparedPhysicalMutationContext,
 };
 pub(in crate::physical_runtime::record_serving) use plan::{
-    CandidateDataArtifact, CandidateDataWriteFailure, PublicationPlan,
+    CandidateDataArtifact, PublicationPlan,
 };
-pub(in crate::physical_runtime::record_serving) use replacement_eligibility::CatalogReplacementEligibility;
+pub(in crate::physical_runtime) use root_candidate::{
+    PreparedPhysicalRootCandidate, WrittenRootPublicationCandidate,
+};
+pub use root_candidate::{RootPublicationCandidatePlan, RootPublicationPlanningMembers};
+pub(in crate::physical_runtime::record_serving) use root_candidate_writes::{
+    write_root_candidate_artifacts, RootCandidateWriteFailure,
+};
+pub(in crate::physical_runtime) use root_candidate_writes::{
+    RootCandidateWriteFailureKind, RootCandidateWriteFailurePosture,
+};
 pub use stage::RecordPublicationStage;
-pub use work_trace::{
-    RecordPublicationWorkEffect, RecordPublicationWorkSettlement, RecordPublicationWorkTrace,
-};

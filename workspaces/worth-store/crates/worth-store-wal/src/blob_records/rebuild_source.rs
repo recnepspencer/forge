@@ -1,5 +1,5 @@
 use crate::{
-    BlobWalRecordEnvelope, DurablePublicationScope, WalSecurityMetadataCarrier,
+    BlobWalRecordEnvelope, PublicationScope, WalSecurityMetadataCarrier,
     WalSecurityMetadataEnvelope,
 };
 
@@ -33,9 +33,9 @@ impl BlobWalReplayRebuildWitness {
 }
 
 fn counter_shape(record: &BlobWalRecordEnvelope) -> Vec<u64> {
-    let scope = match record.durable_publication().scope() {
-        DurablePublicationScope::WalFrame(scope) => scope,
-        DurablePublicationScope::Checkpoint(_) | DurablePublicationScope::Manifest(_) => {
+    let scope = match record.publication_declaration().scope() {
+        PublicationScope::WalFrame(scope) => scope,
+        PublicationScope::Checkpoint(_) | PublicationScope::Manifest(_) => {
             unreachable!("blob wal records admit wal-frame publication only")
         }
     };

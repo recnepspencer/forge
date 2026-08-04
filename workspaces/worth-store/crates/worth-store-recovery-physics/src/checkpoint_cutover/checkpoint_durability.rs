@@ -3,7 +3,9 @@ use std::marker::PhantomData;
 use worth_store_physical_backend::{BackendDurabilityProfile, BackendDurabilityProfileId};
 use worth_store_physical_format::PhysicalReference;
 
-use crate::{DurableAckBasis, DurableAckReceipt, WalSegmentGeneration, WalSegmentId};
+use crate::{
+    WalDurabilityObservation, WalDurabilityObservationBasis, WalSegmentGeneration, WalSegmentId,
+};
 
 use super::{
     CheckpointId, CheckpointRecoveryCounterSnapshot, CheckpointValidation,
@@ -87,14 +89,14 @@ pub struct CheckpointDurabilityEvidence<P: BackendDurabilityProfile> {
     commitment: CheckpointArtifactDurabilityCommitment,
     segment_id: WalSegmentId,
     generation: WalSegmentGeneration,
-    basis: DurableAckBasis,
+    basis: WalDurabilityObservationBasis,
 }
 
 impl<P: BackendDurabilityProfile> CheckpointDurabilityEvidence<P> {
     fn admit(
         validation: &CheckpointValidation,
         commitment: CheckpointArtifactDurabilityCommitment,
-        ack: &DurableAckReceipt<P>,
+        ack: &WalDurabilityObservation<P>,
     ) -> Result<Self, CheckpointValidationDenial> {
         let counters = validation.counters().with_cutover_decision();
         if commitment.checkpoint_id() != validation.checkpoint_id() {
@@ -111,14 +113,14 @@ impl<P: BackendDurabilityProfile> CheckpointDurabilityEvidence<P> {
             .with_profile_id(ack.profile_id()));
         }
         let redo_lsn = validation.manifest().redo_boundary().lsn();
-        if !ack.ack_basis().lsn_range().contains(redo_lsn) {
+        if !ack.basis().lsn_range().contains(redo_lsn) {
             return Err(CheckpointValidationDenial::new(
                 CheckpointValidationDenialKind::CutoverDurabilityRangeMismatch,
                 counters,
             )
-            .with_lsn_pair(redo_lsn, ack.ack_basis().lsn_range().start()));
+            .with_lsn_pair(redo_lsn, ack.basis().lsn_range().start()));
         }
-        if ack.ack_basis().frame_digest().as_str() != commitment.digest() {
+        if ack.basis().frame_digest().as_str() != commitment.digest() {
             return Err(CheckpointValidationDenial::new(
                 CheckpointValidationDenialKind::CutoverDurabilityArtifactMismatch,
                 counters,
@@ -127,9 +129,9 @@ impl<P: BackendDurabilityProfile> CheckpointDurabilityEvidence<P> {
         Ok(Self {
             profile: PhantomData,
             commitment,
-            segment_id: ack.ack_basis().segment_id(),
-            generation: ack.ack_basis().generation(),
-            basis: ack.ack_basis().clone(),
+            segment_id: ack.basis().segment_id(),
+            generation: ack.basis().generation(),
+            basis: ack.basis().clone(),
         })
     }
 
@@ -171,10 +173,10 @@ pub struct CheckpointDurabilityEvidenceSet<P: BackendDurabilityProfile> {
 impl<P: BackendDurabilityProfile> CheckpointDurabilityEvidenceSet<P> {
     pub fn admit(
         validation: &CheckpointValidation,
-        manifest_ack: &DurableAckReceipt<P>,
-        root_ack: &DurableAckReceipt<P>,
-        page_lsn_frontier_ack: &DurableAckReceipt<P>,
-        locator_ack: &DurableAckReceipt<P>,
+        manifest_ack: &WalDurabilityObservation<P>,
+        root_ack: &WalDurabilityObservation<P>,
+        page_lsn_frontier_ack: &WalDurabilityObservation<P>,
+        locator_ack: &WalDurabilityObservation<P>,
     ) -> Result<Self, CheckpointValidationDenial> {
         let manifest = CheckpointDurabilityEvidence::admit(
             validation,

@@ -93,40 +93,4 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
         assert_eq!(outcome.case_id().as_str(), expected);
         ledger.record_derived_index_rebuild_admission(outcome.owner_case_observation());
     }
-
-    let lsm_strategy = fixture_inputs::lsm_strategy();
-    let lsm_materialization = fixture_inputs::lsm_materialization();
-    let current_security = super::super::strategy::wal_security();
-    let wrong_identity =
-        fixture_inputs::wal_source_with_next_identity(&lsm_materialization, &current_security);
-    let outcome = layout_rebuild_admission().admit_plan(fixture_inputs::root_request(
-        &lsm_strategy,
-        lsm_materialization.clone(),
-        DerivedIndexRebuildSourceInput::WalReplayRecord {
-            source_witness: wrong_identity,
-        },
-    ));
-    assert_eq!(outcome.case_id().as_str(), "denied.source_identity");
-    ledger.record_derived_index_rebuild_admission(outcome.owner_case_observation());
-
-    let tenant_security = super::super::super::fixture_admission::security_scope(
-        worth_store_test_support::SecurityScopeFixtureAuthority::Current,
-        worth_store_security::StoreKeyScope::WalCheckpointEnvelope,
-        worth_store_security::StoreTenantScope::TenantPhysicalBoundary,
-        worth_store_security::StoreAuthenticityRequirement::required(
-            worth_store_security::StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
-        ),
-        worth_store_security::StoreCustodyPosture::InternalStoreCustody,
-    );
-    let mismatched_source =
-        fixture_inputs::wal_source_for_materialization(&lsm_materialization, &tenant_security);
-    let outcome = layout_rebuild_admission().admit_plan(fixture_inputs::root_request(
-        &lsm_strategy,
-        lsm_materialization,
-        DerivedIndexRebuildSourceInput::WalReplayRecord {
-            source_witness: mismatched_source,
-        },
-    ));
-    assert_eq!(outcome.case_id().as_str(), "denied.source_security");
-    ledger.record_derived_index_rebuild_admission(outcome.owner_case_observation());
 }

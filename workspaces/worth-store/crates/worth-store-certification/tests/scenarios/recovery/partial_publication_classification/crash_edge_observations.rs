@@ -1,8 +1,7 @@
 use worth_store_test_support::harness::recovery::wal_durability as wal_durability_paths;
 
 use worth_store_recovery_physics::{
-    AcknowledgmentPrecondition, DurableAckReceipt, LogSequenceNumber, PartialPublicationCrashEdge,
-    PartialPublicationPersistedBytes, WalLsnRange,
+    LogSequenceNumber, PartialPublicationCrashEdge, PartialPublicationPersistedBytes, WalLsnRange,
 };
 
 use wal_durability_paths::completed_posix_receipt_for_range;
@@ -29,20 +28,6 @@ pub(crate) fn after_durability_before_ack_edge(
         start,
         end_exclusive,
     ))
-}
-
-pub(crate) fn after_ack_before_page_flush_edge(
-    start: u64,
-    end_exclusive: u64,
-) -> PartialPublicationCrashEdge {
-    let ack = DurableAckReceipt::acknowledge(
-        AcknowledgmentPrecondition::from_append_receipt(completed_posix_receipt_for_range(
-            start,
-            end_exclusive,
-        ))
-        .unwrap(),
-    );
-    PartialPublicationCrashEdge::after_ack_before_page_flush(ack.ack_basis().clone())
 }
 
 pub(crate) fn during_checkpoint_cutover_edge() -> PartialPublicationCrashEdge {

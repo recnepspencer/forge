@@ -1,12 +1,16 @@
+use worth_proof::{NonEmpty, TransitionOutcome};
 use worth_store::physical_runtime::{
-    ManifestEntryCapacity, PageFillPercent, PhysicalRecordInitialization, PhysicalRecordOpen,
-    PhysicalRecordPlacementPolicy, RecordAppendBatch, RecordAppendDenial, RecordAppendError,
-    RecordByteLimit, RecordReadDenial, RecordReadLimits, RecordServingTerminalPosture,
-    SegmentPageCount, StalePhysicalRecordPlacement,
+    ManifestEntryCapacity, PageFillPercent, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalMutationPreparationDenial,
+    PhysicalMutationPreparationSuccess, PhysicalRecordInitialization, PhysicalRecordOpen,
+    PhysicalRecordPlacementPolicy, PhysicalWalGroupAppendFailureCause,
+    PhysicalWalGroupAppendOutcome, PhysicalWalReservationDenial, RecordAppendBatch,
+    RecordAppendDenial, RecordByteLimit, RecordReadDenial, RecordReadLimits,
+    RecordServingTerminalPosture, SegmentPageCount, StalePhysicalRecordPlacement,
 };
 use worth_store_physical_backend::MediaOperationRole;
 
-use super::{configuration, media, success};
+use super::{configuration, durable_publication, media, success};
 
 #[test]
 fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
@@ -20,19 +24,17 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
         .manifest_capacity(ManifestEntryCapacity::new(16).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = [vec![1_u8; 4_000], vec![2_u8; 4_000], vec![3_u8; 4_000]];
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let first = published.record_id(0).unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("segment-header-disagreement", 1),
+        RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
+    );
+    let first = published.settled_members()[0].record_id(0).unwrap();
     serving.close();
 
     let segments = root.join("families/records/segments");
@@ -44,7 +46,9 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
     )
     .unwrap();
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert!(matches!(
         reopened.records().open(
             first,
@@ -57,16 +61,7 @@ fn segment_filename_and_header_disagreement_is_denied_before_record_decode() {
                 && error.observation().generation_checks() == 3
                 && error.observation().generation_rejections() == 1
     ));
-    assert_eq!(
-        reopened
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap_err(),
-        RecordAppendError::Denied(RecordAppendDenial::ServingRequiresInspection)
-    );
+    assert_inspection_denies_preparation(&reopened, placement, 206);
     assert_eq!(
         reopened.abort().records().posture(),
         RecordServingTerminalPosture::InspectionRequired
@@ -78,24 +73,22 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("segment-manifest-damage", 1),
+        RecordAppendBatch::try_from_iter([b"published".as_slice()]).unwrap(),
     );
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"published".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
     serving.close();
 
     let manifest = root.join("families/records/roots/root-0000000000000002.manifest");
     let mut bytes = std::fs::read(&manifest).unwrap();
-    bytes[344..352].copy_from_slice(&2_u64.to_le_bytes());
-    let checksum = super::page_packing_oracle::independent_crc32c(&[&bytes[..36], &bytes[40..]]);
-    bytes[36..40].copy_from_slice(&checksum.to_le_bytes());
+    super::durable_frame_oracle::payload_mut(&mut bytes)[304..312]
+        .copy_from_slice(&2_u64.to_le_bytes());
+    super::durable_frame_oracle::reseal(&mut bytes);
     std::fs::write(&manifest, bytes).unwrap();
     assert_eq!(
         worth_store_offline_verifier::walk_current_durable_record_manifest(
@@ -105,32 +98,42 @@ fn dishonest_inline_tail_owner_is_denied_before_candidate_effects() {
         Err(worth_store_offline_verifier::OfflineDurableManifestDenial::InvalidTreeShape)
     );
 
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let before = reopened.media_counters();
+    let submission = reopened.certification_record_submission();
+    let prepared = match durable_publication::prepare_single(
+        &submission,
+        placement,
+        PhysicalManifestCapacityTransition::PreserveCurrent,
+        PhysicalMutationIdempotencyMaterial::new([207; 32]),
+        RecordAppendBatch::try_from_iter([b"candidate".as_slice()]).unwrap(),
+    )
+    .into_raw()
+    {
+        TransitionOutcome::Success(PhysicalMutationPreparationSuccess::Prepared(prepared)) => {
+            prepared
+        }
+        _ => panic!("damaged published layout is discovered during canonical data planning"),
+    };
     assert!(matches!(
-        reopened.record_submission().append_batch(
-            RecordAppendBatch::try_from_iter([b"candidate".as_slice()]).unwrap(),
-            placement,
-        ),
-        Err(RecordAppendError::Denied(
-            RecordAppendDenial::PublishedLayoutDamaged
-        ))
+        submission.append_prepared_wal_group(NonEmpty::new(prepared, Vec::new())),
+        PhysicalWalGroupAppendOutcome::NotAdmitted {
+            cause: PhysicalWalGroupAppendFailureCause::Reservation(
+                PhysicalWalReservationDenial::DataPlanning(
+                    RecordAppendDenial::PublishedLayoutDamaged
+                )
+            ),
+            ..
+        }
     ));
     let after = reopened.media_counters();
     assert_eq!(
         after.attempts_for(MediaOperationRole::CreateNew),
         before.attempts_for(MediaOperationRole::CreateNew)
     );
-    assert_eq!(
-        reopened
-            .record_submission()
-            .append_batch(
-                RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
-                placement,
-            )
-            .unwrap_err(),
-        RecordAppendError::Denied(RecordAppendDenial::ServingRequiresInspection)
-    );
+    assert_inspection_denies_preparation(&reopened, placement, 208);
     assert_eq!(
         reopened.abort().records().posture(),
         RecordServingTerminalPosture::InspectionRequired
@@ -159,24 +162,22 @@ enum RoutingCorruption {
 fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorruption) {
     let root = parent.join(format!("{corruption:?}"));
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("segment-stale-placement", 1),
+        RecordAppendBatch::try_from_iter([
+            b"record-1".as_slice(),
+            b"record-2".as_slice(),
+            b"record-3".as_slice(),
+            b"record-4".as_slice(),
+        ])
+        .unwrap(),
     );
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([
-                b"record-1".as_slice(),
-                b"record-2".as_slice(),
-                b"record-3".as_slice(),
-                b"record-4".as_slice(),
-            ])
-            .unwrap(),
-            placement,
-        )
-        .unwrap();
-    let record = published.record_id(0).unwrap();
+    let record = published.settled_members()[0].record_id(0).unwrap();
     serving.close();
 
     let block_path =
@@ -184,18 +185,21 @@ fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorr
     let mut block = std::fs::read(&block_path).unwrap();
     match corruption {
         RoutingCorruption::Unsorted => {
-            let second = block[168..256].to_vec();
-            let third = block[256..344].to_vec();
-            block[168..256].copy_from_slice(&third);
-            block[256..344].copy_from_slice(&second);
+            let payload = super::durable_frame_oracle::payload_mut(&mut block);
+            let second = payload[128..216].to_vec();
+            let third = payload[216..304].to_vec();
+            payload[128..216].copy_from_slice(&third);
+            payload[216..304].copy_from_slice(&second);
         }
         RoutingCorruption::Duplicate => {
-            let second = block[168..256].to_vec();
-            block[256..344].copy_from_slice(&second);
+            let payload = super::durable_frame_oracle::payload_mut(&mut block);
+            let second = payload[128..216].to_vec();
+            payload[216..304].copy_from_slice(&second);
         }
         RoutingCorruption::CrossRoot => {
-            let tree_identity = u64::from_le_bytes(block[40..48].try_into().unwrap());
-            block[40..48].copy_from_slice(&(tree_identity + 1).to_le_bytes());
+            let payload = super::durable_frame_oracle::payload_mut(&mut block);
+            let tree_identity = u64::from_le_bytes(payload[..8].try_into().unwrap());
+            payload[..8].copy_from_slice(&(tree_identity + 1).to_le_bytes());
         }
     }
     reseal_frame(&mut block);
@@ -203,8 +207,9 @@ fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorr
 
     let root_path = root.join("families/records/roots/root-0000000000000002.manifest");
     let mut root_bytes = std::fs::read(&root_path).unwrap();
-    let block_checksum = super::page_packing_oracle::independent_crc32c(&[&block]);
-    root_bytes[108..112].copy_from_slice(&block_checksum.to_le_bytes());
+    let block_checksum = super::durable_frame_oracle::independent_crc32c(&[&block]);
+    super::durable_frame_oracle::payload_mut(&mut root_bytes)[68..72]
+        .copy_from_slice(&block_checksum.to_le_bytes());
     reseal_frame(&mut root_bytes);
     std::fs::write(&root_path, root_bytes).unwrap();
 
@@ -223,7 +228,9 @@ fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorr
         ),
         Err(expected_offline)
     );
-    let reopened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let reopened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     let error = match reopened.records().open(
         record,
         RecordReadLimits::new(RecordByteLimit::new(8).unwrap()),
@@ -240,6 +247,25 @@ fn exercise_routing_corruption(parent: &std::path::Path, corruption: RoutingCorr
 }
 
 fn reseal_frame(bytes: &mut [u8]) {
-    let checksum = super::page_packing_oracle::independent_crc32c(&[&bytes[..36], &bytes[40..]]);
-    bytes[36..40].copy_from_slice(&checksum.to_le_bytes());
+    super::durable_frame_oracle::reseal(bytes);
+}
+
+fn assert_inspection_denies_preparation(
+    serving: &worth_store::physical_runtime::ServingPhysicalRuntime,
+    placement: worth_store::physical_runtime::AdmittedRecordPlacementPolicy,
+    material: u8,
+) {
+    assert!(matches!(
+        durable_publication::prepare_single(
+            &serving.certification_record_submission(),
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([material; 32]),
+            RecordAppendBatch::try_from_iter([b"retry".as_slice()]).unwrap(),
+        )
+        .into_raw(),
+        TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
+            RecordAppendDenial::ServingRequiresInspection
+        ))
+    ));
 }

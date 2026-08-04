@@ -53,7 +53,7 @@ pub(super) fn emit(observation: &OfflineHostilePhysicalTruthObservation) {
             super::hex(artifact.path().as_bytes()),
             artifact.byte_length(),
             super::hex(&artifact.digest()),
-            super::hex(artifact.prefix()),
+            encode_artifact_prefix(artifact.prefix()),
             artifact.is_recovery_obligation(),
         );
     }
@@ -63,4 +63,25 @@ pub(super) fn emit(observation: &OfflineHostilePhysicalTruthObservation) {
         observation.total_bytes(),
         observation.recovery_obligations(),
     );
+}
+
+fn encode_artifact_prefix(prefix: &[u8]) -> String {
+    if prefix.is_empty() {
+        "-".to_owned()
+    } else {
+        super::hex(prefix)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::encode_artifact_prefix;
+
+    #[test]
+    fn empty_prefix_uses_explicit_protocol_token() {
+        if encode_artifact_prefix(&[]) != "-" {
+            panic!("MUTANT_PREDICATE:c7-offline-empty-prefix-ambiguous");
+        }
+        assert_eq!(encode_artifact_prefix(&[0xab, 0xcd]), "abcd");
+    }
 }

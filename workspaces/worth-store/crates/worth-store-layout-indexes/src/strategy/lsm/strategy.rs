@@ -3,7 +3,7 @@ use worth_store_lsm_authority::{
     LsmMembershipRecord, LsmMembershipSession, LsmReplaySourceDenial,
 };
 use worth_store_wal::{
-    AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, BlobWalRecordEnvelope,
+    BlobWalRecordEnvelope, CheckpointArtifactObservation, WalFrameArtifactObservation,
     WalSecurityMetadataCarrier,
 };
 
@@ -38,7 +38,7 @@ impl LsmStrategy {
 
     pub fn open_index(
         self,
-        durable_anchor: &AdmittedWalAppendReceipt,
+        durable_anchor: &WalFrameArtifactObservation,
         current_scope: &worth_store_security::StoreCurrentSecurityScopeWitnessSet,
     ) -> Result<LsmMembershipSession, BaselineLsmExecutionAdmissionDenial> {
         open_lsm_membership(durable_anchor, current_scope)
@@ -67,7 +67,7 @@ impl LsmStrategy {
         self,
         session: &mut LsmMembershipSession,
         envelope: BlobWalRecordEnvelope,
-        durable: &AdmittedWalAppendReceipt,
+        durable: &WalFrameArtifactObservation,
         key: LsmMembershipKey,
     ) -> Result<LsmMembershipRecord, BaselineLsmExecutionAdmissionDenial> {
         let record = LsmMembershipRecord::admit(envelope, durable, key)
@@ -90,7 +90,7 @@ impl LsmStrategy {
     pub fn admit_compaction_demand(
         self,
         plan: BaselineLsmCompactionPlan,
-        output_append: AdmittedWalAppendReceipt,
+        output_append: WalFrameArtifactObservation,
         physical_intent: LsmPhysicalCompactionIntent,
     ) -> Result<AdmittedLsmCompactionDemand, BaselineLsmExecutionAdmissionDenial> {
         AdmittedLsmCompactionDemand::admit(plan, output_append, physical_intent)
@@ -99,7 +99,7 @@ impl LsmStrategy {
     pub fn admit_replay_source(
         self,
         plan: &BaselineLsmCompactionPlan,
-        checkpoint: Option<&AdmittedCheckpointPublicationReceipt>,
+        checkpoint: Option<&CheckpointArtifactObservation>,
         partial: Option<&worth_store_recovery_physics::PartialPublicationClassification>,
     ) -> Result<AdmittedLsmReplaySource, LsmReplaySourceDenial> {
         AdmittedLsmReplaySource::admit_recovered_membership(

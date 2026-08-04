@@ -1,13 +1,14 @@
 mod append_batch;
 mod append_pressure;
-mod trace;
+mod data_effects;
+mod dispatch_coordination;
 
 use worth_store::physical_runtime::{PhysicalSpeculativeWorkKind, ServingPhysicalRuntime};
 use worth_store_physical_backend::{MediaOperationRole, MediaPauseGate};
 
 use super::configuration::BoundedResidencyConfiguration;
 
-pub(super) const CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL: u64 = 2;
+pub(super) const CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL: u64 = 4;
 
 #[derive(Debug)]
 pub(super) struct BoundedDirtyWritebackEvidence {
@@ -59,26 +60,17 @@ pub(super) fn prove(
     gate: MediaPauseGate,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
     let run = append_pressure::execute(serving, configuration, gate)?;
-    let traces = CandidateWritebackTraces {
-        primary: trace::candidate_writebacks(&run.primary)?,
-        retry: trace::candidate_writebacks(&run.retry)?,
-    };
-    build_evidence(serving, run, traces)
-}
-
-struct CandidateWritebackTraces {
-    primary: trace::CandidateWritebackTrace,
-    retry: trace::CandidateWritebackTrace,
+    build_evidence(serving, run)
 }
 
 fn build_evidence(
     serving: &ServingPhysicalRuntime,
     run: append_pressure::OrdinaryAppendPressure,
-    traces: CandidateWritebackTraces,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
     let append_pressure::OrdinaryAppendPressure {
-        primary,
-        retry,
+        completed,
+        primary_trace,
+        retry_trace,
         baseline,
         paused,
         pressure,
@@ -87,19 +79,28 @@ fn build_evidence(
         retry_candidate_publications,
         denied_candidate_publications,
     } = run;
+    if completed.members().len() != 2 || completed.settled_members().len() != 2 {
+        return Err("canonical pressure root did not retain both declared members".to_owned());
+    }
     let after = serving.residency_observation().counters();
     let writebacks = serving.residency_observation().writebacks();
     let kind = PhysicalSpeculativeWorkKind::WriteBehind;
     let evidence = BoundedDirtyWritebackEvidence {
-        primary_publication: primary.publication_identity(),
-        retry_publication: retry.publication_identity(),
-        primary_candidate_writebacks: traces.primary.count,
-        retry_candidate_writebacks: traces.retry.count,
+        primary_publication: completed.members()[0]
+            .mutation_identity()
+            .operation_identity()
+            .get(),
+        retry_publication: completed.members()[1]
+            .mutation_identity()
+            .operation_identity()
+            .get(),
+        primary_candidate_writebacks: primary_trace.count,
+        retry_candidate_writebacks: retry_trace.count,
         primary_candidate_publications,
         retry_candidate_publications,
         denied_candidate_publications,
-        primary_last_candidate_operation: traces.primary.last_operation,
-        retry_last_candidate_operation: traces.retry.last_operation,
+        primary_last_candidate_operation: primary_trace.last_operation,
+        retry_last_candidate_operation: retry_trace.last_operation,
         dirty_at_dispatch: paused.dirty_at_dispatch,
         dirty_peak: after.peak_dirty_frames(),
         dirty_after_denial: paused.dirty_after_denial,
@@ -117,8 +118,8 @@ fn build_evidence(
         pressure_effect_free: !pressure.effect_may_have_started(),
         cleanup_deletions: paused.cleanup_deletions,
         cleanup_complete: paused.cleanup_complete,
-        primary_records: primary.record_ids().len() as u64,
-        retry_records: retry.record_ids().len() as u64,
+        primary_records: completed.settled_members()[0].persisted_records().len() as u64,
+        retry_records: completed.settled_members()[1].persisted_records().len() as u64,
         writebehind_attempts: delta(
             after.speculative_attempts(kind),
             baseline.residency.speculative_attempts(kind),
@@ -162,9 +163,14 @@ fn build_evidence(
 fn validate(
     evidence: BoundedDirtyWritebackEvidence,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
-    let candidate_writebacks = evidence
-        .primary_candidate_writebacks
-        .saturating_add(evidence.retry_candidate_writebacks);
+    validate_mutation_identity(&evidence)?;
+    validate_dirty_saturation(&evidence)?;
+    validate_pressure_cleanup(&evidence)?;
+    validate_writeback_counters(&evidence)?;
+    Ok(evidence)
+}
+
+fn validate_mutation_identity(evidence: &BoundedDirtyWritebackEvidence) -> Result<(), String> {
     if evidence.primary_publication == 0
         || evidence.retry_publication == 0
         || evidence.primary_publication == evidence.retry_publication
@@ -178,9 +184,13 @@ fn validate(
         || evidence.retry_records != 1
     {
         return Err(format!(
-            "ordinary append identities did not reconcile: {evidence:?}"
+            "canonical mutation identities did not reconcile: {evidence:?}"
         ));
     }
+    Ok(())
+}
+
+fn validate_dirty_saturation(evidence: &BoundedDirtyWritebackEvidence) -> Result<(), String> {
     if evidence.dirty_at_dispatch != 1
         || evidence.dirty_peak != 2
         || evidence.dirty_after_denial != 1
@@ -189,9 +199,13 @@ fn validate(
         || evidence.active_claims_at_dispatch != 1
     {
         return Err(format!(
-            "ordinary append dirty saturation did not reconcile: {evidence:?}"
+            "canonical mutation dirty saturation did not reconcile: {evidence:?}"
         ));
     }
+    Ok(())
+}
+
+fn validate_pressure_cleanup(evidence: &BoundedDirtyWritebackEvidence) -> Result<(), String> {
     if evidence.active_writebehind_at_dispatch != 1
         || evidence.peak_writebehind != 1
         || evidence.terminal_writebehind != 0
@@ -205,9 +219,16 @@ fn validate(
         || !evidence.cleanup_complete
     {
         return Err(format!(
-            "ordinary append write-behind pressure did not reconcile: {evidence:?}"
+            "canonical mutation write-behind pressure did not reconcile: {evidence:?}"
         ));
     }
+    Ok(())
+}
+
+fn validate_writeback_counters(evidence: &BoundedDirtyWritebackEvidence) -> Result<(), String> {
+    let candidate_writebacks = evidence
+        .primary_candidate_writebacks
+        .saturating_add(evidence.retry_candidate_writebacks);
     if evidence.writebehind_attempts != candidate_writebacks.saturating_add(1)
         || evidence.writebehind_admissions != candidate_writebacks
         || evidence.writebehind_denials != 1
@@ -227,10 +248,10 @@ fn validate(
         || evidence.positioned_writes < candidate_writebacks
     {
         return Err(format!(
-            "ordinary append writeback counters did not reconcile: {evidence:?}"
+            "canonical mutation writeback counters did not reconcile: {evidence:?}"
         ));
     }
-    Ok(evidence)
+    Ok(())
 }
 
 fn delta(after: u64, before: u64) -> u64 {

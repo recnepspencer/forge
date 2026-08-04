@@ -95,7 +95,7 @@ pub(crate) fn observe_replication_progress(
     if source.lineage() != &prior.lineage {
         return ReplicationProgressOutcome::denied(ReplicationProgressDenial::LineageDivergence);
     }
-    let replay = source.durable_publication().replay_identity();
+    let replay = source.replay_identity();
     if replay == &prior.replay {
         return ReplicationProgressOutcome::duplicate(ReplicationDuplicateDelivery {
             peer_id: prior.peer_id.clone(),

@@ -10,18 +10,12 @@ use crate::physical_runtime::{
     PhysicalWorkPreEffectDenial, PhysicalWorkTerminalFailure,
 };
 
-use super::{
-    residency::{candidate_frame_residency::CandidateFramePhysicalWrite, FrameWritebackPort},
-    RecordFramePorts, RecordWorkAdmission,
-};
+use super::{residency::FrameWritebackPort, RecordFramePorts, RecordWorkAdmission};
 
 mod admission;
-mod publication_dependency;
 mod settlement;
 mod settlement_fact;
 
-pub(in crate::physical_runtime::record_serving) use publication_dependency::PreparedCatalogReplacement;
-pub(in crate::physical_runtime) use settlement::CanonicalRecordMutationCompletion;
 pub(in crate::physical_runtime) use settlement_fact::CanonicalRecordMutationSettlement;
 
 #[derive(Clone)]
@@ -38,25 +32,7 @@ pub(in crate::physical_runtime) struct PreparedCanonicalRecordMutation {
     execution: PhysicalWorkExecution,
     command: PhysicalExecutorCommand,
     identity: PhysicalWorkIdentity,
-    expected: CanonicalRecordMutationKind,
     target: crate::physical_runtime::PhysicalWorkRecoveryTarget,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CanonicalRecordMutationKind {
-    NewArtifact,
-    PublicationEffect,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(in crate::physical_runtime::record_serving) enum CanonicalRecordPublicationEffect {
-    Artifact,
-    ArtifactParent,
-    RecordFamily,
-}
-
-pub(in crate::physical_runtime) struct CanonicalCandidateFrameWrite {
-    physical: CandidateFramePhysicalWrite,
 }
 
 pub(in crate::physical_runtime) struct CanonicalRecordMutationFailure {
@@ -70,7 +46,6 @@ pub enum PhysicalRecordMutationFailureCause {
     SubmissionRejected,
     PreEffect(PhysicalWorkPreEffectDenial),
     DependencyBlocked,
-    CatalogReplacementEligibilityMismatch,
     SchedulerReservationDenied(
         worth_store_io_scheduler::foreground_reservation::PhysicalInstanceForegroundAdmissionDenial,
     ),
@@ -122,14 +97,6 @@ impl CanonicalRecordMutationPort {
             Arc::clone(&self.record),
             frame_ports,
         )
-    }
-}
-
-impl CanonicalCandidateFrameWrite {
-    pub(in crate::physical_runtime::record_serving) fn into_physical(
-        self,
-    ) -> CandidateFramePhysicalWrite {
-        self.physical
     }
 }
 
@@ -185,15 +152,6 @@ impl CanonicalRecordMutationFailure {
         Self::identified(
             identity,
             PhysicalRecordMutationFailureCause::DependencyBlocked,
-        )
-    }
-
-    pub(in crate::physical_runtime) fn catalog_replacement_eligibility_mismatch(
-        identity: PhysicalWorkIdentity,
-    ) -> Self {
-        Self::identified(
-            identity,
-            PhysicalRecordMutationFailureCause::CatalogReplacementEligibilityMismatch,
         )
     }
 

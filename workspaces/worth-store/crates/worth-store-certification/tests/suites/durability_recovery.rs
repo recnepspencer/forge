@@ -19,9 +19,6 @@ mod checkpoint_publication_receipt_origin_hardening;
 #[path = "../scenarios/recovery/checkpoint_publication_scheduled_lane_hardening/checkpoint_publication_scheduled_lane_hardening.rs"]
 mod checkpoint_publication_scheduled_lane_hardening;
 
-#[path = "../scenarios/recovery/compaction_mutation_coverage/compaction_mutation_coverage.rs"]
-mod compaction_mutation_coverage;
-
 #[path = "../scenarios/recovery/compaction_oracle_hardening/compaction_oracle_hardening.rs"]
 mod compaction_oracle_hardening;
 
@@ -150,9 +147,6 @@ mod transcript_evidence_denials;
 
 #[path = "../scenarios/recovery/transcript_replay_oracle_authority/transcript_replay_oracle_authority.rs"]
 mod transcript_replay_oracle_authority;
-
-#[path = "../scenarios/recovery/wal_durability_ack/wal_durability_ack.rs"]
-mod wal_durability_ack;
 
 #[path = "../support/recovery/foundational_evidence_support/foundational_evidence_support.rs"]
 mod foundational_evidence_support;

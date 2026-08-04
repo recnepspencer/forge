@@ -2,7 +2,6 @@ mod evidence;
 mod recovery;
 mod trace;
 
-use super::compaction_observation as compaction_interlock_trace;
 use evidence as checkpoint_evidence_support;
 
 pub use recovery::{
@@ -50,9 +49,6 @@ pub fn checkpoint_trace(
         .unwrap()
         .with_scheduled_checkpoint_publication_lane(scheduled_checkpoint_lane_output(plan))
         .unwrap()
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap()
 }
@@ -69,9 +65,6 @@ pub fn checkpoint_crash_replay_trace(
         .unwrap()
         .with_scheduled_checkpoint_crash_replay_lane(scheduled_checkpoint_crash_lane_output(plan))
         .unwrap()
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap()
 }
@@ -87,9 +80,6 @@ pub fn checkpoint_crash_replay_trace_without_crash_lane(
         .with_scheduled_checkpoint_publication_lane(scheduled_checkpoint_lane_output(plan))
         .unwrap()
         .with_recovery_outcome_observation(RecoveryOutcomeObservation::recovered_new_root())
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap()
 }

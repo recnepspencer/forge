@@ -66,7 +66,9 @@ pub use canonical_basis::{
     StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisConstructionOutcome,
     StoreCanonicalBasisDomainMismatch, StoreCanonicalBasisFamily, StoreCanonicalBasisFieldRole,
     StoreCanonicalBasisLane, StoreCanonicalBasisSourceDenial, StoreCanonicalBasisSourceKind,
-    StoreCanonicalBasisSourceOwner, STORE_CANONICAL_BASIS_SOURCE_OWNERS,
+    StoreCanonicalBasisSourceOwner, StorePhysicalMutationRequestBasisDenial,
+    StorePhysicalMutationRequestCanonicalFields, StorePhysicalMutationRequestCanonicalSource,
+    STORE_CANONICAL_BASIS_SOURCE_OWNERS,
 };
 pub use contract_admission::{
     StoreAspectBindingStamp, StoreAspectContractAdmission, StoreAspectContractStamp,

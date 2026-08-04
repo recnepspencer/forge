@@ -141,18 +141,6 @@ fn transition_kind(kind: &OperationalControlRecordKind) -> OperationalAuditTrans
         OperationalControlRecordKind::RecoveryStagingCompleted { .. } => {
             OperationalAuditTransitionKind::StagingCompleted
         }
-        OperationalControlRecordKind::RecoveryPublicationPrepared { .. } => {
-            OperationalAuditTransitionKind::PublicationPrepared
-        }
-        OperationalControlRecordKind::RecoveryPublicationPending { .. } => {
-            OperationalAuditTransitionKind::PublicationPending
-        }
-        OperationalControlRecordKind::RecoveryPublicationDisposition { .. } => {
-            OperationalAuditTransitionKind::PublicationDisposition
-        }
-        OperationalControlRecordKind::RecoveryPublicationFenceReleased { .. } => {
-            OperationalAuditTransitionKind::FenceReleased
-        }
     }
 }
 

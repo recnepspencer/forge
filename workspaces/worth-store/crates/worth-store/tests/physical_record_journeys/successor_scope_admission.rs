@@ -72,12 +72,10 @@ fn successor_scopes_are_exact_isolated_global_and_released() {
 
 fn successor_scope_runtime(root: &std::path::Path) -> ServingPhysicalRuntime {
     let (format, placement, access) = configuration();
-    success(
-        media(root).initialize_record_store(
-            PhysicalRecordInitialization::new(format, placement, access)
-                .with_residency_policy(successor_policy(format)),
-        ),
-    )
+    success(initialize_record_store!(media(root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+            .with_residency_policy(successor_policy(format))
+    },))
 }
 
 fn assert_exact_scope_ceilings(serving: &ServingPhysicalRuntime) {

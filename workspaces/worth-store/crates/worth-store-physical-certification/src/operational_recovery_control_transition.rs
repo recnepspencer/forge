@@ -13,10 +13,6 @@ pub enum OperationalRecoveryControlTransitionKind {
     RepairOwnerEffect,
     RepairOwnerReceipt,
     RepairDisposition,
-    RecoveryPublicationPreparation,
-    RecoveryPublicationPending,
-    RecoveryPublicationDisposition,
-    RecoveryPublicationFenceRelease,
     WorkflowAbandonment,
     ReplicaBootstrapTransfer,
     ReplicaBootstrapCompletion,
@@ -29,7 +25,7 @@ pub enum OperationalRecoveryControlTransitionKind {
 }
 
 impl OperationalRecoveryControlTransitionKind {
-    pub const ALL: [Self; 24] = [
+    pub const ALL: [Self; 20] = [
         Self::BackupSourceLease,
         Self::BackupMaterializationOpen,
         Self::BackupMaterializationCompletion,
@@ -41,10 +37,6 @@ impl OperationalRecoveryControlTransitionKind {
         Self::RepairOwnerEffect,
         Self::RepairOwnerReceipt,
         Self::RepairDisposition,
-        Self::RecoveryPublicationPreparation,
-        Self::RecoveryPublicationPending,
-        Self::RecoveryPublicationDisposition,
-        Self::RecoveryPublicationFenceRelease,
         Self::WorkflowAbandonment,
         Self::ReplicaBootstrapTransfer,
         Self::ReplicaBootstrapCompletion,
@@ -84,18 +76,6 @@ impl OperationalRecoveryControlTransitionKind {
             Self::RepairOwnerEffect => matches!(record, Kind::RepairOwnerEffectStarted { .. }),
             Self::RepairOwnerReceipt => matches!(record, Kind::RepairOwnerReceiptPersisted { .. }),
             Self::RepairDisposition => matches!(record, Kind::RepairDispositionRecorded { .. }),
-            Self::RecoveryPublicationPreparation => {
-                matches!(record, Kind::RecoveryPublicationPrepared { .. })
-            }
-            Self::RecoveryPublicationPending => {
-                matches!(record, Kind::RecoveryPublicationPending { .. })
-            }
-            Self::RecoveryPublicationDisposition => {
-                matches!(record, Kind::RecoveryPublicationDisposition { .. })
-            }
-            Self::RecoveryPublicationFenceRelease => {
-                matches!(record, Kind::RecoveryPublicationFenceReleased { .. })
-            }
             Self::WorkflowAbandonment => matches!(
                 record,
                 Kind::BackupAbandoned { .. } | Kind::ReplicaBootstrapAbandoned { .. }
@@ -140,10 +120,6 @@ impl OperationalRecoveryControlTransitionKind {
             Self::RepairOwnerEffect => "s10-control-before-repair-owner-effect",
             Self::RepairOwnerReceipt => "s10-control-before-repair-owner-receipt",
             Self::RepairDisposition => "s10-control-before-repair-disposition",
-            Self::RecoveryPublicationPreparation => "s10-control-before-publication-preparation",
-            Self::RecoveryPublicationPending => "s10-control-before-publication-pending",
-            Self::RecoveryPublicationDisposition => "s10-control-before-publication-disposition",
-            Self::RecoveryPublicationFenceRelease => "s10-control-before-publication-fence-release",
             Self::WorkflowAbandonment => "s10-control-before-workflow-abandonment",
             Self::ReplicaBootstrapTransfer => "s10-control-before-replica-bootstrap-transfer",
             Self::ReplicaBootstrapCompletion => "s10-control-before-replica-bootstrap-completion",
@@ -170,10 +146,6 @@ impl OperationalRecoveryControlTransitionKind {
             Self::RepairOwnerEffect => "s10-control-after-repair-owner-effect",
             Self::RepairOwnerReceipt => "s10-control-after-repair-owner-receipt",
             Self::RepairDisposition => "s10-control-after-repair-disposition",
-            Self::RecoveryPublicationPreparation => "s10-control-after-publication-preparation",
-            Self::RecoveryPublicationPending => "s10-control-after-publication-pending",
-            Self::RecoveryPublicationDisposition => "s10-control-after-publication-disposition",
-            Self::RecoveryPublicationFenceRelease => "s10-control-after-publication-fence-release",
             Self::WorkflowAbandonment => "s10-control-after-workflow-abandonment",
             Self::ReplicaBootstrapTransfer => "s10-control-after-replica-bootstrap-transfer",
             Self::ReplicaBootstrapCompletion => "s10-control-after-replica-bootstrap-completion",

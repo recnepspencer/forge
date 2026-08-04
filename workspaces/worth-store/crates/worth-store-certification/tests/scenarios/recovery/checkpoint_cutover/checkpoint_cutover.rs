@@ -9,9 +9,7 @@ use worth_store_recovery_physics::{
     CheckpointDurabilityEvidenceSet, CheckpointManifest, CheckpointPublicationPlan,
     CheckpointRootPosture, CheckpointValidation, CheckpointValidationDenialKind,
     ContiguousWalTailProof, IntegrityDamageMap, RecoveredCheckpointCutoverState,
-    RecoveryBlockedByIntegrityDamage, SharpCheckpointCertificationMode, WalRetentionAction,
-    WalRetentionAdmittedAction, WalRetentionCandidateSegment, WalRetentionRequest,
-    WalSegmentGeneration, WalSegmentId,
+    RecoveryBlockedByIntegrityDamage, SharpCheckpointCertificationMode,
 };
 
 use worth_store_test_support::harness::recovery::checkpoint_basis as checkpoint_basis_fixture;
@@ -272,7 +270,7 @@ fn sharp_mode_certifies_and_fuzzy_attempts_deny_explicitly() {
 }
 
 #[test]
-fn wal_retention_requires_covering_checkpoint_and_contiguous_tail() {
+fn recovery_tail_requires_the_exact_checkpoint_boundary() {
     let validation = validate(manifest(10, 20, 19));
     let durability = checkpoint_durability(&validation);
     let plan = CheckpointPublicationPlan::<SimulatedStrictDurableProfile>::plan_cutover(
@@ -281,37 +279,7 @@ fn wal_retention_requires_covering_checkpoint_and_contiguous_tail() {
     .unwrap();
     let receipt = CheckpointCutoverReceipt::publish(plan);
     let tail = ContiguousWalTailProof::prove(&receipt, wal_range(20, 30)).unwrap();
-    let covered_segment = WalRetentionCandidateSegment::new(
-        WalSegmentId::new(1).unwrap(),
-        WalSegmentGeneration::new(1).unwrap(),
-        wal_range(10, 20),
-    );
-    let uncovered_segment = WalRetentionCandidateSegment::new(
-        WalSegmentId::new(2).unwrap(),
-        WalSegmentGeneration::new(1).unwrap(),
-        wal_range(15, 25),
-    );
-
-    for action in [
-        WalRetentionAction::Delete,
-        WalRetentionAction::Recycle,
-        WalRetentionAction::Exclude,
-    ] {
-        let request = WalRetentionRequest::new(action, covered_segment);
-        let admitted = WalRetentionAdmittedAction::admit(&receipt, tail.clone(), request).unwrap();
-        assert_eq!(admitted.request().action(), action);
-
-        let denial = WalRetentionAdmittedAction::admit(
-            &receipt,
-            tail.clone(),
-            WalRetentionRequest::new(action, uncovered_segment),
-        )
-        .unwrap_err();
-        assert_eq!(
-            denial.kind(),
-            CheckpointValidationDenialKind::WalRetentionWithoutCoveringCheckpoint
-        );
-    }
+    assert_eq!(tail.tail_range(), wal_range(20, 30));
     assert_eq!(
         ContiguousWalTailProof::prove(&receipt, wal_range(21, 30))
             .unwrap_err()

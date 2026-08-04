@@ -1,7 +1,5 @@
 mod context;
-use super::{
-    compaction_mutation as compaction_mutation_support, counter_evidence as counter_support,
-};
+use super::counter_evidence as counter_support;
 
 use crate::{
     admitted_developer_smoke_driver_contracts, developer_smoke_replay_seed,
@@ -15,17 +13,12 @@ use worth_store_physical_certification::{
     HarnessCoverageStage, LargeStoreFixtureProfile, NoJsonAuthorityOracle, NoMixedRootOracle,
     NoPrivateMutationOracle, ObservedPhysicalTrace, OldReaderSeesOldRootOracle, OracleFamilyKind,
     PhysicalCertificationEvidenceBundle, PhysicalCoverageRegistry, PhysicalFixtureBuilder,
-    PhysicalInterleavingSchedule, PhysicalIsolationCompactionMutationKind,
-    PhysicalIsolationCompactionMutationObservationSet,
-    PhysicalIsolationCompactionMutationReplayBinding,
-    PhysicalIsolationCompactionMutationScheduledLaneOutput, PhysicalMutationCoverageEvidence,
-    PhysicalProofOracleVerdict, PhysicalSimulationPlan, PhysicalSimulationProfile,
-    PostSwapReaderSeesNewRootOracle, ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily,
+    PhysicalInterleavingSchedule, PhysicalMutationCoverageEvidence, PhysicalProofOracleVerdict,
+    PhysicalSimulationPlan, PhysicalSimulationProfile, PostSwapReaderSeesNewRootOracle,
+    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily,
     ShortcutRejectionObservationKind, SimulationPlanDenial, SimulationReplayBundle,
     StateSpaceBudget, SupportedOracleFamilySet,
 };
-
-type ScheduledCompactionMutationLanes = Vec<PhysicalIsolationCompactionMutationScheduledLaneOutput>;
 
 pub fn lowered_plan() -> PhysicalSimulationPlan {
     worth_store_physical_certification::lower_physical_simulation_plan(
@@ -86,12 +79,6 @@ pub fn scenario() -> CertifiedPhysicalScenario {
 }
 
 pub fn replay_bundle(plan: &PhysicalSimulationPlan) -> SimulationReplayBundle {
-    replay_bundle_with_trace_builder(plan, shortcut_trace_with_complete_compaction_mutations)
-}
-
-pub fn replay_bundle_without_compaction_mutations(
-    plan: &PhysicalSimulationPlan,
-) -> SimulationReplayBundle {
     replay_bundle_with_trace_builder(plan, |plan, _schedule| {
         counter_support::shortcut_trace(plan)
     })
@@ -103,26 +90,6 @@ pub fn replay_bundle_without_mutation_denial(
     replay_bundle_with_trace_builder(plan, |plan, _schedule| {
         counter_support::json_shortcut_trace(plan)
     })
-}
-
-pub fn replay_bundle_with_unscheduled_compaction_mutations(
-    plan: &PhysicalSimulationPlan,
-) -> Result<SimulationReplayBundle, CoverageGapDenial> {
-    let other_plan = shortcut_plan();
-    let other_schedule = schedule(&other_plan);
-    let lanes = compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(
-        &other_plan,
-        &other_schedule,
-    )?;
-    let binding = PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(
-        plan,
-        &other_schedule,
-    )?;
-    let observation =
-        PhysicalIsolationCompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)?;
-    Ok(replay_bundle_with_trace_builder(plan, |plan, _schedule| {
-        counter_support::shortcut_trace(plan).with_scheduled_compaction_mutation_lanes(observation)
-    }))
 }
 
 fn replay_bundle_with_trace_builder(
@@ -148,15 +115,6 @@ fn replay_bundle_with_trace_builder(
 
 pub fn evidence_bundle(plan: &PhysicalSimulationPlan) -> PhysicalCertificationEvidenceBundle {
     PhysicalCertificationEvidenceBundle::from_replay_bundle(replay_bundle(plan)).unwrap()
-}
-
-pub fn evidence_bundle_without_compaction_mutations(
-    plan: &PhysicalSimulationPlan,
-) -> PhysicalCertificationEvidenceBundle {
-    PhysicalCertificationEvidenceBundle::from_replay_bundle(
-        replay_bundle_without_compaction_mutations(plan),
-    )
-    .unwrap()
 }
 
 pub fn complete_registry(
@@ -185,7 +143,7 @@ pub fn complete_registry(
 }
 
 pub fn mutation_evidence(replay: &SimulationReplayBundle) -> PhysicalMutationCoverageEvidence {
-    PhysicalMutationCoverageEvidence::from_replay_private_and_compaction_mutation_denials(
+    PhysicalMutationCoverageEvidence::from_replay_private_mutation_denial(
         HarnessCoverageStage::SimulationAdmission,
         replay,
         FaultDeliveryAttempt::private_mutation(),
@@ -202,58 +160,6 @@ pub fn mutation_evidence_denial(replay: &SimulationReplayBundle) -> CoverageGapD
     .unwrap_err()
 }
 
-pub fn compaction_mutation_evidence(
-    replay: &SimulationReplayBundle,
-) -> Result<PhysicalMutationCoverageEvidence, CoverageGapDenial> {
-    PhysicalMutationCoverageEvidence::from_replay_private_and_compaction_mutation_denials(
-        HarnessCoverageStage::SimulationAdmission,
-        replay,
-        FaultDeliveryAttempt::private_mutation(),
-    )
-}
-
-pub fn complete_compaction_mutation_lanes(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
-    compaction_mutation_support::complete_scheduled_compaction_mutation_lanes(plan, schedule)
-}
-
-pub fn compaction_mutation_lanes_without(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-    missing: PhysicalIsolationCompactionMutationKind,
-) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
-    Ok(complete_compaction_mutation_lanes(plan, schedule)?
-        .into_iter()
-        .filter(|lane| lane.kind() != missing)
-        .collect())
-}
-
-pub fn same_footprint_wrong_cutover_lanes(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
-    compaction_mutation_support::same_footprint_wrong_cutover_lanes(plan, schedule)
-}
-
-pub fn detached_compaction_mutation_lanes(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-) -> Result<ScheduledCompactionMutationLanes, CoverageGapDenial> {
-    compaction_mutation_support::detached_compaction_mutation_lanes(plan, schedule)
-}
-
-pub fn compaction_mutation_lane_observation_set(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-    lanes: impl IntoIterator<Item = PhysicalIsolationCompactionMutationScheduledLaneOutput>,
-) -> Result<PhysicalIsolationCompactionMutationObservationSet, CoverageGapDenial> {
-    let binding =
-        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)?;
-    PhysicalIsolationCompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
-}
-
 pub fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
     PhysicalInterleavingSchedule::from_lowered_plan(
         plan,
@@ -261,22 +167,6 @@ pub fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
         StateSpaceBudget::bounded_steps(8).unwrap(),
     )
     .unwrap()
-}
-
-fn shortcut_trace_with_complete_compaction_mutations(
-    plan: &PhysicalSimulationPlan,
-    schedule: &PhysicalInterleavingSchedule,
-) -> ObservedPhysicalTrace {
-    let Ok(binding) =
-        PhysicalIsolationCompactionMutationReplayBinding::from_plan_and_schedule(plan, schedule)
-    else {
-        return counter_support::shortcut_trace(plan);
-    };
-    let lanes = complete_compaction_mutation_lanes(plan, schedule).unwrap();
-    counter_support::shortcut_trace(plan).with_scheduled_compaction_mutation_lanes(
-        PhysicalIsolationCompactionMutationObservationSet::from_scheduled_lanes(binding, lanes)
-            .unwrap(),
-    )
 }
 
 fn executed_parts_with_schedule_and_trace(

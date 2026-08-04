@@ -8,9 +8,8 @@ use worth_signal::facade::{
 use worth_signal::facade::{RawCompletionEnvelope, ResourceCancellationReport};
 
 use crate::physical_runtime::work::{
-    AdmittedPhysicalWork, BlockedPhysicalWork, PhysicalSignalAspectBindingDigest,
-    PhysicalWorkAspectDelta, PhysicalWorkIdentity, PhysicalWorkPreEffectDenial,
-    PhysicalWorkReadiness, ReadyPhysicalWork,
+    AdmittedPhysicalWork, PhysicalSignalAspectBindingDigest, PhysicalWorkAspectDelta,
+    PhysicalWorkIdentity, PhysicalWorkPreEffectDenial, PhysicalWorkReadiness, ReadyPhysicalWork,
 };
 
 use super::PhysicalSignalDeltaApplicationFailure;
@@ -49,36 +48,6 @@ impl PhysicalSignalRouteOwner {
         let (reply, observed) = mpsc::sync_channel(0);
         self.mailbox
             .enqueue(PhysicalSignalRouteCommand::Request(admitted, reply))
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
-        observed
-            .recv()
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?
-    }
-
-    pub(super) fn begin_publication_dependency(
-        &self,
-        admitted: AdmittedPhysicalWork,
-    ) -> Result<BlockedPhysicalWork, PhysicalWorkPreEffectDenial> {
-        let (reply, observed) = mpsc::sync_channel(0);
-        self.mailbox
-            .enqueue(PhysicalSignalRouteCommand::BeginPublicationDependency(
-                admitted, reply,
-            ))
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
-        observed
-            .recv()
-            .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?
-    }
-
-    pub(super) fn advance_publication_dependency(
-        &self,
-        blocked: BlockedPhysicalWork,
-    ) -> Result<ReadyPhysicalWork, PhysicalWorkPreEffectDenial> {
-        let (reply, observed) = mpsc::sync_channel(0);
-        self.mailbox
-            .enqueue(PhysicalSignalRouteCommand::AdvancePublicationDependency(
-                blocked, reply,
-            ))
             .map_err(|_| PhysicalWorkPreEffectDenial::SignalOwnerUnavailable)?;
         observed
             .recv()
@@ -215,17 +184,6 @@ impl PhysicalSignalRouteOwner {
         let _ = self
             .mailbox
             .enqueue(PhysicalSignalRouteCommand::Release(identity));
-    }
-
-    #[cfg(feature = "certification-test-authority")]
-    pub(super) fn publication_dependencies(
-        &self,
-    ) -> Result<Vec<super::graph::PhysicalPublicationDependencyObservation>, ()> {
-        let (reply, observed) = mpsc::sync_channel(0);
-        self.mailbox
-            .enqueue(PhysicalSignalRouteCommand::PublicationDependencies(reply))
-            .map_err(|_| ())?;
-        observed.recv().map_err(|_| ())
     }
 }
 

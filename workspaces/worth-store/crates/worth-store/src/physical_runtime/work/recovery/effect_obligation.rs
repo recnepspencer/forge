@@ -8,7 +8,7 @@ use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 use super::{
     super::{PhysicalWorkIdentity, PhysicalWorkOperationFamily},
-    locator::{decode_locator, encode_target, RECOVERY_RECORD_BYTES},
+    locator::{decode_locator, encode_family, encode_target, RECOVERY_RECORD_BYTES},
     PhysicalWorkRecoveryLocator, PhysicalWorkRecoveryTarget,
 };
 
@@ -123,20 +123,15 @@ fn encode_record(
 ) -> [u8; RECOVERY_RECORD_BYTES] {
     let mut record = [0_u8; RECOVERY_RECORD_BYTES];
     record[..8].copy_from_slice(b"WPEFFECT");
-    record[8] = 3;
-    record[9] = match operation {
-        PhysicalWorkOperationFamily::ArtifactRangeRead => 1,
-        PhysicalWorkOperationFamily::ArtifactRangeWrite => 2,
-        PhysicalWorkOperationFamily::ArtifactPublication => 3,
-        PhysicalWorkOperationFamily::ArtifactMetadataRead => 4,
-    };
+    record[8] = 6;
+    record[9] = encode_family(operation);
     record[16..32].copy_from_slice(&identity.store().bytes());
     record[32..40].copy_from_slice(&identity.runtime().get().to_le_bytes());
     record[40..48].copy_from_slice(&identity.generation().lifecycle().get().to_le_bytes());
     record[48..56].copy_from_slice(&identity.operation().get().to_le_bytes());
     encode_target(target, &mut record);
     if let Some(digest) = payload_digest {
-        record[68] = 1;
+        record[105] = 1;
         record[72..104].copy_from_slice(&digest);
     }
     let checksum = Sha256::digest(&record[..128]);
@@ -160,7 +155,7 @@ fn inspect_entries(
         let decoded = directory
             .file(&name)
             .ok()
-            .and_then(|file| tree.read_bounded(&file, RECOVERY_RECORD_BYTES as u32).ok())
+            .and_then(|file| tree.read_bounded(&file, RECOVERY_RECORD_BYTES as u64).ok())
             .and_then(|record| decode_locator(store, &name, &record));
         match decoded {
             Some(locator) => obligations.push(locator),

@@ -1,20 +1,23 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    ArtifactTreeFailureKind, CompletedArtifactNewWrite, CompletedArtifactRangeRead,
-    CompletedArtifactRangeWrite, IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
-    MediaOperationRole,
+    ArtifactTreeFailureKind, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    IndeterminateArtifactRangeWrite, MediaOperationRole,
 };
 
 use super::{
-    publication_effect_role, PhysicalWorkEffectFate, PhysicalWorkHealthRevocation,
-    PhysicalWorkNoEffectEvidence, PhysicalWorkPublicationResiduePosture,
-    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
-    PhysicalWorkTerminalFailure,
+    PhysicalWorkEffectFate, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
+    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
+    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
 };
 use crate::physical_runtime::work::{
     DispatchedPhysicalWork, PhysicalExecutorOutcome, PhysicalWorkOperationFamily,
     PhysicalWorkRecoveryDisposition, PhysicalWorkRecoveryTarget,
 };
+
+mod checkpoint;
+pub(in crate::physical_runtime::work::execution::settlement) mod publication;
+mod wal;
+mod wal_reclamation;
 
 pub(super) fn classify(
     dispatched: &DispatchedPhysicalWork,
@@ -62,30 +65,89 @@ pub(super) fn classify(
         }
         PhysicalExecutorOutcome::NewArtifactCompleted {
             physical,
+            coordinate,
             scheduler,
-        } if dispatched.matches_new_artifact(&physical) => {
-            classify_completed_new_artifact(dispatched, physical, scheduler)
+        } if dispatched.matches_new_artifact(&physical, coordinate) => {
+            publication::classify_completed_new_artifact(
+                dispatched, physical, coordinate, scheduler,
+            )
         }
         PhysicalExecutorOutcome::PublicationEffectCompleted {
             physical,
             scheduler,
         } if dispatched.matches_publication_effect(&physical) => {
-            classify_completed_publication_effect(dispatched, physical, scheduler)
+            publication::classify_completed_publication_effect(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::WalAppendCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_wal_append(&physical) => {
+            wal::classify_completed_wal_append(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::WalSegmentCreateCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_wal_segment_create(&physical) => {
+            wal::classify_completed_wal_segment_create(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::WalBarrierCompleted {
+            physical,
+            scheduler,
+        } if dispatched.matches_wal_barrier(&physical) => {
+            wal::classify_completed_wal_barrier(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::CheckpointCompleted {
+            physical,
+            scheduler,
+        } if checkpoint::matches_completed(dispatched, &physical) => {
+            checkpoint::classify_completed(dispatched, physical, scheduler)
+        }
+        PhysicalExecutorOutcome::WalReclamationCompleted {
+            physical,
+            scheduler,
+        } if wal_reclamation::matches_completed(dispatched, &physical) => {
+            wal_reclamation::classify_completed(dispatched, physical, scheduler)
         }
         PhysicalExecutorOutcome::Indeterminate(physical)
             if dispatched.matches_indeterminate(physical) =>
         {
             indeterminate_terminal(dispatched, physical)
         }
-        PhysicalExecutorOutcome::NewArtifactIndeterminate(physical)
-            if dispatched.matches_new_artifact_indeterminate(physical) =>
-        {
-            indeterminate_new_artifact(dispatched, physical)
+        PhysicalExecutorOutcome::NewArtifactIndeterminate {
+            physical,
+            coordinate,
+        } if dispatched.matches_new_artifact_indeterminate(&physical, coordinate) => {
+            publication::indeterminate_new_artifact(dispatched, physical, coordinate)
         }
         PhysicalExecutorOutcome::PublicationEffectIndeterminate(physical)
             if dispatched.matches_publication_effect_indeterminate(&physical) =>
         {
-            indeterminate_publication_effect(dispatched, physical)
+            publication::indeterminate_publication_effect(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::WalAppendIndeterminate(physical)
+            if dispatched.matches_wal_append_indeterminate(&physical) =>
+        {
+            wal::indeterminate_wal_append(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::WalSegmentCreateIndeterminate(physical)
+            if dispatched.matches_wal_segment_create_indeterminate(&physical) =>
+        {
+            wal::indeterminate_wal_segment_create(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::WalBarrierIndeterminate(physical)
+            if dispatched.matches_wal_barrier_indeterminate(&physical) =>
+        {
+            wal::indeterminate_wal_barrier(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::CheckpointIndeterminate(physical)
+            if checkpoint::matches_indeterminate(dispatched, &physical) =>
+        {
+            checkpoint::classify_indeterminate(dispatched, physical)
+        }
+        PhysicalExecutorOutcome::WalReclamationIndeterminate(physical)
+            if wal_reclamation::matches_indeterminate(dispatched, &physical) =>
+        {
+            wal_reclamation::classify_indeterminate(dispatched, physical)
         }
         _ => PhysicalWorkSettlementEvidence::StaleOrForeign,
     }
@@ -212,101 +274,6 @@ fn terminal_scheduler_failure(
         },
         recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
         cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
-    })
-}
-
-fn classify_completed_new_artifact(
-    dispatched: &DispatchedPhysicalWork,
-    physical: CompletedArtifactNewWrite,
-    scheduler: QueueExecutionOutcome,
-) -> PhysicalWorkSettlementEvidence {
-    if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
-        PhysicalWorkSettlementEvidence::NewArtifact {
-            physical,
-            scheduler,
-        }
-    } else {
-        PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
-            identity: dispatched.intent().identity(),
-            effect_fate: PhysicalWorkEffectFate::WrittenButSchedulerRejected,
-            target: PhysicalWorkRecoveryTarget::Range(physical.write().coordinate()),
-            completed_bytes: physical.write().completed_bytes(),
-            backend_operation: physical.write().operation(),
-            backend_role: MediaOperationRole::PositionedWrite,
-            scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
-            publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
-            recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-            cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
-        })
-    }
-}
-
-fn classify_completed_publication_effect(
-    dispatched: &DispatchedPhysicalWork,
-    physical: crate::physical_runtime::work::CompletedPhysicalPublicationEffect,
-    scheduler: QueueExecutionOutcome,
-) -> PhysicalWorkSettlementEvidence {
-    if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
-        PhysicalWorkSettlementEvidence::PublicationEffect {
-            physical,
-            scheduler,
-        }
-    } else {
-        PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
-            identity: dispatched.intent().identity(),
-            effect_fate: PhysicalWorkEffectFate::WrittenButSchedulerRejected,
-            target: physical.recovery_target(),
-            completed_bytes: 0,
-            backend_operation: physical.physical().operation(),
-            backend_role: publication_effect_role(physical.effect()),
-            scheduler: PhysicalWorkSchedulerPosture::RejectedAfterEffect,
-            publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
-            recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-            cause: PhysicalWorkTerminalCause::SchedulerRejectedAfterEffect,
-        })
-    }
-}
-
-fn indeterminate_new_artifact(
-    dispatched: &DispatchedPhysicalWork,
-    physical: IndeterminateArtifactNewWrite,
-) -> PhysicalWorkSettlementEvidence {
-    let backend_role = if physical.write_operation().is_some() {
-        MediaOperationRole::PositionedWrite
-    } else {
-        MediaOperationRole::CreateNew
-    };
-    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
-        identity: dispatched.intent().identity(),
-        effect_fate: PhysicalWorkEffectFate::Indeterminate,
-        target: PhysicalWorkRecoveryTarget::Range(physical.coordinate()),
-        completed_bytes: physical.completed_bytes(),
-        backend_operation: physical
-            .write_operation()
-            .unwrap_or_else(|| physical.create_operation()),
-        backend_role,
-        scheduler: PhysicalWorkSchedulerPosture::NotObserved,
-        publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
-        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-        cause: PhysicalWorkTerminalCause::Backend(physical.failure()),
-    })
-}
-
-fn indeterminate_publication_effect(
-    dispatched: &DispatchedPhysicalWork,
-    physical: crate::physical_runtime::work::IndeterminatePhysicalPublicationEffect,
-) -> PhysicalWorkSettlementEvidence {
-    PhysicalWorkSettlementEvidence::TerminalFailure(PhysicalWorkTerminalFailure {
-        identity: dispatched.intent().identity(),
-        effect_fate: PhysicalWorkEffectFate::Indeterminate,
-        target: physical.recovery_target(),
-        completed_bytes: 0,
-        backend_operation: physical.physical().operation(),
-        backend_role: publication_effect_role(physical.effect()),
-        scheduler: PhysicalWorkSchedulerPosture::NotObserved,
-        publication_residue: PhysicalWorkPublicationResiduePosture::MayExist,
-        recovery: PhysicalWorkRecoveryDisposition::InspectionRequired,
-        cause: PhysicalWorkTerminalCause::Backend(physical.physical().failure()),
     })
 }
 

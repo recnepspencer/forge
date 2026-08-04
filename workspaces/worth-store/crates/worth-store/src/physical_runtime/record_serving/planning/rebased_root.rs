@@ -5,18 +5,13 @@ use worth_store_physical_format::{
 
 use super::super::{
     planning::prepared_payload::PreparedRecordPayloadPlan,
-    publication::{append::ManifestCapacityTransition, PublicationPlan},
+    publication::{PhysicalManifestCapacityTransition, PublicationPlan},
     AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
     RecordAllocationFrontier, RecordAppendDenial, RecordAppendError,
 };
 
 mod assembly;
 mod projection;
-
-pub(in crate::physical_runtime::record_serving) struct RebasableRecordPublicationPlan {
-    pub(in crate::physical_runtime::record_serving) publication: PublicationPlan,
-    pub(in crate::physical_runtime::record_serving) prepared: PreparedRecordPayloadPlan,
-}
 
 pub(in crate::physical_runtime::record_serving) struct RootRebaseContext<'plan> {
     pub(in crate::physical_runtime::record_serving) allocation:
@@ -32,75 +27,50 @@ pub(in crate::physical_runtime::record_serving) struct RootRebaseContext<'plan> 
         &'plan DurableFreeSpaceManifestHeader,
     pub(in crate::physical_runtime::record_serving) frontier: &'plan RecordAllocationFrontier,
     pub(in crate::physical_runtime::record_serving) placement: AdmittedRecordPlacementPolicy,
-    pub(in crate::physical_runtime::record_serving) capacity_transition: ManifestCapacityTransition,
+    pub(in crate::physical_runtime::record_serving) capacity_transition:
+        PhysicalManifestCapacityTransition,
 }
 
-impl RebasableRecordPublicationPlan {
-    pub(in crate::physical_runtime::record_serving) fn begin(
-        prepared: PreparedRecordPayloadPlan,
-        current_root: &DurablePhysicalRootManifest,
-        candidate: RecordArtifactFile,
-    ) -> Result<Self, RecordAppendError> {
-        let generation =
-            current_root
-                .generation()
-                .checked_add(1)
-                .ok_or(RecordAppendError::Denied(
-                    RecordAppendDenial::RootGenerationExhausted,
-                ))?;
-        let publication = PublicationPlan {
-            records: prepared.records.clone(),
-            generation,
-            data: Vec::new(),
-            payload_manifests: Vec::new(),
-            manifests: Vec::new(),
-            root: RecordArtifactFile::RootManifest { generation },
-            candidate,
-            manifest: current_root.clone(),
-            root_bytes: Vec::new(),
-            catalog_bytes: Vec::new(),
-            observation: prepared.observation,
-            work: super::super::RecordPublicationWorkTrace::default(),
-            recovery_basis: super::super::RecordPublicationRecoveryBasis::Preparation {
-                root_generation: current_root.generation(),
-            },
-        };
-        Ok(Self {
-            publication,
+pub(in crate::physical_runtime::record_serving) fn project_settled_root(
+    prepared: PreparedRecordPayloadPlan,
+    context: RootRebaseContext<'_>,
+    candidate: RecordArtifactFile,
+) -> Result<
+    (PublicationPlan, DurableFreeSpaceManifestHeader),
+    (PreparedRecordPayloadPlan, RecordAppendError),
+> {
+    if prepared.source_root != *context.current_root {
+        return Err((
             prepared,
-        })
+            RecordAppendError::Denied(RecordAppendDenial::PublishedLayoutDamaged),
+        ));
     }
-
-    pub(in crate::physical_runtime::record_serving) fn attach_payload(mut self) -> Self {
-        self.publication.data = std::mem::take(&mut self.prepared.data);
-        self.publication.payload_manifests = std::mem::take(&mut self.prepared.payload_manifests);
-        self
+    let generation = match successor_generation(context.current_root) {
+        Ok(generation) => generation,
+        Err(cause) => return Err((prepared, cause)),
+    };
+    if let Err(cause) = require_capacity(&context) {
+        return Err((prepared, cause));
     }
-
-    pub(in crate::physical_runtime::record_serving) fn resume(
-        publication: PublicationPlan,
-        prepared: PreparedRecordPayloadPlan,
-    ) -> Self {
-        Self {
-            publication,
-            prepared,
-        }
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn rebase(
-        self,
-        context: RootRebaseContext<'_>,
-    ) -> Result<(PublicationPlan, DurableFreeSpaceManifestHeader), RecordAppendError> {
-        let generation = successor_generation(context.current_root)?;
-        require_capacity(&context)?;
-        let projected = projection::project_successor_root(&context, self.prepared, generation)?;
-        Ok(assembly::assemble_rebased_publication(
-            self.publication,
-            context,
-            generation,
-            projected,
-        ))
-    }
+    let projected = match projection::project_successor_root(&context, &prepared, generation) {
+        Ok(projected) => projected,
+        Err(cause) => return Err((prepared, cause)),
+    };
+    let payload_manifests = prepared.payload_manifests;
+    let publication = PublicationPlan {
+        generation,
+        manifests: Vec::new(),
+        root: RecordArtifactFile::RootManifest { generation },
+        candidate,
+        manifest: context.current_root.clone(),
+        root_bytes: Vec::new(),
+        catalog_bytes: Vec::new(),
+        observation: prepared.observation,
+    };
+    let (mut publication, free_space) =
+        assembly::assemble_rebased_publication(publication, context, generation, projected);
+    publication.manifests.splice(0..0, payload_manifests);
+    Ok((publication, free_space))
 }
 
 fn successor_generation(current: &DurablePhysicalRootManifest) -> Result<u64, RecordAppendError> {
@@ -113,7 +83,7 @@ fn successor_generation(current: &DurablePhysicalRootManifest) -> Result<u64, Re
 }
 
 fn require_capacity(context: &RootRebaseContext<'_>) -> Result<(), RecordAppendError> {
-    if context.capacity_transition == ManifestCapacityTransition::PreserveCurrent
+    if context.capacity_transition == PhysicalManifestCapacityTransition::PreserveCurrent
         && context.placement.manifest_capacity().get() != context.current_root.node_capacity()
     {
         Err(RecordAppendError::Denied(

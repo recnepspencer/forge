@@ -228,7 +228,6 @@ fn shortcut_trace(plan: &PhysicalSimulationPlan) -> ObservedPhysicalTrace {
         .observe_plan(plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
-        .with_compaction_interlock_observation(counter_support::compaction_observation())
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
         .complete()
         .unwrap()

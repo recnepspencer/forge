@@ -28,7 +28,6 @@ pub enum RecordStreamFailureKind {
 pub struct RecordStreamFailure {
     kind: RecordStreamFailureKind,
     completed: Range<u64>,
-    media_effect_possible: bool,
     pressure: Option<super::super::PhysicalRecordPressureEvidence>,
 }
 
@@ -40,18 +39,6 @@ impl RecordStreamFailure {
         Self {
             kind,
             completed: 0..completed_bytes,
-            media_effect_possible: false,
-            pressure: None,
-        }
-    }
-    pub(in crate::physical_runtime::record_serving) const fn after_media_write(
-        kind: RecordStreamFailureKind,
-        completed_bytes: u64,
-    ) -> Self {
-        Self {
-            kind,
-            completed: 0..completed_bytes,
-            media_effect_possible: true,
             pressure: None,
         }
     }
@@ -68,12 +55,8 @@ impl RecordStreamFailure {
         Self {
             kind: RecordStreamFailureKind::PhysicalPressure,
             completed: 0..completed_bytes,
-            media_effect_possible: pressure.effect_may_have_started(),
             pressure: Some(pressure),
         }
-    }
-    pub(in crate::physical_runtime::record_serving) const fn requires_inspection(&self) -> bool {
-        self.media_effect_possible
     }
     pub const fn kind(&self) -> RecordStreamFailureKind {
         self.kind

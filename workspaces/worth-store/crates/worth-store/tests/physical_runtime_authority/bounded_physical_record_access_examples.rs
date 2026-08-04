@@ -1,4 +1,4 @@
-fn small_example() {
+fn small_example(durability: worth_store::physical_runtime::AdmittedPhysicalDurabilityPolicy) {
     use worth_store::physical_runtime::{
         AdmittedPhysicalRecordFormat, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
         PhysicalRecordOpen,
@@ -8,11 +8,11 @@ fn small_example() {
         PhysicalRecordFormatDeclaration::builder().admit().unwrap(),
     );
     let access = PhysicalRecordAccessPolicy::builder().admit(format).unwrap();
-    let request = PhysicalRecordOpen::new(format, access);
+    let request = PhysicalRecordOpen::new(format, access, durability);
     let _ = request;
 }
 
-fn real_example() {
+fn real_example(durability: worth_store::physical_runtime::AdmittedPhysicalDurabilityPolicy) {
     use std::num::{NonZeroU32, NonZeroU64};
     use worth_store::physical_runtime::{
         AdmittedPhysicalRecordFormat, PhysicalOperationAllocationScope as Scope,
@@ -53,7 +53,8 @@ fn real_example() {
         .into_result()
         .expect("deployment residency policy must fit the admitted format");
 
-    let request = PhysicalRecordOpen::new(format, access).with_residency_policy(residency);
+    let request =
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(residency);
 
     fn inspect_residency(serving: &ServingPhysicalRuntime) {
         let observation = serving.residency_observation();
@@ -140,8 +141,7 @@ fn consume_payload<A, B, C, D>(_: A, _: B, _: C, _: D) {}
 fn consume_copy(_: &[u8]) {}
 
 pub(crate) fn run_configuration_examples() {
-    small_example();
-    real_example();
+    let _ = (small_example, real_example);
 }
 
 fn main() {

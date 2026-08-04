@@ -31,9 +31,13 @@ pub(super) fn run(
         .into_result()
         .map_err(|denial| format!("bounded-residency serving policy denied: {denial:?}"))?;
     let media = super::super::admission::admit_media(&invocation.root, Some(schedule))?;
+    let durability = super::super::admission::admit_durability_with_checkpoint_memory(
+        &media,
+        configuration.checkpoint_memory_limit(),
+    )?;
     let serving = super::super::admission::require_serving(
         media.open_record_store(
-            PhysicalRecordOpen::new(format, access)
+            PhysicalRecordOpen::new(format, access, durability)
                 .with_residency_policy(policy)
                 .with_physical_work_profile(profile),
         ),
@@ -67,6 +71,7 @@ pub(super) fn run(
     let pending_cancellation = super::cancellation::exercise(&serving)?;
     let generation_fencing = super::generation_fencing::prove(&serving)?;
     let allocation = super::allocation_pressure::prove(&serving, configuration)?;
+    super::checkpoint::complete_reliability_seed(&serving)?;
     let work_reconciliation_basis = work_reconciliation_window.finish(&serving)?;
     let work_observer = serving.physical_work_observer();
     let media = serving
@@ -78,10 +83,10 @@ pub(super) fn run(
         format!("bounded-residency filesystem evidence denied: {denial:?}")
     })?;
     let close = serving.close();
+    let process_allocation = process_allocation.finish();
     let cancellation = pending_cancellation.finalize(close.work().drain())?;
     let work_reconciliation =
         super::work_reconciliation::reconcile(work_reconciliation_basis, &work_observer, &close)?;
-    let process_allocation = process_allocation.finish();
     let world = BoundedResidencyWorldEvidence {
         identity,
         records: configuration.record_count(),

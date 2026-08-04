@@ -1,9 +1,10 @@
+use sha2::{Digest, Sha256};
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
 use worth_store_physical_format::RecordFrameCoordinate;
 
 use super::{
-    CandidateFrame, CandidateFrameWriteCompletion, CandidateFrameWriteFailure,
-    StoreCandidateFramePublicationSession,
+    CandidateFrame, CandidateFrameFailurePosture, CandidateFrameWriteCompletion,
+    CandidateFrameWriteFailure, StoreCandidateFramePublicationSession,
 };
 use crate::physical_runtime::record_serving::{
     residency::{
@@ -29,7 +30,9 @@ impl StoreCandidateFramePublicationSession<'_> {
         ),
         CandidateFrameWriteFailure<PhysicalRecordWritebackFailureEvidence>,
     > {
-        let (resident, expectation) = self.retain_submitted_frame(frame)?;
+        let (resident, expectation, frame) = self
+            .retain_submitted_frame(frame)
+            .map_err(super::RecoverableCandidateFrameWriteFailure::into_cause)?;
         let coordinate = RecordFrameCoordinate::new(
             resident.coordinate().artifact(),
             resident.coordinate().offset(),
@@ -37,11 +40,15 @@ impl StoreCandidateFramePublicationSession<'_> {
                 .expect("admitted candidate frame lengths are u32-bounded"),
         )
         .expect("admitted candidate frames are nonempty and offset-bounded");
+        let payload_digest: [u8; 32] = Sha256::digest(resident.bytes()).into();
         let dirty = AdmittedDirtyFrame::candidate(
             coordinate,
             resident
                 .into_dirty()
-                .map_err(CandidateFrameWriteFailure::Residency)?,
+                .map_err(|denial| CandidateFrameWriteFailure::Residency {
+                    denial,
+                    posture: CandidateFrameFailurePosture::UnsettledBeforeEffect,
+                })?,
         );
         let prepared = match writeback.prepare(
             dirty,
@@ -65,8 +72,14 @@ impl StoreCandidateFramePublicationSession<'_> {
         };
         match execution {
             PhysicalWritebackExecution::Clean(settlement) => {
-                let completion = CandidateFrameWriteCompletion::retained(expectation.frame_bytes());
-                self.complete_frame(expectation, &completion)?;
+                let completion = CandidateFrameWriteCompletion::writeback(
+                    expectation.frame_bytes(),
+                    coordinate,
+                    payload_digest,
+                    settlement,
+                );
+                self.complete_frame(expectation, &completion, frame)
+                    .map_err(super::RecoverableCandidateFrameWriteFailure::into_cause)?;
                 Ok((completion, settlement))
             }
             PhysicalWritebackExecution::Retryable(retryable) => {
@@ -74,7 +87,7 @@ impl StoreCandidateFramePublicationSession<'_> {
                 retryable
                     .into_dirty()
                     .discard()
-                    .map_err(residency_failure)?;
+                    .map_err(unsettled_residency_failure)?;
                 Err(CandidateFrameWriteFailure::Effect(
                     PhysicalRecordWritebackFailureEvidence::settled(
                         PhysicalRecordWritebackFailureCause::RetryableNoEffect,
@@ -107,14 +120,17 @@ fn discard_transition_failure(
     let cause = failure.cause();
     let dirty = failure.into_dirty();
     let coordinate = dirty.coordinate();
-    dirty.discard().map_err(residency_failure)?;
+    dirty.discard().map_err(unsettled_residency_failure)?;
     Err(CandidateFrameWriteFailure::Effect(
         PhysicalRecordWritebackFailureEvidence::transition(identity, cause, coordinate),
     ))
 }
 
-fn residency_failure(
+fn unsettled_residency_failure(
     reason: worth_store_buffer_pool::PhysicalResidencyDenial,
 ) -> CandidateFrameWriteFailure<PhysicalRecordWritebackFailureEvidence> {
-    CandidateFrameWriteFailure::Residency(RecordAppendDenial::from_residency(reason))
+    CandidateFrameWriteFailure::Residency {
+        denial: RecordAppendDenial::from_residency(reason),
+        posture: CandidateFrameFailurePosture::UnsettledBeforeEffect,
+    }
 }

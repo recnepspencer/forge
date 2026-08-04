@@ -1,7 +1,7 @@
 use worth_store_lsm_authority::{
     open_lsm_membership, reopen_lsm_membership_from_store, LsmMembershipOwnerCaseObservation,
 };
-use worth_store_wal::{AdmittedWalArtifactStore, BlobWalRecordKind};
+use worth_store_wal::{BlobWalRecordKind, WalArtifactInventory, WalFrameArtifactObservation};
 
 use super::super::begin_durability_fixture;
 use super::world;
@@ -15,14 +15,13 @@ pub(super) fn observe() -> Vec<LsmMembershipOwnerCaseObservation> {
         membership_ambiguous(),
         membership_stale(),
         manifest_membership_mismatch(),
-        replacement_output_mismatch(),
         persisted_membership_artifact_invalid(),
         io(),
     ]
 }
 
 fn admitted() -> LsmMembershipOwnerCaseObservation {
-    let world = world::replacement_world();
+    let world = world::complete_membership();
     open(&world.anchor)
 }
 
@@ -36,10 +35,10 @@ fn canonical_key_required() -> LsmMembershipOwnerCaseObservation {
 fn durable_record_binding_mismatch() -> LsmMembershipOwnerCaseObservation {
     let world = world::complete_membership();
     use std::io::{Read, Seek, SeekFrom};
-    let mut bytes = vec![0; world.anchor.persisted_bytes() as usize];
-    let mut artifact = std::fs::File::open(world.anchor.persisted_path()).unwrap();
+    let mut bytes = vec![0; world.anchor.payload_bytes() as usize];
+    let mut artifact = std::fs::File::open(world.anchor.path()).unwrap();
     artifact
-        .seek(SeekFrom::Start(world.anchor.persisted_offset()))
+        .seek(SeekFrom::Start(world.anchor.payload_offset()))
         .unwrap();
     artifact.read_exact(&mut bytes).unwrap();
     bytes[b"worth-store:wal-lsm-membership:v1 ".len()] ^= 1;
@@ -63,29 +62,19 @@ fn membership_ambiguous() -> LsmMembershipOwnerCaseObservation {
 }
 
 fn membership_stale() -> LsmMembershipOwnerCaseObservation {
-    let world = world::replacement_world();
-    let store = AdmittedWalArtifactStore::open(&world.anchor).unwrap();
+    let world = world::complete_membership();
+    let store = inventory_for(&world.anchor);
     std::fs::remove_file(&world.record_paths[0]).unwrap();
     reopen(store)
 }
 
 fn manifest_membership_mismatch() -> LsmMembershipOwnerCaseObservation {
-    let world = world::replacement_world();
+    let world = world::complete_membership();
     let artifact = std::fs::OpenOptions::new()
         .write(true)
         .open(&world.record_paths[2])
         .unwrap();
     artifact.set_len(world.record_frame_offsets[2]).unwrap();
-    open(&world.anchor)
-}
-
-fn replacement_output_mismatch() -> LsmMembershipOwnerCaseObservation {
-    let world = world::replacement_world();
-    let artifact = std::fs::OpenOptions::new()
-        .write(true)
-        .open(&world.output_path)
-        .unwrap();
-    artifact.set_len(world.output_frame_offset).unwrap();
     open(&world.anchor)
 }
 
@@ -103,10 +92,10 @@ fn persisted_membership_artifact_invalid() -> LsmMembershipOwnerCaseObservation 
 
 fn io() -> LsmMembershipOwnerCaseObservation {
     let world = world::complete_membership();
-    let store = AdmittedWalArtifactStore::open(&world.anchor).unwrap();
+    let store = inventory_for(&world.anchor);
     let root = world
         .anchor
-        .persisted_path()
+        .path()
         .parent()
         .and_then(std::path::Path::parent)
         .unwrap();
@@ -116,16 +105,30 @@ fn io() -> LsmMembershipOwnerCaseObservation {
     reopen_lsm_membership_from_store(store, current_scope.witnesses()).owner_case_observation()
 }
 
-fn open(anchor: &worth_store_wal::AdmittedWalAppendReceipt) -> LsmMembershipOwnerCaseObservation {
+fn open(anchor: &WalFrameArtifactObservation) -> LsmMembershipOwnerCaseObservation {
     let current_scope =
         worth_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
     open_lsm_membership(anchor, current_scope.witnesses()).owner_case_observation()
 }
 
-fn reopen(store: AdmittedWalArtifactStore) -> LsmMembershipOwnerCaseObservation {
+fn reopen(store: WalArtifactInventory) -> LsmMembershipOwnerCaseObservation {
     let current_scope =
         worth_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
     reopen_lsm_membership_from_store(store, current_scope.witnesses()).owner_case_observation()
+}
+
+fn inventory_for(anchor: &WalFrameArtifactObservation) -> WalArtifactInventory {
+    let root = anchor
+        .path()
+        .parent()
+        .and_then(std::path::Path::parent)
+        .expect("fixture WAL root");
+    WalArtifactInventory::open(
+        root,
+        anchor.scope().segment_id(),
+        anchor.scope().generation(),
+    )
+    .expect("fixture WAL inventory")
 }
 
 fn checksum(bytes: &[u8]) -> u64 {

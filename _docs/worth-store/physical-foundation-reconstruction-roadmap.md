@@ -1128,6 +1128,15 @@ permission to publish C.6 internals early.
 Engineering spec:
 [physical-reconstruction-c7-durable-publication-join.md](physical-reconstruction-c7-durable-publication-join.md)
 
+Current caller and operator contract:
+[physical-durability-and-checkpoints.md](physical-durability-and-checkpoints.md)
+
+Cutover and closure evidence:
+[closure ledger](physical-reconstruction-c7-closure-ledger.md),
+[public API ledger](physical-reconstruction-c7-public-api.csv),
+[removal ledger](physical-reconstruction-c7-removal-ledger.csv), and
+[physical-reality audit](physical-reality-audit.csv).
+
 ### Goal
 
 Join the existing WAL, durability-ordering, checkpoint, pageLSN, manifest, and
@@ -1152,6 +1161,9 @@ authority.
   root publication, namespace durability, and physical acknowledgment
 - canonical WAL frame and transaction identities bound to exact physical
   effects and idempotency keys
+- Store-issued durable-generation idempotency leases, bounded checkpoint-side
+  attempt-binding compaction, expired-key denial, and proof that WAL reclamation
+  never deletes the last authoritative live binding
 - preservation of the C.5.1 physical operation identity and exact submitted
   scope across grouping, WAL ordering, root publication, acknowledgment, and
   indeterminate fate; group commit may share barriers but cannot merge caller
@@ -1161,10 +1173,15 @@ authority.
   identity or allowing premature acknowledgment
 - fuzzy or non-blocking checkpoint capture with a bounded WAL tail and exact
   source range
+- bounded page causality carrying one certified prior-page basis plus only the
+  newly applied redo delta, never a page's lifetime WAL history
 - atomic current-root publication and old-root retention sufficient for C.8
   recovery
 - explicit indeterminate physical outcome when failure occurs after possible
   durability but before the caller can observe completion
+- a Store-owned mutation handle whose drop abandons observation rather than
+  cancelling effects or abandoning settlement, with typed cancellation and
+  close-time draining
 - sealed physical settlement receipts sufficient for a future adapter to
   correlate proven no effect, completed effect, or indeterminate effect with
   its own mutation while remaining incapable of deciding branch progression
@@ -1181,20 +1198,25 @@ authority.
 - **Production subject:** canonical runtime batch append and physical
   acknowledgment facade using real C.4 media, C.5 artifacts, and C.6 residency.
 - **Initial world:** one real store with a published root, an admitted durable
-  backend profile, three mutations sharing a group-commit opportunity, and
-  named yieldpoints before and after every persistence boundary.
-- **Execution:** run the control batch, then one fresh store per crash seam:
-  before WAL append, during WAL append, after WAL write/before sync, after WAL
+  backend profile, four requests of which one cancels before group sealing and
+  three share a group-commit opportunity, and named yieldpoints before and
+  after every persistence boundary.
+- **Execution:** run the control batch, then independently produce a fresh Store
+  root from the same deterministic workload seed for each crash seam: before
+  WAL append, during WAL append, after WAL write/before sync, after WAL
   sync/before data, during data write, after data/before root publication,
   after root publication/before directory sync, and after durability/before
-  observed acknowledgment.
+  observed acknowledgment. Do not copy a post-run Store, workspace, archive,
+  serialized runtime, cache, or writer memory between seams.
 - **Independent observation:** capture files after abrupt process termination;
   a raw WAL/page inspector records durable prefixes, pageLSNs, roots, and sync
   evidence. C.8 will later decide full recovery, but C.7 must already prove
   impossible acknowledgment states.
 - **Assertions:** no acknowledged batch lacks its required barriers; no data
   page outruns its WAL basis; torn tails are distinguishable; group commit
-  preserves three identities; exact barrier counters match the injected seam.
+  preserves all four request identities, allocates WAL/data effects only to the
+  three sealed members, and does not propagate the pre-seal cancellation; exact
+  barrier counters match the injected seam.
 - **Controlled defect:** acknowledge before WAL sync and separately write a
   pageLSN ahead of durable WAL. The acknowledgment and ordering predicates must
   fail at distinct locations.
@@ -1208,11 +1230,19 @@ authority.
 `C.7` closes only when one real production write progression owns every
 physical durability edge and no acknowledgment can be manufactured without
 the exact file, directory, ordering, and root-publication effects required by
-its backend profile. Its receipts must remain physical facts: no C.7 type or
-transition may advance a branch, release a semantic writer, or impose semantic
-serialization across operations that merely share a durability barrier.
+its backend profile. Idempotency authority must remain bounded without allowing
+expired-key reuse or reclaiming the last live binding. Its receipts must remain
+physical facts: no C.7 type or transition may advance a branch, release a
+semantic writer, or impose semantic serialization across operations that
+merely share a durability barrier.
 
 ## C.8: Fresh-Process Recovery And Reopen
+
+C.8 starts from the bounded
+[C.7 successor handoff](physical-reconstruction-c7-durable-publication-join.md#c8-successor-handoff),
+not from a live runtime. The caller-facing boundary and current exclusions are
+summarized in the
+[C.7 current limits and C.8 handoff](physical-durability-and-checkpoints.md#current-limits-and-c8-handoff).
 
 ### Goal
 

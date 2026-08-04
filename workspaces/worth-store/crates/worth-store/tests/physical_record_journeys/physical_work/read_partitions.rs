@@ -5,7 +5,9 @@ use worth_store::physical_runtime::{
     RecordAppendBatch, RecordByteLimit, RecordReadLimits,
 };
 
-use super::super::{read_record, scan_journeys::collect_scan, serving_from_open};
+use super::super::{
+    durable_publication, read_record, scan_journeys::collect_scan, serving_from_open,
+};
 use super::{configuration, serving_from_initialization};
 
 const PAYLOAD: &[u8] = b"partition-native canonical record read";
@@ -20,15 +22,13 @@ fn ordinary_read_and_scan_select_their_exact_store_native_signal_partitions() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("physical-work-read-partitions", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let read_serving = serving_from_open(&root);

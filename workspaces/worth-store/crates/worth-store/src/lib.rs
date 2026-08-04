@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![cfg_attr(feature = "certification-test-authority", deny(unreachable_pub))]
 
 //! The ordinary facade progresses one sealed runtime from declared-root
 //! admission through qualified filesystem ownership and durable record

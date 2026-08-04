@@ -10,7 +10,7 @@ use super::{FrameLoadFailure, FrameLoadFailureKind};
 use crate::physical_runtime::record_serving::residency::frame_work_trace::FrameWorkTrace;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PhysicalFrameAccessOrigin {
+pub(in crate::physical_runtime::record_serving) enum PhysicalFrameAccessOrigin {
     Hit,
     Coalesced,
     Fault,

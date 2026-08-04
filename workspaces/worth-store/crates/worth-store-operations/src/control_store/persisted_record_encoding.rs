@@ -1,6 +1,5 @@
 use super::persisted_record_codec::OperationalControlEncodingDenial;
 use super::persisted_record_codec_io::ControlRecordEncoder;
-use super::publication_binding_codec::{encode_admission_policy, encode_authority_posture};
 use super::{OperationalControlRecordKind, OperationalWorkflowKind};
 
 pub(super) fn encode_kind(
@@ -263,50 +262,7 @@ pub(super) fn encode_kind(
             output.bytes(execution_plan_fingerprint)?;
             output.bytes(staged_media_identity)
         }
-        Kind::RecoveryPublicationPending { binding } => encode_publication(output, 16, binding),
-        Kind::RecoveryPublicationPrepared { binding } => encode_publication(output, 19, binding),
-        Kind::RecoveryPublicationDisposition {
-            publication_identity,
-            disposition_tag,
-            disposition_basis,
-            observed_authority,
-        } => {
-            output.u8(17)?;
-            output.bytes(publication_identity)?;
-            output.u8(*disposition_tag)?;
-            output.bytes(disposition_basis)?;
-            output.bytes(&observed_authority.fingerprint())
-        }
-        Kind::RecoveryPublicationFenceReleased {
-            publication_identity,
-            fence_identity,
-            fence_plan_fingerprint,
-            disposition_tag,
-        } => {
-            output.u8(20)?;
-            output.bytes(publication_identity)?;
-            output.bytes(fence_identity)?;
-            output.bytes(fence_plan_fingerprint)?;
-            output.u8(*disposition_tag)
-        }
     }
-}
-
-fn encode_publication(
-    output: &mut ControlRecordEncoder,
-    tag: u8,
-    binding: &super::RecoveryPublicationControlBinding,
-) -> Result<(), OperationalControlEncodingDenial> {
-    output.u8(tag)?;
-    output.u8(binding.operation_tag())?;
-    output.bytes(&binding.cutover_plan_fingerprint())?;
-    output.bytes(&binding.publication_plan_fingerprint())?;
-    output.bytes(&binding.publication_identity())?;
-    output.bytes(&binding.candidate_media_identity())?;
-    output.bytes(&binding.fence_identity())?;
-    output.bytes(&binding.fence_plan_fingerprint())?;
-    encode_authority_posture(output, binding.authority_posture())?;
-    encode_admission_policy(output, binding.admission_policy())
 }
 
 const fn workflow_tag(kind: OperationalWorkflowKind) -> u8 {

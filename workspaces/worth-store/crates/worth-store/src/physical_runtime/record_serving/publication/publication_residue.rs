@@ -20,24 +20,6 @@ pub struct RecordPublicationResidueObservation {
 }
 
 impl RecordPublicationResidueObservation {
-    pub(in crate::physical_runtime::record_serving) const fn merge(self, other: Self) -> Self {
-        Self {
-            staging_catalog_candidate: self.staging_catalog_candidate
-                || other.staging_catalog_candidate,
-            successor_root: self.successor_root || other.successor_root,
-            successor_routing_block: self.successor_routing_block || other.successor_routing_block,
-            successor_segment_membership_block: self.successor_segment_membership_block
-                || other.successor_segment_membership_block,
-            successor_free_space_membership_block: self.successor_free_space_membership_block
-                || other.successor_free_space_membership_block,
-            successor_free_space: self.successor_free_space || other.successor_free_space,
-            next_segment_data: self.next_segment_data || other.next_segment_data,
-            reusable_segment_data: self.reusable_segment_data || other.reusable_segment_data,
-            next_extent_data: self.next_extent_data || other.next_extent_data,
-            next_extent_manifest: self.next_extent_manifest || other.next_extent_manifest,
-        }
-    }
-
     pub const fn is_empty(self) -> bool {
         !(self.staging_catalog_candidate
             || self.successor_root
@@ -74,89 +56,6 @@ impl RecordPublicationResidueObservation {
     }
     pub const fn next_extent_artifacts(self) -> bool {
         self.next_extent_data || self.next_extent_manifest
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn from_failed_plan(
-        plan: &super::super::publication::PublicationPlan,
-        stage: super::super::RecordPublicationStage,
-    ) -> Self {
-        use super::super::publication::CandidateDataArtifact;
-        let data_may_exist = matches!(
-            stage,
-            super::super::RecordPublicationStage::CandidateDataWrite
-                | super::super::RecordPublicationStage::DataSynchronization
-                | super::super::RecordPublicationStage::PayloadManifestSynchronization
-                | super::super::RecordPublicationStage::ManifestSynchronization
-                | super::super::RecordPublicationStage::CatalogCandidateSynchronization
-                | super::super::RecordPublicationStage::CatalogReplacement
-                | super::super::RecordPublicationStage::NamespaceSynchronization
-        );
-        let manifests_may_exist = !matches!(
-            stage,
-            super::super::RecordPublicationStage::CandidateDataWrite
-                | super::super::RecordPublicationStage::DataSynchronization
-                | super::super::RecordPublicationStage::PayloadManifestSynchronization
-        );
-        let payload_manifests_may_exist = !matches!(
-            stage,
-            super::super::RecordPublicationStage::CandidateDataWrite
-                | super::super::RecordPublicationStage::DataSynchronization
-        );
-        let mut observation = Self {
-            staging_catalog_candidate: matches!(
-                stage,
-                super::super::RecordPublicationStage::CatalogCandidateSynchronization
-                    | super::super::RecordPublicationStage::CatalogReplacement
-                    | super::super::RecordPublicationStage::NamespaceSynchronization
-            ),
-            successor_root: manifests_may_exist,
-            successor_free_space: manifests_may_exist,
-            ..Self::default()
-        };
-        if data_may_exist {
-            for artifact in &plan.data {
-                match artifact {
-                    CandidateDataArtifact::Segment(plan) => match plan.artifact {
-                        RecordArtifactFile::Segment { generation: 1, .. } => {
-                            observation.next_segment_data = true;
-                        }
-                        RecordArtifactFile::Segment { .. } => {
-                            observation.reusable_segment_data = true;
-                        }
-                        _ => unreachable!("a segment data plan owns a segment artifact"),
-                    },
-                    CandidateDataArtifact::Extent(_) => observation.next_extent_data = true,
-                }
-            }
-        }
-        if manifests_may_exist {
-            for (artifact, _) in &plan.manifests {
-                match artifact {
-                    RecordArtifactFile::RootRoutingBlock { .. } => {
-                        observation.successor_routing_block = true;
-                    }
-                    RecordArtifactFile::SegmentMembershipBlock { .. } => {
-                        observation.successor_segment_membership_block = true;
-                    }
-                    RecordArtifactFile::FreeSpaceMembershipBlock { .. } => {
-                        observation.successor_free_space_membership_block = true;
-                    }
-                    RecordArtifactFile::ExtentManifest { .. } => {
-                        observation.next_extent_manifest = true;
-                    }
-                    _ => {}
-                }
-            }
-        }
-        if payload_manifests_may_exist
-            && plan
-                .payload_manifests
-                .iter()
-                .any(|(artifact, _)| matches!(artifact, RecordArtifactFile::ExtentManifest { .. }))
-        {
-            observation.next_extent_manifest = true;
-        }
-        observation
     }
 }
 

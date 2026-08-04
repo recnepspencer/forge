@@ -5,6 +5,8 @@ mod catalog;
 mod classification;
 #[cfg(feature = "physical-work-evidence")]
 mod courtroom_campaign;
+#[cfg(test)]
+mod durable_publication_boundary_gate;
 mod execution;
 mod local_source_fingerprint;
 mod mutation_campaign;
@@ -40,6 +42,7 @@ fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
             mutation_campaign::MutationCampaignRequest {
                 scope: arguments.mutation_scope,
                 list: arguments.list,
+                preflight: arguments.preflight,
                 selected: arguments.mutant,
                 first: arguments.first_mutant,
                 report: arguments.report.as_deref(),
@@ -59,6 +62,7 @@ fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
                     report: arguments.report.as_deref(),
                     schedule_seed: arguments.schedule_seed,
                     ci_schedule_lane: arguments.ci_schedule_lane,
+                    crash_seam: arguments.crash_seam.as_deref(),
                 },
             );
         }
@@ -70,6 +74,10 @@ fn run(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
             );
         }
     }
+    run_planned_product(arguments, workspace_root)
+}
+
+fn run_planned_product(arguments: Arguments, workspace_root: &Path) -> Result<(), String> {
     let catalog = TestCatalog::load(workspace_root)?;
     let plan = plan::TestPlan::build(&arguments.product, &catalog, workspace_root)?;
 

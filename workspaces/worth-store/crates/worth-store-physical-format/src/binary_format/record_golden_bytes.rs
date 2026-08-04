@@ -85,12 +85,13 @@ fn crc32c_matches_the_castagnoli_reference_vector() {
 fn current_catalog_golden_bytes_are_bit_exact() {
     let store = store(0x11);
     let bytes = BootstrapCatalog::new(store, format(), root_entry(7)).encode();
-    assert_eq!(&bytes[..10], b"WRC5FRM\0\x01\x01");
+    assert_eq!(&bytes[..10], b"WRC5FRM\0\x01\x02");
     assert_eq!(&bytes[10..20], &[1, 0, 0, 64, 0, 0, 1, 1, 1, 24]);
-    assert_eq!(&bytes[20..28], &[40, 0, 0, 0, 34, 0, 0, 0]);
+    assert_eq!(&bytes[20..28], &[48, 0, 0, 0, 34, 0, 0, 0]);
     assert_eq!(&bytes[28..36], &7_u64.to_le_bytes());
-    assert_eq!(&bytes[40..56], &[0x11; 16]);
-    assert_eq!(&bytes[56..64], &7_u64.to_le_bytes());
+    assert_eq!(&bytes[36..44], &0_u64.to_le_bytes());
+    assert_eq!(&bytes[48..64], &[0x11; 16]);
+    assert_eq!(&bytes[64..72], &7_u64.to_le_bytes());
     assert_eq!(
         BootstrapCatalog::decode(&bytes)
             .unwrap()
@@ -101,7 +102,7 @@ fn current_catalog_golden_bytes_are_bit_exact() {
     );
     assert_eq!(
         digest(&bytes),
-        "16884c80737d2ecaf18a429512b6f1d26326fbfe926a45664c75bd584325896a"
+        "6dc78896a6e4ab0b27eb299f623dda34fa8a5e60f0ed2cf73a18bd13375efc94"
     );
 }
 
@@ -135,11 +136,11 @@ fn manifest_and_empty_payload_page_round_trip_independently() {
     assert_eq!(decoded_block.entries().unwrap()[0].record(), record);
     assert_eq!(
         digest(&encoded_manifest),
-        "70f470698a18a7c1cc6e457f9360aee733c220cc92621802609e246b35e6c72d"
+        "5b968cd21588533d3d6992c58ba2f458340ac52950ca3c0865a0e3d3ac2b4d26"
     );
     assert_eq!(
         digest(&encoded_block),
-        "da8bfd04daaa58c1bf98fed5c545bc21a0a3eb28c46ae571b800505a18b5a73c"
+        "f0ecac4767bcbc051a7b72d18ac0d3618bd883b9d51b44b4c2a6c8eac1a7af04"
     );
 
     let page_cell = page_cell(1, 2);
@@ -152,7 +153,7 @@ fn manifest_and_empty_payload_page_round_trip_independently() {
     .unwrap();
     assert_eq!(
         digest(&page),
-        "8415aaa9afb4a6c9dfe40424de2c7583c47bffd00c749411066e52f220b07ad9"
+        "1a787c59c393ce7f232c41e8fd7c4398a70b81b533f4798d328389ce22281c74"
     );
     assert_eq!(page.len(), format().page_bytes() as usize);
     let range = decode_inline_record(&page, record, page_cell, slot_cell)
@@ -163,9 +164,9 @@ fn manifest_and_empty_payload_page_round_trip_independently() {
     let empty_page = encode_inline_page(format(), self::page_cell(2, 3), &[]).unwrap();
     assert_eq!(
         digest(&empty_page),
-        "f6b0cde6731ee0235bf0c131c45e17b3b02b64feae752fb6ec4a24266fcfbcb8"
+        "8012e9a71c22a06ff713d59b3275745e39a098d5c801a29d45c337e1a1195406"
     );
-    assert_eq!(&empty_page[56..58], &[0, 0]);
+    assert_eq!(&empty_page[64..66], &[0, 0]);
 
     let coordinate = ExtentChunkCoordinate::new(record, extent_cell(1, 4), 12, 0, 1).unwrap();
     let extent = encode_extent_chunk(format(), coordinate, b"large-record").unwrap();
@@ -177,7 +178,7 @@ fn manifest_and_empty_payload_page_round_trip_independently() {
 
 #[test]
 fn full_slot_directory_golden_bytes_are_bit_exact() {
-    let records = (1..=408_u64)
+    let records = (1..=407_u64)
         .map(|ordinal| PersistedRecordIdentity::new([5; 16], ordinal).unwrap())
         .collect::<Vec<_>>();
     let page_cell = page_cell(1, 9);
@@ -191,7 +192,7 @@ fn full_slot_directory_golden_bytes_are_bit_exact() {
     let page = encode_inline_page(format(), page_cell, &appends).unwrap();
     assert_eq!(
         digest(&page),
-        "5a98c19604b53313767dd5e79eeef5b992b3e8b4fa838deb2f982bcaa94e0d47"
+        "7549c217c0cae9cdfc283ea0734de028127b6732e2bc7b594ca964d3f3aed5fa"
     );
     assert!(
         page[decode_inline_record(&page, records[0], page_cell, slot_cell(1, 1, 9))
@@ -201,7 +202,7 @@ fn full_slot_directory_golden_bytes_are_bit_exact() {
         .is_empty()
     );
     assert!(
-        page[decode_inline_record(&page, records[407], page_cell, slot_cell(1, 408, 9))
+        page[decode_inline_record(&page, records[406], page_cell, slot_cell(1, 407, 9))
             .unwrap()
             .0
             .range()]
@@ -214,8 +215,8 @@ fn full_slot_directory_golden_bytes_are_bit_exact() {
             &appends
                 .into_iter()
                 .chain(std::iter::once(InlineRecordAppend::new(
-                    PersistedRecordIdentity::new([5; 16], 409).unwrap(),
-                    slot_cell(1, 409, 9),
+                    PersistedRecordIdentity::new([5; 16], 408).unwrap(),
+                    slot_cell(1, 408, 9),
                     &[],
                 )))
                 .collect::<Vec<_>>()

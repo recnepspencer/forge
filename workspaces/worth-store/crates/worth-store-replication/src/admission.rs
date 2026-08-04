@@ -1,6 +1,6 @@
 use worth_proof::{DenialTransitionOutcome, TransitionOutcome};
 use worth_store_authority::{StoreCurrentAuthorityIdentity, StoreCurrentAuthorityWitness};
-use worth_store_recovery_physics::{DurabilityReplayIdentity, DurableWalPublication};
+use worth_store_recovery_physics::DurabilityReplayIdentity;
 use worth_store_security::StoreReadmittedSecurityScope;
 
 use crate::{
@@ -37,7 +37,7 @@ pub struct AdmittedReplicationSource {
     lineage: ReplicationLineageIdentity,
     current_authority: StoreCurrentAuthorityIdentity,
     security_scope: StoreReadmittedSecurityScope,
-    durable_publication: DurableWalPublication,
+    replay_identity: DurabilityReplayIdentity,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,7 +75,7 @@ pub fn admit_replication_source(
     declaration: ReplicationSourceDeclaration,
     security_scope: StoreReadmittedSecurityScope,
     current_authority: &StoreCurrentAuthorityWitness,
-    durable_publication: DurableWalPublication,
+    replay_identity: DurabilityReplayIdentity,
 ) -> ReplicationSourceAdmissionOutcome {
     if security_scope.current_authority().authority_identity()
         != current_authority.authority_identity()
@@ -84,7 +84,7 @@ pub fn admit_replication_source(
             ReplicationSourceAdmissionDenial::CurrentAuthorityMismatch,
         );
     }
-    if !declaration_matches_replay(&declaration, durable_publication.replay_identity()) {
+    if !declaration_matches_replay(&declaration, &replay_identity) {
         return ReplicationSourceAdmissionOutcome::denied(
             ReplicationSourceAdmissionDenial::ReplayIdentityMismatch,
         );
@@ -111,7 +111,7 @@ pub fn admit_replication_source(
         lineage,
         current_authority: current_authority.authority_identity(),
         security_scope,
-        durable_publication,
+        replay_identity,
     })
 }
 
@@ -184,7 +184,7 @@ impl AdmittedReplicationSource {
         &self.security_scope
     }
 
-    pub const fn durable_publication(&self) -> &DurableWalPublication {
-        &self.durable_publication
+    pub const fn replay_identity(&self) -> &DurabilityReplayIdentity {
+        &self.replay_identity
     }
 }

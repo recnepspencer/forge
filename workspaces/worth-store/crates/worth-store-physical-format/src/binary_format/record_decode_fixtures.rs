@@ -119,7 +119,7 @@ fn independent_decode_fixtures_recover_every_phase_one_artifact() {
     );
     assert_eq!(block.entries().unwrap()[0].payload_bytes(), 3);
 
-    let page_payload_bytes = format().page_bytes() as usize - 40;
+    let page_payload_bytes = format().page_bytes() as usize - INDEPENDENT_FRAME_HEADER_BYTES;
     let mut page_payload = vec![0_u8; page_payload_bytes];
     page_payload[..8].copy_from_slice(&1_u64.to_le_bytes());
     page_payload[8..16].copy_from_slice(&1_u64.to_le_bytes());
@@ -162,7 +162,7 @@ fn independent_decode_fixtures_recover_every_phase_one_artifact() {
 #[test]
 fn inline_page_rejects_checksummed_noncanonical_gap_bytes() {
     let record = PersistedRecordIdentity::new([0x31; 16], 1).unwrap();
-    let payload_bytes = format().page_bytes() as usize - 40;
+    let payload_bytes = format().page_bytes() as usize - INDEPENDENT_FRAME_HEADER_BYTES;
     let mut payload = vec![0_u8; payload_bytes];
     payload[..8].copy_from_slice(&1_u64.to_le_bytes());
     payload[8..16].copy_from_slice(&1_u64.to_le_bytes());
@@ -191,18 +191,22 @@ fn canonical_format_bytes() -> [u8; 10] {
     [1, 0, 0, 64, 0, 0, 1, 1, 1, 24]
 }
 
+const INDEPENDENT_FRAME_HEADER_BYTES: usize = 48;
+const INDEPENDENT_CHECKSUM_OFFSET: usize = 44;
+
 fn independent_frame(kind: u8, identity: u64, payload: &[u8]) -> Vec<u8> {
-    let mut bytes = vec![0_u8; 40 + payload.len()];
+    let mut bytes = vec![0_u8; INDEPENDENT_FRAME_HEADER_BYTES + payload.len()];
     bytes[..8].copy_from_slice(b"WRC5FRM\0");
     bytes[8] = kind;
-    bytes[9] = 1;
+    bytes[9] = 2;
     bytes[10..20].copy_from_slice(&canonical_format_bytes());
-    bytes[20..22].copy_from_slice(&40_u16.to_le_bytes());
+    bytes[20..22].copy_from_slice(&(INDEPENDENT_FRAME_HEADER_BYTES as u16).to_le_bytes());
     bytes[24..28].copy_from_slice(&(payload.len() as u32).to_le_bytes());
     bytes[28..36].copy_from_slice(&identity.to_le_bytes());
-    bytes[40..].copy_from_slice(payload);
-    let checksum = independent_crc32c(&[&bytes[..36], payload]);
-    bytes[36..40].copy_from_slice(&checksum.to_le_bytes());
+    bytes[INDEPENDENT_FRAME_HEADER_BYTES..].copy_from_slice(payload);
+    let checksum = independent_crc32c(&[&bytes[..INDEPENDENT_CHECKSUM_OFFSET], payload]);
+    bytes[INDEPENDENT_CHECKSUM_OFFSET..INDEPENDENT_FRAME_HEADER_BYTES]
+        .copy_from_slice(&checksum.to_le_bytes());
     bytes
 }
 

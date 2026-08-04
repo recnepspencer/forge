@@ -224,37 +224,6 @@ impl PersistedOperationalControlRecordKind {
                 OperationalControlRecordKind::RecoveryStagingCompleted {
                     authorization_identity, plan_fingerprint, execution_plan_fingerprint,
                     staged_media_identity },
-            Self::RecoveryPublicationPending { operation_tag, cutover_plan_fingerprint,
-                publication_plan_fingerprint, publication_identity, candidate_media_identity,
-                fence_identity, fence_plan_fingerprint, authority_posture, admission_policy } =>
-                OperationalControlRecordKind::RecoveryPublicationPending {
-                    binding: super::control_record::RecoveryPublicationControlBinding::from_persisted(
-                        operation_tag, cutover_plan_fingerprint, publication_plan_fingerprint,
-                        publication_identity, candidate_media_identity, fence_identity,
-                        fence_plan_fingerprint, authority_posture, admission_policy,
-                    )
-                },
-            Self::RecoveryPublicationPrepared { operation_tag, cutover_plan_fingerprint,
-                publication_plan_fingerprint, publication_identity, candidate_media_identity,
-                fence_identity, fence_plan_fingerprint, authority_posture, admission_policy } =>
-                OperationalControlRecordKind::RecoveryPublicationPrepared {
-                    binding: super::control_record::RecoveryPublicationControlBinding::from_persisted(
-                        operation_tag, cutover_plan_fingerprint, publication_plan_fingerprint,
-                        publication_identity, candidate_media_identity, fence_identity,
-                        fence_plan_fingerprint, authority_posture, admission_policy,
-                    )
-                },
-            Self::RecoveryPublicationDisposition { publication_identity, disposition_tag,
-                disposition_basis, observed_authority } =>
-                OperationalControlRecordKind::RecoveryPublicationDisposition {
-                    publication_identity, disposition_tag, disposition_basis,
-                    observed_authority: worth_store_authority::StoreCurrentAuthorityIdentity::from_persisted_fingerprint(
-                        observed_authority), },
-            Self::RecoveryPublicationFenceReleased { publication_identity, fence_identity,
-                fence_plan_fingerprint, disposition_tag } =>
-                OperationalControlRecordKind::RecoveryPublicationFenceReleased {
-                    publication_identity, fence_identity, fence_plan_fingerprint, disposition_tag,
-                },
         })
     }
 }

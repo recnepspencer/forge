@@ -1,13 +1,17 @@
 use std::{io::Write, path::Path};
 
+use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    ManifestEntryCapacity, PageFillPercent, PhysicalRecordPlacementPolicy, RecordAppendBatch,
-    RecordAppendDenial, RecordAppendError, RecordByteLimit, SegmentPageCount,
+    ManifestEntryCapacity, PageFillPercent, PhysicalManifestCapacityTransition,
+    PhysicalMutationIdempotencyMaterial, PhysicalMutationPreparationDenial,
+    PhysicalRecordPlacementPolicy, RecordAppendBatch, RecordAppendDenial, RecordByteLimit,
+    SegmentPageCount,
 };
 use worth_store_physical_backend::MediaOperationRole;
 
 use super::super::{
-    allocation_probe::allocations_during, configuration, serving_from_initialization,
+    allocation_probe::allocations_during, configuration, durable_publication,
+    serving_from_initialization,
 };
 
 pub(super) fn batch() {
@@ -44,8 +48,16 @@ pub(super) fn geometry(root: &Path) {
     let writes_before = serving
         .media_counters()
         .attempts_for(MediaOperationRole::PositionedWrite);
-    let (result, allocations) =
-        allocations_during(|| serving.record_submission().append_batch(batch, placement));
+    let (result, allocations) = allocations_during(|| {
+        durable_publication::prepare_single(
+            &serving.record_submission(),
+            placement,
+            PhysicalManifestCapacityTransition::PreserveCurrent,
+            PhysicalMutationIdempotencyMaterial::new([211; 32]),
+            batch,
+        )
+        .into_raw()
+    });
     let writes_after = serving
         .media_counters()
         .attempts_for(MediaOperationRole::PositionedWrite);
@@ -56,7 +68,7 @@ pub(super) fn geometry(root: &Path) {
         writes_after - writes_before,
         matches!(
             result,
-            Err(RecordAppendError::Denied(
+            TransitionOutcome::Denied(PhysicalMutationPreparationDenial::RecordAppend(
                 RecordAppendDenial::InlinePageFull
             ))
         )

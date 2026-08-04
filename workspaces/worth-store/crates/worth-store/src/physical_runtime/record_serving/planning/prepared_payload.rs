@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use worth_store_physical_format::{
-    CurrentPhysicalRecordPlacement, PersistedRecordIdentity, RecordArtifactFile,
-    RecordSegmentPageManifestEntry, SegmentGenerationCell, SegmentPageKey,
+    CurrentPhysicalRecordPlacement, DurablePhysicalRootManifest, PersistedRecordIdentity,
+    RecordArtifactFile, RecordSegmentPageManifestEntry, SegmentGenerationCell, SegmentPageKey,
 };
 
 use super::super::{
@@ -23,6 +23,11 @@ use super::super::{
 };
 
 pub(in crate::physical_runtime::record_serving) struct PreparedRecordPayloadPlan {
+    pub(in crate::physical_runtime::record_serving) source_root: DurablePhysicalRootManifest,
+    pub(in crate::physical_runtime::record_serving) manifest_capacity_transition:
+        super::super::publication::PhysicalManifestCapacityTransition,
+    pub(in crate::physical_runtime::record_serving) placement:
+        super::super::AdmittedRecordPlacementPolicy,
     pub(in crate::physical_runtime::record_serving) records: Vec<PersistedRecordIdentity>,
     pub(in crate::physical_runtime::record_serving) data: Vec<CandidateDataArtifact>,
     pub(in crate::physical_runtime::record_serving) payload_manifests:
@@ -101,6 +106,10 @@ pub(in crate::physical_runtime::record_serving) fn prepare_payload_plan(
         manifest_bytes_read: 0,
     };
     Ok(PreparedRecordPayloadPlan {
+        source_root: current_root.clone(),
+        manifest_capacity_transition:
+            super::super::publication::PhysicalManifestCapacityTransition::PreserveCurrent,
+        placement,
         records: classified.identities,
         data,
         payload_manifests,

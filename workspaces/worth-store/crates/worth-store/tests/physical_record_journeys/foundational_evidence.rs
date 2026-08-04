@@ -7,12 +7,12 @@ use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
     lower_record_operation_performance_receipt, lower_record_publication_canonical_basis,
     PhysicalRecordAccessSummary, PhysicalRecordPerformanceContract, RecordAppendBatch,
-    RecordAppendPerformanceExpectation, RecordByteLimit, RecordLocatePerformanceExpectation,
-    RecordManifestPerformanceExpectation, RecordReadLimits, RecordScanOutcome,
-    RecordScanPerformanceExpectation, RecordScanRequest, RecordTransferPerformanceExpectation,
+    RecordByteLimit, RecordLocatePerformanceExpectation, RecordManifestPerformanceExpectation,
+    RecordReadLimits, RecordScanOutcome, RecordScanPerformanceExpectation, RecordScanRequest,
+    RecordTransferPerformanceExpectation,
 };
 
-use super::{configuration, serving_from_initialization};
+use super::{configuration, durable_publication, serving_from_initialization};
 
 #[test]
 fn runtime_and_offline_topology_have_canonical_parity() {
@@ -21,17 +21,18 @@ fn runtime_and_offline_topology_have_canonical_parity() {
     let (format, placement, _) = configuration();
     let serving = serving_from_initialization(&root);
     let inline = (0..70).map(|ordinal| vec![ordinal as u8; 257]);
-    serving
-        .record_submission()
-        .append_batch(RecordAppendBatch::try_from_iter(inline).unwrap(), placement)
-        .unwrap();
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([vec![0x91; 20_000]]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("foundational-topology-parity", 1),
+        RecordAppendBatch::try_from_iter(inline).unwrap(),
+    );
+    durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("foundational-topology-parity", 2),
+        RecordAppendBatch::try_from_iter([vec![0x91; 20_000]]).unwrap(),
+    );
 
     let runtime = serving.certification_publication_summary().unwrap();
     let offline = worth_store_offline_verifier::walk_current_durable_record_manifest(
@@ -86,40 +87,13 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(&root);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"counter receipt".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    let append_summary = PhysicalRecordAccessSummary::from_published_batch(&published);
-    assert!(matches!(
-        lower_record_operation_performance_receipt(
-            PhysicalRecordPerformanceContract::append(zero_append_expectation()),
-            append_summary,
-        ),
-        Err(worth_store::physical_runtime::RecordPerformanceEvidenceDenial::Receipt(_))
-    ));
-    let append = lower_record_operation_performance_receipt(
-        PhysicalRecordPerformanceContract::append(RecordAppendPerformanceExpectation {
-            records: 1,
-            payload_bytes: 15,
-            manifest: manifest_expectation(1, 120, 0),
-            allocated_segments: 1,
-            allocated_extents: 0,
-            transfer: transfer_expectation(8, 16_384, 1, 15, 16_384),
-            file_barriers: 29,
-            directory_barriers: 52,
-            catalog_replacements: 1,
-        }),
-        append_summary,
-    )
-    .unwrap();
-    assert_eq!(append.counter_rows().len(), 20);
-    assert_rows_fail_closed(&append);
-
-    let record = published.record_id(0).unwrap();
+    let published = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("foundational-counter-receipt", 1),
+        RecordAppendBatch::try_from_iter([b"counter receipt".as_slice()]).unwrap(),
+    );
+    let record = published.settled_members()[0].record_id(0).unwrap();
     serving
         .certification_physical_residency()
         .drain_unpinned_clean_frames();
@@ -133,16 +107,29 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     let mut scratch = [0_u8; 64];
     while read.read_next(&mut scratch).unwrap() != 0 {}
     let read = PhysicalRecordAccessSummary::from_completed_read(read.observation()).unwrap();
-    lower_record_operation_performance_receipt(
+    assert!(matches!(
+        lower_record_operation_performance_receipt(
+            PhysicalRecordPerformanceContract::locate(zero_locate_expectation()),
+            read,
+        ),
+        Err(worth_store::physical_runtime::RecordPerformanceEvidenceDenial::Receipt(_))
+    ));
+    let read = lower_record_operation_performance_receipt(
         PhysicalRecordPerformanceContract::locate(RecordLocatePerformanceExpectation {
             payload_bytes: 15,
-            manifest: manifest_expectation(2, 288, 2),
+            manifest: manifest_expectation(
+                2,
+                208 + 2 * super::durable_frame_oracle::HEADER_BYTES as u64,
+                2,
+            ),
             transfer: transfer_expectation(1, 16_384, 1, 15, 0),
             frames_traversed: 3,
         }),
         read,
     )
     .unwrap();
+    assert_eq!(read.counter_rows().len(), 20);
+    assert_rows_fail_closed(&read);
 
     let mut scan = serving
         .records()
@@ -159,7 +146,11 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
         PhysicalRecordPerformanceContract::scan(RecordScanPerformanceExpectation {
             records: 1,
             payload_bytes: 15,
-            manifest: manifest_expectation(2, 288, 1),
+            manifest: manifest_expectation(
+                2,
+                208 + 2 * super::durable_frame_oracle::HEADER_BYTES as u64,
+                1,
+            ),
             transfer: transfer_expectation(1, 16_384, 1, 15, 0),
             frames_traversed: 3,
         }),
@@ -169,17 +160,12 @@ fn counter_receipt_rejects_missing_duplicate_and_mismatched_rows() {
     serving.close();
 }
 
-fn zero_append_expectation() -> RecordAppendPerformanceExpectation {
-    RecordAppendPerformanceExpectation {
-        records: 0,
+fn zero_locate_expectation() -> RecordLocatePerformanceExpectation {
+    RecordLocatePerformanceExpectation {
         payload_bytes: 0,
         manifest: manifest_expectation(0, 0, 0),
-        allocated_segments: 0,
-        allocated_extents: 0,
         transfer: transfer_expectation(0, 0, 0, 0, 0),
-        file_barriers: 0,
-        directory_barriers: 0,
-        catalog_replacements: 0,
+        frames_traversed: 0,
     }
 }
 

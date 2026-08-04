@@ -12,7 +12,6 @@ mod btree_replay;
 mod candidate_evaluation;
 mod checkpoint_cutover;
 mod corruption_readmission;
-mod durable_publication;
 mod entry;
 mod integrity_damage_map;
 mod integrity_handoff;
@@ -31,6 +30,7 @@ mod recovery_completion;
 mod recovery_evidence;
 mod recovery_integrity_handoff_receipt;
 mod redo_replay;
+mod replay_basis;
 mod replay_receipt;
 mod replica_bootstrap_source;
 mod rollback_recovery;
@@ -39,7 +39,7 @@ mod security_metadata_admission;
 mod security_metadata_tests;
 mod security_scope_propagation;
 mod source_precedence;
-mod wal_durability;
+mod wal_recovery_basis;
 mod wal_topology;
 
 pub use backup_restore::{
@@ -72,27 +72,17 @@ pub use checkpoint_cutover::{
     CheckpointLocatorArtifactCommitment, CheckpointManifest, CheckpointPageLsnFrontier,
     CheckpointPublicationPlan, CheckpointRecoveryCounterSnapshot, CheckpointRedoBoundary,
     CheckpointRootPosture, CheckpointSelectorEvidence, CheckpointValidation,
-    CheckpointValidationDenial, CheckpointValidationDenialKind, ContiguousWalTailProof,
-    DurableRootSelector, FuzzyCheckpointCertificationModeDenial,
-    FuzzyCheckpointCertificationModeDenialKind, LocatedCheckpointCandidate,
-    RecoveredCheckpointCutoverState, RecoveredCheckpointManifestMedia, RecoveredCheckpointRoot,
-    RecoveredCheckpointSelector, SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator,
-    SuperblockRingCheckpointPointer, WalRetentionAction, WalRetentionAdmittedAction,
-    WalRetentionCandidateSegment, WalRetentionEligibility, WalRetentionRequest,
+    CheckpointValidationDenial, CheckpointValidationDenialKind, DurableRootSelector,
+    FuzzyCheckpointCertificationModeDenial, FuzzyCheckpointCertificationModeDenialKind,
+    LocatedCheckpointCandidate, RecoveredCheckpointCutoverState, RecoveredCheckpointManifestMedia,
+    RecoveredCheckpointRoot, RecoveredCheckpointSelector, SharpCheckpointCertificationMode,
+    StoreOwnedCheckpointLocator, SuperblockRingCheckpointPointer,
 };
 pub use corruption_readmission::{
     admit_recovery_corruption_readmission, classify_recovery_repair_capability,
     verify_quarantine_handoff_for_readmission, verify_store_authority_for_readmission,
     RecoveryCorruptionReadmissionDenial, RecoveryCorruptionReadmissionHandoff,
     RecoveryCorruptionRepairCapability,
-};
-#[cfg(feature = "certification-test-authority")]
-pub use durable_publication::certified_durable_wal_publication_for_test;
-pub use durable_publication::{
-    CheckpointCrashDurabilityPosture, DurabilityRecoveryReplaySource,
-    DurabilityRecoverySourcePrecedence, DurabilityReplayIdentity, DurabilityReplayKind,
-    DurableCheckpointPublication, DurableManifestPublication, DurableWalPublication,
-    StoreDurablePublicationDenial, StoreDurablePublicationDenialKind,
 };
 pub use entry::admission::RecoveryEntryAdmission;
 pub use entry::basis::RecoveryEntryBasis;
@@ -219,6 +209,9 @@ pub use redo_replay::{
     StaleWalGenerationDenial, TornWalTailClassification, WalPrefixIntegrityObservation,
     WalPrefixObservationScan, WalValidPrefix, WalValidPrefixCounters,
 };
+pub use replay_basis::{
+    DurabilityReplayIdentity, DurabilityReplayIdentityDenial, DurabilityReplayKind,
+};
 pub use replay_receipt::{CheckpointValidityDecision, WalReplayReceipt};
 pub use replica_bootstrap_source::{
     BootstrapSourceArtifact, BootstrapSourceArtifactFamily, BootstrapSourceEvidenceBinding,
@@ -246,11 +239,11 @@ pub use source_precedence::{
     CompactionArtifactResidueReason, CompactionArtifactResidueRejection,
     CompactionCutoverRecoveryPosture, CompactionGenerationIdentity, CompactionGenerationVisibility,
     CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
-    PageLsnSkipApplyDecision, PhysicalRecoverySource, RecoverableOldCompactionGeneration,
-    RecoveryCandidateDiscoveryTrace, RecoverySourceApplicationRole, RecoverySourceCandidate,
-    RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,
-    RecoverySourceDecisionTrace, WalOnlyTailProof, WalOnlyTailProofDenial,
-    WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
+    ContiguousWalTailProof, PageLsnSkipApplyDecision, PhysicalRecoverySource,
+    RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
+    RecoverySourceApplicationRole, RecoverySourceCandidate, RecoverySourceDecisionKind,
+    RecoverySourceDecisionOutcome, RecoverySourceDecisionRow, RecoverySourceDecisionTrace,
+    WalOnlyTailProof, WalOnlyTailProofDenial, WalTailIntegrityQuarantineHandoff, WalTailRedoSource,
 };
 pub use staged_wal_application::{
     StagedWalApplicationDenial, StagedWalApplicationPort, StagedWalApplicationProviderReceipt,
@@ -258,14 +251,12 @@ pub use staged_wal_application::{
 };
 pub use staged_wal_replay_source::{StagedWalReplaySourceDenial, StagedWalReplaySourceReceipt};
 #[cfg(feature = "certification-test-authority")]
-pub use wal_durability::execute_wal_durability_with_boundary_control;
-pub use wal_durability::{
-    execute_wal_durability, AcknowledgmentPrecondition, DurableAckBasis, DurableAckReceipt,
-    ExecutedWalDurabilityOutcome, IllegalAcknowledgmentDenial, IllegalAcknowledgmentDenialKind,
-    WalAppendDurabilityScope, WalAppendPlan, WalAppendProgress, WalAppendReceipt,
+pub use wal_recovery_basis::WalAppendFailureObservation;
+pub use wal_recovery_basis::{
+    ReopenedWalDurabilityCrashRecord, WalAppendObservationScope, WalAppendReceipt,
     WalDurabilityCrashBasis, WalDurabilityCrashPosture, WalDurabilityCrashRecord,
-    WalDurabilityExecutionError, WalDurabilityObservation, WalDurabilityObservationSequence,
-    WalFrameDigest,
+    WalDurabilityObservation, WalDurabilityObservationBasis, WalDurabilityObservationDenial,
+    WalDurabilityObservationDenialKind, WalFrameDigest,
 };
 pub use wal_topology::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalSegmentId};
 pub use worth_store_contracts::CorruptionHandoffDamageCase;

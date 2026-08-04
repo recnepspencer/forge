@@ -2,7 +2,7 @@ use worth_signal::facade::adapters::NodeContract;
 use worth_signal::facade::core::AsyncCapableNode;
 use worth_signal::facade::{
     AspectMask, AsyncNodeCapabilityDeclaration, AsyncNodePayloadContract,
-    AsyncNodePayloadContractId, DependencyEdge, NodeId, SignalError, SignalGraph, SignalRuntime,
+    AsyncNodePayloadContractId, NodeId, SignalError, SignalGraph, SignalRuntime,
 };
 
 use super::{
@@ -60,15 +60,6 @@ impl PhysicalWorkSignalDeclaration {
             max_payload_bytes: spec.max_payload_bytes(),
         }
     }
-
-    pub(in crate::physical_runtime) fn for_family(
-        family: PhysicalWorkSignalFamily,
-    ) -> Option<Self> {
-        PHYSICAL_ASYNC_CAPABILITIES
-            .into_iter()
-            .find(|spec| spec.family() == family)
-            .map(Self::from_spec)
-    }
 }
 
 impl PendingPhysicalSignalTopology {
@@ -82,11 +73,9 @@ impl PendingPhysicalSignalTopology {
                 .len()
                 .saturating_mul(PHYSICAL_ASYNC_CAPABILITIES.len()),
         );
-        for (slot, binding) in bindings.bindings().iter().enumerate() {
+        for binding in bindings.bindings() {
             for spec in PHYSICAL_ASYNC_CAPABILITIES {
-                if let Some(capability) =
-                    declare_binding_capability(graph, sources[slot], binding, spec)?
-                {
+                if let Some(capability) = declare_binding_capability(graph, binding, spec)? {
                     capabilities.push(capability);
                 }
             }
@@ -144,7 +133,6 @@ fn declare_binding_sources(
 
 fn declare_binding_capability(
     graph: &mut SignalGraph,
-    source: NodeId,
     binding: &super::PhysicalSignalAspectBinding,
     spec: super::profile::PhysicalAsyncCapabilitySpec,
 ) -> Result<Option<PendingPhysicalSignalCapability>, SignalError> {
@@ -166,9 +154,6 @@ fn declare_binding_capability(
         .with_contract(NodeContract::reads(consumed).with_produces(AspectMask::EMPTY))
         .on_demand()
         .build();
-    if is_dependency {
-        declare_dependency_edge(graph, source, node, binding)?;
-    }
     let payload = AsyncNodePayloadContract::new(AsyncNodePayloadContractId::new(
         declaration.payload_contract_id,
     ))
@@ -181,29 +166,6 @@ fn declare_binding_capability(
             AsyncNodeCapabilityDeclaration::new(node, payload),
         ),
     }))
-}
-
-fn declare_dependency_edge(
-    graph: &mut SignalGraph,
-    source: NodeId,
-    node: NodeId,
-    binding: &super::PhysicalSignalAspectBinding,
-) -> Result<(), SignalError> {
-    let subscription = binding
-        .projection_subscription()
-        .expect("profile admission proved dependency projection mask");
-    debug_assert!(subscription.signal_mask().contains(binding.signal_mask()));
-    graph.set_dependencies(
-        node,
-        [match subscription.partition() {
-            Some(partition) => DependencyEdge::with_partition_scope(
-                source,
-                binding.signal_aspect(),
-                partition.clone(),
-            ),
-            None => DependencyEdge::new(source, binding.signal_aspect()),
-        }],
-    )
 }
 
 impl InstalledPhysicalSignalTopology {

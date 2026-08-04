@@ -1,4 +1,3 @@
-mod append_preparation;
 mod evidence;
 mod fixture;
 pub(super) mod fresh_process;
@@ -15,8 +14,8 @@ const MODEL: LifecycleMaelstromModel = LifecycleMaelstromModel {
     retry_write_attempts: 2,
     retry_write_completions: 1,
     exact_writeback_effects: 1,
-    append_generations: [2, 3],
-    append_records: [b"phase-16-left-append", b"phase-16-right-append"],
+    fresh_root_generation: 1,
+    fresh_records: &[],
 };
 
 struct LifecycleMaelstromModel {
@@ -24,8 +23,8 @@ struct LifecycleMaelstromModel {
     retry_write_attempts: u64,
     retry_write_completions: u64,
     exact_writeback_effects: u64,
-    append_generations: [u64; 2],
-    append_records: [&'static [u8]; 2],
+    fresh_root_generation: u64,
+    fresh_records: &'static [&'static [u8]],
 }
 
 #[test]

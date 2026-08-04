@@ -177,7 +177,7 @@ fn owner_localization_spec(
             AbstractionFunctionIdentity::DurabilityOwnerMapping,
             ProtocolFrontierIdentity::Durability,
             CanonicalProtocolAction::DurabilityRecovery(
-                DurabilityRecoveryAction::WalAcknowledgmentLegal,
+                DurabilityRecoveryAction::PhysicalMutationAcknowledged,
             ),
         ),
         ControlledProtocolMutant::RecoveryQuarantinedSourceSelected => (

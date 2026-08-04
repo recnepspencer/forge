@@ -4,9 +4,9 @@ use crate::membership::durable_artifact::{
 };
 use crate::membership::{LsmCompactionMembership, LsmMembershipDenial, LsmMembershipKey};
 use crate::{
-    AdmittedCheckpointPublicationReceipt, AdmittedWalAppendReceipt, BlobWalRecordEnvelope,
-    BlobWalRecordIdentity, CheckpointDurablePublicationScope, DurablePublicationDeclaration,
-    StoreCheckpointRecordIdentity, WalFrameDurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, CheckpointArtifactObservation,
+    CheckpointPublicationScope, PublicationDeclaration, StoreCheckpointRecordIdentity,
+    WalFrameArtifactObservation, WalFramePublicationScope,
 };
 use sha2::{Digest, Sha256};
 
@@ -30,7 +30,7 @@ impl PublishedLsmMembershipIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedLsmReplacementOutput {
     envelope: BlobWalRecordEnvelope,
-    scope: WalFrameDurablePublicationScope,
+    scope: WalFramePublicationScope,
     persisted_path: std::path::PathBuf,
     persisted_frame_offset: u64,
     persisted_offset: u64,
@@ -44,13 +44,13 @@ pub struct AdmittedLsmReplacementOutput {
 
 pub fn admit_lsm_replacement_output(
     selected: &LsmCompactionMembership,
-    durable: AdmittedWalAppendReceipt,
+    observation: WalFrameArtifactObservation,
     physical: crate::LsmPhysicalCompactionIntent,
 ) -> Result<AdmittedLsmReplacementOutput, LsmMembershipDenial> {
     let identity = selected
         .expected_output_identity()
         .ok_or(LsmMembershipDenial::ReplacementOutputMismatch)?;
-    let scope = durable.scope();
+    let scope = observation.scope();
     let expected_digest = selected.compaction_output_digest(
         physical.root_scope(),
         physical.target_epoch(),
@@ -68,12 +68,12 @@ pub fn admit_lsm_replacement_output(
         .ok_or(LsmMembershipDenial::ReplacementOutputMismatch)?;
     if !store_scope_matches
         || scope.lsn_start() != expected_output_lsn
-        || scope.expected_bytes() != durable.persisted_bytes()
+        || scope.expected_bytes() != observation.payload_bytes()
         || scope.frame_digest() != expected_digest
         || !persisted_artifact_range_matches(
-            durable.persisted_path(),
-            durable.persisted_offset(),
-            durable.persisted_bytes(),
+            observation.path(),
+            observation.payload_offset(),
+            observation.payload_bytes(),
             &lsm_membership_output_bytes(scope),
         )
     {
@@ -81,17 +81,17 @@ pub fn admit_lsm_replacement_output(
     }
     let envelope = BlobWalRecordEnvelope::new(
         identity,
-        DurablePublicationDeclaration::wal_frame(scope.clone()),
+        PublicationDeclaration::wal_frame(scope.clone()),
         scope.frame_digest().to_owned(),
     )
     .map_err(|_| LsmMembershipDenial::ReplacementOutputMismatch)?;
     Ok(AdmittedLsmReplacementOutput {
         envelope,
         scope: scope.clone(),
-        persisted_path: durable.persisted_path().to_path_buf(),
-        persisted_frame_offset: durable.persisted_frame_offset(),
-        persisted_offset: durable.persisted_offset(),
-        persisted_bytes: durable.persisted_bytes(),
+        persisted_path: observation.path().to_path_buf(),
+        persisted_frame_offset: observation.frame_offset(),
+        persisted_offset: observation.payload_offset(),
+        persisted_bytes: observation.payload_bytes(),
         key: selected.key(),
         selected_identities: selected.identities(),
         membership_version: selected.version(),
@@ -102,7 +102,7 @@ pub fn admit_lsm_replacement_output(
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedLsmMembershipReplacement {
-    checkpoint: AdmittedCheckpointPublicationReceipt,
+    checkpoint: CheckpointArtifactObservation,
     output: AdmittedLsmReplacementOutput,
     identity: PublishedLsmMembershipIdentity,
 }
@@ -115,22 +115,18 @@ pub struct LsmMembershipActivationDeclaration {
     selected_version: u64,
     store_binding: String,
     output: AdmittedLsmReplacementOutput,
-    scope: CheckpointDurablePublicationScope,
+    scope: CheckpointPublicationScope,
     bytes: Vec<u8>,
 }
 
 pub fn admit_lsm_membership_replacement(
     selected: &LsmCompactionMembership,
     activation: LsmMembershipActivationDeclaration,
-    checkpoint: AdmittedCheckpointPublicationReceipt,
+    checkpoint: CheckpointArtifactObservation,
 ) -> Result<AdmittedLsmMembershipReplacement, LsmMembershipDenial> {
     if !activation.binds(selected)
         || checkpoint.scope() != activation.scope()
-        || !persisted_artifact_matches(
-            checkpoint.persisted_path(),
-            checkpoint.persisted_bytes(),
-            activation.bytes(),
-        )
+        || !persisted_artifact_matches(checkpoint.path(), checkpoint.bytes(), activation.bytes())
     {
         return Err(LsmMembershipDenial::ManifestMembershipMismatch);
     }
@@ -183,7 +179,7 @@ pub fn prepare_lsm_membership_activation(
         publication.old_root().manifest_epoch().get(),
         publication.new_root().manifest_epoch().get(),
     );
-    let scope = CheckpointDurablePublicationScope::new(
+    let scope = CheckpointPublicationScope::new(
         StoreCheckpointRecordIdentity::new(checkpoint_epoch),
         digest,
         covered_lsn_start,
@@ -206,7 +202,7 @@ pub fn prepare_lsm_membership_activation(
 }
 
 impl LsmMembershipActivationDeclaration {
-    pub const fn scope(&self) -> &CheckpointDurablePublicationScope {
+    pub const fn scope(&self) -> &CheckpointPublicationScope {
         &self.scope
     }
 
@@ -237,7 +233,7 @@ impl AdmittedLsmReplacementOutput {
         self.envelope.identity()
     }
 
-    pub const fn scope(&self) -> &WalFrameDurablePublicationScope {
+    pub const fn scope(&self) -> &WalFramePublicationScope {
         &self.scope
     }
 
@@ -281,16 +277,16 @@ impl AdmittedLsmMembershipReplacement {
         &self.output
     }
 
-    pub fn scope(&self) -> &CheckpointDurablePublicationScope {
+    pub fn scope(&self) -> &CheckpointPublicationScope {
         self.checkpoint.scope()
     }
 
     pub fn persisted_path(&self) -> &std::path::Path {
-        self.checkpoint.persisted_path()
+        self.checkpoint.path()
     }
 
     pub const fn persisted_bytes(&self) -> u64 {
-        self.checkpoint.persisted_bytes()
+        self.checkpoint.bytes()
     }
 
     pub const fn identity(&self) -> PublishedLsmMembershipIdentity {
@@ -304,8 +300,8 @@ pub struct PublishedLsmMembershipReplacement {
     key: LsmMembershipKey,
     retired: crate::membership::LsmCompactionRecordIdentitySet,
     output: BlobWalRecordIdentity,
-    output_scope: WalFrameDurablePublicationScope,
-    activation_scope: CheckpointDurablePublicationScope,
+    output_scope: WalFramePublicationScope,
+    activation_scope: CheckpointPublicationScope,
     output_path: std::path::PathBuf,
     output_offset: u64,
     output_bytes: u64,
@@ -337,8 +333,8 @@ impl PublishedLsmMembershipReplacement {
         key: LsmMembershipKey,
         retired: crate::membership::LsmCompactionRecordIdentitySet,
         output: BlobWalRecordIdentity,
-        output_scope: WalFrameDurablePublicationScope,
-        activation_scope: CheckpointDurablePublicationScope,
+        output_scope: WalFramePublicationScope,
+        activation_scope: CheckpointPublicationScope,
         artifact: PublishedLsmMembershipOutputArtifact,
     ) -> Self {
         Self {
@@ -374,7 +370,7 @@ impl PublishedLsmMembershipReplacement {
         self.output_bytes
     }
 
-    pub const fn activation_scope(&self) -> &CheckpointDurablePublicationScope {
+    pub const fn activation_scope(&self) -> &CheckpointPublicationScope {
         &self.activation_scope
     }
 

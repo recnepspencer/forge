@@ -5,6 +5,7 @@ pub enum ForegroundFairnessClass {
     PointRead,
     RangeRead,
     CommitCriticalWalWrite,
+    RootPublication,
     OrdinaryPageWrite,
     InteractiveRead,
     InternalForegroundRead,
@@ -50,9 +51,11 @@ impl ForegroundArbitrationPolicy {
         match lane {
             ForegroundIoLaneKind::PointRead => ForegroundFairnessClass::PointRead,
             ForegroundIoLaneKind::RangeRead => ForegroundFairnessClass::RangeRead,
-            ForegroundIoLaneKind::CommitCriticalWalWrite => {
+            ForegroundIoLaneKind::CommitCriticalWalAppend
+            | ForegroundIoLaneKind::CommitCriticalWalWrite => {
                 ForegroundFairnessClass::CommitCriticalWalWrite
             }
+            ForegroundIoLaneKind::RootPublication => ForegroundFairnessClass::RootPublication,
             ForegroundIoLaneKind::OrdinaryPageWrite => ForegroundFairnessClass::OrdinaryPageWrite,
             ForegroundIoLaneKind::InteractiveRead => ForegroundFairnessClass::InteractiveRead,
             ForegroundIoLaneKind::InternalForegroundRead => {

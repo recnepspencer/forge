@@ -52,20 +52,6 @@ impl LayoutBindingWitness {
         }
     }
 
-    pub(in crate::evolution::migration) fn issue_transition(
-        source: &Self,
-        version: LayoutVersion,
-        publication: worth_store_physical_format::RootPublicationValidationWitness,
-    ) -> Self {
-        Self {
-            family: source.family,
-            bound_version: version,
-            observed_version: version,
-            bound_authority: source.bound_authority.clone(),
-            source: LayoutBindingSourceIdentity::Publication(publication.reference()),
-        }
-    }
-
     pub const fn family(&self) -> ArtifactFamilyLifecycleAdmission {
         self.family.lifecycle()
     }
@@ -103,18 +89,6 @@ impl LayoutBindingWitness {
 
     pub const fn source_identity(&self) -> LayoutBindingSourceIdentity {
         self.source
-    }
-
-    pub(in crate::evolution::migration) fn accepts_publication_source(
-        &self,
-        actual: worth_store_physical_format::RootPublicationValidationWitness,
-    ) -> bool {
-        match self.source {
-            LayoutBindingSourceIdentity::Bootstrap {
-                physical_source, ..
-            } => actual.reference() == physical_source,
-            LayoutBindingSourceIdentity::Publication(expected) => actual.reference() == expected,
-        }
     }
 
     pub(in crate::evolution::migration) const fn fingerprint(&self) -> LayoutBindingFingerprint {

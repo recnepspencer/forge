@@ -1,9 +1,6 @@
 use crate::{
-    AdmittedLayoutMaterialization, AdmittedPhysicalArtifactFamily,
-    BaselineLsmRunPublicationAdmission, LayoutMaterializationSourceKind,
-    LayoutStrategyRegistrySnapshot, PhysicalArtifactFamily,
+    AdmittedPhysicalArtifactFamily, BaselineLsmRunPublicationAdmission, PhysicalArtifactFamily,
 };
-use worth_store_physical_isolation::CopyOnWritePublicationPlan;
 
 use super::{
     IndexMaintenanceFailureOutcome, IndexMaintenanceMode, IndexPublicationProtocol,
@@ -13,14 +10,6 @@ use super::{
 #[derive(Debug, Clone)]
 enum LayoutMutationPlanKind {
     LsmAppend(BaselineLsmRunPublicationAdmission),
-    CopyOnWrite(Box<CopyOnWritePublicationPlan>),
-}
-
-#[derive(Debug, Clone)]
-pub struct CopyOnWriteLayoutMutationPlan {
-    pub(super) family: AdmittedPhysicalArtifactFamily,
-    pub(super) maintenance_mode: IndexMaintenanceMode,
-    pub(super) publication: CopyOnWritePublicationPlan,
 }
 
 #[derive(Debug, Clone)]
@@ -29,30 +18,6 @@ pub struct LayoutMutationPlan {
     maintenance_mode: IndexMaintenanceMode,
     mutation_shape: PhysicalMutationShape,
     kind: LayoutMutationPlanKind,
-}
-
-#[derive(Debug)]
-pub struct CopyOnWriteLayoutMutationRequest<'a> {
-    strategy: LayoutStrategyRegistrySnapshot,
-    plan: CopyOnWritePublicationPlan,
-    materialization: &'a AdmittedLayoutMaterialization,
-    current_security: &'a worth_store_security::StoreCurrentSecurityScopeWitnessSet,
-}
-
-impl<'a> CopyOnWriteLayoutMutationRequest<'a> {
-    pub const fn new(
-        strategy: LayoutStrategyRegistrySnapshot,
-        plan: CopyOnWritePublicationPlan,
-        materialization: &'a AdmittedLayoutMaterialization,
-        current_security: &'a worth_store_security::StoreCurrentSecurityScopeWitnessSet,
-    ) -> Self {
-        Self {
-            strategy,
-            plan,
-            materialization,
-            current_security,
-        }
-    }
 }
 
 impl LayoutMutationPlan {
@@ -73,25 +38,12 @@ impl LayoutMutationPlan {
             LayoutMutationPlanKind::LsmAppend(_) => {
                 IndexPublicationProtocol::LsmManifestReplacement
             }
-            LayoutMutationPlanKind::CopyOnWrite(_) => IndexPublicationProtocol::CopyOnWriteRootSwap,
         }
     }
 
-    pub fn into_lsm_append(self) -> Result<BaselineLsmRunPublicationAdmission, Self> {
+    pub fn into_lsm_append(self) -> BaselineLsmRunPublicationAdmission {
         match self.kind {
-            LayoutMutationPlanKind::LsmAppend(admission) => Ok(admission),
-            kind => Err(Self { kind, ..self }),
-        }
-    }
-
-    pub fn into_copy_on_write(self) -> Result<CopyOnWriteLayoutMutationPlan, Self> {
-        match self.kind {
-            LayoutMutationPlanKind::CopyOnWrite(publication) => Ok(CopyOnWriteLayoutMutationPlan {
-                family: self.family,
-                maintenance_mode: self.maintenance_mode,
-                publication: *publication,
-            }),
-            kind => Err(Self { kind, ..self }),
+            LayoutMutationPlanKind::LsmAppend(admission) => admission,
         }
     }
 }
@@ -112,11 +64,6 @@ impl LayoutMutationAdmission {
         let strategy = selected.strategy_admission();
         let mode = strategy.request().maintenance_mode();
         let shape = strategy.request().mutation_shape();
-        if shape != PhysicalMutationShape::LogStructuredAppend {
-            return LayoutMutationAdmissionOutcome::denied(
-                IndexMaintenanceFailureOutcome::MutationShapeMismatch,
-            );
-        }
         LayoutMutationAdmissionOutcome::planned(LayoutMutationPlan {
             family: selected.admitted_family(),
             maintenance_mode: mode,
@@ -125,52 +72,12 @@ impl LayoutMutationAdmission {
         })
     }
 
-    pub fn admit_copy_on_write(
-        self,
-        request: CopyOnWriteLayoutMutationRequest<'_>,
-    ) -> LayoutMutationAdmissionOutcome {
-        let shape = request.strategy.request().mutation_shape();
-        if shape != PhysicalMutationShape::PointRewrite {
-            return LayoutMutationAdmissionOutcome::denied(
-                IndexMaintenanceFailureOutcome::MutationShapeMismatch,
-            );
-        }
-        let family = request.strategy.admitted_strategy().admitted_family();
-        let expected_source = LayoutMaterializationSourceKind::BTreeRoot(
-            request.plan.binding().old_root_validation().reference(),
-        );
-        if request.materialization.family() != family
-            || request.materialization.coverage().require_exact().is_err()
-            || request.materialization.source().kind() != expected_source
-        {
-            return LayoutMutationAdmissionOutcome::denied(
-                IndexMaintenanceFailureOutcome::MutationSourceMaterializationMismatch,
-            );
-        }
-        if family.security_identity() != request.current_security.key_scope().identity()
-            || family.authority_identity() != request.current_security.authority_identity()
-        {
-            return LayoutMutationAdmissionOutcome::denied(
-                IndexMaintenanceFailureOutcome::SecurityScopeMismatch,
-            );
-        }
-        if family.authority_identity() != request.plan.binding().store_authority_identity() {
-            return LayoutMutationAdmissionOutcome::denied(
-                IndexMaintenanceFailureOutcome::PhysicalPublicationAuthorityMismatch,
-            );
-        }
-        LayoutMutationAdmissionOutcome::planned(LayoutMutationPlan {
-            family,
-            maintenance_mode: request.strategy.request().maintenance_mode(),
-            mutation_shape: shape,
-            kind: LayoutMutationPlanKind::CopyOnWrite(Box::new(request.plan)),
-        })
-    }
-
     pub const fn deny_in_place_reachable_overwrite(self) -> LayoutMutationAdmissionOutcome {
-        LayoutMutationAdmissionOutcome::denied(
-            IndexMaintenanceFailureOutcome::InPlaceReachableOverwriteUnsupported,
-        )
+        LayoutMutationAdmissionOutcome {
+            case: LayoutMutationAdmissionCase::Denied(
+                IndexMaintenanceFailureOutcome::InPlaceReachableOverwriteUnsupported,
+            ),
+        }
     }
 }
 
@@ -203,11 +110,6 @@ impl LayoutMutationAdmissionCaseId {
 pub fn layout_mutation_admission_cases() -> impl Iterator<Item = LayoutMutationAdmissionCaseId> {
     [
         LayoutMutationAdmissionCaseId("layout.maintenance.mutation.planned.lsm_append"),
-        LayoutMutationAdmissionCaseId("layout.maintenance.mutation.planned.copy_on_write"),
-        LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.shape"),
-        LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.security_scope"),
-        LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.authority"),
-        LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.materialization"),
         LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.in_place"),
     ]
     .into_iter()
@@ -217,12 +119,6 @@ impl LayoutMutationAdmissionOutcome {
     fn planned(plan: LayoutMutationPlan) -> Self {
         Self {
             case: LayoutMutationAdmissionCase::Planned(Box::new(plan)),
-        }
-    }
-
-    const fn denied(denial: IndexMaintenanceFailureOutcome) -> Self {
-        Self {
-            case: LayoutMutationAdmissionCase::Denied(denial),
         }
     }
 
@@ -243,26 +139,9 @@ impl LayoutMutationAdmissionOutcome {
                 LayoutMutationPlanKind::LsmAppend(_) => {
                     LayoutMutationAdmissionCaseId("layout.maintenance.mutation.planned.lsm_append")
                 }
-                LayoutMutationPlanKind::CopyOnWrite(_) => LayoutMutationAdmissionCaseId(
-                    "layout.maintenance.mutation.planned.copy_on_write",
-                ),
             },
-            LayoutMutationAdmissionCase::Denied(
-                IndexMaintenanceFailureOutcome::InPlaceReachableOverwriteUnsupported,
-            ) => LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.in_place"),
-            LayoutMutationAdmissionCase::Denied(
-                IndexMaintenanceFailureOutcome::SecurityScopeMismatch,
-            ) => LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.security_scope"),
-            LayoutMutationAdmissionCase::Denied(
-                IndexMaintenanceFailureOutcome::PhysicalPublicationAuthorityMismatch,
-            ) => LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.authority"),
-            LayoutMutationAdmissionCase::Denied(
-                IndexMaintenanceFailureOutcome::MutationSourceMaterializationMismatch,
-            ) => {
-                LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.materialization")
-            }
             LayoutMutationAdmissionCase::Denied(_) => {
-                LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.shape")
+                LayoutMutationAdmissionCaseId("layout.maintenance.mutation.denied.in_place")
             }
         }
     }

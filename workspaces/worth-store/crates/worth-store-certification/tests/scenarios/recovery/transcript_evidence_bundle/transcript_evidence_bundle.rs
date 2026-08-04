@@ -283,7 +283,6 @@ fn observed_trace_with_verifier(plan: &PhysicalSimulationPlan) -> ObservedPhysic
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
             ),
         )
-        .with_compaction_interlock_observation(counter_support::compaction_observation())
         .complete()
         .unwrap()
 }

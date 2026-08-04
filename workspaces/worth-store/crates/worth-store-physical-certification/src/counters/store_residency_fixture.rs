@@ -2,11 +2,16 @@ use std::num::{NonZeroU32, NonZeroU64};
 
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    FilesystemMediaAdmission, ManifestEntryCapacity, PhysicalRecordAccessPolicy,
-    PhysicalRecordFormatDeclaration, PhysicalRecordInitialization, PhysicalRecordPlacementPolicy,
-    PhysicalRecordResidencyPolicy, PhysicalResidencyObservation, PhysicalRuntimeAdmission,
-    PhysicalSpeculativeWorkKind, PhysicalStore, ServingPhysicalRuntime,
+    AdmittedPhysicalDurabilityPolicy, AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy,
+    AdmittedRecordPlacementPolicy, CheckpointMemoryLimit, FilesystemMediaAdmission,
+    GroupCommitDelay, GroupCommitLimit, IdempotencyRetentionGenerations,
+    LiveIdempotencyBindingLimit, ManifestEntryCapacity, MediaOwnedPhysicalRuntime,
+    PendingUnresolvedMutationLimit, PhysicalCheckpointPolicy, PhysicalDurabilityDeclaration,
+    PhysicalIdempotencyPolicy, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
+    PhysicalRecordInitialization, PhysicalRecordPlacementPolicy, PhysicalRecordResidencyPolicy,
+    PhysicalResidencyObservation, PhysicalRuntimeAdmission, PhysicalSpeculativeWorkKind,
+    PhysicalStore, PhysicalWalPolicy, RetainedWalTailLimit, ServingPhysicalRuntime,
+    WalSegmentByteLimit, WalSegmentInventoryLimit,
 };
 use worth_store_physical_backend::FilesystemAccessPosture;
 
@@ -63,11 +68,42 @@ fn serving_runtime(root: &std::path::Path, allocation_bytes: NonZeroU64) -> Serv
         _ => panic!("temporary Store media should admit"),
     };
     let (format, placement, access) = record_configuration();
-    let request = PhysicalRecordInitialization::new(format, placement, access)
+    let durability = durability_policy(&media);
+    let request = PhysicalRecordInitialization::new(format, placement, access, durability)
         .with_residency_policy(residency_policy(format, allocation_bytes));
     match media.initialize_record_store(request).into_raw() {
         TransitionOutcome::Success(serving) => serving,
         _ => panic!("temporary Store record runtime should initialize"),
+    }
+}
+
+fn durability_policy(media: &MediaOwnedPhysicalRuntime) -> AdmittedPhysicalDurabilityPolicy {
+    let basis = media
+        .physical_durability_admission_basis()
+        .expect("qualified certification media should expose a durability basis");
+    match PhysicalDurabilityDeclaration::builder()
+        .group_commit(
+            GroupCommitLimit::new(nonzero_frames(32)),
+            GroupCommitDelay::new(nonzero_bytes(1)),
+        )
+        .wal(PhysicalWalPolicy::segmented(
+            WalSegmentByteLimit::new(nonzero_bytes(8 * 1024 * 1024)),
+            WalSegmentInventoryLimit::new(nonzero_frames(1_024)),
+        ))
+        .idempotency(PhysicalIdempotencyPolicy::new(
+            IdempotencyRetentionGenerations::new(nonzero_bytes(4)),
+            PendingUnresolvedMutationLimit::new(nonzero_frames(1_024)),
+            LiveIdempotencyBindingLimit::new(nonzero_frames(4_096)),
+        ))
+        .checkpoint(PhysicalCheckpointPolicy::fuzzy(
+            CheckpointMemoryLimit::new(nonzero_bytes(16 * 1024 * 1024)),
+            RetainedWalTailLimit::new(nonzero_bytes(64 * 1024 * 1024)),
+        ))
+        .admit(basis)
+        .into_raw()
+    {
+        TransitionOutcome::Success(policy) => policy,
+        _ => panic!("certification durability policy should admit"),
     }
 }
 

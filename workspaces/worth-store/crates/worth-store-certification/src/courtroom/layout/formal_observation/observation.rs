@@ -1,7 +1,7 @@
 use super::{
-    validation::validate_layout_durable_observation, LayoutDurableArtifactKind as ArtifactKind,
-    LayoutDurableArtifactObservation as Artifact, LayoutDurableOrdering as Ordering,
-    LayoutFormalInvariant as Invariant, LayoutFormalObservationDenial,
+    LayoutDurableArtifactKind as ArtifactKind, LayoutDurableArtifactObservation as Artifact,
+    LayoutDurableOrdering as Ordering, LayoutFormalInvariant as Invariant,
+    LayoutFormalObservationDenial,
 };
 use crate::courtroom::layout::adjudication::{
     LayoutCourtroomTranscriptIdentity, LayoutEvidenceBundle,
@@ -26,15 +26,6 @@ pub fn observe_layout_formal_model(
     bundle: &LayoutEvidenceBundle,
 ) -> Result<LayoutFormalObservation, LayoutFormalObservationDenial> {
     let source = bundle.durable();
-    validate_layout_durable_observation(source)?;
-    let value = source.lsm_value();
-    let generation = source.lsm_generation();
-    let tombstone = source.lsm_tombstone();
-    let output = source.lsm_output();
-    let activation = source.lsm_activation();
-    let old_root = source.physical_old_root();
-    let new_root = source.physical_new_root();
-
     let owners = bundle
         .coverage()
         .families()
@@ -52,54 +43,14 @@ pub fn observe_layout_formal_model(
             kind: ArtifactKind::BTreeSelectedReference,
             reference: source.btree_selected_reference(),
         },
-        Artifact::WalRecord {
-            kind: ArtifactKind::LsmValue,
-            identity: value,
-        },
-        Artifact::WalRecord {
-            kind: ArtifactKind::LsmGenerationPublication,
-            identity: generation,
-        },
-        Artifact::WalRecord {
-            kind: ArtifactKind::LsmTombstone,
-            identity: tombstone,
-        },
-        Artifact::WalRecord {
-            kind: ArtifactKind::LsmReplacementOutput,
-            identity: output,
-        },
-        Artifact::CheckpointManifest {
-            kind: ArtifactKind::LsmActivationManifest,
-            scope: activation.clone(),
-        },
-        Artifact::PhysicalRoot {
-            kind: ArtifactKind::PhysicalCompactionOldRoot,
-            root: old_root,
-        },
-        Artifact::PhysicalRoot {
-            kind: ArtifactKind::PhysicalCompactionNewRoot,
-            root: new_root,
-        },
     ];
     Ok(LayoutFormalObservation {
         transcript_identity: bundle.transcript_identity(),
         owners,
         artifacts,
-        orderings: vec![
-            Ordering::BTreeReferenceObservedUnderStableRoot,
-            Ordering::LsmValueBeforeGeneration,
-            Ordering::LsmGenerationBeforeTombstone,
-            Ordering::LsmTombstoneBeforeReplacementOutput,
-            Ordering::LsmActivationCoversInputAndOutput,
-            Ordering::PhysicalCompactionRootAdvances,
-        ],
+        orderings: vec![Ordering::BTreeReferenceObservedUnderStableRoot],
         invariants: vec![
             Invariant::BTreeSelectedReferenceBoundToStableExecution,
-            Invariant::LsmMembershipRolesAreCanonical,
-            Invariant::LsmMembershipSequenceIsStrict,
-            Invariant::LsmTombstoneSurvivesReplacementFrontier,
-            Invariant::LsmActivationBindsCompactionFrontier,
-            Invariant::PhysicalCompactionPublishesNewerRoot,
             Invariant::OwnerCaseCoverageIsExact,
         ],
     })

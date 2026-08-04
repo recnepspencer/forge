@@ -5,12 +5,46 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
+#[cfg(feature = "physical-work-evidence")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct LocalSourceFingerprint {
+    digest: [u8; 32],
+    source_files: u64,
+    source_bytes: u64,
+}
+
+#[cfg(feature = "physical-work-evidence")]
+impl LocalSourceFingerprint {
+    pub(crate) const fn digest(self) -> [u8; 32] {
+        self.digest
+    }
+
+    pub(crate) const fn source_files(self) -> u64 {
+        self.source_files
+    }
+
+    pub(crate) const fn source_bytes(self) -> u64 {
+        self.source_bytes
+    }
+}
+
 pub(crate) fn hash_sources(repository: &Path, sources: &[PathBuf]) -> Result<[u8; 32], String> {
-    let workers = std::thread::available_parallelism()
-        .map(std::num::NonZeroUsize::get)
-        .unwrap_or(1)
-        .min(8);
+    let workers = source_hashing_workers();
     hash_sources_with_workers(repository, sources, workers)
+}
+
+#[cfg(feature = "physical-work-evidence")]
+pub(crate) fn fingerprint_sources(
+    repository: &Path,
+    sources: &[PathBuf],
+) -> Result<LocalSourceFingerprint, String> {
+    let (digest, source_files, source_bytes) =
+        fingerprint_components_with_workers(repository, sources, source_hashing_workers())?;
+    Ok(LocalSourceFingerprint {
+        digest,
+        source_files,
+        source_bytes,
+    })
 }
 
 fn hash_sources_with_workers(
@@ -18,6 +52,15 @@ fn hash_sources_with_workers(
     sources: &[PathBuf],
     workers: usize,
 ) -> Result<[u8; 32], String> {
+    fingerprint_components_with_workers(repository, sources, workers)
+        .map(|fingerprint| fingerprint.0)
+}
+
+fn fingerprint_components_with_workers(
+    repository: &Path,
+    sources: &[PathBuf],
+    workers: usize,
+) -> Result<([u8; 32], u64, u64), String> {
     if sources.is_empty() {
         return Err("source inventory produced an empty closure".into());
     }
@@ -45,14 +88,27 @@ fn hash_sources_with_workers(
         }
         Ok::<_, String>(leaves)
     })?;
+    let source_files = u64::try_from(leaves.len())
+        .map_err(|_| "source inventory file count overflowed u64".to_owned())?;
+    let mut source_bytes = 0_u64;
     let mut digest = Sha256::new();
     for leaf in leaves {
+        source_bytes = source_bytes
+            .checked_add(leaf.length)
+            .ok_or_else(|| "source inventory byte count overflowed u64".to_owned())?;
         digest.update((leaf.path.len() as u64).to_le_bytes());
         digest.update(leaf.path.as_bytes());
         digest.update(leaf.length.to_le_bytes());
         digest.update(leaf.digest);
     }
-    Ok(digest.finalize().into())
+    Ok((digest.finalize().into(), source_files, source_bytes))
+}
+
+fn source_hashing_workers() -> usize {
+    std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1)
+        .min(8)
 }
 
 struct SourceLeaf {

@@ -7,17 +7,15 @@ use super::super::artifact_tree_effects::{
     artifact_file_length, begin, begin_identified, write_all_interposed,
 };
 use super::{
-    ArtifactRangeWriteOutcome, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
-    ArtifactTreeMedia, CompletedArtifactRangeWrite, IndeterminateArtifactRangeWrite,
+    ArtifactNewFileWriteOutcome, ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile,
+    ArtifactTreeMedia,
 };
 use crate::filesystem_media::{FilesystemMediaOwner, MediaOperationRole};
 
 /// A newly-created artifact whose bytes may be supplied in bounded chunks.
 pub struct ArtifactTreeNewFile<'media> {
     owner: &'media FilesystemMediaOwner,
-    store: worth_store_physical_format::store_namespace::StableStoreIdentity,
     create_operation: crate::filesystem_media::MediaOperationIdentity,
-    artifact: ArtifactTreeFile,
     file: cap_std::fs::File,
     mutation_sequence: crate::filesystem_media::file_mutation_sequence::FileMutationSequence,
     _coordination:
@@ -53,6 +51,39 @@ impl ArtifactTreeNewFile<'_> {
         self.completed_bytes
     }
 
+    pub(super) fn write_exact_artifact_chunk(
+        &mut self,
+        bytes: &[u8],
+    ) -> ArtifactNewFileWriteOutcome {
+        if self.completed_bytes != 0 || bytes.is_empty() {
+            return ArtifactNewFileWriteOutcome::DeniedBeforeEffect(
+                ArtifactTreeFailure::structural(ArtifactTreeFailureKind::AccessLimitExceeded),
+            );
+        }
+        let _sequence = self.mutation_sequence.lock();
+        match super::exact_write_effect::execute(self.owner, &mut self.file, bytes) {
+            super::exact_write_effect::ExactWriteEffect::DeniedBeforeEffect(failure) => {
+                ArtifactNewFileWriteOutcome::DeniedBeforeEffect(failure)
+            }
+            super::exact_write_effect::ExactWriteEffect::Indeterminate {
+                failure,
+                completed_bytes,
+                operation,
+            } => {
+                self.completed_bytes = completed_bytes;
+                ArtifactNewFileWriteOutcome::Indeterminate {
+                    failure,
+                    completed_bytes,
+                    operation,
+                }
+            }
+            super::exact_write_effect::ExactWriteEffect::Completed(operation) => {
+                self.completed_bytes = bytes.len() as u64;
+                ArtifactNewFileWriteOutcome::Completed(operation)
+            }
+        }
+    }
+
     fn write_obligation_record(&mut self, bytes: &[u8]) -> Result<(), ArtifactTreeFailure> {
         let _sequence = self.mutation_sequence.lock();
         let requested = bytes.len() as u64;
@@ -81,53 +112,6 @@ impl ArtifactTreeNewFile<'_> {
         self.completed_bytes = requested;
         attempt.completed(requested);
         super::super::artifact_tree_effects::synchronize_file(self.owner, &self.file)
-    }
-
-    pub fn write_exact_chunk(
-        &mut self,
-        coordinate: worth_store_physical_format::RecordFrameCoordinate,
-        bytes: &[u8],
-    ) -> ArtifactRangeWriteOutcome {
-        if coordinate.offset() != self.completed_bytes
-            || coordinate.length() as usize != bytes.len()
-            || coordinate.artifact().file_name() != self.artifact.file_name
-        {
-            return ArtifactRangeWriteOutcome::DeniedBeforeEffect(ArtifactTreeFailure::structural(
-                ArtifactTreeFailureKind::AccessLimitExceeded,
-            ));
-        }
-        let _sequence = self.mutation_sequence.lock();
-        match super::exact_write_effect::execute(self.owner, &mut self.file, bytes) {
-            super::exact_write_effect::ExactWriteEffect::DeniedBeforeEffect(failure) => {
-                ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure)
-            }
-            super::exact_write_effect::ExactWriteEffect::Indeterminate {
-                failure,
-                completed_bytes,
-                operation,
-            } => {
-                self.completed_bytes = self.completed_bytes.saturating_add(completed_bytes);
-                ArtifactRangeWriteOutcome::Indeterminate(IndeterminateArtifactRangeWrite::new(
-                    failure,
-                    self.owner.identity(),
-                    self.store,
-                    coordinate,
-                    bytes,
-                    completed_bytes,
-                    operation,
-                ))
-            }
-            super::exact_write_effect::ExactWriteEffect::Completed(operation) => {
-                self.completed_bytes += bytes.len() as u64;
-                ArtifactRangeWriteOutcome::Completed(CompletedArtifactRangeWrite::buffered(
-                    self.owner.identity(),
-                    self.store,
-                    coordinate,
-                    bytes,
-                    operation,
-                ))
-            }
-        }
     }
 }
 
@@ -223,9 +207,7 @@ impl ArtifactTreeMedia<'_> {
                 create.completed(0);
                 ArtifactTreeCreateFileOutcome::Created(ArtifactTreeNewFile {
                     owner: self.owner,
-                    store: self.store,
                     create_operation,
-                    artifact: artifact.clone(),
                     file,
                     mutation_sequence,
                     _coordination: coordination.release_namespace(),

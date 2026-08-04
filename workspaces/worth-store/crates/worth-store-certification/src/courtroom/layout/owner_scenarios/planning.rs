@@ -1,5 +1,5 @@
 use worth_store_budgets::{PreExecutionBudgetEnvelope, PreExecutionBudgetScope};
-use worth_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
+use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_layout_indexes::{
     access_planning, access_shapes, AccessLaneClassification, AccessPlanSelector,
     DegradedExactScanRequest, ObserveOwnerCase, PhysicalMutationShape,
@@ -9,10 +9,7 @@ use worth_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreTenantScope,
 };
-use worth_store_test_support::{
-    admitted_layout_bootstrap_catalog, execute_baseline_lsm_persisted_fixture,
-    SecurityScopeFixtureAuthority,
-};
+use worth_store_test_support::{admitted_layout_bootstrap_catalog, SecurityScopeFixtureAuthority};
 
 use super::fixture_admission::{admit_family, admit_key_domain, security_scope};
 use super::LayoutOwnerObservationLedger;
@@ -68,27 +65,6 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
         )
         .unwrap();
     let outcome = AccessPlanSelector.select_recovery_with_budget(replay_request, maintenance);
-    ledger.record_access_plan_selection(outcome.owner_case_observation());
-
-    let (wal_family, wal_domain, wal_materialization) = wal_scope(&catalog);
-    let wal_key = || {
-        worth_store_layout_indexes::declarations::layout_declarations()
-            .admit_wal_key(
-                wal_domain,
-                WalRecordFamily::DurableMutationIntent,
-                worth_store_wal::StoreWalRecordIdentity::new(1),
-            )
-            .unwrap()
-    };
-    let lookup_request = AccessPlanSelector
-        .admit_read_request(
-            wal_family,
-            wal_key(),
-            wal_materialization.clone(),
-            access_planning().point_access(),
-        )
-        .unwrap();
-    let outcome = AccessPlanSelector.select_read_with_budget(lookup_request, foreground);
     ledger.record_access_plan_selection(outcome.owner_case_observation());
 
     let cost_request = AccessPlanSelector
@@ -261,30 +237,4 @@ fn execute_degraded_and_unsupported(
         .unwrap();
     let outcome = AccessPlanSelector.select_read_with_budget(unsupported, foreground);
     ledger.record_access_plan_selection(outcome.owner_case_observation());
-}
-
-fn wal_scope(
-    catalog: &worth_store_layout_indexes::BootstrapCatalogReadAdmission,
-) -> (
-    worth_store_layout_indexes::AdmittedPhysicalArtifactFamily,
-    worth_store_layout_indexes::AdmittedPhysicalKeyDomain,
-    worth_store_layout_indexes::AdmittedLayoutMaterialization,
-) {
-    let security = security_scope(
-        SecurityScopeFixtureAuthority::Current,
-        StoreKeyScope::WalCheckpointEnvelope,
-        StoreTenantScope::StoreInternal,
-        StoreAuthenticityRequirement::required(
-            StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
-        ),
-        StoreCustodyPosture::InternalStoreCustody,
-    );
-    let family = admit_family(DurableArtifactFamilyId::PublicationWalIntent, &security);
-    let domain = admit_key_domain(family, &security);
-    let published = execute_baseline_lsm_persisted_fixture();
-    let source = published.admit_lookup_source();
-    let materialization = access_planning()
-        .admit_lsm_lookup_materialization(family, catalog, &source)
-        .unwrap();
-    (family, domain, materialization)
 }

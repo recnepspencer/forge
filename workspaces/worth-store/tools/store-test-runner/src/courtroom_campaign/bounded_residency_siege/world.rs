@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 mod expectation;
 
 const CONFIGURATION_SCHEMA: &str =
-    "worth.store.physical-work-courtroom.bounded-residency.configuration.v2";
+    "worth.store.physical-work-courtroom.bounded-residency.configuration.v3";
 pub(super) const WORKLOAD_SEED: u64 = 7_312_955_904_608_109_267;
 pub(super) const INLINE_RECORD_BYTES: usize = 3_000;
 pub(super) const INLINE_RECORDS: usize = 64;
@@ -21,6 +21,7 @@ pub(super) const PIN_LEASES: u32 = 6;
 pub(super) const DIRTY_FRAMES: u32 = 2;
 pub(super) const DIRTY_REPLACEMENT_BYTES: u64 = 65_536;
 pub(super) const OPERATION_BYTES: u64 = 6_815_744;
+pub(super) const CHECKPOINT_MEMORY_BYTES: u64 = 1_048_576;
 pub(super) const FOREGROUND_READ_SCOPE_BYTES: u64 = 2_097_152;
 pub(super) const FOREGROUND_WRITE_SCOPE_BYTES: u64 = 6_815_744;
 pub(super) const RECOVERY_SCOPE_BYTES: u64 = 2_359_296;
@@ -133,6 +134,7 @@ fn write_configuration(path: &Path) -> Result<(), String> {
          pin-leases={PIN_LEASES}\ndirty-frames={DIRTY_FRAMES}\n\
          dirty-replacement-bytes={DIRTY_REPLACEMENT_BYTES}\n\
          operation-bytes={OPERATION_BYTES}\n\
+         checkpoint-memory-bytes={CHECKPOINT_MEMORY_BYTES}\n\
          scope-foreground-read-bytes={FOREGROUND_READ_SCOPE_BYTES}\n\
          scope-foreground-write-bytes={FOREGROUND_WRITE_SCOPE_BYTES}\n\
          scope-recovery-bytes={RECOVERY_SCOPE_BYTES}\n\

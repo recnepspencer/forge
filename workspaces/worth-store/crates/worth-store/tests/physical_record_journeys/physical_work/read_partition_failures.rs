@@ -12,6 +12,7 @@ use worth_store::physical_runtime::{
 };
 use worth_store_physical_backend::{MediaFaultDirective, MediaOperationRole};
 
+use super::super::durable_publication;
 use super::{configuration, serving_from_initialization};
 
 const PAYLOAD: &[u8] = b"four partition failure matrix";
@@ -244,15 +245,13 @@ fn assert_failed_route(
 fn seed(root: &Path) -> PhysicalRecordId {
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(root);
-    let record = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &serving,
+        placement,
+        durable_publication::certification_material("read-partition-failure-matrix", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     serving.close();
     record
 }

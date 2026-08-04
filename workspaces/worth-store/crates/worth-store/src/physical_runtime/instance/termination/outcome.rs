@@ -13,17 +13,17 @@ use crate::physical_runtime::{
 pub enum PhysicalStoreCloseOutcome {
     Closed {
         shutdown: ServingShutdownOutcome<ClosedRuntime>,
-        phases: [PhysicalStoreClosePhase; 6],
+        phases: [PhysicalStoreClosePhase; 7],
     },
     InspectionRequired {
         shutdown: ServingShutdownOutcome<ClosedRuntime>,
-        phases: [PhysicalStoreClosePhase; 6],
+        phases: [PhysicalStoreClosePhase; 7],
     },
 }
 
 pub struct PhysicalStoreAbortOutcome {
     shutdown: ServingShutdownOutcome<AbortedRuntime>,
-    phases: [PhysicalStoreClosePhase; 6],
+    phases: [PhysicalStoreClosePhase; 7],
 }
 
 impl PhysicalStoreCloseOutcome {
@@ -41,7 +41,7 @@ impl PhysicalStoreCloseOutcome {
         }
     }
 
-    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 6] {
+    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 7] {
         match self {
             Self::Closed { phases, .. } | Self::InspectionRequired { phases, .. } => phases,
         }
@@ -55,6 +55,20 @@ impl PhysicalStoreCloseOutcome {
 
     pub const fn requires_inspection(&self) -> bool {
         matches!(self, Self::InspectionRequired { .. })
+    }
+
+    pub const fn recovery_handoff(
+        &self,
+    ) -> Option<&crate::physical_runtime::PhysicalDurabilityRecoveryHandoff> {
+        self.shutdown().durability_closeout().recovery_handoff()
+    }
+
+    pub fn into_recovery_handoff(
+        self,
+    ) -> Option<crate::physical_runtime::PhysicalDurabilityRecoveryHandoff> {
+        self.into_shutdown()
+            .into_durability_closeout()
+            .into_recovery_handoff()
     }
 
     pub fn into_shutdown(self) -> ServingShutdownOutcome<ClosedRuntime> {
@@ -73,7 +87,7 @@ impl PhysicalStoreAbortOutcome {
         }
     }
 
-    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 6] {
+    pub const fn phases(&self) -> &[PhysicalStoreClosePhase; 7] {
         &self.phases
     }
 
@@ -92,10 +106,12 @@ impl PhysicalStoreAbortOutcome {
 
 fn shutdown_requires_inspection<Terminal>(shutdown: &ServingShutdownOutcome<Terminal>) -> bool {
     shutdown.records().posture() == RecordServingTerminalPosture::InspectionRequired
+        || shutdown.checkpoint().requires_inspection()
         || shutdown.residency().requires_inspection()
         || shutdown.work().drain().requires_inspection()
         || shutdown.signal() != PhysicalSignalShutdownOutcome::Disposed
         || shutdown.signal_cancellation_failures() != 0
+        || shutdown.durability_closeout().requires_inspection()
         || shutdown
             .signal_summary()
             .is_none_or(|summary| summary.active_in_flight_node_count() != 0)

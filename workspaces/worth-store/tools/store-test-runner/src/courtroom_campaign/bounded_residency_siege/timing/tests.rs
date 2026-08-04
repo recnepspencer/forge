@@ -1,13 +1,14 @@
 use std::time::Duration;
 
+use crate::courtroom_campaign::executable_binding::SourceClosureWorkload;
 use crate::courtroom_campaign::report_publication::CourtroomReportSession;
 
 use super::{
     BoundedResidencySiegePhase, BoundedResidencySiegeTimings, CHILD_STAGE_BUDGET_MS,
-    EXECUTABLE_VERIFICATION_BUDGET_MS, FINAL_SOURCE_BINDING_BUDGET_MS, MUTATION_EVIDENCE_BUDGET_MS,
-    POSTBUILD_BINARY_BINDING_BUDGET_MS, POSTBUILD_SOURCE_BINDING_BUDGET_MS,
-    PREBUILD_SOURCE_BINDING_BUDGET_MS, REPORT_ENCODING_BUDGET_MS,
-    RUNNER_CONTROLLED_TOTAL_BUDGET_MS, SERVING_STAGE_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
+    EXECUTABLE_VERIFICATION_BUDGET_MS, MUTATION_EVIDENCE_BUDGET_MS,
+    POSTBUILD_BINARY_BINDING_BUDGET_MS, REPORT_ENCODING_BUDGET_MS,
+    RUNNER_CONTROLLED_TOTAL_BUDGET_MS, SERVING_STAGE_BUDGET_MS, SOURCE_BINDING_BYTE_LIMIT,
+    SOURCE_BINDING_FILE_LIMIT, SOURCE_BINDING_WALL_BUDGET_MS, SOURCE_INVENTORY_BUDGET_MS,
     WORLD_BUDGET_MS,
 };
 
@@ -18,11 +19,11 @@ fn reconstructive_build_and_producer_are_excluded_from_runtime_acceptance() {
         timings
             .validate_completed_campaign(Duration::from_secs(605))
             .unwrap(),
-        4_990
+        4_980
     );
     assert_postpublication_rejection(
         &timings,
-        Duration::from_millis(600_010 + RUNNER_CONTROLLED_TOTAL_BUDGET_MS + 1),
+        Duration::from_millis(600_020 + RUNNER_CONTROLLED_TOTAL_BUDGET_MS + 1),
         "runner-controlled work",
     );
 
@@ -45,7 +46,7 @@ fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
         ),
         (
             BoundedResidencySiegePhase::PrebuildSourceBinding,
-            PREBUILD_SOURCE_BINDING_BUDGET_MS,
+            SOURCE_BINDING_WALL_BUDGET_MS,
         ),
         (
             BoundedResidencySiegePhase::PostbuildBinaryBinding,
@@ -53,7 +54,7 @@ fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
         ),
         (
             BoundedResidencySiegePhase::PostbuildSourceBinding,
-            POSTBUILD_SOURCE_BINDING_BUDGET_MS,
+            SOURCE_BINDING_WALL_BUDGET_MS,
         ),
         (
             BoundedResidencySiegePhase::SiegeServing,
@@ -69,7 +70,7 @@ fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
         ),
         (
             BoundedResidencySiegePhase::FinalSourceBinding,
-            FINAL_SOURCE_BINDING_BUDGET_MS,
+            SOURCE_BINDING_WALL_BUDGET_MS,
         ),
         (
             BoundedResidencySiegePhase::ExecutableVerification,
@@ -84,6 +85,66 @@ fn runtime_budget_rejects_each_enforced_stage_for_its_own_cause() {
             phase.label(),
             "courtroom-c-stage-budget.json",
         );
+    }
+}
+
+#[test]
+fn aggregate_case_wall_is_diagnostic_after_exact_case_validation() {
+    let mut timings = runtime_timings();
+    phase_mut(
+        &mut timings,
+        BoundedResidencySiegePhase::DurabilityTerminationCampaign,
+    )
+    .elapsed_ms = 620_984;
+    assert!(timings.validate_runtime_budget().is_ok());
+}
+
+#[test]
+fn source_binding_workload_is_required_and_structurally_bounded() {
+    let mut missing = runtime_timings();
+    phase_mut(
+        &mut missing,
+        BoundedResidencySiegePhase::PrebuildSourceBinding,
+    )
+    .source_files = None;
+    assert!(missing
+        .validate_runtime_budget()
+        .unwrap_err()
+        .contains("omitted source workload counters"));
+
+    let mut too_many_files = runtime_timings();
+    phase_mut(
+        &mut too_many_files,
+        BoundedResidencySiegePhase::PrebuildSourceBinding,
+    )
+    .source_files = Some(SOURCE_BINDING_FILE_LIMIT + 1);
+    assert!(too_many_files
+        .validate_runtime_budget()
+        .unwrap_err()
+        .contains("source closure carried"));
+
+    let mut too_many_bytes = runtime_timings();
+    phase_mut(
+        &mut too_many_bytes,
+        BoundedResidencySiegePhase::PrebuildSourceBinding,
+    )
+    .source_bytes = Some(SOURCE_BINDING_BYTE_LIMIT + 1);
+    assert!(too_many_bytes
+        .validate_runtime_budget()
+        .unwrap_err()
+        .contains("source closure carried"));
+}
+
+#[test]
+fn bounded_cold_source_binding_retains_secondary_wall_headroom() {
+    let mut timings = runtime_timings();
+    phase_mut(
+        &mut timings,
+        BoundedResidencySiegePhase::PrebuildSourceBinding,
+    )
+    .elapsed_ms = 5_000;
+    if timings.validate_runtime_budget().is_err() {
+        panic!("MUTANT_PREDICATE:c7-cold-source-binding-headroom-regressed");
     }
 }
 
@@ -135,8 +196,11 @@ fn source_bound_report_encoding_retains_observed_scheduler_headroom() {
 
 #[test]
 fn timing_fixtures_are_valid_before_hostile_deltas() {
-    assert!(runtime_timings().validate_runtime_budget().is_ok());
-    assert!(complete_timings().validate_complete_budget().is_ok());
+    if runtime_timings().validate_runtime_budget().is_err()
+        || complete_timings().validate_complete_budget().is_err()
+    {
+        panic!("MUTANT_PREDICATE:c7-case-timing-omitted");
+    }
 }
 
 fn runtime_timings() -> BoundedResidencySiegeTimings {
@@ -147,7 +211,20 @@ fn runtime_timings() -> BoundedResidencySiegeTimings {
             BoundedResidencySiegePhase::CampaignBeforeReport => Duration::from_secs(605),
             _ => Duration::from_millis(10),
         };
-        timings.record(phase, elapsed);
+        if phase == BoundedResidencySiegePhase::DurabilityTerminationCampaign {
+            timings.record_case_campaign(elapsed, 8);
+        } else if matches!(
+            phase,
+            BoundedResidencySiegePhase::PrebuildSourceBinding
+                | BoundedResidencySiegePhase::PostbuildSourceBinding
+                | BoundedResidencySiegePhase::FinalSourceBinding
+        ) {
+            timings
+                .record_source_binding(phase, elapsed, source_workload())
+                .unwrap();
+        } else {
+            timings.record(phase, elapsed);
+        }
     }
     timings
 }
@@ -170,6 +247,10 @@ fn phase_mut(
         .iter_mut()
         .find(|phase| phase.identity == identity)
         .unwrap()
+}
+
+fn source_workload() -> SourceClosureWorkload {
+    SourceClosureWorkload::new(5_244, 25_873_067)
 }
 
 fn assert_prepublication_rejection(

@@ -1,6 +1,6 @@
 use worth_store_budgets::CounterEvidenceStrength;
 use worth_store_io_scheduler::SecureIoCounterStrength;
-use worth_store_physical_backend::{AccessPolicyCounterStrength, StoreDurabilityCounterStrength};
+use worth_store_physical_backend::AccessPolicyCounterStrength;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum S6MaterializedCounterStrength {
@@ -67,19 +67,6 @@ impl From<CounterEvidenceStrength> for S6MaterializedCounterStrength {
             CounterEvidenceStrength::Derived => Self::Derived,
             CounterEvidenceStrength::CertificationOnly => Self::CertificationOnly,
             CounterEvidenceStrength::Unavailable => Self::Unavailable,
-        }
-    }
-}
-
-impl From<StoreDurabilityCounterStrength> for S6MaterializedCounterStrength {
-    fn from(strength: StoreDurabilityCounterStrength) -> Self {
-        match strength {
-            StoreDurabilityCounterStrength::Exact => Self::Exact,
-            StoreDurabilityCounterStrength::Bounded => Self::Bounded,
-            StoreDurabilityCounterStrength::Sampled => Self::Sampled,
-            StoreDurabilityCounterStrength::Derived => Self::Derived,
-            StoreDurabilityCounterStrength::CertificationOnly => Self::CertificationOnly,
-            StoreDurabilityCounterStrength::Unavailable => Self::Unavailable,
         }
     }
 }

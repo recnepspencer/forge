@@ -21,14 +21,15 @@ const VALID_SPECULATION_MARKERS: [&str; 3] = [
     "BOUNDED_RESIDENCY_READ_AHEAD 3 2 1 2 2 0 1 3 0 0 3 true true",
     "BOUNDED_RESIDENCY_WRITE_BEHIND 3 2 1 2 1 0 0 2 0 0 2 true true",
 ];
-const VALID_WORK_RECONCILIATION_MARKERS: [&str; 15] = [
-    "BOUNDED_RESIDENCY_WORK_RECONCILIATION 0 0 0 1 1 1 1 1 1 3 1 6 4",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0101010101010101010101010101010101010101010101010101010101010101 store.physical.record.root-read-basis dependency true false false false store.physical.record.root",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0202020202020202020202020202020202020202020202020202020202020202 store.physical.record.artifact-read-basis dependency true false false false store.physical.record.artifact",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0303030303030303030303030303030303030303030303030303030303030303 store.physical.record.frame-read-basis dependency true false false false store.physical.record.frame",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0404040404040404040404040404040404040404040404040404040404040404 store.physical.record.scan-read-basis dependency true false false false store.physical.record.scan",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0505050505050505050505050505050505050505050505050505050505050505 store.physical.record.frame-writeback-basis dependency-and-output false true false false none",
-    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0606060606060606060606060606060606060606060606060606060606060606 store.physical.record.publication-basis dependency-and-output false false true false none",
+const VALID_WORK_RECONCILIATION_MARKERS: [&str; 16] = [
+    "BOUNDED_RESIDENCY_WORK_RECONCILIATION 0 0 0 1 1 1 1 1 1 3 1 7 4",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0101010101010101010101010101010101010101010101010101010101010101 store.physical.record.root-read-basis dependency true false false false false false false false false store.physical.record.root",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0202020202020202020202020202020202020202020202020202020202020202 store.physical.record.artifact-read-basis dependency true false false false false false false false false store.physical.record.artifact",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0303030303030303030303030303030303030303030303030303030303030303 store.physical.record.frame-read-basis dependency true false false false false false false false false store.physical.record.frame",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0404040404040404040404040404040404040404040404040404040404040404 store.physical.record.scan-read-basis dependency true false false false false false false false false store.physical.record.scan",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0505050505050505050505050505050505050505050505050505050505050505 store.physical.record.frame-writeback-basis dependency-and-output false true false false false false false false false none",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0606060606060606060606060606060606060606060606060606060606060606 store.physical.record.publication-basis dependency-and-output false false true false false false false false false none",
+    "BOUNDED_RESIDENCY_SIGNAL_BINDING 0707070707070707070707070707070707070707070707070707070707070707 store.physical.durability.policy-binding-basis dependency false false false false true true true true true physical-durability-policy/0707",
     "BOUNDED_RESIDENCY_WORK_RECORD 09090909090909090909090909090909 11 13 1 artifact-metadata-read 101 read-metadata read-completed no-effect settled",
     "BOUNDED_RESIDENCY_WORK_ROUTE 1 0:0:0:0 none 0 read-fault 0101010101010101010101010101010101010101010101010101010101010101 posix-file-fsync-dir-sync established-by-filesystem-admission 1 1 false committed",
     "BOUNDED_RESIDENCY_WORK_RECORD 09090909090909090909090909090909 11 13 2 artifact-range-read 102 positioned-read read-completed no-effect settled",
@@ -167,7 +168,7 @@ fn work_reconciliation_protocol_preserves_each_raw_causal_and_terminal_field() {
     assert_eq!(parsed.identified_positioned_writes, 1);
     assert_eq!(parsed.settled_terminal_fates, 3);
     assert_eq!(parsed.continued_terminal_fates, 1);
-    assert_eq!(parsed.signal_bindings.len(), 6);
+    assert_eq!(parsed.signal_bindings.len(), 7);
     assert_eq!(
         parsed.signal_bindings[0].aspect_key,
         "store.physical.record.root-read-basis"
@@ -185,6 +186,11 @@ fn work_reconciliation_protocol_preserves_each_raw_causal_and_terminal_field() {
     assert!(!parsed.signal_bindings[0].families.exact_writeback);
     assert!(!parsed.signal_bindings[0].families.publication);
     assert!(!parsed.signal_bindings[0].families.lifecycle);
+    assert!(!parsed.signal_bindings[0].families.wal_append);
+    assert!(!parsed.signal_bindings[0].families.durability_barrier);
+    assert!(!parsed.signal_bindings[0].families.checkpoint_capture);
+    assert!(!parsed.signal_bindings[0].families.root_publication);
+    assert!(!parsed.signal_bindings[0].families.wal_reclamation);
     assert_eq!(
         parsed.signal_bindings[4].role,
         BoundedResidencySignalAspectRole::DependencyAndOutput
@@ -192,6 +198,11 @@ fn work_reconciliation_protocol_preserves_each_raw_causal_and_terminal_field() {
     assert!(parsed.signal_bindings[4].partition.is_none());
     assert!(parsed.signal_bindings[4].families.exact_writeback);
     assert!(parsed.signal_bindings[5].families.publication);
+    assert!(parsed.signal_bindings[6].families.wal_append);
+    assert!(parsed.signal_bindings[6].families.durability_barrier);
+    assert!(parsed.signal_bindings[6].families.checkpoint_capture);
+    assert!(parsed.signal_bindings[6].families.root_publication);
+    assert!(parsed.signal_bindings[6].families.wal_reclamation);
     assert_eq!(parsed.records.len(), 4);
     assert_eq!(
         parsed.records[0].family,
@@ -228,7 +239,7 @@ fn work_reconciliation_protocol_preserves_each_raw_causal_and_terminal_field() {
         .collect::<Vec<_>>();
     assert!(parse_work_reconciliation(&missing_binding)
         .unwrap_err()
-        .contains("declared 6 Signal bindings but emitted 5"));
+        .contains("declared 7 Signal bindings but emitted 6"));
     let mut malformed = markers.clone();
     malformed[1].push_str(" extra");
     assert!(parse_work_reconciliation(&malformed).is_err());

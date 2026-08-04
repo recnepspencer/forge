@@ -61,7 +61,6 @@ mod physical_semantic_boundary;
 mod publication;
 mod readiness;
 mod reclaim_reachability;
-mod recovery_publication;
 mod recovery_source_lease;
 mod root_protocol;
 mod security_scope_propagation;
@@ -213,12 +212,10 @@ pub use publication::{
     PhysicalIdentityReuse, PhysicalPublicationCounterSnapshot, PhysicalPublicationDenial,
     PhysicalPublicationFoundationalEvidence, PhysicalPublicationIntent,
     PhysicalPublicationIntentKind, PhysicalPublicationReadiness, PhysicalPublicationReceipt,
-    PhysicalPublicationReleasePosture, PhysicalRootPublicationAttempt,
-    PhysicalRootPublicationRuntime, PublicationCrashRecoveryOutcome, PublicationEpochPair,
+    PhysicalPublicationReleasePosture, PublicationCrashRecoveryOutcome, PublicationEpochPair,
     PublicationEpochReadiness, PublicationLatchReadiness, PublicationRootCandidate,
-    PublicationRootSuccessorOwner, PublishedCopyOnWriteRootSwap, ReadCopyUpdateRootPublication,
-    ReleasedOldReachability, RootPublicationEpoch, RootSwapOrderingContract,
-    ValidatedPhysicalPublicationIntent,
+    PublicationRootSuccessorOwner, ReleasedOldReachability, RootPublicationEpoch,
+    RootSwapOrderingContract, ValidatedPhysicalPublicationIntent,
 };
 pub use readiness::{
     admit_physical_isolation_entry, admit_physical_isolation_entry_checked,
@@ -247,12 +244,6 @@ pub use reclaim_reachability::{
     ReclaimCounterSnapshot, ReclaimDecision, ReclaimDenial, ReclaimEligibilityProof,
     ReclaimReachabilityRemovalReceipt, S6ReclaimReachabilityRemovalEvidence,
     S6ReclaimReachabilityRemovalEvidenceDenial,
-};
-pub use recovery_publication::{
-    AtomicRecoveryPublicationReceipt, RecoveryPublicationDenial, RecoveryPublicationLoweredPlan,
-    RecoveryPublicationOwner, RecoveryPublicationPlanRequest, RecoveryPublicationPosture,
-    RecoveryPublicationStartPosture, ReopenRecoveryPublicationByIdentityRequest,
-    ReopenRecoveryPublicationRequest,
 };
 pub use recovery_source_lease::{
     AdmittedPitrSourceCut, AdmittedRollbackSourceCut, BootstrapReachabilityLease,

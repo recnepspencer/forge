@@ -20,16 +20,16 @@ fn durable_scope_cannot_authorize_different_wal_bytes() {
         .unwrap();
     let key = access.admit_key(metadata, compaction).unwrap();
     let scope = wal_scope(91, "claimed-frame".into(), 11);
-    let receipt = admit_durable_append(&wal_receipt(scope.clone(), b"wrong-bytes")).unwrap();
+    let observation = wal_artifact_observation(scope.clone(), b"wrong-bytes");
     let envelope = BlobWalRecordEnvelope::new(
         BlobWalRecordIdentity::new(91, BlobWalRecordKind::LsmValue).unwrap(),
-        DurablePublicationDeclaration::wal_frame(scope),
+        PublicationDeclaration::wal_frame(scope),
         "claimed-frame",
     )
     .unwrap();
-    let mut index = open_lsm_index(&receipt).unwrap();
+    let mut index = open_lsm_index(&observation).unwrap();
     assert_eq!(
-        access.persist_record(&mut index, envelope, &receipt, key),
+        access.persist_record(&mut index, envelope, &observation, key),
         Err(BaselineLsmExecutionAdmissionDenial::DurableRecordBindingMismatch)
     );
 }
@@ -94,10 +94,10 @@ fn artifact_swap_after_record_admission_is_denied_before_membership_admission() 
     use std::io::{Seek, SeekFrom, Write};
     let mut artifact = std::fs::OpenOptions::new()
         .write(true)
-        .open(durable.persisted_path())
+        .open(durable.path())
         .unwrap();
     artifact
-        .seek(SeekFrom::Start(durable.persisted_offset()))
+        .seek(SeekFrom::Start(durable.payload_offset()))
         .unwrap();
     artifact.write_all(b"substituted-after-admission").unwrap();
 

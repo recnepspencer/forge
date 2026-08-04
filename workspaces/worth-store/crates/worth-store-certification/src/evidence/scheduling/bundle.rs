@@ -171,7 +171,7 @@ fn counter_strengths(
         ),
         S6CounterStrengthDeclaration::new(
             S6CounterStrengthFamily::FlushDurability,
-            sources.flush_durability()[0].counters().strength().into(),
+            sources.flush_durability()[0].counter_strength().into(),
             sources.flush_durability().len(),
         ),
         S6CounterStrengthDeclaration::new(

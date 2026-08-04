@@ -7,8 +7,7 @@ use worth_store_physical_isolation::{
 use super::selected_control_replay_contract::ReplayedSelectedControlHistory;
 use super::{
     IndeterminateRecoveryStagingHandle, IndeterminateRepairRecoveryHandle,
-    OperationalControlHistoryViolation, OperationalControlReplayResource,
-    PreparedRecoveryPublicationHandle, SelectedRecoveryHandles, TerminalRecoveryFenceReleaseHandle,
+    OperationalControlHistoryViolation, OperationalControlReplayResource, SelectedRecoveryHandles,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,118 +15,6 @@ pub struct ActiveBackupRecoveryHandle {
     operation_id: super::OperationalOperationId,
     recovery: worth_store_physical_isolation::BackupCutRecoveryRecord,
     materialization_plan: Option<super::BackupMaterializationRecoveryPlan>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PendingRecoveryPublicationHandle {
-    operation_id: super::OperationalOperationId,
-    authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
-    operation_kind: RecoveryPublicationOperationKind,
-    binding: super::control_record::RecoveryPublicationControlBinding,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RecoveryPublicationOperationKind {
-    BackupRestore,
-    PointInTimeRecovery,
-    Rollback,
-    AuthorityAffectingRepair,
-}
-
-impl PendingRecoveryPublicationHandle {
-    pub(crate) const fn new(
-        operation_id: super::OperationalOperationId,
-        authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity,
-        operation_kind: RecoveryPublicationOperationKind,
-        binding: super::control_record::RecoveryPublicationControlBinding,
-    ) -> Self {
-        Self {
-            operation_id,
-            authority_identity,
-            operation_kind,
-            binding,
-        }
-    }
-    pub const fn operation_id(&self) -> &super::OperationalOperationId {
-        &self.operation_id
-    }
-    pub const fn cutover_plan_fingerprint(&self) -> [u8; 32] {
-        self.binding.cutover_plan_fingerprint()
-    }
-    pub const fn publication_identity(&self) -> [u8; 32] {
-        self.binding.publication_identity()
-    }
-    pub const fn candidate_media_identity(&self) -> [u8; 32] {
-        self.binding.candidate_media_identity()
-    }
-    pub const fn operation_kind(&self) -> RecoveryPublicationOperationKind {
-        self.operation_kind
-    }
-    pub(crate) const fn authority_identity(
-        &self,
-    ) -> worth_store_authority::StoreCurrentAuthorityIdentity {
-        self.authority_identity
-    }
-    pub(crate) const fn publication_plan_fingerprint(&self) -> [u8; 32] {
-        self.binding.publication_plan_fingerprint()
-    }
-    pub(crate) const fn fence_identity(&self) -> [u8; 32] {
-        self.binding.fence_identity()
-    }
-    pub(crate) const fn fence_plan_fingerprint(&self) -> [u8; 32] {
-        self.binding.fence_plan_fingerprint()
-    }
-    pub(crate) const fn authority_posture(
-        &self,
-    ) -> worth_store_authority::RecoveryAuthorityAdmissionPosture {
-        self.binding.authority_posture()
-    }
-    pub(crate) const fn admission_policy(
-        &self,
-    ) -> worth_store_authority::RecoveryAuthorityAdmissionPolicy {
-        self.binding.admission_policy()
-    }
-
-    pub fn recover(
-        &self,
-        publication_directory: &std::path::Path,
-        current_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-        current: &worth_store_authority::StoreCurrentAuthorityWitness,
-        fence_port: &impl worth_store_authority::RecoveryWriteFencePort,
-    ) -> Result<
-        crate::workflow::RecoveredPendingRecoveryPublication,
-        crate::workflow::RecoveryCutoverExecutionDenial,
-    > {
-        crate::workflow::recover_pending(
-            self,
-            publication_directory,
-            current_root,
-            current,
-            fence_port,
-            None,
-        )
-    }
-
-    pub fn recover_with_source_leases(
-        &self,
-        publication_directory: &std::path::Path,
-        current_root: worth_store_physical_isolation::CurrentPhysicalRoot,
-        current: &worth_store_authority::StoreCurrentAuthorityWitness,
-        fence_port: &impl worth_store_authority::RecoveryWriteFencePort,
-        source_leases: &worth_store_physical_isolation::RecoverySourceLeaseRegistry,
-    ) -> Result<
-        crate::workflow::RecoveredPendingRecoveryPublication,
-        crate::workflow::RecoveryCutoverExecutionDenial,
-    > {
-        crate::workflow::recover_pending(
-            self,
-            publication_directory,
-            current_root,
-            current,
-            fence_port,
-            Some(source_leases),
-        )
-    }
 }
 
 impl ActiveBackupRecoveryHandle {
@@ -232,9 +119,6 @@ impl SelectedOperationalControlState {
                 active_backups: replayed.active_backups,
                 indeterminate_repairs: replayed.indeterminate_repairs,
                 indeterminate_recovery_staging: replayed.indeterminate_recovery_staging,
-                pending_recovery_publications: replayed.pending_recovery_publications,
-                prepared_recovery_publications: replayed.prepared_recovery_publications,
-                terminal_recovery_fence_releases: replayed.terminal_recovery_fence_releases,
                 replica_bootstraps: replayed.replica_bootstraps,
                 replica_promotions: replayed.replica_promotions,
             }),
@@ -278,16 +162,6 @@ impl SelectedOperationalControlState {
 
     pub fn into_active_backup_recovery_handles(self) -> Vec<ActiveBackupRecoveryHandle> {
         self.recovery_handles.active_backups
-    }
-
-    pub fn pending_recovery_publication_handles(&self) -> &[PendingRecoveryPublicationHandle] {
-        &self.recovery_handles.pending_recovery_publications
-    }
-    pub fn prepared_recovery_publication_handles(&self) -> &[PreparedRecoveryPublicationHandle] {
-        &self.recovery_handles.prepared_recovery_publications
-    }
-    pub fn terminal_recovery_fence_release_handles(&self) -> &[TerminalRecoveryFenceReleaseHandle] {
-        &self.recovery_handles.terminal_recovery_fence_releases
     }
 
     pub fn indeterminate_repair_recovery_handles(&self) -> &[IndeterminateRepairRecoveryHandle] {

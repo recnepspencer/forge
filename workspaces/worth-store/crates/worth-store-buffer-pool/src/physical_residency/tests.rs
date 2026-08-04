@@ -22,6 +22,8 @@ mod candidate_identity_conflicts;
 mod candidate_window;
 #[path = "tests/clean_to_dirty.rs"]
 mod clean_to_dirty;
+#[path = "tests/dirty_generation_capture.rs"]
+mod dirty_generation_capture;
 #[path = "tests/eviction_siege/mod.rs"]
 mod eviction_siege;
 #[path = "tests/frame_access/mod.rs"]

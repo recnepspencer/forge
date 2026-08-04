@@ -1,6 +1,8 @@
 use super::{MutationEvidenceReport, MutationEvidenceSession, MUTATION_EVIDENCE_REPORT_SCHEMA};
 use crate::mutation_campaign::{
-    evidence::MutationObservation, source_inventory::MutationSourceBinding, MutationCampaignScope,
+    evidence::{MutationExecutionClass, MutationExecutionEvidence, MutationObservation},
+    source_inventory::MutationSourceBinding,
+    MutationCampaignScope,
 };
 
 #[test]
@@ -14,7 +16,7 @@ fn report_schema_is_semantic_and_versioned() {
     .unwrap();
     assert_eq!(
         encoded["schema"],
-        "worth.store.controlled-mutation-evidence.v4"
+        "worth.store.controlled-mutation-evidence.v5"
     );
     assert_eq!(encoded["scope"], "physical-work");
     assert_eq!(
@@ -114,5 +116,10 @@ fn observation(id: u8) -> MutationObservation {
         expected_failing_predicate: "predicate".into(),
         actual_failing_predicate: "predicate".into(),
         localization: "test.rs:1".into(),
+        execution: MutationExecutionEvidence::bind(
+            MutationExecutionClass::Ordinary,
+            std::time::Duration::from_millis(12),
+        )
+        .unwrap(),
     }
 }

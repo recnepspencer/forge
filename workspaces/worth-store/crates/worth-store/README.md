@@ -6,6 +6,29 @@ It should re-export stable public APIs and compose lower crates. It should not
 become the place where authority, physical format, recovery, compatibility,
 maintenance, or certification logic is implemented.
 
+## Physical Durability And Checkpoints
+
+`physical_runtime` exposes the ordinary Store-owned durability contract.
+Callers submit through `ServingPhysicalRuntime::record_submission()`, receive a
+typed preparation posture, and start or execute only `PreparedPhysicalMutation`.
+The terminal fate is completed, proven no effect, or indeterminate. Only the
+completed typestate can become `PhysicalMutationAcknowledgment`.
+
+The acknowledgment is physical truth under one qualified backend profile. It
+is not semantic commit, Query truth, or transaction authority. Dropping a
+mutation handle abandons observation only; explicit cancellation cannot turn a
+possibly effectful mutation into a safe retry. `close_plan()` drains Store-owned
+mutation and checkpoint work before Signal, residency, and media shutdown.
+
+Managed fuzzy checkpoints are submitted through
+`ServingPhysicalRuntime::checkpoints()`. A completed checkpoint carries its
+exact contiguous retained WAL tail, idempotency-binding compaction, and lawful
+WAL reclamation observation. Checkpoint existence alone grants no deletion
+authority.
+
+See [_docs/worth-store/physical-durability-and-checkpoints.md](../../../../_docs/worth-store/physical-durability-and-checkpoints.md)
+for the caller and operator contract.
+
 ## Physical Residency Failures
 
 `PhysicalRecordResidencyFailure` is the Store-owned facade for a lower physical

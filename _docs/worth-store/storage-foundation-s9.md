@@ -131,7 +131,7 @@ Implementation must begin from this current surface inventory. Names marked
 
 - Durability and WAL:
   `AdmittedWalAppendReceipt`, `AdmittedCheckpointPublicationReceipt`,
-  `DurablePublicationDeclaration`, `WalReplayTailRecordReport`,
+  `PublicationDeclaration`, `WalReplayTailRecordReport`,
   `WalAppendPlan`, `WalAppendProgress`, `WalAppendReceipt`,
   `DurableAckReceipt`, `PageFlushRecoveryReceipt`, and
   `StoreDurabilityExecutionProof`.

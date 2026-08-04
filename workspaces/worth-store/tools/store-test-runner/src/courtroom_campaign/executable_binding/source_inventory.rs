@@ -2,8 +2,37 @@ use std::path::{Path, PathBuf};
 
 use worth_store::physical_runtime::{PhysicalWorkFeatureGraphEvidence, PhysicalWorkSourceBinding};
 
+use super::SourceClosureWorkload;
+
 mod metadata_graph;
 mod source_closure;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct BoundLocalSourceClosure {
+    binding: PhysicalWorkSourceBinding,
+    workload: SourceClosureWorkload,
+}
+
+impl BoundLocalSourceClosure {
+    pub(super) const fn new(
+        binding: PhysicalWorkSourceBinding,
+        workload: SourceClosureWorkload,
+    ) -> Self {
+        Self { binding, workload }
+    }
+
+    pub(super) const fn binding(&self) -> &PhysicalWorkSourceBinding {
+        &self.binding
+    }
+
+    pub(super) const fn workload(&self) -> SourceClosureWorkload {
+        self.workload
+    }
+
+    pub(super) fn into_binding(self) -> PhysicalWorkSourceBinding {
+        self.binding
+    }
+}
 
 pub(super) struct LocalSourceInventory {
     repository: PathBuf,
@@ -30,7 +59,7 @@ impl LocalSourceInventory {
         })
     }
 
-    pub(super) fn bind(&self) -> Result<PhysicalWorkSourceBinding, String> {
+    pub(super) fn bind(&self) -> Result<BoundLocalSourceClosure, String> {
         source_closure::bind(
             &self.repository,
             &self.workspace,

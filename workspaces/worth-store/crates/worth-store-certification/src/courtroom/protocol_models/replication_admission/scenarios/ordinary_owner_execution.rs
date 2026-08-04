@@ -6,7 +6,8 @@ use worth_store_formal_models::{
     map_replication_publication_readiness, map_replication_source_admission_outcome,
     ReplicationAdmissionAction,
 };
-use worth_store_recovery_physics::certified_durable_wal_publication_for_test;
+use worth_store_physical_backend::BackendTargetProfile;
+use worth_store_recovery_physics::{DurabilityReplayIdentity, DurabilityReplayKind};
 use worth_store_replication::{
     admit_replication_publication_readiness, admit_replication_source, AdmittedReplicationSource,
     ReplicationAdmissionRuntime, ReplicationCapsuleId, ReplicationPeerCapacity,
@@ -18,7 +19,6 @@ use worth_store_security::{
     readmitted_foreign_wal_security_scope_for_test, readmitted_wal_security_scope_for_test,
     StoreReadmittedSecurityScope,
 };
-use worth_store_wal::WalFrameDurablePublicationScope;
 
 mod publication_denials;
 use publication_denials::collect_publication_denials;
@@ -342,18 +342,19 @@ fn source_outcome(
         declaration,
         scope,
         &authority,
-        durable_publication(spec.first_lsn, spec.last_lsn, &spec.digest),
+        replay_identity(spec.first_lsn, spec.last_lsn, &spec.digest),
     )
 }
 
-fn durable_publication(
-    first_lsn: u64,
-    last_lsn: u64,
-    digest: &str,
-) -> worth_store_recovery_physics::DurableWalPublication {
-    certified_durable_wal_publication_for_test(
-        WalFrameDurablePublicationScope::new(1, 1, first_lsn, last_lsn, digest, 128).unwrap(),
+fn replay_identity(first_lsn: u64, last_lsn: u64, digest: &str) -> DurabilityReplayIdentity {
+    DurabilityReplayIdentity::new(
+        DurabilityReplayKind::WalFrame,
+        BackendTargetProfile::PosixFileFsyncDirSync,
+        digest,
+        first_lsn,
+        last_lsn,
     )
+    .unwrap()
 }
 
 fn scope(kind: ScopeKind) -> StoreReadmittedSecurityScope {

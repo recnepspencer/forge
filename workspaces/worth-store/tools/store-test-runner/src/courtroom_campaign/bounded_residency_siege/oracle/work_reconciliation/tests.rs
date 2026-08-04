@@ -91,7 +91,7 @@ fn route_and_backend_role_bypasses_are_rejected() {
     );
     assert_hostile(
         "physical work reconciliation selected an uninstalled Signal binding",
-        |hostile| hostile.records[1].route.signal_binding = [8; 32],
+        |hostile| hostile.records[1].route.signal_binding = [200; 32],
     );
     assert_hostile(
         "physical work reconciliation selected the wrong native Signal basis",
@@ -129,6 +129,31 @@ fn installed_signal_inventory_bypasses_are_rejected() {
             hostile.signal_bindings = hostile.signal_bindings[1..].to_vec().into_boxed_slice();
         },
     );
+}
+
+#[test]
+fn every_c7_signal_basis_is_required_in_the_installed_inventory() {
+    for aspect_key in [
+        "store.physical.durability.policy-binding-basis",
+        "store.physical.durability.wal-append-basis",
+        "store.physical.durability.wal-barrier-basis",
+        "store.physical.durability.checkpoint-capture-basis",
+        "store.physical.durability.root-publication-basis",
+        "store.physical.durability.wal-reclamation-basis",
+    ] {
+        let mut incomplete = fixture();
+        incomplete.signal_bindings = incomplete
+            .signal_bindings
+            .iter()
+            .filter(|binding| binding.aspect_key != aspect_key)
+            .cloned()
+            .collect::<Vec<_>>()
+            .into_boxed_slice();
+        assert_denied(
+            &incomplete,
+            &format!("physical work reconciliation omitted native Signal basis `{aspect_key}`"),
+        );
+    }
 }
 
 #[test]

@@ -46,11 +46,12 @@ pub enum PhysicalWorkPressureClass {
     ForegroundInteractiveRead,
     ForegroundInternalRead,
     ForegroundMutation,
+    BackgroundCheckpoint,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PhysicalWorkCounterSnapshot {
-    by_family_and_pressure: [[[u64; 7]; 6]; 4],
+    by_family_and_pressure: [[[u64; 7]; 7]; 9],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -264,7 +265,7 @@ impl PhysicalWorkShutdownObservation {
 }
 
 impl PhysicalWorkCounterSnapshot {
-    pub(super) const fn from_counts(by_family_and_pressure: [[[u64; 7]; 6]; 4]) -> Self {
+    pub(super) const fn from_counts(by_family_and_pressure: [[[u64; 7]; 7]; 9]) -> Self {
         Self {
             by_family_and_pressure,
         }
@@ -325,7 +326,7 @@ mod tests {
 
     #[test]
     fn metadata_and_range_read_counters_have_distinct_family_buckets() {
-        let mut counts = [[[0_u64; 7]; 6]; 4];
+        let mut counts = [[[0_u64; 7]; 7]; 9];
         counts[0][0][6] = 2;
         counts[1][0][6] = 3;
         let snapshot = PhysicalWorkCounterSnapshot::from_counts(counts);

@@ -1,3 +1,4 @@
+use super::super::{CompletedRecordScan, RecordReadObservation, RecordScanCounterSnapshot};
 use worth_foundational::performance_api::lower_lane::{basis, receipts};
 use worth_foundational::{
     FoundationalAuthoritativePerformanceClaim, FoundationalCounterBackedPerformanceReceipt,
@@ -8,12 +9,6 @@ use worth_foundational::{
     FoundationalPerformanceCounterSpec, FoundationalPerformanceEvidenceStrength,
     FoundationalPerformanceExecutionTemperature, FoundationalPerformanceFallbackDebtPosture,
     FoundationalPerformanceFreshnessRetentionPosture, FoundationalPerformanceWorkClass,
-};
-use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
-
-use super::super::{
-    CompletedRecordScan, PublishedRecordBatch, RecordAppendObservation, RecordReadObservation,
-    RecordScanCounterSnapshot,
 };
 
 const COUNTER_NAMES: [&str; 20] = [
@@ -204,18 +199,6 @@ const fn scan_contract_values(value: RecordScanPerformanceExpectation) -> [u64; 
 }
 
 impl PhysicalRecordAccessSummary {
-    pub fn from_published_batch(batch: &PublishedRecordBatch) -> Self {
-        let observation = batch.observation();
-        let before = batch.media_counters_before();
-        let after = batch.media_counters_after();
-        Self {
-            values: append_values(observation, before, after),
-            breadth: FoundationalPerformanceBreadthLocalityPosture::FamilyLocalBatch,
-            pattern: FoundationalPerformanceAccessPatternPosture::AppendHeavy,
-            work: FoundationalPerformanceWorkClass::AuthoritativeMutation,
-        }
-    }
-
     pub fn from_completed_read(
         observation: RecordReadObservation,
     ) -> Result<Self, RecordPerformanceEvidenceDenial> {
@@ -298,39 +281,6 @@ pub fn lower_record_operation_performance_receipt(
         .map_err(RecordPerformanceEvidenceDenial::Receipt)
 }
 
-fn append_values(
-    value: RecordAppendObservation,
-    before: MediaCounterSnapshot,
-    after: MediaCounterSnapshot,
-) -> [u64; COUNTER_NAMES.len()] {
-    [
-        1,
-        0,
-        0,
-        value.records(),
-        value.logical_bytes(),
-        value.manifest_blocks_read(),
-        value.manifest_bytes_read(),
-        value.manifest_comparisons(),
-        value.segment_artifacts(),
-        value.extent_artifacts(),
-        value.records(),
-        value.transfer_count(),
-        value.peak_transfer_width(),
-        value.explicit_copy_count(),
-        value.copied_bytes(),
-        value.peak_scratch_bytes(),
-        delta_role(before, after, MediaOperationRole::SynchronizeFileState),
-        delta_role(
-            before,
-            after,
-            MediaOperationRole::SynchronizeDirectoryPublication,
-        ),
-        after.replacements().saturating_sub(before.replacements()),
-        0,
-    ]
-}
-
 fn read_values(value: RecordReadObservation) -> [u64; COUNTER_NAMES.len()] {
     [
         0,
@@ -382,16 +332,6 @@ fn scan_values(value: RecordScanCounterSnapshot) -> [u64; COUNTER_NAMES.len()] {
         0,
         value.frames_traversed(),
     ]
-}
-
-fn delta_role(
-    before: MediaCounterSnapshot,
-    after: MediaCounterSnapshot,
-    role: MediaOperationRole,
-) -> u64 {
-    after
-        .completed_operations_for(role)
-        .saturating_sub(before.completed_operations_for(role))
 }
 
 fn counter_name(name: &str) -> basis::FoundationalPerformanceCounterName {

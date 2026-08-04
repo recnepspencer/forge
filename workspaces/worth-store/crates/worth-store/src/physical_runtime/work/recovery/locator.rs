@@ -5,11 +5,28 @@ use worth_store_physical_format::{
 
 use super::super::{PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition};
 
+mod codec;
+pub(super) use codec::{encode_family, encode_target};
+
 pub(super) const RECOVERY_RECORD_BYTES: usize = 160;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkRecoveryTarget {
     Range(RecordFrameCoordinate),
+    WalArtifactInterval {
+        segment: u64,
+        generation: u64,
+        offset: u64,
+        byte_count: u64,
+    },
+    Checkpoint {
+        sequence: u64,
+        action: PhysicalCheckpointRecoveryAction,
+    },
+    WalSegmentReclamation {
+        segment: u64,
+        generation: u64,
+    },
     ArtifactFileSynchronization(RecordArtifactFile),
     ArtifactParentSynchronization(RecordArtifactFile),
     CatalogReplacement(RecordArtifactFile),
@@ -44,7 +61,7 @@ pub(super) fn decode_locator(
     if checksum != record[128..] {
         return None;
     }
-    let family = decode_family(record[9])?;
+    let family = codec::decode_family(record[9])?;
     if matches!(
         family,
         PhysicalWorkOperationFamily::ArtifactMetadataRead
@@ -62,11 +79,10 @@ pub(super) fn decode_locator(
     if file_name != expected_name {
         return None;
     }
-    let (target, payload_digest) = match record[8] {
-        2 => decode_v2_target(record)?,
-        3 => decode_v3_target(record)?,
-        _ => return None,
-    };
+    if record[8] != 6 {
+        return None;
+    }
+    let (target, payload_digest) = codec::decode_target(record)?;
     Some(PhysicalWorkRecoveryLocator {
         store: expected_store,
         runtime,
@@ -79,172 +95,40 @@ pub(super) fn decode_locator(
     })
 }
 
-fn decode_v2_target(record: &[u8]) -> Option<(PhysicalWorkRecoveryTarget, Option<[u8; 32]>)> {
-    if record[69..72].iter().any(|byte| *byte != 0)
-        || record[105..112].iter().any(|byte| *byte != 0)
-        || record[68] != 1
-    {
-        return None;
-    }
-    let coordinate = decode_coordinate(record)?;
-    let digest = record[72..104].try_into().ok()?;
-    Some((PhysicalWorkRecoveryTarget::Range(coordinate), Some(digest)))
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalCheckpointRecoveryAction {
+    CreateCandidate { byte_count: u64 },
+    AppendCandidate { offset: u64, byte_count: u64 },
+    SynchronizeCandidate,
+    RemoveCandidate,
+    PublishCandidate,
+    SynchronizeNamespace,
 }
 
-fn decode_v3_target(record: &[u8]) -> Option<(PhysicalWorkRecoveryTarget, Option<[u8; 32]>)> {
-    if record[70..72].iter().any(|byte| *byte != 0)
-        || record[105..112].iter().any(|byte| *byte != 0)
-        || record[68] > 1
-    {
-        return None;
-    }
-    let artifact = decode_artifact(record[104], read_u64(record, 112)?, read_u64(record, 120)?)?;
-    let digest = (record[68] == 1)
-        .then(|| record[72..104].try_into().ok())
-        .flatten();
-    let offset = read_u64(record, 56)?;
-    let length = read_u32(record, 64)?;
-    let target = match record[69] {
-        1 if digest.is_some() => {
-            PhysicalWorkRecoveryTarget::Range(RecordFrameCoordinate::new(artifact, offset, length)?)
-        }
-        2 if offset == 0 && length == 0 && digest.is_none() => {
-            PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(artifact)
-        }
-        3 if offset == 0 && length == 0 && digest.is_none() => {
-            PhysicalWorkRecoveryTarget::ArtifactParentSynchronization(artifact)
-        }
-        4 if offset == 0 && length == 0 && digest.is_none() => {
-            if !matches!(artifact, RecordArtifactFile::CatalogCandidate { .. }) {
-                return None;
+impl From<super::super::PhysicalCheckpointWorkAction> for PhysicalCheckpointRecoveryAction {
+    fn from(action: super::super::PhysicalCheckpointWorkAction) -> Self {
+        match action {
+            super::super::PhysicalCheckpointWorkAction::CreateCandidate { byte_count } => {
+                Self::CreateCandidate { byte_count }
             }
-            PhysicalWorkRecoveryTarget::CatalogReplacement(artifact)
+            super::super::PhysicalCheckpointWorkAction::AppendCandidate { offset, byte_count } => {
+                Self::AppendCandidate { offset, byte_count }
+            }
+            super::super::PhysicalCheckpointWorkAction::SynchronizeCandidate => {
+                Self::SynchronizeCandidate
+            }
+            super::super::PhysicalCheckpointWorkAction::RemoveCandidate => Self::RemoveCandidate,
+            super::super::PhysicalCheckpointWorkAction::PublishCandidate => Self::PublishCandidate,
+            super::super::PhysicalCheckpointWorkAction::SynchronizeNamespace => {
+                Self::SynchronizeNamespace
+            }
         }
-        5 if offset == 0
-            && length == 0
-            && digest.is_none()
-            && artifact == RecordArtifactFile::BootstrapCatalog =>
-        {
-            PhysicalWorkRecoveryTarget::RecordNamespaceSynchronization
-        }
-        _ => return None,
-    };
-    Some((target, digest))
-}
-
-fn decode_coordinate(record: &[u8]) -> Option<RecordFrameCoordinate> {
-    let artifact = decode_artifact(record[104], read_u64(record, 112)?, read_u64(record, 120)?)?;
-    RecordFrameCoordinate::new(artifact, read_u64(record, 56)?, read_u32(record, 64)?)
-}
-
-pub(super) fn encode_target(
-    target: PhysicalWorkRecoveryTarget,
-    record: &mut [u8; RECOVERY_RECORD_BYTES],
-) {
-    let (tag, artifact, offset, length) = match target {
-        PhysicalWorkRecoveryTarget::Range(coordinate) => (
-            1,
-            coordinate.artifact(),
-            coordinate.offset(),
-            coordinate.length(),
-        ),
-        PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(artifact) => (2, artifact, 0, 0),
-        PhysicalWorkRecoveryTarget::ArtifactParentSynchronization(artifact) => (3, artifact, 0, 0),
-        PhysicalWorkRecoveryTarget::CatalogReplacement(candidate) => (4, candidate, 0, 0),
-        PhysicalWorkRecoveryTarget::RecordNamespaceSynchronization => {
-            (5, RecordArtifactFile::BootstrapCatalog, 0, 0)
-        }
-    };
-    record[69] = tag;
-    record[56..64].copy_from_slice(&offset.to_le_bytes());
-    record[64..68].copy_from_slice(&length.to_le_bytes());
-    encode_artifact(artifact, record);
-}
-
-pub(super) fn encode_artifact(artifact: RecordArtifactFile, record: &mut [u8; 160]) {
-    let (tag, first, second) = match artifact {
-        RecordArtifactFile::BootstrapCatalog => (1, 0, 0),
-        RecordArtifactFile::CatalogCandidate { publication } => (2, publication, 0),
-        RecordArtifactFile::RootManifest { generation } => (3, generation, 0),
-        RecordArtifactFile::RootRoutingBlock { generation, block } => (4, generation, block),
-        RecordArtifactFile::Segment {
-            segment,
-            generation,
-        } => (5, segment, generation),
-        RecordArtifactFile::SegmentManifest {
-            segment,
-            generation,
-        } => (6, segment, generation),
-        RecordArtifactFile::SegmentMembershipBlock { generation, block } => (7, generation, block),
-        RecordArtifactFile::Extent { extent, generation } => (8, extent, generation),
-        RecordArtifactFile::ExtentManifest { extent, generation } => (9, extent, generation),
-        RecordArtifactFile::FreeSpaceManifest { generation } => (10, generation, 0),
-        RecordArtifactFile::FreeSpaceMembershipBlock { generation, block } => {
-            (11, generation, block)
-        }
-    };
-    record[104] = tag;
-    record[112..120].copy_from_slice(&first.to_le_bytes());
-    record[120..128].copy_from_slice(&second.to_le_bytes());
-}
-
-const fn decode_family(value: u8) -> Option<PhysicalWorkOperationFamily> {
-    match value {
-        1 => Some(PhysicalWorkOperationFamily::ArtifactRangeRead),
-        2 => Some(PhysicalWorkOperationFamily::ArtifactRangeWrite),
-        3 => Some(PhysicalWorkOperationFamily::ArtifactPublication),
-        4 => Some(PhysicalWorkOperationFamily::ArtifactMetadataRead),
-        _ => None,
-    }
-}
-
-const fn decode_artifact(tag: u8, first: u64, second: u64) -> Option<RecordArtifactFile> {
-    match tag {
-        1 if first == 0 && second == 0 => Some(RecordArtifactFile::BootstrapCatalog),
-        2 if second == 0 => Some(RecordArtifactFile::CatalogCandidate { publication: first }),
-        3 if second == 0 => Some(RecordArtifactFile::RootManifest { generation: first }),
-        4 => Some(RecordArtifactFile::RootRoutingBlock {
-            generation: first,
-            block: second,
-        }),
-        5 => Some(RecordArtifactFile::Segment {
-            segment: first,
-            generation: second,
-        }),
-        6 => Some(RecordArtifactFile::SegmentManifest {
-            segment: first,
-            generation: second,
-        }),
-        7 => Some(RecordArtifactFile::SegmentMembershipBlock {
-            generation: first,
-            block: second,
-        }),
-        8 => Some(RecordArtifactFile::Extent {
-            extent: first,
-            generation: second,
-        }),
-        9 => Some(RecordArtifactFile::ExtentManifest {
-            extent: first,
-            generation: second,
-        }),
-        10 if second == 0 => Some(RecordArtifactFile::FreeSpaceManifest { generation: first }),
-        11 => Some(RecordArtifactFile::FreeSpaceMembershipBlock {
-            generation: first,
-            block: second,
-        }),
-        _ => None,
     }
 }
 
 fn read_u64(record: &[u8], offset: usize) -> Option<u64> {
     Some(u64::from_le_bytes(
         record.get(offset..offset + 8)?.try_into().ok()?,
-    ))
-}
-
-fn read_u32(record: &[u8], offset: usize) -> Option<u32> {
-    Some(u32::from_le_bytes(
-        record.get(offset..offset + 4)?.try_into().ok()?,
     ))
 }
 

@@ -51,11 +51,7 @@ pub(crate) fn publish_replication(
         lineage: readiness.source().lineage().clone(),
         current_authority: readiness.source().current_authority(),
         security_scope: readiness.source().security_scope().admitted().identity(),
-        replay: readiness
-            .source()
-            .durable_publication()
-            .replay_identity()
-            .clone(),
+        replay: readiness.source().replay_identity().clone(),
     };
     ReplicationPublicationOutcome::published(PublishedReplication {
         progress: readiness.progress,

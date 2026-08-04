@@ -1,10 +1,9 @@
 use sha2::{Digest, Sha256};
-use worth_store_physical_format::{store_namespace::StableStoreIdentity, RecordFrameCoordinate};
+use worth_store_physical_format::store_namespace::StableStoreIdentity;
 
 use super::{
-    range_io::ArtifactTreeCreateFileOutcome, ArtifactRangeWriteOutcome, ArtifactTreeFailure,
-    ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia, CompletedArtifactRangeWrite,
-    IndeterminateArtifactRangeWrite,
+    range_io::ArtifactTreeCreateFileOutcome, ArtifactTreeFailure, ArtifactTreeFailureKind,
+    ArtifactTreeFile, ArtifactTreeMedia,
 };
 use crate::{
     filesystem_media::{MediaOperationIdentity, MediaOwnerIdentity},
@@ -12,18 +11,27 @@ use crate::{
     BackendQueueExecutionPlanBinding,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ArtifactNewWriteRange(u64);
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompletedArtifactNewWrite {
+    owner: MediaOwnerIdentity,
+    store: StableStoreIdentity,
+    artifact: ArtifactTreeFile,
+    range: ArtifactNewWriteRange,
+    payload_digest: [u8; 32],
     create_operation: MediaOperationIdentity,
-    write: CompletedArtifactRangeWrite,
+    write_operation: MediaOperationIdentity,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndeterminateArtifactNewWrite {
     failure: ArtifactTreeFailure,
     owner: MediaOwnerIdentity,
     store: StableStoreIdentity,
-    coordinate: RecordFrameCoordinate,
+    artifact: ArtifactTreeFile,
+    range: ArtifactNewWriteRange,
     payload_digest: [u8; 32],
     completed_bytes: u64,
     create_operation: MediaOperationIdentity,
@@ -50,17 +58,38 @@ pub enum ScheduledArtifactNewWriteOutcome {
     Indeterminate(IndeterminateArtifactNewWrite),
 }
 
+pub(super) enum ArtifactNewFileWriteOutcome {
+    Completed(MediaOperationIdentity),
+    DeniedBeforeEffect(ArtifactTreeFailure),
+    Indeterminate {
+        failure: ArtifactTreeFailure,
+        completed_bytes: u64,
+        operation: MediaOperationIdentity,
+    },
+}
+
+impl ArtifactNewWriteRange {
+    pub const fn new(byte_count: u64) -> Option<Self> {
+        if byte_count == 0 {
+            None
+        } else {
+            Some(Self(byte_count))
+        }
+    }
+
+    pub const fn byte_count(self) -> u64 {
+        self.0
+    }
+}
+
 impl ArtifactTreeMedia<'_> {
     pub fn write_new_exact(
         &self,
         artifact: &ArtifactTreeFile,
-        coordinate: RecordFrameCoordinate,
+        range: ArtifactNewWriteRange,
         bytes: &[u8],
     ) -> ArtifactNewWriteOutcome {
-        if coordinate.offset() != 0
-            || coordinate.length() as usize != bytes.len()
-            || coordinate.artifact().file_name() != artifact.file_name
-        {
+        if range.byte_count() != bytes.len() as u64 {
             return ArtifactNewWriteOutcome::DeniedBeforeEffect(ArtifactTreeFailure::structural(
                 ArtifactTreeFailureKind::AccessLimitExceeded,
             ));
@@ -76,7 +105,8 @@ impl ArtifactTreeMedia<'_> {
                         failure,
                         self.owner.identity(),
                         self.store,
-                        coordinate,
+                        artifact.clone(),
+                        range,
                         bytes,
                         operation,
                     ),
@@ -84,36 +114,53 @@ impl ArtifactTreeMedia<'_> {
             }
         };
         let create_operation = file.create_operation();
-        match file.write_exact_chunk(coordinate, bytes) {
-            ArtifactRangeWriteOutcome::Completed(write) => {
-                ArtifactNewWriteOutcome::Completed(CompletedArtifactNewWrite {
+        match file.write_exact_artifact_chunk(bytes) {
+            ArtifactNewFileWriteOutcome::Completed(write_operation) => {
+                ArtifactNewWriteOutcome::Completed(CompletedArtifactNewWrite::new(
+                    self.owner.identity(),
+                    self.store,
+                    artifact.clone(),
+                    range,
+                    bytes,
                     create_operation,
-                    write,
-                })
+                    write_operation,
+                ))
             }
-            ArtifactRangeWriteOutcome::DeniedBeforeEffect(failure) => {
-                ArtifactNewWriteOutcome::Indeterminate(IndeterminateArtifactNewWrite::after_create(
+            ArtifactNewFileWriteOutcome::DeniedBeforeEffect(failure) => {
+                ArtifactNewWriteOutcome::Indeterminate(IndeterminateArtifactNewWrite::new(
                     failure,
                     self.owner.identity(),
                     self.store,
-                    coordinate,
+                    artifact.clone(),
+                    range,
                     bytes,
+                    0,
                     create_operation,
+                    None,
                 ))
             }
-            ArtifactRangeWriteOutcome::Indeterminate(write) => {
-                ArtifactNewWriteOutcome::Indeterminate(IndeterminateArtifactNewWrite::during_write(
-                    create_operation,
-                    write,
-                ))
-            }
+            ArtifactNewFileWriteOutcome::Indeterminate {
+                failure,
+                completed_bytes,
+                operation,
+            } => ArtifactNewWriteOutcome::Indeterminate(IndeterminateArtifactNewWrite::new(
+                failure,
+                self.owner.identity(),
+                self.store,
+                artifact.clone(),
+                range,
+                bytes,
+                completed_bytes,
+                create_operation,
+                Some(operation),
+            )),
         }
     }
 
     pub fn write_scheduled_new_exact(
         &self,
         artifact: &ArtifactTreeFile,
-        coordinate: RecordFrameCoordinate,
+        range: ArtifactNewWriteRange,
         bytes: &[u8],
         binding: BackendQueueExecutionPlanBinding,
         adaptation: BackendQueueExecutionAdaptation,
@@ -130,7 +177,7 @@ impl ArtifactTreeMedia<'_> {
                 );
             }
         };
-        match self.write_new_exact(artifact, coordinate, bytes) {
+        match self.write_new_exact(artifact, range, bytes) {
             ArtifactNewWriteOutcome::Completed(physical) => {
                 ScheduledArtifactNewWriteOutcome::Completed(Box::new(
                     CompletedScheduledArtifactNewWrite {
@@ -150,16 +197,50 @@ impl ArtifactTreeMedia<'_> {
 }
 
 impl CompletedArtifactNewWrite {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        owner: MediaOwnerIdentity,
+        store: StableStoreIdentity,
+        artifact: ArtifactTreeFile,
+        range: ArtifactNewWriteRange,
+        bytes: &[u8],
+        create_operation: MediaOperationIdentity,
+        write_operation: MediaOperationIdentity,
+    ) -> Self {
+        Self {
+            owner,
+            store,
+            artifact,
+            range,
+            payload_digest: Sha256::digest(bytes).into(),
+            create_operation,
+            write_operation,
+        }
+    }
+
+    pub const fn owner(&self) -> MediaOwnerIdentity {
+        self.owner
+    }
+    pub const fn store(&self) -> StableStoreIdentity {
+        self.store
+    }
+    pub const fn artifact(&self) -> &ArtifactTreeFile {
+        &self.artifact
+    }
+    pub const fn range(&self) -> ArtifactNewWriteRange {
+        self.range
+    }
+    pub const fn payload_digest(&self) -> [u8; 32] {
+        self.payload_digest
+    }
+    pub const fn completed_bytes(&self) -> u64 {
+        self.range.byte_count()
+    }
     pub const fn create_operation(&self) -> MediaOperationIdentity {
         self.create_operation
     }
-
-    pub const fn write(&self) -> &CompletedArtifactRangeWrite {
-        &self.write
-    }
-
-    pub fn into_write(self) -> CompletedArtifactRangeWrite {
-        self.write
+    pub const fn write_operation(&self) -> MediaOperationIdentity {
+        self.write_operation
     }
 }
 
@@ -167,78 +248,85 @@ impl CompletedScheduledArtifactNewWrite {
     pub const fn physical(&self) -> &CompletedArtifactNewWrite {
         &self.physical
     }
-
     pub const fn queue(&self) -> BackendQueueExecutionCompletion {
         self.queue
     }
 }
 
 impl IndeterminateArtifactNewWrite {
+    #[allow(clippy::too_many_arguments)]
     fn after_create(
         failure: ArtifactTreeFailure,
         owner: MediaOwnerIdentity,
         store: StableStoreIdentity,
-        coordinate: RecordFrameCoordinate,
+        artifact: ArtifactTreeFile,
+        range: ArtifactNewWriteRange,
         bytes: &[u8],
         create_operation: MediaOperationIdentity,
+    ) -> Self {
+        Self::new(
+            failure,
+            owner,
+            store,
+            artifact,
+            range,
+            bytes,
+            0,
+            create_operation,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        failure: ArtifactTreeFailure,
+        owner: MediaOwnerIdentity,
+        store: StableStoreIdentity,
+        artifact: ArtifactTreeFile,
+        range: ArtifactNewWriteRange,
+        bytes: &[u8],
+        completed_bytes: u64,
+        create_operation: MediaOperationIdentity,
+        write_operation: Option<MediaOperationIdentity>,
     ) -> Self {
         Self {
             failure,
             owner,
             store,
-            coordinate,
+            artifact,
+            range,
             payload_digest: Sha256::digest(bytes).into(),
-            completed_bytes: 0,
+            completed_bytes,
             create_operation,
-            write_operation: None,
+            write_operation,
         }
     }
 
-    fn during_write(
-        create_operation: MediaOperationIdentity,
-        write: IndeterminateArtifactRangeWrite,
-    ) -> Self {
-        Self {
-            failure: write.failure(),
-            owner: write.owner(),
-            store: write.store(),
-            coordinate: write.coordinate(),
-            payload_digest: write.payload_digest(),
-            completed_bytes: write.completed_bytes(),
-            create_operation,
-            write_operation: Some(write.operation()),
-        }
-    }
-
-    pub const fn failure(self) -> ArtifactTreeFailure {
+    pub const fn failure(&self) -> ArtifactTreeFailure {
         self.failure
     }
-
-    pub const fn owner(self) -> MediaOwnerIdentity {
+    pub const fn owner(&self) -> MediaOwnerIdentity {
         self.owner
     }
-
-    pub const fn store(self) -> StableStoreIdentity {
+    pub const fn store(&self) -> StableStoreIdentity {
         self.store
     }
-
-    pub const fn coordinate(self) -> RecordFrameCoordinate {
-        self.coordinate
+    pub const fn artifact(&self) -> &ArtifactTreeFile {
+        &self.artifact
     }
-
-    pub const fn payload_digest(self) -> [u8; 32] {
+    pub const fn range(&self) -> ArtifactNewWriteRange {
+        self.range
+    }
+    pub const fn payload_digest(&self) -> [u8; 32] {
         self.payload_digest
     }
-
-    pub const fn completed_bytes(self) -> u64 {
+    pub const fn completed_bytes(&self) -> u64 {
         self.completed_bytes
     }
-
-    pub const fn create_operation(self) -> MediaOperationIdentity {
+    pub const fn create_operation(&self) -> MediaOperationIdentity {
         self.create_operation
     }
-
-    pub const fn write_operation(self) -> Option<MediaOperationIdentity> {
+    pub const fn write_operation(&self) -> Option<MediaOperationIdentity> {
         self.write_operation
     }
 }

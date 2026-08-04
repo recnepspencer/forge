@@ -1,4 +1,4 @@
-use crate::{DurablePublicationDeclaration, DurablePublicationScope};
+use crate::{PublicationDeclaration, PublicationScope};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlobWalRecordKind {
@@ -37,14 +37,14 @@ impl BlobWalRecordIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobWalRecordEnvelope {
     identity: BlobWalRecordIdentity,
-    durable_publication: DurablePublicationDeclaration,
+    publication_declaration: PublicationDeclaration,
     payload_digest: String,
 }
 
 impl BlobWalRecordEnvelope {
     pub fn new(
         identity: BlobWalRecordIdentity,
-        durable_publication: DurablePublicationDeclaration,
+        publication_declaration: PublicationDeclaration,
         payload_digest: impl Into<String>,
     ) -> Result<Self, BlobWalRecordScopeDenial> {
         let payload_digest = payload_digest.into();
@@ -52,14 +52,14 @@ impl BlobWalRecordEnvelope {
             return Err(BlobWalRecordScopeDenial::MissingPayloadDigest);
         }
         if !matches!(
-            durable_publication.scope(),
-            DurablePublicationScope::WalFrame(_)
+            publication_declaration.scope(),
+            PublicationScope::WalFrame(_)
         ) {
             return Err(BlobWalRecordScopeDenial::WalFrameScopeRequired);
         }
         Ok(Self {
             identity,
-            durable_publication,
+            publication_declaration,
             payload_digest,
         })
     }
@@ -68,8 +68,8 @@ impl BlobWalRecordEnvelope {
         self.identity
     }
 
-    pub const fn durable_publication(&self) -> &DurablePublicationDeclaration {
-        &self.durable_publication
+    pub const fn publication_declaration(&self) -> &PublicationDeclaration {
+        &self.publication_declaration
     }
 
     pub fn payload_digest(&self) -> &str {

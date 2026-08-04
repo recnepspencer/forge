@@ -20,6 +20,19 @@ pub enum BackendTargetProfile {
     AdversarialReorderedFlush,
 }
 
+impl BackendTargetProfile {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::SimulatedStrictDurable => "simulated-strict-durable",
+            Self::PosixFileFsyncDirSync => "posix-file-fsync-directory-sync",
+            Self::WindowsFlushFileBuffers => "windows-flush-file-buffers",
+            Self::MmapFlushNotDurabilityCertified => "mmap-flush-not-durability-certified",
+            Self::AdversarialLostFlush => "controlled-lost-flush",
+            Self::AdversarialReorderedFlush => "controlled-reordered-flush",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityEvidenceClass {
     DeclaredByConfig,

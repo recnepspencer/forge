@@ -21,7 +21,6 @@ pub use staging_authorization_continuation::{
     StagingAuthorizationContinuationRequest,
 };
 
-pub(crate) use authorization_consumption::ConsumedOperationalPlan;
 pub(crate) use authorization_consumption::{
     consume_authorization_through, record_recovery_staging_completion,
     recover_authorization_consumption,

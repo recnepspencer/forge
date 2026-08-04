@@ -1,6 +1,7 @@
 mod backend_residue_rejection;
 mod checkpoint_base_admission;
 mod compaction_visibility;
+mod contiguous_wal_tail;
 mod decision_trace;
 mod discovery_trace;
 mod page_lsn_skip_apply;
@@ -23,6 +24,7 @@ pub use compaction_visibility::{
     CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
     RecoverableOldCompactionGeneration,
 };
+pub use contiguous_wal_tail::ContiguousWalTailProof;
 pub(crate) use decision_trace::RecoverySourceReplayBasis;
 pub use decision_trace::{
     RecoverySourceDecisionKind, RecoverySourceDecisionOutcome, RecoverySourceDecisionRow,

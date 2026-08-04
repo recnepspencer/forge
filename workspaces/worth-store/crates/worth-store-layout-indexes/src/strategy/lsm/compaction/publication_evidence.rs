@@ -1,6 +1,4 @@
-use worth_store_wal::{
-    BlobWalRecordEnvelope, DurablePublicationDeclaration, DurablePublicationScope,
-};
+use worth_store_wal::{BlobWalRecordEnvelope, PublicationDeclaration, PublicationScope};
 
 use super::super::BaselineLsmCounterObservation;
 
@@ -9,7 +7,7 @@ pub struct BaselineLsmManifestPublicationExecution {
     maintenance_mode: crate::maintenance::IndexMaintenanceMode,
     membership_replacement: worth_store_lsm_authority::PublishedLsmMembershipReplacement,
     wal_publication: BlobWalRecordEnvelope,
-    manifest_publication: DurablePublicationDeclaration,
+    manifest_publication: PublicationDeclaration,
     published_run_count: u16,
     stale_runs_removed: bool,
     advisory_filter_present: bool,
@@ -46,14 +44,14 @@ impl BaselineLsmManifestPublicationExecution {
         &self.wal_publication
     }
 
-    pub const fn manifest_publication(&self) -> &DurablePublicationDeclaration {
+    pub const fn manifest_publication(&self) -> &PublicationDeclaration {
         &self.manifest_publication
     }
 
     pub fn manifest_sequence_advanced(&self) -> bool {
         matches!(
             self.manifest_publication.scope(),
-            DurablePublicationScope::Manifest(scope) if scope.covered_lsn_end() > scope.covered_lsn_start()
+            PublicationScope::Manifest(scope) if scope.covered_lsn_end() > scope.covered_lsn_start()
         )
     }
 

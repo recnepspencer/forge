@@ -20,31 +20,23 @@ pub(super) fn discover(
         .map_err(|failure| format!("bounded-residency discovery scan denied: {failure:?}"))?;
     let mut scratch = [0_u8; INVENTORY_SCRATCH_BYTES];
     let mut records = Vec::with_capacity(configuration.record_count());
-    loop {
-        match scan
-            .read_next_into(&mut scratch)
-            .map_err(|failure| format!("bounded-residency discovery scan failed: {failure:?}"))?
-        {
-            RecordScanOutcome::Batch(batch) => {
-                let record = batch.records().first().ok_or_else(|| {
-                    "bounded-residency discovery emitted an empty batch".to_owned()
-                })?;
-                let identity = record.record_id();
-                let declared_bytes = record.declared_payload_bytes();
-                let ordinal = match batch.payload(0) {
-                    Some(payload) => super::super::workload::identify_record(
-                        configuration,
-                        declared_bytes,
-                        payload,
-                    )?,
-                    None => {
-                        identify_deferred_record(serving, configuration, identity, declared_bytes)?
-                    }
-                };
-                records.push((ordinal, identity));
+    while let RecordScanOutcome::Batch(batch) = scan
+        .read_next_into(&mut scratch)
+        .map_err(|failure| format!("bounded-residency discovery scan failed: {failure:?}"))?
+    {
+        let record = batch
+            .records()
+            .first()
+            .ok_or_else(|| "bounded-residency discovery emitted an empty batch".to_owned())?;
+        let identity = record.record_id();
+        let declared_bytes = record.declared_payload_bytes();
+        let ordinal = match batch.payload(0) {
+            Some(payload) => {
+                super::super::workload::identify_record(configuration, declared_bytes, payload)?
             }
-            RecordScanOutcome::Completed(_) => break,
-        }
+            None => identify_deferred_record(serving, configuration, identity, declared_bytes)?,
+        };
+        records.push((ordinal, identity));
     }
     require_complete_inventory(records, configuration)
 }

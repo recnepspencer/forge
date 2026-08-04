@@ -2,7 +2,7 @@ use worth_store_lsm_authority::{
     AdmittedLsmReplacementOutput, LsmCompactionMembership, LsmMembershipArtifactDeclaration,
     LsmMembershipDenial, LsmMembershipKey, LsmMembershipRecord, LsmPhysicalCompactionIntent,
 };
-use worth_store_wal::{AdmittedWalAppendReceipt, BlobWalRecordEnvelope};
+use worth_store_wal::{BlobWalRecordEnvelope, WalFrameArtifactObservation};
 
 /// One owner-admitted pairing of semantic membership, durable output, and the
 /// exact physical reader horizon that the output is allowed to replace.
@@ -19,7 +19,7 @@ pub struct AdmittedLsmCompactionDemand {
 impl AdmittedLsmCompactionDemand {
     pub(crate) fn admit(
         plan: super::BaselineLsmCompactionPlan,
-        output_append: AdmittedWalAppendReceipt,
+        output_append: WalFrameArtifactObservation,
         physical_intent: LsmPhysicalCompactionIntent,
     ) -> Result<Self, super::BaselineLsmExecutionAdmissionDenial> {
         plan.membership
@@ -27,7 +27,7 @@ impl AdmittedLsmCompactionDemand {
             .map_err(map_membership_denial)?;
         let expected_output =
             LsmMembershipArtifactDeclaration::compaction_output(output_append.scope());
-        if !output_append.persisted_payload_matches(expected_output.bytes()) {
+        if !output_append.payload_matches(expected_output.bytes()) {
             return Err(super::BaselineLsmExecutionAdmissionDenial::OutputPublicationMismatch);
         }
         let output = worth_store_lsm_authority::admit_lsm_replacement_output(

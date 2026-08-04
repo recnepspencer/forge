@@ -3,8 +3,8 @@ use worth_store_physical_backend::{
 };
 
 use crate::{
-    DurableAckBasis, LogSequenceNumber, WalAppendReceipt, WalFrameDigest, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId,
+    LogSequenceNumber, WalAppendReceipt, WalFrameDigest, WalLsnRange, WalSegmentGeneration,
+    WalSegmentId,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,9 +78,6 @@ pub enum PartialPublicationCrashEdge {
     AfterDurabilityBeforeAck {
         durable_wal: UnacknowledgedDurableWal,
     },
-    AfterAckBeforePageFlush {
-        ack_basis: DurableAckBasis,
-    },
     DuringCheckpointCutover {
         checkpoint_digest: String,
     },
@@ -111,10 +108,6 @@ impl PartialPublicationCrashEdge {
         }
     }
 
-    pub fn after_ack_before_page_flush(ack_basis: DurableAckBasis) -> Self {
-        Self::AfterAckBeforePageFlush { ack_basis }
-    }
-
     pub fn during_checkpoint_cutover(checkpoint_digest: impl Into<String>) -> Self {
         Self::DuringCheckpointCutover {
             checkpoint_digest: checkpoint_digest.into(),
@@ -126,7 +119,6 @@ impl PartialPublicationCrashEdge {
             Self::BeforeWalAppend { .. } | Self::DuringCheckpointCutover { .. } => None,
             Self::AfterWalAppendBeforeDurability { wal_range, .. } => Some(wal_range.start()),
             Self::AfterDurabilityBeforeAck { durable_wal } => Some(durable_wal.lsn_range().start()),
-            Self::AfterAckBeforePageFlush { ack_basis } => Some(ack_basis.lsn_range().start()),
         }
     }
 }

@@ -26,6 +26,9 @@ impl PoolInner {
     ) -> Result<(), PhysicalResidencyDenial> {
         let mut state = self.lock();
         validate_clean_frame(&mut state, key, expected)?;
+        let generation = state
+            .advance_dirty_generation()
+            .map_err(|denial| Self::deny(&mut state, denial))?;
         let entry = state
             .frames
             .get_mut(&key.coordinate)
@@ -35,6 +38,7 @@ impl PoolInner {
         entry.origin = FrameOrigin::DirtyReplacement;
         entry.allocation_scope = scope;
         entry.dirty = true;
+        entry.dirty_generation = Some(generation);
         state.accounting.mark_dirty(!was_candidate);
         Ok(())
     }

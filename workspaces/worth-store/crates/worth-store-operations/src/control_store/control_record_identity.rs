@@ -1,8 +1,6 @@
 use sha2::{Digest, Sha256};
 
-use super::{
-    OperationalControlRecord, OperationalControlRecordKind, RecoveryPublicationControlBinding,
-};
+use super::{OperationalControlRecord, OperationalControlRecordKind};
 
 impl OperationalControlRecord {
     /// Stable identity of the complete durable control artifact.
@@ -243,32 +241,6 @@ fn fingerprint_kind(kind: &OperationalControlRecordKind, digest: &mut Sha256) {
             digest.update(execution_plan_fingerprint);
             digest.update(staged_media_identity);
         }
-        Kind::RecoveryPublicationPrepared { binding }
-        | Kind::RecoveryPublicationPending { binding } => {
-            fingerprint_publication_binding(binding, digest)
-        }
-        Kind::RecoveryPublicationDisposition {
-            publication_identity,
-            disposition_tag,
-            disposition_basis,
-            observed_authority,
-        } => {
-            digest.update(publication_identity);
-            digest.update([*disposition_tag]);
-            digest.update(disposition_basis);
-            digest.update(observed_authority.fingerprint());
-        }
-        Kind::RecoveryPublicationFenceReleased {
-            publication_identity,
-            fence_identity,
-            fence_plan_fingerprint,
-            disposition_tag,
-        } => {
-            digest.update(publication_identity);
-            digest.update(fence_identity);
-            digest.update(fence_plan_fingerprint);
-            digest.update([*disposition_tag]);
-        }
     }
 }
 
@@ -285,21 +257,6 @@ const fn workflow_tag(workflow: super::OperationalWorkflowKind) -> u8 {
         Workflow::ReplicaPromotion => 8,
         Workflow::ForensicAcquisition => 9,
     }
-}
-
-fn fingerprint_publication_binding(
-    binding: &RecoveryPublicationControlBinding,
-    digest: &mut Sha256,
-) {
-    digest.update([binding.operation_tag()]);
-    digest.update(binding.cutover_plan_fingerprint());
-    digest.update(binding.publication_plan_fingerprint());
-    digest.update(binding.publication_identity());
-    digest.update(binding.candidate_media_identity());
-    digest.update(binding.fence_identity());
-    digest.update(binding.fence_plan_fingerprint());
-    digest.update(binding.authority_posture().identity());
-    digest.update(binding.admission_policy().identity());
 }
 
 const fn stable_kind_tag(kind: &OperationalControlRecordKind) -> u8 {
@@ -327,10 +284,6 @@ const fn stable_kind_tag(kind: &OperationalControlRecordKind) -> u8 {
         Kind::OldPrimaryRejoinCompleted { .. } => 19,
         Kind::RepairDispositionRecorded { .. } => 20,
         Kind::RecoveryStagingCompleted { .. } => 21,
-        Kind::RecoveryPublicationPrepared { .. } => 22,
-        Kind::RecoveryPublicationPending { .. } => 23,
-        Kind::RecoveryPublicationDisposition { .. } => 24,
-        Kind::RecoveryPublicationFenceReleased { .. } => 25,
     }
 }
 

@@ -1,6 +1,4 @@
-use worth_store_wal::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
-};
+use worth_store_wal::{BlobWalRecordEnvelope, BlobWalRecordIdentity, PublicationDeclaration};
 
 use super::super::LsmPhysicalCompactionIntent;
 use super::BaselineLsmCompactionPublicationReceipt;
@@ -19,7 +17,7 @@ pub struct PublishedLsmCompaction {
     pub(super) memtable_records: [BlobWalRecordIdentity; 1],
     pub(super) sorted_run_records: [BlobWalRecordIdentity; 2],
     pub(super) wal_publication: BlobWalRecordEnvelope,
-    pub(super) manifest_publication: DurablePublicationDeclaration,
+    pub(super) manifest_publication: PublicationDeclaration,
     pub(super) replay_tail: super::LsmCompactionReplayTail,
     pub(super) compaction: BaselineLsmCompactionPublicationReceipt,
     pub(super) physical_compaction: worth_store_physical_isolation::CompactionRewritePublication,

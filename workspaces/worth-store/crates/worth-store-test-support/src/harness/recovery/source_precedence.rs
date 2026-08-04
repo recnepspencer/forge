@@ -1,27 +1,23 @@
 use super::wal_tail as wal_only_tail_fixture;
 
-use worth_store_physical_backend::{
-    BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
-    SimulatedStrictDurableProfile, WalDurabilityBarrier,
-};
+use worth_store_physical_backend::{BackendDurabilityProfile, SimulatedStrictDurableProfile};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReference,
     PhysicalReferenceAuthority, PhysicalRootReference, PhysicalSegmentId,
 };
 use worth_store_recovery_physics::{
-    AcknowledgmentPrecondition, AdmittedCompactionCutoverDurability,
-    AdmittedCompactionCutoverRecord, CheckpointArtifactDurabilityCommitment,
-    CheckpointBaseAdmission, CheckpointCandidate, CheckpointCandidateDiscoverySource,
-    CheckpointCoveredLsnRange, CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet,
-    CheckpointLocatorArtifactCommitment, CheckpointManifest, CheckpointPageLsnFrontier,
-    CheckpointPublicationPlan, CheckpointRedoBoundary, CheckpointRootPosture,
-    CheckpointSelectorEvidence, CheckpointValidation, CompactionGenerationIdentity,
-    CompactionVisibleProductEvidence, CompactionVisibleProductEvidenceDenial,
-    ContiguousWalTailProof, DurableAckReceipt, IntegrityDamageMap, LogSequenceNumber, PageLsn,
-    RecoverableOldCompactionGeneration, RecoveryCandidateDiscoveryTrace,
-    SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator, WalAppendPlan,
-    WalDurabilityObservationSequence, WalLsnRange, WalOnlyTailProofDenial, WalSegmentGeneration,
-    WalSegmentId, WalTailRedoSource,
+    AdmittedCompactionCutoverDurability, AdmittedCompactionCutoverRecord,
+    CheckpointArtifactDurabilityCommitment, CheckpointBaseAdmission, CheckpointCandidate,
+    CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverReceipt,
+    CheckpointDurabilityEvidenceSet, CheckpointLocatorArtifactCommitment, CheckpointManifest,
+    CheckpointPageLsnFrontier, CheckpointPublicationPlan, CheckpointRedoBoundary,
+    CheckpointRootPosture, CheckpointSelectorEvidence, CheckpointValidation,
+    CompactionGenerationIdentity, CompactionVisibleProductEvidence,
+    CompactionVisibleProductEvidenceDenial, ContiguousWalTailProof, IntegrityDamageMap,
+    LogSequenceNumber, PageLsn, RecoverableOldCompactionGeneration,
+    RecoveryCandidateDiscoveryTrace, SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator,
+    WalAppendObservationScope, WalAppendReceipt, WalDurabilityObservation, WalLsnRange,
+    WalOnlyTailProofDenial, WalSegmentGeneration, WalSegmentId, WalTailRedoSource,
 };
 
 pub fn trace(label: &str, order: u64) -> RecoveryCandidateDiscoveryTrace {
@@ -306,7 +302,7 @@ fn recovered_locator(manifest: CheckpointManifest) -> StoreOwnedCheckpointLocato
 fn compaction_cutover_durability_ack(
     receipt: &CheckpointCutoverReceipt,
     cutover: &AdmittedCompactionCutoverRecord,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
     durable_ack_for_digest(
         receipt.covered_lsn_range().range(),
         77,
@@ -318,8 +314,8 @@ fn durable_ack_for_digest(
     range: WalLsnRange,
     segment_id: u64,
     digest: &str,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
-    let plan = WalAppendPlan::<SimulatedStrictDurableProfile>::new(
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
+    let scope = WalAppendObservationScope::new(
         WalSegmentId::new(segment_id).unwrap(),
         WalSegmentGeneration::new(1).unwrap(),
         range,
@@ -327,21 +323,13 @@ fn durable_ack_for_digest(
         4096,
     )
     .unwrap();
-    let progress = plan.record_written_bytes(4096);
-    let barrier = SimulatedStrictDurabilityAuthority::new()
-        .certify_completed_barrier(
-            progress.durability_scope(),
-            WalDurabilityBarrier::SimulatedDurableCommit,
-        )
-        .unwrap();
-    let receipt = WalDurabilityObservationSequence::new(progress)
-        .observe(worth_store_recovery_physics::WalDurabilityObservation::Completed(barrier))
-        .unwrap()
-        .finish()
-        .unwrap();
-    DurableAckReceipt::acknowledge(
-        AcknowledgmentPrecondition::from_append_receipt(receipt).unwrap(),
-    )
+    let receipt = WalAppendReceipt::from_certification_observation(
+        scope,
+        4096,
+        SimulatedStrictDurableProfile::REQUIRED_BARRIERS,
+        None,
+    );
+    WalDurabilityObservation::from_append_receipt(receipt).unwrap()
 }
 
 fn frontier(redo: u64) -> CheckpointPageLsnFrontier {

@@ -97,6 +97,11 @@ mod tests {
                     exact_writeback: false,
                     publication: false,
                     lifecycle: false,
+                    wal_append: false,
+                    durability_barrier: false,
+                    checkpoint_capture: false,
+                    root_publication: false,
+                    wal_reclamation: false,
                 },
                 partition: Some("store.physical.record.frame".to_owned()),
             }]
@@ -147,6 +152,26 @@ mod tests {
         );
         assert_eq!(
             encoded["signal_bindings"][0]["families"]["lifecycle"],
+            false
+        );
+        assert_eq!(
+            encoded["signal_bindings"][0]["families"]["wal_append"],
+            false
+        );
+        assert_eq!(
+            encoded["signal_bindings"][0]["families"]["durability_barrier"],
+            false
+        );
+        assert_eq!(
+            encoded["signal_bindings"][0]["families"]["checkpoint_capture"],
+            false
+        );
+        assert_eq!(
+            encoded["signal_bindings"][0]["families"]["root_publication"],
+            false
+        );
+        assert_eq!(
+            encoded["signal_bindings"][0]["families"]["wal_reclamation"],
             false
         );
         assert_eq!(

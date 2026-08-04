@@ -6,9 +6,7 @@ use worth_store_physical_certification::{
     PhysicalSimulationProfile, PhysicalSimulationScenarioFamily, RecoveryOutcomeObservation,
 };
 
-use super::{
-    compaction_interlock_trace, complete_context_for_profile, developer_smoke_production_trace,
-};
+use super::{complete_context_for_profile, developer_smoke_production_trace};
 
 pub fn lower_recovery_plan() -> PhysicalSimulationPlan {
     lower_recovery_plan_for_profile(PhysicalSimulationProfile::DeveloperSmoke)
@@ -34,9 +32,6 @@ pub fn recovery_trace_with_outcome(
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
         .with_recovery_outcome_observation(outcome)
-        .with_compaction_interlock_observation(
-            compaction_interlock_trace::store_compaction_observation(),
-        )
         .complete()
         .unwrap()
 }

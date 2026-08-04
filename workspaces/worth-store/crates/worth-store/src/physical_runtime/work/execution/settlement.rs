@@ -1,6 +1,6 @@
 use worth_store_io_scheduler::QueueExecutionOutcome;
 use worth_store_physical_backend::{
-    ArtifactRangeWriteDurability, ArtifactTreeFailure, CompletedArtifactMetadataRead,
+    ArtifactTreeFailure, CompletedArtifactAppend, CompletedArtifactMetadataRead,
     CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
     MediaOperationRole,
 };
@@ -8,9 +8,16 @@ use worth_store_physical_backend::{
 use super::super::{
     PhysicalWorkRecoveryDisposition, PhysicalWorkRecoveryTarget, SettledPhysicalWork,
 };
-use super::CompletedPhysicalPublicationEffect;
+use super::CompletedPhysicalCheckpointAction;
+use super::{
+    CompletedPhysicalPublicationEffect, CompletedPhysicalWalBarrier,
+    CompletedPhysicalWalReclamationAction,
+};
 
 mod classification;
+mod durability;
+
+pub(in crate::physical_runtime::work) use durability::durability_satisfies;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhysicalWorkEffectFate {
@@ -19,6 +26,8 @@ pub enum PhysicalWorkEffectFate {
     ReadIncomplete,
     WriteCompleted,
     PublicationCompleted,
+    CheckpointCompleted,
+    WalReclamationCompleted,
     WrittenButSchedulerRejected,
     Indeterminate,
     StaleOrForeignOutcome,
@@ -45,10 +54,31 @@ pub enum PhysicalWorkSettlementEvidence {
     },
     NewArtifact {
         physical: CompletedArtifactNewWrite,
+        coordinate: worth_store_physical_format::RecordFrameCoordinate,
         scheduler: QueueExecutionOutcome,
     },
     PublicationEffect {
         physical: CompletedPhysicalPublicationEffect,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalAppend {
+        physical: CompletedArtifactAppend,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalSegmentCreate {
+        physical: CompletedArtifactNewWrite,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalBarrier {
+        physical: CompletedPhysicalWalBarrier,
+        scheduler: QueueExecutionOutcome,
+    },
+    Checkpoint {
+        physical: CompletedPhysicalCheckpointAction,
+        scheduler: QueueExecutionOutcome,
+    },
+    WalReclamation {
+        physical: CompletedPhysicalWalReclamationAction,
         scheduler: QueueExecutionOutcome,
     },
     TerminalFailure(PhysicalWorkTerminalFailure),
@@ -78,6 +108,7 @@ pub enum PhysicalWorkPublicationResiduePosture {
     NotApplicable,
     NoneObserved,
     MayExist,
+    DeletionMayHaveOccurred,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -182,8 +213,14 @@ impl PhysicalWorkSettlementEvidence {
             Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
                 Some(MediaOperationRole::PositionedWrite)
             }
+            Self::WalAppend { .. } | Self::WalSegmentCreate { .. } => {
+                Some(MediaOperationRole::PositionedWrite)
+            }
+            Self::WalBarrier { .. } => Some(MediaOperationRole::SynchronizeFileState),
+            Self::Checkpoint { physical, .. } => Some(physical.role()),
+            Self::WalReclamation { physical, .. } => Some(physical.role()),
             Self::PublicationEffect { physical, .. } => {
-                Some(publication_effect_role(physical.effect()))
+                Some(classification::publication::effect_role(physical.effect()))
             }
             Self::TerminalFailure(failure) => Some(failure.backend_role),
         }
@@ -215,6 +252,34 @@ impl PhysicalWorkSettlementEvidence {
                     PhysicalWorkEffectFate::WrittenButSchedulerRejected
                 }
             }
+            Self::WalAppend { scheduler, .. } | Self::WalSegmentCreate { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::WriteCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
+            Self::WalBarrier { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::PublicationCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
+            Self::Checkpoint { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::CheckpointCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
+            Self::WalReclamation { scheduler, .. } => {
+                if matches!(scheduler, QueueExecutionOutcome::Executed(_)) {
+                    PhysicalWorkEffectFate::WalReclamationCompleted
+                } else {
+                    PhysicalWorkEffectFate::WrittenButSchedulerRejected
+                }
+            }
             Self::TerminalFailure(failure) => failure.effect_fate,
             Self::StaleOrForeign => PhysicalWorkEffectFate::StaleOrForeignOutcome,
         }
@@ -227,7 +292,12 @@ impl PhysicalWorkSettlementEvidence {
             Self::Write { physical, .. } | Self::Publication { physical, .. } => {
                 physical.completed_bytes()
             }
-            Self::NewArtifact { physical, .. } => physical.write().completed_bytes(),
+            Self::NewArtifact { physical, .. } => physical.completed_bytes(),
+            Self::WalAppend { physical, .. } => physical.range().byte_count(),
+            Self::WalSegmentCreate { physical, .. } => physical.completed_bytes(),
+            Self::WalBarrier { .. } => 0,
+            Self::Checkpoint { physical, .. } => physical.completed_bytes(),
+            Self::WalReclamation { .. } => 0,
             Self::PublicationEffect { .. } => 0,
             Self::TerminalFailure(failure) => failure.completed_bytes,
         }
@@ -245,7 +315,13 @@ impl PhysicalWorkSettlementEvidence {
             Self::Write { .. }
             | Self::Publication { .. }
             | Self::NewArtifact { .. }
-            | Self::PublicationEffect { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
+            | Self::PublicationEffect { .. }
+            | Self::WalAppend { .. }
+            | Self::WalSegmentCreate { .. }
+            | Self::WalBarrier { .. } => PhysicalWorkRecoveryDisposition::ContinueSettlement,
+            Self::Checkpoint { .. } | Self::WalReclamation { .. } => {
+                PhysicalWorkRecoveryDisposition::ContinueSettlement
+            }
         }
     }
 }
@@ -299,21 +375,6 @@ impl PhysicalWorkTerminalFailure {
     }
 }
 
-pub(in crate::physical_runtime) const fn publication_effect_role(
-    effect: super::PhysicalPublicationEffect,
-) -> MediaOperationRole {
-    match effect {
-        super::PhysicalPublicationEffect::SynchronizeArtifact => {
-            MediaOperationRole::SynchronizeFileState
-        }
-        super::PhysicalPublicationEffect::SynchronizeArtifactParent
-        | super::PhysicalPublicationEffect::SynchronizeRecordFamily => {
-            MediaOperationRole::SynchronizeDirectoryPublication
-        }
-        super::PhysicalPublicationEffect::ReplaceCatalog => MediaOperationRole::AtomicReplace,
-    }
-}
-
 impl PhysicalWorkHealthRevocation {
     pub const fn identity(&self) -> super::super::PhysicalWorkIdentity {
         self.identity
@@ -325,22 +386,5 @@ impl PhysicalWorkHealthRevocation {
 
     pub const fn recovery(&self) -> PhysicalWorkRecoveryDisposition {
         self.recovery
-    }
-}
-
-pub(in crate::physical_runtime::work) fn durability_satisfies(
-    declared: super::super::PhysicalWorkDurabilityRequirement,
-    observed: ArtifactRangeWriteDurability,
-) -> bool {
-    use super::super::PhysicalWorkDurabilityRequirement;
-    use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
-    match declared {
-        PhysicalWorkDurabilityRequirement::ReadOnly => false,
-        PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(requirement) => match requirement {
-            ArtifactRangeWriteDurabilityRequirement::BufferedWrite => true,
-            ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization => {
-                observed == ArtifactRangeWriteDurability::FileDataSynchronized
-            }
-        },
     }
 }

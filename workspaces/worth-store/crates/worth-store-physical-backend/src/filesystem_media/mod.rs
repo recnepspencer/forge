@@ -16,6 +16,7 @@ mod counter_snapshot;
 mod directory_handle;
 mod directory_listing;
 mod directory_synchronization;
+mod durability_admission;
 mod durable_deletion;
 mod failure_context;
 mod fault_activation;
@@ -73,19 +74,22 @@ pub use allocation::{
     MediaAllocationResult, MediaPhysicalAllocationPosture,
 };
 pub use artifact_tree::{
-    ArtifactNewWriteOutcome, ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
+    ArtifactAppendOutcome, ArtifactAppendRange, ArtifactNewWriteOutcome, ArtifactNewWriteRange,
+    ArtifactRangeReadOutcome, ArtifactRangeWriteDurability,
     ArtifactRangeWriteDurabilityRequirement, ArtifactRangeWriteOutcome, ArtifactTreeDirectory,
     ArtifactTreeFailure, ArtifactTreeFailureKind, ArtifactTreeFile, ArtifactTreeMedia,
     ArtifactTreeNewFile, ArtifactTreePathDenial, ArtifactTreePublicationEffect,
-    ArtifactTreePublicationEffectOutcome, CompletedArtifactMetadataRead, CompletedArtifactNewWrite,
-    CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
-    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactMetadataRead,
-    CompletedScheduledArtifactNewWrite, CompletedScheduledArtifactRangeRead,
-    CompletedScheduledArtifactRangeWrite, CompletedScheduledArtifactTreePublicationEffect,
+    ArtifactTreePublicationEffectOutcome, CompletedArtifactAppend, CompletedArtifactMetadataRead,
+    CompletedArtifactNewWrite, CompletedArtifactRangeRead, CompletedArtifactRangeWrite,
+    CompletedArtifactTreePublicationEffect, CompletedScheduledArtifactAppend,
+    CompletedScheduledArtifactMetadataRead, CompletedScheduledArtifactNewWrite,
+    CompletedScheduledArtifactRangeRead, CompletedScheduledArtifactRangeWrite,
+    CompletedScheduledArtifactTreePublicationEffect, IndeterminateArtifactAppend,
     IndeterminateArtifactNewWrite, IndeterminateArtifactRangeWrite,
-    IndeterminateArtifactTreePublicationEffect, ScheduledArtifactMetadataReadOutcome,
-    ScheduledArtifactNewWriteOutcome, ScheduledArtifactRangeReadOutcome,
-    ScheduledArtifactRangeWriteOutcome, ScheduledArtifactTreePublicationEffectOutcome,
+    IndeterminateArtifactTreePublicationEffect, ScheduledArtifactAppendOutcome,
+    ScheduledArtifactMetadataReadOutcome, ScheduledArtifactNewWriteOutcome,
+    ScheduledArtifactRangeReadOutcome, ScheduledArtifactRangeWriteOutcome,
+    ScheduledArtifactTreePublicationEffectOutcome,
 };
 pub use capability_profile::{
     CapabilityProfileError, CapabilitySupport, FilesystemBackendProfile, FilesystemLocation,

@@ -1,6 +1,6 @@
 use worth_proof::TransitionOutcome;
 use worth_store_physical_backend::ArtifactRangeWriteDurabilityRequirement;
-use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
+use worth_store_physical_format::RecordFrameCoordinate;
 
 use crate::physical_runtime::{
     PhysicalExecutorCommand, PhysicalMutationWorkRequest, PhysicalSchedulerDemand,
@@ -8,8 +8,7 @@ use crate::physical_runtime::{
 };
 
 use super::{
-    CanonicalRecordMutationFailure, CanonicalRecordMutationKind, CanonicalRecordMutationPort,
-    CanonicalRecordPublicationEffect, PreparedCanonicalRecordMutation,
+    CanonicalRecordMutationFailure, CanonicalRecordMutationPort, PreparedCanonicalRecordMutation,
 };
 
 impl CanonicalRecordMutationPort {
@@ -25,25 +24,7 @@ impl CanonicalRecordMutationPort {
             .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
         Ok(self.prepared(
             command,
-            CanonicalRecordMutationKind::NewArtifact,
             crate::physical_runtime::PhysicalWorkRecoveryTarget::Range(coordinate),
-        ))
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn prepare_publication_effect(
-        &self,
-        stage: RecordPublicationStage,
-        artifact: RecordArtifactFile,
-        effect: CanonicalRecordPublicationEffect,
-    ) -> Result<PreparedCanonicalRecordMutation, CanonicalRecordMutationFailure> {
-        let work = self.admit_effect(stage, artifact)?;
-        let identity = work.intent().identity();
-        let command = PhysicalExecutorCommand::publication_effect(work, effect.physical())
-            .map_err(|failure| CanonicalRecordMutationFailure::command(identity, failure))?;
-        Ok(self.prepared(
-            command,
-            CanonicalRecordMutationKind::PublicationEffect,
-            publication_effect_target(artifact, effect),
         ))
     }
 
@@ -69,29 +50,6 @@ impl CanonicalRecordMutationPort {
                 false,
                 true,
             )
-            .map_err(|failure| {
-                CanonicalRecordMutationFailure::scheduler_reservation(identity, failure)
-            })?;
-        self.admit_scheduler(&runtime, ready, reservation, backend)
-    }
-
-    fn admit_effect(
-        &self,
-        stage: RecordPublicationStage,
-        artifact: RecordArtifactFile,
-    ) -> Result<crate::physical_runtime::ResourceAdmittedPhysicalWork, CanonicalRecordMutationFailure>
-    {
-        let runtime = self.runtime()?;
-        let ready = self.request_ready(
-            &runtime,
-            stage,
-            PhysicalWorkScope::artifact(artifact),
-            ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization,
-        )?;
-        let identity = ready.intent().identity();
-        let (reservation, backend) = self
-            .scheduler
-            .record_publication_effect(self.record.scheduler_security())
             .map_err(|failure| {
                 CanonicalRecordMutationFailure::scheduler_reservation(identity, failure)
             })?;
@@ -174,52 +132,13 @@ impl CanonicalRecordMutationPort {
     fn prepared(
         &self,
         command: PhysicalExecutorCommand,
-        expected: CanonicalRecordMutationKind,
         target: crate::physical_runtime::PhysicalWorkRecoveryTarget,
     ) -> PreparedCanonicalRecordMutation {
         PreparedCanonicalRecordMutation {
             identity: command.identity(),
             execution: self.execution.clone(),
             command,
-            expected,
             target,
-        }
-    }
-}
-
-const fn publication_effect_target(
-    artifact: RecordArtifactFile,
-    effect: CanonicalRecordPublicationEffect,
-) -> crate::physical_runtime::PhysicalWorkRecoveryTarget {
-    match effect {
-        CanonicalRecordPublicationEffect::Artifact => {
-            crate::physical_runtime::PhysicalWorkRecoveryTarget::ArtifactFileSynchronization(
-                artifact,
-            )
-        }
-        CanonicalRecordPublicationEffect::ArtifactParent => {
-            crate::physical_runtime::PhysicalWorkRecoveryTarget::ArtifactParentSynchronization(
-                artifact,
-            )
-        }
-        CanonicalRecordPublicationEffect::RecordFamily => {
-            crate::physical_runtime::PhysicalWorkRecoveryTarget::RecordNamespaceSynchronization
-        }
-    }
-}
-
-impl CanonicalRecordPublicationEffect {
-    const fn physical(self) -> crate::physical_runtime::PhysicalPublicationEffect {
-        match self {
-            Self::Artifact => {
-                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeArtifact
-            }
-            Self::ArtifactParent => {
-                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeArtifactParent
-            }
-            Self::RecordFamily => {
-                crate::physical_runtime::PhysicalPublicationEffect::SynchronizeRecordFamily
-            }
         }
     }
 }

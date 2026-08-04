@@ -8,8 +8,6 @@ mod invocation;
 mod locator_codec;
 #[path = "child_process/ownership_probe.rs"]
 mod ownership_probe;
-#[path = "child_process/publication_death.rs"]
-mod publication_death;
 #[path = "child_process/record_round_trip.rs"]
 mod record_round_trip;
 #[path = "child_process/segment_read.rs"]
@@ -25,4 +23,3 @@ const ROLE_ENV: &str = "WORTH_STORE_C5_CHILD_ROLE";
 const ROOT_ENV: &str = "WORTH_STORE_C5_CHILD_ROOT";
 const LOCATOR_ENV: &str = "WORTH_STORE_C5_LOCATOR";
 const ORACLE_ENV: &str = "WORTH_STORE_C5_ORACLE";
-const DEATH_CASE_ENV: &str = "WORTH_STORE_C5_DEATH_CASE";

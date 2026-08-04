@@ -16,7 +16,7 @@ pub(in crate::physical_runtime::record_serving) use super::frame_load_failure::{
 };
 pub(in crate::physical_runtime::record_serving) use bounded_loader::BoundedFrameLoader;
 pub(in crate::physical_runtime::record_serving) use loaded_frame::LoadedPhysicalFrame;
-pub use loaded_frame::PhysicalFrameAccessOrigin;
+pub(in crate::physical_runtime::record_serving) use loaded_frame::PhysicalFrameAccessOrigin;
 pub(in crate::physical_runtime::record_serving::residency) use read_source::DirectFrameReadSource;
 pub(in crate::physical_runtime::record_serving) use read_source::{
     CanonicalFrameReadSource, FrameLoadPort,

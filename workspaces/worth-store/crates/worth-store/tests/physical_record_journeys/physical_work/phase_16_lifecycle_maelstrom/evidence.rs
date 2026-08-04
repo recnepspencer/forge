@@ -17,16 +17,12 @@ use super::{fresh_process::FreshReopenObservation, mutant_report};
 
 const SEED: u64 = 0x0c50_116a;
 const SCHEDULE: &str =
-    "read-patch,policy-denial,predispatch-cancel,reverse-read-completion,clock-retry,writeback,capacity-siege,dispatched-close,fresh-reopen";
+    "read-patch,policy-denial,predispatch-cancel,reverse-read-completion,clock-retry,writeback,dispatched-close,fresh-reopen";
 const SOURCE_MANIFEST_SCHEMA: &str = "worth.store.c5_1.phase16-a.source-manifest.v1";
-const SOURCE_FILES: [(&str, &[u8]); 15] = [
+const SOURCE_FILES: [(&str, &[u8]); 14] = [
     (
         "../phase_16_lifecycle_maelstrom.rs",
         include_bytes!("../phase_16_lifecycle_maelstrom.rs"),
-    ),
-    (
-        "append_preparation.rs",
-        include_bytes!("append_preparation.rs"),
     ),
     (
         "../courtroom_environment.rs",

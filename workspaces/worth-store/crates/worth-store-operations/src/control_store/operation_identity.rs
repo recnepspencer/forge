@@ -45,14 +45,6 @@ impl OperationalTransitionId {
         Self("recovery-owner-receipt".to_owned())
     }
 
-    pub(crate) fn recovery_publication_published() -> Self {
-        Self("recovery-publication-published".to_owned())
-    }
-
-    pub(crate) fn recovery_publication_fence_released() -> Self {
-        Self("recovery-publication-fence-released".to_owned())
-    }
-
     pub(crate) fn repair_recovery_abandoned() -> Self {
         Self("repair-recovery-abandoned".to_owned())
     }

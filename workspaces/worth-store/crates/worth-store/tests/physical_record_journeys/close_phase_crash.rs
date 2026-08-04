@@ -40,6 +40,7 @@ pub(super) fn kill_writer_at(root: &Path, phase: PhysicalStoreClosePhase) -> Str
 fn selected_phase() -> PhysicalStoreClosePhase {
     let selected = std::env::var(PHASE_ENV).expect("close death phase");
     [
+        PhysicalStoreClosePhase::CheckpointDrained,
         PhysicalStoreClosePhase::AdmissionStopped,
         PhysicalStoreClosePhase::SafeCancellationComplete,
         PhysicalStoreClosePhase::DispatchSettlementComplete,
@@ -66,6 +67,7 @@ fn exit_when_reached(
 
 const fn phase_name(phase: PhysicalStoreClosePhase) -> &'static str {
     match phase {
+        PhysicalStoreClosePhase::CheckpointDrained => "CheckpointDrained",
         PhysicalStoreClosePhase::AdmissionStopped => "AdmissionStopped",
         PhysicalStoreClosePhase::SafeCancellationComplete => "SafeCancellationComplete",
         PhysicalStoreClosePhase::DispatchSettlementComplete => "DispatchSettlementComplete",

@@ -49,22 +49,7 @@ pub(super) fn scan_segment_path_with_buffer(
     scan_segment_reader(&mut file, 0, None, segment_id, generation, buffer, |_| {})
 }
 
-pub(super) fn scan_segment_path_observing(
-    root: &Path,
-    segment_id: u64,
-    generation: u64,
-    buffer: &mut [u8],
-    observe: impl FnMut(WalFrameObservation),
-) -> Result<WalPrefixScan, WalArtifactStoreDenial> {
-    let path = root.join(segment_relative_path(segment_id, generation));
-    let mut file = match std::fs::File::open(path) {
-        Ok(file) => file,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(empty_prefix()),
-        Err(_) => return Err(WalArtifactStoreDenial::Io),
-    };
-    scan_segment_reader(&mut file, 0, None, segment_id, generation, buffer, observe)
-}
-
+#[cfg(feature = "certification-authority")]
 pub(super) fn scan_segment_suffix_with_buffer(
     root: &Path,
     segment_id: u64,

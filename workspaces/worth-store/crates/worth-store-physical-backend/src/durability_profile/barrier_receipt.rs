@@ -30,6 +30,7 @@ pub struct BackendDurabilityBarrierDenial {
 }
 
 impl BackendDurabilityBarrierDenial {
+    #[cfg(feature = "certification-test-authority")]
     pub(crate) const fn new<P: BackendDurabilityProfile>(
         barrier: WalDurabilityBarrier,
         kind: BackendDurabilityBarrierDenialKind,
@@ -62,6 +63,7 @@ pub struct WalDurabilityBarrierReceipt<P: BackendDurabilityProfile, S> {
 }
 
 impl<P: BackendDurabilityProfile, S> WalDurabilityBarrierReceipt<P, S> {
+    #[cfg(feature = "certification-test-authority")]
     pub(crate) const fn from_executed_scope(scope: S, barrier: WalDurabilityBarrier) -> Self {
         Self {
             profile: PhantomData,

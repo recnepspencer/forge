@@ -8,17 +8,18 @@ use worth_store_physical_backend::{FilesystemAccessPosture, MediaOperationRole};
 
 use worth_proof::TransitionOutcome;
 
-use super::{configuration, media, serving_from_initialization, success};
+use super::{
+    configuration, durable_publication::publish_single, media, serving_from_initialization, success,
+};
 
 #[test]
 fn serving_admission_reads_cross_the_frame_port() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("frame-mediated-admission");
     let (format, placement, access) = configuration();
-    let initialized = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let initialized = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     assert_eq!(
         initialized
             .certification_frame_port_observer()
@@ -27,7 +28,9 @@ fn serving_admission_reads_cross_the_frame_port() {
         2
     );
     initialized.close();
-    let opened = success(media(&root).open_record_store(PhysicalRecordOpen::new(format, access)));
+    let opened = success(open_record_store!(media(&root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability)
+    }));
     assert_eq!(
         opened
             .certification_frame_port_observer()
@@ -59,9 +62,9 @@ fn serving_observers_stale_before_media_release_can_block() {
         panic!("media admission must succeed")
     };
     let (format, placement, access) = configuration();
-    let serving = super::success(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(media, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let observer = serving.observer();
     let serving_generation = observer
         .acquisition_snapshot()
@@ -102,15 +105,15 @@ fn record_owner_propagates_through_every_lifecycle_boundary() {
     let clone = observer.clone();
     assert_eq!(observer.record_counters().owner_live(), 1);
 
-    let record = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"lifecycle".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap()
+    let publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([148; 32]),
+        RecordAppendBatch::try_from_iter([b"lifecycle".as_slice()]).unwrap(),
+    );
+    let record = publication.settled_members()[0]
         .record_id(0)
-        .unwrap();
+        .expect("the completed singleton must expose its record identity");
     {
         let reader = serving.records();
         assert_eq!(observer.record_counters().readers_live(), 1);
@@ -200,9 +203,9 @@ fn consuming_record_admission_stales_media_observation_and_advances_lifecycle() 
     let media = super::media(&root);
     let media_observer = media.observer();
     let media_generation = media_observer.snapshot().unwrap().generation();
-    let serving = super::success(
-        media.initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = super::success(initialize_record_store!(media, |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
 
     assert!(matches!(
         media_observer.snapshot(),
@@ -222,9 +225,9 @@ fn consuming_record_admission_stales_media_observation_and_advances_lifecycle() 
     let media = super::media(&root);
     let media_observer = media.observer();
     let media_generation = media_observer.snapshot().unwrap().generation();
-    let serving = super::success(media.open_record_store(
-        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access),
-    ));
+    let serving = super::success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+    },));
     assert!(matches!(
         media_observer.snapshot(),
         Err(ObservationError::Stale { .. })
@@ -250,13 +253,12 @@ fn record_observation_snapshot_has_one_acquisition_time_basis() {
     let before = serving.observer();
     let before_snapshot = before.acquisition_snapshot().unwrap();
 
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"coherent".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([149; 32]),
+        RecordAppendBatch::try_from_iter([b"coherent".as_slice()]).unwrap(),
+    );
 
     assert_eq!(before.acquisition_snapshot().unwrap(), before_snapshot);
     assert!(
@@ -298,15 +300,13 @@ fn physical_residency_serves_real_reads_and_candidate_writes() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let serving = serving_from_initialization(&root);
-    let first = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"direct".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let first_publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([150; 32]),
+        RecordAppendBatch::try_from_iter([b"direct".as_slice()]).unwrap(),
+    );
+    let first = first_publication.settled_members()[0].record_id(0).unwrap();
 
     let counters = serving.certification_frame_port_observer();
     let mut read = serving
@@ -320,18 +320,17 @@ fn physical_residency_serves_real_reads_and_candidate_writes() {
     assert_eq!(read.read_next(&mut bytes).unwrap(), bytes.len());
     assert_eq!(&bytes, b"direct");
     drop(read);
-    let second = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"wrapped".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
-    assert_eq!(second.root_generation(), 3);
+    let second = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([151; 32]),
+        RecordAppendBatch::try_from_iter([b"wrapped".as_slice()]).unwrap(),
+    );
+    assert_eq!(second.current_root().generation(), 3);
     let mut retained_read = serving
         .records()
         .open(
-            second.record_id(0).unwrap(),
+            second.settled_members()[0].record_id(0).unwrap(),
             RecordReadLimits::new(RecordByteLimit::new(64).unwrap()),
         )
         .unwrap();

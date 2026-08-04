@@ -6,21 +6,25 @@ use worth_store::physical_runtime::{
 };
 
 use super::super::{
+    durable_publication::publish_single,
     media,
     scenario_configuration::dense_configuration,
     stream_fixture::{hex, pattern_digest, PatternSource},
     success,
 };
 
+const EXTENT_METADATA_BYTES: u64 = 64;
+const EXTENT_FRAME_OVERHEAD: u64 =
+    super::super::durable_frame_oracle::HEADER_BYTES as u64 + EXTENT_METADATA_BYTES;
+
 #[test]
 fn mixed_batch_streams_extent_and_a_fresh_process_reads_with_seventeen_widths() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let logical_bytes = 1_048_613_u64;
     let batch = RecordAppendBatch::builder()
         .push_bytes(b"inline")
@@ -28,24 +32,26 @@ fn mixed_batch_streams_extent_and_a_fresh_process_reads_with_seventeen_widths() 
         .build()
         .unwrap();
     let writeback_baseline = ExtentWritebackBaseline::capture(&serving);
-    let published = serving
-        .record_submission()
-        .append_batch(batch, placement)
-        .unwrap();
-    let observation = published.observation();
-    let chunks = logical_bytes.div_ceil(16_384 - 104);
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([180; 32]),
+        batch,
+    );
+    let observation = published.settled_members()[0].observation();
+    let chunks = logical_bytes.div_ceil(16_384 - EXTENT_FRAME_OVERHEAD);
     assert_eq!(observation.extent_artifacts(), 1);
     assert_eq!(observation.bytes_requested(), logical_bytes + 6);
     assert_eq!(observation.bytes_completed(), logical_bytes + 6);
-    assert_eq!(observation.transfer_count(), chunks + 9);
+    assert_eq!(observation.transfer_count(), chunks + 1);
     assert_eq!(observation.peak_transfer_width(), 16_384);
     assert_eq!(observation.peak_scratch_bytes(), 16_384);
-    assert_eq!(observation.explicit_copy_count(), chunks + 1);
-    assert_eq!(observation.copied_bytes(), logical_bytes + 6);
+    assert_eq!(observation.explicit_copy_count(), chunks + 2);
+    assert_eq!(observation.copied_bytes(), logical_bytes * 2 + 6);
     assert_extent_writeback_evidence(&serving, writeback_baseline, chunks - 1);
     let locator = ExternalPhysicalRecordLocator::new(
         serving.store_identity(),
-        published.record_id(1).unwrap(),
+        published.settled_members()[0].record_id(1).unwrap(),
     );
     serving.close();
     assert_extent_artifact_and_fresh_read(&root, locator, logical_bytes, chunks);
@@ -61,7 +67,9 @@ fn assert_extent_artifact_and_fresh_read(
         root.join("families/records/extents/extent-0000000000000001-0000000000000001.data");
     assert_eq!(
         std::fs::metadata(extent).unwrap().len(),
-        logical_bytes + chunks * 104
+        logical_bytes
+            + chunks
+                * (super::super::durable_frame_oracle::HEADER_BYTES as u64 + EXTENT_METADATA_BYTES)
     );
     let output = super::super::child_process::run_child(
         "extent_reader",

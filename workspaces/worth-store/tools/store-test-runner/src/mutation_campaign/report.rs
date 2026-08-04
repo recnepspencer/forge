@@ -17,7 +17,7 @@ use super::{
 mod reader;
 
 pub(crate) const MUTATION_EVIDENCE_REPORT_SCHEMA: &str =
-    "worth.store.controlled-mutation-evidence.v4";
+    "worth.store.controlled-mutation-evidence.v5";
 static SESSION_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Serialize)]

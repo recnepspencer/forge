@@ -9,9 +9,10 @@ use worth_proof::TransitionOutcome;
 
 use super::canonical_basis_entries::{aspect_boundary_entries, aspect_patch_entries};
 use crate::{
-    certify_canonical_basis_source, StoreAspectBoundaryFact, StoreAspectPatchBoundaryFact,
-    StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisFamily,
-    StoreCanonicalBasisSourceKind,
+    certify_canonical_basis_field_role, certify_canonical_basis_source, StoreAspectBoundaryFact,
+    StoreAspectPatchBoundaryFact, StoreCanonicalBasisConstructionDenial, StoreCanonicalBasisFamily,
+    StoreCanonicalBasisFieldRole, StoreCanonicalBasisSourceKind,
+    StorePhysicalMutationRequestCanonicalSource,
 };
 
 pub type StoreCanonicalBasisConstructionOutcome =
@@ -43,6 +44,16 @@ impl StoreCanonicalBasisConstruction {
         self
     }
 
+    pub fn with_physical_mutation_request(
+        mut self,
+        source: &StorePhysicalMutationRequestCanonicalSource,
+    ) -> Self {
+        self.put_native_source(StoreCanonicalBasisNativeSource::PhysicalMutationRequest(
+            source.clone(),
+        ));
+        self
+    }
+
     pub fn prepare(
         self,
         version: CanonicalizationRuleVersion,
@@ -71,6 +82,9 @@ impl StoreCanonicalBasisConstruction {
             }
             StoreCanonicalBasisNativeSource::AspectPatch(fact) => {
                 prepare_aspect_patch(family, version, fact)
+            }
+            StoreCanonicalBasisNativeSource::PhysicalMutationRequest(source) => {
+                prepare_physical_mutation_request(family, version, source)
             }
         }
     }
@@ -153,10 +167,34 @@ fn prepare_aspect_patch(
     ))
 }
 
+fn prepare_physical_mutation_request(
+    family: StoreCanonicalBasisFamily,
+    version: CanonicalizationRuleVersion,
+    source: StorePhysicalMutationRequestCanonicalSource,
+) -> StoreCanonicalBasisConstructionOutcome {
+    if let Err(denial) = certify_canonical_basis_source(
+        family,
+        StoreCanonicalBasisSourceKind::StorePhysicalMutationRequest,
+    ) {
+        return TransitionOutcome::denied(denial.into());
+    }
+    if let Err(denial) = certify_canonical_basis_field_role(
+        StoreCanonicalBasisFieldRole::NativePhysicalMutationRequest,
+    ) {
+        return TransitionOutcome::denied(denial.into());
+    }
+    map_foundational_outcome(prepare_canonical_basis_sequence(
+        version,
+        CanonicalBasisDomain::Future("store.physical.mutation.request-fingerprint.v1"),
+        source.into_canonical_entries(),
+    ))
+}
+
 #[derive(Debug, Clone)]
 enum StoreCanonicalBasisNativeSource {
     AspectState(StoreAspectBoundaryFact),
     AspectPatch(StoreAspectPatchBoundaryFact),
+    PhysicalMutationRequest(StorePhysicalMutationRequestCanonicalSource),
 }
 
 fn map_foundational_outcome(

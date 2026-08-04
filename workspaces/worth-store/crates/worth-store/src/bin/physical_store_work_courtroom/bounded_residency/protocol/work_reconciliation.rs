@@ -39,7 +39,7 @@ pub(super) fn emit(evidence: &PhysicalWorkReconciliationEvidence) {
 
 fn emit_signal_binding(binding: &PhysicalWorkSignalBindingEvidence) {
     println!(
-        "BOUNDED_RESIDENCY_SIGNAL_BINDING {} {} {} {} {} {} {} {}",
+        "BOUNDED_RESIDENCY_SIGNAL_BINDING {} {} {} {} {} {} {} {} {} {} {} {} {}",
         hex(&binding.digest),
         binding.aspect_key,
         signal_role(binding.role),
@@ -55,6 +55,21 @@ fn emit_signal_binding(binding: &PhysicalWorkSignalBindingEvidence) {
         binding
             .families
             .contains(PhysicalWorkSignalFamily::Lifecycle),
+        binding
+            .families
+            .contains(PhysicalWorkSignalFamily::WalAppend),
+        binding
+            .families
+            .contains(PhysicalWorkSignalFamily::DurabilityBarrier),
+        binding
+            .families
+            .contains(PhysicalWorkSignalFamily::CheckpointCapture),
+        binding
+            .families
+            .contains(PhysicalWorkSignalFamily::RootPublication),
+        binding
+            .families
+            .contains(PhysicalWorkSignalFamily::WalReclamation),
         binding.partition.as_deref().unwrap_or("none"),
     );
 }
@@ -98,6 +113,11 @@ const fn signal_family(family: PhysicalWorkSignalFamily) -> &'static str {
         PhysicalWorkSignalFamily::ExactWriteback => "exact-writeback",
         PhysicalWorkSignalFamily::Publication => "publication",
         PhysicalWorkSignalFamily::Lifecycle => "lifecycle",
+        PhysicalWorkSignalFamily::WalAppend => "wal-append",
+        PhysicalWorkSignalFamily::DurabilityBarrier => "durability-barrier",
+        PhysicalWorkSignalFamily::CheckpointCapture => "checkpoint-capture",
+        PhysicalWorkSignalFamily::RootPublication => "root-publication",
+        PhysicalWorkSignalFamily::WalReclamation => "wal-reclamation",
     }
 }
 
@@ -164,6 +184,7 @@ const fn media_role(role: PhysicalWorkBackendRoleEvidence) -> &'static str {
             "synchronize-directory-publication"
         }
         PhysicalWorkBackendRoleEvidence::AtomicReplace => "atomic-replace",
+        PhysicalWorkBackendRoleEvidence::Delete => "delete",
     }
 }
 
@@ -173,6 +194,11 @@ const fn family(family: PhysicalWorkOperationFamily) -> &'static str {
         PhysicalWorkOperationFamily::ArtifactRangeRead => "artifact-range-read",
         PhysicalWorkOperationFamily::ArtifactRangeWrite => "artifact-range-write",
         PhysicalWorkOperationFamily::ArtifactPublication => "artifact-publication",
+        PhysicalWorkOperationFamily::WalAppend => "wal-append",
+        PhysicalWorkOperationFamily::DurabilityBarrier => "durability-barrier",
+        PhysicalWorkOperationFamily::CheckpointCapture => "checkpoint-capture",
+        PhysicalWorkOperationFamily::WalReclamation => "wal-reclamation",
+        PhysicalWorkOperationFamily::RootPublication => "root-publication",
     }
 }
 
@@ -181,6 +207,8 @@ const fn effect_fate(fate: PhysicalWorkEffectFate) -> &'static str {
         PhysicalWorkEffectFate::ReadCompleted => "read-completed",
         PhysicalWorkEffectFate::WriteCompleted => "write-completed",
         PhysicalWorkEffectFate::PublicationCompleted => "publication-completed",
+        PhysicalWorkEffectFate::CheckpointCompleted => "checkpoint-completed",
+        PhysicalWorkEffectFate::WalReclamationCompleted => "wal-reclamation-completed",
         PhysicalWorkEffectFate::ProvenNoEffect => "proven-no-effect",
         PhysicalWorkEffectFate::ReadIncomplete => "read-incomplete",
         PhysicalWorkEffectFate::WrittenButSchedulerRejected => "scheduler-rejected",

@@ -8,10 +8,15 @@ use worth_store::physical_runtime::{
 
 const CONFIGURATION_SCHEMA: &str = "worth.store.c5_1.physical-work-courtroom.configuration.v1";
 pub(super) const BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA: &str =
-    "worth.store.physical-work-courtroom.bounded-residency.configuration.v2";
+    "worth.store.physical-work-courtroom.bounded-residency.configuration.v3";
 
 pub(super) struct CourtroomConfiguration {
     payload_bytes: usize,
+}
+
+pub(super) enum ReopenConfiguration {
+    Standard,
+    BoundedResidency(super::bounded_residency::configuration::BoundedResidencyConfiguration),
 }
 
 impl CourtroomConfiguration {
@@ -63,14 +68,20 @@ pub(super) fn record_configuration() -> (
     (format, placement, access)
 }
 
-pub(super) fn validate_supported(path: &Path) -> Result<(), String> {
-    let encoded = std::fs::read_to_string(path)
-        .map_err(|error| format!("cannot read courtroom configuration: {error}"))?;
-    match encoded.lines().next() {
-        Some(CONFIGURATION_SCHEMA) => CourtroomConfiguration::read(path).map(|_| ()),
-        Some(BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA) => {
-            super::bounded_residency::validate_configuration(path)
+impl ReopenConfiguration {
+    pub(super) fn read(path: &Path) -> Result<Self, String> {
+        let encoded = std::fs::read_to_string(path)
+            .map_err(|error| format!("cannot read courtroom configuration: {error}"))?;
+        match encoded.lines().next() {
+            Some(CONFIGURATION_SCHEMA) => {
+                CourtroomConfiguration::read(path)?;
+                Ok(Self::Standard)
+            }
+            Some(BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA) => {
+                super::bounded_residency::configuration::BoundedResidencyConfiguration::read(path)
+                    .map(Self::BoundedResidency)
+            }
+            _ => Err("unsupported courtroom configuration schema".to_owned()),
         }
-        _ => Err("unsupported courtroom configuration schema".to_owned()),
     }
 }

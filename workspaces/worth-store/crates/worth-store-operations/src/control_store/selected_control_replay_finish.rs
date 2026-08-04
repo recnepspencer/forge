@@ -35,33 +35,6 @@ impl SelectedControlReplay {
             }
         }
         active_backups.sort_by(|left, right| left.operation_id().cmp(right.operation_id()));
-        let mut pending_recovery_publications = Vec::new();
-        let mut prepared_recovery_publications = Vec::new();
-        let mut terminal_recovery_fence_releases = Vec::new();
-        pending_recovery_publications
-            .try_reserve(self.recovery_publications.len())
-            .map_err(|_| SelectedControlReplayDenial::AllocationFailed)?;
-        prepared_recovery_publications
-            .try_reserve(self.recovery_publications.len())
-            .map_err(|_| SelectedControlReplayDenial::AllocationFailed)?;
-        terminal_recovery_fence_releases
-            .try_reserve(self.recovery_publications.len())
-            .map_err(|_| SelectedControlReplayDenial::AllocationFailed)?;
-        for (operation, publication) in self.recovery_publications {
-            if let Some(handle) = publication.clone().pending_handle(operation.clone()) {
-                pending_recovery_publications.push(handle);
-            } else if let Some(handle) = publication.clone().prepared_handle(operation.clone()) {
-                prepared_recovery_publications.push(handle);
-            } else if let Some(handle) = publication.terminal_fence_release_handle(operation) {
-                terminal_recovery_fence_releases.push(handle);
-            }
-        }
-        pending_recovery_publications
-            .sort_by(|left, right| left.operation_id().cmp(right.operation_id()));
-        prepared_recovery_publications
-            .sort_by(|left, right| left.operation_id().cmp(right.operation_id()));
-        terminal_recovery_fence_releases
-            .sort_by(|left, right| left.operation_id().cmp(right.operation_id()));
         let mut indeterminate_repairs = self
             .repair_journals
             .into_iter()
@@ -93,9 +66,6 @@ impl SelectedControlReplay {
             abandoned_backups: self.abandoned_backups,
             indeterminate_repairs,
             indeterminate_recovery_staging,
-            pending_recovery_publications,
-            prepared_recovery_publications,
-            terminal_recovery_fence_releases,
             replica_bootstraps,
             replica_promotions,
         })

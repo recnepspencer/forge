@@ -1,10 +1,7 @@
 use worth_proof::TransitionOutcome;
 use worth_store_authority::{require_current_store_authority, StoreCurrentAuthorityWitness};
 use worth_store_contracts::DurableArtifactFamilyId;
-use worth_store_physical_backend::{
-    BackendDurabilityBarrierAuthority, SimulatedStrictDurabilityAuthority,
-    SimulatedStrictDurableProfile, WalDurabilityBarrier,
-};
+use worth_store_physical_backend::{BackendDurabilityProfile, SimulatedStrictDurableProfile};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
     PhysicalRootReference,
@@ -13,17 +10,17 @@ use worth_store_physical_integrity::{
     ExecutedQuarantineFinding, PhysicalQuarantineAuthority, QuarantineRecord, QuarantineSealRequest,
 };
 use worth_store_recovery_physics::{
-    AcknowledgmentPrecondition, AdmittedRecoverySource, BackendResidueKind,
-    BackendResidueRejection, CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
+    AdmittedRecoverySource, BackendResidueKind, BackendResidueRejection,
+    CheckpointArtifactDurabilityCommitment, CheckpointCandidate,
     CheckpointCandidateDiscoverySource, CheckpointCoveredLsnRange, CheckpointCutoverLayoutReport,
     CheckpointCutoverReceipt, CheckpointDurabilityEvidenceSet, CheckpointIntervalContract,
     CheckpointManifest, CheckpointPageLsnFrontier, CheckpointPublicationPlan,
     CheckpointRedoBoundary, CheckpointRootPosture, CheckpointSelectorEvidence,
-    CheckpointValidation, ContiguousWalTailProof, DurableAckReceipt, IntegrityDamageMap,
-    LogSequenceNumber, PageLsn, RecoverySourceCandidate, RecoveryStoreFootprint,
-    SharpCheckpointCertificationMode, StoreOwnedCheckpointLocator, WalAppendPlan,
-    WalDurabilityObservationSequence, WalLsnRange, WalSegmentGeneration, WalSegmentId,
-    WalTailRedoSource, WalTailReplayBudget,
+    CheckpointValidation, ContiguousWalTailProof, IntegrityDamageMap, LogSequenceNumber, PageLsn,
+    RecoverySourceCandidate, RecoveryStoreFootprint, SharpCheckpointCertificationMode,
+    StoreOwnedCheckpointLocator, WalAppendObservationScope, WalAppendReceipt,
+    WalDurabilityObservation, WalLsnRange, WalSegmentGeneration, WalSegmentId, WalTailRedoSource,
+    WalTailReplayBudget,
 };
 use worth_store_wal::{
     admit_replay_cursor, AdmittedReplayTailCursor, WalSegmentScanRecord, WalTopologyScan,
@@ -250,8 +247,8 @@ fn durable_ack(
     lsn_range: WalLsnRange,
     frame_digest: impl Into<String>,
     expected_bytes: u64,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
-    let plan = WalAppendPlan::<SimulatedStrictDurableProfile>::new(
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
+    let scope = WalAppendObservationScope::new(
         WalSegmentId::new(segment_id).unwrap(),
         WalSegmentGeneration::new(generation).unwrap(),
         lsn_range,
@@ -259,26 +256,18 @@ fn durable_ack(
         expected_bytes,
     )
     .unwrap();
-    let progress = plan.record_written_bytes(expected_bytes);
-    let barrier = SimulatedStrictDurabilityAuthority::new()
-        .certify_completed_barrier(
-            progress.durability_scope(),
-            WalDurabilityBarrier::SimulatedDurableCommit,
-        )
-        .unwrap();
-    let receipt = WalDurabilityObservationSequence::new(progress)
-        .completed(barrier)
-        .unwrap()
-        .finish()
-        .unwrap();
-    DurableAckReceipt::acknowledge(
-        AcknowledgmentPrecondition::from_append_receipt(receipt).unwrap(),
-    )
+    let receipt = WalAppendReceipt::from_certification_observation(
+        scope,
+        expected_bytes,
+        SimulatedStrictDurableProfile::REQUIRED_BARRIERS,
+        None,
+    );
+    WalDurabilityObservation::from_append_receipt(receipt).unwrap()
 }
 
 fn artifact_ack(
     segment_id: u64,
     commitment: CheckpointArtifactDurabilityCommitment,
-) -> DurableAckReceipt<SimulatedStrictDurableProfile> {
+) -> WalDurabilityObservation<SimulatedStrictDurableProfile> {
     durable_ack(segment_id, 1, wal_range(10, 30), commitment.digest(), 64)
 }

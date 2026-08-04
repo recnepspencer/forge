@@ -17,9 +17,39 @@ impl PhysicalWorkResourceDemand {
         durability: PhysicalWorkDurabilityRequirement,
     ) -> Self {
         let members = scope.member_count() as u64;
-        let bytes = scope.coordinates().iter().fold(0_u64, |total, coordinate| {
-            total.saturating_add(u64::from(coordinate.length()))
-        });
+        let bytes = scope.wal_reclamation_target().map_or_else(
+            || {
+                scope.checkpoint_target().map_or_else(
+                    || {
+                        scope.wal_append_target().map_or_else(
+                            || {
+                                scope.wal_barrier_target().map_or_else(
+                                    || {
+                                        scope.root_publication_target().map_or_else(
+                                            || {
+                                                scope.coordinates().iter().fold(
+                                                    0_u64,
+                                                    |total, coordinate| {
+                                                        total.saturating_add(u64::from(
+                                                            coordinate.length(),
+                                                        ))
+                                                    },
+                                                )
+                                            },
+                                            |root| root.accounted_bytes(),
+                                        )
+                                    },
+                                    |_| 1,
+                                )
+                            },
+                            |wal| wal.byte_count(),
+                        )
+                    },
+                    |checkpoint| checkpoint.accounted_bytes(),
+                )
+            },
+            |reclamation| reclamation.byte_count(),
+        );
         let queue = QueueProducerResourceShape::new()
             .with_queue_slots(members)
             .with_worker_permits(members)
@@ -35,11 +65,18 @@ impl PhysicalWorkResourceDemand {
                 durability,
                 PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
                     ArtifactRangeWriteDurabilityRequirement::FileDataSynchronization
-                )
+                ) | PhysicalWorkDurabilityRequirement::WalDurabilityBarrier
+                    | PhysicalWorkDurabilityRequirement::CheckpointCapture
+                    | PhysicalWorkDurabilityRequirement::WalReclamation
+                    | PhysicalWorkDurabilityRequirement::RootPublication
             )))
             .with_sync_debt(u64::from(matches!(
                 operation,
                 PhysicalWorkOperationFamily::ArtifactPublication
+                    | PhysicalWorkOperationFamily::CheckpointCapture
+                    | PhysicalWorkOperationFamily::DurabilityBarrier
+                    | PhysicalWorkOperationFamily::WalReclamation
+                    | PhysicalWorkOperationFamily::RootPublication
             )));
         Self {
             queue,

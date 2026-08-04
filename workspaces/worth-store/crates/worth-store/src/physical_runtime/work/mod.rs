@@ -31,7 +31,12 @@ pub use consumer_lifecycle::{
     PhysicalWorkRetrySchedule, PhysicalWorkRetryScheduleOutcome, PhysicalWorkSupersessionJoin,
     PhysicalWorkTimeoutJoin,
 };
+pub(in crate::physical_runtime) use declaration::{
+    PhysicalCheckpointWorkAction, PhysicalCheckpointWorkScope, PhysicalRootPublicationWorkAction,
+    PhysicalRootPublicationWorkScope, PhysicalWalReclamationScope,
+};
 pub use declaration::{
+    PhysicalWalAppendScope, PhysicalWalBarrierScope, PhysicalWalFrameWriteDisposition,
     PhysicalWorkDeclarationDenial, PhysicalWorkDurabilityRequirement, PhysicalWorkEffectClass,
     PhysicalWorkIntent, PhysicalWorkOperationFamily, PhysicalWorkRecoveryDisposition,
     PhysicalWorkScope,
@@ -39,12 +44,14 @@ pub use declaration::{
 pub use drain_observation::PhysicalWorkDrainObservation;
 use drain_observation::{PhysicalWorkTerminalEvent, PhysicalWorkTerminalLedger};
 pub use execution::{
-    CompletedPhysicalPublicationEffect, PhysicalExecutorCommand, PhysicalExecutorCommandDenial,
-    PhysicalPublicationEffect, PhysicalRetryCommand, PhysicalSignalSettlementOutcome,
-    PhysicalWorkBatchDenial, PhysicalWorkEffectFate, PhysicalWorkExecutionBatchOutcome,
-    PhysicalWorkExecutionOutcome, PhysicalWorkHealthRevocation, PhysicalWorkNoEffectEvidence,
-    PhysicalWorkPublicationResiduePosture, PhysicalWorkSchedulerPosture,
-    PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause, PhysicalWorkTerminalFailure,
+    CompletedPhysicalCheckpointAction, CompletedPhysicalPublicationEffect,
+    CompletedPhysicalWalBarrier, CompletedPhysicalWalReclamationAction, PhysicalExecutorCommand,
+    PhysicalExecutorCommandDenial, PhysicalPublicationEffect, PhysicalRetryCommand,
+    PhysicalSignalSettlementOutcome, PhysicalWorkBatchDenial, PhysicalWorkEffectFate,
+    PhysicalWorkExecutionBatchOutcome, PhysicalWorkExecutionOutcome, PhysicalWorkHealthRevocation,
+    PhysicalWorkNoEffectEvidence, PhysicalWorkPublicationResiduePosture,
+    PhysicalWorkSchedulerPosture, PhysicalWorkSettlementEvidence, PhysicalWorkTerminalCause,
+    PhysicalWorkTerminalFailure,
 };
 pub use identity::{
     PhysicalEffectIdentity, PhysicalOperationIdentity, PhysicalWorkGeneration, PhysicalWorkIdentity,
@@ -67,6 +74,7 @@ pub use progression::{
     AdmittedPhysicalWork, BlockedPhysicalWork, DispatchedPhysicalWork, PhysicalWorkReadiness,
     ReadyPhysicalWork, ResourceAdmittedPhysicalWork, SettledPhysicalWork,
 };
+pub use recovery::PhysicalCheckpointRecoveryAction;
 pub(in crate::physical_runtime) use recovery::{
     PhysicalEffectJournal, PhysicalEffectRecoveryInventory, PreparedPhysicalEffect,
 };
@@ -91,21 +99,24 @@ pub use admission::{PhysicalWorkAdmission, PhysicalWorkPreEffectDenial};
 pub use aspect_delta::{PhysicalWorkAspectDelta, PhysicalWorkAspectDeltaDenial};
 pub(in crate::physical_runtime) use declaration::PhysicalWorkIntentParts;
 pub(in crate::physical_runtime) use execution::{
-    IndeterminatePhysicalPublicationEffect, PhysicalEffectRecoveryObligation,
-    PhysicalExecutorDispatch, PhysicalExecutorOutcome, PhysicalMetadataExecutorCommand,
-    PhysicalPublicationExecutorCommand, PhysicalReadExecutorCommand,
-    PhysicalResidencyWritebackCompletion, PhysicalResidencyWritebackExecutorCommand,
-    PhysicalRetryPayload, PhysicalWorkSettlement, PhysicalWriteExecutorCommand,
+    IndeterminatePhysicalCheckpointAction, IndeterminatePhysicalPublicationEffect,
+    IndeterminatePhysicalWalBarrier, IndeterminatePhysicalWalReclamationAction,
+    PhysicalCheckpointExecutorCommand, PhysicalEffectRecoveryObligation, PhysicalExecutorDispatch,
+    PhysicalExecutorOutcome, PhysicalMetadataExecutorCommand, PhysicalPublicationExecutorCommand,
+    PhysicalReadExecutorCommand, PhysicalResidencyWritebackCompletion,
+    PhysicalResidencyWritebackExecutorCommand, PhysicalRetryPayload,
+    PhysicalWalAppendExecutorCommand, PhysicalWalBarrierExecutorCommand,
+    PhysicalWalFrameCompletionBinding, PhysicalWalReclamationExecutorCommand,
+    PhysicalWalSegmentCreateExecutorCommand, PhysicalWorkSettlement, PhysicalWriteExecutorCommand,
 };
 pub use profile::PhysicalSignalAspectBindingSet;
-pub(in crate::physical_runtime) use profile::{
-    PhysicalSignalPolicySelection, PHYSICAL_ASYNC_CAPABILITIES,
-};
+pub(in crate::physical_runtime) use profile::PHYSICAL_ASYNC_CAPABILITIES;
 pub(in crate::physical_runtime) use signal_declaration::{
     InstalledPhysicalSignalTopology, PendingPhysicalSignalTopology,
 };
 #[cfg(feature = "certification-test-authority")]
 pub use submission::CertificationPhysicalSubmissionPauseGate;
 pub(in crate::physical_runtime) use submission::{
-    PhysicalWorkStopKind, PhysicalWorkSubmissionFoundation, PhysicalWorkSubmissionOwner,
+    PhysicalMutationIdentityReservationError, PhysicalWorkStopKind,
+    PhysicalWorkSubmissionFoundation, PhysicalWorkSubmissionOwner,
 };

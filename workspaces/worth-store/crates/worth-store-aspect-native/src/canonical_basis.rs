@@ -26,6 +26,7 @@ pub enum StoreCanonicalBasisFamily {
     PhysicalIntegrityCloseoutEvidence,
     WalFrameIntegrityEvidence,
     WalRecord,
+    PhysicalMutationRequestFingerprint,
     RecoveryIntegrityHandoff,
     RecoveryWalReplayReceipt,
     RecoveryCheckpointValidityReceipt,
@@ -34,7 +35,7 @@ pub enum StoreCanonicalBasisFamily {
 }
 
 impl StoreCanonicalBasisFamily {
-    pub const ALL: [Self; 31] = [
+    pub const ALL: [Self; 32] = [
         Self::AspectBoundaryFact,
         Self::AspectPatchBoundaryFact,
         Self::BoundaryReceiptEvidence,
@@ -61,6 +62,7 @@ impl StoreCanonicalBasisFamily {
         Self::PhysicalIntegrityCloseoutEvidence,
         Self::WalFrameIntegrityEvidence,
         Self::WalRecord,
+        Self::PhysicalMutationRequestFingerprint,
         Self::RecoveryIntegrityHandoff,
         Self::RecoveryWalReplayReceipt,
         Self::RecoveryCheckpointValidityReceipt,
@@ -96,6 +98,7 @@ impl StoreCanonicalBasisFamily {
             Self::PhysicalIntegrityCloseoutEvidence => "physical integrity closeout evidence",
             Self::WalFrameIntegrityEvidence => "WAL frame integrity evidence",
             Self::WalRecord => "WAL record",
+            Self::PhysicalMutationRequestFingerprint => "physical mutation request fingerprint",
             Self::RecoveryIntegrityHandoff => "recovery integrity handoff",
             Self::RecoveryWalReplayReceipt => "recovery WAL replay receipt",
             Self::RecoveryCheckpointValidityReceipt => "recovery checkpoint validity receipt",
@@ -119,6 +122,7 @@ pub enum StoreCanonicalBasisSourceKind {
     StorePhysicalFormatRecord,
     StorePhysicalIntegrityEvidence,
     StoreWalRecord,
+    StorePhysicalMutationRequest,
     StoreRecoveryReceipt,
     StoreRecoveryPerformanceEvidence,
 }
@@ -131,6 +135,7 @@ pub enum StoreCanonicalBasisFieldRole {
     NativeReceipt,
     NativeDiagnostic,
     NativePerformanceReport,
+    NativePhysicalMutationRequest,
     TerminalProjection,
     OperatorDisplay,
     DocumentChecksum,
@@ -150,6 +155,7 @@ pub enum StoreCanonicalBasisLane {
     PhysicalRecord,
     PhysicalIntegrity,
     Wal,
+    PhysicalMutation,
     Recovery,
     Handoff,
 }
@@ -231,6 +237,7 @@ mod canonical_basis_denial;
 pub(crate) mod canonical_basis_domains;
 mod canonical_basis_entries;
 mod canonical_basis_sources;
+mod physical_mutation_request;
 
 pub use canonical_basis_construction::{
     StoreCanonicalBasisConstruction, StoreCanonicalBasisConstructionOutcome,
@@ -240,4 +247,8 @@ pub use canonical_basis_domains::StoreCanonicalBasisDomainMismatch;
 pub use canonical_basis_sources::{
     canonical_basis_source_owner_for_family, certify_canonical_basis_field_role,
     certify_canonical_basis_source, STORE_CANONICAL_BASIS_SOURCE_OWNERS,
+};
+pub use physical_mutation_request::{
+    StorePhysicalMutationRequestBasisDenial, StorePhysicalMutationRequestCanonicalFields,
+    StorePhysicalMutationRequestCanonicalSource,
 };

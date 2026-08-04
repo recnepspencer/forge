@@ -1,15 +1,9 @@
 use worth_store_physical_backend::{
-    BackendCapabilityAdmissionRequest, BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet,
-    BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
-    BlobPhysicalManifestObservation, BlobPhysicalManifestValidation,
-    PhysicalBackendCapabilityAdmissionAuthority, StoreDurabilityAdmission,
-    StoreDurabilityPublicationKind, StoreDurabilityRequirement, StoreDurabilityRuntime,
-    WalDurabilityBarrier, WalDurabilityBarrierSet,
+    BackendTargetProfile, BlobPhysicalManifestObservation, BlobPhysicalManifestValidation,
 };
 use worth_store_recovery_physics::{
-    BlobReplaySourceAdmission, DurableCheckpointPublication, DurableManifestPublication,
+    BlobReplaySourceAdmission, DurabilityReplayIdentity, DurabilityReplayKind,
 };
-use worth_store_wal::{CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity};
 
 use crate::publication::test_support::{
     durable_wal_publication, publication_inputs, replayable_wal_classification,
@@ -266,81 +260,27 @@ fn replay_fixture(case: &str) -> ReplayFixture {
 }
 
 fn checkpoint_source(case: &str) -> BlobReplaySourceAdmission {
-    let publication = DurableCheckpointPublication::publish(durable_publication_receipt(
-        StoreDurabilityPublicationKind::Checkpoint,
+    let identity = DurabilityReplayIdentity::new(
+        DurabilityReplayKind::Checkpoint,
+        BackendTargetProfile::SimulatedStrictDurable,
         format!("{case}.checkpoint"),
-    ))
-    .expect("durable checkpoint publication should admit");
-    BlobReplaySourceAdmission::from_durable_checkpoint_publication(&publication)
+        1,
+        2,
+    )
+    .unwrap();
+    BlobReplaySourceAdmission::from_checkpoint_replay_identity(&identity)
         .expect("checkpoint replay source should admit")
 }
 
 fn manifest_source(case: &str) -> BlobReplaySourceAdmission {
-    let publication = DurableManifestPublication::publish(durable_publication_receipt(
-        StoreDurabilityPublicationKind::Manifest,
+    let identity = DurabilityReplayIdentity::new(
+        DurabilityReplayKind::Manifest,
+        BackendTargetProfile::SimulatedStrictDurable,
         format!("{case}.manifest"),
-    ))
-    .expect("durable manifest publication should admit");
-    BlobReplaySourceAdmission::from_durable_manifest_publication(&publication)
+        1,
+        2,
+    )
+    .unwrap();
+    BlobReplaySourceAdmission::from_manifest_replay_identity(&identity)
         .expect("manifest replay source should admit")
-}
-
-fn durable_publication_receipt(
-    kind: StoreDurabilityPublicationKind,
-    digest: String,
-) -> worth_store_physical_backend::StoreDurabilityOrderingBarrierDurable<
-    CheckpointDurablePublicationScope,
-> {
-    let requirement = match kind {
-        StoreDurabilityPublicationKind::Checkpoint => {
-            StoreDurabilityRequirement::checkpoint_publication(required_durability_barriers())
-        }
-        StoreDurabilityPublicationKind::Manifest => {
-            StoreDurabilityRequirement::manifest_publication(required_durability_barriers())
-        }
-        StoreDurabilityPublicationKind::WalFrame => {
-            unreachable!("phase7 uses checkpoint manifests")
-        }
-    };
-    let admission = StoreDurabilityAdmission::admit(requirement, &durability_witness())
-        .expect("durability admission should admit");
-    let scope =
-        CheckpointDurablePublicationScope::new(StoreCheckpointRecordIdentity::new(7), digest, 1, 2)
-            .expect("checkpoint publication scope should admit");
-    let accepted = admission.submit_write(scope.clone()).backend_accepted();
-    let directory = tempfile::tempdir().expect("durability execution directory");
-    let proof = StoreDurabilityRuntime::new()
-        .persist_and_execute(directory.path(), b"blob-recovery-durable-write", &accepted)
-        .expect("durability execution should succeed");
-    accepted
-        .reach_durability_boundary(proof)
-        .expect("durability boundary should admit")
-        .parent_namespace_durable()
-        .expect("parent namespace should be durable")
-        .rename_durable()
-        .expect("rename should be durable")
-        .ordering_barrier_durable()
-        .expect("ordering barrier should be durable")
-}
-
-fn required_durability_barriers() -> WalDurabilityBarrierSet {
-    WalDurabilityBarrierSet::of(WalDurabilityBarrier::WalFileFsync)
-        .insert(WalDurabilityBarrier::WalDirectoryFsync)
-}
-
-fn durability_witness() -> worth_store_physical_backend::AdmittedBackendCapabilityWitness {
-    PhysicalBackendCapabilityAdmissionAuthority::store_owned()
-        .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
-            BackendTargetProfile::PosixFileFsyncDirSync,
-            BackendCapabilityEvidenceBasis::certified_backend_profile(),
-            BackendCapabilitySupportSet::all_supported(),
-            BackendMediaAssumptionSet::platform_file_defaults()
-                .with_direct_io_alignment()
-                .with_sector_atomicity()
-                .with_page_cache_policy()
-                .with_flush_ordering()
-                .with_fdatasync_durability(),
-            BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
-        ))
-        .expect("backend capability should admit")
 }

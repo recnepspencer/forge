@@ -1,9 +1,13 @@
 use crate::store_namespace::{ProposedStoreIdentity, StableStoreIdentity};
 
-use crate::record_framing::{decode_durable_frame, encode_durable_frame};
+use crate::record_framing::{
+    decode_durable_frame, encode_durable_frame, DURABLE_FRAME_HEADER_BYTES,
+};
 use crate::{DurableFrameDenial, DurableFrameKind, PhysicalRecordFormatDeclaration};
 
-pub const BOOTSTRAP_CATALOG_BYTES: usize = 74;
+const BOOTSTRAP_CATALOG_PAYLOAD_BYTES: usize = 34;
+pub const BOOTSTRAP_CATALOG_BYTES: usize =
+    DURABLE_FRAME_HEADER_BYTES + BOOTSTRAP_CATALOG_PAYLOAD_BYTES;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CurrentRootCatalogGeneration(u64);
@@ -70,7 +74,7 @@ impl BootstrapCatalog {
     }
 
     pub fn encode(self) -> [u8; BOOTSTRAP_CATALOG_BYTES] {
-        let mut payload = [0_u8; 34];
+        let mut payload = [0_u8; BOOTSTRAP_CATALOG_PAYLOAD_BYTES];
         payload[..16].copy_from_slice(&self.store_identity.bytes());
         payload[16..24].copy_from_slice(&self.current_root.generation().get().to_le_bytes());
         payload[24..34].copy_from_slice(&self.format.encode());
@@ -87,7 +91,7 @@ impl BootstrapCatalog {
     pub fn decode(bytes: &[u8]) -> Result<Self, BootstrapCatalogDenial> {
         let (format, frame) = decode_durable_frame(bytes, DurableFrameKind::BootstrapCatalog)
             .map_err(BootstrapCatalogDenial::Frame)?;
-        if frame.payload.len() != 34 {
+        if frame.payload.len() != BOOTSTRAP_CATALOG_PAYLOAD_BYTES {
             return Err(BootstrapCatalogDenial::PayloadLength);
         }
         let proposed = ProposedStoreIdentity::from_nonzero_bytes(

@@ -2,43 +2,24 @@ use worth_store_layout_indexes::{
     layout_lsm_maintenance, lsm_strategy, BaselineLsmCompactionAdmission,
     LsmCompactionAdmissionRequest,
 };
-use worth_store_lsm_authority::{
-    AdmittedLsmMembershipReplacement, LsmCompactionMembership, LsmMembershipArtifactDeclaration,
-    LsmMembershipKey, LsmMembershipRecord, LsmMembershipSession,
-};
+use worth_store_lsm_authority::{LsmMembershipKey, LsmMembershipRecord, LsmMembershipSession};
 use worth_store_wal::{
-    admit_checkpoint_publication, admit_durable_append, AdmittedWalAppendReceipt,
-    BlobWalRecordKind, StoreWalRecordIdentity, WalSecurityMetadataCarrier,
+    BlobWalRecordKind, StoreWalRecordIdentity, WalFrameArtifactObservation,
+    WalSecurityMetadataCarrier,
 };
 
 use super::super::{
     begin_durability_fixture, durable_record_binding, durable_record_binding_for_store,
-    manifest_receipt_for_artifact, physical_compaction_fixture, wal_receipt, wal_scope,
-    PreExecutionBudgetEnvelope, StoreKeyVersionPosture, StoreLegacySecurityPosture,
-    WalRecordFamily,
+    wal_artifact_observation, wal_scope, PreExecutionBudgetEnvelope, StoreKeyVersionPosture,
+    StoreLegacySecurityPosture, WalRecordFamily,
 };
 
 pub(super) struct CompleteMembershipWorld {
     pub session: LsmMembershipSession,
     pub key: LsmMembershipKey,
-    pub selected: LsmCompactionMembership,
-    pub anchor: AdmittedWalAppendReceipt,
+    pub anchor: WalFrameArtifactObservation,
     pub record_paths: [std::path::PathBuf; 3],
     pub record_frame_offsets: [u64; 3],
-}
-
-pub(super) struct ReplacementWorld {
-    pub session: LsmMembershipSession,
-    pub key: LsmMembershipKey,
-    pub selected: LsmCompactionMembership,
-    pub replacement: AdmittedLsmMembershipReplacement,
-    pub anchor: AdmittedWalAppendReceipt,
-    pub record_paths: [std::path::PathBuf; 3],
-    pub record_frame_offsets: [u64; 3],
-    pub activation_path: std::path::PathBuf,
-    pub output_path: std::path::PathBuf,
-    pub output_frame_offset: u64,
-    pub output_offset: u64,
 }
 
 pub(super) fn admission_and_key(
@@ -66,7 +47,7 @@ pub(super) fn admission_and_key(
     (admission, key)
 }
 
-pub(super) fn empty_session(anchor: &AdmittedWalAppendReceipt) -> LsmMembershipSession {
+pub(super) fn empty_session(anchor: &WalFrameArtifactObservation) -> LsmMembershipSession {
     let security =
         worth_store_security::admitted_store_wal_checkpoint_security_scope_for_layout_partition_test();
     worth_store_lsm_authority::open_lsm_membership(anchor, security.witnesses())
@@ -97,22 +78,18 @@ pub(super) fn complete_membership() -> CompleteMembershipWorld {
     lsm_strategy()
         .persist_record(&mut session, tombstone_envelope, &tombstone_durable, key)
         .unwrap();
-    let selected = worth_store_lsm_authority::select_lsm_compaction_membership(&session, key)
-        .into_result()
-        .unwrap();
     CompleteMembershipWorld {
         session,
         key,
-        selected,
         record_paths: [
-            anchor.persisted_path().to_path_buf(),
-            publication_durable.persisted_path().to_path_buf(),
-            tombstone_durable.persisted_path().to_path_buf(),
+            anchor.path().to_path_buf(),
+            publication_durable.path().to_path_buf(),
+            tombstone_durable.path().to_path_buf(),
         ],
         record_frame_offsets: [
-            anchor.persisted_frame_offset(),
-            publication_durable.persisted_frame_offset(),
-            tombstone_durable.persisted_frame_offset(),
+            anchor.frame_offset(),
+            publication_durable.frame_offset(),
+            tombstone_durable.frame_offset(),
         ],
         anchor,
     }
@@ -124,7 +101,7 @@ pub(super) fn membership_missing(
     begin_durability_fixture();
     let (_, key) = admission_and_key(83);
     let anchor_scope = wal_scope(80, "lsm-membership-selection-anchor".to_owned(), 1);
-    let anchor = admit_durable_append(&wal_receipt(anchor_scope, b"a")).unwrap();
+    let anchor = wal_artifact_observation(anchor_scope, b"a");
     let mut session = empty_session(&anchor);
     let (value_envelope, value_durable) =
         durable_record_binding(key, 81, BlobWalRecordKind::LsmValue);
@@ -155,7 +132,7 @@ pub(super) fn admitted_record(
     key: LsmMembershipKey,
     sequence: u64,
     kind: BlobWalRecordKind,
-) -> (LsmMembershipRecord, AdmittedWalAppendReceipt) {
+) -> (LsmMembershipRecord, WalFrameArtifactObservation) {
     let (envelope, durable) = durable_record_binding(key, sequence, kind);
     (
         LsmMembershipRecord::admit(envelope, &durable, key).unwrap(),
@@ -172,74 +149,11 @@ pub(super) fn foreign_store_record(
     LsmMembershipRecord::admit(envelope, &durable, key).unwrap()
 }
 
-pub(super) fn replacement_world() -> ReplacementWorld {
-    let CompleteMembershipWorld {
-        session,
-        key,
-        selected,
-        anchor,
-        record_paths,
-        record_frame_offsets,
-    } = complete_membership();
-    let (physical_intent, physical_publication) = physical_compaction_fixture();
-    let output_scope = wal_scope(
-        selected.expected_output_identity().unwrap().sequence(),
-        selected.compaction_output_digest(
-            physical_intent.root_scope(),
-            physical_intent.target_epoch(),
-            physical_intent.manifest_epoch(),
-        ),
-        4096,
-    );
-    let output_artifact = LsmMembershipArtifactDeclaration::compaction_output(&output_scope);
-    let output_durable =
-        admit_durable_append(&wal_receipt(output_scope, output_artifact.bytes())).unwrap();
-    let output = worth_store_lsm_authority::admit_lsm_replacement_output(
-        &selected,
-        output_durable,
-        physical_intent,
-    )
-    .unwrap();
-    let output_path = output.persisted_path().to_path_buf();
-    let output_frame_offset = output.persisted_frame_offset();
-    let output_offset = output.persisted_offset();
-    let activation = worth_store_lsm_authority::prepare_lsm_membership_activation(
-        &selected,
-        output,
-        &physical_publication,
-    )
-    .unwrap();
-    let artifact = activation.artifact();
-    let checkpoint = admit_checkpoint_publication(&manifest_receipt_for_artifact(
-        activation.scope().clone(),
-        artifact.bytes(),
-    ))
-    .unwrap();
-    let activation_path = checkpoint.persisted_path().to_path_buf();
-    let replacement = worth_store_lsm_authority::admit_lsm_membership_replacement(
-        &selected, activation, checkpoint,
-    )
-    .unwrap();
-    ReplacementWorld {
-        session,
-        key,
-        selected,
-        replacement,
-        anchor,
-        record_paths,
-        record_frame_offsets,
-        activation_path,
-        output_path,
-        output_frame_offset,
-        output_offset,
-    }
-}
-
 pub(super) fn persist_untrusted_artifact(sequence: u64, bytes: &[u8]) {
     let scope = wal_scope(
         sequence,
         format!("untrusted-lsm-membership-artifact:{sequence}"),
         bytes.len() as u64,
     );
-    admit_durable_append(&wal_receipt(scope, bytes)).unwrap();
+    let _observation = wal_artifact_observation(scope, bytes);
 }

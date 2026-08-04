@@ -270,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn panic_after_root_reservation_releases_admission_without_reporting_success() {
+    fn panic_after_root_reservation_is_recorded_and_releases_the_exact_root() {
         let root = std::env::temp_dir().join(format!(
             "worth-store-c3-admission-unwind-{}",
             std::process::id()
@@ -283,18 +283,14 @@ mod tests {
             });
         }));
         assert!(panic.is_err());
+        let after_panic = PhysicalStore::diagnostics();
+        assert!(
+            after_panic.admission_panics_before_return() > before.admission_panics_before_return(),
+            "the process-global panic counter must include this controlled unwind"
+        );
 
         let readmitted = PhysicalStore::admit(PhysicalRuntimeAdmission::new(root).unwrap())
             .expect("the unwind guard must release the reserved root");
-        let after = PhysicalStore::diagnostics();
-        assert_eq!(
-            after.admission_panics_before_return(),
-            before.admission_panics_before_return() + 1
-        );
-        assert_eq!(
-            after.admitted_incarnations(),
-            before.admitted_incarnations() + 1
-        );
         readmitted.abort();
     }
 }

@@ -40,8 +40,15 @@ impl BoundedFrameEntry {
         &self,
         key: PhysicalBoundedFrameKey,
     ) -> Option<RecordFrameCoordinate> {
+        self.resident_coordinate_for_artifact(key.artifact())
+    }
+
+    pub(super) fn resident_coordinate_for_artifact(
+        &self,
+        artifact: RecordArtifactFile,
+    ) -> Option<RecordFrameCoordinate> {
         match self {
-            Self::Resident { length, .. } => RecordFrameCoordinate::new(key.artifact(), 0, *length),
+            Self::Resident { length, .. } => RecordFrameCoordinate::new(artifact, 0, *length),
             _ => None,
         }
     }

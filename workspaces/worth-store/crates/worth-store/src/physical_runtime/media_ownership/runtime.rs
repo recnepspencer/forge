@@ -72,6 +72,15 @@ impl MediaOwnedPhysicalRuntime {
         self.media.capabilities()
     }
 
+    pub fn physical_durability_admission_basis(
+        &self,
+    ) -> Result<
+        worth_store_physical_backend::PhysicalDurabilityAdmissionBasis,
+        worth_store_physical_backend::BackendCapabilityAdmissionDenial,
+    > {
+        self.media.physical_durability_admission_basis()
+    }
+
     pub fn qualification_report(
         &self,
     ) -> worth_store_physical_backend::RootProfileQualificationReport {

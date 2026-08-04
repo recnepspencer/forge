@@ -2,7 +2,7 @@ use worth_store_lsm_authority::{
     select_lsm_compaction_membership, LsmCompactionMembership, LsmMembershipKey,
     LsmMembershipSession,
 };
-use worth_store_wal::{CheckpointDurablePublicationScope, StoreCheckpointRecordIdentity};
+use worth_store_wal::{CheckpointPublicationScope, StoreCheckpointRecordIdentity};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BaselineLsmCompactionPlan {
@@ -61,7 +61,7 @@ impl BaselineLsmCompactionPlan {
         checkpoint: StoreCheckpointRecordIdentity,
         covered_lsn_start: u64,
         covered_lsn_end: u64,
-    ) -> Option<CheckpointDurablePublicationScope> {
+    ) -> Option<CheckpointPublicationScope> {
         self.membership
             .manifest_scope(checkpoint, covered_lsn_start, covered_lsn_end)
     }

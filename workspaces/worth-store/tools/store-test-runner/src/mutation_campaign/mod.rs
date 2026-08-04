@@ -97,6 +97,7 @@ pub(crate) fn bounded_residency_requirements() -> Vec<MutationRequirement> {
 pub(super) struct MutationCampaignRequest<'path> {
     pub(super) scope: MutationCampaignScope,
     pub(super) list: bool,
+    pub(super) preflight: bool,
     pub(super) selected: Option<u8>,
     pub(super) first: Option<u8>,
     pub(super) report: Option<&'path Path>,
@@ -124,17 +125,26 @@ pub(super) fn run(
 ) -> Result<(), String> {
     validate_request(&request)?;
     let mutations = request.scope.mutations();
+    let selected_mutations = mutations
+        .iter()
+        .filter(|mutation| request.selected.is_none_or(|id| mutation.id == id))
+        .filter(|mutation| request.first.is_none_or(|id| mutation.id >= id))
+        .collect::<Vec<_>>();
     if request.list {
-        for mutation in mutations
-            .iter()
-            .filter(|mutation| request.selected.is_none_or(|id| mutation.id == id))
-            .filter(|mutation| request.first.is_none_or(|id| mutation.id >= id))
-        {
+        for mutation in selected_mutations {
             println!(
                 "{}\t{}\t{}\t{}",
                 mutation.id, mutation.predicate, mutation.source, mutation.selector
             );
         }
+        return Ok(());
+    }
+    source_replacement::validate_bindings(workspace_root, &selected_mutations)?;
+    println!(
+        "mutation source preflight: {} exact bindings",
+        selected_mutations.len()
+    );
+    if request.preflight {
         return Ok(());
     }
     let evidence_session = match request.report {
@@ -146,11 +156,7 @@ pub(super) fn run(
         None => None,
     };
     let mut observations = Vec::new();
-    for mutation in mutations
-        .iter()
-        .filter(|mutation| request.selected.is_none_or(|id| mutation.id == id))
-        .filter(|mutation| request.first.is_none_or(|id| mutation.id >= id))
-    {
+    for mutation in selected_mutations {
         println!("mutate: {} ({})", mutation.id, mutation.predicate);
         let observation = execution::execute(workspace_root, mutation)?;
         println!("C5_MUTANT_EVIDENCE {}", evidence::encode(&observation)?);
@@ -166,6 +172,17 @@ pub(super) fn run(
 }
 
 fn validate_request(request: &MutationCampaignRequest<'_>) -> Result<(), String> {
+    if request.preflight
+        && (request.list
+            || request.report.is_some()
+            || request.selected.is_some()
+            || request.first.is_some())
+    {
+        return Err(
+            "--preflight checks the complete selected scope and rejects listing, reports, and execution selectors"
+                .into(),
+        );
+    }
     if request.list && request.report.is_some() {
         return Err("--report requires an executing mutation campaign".into());
     }
@@ -228,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn bounded_residency_scope_contains_inherited_and_c6_specific_mutants() {
+    fn bounded_residency_scope_contains_inherited_c6_and_complete_c7_corpus() {
         let ids = MutationCampaignScope::BoundedResidency
             .mutations()
             .iter()
@@ -239,10 +256,38 @@ mod tests {
             .iter()
             .filter(|mutation| matches!(mutation.id, 42..=44))
             .chain(super::catalog::physical_reconstruction_c6_mutations())
+            .chain(super::catalog::physical_reconstruction_c7_mutations())
             .map(|mutation| mutation.id)
             .collect::<Vec<_>>();
         assert_eq!(ids, expected);
         assert!(ids.windows(2).all(|pair| pair[0] < pair[1]));
+        assert_eq!(ids.last(), Some(&133));
+    }
+
+    #[test]
+    fn c7_regression_corpus_is_append_only_and_contiguous() {
+        let ids = super::catalog::physical_reconstruction_c7_mutations()
+            .map(|mutation| mutation.id)
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, (79..=133).collect::<Vec<_>>());
+        assert!(MutationCampaignScope::All.contains(79));
+        assert!(MutationCampaignScope::All.contains(118));
+        assert!(MutationCampaignScope::All.contains(119));
+        assert!(MutationCampaignScope::All.contains(120));
+        assert!(MutationCampaignScope::All.contains(121));
+        assert!(MutationCampaignScope::All.contains(122));
+        assert!(MutationCampaignScope::All.contains(123));
+        assert!(MutationCampaignScope::All.contains(124));
+        assert!(MutationCampaignScope::All.contains(125));
+        assert!(MutationCampaignScope::All.contains(126));
+        assert!(MutationCampaignScope::All.contains(127));
+        assert!(MutationCampaignScope::All.contains(128));
+        assert!(MutationCampaignScope::All.contains(129));
+        assert!(MutationCampaignScope::All.contains(130));
+        assert!(MutationCampaignScope::All.contains(131));
+        assert!(MutationCampaignScope::All.contains(132));
+        assert!(MutationCampaignScope::All.contains(133));
     }
 
     #[test]
@@ -273,6 +318,7 @@ mod tests {
         let all = MutationCampaignRequest {
             scope: MutationCampaignScope::All,
             list: false,
+            preflight: false,
             selected: None,
             first: None,
             report: Some(report),
@@ -297,5 +343,35 @@ mod tests {
             ..complete
         })
         .is_ok());
+    }
+
+    #[test]
+    fn preflight_is_a_complete_non_executing_scope_mode() {
+        let complete = MutationCampaignRequest {
+            scope: MutationCampaignScope::BoundedResidency,
+            list: false,
+            preflight: true,
+            selected: None,
+            first: None,
+            report: None,
+        };
+        assert!(validate_request(&complete).is_ok());
+
+        for invalid in [
+            MutationCampaignRequest {
+                list: true,
+                ..complete
+            },
+            MutationCampaignRequest {
+                selected: Some(42),
+                ..complete
+            },
+            MutationCampaignRequest {
+                report: Some(std::path::Path::new("report.json")),
+                ..complete
+            },
+        ] {
+            assert!(validate_request(&invalid).is_err());
+        }
     }
 }

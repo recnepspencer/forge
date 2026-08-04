@@ -56,10 +56,33 @@ fn require_backend_role(
         PhysicalWorkOperationFamily::ArtifactRangeWrite => {
             role == PhysicalWorkBackendRoleEvidence::PositionedWrite
         }
+        PhysicalWorkOperationFamily::WalAppend => {
+            role == PhysicalWorkBackendRoleEvidence::PositionedWrite
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            role == PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+        }
         PhysicalWorkOperationFamily::ArtifactPublication => matches!(
             role,
             PhysicalWorkBackendRoleEvidence::PositionedWrite
                 | PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+                | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
+                | PhysicalWorkBackendRoleEvidence::AtomicReplace
+        ),
+        PhysicalWorkOperationFamily::CheckpointCapture => matches!(
+            role,
+            PhysicalWorkBackendRoleEvidence::CreateNew
+                | PhysicalWorkBackendRoleEvidence::PositionedWrite
+                | PhysicalWorkBackendRoleEvidence::SynchronizeFileState
+                | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
+                | PhysicalWorkBackendRoleEvidence::AtomicReplace
+        ),
+        PhysicalWorkOperationFamily::WalReclamation => {
+            role == PhysicalWorkBackendRoleEvidence::Delete
+        }
+        PhysicalWorkOperationFamily::RootPublication => matches!(
+            role,
+            PhysicalWorkBackendRoleEvidence::SynchronizeFileState
                 | PhysicalWorkBackendRoleEvidence::SynchronizeDirectoryPublication
                 | PhysicalWorkBackendRoleEvidence::AtomicReplace
         ),
@@ -75,22 +98,7 @@ fn require_signal_family(
     operation: PhysicalWorkOperationFamily,
     family: worth_store::physical_runtime::PhysicalWorkSignalFamily,
 ) -> Result<(), String> {
-    use worth_store::physical_runtime::PhysicalWorkSignalFamily;
-    let exact = matches!(
-        (operation, family),
-        (
-            PhysicalWorkOperationFamily::ArtifactMetadataRead
-                | PhysicalWorkOperationFamily::ArtifactRangeRead,
-            PhysicalWorkSignalFamily::ReadFault,
-        ) | (
-            PhysicalWorkOperationFamily::ArtifactRangeWrite,
-            PhysicalWorkSignalFamily::ExactWriteback,
-        ) | (
-            PhysicalWorkOperationFamily::ArtifactPublication,
-            PhysicalWorkSignalFamily::Publication,
-        )
-    );
-    if !exact {
+    if operation.required_signal_family() != family {
         return Err("physical work route carried the wrong Signal family".to_owned());
     }
     Ok(())
@@ -116,11 +124,28 @@ fn require_successful_fate(record: PhysicalWorkCausalRecord) -> Result<(), Strin
             record.effect_fate() == PhysicalWorkEffectFate::ReadCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::NoEffect
         }
-        PhysicalWorkOperationFamily::ArtifactRangeWrite => {
+        PhysicalWorkOperationFamily::ArtifactRangeWrite
+        | PhysicalWorkOperationFamily::WalAppend => {
             record.effect_fate() == PhysicalWorkEffectFate::WriteCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }
         PhysicalWorkOperationFamily::ArtifactPublication => {
+            record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::DurabilityBarrier => {
+            record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::CheckpointCapture => {
+            record.effect_fate() == PhysicalWorkEffectFate::CheckpointCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::WalReclamation => {
+            record.effect_fate() == PhysicalWorkEffectFate::WalReclamationCompleted
+                && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
+        }
+        PhysicalWorkOperationFamily::RootPublication => {
             record.effect_fate() == PhysicalWorkEffectFate::PublicationCompleted
                 && record.recovery() == PhysicalWorkRecoveryDisposition::ContinueSettlement
         }

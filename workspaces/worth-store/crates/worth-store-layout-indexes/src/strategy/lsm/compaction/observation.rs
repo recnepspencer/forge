@@ -3,8 +3,7 @@ use super::{
     BaselineLsmManifestPublicationExecution, PreparedLsmCompaction, PublishedLsmCompaction,
 };
 use worth_store_wal::{
-    BlobWalRecordEnvelope, BlobWalRecordIdentity, DurablePublicationDeclaration,
-    DurablePublicationScope,
+    BlobWalRecordEnvelope, BlobWalRecordIdentity, PublicationDeclaration, PublicationScope,
 };
 
 impl PreparedLsmCompaction {
@@ -59,12 +58,12 @@ impl PublishedLsmCompaction {
 
     pub fn publication_execution(&self) -> BaselineLsmManifestPublicationExecution {
         debug_assert!(matches!(
-            self.wal_publication.durable_publication().scope(),
-            DurablePublicationScope::WalFrame(_)
+            self.wal_publication.publication_declaration().scope(),
+            PublicationScope::WalFrame(_)
         ));
         debug_assert!(matches!(
             self.manifest_publication.scope(),
-            DurablePublicationScope::Manifest(_)
+            PublicationScope::Manifest(_)
         ));
         BaselineLsmManifestPublicationExecution::from_published(self)
     }
@@ -97,7 +96,7 @@ impl PublishedLsmCompaction {
         &self.wal_publication
     }
 
-    pub const fn manifest_publication(&self) -> &DurablePublicationDeclaration {
+    pub const fn manifest_publication(&self) -> &PublicationDeclaration {
         &self.manifest_publication
     }
 

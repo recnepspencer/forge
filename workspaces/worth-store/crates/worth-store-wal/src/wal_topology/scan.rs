@@ -4,7 +4,7 @@ use super::{
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WalSegmentScanLifecycle {
+pub(super) enum WalSegmentScanLifecycle {
     Current,
     Stale,
 }

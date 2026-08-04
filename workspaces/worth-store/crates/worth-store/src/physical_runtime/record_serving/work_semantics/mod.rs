@@ -16,6 +16,7 @@ use crate::physical_runtime::work::{
 
 use super::RecordPublicationStage;
 
+mod durability;
 mod frame_writeback_basis;
 mod publication_basis;
 mod read_basis;
@@ -33,20 +34,43 @@ pub(in crate::physical_runtime) struct RecordWorkAdmission {
     read_bases: RecordReadSemanticBases,
     publication_bases: publication_basis::RecordPublicationSemanticBases,
     frame_writeback_basis: PhysicalWorkSemanticBasis,
+    durability_policy_basis: PhysicalWorkSemanticBasis,
+    root_publication_basis: PhysicalWorkSemanticBasis,
+    checkpoint_capture_basis: PhysicalWorkSemanticBasis,
+    wal_append_basis: PhysicalWorkSemanticBasis,
+    wal_barrier_basis: PhysicalWorkSemanticBasis,
+    wal_reclamation_basis: PhysicalWorkSemanticBasis,
 }
 
 impl RecordWorkAdmission {
     pub(in crate::physical_runtime) fn install(
         profile: PhysicalWorkProfileDeclaration,
+        durability: crate::physical_runtime::PhysicalDurabilityObservation,
     ) -> Result<(Self, PhysicalWorkProfileDeclaration), PhysicalWorkProfileDenial> {
         let witness = security_admission::physical_witness();
         let read = read_basis::install(witness);
         let publication = publication_basis::install(witness);
         let frame_writeback = frame_writeback_basis::install(witness);
-        let extensions = read
-            .declarations
-            .into_iter()
-            .chain([publication.declaration, frame_writeback.declaration]);
+        let durability_policy =
+            durability::install_policy_binding(witness, durability.policy_identity());
+        let store_partition = durability_store_partition(durability);
+        let root_publication =
+            durability::install_root_publication(witness, store_partition.clone());
+        let checkpoint_capture =
+            durability::install_checkpoint_capture(witness, store_partition.clone());
+        let wal_append = durability::install_wal_append(witness, store_partition.clone());
+        let wal_barrier = durability::install_wal_barrier(witness, store_partition.clone());
+        let wal_reclamation = durability::install_wal_reclamation(witness, store_partition);
+        let extensions = read.declarations.into_iter().chain([
+            publication.declaration,
+            frame_writeback.declaration,
+            durability_policy.declaration,
+            root_publication.declaration,
+            checkpoint_capture.declaration,
+            wal_append.declaration,
+            wal_barrier.declaration,
+            wal_reclamation.declaration,
+        ]);
         let profile = profile.with_native_extensions(read.security, extensions)?;
         Ok((
             Self {
@@ -55,6 +79,12 @@ impl RecordWorkAdmission {
                 read_bases: read.bases,
                 publication_bases: publication.bases,
                 frame_writeback_basis: frame_writeback.basis,
+                durability_policy_basis: durability_policy.basis,
+                root_publication_basis: root_publication.basis,
+                checkpoint_capture_basis: checkpoint_capture.basis,
+                wal_append_basis: wal_append.basis,
+                wal_barrier_basis: wal_barrier.basis,
+                wal_reclamation_basis: wal_reclamation.basis,
             },
             profile,
         ))
@@ -89,6 +119,32 @@ impl RecordWorkAdmission {
     pub(in crate::physical_runtime) fn frame_writeback_basis(&self) -> PhysicalWorkSemanticBasis {
         self.frame_writeback_basis.clone()
     }
+
+    pub(in crate::physical_runtime) fn durability_policy_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.durability_policy_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn root_publication_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.root_publication_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn checkpoint_capture_basis(
+        &self,
+    ) -> PhysicalWorkSemanticBasis {
+        self.checkpoint_capture_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn wal_append_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.wal_append_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn wal_barrier_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.wal_barrier_basis.clone()
+    }
+
+    pub(in crate::physical_runtime) fn wal_reclamation_basis(&self) -> PhysicalWorkSemanticBasis {
+        self.wal_reclamation_basis.clone()
+    }
 }
 
 fn dependency_and_output_declaration(
@@ -97,6 +153,28 @@ fn dependency_and_output_declaration(
 ) -> PhysicalSignalAspectDeclaration {
     PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::DependencyAndOutput)
         .for_families(PhysicalWorkSignalFamilySet::only(family))
+}
+
+fn partitioned_dependency_and_output_declaration(
+    admission: StoreAspectContractAdmission,
+    family: PhysicalWorkSignalFamily,
+    partition: String,
+) -> PhysicalSignalAspectDeclaration {
+    PhysicalSignalAspectDeclaration::new(admission, PhysicalSignalAspectRole::DependencyAndOutput)
+        .for_families(PhysicalWorkSignalFamilySet::only(family))
+        .with_partition(worth_signal::facade::PartitionSubscription::whole_partition(partition))
+}
+
+fn durability_store_partition(
+    durability: crate::physical_runtime::PhysicalDurabilityObservation,
+) -> String {
+    let store = durability
+        .store_identity()
+        .bytes()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("physical-durability-store/{store}")
 }
 
 fn contract(
@@ -128,6 +206,33 @@ fn contract(
     (contract, identity, admission)
 }
 
+fn projection_contract(
+    key: &'static str,
+    contract_identity: u64,
+    witness: StorePhysicalBoundaryWitness,
+) -> (
+    AspectContract,
+    StoreAspectIdentity,
+    StoreAspectContractAdmission,
+) {
+    let key = aspects()
+        .vocabulary()
+        .key(key)
+        .expect("built-in record aspect key is canonical");
+    let contract = aspects()
+        .contract()
+        .for_key(key.clone())
+        .identified_by(aspects().vocabulary().identity(contract_identity))
+        .at_revision(aspects().vocabulary().revision(RECORD_ASPECT_REVISION))
+        .scalar(ScalarAspectType::String);
+    let identity = StoreAspectIdentity::from_aspect_key(key);
+    let admission = StoreAspectContractAdmission::new(identity.clone(), contract.clone(), witness)
+        .expect("built-in record contract identity matches its key")
+        .admit_projection_mask(AspectMask::<ProjectionMask>::whole_aspect())
+        .expect("built-in scalar record contract admits whole projection");
+    (contract, identity, admission)
+}
+
 fn patch_fact(
     contract: &AspectContract,
     identity: StoreAspectIdentity,
@@ -152,13 +257,13 @@ fn patch_fact(
 
 fn validated_value(
     contract: &AspectContract,
-    value: &'static str,
+    value: impl Into<InternedString>,
 ) -> worth_foundational::ContractValidatedAspectArtifact {
     match aspects()
         .validate()
         .against(contract)
         .value(ContractValidationInput::from(AspectValue::String(
-            InternedString::from(value),
+            value.into(),
         ))) {
         TransitionOutcome::Success(value) => value,
         outcome => panic!("built-in record aspect value must validate: {outcome:?}"),

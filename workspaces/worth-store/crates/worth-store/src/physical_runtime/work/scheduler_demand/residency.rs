@@ -67,7 +67,7 @@ impl PhysicalSchedulerDemand {
         Ok(Self {
             ready,
             work,
-            capacity,
+            capacity: Some(capacity),
         })
     }
 
@@ -181,7 +181,7 @@ impl PhysicalSchedulerDemand {
         Ok(Self {
             ready,
             work,
-            capacity,
+            capacity: Some(capacity),
         })
     }
 }

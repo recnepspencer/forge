@@ -10,7 +10,7 @@ use worth_store::physical_runtime::{
 use worth_store_physical_backend::MediaOperationRole;
 
 use super::{
-    allocation_probe::peak_live_bytes_during, configuration, media,
+    allocation_probe::peak_live_bytes_during, configuration, durable_publication, media,
     stream_fixture::RepeatedByteSource, success,
 };
 
@@ -79,21 +79,22 @@ fn bounded_residency_survives_pressure_across_three_processes() {
 
 pub(super) fn pressure_writer(root: &Path, locator_path: &str) {
     let (format, placement, access) = configuration();
-    let serving = success(
-        media(root).initialize_record_store(
-            PhysicalRecordInitialization::new(format, placement, access)
-                .with_residency_policy(policy(format)),
-        ),
-    );
+    let serving = success(initialize_record_store!(media(root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+            .with_residency_policy(policy(format))
+    },));
     let batch = (0..RECORDS).fold(RecordAppendBatch::builder(), |batch, ordinal| {
         batch.push_source(RepeatedByteSource::new(RECORD_BYTES as u64, ordinal as u8))
     });
     let (published, peak_live_bytes) = peak_live_bytes_during(|| {
-        serving
-            .record_submission()
-            .append_batch(batch.build().unwrap(), placement)
-            .unwrap()
+        durable_publication::publish_single(
+            &serving,
+            placement,
+            durable_publication::certification_material("residency-pressure-process", 1),
+            batch.build().unwrap(),
+        )
     });
+    let published = &published.settled_members()[0];
     let observation = serving.residency_observation();
     let counters = observation.counters();
     assert!(observation.store_generation().get() > 0);
@@ -134,9 +135,9 @@ pub(super) fn pressure_writer(root: &Path, locator_path: &str) {
 
 pub(super) fn pressure_reader(root: &Path, locator_path: &str) {
     let (format, _, access) = configuration();
-    let serving = success(media(root).open_record_store(
-        PhysicalRecordOpen::new(format, access).with_residency_policy(policy(format)),
-    ));
+    let serving = success(open_record_store!(media(root), |durability| {
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(policy(format))
+    },));
     let locators = std::fs::read_to_string(locator_path)
         .unwrap()
         .lines()

@@ -121,29 +121,6 @@ pub(super) fn observe_staging_completed(
     Ok(())
 }
 
-pub(super) fn consume_completed_for_publication(
-    stages: &mut HashMap<OperationalOperationId, ReplayedRecoveryStaging>,
-    operation: &OperationalOperationId,
-    publication_operation_tag: u8,
-) -> Result<(), OperationalControlHistoryViolationKind> {
-    let expected_kind = match publication_operation_tag {
-        1 => RecoveryStagingOperationKind::BackupRestore,
-        2 => RecoveryStagingOperationKind::PointInTimeRecovery,
-        3 => RecoveryStagingOperationKind::Rollback,
-        _ => return Ok(()),
-    };
-    let stage = stages.get(operation).ok_or(
-        OperationalControlHistoryViolationKind::RecoveryPublicationBeforeStagingCompletion,
-    )?;
-    if stage.operation_kind != expected_kind || stage.completed_media_identity.is_none() {
-        return Err(
-            OperationalControlHistoryViolationKind::RecoveryPublicationBeforeStagingCompletion,
-        );
-    }
-    stages.remove(operation);
-    Ok(())
-}
-
 impl ReplayedRecoveryStaging {
     fn matches_workflow(&self, workflow: OperationalWorkflowKind) -> bool {
         matches!(

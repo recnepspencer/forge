@@ -8,6 +8,7 @@ use crate::{
 pub enum ArtifactTreePublicationEffect {
     FileSynchronization(ArtifactTreeFile),
     DirectorySynchronization(ArtifactTreeDirectory),
+    DurableRemoval(ArtifactTreeFile),
     Replacement {
         source: ArtifactTreeFile,
         destination: ArtifactTreeFile,

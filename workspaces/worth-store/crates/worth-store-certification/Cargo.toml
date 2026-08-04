@@ -32,7 +32,7 @@ worth-store-layout-indexes.workspace = true
 worth-store-lsm-authority.workspace = true
 worth-store-readiness.workspace = true
 worth-store-reclaim-policy.workspace = true
-worth-store-recovery-physics.workspace = true
+worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-replication = { workspace = true, features = ["certification-test-authority"] }
 worth-store-security.workspace = true
 worth-store.workspace = true

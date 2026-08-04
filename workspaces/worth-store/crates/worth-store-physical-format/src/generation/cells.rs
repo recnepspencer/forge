@@ -258,7 +258,7 @@ impl FreeSpaceReuseCellBuilder {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PageGenerationCell {
     segment_id: PhysicalSegmentId,
     page_id: PhysicalPageId,

@@ -4,7 +4,7 @@ use worth_store::physical_runtime::{
 };
 use worth_store_physical_backend::MediaOperationRole;
 
-use super::super::{read_record, serving_from_open};
+use super::super::{durable_publication, read_record, serving_from_open};
 use super::record_read_signal_cleanup::await_read_signal_cleanup;
 use super::{configuration, serving_from_initialization};
 
@@ -16,15 +16,13 @@ fn cold_read_carries_artifact_proof_so_hot_read_creates_no_physical_work() {
     let root = parent.path().join("store");
     let (_, placement, _) = configuration();
     let initial = serving_from_initialization(&root);
-    let record = initial
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
-            placement,
-        )
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = durable_publication::publish_single(
+        &initial,
+        placement,
+        durable_publication::certification_material("physical-work-record-read-path", 1),
+        RecordAppendBatch::try_from_iter([PAYLOAD]).unwrap(),
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
     initial.close();
 
     let serving = serving_from_open(&root);

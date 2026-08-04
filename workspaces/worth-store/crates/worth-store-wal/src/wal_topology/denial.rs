@@ -10,6 +10,7 @@ pub enum WalTopologyDenialKind {
     WrongGeneration,
     StaleSegment,
     DuplicateSegment,
+    NonContiguousSegment,
     DuplicateLsn,
     OverlappingRange,
     Gap,

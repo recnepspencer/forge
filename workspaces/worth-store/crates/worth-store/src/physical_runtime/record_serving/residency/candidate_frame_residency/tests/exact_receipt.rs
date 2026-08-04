@@ -1,6 +1,6 @@
 use worth_proof::TransitionOutcome;
 use worth_store_physical_backend::{
-    ArtifactNewWriteOutcome, ArtifactTreeDirectory, FilesystemAccessPosture,
+    ArtifactNewWriteOutcome, ArtifactNewWriteRange, ArtifactTreeDirectory, FilesystemAccessPosture,
 };
 use worth_store_physical_format::{RecordArtifactFile, RecordFrameCoordinate};
 
@@ -16,16 +16,18 @@ fn foreign_real_receipt_cannot_settle_candidate_residency() {
     let media = owned.record_serving_media();
     let (artifact, physical) = root_manifest_artifact(media);
     let coordinate = RecordFrameCoordinate::new(artifact, 0, 8).unwrap();
-    let receipt = match media
-        .artifact_tree()
-        .write_new_exact(&physical, coordinate, &[0xA5; 8])
-    {
-        ArtifactNewWriteOutcome::Completed(completed) => completed.into_write(),
+    let receipt = match media.artifact_tree().write_new_exact(
+        &physical,
+        ArtifactNewWriteRange::new(8).unwrap(),
+        &[0xA5; 8],
+    ) {
+        ArtifactNewWriteOutcome::Completed(completed) => completed,
         outcome => panic!("real receipt write failed: {outcome:?}"),
     };
     assert!(
-        !super::super::write_evidence::completed_write_matches(
+        !super::super::write_evidence::completed_new_artifact_matches(
             &receipt,
+            coordinate,
             media.store_identity(),
             coordinate,
             &[0x5A; 8],

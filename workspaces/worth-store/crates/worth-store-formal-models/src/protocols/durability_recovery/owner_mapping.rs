@@ -1,46 +1,18 @@
 use worth_store_physical_backend::{
-    BackendDurabilityProfile, PosixFileFsyncDirFsyncProfile, ProductionStorageBoundarySeam,
-    StorageBoundaryFault, StorageBoundaryTrace, WindowsFlushFileBuffersProfile,
+    BackendDurabilityProfile, PosixFileFsyncDirFsyncProfile, WindowsFlushFileBuffersProfile,
 };
 use worth_store_recovery_physics::{
-    CheckpointBaseAdmission, CheckpointCutoverReceipt, ExecutedWalDurabilityOutcome,
-    RecoveryCompletion, RedoExecutionReceipt, RedoPlanningDenial, RedoPlanningDenialKind,
-    ReopenedRecoveryArtifactAdmission,
+    CheckpointBaseAdmission, CheckpointCutoverReceipt, RecoveryCompletion, RedoExecutionReceipt,
+    RedoPlanningDenial, RedoPlanningDenialKind, ReopenedRecoveryArtifactAdmission,
+    WalDurabilityObservationDenial, WalDurabilityObservationDenialKind,
 };
 
 use super::DurabilityRecoveryAction;
 
-pub fn map_executed_wal_durability<P: BackendDurabilityProfile>(
-    outcome: &ExecutedWalDurabilityOutcome<P>,
-) -> Vec<DurabilityRecoveryAction> {
-    let mut actions = vec![
-        DurabilityRecoveryAction::WalAppendProposed,
-        DurabilityRecoveryAction::WalAppendCompletedInMemory,
-        DurabilityRecoveryAction::WalFenceRequested,
-    ];
-    if outcome
-        .execution()
-        .completed_barriers()
-        .satisfies(P::REQUIRED_BARRIERS)
-    {
-        actions.push(DurabilityRecoveryAction::WalFenceCompleted);
-    }
-    if outcome
-        .acknowledgment()
-        .ack_basis()
-        .completed_barriers()
-        .satisfies(P::REQUIRED_BARRIERS)
-    {
-        actions.push(DurabilityRecoveryAction::WalAcknowledgmentLegal);
-    }
-    actions
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurabilityOwnerMappingDenial {
     CheckpointProfileDoesNotProveDirectorySync,
-    DirectorySyncAbortWasNotInjected,
-    DirectorySyncDidNotFail,
+    WalFenceFailureRequired,
     ReplayGenerationMismatchRequired,
 }
 
@@ -66,20 +38,16 @@ pub const fn map_checkpoint_selection(
     DurabilityRecoveryAction::CheckpointSelected
 }
 
-pub fn map_directory_sync_failure(
-    _failure: &std::io::Error,
-    trace: &StorageBoundaryTrace,
-) -> Result<[DurabilityRecoveryAction; 2], DurabilityOwnerMappingDenial> {
-    let injected = trace.injected().contains(&(
-        ProductionStorageBoundarySeam::DirectorySync,
-        StorageBoundaryFault::AbortBeforeDurabilityBarrier,
-    ));
-    if !injected {
-        return Err(DurabilityOwnerMappingDenial::DirectorySyncAbortWasNotInjected);
+pub fn map_failed_wal_fence(
+    denial: &WalDurabilityObservationDenial,
+) -> Result<[DurabilityRecoveryAction; 3], DurabilityOwnerMappingDenial> {
+    if denial.kind() != WalDurabilityObservationDenialKind::BarrierFailed {
+        return Err(DurabilityOwnerMappingDenial::WalFenceFailureRequired);
     }
     Ok([
-        DurabilityRecoveryAction::DirectorySyncFailed,
-        DurabilityRecoveryAction::Crash,
+        DurabilityRecoveryAction::WalAppendProposed,
+        DurabilityRecoveryAction::WalAppendCompletedInMemory,
+        DurabilityRecoveryAction::WalFenceRequested,
     ])
 }
 

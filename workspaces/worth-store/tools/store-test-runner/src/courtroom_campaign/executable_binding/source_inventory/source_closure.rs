@@ -1,6 +1,9 @@
 use std::path::{Path, PathBuf};
 use worth_store::physical_runtime::{PhysicalWorkEvidenceDigest, PhysicalWorkSourceBinding};
 
+use super::super::SourceClosureWorkload;
+use super::BoundLocalSourceClosure;
+
 pub(super) fn build_inputs(repository: &Path, workspace: &Path) -> Result<Vec<PathBuf>, String> {
     let mut inputs = vec![
         repository.join("Cargo.toml"),
@@ -29,22 +32,25 @@ pub(super) fn bind(
     workspace: &Path,
     package_roots: &[PathBuf],
     build_inputs: &[PathBuf],
-) -> Result<PhysicalWorkSourceBinding, String> {
+) -> Result<BoundLocalSourceClosure, String> {
     let mut sources = build_inputs.to_vec();
     for root in package_roots {
         collect_package_sources(root, &mut sources)?;
     }
     sources.sort();
     sources.dedup();
-    let digest = PhysicalWorkEvidenceDigest::new(crate::local_source_fingerprint::hash_sources(
-        repository, &sources,
-    )?)
-    .ok_or_else(|| "source inventory produced an all-zero digest".to_owned())?;
-    PhysicalWorkSourceBinding::new(
+    let fingerprint = crate::local_source_fingerprint::fingerprint_sources(repository, &sources)?;
+    let digest = PhysicalWorkEvidenceDigest::new(fingerprint.digest())
+        .ok_or_else(|| "source inventory produced an all-zero digest".to_owned())?;
+    let binding = PhysicalWorkSourceBinding::new(
         format!("{}#c5-1-local-runtime-source-closure", workspace.display()),
         digest,
     )
-    .map_err(|denial| format!("source evidence binding denied: {denial:?}"))
+    .map_err(|denial| format!("source evidence binding denied: {denial:?}"))?;
+    Ok(BoundLocalSourceClosure::new(
+        binding,
+        SourceClosureWorkload::new(fingerprint.source_files(), fingerprint.source_bytes()),
+    ))
 }
 
 fn collect_package_sources(root: &Path, files: &mut Vec<PathBuf>) -> Result<(), String> {

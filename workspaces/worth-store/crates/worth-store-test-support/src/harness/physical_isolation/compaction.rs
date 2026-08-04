@@ -1,45 +1,10 @@
 use crate::harness::physical_isolation::{epoch_scope, publication, read_plan};
 use crate::harness::recovery::source_precedence;
-use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
-    PhysicalRootReference, RootPublicationValidationWitness,
-};
 use worth_store_physical_integrity::CompactionSourceIntegrityClearance;
 use worth_store_physical_isolation::{
-    CompactionCandidateRangeSet, CompactionCutoverDelta, CompactionCutoverStabilityProof,
-    CompactionProtectedReferenceSet, CompactionReadInterlockPlan, CompactionRewritePublication,
-    CompactionSourceIntegrityEvidence, CurrentPhysicalRoot, NewRootPublicationProof,
-    OldReachabilityPreservation, PhysicalPublicationIntent, PhysicalPublicationReadiness,
-    PublicationLatchReadiness, PublicationRootCandidate, RootSwapOrderingContract,
-    StablePhysicalReadExecution, StablePhysicalReadReceipt,
+    CompactionCandidateRangeSet, CompactionProtectedReferenceSet, CompactionReadInterlockPlan,
+    CompactionSourceIntegrityEvidence, StablePhysicalReadExecution,
 };
-use worth_store_recovery_physics::CompactionCutoverRecoveryPosture;
-
-#[derive(Debug)]
-pub struct ExecutedCompactionCutover {
-    publication: CompactionRewritePublication,
-    recovery: CompactionCutoverRecoveryPosture,
-    pre_cutover_read: StablePhysicalReadReceipt,
-    post_cutover_read: StablePhysicalReadReceipt,
-}
-
-impl ExecutedCompactionCutover {
-    pub fn into_parts(
-        self,
-    ) -> (
-        CompactionRewritePublication,
-        CompactionCutoverRecoveryPosture,
-        StablePhysicalReadReceipt,
-        StablePhysicalReadReceipt,
-    ) {
-        (
-            self.publication,
-            self.recovery,
-            self.pre_cutover_read,
-            self.post_cutover_read,
-        )
-    }
-}
 
 pub fn admitted_compaction_plan() -> CompactionReadInterlockPlan {
     admitted_compaction_plan_for_seed(17)
@@ -83,92 +48,4 @@ pub fn admitted_compaction_plan_for_seed(root_seed: u64) -> CompactionReadInterl
         source,
     )
     .expect("ordinary compaction plan admission")
-}
-
-pub fn execute_compaction_cutover(plan: &CompactionReadInterlockPlan) -> ExecutedCompactionCutover {
-    execute_compaction_cutover_for_manifest(
-        plan,
-        plan.protected().root().manifest_epoch().get() + 1,
-    )
-}
-
-pub fn execute_compaction_cutover_for_manifest(
-    plan: &CompactionReadInterlockPlan,
-    target_manifest_epoch: u64,
-) -> ExecutedCompactionCutover {
-    let old_root = plan.protected().root();
-    let delta = CompactionCutoverDelta::lower_to_manifest(plan.clone(), target_manifest_epoch)
-        .expect("physical owner lowers the target compaction manifest");
-    let new_root = delta.rewritten_root();
-    let old_validation = root_validation(old_root);
-    let new_validation = root_validation(new_root);
-    let old_candidate = PublicationRootCandidate::admit(old_root, old_validation)
-        .expect("old root publication candidate");
-    let new_candidate = PublicationRootCandidate::admit(new_root, new_validation)
-        .expect("new root publication candidate");
-    let old_reachability =
-        OldReachabilityPreservation::from_protected_footprint(plan.protected().footprint_basis())
-            .expect("protected footprint preserves old reachability");
-    let validated = PhysicalPublicationIntent::copy_on_write_root_manifest(
-        old_candidate,
-        new_candidate,
-        old_reachability,
-    )
-    .validate_copy_on_write_inputs()
-    .expect("copy-on-write publication inputs");
-    let readiness = PhysicalPublicationReadiness::from_validated_intent(
-        &validated,
-        NewRootPublicationProof::from_root_validation(new_validation),
-        PublicationLatchReadiness::declared_publish_latches_released_before_blocking_io(),
-    );
-    let receipt = crate::harness::physical_isolation::publish_in_temporary_store(
-        validated
-            .lower_with_ordering(RootSwapOrderingContract::acquire_release_or_stronger())
-            .expect("publication ordering")
-            .join_readiness(readiness)
-            .expect("publication readiness"),
-    )
-    .expect("root publication")
-    .receipt()
-    .clone();
-    let publication = CompactionRewritePublication::publish_rewrite(delta, receipt)
-        .expect("compaction publication binds the exact rewrite");
-    let recovery = CompactionCutoverRecoveryPosture::admit_visible_product(
-        source_precedence::compaction_visible_product_evidence(target_manifest_epoch),
-    );
-    let pre_cutover_read = plan
-        .source_integrity()
-        .stable_read_receipt()
-        .expect("ordinary plan retains its executed source read");
-    let stability = CompactionCutoverStabilityProof::admit(publication.clone(), recovery.clone())
-        .expect("published rewrite is recovery-visible");
-    let post_cutover_read = StablePhysicalReadExecution::from_execution_ready_handle(
-        stability
-            .plan_post_cutover_read()
-            .expect("stability proof lowers the post-cutover read")
-            .into_execution_ready_handle(),
-    )
-    .complete();
-
-    ExecutedCompactionCutover {
-        publication,
-        recovery,
-        pre_cutover_read,
-        post_cutover_read,
-    }
-}
-
-fn root_validation(root: CurrentPhysicalRoot) -> RootPublicationValidationWitness {
-    let generations = PhysicalGenerationAuthority::for_canonical_physical_format();
-    let references = PhysicalReferenceAuthority::for_canonical_physical_format();
-    let cell = generations
-        .root_publication_cell(
-            PhysicalRootReference::from_raw(root.scope()).expect("nonzero root scope"),
-        )
-        .with_root_publication_generation(
-            PhysicalGeneration::from_raw(root.scope()).expect("nonzero root generation"),
-        );
-    references
-        .validate_root_publication(references.admit_root_publication(cell), cell)
-        .expect("root publication validation")
 }

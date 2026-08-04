@@ -45,7 +45,6 @@ fn dispatch(role: &str, root: &std::path::Path) {
             root,
             PathBuf::from(std::env::var_os(LOCATOR_ENV).unwrap()),
         ),
-        "publication_death_writer" => super::publication_death::run(root),
         "publication_reopener" => super::super::publication_reopener::run(root),
         "residency_pressure_writer" => super::super::residency_pressure_processes::pressure_writer(
             root,

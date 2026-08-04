@@ -76,7 +76,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege::protocol) fn parse(
 
 fn parse_signal_binding(line: &str) -> Result<BoundedResidencySignalBindingObservation, String> {
     let value = line.split_whitespace().collect::<Vec<_>>();
-    if value.len() != 9 || value[0] != SIGNAL_BINDING.trim_end() {
+    if value.len() != 14 || value[0] != SIGNAL_BINDING.trim_end() {
         return Err(format!(
             "malformed Courtroom C Signal binding observation `{line}`"
         ));
@@ -90,8 +90,13 @@ fn parse_signal_binding(line: &str) -> Result<BoundedResidencySignalBindingObser
             exact_writeback: boolean(value[5], "exact-writeback family membership")?,
             publication: boolean(value[6], "publication family membership")?,
             lifecycle: boolean(value[7], "lifecycle family membership")?,
+            wal_append: boolean(value[8], "WAL-append family membership")?,
+            durability_barrier: boolean(value[9], "durability-barrier family membership")?,
+            checkpoint_capture: boolean(value[10], "checkpoint-capture family membership")?,
+            root_publication: boolean(value[11], "root-publication family membership")?,
+            wal_reclamation: boolean(value[12], "WAL-reclamation family membership")?,
         },
-        partition: (value[8] != "none").then(|| value[8].to_owned()),
+        partition: (value[13] != "none").then(|| value[13].to_owned()),
     })
 }
 
@@ -145,6 +150,7 @@ fn media_role(encoded: &str) -> Result<BoundedResidencyMediaRole, String> {
             Ok(BoundedResidencyMediaRole::SynchronizeDirectoryPublication)
         }
         "atomic-replace" => Ok(BoundedResidencyMediaRole::AtomicReplace),
+        "delete" => Ok(BoundedResidencyMediaRole::Delete),
         _ => Err("physical work record named an unknown backend media role".to_owned()),
     }
 }
@@ -201,6 +207,11 @@ fn signal_family(encoded: &str) -> Result<BoundedResidencySignalFamily, String> 
         "exact-writeback" => Ok(BoundedResidencySignalFamily::ExactWriteback),
         "publication" => Ok(BoundedResidencySignalFamily::Publication),
         "lifecycle" => Ok(BoundedResidencySignalFamily::Lifecycle),
+        "wal-append" => Ok(BoundedResidencySignalFamily::WalAppend),
+        "durability-barrier" => Ok(BoundedResidencySignalFamily::DurabilityBarrier),
+        "checkpoint-capture" => Ok(BoundedResidencySignalFamily::CheckpointCapture),
+        "root-publication" => Ok(BoundedResidencySignalFamily::RootPublication),
+        "wal-reclamation" => Ok(BoundedResidencySignalFamily::WalReclamation),
         _ => Err("physical work route named an unknown Signal family".to_owned()),
     }
 }
@@ -266,6 +277,11 @@ fn family(encoded: &str) -> Result<BoundedResidencyWorkFamily, String> {
         "artifact-range-read" => Ok(BoundedResidencyWorkFamily::ArtifactRangeRead),
         "artifact-range-write" => Ok(BoundedResidencyWorkFamily::ArtifactRangeWrite),
         "artifact-publication" => Ok(BoundedResidencyWorkFamily::ArtifactPublication),
+        "wal-append" => Ok(BoundedResidencyWorkFamily::WalAppend),
+        "durability-barrier" => Ok(BoundedResidencyWorkFamily::DurabilityBarrier),
+        "checkpoint-capture" => Ok(BoundedResidencyWorkFamily::CheckpointCapture),
+        "root-publication" => Ok(BoundedResidencyWorkFamily::RootPublication),
+        "wal-reclamation" => Ok(BoundedResidencyWorkFamily::WalReclamation),
         _ => Err("physical work record named an unknown operation family".to_owned()),
     }
 }
@@ -275,6 +291,8 @@ fn effect_fate(encoded: &str) -> Result<BoundedResidencyWorkEffectFate, String> 
         "read-completed" => Ok(BoundedResidencyWorkEffectFate::ReadCompleted),
         "write-completed" => Ok(BoundedResidencyWorkEffectFate::WriteCompleted),
         "publication-completed" => Ok(BoundedResidencyWorkEffectFate::PublicationCompleted),
+        "checkpoint-completed" => Ok(BoundedResidencyWorkEffectFate::CheckpointCompleted),
+        "wal-reclamation-completed" => Ok(BoundedResidencyWorkEffectFate::WalReclamationCompleted),
         _ => Err("physical work record named a non-successful effect fate".to_owned()),
     }
 }

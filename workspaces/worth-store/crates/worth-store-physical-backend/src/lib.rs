@@ -149,61 +149,6 @@
 //! let authority = StoreOwnedBackendQueueExecution { _private: () };
 //! let _session = BackendQueueExecutionSession::for_store_backend(&mut backend, authority);
 //! ```
-//! Store durability receipts cannot be forged from raw fields:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreDurabilityOrderingBarrierDurable;
-//! let _forged: StoreDurabilityOrderingBarrierDurable<&'static str> =
-//!     StoreDurabilityOrderingBarrierDurable { core: todo!() };
-//! ```
-//! Store durability execution proof cannot be forged from public fields:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreDurabilityExecutionProof;
-//! let _forged: StoreDurabilityExecutionProof<&'static str> = StoreDurabilityExecutionProof {
-//!     binding: todo!(),
-//!     completed_barriers: todo!(),
-//!     file_sync: todo!(),
-//!     directory_sync_completed: true,
-//!     rename_completed: true,
-//!     ordering_barrier_completed: true,
-//!     delayed_syncs: 0,
-//!     failed_syncs: 0,
-//!     _seal: todo!(),
-//! };
-//! ```
-//! Store durability execution authority cannot be constructed by ordinary
-//! callers:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreOwnedDurabilityExecution;
-//! let _forged = StoreOwnedDurabilityExecution { _private: () };
-//! ```
-//! Certification-only durability authority is not an ordinary production API:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreOwnedDurabilityExecution;
-//! let _forged = StoreOwnedDurabilityExecution::for_certification_test_authority();
-//! ```
-//! Ordinary callers cannot open a Store-owned durability execution session
-//! without receiving Store-owned authority:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreDurabilityExecutionSession;
-//! struct Dummy;
-//! let mut backend = Dummy;
-//! let _session = StoreDurabilityExecutionSession::for_owned_backend(&mut backend);
-//! ```
-//! Raw WAL barrier bits are declarations, not completed sync authority:
-//! ```compile_fail
-//! use worth_store_physical_backend::{
-//!     StoreDurabilityWriteAccepted, WalDurabilityBarrierSet,
-//! };
-//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
-//! let _boundary = accepted.reach_durability_boundary(WalDurabilityBarrierSet::EMPTY);
-//! ```
-//! Store durability progression cannot skip from backend-accepted to durable
-//! rename without parent namespace durability:
-//! ```compile_fail
-//! use worth_store_physical_backend::StoreDurabilityWriteAccepted;
-//! let accepted: StoreDurabilityWriteAccepted<&'static str> = todo!();
-//! let _renamed = accepted.rename_durable();
-//! ```
 //! Store access policy admission cannot be forged from public fields:
 //! ```compile_fail
 //! use worth_store_physical_backend::AdmittedAccessPolicy;
@@ -272,7 +217,6 @@ extern crate self as worth_store_physical_backend;
 mod access_policy;
 mod backup_materialization;
 mod directory_durability;
-mod durability_ordering;
 mod durability_profile;
 mod execution;
 pub mod external_recovery_compile_fail;

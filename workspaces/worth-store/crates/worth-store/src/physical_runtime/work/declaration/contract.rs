@@ -8,6 +8,11 @@ pub enum PhysicalWorkOperationFamily {
     ArtifactRangeRead,
     ArtifactRangeWrite,
     ArtifactPublication,
+    CheckpointCapture,
+    WalAppend,
+    DurabilityBarrier,
+    WalReclamation,
+    RootPublication,
 }
 
 impl PhysicalWorkOperationFamily {
@@ -18,6 +23,11 @@ impl PhysicalWorkOperationFamily {
             }
             Self::ArtifactRangeWrite => PhysicalWorkSignalFamily::ExactWriteback,
             Self::ArtifactPublication => PhysicalWorkSignalFamily::Publication,
+            Self::CheckpointCapture => PhysicalWorkSignalFamily::CheckpointCapture,
+            Self::WalAppend => PhysicalWorkSignalFamily::WalAppend,
+            Self::DurabilityBarrier => PhysicalWorkSignalFamily::DurabilityBarrier,
+            Self::WalReclamation => PhysicalWorkSignalFamily::WalReclamation,
+            Self::RootPublication => PhysicalWorkSignalFamily::RootPublication,
         }
     }
 }
@@ -42,4 +52,14 @@ pub enum PhysicalWorkRecoveryDisposition {
 pub enum PhysicalWorkDurabilityRequirement {
     ReadOnly,
     ArtifactRangeWrite(ArtifactRangeWriteDurabilityRequirement),
+    /// Complete WAL bytes are requested, without claiming a durability barrier.
+    WalAppend,
+    /// Exact admitted backend barrier for one already-appended WAL member.
+    WalDurabilityBarrier,
+    /// Exact Store-owned checkpoint action admitted only through background pacing.
+    CheckpointCapture,
+    /// Proof-gated removal of one obsolete WAL artifact.
+    WalReclamation,
+    /// One exact candidate-sync, catalog-replacement, or namespace-sync root action.
+    RootPublication,
 }

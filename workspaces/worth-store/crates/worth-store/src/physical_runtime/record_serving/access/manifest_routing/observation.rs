@@ -1,5 +1,5 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct ManifestDiscoveryCounterSnapshot {
+pub(in crate::physical_runtime::record_serving) struct ManifestDiscoveryCounterSnapshot {
     blocks_read: u64,
     comparisons: u64,
     bytes_read: u64,
@@ -9,22 +9,26 @@ pub struct ManifestDiscoveryCounterSnapshot {
 }
 
 impl ManifestDiscoveryCounterSnapshot {
-    pub const fn blocks_read(self) -> u64 {
+    pub(in crate::physical_runtime::record_serving) const fn blocks_read(self) -> u64 {
         self.blocks_read
     }
-    pub const fn comparisons(self) -> u64 {
+    pub(in crate::physical_runtime::record_serving) const fn comparisons(self) -> u64 {
         self.comparisons
     }
-    pub const fn bytes_read(self) -> u64 {
+    pub(in crate::physical_runtime::record_serving) const fn bytes_read(self) -> u64 {
         self.bytes_read
     }
-    pub const fn work_count(self) -> u64 {
+    pub(in crate::physical_runtime::record_serving) const fn work_count(self) -> u64 {
         self.work_count
     }
-    pub const fn first_work(self) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
+    pub(in crate::physical_runtime::record_serving) const fn first_work(
+        self,
+    ) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
         self.first_work
     }
-    pub const fn last_work(self) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
+    pub(in crate::physical_runtime::record_serving) const fn last_work(
+        self,
+    ) -> Option<crate::physical_runtime::PhysicalWorkIdentity> {
         self.last_work
     }
 

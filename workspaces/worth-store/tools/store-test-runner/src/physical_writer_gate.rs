@@ -168,12 +168,21 @@ fn c5_record_path_has_no_heap_replay_offline_or_raw_filesystem_substitute() {
     candidate_publication::inspect_current_sources(&root)
         .unwrap_or_else(|failure| panic!("{failure}"));
 
-    let publication = root.join("publication/director/execution.rs");
+    let publication = root.join("publication/director/managed_mutation.rs");
     let publication = std::fs::read_to_string(publication).expect("read Store publication owner");
-    assert!(
-        publication.contains("publication_progression::execute_prepared_root("),
-        "Store must retain current-truth publication after the C.6 candidate seam"
-    );
+    let mut previous = 0;
+    for anchor in [
+        "self.prepare_settled_root_publication(settled)",
+        "self.replace_prepared_root(prepared_root)",
+        "self.synchronize_replaced_root_namespace(replaced)",
+        "self.advance_namespace_durable_root(namespace_durable)",
+    ] {
+        let position = publication[previous..]
+            .find(anchor)
+            .map(|position| previous + position)
+            .unwrap_or_else(|| panic!("Store publication owner lost `{anchor}`"));
+        previous = position + anchor.len();
+    }
 }
 
 #[test]

@@ -53,12 +53,10 @@ fn independent_mutation_capabilities_execute_without_a_global_runtime_borrow() {
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    let serving = super::super::success(
-        media.open_record_store(
-            worth_store::physical_runtime::PhysicalRecordOpen::new(format, access)
-                .with_physical_work_profile(profile),
-        ),
-    );
+    let serving = super::super::success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+            .with_physical_work_profile(profile)
+    },));
     let before = serving.media_counters();
     let first = admitted_write(&serving, first_request);
     let second = admitted_write(&serving, second_request);
@@ -153,12 +151,10 @@ fn close_waits_for_a_dispatched_execution_capability_before_disposal() {
         _ => panic!("faulted media should admit"),
     };
     let (format, _, access) = super::super::configuration();
-    let serving = super::super::success(
-        media.open_record_store(
-            worth_store::physical_runtime::PhysicalRecordOpen::new(format, access)
-                .with_physical_work_profile(profile),
-        ),
-    );
+    let serving = super::super::success(open_record_store!(media, |durability| {
+        worth_store::physical_runtime::PhysicalRecordOpen::new(format, access, durability)
+            .with_physical_work_profile(profile)
+    },));
     let command = PhysicalExecutorCommand::exact_write(
         admitted_write(&serving, request),
         b"closing!".as_slice(),

@@ -15,6 +15,12 @@ pub(super) const FRAME: [u8; 32] = [3; 32];
 const SCAN: [u8; 32] = [4; 32];
 const WRITEBACK: [u8; 32] = [5; 32];
 const PUBLICATION: [u8; 32] = [6; 32];
+const POLICY: [u8; 32] = [7; 32];
+const WAL_APPEND: [u8; 32] = [8; 32];
+const WAL_BARRIER: [u8; 32] = [9; 32];
+const CHECKPOINT_CAPTURE: [u8; 32] = [10; 32];
+const ROOT_PUBLICATION: [u8; 32] = [11; 32];
+const WAL_RECLAMATION: [u8; 32] = [12; 32];
 
 pub(super) fn fixture() -> BoundedResidencyWorkReconciliationObservation {
     BoundedResidencyWorkReconciliationObservation {
@@ -26,8 +32,8 @@ pub(super) fn fixture() -> BoundedResidencyWorkReconciliationObservation {
         exact_writebacks: 1,
         identified_metadata_reads: 3,
         identified_positioned_reads: 1,
-        identified_positioned_writes: 1,
-        settled_terminal_fates: 6,
+        identified_positioned_writes: 2,
+        settled_terminal_fates: 11,
         continued_terminal_fates: 0,
         signal_bindings: signal_bindings(),
         records: vec![
@@ -79,6 +85,46 @@ pub(super) fn fixture() -> BoundedResidencyWorkReconciliationObservation {
                 BoundedResidencyWorkRecovery::ContinueSettlement,
                 PUBLICATION,
             ),
+            record(
+                7,
+                107,
+                BoundedResidencyWorkFamily::WalAppend,
+                BoundedResidencyWorkEffectFate::WriteCompleted,
+                BoundedResidencyWorkRecovery::ContinueSettlement,
+                WAL_APPEND,
+            ),
+            record(
+                8,
+                108,
+                BoundedResidencyWorkFamily::DurabilityBarrier,
+                BoundedResidencyWorkEffectFate::PublicationCompleted,
+                BoundedResidencyWorkRecovery::ContinueSettlement,
+                WAL_BARRIER,
+            ),
+            record(
+                9,
+                109,
+                BoundedResidencyWorkFamily::CheckpointCapture,
+                BoundedResidencyWorkEffectFate::CheckpointCompleted,
+                BoundedResidencyWorkRecovery::ContinueSettlement,
+                CHECKPOINT_CAPTURE,
+            ),
+            record(
+                10,
+                110,
+                BoundedResidencyWorkFamily::RootPublication,
+                BoundedResidencyWorkEffectFate::PublicationCompleted,
+                BoundedResidencyWorkRecovery::ContinueSettlement,
+                ROOT_PUBLICATION,
+            ),
+            record(
+                11,
+                111,
+                BoundedResidencyWorkFamily::WalReclamation,
+                BoundedResidencyWorkEffectFate::WalReclamationCompleted,
+                BoundedResidencyWorkRecovery::ContinueSettlement,
+                WAL_RECLAMATION,
+            ),
         ]
         .into_boxed_slice(),
     }
@@ -112,6 +158,15 @@ fn record(
             BoundedResidencyWorkFamily::ArtifactPublication => {
                 BoundedResidencyMediaRole::SynchronizeFileState
             }
+            BoundedResidencyWorkFamily::WalAppend => BoundedResidencyMediaRole::PositionedWrite,
+            BoundedResidencyWorkFamily::DurabilityBarrier => {
+                BoundedResidencyMediaRole::SynchronizeFileState
+            }
+            BoundedResidencyWorkFamily::CheckpointCapture => BoundedResidencyMediaRole::CreateNew,
+            BoundedResidencyWorkFamily::RootPublication => {
+                BoundedResidencyMediaRole::SynchronizeDirectoryPublication
+            }
+            BoundedResidencyWorkFamily::WalReclamation => BoundedResidencyMediaRole::Delete,
         },
         effect_fate,
         recovery,
@@ -152,6 +207,32 @@ fn signal_bindings() -> Box<[BoundedResidencySignalBindingObservation]> {
             "store.physical.record.publication-basis",
             BoundedResidencySignalFamily::Publication,
         ),
+        policy_binding(),
+        durability_binding(
+            WAL_APPEND,
+            "store.physical.durability.wal-append-basis",
+            BoundedResidencySignalFamily::WalAppend,
+        ),
+        durability_binding(
+            WAL_BARRIER,
+            "store.physical.durability.wal-barrier-basis",
+            BoundedResidencySignalFamily::DurabilityBarrier,
+        ),
+        durability_binding(
+            CHECKPOINT_CAPTURE,
+            "store.physical.durability.checkpoint-capture-basis",
+            BoundedResidencySignalFamily::CheckpointCapture,
+        ),
+        durability_binding(
+            ROOT_PUBLICATION,
+            "store.physical.durability.root-publication-basis",
+            BoundedResidencySignalFamily::RootPublication,
+        ),
+        durability_binding(
+            WAL_RECLAMATION,
+            "store.physical.durability.wal-reclamation-basis",
+            BoundedResidencySignalFamily::WalReclamation,
+        ),
     ]
     .into_boxed_slice()
 }
@@ -184,11 +265,56 @@ fn mutation_binding(
     }
 }
 
+fn durability_binding(
+    digest: [u8; 32],
+    aspect_key: &str,
+    family: BoundedResidencySignalFamily,
+) -> BoundedResidencySignalBindingObservation {
+    BoundedResidencySignalBindingObservation {
+        digest,
+        aspect_key: aspect_key.to_owned(),
+        role: BoundedResidencySignalAspectRole::DependencyAndOutput,
+        families: family_set(family),
+        partition: Some(format!(
+            "physical-durability-store/{}",
+            STORE
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        )),
+    }
+}
+
+fn policy_binding() -> BoundedResidencySignalBindingObservation {
+    BoundedResidencySignalBindingObservation {
+        digest: POLICY,
+        aspect_key: "store.physical.durability.policy-binding-basis".to_owned(),
+        role: BoundedResidencySignalAspectRole::Dependency,
+        families: BoundedResidencySignalFamilySet {
+            read_fault: false,
+            exact_writeback: false,
+            publication: false,
+            lifecycle: false,
+            wal_append: true,
+            durability_barrier: true,
+            checkpoint_capture: true,
+            root_publication: true,
+            wal_reclamation: true,
+        },
+        partition: Some(format!("physical-durability-policy/{}", "07".repeat(32))),
+    }
+}
+
 fn family_set(family: BoundedResidencySignalFamily) -> BoundedResidencySignalFamilySet {
     BoundedResidencySignalFamilySet {
         read_fault: family == BoundedResidencySignalFamily::ReadFault,
         exact_writeback: family == BoundedResidencySignalFamily::ExactWriteback,
         publication: family == BoundedResidencySignalFamily::Publication,
         lifecycle: family == BoundedResidencySignalFamily::Lifecycle,
+        wal_append: family == BoundedResidencySignalFamily::WalAppend,
+        durability_barrier: family == BoundedResidencySignalFamily::DurabilityBarrier,
+        checkpoint_capture: family == BoundedResidencySignalFamily::CheckpointCapture,
+        root_publication: family == BoundedResidencySignalFamily::RootPublication,
+        wal_reclamation: family == BoundedResidencySignalFamily::WalReclamation,
     }
 }

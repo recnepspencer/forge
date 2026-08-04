@@ -1,9 +1,8 @@
 use super::test_support::{
     active_read_hold, authority, compacted_rewritten_publication, ingest_lease, intent,
-    intent_basis, intent_without_reachability, mismatched_read_hold,
-    mismatched_verdict_for_rewrite, pace, physical_interlock_denial, quarantine_guard,
-    rewritten_publication_with_bytes, stale_dedupe_reference, unavailable_cold, verdict_for_plan,
-    verdict_for_rewrite, verified_read_for_rewritten,
+    intent_basis, intent_without_reachability, mismatched_read_hold, pace,
+    physical_interlock_denial, quarantine_guard, rewritten_publication_with_bytes,
+    stale_dedupe_reference, unavailable_cold, verified_read_for_rewritten,
 };
 use crate::{
     BlobCompactionDenial, BlobCompactionEquivalence, BlobCompactionPacingDenial,
@@ -159,87 +158,6 @@ fn wrong_rewritten_basis_denies_equivalence_before_publication() {
     assert!(matches!(
         BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read),
         Err(BlobCompactionDenial::EquivalenceBasisMismatch { .. })
-    ));
-}
-
-#[test]
-fn admitted_compaction_executes_and_publishes_through_lower_physical_verdict() {
-    let authority = authority("phase18-execute-publish");
-    let plan = authority
-        .plan_compaction(intent("phase18-execute-publish"))
-        .expect("compaction plan should admit");
-    let rewritten = compacted_rewritten_publication("phase18-execute-publish");
-    let read = verified_read_for_rewritten(&plan, &rewritten);
-    let equivalence =
-        BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read)
-            .expect("rewritten root should prove equivalent to admitted basis");
-    let expected_object_id = plan.basis().object_id().clone();
-    let expected_generation = plan.basis().generation();
-    let expected_old_root = plan.old_root().clone();
-    let expected_logical_digest = plan.basis().logical_digest().clone();
-    let expected_security = plan.basis().security();
-    let expected_canonical_basis = plan.old_canonical_basis().clone();
-    let verdict = verdict_for_rewrite(&plan, &rewritten);
-    let execution = authority
-        .execute_rewrite(plan, equivalence, verdict)
-        .expect("matching lower physical verdict should execute rewrite");
-    let published = authority
-        .publish_rewrite(execution)
-        .expect("executed rewrite should publish observation");
-
-    assert_eq!(published.object_id(), &expected_object_id);
-    assert_eq!(published.generation(), expected_generation);
-    assert_eq!(published.old_root(), &expected_old_root);
-    assert_eq!(published.new_root(), rewritten.chunk_tree_root());
-    assert_eq!(published.logical_digest(), &expected_logical_digest);
-    assert_eq!(published.security_metadata(), expected_security);
-    assert_eq!(
-        published.equivalence().uncompacted_canonical_basis(),
-        &expected_canonical_basis
-    );
-}
-
-#[test]
-fn same_plan_wrong_lower_verdict_cannot_publish_rewritten_root() {
-    let authority = authority("phase18-wrong-lower-verdict");
-    let plan = authority
-        .plan_compaction(intent("phase18-wrong-lower-verdict"))
-        .expect("plan should admit");
-    let rewritten = compacted_rewritten_publication("phase18-wrong-lower-verdict");
-    let read = verified_read_for_rewritten(&plan, &rewritten);
-    let equivalence =
-        BlobCompactionEquivalence::from_rewritten_root_and_verified_read(&plan, &rewritten, &read)
-            .expect("equivalence should admit for current plan");
-    let verdict = mismatched_verdict_for_rewrite(&plan, &rewritten);
-
-    assert!(matches!(
-        authority.execute_rewrite(plan, equivalence, verdict),
-        Err(BlobCompactionDenial::MixedChunkTreePublication { .. })
-    ));
-}
-
-#[test]
-fn copied_equivalence_from_same_old_root_cannot_execute_another_plan() {
-    let authority = authority("phase18-copied-equivalence");
-    let equivalence_plan = authority
-        .plan_compaction(intent("phase18-copied-equivalence-a"))
-        .expect("source plan should admit");
-    let execution_plan = authority
-        .plan_compaction(intent("phase18-copied-equivalence-b"))
-        .expect("target plan should admit");
-    let rewritten = compacted_rewritten_publication("phase18-copied-equivalence-a");
-    let read = verified_read_for_rewritten(&equivalence_plan, &rewritten);
-    let copied_equivalence = BlobCompactionEquivalence::from_rewritten_root_and_verified_read(
-        &equivalence_plan,
-        &rewritten,
-        &read,
-    )
-    .expect("source equivalence should admit");
-    let verdict = verdict_for_plan(&execution_plan);
-
-    assert!(matches!(
-        authority.execute_rewrite(execution_plan, copied_equivalence, verdict),
-        Err(BlobCompactionDenial::MixedChunkTreePublication { .. })
     ));
 }
 

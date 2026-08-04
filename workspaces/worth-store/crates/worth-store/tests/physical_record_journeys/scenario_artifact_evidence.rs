@@ -50,7 +50,15 @@ pub(super) fn source_identity() -> String {
     digest.update(include_bytes!("scenario_process_evidence.rs"));
     digest.update(include_bytes!("scenario_artifact_evidence.rs"));
     digest.update(include_bytes!("../c5/courtrooms.rs"));
-    digest.update(include_bytes!("publication_failure_topology.rs"));
+    digest.update(include_bytes!(
+        "durability_admission/wal_group_continuation.rs"
+    ));
+    digest.update(include_bytes!(
+        "durability_admission/data_durability/fault_matrix.rs"
+    ));
+    digest.update(include_bytes!(
+        "durability_admission/data_durability/root_projection_carriage.rs"
+    ));
     digest.update(include_bytes!("manifest_scale.rs"));
     hex(&digest.finalize())
 }

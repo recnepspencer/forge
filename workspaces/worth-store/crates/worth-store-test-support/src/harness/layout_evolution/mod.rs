@@ -1,13 +1,10 @@
 mod authority;
+mod backward_read;
 mod binding_planning;
-mod execution;
-mod interruption_compatibility;
 mod world;
 
 use worth_store_layout_indexes::evolution::migration::{
-    LayoutBackwardReadCompatibilityCaseId, LayoutBindingAdmissionCaseId,
-    LayoutMigrationExecutionCaseId, LayoutMigrationInterruptionCaseId,
-    LayoutRollbackExecutionCaseId, LayoutRollbackInterruptionCaseId, MigrationPlanningCaseId,
+    LayoutBackwardReadCompatibilityCaseId, LayoutBindingAdmissionCaseId, MigrationPlanningCaseId,
     RollbackPlanningCaseId,
 };
 use worth_store_layout_indexes::OwnerCaseObservation;
@@ -16,11 +13,7 @@ use worth_store_layout_indexes::OwnerCaseObservation;
 pub struct LayoutEvolutionOwnerCaseObservations {
     binding: Vec<OwnerCaseObservation<LayoutBindingAdmissionCaseId>>,
     migration_planning: Vec<OwnerCaseObservation<MigrationPlanningCaseId>>,
-    migration_execution: Vec<OwnerCaseObservation<LayoutMigrationExecutionCaseId>>,
-    migration_interruption: Vec<OwnerCaseObservation<LayoutMigrationInterruptionCaseId>>,
     rollback_planning: Vec<OwnerCaseObservation<RollbackPlanningCaseId>>,
-    rollback_execution: Vec<OwnerCaseObservation<LayoutRollbackExecutionCaseId>>,
-    rollback_interruption: Vec<OwnerCaseObservation<LayoutRollbackInterruptionCaseId>>,
     backward_read: Vec<OwnerCaseObservation<LayoutBackwardReadCompatibilityCaseId>>,
 }
 
@@ -37,34 +30,10 @@ impl LayoutEvolutionOwnerCaseObservations {
         self.migration_planning.iter().copied()
     }
 
-    pub fn migration_execution(
-        &self,
-    ) -> impl Iterator<Item = OwnerCaseObservation<LayoutMigrationExecutionCaseId>> + '_ {
-        self.migration_execution.iter().copied()
-    }
-
-    pub fn migration_interruption(
-        &self,
-    ) -> impl Iterator<Item = OwnerCaseObservation<LayoutMigrationInterruptionCaseId>> + '_ {
-        self.migration_interruption.iter().copied()
-    }
-
     pub fn rollback_planning(
         &self,
     ) -> impl Iterator<Item = OwnerCaseObservation<RollbackPlanningCaseId>> + '_ {
         self.rollback_planning.iter().copied()
-    }
-
-    pub fn rollback_execution(
-        &self,
-    ) -> impl Iterator<Item = OwnerCaseObservation<LayoutRollbackExecutionCaseId>> + '_ {
-        self.rollback_execution.iter().copied()
-    }
-
-    pub fn rollback_interruption(
-        &self,
-    ) -> impl Iterator<Item = OwnerCaseObservation<LayoutRollbackInterruptionCaseId>> + '_ {
-        self.rollback_interruption.iter().copied()
     }
 
     pub fn backward_read(
@@ -77,17 +46,11 @@ impl LayoutEvolutionOwnerCaseObservations {
 
 pub fn observe_layout_evolution_owner_cases() -> LayoutEvolutionOwnerCaseObservations {
     let (binding, migration_planning, rollback_planning) = binding_planning::observe();
-    let (migration_execution, rollback_execution) = execution::observe();
-    let (migration_interruption, rollback_interruption, backward_read) =
-        interruption_compatibility::observe();
+    let backward_read = backward_read::observe();
     LayoutEvolutionOwnerCaseObservations {
         binding,
         migration_planning,
-        migration_execution,
-        migration_interruption,
         rollback_planning,
-        rollback_execution,
-        rollback_interruption,
         backward_read,
     }
 }
@@ -119,38 +82,10 @@ mod tests {
         );
         assert_eq!(
             observed
-                .migration_execution()
-                .map(|case| case.case_id())
-                .collect::<BTreeSet<_>>(),
-            migration::layout_migration_execution_cases().collect()
-        );
-        assert_eq!(
-            observed
-                .migration_interruption()
-                .map(|case| case.case_id())
-                .collect::<BTreeSet<_>>(),
-            migration::layout_migration_interruption_cases().collect()
-        );
-        assert_eq!(
-            observed
                 .rollback_planning()
                 .map(|case| case.case_id())
                 .collect::<BTreeSet<_>>(),
             migration::rollback_planning_cases().collect()
-        );
-        assert_eq!(
-            observed
-                .rollback_execution()
-                .map(|case| case.case_id())
-                .collect::<BTreeSet<_>>(),
-            migration::layout_rollback_execution_cases().collect()
-        );
-        assert_eq!(
-            observed
-                .rollback_interruption()
-                .map(|case| case.case_id())
-                .collect::<BTreeSet<_>>(),
-            migration::layout_rollback_interruption_cases().collect()
         );
         assert_eq!(
             observed

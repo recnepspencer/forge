@@ -7,6 +7,11 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum BoundedResidency
     ArtifactRangeRead,
     ArtifactRangeWrite,
     ArtifactPublication,
+    WalAppend,
+    DurabilityBarrier,
+    CheckpointCapture,
+    RootPublication,
+    WalReclamation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +22,8 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum BoundedResidency
     ReadCompleted,
     WriteCompleted,
     PublicationCompleted,
+    CheckpointCompleted,
+    WalReclamationCompleted,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,6 +47,7 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum BoundedResidency
     SynchronizeFileState,
     SynchronizeDirectoryPublication,
     AtomicReplace,
+    Delete,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -48,6 +56,11 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) enum BoundedResidency
     ExactWriteback,
     Publication,
     Lifecycle,
+    WalAppend,
+    DurabilityBarrier,
+    CheckpointCapture,
+    RootPublication,
+    WalReclamation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +76,11 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) struct BoundedResiden
     pub(in crate::courtroom_campaign::bounded_residency_siege) exact_writeback: bool,
     pub(in crate::courtroom_campaign::bounded_residency_siege) publication: bool,
     pub(in crate::courtroom_campaign::bounded_residency_siege) lifecycle: bool,
+    pub(in crate::courtroom_campaign::bounded_residency_siege) wal_append: bool,
+    pub(in crate::courtroom_campaign::bounded_residency_siege) durability_barrier: bool,
+    pub(in crate::courtroom_campaign::bounded_residency_siege) checkpoint_capture: bool,
+    pub(in crate::courtroom_campaign::bounded_residency_siege) root_publication: bool,
+    pub(in crate::courtroom_campaign::bounded_residency_siege) wal_reclamation: bool,
 }
 
 impl BoundedResidencySignalFamilySet {
@@ -75,11 +93,24 @@ impl BoundedResidencySignalFamilySet {
             BoundedResidencySignalFamily::ExactWriteback => self.exact_writeback,
             BoundedResidencySignalFamily::Publication => self.publication,
             BoundedResidencySignalFamily::Lifecycle => self.lifecycle,
+            BoundedResidencySignalFamily::WalAppend => self.wal_append,
+            BoundedResidencySignalFamily::DurabilityBarrier => self.durability_barrier,
+            BoundedResidencySignalFamily::CheckpointCapture => self.checkpoint_capture,
+            BoundedResidencySignalFamily::RootPublication => self.root_publication,
+            BoundedResidencySignalFamily::WalReclamation => self.wal_reclamation,
         }
     }
 
     pub(in crate::courtroom_campaign::bounded_residency_siege) const fn is_empty(self) -> bool {
-        !self.read_fault && !self.exact_writeback && !self.publication && !self.lifecycle
+        !self.read_fault
+            && !self.exact_writeback
+            && !self.publication
+            && !self.lifecycle
+            && !self.wal_append
+            && !self.durability_barrier
+            && !self.checkpoint_capture
+            && !self.root_publication
+            && !self.wal_reclamation
     }
 }
 
@@ -210,6 +241,17 @@ pub(in crate::courtroom_campaign::bounded_residency_siege) fn exact_route_fixtur
         BoundedResidencyWorkFamily::ArtifactPublication => {
             BoundedResidencySignalFamily::Publication
         }
+        BoundedResidencyWorkFamily::WalAppend => BoundedResidencySignalFamily::WalAppend,
+        BoundedResidencyWorkFamily::DurabilityBarrier => {
+            BoundedResidencySignalFamily::DurabilityBarrier
+        }
+        BoundedResidencyWorkFamily::CheckpointCapture => {
+            BoundedResidencySignalFamily::CheckpointCapture
+        }
+        BoundedResidencyWorkFamily::RootPublication => {
+            BoundedResidencySignalFamily::RootPublication
+        }
+        BoundedResidencyWorkFamily::WalReclamation => BoundedResidencySignalFamily::WalReclamation,
     };
     BoundedResidencyWorkRouteObservation {
         signal: BoundedResidencySignalLineageObservation {

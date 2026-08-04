@@ -3,13 +3,78 @@ use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
-use super::prefix_scan::{scan_segment_path, WalPrefixScan, WAL_SCAN_BUFFER_BYTES};
+use super::prefix_scan::{scan_segment_path, WalPrefixScan};
 use super::{WalArtifactStoreDenial, WalFrameAppendPlan};
 
 const MAGIC: &[u8; 8] = b"WORTHWAL";
 const VERSION: u16 = 1;
 pub(super) const HEADER_BYTES: usize = 116;
 pub(super) const FOOTER_BYTES: usize = 32;
+
+pub(super) fn validate_persisted_frame(
+    path: &Path,
+    encoded_offset: u64,
+    encoded_bytes: u64,
+    scope: &crate::WalFramePublicationScope,
+) -> Result<(u64, u64), WalArtifactStoreDenial> {
+    let mut file = std::fs::File::open(path).map_err(|_| WalArtifactStoreDenial::Io)?;
+    let end = encoded_offset
+        .checked_add(encoded_bytes)
+        .ok_or(WalArtifactStoreDenial::InvalidFrame)?;
+    if file
+        .metadata()
+        .map_err(|_| WalArtifactStoreDenial::Io)?
+        .len()
+        < end
+        || encoded_bytes < (HEADER_BYTES + FOOTER_BYTES) as u64
+    {
+        return Err(WalArtifactStoreDenial::InvalidFrame);
+    }
+    file.seek(SeekFrom::Start(encoded_offset))
+        .map_err(|_| WalArtifactStoreDenial::Io)?;
+    let mut header = [0u8; HEADER_BYTES];
+    file.read_exact(&mut header)
+        .map_err(|_| WalArtifactStoreDenial::Io)?;
+    let frame = decode_header(&header)?;
+    let expected_encoded = ((HEADER_BYTES + FOOTER_BYTES) as u64)
+        .checked_add(frame.payload_bytes)
+        .ok_or(WalArtifactStoreDenial::InvalidFrame)?;
+    let expected_identity = Sha256::digest(scope.frame_digest().as_bytes());
+    if expected_encoded != encoded_bytes
+        || frame.segment_id != scope.segment_id()
+        || frame.generation != scope.generation()
+        || frame.lsn_start != scope.lsn_start()
+        || frame.lsn_end != scope.lsn_end()
+        || header[52..84] != expected_identity[..]
+        || frame.payload_bytes != scope.expected_bytes()
+    {
+        return Err(WalArtifactStoreDenial::StoreBindingMismatch);
+    }
+    let mut payload_digest = Sha256::new();
+    let mut frame_digest = Sha256::new();
+    frame_digest.update(header);
+    let mut buffer = vec![0u8; super::prefix_scan::WAL_SCAN_BUFFER_BYTES];
+    let mut remaining = frame.payload_bytes;
+    while remaining > 0 {
+        let take = usize::try_from(remaining.min(buffer.len() as u64))
+            .expect("bounded WAL validation chunk fits usize");
+        file.read_exact(&mut buffer[..take])
+            .map_err(|_| WalArtifactStoreDenial::Io)?;
+        payload_digest.update(&buffer[..take]);
+        frame_digest.update(&buffer[..take]);
+        remaining -= take as u64;
+    }
+    if payload_digest.finalize()[..] != header[84..116] {
+        return Err(WalArtifactStoreDenial::DigestMismatch);
+    }
+    let mut footer = [0u8; FOOTER_BYTES];
+    file.read_exact(&mut footer)
+        .map_err(|_| WalArtifactStoreDenial::Io)?;
+    if frame_digest.finalize()[..] != footer {
+        return Err(WalArtifactStoreDenial::DigestMismatch);
+    }
+    Ok((encoded_offset + HEADER_BYTES as u64, frame.payload_bytes))
+}
 
 pub(super) fn prepare_append(
     root: &Path,
@@ -106,13 +171,6 @@ pub(super) fn segment_relative_path(segment_id: u64, generation: u64) -> PathBuf
     PathBuf::from("wal").join(format!("segment-{segment_id}-generation-{generation}.wal"))
 }
 
-pub(super) fn parse_segment_filename(path: &Path) -> Option<(u64, u64)> {
-    let name = path.file_name()?.to_str()?;
-    let body = name.strip_prefix("segment-")?.strip_suffix(".wal")?;
-    let (segment, generation) = body.split_once("-generation-")?;
-    Some((segment.parse().ok()?, generation.parse().ok()?))
-}
-
 fn encode_frame(
     segment_id: u64,
     generation: u64,
@@ -137,71 +195,6 @@ fn encode_frame(
     let frame_digest = Sha256::digest(&frame);
     frame.extend_from_slice(&frame_digest);
     frame
-}
-
-pub(super) fn validate_persisted_frame(
-    path: &Path,
-    encoded_offset: u64,
-    encoded_bytes: u64,
-    scope: &crate::WalFrameDurablePublicationScope,
-) -> Result<(u64, u64), WalArtifactStoreDenial> {
-    let mut file = std::fs::File::open(path).map_err(|_| WalArtifactStoreDenial::Io)?;
-    let end = encoded_offset
-        .checked_add(encoded_bytes)
-        .ok_or(WalArtifactStoreDenial::InvalidFrame)?;
-    if file
-        .metadata()
-        .map_err(|_| WalArtifactStoreDenial::Io)?
-        .len()
-        < end
-        || encoded_bytes < (HEADER_BYTES + FOOTER_BYTES) as u64
-    {
-        return Err(WalArtifactStoreDenial::InvalidFrame);
-    }
-    file.seek(SeekFrom::Start(encoded_offset))
-        .map_err(|_| WalArtifactStoreDenial::Io)?;
-    let mut header = [0u8; HEADER_BYTES];
-    file.read_exact(&mut header)
-        .map_err(|_| WalArtifactStoreDenial::Io)?;
-    let frame = decode_header(&header)?;
-    let expected_encoded = ((HEADER_BYTES + FOOTER_BYTES) as u64)
-        .checked_add(frame.payload_bytes)
-        .ok_or(WalArtifactStoreDenial::InvalidFrame)?;
-    let expected_identity = Sha256::digest(scope.frame_digest().as_bytes());
-    if expected_encoded != encoded_bytes
-        || frame.segment_id != scope.segment_id()
-        || frame.generation != scope.generation()
-        || frame.lsn_start != scope.lsn_start()
-        || frame.lsn_end != scope.lsn_end()
-        || header[52..84] != expected_identity[..]
-        || frame.payload_bytes != scope.expected_bytes()
-    {
-        return Err(WalArtifactStoreDenial::StoreBindingMismatch);
-    }
-    let mut payload_digest = Sha256::new();
-    let mut frame_digest = Sha256::new();
-    frame_digest.update(header);
-    let mut buffer = vec![0u8; WAL_SCAN_BUFFER_BYTES];
-    let mut remaining = frame.payload_bytes;
-    while remaining > 0 {
-        let take = usize::try_from(remaining.min(buffer.len() as u64))
-            .expect("bounded WAL validation chunk fits usize");
-        file.read_exact(&mut buffer[..take])
-            .map_err(|_| WalArtifactStoreDenial::Io)?;
-        payload_digest.update(&buffer[..take]);
-        frame_digest.update(&buffer[..take]);
-        remaining -= take as u64;
-    }
-    if payload_digest.finalize()[..] != header[84..116] {
-        return Err(WalArtifactStoreDenial::DigestMismatch);
-    }
-    let mut footer = [0u8; FOOTER_BYTES];
-    file.read_exact(&mut footer)
-        .map_err(|_| WalArtifactStoreDenial::Io)?;
-    if frame_digest.finalize()[..] != footer {
-        return Err(WalArtifactStoreDenial::DigestMismatch);
-    }
-    Ok((encoded_offset + HEADER_BYTES as u64, frame.payload_bytes))
 }
 
 fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, WalArtifactStoreDenial> {

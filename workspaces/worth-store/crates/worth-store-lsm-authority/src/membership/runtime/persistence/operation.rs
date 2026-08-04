@@ -71,7 +71,7 @@ fn execute_persistence(
     let slot = component_slot(record.kind()).ok_or(LsmMembershipDenial::UnsupportedRecordKind)?;
     if record.durable_scope().segment_id() != session.segment_id
         || record.durable_scope().generation() != session.generation
-        || !session.store.admits_persisted_path(&record.persisted_path)
+        || !session.store.admits_path(&record.persisted_path)
     {
         return Err(LsmMembershipDenial::StoreBindingMismatch);
     }

@@ -4,7 +4,7 @@ pub enum DurabilityRecoveryAction {
     WalAppendCompletedInMemory,
     WalFenceRequested,
     WalFenceCompleted,
-    WalAcknowledgmentLegal,
+    PhysicalMutationAcknowledged,
     PageFlushRequested,
     PageFlushCompleted,
     PageFlushDurabilityUncertain,
@@ -32,7 +32,7 @@ impl DurabilityRecoveryAction {
             Self::WalAppendCompletedInMemory,
             Self::WalFenceRequested,
             Self::WalFenceCompleted,
-            Self::WalAcknowledgmentLegal,
+            Self::PhysicalMutationAcknowledged,
             Self::PageFlushRequested,
             Self::PageFlushCompleted,
             Self::PageFlushDurabilityUncertain,
@@ -60,11 +60,12 @@ impl DurabilityRecoveryAction {
             Self::WalAppendCompletedInMemory,
             Self::WalFenceRequested,
             Self::WalFenceCompleted,
-            Self::WalAcknowledgmentLegal,
+            Self::PhysicalMutationAcknowledged,
+            Self::PageFlushRequested,
+            Self::PageFlushCompleted,
             Self::CheckpointBegun,
             Self::CheckpointDurable,
             Self::DirectorySyncCompleted,
-            Self::DirectorySyncFailed,
             Self::CheckpointPublished,
             Self::CheckpointSelected,
             Self::RecoveryReplayRequired,
@@ -73,7 +74,6 @@ impl DurabilityRecoveryAction {
             Self::RecoveryReplaySkippedIdempotent,
             Self::RecoveredRootPublicationPending,
             Self::RecoveredRootPublicationCompleted,
-            Self::Crash,
             Self::Reopen,
         ]
     }
@@ -81,16 +81,17 @@ impl DurabilityRecoveryAction {
     /// Retained policy states with no current production receipt owner.
     pub const fn policy_only() -> [Self; 3] {
         [
-            Self::PageFlushRequested,
-            Self::PageFlushCompleted,
             Self::PageFlushDurabilityUncertain,
+            Self::DirectorySyncFailed,
+            Self::Crash,
         ]
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurabilityRecoveryDenial {
-    AmbiguousWalDurability,
+    IncompletePhysicalDurability,
+    PhysicalMutationAlreadyAcknowledged,
     PageFlushAheadOfWal,
     CheckpointFrontierNotDurable,
     DirectorySyncNotDurable,

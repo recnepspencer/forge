@@ -11,6 +11,7 @@ mod binary_format;
 mod blob_manifest;
 mod bootstrap;
 mod canonical_basis;
+mod checkpoint;
 mod checksum;
 mod compile_fail;
 mod denial;
@@ -76,6 +77,17 @@ pub use bootstrap::{
 };
 pub use canonical_basis::{
     prepare_physical_page_header_canonical_basis, PhysicalPageHeaderCanonicalBasisOutcome,
+};
+pub use checkpoint::{
+    decode_checkpoint_binding_record, CheckpointBindingCompactionDecoder,
+    CheckpointBindingCompactionEncoder, CheckpointBindingCompactionHeader,
+    CheckpointBindingRecordFrameLength, CheckpointDirtyFrameBasis, CheckpointRootBasis,
+    CheckpointStreamDecodeDenial, CheckpointStreamDecoder, CheckpointStreamEncoder,
+    CheckpointStreamFooter, CheckpointWalSourceRange, PhysicalCheckpointIdentity,
+    PhysicalCheckpointSource, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,
+    CHECKPOINT_BINDING_RECORD_PREFIX_BYTES, CHECKPOINT_DIRTY_FRAME_RECORD_BYTES,
+    CHECKPOINT_STREAM_FOOTER_RECORD_BYTES, CHECKPOINT_STREAM_HEADER_RECORD_BYTES,
+    MAX_CHECKPOINT_BINDING_RECORD_BYTES,
 };
 pub use checksum::{
     physical_format_required_covered_header_fields, ChecksumCompatibilityFieldPosture,
@@ -181,9 +193,9 @@ pub use page_record::{
 pub use payload::{PhysicalPayloadView, PhysicalPayloadViewAdmission};
 pub use placement::{RecordArtifactFile, RecordFrameCoordinate};
 pub use record_framing::{
-    durable_artifact_checksum, DurableFrameDenial, DurableFrameKind, FramedRecordPayload,
-    FramedRecordView, RecordPagePayload, RecordPlacementClass, RecordPlacementWitness,
-    DURABLE_FRAME_HEADER_BYTES,
+    decode_data_frame_page_lsn, durable_artifact_checksum, encode_data_frame_page_lsn,
+    DurableFrameDenial, DurableFrameKind, FramedRecordPayload, FramedRecordView, PhysicalPageLsn,
+    RecordPagePayload, RecordPlacementClass, RecordPlacementWitness, DURABLE_FRAME_HEADER_BYTES,
 };
 pub use record_identity::PersistedRecordIdentity;
 pub use reference::{

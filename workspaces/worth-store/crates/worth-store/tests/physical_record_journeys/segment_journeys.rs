@@ -2,11 +2,11 @@ use std::path::Path;
 
 use worth_store::physical_runtime::{
     ExternalPhysicalRecordLocator, FramePortCounterSnapshot, ManifestEntryCapacity,
-    PageFillPercent, PhysicalRecordInitialization, PhysicalRecordPlacementPolicy,
-    PhysicalWorkCounterSnapshot, PhysicalWorkCounterStage, PhysicalWorkEffectFate,
-    PhysicalWorkOperationFamily, PhysicalWorkSignalFamily, PhysicalWritebackCounterSnapshot,
-    PublishedRecordBatch, RecordAppendBatch, RecordByteLimit, RecordReadLimits, SegmentPageCount,
-    ServingPhysicalRuntime,
+    PageFillPercent, PhysicalMutationIdempotencyMaterial, PhysicalRecordInitialization,
+    PhysicalRecordPlacementPolicy, PhysicalWorkCounterSnapshot, PhysicalWorkCounterStage,
+    PhysicalWorkEffectFate, PhysicalWorkOperationFamily, PhysicalWorkSignalFamily,
+    PhysicalWritebackCounterSnapshot, RecordAppendBatch, RecordByteLimit, RecordReadLimits,
+    RootPublicationPhysicalMutationMember, SegmentPageCount, ServingPhysicalRuntime,
 };
 use worth_store_offline_verifier::OfflineRecordPlacement;
 use worth_store_physical_backend::{MediaCounterSnapshot, MediaOperationRole};
@@ -15,7 +15,8 @@ use worth_store_physical_format::{
 };
 
 use super::{
-    media, read_record, scenario_configuration::dense_configuration, stream_fixture::hex, success,
+    durable_publication::publish_single, media, read_record,
+    scenario_configuration::dense_configuration, stream_fixture::hex, success,
 };
 
 #[test]
@@ -23,33 +24,45 @@ fn one_batch_rolls_across_four_segments_and_routes_without_scans() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let records = (0_u8..15)
         .map(|value| vec![value; 3_000])
         .collect::<Vec<_>>();
     let writeback_baseline = SegmentWritebackBaseline::capture(&serving);
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter(records.iter()).unwrap(),
+    let published = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        publish_single(
+            &serving,
             placement,
+            PhysicalMutationIdempotencyMaterial::new([161; 32]),
+            RecordAppendBatch::try_from_iter(records.iter()).unwrap(),
         )
-        .expect("C5_PREDICATE:identity-placement-seam");
-    assert_eq!(published.record_ids().len(), 15);
-    assert_eq!(published.observation().segment_artifacts(), 4);
-    assert_segment_frame_and_media_evidence(&serving, &writeback_baseline);
+    }))
+    .unwrap_or_else(|_| {
+        panic!(
+            "C5_PREDICATE:identity-placement-seam: persisted placements must retain admitted record identities"
+        )
+    });
+    let member = &published.settled_members()[0];
+    assert_eq!(member.persisted_records().len(), 15);
+    assert_eq!(member.observation().segment_artifacts(), 4);
+    assert_segment_frame_and_media_evidence(
+        &serving,
+        &writeback_baseline,
+        member.observation().segment_artifacts(),
+        published.current_artifacts().len() as u64,
+    );
     assert_segment_work_and_signal_evidence(&serving, &writeback_baseline);
     assert_segment_artifact_lengths(&root);
     assert_inline_placement_truth(&root, format.declaration());
-    let epoch = published.record_id(0).unwrap().allocation_epoch();
-    for (index, id) in published.record_ids().iter().enumerate() {
+    let epoch = member.record_id(0).unwrap().allocation_epoch();
+    for index in 0..member.persisted_records().len() {
+        let id = member.record_id(index).unwrap();
         assert_eq!(id.allocation_epoch(), epoch);
         assert_eq!(id.ordinal(), index as u64 + 1);
     }
-    let request = segment_reader_request(serving.store_identity(), &published);
+    let request = segment_reader_request(serving.store_identity(), member);
     serving.close();
     assert_fresh_process_records(&root, &request);
 }
@@ -59,6 +72,7 @@ struct SegmentWritebackBaseline {
     writebacks: PhysicalWritebackCounterSnapshot,
     frames: FramePortCounterSnapshot,
     work: PhysicalWorkCounterSnapshot,
+    wal_frames: u64,
     causal_records: usize,
     causal_overflow: u64,
 }
@@ -70,6 +84,11 @@ impl SegmentWritebackBaseline {
             writebacks: serving.residency_observation().writebacks(),
             frames: serving.certification_frame_port_observer().snapshot(),
             work: serving.physical_work_counters(),
+            wal_frames: serving
+                .record_submission()
+                .wal_observation()
+                .expect("the installed WAL owner must remain observable")
+                .appended_frames(),
             causal_records: serving.physical_work_observer().causal().records().len(),
             causal_overflow: serving.physical_work_observer().causal().overflow(),
         }
@@ -79,12 +98,20 @@ impl SegmentWritebackBaseline {
 fn assert_segment_frame_and_media_evidence(
     serving: &ServingPhysicalRuntime,
     before: &SegmentWritebackBaseline,
+    new_segment_candidates: u64,
+    root_candidate_artifacts: u64,
 ) {
     let media = serving.media_counters();
     let residency = serving.residency_observation();
     let frames = serving.certification_frame_port_observer().snapshot();
     let candidate_frames = frames.candidate_frames() - before.frames.candidate_frames();
     let writeback_frames = residency.writebacks().attempts() - before.writebacks.attempts();
+    let wal_frames = serving
+        .record_submission()
+        .wal_observation()
+        .expect("the installed WAL owner must remain observable")
+        .appended_frames()
+        - before.wal_frames;
     assert_eq!(media.replacements(), before.media.replacements() + 1);
     assert_eq!(
         frames.declared_candidate_frames() - before.frames.declared_candidate_frames(),
@@ -95,8 +122,14 @@ fn assert_segment_frame_and_media_evidence(
         candidate_frames
     );
     assert_eq!(candidate_frames, 14);
+    assert_eq!(wal_frames, 1);
+    assert_eq!(new_segment_candidates, 4);
     assert_eq!(writeback_frames, 4);
-    assert_eq!(candidate_frames - writeback_frames, 10);
+    assert_eq!(root_candidate_artifacts, 6);
+    assert_eq!(
+        candidate_frames,
+        new_segment_candidates + writeback_frames + root_candidate_artifacts
+    );
     assert_eq!(frames.writebacks() - before.frames.writebacks(), 4);
     assert_eq!(
         residency.writebacks().exact_receipts() - before.writebacks.exact_receipts(),
@@ -115,7 +148,7 @@ fn assert_segment_frame_and_media_evidence(
             - before
                 .media
                 .attempts_for(MediaOperationRole::PositionedWrite),
-        candidate_frames
+        candidate_frames + wal_frames
     );
     assert_eq!(residency.counters().dirty_frames(), 0);
     assert_eq!(residency.counters().candidate_frames(), 0);
@@ -191,7 +224,7 @@ fn assert_inline_placement_truth(root: &Path, format: PhysicalRecordFormatDeclar
 
 fn segment_reader_request(
     store_identity: StableStoreIdentity,
-    published: &PublishedRecordBatch,
+    member: &RootPublicationPhysicalMutationMember,
 ) -> String {
     let order = [14_usize, 0, 7, 3, 12, 1, 9, 5, 13, 2, 11, 6, 4, 10, 8];
     order
@@ -199,7 +232,7 @@ fn segment_reader_request(
         .map(|index| {
             let locator = ExternalPhysicalRecordLocator::new(
                 store_identity,
-                published.record_id(*index).unwrap(),
+                member.record_id(*index).unwrap(),
             );
             format!("{index}:{}", hex(&locator.encode()))
         })
@@ -232,18 +265,17 @@ fn multi_block_manifest_lookup_has_logarithmic_path_and_exact_parity() {
         .manifest_capacity(ManifestEntryCapacity::new(2).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = (0_u8..9).map(|value| vec![value; 100]).collect::<Vec<_>>();
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        PhysicalMutationIdempotencyMaterial::new([162; 32]),
+        RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
+    );
+    let member = &published.settled_members()[0];
     let offline = super::manifest_fixture::decode_routing_tree(&root, 2, format.declaration(), 2);
     assert_eq!(offline.routing_level(), Some(3));
     assert_eq!(offline.placements().len(), payloads.len());
@@ -254,7 +286,7 @@ fn multi_block_manifest_lookup_has_logarithmic_path_and_exact_parity() {
         let session = serving
             .records()
             .open(
-                published.record_id(index).unwrap(),
+                member.record_id(index).unwrap(),
                 RecordReadLimits::new(RecordByteLimit::new(100).unwrap()),
             )
             .unwrap();
@@ -266,7 +298,8 @@ fn multi_block_manifest_lookup_has_logarithmic_path_and_exact_parity() {
         );
         assert_eq!(
             observation.manifest_bytes(),
-            if index == 8 { 816 } else { 1_048 }
+            (if index == 8 { 616 } else { 848 })
+                + observation.manifest_blocks() * super::durable_frame_oracle::HEADER_BYTES as u64
         );
         assert_eq!(observation.touched_segments(), 1);
         assert_eq!(observation.touched_pages(), 1);
@@ -286,29 +319,32 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(4);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
+    let publish = |material, batch| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            publish_single(&serving, placement, material, batch)
+        }))
+        .unwrap_or_else(|_| {
+            panic!(
+                "C5_PREDICATE:page-layout: copy-on-write publication must retain the admitted slot layout"
+            )
+        })
+    };
+    let first = publish(
+        PhysicalMutationIdempotencyMaterial::new([163; 32]),
+        RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
     );
-    let first = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
     let old_page = std::fs::read(
         root.join("families/records/segments/segment-0000000000000001-0000000000000001.pages"),
     )
     .unwrap();
     let old_offset = old_page[88..92].to_vec();
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"gamma".as_slice(), b"delta".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
+    publish(
+        PhysicalMutationIdempotencyMaterial::new([164; 32]),
+        RecordAppendBatch::try_from_iter([b"gamma".as_slice(), b"delta".as_slice()]).unwrap(),
+    );
     let new_page = std::fs::read(
         root.join("families/records/segments/segment-0000000000000001-0000000000000002.pages"),
     )
@@ -320,7 +356,7 @@ fn cross_batch_page_reuse_is_cow_and_does_not_rebase_old_slots() {
     let old_record = serving
         .records()
         .open(
-            first.record_id(0).unwrap(),
+            first.settled_members()[0].record_id(0).unwrap(),
             RecordReadLimits::new(RecordByteLimit::new(32).unwrap()),
         )
         .unwrap();

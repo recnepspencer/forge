@@ -1,9 +1,13 @@
 use worth_store_physical_format::RecordArtifactFile;
 
 pub use self::write_evidence::CandidateFrameContractViolation;
+pub(in crate::physical_runtime) use self::write_evidence::{
+    CandidateFrameEffectSettlement, CandidateFrameEffectSource,
+};
 pub(in crate::physical_runtime::record_serving) use self::write_evidence::{
-    CandidateFramePhysicalWrite, CandidateFrameResidencySettlement, CandidateFrameWriteCompletion,
-    CandidateFrameWriteFailure,
+    CandidateFrameFailurePosture, CandidateFramePhysicalWrite, CandidateFrameResidencySettlement,
+    CandidateFrameWriteCompletion, CandidateFrameWriteFailure,
+    RecoverableCandidateFrameWriteFailure,
 };
 use super::super::RecordAppendDenial;
 
@@ -186,14 +190,8 @@ impl CandidateFrame {
 pub(in crate::physical_runtime::record_serving) trait CandidateFrameResidencySession {
     fn retain(
         &mut self,
-        frame: CandidateFrame,
+        frame: &CandidateFrame,
     ) -> Result<Box<dyn ResidentCandidateFrame>, RecordAppendDenial>;
-
-    fn prepare_catalog_cutover(
-        &mut self,
-        target: CandidateFrameCoordinate,
-        length: u32,
-    ) -> Result<(), RecordAppendDenial>;
 }
 
 pub(in crate::physical_runtime::record_serving) trait ResidentCandidateFrame {
@@ -266,25 +264,6 @@ impl<'allocation> StoreCandidateFramePublicationSession<'allocation> {
             return Err(CandidateFrameContractViolation::IncompleteFrameSet);
         }
         Ok(())
-    }
-
-    pub(in crate::physical_runtime::record_serving) fn prepare_catalog_cutover(
-        &mut self,
-    ) -> Result<(), CandidateFrameContractViolation> {
-        let Some(candidate) = self.declaration.frames.last().copied() else {
-            return Err(CandidateFrameContractViolation::IncompleteFrameSet);
-        };
-        if candidate.role != CandidateFrameRole::CatalogCandidate
-            || self.next_declaration != self.declaration.frames.len()
-        {
-            return Err(CandidateFrameContractViolation::IncompleteFrameSet);
-        }
-        self.residency
-            .prepare_catalog_cutover(
-                CandidateFrameCoordinate::new(RecordArtifactFile::BootstrapCatalog, 0),
-                candidate.length,
-            )
-            .map_err(|_| CandidateFrameContractViolation::CatalogResidencyInvalidationFailed)
     }
 }
 

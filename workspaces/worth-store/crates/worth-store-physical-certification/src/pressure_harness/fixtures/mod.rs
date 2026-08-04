@@ -18,10 +18,10 @@ use crate::{
     PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
     PhysicalSimulationDriver, PhysicalSimulationObserver, PhysicalSimulationPlan,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ProductionBackedFixtureMaterialization, ProductionBoundaryDriverTrace, ReplaySeed,
-    ReusablePhysicalOracleFamily, ShortcutRejectionObservation, SimulationEvidencePolicy,
-    SimulationPlanningContext, SimulationReplayBundle, StateSpaceBudget, SupportedObserverSet,
-    SupportedOracleFamilySet, SupportedPhysicalDriverSet,
+    ProductionBackedFixtureMaterialization, ProductionBoundaryDriverTrace,
+    ReusablePhysicalOracleFamily, SchedulePerturbationSeed, ShortcutRejectionObservation,
+    SimulationEvidencePolicy, SimulationPlanningContext, SimulationReplayBundle, StateSpaceBudget,
+    SupportedObserverSet, SupportedOracleFamilySet, SupportedPhysicalDriverSet,
 };
 
 use self::boundary_fact::boundary_fact;
@@ -150,7 +150,7 @@ pub(crate) fn lower_io_pressure_plan(
 pub(crate) fn schedule_for_plan(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
     PhysicalInterleavingSchedule::from_lowered_plan(
         plan,
-        ReplaySeed::from_u64(9),
+        SchedulePerturbationSeed::from_u64(9),
         StateSpaceBudget::bounded_steps(8).unwrap(),
     )
     .unwrap()

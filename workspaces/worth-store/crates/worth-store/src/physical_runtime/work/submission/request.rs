@@ -76,9 +76,7 @@ impl PhysicalMutationSubmission {
                 semantic_basis: request.semantic_basis,
                 security: request.security,
                 effect: request.effect,
-                durability: PhysicalWorkDurabilityRequirement::ArtifactRangeWrite(
-                    request.durability,
-                ),
+                durability: request.durability,
                 recovery: request.recovery,
             },
         )
@@ -167,7 +165,7 @@ fn admit_submission_contracts(
     Ok(())
 }
 
-fn allocate_operation_identity(
+pub(super) fn allocate_operation_identity(
     shared: &PhysicalSubmissionState,
 ) -> Result<PhysicalWorkIdentity, PhysicalWorkSubmissionFailure> {
     let sequence = shared

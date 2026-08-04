@@ -38,6 +38,12 @@ fn foreground_lane_for_pressure(pressure: BackgroundIoPressureShape) -> Foregrou
             wal_write_budget(),
             "certification-producer-wal-write",
         ),
+        Backend::FilesystemAdmittedFsync => (
+            ForegroundLaneDeclaration::filesystem_admitted_wal_barrier()
+                .expect("filesystem-admitted WAL barrier is a Store-owned lane"),
+            wal_write_budget(),
+            "certification-producer-filesystem-wal-barrier",
+        ),
         Backend::BufferedFile | Backend::AsyncIo => (
             ForegroundLaneDeclaration::ordinary_page_write(),
             page_write_budget(),
@@ -54,7 +60,11 @@ fn foreground_lane_for_pressure(pressure: BackgroundIoPressureShape) -> Foregrou
             point_read_budget(),
             "certification-producer-secure-read",
         ),
-        unsupported @ (Backend::Mmap | Backend::DirectorySync | Backend::DurableRename) => {
+        unsupported @ (Backend::Mmap
+        | Backend::DirectorySync
+        | Backend::FilesystemAdmittedDirectorySync
+        | Backend::DurableRename
+        | Backend::FilesystemAdmittedDurableRename) => {
             panic!(
                 "certification pressure declares {unsupported:?}, which has no foreground preservation lane"
             )

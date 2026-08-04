@@ -3,6 +3,7 @@ use std::sync::{
     Arc,
 };
 
+use sha2::Digest;
 use worth_store_buffer_pool::{
     CandidateFrameCleanAuthority, DirtyPhysicalFrame, PhysicalCandidateBatchReservation,
     PhysicalCandidateFrameKey, PhysicalFrameKey, PhysicalResidencyPool,
@@ -26,6 +27,8 @@ pub(in crate::physical_runtime::record_serving) struct CandidateFrameCounterCell
     retained_bytes: AtomicU64,
     #[cfg(feature = "certification-test-authority")]
     reject_next_publication: std::sync::atomic::AtomicBool,
+    #[cfg(feature = "certification-test-authority")]
+    reject_next_retention: std::sync::atomic::AtomicBool,
 }
 
 #[derive(Clone)]
@@ -104,12 +107,17 @@ struct BoundedCandidateFrameSession<'allocation> {
 impl CandidateFrameResidencySession for BoundedCandidateFrameSession<'_> {
     fn retain(
         &mut self,
-        frame: CandidateFrame,
+        frame: &CandidateFrame,
     ) -> Result<Box<dyn ResidentCandidateFrame>, RecordAppendDenial> {
+        #[cfg(feature = "certification-test-authority")]
+        if self.counters.take_reject_next_retention() {
+            return Err(RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::CandidatePublicationActive,
+            ));
+        }
         let role = frame.role();
         let coordinate = frame.coordinate();
-        let bytes = frame.into_bytes();
-        let length = u32::try_from(bytes.len()).map_err(|_| {
+        let length = u32::try_from(frame.bytes().len()).map_err(|_| {
             RecordAppendDenial::from_residency(
                 worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
             )
@@ -134,7 +142,7 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession<'_> {
             .reservations
             .reserve_next(candidate)
             .map_err(RecordAppendDenial::from_residency)?
-            .materialize(move |resident| resident.copy_from_slice(&bytes))
+            .materialize(|resident| resident.copy_from_slice(frame.bytes()))
             .map_err(RecordAppendDenial::from_residency)?;
         self.counters.retained_frames.fetch_add(1, Ordering::AcqRel);
         self.counters
@@ -149,21 +157,6 @@ impl CandidateFrameResidencySession for BoundedCandidateFrameSession<'_> {
             #[cfg(feature = "certification-test-authority")]
             counters: Arc::clone(&self.counters),
         }))
-    }
-
-    fn prepare_catalog_cutover(
-        &mut self,
-        target: CandidateFrameCoordinate,
-        length: u32,
-    ) -> Result<(), RecordAppendDenial> {
-        let target = RecordFrameCoordinate::new(target.artifact(), target.offset(), length).ok_or(
-            RecordAppendDenial::from_residency(
-                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
-            ),
-        )?;
-        self.pool
-            .invalidate_clean(PhysicalFrameKey::new(self.pool.store_identity(), target))
-            .map_err(RecordAppendDenial::from_residency)
     }
 }
 
@@ -231,7 +224,7 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
         self: Box<Self>,
         settlement: CandidateFrameResidencySettlement,
     ) -> Result<CandidateFrameWriteCompletion, RecordAppendDenial> {
-        let _settlement = settlement.settlement();
+        let settlement = settlement.settlement();
         #[cfg(feature = "certification-test-authority")]
         if self.counters.take_reject_next_publication() {
             return Err(RecordAppendDenial::from_residency(
@@ -239,14 +232,45 @@ impl ResidentCandidateFrame for BoundedResidentCandidateFrame {
             ));
         }
         let bytes = self.resident.bytes().len() as u64;
+        let length = u32::try_from(bytes).map_err(|_| {
+            RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+            )
+        })?;
+        let coordinate = RecordFrameCoordinate::new(
+            self.coordinate.artifact(),
+            self.coordinate.offset(),
+            length,
+        )
+        .ok_or_else(|| {
+            RecordAppendDenial::from_residency(
+                worth_store_buffer_pool::PhysicalResidencyDenial::FrameLengthMismatch,
+            )
+        })?;
+        let payload_digest: [u8; 32] = sha2::Sha256::digest(self.resident.bytes()).into();
         self.resident
             .complete_candidate_publication(&self.candidate_clean)
             .map_err(RecordAppendDenial::from_residency)?;
-        Ok(CandidateFrameWriteCompletion::retained(bytes))
+        Ok(CandidateFrameWriteCompletion::canonical(
+            bytes,
+            coordinate,
+            payload_digest,
+            settlement,
+        ))
     }
 }
 
 impl CandidateFrameCounterCells {
+    #[cfg(feature = "certification-test-authority")]
+    pub(in crate::physical_runtime::record_serving) fn reject_next_retention(&self) {
+        self.reject_next_retention.store(true, Ordering::Release);
+    }
+
+    #[cfg(feature = "certification-test-authority")]
+    fn take_reject_next_retention(&self) -> bool {
+        self.reject_next_retention.swap(false, Ordering::AcqRel)
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime::record_serving) fn reject_next_publication(&self) {
         self.reject_next_publication.store(true, Ordering::Release);

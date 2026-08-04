@@ -4,17 +4,19 @@ use worth_store::physical_runtime::{
     RecordScanCounterSnapshot, RecordScanDenial, RecordScanOutcome, RecordScanRequest,
 };
 
-use super::{media, scenario_configuration::dense_configuration, success};
+use super::{
+    durable_publication::publish_single, media, scenario_configuration::dense_configuration,
+    success,
+};
 
 #[test]
 fn scan_batch_widths_converge_to_one_physical_sequence() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let payloads = (0_u8..13)
         .map(|ordinal| {
             let length = if ordinal % 4 == 0 {
@@ -25,18 +27,20 @@ fn scan_batch_widths_converge_to_one_physical_sequence() {
             vec![ordinal; length]
         })
         .collect::<Vec<_>>();
-    let published = serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
-            placement,
-        )
-        .unwrap();
+    let published = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([160; 32]),
+        RecordAppendBatch::try_from_iter(payloads.iter()).unwrap(),
+    );
     for width in [1, 3, 7, 13] {
         let evidence = collect_scan_evidence(&serving, width, 64_000);
         assert_eq!(evidence.records.len(), payloads.len());
         for (index, (record, bytes)) in evidence.records.into_iter().enumerate() {
-            assert_eq!(record, published.record_id(index).unwrap());
+            assert_eq!(
+                record,
+                published.settled_members()[0].record_id(index).unwrap()
+            );
             assert_eq!(bytes, payloads[index]);
         }
         assert_exact_batch_accounting(width, &payloads, &evidence.batches);
@@ -57,7 +61,10 @@ fn scan_batch_widths_converge_to_one_physical_sequence() {
     drop(first);
     let resumed = collect_resume(&serving, cursor, 4, 32_000);
     assert_eq!(resumed.len(), payloads.len() - 3);
-    assert_eq!(resumed[0].0, published.record_id(3).unwrap());
+    assert_eq!(
+        resumed[0].0,
+        published.settled_members()[0].record_id(3).unwrap()
+    );
     serving.close();
 }
 
@@ -71,21 +78,21 @@ fn whole_extent_materialization_mutant_is_replaced_by_deferred_scan_payload() {
         .scratch_limit(RecordByteLimit::new(131_072).unwrap())
         .admit(format)
         .unwrap();
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
-    );
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
     let logical_bytes = 17 * 65_536 + 7;
     let batch = RecordAppendBatch::builder()
         .push_source(super::stream_fixture::PatternSource::exact(logical_bytes))
         .build()
         .unwrap();
-    let record = serving
-        .record_submission()
-        .append_batch(batch, placement)
-        .unwrap()
-        .record_id(0)
-        .unwrap();
+    let publication = publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([161; 32]),
+        batch,
+    );
+    let record = publication.settled_members()[0].record_id(0).unwrap();
 
     let mut scan = serving
         .records()
@@ -129,17 +136,15 @@ fn stale_foreign_and_out_of_range_cursors_fail_before_payload_read() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
+    publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([162; 32]),
+        RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
     );
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
     let mut scan = serving
         .records()
         .scan(RecordScanRequest::from_start().with_batch_limit(RecordCountLimit::new(1).unwrap()))
@@ -177,17 +182,15 @@ fn scratch_retry_preserves_position_and_counts_manifest_discovery_once() {
     let parent = tempfile::tempdir().unwrap();
     let root = parent.path().join("store");
     let (format, placement, access) = dense_configuration(2);
-    let serving = success(
-        media(&root)
-            .initialize_record_store(PhysicalRecordInitialization::new(format, placement, access)),
+    let serving = success(initialize_record_store!(media(&root), |durability| {
+        PhysicalRecordInitialization::new(format, placement, access, durability)
+    }));
+    publish_single(
+        &serving,
+        placement,
+        worth_store::physical_runtime::PhysicalMutationIdempotencyMaterial::new([163; 32]),
+        RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
     );
-    serving
-        .record_submission()
-        .append_batch(
-            RecordAppendBatch::try_from_iter([b"alpha".as_slice(), b"beta".as_slice()]).unwrap(),
-            placement,
-        )
-        .unwrap();
     let mut scan = serving
         .records()
         .scan(RecordScanRequest::from_start().with_batch_limit(RecordCountLimit::new(1).unwrap()))
@@ -286,11 +289,11 @@ fn assert_exact_batch_accounting(
     payloads: &[Vec<u8>],
     batches: &[RecordScanCounterSnapshot],
 ) {
-    const DURABLE_FRAME_HEADER_BYTES: u64 = 40;
+    const DURABLE_FRAME_HEADER_BYTES: u64 = super::durable_frame_oracle::HEADER_BYTES as u64;
     const ROOT_ROUTING_PREFIX_BYTES: u64 = 40;
     const ROOT_PLACEMENT_BYTES: u64 = 88;
-    const MEMBERSHIP_BLOCK_BYTES: u64 = 40 + 40 + 40;
-    const EXTENT_MANIFEST_BYTES: u64 = 40 + 56;
+    const MEMBERSHIP_BLOCK_BYTES: u64 = DURABLE_FRAME_HEADER_BYTES + 40 + 40;
+    const EXTENT_MANIFEST_BYTES: u64 = DURABLE_FRAME_HEADER_BYTES + 56;
 
     let expected_batches = payloads.len().div_ceil(width as usize);
     assert_eq!(batches.len(), expected_batches);

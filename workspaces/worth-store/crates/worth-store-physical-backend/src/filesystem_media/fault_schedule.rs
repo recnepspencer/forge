@@ -1,3 +1,4 @@
+use std::num::NonZeroU64;
 use std::sync::Arc;
 
 use super::{MediaOperationRole, MediaPauseGate};
@@ -43,6 +44,7 @@ pub struct MediaFaultRule {
     pub(super) identified_operation_ordinal: Option<u64>,
     pub(super) runtime_incarnation: Option<u64>,
     pub(super) any_ordinal_after_activation: bool,
+    pub(super) activation_match_ordinal: Option<NonZeroU64>,
     pub(super) activation: Option<super::fault_activation::CertificationMediaFaultActivation>,
 }
 
@@ -64,6 +66,7 @@ impl MediaFaultRule {
             identified_operation_ordinal: None,
             runtime_incarnation: None,
             any_ordinal_after_activation: false,
+            activation_match_ordinal: None,
             activation: None,
         }
     }
@@ -110,12 +113,22 @@ impl MediaFaultRule {
 
     #[cfg(any(test, feature = "certification-test-authority"))]
     pub fn for_next_identified_operation_after_activation(
+        self,
+        activation: super::fault_activation::CertificationMediaFaultActivation,
+    ) -> Self {
+        self.for_nth_identified_operation_after_activation(activation, NonZeroU64::MIN)
+    }
+
+    #[cfg(any(test, feature = "certification-test-authority"))]
+    pub fn for_nth_identified_operation_after_activation(
         mut self,
         activation: super::fault_activation::CertificationMediaFaultActivation,
+        match_ordinal: NonZeroU64,
     ) -> Self {
         self.identified_operation = Some(true);
         self.identified_operation_ordinal = None;
         self.any_ordinal_after_activation = true;
+        self.activation_match_ordinal = Some(match_ordinal);
         self.activation = Some(activation);
         self
     }
@@ -144,9 +157,12 @@ impl MediaFaultRule {
                 .runtime_incarnation
                 .is_none_or(|runtime| context.runtime_incarnation() == Some(runtime));
         structural_match
-            && self.activation.as_ref().is_none_or(
-                super::fault_activation::CertificationMediaFaultActivation::consume_if_armed,
-            )
+            && self.activation.as_ref().is_none_or(|activation| {
+                activation.consume_if_armed_on_match(
+                    self.activation_match_ordinal
+                        .expect("activated selectors carry a nonzero match ordinal"),
+                )
+            })
     }
 }
 
@@ -186,6 +202,7 @@ impl MediaFaultSchedule {
                     && prior.identified_operation_ordinal == rule.identified_operation_ordinal
                     && prior.runtime_incarnation == rule.runtime_incarnation
                     && prior.any_ordinal_after_activation == rule.any_ordinal_after_activation
+                    && prior.activation_match_ordinal == rule.activation_match_ordinal
                     && same_activation(prior.activation.as_ref(), rule.activation.as_ref())
             }) {
                 return Err(MediaFaultScheduleDenial::DuplicateSemanticMatch);

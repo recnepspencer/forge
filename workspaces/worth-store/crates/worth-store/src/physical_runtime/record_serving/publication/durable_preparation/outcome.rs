@@ -1,0 +1,62 @@
+use worth_proof::ProofOutcome;
+
+use super::PreparedPhysicalMutation;
+use crate::physical_runtime::{
+    CompletedPhysicalMutation, IndeterminatePhysicalMutation, ProvenNoEffectPhysicalMutation,
+    RecordAppendDenial, RecordStreamFailure,
+};
+
+pub enum PhysicalMutationPreparationSuccess {
+    Prepared(PreparedPhysicalMutation),
+    Completed(CompletedPhysicalMutation),
+    ProvenNoEffect(ProvenNoEffectPhysicalMutation),
+    Indeterminate(IndeterminatePhysicalMutation),
+}
+
+pub type PhysicalMutationPreparationOutcome = ProofOutcome<
+    PhysicalMutationPreparationSuccess,
+    PhysicalMutationPreparationDenial,
+    PhysicalMutationPreparationDeferred,
+    PhysicalMutationPreparationStale,
+    PhysicalMutationPreparationRebindRequired,
+    PhysicalMutationPreparationFailure,
+>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PhysicalMutationPreparationDenial {
+    RecordAppend(RecordAppendDenial),
+    IdempotencyConflict,
+    IdempotencyExpired,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalMutationPreparationDeferred {
+    PreparedRecordSlots { required_records: u32 },
+    PreparedPayloadBytes { required_bytes: u64 },
+    PendingUnresolvedLimitReached,
+    LiveBindingLimitReached,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalMutationPreparationStale {
+    PublicationAuthorityReleased,
+    DurabilityAuthorityReleased,
+    WorkOwnerReleased,
+    LifecycleGenerationAdvanced,
+    AdmissionStopped,
+    SignalOwnerUnavailable,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PhysicalMutationPreparationRebindRequired {
+    ForeignStore,
+    ForeignRuntime,
+    ForeignDurabilityPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PhysicalMutationPreparationFailure {
+    Stream(RecordStreamFailure),
+    CanonicalRequestRejected,
+    OperationIdentityExhausted,
+}

@@ -19,6 +19,12 @@ pub enum PhysicalResidencyDenial {
         actual: u64,
     },
     AllocationGrantMismatch,
+    DirtyGenerationCaptureSessionMismatch,
+    DirtyGenerationExhausted,
+    DirtyGenerationCaptureBudgetExceeded {
+        required: u64,
+        admitted: u64,
+    },
     SpeculativeAllocationMismatch {
         granted: u64,
         required: u64,

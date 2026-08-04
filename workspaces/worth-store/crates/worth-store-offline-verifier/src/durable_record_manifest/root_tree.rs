@@ -61,7 +61,7 @@ pub(super) fn decode_root_header(
     let record_count = read_u64(payload, 24);
     let next_block = read_u64(payload, 32);
     let next_segment_block = read_u64(payload, 224);
-    let maximum_capacity = ((format.page_size().bytes() as usize - 40 - 24) / 88) as u16;
+    let maximum_capacity = ((format.page_size().bytes() as usize - 48 - 24) / 88) as u16;
     if generation != expected_generation
         || generation != frame.identity
         || tree_identity == 0

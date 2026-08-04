@@ -6,6 +6,9 @@ use worth_store::physical_runtime::{
     PhysicalRecordResidencyPolicy, PhysicalSpeculativeWorkKind as Speculation,
 };
 
+#[path = "support/durability.rs"]
+mod durability;
+
 fn main() {
     let format = AdmittedPhysicalRecordFormat::admit(
         PhysicalRecordFormatDeclaration::builder()
@@ -38,7 +41,11 @@ fn main() {
         .admit(format)
         .into_result()
         .unwrap();
-    let _request = PhysicalRecordOpen::new(format, access).with_residency_policy(policy);
+    let media = durability::media("worth-store-admitted-residency-policy-supported");
+    let durability = durability::admitted(&media);
+    let _request =
+        PhysicalRecordOpen::new(format, access, durability).with_residency_policy(policy);
+    media.close();
 }
 
 fn bytes(value: u64) -> NonZeroU64 {

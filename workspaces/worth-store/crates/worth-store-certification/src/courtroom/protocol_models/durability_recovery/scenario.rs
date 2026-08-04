@@ -1,37 +1,29 @@
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use worth_store_formal_models::{
-    map_checkpoint_cutover, map_checkpoint_selection, map_directory_sync_failure,
-    map_executed_wal_durability, map_recovery_completion, map_redo_execution,
-    map_redo_generation_denial, map_reopened_recovery_artifact, DurabilityRecoveryAction,
+    map_checkpoint_cutover, map_checkpoint_selection, map_failed_wal_fence,
+    map_recovery_completion, map_redo_execution, map_redo_generation_denial,
+    map_reopened_recovery_artifact, DurabilityRecoveryAction,
 };
 #[cfg(not(windows))]
 use worth_store_physical_backend::PosixFileFsyncDirFsyncProfile;
 #[cfg(windows)]
 use worth_store_physical_backend::WindowsFlushFileBuffersProfile;
 use worth_store_physical_backend::{
-    AdmittedBackendCapabilityWitness, BackendCapabilityAdmissionRequest,
-    BackendCapabilityEvidenceBasis, BackendCapabilitySupportSet, BackendDurabilityProfile,
-    BackendMediaAssumptionSet, BackendRebindTriggers, BackendTargetProfile,
-    PhysicalBackendCapabilityAdmissionAuthority, ProductionStorageBoundarySeam,
-    ScriptedStorageBoundaryControl, StorageBoundaryFault, StoreDurabilityAdmission,
-    StoreDurabilityExecutionBoundary, StoreDurabilityRequirement, StoreDurabilityRuntime,
-    WalDurabilityBarrier,
+    BackendDurabilityProfile, SimulatedStrictDurableProfile, WalDurabilityBarrier,
 };
 use worth_store_physical_format::PhysicalPageId;
 use worth_store_recovery_physics::{
-    execute_wal_durability, AcknowledgmentPrecondition, AdmittedRedoFrame,
-    CheckpointArtifactDurabilityCommitment, CheckpointBaseAdmission, CheckpointCutoverReceipt,
-    CheckpointDurabilityEvidenceSet, CheckpointPublicationPlan, DurableAckReceipt,
-    ExecutedWalDurabilityOutcome, LogSequenceNumber, RecoveryRedoPlan, RedoRecordGrammar,
+    AdmittedRedoFrame, CheckpointBaseAdmission, CheckpointCutoverReceipt,
+    CheckpointPublicationPlan, LogSequenceNumber, RecoveryRedoPlan, RedoRecordGrammar,
     RedoRecordIdempotenceBasis, RedoRecordIntegrityBinding, RedoRecordOperationForm,
-    RedoRecordTargetGeneration, WalAppendPlan, WalDurabilityObservationSequence, WalLsnRange,
-    WalSegmentGeneration, WalSegmentId,
+    RedoRecordTargetGeneration, WalAppendFailureObservation, WalAppendObservationScope,
+    WalAppendReceipt, WalDurabilityObservation, WalLsnRange, WalSegmentGeneration, WalSegmentId,
 };
-use worth_store_test_support::harness::recovery::{
-    checkpoint_basis, checkpoint_durability, closeout, redo_replay, source_precedence,
+use worth_store_test_support::harness::{
+    physical_residency::{canonical_physical_mutation_acknowledgment, PhysicalResidencyStoreWorld},
+    recovery::{checkpoint_basis, checkpoint_durability, closeout, redo_replay, source_precedence},
 };
+
+use super::map_physical_mutation_acknowledgment;
 
 #[cfg(not(windows))]
 type HostDurabilityProfile = PosixFileFsyncDirFsyncProfile;
@@ -53,11 +45,14 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
 
 pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recovery_traces(
 ) -> Vec<Vec<DurabilityRecoveryAction>> {
-    let wal_directory = worth_store_test_support::TemporaryDirectory::create("protocol-wal")
-        .expect("protocol WAL directory");
-    let wal = map_executed_wal_durability(&execute_ordinary_wal(wal_directory.path()));
+    let completed_mutation = execute_canonical_physical_mutation();
+    let data_durable_prefix = completed_mutation[..6].to_vec();
     let checkpoint = execute_checkpoint();
-    let directory_failure = execute_directory_sync_crash(61);
+    let stable_setup = data_durable_prefix
+        .iter()
+        .copied()
+        .chain(checkpoint.iter().copied())
+        .collect::<Vec<_>>();
     let redo = execute_redo_traces();
     let completion = map_recovery_completion(&closeout::recovery_completion());
     let reopen = map_reopened_recovery_artifact(
@@ -66,23 +61,16 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
         ),
     );
 
-    let stable_setup = wal
-        .iter()
-        .copied()
-        .chain(checkpoint.iter().copied())
-        .collect::<Vec<_>>();
     let applied_recovery = stable_setup
         .iter()
         .copied()
         .chain(redo[0].iter().copied())
         .chain(completion)
         .collect();
-    let failed_directory_sync = wal
+    let crash_reopen = stable_setup
         .iter()
         .copied()
-        .chain(checkpoint[..2].iter().copied())
-        .chain(directory_failure)
-        .chain([reopen])
+        .chain([DurabilityRecoveryAction::Crash, reopen])
         .collect();
     let skipped_recovery = stable_setup
         .iter()
@@ -94,80 +82,57 @@ pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recover
         .chain(redo[2].iter().copied())
         .collect();
     vec![
+        completed_mutation,
         applied_recovery,
-        failed_directory_sync,
+        crash_reopen,
         skipped_recovery,
         rejected_generation,
     ]
 }
 
-pub(in crate::courtroom::protocol_models) fn execute_ordinary_wal(
-    root: &Path,
-) -> ExecutedWalDurabilityOutcome<HostDurabilityProfile> {
-    let payload = b"checked-durability-frontier";
-    let plan = wal_plan::<HostDurabilityProfile>(11, 40, 41, payload);
-    let wal_root = unique_root(root, "wal");
-    let planner = worth_store_wal::WalAppendPlanner::open(&wal_root, 11, 3)
-        .expect("open ordinary WAL append planner");
-    execute_wal_durability(
-        &planner,
-        payload,
-        plan,
-        &admitted_backend(HostDurabilityProfile::TARGET),
-    )
-    .expect("real physical execution reaches legal acknowledgment")
-}
-
 pub(in crate::courtroom::protocol_models) fn replay_acknowledgment_ordering_guard(
     seed: u64,
 ) -> Vec<DurabilityRecoveryAction> {
-    let actions = execute_directory_sync_crash(seed);
-    assert!(!actions.contains(&DurabilityRecoveryAction::WalAcknowledgmentLegal));
+    let scope = WalAppendObservationScope::new(
+        WalSegmentId::new(seed.max(1)).unwrap(),
+        WalSegmentGeneration::new(1).unwrap(),
+        WalLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(11)).unwrap(),
+        format!("failed-wal-fence-{seed}"),
+        64,
+    )
+    .unwrap();
+    let receipt = WalAppendReceipt::<SimulatedStrictDurableProfile>::from_certification_observation(
+        scope,
+        64,
+        SimulatedStrictDurableProfile::REQUIRED_BARRIERS,
+        Some(WalAppendFailureObservation::BarrierFailed(
+            WalDurabilityBarrier::SimulatedDurableCommit,
+        )),
+    );
+    let denial = WalDurabilityObservation::from_append_receipt(receipt).unwrap_err();
+    let actions = map_failed_wal_fence(&denial).unwrap().to_vec();
+    assert!(!actions.contains(&DurabilityRecoveryAction::PhysicalMutationAcknowledged));
+    actions
+}
+
+fn execute_canonical_physical_mutation() -> Vec<DurabilityRecoveryAction> {
+    let world = PhysicalResidencyStoreWorld::initialize("protocol-physical-ack")
+        .expect("canonical physical mutation world");
+    let acknowledgment = canonical_physical_mutation_acknowledgment(
+        &world,
+        [0x7a; 32],
+        b"protocol-physical-mutation",
+    );
+    let actions = map_physical_mutation_acknowledgment(&acknowledgment).to_vec();
+    let _closed = world.close();
     actions
 }
 
 fn execute_checkpoint() -> Vec<DurabilityRecoveryAction> {
     let validation = checkpoint_durability::validate(checkpoint_basis::manifest(10, 20, 19));
-    let backend = admitted_backend(HostDurabilityProfile::TARGET);
-    let directory = worth_store_test_support::TemporaryDirectory::create("protocol-checkpoint")
-        .expect("protocol checkpoint directory");
-    let root = unique_root(directory.path(), "checkpoint");
-    let manifest = checkpoint_ack(
-        &validation,
-        CheckpointArtifactDurabilityCommitment::manifest(&validation),
-        51,
-        &root,
-        &backend,
-    );
-    let root_ack = checkpoint_ack(
-        &validation,
-        CheckpointArtifactDurabilityCommitment::root(&validation),
-        52,
-        &root,
-        &backend,
-    );
-    let frontier = checkpoint_ack(
-        &validation,
-        CheckpointArtifactDurabilityCommitment::page_lsn_frontier(&validation),
-        53,
-        &root,
-        &backend,
-    );
-    let locator = checkpoint_ack(
-        &validation,
-        CheckpointArtifactDurabilityCommitment::locator(&validation),
-        54,
-        &root,
-        &backend,
-    );
-    let durability = CheckpointDurabilityEvidenceSet::admit(
-        &validation,
-        &manifest,
-        &root_ack,
-        &frontier,
-        &locator,
-    )
-    .unwrap();
+    let durability = checkpoint_durability::checkpoint_durability_for_profile::<
+        HostDurabilityProfile,
+    >(&validation);
     let plan = CheckpointPublicationPlan::<HostDurabilityProfile>::plan_cutover(
         validation.clone(),
         durability,
@@ -183,101 +148,6 @@ fn execute_checkpoint() -> Vec<DurabilityRecoveryAction> {
     let mut actions = map_checkpoint_cutover(&receipt).unwrap().to_vec();
     actions.push(map_checkpoint_selection(&selection));
     actions
-}
-
-fn checkpoint_ack(
-    validation: &worth_store_recovery_physics::CheckpointValidation,
-    commitment: CheckpointArtifactDurabilityCommitment,
-    segment: u64,
-    root: &Path,
-    backend: &AdmittedBackendCapabilityWitness,
-) -> DurableAckReceipt<HostDurabilityProfile> {
-    let range = validation.manifest().covered_lsn_range().range();
-    let payload = commitment.digest().as_bytes();
-    let plan = WalAppendPlan::<HostDurabilityProfile>::new(
-        WalSegmentId::new(segment).unwrap(),
-        WalSegmentGeneration::new(1).unwrap(),
-        range,
-        commitment.digest(),
-        payload.len() as u64,
-    )
-    .unwrap();
-    let progress = plan.record_written_bytes(payload.len() as u64);
-    let scope = progress.durability_scope();
-    let requirement = StoreDurabilityRequirement::checkpoint_publication(
-        HostDurabilityProfile::REQUIRED_BARRIERS,
-    );
-    let admission = StoreDurabilityAdmission::admit(requirement, backend).unwrap();
-    let accepted = admission.submit_write(scope).backend_accepted();
-    let execution = StoreDurabilityRuntime::new()
-        .persist_and_execute(root, payload, &accepted)
-        .unwrap();
-    let file = execution
-        .certify_completed_barrier::<HostDurabilityProfile>(host_file_barrier())
-        .unwrap();
-    let directory = execution
-        .certify_completed_barrier::<HostDurabilityProfile>(host_directory_barrier())
-        .unwrap();
-    let append = WalDurabilityObservationSequence::new(progress)
-        .completed(file)
-        .unwrap()
-        .completed(directory)
-        .unwrap()
-        .finish()
-        .unwrap();
-    DurableAckReceipt::acknowledge(AcknowledgmentPrecondition::from_append_receipt(append).unwrap())
-}
-
-fn execute_directory_sync_crash(seed: u64) -> Vec<DurabilityRecoveryAction> {
-    let payload = b"directory-sync-crash";
-    let plan = wal_plan::<HostDurabilityProfile>(61, 60, 61, payload);
-    let control = ScriptedStorageBoundaryControl::inject(
-        ProductionStorageBoundarySeam::DirectorySync,
-        StorageBoundaryFault::AbortBeforeDurabilityBarrier,
-    );
-    let progress = plan.record_written_bytes(payload.len() as u64);
-    let requirement = StoreDurabilityRequirement::checkpoint_publication(
-        HostDurabilityProfile::REQUIRED_BARRIERS,
-    );
-    let backend = admitted_backend(HostDurabilityProfile::TARGET);
-    let admission = StoreDurabilityAdmission::admit(requirement, &backend).unwrap();
-    let accepted = admission
-        .submit_write(progress.durability_scope())
-        .backend_accepted();
-    let directory = worth_store_test_support::TemporaryDirectory::create("protocol-sync-crash")
-        .expect("protocol sync crash directory");
-    let failure = StoreDurabilityRuntime::new()
-        .persist_and_execute_to_with_control(
-            &unique_root(directory.path(), &format!("directory-sync-crash-{seed}")),
-            payload,
-            &accepted,
-            StoreDurabilityExecutionBoundary::Complete,
-            &control,
-        )
-        .unwrap_err();
-    map_directory_sync_failure(&failure, &control.trace())
-        .unwrap()
-        .to_vec()
-}
-
-#[cfg(not(windows))]
-const fn host_file_barrier() -> WalDurabilityBarrier {
-    WalDurabilityBarrier::WalFileFsync
-}
-
-#[cfg(windows)]
-const fn host_file_barrier() -> WalDurabilityBarrier {
-    WalDurabilityBarrier::WindowsFlushFileBuffers
-}
-
-#[cfg(not(windows))]
-const fn host_directory_barrier() -> WalDurabilityBarrier {
-    WalDurabilityBarrier::WalDirectoryFsync
-}
-
-#[cfg(windows)]
-const fn host_directory_barrier() -> WalDurabilityBarrier {
-    WalDurabilityBarrier::WindowsDirectorySync
 }
 
 fn execute_redo_traces() -> [Vec<DurabilityRecoveryAction>; 3] {
@@ -319,41 +189,4 @@ fn execute_redo_generation_denial() -> DurabilityRecoveryAction {
     .unwrap();
     let denial = AdmittedRedoFrame::admit(wrong_target, &prefix).unwrap_err();
     map_redo_generation_denial(&denial).unwrap()
-}
-
-fn wal_plan<P: worth_store_physical_backend::BackendDurabilityProfile>(
-    segment: u64,
-    start: u64,
-    end: u64,
-    payload: &[u8],
-) -> WalAppendPlan<P> {
-    WalAppendPlan::new(
-        WalSegmentId::new(segment).unwrap(),
-        WalSegmentGeneration::new(3).unwrap(),
-        WalLsnRange::new(LogSequenceNumber::new(start), LogSequenceNumber::new(end)).unwrap(),
-        format!("durability-frontier-frame-{segment}"),
-        payload.len() as u64,
-    )
-    .unwrap()
-}
-
-pub(super) fn admitted_backend(profile: BackendTargetProfile) -> AdmittedBackendCapabilityWitness {
-    PhysicalBackendCapabilityAdmissionAuthority::store_owned()
-        .admit_backend_capability(BackendCapabilityAdmissionRequest::new(
-            profile,
-            BackendCapabilityEvidenceBasis::certified_backend_profile(),
-            BackendCapabilitySupportSet::buffered_durable_only(),
-            BackendMediaAssumptionSet::platform_file_defaults(),
-            BackendRebindTriggers::kernel_filesystem_mount_firmware_and_backend(),
-        ))
-        .expect("certified backend fixture is admissible")
-}
-
-fn unique_root(parent: &Path, lane: &str) -> PathBuf {
-    static EXECUTION: AtomicU64 = AtomicU64::new(0);
-    parent.join(format!(
-        "worth-store-protocol-{lane}-{}-{}",
-        std::process::id(),
-        EXECUTION.fetch_add(1, Ordering::Relaxed),
-    ))
 }

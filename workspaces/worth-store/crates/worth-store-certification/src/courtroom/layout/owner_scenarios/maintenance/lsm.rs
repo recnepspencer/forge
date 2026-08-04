@@ -4,16 +4,13 @@ use worth_store_budgets::{PreExecutionBudgetEnvelope, PreExecutionBudgetScope};
 use worth_store_contracts::WalRecordFamily;
 use worth_store_layout_indexes::{
     layout_lsm_maintenance, LsmCompactionAdmissionRequest, LsmMaintenanceOwnerCaseObservation,
-    LsmReplayAdmissionRequest, LsmRunPublicationAdmissionRequest,
+    LsmRunPublicationAdmissionRequest,
 };
 use worth_store_security::{
     StoreAuthenticityRequirement, StoreAuthenticityRequirementClass, StoreCustodyPosture,
     StoreKeyScope, StoreTenantScope,
 };
-use worth_store_test_support::{
-    admitted_layout_bootstrap_catalog, execute_baseline_lsm_replay_source_fixture,
-    execute_frontierless_lsm_replay_source_fixture, SecurityScopeFixtureAuthority,
-};
+use worth_store_test_support::SecurityScopeFixtureAuthority;
 use worth_store_wal::StoreWalRecordIdentity;
 
 use super::super::fixture_admission::security_scope;
@@ -66,32 +63,6 @@ pub(crate) fn execute_observations() -> Vec<LsmMaintenanceOwnerCaseObservation> 
         }
     }
 
-    let catalog = admitted_layout_bootstrap_catalog();
-    let replay_sources = [
-        execute_baseline_lsm_replay_source_fixture(),
-        execute_frontierless_lsm_replay_source_fixture(),
-    ];
-    let mut replay = BTreeSet::new();
-    for security in [&current, &foreign, &page] {
-        for source in &replay_sources {
-            for budget in budgets {
-                retain_once(
-                    &mut observations,
-                    &mut replay,
-                    layout_lsm_maintenance()
-                        .admit_replay(LsmReplayAdmissionRequest::new(
-                            &catalog,
-                            security.witnesses(),
-                            WalRecordFamily::DurableMutationIntent,
-                            StoreWalRecordIdentity::new(43),
-                            source,
-                            budget,
-                        ))
-                        .owner_case_observation(),
-                );
-            }
-        }
-    }
     observations
 }
 

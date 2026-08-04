@@ -1,5 +1,5 @@
 use worth_store_recovery_physics::PartialPublicationCounterSnapshot;
-use worth_store_wal::DurablePublicationDeclaration;
+use worth_store_wal::PublicationDeclaration;
 
 use crate::BlobChunkSecurityMetadataWitness;
 
@@ -21,7 +21,7 @@ pub struct BlobPublicationWalPayload {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlobPublicationWalCommit {
     pub(crate) intent: BlobPublicationIntent,
-    pub(crate) durable_publication: DurablePublicationDeclaration,
+    pub(crate) publication_declaration: PublicationDeclaration,
     pub(crate) replay_classification_digest: String,
     pub(crate) replay_counters: PartialPublicationCounterSnapshot,
     pub(crate) staging_identity: BlobReachabilityStagingIdentity,
@@ -55,8 +55,8 @@ impl BlobPublicationWalRecord {
         &self.wal_commit
     }
 
-    pub const fn durable_publication(&self) -> &DurablePublicationDeclaration {
-        self.wal_commit.durable_publication()
+    pub const fn publication_declaration(&self) -> &PublicationDeclaration {
+        self.wal_commit.publication_declaration()
     }
 
     pub const fn counters(&self) -> BlobPublicationCounterSnapshot {
@@ -72,19 +72,19 @@ impl BlobPublicationWalCommit {
     pub fn from_replayable_wal_record(
         staged: BlobReachabilityStaging,
         payload: BlobPublicationWalPayload,
-        durable_publication: DurablePublicationDeclaration,
+        publication_declaration: PublicationDeclaration,
         replay_report: &worth_store_recovery_physics::CrashBoundaryLayoutReport,
     ) -> Result<Self, BlobPublicationDenial> {
         super::super::transitions::wal_commit::from_replayable_wal_record(
             staged,
             payload,
-            durable_publication,
+            publication_declaration,
             replay_report,
         )
     }
 
-    pub const fn durable_publication(&self) -> &DurablePublicationDeclaration {
-        &self.durable_publication
+    pub const fn publication_declaration(&self) -> &PublicationDeclaration {
+        &self.publication_declaration
     }
 
     pub const fn intent(&self) -> &BlobPublicationIntent {

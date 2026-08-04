@@ -79,7 +79,10 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(CandidateFrameContractViolation::UnexpectedFrame)
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::UnexpectedFrame,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     let mut mismatched = session(&allocation, declared_inline_frames(&[(0, 1)]));
     let failure = mismatched
@@ -97,9 +100,10 @@ fn declaration_and_coordinate_violations_precede_store_writes() {
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(
-            CandidateFrameContractViolation::CoordinateRoleMismatch
-        )
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::CoordinateRoleMismatch,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     assert_eq!(writes, 0);
 }
@@ -131,9 +135,10 @@ fn retained_bytes_must_still_be_the_declared_candidate_before_any_store_effect()
         .unwrap_err();
     assert!(matches!(
         failure,
-        CandidateFrameWriteFailure::Contract(
-            CandidateFrameContractViolation::RetainedFrameBytesChanged
-        )
+        CandidateFrameWriteFailure::Contract {
+            violation: CandidateFrameContractViolation::RetainedFrameBytesChanged,
+            posture: CandidateFrameFailurePosture::ProvenNoEffect,
+        }
     ));
     assert_eq!(writes, 0);
 }
@@ -155,18 +160,12 @@ struct MutatingSession;
 impl CandidateFrameResidencySession for MutatingSession {
     fn retain(
         &mut self,
-        mut frame: CandidateFrame,
+        frame: &CandidateFrame,
     ) -> Result<Box<dyn ResidentCandidateFrame>, RecordAppendDenial> {
-        frame.bytes[0] ^= 0xff;
-        Ok(Box::new(MutatingResident(frame)))
-    }
-
-    fn prepare_catalog_cutover(
-        &mut self,
-        _: CandidateFrameCoordinate,
-        _: u32,
-    ) -> Result<(), RecordAppendDenial> {
-        Ok(())
+        let mut retained =
+            CandidateFrame::new(frame.role(), frame.coordinate(), frame.bytes().to_vec());
+        retained.bytes[0] ^= 0xff;
+        Ok(Box::new(MutatingResident(retained)))
     }
 }
 
@@ -223,16 +222,8 @@ struct PreEffectSession;
 impl CandidateFrameResidencySession for PreEffectSession {
     fn retain(
         &mut self,
-        _: CandidateFrame,
+        _: &CandidateFrame,
     ) -> Result<Box<dyn ResidentCandidateFrame>, RecordAppendDenial> {
         panic!("pre-effect declaration tests must not retain a candidate")
-    }
-
-    fn prepare_catalog_cutover(
-        &mut self,
-        _target: CandidateFrameCoordinate,
-        _length: u32,
-    ) -> Result<(), RecordAppendDenial> {
-        Ok(())
     }
 }

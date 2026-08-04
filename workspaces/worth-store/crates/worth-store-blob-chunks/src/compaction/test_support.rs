@@ -22,13 +22,8 @@ use worth_store_io_scheduler::{
     execute_background_pressure_for_certification_test, BackgroundIdleCapacityLease,
     BackgroundIoPressureShape, BackgroundPacingOutcome, BackgroundResourceBudget, QueueSlot,
 };
-use worth_store_physical_isolation::{
-    execute_read_during_compaction_cutover, CompactionReadInterlockDenial,
-    ReadDuringCompactionVerdict,
-};
+use worth_store_physical_isolation::CompactionReadInterlockDenial;
 use worth_store_security::StoreTenantScope;
-
-use super::rewrite_binding::physical_rewrite_manifest_epoch_for_root;
 
 pub(crate) const BYTES: &[u8] = b"phase18-compaction-bytes";
 
@@ -235,53 +230,4 @@ pub(crate) fn verified_read_for_rewritten(
         plan.basis().logical_digest().clone(),
         rewritten.canonical_basis().total_bytes(),
     )
-}
-
-pub(crate) fn verdict_for_plan(
-    plan: &crate::BlobCompactionRewritePlan,
-) -> ReadDuringCompactionVerdict {
-    let evidence = physical_compaction::execute_compaction_cutover(plan.physical());
-    admit_verdict_from_evidence(evidence)
-}
-
-pub(crate) fn verdict_for_rewrite(
-    plan: &crate::BlobCompactionRewritePlan,
-    rewritten: &BlobChunkRootPublication,
-) -> ReadDuringCompactionVerdict {
-    let evidence = physical_compaction::execute_compaction_cutover_for_manifest(
-        plan.physical(),
-        physical_rewrite_manifest_epoch_for_root(
-            rewritten.chunk_tree_root(),
-            plan.physical().protected().root().manifest_epoch().get(),
-        ),
-    );
-    admit_verdict_from_evidence(evidence)
-}
-
-pub(crate) fn mismatched_verdict_for_rewrite(
-    plan: &crate::BlobCompactionRewritePlan,
-    rewritten: &BlobChunkRootPublication,
-) -> ReadDuringCompactionVerdict {
-    let evidence = physical_compaction::execute_compaction_cutover_for_manifest(
-        plan.physical(),
-        physical_rewrite_manifest_epoch_for_root(
-            rewritten.chunk_tree_root(),
-            plan.physical().protected().root().manifest_epoch().get(),
-        )
-        .wrapping_add(1),
-    );
-    admit_verdict_from_evidence(evidence)
-}
-
-fn admit_verdict_from_evidence(
-    evidence: physical_compaction::ExecutedCompactionCutover,
-) -> ReadDuringCompactionVerdict {
-    let (publication, recovery, pre_cutover_read, post_cutover_read) = evidence.into_parts();
-    execute_read_during_compaction_cutover(
-        publication,
-        recovery,
-        pre_cutover_read,
-        post_cutover_read,
-    )
-    .expect("read-during-compaction verdict should admit")
 }

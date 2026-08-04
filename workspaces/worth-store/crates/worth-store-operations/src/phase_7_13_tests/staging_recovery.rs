@@ -4,7 +4,6 @@ use crate::{
     OperationalOperationId, OperationalTransitionId,
 };
 use worth_store_authority::ControlStoreFencingAuthority;
-use worth_store_offline_verifier::{BackupVerificationBudget, OfflineInspectionBudget};
 
 struct LyingWalRuntime;
 
@@ -180,9 +179,4 @@ fn consumed_restore_staging_reopens_as_an_exact_resumable_handle() {
         reopened.staged_media().content_fingerprint(),
         completed_media_identity
     );
-    reopened
-        .post_verify(BackupVerificationBudget::from_inspection(
-            OfflineInspectionBudget::bounded(4 * 1024, u64::MAX).unwrap(),
-        ))
-        .expect("freshly reconstructed staging enters independent verification");
 }

@@ -235,6 +235,7 @@ impl PoolInner {
                 .get_mut(&frame.coordinate)
                 .expect("validated writeback frame remains resident");
             entry.dirty = false;
+            entry.dirty_generation = None;
             entry.writeback_claimed = false;
             if entry.origin.is_candidate() {
                 entry.origin = FrameOrigin::Fault;

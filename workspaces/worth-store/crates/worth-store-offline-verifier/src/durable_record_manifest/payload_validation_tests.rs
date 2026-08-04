@@ -49,7 +49,7 @@ fn hostile_inline_page(format: PhysicalRecordFormatDeclaration) -> Vec<u8> {
     let mut bytes = vec![0_u8; page_bytes];
     bytes[..8].copy_from_slice(b"WRC5FRM\0");
     bytes[8] = 3;
-    bytes[9] = 1;
+    bytes[9] = 2;
     bytes[10..20].copy_from_slice(&format.canonical_identity_bytes());
     bytes[20..22].copy_from_slice(&(FRAME_HEADER_BYTES as u16).to_le_bytes());
     bytes[24..28].copy_from_slice(&((page_bytes - FRAME_HEADER_BYTES) as u32).to_le_bytes());
@@ -58,8 +58,8 @@ fn hostile_inline_page(format: PhysicalRecordFormatDeclaration) -> Vec<u8> {
     bytes[FRAME_HEADER_BYTES + 8..FRAME_HEADER_BYTES + 16].copy_from_slice(&1_u64.to_le_bytes());
     bytes[FRAME_HEADER_BYTES + 16..FRAME_HEADER_BYTES + 18]
         .copy_from_slice(&u16::MAX.to_le_bytes());
-    let checksum = crc32c(&[&bytes[..36], &bytes[FRAME_HEADER_BYTES..]]);
-    bytes[36..FRAME_HEADER_BYTES].copy_from_slice(&checksum.to_le_bytes());
+    let checksum = crc32c(&[&bytes[..44], &bytes[FRAME_HEADER_BYTES..]]);
+    bytes[44..FRAME_HEADER_BYTES].copy_from_slice(&checksum.to_le_bytes());
     bytes
 }
 

@@ -1,18 +1,18 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, num::NonZeroU32};
 
 use worth_store::physical_runtime::{
     PhysicalWorkCourtroomRunBinding, PhysicalWorkEvidenceDigest, PhysicalWorkExecutionContext,
-    PhysicalWorkFreshReopenEvidence, PhysicalWorkMutantLocalization, PhysicalWorkOracleEvidence,
-    PhysicalWorkPlatformEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
-    PhysicalWorkScheduleSeed, PhysicalWorkSourceBinding, PhysicalWorkWorkloadSeed,
+    PhysicalWorkMutantLocalization, PhysicalWorkOracleEvidence, PhysicalWorkPlatformEvidence,
+    PhysicalWorkProcessEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
+    PhysicalWorkScheduleSeed, PhysicalWorkWorkloadSeed,
 };
 
 use super::{
     binary_binding::BuiltCourtroomExecutables,
-    execution::{BoundedResidencyProducerObservation, BoundedResidencySiegeObservations},
-    offline_protocol::OfflineObservation,
+    c7_crash_campaign::C7CrashCampaignEvidence,
+    execution::BoundedResidencySiegeObservations,
     protocol::BoundedResidencySiegeObservation,
-    schedule::{RevisionScheduleSeeds, SchedulePerturbationPlan},
+    schedule::{SchedulePerturbationPlan, SourceClosureScheduleSeeds},
     world::BoundedResidencySiegeWorld,
 };
 
@@ -20,12 +20,20 @@ use super::{
 mod allocation;
 #[path = "oracle/artifact_policy.rs"]
 mod artifact_policy;
+#[path = "oracle/c7_campaign.rs"]
+mod c7_campaign;
 #[path = "oracle/cancellation.rs"]
 mod cancellation;
 #[path = "oracle/digest.rs"]
 mod digest;
+#[path = "oracle/dirty_close.rs"]
+mod dirty_close;
+#[path = "oracle/evidence.rs"]
+mod evidence;
 #[path = "oracle/generation_fencing.rs"]
 mod generation_fencing;
+#[path = "oracle/performance.rs"]
+mod performance;
 #[path = "oracle/pressure.rs"]
 mod pressure;
 #[path = "oracle/process_allocation.rs"]
@@ -36,6 +44,7 @@ mod speculation;
 mod work_reconciliation;
 use allocation::verify_allocation;
 use artifact_policy::verify_artifact_manifest;
+pub(super) use evidence::BoundedResidencyCourtroomEvidence;
 use pressure::verify_residency;
 
 #[cfg(test)]
@@ -50,130 +59,86 @@ pub(super) fn verify_work_reconciliation(
     )
 }
 
-pub(super) struct BoundedResidencyCourtroomEvidence {
-    run: PhysicalWorkCourtroomRunBinding,
-    runner: PhysicalWorkSourceBinding,
-    observer: PhysicalWorkSourceBinding,
-    producer: BoundedResidencyProducerObservation,
-    child: BoundedResidencySiegeObservation,
-    offline: OfflineObservation,
-    reopen: PhysicalWorkFreshReopenEvidence,
-    oracle: PhysicalWorkOracleEvidence,
-    mutants: Box<[PhysicalWorkMutantLocalization]>,
-    workload_seed: u64,
-    schedule: SchedulePerturbationPlan,
-    revision_schedule: RevisionScheduleSeeds,
+#[cfg(test)]
+pub(super) fn verify_performance(child: &BoundedResidencySiegeObservation) -> Result<(), String> {
+    performance::verify(child)
 }
 
-impl BoundedResidencyCourtroomEvidence {
-    pub(super) const fn source(&self) -> &PhysicalWorkSourceBinding {
-        self.run.source()
-    }
+pub(super) struct BoundedResidencyCourtroomProofRequest<'evidence> {
+    pub(super) world: &'evidence BoundedResidencySiegeWorld,
+    pub(super) binaries: &'evidence BuiltCourtroomExecutables,
+    pub(super) observations: BoundedResidencySiegeObservations,
+    pub(super) controlled_cases: Vec<PhysicalWorkMutantLocalization>,
+    pub(super) rerun: PhysicalWorkRerunEvidence,
+    pub(super) schedule: SchedulePerturbationPlan,
+    pub(super) source_schedule: SourceClosureScheduleSeeds,
+    pub(super) termination_campaign: C7CrashCampaignEvidence,
+}
 
-    pub(super) const fn writer(&self) -> &PhysicalWorkSourceBinding {
-        self.run.binary()
-    }
-
-    pub(super) const fn runner(&self) -> &PhysicalWorkSourceBinding {
-        &self.runner
-    }
-
-    pub(super) const fn observer(&self) -> &PhysicalWorkSourceBinding {
-        &self.observer
-    }
-
-    pub(super) const fn child(&self) -> &BoundedResidencySiegeObservation {
-        &self.child
-    }
-
-    pub(super) const fn producer(&self) -> BoundedResidencyProducerObservation {
-        self.producer
-    }
-
-    pub(super) const fn offline(&self) -> &OfflineObservation {
-        &self.offline
-    }
-
-    pub(super) const fn reopen(&self) -> PhysicalWorkFreshReopenEvidence {
-        self.reopen
-    }
-
-    pub(super) const fn oracle(&self) -> &PhysicalWorkOracleEvidence {
-        &self.oracle
-    }
-
-    pub(super) const fn mutants(&self) -> &[PhysicalWorkMutantLocalization] {
-        &self.mutants
-    }
-
-    pub(super) const fn run(&self) -> &PhysicalWorkCourtroomRunBinding {
-        &self.run
-    }
-
-    pub(super) const fn workload_seed(&self) -> u64 {
-        self.workload_seed
-    }
-
-    pub(super) const fn schedule(&self) -> &SchedulePerturbationPlan {
-        &self.schedule
-    }
-
-    pub(super) const fn revision_schedule(&self) -> &RevisionScheduleSeeds {
-        &self.revision_schedule
+impl BoundedResidencyCourtroomProofRequest<'_> {
+    fn verify_truth(&self) -> Result<PhysicalWorkOracleEvidence, String> {
+        let observations = &self.observations;
+        if observations.child.schedule != *self.schedule.serving_decisions() {
+            return Err("Courtroom C child executed a foreign schedule trace".into());
+        }
+        verify_processes(observations)?;
+        verify_current_truth(self.world, observations)?;
+        generation_fencing::verify(
+            observations.child.generation_fencing,
+            observations.child.generation(),
+        )?;
+        verify_process_allocation(&observations.child)?;
+        verify_residency(self.world, &observations.child)?;
+        speculation::verify(observations.child.speculation)?;
+        work_reconciliation::verify(
+            &observations.child.work_reconciliation,
+            observations.child.store(),
+            observations.child.runtime(),
+            observations.child.generation(),
+        )?;
+        cancellation::verify(
+            observations.child.cancellation,
+            &observations.child.work_reconciliation,
+            observations.child.store(),
+            observations.child.runtime(),
+            observations.child.generation(),
+        )?;
+        performance::verify(&observations.child)?;
+        let exclusive_operation_limit = allocation_operation_limit(&observations.child)?;
+        verify_allocation(
+            &observations.child.allocation,
+            observations.child.store(),
+            observations.child.process().get(),
+            exclusive_operation_limit,
+        )?;
+        let artifact_bytes = verify_artifact_manifest(&observations.offline)?;
+        verify_world_scale(self.world, &observations.child, artifact_bytes)?;
+        verify_reopen(observations)?;
+        verify_mutants(&self.controlled_cases)?;
+        c7_campaign::verify(&self.termination_campaign, &self.schedule)?;
+        PhysicalWorkOracleEvidence::new(
+            "courtroom-c:bounded-residency-siege:independent-physical-truth",
+            true,
+            digest::build(self.world, observations, &self.termination_campaign)?,
+        )
+        .map_err(|denial| format!("Courtroom C oracle binding denied: {denial:?}"))
     }
 }
 
 pub(super) fn verify(
-    world: &BoundedResidencySiegeWorld,
-    binaries: &BuiltCourtroomExecutables,
-    observations: BoundedResidencySiegeObservations,
-    mutants: Vec<PhysicalWorkMutantLocalization>,
-    rerun: PhysicalWorkRerunEvidence,
-    schedule: SchedulePerturbationPlan,
-    revision_schedule: RevisionScheduleSeeds,
+    request: BoundedResidencyCourtroomProofRequest<'_>,
 ) -> Result<BoundedResidencyCourtroomEvidence, String> {
-    if observations.child.schedule != *schedule.trace().decisions() {
-        return Err("Courtroom C child executed a foreign schedule trace".into());
-    }
-    verify_processes(&observations)?;
-    verify_current_truth(world, &observations)?;
-    generation_fencing::verify(
-        observations.child.generation_fencing,
-        observations.child.generation(),
-    )?;
-    verify_process_allocation(&observations.child)?;
-    verify_residency(world, &observations.child)?;
-    speculation::verify(observations.child.speculation)?;
-    work_reconciliation::verify(
-        &observations.child.work_reconciliation,
-        observations.child.store(),
-        observations.child.runtime(),
-        observations.child.generation(),
-    )?;
-    cancellation::verify(
-        observations.child.cancellation,
-        &observations.child.work_reconciliation,
-        observations.child.store(),
-        observations.child.runtime(),
-        observations.child.generation(),
-    )?;
-    let exclusive_operation_limit = allocation_operation_limit(&observations.child)?;
-    verify_allocation(
-        &observations.child.allocation,
-        observations.child.store(),
-        observations.child.process().get(),
-        exclusive_operation_limit,
-    )?;
-    let artifact_bytes = verify_artifact_manifest(&observations.offline)?;
-    verify_world_scale(world, &observations.child, artifact_bytes)?;
-    verify_reopen(&observations)?;
-    verify_mutants(&mutants)?;
-    let oracle = PhysicalWorkOracleEvidence::new(
-        "courtroom-c:bounded-residency-siege:independent-physical-truth",
-        true,
-        digest::build(world, &observations)?,
-    )
-    .map_err(|denial| format!("Courtroom C oracle binding denied: {denial:?}"))?;
+    let oracle = request.verify_truth()?;
+    let BoundedResidencyCourtroomProofRequest {
+        world,
+        binaries,
+        observations,
+        controlled_cases,
+        rerun,
+        schedule,
+        source_schedule,
+        termination_campaign,
+    } = request;
     let execution = PhysicalWorkExecutionContext::new(
         PhysicalWorkWorkloadSeed::new(world.seed()),
         PhysicalWorkScheduleSeed::new(schedule.seed().value()),
@@ -202,10 +167,11 @@ pub(super) fn verify(
         offline: observations.offline,
         reopen: observations.reopen,
         oracle,
-        mutants: mutants.into_boxed_slice(),
+        mutants: controlled_cases.into_boxed_slice(),
         workload_seed: world.seed(),
         schedule,
-        revision_schedule,
+        source_schedule,
+        crash_campaign: termination_campaign,
     })
 }
 
@@ -234,21 +200,36 @@ fn verify_world_scale(
 }
 
 fn verify_processes(observations: &BoundedResidencySiegeObservations) -> Result<(), String> {
-    let processes = observations
-        .processes
+    verify_ordinary_process_set(
+        &observations.processes,
+        [
+            observations.producer.process,
+            observations.child.process(),
+            observations.offline.process(),
+            observations.reopen.identity().process(),
+        ],
+    )
+}
+
+fn verify_ordinary_process_set(
+    processes: &[PhysicalWorkProcessEvidence],
+    expected: [NonZeroU32; 4],
+) -> Result<(), String> {
+    if processes.len() != expected.len() {
+        return Err("Courtroom C ordinary process set was extended or truncated".into());
+    }
+    let identities = processes
         .iter()
         .map(|process| process.process())
         .collect::<Vec<_>>();
-    if processes.iter().collect::<BTreeSet<_>>().len() != processes.len()
-        || processes
-            != [
-                observations.producer.process,
-                observations.child.process(),
-                observations.offline.process(),
-                observations.reopen.identity().process(),
-            ]
+    if identities.iter().collect::<BTreeSet<_>>().len() != identities.len()
+        || identities
+            .iter()
+            .copied()
+            .zip(expected)
+            .any(|pair| pair.0 != pair.1)
     {
-        return Err("Courtroom C did not use four distinct role processes".into());
+        return Err("Courtroom C process roles were duplicated or reordered".into());
     }
     Ok(())
 }
@@ -341,60 +322,5 @@ fn allocation_operation_limit(child: &BoundedResidencySiegeObservation) -> Resul
 }
 
 #[cfg(test)]
-mod tests {
-    use super::verify_mutants;
-    use worth_store::physical_runtime::{
-        PhysicalWorkEvidenceDigest, PhysicalWorkMutantBinding, PhysicalWorkMutantExecutionContext,
-        PhysicalWorkMutantLocalization, PhysicalWorkMutantOutcome, PhysicalWorkMutantSubject,
-        PhysicalWorkSourceBinding,
-    };
-
-    #[test]
-    fn courtroom_requires_each_bounded_residency_mutant() {
-        let required = crate::mutation_campaign::bounded_residency_requirements();
-        let complete = required
-            .iter()
-            .map(|requirement| killed_mutant(requirement.identity(), requirement.predicate()))
-            .collect::<Vec<_>>();
-        assert!(verify_mutants(&complete).is_ok());
-
-        for missing in required {
-            let incomplete = complete
-                .iter()
-                .filter(|mutant| mutant.identity() != missing.identity())
-                .cloned()
-                .collect::<Vec<_>>();
-            let denial = match verify_mutants(&incomplete) {
-                Ok(()) => panic!("MUTANT_PREDICATE:bounded-residency-corpus-truncated"),
-                Err(denial) => denial,
-            };
-            assert!(
-                denial.contains(missing.predicate()),
-                "wrong omission denial: {denial}"
-            );
-        }
-    }
-
-    fn killed_mutant(identity: u16, predicate: &str) -> PhysicalWorkMutantLocalization {
-        let source_digest =
-            PhysicalWorkEvidenceDigest::new([identity as u8; 32]).expect("nonzero fixture digest");
-        let mutant_digest = PhysicalWorkEvidenceDigest::new([(identity + 1) as u8; 32])
-            .expect("nonzero fixture digest");
-        let subject =
-            PhysicalWorkMutantSubject::new(identity, predicate, "current-source.rs").unwrap();
-        let execution = PhysicalWorkMutantExecutionContext::new("test", "causal-scenario").unwrap();
-        let binary = PhysicalWorkSourceBinding::new("current-test.exe", source_digest).unwrap();
-        let binding = PhysicalWorkMutantBinding::new(
-            subject,
-            source_digest,
-            mutant_digest,
-            binary,
-            execution,
-        );
-        PhysicalWorkMutantLocalization::new(
-            binding,
-            PhysicalWorkMutantOutcome::new(true, "exact causal assertion"),
-        )
-        .unwrap()
-    }
-}
+#[path = "oracle/tests.rs"]
+mod tests;

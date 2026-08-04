@@ -107,6 +107,13 @@ If implementation reveals a boundary fact that invalidates the plan, pause
 editing, revise the boundary brief and plan, then continue. Expand only to work
 required for the slice's claim to be honest.
 
+Build the structure that makes committed future work easier to add, test,
+replace, and scale. Keep harmless mechanics local when sharing would add
+cognitive load, but consolidate authority, policy, lifecycle, encoding, and
+effect decisions that must evolve together. If the next known addition would
+require duplication, bucket growth, or unrelated edits, establish its honest
+boundary now.
+
 ## Stage 4: Verify and Close
 
 Run formatting and the narrowest checks that prove the changed behavior. Add

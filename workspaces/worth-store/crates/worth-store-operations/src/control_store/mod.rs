@@ -17,9 +17,6 @@ mod persisted_record_codec_io;
 mod persisted_record_codec_tests;
 mod persisted_record_encoding;
 mod persisted_record_kind;
-mod prepared_publication_handle;
-mod publication_binding_codec;
-mod recovery_publication_control_replay;
 mod recovery_staging_control_replay;
 mod recovery_staging_handle;
 mod repair_control_replay;
@@ -37,7 +34,6 @@ mod selected_control_replay;
 mod selected_control_replay_backup_completion;
 mod selected_control_replay_contract;
 mod selected_control_replay_finish;
-mod selected_control_replay_publication_transition;
 mod selected_control_replay_recovery_transition;
 mod selected_control_replay_repair_transition;
 mod selected_control_replay_replica;
@@ -46,13 +42,10 @@ mod selected_control_replay_workflow_open;
 mod selected_control_state;
 mod selected_recovery_handles;
 mod session_observation;
-mod terminal_fence_release_handle;
 mod trust_posture;
 
 pub use control_record::OperationalControlRecord;
-pub use control_record_kind::{
-    OperationalControlRecordKind, OperationalWorkflowKind, RecoveryPublicationControlBinding,
-};
+pub use control_record_kind::{OperationalControlRecordKind, OperationalWorkflowKind};
 pub use control_store_port::{
     NonCurrentRecoveryTargetDenial, OperationalControlAppendDenial, OperationalControlStore,
     OperationalControlStoreOpenDenial, OperationalControlStorePort,
@@ -68,9 +61,6 @@ pub use operation_identity::{
     InvalidOperationalIdentity, OperationalOperationId, OperationalTransitionId,
 };
 pub use persisted_record_codec::OperationalControlEncodingDenial;
-pub use prepared_publication_handle::{
-    AbandonedPreparedRecoveryPublication, PreparedRecoveryPublicationHandle,
-};
 pub use recovery_staging_handle::{
     IndeterminateRecoveryStagingHandle, RecoveryStagingOperationKind,
 };
@@ -97,14 +87,9 @@ pub use session_observation::{
     OperationalControlProcessIdentity, OperationalControlSessionIdentity,
     OperationalControlSessionObservation,
 };
-pub use terminal_fence_release_handle::{
-    TerminalRecoveryFenceReleaseDenial, TerminalRecoveryFenceReleaseHandle,
-    TerminalRecoveryPublicationDisposition,
-};
 pub use trust_posture::{
     ActiveBackupRecoveryHandle, ControlStoreAvailabilityDenial, ControlStoreSelectionIndeterminate,
-    ControlStoreTrustPosture, OperationalControlHistorySummary, PendingRecoveryPublicationHandle,
-    RecoveryPublicationOperationKind, SelectedOperationalControlState,
+    ControlStoreTrustPosture, OperationalControlHistorySummary, SelectedOperationalControlState,
 };
 
 pub(crate) use backup_lease_holder_binding::backup_lease_holder_id;
