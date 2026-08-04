@@ -4,22 +4,18 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityAllowRule, ApplicationCapabilityAmountDimension,
         ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
         ApplicationCapabilityConflictRule, ApplicationCapabilityConstraintDefinition,
-        ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityContract,
-        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
-        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityDelegationDepth, ApplicationCapabilityDelegationRule,
-        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationDefinition,
-        ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityElevationRule,
-        ApplicationCapabilityElevationStates, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityMandatoryReviewDefinition,
-        ApplicationCapabilityOperationBinding, ApplicationCapabilityPropagationComposition,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
-        ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
+        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationDepth,
+        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
+        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
     application_schema::{
         ApplicationAuthorizationPathBuilder, ApplicationSchemaDeclarationBuilder,
@@ -42,17 +38,22 @@ use super::{
     CapabilityElevationFacts, CapabilityElevationGrant, CapabilityElevationIdentity,
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
     CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationSlot,
-    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityReview,
-    CapabilityReviewFacts, CapabilityReviewIdentity, CapabilityReviewSlot, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer, CompleteCapabilityReviewOperation,
-    ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
+    CapabilityElevationStatusField, CapabilityReview, CapabilityReviewFacts,
+    CapabilityReviewIdentity, CapabilityReviewSlot, CapabilityReviewStatusField,
+    CapabilityReviewer, CompleteCapabilityReviewOperation, ElevatedCapabilityTouchInput,
+    ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
     RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
 };
+
+#[path = "contract/elevation.rs"]
+mod elevation;
+#[path = "contract/request.rs"]
+mod request;
 
 pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn install(
     schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
-    schema
+    let schema = schema
         .entity(CapabilityElevation::reference())
         .aspect(
             CapabilityElevation::reference(),
@@ -133,7 +134,8 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
             ElevatedCapabilityTouchOperation::reference(),
             AccountLabel::reference(),
         )
-        .capability(elevated_contract())
+        .capability(elevated_contract());
+    request::install(schema)
 }
 
 fn elevated_contract() -> ApplicationCapabilityContract<
@@ -147,7 +149,16 @@ fn elevated_contract() -> ApplicationCapabilityContract<
         ElevatedCapabilityTouchOperation::reference(),
         CapabilityGrant::reference(),
     )
-    .target(ApplicationCapabilityTargetDefinition::new(
+    .target(target())
+    .constraints(constraints())
+    .delegation(delegation())
+    .composition(composition())
+    .elevation(elevation::definition())
+    .build()
+}
+
+pub(super) fn target() -> ApplicationCapabilityTargetDefinition {
+    ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(
             CapabilityActionField::reference(),
             CapabilityAction::Touch,
@@ -159,15 +170,10 @@ fn elevated_contract() -> ApplicationCapabilityContract<
             CapabilityPurposeField::reference(),
             CapabilityPurpose::AccountMaintenance,
         ),
-    ))
-    .constraints(constraints())
-    .delegation(delegation())
-    .composition(composition())
-    .elevation(elevation())
-    .build()
+    )
 }
 
-fn constraints() -> ApplicationCapabilityConstraintDefinition {
+pub(super) fn constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
         ApplicationCapabilityAmountDimension::bound(CapabilityAmountField::reference()),
         ApplicationCapabilityCardinalityDimension::One,
@@ -196,7 +202,7 @@ fn constraints() -> ApplicationCapabilityConstraintDefinition {
     )
 }
 
-fn delegation() -> ApplicationCapabilityDelegationDefinition {
+pub(super) fn delegation() -> ApplicationCapabilityDelegationDefinition {
     ApplicationCapabilityDelegationDefinition::new(
         ApplicationCapabilityRelationBinding::from_reference(CapabilityParent::reference()),
         ApplicationCapabilityRelationBinding::from_reference(CapabilityGrantor::reference()),
@@ -208,7 +214,7 @@ fn delegation() -> ApplicationCapabilityDelegationDefinition {
     )
 }
 
-fn composition() -> ApplicationCapabilityComposition {
+pub(super) fn composition() -> ApplicationCapabilityComposition {
     let allow = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
         .forward(CapabilityGrantor::reference())
         .forward(CapabilityResource::reference())
@@ -244,78 +250,4 @@ fn composition() -> ApplicationCapabilityComposition {
             ]),
         ),
     )
-}
-
-fn elevation() -> ApplicationCapabilityElevationRule {
-    let state = |value| {
-        ApplicationCapabilityValueBinding::new(CapabilityElevationStatusField::reference(), value)
-    };
-    ApplicationCapabilityElevationRule::governed(ApplicationCapabilityElevationDefinition::new(
-        ApplicationCapabilityFieldBinding::from_reference(CapabilityElevationIdentity::reference()),
-        ApplicationCapabilityFieldBinding::from_reference(CapabilityElevationReason::reference()),
-        ApplicationCapabilityFieldBinding::from_reference(
-            CapabilityElevationStatusField::reference(),
-        ),
-        ApplicationCapabilityElevationStates::new(
-            state(CapabilityElevationStatus::Requested),
-            state(CapabilityElevationStatus::Approved),
-            state(CapabilityElevationStatus::Expired),
-            state(CapabilityElevationStatus::Revoked),
-        ),
-        ApplicationCapabilityValidityDefinition::new(
-            ApplicationCapabilityValidityTimeline::UnixEpochSeconds,
-            ApplicationCapabilityFieldBinding::from_reference(
-                CapabilityElevationNotBefore::reference(),
-            ),
-            ApplicationCapabilityFieldBinding::from_reference(
-                CapabilityElevationNotAfter::reference(),
-            ),
-        ),
-        std::time::Duration::from_secs(20 * 60),
-        ApplicationCapabilityRelationBinding::from_reference(
-            CapabilityElevationRequester::reference(),
-        ),
-        ApplicationCapabilityRelationBinding::from_reference(
-            CapabilityElevationApprover::reference(),
-        ),
-        ApplicationCapabilityRelationBinding::from_reference(CapabilityElevationGrant::reference()),
-        ApplicationCapabilityElevationLifecycleDefinition::new(
-            ApplicationCapabilityContextEntitySlotBinding::from_reference(
-                CapabilityElevationSlot::reference(),
-            ),
-            ApplicationCapabilityContextEntitySlotBinding::from_reference(
-                CapabilityReviewSlot::reference(),
-            ),
-            ApplicationCapabilityOperationBinding::from_reference(
-                RequestCapabilityElevationOperation::reference(),
-            ),
-            ApplicationCapabilityOperationBinding::from_reference(
-                ApproveCapabilityElevationOperation::reference(),
-            ),
-            ApplicationCapabilityOperationBinding::from_reference(
-                RevokeCapabilityElevationOperation::reference(),
-            ),
-            ApplicationCapabilityOperationBinding::from_reference(
-                CompleteCapabilityReviewOperation::reference(),
-            ),
-        ),
-        ApplicationCapabilityMandatoryReviewDefinition::new(
-            ApplicationCapabilityRelationBinding::from_reference(
-                CapabilityElevationReview::reference(),
-            ),
-            ApplicationCapabilityFieldBinding::from_reference(CapabilityReviewIdentity::reference()),
-            ApplicationCapabilityRelationBinding::from_reference(CapabilityReviewer::reference()),
-            ApplicationCapabilityFieldBinding::from_reference(
-                CapabilityReviewStatusField::reference(),
-            ),
-            ApplicationCapabilityValueBinding::new(
-                CapabilityReviewStatusField::reference(),
-                CapabilityReviewStatus::Required,
-            ),
-            ApplicationCapabilityValueBinding::new(
-                CapabilityReviewStatusField::reference(),
-                CapabilityReviewStatus::Completed,
-            ),
-        ),
-    ))
 }

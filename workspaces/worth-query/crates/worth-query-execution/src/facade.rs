@@ -70,6 +70,7 @@ pub mod primary_graph {
         WorthQueryAuthenticatedPrincipal, WorthQueryBoundedLaneDenial,
         WorthQueryBoundedLaneDenialKind, WorthQueryCompleteApplicationReadSet,
         WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
+        WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
         WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
         WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
         WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
@@ -88,6 +89,7 @@ pub mod primary_graph {
         WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,
         WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
         WorthQueryPrincipalResolutionMode, WorthQueryProjectedApplicationMutation,
+        WorthQueryRequestedElevation,
     };
 }
 

@@ -50,8 +50,10 @@ pub use application_attempt::{
     WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind, WorthQueryApplicationReadAttempt,
     WorthQueryApplicationStaleAttempt, WorthQueryCompleteApplicationReadSet,
+    WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
     WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
+    WorthQueryRequestedElevation,
 };
 pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
 pub use application_query::{

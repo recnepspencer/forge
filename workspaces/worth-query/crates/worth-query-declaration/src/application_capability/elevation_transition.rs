@@ -47,7 +47,9 @@ impl ApplicationCapabilityElevationRequestProjectionDenial {
 pub struct ApplicationCapabilityElevationRequestProjection<Schema, Scope, Context> {
     target: ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
     grant: ErasedApplicationCapabilityEntitySelector,
+    elevation_key: String,
     elevation_identity: ApplicationCapabilityValueBinding,
+    review_key: String,
     review_identity: ApplicationCapabilityValueBinding,
     reason: ApplicationCapabilityValueBinding,
     duration: Duration,
@@ -60,20 +62,33 @@ impl<Schema, Scope, Context>
     pub fn new<Grant>(
         target: ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
         grant: ApplicationCapabilityEntitySelector<Schema, Grant>,
+        elevation_key: impl Into<String>,
         elevation_identity: ApplicationCapabilityValueBinding,
+        review_key: impl Into<String>,
         review_identity: ApplicationCapabilityValueBinding,
         reason: ApplicationCapabilityValueBinding,
         duration: Duration,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, ApplicationCapabilityElevationRequestProjectionDenial> {
+        let elevation_key = elevation_key.into();
+        let review_key = review_key.into();
+        if !valid_entity_key(&elevation_key) || !valid_entity_key(&review_key) {
+            return Err(
+                ApplicationCapabilityElevationRequestProjectionDenial::input_variant(
+                    "elevation request entity key",
+                ),
+            );
+        }
+        Ok(Self {
             target,
             grant: grant.erase(),
+            elevation_key,
             elevation_identity,
+            review_key,
             review_identity,
             reason,
             duration,
             _schema: PhantomData,
-        }
+        })
     }
 
     pub const fn target(&self) -> &ApplicationCapabilityRequestProjection<Schema, Scope, Context> {
@@ -84,8 +99,16 @@ impl<Schema, Scope, Context>
         &self.grant
     }
 
+    pub fn elevation_key(&self) -> &str {
+        &self.elevation_key
+    }
+
     pub const fn elevation_identity(&self) -> &ApplicationCapabilityValueBinding {
         &self.elevation_identity
+    }
+
+    pub fn review_key(&self) -> &str {
+        &self.review_key
     }
 
     pub const fn review_identity(&self) -> &ApplicationCapabilityValueBinding {
@@ -99,4 +122,11 @@ impl<Schema, Scope, Context>
     pub const fn duration(&self) -> Duration {
         self.duration
     }
+}
+
+fn valid_entity_key(value: &str) -> bool {
+    !value.is_empty()
+        && value.trim() == value
+        && value.len() <= 512
+        && !value.chars().any(char::is_control)
 }

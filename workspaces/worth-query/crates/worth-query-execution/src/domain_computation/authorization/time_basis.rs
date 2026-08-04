@@ -104,7 +104,7 @@ fn duration_units(
             Ok(duration.as_secs())
         }
         ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds => {
-            if duration.subsec_nanos() % 1_000_000 != 0 {
+            if !duration.subsec_nanos().is_multiple_of(1_000_000) {
                 return Err(WorthQueryAuthorizationTimeDenial::DurationNotRepresentable);
             }
             duration

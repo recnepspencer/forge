@@ -18,6 +18,8 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     DuplicateEffectKey,
     RetainedEffectBytesExceeded,
     IncompleteEffectBasis,
+    ElevationTransitionRequired,
+    ElevationRequestProgramMismatch,
 }
 
 #[derive(Debug)]

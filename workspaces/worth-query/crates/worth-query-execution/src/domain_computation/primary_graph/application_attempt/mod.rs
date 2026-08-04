@@ -3,6 +3,8 @@ mod compare_and_commit;
 mod denial;
 mod effect_program;
 mod effect_validation;
+mod elevation_request_outcome;
+mod elevation_request_program;
 mod fact;
 mod idempotency;
 mod idempotency_resolution;
@@ -33,6 +35,12 @@ pub use effect_program::{
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder,
 };
+pub(super) use elevation_request_outcome::requested_outcome;
+pub use elevation_request_outcome::{
+    WorthQueryElevationRequestOutcome, WorthQueryRequestedElevation,
+};
+pub(super) use elevation_request_program::validate_elevation_request_program;
+pub use elevation_request_program::WorthQueryElevationRequestProgram;
 pub(super) use fact::WorthQueryApplicationObservedFact;
 pub(in crate::domain_computation::primary_graph) use fact::{
     WorthQueryApplicationAdjacencyDirection, WorthQueryApplicationFactKey,

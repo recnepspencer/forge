@@ -14,6 +14,7 @@ fn one_lifecycle_operation_cannot_serve_two_governed_capability_owners() {
         StatePosture::Distinct,
         ReviewPosture::Distinct,
         LifecyclePosture::Distinct,
+        std::time::Duration::from_secs(20 * 60),
     );
     let aliased_lifecycle = ApplicationCapabilityElevationLifecycleDefinition::new(
         ordinary.lifecycle().elevation_slot().clone(),

@@ -8,8 +8,14 @@ use crate::application_schema::ApplicationFieldPresence;
 
 #[path = "elevation_lifecycle/canonical_identity.rs"]
 mod canonical_identity;
+#[path = "elevation_lifecycle/duration.rs"]
+mod duration;
+#[path = "elevation_lifecycle/member_fixture.rs"]
+mod member_fixture;
 #[path = "elevation_lifecycle/ownership.rs"]
 mod ownership;
+
+use member_fixture::*;
 
 struct Elevation;
 struct ElevationFacts;
@@ -131,6 +137,20 @@ fn elevation_contract(
     review: ReviewPosture,
     lifecycle: LifecyclePosture,
 ) -> crate::application_capability::ErasedApplicationCapabilityContract {
+    elevation_contract_with_duration(
+        states,
+        review,
+        lifecycle,
+        std::time::Duration::from_secs(20 * 60),
+    )
+}
+
+fn elevation_contract_with_duration(
+    states: StatePosture,
+    review: ReviewPosture,
+    lifecycle: LifecyclePosture,
+    maximum_duration: std::time::Duration,
+) -> crate::application_capability::ErasedApplicationCapabilityContract {
     ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
         operation::<Operation>("Operation"),
@@ -141,7 +161,7 @@ fn elevation_contract(
     .delegation(delegation_definition())
     .composition(composition(true))
     .elevation(ApplicationCapabilityElevationRule::governed(
-        elevation_definition(states, review, lifecycle),
+        elevation_definition(states, review, lifecycle, maximum_duration),
     ))
     .build()
     .erased()
@@ -152,6 +172,7 @@ fn elevation_definition(
     states: StatePosture,
     review: ReviewPosture,
     lifecycle: LifecyclePosture,
+    maximum_duration: std::time::Duration,
 ) -> ApplicationCapabilityElevationDefinition {
     let values = match states {
         StatePosture::Distinct => [1, 2, 3, 4],
@@ -176,7 +197,7 @@ fn elevation_definition(
             elevation_binding::<ElevationNotBefore>("ElevationNotBefore"),
             elevation_binding::<ElevationNotAfter>("ElevationNotAfter"),
         ),
-        std::time::Duration::from_secs(20 * 60),
+        maximum_duration,
         relation::<Requester, Principal, Elevation>("Requester", "Principal", "Elevation"),
         relation::<Approver, Principal, Elevation>("Approver", "Principal", "Elevation"),
         relation::<ElevationGrant, Elevation, Grant>("ElevationGrant", "Elevation", "Grant"),
@@ -339,56 +360,4 @@ fn operation<Marker>(name: &'static str) -> ApplicationOperationRef<Schema, Mark
 
 fn operation_binding<Marker>(name: &'static str) -> ApplicationCapabilityOperationBinding {
     ApplicationCapabilityOperationBinding::from_reference(operation::<Marker>(name))
-}
-
-fn entity_member(entity: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Entity {
-        entity: entity.to_string(),
-    }
-}
-
-fn aspect_member(entity: &str, aspect: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Aspect {
-        entity: entity.to_string(),
-        aspect: aspect.to_string(),
-    }
-}
-
-fn elevation_field_member(field: &str) -> ApplicationSchemaMember {
-    typed_field_member("Elevation", "ElevationFacts", field)
-}
-
-fn review_field_member(field: &str) -> ApplicationSchemaMember {
-    typed_field_member("Review", "ReviewFacts", field)
-}
-
-fn typed_field_member(entity: &str, aspect: &str, field: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Field {
-        entity: entity.to_string(),
-        aspect: aspect.to_string(),
-        field: field.to_string(),
-        presence: ApplicationFieldPresence::Required,
-        scalar_family: ScalarAspectType::UInt64,
-        value_type: std::any::type_name::<u64>().to_string(),
-        currency: None,
-        writable: false,
-        equality_queryable: true,
-    }
-}
-
-fn context_slot_member(slot: &str, slot_type: &str, entity: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
-        context: "Context".to_string(),
-        context_type: std::any::type_name::<Context>().to_string(),
-        slot: slot.to_string(),
-        slot_type: slot_type.to_string(),
-        entity: entity.to_string(),
-    }
-}
-
-fn operation_member(operation: &str) -> ApplicationSchemaMember {
-    ApplicationSchemaMember::Operation {
-        operation: operation.to_string(),
-        input_type: std::any::type_name::<()>().to_string(),
-    }
 }

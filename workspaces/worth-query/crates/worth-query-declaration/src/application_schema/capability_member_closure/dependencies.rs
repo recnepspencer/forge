@@ -225,7 +225,7 @@ fn elevation_duration_is_valid(
             duration.subsec_nanos() == 0
         }
         crate::application_capability::ApplicationCapabilityValidityTimeline::UnixEpochMilliseconds => {
-            duration.subsec_nanos() % 1_000_000 == 0
+            duration.subsec_nanos().is_multiple_of(1_000_000)
         }
     }
 }

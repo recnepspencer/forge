@@ -19,7 +19,7 @@ use super::super::fixture::{
     CapabilityElevationScenario, CapabilityElevationStatus, CapabilityElevationStatusField,
     CapabilityPurpose, CapabilityRequestContext, CapabilityTouchOperation,
     ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
-    RequestCapabilityElevationOperation, TouchAccountCapability,
+    RequestCapabilityElevationOperation, RequestElevationInput, TouchAccountCapability,
 };
 use super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
@@ -28,6 +28,8 @@ use crate::domain_computation::primary_graph::{
 
 #[path = "capability_elevation/approver_conflict.rs"]
 mod approver_conflict;
+#[path = "capability_elevation/request_transition.rs"]
+mod request_transition;
 #[path = "capability_elevation/validity.rs"]
 mod validity;
 
@@ -48,7 +50,7 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
         .authorization
         .elevation_lifecycle_operation::<
             RequestCapabilityElevationOperation,
-            ElevatedCapabilityTouchInput,
+            RequestElevationInput,
         >("RequestCapabilityElevationOperation")
         .expect("the request marker must match installed lifecycle identity")
         .expect("the request operation must have one lifecycle owner");
@@ -58,7 +60,7 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
         .authorization
         .elevation_lifecycle_operation::<
             AliasedRequestCapabilityElevationOperation,
-            ElevatedCapabilityTouchInput,
+            RequestElevationInput,
         >("RequestCapabilityElevationOperation")
         .is_err());
     world

@@ -84,6 +84,8 @@ impl WorthQueryApplicationStaleAttempt {
 pub enum WorthQueryApplicationCommitDenialKind {
     ProviderRejected,
     IdempotencyIntentDrift,
+    ElevationTransitionRequired,
+    ElevationRequestProgramMismatch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -97,6 +99,7 @@ pub enum WorthQueryApplicationCommitDenialStage {
     Idempotency,
     DecisionReadSet,
     EffectLowering,
+    ElevationTransition,
     ProvisionalState,
     InvariantExecution,
     ProviderCommit,
@@ -142,6 +145,20 @@ impl WorthQueryApplicationCommitDenial {
         Self {
             kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
             stage: WorthQueryApplicationCommitDenialStage::Idempotency,
+        }
+    }
+
+    pub(super) const fn elevation_transition_required() -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::ElevationTransitionRequired,
+            stage: WorthQueryApplicationCommitDenialStage::ElevationTransition,
+        }
+    }
+
+    pub(super) const fn elevation_request_program_mismatch() -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::ElevationRequestProgramMismatch,
+            stage: WorthQueryApplicationCommitDenialStage::ElevationTransition,
         }
     }
 }

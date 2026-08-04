@@ -8,10 +8,12 @@ use worth_runtime_bridge::facade::{
 
 use super::super::provider_binding::prepare_provider_attempt;
 use super::super::{
-    provider_recomparison::recover_equivalent_commit_evidence, WorthQueryApplicationCommitDenial,
+    provider_recomparison::recover_equivalent_commit_evidence, requested_outcome,
+    validate_elevation_request_program, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitDenialStage as DenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectProgram,
-    WorthQueryApplicationIdempotencyBinding,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryElevationRequestOutcome,
+    WorthQueryElevationRequestProgram,
 };
 use super::outcome::WorthQueryProviderProgressionOutcome;
 use super::progression::execute_provider_progression;
@@ -29,6 +31,46 @@ where
     Schema: ApplicationSchema,
 {
     pub fn compare_and_commit_application<Operation, Input, Scope>(
+        &self,
+        program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
+        idempotency: WorthQueryApplicationIdempotencyBinding,
+    ) -> WorthQueryApplicationCommitOutcome {
+        if program
+            .read_set
+            .admission
+            .elevation_request_binding()
+            .is_some()
+        {
+            return WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::elevation_transition_required(),
+            );
+        }
+        self.compare_and_commit_application_inner(program, idempotency)
+    }
+
+    pub fn compare_and_commit_elevation_request<Operation, Input, Scope>(
+        &self,
+        program: WorthQueryElevationRequestProgram<Schema, Operation, Input, Scope>,
+        idempotency: WorthQueryApplicationIdempotencyBinding,
+    ) -> WorthQueryElevationRequestOutcome {
+        let mut program = program.into_inner();
+        if validate_elevation_request_program(&program).is_err() {
+            return WorthQueryElevationRequestOutcome::Denied(
+                WorthQueryApplicationCommitDenial::elevation_request_program_mismatch(),
+            );
+        }
+        let Some(binding) = program.read_set.admission.take_elevation_request_binding() else {
+            return WorthQueryElevationRequestOutcome::Denied(
+                WorthQueryApplicationCommitDenial::elevation_request_program_mismatch(),
+            );
+        };
+        requested_outcome(
+            self.compare_and_commit_application_inner(program, idempotency),
+            binding,
+        )
+    }
+
+    fn compare_and_commit_application_inner<Operation, Input, Scope>(
         &self,
         program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
