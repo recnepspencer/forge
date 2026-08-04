@@ -10,7 +10,7 @@ use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-use super::context_identity::{selected_lifecycle_entity, WorthQueryElevationContextEntity};
+use super::context_identity::selected_elevation_entity;
 use super::mandatory_review_binding::WorthQueryMandatoryReviewDraft;
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{lifecycle_decision_reads, review_program_targets};
@@ -19,6 +19,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 
+#[derive(Debug)]
 pub struct WorthQueryMandatoryReviewAuthorizationDenial {
     denial: WorthQueryOperationAuthorizationDenial,
     mandatory: WorthQueryMandatoryReview,
@@ -99,18 +100,12 @@ where
     {
         return Err(review_rejected(installed.contract.name()));
     }
-    let elevation = selected_lifecycle_entity(
-        access,
-        installed,
-        WorthQueryElevationContextEntity::Elevation,
-    )
-    .ok_or_else(|| review_rejected(installed.contract.name()))?;
-    let review =
-        selected_lifecycle_entity(access, installed, WorthQueryElevationContextEntity::Review)
-            .ok_or_else(|| review_rejected(installed.contract.name()))?;
-    if elevation != mandatory.elevation() || review != mandatory.review() {
+    let elevation = selected_elevation_entity(access, installed)
+        .ok_or_else(|| review_rejected(installed.contract.name()))?;
+    if elevation != mandatory.elevation() {
         return Err(review_rejected(installed.contract.name()));
     }
+    let review = mandatory.review();
     let lifecycle = installed.elevation.as_ref().unwrap();
     let sample = runtime
         .authorization_clock

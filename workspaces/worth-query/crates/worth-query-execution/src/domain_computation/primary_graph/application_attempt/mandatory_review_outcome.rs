@@ -8,6 +8,16 @@ use super::{
 };
 use crate::domain_computation::authorization::WorthQueryMandatoryReviewBinding;
 
+/// Terminal move-only lifecycle receipt produced by exact mandatory review.
+///
+/// ```compile_fail
+/// use worth_query_execution::facade::primary_graph::WorthQueryReviewedElevation;
+///
+/// fn reviewed_elevation_cannot_be_copied(reviewed: WorthQueryReviewedElevation) {
+///     let _copied = reviewed.clone();
+/// }
+/// ```
+#[derive(Debug)]
 pub struct WorthQueryReviewedElevation {
     mandatory: WorthQueryMandatoryReview,
     review_commit: WorthQueryApplicationCommitReceipt,
@@ -93,6 +103,7 @@ impl WorthQueryReviewedElevation {
     }
 }
 
+#[derive(Debug)]
 pub enum WorthQueryMandatoryReviewOutcome {
     Reviewed(WorthQueryReviewedElevation),
     AlreadyReviewed(WorthQueryReviewedElevation),

@@ -88,6 +88,7 @@ pub enum WorthQueryApplicationCommitDenialKind {
     ElevationRequestProgramMismatch,
     ElevationApprovalProgramMismatch,
     ElevationCloseProgramMismatch,
+    MandatoryReviewProgramMismatch,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -174,6 +175,13 @@ impl WorthQueryApplicationCommitDenial {
     pub(super) const fn elevation_close_program_mismatch() -> Self {
         Self {
             kind: WorthQueryApplicationCommitDenialKind::ElevationCloseProgramMismatch,
+            stage: WorthQueryApplicationCommitDenialStage::ElevationTransition,
+        }
+    }
+
+    pub(super) const fn mandatory_review_program_mismatch() -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::MandatoryReviewProgramMismatch,
             stage: WorthQueryApplicationCommitDenialStage::ElevationTransition,
         }
     }

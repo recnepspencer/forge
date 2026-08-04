@@ -10,7 +10,8 @@ use worth_relational::facade::transactions::{
 
 use super::super::super::fixture::{
     live_scope, CapabilityElevationApprover, CapabilityElevationIdentity,
-    CapabilityElevationStatus, CapabilityElevationStatusField,
+    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityReviewIdentity,
+    CapabilityReviewStatus, CapabilityReviewStatusField, CapabilityReviewer,
 };
 use crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionMode;
 
@@ -88,6 +89,62 @@ pub(super) fn add_self_approver(
                 fields: AspectFieldPatch::default(),
             })),
         ));
+        transaction.commit().unwrap();
+        handle.ensure_primary_indexes_current(runtime).unwrap();
+    });
+}
+
+pub(super) fn complete_review_out_of_band(
+    world: &super::super::super::fixture::AuthorizationWorld,
+    reviewer: EntityId,
+) {
+    let review = world
+        .application
+        .resolve_entity(
+            CapabilityReviewIdentity::reference(),
+            "review-2".to_owned(),
+            &live_scope(),
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let field = CapabilityReviewStatusField::reference();
+    let graph = world.application.runtime.primary_graph().unwrap();
+    let locator = graph
+        .layout()
+        .field_locator(field.entity(), field.aspect(), field.field())
+        .unwrap()
+        .clone();
+    let relation_kind = graph
+        .layout()
+        .relation(CapabilityReviewer::reference().name())
+        .unwrap()
+        .kind;
+    let handle = graph.integration_handle();
+    handle.with_runtime_mut(|runtime| {
+        let fields = AspectFieldPatch::from(BTreeMap::from([(
+            locator,
+            CapabilityReviewStatus::Completed.into_foundational_value(),
+        )]));
+        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        transaction.push_batch(
+            WorkerIntentBatch::new("complete-review-out-of-band")
+                .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: review.entity_id(),
+                        fields,
+                    },
+                )))
+                .push(MutationIntent::Create(CreateIntent::Relation(
+                    RelationSpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: relation_kind,
+                        client_key: ClientKey::raw("out-of-band-reviewer"),
+                        source: EntityReference::Existing(reviewer),
+                        target: EntityReference::Existing(review.entity_id()),
+                        fields: AspectFieldPatch::default(),
+                    },
+                ))),
+        );
         transaction.commit().unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });

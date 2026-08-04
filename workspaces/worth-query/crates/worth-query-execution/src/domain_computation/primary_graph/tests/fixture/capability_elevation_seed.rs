@@ -32,6 +32,20 @@ pub(super) fn bind_elevated_capability(
         "principal-1",
         "capability-1",
     );
+    super::capability_seed::bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        "capability-1-review-grantee",
+        "principal-2",
+        "capability-1",
+    );
+    super::capability_seed::bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        "capability-1-review-grantor",
+        "principal-2",
+        "capability-1",
+    );
     if scenario == CapabilityElevationScenario::WrongGrant {
         bind_future_replacement_grant(bootstrap);
     }

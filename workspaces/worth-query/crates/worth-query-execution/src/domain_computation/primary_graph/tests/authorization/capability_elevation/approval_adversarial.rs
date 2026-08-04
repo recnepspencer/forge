@@ -4,11 +4,29 @@ use super::super::super::fixture::{
     CapabilityElevationScenario, CapabilityElevationStatus, IdentityExecutionSchema,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitOutcome,
-    WorthQueryCompleteApplicationReadSet, WorthQueryElevationApprovalOutcome,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryProjectedApplicationMutation,
-    WorthQueryRequestedElevation,
+    WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationCommitDenialKind,
+    WorthQueryApplicationCommitOutcome, WorthQueryCompleteApplicationReadSet,
+    WorthQueryElevationApprovalOutcome, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryProjectedApplicationMutation, WorthQueryRequestedElevation,
 };
+
+#[test]
+fn any_preexisting_approver_relation_blocks_fresh_approval_materialization() {
+    let (world, request, requested) =
+        super::approval_transition::requested_world(CapabilityElevationScenario::Active);
+    let requester = requested.requester();
+    super::mutation::add_self_approver(&world, "elevation-2", requester);
+
+    let Err(denial) =
+        approval_reads(&world, &request, requested).materialize_elevation_approval_program()
+    else {
+        panic!("approval must prove the complete preexisting approver set is empty");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationAttemptDenialKind::ElevationApprovalProgramMismatch
+    );
+}
 
 type Reads = WorthQueryCompleteApplicationReadSet<
     IdentityExecutionSchema,

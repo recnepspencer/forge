@@ -16,10 +16,7 @@ use worth_query_declaration::{
     worth_query_relation,
 };
 
-use super::super::{
-    Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal,
-    PrincipalIdentityField,
-};
+use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal};
 use super::declaration::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -129,15 +126,13 @@ pub struct ApproveElevationInput {
 worth_query_operation!(pub ElevatedCapabilityTouchOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation!(pub RequestCapabilityElevationOperation(RequestElevationInput) in IdentityExecutionSchema);
 worth_query_operation!(pub ApproveCapabilityElevationOperation(ApproveElevationInput) in IdentityExecutionSchema);
-worth_query_operation!(pub RevokeCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
-worth_query_operation!(pub CompleteCapabilityReviewOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation_reads!(ElevatedCapabilityTouchOperation => [AccountLabel]);
 worth_query_operation_writes!(ElevatedCapabilityTouchOperation => [AccountLabel]);
 worth_query_operation_reads!(RequestCapabilityElevationOperation => [AccountLabel]);
 worth_query_operation_creates!(RequestCapabilityElevationOperation => [CapabilityElevation, CapabilityReview]);
 worth_query_operation_writes!(RequestCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField]);
 worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationReview]);
-worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityIdentity, PrincipalIdentityField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewer]);
+worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewer]);
 worth_query_operation_writes!(ApproveCapabilityElevationOperation => [CapabilityElevationStatusField]);
 worth_query_operation_links!(ApproveCapabilityElevationOperation => [CapabilityElevationApprover]);
 
@@ -327,6 +322,12 @@ impl RequestElevationInput {
     }
 }
 
+#[path = "elevated/close.rs"]
+mod close;
 #[path = "elevated/contract.rs"]
 mod contract;
+#[path = "elevated/review.rs"]
+mod review;
+pub use close::*;
 pub(super) use contract::install;
+pub use review::*;

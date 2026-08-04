@@ -7,9 +7,8 @@ use super::super::super::fixture::{
     CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
     CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationScenario,
-    CapabilityElevationStatusField, CapabilityIdentity, CapabilityPurpose,
-    CapabilityReviewIdentity, CapabilityReviewStatusField, IdentityExecutionSchema, Principal,
-    PrincipalIdentityField,
+    CapabilityElevationStatusField, CapabilityPurpose, CapabilityReviewIdentity,
+    CapabilityReviewStatusField, CapabilityReviewer, IdentityExecutionSchema, Principal,
 };
 use super::super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
@@ -192,15 +191,6 @@ pub(super) fn seal_approval_facts(
     let review = reader
         .resolve_entity(CapabilityReviewIdentity::reference(), "review-2".to_owned())
         .unwrap();
-    let requester = reader
-        .resolve_entity(PrincipalIdentityField::reference(), 1_u64)
-        .unwrap();
-    let approver = reader
-        .resolve_entity(PrincipalIdentityField::reference(), 2_u64)
-        .unwrap();
-    let grant = reader
-        .resolve_entity(CapabilityIdentity::reference(), "capability-1".to_owned())
-        .unwrap();
     reader
         .require_decision_field(&elevation, CapabilityElevationIdentity::reference())
         .unwrap();
@@ -223,24 +213,19 @@ pub(super) fn seal_approval_facts(
         .require_decision_field(&review, CapabilityReviewStatusField::reference())
         .unwrap();
     reader
-        .require_decision_relation(
-            CapabilityElevationRequester::reference(),
-            &requester,
-            &elevation,
-        )
+        .decision_relations_to(CapabilityElevationRequester::reference(), &elevation)
         .unwrap();
     reader
-        .require_decision_relation(
-            CapabilityElevationApprover::reference(),
-            &approver,
-            &elevation,
-        )
+        .decision_relations_to(CapabilityElevationApprover::reference(), &elevation)
         .unwrap();
     reader
-        .require_decision_relation(CapabilityElevationGrant::reference(), &elevation, &grant)
+        .decision_relations_from(CapabilityElevationGrant::reference(), &elevation)
         .unwrap();
     reader
-        .require_decision_relation(CapabilityElevationReview::reference(), &elevation, &review)
+        .decision_relations_from(CapabilityElevationReview::reference(), &elevation)
+        .unwrap();
+    reader
+        .decision_relations_to(CapabilityReviewer::reference(), &review)
         .unwrap();
 }
 

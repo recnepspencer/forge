@@ -71,7 +71,9 @@ pub mod primary_graph {
         WorthQueryBoundedLaneDenialKind, WorthQueryCompleteApplicationReadSet,
         WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
         WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationApprovalOutcome,
-        WorthQueryElevationApprovalProgram, WorthQueryElevationRequestOutcome,
+        WorthQueryElevationApprovalProgram, WorthQueryElevationCloseAuthorizationDenial,
+        WorthQueryElevationCloseOutcome, WorthQueryElevationCloseProgram,
+        WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
         WorthQueryElevationRequestProgram, WorthQueryEntityResolutionDenial,
         WorthQueryEntityResolutionDenialKind, WorthQueryInspectedOperationInvariantProjection,
         WorthQueryInvariantAggregate, WorthQueryInvariantAggregateDenial,
@@ -79,7 +81,9 @@ pub mod primary_graph {
         WorthQueryInvariantDecisionPlanDenialKind, WorthQueryInvariantEntityIdentity,
         WorthQueryInvariantProjectionTraversalDenial,
         WorthQueryInvariantProjectionTraversalDenialKind, WorthQueryInvariantProjectionWork,
-        WorthQueryInvariantRelation, WorthQueryMutationPreconditionComparisonEvidence,
+        WorthQueryInvariantRelation, WorthQueryMandatoryReview,
+        WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryMandatoryReviewOutcome,
+        WorthQueryMandatoryReviewProgram, WorthQueryMutationPreconditionComparisonEvidence,
         WorthQueryObservedApplicationRelation, WorthQueryOperationAuthorizationDenial,
         WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationProjectionDenial,
         WorthQueryOperationProjectionDenialKind, WorthQueryOperationScopeBinding,
@@ -91,7 +95,7 @@ pub mod primary_graph {
         WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,
         WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
         WorthQueryPrincipalResolutionMode, WorthQueryProjectedApplicationMutation,
-        WorthQueryRequestedElevation,
+        WorthQueryRequestedElevation, WorthQueryReviewedElevation,
     };
 }
 

@@ -1,8 +1,9 @@
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_relational::facade::identity::{EntityId, KindId};
 
-use super::WorthQueryApplicationObservedFact;
+use super::{WorthQueryApplicationAdjacencyDirection, WorthQueryApplicationObservedFact};
 
+#[derive(Clone, Copy)]
 pub(super) enum WorthQueryExpectedLifecycleRelation {
     Absent,
     Present(EntityId),
@@ -46,78 +47,69 @@ pub(super) fn lifecycle_facts_are_exact(
         && fields
             .into_iter()
             .all(|(entity, (locator, value))| exact_field(facts, entity, locator, value))
-        && exact_relation(
+        && exact_relation_set(
             facts,
             expected.requester_relation,
-            expected.requester,
             expected.elevation,
-            1,
+            WorthQueryApplicationAdjacencyDirection::Incoming,
+            WorthQueryExpectedLifecycleRelation::Present(expected.requester),
         )
-        && expected_relation(
+        && exact_relation_set(
             facts,
             expected.approver_relation,
-            expected.approver,
             expected.elevation,
+            WorthQueryApplicationAdjacencyDirection::Incoming,
+            expected.approver,
         )
-        && exact_relation(
+        && exact_relation_set(
             facts,
             expected.grant_relation,
             expected.elevation,
-            expected.grant,
-            1,
+            WorthQueryApplicationAdjacencyDirection::Outgoing,
+            WorthQueryExpectedLifecycleRelation::Present(expected.grant),
         )
-        && exact_relation(
+        && exact_relation_set(
             facts,
             expected.review_relation,
             expected.elevation,
-            expected.review,
-            1,
+            WorthQueryApplicationAdjacencyDirection::Outgoing,
+            WorthQueryExpectedLifecycleRelation::Present(expected.review),
         )
-        && expected_relation(
+        && exact_relation_set(
             facts,
             expected.reviewer_relation,
-            expected.reviewer,
             expected.review,
+            WorthQueryApplicationAdjacencyDirection::Incoming,
+            expected.reviewer,
         )
 }
 
-fn expected_relation(
+fn exact_relation_set(
     facts: &[WorthQueryApplicationObservedFact],
     kind: KindId,
+    anchor: EntityId,
+    direction: WorthQueryApplicationAdjacencyDirection,
     expected: WorthQueryExpectedLifecycleRelation,
-    target: EntityId,
 ) -> bool {
-    match expected {
-        WorthQueryExpectedLifecycleRelation::Absent => {
-            facts
-                .iter()
-                .filter(|fact| relation_kind(fact) == Some(kind))
-                .filter(|fact| {
-                    matches!(
-                        fact,
-                        WorthQueryApplicationObservedFact::Relation {
-                            to,
-                            matching_relations,
-                            ..
-                        } if *to == target && matching_relations.is_empty()
-                    )
-                })
-                .count()
-                == 1
-        }
-        WorthQueryExpectedLifecycleRelation::Present(source) => {
-            exact_relation(facts, kind, source, target, 1)
-        }
-    }
-}
-
-fn relation_kind(fact: &WorthQueryApplicationObservedFact) -> Option<KindId> {
-    match fact {
-        WorthQueryApplicationObservedFact::Relation { relation_kind, .. } => Some(*relation_kind),
-        WorthQueryApplicationObservedFact::Entity { .. }
-        | WorthQueryApplicationObservedFact::Field { .. }
-        | WorthQueryApplicationObservedFact::Adjacency { .. } => None,
-    }
+    facts
+        .iter()
+        .filter(|fact| {
+            matches!(
+                fact,
+                WorthQueryApplicationObservedFact::Adjacency {
+                    relation_kind,
+                    anchor: observed_anchor,
+                    direction: observed_direction,
+                    relations,
+                    ..
+                } if *relation_kind == kind
+                    && *observed_anchor == anchor
+                    && *observed_direction == direction
+                    && relation_set_matches(relations, anchor, direction, expected)
+            )
+        })
+        .count()
+        == 1
 }
 
 fn exact_field(
@@ -143,30 +135,24 @@ fn exact_field(
         == 1
 }
 
-fn exact_relation(
-    facts: &[WorthQueryApplicationObservedFact],
-    kind: KindId,
-    from: EntityId,
-    to: EntityId,
-    count: usize,
+fn relation_set_matches(
+    relations: &[super::fact::WorthQueryApplicationObservedRelation],
+    anchor: EntityId,
+    direction: WorthQueryApplicationAdjacencyDirection,
+    expected: WorthQueryExpectedLifecycleRelation,
 ) -> bool {
-    facts
-        .iter()
-        .filter(|fact| {
-            matches!(
-                fact,
-                WorthQueryApplicationObservedFact::Relation {
-                    relation_kind,
-                    from: observed_from,
-                    to: observed_to,
-                    matching_relations,
-                    ..
-                } if *relation_kind == kind
-                    && (count == 0 || *observed_from == from)
-                    && *observed_to == to
-                    && matching_relations.len() == count
-            )
-        })
-        .count()
-        == 1
+    match expected {
+        WorthQueryExpectedLifecycleRelation::Absent => relations.is_empty(),
+        WorthQueryExpectedLifecycleRelation::Present(endpoint) => {
+            relations.len() == 1
+                && relations.iter().all(|relation| match direction {
+                    WorthQueryApplicationAdjacencyDirection::Incoming => {
+                        relation.from == endpoint && relation.to == anchor
+                    }
+                    WorthQueryApplicationAdjacencyDirection::Outgoing => {
+                        relation.from == anchor && relation.to == endpoint
+                    }
+                })
+        }
+    }
 }

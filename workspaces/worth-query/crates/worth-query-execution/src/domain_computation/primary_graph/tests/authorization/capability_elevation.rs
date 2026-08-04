@@ -25,12 +25,20 @@ mod approval_adversarial;
 mod approval_transition;
 #[path = "capability_elevation/approver_conflict.rs"]
 mod approver_conflict;
+#[path = "capability_elevation/close_transition.rs"]
+mod close_transition;
 #[path = "capability_elevation/mutation.rs"]
 mod mutation;
 #[path = "capability_elevation/request_support.rs"]
 mod request_support;
 #[path = "capability_elevation/request_transition.rs"]
 mod request_transition;
+#[path = "capability_elevation/review_transition.rs"]
+mod review_transition;
+#[path = "capability_elevation/terminal_lifecycle_support.rs"]
+mod terminal_lifecycle_support;
+#[path = "capability_elevation/terminal_state.rs"]
+mod terminal_state;
 #[path = "capability_elevation/validity.rs"]
 mod validity;
 

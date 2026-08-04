@@ -26,11 +26,14 @@ pub(super) use capability::{
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
     CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
     CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityIdentity,
-    CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity,
-    CapabilityReviewStatusField, CapabilityStatus, CapabilityStatusField, CapabilityTouchInput,
-    CapabilityTouchOperation, ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation,
+    CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewStatus,
+    CapabilityReviewStatusField, CapabilityReviewer, CapabilityStatus, CapabilityStatusField,
+    CapabilityTouchInput, CapabilityTouchOperation, CloseElevationInput,
+    CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
+    CompleteElevationReviewInput, ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation,
     ElevatedTouchAccountCapability, RequestCapabilityElevationOperation,
-    RequestElevationCapability, RequestElevationInput, TouchAccountCapability,
+    RequestElevationCapability, RequestElevationInput, RevokeCapabilityElevationOperation,
+    RevokeElevationCapability, TouchAccountCapability,
 };
 pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
 #[path = "fixture/application_queries.rs"]

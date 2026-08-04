@@ -23,6 +23,7 @@ pub enum WorthQueryElevationClosureKind {
 ///     let _copied = review.clone();
 /// }
 /// ```
+#[derive(Debug)]
 pub struct WorthQueryMandatoryReview {
     approved: WorthQueryApprovedElevation,
     close_commit: WorthQueryApplicationCommitReceipt,
@@ -129,6 +130,7 @@ impl WorthQueryMandatoryReview {
     }
 }
 
+#[derive(Debug)]
 pub enum WorthQueryElevationCloseOutcome {
     Closed(WorthQueryMandatoryReview),
     AlreadyClosed(WorthQueryMandatoryReview),

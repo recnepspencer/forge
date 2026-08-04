@@ -6,12 +6,14 @@ use worth_query_installation::facade::{
 };
 
 use super::super::capability_operation_progression::progress_capability_operation;
-use super::super::capability_registry::WorthQueryElevationLifecycleOperationRole;
+use super::super::capability_registry::{
+    WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
+};
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-use super::context_identity::{selected_lifecycle_entity, WorthQueryElevationContextEntity};
+use super::context_identity::selected_elevation_entity;
 use super::elevation_close_binding::WorthQueryElevationCloseDraft;
 use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{close_program_targets, lifecycle_decision_reads};
@@ -20,6 +22,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 
+#[derive(Debug)]
 pub struct WorthQueryElevationCloseAuthorizationDenial {
     denial: WorthQueryOperationAuthorizationDenial,
     approved: WorthQueryApprovedElevation,
@@ -100,18 +103,43 @@ where
     {
         return Err(close_rejected(installed.contract.name()));
     }
-    let elevation = selected_lifecycle_entity(
-        access,
-        installed,
-        WorthQueryElevationContextEntity::Elevation,
-    )
-    .ok_or_else(|| close_rejected(installed.contract.name()))?;
-    let review =
-        selected_lifecycle_entity(access, installed, WorthQueryElevationContextEntity::Review)
-            .ok_or_else(|| close_rejected(installed.contract.name()))?;
-    if elevation != approved.elevation() || review != approved.review() {
+    let elevation = selected_elevation_entity(access, installed)
+        .ok_or_else(|| close_rejected(installed.contract.name()))?;
+    if elevation != approved.elevation() {
         return Err(close_rejected(installed.contract.name()));
     }
+    let review = approved.review();
+    let lifecycle = installed.elevation.as_ref().unwrap();
+    let (closure_kind, closed_at, closed_status) = derive_closure(runtime, installed, approved)?;
+    let definition = installed.contract.elevation().definition().unwrap();
+    Ok(WorthQueryElevationCloseDraft {
+        elevation,
+        review,
+        closer: access.principal_entity_id,
+        closure_kind,
+        closed_at,
+        closed_status,
+        approved_status: lifecycle.lifecycle.approved.clone(),
+        elevation_entity: definition.status().entity().to_string(),
+        status_field: lifecycle.lifecycle.status.clone(),
+        approver_relation: lifecycle.lifecycle.approver_relation,
+        reviewer_relation: lifecycle.lifecycle.reviewer_relation,
+        required_decision_reads: lifecycle_decision_reads(installed),
+        required_program_targets: close_program_targets(installed),
+    })
+}
+
+fn derive_closure<Schema>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    approved: &WorthQueryApprovedElevation,
+) -> Result<
+    (WorthQueryElevationClosureKind, AspectValue, AspectValue),
+    WorthQueryOperationAuthorizationDenial,
+>
+where
+    Schema: ApplicationSchema,
+{
     let lifecycle = installed.elevation.as_ref().unwrap();
     let sample = runtime
         .authorization_clock
@@ -133,22 +161,7 @@ where
         ),
         _ => return Err(close_rejected(installed.contract.name())),
     };
-    let definition = installed.contract.elevation().definition().unwrap();
-    Ok(WorthQueryElevationCloseDraft {
-        elevation,
-        review,
-        closer: access.principal_entity_id,
-        closure_kind,
-        closed_at: sample.value().clone(),
-        closed_status,
-        approved_status: lifecycle.lifecycle.approved.clone(),
-        elevation_entity: definition.status().entity().to_string(),
-        status_field: lifecycle.lifecycle.status.clone(),
-        approver_relation: lifecycle.lifecycle.approver_relation,
-        reviewer_relation: lifecycle.lifecycle.reviewer_relation,
-        required_decision_reads: lifecycle_decision_reads(installed),
-        required_program_targets: close_program_targets(installed),
-    })
+    Ok((closure_kind, sample.value().clone(), closed_status))
 }
 
 fn close_denial(

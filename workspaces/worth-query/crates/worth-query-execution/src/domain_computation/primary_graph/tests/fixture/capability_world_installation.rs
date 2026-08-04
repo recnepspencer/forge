@@ -102,7 +102,7 @@ pub(in crate::domain_computation::primary_graph) fn installed_delegated_capabili
 pub(in crate::domain_computation::primary_graph) fn installed_elevated_capability_world(
     scenario: super::capability_elevation_seed::CapabilityElevationScenario,
 ) -> AuthorizationWorld {
-    capability_world(2, "primary", CapabilityGrantPopulation::Elevated(scenario))
+    capability_world(3, "primary", CapabilityGrantPopulation::Elevated(scenario))
 }
 
 fn capability_world(

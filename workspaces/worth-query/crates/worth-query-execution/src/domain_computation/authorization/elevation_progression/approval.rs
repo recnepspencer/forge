@@ -4,21 +4,22 @@ use worth_query_declaration::facade::application_schema::TypedMutationPreconditi
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
+use worth_relational::facade::identity::EntityId;
 
 use super::super::capability_operation_progression::progress_capability_operation;
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
 };
-use super::super::capability_request_resolution::WorthQueryCapabilityContextKey;
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 use super::approval_binding::WorthQueryElevationApprovalBinding;
+use super::context_identity::{resolve_lifecycle_identity, selected_elevation_entity};
+use super::operation_role::installed_lifecycle_owner;
 use super::transition_contract::{approval_program_targets, lifecycle_decision_reads};
 use crate::domain_computation::primary_graph::{
-    resolve_at_snapshot, WorthQueryPrimaryGraphApplicationRuntime,
-    WorthQueryPrincipalResolutionMode, WorthQueryRequestedElevation,
+    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryRequestedElevation,
 };
 
 #[derive(Debug)]
@@ -88,7 +89,11 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let (capability_identity, installed) = installed_approval_lifecycle(runtime, operation)?;
+    let (capability_identity, installed) = installed_lifecycle_owner(
+        runtime,
+        operation,
+        WorthQueryElevationLifecycleOperationRole::Approve,
+    )?;
     let requested_binding = requested.binding();
     validate_receipt_authority(runtime, capability_identity, installed, requested, access)?;
     let lifecycle = installed
@@ -100,33 +105,8 @@ where
         .elevation()
         .definition()
         .ok_or_else(|| approval_rejected(installed.contract.name()))?;
-    let elevation = selected_context_entity(access, installed, true)?;
-    let review = resolve_identity(
-        runtime,
-        access,
-        installed
-            .contract
-            .elevation()
-            .definition()
-            .unwrap()
-            .review()
-            .identity(),
-        &requested_binding.review_identity,
-    )?;
-    if resolve_identity(
-        runtime,
-        access,
-        installed
-            .contract
-            .elevation()
-            .definition()
-            .unwrap()
-            .identity(),
-        &requested_binding.elevation_identity,
-    )? != elevation
-    {
-        return Err(approval_rejected(installed.contract.name()));
-    }
+    let (elevation, review) =
+        resolve_approval_entities(runtime, access, installed, requested_binding)?;
     validate_approval_time(runtime, installed, requested_binding)?;
     Ok(WorthQueryElevationApprovalBinding {
         requested: requested_binding.clone(),
@@ -144,32 +124,38 @@ where
     })
 }
 
-fn installed_approval_lifecycle<'runtime, Schema, Operation, Input>(
-    runtime: &'runtime WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-) -> Result<
-    ([u8; 32], &'runtime WorthQueryInstalledCapabilityPlan),
-    WorthQueryOperationAuthorizationDenial,
->
+fn resolve_approval_entities<Schema, Capability, Operation, Input>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    requested: &super::WorthQueryElevationRequestBinding,
+) -> Result<(EntityId, EntityId), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
+    Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let Some((capability, role)) = runtime
-        .authorization
-        .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
-        .map_err(|()| stale_operation(operation.operation()))?
-    else {
-        return Err(role_mismatch(operation.operation()));
-    };
-    if role != WorthQueryElevationLifecycleOperationRole::Approve {
-        return Err(role_mismatch(operation.operation()));
+    let definition = installed.contract.elevation().definition().unwrap();
+    let elevation = selected_elevation_entity(access, installed)
+        .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+    let resolved_elevation = resolve_lifecycle_identity(
+        runtime,
+        access,
+        definition.identity(),
+        &requested.elevation_identity,
+    )
+    .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+    let review = resolve_lifecycle_identity(
+        runtime,
+        access,
+        definition.review().identity(),
+        &requested.review_identity,
+    )
+    .ok_or_else(|| approval_rejected(installed.contract.name()))?;
+    if resolved_elevation == elevation {
+        Ok((elevation, review))
+    } else {
+        Err(approval_rejected(installed.contract.name()))
     }
-    let installed = runtime
-        .authorization
-        .capability_plan_by_identity(&capability)
-        .filter(|plan| plan.elevation.is_some())
-        .ok_or_else(|| stale_operation(operation.operation()))?;
-    Ok((capability, installed))
 }
 
 fn validate_receipt_authority<Schema, Capability, Operation, Input>(
@@ -195,78 +181,6 @@ where
         return Err(approval_rejected(installed.contract.name()));
     }
     Ok(())
-}
-
-fn selected_context_entity<Schema, Capability, Operation, Input>(
-    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
-    installed: &WorthQueryInstalledCapabilityPlan,
-    elevation: bool,
-) -> Result<worth_relational::facade::identity::EntityId, WorthQueryOperationAuthorizationDenial>
-where
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
-{
-    let lifecycle = installed
-        .contract
-        .elevation()
-        .definition()
-        .unwrap()
-        .lifecycle();
-    let slot = if elevation {
-        lifecycle.elevation_slot()
-    } else {
-        lifecycle.review_slot()
-    };
-    access
-        .resolved
-        .context
-        .get(&WorthQueryCapabilityContextKey {
-            context: slot.context().to_string(),
-            context_type: slot.context_type().to_string(),
-            slot: slot.slot().to_string(),
-            slot_type: slot.slot_type().to_string(),
-            entity: slot.entity().to_string(),
-        })
-        .copied()
-        .ok_or_else(|| approval_rejected(installed.contract.name()))
-}
-
-fn resolve_identity<Schema, Capability, Operation, Input>(
-    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
-    field: &worth_query_declaration::facade::application_capability::ApplicationCapabilityFieldBinding,
-    value: &AspectValue,
-) -> Result<worth_relational::facade::identity::EntityId, WorthQueryOperationAuthorizationDenial>
-where
-    Schema: ApplicationSchema,
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
-{
-    let graph = runtime
-        .runtime
-        .primary_graph()
-        .ok_or_else(|| approval_rejected(access.operation()))?;
-    let layout = graph
-        .layout()
-        .equality_field(field.entity(), field.aspect(), field.field())
-        .ok_or_else(|| approval_rejected(field.field()))?;
-    access
-        .graph_work
-        .mutation_handle()
-        .ok_or_else(|| approval_rejected(field.field()))?
-        .with_runtime(|relational| {
-            resolve_at_snapshot(
-                relational,
-                access.graph_work.mutation_snapshot().unwrap(),
-                layout,
-                value.clone(),
-                WorthQueryPrincipalResolutionMode::Ordinary,
-                runtime.runtime.authority_identity(),
-                runtime.installed_schema.binding_identity(),
-                field.entity(),
-                field.field(),
-            )
-        })
-        .map(|evidence| evidence.entity_id)
-        .map_err(|_| approval_rejected(field.field()))
 }
 
 fn validate_approval_time<Schema>(
@@ -307,20 +221,6 @@ fn approval_denial(
 fn approval_rejected(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
     denial(
         WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected,
-        subject,
-    )
-}
-
-fn role_mismatch(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
-    denial(
-        WorthQueryOperationAuthorizationDenialKind::ElevationLifecycleRoleMismatch,
-        subject,
-    )
-}
-
-fn stale_operation(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
-    denial(
-        WorthQueryOperationAuthorizationDenialKind::StaleInstalledOperation,
         subject,
     )
 }

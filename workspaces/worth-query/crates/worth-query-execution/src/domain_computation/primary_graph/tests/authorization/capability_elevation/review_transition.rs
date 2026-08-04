@@ -1,0 +1,119 @@
+use super::super::super::application_attempt::idempotency;
+use super::super::super::fixture::CapabilityReviewStatus;
+use super::super::capability_progression::time;
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationAttemptDenialKind, WorthQueryMandatoryReviewOutcome,
+    WorthQueryOperationAuthorizationDenialKind,
+};
+
+#[test]
+fn lawful_request_approve_close_review_sequence_commits_exact_distinct_actors() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 32));
+    let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
+    let reviewed = super::terminal_lifecycle_support::review_exact(&world, &request, mandatory);
+
+    assert_eq!(reviewed.review_commit_receipt().changed_record_count(), 3);
+    assert_eq!(reviewed.review_commit_receipt().emitted_effect_count(), 0);
+    assert_ne!(reviewed.reviewer(), reviewed.requester());
+    assert_ne!(reviewed.reviewer(), reviewed.approver());
+    assert_eq!(
+        reviewed.reviewed_at(),
+        &worth_foundational::facade::AspectValue::UInt64(100)
+    );
+    assert_eq!(
+        super::terminal_state::review_status(&world),
+        CapabilityReviewStatus::Completed
+    );
+    assert!(super::terminal_state::has_exact_reviewer(
+        &world,
+        reviewed.reviewer()
+    ));
+}
+
+#[test]
+fn requester_and_approver_are_denied_by_installed_review_actor_composition() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+    let _mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
+
+    for subject in ["alice", "bob"] {
+        let actor = super::approval_transition::authenticated(&world, subject, &request);
+        let denial = super::terminal_lifecycle_support::review_access(&world, &actor, &request)
+            .err()
+            .expect("requester and approver must fail before review lifecycle authority");
+        assert_eq!(
+            denial.kind(),
+            WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        );
+    }
+}
+
+#[test]
+fn concurrent_review_completion_stales_and_returned_obligation_cannot_be_reused() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 40));
+    let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
+    let reviewer = super::approval_transition::authenticated(&world, "carol", &request);
+    let program =
+        super::terminal_lifecycle_support::materialize_review(&world, &request, mandatory);
+    super::mutation::complete_review_out_of_band(&world, reviewer.principal_entity_id());
+
+    let WorthQueryMandatoryReviewOutcome::Stale(stale, mandatory) = world
+        .application
+        .compare_and_commit_mandatory_review(program, idempotency(177, 177))
+    else {
+        panic!("concurrent review state must stale the exact retained review facts");
+    };
+    assert_eq!(stale.stale_fact_count(), 2);
+    let reads = super::terminal_lifecycle_support::review_reads(&world, &request, mandatory);
+    let Err(denial) = reads.materialize_mandatory_review_program() else {
+        panic!("completed review state must not mint another review program");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationAttemptDenialKind::MandatoryReviewProgramMismatch
+    );
+}
+
+#[test]
+fn mandatory_review_receipt_cannot_cross_runtime_authority() {
+    let (mut source, source_request, approved) = super::approval_transition::exact_approved_world();
+    source
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+    let mandatory =
+        super::terminal_lifecycle_support::close_exact(&source, &source_request, approved);
+    let (mut target, target_request, _target_approved) =
+        super::approval_transition::exact_approved_world();
+    target
+        .application
+        .script_authorization_time(std::iter::repeat_n(time(100), 16));
+    let reviewer = super::approval_transition::authenticated(&target, "carol", &target_request);
+    let access =
+        super::terminal_lifecycle_support::review_access(&target, &reviewer, &target_request)
+            .unwrap();
+    let operation = target
+        .application
+        .installed_schema()
+        .installed_operation(
+            super::super::super::fixture::CompleteCapabilityReviewOperation::reference(),
+        )
+        .unwrap();
+
+    let denial = target
+        .application
+        .authorize_mandatory_review(mandatory, access, &operation, Default::default())
+        .err()
+        .expect("foreign-runtime lifecycle receipts must fail before review authority");
+    assert_eq!(
+        denial.denial().kind(),
+        WorthQueryOperationAuthorizationDenialKind::MandatoryReviewRejected
+    );
+}

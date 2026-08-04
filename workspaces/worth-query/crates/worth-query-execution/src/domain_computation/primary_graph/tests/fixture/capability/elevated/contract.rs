@@ -47,10 +47,14 @@ use super::{
 
 #[path = "contract/approval.rs"]
 mod approval;
+#[path = "contract/close.rs"]
+mod close;
 #[path = "contract/elevation.rs"]
 mod elevation;
 #[path = "contract/request.rs"]
 mod request;
+#[path = "contract/review.rs"]
+mod review;
 
 pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn install(
     schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
@@ -138,7 +142,9 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
         )
         .capability(elevated_contract());
     let schema = request::install(schema);
-    approval::install(schema)
+    let schema = approval::install(schema);
+    let schema = close::install(schema);
+    review::install(schema)
 }
 
 fn elevated_contract() -> ApplicationCapabilityContract<

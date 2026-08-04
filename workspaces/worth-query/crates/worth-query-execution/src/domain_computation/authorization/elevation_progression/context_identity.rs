@@ -13,24 +13,15 @@ use crate::domain_computation::primary_graph::{
     WorthQueryPrincipalResolutionMode,
 };
 
-pub(super) enum WorthQueryElevationContextEntity {
-    Elevation,
-    Review,
-}
-
-pub(super) fn selected_lifecycle_entity<Schema, Capability, Operation, Input>(
+pub(super) fn selected_elevation_entity<Schema, Capability, Operation, Input>(
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     installed: &WorthQueryInstalledCapabilityPlan,
-    selected: WorthQueryElevationContextEntity,
 ) -> Option<EntityId>
 where
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     let lifecycle = installed.contract.elevation().definition()?.lifecycle();
-    let slot = match selected {
-        WorthQueryElevationContextEntity::Elevation => lifecycle.elevation_slot(),
-        WorthQueryElevationContextEntity::Review => lifecycle.review_slot(),
-    };
+    let slot = lifecycle.elevation_slot();
     access
         .resolved
         .context

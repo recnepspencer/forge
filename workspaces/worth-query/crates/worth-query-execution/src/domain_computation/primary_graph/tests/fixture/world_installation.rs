@@ -180,7 +180,7 @@ pub(super) fn installed_authorization_world_with_principal_count(
             WorthQueryPrincipalMappingStatus::Enabled,
         )
         .unwrap();
-    if principal_count == 2 {
+    if principal_count >= 2 {
         bootstrap
             .bind_principal(
                 &binding,
@@ -191,6 +191,21 @@ pub(super) fn installed_authorization_world_with_principal_count(
             )
             .unwrap();
     }
+    if principal_count >= 3 {
+        bootstrap
+            .bind_principal(
+                &binding,
+                WorthQueryApplicationPrincipalKey::new("principal-2").unwrap(),
+                3_u64,
+                external_identity("carol"),
+                WorthQueryPrincipalMappingStatus::Enabled,
+            )
+            .unwrap();
+    }
+    assert!(
+        principal_count <= 3,
+        "fixture supports at most three principals"
+    );
     bind_account(&mut bootstrap, "account-1", "open", primary_label);
     bind_account(&mut bootstrap, "account-2", "unrelated", "secondary");
     bind_activity(&mut bootstrap, "activity-primary", 11);
