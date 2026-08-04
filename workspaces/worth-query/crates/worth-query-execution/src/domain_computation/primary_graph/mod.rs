@@ -31,8 +31,9 @@ mod tests;
 
 pub use crate::domain_computation::authorization::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
+    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
+    WorthQueryOperationScopeEntityBinding,
 };
 pub(in crate::domain_computation) use application_attempt::application_resource_request;
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
@@ -49,11 +50,12 @@ pub use application_attempt::{
     WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationIdempotencyResolution,
     WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind, WorthQueryApplicationReadAttempt,
-    WorthQueryApplicationStaleAttempt, WorthQueryCompleteApplicationReadSet,
-    WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
-    WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
-    WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
-    WorthQueryRequestedElevation,
+    WorthQueryApplicationStaleAttempt, WorthQueryApprovedElevation,
+    WorthQueryCompleteApplicationReadSet, WorthQueryElevationApprovalOutcome,
+    WorthQueryElevationApprovalProgram, WorthQueryElevationRequestOutcome,
+    WorthQueryElevationRequestProgram, WorthQueryMutationPreconditionComparisonEvidence,
+    WorthQueryObservedApplicationRelation, WorthQueryOrdinaryApplicationRead,
+    WorthQueryProjectedApplicationMutation, WorthQueryRequestedElevation,
 };
 pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
 pub use application_query::{

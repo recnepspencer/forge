@@ -10,9 +10,6 @@ use crate::domain_computation::primary_graph::{
 pub(in crate::domain_computation::primary_graph) enum CapabilityElevationScenario {
     Active,
     ConflictedApprover,
-    Expired,
-    Revoked,
-    SelfApproved,
     WrongGrant,
 }
 
@@ -21,17 +18,23 @@ pub(super) fn bind_elevated_capability(
     scenario: CapabilityElevationScenario,
 ) {
     bind_grant(bootstrap);
+    super::capability_seed::bind_actor_relation(
+        bootstrap,
+        CapabilityGrantee::reference(),
+        "capability-1-approval-grantee",
+        "principal-1",
+        "capability-1",
+    );
+    super::capability_seed::bind_actor_relation(
+        bootstrap,
+        CapabilityGrantor::reference(),
+        "capability-1-approval-grantor",
+        "principal-1",
+        "capability-1",
+    );
     if scenario == CapabilityElevationScenario::WrongGrant {
         bind_future_replacement_grant(bootstrap);
     }
-    let status = match scenario {
-        CapabilityElevationScenario::Expired => CapabilityElevationStatus::Expired,
-        CapabilityElevationScenario::Revoked => CapabilityElevationStatus::Revoked,
-        CapabilityElevationScenario::Active
-        | CapabilityElevationScenario::ConflictedApprover
-        | CapabilityElevationScenario::SelfApproved
-        | CapabilityElevationScenario::WrongGrant => CapabilityElevationStatus::Approved,
-    };
     bootstrap
         .bind_entity(
             WorthQueryApplicationEntitySeed::new(
@@ -46,7 +49,10 @@ pub(super) fn bind_elevated_capability(
                 CapabilityElevationReason::reference(),
                 "protect-customer".to_owned(),
             )
-            .field(CapabilityElevationStatusField::reference(), status)
+            .field(
+                CapabilityElevationStatusField::reference(),
+                CapabilityElevationStatus::Approved,
+            )
             .field(CapabilityElevationNotBefore::reference(), 95)
             .field(CapabilityElevationNotAfter::reference(), 105),
         )
@@ -75,11 +81,7 @@ pub(super) fn bind_elevated_capability(
         bootstrap,
         CapabilityElevationApprover::reference(),
         "elevation-approver-1",
-        if scenario == CapabilityElevationScenario::SelfApproved {
-            "principal-0"
-        } else {
-            "principal-1"
-        },
+        "principal-1",
         "elevation-1",
     );
     bind_relation(

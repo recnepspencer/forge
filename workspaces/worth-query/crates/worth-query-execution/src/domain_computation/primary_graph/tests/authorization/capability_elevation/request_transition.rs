@@ -65,12 +65,12 @@ fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt()
 
     resolve_created_identities(&world, &request);
     world.application.script_authorization_time([time(100)]);
-    let denial = super::admit(&world, &principal, &request, Some("elevation-2"))
+    let denial = super::admit_raw(&world, &principal, &request, Some("elevation-2"))
         .err()
-        .expect("requested posture cannot authorize active elevated use");
+        .expect("a requested selector cannot bypass the lifecycle transition");
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::ElevationInactive
+        WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired
     );
 }
 
@@ -260,7 +260,7 @@ fn zero_or_overlong_duration_and_invalid_storage_key_fail_before_commit() {
     );
 }
 
-fn request_reads(
+pub(super) fn request_reads(
     world: &World,
     principal: &crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
         IdentityExecutionSchema,
@@ -338,7 +338,7 @@ fn request_world(samples: usize) -> World {
     world
 }
 
-fn honest_input() -> RequestElevationInput {
+pub(super) fn honest_input() -> RequestElevationInput {
     RequestElevationInput {
         account: "account-1".to_owned(),
         target_account: "account-1".to_owned(),
@@ -357,7 +357,7 @@ fn honest_input() -> RequestElevationInput {
     }
 }
 
-fn resolve_created_identities(
+pub(super) fn resolve_created_identities(
     world: &World,
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
 ) {

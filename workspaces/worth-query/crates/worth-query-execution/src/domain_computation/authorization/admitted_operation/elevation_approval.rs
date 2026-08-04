@@ -1,15 +1,15 @@
 use super::{WorthQueryAdmittedApplicationOperation, WorthQueryOperationAuthorizationBasis};
 use crate::domain_computation::authorization::{
-    WorthQueryElevationRequestBinding, WorthQueryOperationAuthorizationDenial,
+    WorthQueryElevationApprovalBinding, WorthQueryOperationAuthorizationDenial,
     WorthQueryOperationAuthorizationDenialKind,
 };
 
 impl<Schema, Operation, Input, Scope>
     WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>
 {
-    pub(in crate::domain_computation) fn bind_elevation_request(
+    pub(in crate::domain_computation) fn bind_elevation_approval(
         mut self,
-        binding: WorthQueryElevationRequestBinding,
+        binding: WorthQueryElevationApprovalBinding,
     ) -> Result<Self, WorthQueryOperationAuthorizationDenial> {
         let basis = std::mem::replace(
             &mut self.authorization_basis,
@@ -22,32 +22,32 @@ impl<Schema, Operation, Input, Scope>
             ));
         };
         self.authorization_basis =
-            WorthQueryOperationAuthorizationBasis::ElevationRequest { input, binding };
+            WorthQueryOperationAuthorizationBasis::ElevationApproval { input, binding };
         Ok(self)
     }
 
-    pub(in crate::domain_computation) fn elevation_request_binding(
+    pub(in crate::domain_computation) fn elevation_approval_binding(
         &self,
-    ) -> Option<&WorthQueryElevationRequestBinding> {
+    ) -> Option<&WorthQueryElevationApprovalBinding> {
         match &self.authorization_basis {
-            WorthQueryOperationAuthorizationBasis::ElevationRequest { binding, .. } => {
+            WorthQueryOperationAuthorizationBasis::ElevationApproval { binding, .. } => {
                 Some(binding)
             }
             WorthQueryOperationAuthorizationBasis::Conventional
             | WorthQueryOperationAuthorizationBasis::Capability { .. }
-            | WorthQueryOperationAuthorizationBasis::ElevationApproval { .. } => None,
+            | WorthQueryOperationAuthorizationBasis::ElevationRequest { .. } => None,
         }
     }
 
-    pub(in crate::domain_computation) fn take_elevation_request_binding(
+    pub(in crate::domain_computation) fn take_elevation_approval_binding(
         &mut self,
-    ) -> Option<WorthQueryElevationRequestBinding> {
+    ) -> Option<WorthQueryElevationApprovalBinding> {
         let basis = std::mem::replace(
             &mut self.authorization_basis,
             WorthQueryOperationAuthorizationBasis::Conventional,
         );
         match basis {
-            WorthQueryOperationAuthorizationBasis::ElevationRequest { input, binding } => {
+            WorthQueryOperationAuthorizationBasis::ElevationApproval { input, binding } => {
                 self.authorization_basis =
                     WorthQueryOperationAuthorizationBasis::Capability { input };
                 Some(binding)

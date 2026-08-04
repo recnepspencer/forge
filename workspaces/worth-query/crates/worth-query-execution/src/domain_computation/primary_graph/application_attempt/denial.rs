@@ -20,6 +20,7 @@ pub enum WorthQueryApplicationAttemptDenialKind {
     IncompleteEffectBasis,
     ElevationTransitionRequired,
     ElevationRequestProgramMismatch,
+    ElevationApprovalProgramMismatch,
 }
 
 #[derive(Debug)]

@@ -2,15 +2,18 @@ use std::sync::Arc;
 
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_installation::facade::ApplicationOperationProgramTarget;
-use worth_relational::facade::identity::{EntityId, KindId};
+use worth_relational::facade::identity::KindId;
 
-#[derive(Debug)]
+use super::WorthQueryElevationUpperBound;
+
+#[derive(Clone, Debug)]
 pub(in crate::domain_computation) struct WorthQueryElevationRequestBinding {
+    pub(in crate::domain_computation) runtime_authority:
+        crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
+    pub(in crate::domain_computation) branch: worth_relational::facade::history::BranchId,
     pub(in crate::domain_computation) capability_identity: [u8; 32],
     pub(in crate::domain_computation) capability_authority_identity: Arc<str>,
-    pub(in crate::domain_computation) requester: EntityId,
-    pub(in crate::domain_computation) resource: EntityId,
-    pub(in crate::domain_computation) grant: EntityId,
+    pub(in crate::domain_computation) upper_bound: WorthQueryElevationUpperBound,
     pub(in crate::domain_computation) elevation_kind: KindId,
     pub(in crate::domain_computation) review_kind: KindId,
     pub(in crate::domain_computation) elevation_key: String,
@@ -34,4 +37,24 @@ pub(in crate::domain_computation) struct WorthQueryElevationRequestBinding {
     pub(in crate::domain_computation) review_relation: KindId,
     pub(in crate::domain_computation) required_program_targets:
         Vec<ApplicationOperationProgramTarget>,
+}
+
+impl WorthQueryElevationRequestBinding {
+    pub(in crate::domain_computation) const fn requester(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.upper_bound.requester()
+    }
+
+    pub(in crate::domain_computation) const fn resource(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.upper_bound.resource()
+    }
+
+    pub(in crate::domain_computation) const fn grant(
+        &self,
+    ) -> worth_relational::facade::identity::EntityId {
+        self.upper_bound.grant()
+    }
 }

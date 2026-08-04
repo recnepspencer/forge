@@ -15,6 +15,7 @@ use super::super::super::{
     WorthQueryOperationAuthorizationDenialKind,
 };
 use super::super::request_binding::WorthQueryElevationRequestBinding;
+use super::super::WorthQueryElevationUpperBound;
 use super::{denial, projection_denial};
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
@@ -33,7 +34,8 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    let (resource, grant) = resolve_target_and_grant(runtime, installed, access, proposed)?;
+    let upper_bound =
+        resolve_upper_bound(runtime, capability_identity, installed, access, proposed)?;
     let elevation = installed
         .elevation
         .as_ref()
@@ -49,11 +51,11 @@ where
         })?;
     let lifecycle = &elevation.lifecycle;
     Ok(WorthQueryElevationRequestBinding {
+        runtime_authority: runtime.runtime.authority_identity(),
+        branch: access.graph_work.branch().relational().clone(),
         capability_identity,
         capability_authority_identity: Arc::clone(&installed.capability_authority_identity),
-        requester: access.principal_entity_id,
-        resource,
-        grant,
+        upper_bound,
         elevation_kind: elevation.elevation_kind,
         review_kind: lifecycle.review_kind,
         elevation_key: proposed.elevation_key().to_string(),
@@ -85,8 +87,9 @@ where
     })
 }
 
-fn resolve_target_and_grant<Schema, Capability, Operation, Input>(
+fn resolve_upper_bound<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    capability_identity: [u8; 32],
     installed: &WorthQueryInstalledCapabilityPlan,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     proposed: &ApplicationCapabilityElevationRequestProjection<
@@ -94,13 +97,7 @@ fn resolve_target_and_grant<Schema, Capability, Operation, Input>(
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
     >,
-) -> Result<
-    (
-        worth_relational::facade::identity::EntityId,
-        worth_relational::facade::identity::EntityId,
-    ),
-    WorthQueryOperationAuthorizationDenial,
->
+) -> Result<WorthQueryElevationUpperBound, WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
@@ -146,7 +143,13 @@ where
     {
         return Err(projection_denial(installed.contract.name()));
     }
-    Ok((target.resource.entity_id(), grant.entity_id))
+    Ok(WorthQueryElevationUpperBound::capture(
+        capability_identity,
+        access.principal_entity_id,
+        proposed.target(),
+        &target,
+        grant.entity_id,
+    ))
 }
 
 fn required_program_targets(

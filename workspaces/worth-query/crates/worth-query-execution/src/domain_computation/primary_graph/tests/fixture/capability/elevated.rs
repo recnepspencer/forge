@@ -16,18 +16,18 @@ use worth_query_declaration::{
     worth_query_relation,
 };
 
-use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal};
+use super::super::{
+    Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal,
+    PrincipalIdentityField,
+};
 use super::declaration::*;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityElevationStatus {
     Requested,
     Approved,
-    Active,
     Expired,
     Revoked,
-    ReviewRequired,
-    Reviewed,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,11 +57,8 @@ macro_rules! string_value {
 string_value!(CapabilityElevationStatus, {
     CapabilityElevationStatus::Requested => "requested",
     CapabilityElevationStatus::Approved => "approved",
-    CapabilityElevationStatus::Active => "active",
     CapabilityElevationStatus::Expired => "expired",
-    CapabilityElevationStatus::Revoked => "revoked",
-    CapabilityElevationStatus::ReviewRequired => "review-required",
-    CapabilityElevationStatus::Reviewed => "reviewed"
+    CapabilityElevationStatus::Revoked => "revoked"
 });
 string_value!(CapabilityReviewStatus, {
     CapabilityReviewStatus::Required => "required",
@@ -88,6 +85,7 @@ worth_query_capability_context_entity_slot!(pub CapabilityElevationSlot in Ident
 worth_query_capability_context_entity_slot!(pub CapabilityReviewSlot in IdentityExecutionSchema, CapabilityRequestContext => CapabilityReview);
 worth_query_capability!(pub ElevatedTouchAccountCapability in IdentityExecutionSchema);
 worth_query_capability!(pub RequestElevationCapability in IdentityExecutionSchema);
+worth_query_capability!(pub ApproveElevationCapability in IdentityExecutionSchema);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ElevatedCapabilityTouchInput {
@@ -118,9 +116,19 @@ pub struct RequestElevationInput {
     pub amount: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ApproveElevationInput {
+    pub account: String,
+    pub elevation: String,
+    pub action: CapabilityAction,
+    pub purpose: CapabilityPurpose,
+    pub disclosure: CapabilityDisclosure,
+    pub amount: u64,
+}
+
 worth_query_operation!(pub ElevatedCapabilityTouchOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation!(pub RequestCapabilityElevationOperation(RequestElevationInput) in IdentityExecutionSchema);
-worth_query_operation!(pub ApproveCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
+worth_query_operation!(pub ApproveCapabilityElevationOperation(ApproveElevationInput) in IdentityExecutionSchema);
 worth_query_operation!(pub RevokeCapabilityElevationOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation!(pub CompleteCapabilityReviewOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation_reads!(ElevatedCapabilityTouchOperation => [AccountLabel]);
@@ -129,6 +137,9 @@ worth_query_operation_reads!(RequestCapabilityElevationOperation => [AccountLabe
 worth_query_operation_creates!(RequestCapabilityElevationOperation => [CapabilityElevation, CapabilityReview]);
 worth_query_operation_writes!(RequestCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField]);
 worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationReview]);
+worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewStatusField, CapabilityIdentity, PrincipalIdentityField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview]);
+worth_query_operation_writes!(ApproveCapabilityElevationOperation => [CapabilityElevationStatusField]);
+worth_query_operation_links!(ApproveCapabilityElevationOperation => [CapabilityElevationApprover]);
 
 impl ApplicationCapabilityRequest<IdentityExecutionSchema, ElevatedTouchAccountCapability>
     for ElevatedCapabilityTouchInput
@@ -189,6 +200,42 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, RequestElevationCapab
         ApplicationCapabilityRequestProjectionDenial,
     > {
         Ok(self.ordinary_projection())
+    }
+}
+
+impl ApplicationCapabilityRequest<IdentityExecutionSchema, ApproveElevationCapability>
+    for ApproveElevationInput
+{
+    type Scope = Account;
+    type Context = CapabilityRequestContext;
+
+    fn capability_request(
+        &self,
+    ) -> Result<
+        ApplicationCapabilityRequestProjection<
+            IdentityExecutionSchema,
+            Account,
+            CapabilityRequestContext,
+        >,
+        ApplicationCapabilityRequestProjectionDenial,
+    > {
+        Ok(ApplicationCapabilityRequestProjection::new(
+            ApplicationCapabilityEntitySelector::new(
+                AccountIdentity::reference(),
+                self.account.clone(),
+            ),
+            self.action,
+            self.purpose,
+            ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()).entity(
+                CapabilityElevationSlot::reference(),
+                ApplicationCapabilityEntitySelector::new(
+                    CapabilityElevationIdentity::reference(),
+                    self.elevation.clone(),
+                ),
+            ),
+        )
+        .field(self.disclosure)
+        .amount(self.amount))
     }
 }
 

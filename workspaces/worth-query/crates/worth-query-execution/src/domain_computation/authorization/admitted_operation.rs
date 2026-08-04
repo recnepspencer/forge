@@ -21,6 +21,7 @@ use super::{
 };
 use crate::domain_computation::primary_graph::WorthQueryBoundMutationPreconditions;
 
+mod elevation_approval;
 mod elevation_request;
 mod graph_work_inspection;
 
@@ -58,6 +59,10 @@ pub(super) enum WorthQueryOperationAuthorizationBasis<Input> {
     ElevationRequest {
         input: Input,
         binding: super::WorthQueryElevationRequestBinding,
+    },
+    ElevationApproval {
+        input: Input,
+        binding: super::WorthQueryElevationApprovalBinding,
     },
 }
 
@@ -244,7 +249,8 @@ impl<Schema, Operation, Input, Scope>
         match &self.authorization_basis {
             WorthQueryOperationAuthorizationBasis::Conventional => None,
             WorthQueryOperationAuthorizationBasis::Capability { input }
-            | WorthQueryOperationAuthorizationBasis::ElevationRequest { input, .. } => Some(input),
+            | WorthQueryOperationAuthorizationBasis::ElevationRequest { input, .. }
+            | WorthQueryOperationAuthorizationBasis::ElevationApproval { input, .. } => Some(input),
         }
     }
 

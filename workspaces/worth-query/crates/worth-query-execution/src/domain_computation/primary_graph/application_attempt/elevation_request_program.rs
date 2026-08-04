@@ -138,14 +138,14 @@ fn request_effects(
         WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: binding.requester_relation,
             key: elevation_key.clone(),
-            from: EntityReference::Existing(binding.requester),
+            from: EntityReference::Existing(binding.requester()),
             to: elevation.clone(),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: binding.grant_relation,
             key: elevation_key.clone(),
             from: elevation.clone(),
-            to: EntityReference::Existing(binding.grant),
+            to: EntityReference::Existing(binding.grant()),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: binding.review_relation,

@@ -45,6 +45,8 @@ use super::{
     RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
 };
 
+#[path = "contract/approval.rs"]
+mod approval;
 #[path = "contract/elevation.rs"]
 mod elevation;
 #[path = "contract/request.rs"]
@@ -135,7 +137,8 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
             AccountLabel::reference(),
         )
         .capability(elevated_contract());
-    request::install(schema)
+    let schema = request::install(schema);
+    approval::install(schema)
 }
 
 fn elevated_contract() -> ApplicationCapabilityContract<
@@ -236,18 +239,20 @@ pub(super) fn composition() -> ApplicationCapabilityComposition {
             ApplicationCapabilitySeparationOfDutyRule::not_applicable(),
             ApplicationCapabilityDistinctActorRule::not_applicable(),
         ),
-        ApplicationCapabilityPropagationComposition::new(
-            ApplicationCapabilityDelegationRule::narrow_all_dimensions(
-                ApplicationCapabilityDelegationDepth::new(2).unwrap(),
-            ),
-            ApplicationCapabilityDisclosureRule::permit([
-                ApplicationCapabilityScopeGuard::requiring([
-                    ApplicationCapabilityAcceptedValues::one_of(
-                        CapabilityDisclosureField::reference(),
-                        [CapabilityDisclosure::AccountActivity],
-                    ),
-                ]),
-            ]),
+        propagation(),
+    )
+}
+
+pub(super) fn propagation() -> ApplicationCapabilityPropagationComposition {
+    ApplicationCapabilityPropagationComposition::new(
+        ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+            ApplicationCapabilityDelegationDepth::new(2).unwrap(),
         ),
+        ApplicationCapabilityDisclosureRule::permit([ApplicationCapabilityScopeGuard::requiring(
+            [ApplicationCapabilityAcceptedValues::one_of(
+                CapabilityDisclosureField::reference(),
+                [CapabilityDisclosure::AccountActivity],
+            )],
+        )]),
     )
 }

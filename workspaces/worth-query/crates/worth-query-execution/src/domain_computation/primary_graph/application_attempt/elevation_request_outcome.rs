@@ -39,15 +39,35 @@ impl WorthQueryRequestedElevation {
     }
 
     pub const fn requester(&self) -> EntityId {
-        self.binding.requester
+        self.binding.requester()
     }
 
     pub const fn resource(&self) -> EntityId {
-        self.binding.resource
+        self.binding.resource()
     }
 
     pub const fn grant(&self) -> EntityId {
-        self.binding.grant
+        self.binding.grant()
+    }
+
+    pub const fn action(&self) -> &AspectValue {
+        self.binding.upper_bound.action()
+    }
+
+    pub const fn purpose(&self) -> &AspectValue {
+        self.binding.upper_bound.purpose()
+    }
+
+    pub const fn field(&self) -> Option<&AspectValue> {
+        self.binding.upper_bound.field()
+    }
+
+    pub const fn amount(&self) -> Option<&AspectValue> {
+        self.binding.upper_bound.amount()
+    }
+
+    pub const fn cardinality(&self) -> u32 {
+        self.binding.upper_bound.cardinality()
     }
 
     pub fn elevation_key(&self) -> &str {
@@ -86,11 +106,17 @@ impl WorthQueryRequestedElevation {
         &self.binding.review_required_status
     }
 
-    pub(super) const fn new(
+    pub(in crate::domain_computation) const fn new(
         binding: WorthQueryElevationRequestBinding,
         commit: WorthQueryApplicationCommitReceipt,
     ) -> Self {
         Self { binding, commit }
+    }
+
+    pub(in crate::domain_computation) const fn binding(
+        &self,
+    ) -> &WorthQueryElevationRequestBinding {
+        &self.binding
     }
 }
 

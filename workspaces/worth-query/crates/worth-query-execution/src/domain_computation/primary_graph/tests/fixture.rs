@@ -21,13 +21,16 @@ pub(in crate::domain_computation::primary_graph) use capability_access_fixture::
 #[path = "fixture/capability_status_mutation.rs"]
 mod capability_status_mutation;
 pub(super) use capability::{
-    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover,
-    CapabilityElevationIdentity, CapabilityElevationStatus, CapabilityElevationStatusField,
-    CapabilityIdentity, CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity,
-    CapabilityStatus, CapabilityStatusField, CapabilityTouchInput, CapabilityTouchOperation,
-    ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
-    RequestCapabilityElevationOperation, RequestElevationCapability, RequestElevationInput,
-    TouchAccountCapability,
+    ApproveCapabilityElevationOperation, ApproveElevationCapability, ApproveElevationInput,
+    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover, CapabilityElevationGrant,
+    CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
+    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
+    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityIdentity,
+    CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity,
+    CapabilityReviewStatusField, CapabilityStatus, CapabilityStatusField, CapabilityTouchInput,
+    CapabilityTouchOperation, ElevatedCapabilityTouchInput, ElevatedCapabilityTouchOperation,
+    ElevatedTouchAccountCapability, RequestCapabilityElevationOperation,
+    RequestElevationCapability, RequestElevationInput, TouchAccountCapability,
 };
 pub(in crate::domain_computation::primary_graph) use capability_status_mutation::revoke_current_capability;
 #[path = "fixture/application_queries.rs"]

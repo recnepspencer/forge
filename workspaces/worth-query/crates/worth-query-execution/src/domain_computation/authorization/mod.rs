@@ -25,6 +25,7 @@ mod installed_policy;
 mod lowering;
 mod operation_scope_binding;
 mod retained_capability_request;
+pub(in crate::domain_computation) use retained_capability_request::WorthQueryRetainedCapabilityRequest;
 mod time_basis;
 
 pub use admitted_capability_access::WorthQueryAdmittedApplicationCapabilityAccess;
@@ -46,7 +47,10 @@ pub(in crate::domain_computation) use decision_facts::{
 pub use denial::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
-pub(in crate::domain_computation) use elevation_progression::WorthQueryElevationRequestBinding;
+pub use elevation_progression::WorthQueryElevationApprovalAuthorizationDenial;
+pub(in crate::domain_computation) use elevation_progression::{
+    WorthQueryElevationApprovalBinding, WorthQueryElevationRequestBinding,
+};
 pub(in crate::domain_computation) use installed_policy::WorthQueryInstalledAuthorizationRegistry;
 pub use operation_scope_binding::{
     WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,

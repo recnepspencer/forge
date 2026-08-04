@@ -1,20 +1,17 @@
 use super::super::super::application_attempt::authenticated_principal;
-use super::super::super::fixture::{
-    installed_elevated_capability_world, live_scope, CapabilityElevationScenario,
-    ElevatedCapabilityTouchOperation,
-};
+use super::super::super::fixture::{CapabilityElevationStatus, ElevatedCapabilityTouchOperation};
 use super::super::capability_progression::time;
 use super::admit;
 use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
 
 #[test]
 fn explicitly_expired_elevation_has_a_typed_denial() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Expired);
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
     world.application.script_authorization_time([time(100)]);
-    let request = live_scope();
     let principal = authenticated_principal(&world, &request);
+    super::mutation::set_status(&world, "elevation-2", CapabilityElevationStatus::Expired);
 
-    let Err(denial) = admit(&world, &principal, &request, Some("elevation-1")) else {
+    let Err(denial) = admit(&world, &approved, &principal, &request, Some("elevation-2")) else {
         panic!("explicit expired posture must not mint active-use authority");
     };
 
@@ -26,12 +23,11 @@ fn explicitly_expired_elevation_has_a_typed_denial() {
 
 #[test]
 fn trusted_time_denies_active_status_past_the_elevation_expiry() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
-    world.application.script_authorization_time([time(108)]);
-    let request = live_scope();
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world.application.script_authorization_time([time(106)]);
     let principal = authenticated_principal(&world, &request);
 
-    let Err(denial) = admit(&world, &principal, &request, Some("elevation-1")) else {
+    let Err(denial) = admit(&world, &approved, &principal, &request, Some("elevation-2")) else {
         panic!("trusted time must terminate active-use authority at elevation expiry");
     };
 
@@ -43,12 +39,11 @@ fn trusted_time_denies_active_status_past_the_elevation_expiry() {
 
 #[test]
 fn active_status_before_elevation_issue_is_inactive_not_expired() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
-    world.application.script_authorization_time([time(92)]);
-    let request = live_scope();
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world.application.script_authorization_time([time(99)]);
     let principal = authenticated_principal(&world, &request);
 
-    let Err(denial) = admit(&world, &principal, &request, Some("elevation-1")) else {
+    let Err(denial) = admit(&world, &approved, &principal, &request, Some("elevation-2")) else {
         panic!("an elevation cannot open authority before its installed issue boundary");
     };
 
@@ -60,13 +55,12 @@ fn active_status_before_elevation_issue_is_inactive_not_expired() {
 
 #[test]
 fn expiry_between_access_and_operation_denies_fresh_progression() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
     world
         .application
-        .script_authorization_time([time(100), time(108)]);
-    let request = live_scope();
+        .script_authorization_time([time(100), time(106)]);
     let principal = authenticated_principal(&world, &request);
-    let access = admit(&world, &principal, &request, Some("elevation-1")).unwrap();
+    let access = admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
     let operation = world
         .application
         .installed_schema()

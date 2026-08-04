@@ -19,7 +19,7 @@ use super::{
     WorthQueryRetainedCapabilityAuthorization,
 };
 use crate::domain_computation::primary_graph::{
-    validate_freshness_at_snapshot, WorthQueryAuthenticatedPrincipal,
+    validate_freshness_at_snapshot, WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 use crate::domain_computation::provider_session::WorthQueryGraphWorkAccessContextAffinity;
@@ -41,6 +41,46 @@ where
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>,
     {
+        self.admit_capability_access_inner(principal, capability, input, request, None)
+    }
+
+    pub fn admit_approved_elevation_access<
+        Principal,
+        PrincipalIdentity,
+        Capability,
+        Operation,
+        Input,
+    >(
+        &self,
+        approved: &WorthQueryApprovedElevation,
+        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+        capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
+        input: Input,
+        request: &WorthQueryRequestScope,
+    ) -> Result<
+        WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+        WorthQueryOperationAuthorizationDenial,
+    >
+    where
+        Input: ApplicationCapabilityRequest<Schema, Capability>,
+    {
+        self.admit_capability_access_inner(principal, capability, input, request, Some(approved))
+    }
+
+    fn admit_capability_access_inner<Principal, PrincipalIdentity, Capability, Operation, Input>(
+        &self,
+        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+        capability: &WorthQueryInstalledApplicationCapability<Schema, Capability, Operation, Input>,
+        input: Input,
+        request: &WorthQueryRequestScope,
+        approved: Option<&WorthQueryApprovedElevation>,
+    ) -> Result<
+        WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
+        WorthQueryOperationAuthorizationDenial,
+    >
+    where
+        Input: ApplicationCapabilityRequest<Schema, Capability>,
+    {
         admit_request(request, capability.contract().operation())?;
         validate_capability_static_authority(self, principal, capability)?;
         let installed = self
@@ -52,6 +92,21 @@ where
                     capability.contract().name(),
                 )
             })?;
+        match (installed.elevation.is_some(), approved.is_some()) {
+            (true, false) => {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired,
+                    capability.contract().name(),
+                ));
+            }
+            (false, true) => {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationNotApplicable,
+                    capability.contract().name(),
+                ));
+            }
+            _ => {}
+        }
         if !self.authorization.bridge().matches_installed_policy(
             installed.correspondence,
             &super::bridge_authorization_binding_identity(capability.binding_identity()),
@@ -185,6 +240,28 @@ where
             })()
         })?;
         let (authorization, grant) = authorization.into_parts();
+        if let Some(approved) = approved {
+            let elevation = resolved.elevation.ok_or_else(|| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationProjectionRejected,
+                    capability.contract().name(),
+                )
+            })?;
+            if !approved.admits_active_use(
+                self.runtime.authority_identity(),
+                graph_work.branch().relational(),
+                *capability.identity().bytes(),
+                &installed.capability_authority_identity,
+                &revalidation,
+                elevation,
+                grant,
+            ) {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected,
+                    capability.contract().name(),
+                ));
+            }
+        }
         admit_request(request, capability.contract().operation())?;
         if principal.is_expired() {
             return Err(denial(

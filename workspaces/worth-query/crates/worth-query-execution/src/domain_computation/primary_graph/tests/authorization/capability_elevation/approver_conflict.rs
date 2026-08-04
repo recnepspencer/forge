@@ -8,8 +8,7 @@ use worth_relational::facade::transactions::{
 use super::super::super::application_attempt::authenticated_principal;
 use super::super::super::fixture::capability::CapabilityConflictingBeneficiary;
 use super::super::super::fixture::{
-    installed_elevated_capability_world, live_scope, AccountIdentity, CapabilityElevationScenario,
-    ElevatedCapabilityTouchOperation, PrincipalIdentityField,
+    live_scope, AccountIdentity, ElevatedCapabilityTouchOperation, PrincipalIdentityField,
 };
 use super::super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
@@ -18,13 +17,13 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn exact_conflicted_approver_cannot_open_elevation_authority() {
-    let mut world =
-        installed_elevated_capability_world(CapabilityElevationScenario::ConflictedApprover);
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
     world.application.script_authorization_time([time(100)]);
-    let request = live_scope();
     let principal = authenticated_principal(&world, &request);
+    add_approver_conflict(&world);
 
-    let Err(denial) = super::admit(&world, &principal, &request, Some("elevation-1")) else {
+    let Err(denial) = super::admit(&world, &approved, &principal, &request, Some("elevation-2"))
+    else {
         panic!("a conflict held by the exact approver must deny elevation admission");
     };
 
@@ -36,13 +35,13 @@ fn exact_conflicted_approver_cannot_open_elevation_authority() {
 
 #[test]
 fn approver_conflict_drift_stales_admitted_elevation_authority() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
     world
         .application
         .script_authorization_time([time(100), time(100)]);
-    let request = live_scope();
     let principal = authenticated_principal(&world, &request);
-    let access = super::admit(&world, &principal, &request, Some("elevation-1")).unwrap();
+    let access =
+        super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
     add_approver_conflict(&world);
     let operation = world
         .application
