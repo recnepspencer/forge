@@ -1,0 +1,17 @@
+mod advanced_reuse;
+mod branch_budget;
+mod branch_identity;
+mod branch_isolation;
+mod checkpoint_rebuild;
+mod invalidation_restore;
+mod lineage_inspection;
+mod lineage_modes;
+mod lineage_reuse;
+mod policy_matrix;
+mod replay_lineage;
+mod restore_planning;
+mod restore_validation;
+mod retention;
+mod snapshot_contract;
+mod snapshot_round_trip;
+mod transaction_failure;

@@ -1,0 +1,276 @@
+use crate::facade::{
+    ChangedRegion, NodeEvaluationResult, NodeState, PartitionSubscription, PartitionToken,
+    SignalError, SignalGraph, SignalRuntime,
+};
+use crate::tests::support::{
+    version_ab, DependencyBatchBuilder, GraphDependencyBatchExt, ASPECT_A,
+};
+
+#[test]
+fn transaction_mark_dirty_with_regions_routes_partition_matches() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let source = runtime.graph_mut().node().partitioned_output().build();
+    let matching = runtime.graph_mut().node().build();
+    let non_matching = runtime.graph_mut().node().build();
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_dependency(matching, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .unwrap();
+    dependencies.commit().unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.mark_dirty_with_regions(source, ASPECT_A, &[ChangedRegion::new("wing")])?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::MaybeStale
+    );
+}
+
+#[test]
+fn partition_scoped_runtime_reads_do_not_widen_captured_dependencies() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let source = runtime.graph_mut().node().partitioned_output().build();
+    let matching = runtime.graph_mut().node().build();
+    let non_matching = runtime.graph_mut().node().build();
+    let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
+    dependencies
+        .append_partition_dependency(matching, source, ASPECT_A, "wing")
+        .unwrap()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .unwrap();
+    dependencies.commit().unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            tx.read(matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("wing"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+            })?;
+            tx.read(non_matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("tail"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(20, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.mark_dirty_with_regions(
+                source,
+                ASPECT_A,
+                &[ChangedRegion::new("wing").with_detail("rib-12")],
+            )?;
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::MaybeStale
+    );
+}
+
+#[test]
+fn transaction_rollback_after_partition_local_evaluation_restores_clean_states() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let source = runtime.graph_mut().node().partitioned_output().build();
+    let matching = runtime.graph_mut().node().build();
+    let non_matching = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+    runtime
+        .graph_mut()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            tx.read(matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+            })?;
+            tx.read(non_matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("tail"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(20, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let err = runtime.transaction(&mut (), |tx| {
+        tx.mark_dirty_with_regions(
+            source,
+            ASPECT_A,
+            &[ChangedRegion::new("wing").with_detail("rib-12")],
+        )?;
+        tx.read(source, &|view| {
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(2, 0))
+                    .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+            ))
+        })?;
+        tx.read(matching, &|view| {
+            let _ = view.read_partitioned_aspect_version(
+                source,
+                ASPECT_A,
+                PartitionSubscription::partition_and_detail("wing", "rib-12"),
+            )?;
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(11, 0))))
+        })?;
+        Err(SignalError::invalid_input("rollback localized wave"))
+    });
+    assert!(err.is_err());
+
+    assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Clean);
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Clean
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::Clean
+    );
+}
+
+#[test]
+fn committed_partition_local_evaluation_preserves_changed_region_explanation_and_metrics() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let source = runtime.graph_mut().node().partitioned_output().build();
+    let matching = runtime.graph_mut().node().build();
+    let non_matching = runtime.graph_mut().node().build();
+    runtime
+        .graph_mut()
+        .append_partition_detail_dependency(matching, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+    runtime
+        .graph_mut()
+        .append_partition_dependency(non_matching, source, ASPECT_A, "tail")
+        .unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            tx.read(matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(10, 0))))
+            })?;
+            tx.read(non_matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::whole_partition("tail"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(20, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    runtime
+        .transaction(&mut (), |tx| {
+            tx.mark_dirty_with_regions(
+                source,
+                ASPECT_A,
+                &[ChangedRegion::new("wing").with_detail("rib-12")],
+            )?;
+            tx.read(source, &|view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")),
+                ))
+            })?;
+            tx.read(matching, &|view| {
+                let _ = view.read_partitioned_aspect_version(
+                    source,
+                    ASPECT_A,
+                    PartitionSubscription::partition_and_detail("wing", "rib-12"),
+                )?;
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(11, 0))))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Clean
+    );
+    assert_eq!(
+        runtime.graph().get_state(non_matching).unwrap(),
+        NodeState::MaybeStale
+    );
+    let explanation = runtime.observe().explain(source).unwrap();
+    assert!(explanation.changed_regions.iter().any(|region| {
+        region.partition == PartitionToken::new("wing")
+            && region.detail.as_deref() == Some("rib-12")
+    }));
+}
