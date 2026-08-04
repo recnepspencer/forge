@@ -64,7 +64,6 @@ workspaces/worth-query/crates/worth-query/src/harness/workflow_certification/tes
 workspaces/worth-query/crates/worth-query/src/historical/tests.rs
 workspaces/worth-query/crates/worth-query/src/identity_evolution/execution.rs
 workspaces/worth-query/crates/worth-query/src/identity_evolution/tests.rs
-workspaces/worth-query/crates/worth-query/src/live/mod.rs
 workspaces/worth-query/crates/worth-query/src/live/region_scoped.rs
 workspaces/worth-query/crates/worth-query/src/live_performance/mod.rs
 workspaces/worth-query/crates/worth-query/src/planning/mod.rs
