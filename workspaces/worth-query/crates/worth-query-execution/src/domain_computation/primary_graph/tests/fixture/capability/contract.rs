@@ -22,10 +22,20 @@ use worth_query_declaration::facade::{
     },
 };
 
-use super::super::{Account, AccountLabel, AccountStatus, IdentityExecutionSchema, Principal};
+use super::super::{
+    Account, AccountLabel, AccountOwner, AccountStatus, IdentityExecutionSchema, Principal,
+};
 use super::declaration::*;
 
 pub(in super::super) fn install(
+    schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
+) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
+    let schema = install_grant_facts(schema);
+    let schema = install_grant_relations(schema);
+    install_capability_operations(schema)
+}
+
+fn install_grant_facts(
     schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
     schema
@@ -71,6 +81,12 @@ pub(in super::super) fn install(
             CapabilityGrant::reference(),
             CapabilityDelegationLimitField::reference(),
         )
+}
+
+fn install_grant_relations(
+    schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
+) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
+    schema
         .relation(
             CapabilityGrantee::reference(),
             Principal::reference(),
@@ -101,6 +117,32 @@ pub(in super::super) fn install(
             CapabilityGrant::reference(),
             CapabilityGrant::reference(),
         )
+        .relation(
+            CapabilityExplicitDeny::reference(),
+            Principal::reference(),
+            Account::reference(),
+        )
+        .relation(
+            CapabilityConflictingBeneficiary::reference(),
+            Principal::reference(),
+            Account::reference(),
+        )
+        .relation(
+            CapabilityRequestActor::reference(),
+            Principal::reference(),
+            Account::reference(),
+        )
+        .relation(
+            CapabilityPriorActor::reference(),
+            Principal::reference(),
+            Account::reference(),
+        )
+}
+
+fn install_capability_operations(
+    schema: ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema>,
+) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
+    schema
         .capability_context(CapabilityRequestContext::reference())
         .capability_provenance(CapabilityProvenance::reference())
         .operation(CapabilityTouchOperation::reference())
@@ -114,7 +156,19 @@ pub(in super::super) fn install(
             CapabilityTouchOperation::reference(),
             AccountLabel::reference(),
         )
+        .operation(ComposedCapabilityTouchOperation::reference())
+        .operation_decision_fact_budget(ComposedCapabilityTouchOperation::reference(), 1)
+        .operation_projection_work_budget(ComposedCapabilityTouchOperation::reference(), 32)
+        .operation_read_field(
+            ComposedCapabilityTouchOperation::reference(),
+            AccountLabel::reference(),
+        )
+        .operation_write(
+            ComposedCapabilityTouchOperation::reference(),
+            AccountLabel::reference(),
+        )
         .capability(capability_contract())
+        .capability(composed_capability_contract())
 }
 
 fn capability_contract() -> ApplicationCapabilityContract<
@@ -128,7 +182,33 @@ fn capability_contract() -> ApplicationCapabilityContract<
         CapabilityTouchOperation::reference(),
         CapabilityGrant::reference(),
     )
-    .target(ApplicationCapabilityTargetDefinition::new(
+    .target(capability_target())
+    .constraints(capability_constraints())
+    .delegation(capability_delegation())
+    .composition(capability_composition())
+    .build()
+}
+
+fn composed_capability_contract() -> ApplicationCapabilityContract<
+    IdentityExecutionSchema,
+    ComposedTouchAccountCapability,
+    ComposedCapabilityTouchOperation,
+    CapabilityTouchInput,
+> {
+    ApplicationCapabilityContractBuilder::new(
+        ComposedTouchAccountCapability::reference(),
+        ComposedCapabilityTouchOperation::reference(),
+        CapabilityGrant::reference(),
+    )
+    .target(capability_target())
+    .constraints(capability_constraints())
+    .delegation(capability_delegation())
+    .composition(composed_capability_composition())
+    .build()
+}
+
+fn capability_target() -> ApplicationCapabilityTargetDefinition {
+    ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(
             CapabilityActionField::reference(),
             CapabilityAction::Touch,
@@ -140,8 +220,11 @@ fn capability_contract() -> ApplicationCapabilityContract<
             CapabilityPurposeField::reference(),
             CapabilityPurpose::AccountMaintenance,
         ),
-    ))
-    .constraints(ApplicationCapabilityConstraintDefinition::new(
+    )
+}
+
+fn capability_constraints() -> ApplicationCapabilityConstraintDefinition {
+    ApplicationCapabilityConstraintDefinition::new(
         ApplicationCapabilityAmountDimension::bound(CapabilityAmountField::reference()),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
@@ -166,8 +249,11 @@ fn capability_contract() -> ApplicationCapabilityContract<
             ),
         ),
         CapabilityRequestContext::reference(),
-    ))
-    .delegation(ApplicationCapabilityDelegationDefinition::new(
+    )
+}
+
+fn capability_delegation() -> ApplicationCapabilityDelegationDefinition {
+    ApplicationCapabilityDelegationDefinition::new(
         ApplicationCapabilityRelationBinding::from_reference(CapabilityParent::reference()),
         ApplicationCapabilityRelationBinding::from_reference(CapabilityGrantor::reference()),
         ApplicationCapabilityRelationBinding::from_reference(CapabilityGrantee::reference()),
@@ -175,9 +261,7 @@ fn capability_contract() -> ApplicationCapabilityContract<
             CapabilityDelegationLimitField::reference(),
         ),
         CapabilityProvenance::reference(),
-    ))
-    .composition(capability_composition())
-    .build()
+    )
 }
 
 fn capability_composition() -> ApplicationCapabilityComposition {
@@ -202,22 +286,58 @@ fn capability_composition() -> ApplicationCapabilityComposition {
             ApplicationCapabilitySeparationOfDutyRule::not_applicable(),
             ApplicationCapabilityDistinctActorRule::not_applicable(),
         ),
-        ApplicationCapabilityPropagationComposition::new(
-            ApplicationCapabilityDelegationRule::narrow_all_dimensions(
-                worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(2)
-                    .unwrap(),
-            ),
-            ApplicationCapabilityDisclosureRule::permit([
-                ApplicationCapabilityScopeGuard::requiring([
-                    ApplicationCapabilityAcceptedValues::one_of(
-                        CapabilityDisclosureField::reference(),
-                        [
-                            CapabilityDisclosure::AccountActivity,
-                            CapabilityDisclosure::PrivateLabel,
-                        ],
-                    ),
-                ]),
-            ]),
+        capability_propagation(),
+    )
+}
+
+fn composed_capability_composition() -> ApplicationCapabilityComposition {
+    let assignment = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(AccountOwner::reference())
+        .allow(Account::reference());
+    let explicit_deny = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityExplicitDeny::reference())
+        .deny(Account::reference());
+    let conflict = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityConflictingBeneficiary::reference())
+        .deny(Account::reference());
+    let request_actor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityRequestActor::reference())
+        .deny(Account::reference());
+    let prior_actor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityPriorActor::reference())
+        .deny(Account::reference());
+    let graph =
+        |path| ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(path)]);
+    ApplicationCapabilityComposition::new(
+        ApplicationCapabilityDecisionComposition::new(
+            ApplicationCapabilityAllowRule::new(graph(assignment)),
+            ApplicationCapabilityDenyRule::when(graph(explicit_deny)),
+            ApplicationCapabilityConflictRule::when(graph(conflict)),
         ),
+        ApplicationCapabilityActorComposition::new(
+            ApplicationCapabilitySeparationOfDutyRule::when(graph(request_actor)),
+            ApplicationCapabilityDistinctActorRule::when(graph(prior_actor)),
+        ),
+        capability_propagation(),
+    )
+}
+
+fn capability_propagation() -> ApplicationCapabilityPropagationComposition {
+    ApplicationCapabilityPropagationComposition::new(
+        ApplicationCapabilityDelegationRule::narrow_all_dimensions(
+            worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationDepth::new(2)
+                .unwrap(),
+        ),
+        ApplicationCapabilityDisclosureRule::permit([
+            ApplicationCapabilityScopeGuard::requiring([
+                ApplicationCapabilityAcceptedValues::one_of(
+                    CapabilityDisclosureField::reference(),
+                    [
+                        CapabilityDisclosure::AccountActivity,
+                        CapabilityDisclosure::PrivateLabel,
+                    ],
+                ),
+            ]),
+        ]),
     )
 }

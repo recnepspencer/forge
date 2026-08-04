@@ -17,7 +17,7 @@ use super::{
     current_admission::view_action,
     fixture::{
         capability_world, request_scope, GrantSpec, ACCOUNT, AUTHORITY, ESTATE, EXECUTOR,
-        OTHER_ACCOUNT,
+        OTHER_ACCOUNT, OTHER_AUTHORITY,
     },
 };
 
@@ -99,10 +99,62 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
 }
 
 #[test]
-fn relation_amount_and_context_are_derived_from_the_exact_bank_action() {
+fn relation_and_amount_are_derived_from_the_exact_bank_action() {
     assert_wrong_account_denied();
     assert_amount_over_ceiling_denied();
-    assert_self_recognition_context_denied();
+}
+
+#[test]
+fn separation_of_duty_is_anchored_to_the_exact_action_authority() {
+    let fixture = capability_world(
+        "context-anchor",
+        GrantSpec::recognize(),
+        EstateWorkflowStage::Administration,
+        true,
+        0,
+    );
+    let principal = fixture.authenticate();
+    let application = fixture.runtime.application_runtime();
+    let capability = application
+        .installed_schema()
+        .capability(
+            RecognizeEstateExecutorCapability::reference(),
+            RecognizeEstateExecutorOperation::reference(),
+        )
+        .unwrap();
+
+    let self_recognition = EstateAction::RecognizeExecutor {
+        estate: ESTATE,
+        executor: EXECUTOR,
+        authority: AUTHORITY,
+    };
+    assert_eq!(
+        application
+            .admit_capability_access(
+                principal.query(),
+                &capability,
+                self_recognition,
+                &request_scope(),
+            )
+            .err()
+            .expect("the selected self-held authority must deny")
+            .kind(),
+        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+    );
+
+    let other_authority = EstateAction::RecognizeExecutor {
+        estate: ESTATE,
+        executor: EXECUTOR,
+        authority: OTHER_AUTHORITY,
+    };
+    application
+        .admit_capability_access(
+            principal.query(),
+            &capability,
+            other_authority,
+            &request_scope(),
+        )
+        .expect("an unrelated self-held authority must not poison the selected action");
 }
 
 #[test]
@@ -220,38 +272,6 @@ fn assert_amount_over_ceiling_denied() {
             .admit_capability_access(principal.query(), &capability, action, &request_scope())
             .err()
             .expect("an amount over the grant ceiling must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
-    );
-}
-
-fn assert_self_recognition_context_denied() {
-    let fixture = capability_world(
-        "context-anchor",
-        GrantSpec::recognize(),
-        EstateWorkflowStage::Administration,
-        true,
-        0,
-    );
-    let principal = fixture.authenticate();
-    let application = fixture.runtime.application_runtime();
-    let capability = application
-        .installed_schema()
-        .capability(
-            RecognizeEstateExecutorCapability::reference(),
-            RecognizeEstateExecutorOperation::reference(),
-        )
-        .unwrap();
-    let action = EstateAction::RecognizeExecutor {
-        estate: ESTATE,
-        executor: EXECUTOR,
-        authority: AUTHORITY,
-    };
-    assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, action, &request_scope())
-            .err()
-            .expect("self-recognition must deny")
             .kind(),
         WorthQueryOperationAuthorizationDenialKind::PermissionDenied
     );

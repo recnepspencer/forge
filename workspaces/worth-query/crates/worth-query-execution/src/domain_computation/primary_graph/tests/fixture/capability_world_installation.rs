@@ -42,6 +42,22 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_replace
     )
 }
 
+pub(in crate::domain_computation::primary_graph) fn installed_composed_capability_world(
+    scenario: super::capability_seed::CapabilityCompositionScenario,
+) -> AuthorizationWorld {
+    capability_world(1, "primary", CapabilityGrantPopulation::Composed(scenario))
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_world_with_same_resource_unrelated(
+    unrelated: usize,
+) -> AuthorizationWorld {
+    capability_world(
+        2,
+        "primary",
+        CapabilityGrantPopulation::CurrentWithSameResourceUnrelated(unrelated),
+    )
+}
+
 pub(in crate::domain_computation::primary_graph) fn installed_delegated_capability_world(
 ) -> AuthorizationWorld {
     installed_delegated_capability_world_at_depth(2)

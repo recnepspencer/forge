@@ -3,6 +3,7 @@ use worth_relational::facade::authorization::RelationalAuthorizationObservationC
 
 use super::super::application_attempt::authenticated_principal;
 use super::super::fixture::{
+    installed_capability_world_with_same_resource_unrelated,
     installed_delegated_capability_world_at_depth,
     installed_delegated_capability_world_with_unrelated, live_scope, AuthorizationWorld,
 };
@@ -44,6 +45,14 @@ fn warm_work_has_an_exact_per_link_slope() {
 fn complete_unrelated_grants_do_not_enter_warm_admission_work() {
     let baseline = admission_work(installed_delegated_capability_world_with_unrelated(0));
     let populated = admission_work(installed_delegated_capability_world_with_unrelated(256));
+
+    assert_eq!(populated, baseline);
+}
+
+#[test]
+fn same_resource_unrelated_grants_do_not_enter_exact_grant_selection() {
+    let baseline = admission_work(installed_capability_world_with_same_resource_unrelated(0));
+    let populated = admission_work(installed_capability_world_with_same_resource_unrelated(256));
 
     assert_eq!(populated, baseline);
 }

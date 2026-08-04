@@ -5,6 +5,8 @@ pub(super) enum CapabilityGrantPopulation {
     None,
     Current,
     CurrentAndFutureReplacement,
+    CurrentWithSameResourceUnrelated(usize),
+    Composed(super::capability_seed::CapabilityCompositionScenario),
     Delegated { links: usize, unrelated: usize },
 }
 
@@ -259,6 +261,15 @@ pub(super) fn installed_authorization_world_with_principal_count(
         CapabilityGrantPopulation::CurrentAndFutureReplacement => {
             super::capability_seed::bind_grant(&mut bootstrap);
             super::capability_seed::bind_future_replacement_grant(&mut bootstrap);
+        }
+        CapabilityGrantPopulation::CurrentWithSameResourceUnrelated(unrelated) => {
+            super::capability_population_seed::bind_same_resource_unrelated_grants(
+                &mut bootstrap,
+                unrelated,
+            )
+        }
+        CapabilityGrantPopulation::Composed(scenario) => {
+            super::capability_seed::bind_composed_grant(&mut bootstrap, scenario)
         }
         CapabilityGrantPopulation::Delegated { links, unrelated } => {
             super::capability_seed::bind_delegated_grants(&mut bootstrap, links, unrelated)

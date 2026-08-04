@@ -1,6 +1,10 @@
 mod canonical_work_budgets;
 #[path = "authorization/capability_commit_revalidation.rs"]
 mod capability_commit_revalidation;
+#[path = "authorization/capability_composition.rs"]
+mod capability_composition;
+#[path = "authorization/capability_composition_mutation.rs"]
+mod capability_composition_mutation;
 #[path = "authorization/capability_delegation.rs"]
 mod capability_delegation;
 #[path = "authorization/capability_delegation_mutation.rs"]

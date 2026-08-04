@@ -148,9 +148,26 @@ worth_query_relation!(
     pub CapabilityParent in IdentityExecutionSchema,
     CapabilityGrant => CapabilityGrant
 );
+worth_query_relation!(
+    pub CapabilityExplicitDeny in IdentityExecutionSchema,
+    Principal => Account
+);
+worth_query_relation!(
+    pub CapabilityConflictingBeneficiary in IdentityExecutionSchema,
+    Principal => Account
+);
+worth_query_relation!(
+    pub CapabilityRequestActor in IdentityExecutionSchema,
+    Principal => Account
+);
+worth_query_relation!(
+    pub CapabilityPriorActor in IdentityExecutionSchema,
+    Principal => Account
+);
 worth_query_capability_context!(pub CapabilityRequestContext in IdentityExecutionSchema);
 worth_query_capability_provenance!(pub CapabilityProvenance in IdentityExecutionSchema);
 worth_query_capability!(pub TouchAccountCapability in IdentityExecutionSchema);
+worth_query_capability!(pub ComposedTouchAccountCapability in IdentityExecutionSchema);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CapabilityTouchInput {
@@ -166,8 +183,13 @@ pub struct CapabilityTouchInput {
 worth_query_operation!(
     pub CapabilityTouchOperation(CapabilityTouchInput) in IdentityExecutionSchema
 );
+worth_query_operation!(
+    pub ComposedCapabilityTouchOperation(CapabilityTouchInput) in IdentityExecutionSchema
+);
 worth_query_operation_reads!(CapabilityTouchOperation => [AccountLabel]);
 worth_query_operation_writes!(CapabilityTouchOperation => [AccountLabel]);
+worth_query_operation_reads!(ComposedCapabilityTouchOperation => [AccountLabel]);
+worth_query_operation_writes!(ComposedCapabilityTouchOperation => [AccountLabel]);
 
 impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapability>
     for CapabilityTouchInput
@@ -179,6 +201,37 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapabilit
         &self,
     ) -> Result<
         ApplicationCapabilityRequestProjection<IdentityExecutionSchema, Self::Scope, Self::Context>,
+        ApplicationCapabilityRequestProjectionDenial,
+    > {
+        self.project_capability_request()
+    }
+}
+
+impl ApplicationCapabilityRequest<IdentityExecutionSchema, ComposedTouchAccountCapability>
+    for CapabilityTouchInput
+{
+    type Scope = Account;
+    type Context = CapabilityRequestContext;
+
+    fn capability_request(
+        &self,
+    ) -> Result<
+        ApplicationCapabilityRequestProjection<IdentityExecutionSchema, Self::Scope, Self::Context>,
+        ApplicationCapabilityRequestProjectionDenial,
+    > {
+        self.project_capability_request()
+    }
+}
+
+impl CapabilityTouchInput {
+    fn project_capability_request(
+        &self,
+    ) -> Result<
+        ApplicationCapabilityRequestProjection<
+            IdentityExecutionSchema,
+            Account,
+            CapabilityRequestContext,
+        >,
         ApplicationCapabilityRequestProjectionDenial,
     > {
         Ok(ApplicationCapabilityRequestProjection::new(
