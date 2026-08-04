@@ -16,8 +16,8 @@ use crate::domain_computation::primary_graph::tests::{
     live_delivery_support::commit_live_activity,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationDisclosed, WorthQueryApplicationDisclosureReceiptPosture,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalResolutionMode,
 };
 
 #[test]
@@ -172,6 +172,10 @@ fn governed_live_delivery_reuses_only_query_owned_current_authority() {
         update.result().activities(),
         &[("activity-primary".to_owned(), 11)]
     );
+    assert!(matches!(
+        update.result().label(),
+        WorthQueryApplicationDisclosed::Omitted(_)
+    ));
     assert_eq!(
         update.receipt().disclosure().posture(),
         WorthQueryApplicationDisclosureReceiptPosture::Governed

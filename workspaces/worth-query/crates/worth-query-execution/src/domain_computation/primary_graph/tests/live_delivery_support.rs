@@ -15,6 +15,15 @@ pub(in crate::domain_computation::primary_graph) fn commit_live_activity(
     principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
     request: &WorthQueryRequestScope,
 ) -> WorthQueryApplicationCommitReceipt {
+    commit_live_activity_with_label(world, principal, request, "live-delivered")
+}
+
+pub(in crate::domain_computation::primary_graph) fn commit_live_activity_with_label(
+    world: &AuthorizationWorld,
+    principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
+    request: &WorthQueryRequestScope,
+    label: &str,
+) -> WorthQueryApplicationCommitReceipt {
     let account = world
         .application
         .resolve_entity(
@@ -24,7 +33,7 @@ pub(in crate::domain_computation::primary_graph) fn commit_live_activity(
             WorthQueryPrincipalResolutionMode::Ordinary,
         )
         .unwrap();
-    let program = live_activity_program(world, principal, &account, request);
+    let program = live_activity_program(world, principal, &account, request, label);
     match world.application.compare_and_commit_application(
         program,
         WorthQueryApplicationIdempotencyBinding::new([227; 32], [91; 32]),
@@ -39,6 +48,7 @@ fn live_activity_program(
     principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
     account: &WorthQueryApplicationEntityIdentity<IdentityExecutionSchema, Account>,
     request: &WorthQueryRequestScope,
+    label: &str,
 ) -> crate::domain_computation::primary_graph::WorthQueryApplicationEffectProgram<
     IdentityExecutionSchema,
     TouchAccountOperation,
@@ -76,11 +86,7 @@ fn live_activity_program(
         .begin_effect_program();
     let account = effects.existing_entity(account).unwrap();
     effects
-        .write_field(
-            &account,
-            AccountLabel::reference(),
-            "live-delivered".to_owned(),
-        )
+        .write_field(&account, AccountLabel::reference(), label.to_owned())
         .unwrap();
     effects
         .emit(

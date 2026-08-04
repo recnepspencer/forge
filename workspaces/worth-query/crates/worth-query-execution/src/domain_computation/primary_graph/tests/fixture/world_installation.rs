@@ -168,11 +168,17 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_world_w
 
 pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world(
 ) -> AuthorizationWorld {
+    installed_capability_live_world_with_label("primary")
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world_with_label(
+    label: &str,
+) -> AuthorizationWorld {
     installed_authorization_world_with_principal_count(
         &[("principal-1", "account-1")],
         false,
         2,
-        "primary",
+        label,
         WorthQueryApplicationQueryResourceProfile::default(),
         CapabilityGrantPopulation::Current,
     )

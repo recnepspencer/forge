@@ -13,16 +13,17 @@ use worth_query_declaration::worth_query_application_query;
 use super::application_queries::AccountSummaryParameters;
 use super::live_account_query::{LiveActivityEffect, LiveActivityEvent};
 use super::{
-    Account, AccountAllActivity, AccountIdentity, AccountPolicy, Activity, ActivityFacts,
-    ActivityIdentity, ActivitySequence, CapabilityDisclosure, IdentityExecutionSchema,
-    TouchAccountCapability,
+    Account, AccountAllActivity, AccountIdentity, AccountLabel, AccountPolicy, Activity,
+    ActivityFacts, ActivityIdentity, ActivitySequence, CapabilityDisclosure,
+    IdentityExecutionSchema, TouchAccountCapability,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
-    WorthQueryApplicationProjectionRow,
+    WorthQueryApplicationDisclosed, WorthQueryApplicationProjection,
+    WorthQueryApplicationProjectionDenial, WorthQueryApplicationProjectionRow,
 };
 
 pub struct AccountIdentitySlot;
+pub struct AccountLabelSlot;
 pub struct AccountIdentityParameter;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
@@ -31,12 +32,19 @@ pub struct ActivitySequenceSlot;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GovernedLiveAccountActivityResult {
     account: String,
+    label: WorthQueryApplicationDisclosed<String>,
     activities: Vec<(String, u64)>,
 }
 
 impl GovernedLiveAccountActivityResult {
     pub(in crate::domain_computation::primary_graph) fn account(&self) -> &str {
         &self.account
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn label(
+        &self,
+    ) -> &WorthQueryApplicationDisclosed<String> {
+        &self.label
     }
 
     pub(in crate::domain_computation::primary_graph) fn activities(&self) -> &[(String, u64)] {
@@ -80,6 +88,7 @@ pub(super) fn governed_live_account_definition() -> ApplicationQueryDefinition<
         GovernedLiveAccountActivityResult,
     >::new(Account::reference())
     .field(account_identity())
+    .field(account_label())
     .relation(activities(), activity)
     .build();
     let influence = ApplicationQueryInfluenceContract::permit_all();
@@ -107,6 +116,11 @@ pub(super) fn governed_live_account_definition() -> ApplicationQueryDefinition<
         CapabilityDisclosure::AccountActivity,
         influence.clone(),
     )
+    .disclose_field_by(
+        account_label(),
+        CapabilityDisclosure::PrivateLabel,
+        ApplicationQueryInfluenceContract::forbid_all(),
+    )
     .disclose_relation_by(
         activities(),
         CapabilityDisclosure::AccountActivity,
@@ -128,10 +142,13 @@ pub(super) fn governed_live_account_definition() -> ApplicationQueryDefinition<
         Account::reference(),
         shape,
         ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 3),
+        ApplicationQueryDependencyCeiling::bounded(1, 1, 4),
         disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot().with_live(),
+        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
+        ApplicationQueryLaneEligibility::one_shot()
+            .with_historical()
+            .with_preview()
+            .with_live(),
     )
     .parameter(account_parameter())
     .where_equal(AccountIdentity::reference(), account_parameter())
@@ -172,6 +189,7 @@ impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedLiveAccoun
             .collect::<Result<Vec<_>, _>>()?;
         Ok(Self {
             account,
+            label: row.disclosed_field(account_label())?,
             activities,
         })
     }
@@ -228,6 +246,21 @@ fn account_identity() -> ApplicationQueryResultFieldRef<
     worth_query_declaration::facade::application_schema::NoApplicationCurrency,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
+}
+
+fn account_label() -> ApplicationQueryResultFieldRef<
+    GovernedLiveAccountActivityQuery,
+    AccountLabelSlot,
+    IdentityExecutionSchema,
+    Account,
+    AccountPolicy,
+    AccountLabel,
+    String,
+    worth_query_declaration::facade::application_schema::ReadWrite,
+    worth_query_declaration::facade::application_schema::EqualityPredicate,
+    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+> {
+    ApplicationQueryResultFieldRef::new("label", AccountLabel::reference())
 }
 
 fn activity_identity() -> ApplicationQueryResultFieldRef<

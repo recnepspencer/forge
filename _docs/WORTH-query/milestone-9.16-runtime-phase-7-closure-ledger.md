@@ -185,6 +185,42 @@ This is an implementation checkpoint, not Phase 7.3 closure. R7.8-R7.9 and
 R7.18-R7.22 remain open until the hostile and paired-world proofs named in
 their rows close Q7.32-Q7.37.
 
+### Phase 7.3 mechanical disclosure boundary checkpoint
+
+Source checkpoint `08ea80ea9` corrects the second-pass defects discovered in
+the first implementation checkpoint without claiming Phase 7.3 closure:
+
+- internal computation is derived only from `.use_field_by(...)` selectors;
+  result disclosure selectors cannot mint predicate, guard, ordering, or live
+  read authority;
+- every protected read consumes an exact projection-field admission derived
+  from the retained Foundational `ProjectionMask`, while the retained
+  `DiagnosticMask` is inaccessible to ordinary data reads;
+- the observable influence cone now follows the implemented predicate, guard,
+  ordering, continuation, historical, preview, and live surfaces without
+  inventing aggregate or explanation execution;
+- internal projection material is consumed into a recursively sanitized
+  disclosed tree before domain projection, so protected ordering values cannot
+  reach either the ordinary or disclosed field accessor;
+- terminal disclosure receipts preserve an ordered decision for every exact
+  result slot, including repeated disclosure values; and
+- the disclosure receipt is owned by
+  `authorization/application_disclosure`, leaving application query as an
+  audience re-export rather than a reverse authority dependency.
+
+Focused evidence at this checkpoint includes a result-selector predicate
+hostility test, a hidden-ordering working-value test, exact repeated-slot
+receipt assertions, `418` passing execution tests, strict execution Clippy,
+and both constitutional boundary checks. The global line-cap guard remains red
+only on the pre-existing repository baseline; all checkpoint files are within
+the cap.
+
+This checkpoint corrects the production roots of Q7.33, Q7.35-Q7.36, and
+Q7.38-Q7.42, but those findings remain `OPEN` until their named compiler,
+contract-hostility, cross-lane, publication, and residue evidence is complete.
+Q7.32, Q7.34, and Q7.37 still require additional implementation evidence.
+Consequently R7.8-R7.9 and R7.18-R7.22 remain `OPEN`.
+
 ## Test-selection policy
 
 Evidence is selected from the contract rather than multiplied across all input
