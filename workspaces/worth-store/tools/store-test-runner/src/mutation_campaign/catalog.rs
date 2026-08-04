@@ -69,6 +69,7 @@ pub(super) fn mutations() -> &'static [ControlledMutation] {
             .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
             .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
             .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
             .copied()
             .collect::<Vec<_>>()
             .into_boxed_slice()
@@ -97,6 +98,7 @@ pub(super) fn physical_reconstruction_c7_mutations(
         .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
         .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
         .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+        .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
 }
 
 pub(super) fn bounded_residency_mutations() -> &'static [ControlledMutation] {
@@ -115,6 +117,7 @@ pub(super) fn bounded_residency_mutations() -> &'static [ControlledMutation] {
             .chain(physical_reconstruction_c7::TIMING_GUARD_MUTATIONS)
             .chain(physical_reconstruction_c7::WAL_SUCCESSOR_CLEANUP_MUTATIONS)
             .chain(physical_reconstruction_c7::AUTHORITY_ACCOUNTING_MUTATIONS)
+            .chain(physical_reconstruction_c7::EVIDENCE_INTEGRITY_MUTATIONS)
             .copied()
             .collect::<Vec<_>>()
             .into_boxed_slice()

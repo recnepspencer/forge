@@ -1,5 +1,8 @@
-use syn::visit::{self, Visit};
-use syn::{Block, Expr, File, ImplItem, Item, Member, Pat, Stmt};
+use syn::{Attribute, Block, Expr, File, ImplItem, Item, Pat, Stmt};
+
+mod semantic_projection;
+
+use semantic_projection::{expression_contains_proof_step, project_block, SemanticProjection};
 
 pub(super) struct ParsedRustSource {
     file: File,
@@ -35,7 +38,12 @@ pub(super) struct FunctionSyntax<'source> {
 
 impl FunctionSyntax<'_> {
     pub(super) fn require_exact(&self, step: &str, expected: usize) -> Result<(), String> {
-        let actual = self.steps().iter().filter(|actual| *actual == step).count();
+        let actual = self
+            .projection()
+            .proof_steps
+            .iter()
+            .filter(|actual| *actual == step)
+            .count();
         if actual == expected {
             Ok(())
         } else {
@@ -47,7 +55,12 @@ impl FunctionSyntax<'_> {
     }
 
     pub(super) fn require_at_least(&self, step: &str, minimum: usize) -> Result<(), String> {
-        let actual = self.steps().iter().filter(|actual| *actual == step).count();
+        let actual = self
+            .projection()
+            .proof_steps
+            .iter()
+            .filter(|actual| *actual == step)
+            .count();
         if actual >= minimum {
             Ok(())
         } else {
@@ -59,7 +72,7 @@ impl FunctionSyntax<'_> {
     }
 
     pub(super) fn require_in_order(&self, required: &[&str]) -> Result<(), String> {
-        let steps = self.steps();
+        let steps = self.projection().proof_steps;
         let mut offset = 0;
         for required_step in required {
             let Some(found) = steps[offset..]
@@ -81,7 +94,33 @@ impl FunctionSyntax<'_> {
     }
 
     pub(super) fn deny(&self, step: &str) -> Result<(), String> {
-        self.require_exact(step, 0)
+        if self.projection().contains_prohibited(step) {
+            Err(format!(
+                "`{}` contains prohibited semantic step `{step}`",
+                self.name
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(super) fn require_collected_mapping_step(&self, step: &str) -> Result<(), String> {
+        let actual = self
+            .block
+            .stmts
+            .iter()
+            .filter_map(local_initializer)
+            .filter_map(collected_mapping_body)
+            .filter(|body| expression_contains_proof_step(body, step))
+            .count();
+        if actual == 1 {
+            Ok(())
+        } else {
+            Err(format!(
+                "`{}` requires one collected-mapping `{step}` semantic step, found {actual}",
+                self.name
+            ))
+        }
     }
 
     pub(super) fn let_initializer(&self, binding: &str) -> Result<&Expr, String> {
@@ -100,10 +139,45 @@ impl FunctionSyntax<'_> {
             .ok_or_else(|| format!("`{}` omits semantic binding `{binding}`", self.name))
     }
 
-    fn steps(&self) -> Vec<String> {
-        let mut collector = SemanticStepCollector::default();
-        collector.visit_block(self.block);
-        collector.steps
+    fn projection(&self) -> SemanticProjection {
+        project_block(self.block)
+    }
+}
+
+fn local_initializer(statement: &Stmt) -> Option<&Expr> {
+    match statement {
+        Stmt::Local(local) => local.init.as_ref().map(|init| init.expr.as_ref()),
+        _ => None,
+    }
+}
+
+fn collected_mapping_body(expression: &Expr) -> Option<&Expr> {
+    let Expr::MethodCall(collect) = peel_expression_wrappers(expression) else {
+        return None;
+    };
+    if collect.method != "collect" || !collect.args.is_empty() {
+        return None;
+    }
+    let Expr::MethodCall(mapping) = peel_expression_wrappers(&collect.receiver) else {
+        return None;
+    };
+    if mapping.method != "map" || mapping.args.len() != 1 {
+        return None;
+    }
+    match mapping.args.first() {
+        Some(Expr::Closure(closure)) => Some(&closure.body),
+        _ => None,
+    }
+}
+
+fn peel_expression_wrappers(mut expression: &Expr) -> &Expr {
+    loop {
+        expression = match expression {
+            Expr::Group(group) => &group.expr,
+            Expr::Paren(parenthesized) => &parenthesized.expr,
+            Expr::Try(attempt) => &attempt.expr,
+            _ => return expression,
+        };
     }
 }
 
@@ -114,17 +188,21 @@ fn collect_named_functions<'source>(
 ) {
     for item in items {
         match item {
-            Item::Fn(function) if function.sig.ident == name => blocks.push(&function.block),
-            Item::Impl(implementation) => {
+            Item::Fn(function)
+                if function.sig.ident == name && !is_exact_cfg_test(&function.attrs) =>
+            {
+                blocks.push(&function.block);
+            }
+            Item::Impl(implementation) if !is_exact_cfg_test(&implementation.attrs) => {
                 for item in &implementation.items {
                     if let ImplItem::Fn(function) = item {
-                        if function.sig.ident == name {
+                        if function.sig.ident == name && !is_exact_cfg_test(&function.attrs) {
                             blocks.push(&function.block);
                         }
                     }
                 }
             }
-            Item::Mod(module) => {
+            Item::Mod(module) if !is_exact_cfg_test(&module.attrs) => {
                 if let Some((_, items)) = &module.content {
                     collect_named_functions(items, name, blocks);
                 }
@@ -134,78 +212,15 @@ fn collect_named_functions<'source>(
     }
 }
 
-#[derive(Default)]
-struct SemanticStepCollector {
-    steps: Vec<String>,
-}
-
-impl<'ast> Visit<'ast> for SemanticStepCollector {
-    fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
-        visit::visit_expr_call(self, call);
-        if let Expr::Path(path) = call.func.as_ref() {
-            if let Some(segment) = path.path.segments.last() {
-                self.steps.push(format!("call:{}", segment.ident));
-            }
-        }
-    }
-
-    fn visit_expr_method_call(&mut self, call: &'ast syn::ExprMethodCall) {
-        visit::visit_expr_method_call(self, call);
-        self.steps.push(format!("method:{}", call.method));
-    }
-
-    fn visit_expr_assign(&mut self, assignment: &'ast syn::ExprAssign) {
-        if let (Expr::Field(field), Expr::Lit(value)) =
-            (assignment.left.as_ref(), assignment.right.as_ref())
-        {
-            if let (Member::Named(name), syn::Lit::Bool(value)) = (&field.member, &value.lit) {
-                self.steps.push(format!("assign:{name}={}", value.value));
-            }
-        }
-        visit::visit_expr_assign(self, assignment);
-    }
-
-    fn visit_expr_path(&mut self, path: &'ast syn::ExprPath) {
-        if let Some(segment) = path.path.segments.last() {
-            self.steps.push(format!("path:{}", segment.ident));
-        }
-        visit::visit_expr_path(self, path);
-    }
-
-    fn visit_pat_tuple_struct(&mut self, pattern: &'ast syn::PatTupleStruct) {
-        if let Some(segment) = pattern.path.segments.last() {
-            self.steps.push(format!("path:{}", segment.ident));
-        }
-        visit::visit_pat_tuple_struct(self, pattern);
-    }
+fn is_exact_cfg_test(attributes: &[Attribute]) -> bool {
+    attributes.iter().any(|attribute| {
+        attribute.path().is_ident("cfg")
+            && matches!(
+                &attribute.meta,
+                syn::Meta::List(configuration) if configuration.tokens.to_string() == "test"
+            )
+    })
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ParsedRustSource;
-
-    #[test]
-    fn nested_calls_follow_rust_evaluation_order() {
-        let source = ParsedRustSource::parse(
-            r#"
-                fn nested_order() {
-                    owner.release_group_before_effect();
-                    Reserved::from_members(pending).release_after_no_effect();
-                }
-            "#,
-            "nested-call control",
-        )
-        .expect("parse nested-call control");
-        source
-            .function("nested_order")
-            .expect("find nested-call control")
-            .require_in_order(&[
-                "method:release_group_before_effect",
-                "call:from_members",
-                "method:release_after_no_effect",
-            ])
-            .unwrap_or_else(|denial| {
-                panic!("MUTANT_PREDICATE:wal-source-semantic-order-inverted-accepted: {denial}")
-            });
-    }
-}
+mod tests;

@@ -5,9 +5,9 @@ pub(super) fn inspect(source: &str) -> Result<(), String> {
     let reopen = source.function("reopen_wal_inventory")?;
     reopen.deny("method:list_file_names")?;
     reopen.require_exact("method:list_file_names_bounded", 1)?;
+    reopen.require_collected_mapping_step("call:parse")?;
     reopen.require_in_order(&[
         "method:list_file_names_bounded",
-        "call:parse",
         "method:file_length",
         "method:try_reserve_exact",
         "method:read_exact_at",

@@ -1,6 +1,6 @@
 use std::io::{Seek, SeekFrom, Write};
 
-use super::{WalAppendPlanner, WalArtifactStoreDenial, WalFrameAppendPlan};
+use super::{WalAppendPlanner, WalAppendPlannerDenial, WalArtifactStoreDenial, WalFrameAppendPlan};
 
 #[test]
 fn reused_planner_scans_each_durable_frame_once_instead_of_each_history() {
@@ -108,7 +108,9 @@ fn checksum_corruption_denies_reopen_instead_of_becoming_an_append_prefix() {
 
     assert!(matches!(
         WalAppendPlanner::open(directory.path(), 7, 3),
-        Err(WalArtifactStoreDenial::DigestMismatch)
+        Err(WalAppendPlannerDenial::Artifact(
+            WalArtifactStoreDenial::DigestMismatch
+        ))
     ));
 }
 

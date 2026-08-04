@@ -598,6 +598,7 @@ checksum = "5c0e04424e733e69714ca1bbb9204c1a57f09f5493439520f9f68c132ad25eec"
 name = "store-test-runner"
 version = "0.1.0"
 dependencies = [
+ "proc-macro2",
  "serde",
  "serde_json",
  "sha2",

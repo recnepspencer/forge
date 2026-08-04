@@ -2,6 +2,7 @@ use super::{ControlledMutation, MutationTarget};
 
 mod authority_accounting;
 mod closeout_cost;
+mod evidence_integrity;
 mod ledger_accounting;
 mod process_accounting;
 mod timing_guard;
@@ -12,6 +13,8 @@ mod wal_successor_cleanup;
 pub(super) const AUTHORITY_ACCOUNTING_MUTATIONS: &[ControlledMutation] =
     authority_accounting::MUTATIONS;
 pub(super) const CLOSEOUT_COST_MUTATIONS: &[ControlledMutation] = closeout_cost::MUTATIONS;
+pub(super) const EVIDENCE_INTEGRITY_MUTATIONS: &[ControlledMutation] =
+    evidence_integrity::MUTATIONS;
 pub(super) const LEDGER_ACCOUNTING_MUTATIONS: &[ControlledMutation] = ledger_accounting::MUTATIONS;
 pub(super) const PROCESS_ACCOUNTING_MUTATIONS: &[ControlledMutation] =
     process_accounting::MUTATIONS;

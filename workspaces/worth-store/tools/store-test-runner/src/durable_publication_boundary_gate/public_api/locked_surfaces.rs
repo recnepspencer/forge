@@ -171,7 +171,7 @@ pub(super) const PHASE_TWO_PREPARATION_EXPORTS: [&str; 10] = [
     "PreparedPhysicalMutation",
 ];
 
-pub(super) const PHASE_THREE_SURFACES: [&str; 17] = [
+pub(super) const PHASE_THREE_SURFACES: [&str; 18] = [
     "CanonicalRedoRecords",
     "PhysicalRecordSubmission::wal_observation",
     "PhysicalWalAppendDeclaration",
@@ -185,6 +185,7 @@ pub(super) const PHASE_THREE_SURFACES: [&str; 17] = [
     "PlannedWalFrameAppend",
     "RedoRecord",
     "WalAppendFrontier",
+    "WalAppendPlannerDenial",
     "WalAppendedPhysicalMutation",
     "WalFramePlanningDenial",
     "WalRangeReservedPhysicalMutation",

@@ -264,6 +264,7 @@ const PHASE_SIX_WAL_SOURCE_TREES: &[&str] = &[
     "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/wal/inventory",
     "workspaces/worth-store/crates/worth-store/tests/physical_record_journeys/durability_admission/independent_wal_oracle",
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/contract/wal_segment_lifecycle",
+    "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/contract/wal_source_syntax",
 ];
 
 pub(super) fn phase_one_source_identity() -> Result<String, String> {

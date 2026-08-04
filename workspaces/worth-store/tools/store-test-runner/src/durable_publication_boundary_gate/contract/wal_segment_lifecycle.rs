@@ -73,6 +73,19 @@ fn comments_and_literals_cannot_counterfeit_wal_lifecycle_steps() {
 }
 
 #[test]
+fn dead_shape_plus_macro_hidden_behavior_cannot_counterfeit_reopen() {
+    let mut source = sources();
+    source.reopen = source.reopen.replace(
+        "    let names = tree\n        .list_file_names_bounded(&directory, inventory_limit)\n        .map_err(map_listing_failure)?;",
+        "    let _counterfeit = || {\n        tree.list_file_names_bounded(&directory, inventory_limit)\n    };\n    let names = worth_dbg!(tree.list_file_names(&directory));",
+    );
+    assert!(
+        inspect(&source).is_err(),
+        "MUTANT_PREDICATE:wal-reopen-dead-shape-macro-behavior-accepted"
+    );
+}
+
+#[test]
 fn delegated_reopen_verification_is_the_current_semantic_owner() {
     let mut source = sources();
     source.reopen = source.reopen.replace(

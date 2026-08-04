@@ -17,7 +17,7 @@ mod offline_segment_verification_tests;
 use std::path::{Path, PathBuf};
 
 #[cfg(feature = "certification-authority")]
-pub use append_planner::WalAppendPlanner;
+pub use append_planner::{WalAppendPlanner, WalAppendPlannerDenial};
 pub use artifact_observation::{
     observe_checkpoint_artifact, observe_wal_frame_artifact, CheckpointArtifactObservation,
     WalFrameArtifactObservation,

@@ -26,8 +26,6 @@ pub enum DurablePublicationPhase {
 pub use append::{
     plan_wal_frame_append, PlannedWalFrameAppend, WalAppendFrontier, WalFramePlanningDenial,
 };
-#[cfg(feature = "certification-authority")]
-pub use artifact_store::WalAppendPlanner;
 pub use artifact_store::{
     inspect_complete_wal_segment, inspect_interrupted_wal_segment_start,
     inspect_verified_wal_active_tail, inspect_verified_wal_segment, observe_checkpoint_artifact,
@@ -38,6 +36,8 @@ pub use artifact_store::{
     WalArtifactScanCounters, WalArtifactStoreDenial, WalFrameAppendPlan,
     WalFrameArtifactObservation, WalSegmentArtifactIdentity, WalSegmentInspection,
 };
+#[cfg(feature = "certification-authority")]
+pub use artifact_store::{WalAppendPlanner, WalAppendPlannerDenial};
 pub use blob_records::{
     durable_phase_for_record_kind, record_kind_admits_recovery_replay, BlobWalRecordEnvelope,
     BlobWalRecordIdentity, BlobWalRecordKind, BlobWalRecordScopeDenial,
