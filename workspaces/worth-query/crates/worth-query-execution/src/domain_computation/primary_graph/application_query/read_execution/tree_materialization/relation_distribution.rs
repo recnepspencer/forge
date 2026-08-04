@@ -18,6 +18,7 @@ pub(super) fn distribute_relation_rows(
     counts: Vec<usize>,
     children: Vec<WorthQueryApplicationProjectionNode>,
     contract: &WorthQueryInstalledGraphReadContract,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     work: &mut ResultTreeWork,
     already_ordered: bool,
     result_buffer: &mut WorthQueryApplicationResultBufferReservation,
@@ -34,7 +35,13 @@ pub(super) fn distribute_relation_rows(
         )?;
         rows.extend(children.by_ref().take(count));
         if !already_ordered {
-            order_collection(contract, relation.result_path(), &mut rows, work)?;
+            order_collection(
+                contract,
+                governance,
+                relation.result_path(),
+                &mut rows,
+                work,
+            )?;
         }
         if rows.len() != count
             || !parent.insert_relation(WorthQueryApplicationProjectedRelation::new(relation, rows))

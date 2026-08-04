@@ -1,7 +1,6 @@
 # Milestone 9.16.1: Canonical Graph Obligation And Provider Session Convergence
 
-> **Status:** Draft — required before Milestone 9.16 resumes after Runtime
-> Hardening Phase 7.2
+> **Status:** Closed — Milestone 9.16 resumes at Runtime Hardening Phase 7.3
 >
 > **Historical posture:** Milestones 9.9, 9.10, 9.11, and 9.15 retain their
 > recorded statuses. Milestones 9.9, 9.11, and 9.15 closure and Milestone

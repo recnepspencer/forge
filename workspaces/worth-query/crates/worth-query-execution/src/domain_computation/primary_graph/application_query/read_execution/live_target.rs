@@ -1,4 +1,5 @@
 use worth_foundational::facade::AspectValue;
+use worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence;
 use worth_relational::facade::indexes::{
     BoundedEntityFieldLookupRequest, BoundedIndexParityMode, DerivedIndexGenerationId,
 };
@@ -146,6 +147,18 @@ fn resolve_live_target<
     target_identity: AspectValue,
 ) -> Result<ResolvedLiveTarget, WorthQueryApplicationReadExecutionDenial> {
     let target = live.target_identity();
+    let computation = plan
+        .governance
+        .admit_internal_field(
+            (target.entity(), target.aspect(), target.field()),
+            ApplicationQueryObservableInfluence::LiveMembership,
+        )
+        .ok_or_else(|| {
+            read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::TargetIdentityIndexUnavailable,
+                target.result_path(),
+            )
+        })?;
     let layout = graph
         .equality_field(target.entity(), target.aspect(), target.field())
         .ok_or_else(|| {
@@ -173,6 +186,8 @@ fn resolve_live_target<
             target.result_path(),
         )
     })?;
+    let _projection_mask = computation.projection_mask();
+    let _diagnostic_mask = computation.diagnostic_mask();
     let lookup = runtime
         .index_access()
         .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)

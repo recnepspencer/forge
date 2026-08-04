@@ -311,6 +311,12 @@ impl WorthQueryManagedGraphWorkSession {
         self.runtime.as_u64()
     }
 
+    pub(in crate::domain_computation) const fn runtime_authority(
+        &self,
+    ) -> WorthQueryRuntimeAuthorityIdentity {
+        self.runtime
+    }
+
     pub(in crate::domain_computation) const fn principal(&self) -> EntityId {
         self.principal
     }

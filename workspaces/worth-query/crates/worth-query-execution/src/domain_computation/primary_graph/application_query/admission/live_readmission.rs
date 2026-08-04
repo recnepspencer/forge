@@ -57,7 +57,7 @@ where
     > {
         let (parameters, controls) =
             self.prepare_application_query_admission(query, access, parameters, controls)?;
-        if !governance.computation_matches(
+        if !governance.readmission_matches(
             self.runtime.authority_identity(),
             query.identity(),
             parameters.identity(),

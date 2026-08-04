@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence;
 use worth_query_declaration::facade::application_query::ApplicationQueryRootPathDirection;
 use worth_query_installation::facade::WorthQueryInstalledRootPath;
 use worth_relational::facade::identity::EntityId;
@@ -161,17 +162,28 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
                 guard.field().as_str(),
             )
             .ok_or_else(|| traversal_denial(guard.field().as_str()))?;
-        let read = runtime
-            .read_truth()
-            .bounded_entity_field_equals_for_frontier_at_version(
-                frontier,
-                layout.entity_kind,
-                &layout.locator,
-                guard.expected(),
-                plan.basis.version_id(),
-                work.remaining(),
+        let computation = plan
+            .governance
+            .admit_internal_field(
+                (
+                    guard.entity(),
+                    guard.aspect().as_str(),
+                    guard.field().as_str(),
+                ),
+                ApplicationQueryObservableInfluence::RowPresence,
             )
-            .map_err(|_| work_limit_denial(guard.field().as_str()))?;
+            .ok_or_else(|| traversal_denial(guard.field().as_str()))?;
+        let read = read_governed_root_guard(
+            runtime,
+            computation,
+            frontier,
+            layout.entity_kind,
+            &layout.locator,
+            guard.expected(),
+            plan.basis.version_id(),
+            work.remaining(),
+        )
+        .map_err(|_| work_limit_denial(guard.field().as_str()))?;
         work.charge_predicate(
             read.entity_records_examined(),
             read.matching_entity_ids_reserved(),
@@ -180,6 +192,34 @@ fn apply_guards<Schema, Query, Parameters, QueryResult, Principal, PrincipalIden
         *frontier = read.into_matching_entity_ids();
     }
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn read_governed_root_guard(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    computation: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalFieldAdmission<'_>,
+    frontier: &BTreeSet<EntityId>,
+    entity_kind: worth_relational::facade::identity::KindId,
+    locator: &worth_foundational::facade::AspectFieldLocator,
+    expected: &worth_foundational::facade::AspectValue,
+    version: worth_relational::facade::identity::VersionId,
+    maximum_work: usize,
+) -> Result<
+    worth_relational::facade::runtime::BoundedFrontierFieldEqualityTruthRead,
+    worth_relational::facade::runtime::FrontierFieldEqualityTruthReadLimitExceeded,
+> {
+    let _projection_mask = computation.projection_mask();
+    let _diagnostic_mask = computation.diagnostic_mask();
+    runtime
+        .read_truth()
+        .bounded_entity_field_equals_for_frontier_at_version(
+            frontier,
+            entity_kind,
+            locator,
+            expected,
+            version,
+            maximum_work,
+        )
 }
 
 fn traversal_denial(subject: &str) -> WorthQueryApplicationReadExecutionDenial {

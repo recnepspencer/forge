@@ -2,6 +2,7 @@ mod admission;
 mod admitted_capability_access;
 mod admitted_operation;
 mod application_commit_authorization;
+pub(in crate::domain_computation) mod application_disclosure;
 mod authorization_revalidation;
 mod bridge_binding;
 mod bridge_observation;

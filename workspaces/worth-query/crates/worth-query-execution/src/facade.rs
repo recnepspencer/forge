@@ -27,6 +27,7 @@ pub mod primary_graph {
         WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
         WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
         WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
+        WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
         WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
         WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
         WorthQueryApplicationEffectProgramBuilder, WorthQueryApplicationEntityIdentity,

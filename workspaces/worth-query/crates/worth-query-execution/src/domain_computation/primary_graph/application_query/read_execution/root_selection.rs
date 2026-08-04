@@ -1,3 +1,4 @@
+use worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence;
 use worth_relational::facade::identity::EntityId;
 use worth_relational::facade::indexes::{
     BoundedEntityFieldLookupRequest, BoundedIndexParityMode, DerivedIndexGenerationId,
@@ -162,6 +163,18 @@ fn select_indexed_root<
     predicate: &worth_query_installation::facade::WorthQueryInstalledGraphPredicate,
 ) -> Result<BoundedRootSelection, WorthQueryApplicationReadExecutionDenial> {
     let (entity, aspect, field) = predicate.field();
+    let computation = plan
+        .governance
+        .admit_internal_field(
+            predicate.field(),
+            ApplicationQueryObservableInfluence::RowPresence,
+        )
+        .ok_or_else(|| {
+            read_execution_denial(
+                WorthQueryApplicationReadExecutionDenialKind::ProjectionUnavailable,
+                field,
+            )
+        })?;
     let layout = graph.equality_field(entity, aspect, field).ok_or_else(|| {
         read_execution_denial(
             WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
@@ -200,10 +213,8 @@ fn select_indexed_root<
             field,
         )
     })?;
-    let lookup = runtime
-        .index_access()
-        .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
-        .map_err(|_| {
+    let lookup =
+        execute_governed_predicate_lookup(runtime, computation, request).map_err(|_| {
             read_execution_denial(
                 WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable,
                 field,
@@ -229,4 +240,19 @@ fn select_indexed_root<
         adjacency_lists_read: 0,
         relation_records_examined: 0,
     })
+}
+
+fn execute_governed_predicate_lookup(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    computation: super::super::disclosure::WorthQueryApplicationInternalFieldAdmission<'_>,
+    request: BoundedEntityFieldLookupRequest,
+) -> Result<
+    worth_relational::facade::indexes::BoundedEntityFieldLookupOutcome,
+    worth_relational::facade::indexes::BoundedEntityFieldLookupDenial,
+> {
+    let _projection_mask = computation.projection_mask();
+    let _diagnostic_mask = computation.diagnostic_mask();
+    runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
 }

@@ -2,8 +2,8 @@
 
 **Owner:** Runtime Hardening Track, Phase 7
 **Canonical specification:** `milestone-9.16.md`
-**Status:** Paused after Phase 7.2 — Milestone 9.16.1 must close before Phase
-7.3 begins
+**Status:** In progress at Phase 7.3 — Milestone 9.16.1 is closed and its
+managed graph-work session handoff is the required Phase 7.3 substrate
 **Policy:** A requirement is `PROVED` only when its production owner, public
 consumer evidence, adversarial evidence, performance posture, and residue
 posture agree. A finding is `CLOSED` only when the root cause and every
@@ -14,14 +14,15 @@ the milestone. A green broad test does not change a row's status. New findings
 that require stronger composition receive an append-only corrective phase or
 milestone and block unfinished dependents; they do not relabel completed rows.
 
-Milestone 9.16.1 adds the canonical graph-obligation and provider-session
-prerequisite discovered after Phase 7.2. The `R7.*` and `Q7.*` statuses below
-remain the historical Phase 7 record. Phase 7.3 cannot begin until the separate
-9.16.1 closure ledger is complete. That prerequisite migrates only the exact
-competing authority surfaces with downstream parity; it preserves the Phase 6
-feature contracts and the proved 7.1-7.2 lower-owner meaning. Phase 7.3 receives
-the same application-query identities, lane semantics, and public front door
-with a single session-bound graph authority, not a replacement Query product.
+Milestone 9.16.1 added the canonical graph-obligation and provider-session
+prerequisite discovered after Phase 7.2. Its separate closure ledger is closed.
+The `R7.*` and `Q7.*` statuses below remain the historical Phase 7 record while
+Phase 7.3 resumes from that exact handoff. The prerequisite migrated only the
+named competing authority surfaces with downstream parity; it preserved the
+Phase 6 feature contracts and the proved 7.1-7.2 lower-owner meaning. Phase 7.3
+receives the same application-query identities, lane semantics, and public
+front door with a single session-bound graph authority, not a replacement
+Query product.
 
 ## Requirement ledger
 
@@ -44,6 +45,11 @@ with a single session-bound graph authority, not a replacement Query product.
 | R7.15 | 7.7 | Warm authorization work depends only on declared touched evidence, not unrelated grants, relationships, fields, cases, rows, or consumers. | **BLOCKED BY 7.6** | Growth measurements with exact-zero canonical preparation, hashing, digest text, and fallback. |
 | R7.16 | 7.2 | Relational owns current graph observation, Signal owns installed boolean composition, Runtime Bridge owns correspondence, and Query alone combines those proofs into attempt authority; no layer silently recreates another layer's decision. | **PROVED** | Relational's 11 authorization tests prove neutral complete witnesses; installed nested composition lowers through Signal and Bridge; prohibited-path precedence remains Bridge-owned; only top-level Query authorization combines current evidence into private move-only access/operation authority. No competing production authorization owner or legacy import remains. |
 | R7.17 | 7.2 | Capability plans compile at the cold application-runtime publication seam; warm admission performs typed lookup plus touched-graph work and cannot recompile or rehash installed meaning as unrelated graph population grows. | **PROVED** | Publication compiles and indexes each plan once; 4,096 retained installation lookups and Bank population-scale admission remain one registry probe with exact-zero basis, digest, SHA, and text work. The recursive source-cone oracle includes the complete authorization owner. |
+| R7.18 | 7.3 | Internal-computation and disclosure decisions are minted only after the canonical managed graph-work session exists and are affine to its runtime, query, parameters, principal, scope, session, managed run, branch, basis, and provider. | **OPEN** | Construction order and private-type evidence; foreign-session, branch, provider, basis, query, parameter, principal, and scope hostility; every lane rebuilds or re-admits rather than copying authority. |
+| R7.19 | 7.3 | Projection and diagnostic masks remain category-distinct, AspectContract-admitted artifacts inside Query's private decision; neither a descriptive mask nor a diagnostic mask can open an internal read, result projection, or publication boundary. | **OPEN** | Exact admitted-mask retention, read-path consumption, public compile denials, and contract-incompatible runtime denial before result construction. |
+| R7.20 | 7.3 | Every protected fact that can affect predicates, root guards, ordering, cursors, counts, aggregates, explanations, history, preview, or live delivery requires the matching installed influence permission before the read can occur. | **OPEN** | Source-cone audit plus one-axis hostile contracts for every implemented influence family; no validation-only convention or uncovered read path remains. |
+| R7.21 | 7.3 | Protected internal working values may participate only in admitted computation and never enter domain projection, typed omissions, terminal receipts, publication, diagnostics, formatting, or retained serialization. | **OPEN** | Hidden-ordering positive proof, paired-world observable equality, value-residue search, and fault-sensitive projection/publication evidence. |
+| R7.22 | 7.3 | The terminal disclosure receipt preserves each exact result-slot decision and omission without deduplication, value leakage, or reusable capability/internal-computation authority. | **OPEN** | Slot-keyed terminal inspection, repeated-disclosure-value proof, counterfeit-authority denial, and publication equality. |
 | R7.L | all | The ledger maps every normative Phase 7 requirement, causal dependency, relevant risk category, consumer boundary, and performance claim without duplicating tests into a Cartesian matrix. | **OPEN** | Skeptical ledger audit at every gate closure; discoveries append findings and block unfinished causal rows or create an append-only corrective phase. |
 
 ## Finding ledger
@@ -81,6 +87,12 @@ with a single session-bound graph authority, not a replacement Query product.
 | Q7.29 | High | Application-query execution collapsed retained principal currentness and authorization-observation currentness into one boolean, misreporting a disabled mapped principal as stale policy. Older lane tests also expected a freshly evaluated permission denial after retained evidence changed, contradicting exact freshness comparison. | **CLOSED** | The authorization owner now returns a typed currentness result with principal-before-policy precedence. Disabled principal mappings remain `StalePrincipal`; changed ownership evidence becomes `StaleAuthorization`; serialized application commit denies at the decision-read-set boundary before any equivalent receipt can be disclosed. |
 | Q7.30 | Medium | The installation warm-lookup residue oracle parsed obsolete literal counter field initializers, so the full installation suite failed after lookup evidence moved behind the typed canonical-work carrier even though behavior remained exact-zero. | **CLOSED** | The source oracle now checks the zero-work typed constructor plus forbidden canonical/SHA helpers; the Bank installation and admission consumers independently assert typed registry-probe, basis-preparation, digest-derivation, and digest-text counters. |
 | Q7.31 | Medium | The Bank installation consumer still expected the removed `MissingAbility` denial for an estate operation, encoding the obsolete rule that every capability-governed operation also needs a parallel ability contract. | **CLOSED** | The consumer now proves that Phase 7.1 still opens no estate execution authority because the operation program is absent. Capability meaning alone supplies the exclusive authorization mode; only a separately installed program can make the operation executable. |
+| Q7.32 | Critical | Phase 7.3 governance currently mints its internal-computation proof before the managed graph-work session exists, so the proof has no session, managed-run, branch, basis, or provider affinity and relies on a later conventional identity check. | **OPEN** | Move admission after session start, retain all session affinities in the private proof, consume that proof on reads, and prove foreign-affinity denial. |
+| Q7.33 | Critical | Disclosure contract admission validates Foundational projection and diagnostic masks but discards them, leaving later protected reads authorized only by copied field names and influence enums. | **OPEN** | Retain category-specific admitted masks in the private contract/decision and require the matching artifact at each internal field read. |
+| Q7.34 | Critical | Root-path guards read protected fields and change row membership without participating in disclosure influence validation or consuming internal-computation authority. | **OPEN** | Include every root guard in RowPresence and lane-specific influence admission, require the proof at execution, and add a hostile guard contract plus paired worlds. |
+| Q7.35 | High | A protected result field may be permitted to influence ordering while omitted from consumer disclosure, but materialization removes it before ordering, so the declared separation between internal use and disclosure is not executable. | **OPEN** | Retain the field as private working material, consume Ordering/Pagination authority, and prove stable typed omission plus lawful ordering. |
+| Q7.36 | High | The disclosure receipt deduplicates required disclosure values and loses their result-slot identities, so it cannot carry the exact decisions and omissions required by the specification. | **OPEN** | Emit ordered slot-keyed outcomes and prove equal disclosure values on distinct slots remain distinct without carrying protected values or authority. |
+| Q7.37 | High | The existing paired-world test observes only one-shot rows, a subset of counters, and a lossy receipt; it cannot falsify leaks through continuation boundaries, history, preview, live delivery, or publication. | **OPEN** | Rebuild one canonical paired-world family across each implemented observable boundary with independent observations and a targeted fault-sensitivity check. |
 
 ## Phase 7.1 closure evidence
 
@@ -116,6 +128,57 @@ with a single session-bound graph authority, not a replacement Query product.
   at or below 400 lines; function scrutiny reports zero scan errors
 - `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .`
 - `cargo run --manifest-path tools/agent-context/Cargo.toml -- check`
+
+## Phase 7.3 restart audit
+
+The restart audit froze source at `e33cca85d` after Milestone 9.16.1 closure.
+It reran the inherited lower-owner proof families before changing Phase 7.3:
+
+- `worth-query-declaration`: `98 passed`;
+- `worth-query-installation`: `151` unit tests passed and both documentation
+  test groups passed;
+- `worth-query-execution --lib`: `414 passed`;
+- root-workspace `worth-relational authorization::`: `12 passed`;
+- Bank `estate_capability_installation`: `11 passed`; and
+- Bank `estate_capability_admission`: `9 passed`.
+
+Those results refresh the stale historical counts for R7.1-R7.7 and
+R7.16-R7.17. They do not prove any Phase 7.3 row. The boundary review that
+followed opened Q7.32-Q7.37 and expanded the ledger with R7.18-R7.22 before
+implementation began.
+
+### Phase 7.3 implementation checkpoint
+
+The first corrective implementation checkpoint relocates disclosure-policy
+admission into the authorization owner, binds governed computation to the
+managed graph-work session, retains category-specific Foundational masks,
+admits root guards, ordering, and live target reads through the internal
+decision, and preserves exact result-slot outcomes in terminal receipts.
+
+Checkpoint verification:
+
+- `cargo test -p worth-query-execution`: `414` unit/integration tests and `17`
+  documentation compile-fail tests passed;
+- `cargo test --workspace` in `workspaces/worth-query`: the complete Query
+  workspace, certification, compile-fail, integration, and documentation lanes
+  passed;
+- `cargo check --workspace` in `workspaces/worth-ui`: passed against the
+  checkpoint facade;
+- strict `cargo clippy -p worth-query-execution --all-targets -- -D warnings`:
+  passed;
+- `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .`:
+  passed;
+- `cargo run --manifest-path tools/agent-context/Cargo.toml -- check`: passed;
+  and
+- every Rust file changed by this checkpoint is at or below 400 lines and the
+  dirty-file function scrutiny completed with zero scan errors. The global
+  line-cap guard remains red on the repository's pre-existing, out-of-slice
+  over-cap baseline, so this evidence does not claim repository-wide cap
+  closure.
+
+This is an implementation checkpoint, not Phase 7.3 closure. R7.8-R7.9 and
+R7.18-R7.22 remain open until the hostile and paired-world proofs named in
+their rows close Q7.32-Q7.37.
 
 ## Test-selection policy
 

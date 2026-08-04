@@ -217,18 +217,6 @@ where
                 denial.subject(),
             )
         })?;
-        let mut governance = admit_application_query_governance(
-            disclosure,
-            pending_governance,
-            WorthQueryApplicationGovernanceBinding::new(
-                self.runtime.authority_identity(),
-                query.identity().clone(),
-                *parameters.identity(),
-                access.principal().principal_entity_id(),
-                access.scope().entity_id(),
-            ),
-        )
-        .map_err(|kind| governance_denial(kind, query.name()))?;
         let obligations = query.retain_graph_obligations_for_admission();
         let obligation_identity = obligations.identity().clone();
         let selected = select_installed_graph_obligations(
@@ -284,6 +272,9 @@ where
         let (basis_selection, controls) = controls.into_admission_parts();
         let basis = admit_application_query_basis(self, basis_selection)?;
         validate_admission_request(controls.request_scope(), query.name())?;
+        let capability_identity = pending_governance
+            .as_ref()
+            .map(WorthQueryPendingApplicationQueryGovernance::installed_capability_identity);
         let mut graph_work = WorthQueryManagedGraphWorkSession::start_query(
             admitted_graph_work,
             self.runtime.authority_identity(),
@@ -291,7 +282,7 @@ where
             &obligation_identity,
             query.authority_identity(),
             access.principal().principal_entity_id(),
-            governance.installed_capability_identity().map_or_else(
+            capability_identity.map_or_else(
                 || WorthQueryGraphWorkAccessContextAffinity::entity(access.scope().entity_id()),
                 |identity| {
                     WorthQueryGraphWorkAccessContextAffinity::governed_entity(
@@ -305,15 +296,31 @@ where
             graph.query_session_port(),
         )
         .map_err(|_| graph_work_denial(query.name()))?;
-        if let Some(capability) = governance.authorization_mut() {
-            self.refresh_capability_authorization_for_graph_work(capability, &graph_work)
-                .map_err(|denial| {
-                    WorthQueryApplicationQueryAdmissionDenial::new(
-                        WorthQueryApplicationQueryAdmissionDenialKind::Authorization(denial.kind()),
-                        denial.subject(),
-                    )
-                })?;
+        let mut pending_governance = pending_governance;
+        if let Some(pending) = pending_governance.as_mut() {
+            self.refresh_capability_authorization_for_graph_work(
+                pending.authorization_mut(),
+                &graph_work,
+            )
+            .map_err(|denial| {
+                WorthQueryApplicationQueryAdmissionDenial::new(
+                    WorthQueryApplicationQueryAdmissionDenialKind::Authorization(denial.kind()),
+                    denial.subject(),
+                )
+            })?;
         }
+        let governance = admit_application_query_governance(
+            disclosure,
+            pending_governance,
+            WorthQueryApplicationGovernanceBinding::from_session(
+                &graph_work,
+                query.identity().clone(),
+                *parameters.identity(),
+                access.principal().principal_entity_id(),
+                access.scope().entity_id(),
+            ),
+        )
+        .map_err(|kind| governance_denial(kind, query.name()))?;
         let (authorization, authorization_work) =
             self.observe_application_query_access(&mut graph_work, query, access)?;
         if !authorization.belongs_to_session(graph_work.identity()) {

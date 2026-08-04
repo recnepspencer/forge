@@ -1,6 +1,8 @@
 use std::cmp::Ordering;
 
-use worth_query_declaration::facade::application_query::ApplicationQueryOrderingDirection;
+use worth_query_declaration::facade::application_query::{
+    ApplicationQueryObservableInfluence, ApplicationQueryOrderingDirection,
+};
 use worth_query_installation::facade::{
     WorthQueryInstalledGraphOrdering, WorthQueryInstalledGraphReadContract,
 };
@@ -12,6 +14,7 @@ use super::{
 
 pub(super) fn order_collection(
     contract: &WorthQueryInstalledGraphReadContract,
+    governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
     collection_path: &str,
     rows: &mut [WorthQueryApplicationProjectionNode],
     work: &mut ResultTreeWork,
@@ -20,16 +23,27 @@ pub(super) fn order_collection(
         .ordering()
         .iter()
         .filter(|term| term.collection_path() == collection_path)
-        .collect::<Vec<_>>();
+        .map(|term| {
+            governance
+                .admit_internal_field(term.field(), ApplicationQueryObservableInfluence::Ordering)
+                .map(|computation| AdmittedOrdering { term, computation })
+                .ok_or_else(|| projection_denial(term.result_path()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if ordering.is_empty() || rows.len() < 2 {
         return Ok(());
     }
     heap_sort(rows, &ordering, work)
 }
 
+struct AdmittedOrdering<'a> {
+    term: &'a WorthQueryInstalledGraphOrdering,
+    computation: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationInternalFieldAdmission<'a>,
+}
+
 fn heap_sort(
     rows: &mut [WorthQueryApplicationProjectionNode],
-    ordering: &[&WorthQueryInstalledGraphOrdering],
+    ordering: &[AdmittedOrdering<'_>],
     work: &mut ResultTreeWork,
 ) -> Result<(), WorthQueryApplicationReadExecutionDenial> {
     for root in (0..rows.len() / 2).rev() {
@@ -46,7 +60,7 @@ fn sift_down(
     rows: &mut [WorthQueryApplicationProjectionNode],
     mut root: usize,
     end: usize,
-    ordering: &[&WorthQueryInstalledGraphOrdering],
+    ordering: &[AdmittedOrdering<'_>],
     work: &mut ResultTreeWork,
 ) -> Result<(), WorthQueryApplicationReadExecutionDenial> {
     loop {
@@ -73,10 +87,13 @@ fn sift_down(
 fn compare_rows(
     left: &WorthQueryApplicationProjectionNode,
     right: &WorthQueryApplicationProjectionNode,
-    ordering: &[&WorthQueryInstalledGraphOrdering],
+    ordering: &[AdmittedOrdering<'_>],
     work: &mut ResultTreeWork,
 ) -> Result<Ordering, WorthQueryApplicationReadExecutionDenial> {
-    for term in ordering {
+    for admitted in ordering {
+        let term = admitted.term;
+        let _projection_mask = admitted.computation.projection_mask();
+        let _diagnostic_mask = admitted.computation.diagnostic_mask();
         work.charge_ordering_comparison(term.result_path())?;
         let left_value = left
             .field(term.slot_type())

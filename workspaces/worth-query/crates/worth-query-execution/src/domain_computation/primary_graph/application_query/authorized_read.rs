@@ -139,6 +139,7 @@ where
             })?;
     }
     if !plan.governance.computation_matches(
+        &plan.graph_work,
         application.runtime.authority_identity(),
         plan.query.identity(),
         plan.parameters.identity(),

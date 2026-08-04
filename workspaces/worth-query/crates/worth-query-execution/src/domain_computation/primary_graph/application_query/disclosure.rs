@@ -1,13 +1,12 @@
-mod governance;
-mod installed_contract;
 mod receipt;
 
-pub(super) use governance::{
+pub(super) use crate::domain_computation::authorization::application_disclosure::compile_disclosure_contract;
+pub(super) use crate::domain_computation::authorization::application_disclosure::{
     admit_application_query_governance, WorthQueryApplicationGovernanceBinding,
-    WorthQueryApplicationQueryGovernance, WorthQueryApplicationQueryGovernanceDenialKind,
-    WorthQueryPendingApplicationQueryGovernance,
+    WorthQueryApplicationInternalFieldAdmission, WorthQueryApplicationQueryGovernance,
+    WorthQueryApplicationQueryGovernanceDenialKind, WorthQueryPendingApplicationQueryGovernance,
 };
-pub(super) use installed_contract::compile_disclosure_contract;
 pub use receipt::{
+    WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
     WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
 };

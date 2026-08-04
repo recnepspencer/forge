@@ -60,6 +60,7 @@ pub use application_query::{
     WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
     WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
     WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
+    WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
     WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
     WorthQueryApplicationHistoricalBasis, WorthQueryApplicationHistoricalBasisReleaseReceipt,
     WorthQueryApplicationHistoricalRead, WorthQueryApplicationHistoricalResult,

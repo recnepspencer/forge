@@ -98,7 +98,7 @@ pub(super) fn materialize_result_tree(
         &mut collection_selection,
         result_buffer,
     )?;
-    order_collection(contract, "root", &mut rows, &mut work)?;
+    order_collection(contract, governance, "root", &mut rows, &mut work)?;
     Ok(MaterializedApplicationResultTree {
         rows,
         projected_records: work.projected_records,
@@ -275,8 +275,24 @@ fn direct_projections<'a>(
         .projections()
         .iter()
         .filter(|projection| {
+            let field = (projection.entity(), projection.aspect(), projection.field());
+            let disclosed = governance
+                .admit_disclosed_field(projection.slot_key_identity().as_ref(), field)
+                .is_some_and(|admission| admission.admits_projection(projection.field_key()));
+            let internal_ordering = contract.ordering().iter().any(|ordering| {
+                ordering.collection_path() == parent
+                    && ordering.field() == field
+                    && governance
+                        .admit_internal_field(
+                            ordering.field(),
+                            worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence::Ordering,
+                        )
+                        .is_some_and(|admission| {
+                            admission.admits_projection(projection.field_key())
+                        })
+            });
             parent_path(projection.result_path()) == Some(parent)
-                && governance.is_disclosed(projection.slot_key_identity().as_ref())
+                && (disclosed || internal_ordering)
         })
         .collect()
 }

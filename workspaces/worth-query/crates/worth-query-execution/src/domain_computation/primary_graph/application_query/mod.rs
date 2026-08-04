@@ -57,6 +57,7 @@ pub use denial::{
     WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
 };
 pub use disclosure::{
+    WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
     WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
 };
 pub use graph_read_plan_binding::WorthQueryAdmittedApplicationQueryPlan;

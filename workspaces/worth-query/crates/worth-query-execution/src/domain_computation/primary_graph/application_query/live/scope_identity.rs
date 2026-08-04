@@ -1,4 +1,5 @@
 use worth_foundational::facade::AspectValue;
+use worth_query_declaration::facade::application_query::ApplicationQueryObservableInfluence;
 use worth_relational::facade::runtime::ProjectionAspectScope;
 use worth_relational::facade::storage::RecordLifecycleState;
 
@@ -43,6 +44,13 @@ pub(super) fn read_scope_identity<
         .live()
         .ok_or_else(|| projection_denial(plan.query.name()))?;
     let identity = live.scope_identity();
+    let computation = plan
+        .governance
+        .admit_internal_field(
+            (identity.entity(), identity.aspect(), identity.field()),
+            ApplicationQueryObservableInfluence::LiveMembership,
+        )
+        .ok_or_else(|| projection_denial(identity.result_path()))?;
     let expected_kind = graph
         .entity_kind(identity.entity())
         .ok_or_else(|| projection_denial(identity.result_path()))?;
@@ -50,10 +58,17 @@ pub(super) fn read_scope_identity<
         .read_truth()
         .project_snapshot(plan.basis.snapshot_handle())
         .ok_or_else(|| projection_denial(identity.result_path()))?;
-    let scope = ProjectionAspectScope::fields(
-        identity.aspect_key().clone(),
-        [identity.field_key().clone()],
+    let projection_fields = computation.projection_mask().map_or_else(
+        || vec![identity.field_key().clone()],
+        |mask| {
+            mask.paths()
+                .iter()
+                .flat_map(|path| path.fields().iter().cloned())
+                .collect()
+        },
     );
+    let _diagnostic_mask = computation.diagnostic_mask();
+    let scope = ProjectionAspectScope::fields(identity.aspect_key().clone(), projection_fields);
     let value = view
         .entity_record_with_projection_scope(plan.scope.entity_id(), scope, |record| {
             (record.kind_id() == expected_kind && record.lifecycle() == RecordLifecycleState::Live)

@@ -1,4 +1,5 @@
 use worth_foundational::facade::AspectValue;
+use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationDisclosureReceiptPosture {
@@ -6,10 +7,24 @@ pub enum WorthQueryApplicationDisclosureReceiptPosture {
     Governed,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryApplicationDisclosureOutcome {
+    Disclosed,
+    Omitted,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryApplicationDisclosureDecisionFact {
+    slot: ApplicationQueryResultSlotKey,
+    required_disclosure: AspectValue,
+    outcome: WorthQueryApplicationDisclosureOutcome,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationDisclosureReceipt {
     posture: WorthQueryApplicationDisclosureReceiptPosture,
     classification: Option<String>,
+    decisions: Vec<WorthQueryApplicationDisclosureDecisionFact>,
     disclosed: Vec<AspectValue>,
     omitted: Vec<AspectValue>,
     capability_authority_identity: Option<String>,
@@ -18,10 +33,11 @@ pub struct WorthQueryApplicationDisclosureReceipt {
 }
 
 impl WorthQueryApplicationDisclosureReceipt {
-    pub(super) const fn public() -> Self {
+    pub(in crate::domain_computation) const fn public() -> Self {
         Self {
             posture: WorthQueryApplicationDisclosureReceiptPosture::Public,
             classification: None,
+            decisions: Vec::new(),
             disclosed: Vec::new(),
             omitted: Vec::new(),
             capability_authority_identity: None,
@@ -30,23 +46,37 @@ impl WorthQueryApplicationDisclosureReceipt {
         }
     }
 
-    pub(super) fn governed(
+    pub(in crate::domain_computation) fn governed(
         classification: impl Into<String>,
-        mut disclosed: Vec<AspectValue>,
-        mut omitted: Vec<AspectValue>,
+        disclosed: Vec<(ApplicationQueryResultSlotKey, AspectValue)>,
+        omitted: Vec<(ApplicationQueryResultSlotKey, AspectValue)>,
         capability_authority_identity: impl Into<String>,
         decision_identity: [u8; 32],
         decision_fact_count: usize,
     ) -> Self {
-        disclosed.sort();
-        disclosed.dedup();
-        omitted.sort();
-        omitted.dedup();
+        let decisions = disclosed
+            .iter()
+            .map(
+                |(slot, required_disclosure)| WorthQueryApplicationDisclosureDecisionFact {
+                    slot: *slot,
+                    required_disclosure: required_disclosure.clone(),
+                    outcome: WorthQueryApplicationDisclosureOutcome::Disclosed,
+                },
+            )
+            .chain(omitted.iter().map(|(slot, required_disclosure)| {
+                WorthQueryApplicationDisclosureDecisionFact {
+                    slot: *slot,
+                    required_disclosure: required_disclosure.clone(),
+                    outcome: WorthQueryApplicationDisclosureOutcome::Omitted,
+                }
+            }))
+            .collect();
         Self {
             posture: WorthQueryApplicationDisclosureReceiptPosture::Governed,
             classification: Some(classification.into()),
-            disclosed,
-            omitted,
+            decisions,
+            disclosed: disclosed.into_iter().map(|(_, value)| value).collect(),
+            omitted: omitted.into_iter().map(|(_, value)| value).collect(),
             capability_authority_identity: Some(capability_authority_identity.into()),
             decision_identity: Some(decision_identity),
             decision_fact_count,
@@ -59,6 +89,10 @@ impl WorthQueryApplicationDisclosureReceipt {
 
     pub fn classification(&self) -> Option<&str> {
         self.classification.as_deref()
+    }
+
+    pub fn decisions(&self) -> &[WorthQueryApplicationDisclosureDecisionFact] {
+        &self.decisions
     }
 
     pub fn disclosed(&self) -> &[AspectValue] {
@@ -79,5 +113,19 @@ impl WorthQueryApplicationDisclosureReceipt {
 
     pub const fn decision_fact_count(&self) -> usize {
         self.decision_fact_count
+    }
+}
+
+impl WorthQueryApplicationDisclosureDecisionFact {
+    pub const fn slot(&self) -> &ApplicationQueryResultSlotKey {
+        &self.slot
+    }
+
+    pub const fn required_disclosure(&self) -> &AspectValue {
+        &self.required_disclosure
+    }
+
+    pub const fn outcome(&self) -> WorthQueryApplicationDisclosureOutcome {
+        self.outcome
     }
 }
