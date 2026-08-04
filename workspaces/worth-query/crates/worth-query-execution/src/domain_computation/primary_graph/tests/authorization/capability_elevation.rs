@@ -26,6 +26,9 @@ use crate::domain_computation::primary_graph::{
     WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalResolutionMode,
 };
 
+#[path = "capability_elevation/approver_conflict.rs"]
+mod approver_conflict;
+
 #[test]
 fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_authority() {
     let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);

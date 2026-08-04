@@ -9,6 +9,7 @@ use crate::domain_computation::primary_graph::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) enum CapabilityElevationScenario {
     Active,
+    ConflictedApprover,
     Revoked,
     SelfApproved,
     WrongGrant,
@@ -25,6 +26,7 @@ pub(super) fn bind_elevated_capability(
     let status = match scenario {
         CapabilityElevationScenario::Revoked => CapabilityElevationStatus::Revoked,
         CapabilityElevationScenario::Active
+        | CapabilityElevationScenario::ConflictedApprover
         | CapabilityElevationScenario::SelfApproved
         | CapabilityElevationScenario::WrongGrant => CapabilityElevationStatus::Active,
     };
@@ -94,6 +96,15 @@ pub(super) fn bind_elevated_capability(
         "elevation-1",
         "review-1",
     );
+    if scenario == CapabilityElevationScenario::ConflictedApprover {
+        bind_relation(
+            bootstrap,
+            CapabilityConflictingBeneficiary::reference(),
+            "elevation-approver-conflict-1",
+            "principal-1",
+            "account-1",
+        );
+    }
 }
 
 fn bind_relation<Relation, From, To>(

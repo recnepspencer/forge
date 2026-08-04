@@ -40,13 +40,13 @@ fn estate_view_contract_installs_exact_role_and_disclosure_composition() {
             .sum::<usize>(),
         4
     );
-    let deny = composition
+    assert!(composition.decision().deny().graph().is_none());
+    let conflict = composition
         .decision()
-        .deny()
+        .conflict()
         .graph()
-        .expect("estate disclosure declares beneficiary denial");
-    assert_eq!(path_relations(deny), vec!["EstateBeneficiary"]);
-    assert!(composition.decision().conflict().graph().is_none());
+        .expect("estate disclosure declares beneficiary conflict");
+    assert_eq!(path_relations(conflict), vec!["EstateBeneficiary"]);
     assert_eq!(
         composition
             .propagation()

@@ -170,33 +170,28 @@ fn employee_path(
     }
 }
 
-fn deny_rule(action: EstateCapabilityOperation) -> ApplicationCapabilityDenyRule {
-    if action == EstateCapabilityOperation::ViewRestrictedEstate {
-        ApplicationCapabilityDenyRule::when(ApplicationCapabilityGraphRule::any([
-            ApplicationCapabilityGraphClause::new(beneficiary_deny_path()),
-        ]))
-    } else {
-        ApplicationCapabilityDenyRule::not_applicable()
-    }
+fn deny_rule(_action: EstateCapabilityOperation) -> ApplicationCapabilityDenyRule {
+    ApplicationCapabilityDenyRule::not_applicable()
 }
 
 fn conflict_rule(action: EstateCapabilityOperation) -> ApplicationCapabilityConflictRule {
     if matches!(
         action,
-        EstateCapabilityOperation::ApproveEmergencyAccess
+        EstateCapabilityOperation::ViewRestrictedEstate
+            | EstateCapabilityOperation::ApproveEmergencyAccess
             | EstateCapabilityOperation::CompleteMandatoryReview
             | EstateCapabilityOperation::ReleaseEstate
             | EstateCapabilityOperation::DisburseEstate
     ) {
         ApplicationCapabilityConflictRule::when(ApplicationCapabilityGraphRule::any([
-            ApplicationCapabilityGraphClause::new(beneficiary_deny_path()),
+            ApplicationCapabilityGraphClause::new(beneficiary_conflict_path()),
         ]))
     } else {
         ApplicationCapabilityConflictRule::not_applicable()
     }
 }
 
-fn beneficiary_deny_path() -> ApplicationAuthorizationPath {
+fn beneficiary_conflict_path() -> ApplicationAuthorizationPath {
     ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
         .forward(EstateBeneficiary::reference())
         .deny(EstateCase::reference())

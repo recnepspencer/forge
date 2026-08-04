@@ -312,11 +312,27 @@ fn elevation_denial_kind(
     let self_approval = evidence.paths().get(elevation.self_approval_path_index)?;
     if self_approval.matched() {
         Some(WorthQueryOperationAuthorizationDenialKind::ElevationSelfApproval)
+    } else if requirements_match(evidence, &elevation.approver_conflict_requirements) {
+        Some(WorthQueryOperationAuthorizationDenialKind::ElevationApproverConflict)
     } else if !required.matched() {
         Some(WorthQueryOperationAuthorizationDenialKind::ElevationInactive)
     } else {
         None
     }
+}
+
+fn requirements_match(
+    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
+    requirements: &[Vec<usize>],
+) -> bool {
+    requirements.iter().all(|requirement| {
+        requirement.iter().any(|path_index| {
+            evidence
+                .paths()
+                .get(*path_index)
+                .is_some_and(|path| path.matched())
+        })
+    })
 }
 
 const fn cardinality_admitted(

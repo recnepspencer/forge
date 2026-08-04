@@ -28,11 +28,12 @@ use super::super::super::{
     Account, AccountLabel, AccountStatus, IdentityExecutionSchema, Principal,
 };
 use super::super::declaration::{
-    CapabilityAction, CapabilityActionField, CapabilityAmountField, CapabilityDelegationLimitField,
-    CapabilityDisclosure, CapabilityDisclosureField, CapabilityGrant, CapabilityGrantee,
-    CapabilityGrantor, CapabilityNotAfterField, CapabilityNotBeforeField, CapabilityParent,
-    CapabilityProvenance, CapabilityPurpose, CapabilityPurposeField, CapabilityRequestContext,
-    CapabilityResource, CapabilityStatus, CapabilityStatusField, CapabilityWorkflowField,
+    CapabilityAction, CapabilityActionField, CapabilityAmountField,
+    CapabilityConflictingBeneficiary, CapabilityDelegationLimitField, CapabilityDisclosure,
+    CapabilityDisclosureField, CapabilityGrant, CapabilityGrantee, CapabilityGrantor,
+    CapabilityNotAfterField, CapabilityNotBeforeField, CapabilityParent, CapabilityProvenance,
+    CapabilityPurpose, CapabilityPurposeField, CapabilityRequestContext, CapabilityResource,
+    CapabilityStatus, CapabilityStatusField, CapabilityWorkflowField,
 };
 use super::{
     CapabilityElevation, CapabilityElevationApprover, CapabilityElevationFacts,
@@ -194,13 +195,18 @@ fn composition() -> ApplicationCapabilityComposition {
         .forward(CapabilityGrantor::reference())
         .forward(CapabilityResource::reference())
         .allow(Account::reference());
+    let conflict = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityConflictingBeneficiary::reference())
+        .deny(Account::reference());
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(ApplicationCapabilityGraphRule::any([
                 ApplicationCapabilityGraphClause::new(allow),
             ])),
             ApplicationCapabilityDenyRule::not_applicable(),
-            ApplicationCapabilityConflictRule::not_applicable(),
+            ApplicationCapabilityConflictRule::when(ApplicationCapabilityGraphRule::any([
+                ApplicationCapabilityGraphClause::new(conflict),
+            ])),
         ),
         ApplicationCapabilityActorComposition::new(
             ApplicationCapabilitySeparationOfDutyRule::not_applicable(),

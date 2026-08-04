@@ -22,6 +22,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     ElevationProjectionRejected,
     ElevationInactive,
     ElevationSelfApproval,
+    ElevationApproverConflict,
     DelegationRejected,
     DelegationDepthExceeded,
     DelegationCycle,

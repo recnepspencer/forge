@@ -25,6 +25,8 @@ use crate::domain_computation::authorization::{
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
+mod approver_conflict;
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn compile_elevation_rules(
     contract: &ErasedApplicationCapabilityContract,
@@ -80,10 +82,20 @@ pub(super) fn compile_elevation_rules(
         rules,
         rule_path_indices,
     );
+    let approver_conflict_requirements = approver_conflict::compile(
+        contract,
+        layout,
+        capability,
+        &relations,
+        paths,
+        rules,
+        rule_path_indices,
+    )?;
     Ok(Some(WorthQueryCapabilityElevationBindings::new(
         elevation_kind,
         required_path_index,
         self_approval_path_index,
+        approver_conflict_requirements,
     )))
 }
 
@@ -106,6 +118,10 @@ impl ElevationRelations {
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         if self.requester.from_kind() != principal_kind
             || self.requester.to_kind() != elevation_kind
+            || self.approver_forward.from_kind() != principal_kind
+            || self.approver_forward.to_kind() != elevation_kind
+            || self.approver_reverse.from_kind() != principal_kind
+            || self.approver_reverse.to_kind() != elevation_kind
             || self.grant.from_kind() != elevation_kind
             || self.grant.to_kind() != grant_kind
             || self.resource.from_kind() != grant_kind
