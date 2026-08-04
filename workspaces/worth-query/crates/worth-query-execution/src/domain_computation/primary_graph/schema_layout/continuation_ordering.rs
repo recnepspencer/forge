@@ -165,3 +165,44 @@ impl WorthQueryPrimaryContinuationOrderingLayout {
                 })
     }
 }
+
+impl super::WorthQueryPrimaryGraphLayout {
+    pub(in crate::domain_computation::primary_graph) fn register_continuation_orderings(
+        &mut self,
+        mut register: impl FnMut(
+            worth_relational::facade::indexes::DerivedIndexDefinition,
+        ) -> DerivedIndexId,
+    ) {
+        for (ordinal, continuation) in self.continuation_orderings.iter_mut().enumerate() {
+            let index_id = register(continuation.index_definition(ordinal));
+            continuation.bind_index(index_id);
+        }
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn supports_continuation_ordering(
+        &self,
+        contract: &WorthQueryInstalledApplicationContinuationContract,
+    ) -> bool {
+        self.continuation_orderings
+            .iter()
+            .any(|layout| layout.matches(contract))
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn continuation_ordering_index_id(
+        &self,
+        contract: &WorthQueryInstalledApplicationContinuationContract,
+    ) -> Option<DerivedIndexId> {
+        self.continuation_orderings
+            .iter()
+            .find(|layout| layout.matches(contract))
+            .map(WorthQueryPrimaryContinuationOrderingLayout::index_id)
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn continuation_ordering_index_ids(
+        &self,
+    ) -> impl Iterator<Item = DerivedIndexId> + '_ {
+        self.continuation_orderings
+            .iter()
+            .map(WorthQueryPrimaryContinuationOrderingLayout::index_id)
+    }
+}

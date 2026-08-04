@@ -1,4 +1,5 @@
 mod bounded_entity_field_lookup;
+mod bounded_relation_join_lookup;
 mod branch_scope;
 mod entity_field_lookup;
 mod historical_relation_field_lookup;

@@ -58,6 +58,16 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_world_w
     )
 }
 
+pub(in crate::domain_computation::primary_graph) fn installed_capability_world_with_exact_pair_population(
+    count: usize,
+) -> AuthorizationWorld {
+    capability_world(
+        1,
+        "primary",
+        CapabilityGrantPopulation::ExactPairPopulation(count),
+    )
+}
+
 pub(in crate::domain_computation::primary_graph) fn installed_delegated_capability_world(
 ) -> AuthorizationWorld {
     installed_delegated_capability_world_at_depth(2)

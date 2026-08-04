@@ -7,18 +7,20 @@ use worth_query_installation::facade::{
     ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
 };
 use worth_relational::facade::identity::KindId;
-use worth_relational::facade::indexes::{DerivedIndexDefinition, DerivedIndexId};
+use worth_relational::facade::indexes::DerivedIndexId;
 use worth_relational::facade::schema::RelationalSchemaRegistry;
 
 use super::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
 };
 
+mod capability_grant_join;
 mod continuation_ordering;
 mod principal_binding;
 mod provider_idempotency;
 mod registry_lowering;
 
+use capability_grant_join::{lower_capability_grant_joins, WorthQueryCapabilityGrantJoinLayout};
 use continuation_ordering::{
     lower_continuation_orderings, WorthQueryPrimaryContinuationOrderingLayout,
 };
@@ -41,6 +43,7 @@ pub(in crate::domain_computation) struct WorthQueryPrimaryGraphLayout {
     equality_field_keys: BTreeMap<AspectKey, BTreeSet<FieldKey>>,
     projection_field_keys: BTreeMap<AspectKey, BTreeSet<FieldKey>>,
     continuation_orderings: Vec<WorthQueryPrimaryContinuationOrderingLayout>,
+    capability_grant_joins: BTreeMap<(String, String), WorthQueryCapabilityGrantJoinLayout>,
     provider_idempotency: WorthQueryProviderIdempotencyLayout,
 }
 
@@ -106,6 +109,8 @@ impl WorthQueryPrimaryGraphLayout {
         let relation_layouts = lower_relation_layouts(schema, &entity_kinds, &relation_kinds)?;
         let continuation_orderings =
             lower_continuation_orderings(schema, &entity_kinds, &relation_layouts)?;
+        let capability_grant_joins =
+            lower_capability_grant_joins(schema, &entity_kinds, &relation_layouts)?;
         let fields = lower_fields(schema, &entity_kinds)?;
         let equality_field_keys = field_capability_keys(
             fields
@@ -124,6 +129,7 @@ impl WorthQueryPrimaryGraphLayout {
                 equality_field_keys,
                 projection_field_keys,
                 continuation_orderings,
+                capability_grant_joins,
                 provider_idempotency,
             },
             registry,
@@ -207,43 +213,6 @@ impl WorthQueryPrimaryGraphLayout {
         self.fields
             .values()
             .filter_map(|field| field.equality_index_id)
-    }
-
-    pub(super) fn register_continuation_orderings(
-        &mut self,
-        mut register: impl FnMut(DerivedIndexDefinition) -> DerivedIndexId,
-    ) {
-        for (ordinal, continuation) in self.continuation_orderings.iter_mut().enumerate() {
-            let index_id = register(continuation.index_definition(ordinal));
-            continuation.bind_index(index_id);
-        }
-    }
-
-    pub(super) fn supports_continuation_ordering(
-        &self,
-        contract: &worth_query_installation::facade::WorthQueryInstalledApplicationContinuationContract,
-    ) -> bool {
-        self.continuation_orderings
-            .iter()
-            .any(|layout| layout.matches(contract))
-    }
-
-    pub(super) fn continuation_ordering_index_id(
-        &self,
-        contract: &worth_query_installation::facade::WorthQueryInstalledApplicationContinuationContract,
-    ) -> Option<DerivedIndexId> {
-        self.continuation_orderings
-            .iter()
-            .find(|layout| layout.matches(contract))
-            .map(WorthQueryPrimaryContinuationOrderingLayout::index_id)
-    }
-
-    pub(super) fn continuation_ordering_index_ids(
-        &self,
-    ) -> impl Iterator<Item = DerivedIndexId> + '_ {
-        self.continuation_orderings
-            .iter()
-            .map(WorthQueryPrimaryContinuationOrderingLayout::index_id)
     }
 
     pub(super) fn supports_equality_field(&self, aspect: &AspectKey, field: &FieldKey) -> bool {

@@ -50,6 +50,14 @@ where
     let grant_kind = kind(layout, contract.grant_entity())?;
     let scope_entity = contract.target().resource().to();
     let scope_kind = kind(layout, scope_entity)?;
+    let grant_join_index_id = layout
+        .capability_grant_join_index_id(
+            contract.delegation().grantee().relation(),
+            contract.target().resource().relation(),
+        )
+        .ok_or_else(|| {
+            authorization_denial(contract.name(), "capability grant join is not installed")
+        })?;
     let mut paths = Vec::new();
     let grant_path_index = paths.len();
     paths.push(compile_grant_path(
@@ -92,6 +100,7 @@ where
         principal_kind,
         grant_kind,
         scope_kind,
+        grant_join_index_id,
         grant_witness,
         request: request_bindings(contract, layout)?,
         delegation: WorthQueryCapabilityDelegationBindings::compile(contract, layout)?,

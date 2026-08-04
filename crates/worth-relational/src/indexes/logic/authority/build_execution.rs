@@ -9,7 +9,7 @@ use crate::logic::runtime::RelationalRuntime;
 
 use super::super::projected_field_values::{
     build_entity_aspect_field_index, build_related_entity_ordering_index,
-    build_relation_aspect_field_index, IndexProjectionSource,
+    build_relation_aspect_field_index, build_relation_join_index, IndexProjectionSource,
 };
 
 #[derive(Debug, Clone)]
@@ -69,6 +69,10 @@ pub(super) fn execute_index_packets(
     let related_entity_packets = packets
         .iter()
         .filter_map(related_entity_ordering_packet)
+        .collect::<Vec<_>>();
+    let relation_join_packets = packets
+        .iter()
+        .filter_map(relation_join_packet)
         .collect::<Vec<_>>();
 
     let entity_streams = match selected_mode {
@@ -190,12 +194,23 @@ pub(super) fn execute_index_packets(
             )
             .collect::<Vec<_>>(),
     };
+    let relation_join_streams = match selected_mode {
+        PreparationStrategySelection::StagedParallel => relation_join_packets
+            .par_iter()
+            .map(|packet| relation_join_result(runtime, projection, packet))
+            .collect::<Vec<_>>(),
+        PreparationStrategySelection::Serial => relation_join_packets
+            .iter()
+            .map(|packet| relation_join_result(runtime, projection, packet))
+            .collect::<Vec<_>>(),
+    };
 
     crate::authority::commit::preparation::reduction::merge::canonical_merge_streams(
         entity_streams
             .into_iter()
             .chain(relation_streams)
             .chain(related_entity_streams)
+            .chain(relation_join_streams)
             .collect::<Vec<_>>(),
     )
     .into_iter()
@@ -218,6 +233,7 @@ fn entity_field_packet(
         )),
         DerivedIndexKind::RelationField { .. } => None,
         DerivedIndexKind::RelatedEntityOrdering { .. } => None,
+        DerivedIndexKind::RelationJoin(_) => None,
     }
 }
 
@@ -236,6 +252,7 @@ fn relation_field_packet(
             field_locator.clone(),
         )),
         DerivedIndexKind::RelatedEntityOrdering { .. } => None,
+        DerivedIndexKind::RelationJoin(_) => None,
     }
 }
 
@@ -264,8 +281,43 @@ fn related_entity_ordering_packet(
             *child_kind,
             ordering.clone(),
         )),
-        DerivedIndexKind::EntityField { .. } | DerivedIndexKind::RelationField { .. } => None,
+        DerivedIndexKind::EntityField { .. }
+        | DerivedIndexKind::RelationField { .. }
+        | DerivedIndexKind::RelationJoin(_) => None,
     }
+}
+
+#[derive(Clone, Copy)]
+struct RelationJoinPacket {
+    reduction_key: crate::authority::commit::preparation::reduction::keys::IndexReductionKey,
+    index_id: DerivedIndexId,
+    definition: crate::indexes::data::RelationJoinDefinition,
+}
+
+fn relation_join_packet(packet: &IndexPreparationPacket) -> Option<RelationJoinPacket> {
+    let DerivedIndexKind::RelationJoin(definition) = &packet.definition.kind else {
+        return None;
+    };
+    Some(RelationJoinPacket {
+        reduction_key: packet.header.reduction_key,
+        index_id: packet.header.identity.index_id,
+        definition: *definition,
+    })
+}
+
+fn relation_join_result(
+    _runtime: &RelationalRuntime,
+    projection: &IndexProjectionSource<'_, '_>,
+    packet: &RelationJoinPacket,
+) -> crate::authority::commit::preparation::reduction::merge::OrderedReductionStream<
+    crate::authority::commit::preparation::reduction::keys::IndexReductionKey,
+    IndexPreparationResult,
+> {
+    singleton_result_stream(
+        packet.reduction_key,
+        packet.index_id,
+        DerivedIndexEntries::RelationJoin(build_relation_join_index(projection, packet.definition)),
+    )
 }
 
 fn singleton_result_stream(

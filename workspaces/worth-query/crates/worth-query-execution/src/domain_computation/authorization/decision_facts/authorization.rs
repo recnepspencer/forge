@@ -167,6 +167,8 @@ pub(super) fn add_counters(
     total.relation_records_inspected += counters.relation_records_inspected;
     total.entity_records_inspected += counters.entity_records_inspected;
     total.predicate_fields_inspected += counters.predicate_fields_inspected;
+    total.relation_join_index_lookups += counters.relation_join_index_lookups;
+    total.relation_join_candidates_inspected += counters.relation_join_candidates_inspected;
     total.maximum_frontier_width = total
         .maximum_frontier_width
         .max(counters.maximum_frontier_width);

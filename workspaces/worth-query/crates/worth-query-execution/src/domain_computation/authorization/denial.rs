@@ -28,6 +28,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     PolicyNotInstalled,
     InvalidInstalledPolicy,
     RelationalObservationRejected,
+    GrantSelectionLimitExceeded,
     BridgeEvaluationRejected,
     InconsistentDecision,
     PermissionDenied,

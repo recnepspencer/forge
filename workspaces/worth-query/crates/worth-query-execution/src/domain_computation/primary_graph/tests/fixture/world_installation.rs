@@ -6,6 +6,7 @@ pub(super) enum CapabilityGrantPopulation {
     Current,
     CurrentAndFutureReplacement,
     CurrentWithSameResourceUnrelated(usize),
+    ExactPairPopulation(usize),
     Composed(super::capability_seed::CapabilityCompositionScenario),
     Delegated { links: usize, unrelated: usize },
 }
@@ -267,6 +268,9 @@ pub(super) fn installed_authorization_world_with_principal_count(
                 &mut bootstrap,
                 unrelated,
             )
+        }
+        CapabilityGrantPopulation::ExactPairPopulation(count) => {
+            super::capability_population_seed::bind_exact_pair_grants(&mut bootstrap, count)
         }
         CapabilityGrantPopulation::Composed(scenario) => {
             super::capability_seed::bind_composed_grant(&mut bootstrap, scenario)

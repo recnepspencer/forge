@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::indexes::data::{
     BoundedEntityFieldLookupDenial, BoundedEntityFieldLookupDenialKind,
     BoundedEntityFieldLookupOutcome, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
-    DerivedIndexEntries, DerivedIndexKind, DerivedIndexPublicationStatus,
+    DerivedIndexEntries, DerivedIndexKind,
 };
 use crate::logic::runtime::RelationalRuntime;
 use crate::storage::data::AuthoritativeFieldComparisonKey;
@@ -46,39 +46,14 @@ impl IndexAccess<'_> {
                 &request,
             ));
         }
-        let branch_id = branch_id_for_version(runtime, snapshot.version_id);
-        let schema_version = runtime
-            .read_truth()
-            .query_plan_context(&snapshot)
-            .ok_or_else(|| {
-                lookup_denial(
-                    BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
-                    &request,
-                )
-            })?
-            .schema_version;
-        let generation = runtime
-            .indexes
-            .generations
-            .get(&request.index_id())
-            .into_iter()
-            .flatten()
-            .rev()
-            .find(|generation| {
-                generation.status == DerivedIndexPublicationStatus::Published
-                    && generation.applicability.version_id == snapshot.version_id
-                    && generation.applicability.schema_version == schema_version
-                    && (!definition.branch_scoped
-                        || branch_id
-                            .as_ref()
-                            .is_some_and(|branch| generation.applicability.branch_id == *branch))
-            })
-            .ok_or_else(|| {
-                lookup_denial(
-                    BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable,
-                    &request,
-                )
-            })?;
+        let generation =
+            super::generation_selection::exact_published_generation(runtime, &snapshot, definition)
+                .ok_or_else(|| {
+                    lookup_denial(
+                        BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable,
+                        &request,
+                    )
+                })?;
         let DerivedIndexEntries::EntityField(entries) = &generation.entries else {
             return Err(lookup_denial(
                 BoundedEntityFieldLookupDenialKind::WrongIndexKind,
@@ -201,18 +176,6 @@ fn certify_storage_parity(
             request,
         ))
     }
-}
-
-fn branch_id_for_version(
-    runtime: &RelationalRuntime,
-    version_id: crate::identity::data::VersionId,
-) -> Option<crate::history::data::BranchId> {
-    runtime
-        .history
-        .commit_graph
-        .values()
-        .find(|node| node.commit.version_id == version_id)
-        .map(|node| node.commit.branch_id.clone())
 }
 
 fn corrupt_index_denial(

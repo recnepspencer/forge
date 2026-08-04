@@ -59,6 +59,7 @@ pub(super) fn plan_index_packets(
                 DerivedIndexKind::EntityField { .. } => PreparationRecordDomain::Entity,
                 DerivedIndexKind::RelationField { .. } => PreparationRecordDomain::Relation,
                 DerivedIndexKind::RelatedEntityOrdering { .. } => PreparationRecordDomain::Mixed,
+                DerivedIndexKind::RelationJoin(_) => PreparationRecordDomain::Mixed,
             };
             IndexPreparationPacket {
                 header: IndexPreparationHeader {

@@ -62,6 +62,8 @@ fn actual_snapshot_observation_mints_exact_neutral_evidence() {
             relation_records_inspected: 2,
             entity_records_inspected: 5,
             predicate_fields_inspected: 1,
+            relation_join_index_lookups: 0,
+            relation_join_candidates_inspected: 0,
             maximum_frontier_width: 1,
             reconstructive_graph_scans: 0,
             reconstructive_relation_records_scanned: 0,

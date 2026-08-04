@@ -59,6 +59,9 @@ impl WorthQueryPrimaryGraph {
         layout.register_continuation_orderings(|definition| {
             runtime.index_authority().register(definition).index_id
         });
+        layout.register_capability_grant_joins(|definition| {
+            runtime.index_authority().register(definition).index_id
+        });
         let provider_idempotency = layout.provider_idempotency_mut();
         let installed = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: worth_relational::facade::indexes::DerivedIndexId(0),
@@ -102,6 +105,7 @@ impl WorthQueryPrimaryGraph {
             .copied()
             .chain(self.layout.equality_index_ids())
             .chain(self.layout.continuation_ordering_index_ids())
+            .chain(self.layout.capability_grant_join_index_ids())
             .chain(std::iter::once(
                 self.layout.provider_idempotency().key_index_id,
             ))

@@ -2,8 +2,8 @@ use crate::indexes::data::{
     BoundedIndexParityMode, BoundedRelatedEntityOrderedLookupDenial,
     BoundedRelatedEntityOrderedLookupDenialKind, BoundedRelatedEntityOrderedLookupOutcome,
     BoundedRelatedEntityOrderedLookupRequest, DerivedIndexEntries, DerivedIndexKind,
-    DerivedIndexPublicationStatus, RelatedEntityEndpoint, RelatedEntityOrderingBoundary,
-    RelatedEntityOrderingEntry, RelatedEntityOrderingField,
+    RelatedEntityEndpoint, RelatedEntityOrderingBoundary, RelatedEntityOrderingEntry,
+    RelatedEntityOrderingField,
 };
 use crate::logic::runtime::RelationalRuntime;
 use crate::visibility::snapshot_states::resolve_snapshot_handle;
@@ -56,12 +56,14 @@ impl IndexAccess<'_> {
                 &request,
             ));
         }
-        let generation = exact_generation(runtime, &snapshot, definition).ok_or_else(|| {
-            denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
-                &request,
-            )
-        })?;
+        let generation =
+            super::generation_selection::exact_published_generation(runtime, &snapshot, definition)
+                .ok_or_else(|| {
+                    denial(
+                        BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
+                        &request,
+                    )
+                })?;
         if request
             .expected_generation()
             .is_some_and(|expected| expected != generation.generation_id)
@@ -290,37 +292,6 @@ fn certify_storage_parity(
             request,
         ))
     }
-}
-
-fn exact_generation<'a>(
-    runtime: &'a RelationalRuntime,
-    snapshot: &crate::snapshots::data::SnapshotHandle,
-    definition: &crate::indexes::data::DerivedIndexDefinition,
-) -> Option<&'a crate::indexes::data::DerivedIndexGeneration> {
-    let branch_id = runtime
-        .history
-        .commit_graph
-        .values()
-        .find(|node| node.commit.version_id == snapshot.version_id)
-        .map(|node| &node.commit.branch_id);
-    let schema_version = runtime
-        .read_truth()
-        .query_plan_context(snapshot)?
-        .schema_version;
-    runtime
-        .indexes
-        .generations
-        .get(&definition.index_id)?
-        .iter()
-        .rev()
-        .find(|generation| {
-            generation.status == DerivedIndexPublicationStatus::Published
-                && generation.applicability.version_id == snapshot.version_id
-                && generation.applicability.schema_version == schema_version
-                && (!definition.branch_scoped
-                    || branch_id
-                        .is_some_and(|branch| generation.applicability.branch_id == *branch))
-        })
 }
 
 fn corrupt(

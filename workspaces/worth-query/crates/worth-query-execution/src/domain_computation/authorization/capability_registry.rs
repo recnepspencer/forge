@@ -149,6 +149,7 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) principal_kind: KindId,
     pub(super) grant_kind: KindId,
     pub(super) scope_kind: KindId,
+    pub(super) grant_join_index_id: worth_relational::facade::indexes::DerivedIndexId,
     pub(super) grant_witness: WorthQueryCapabilityGrantWitnessBinding,
     pub(super) paths: Vec<WorthQueryCapabilityPathTemplate>,
     pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,

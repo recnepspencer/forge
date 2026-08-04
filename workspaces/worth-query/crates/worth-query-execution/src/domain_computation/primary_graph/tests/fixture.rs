@@ -85,7 +85,7 @@ mod world_installation;
 pub(in crate::domain_computation::primary_graph) use capability_world_installation::{
     installed_capability_authorization_world, installed_capability_live_world,
     installed_capability_live_world_with_label, installed_capability_replacement_world,
-    installed_capability_world_with_label,
+    installed_capability_world_with_exact_pair_population, installed_capability_world_with_label,
     installed_capability_world_with_same_resource_unrelated, installed_composed_capability_world,
     installed_delegated_capability_world, installed_delegated_capability_world_at_depth,
     installed_delegated_capability_world_with_unrelated,

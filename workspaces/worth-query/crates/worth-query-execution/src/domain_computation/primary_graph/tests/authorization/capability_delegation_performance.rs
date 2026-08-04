@@ -3,6 +3,7 @@ use worth_relational::facade::authorization::RelationalAuthorizationObservationC
 
 use super::super::application_attempt::authenticated_principal;
 use super::super::fixture::{
+    installed_capability_world_with_exact_pair_population,
     installed_capability_world_with_same_resource_unrelated,
     installed_delegated_capability_world_at_depth,
     installed_delegated_capability_world_with_unrelated, live_scope, AuthorizationWorld,
@@ -32,9 +33,11 @@ fn warm_work_has_an_exact_per_link_slope() {
             one_link.relational.maximum_frontier_width,
             two_links.relational.maximum_frontier_width,
         ],
-        [2, 3, 4],
+        [1, 1, 1],
     );
     for work in [root, one_link, two_links] {
+        assert_eq!(work.relational.relation_join_index_lookups, 1);
+        assert_eq!(work.relational.relation_join_candidates_inspected, 1);
         assert_eq!(work.relational.reconstructive_graph_scans, 0);
         assert_eq!(work.relational.reconstructive_relation_records_scanned, 0);
         assert_eq!(work.canonical, WorthQueryCanonicalWorkEvidence::zero());
@@ -55,6 +58,23 @@ fn same_resource_unrelated_grants_do_not_enter_exact_grant_selection() {
     let populated = admission_work(installed_capability_world_with_same_resource_unrelated(256));
 
     assert_eq!(populated, baseline);
+}
+
+#[test]
+fn exact_pair_population_overflow_denies_before_authority() {
+    let mut world = installed_capability_world_with_exact_pair_population(65);
+    world.application.script_authorization_time([time(100)]);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+
+    let Err(denial) = admitted_capability_access(&world, &principal, &request, 100) else {
+        panic!("an over-budget exact grant population must deny");
+    };
+
+    assert_eq!(
+        denial.kind(),
+        crate::domain_computation::authorization::WorthQueryOperationAuthorizationDenialKind::GrantSelectionLimitExceeded
+    );
 }
 
 fn admission_work(mut world: AuthorizationWorld) -> DelegationAdmissionWork {
@@ -88,7 +108,7 @@ fn assert_same_link_delta(
 fn additive_delta(
     greater: RelationalAuthorizationObservationCounters,
     lesser: RelationalAuthorizationObservationCounters,
-) -> [usize; 8] {
+) -> [usize; 10] {
     [
         greater.paths_evaluated - lesser.paths_evaluated,
         greater.adjacency_lists_read - lesser.adjacency_lists_read,
@@ -96,6 +116,8 @@ fn additive_delta(
         greater.relation_records_inspected - lesser.relation_records_inspected,
         greater.entity_records_inspected - lesser.entity_records_inspected,
         greater.predicate_fields_inspected - lesser.predicate_fields_inspected,
+        greater.relation_join_index_lookups - lesser.relation_join_index_lookups,
+        greater.relation_join_candidates_inspected - lesser.relation_join_candidates_inspected,
         greater.reconstructive_graph_scans - lesser.reconstructive_graph_scans,
         greater.reconstructive_relation_records_scanned
             - lesser.reconstructive_relation_records_scanned,
