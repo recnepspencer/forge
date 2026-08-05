@@ -1,6 +1,4 @@
 use std::collections::BTreeSet;
-use std::sync::Arc;
-
 use worth_signal::facade::{InstalledSignalGraphCapability, SignalGraph};
 
 use crate::facade::RuntimeBridge;
@@ -27,11 +25,11 @@ pub(super) fn resolve(
 ) -> Result<ResolvedCorrespondence, CorrespondenceAdmissionOutcome> {
     let unresolved = BridgeInstalledSemanticCorrespondence::begin(dependency);
     let counters = CorrespondenceAdmissionCounters {
-        query_dependency_lookups: 1,
+        semantic_dependency_lookups: 1,
         ..CorrespondenceAdmissionCounters::default()
     };
     let Some(declarations) = runtime
-        .query_dependency_registry
+        .semantic_dependency_registry
         .resolve(unresolved.payload())
     else {
         return Err(super::admission::denied(
@@ -84,12 +82,15 @@ fn resolve_declarations(
         ));
     };
     let basis = BridgeCorrespondenceBasis {
-        query_installation_identity: unresolved.payload().query_installation_identity.clone(),
-        query_basis: unresolved.payload().query_basis.clone(),
-        query_runtime_authority: unresolved.payload().query_runtime_authority,
-        query_installation_generation: unresolved.payload().query_installation_generation,
+        source_installation_identity: unresolved.payload().source_installation_identity.clone(),
+        source_basis: unresolved.payload().source_basis.clone(),
+        source_runtime_authority: unresolved.payload().source_runtime_authority,
+        source_installation_generation: unresolved.payload().source_installation_generation,
+        source_authority_binding_identity: unresolved
+            .payload()
+            .source_authority_binding_identity
+            .clone(),
         declared_graph_role: unresolved.payload().declared_graph_role.clone(),
-        graph_authority: Arc::clone(&unresolved.payload().graph_authority),
         graph_participation_identity: unresolved.payload().graph_participation_identity.clone(),
         graph_adapter_identity: unresolved.payload().graph_adapter_identity.clone(),
         authoritative_source_profile: Some(authoritative_source_profile),

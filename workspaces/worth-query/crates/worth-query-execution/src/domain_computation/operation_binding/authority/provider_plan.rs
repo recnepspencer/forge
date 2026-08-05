@@ -1,7 +1,6 @@
 use worth_query_admission::facade::resource_admission::WorthQueryAdmittedExecutionResourcePlan;
 use worth_query_installation::facade::{
     WorthQueryInstalledArtifactContractAuthority, WorthQueryInstalledGraphParticipationAuthority,
-    WorthQueryInstalledInvariantExecutionRequirement,
 };
 
 use super::WorthQueryExecutionBoundOperationAuthority;
@@ -9,52 +8,8 @@ use crate::domain_computation::provider_session::{
     WorthQueryProviderExecutionPlanContract, WorthQueryProviderPlanContractMaterial,
     WorthQueryProviderPlanExecutionBinding,
 };
-use crate::execution_digest::hash_parts;
 
 impl WorthQueryExecutionBoundOperationAuthority {
-    pub(crate) fn provider_plan_decision_fact_identity(&self) -> String {
-        hash_parts(
-            &std::iter::once("worth_query_provider_plan_decision_facts_v1".to_owned())
-                .chain(
-                    self.provider_plan_declarations
-                        .decision_fact_families()
-                        .iter()
-                        .flat_map(|family| {
-                            [
-                                family.kind().as_str().to_owned(),
-                                family.identity().to_owned(),
-                            ]
-                        }),
-                )
-                .collect::<Vec<_>>(),
-        )
-    }
-
-    pub(crate) fn provider_plan_invariant_execution_identity(
-        &self,
-        requirements: &[WorthQueryInstalledInvariantExecutionRequirement],
-    ) -> String {
-        let mut parts = vec![
-            "worth_query_provider_plan_invariant_execution_v1".to_owned(),
-            requirements.len().to_string(),
-        ];
-        for requirement in requirements {
-            parts.extend([
-                "invariant-requirement".to_owned(),
-                requirement.slot().to_owned(),
-                requirement.family().to_owned(),
-                requirement.version().get().to_string(),
-                requirement.enforcement().as_str().to_owned(),
-                requirement.executor_role().to_owned(),
-                requirement.max_state_facts().to_string(),
-                requirement.max_work_units().to_string(),
-                requirement.state_load_families().len().to_string(),
-            ]);
-            parts.extend(requirement.state_load_families().iter().cloned());
-        }
-        hash_parts(&parts)
-    }
-
     pub(crate) fn admits_provider_plan_graph(
         &self,
         stage_identity: Option<&str>,
@@ -163,7 +118,7 @@ fn installed_artifact_identity(
 ) -> String {
     format!(
         "{role}|admission={}|contract={}",
-        contract.admission_identity(),
+        contract.admission_identity().render_support_hex(),
         contract.contract().identity().as_str(),
     )
 }

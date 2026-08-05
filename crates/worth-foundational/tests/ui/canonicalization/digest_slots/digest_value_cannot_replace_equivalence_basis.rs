@@ -27,7 +27,7 @@ fn main() {
     let version = CanonicalizationRuleVersion::new("m2.phase5.ui").expect("valid version");
     let ready = ready_value_sequence(version.clone());
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Value,
         version.clone(),
     );

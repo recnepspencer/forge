@@ -115,7 +115,7 @@ impl WorthQueryGraphReadAccessReceiptSummary {
             format!("strategy:{}", plan.execution_strategy()),
             format!(
                 "requirements:{}",
-                admission.requirement_set().digest().as_str()
+                admission.requirement_set().digest().render_support_hex()
             ),
             format!("cost:{}", admission.cost_estimate().digest().as_str()),
             format!("budget:{}", admission.budget_check().budget_digest()),
@@ -145,7 +145,7 @@ impl WorthQueryGraphReadAccessReceiptSummary {
             authority_receipt_digest: admission.authority_receipt().digest().to_string(),
             admission_posture: admission.posture().clone(),
             execution_strategy: plan.execution_strategy().to_string(),
-            requirement_set_digest: admission.requirement_set().digest().as_str().to_string(),
+            requirement_set_digest: admission.requirement_set().digest().render_support_hex(),
             cost_estimate_digest: admission.cost_estimate().digest().as_str().to_string(),
             budget_digest: admission.budget_check().budget_digest().to_string(),
             graph_index_inventory_match_report_digest: admission

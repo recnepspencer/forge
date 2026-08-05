@@ -119,6 +119,10 @@ pub enum WorthQueryInvariantReceipt {
 #[derive(Debug)]
 pub struct WorthQueryInvariantProgressionAuthority {
     receipt_identities: Arc<[Arc<str>]>,
+    provider_identity: Arc<str>,
+    provider_generation: u64,
+    session_binding_identity: Arc<str>,
+    basis_identity: Arc<str>,
     proposed_state_identity: Arc<str>,
     attempt_generation: u64,
 }
@@ -197,6 +201,15 @@ impl crate::domain_computation::provider_session::WorthQueryProposedStateInspect
         identities.sort();
         Ok(WorthQueryInvariantProgressionAuthority {
             receipt_identities: identities.into(),
+            provider_identity: plan.provider_identity().into(),
+            provider_generation: plan.provider_generation(),
+            session_binding_identity: self
+                .proposed
+                .attempt
+                .staged
+                .provisional_binding_identity()
+                .into(),
+            basis_identity: plan.basis_identity().into(),
             proposed_state_identity: self.proposed.identity().into(),
             attempt_generation: self.proposed.generation(),
         })
@@ -214,6 +227,23 @@ impl WorthQueryInvariantProgressionAuthority {
 
     pub fn attempt_generation(&self) -> u64 {
         self.attempt_generation
+    }
+
+    pub(crate) fn belongs_to(
+        &self,
+        provider_identity: &str,
+        provider_generation: u64,
+        session_binding_identity: &str,
+        basis_identity: &str,
+        proposed_state_identity: &str,
+        attempt_generation: u64,
+    ) -> bool {
+        self.provider_identity.as_ref() == provider_identity
+            && self.provider_generation == provider_generation
+            && self.session_binding_identity.as_ref() == session_binding_identity
+            && self.basis_identity.as_ref() == basis_identity
+            && self.proposed_state_identity.as_ref() == proposed_state_identity
+            && self.attempt_generation == attempt_generation
     }
 }
 

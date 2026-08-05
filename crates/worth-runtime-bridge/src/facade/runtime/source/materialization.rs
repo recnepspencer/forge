@@ -29,17 +29,17 @@ impl RuntimeBridge {
                 self.validate_materialized_source_packet_set(planned_packet_set, &materialized)?;
                 Ok(materialized)
             })
-            .map_err(|delivery_error| {
+            .inspect_err(|delivery_error| {
                 for planned in planned_packet_set.packets() {
                     self.record_historical_evaluation_failure(
                         planned.declaration(),
                         crate::historical::failures::historical_failure_class_for_delivery_error(
-                            &delivery_error,
+                            delivery_error,
                         ),
                         delivery_error.to_string(),
                         crate::historical::failures::historical_failure_counters_for_delivery_error(
                             planned.declaration(),
-                            &delivery_error,
+                            delivery_error,
                         ),
                     );
                 }
@@ -51,7 +51,6 @@ impl RuntimeBridge {
                     delivery_error.kind(),
                     delivery_error.to_string(),
                 );
-                delivery_error
             })
     }
 
@@ -81,16 +80,16 @@ impl RuntimeBridge {
             .and_then(|materialized| {
                 self.validate_materialized_source_observation(&planned, materialized)
             })
-            .map_err(|delivery_error| {
+            .inspect_err(|delivery_error| {
                 self.record_historical_evaluation_failure(
                     planned.declaration(),
                     crate::historical::failures::historical_failure_class_for_delivery_error(
-                        &delivery_error,
+                        delivery_error,
                     ),
                     delivery_error.to_string(),
                     crate::historical::failures::historical_failure_counters_for_delivery_error(
                         planned.declaration(),
-                        &delivery_error,
+                        delivery_error,
                     ),
                 );
                 self.record_source_failure(
@@ -101,7 +100,6 @@ impl RuntimeBridge {
                     delivery_error.kind(),
                     delivery_error.to_string(),
                 );
-                delivery_error
             })
     }
 

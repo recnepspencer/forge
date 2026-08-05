@@ -27,9 +27,36 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
         .unwrap();
     let closure = trace.semantic_aspect_dependency_closure().unwrap();
     let d = closure.dependencies().len();
-    let counters = closure.counters();
 
-    assert_eq!(d, 12);
+    assert_eq!(d, 16);
+    assert_declared_mutation_dependencies(closure);
+    assert_realized_mutation_dependencies(closure);
+    assert_mutation_dependency_counters(closure);
+    assert_exact_d_work(closure, d);
+}
+
+fn assert_declared_mutation_dependencies(
+    closure: &domain::WorthQueryCompiledSemanticAspectDependencyClosure,
+) {
+    assert!(has_source(closure, |source| matches!(
+        source,
+        domain::WorthQuerySemanticAspectDependencyView::TouchGraphRole("model")
+    )));
+    assert!(has_source(closure, |source| matches!(
+        source,
+        domain::WorthQuerySemanticAspectDependencyView::TouchScope("vertex")
+    )));
+    assert!(has_source(closure, |source| matches!(
+        source,
+        domain::WorthQuerySemanticAspectDependencyView::WorkflowStageRead {
+            graph_read_role: "model"
+        }
+    )));
+    assert!(has_source(closure, |source| matches!(
+        source,
+        domain::WorthQuerySemanticAspectDependencyView::RealizedWorkflowRead(read)
+            if read.role() == "model"
+    )));
     assert!(has_source(closure, |source| matches!(
         source,
         domain::WorthQuerySemanticAspectDependencyView::EffectFamily(_)
@@ -38,6 +65,11 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
         source,
         domain::WorthQuerySemanticAspectDependencyView::InstalledInvariant("workflow-invariant:1")
     )));
+}
+
+fn assert_realized_mutation_dependencies(
+    closure: &domain::WorthQueryCompiledSemanticAspectDependencyClosure,
+) {
     assert!(has_source(closure, |source| matches!(
         source,
         domain::WorthQuerySemanticAspectDependencyView::RealizedWorkflowEffect(_)
@@ -50,12 +82,20 @@ fn completed_workflow_closure_retains_declared_and_realized_roles_at_exact_d_cos
         source,
         domain::WorthQuerySemanticAspectDependencyView::RealizedWorkflowOutput { .. }
     )));
+}
+
+fn assert_mutation_dependency_counters(
+    closure: &domain::WorthQueryCompiledSemanticAspectDependencyClosure,
+) {
+    let counters = closure.counters();
     assert_eq!(counters.effect_contract_edges, 1);
     assert_eq!(counters.invariant_contract_edges, 1);
+    assert_eq!(counters.touch_edges, 2);
+    assert_eq!(counters.workflow_stage_read_edges, 1);
+    assert_eq!(counters.realized_workflow_read_edges, 1);
     assert_eq!(counters.realized_effect_edges, 1);
     assert_eq!(counters.realized_invariant_edges, 1);
     assert_eq!(counters.realized_workflow_output_edges, 1);
-    assert_exact_d_work(closure, d);
 }
 
 #[test]

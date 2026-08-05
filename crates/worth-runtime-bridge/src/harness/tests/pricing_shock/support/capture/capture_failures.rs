@@ -10,7 +10,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_restart_replay_b
     let original_runtime = build_pricing_runtime_with_policy(
         pricing_reference_source(),
         RecordingSignalBridgeSink::default(),
-        policy.clone(),
+        policy,
     );
     original_runtime
         .route(crate::truth_identity_fixtures::truth_commit_fixture(

@@ -5,7 +5,17 @@ use super::native_identity_trace_host::NativeIdentityTraceHost;
 
 #[test]
 fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
-    let (registration, initial) = product_projection_installation().into_parts();
+    let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
+        .expect("product Query plan prepares");
+    let (request, completion) = plan.into_parts();
+    let installation =
+        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
+            .install(request.generation(), request.into_packages())
+            .expect("host installs the exact product Query packages");
+    let installed = completion
+        .complete(installation)
+        .expect("binding completion opens the product Query owner");
+    let (registration, initial) = installed.into_parts();
     let mut shell = source_backed_component_app_with_host_and_scalar_projection(
         NativeIdentityTraceHost::default(),
         registration,
@@ -20,12 +30,12 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
             .expect("pending projection enters the standard native rebind"),
         1,
     );
-    let pending_fact = match pending_receipt.release_scalar_projection_predecessor() {
-        Ok(fact) => fact,
+    let pending_observation = match pending_receipt.release_scalar_projection_observation() {
+        Ok(observation) => observation,
         Err(_) => panic!("the terminal plan did not return its only scalar predecessor"),
     };
     let owner = pending_completion
-        .admit_publication(pending_fact)
+        .admit_publication(pending_observation)
         .expect("the exact pending fact readmits the Query owner");
 
     let current = owner
@@ -41,12 +51,12 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
             .expect("current projection enters the standard native rebind"),
         2,
     );
-    let current_fact = match current_receipt.release_scalar_projection_predecessor() {
-        Ok(fact) => fact,
+    let current_observation = match current_receipt.release_scalar_projection_observation() {
+        Ok(observation) => observation,
         Err(_) => panic!("the terminal plan did not return its only current scalar predecessor"),
     };
     let owner = current_completion
-        .admit_publication(current_fact)
+        .admit_publication(current_observation)
         .expect("the exact current fact readmits the Query owner");
 
     let source_close = owner.close().expect("Query source closes terminally");
@@ -55,20 +65,6 @@ fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
     let shutdown = shell.shutdown();
     assert!(shutdown.host_session_released());
     assert_eq!(shutdown.released_surface_count(), 1);
-}
-
-fn product_projection_installation() -> worth_ui_query_binding::WorthUiScalarProjectionInstallation
-{
-    let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
-        .expect("product Query plan prepares");
-    let (request, completion) = plan.into_parts();
-    let installation =
-        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
-            .install(request.generation(), request.into_packages())
-            .expect("host installs the exact product Query packages");
-    completion
-        .complete(installation)
-        .expect("binding completion opens the product Query owner")
 }
 
 fn published(outcome: UiRebindOutcome<'_>, tick: u64) -> UiRebindReceipt {

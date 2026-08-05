@@ -6,37 +6,37 @@ use worth_ui_query_binding::{
 
 #[derive(Default)]
 pub(super) struct ExpectedKeyedRows {
-    rows: BTreeMap<[u8; 32], String>,
+    rows: BTreeMap<String, String>,
 }
 
 impl ExpectedKeyedRows {
-    pub(super) fn insert(&mut self, identity: [u8; 32], value: impl Into<String>) {
+    pub(super) fn insert(&mut self, identity: impl Into<String>, value: impl Into<String>) {
         assert!(
-            self.rows.insert(identity, value.into()).is_none(),
+            self.rows.insert(identity.into(), value.into()).is_none(),
             "expected row identity must be unique"
         );
     }
 
-    pub(super) fn update(&mut self, identity: &[u8; 32], value: impl Into<String>) {
+    pub(super) fn update(&mut self, identity: &str, value: impl Into<String>) {
         *self
             .rows
             .get_mut(identity)
             .expect("updated expected identity must exist") = value.into();
     }
 
-    pub(super) fn remove(&mut self, identity: &[u8; 32]) {
+    pub(super) fn remove(&mut self, identity: &str) {
         assert!(
             self.rows.remove(identity).is_some(),
             "removed expected identity must exist"
         );
     }
 
-    pub(super) fn selected(&self, identities: &[[u8; 32]]) -> BTreeMap<[u8; 32], String> {
+    pub(super) fn selected(&self, identities: &[String]) -> BTreeMap<String, String> {
         identities
             .iter()
             .map(|identity| {
                 (
-                    *identity,
+                    identity.clone(),
                     self.rows
                         .get(identity)
                         .expect("selected expected identity must exist")
@@ -49,7 +49,7 @@ impl ExpectedKeyedRows {
     pub(super) fn assert_fact_rows(
         &self,
         fact: &UiCollectionProjectionFactReceipt,
-        expected: &BTreeMap<[u8; 32], String>,
+        expected: &BTreeMap<String, String>,
     ) {
         let actual = present(fact)
             .rows()
@@ -61,7 +61,7 @@ impl ExpectedKeyedRows {
                     "QP04 declares one native text field"
                 );
                 (
-                    row.row().identity().host_correlation_digest(),
+                    row.row().reporting_projection().as_str().to_owned(),
                     row.selected_values()[0].as_str().to_owned(),
                 )
             })

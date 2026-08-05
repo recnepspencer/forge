@@ -202,12 +202,12 @@ fn copied_contract_identity_with_different_shape_conflicts_at_runtime_constructi
         .expect_err("copied contract identity cannot hide shape drift");
     assert_eq!(
         error.kind(),
-        BridgeBuildErrorKind::AmbiguousQueryDependencyRegistration
+        BridgeBuildErrorKind::AmbiguousSemanticDependencyRegistration
     );
 }
 
 #[test]
-fn raw_query_lookalike_is_denied_and_authoritative_indexes_rebuild_exactly() {
+fn unregistered_semantic_lookalike_is_denied_and_authoritative_indexes_rebuild_exactly() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let runtime = runtime(
@@ -220,13 +220,13 @@ fn raw_query_lookalike_is_denied_and_authoritative_indexes_rebuild_exactly() {
     let TransitionOutcome::Denied(denial) =
         runtime.install_semantic_correspondence(dependency("query:unregistered"), &graph)
     else {
-        panic!("unregistered Query dependency must deny");
+        panic!("unregistered semantic dependency must deny");
     };
     assert_eq!(
         denial.kind(),
         crate::facade::BridgeCorrespondenceDenialKind::PortableDependencyNotInstalled
     );
-    assert_eq!(denial.counters().query_dependency_lookups(), 1);
+    assert_eq!(denial.counters().semantic_dependency_lookups(), 1);
     assert_eq!(denial.counters().mapping_lookups(), 0);
     assert_eq!(denial.counters().signal_node_admissions(), 0);
 
@@ -236,10 +236,10 @@ fn raw_query_lookalike_is_denied_and_authoritative_indexes_rebuild_exactly() {
     let report = runtime
         .rebuild_correspondence_allocation_index()
         .expect("authoritative correspondence indexes rebuild");
-    assert_eq!(report.authoritative_query_dependencies(), 1);
+    assert_eq!(report.authoritative_semantic_dependencies(), 1);
     assert_eq!(report.authoritative_allocation_records(), 1);
     assert_eq!(report.rebuilt_allocation_keys(), 1);
-    assert!(report.exact_query_dependency_index_parity());
+    assert!(report.exact_semantic_dependency_index_parity());
     assert!(report.exact_mapping_index_parity());
     assert!(report.exact_index_parity());
 }
@@ -256,13 +256,13 @@ fn every_portable_dependency_drift_denies_before_mapping_or_signal_work() {
     let mut cases = Vec::new();
 
     let mut basis = base.clone();
-    basis.query_basis = Arc::from("query-basis:foreign");
+    basis.source_basis = Arc::from("source-basis:foreign");
     cases.push(basis);
     let mut runtime_authority = base.clone();
-    runtime_authority.query_runtime_authority += 1;
+    runtime_authority.source_runtime_authority += 1;
     cases.push(runtime_authority);
     let mut installation_generation = base.clone();
-    installation_generation.query_installation_generation += 1;
+    installation_generation.source_installation_generation += 1;
     cases.push(installation_generation);
     let mut graph_role = base.clone();
     graph_role.declared_graph_role = Arc::from("foreign-model");
@@ -299,7 +299,7 @@ fn every_portable_dependency_drift_denies_before_mapping_or_signal_work() {
             denial.kind(),
             crate::facade::BridgeCorrespondenceDenialKind::PortableDependencyNotInstalled
         );
-        assert_eq!(denial.counters().query_dependency_lookups(), 1);
+        assert_eq!(denial.counters().semantic_dependency_lookups(), 1);
         assert_eq!(denial.counters().mapping_lookups(), 0);
         assert_eq!(denial.counters().signal_node_admissions(), 0);
         assert_eq!(denial.counters().targets_admitted(), 0);

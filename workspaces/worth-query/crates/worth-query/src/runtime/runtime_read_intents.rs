@@ -5,8 +5,8 @@ use super::read_composition_runtime::{
     execute_runtime_basis_context_read_graph, WorthQueryExecutedReadProduct,
 };
 use super::runtime_read_execution_receipts::{
-    attach_graph_obligation_dispatch, attach_graph_read_access_receipt,
-    attach_read_intent_execution_evidence, provision_graph_indexes_for_read_binding,
+    attach_graph_read_access_receipt, attach_read_intent_execution_evidence,
+    provision_graph_indexes_for_read_binding,
 };
 use super::*;
 use crate::intent_admission::dx::{
@@ -179,12 +179,10 @@ impl WorthQueryRuntime {
         handoff: WorthQueryReadExecutionHandoff,
         graph_read_authority: Option<&WorthQueryGraphReadAccessAuthorityContext>,
     ) -> Result<WorthQueryReadExecutionBinding, WorthQueryRuntimeError> {
-        let graph_obligation_dispatch = self.read_family_obligation_dispatch(&handoff)?;
         let graph_read_access_plan =
             self.admit_graph_read_access_plan_for_handoff(&handoff, graph_read_authority)?;
         Ok(WorthQueryReadExecutionBinding::from_handoff(
             handoff,
-            graph_obligation_dispatch,
             graph_read_access_plan,
         ))
     }
@@ -196,10 +194,8 @@ impl WorthQueryRuntime {
         graph_read_access_plan: WorthQueryAdmittedGraphReadAccessPlan,
     ) -> Result<WorthQueryReadExecutionBinding, WorthQueryRuntimeError> {
         validate_graph_read_access_plan_matches_handoff(&handoff, &graph_read_access_plan)?;
-        let graph_obligation_dispatch = self.read_family_obligation_dispatch(&handoff)?;
         Ok(WorthQueryReadExecutionBinding::from_handoff(
             handoff,
-            graph_obligation_dispatch,
             graph_read_access_plan,
         ))
     }
@@ -243,7 +239,6 @@ impl WorthQueryRuntime {
             snapshot_identity.as_str(),
             ephemeral_graph_index_receipt,
         );
-        attach_graph_obligation_dispatch(&mut executed_read, &binding);
         attach_read_intent_execution_evidence(&mut executed_read, &binding, &snapshot_identity);
 
         Ok(executed_read.into_product())
@@ -292,10 +287,12 @@ fn validate_graph_read_access_plan_matches_handoff(
         .admission()
         .requirement_set()
         .read_graph_digest();
-    let handoff_read_graph_digest = handoff.read_family().read_graph().digest();
-    if planned_read_graph_digest == handoff_read_graph_digest {
+    let handoff_read_graph = handoff.read_family().read_graph();
+    if &handoff_read_graph.evidence_identity().canonical_digest_id() == planned_read_graph_digest {
         return Ok(());
     }
+    let planned_read_graph_digest = planned_read_graph_digest.render_hex();
+    let handoff_read_graph_digest = handoff_read_graph.digest();
     Err(WorthQueryRuntimeError::ReadCompositionDenied(
         WorthQueryReadDenial::new(
             WorthQueryReadDenialKind::BasisPreflightDenied,
@@ -304,7 +301,7 @@ fn validate_graph_read_access_plan_matches_handoff(
             ),
         )
         .with_access_plan_binding_mismatch(WorthQueryReadAccessPlanBindingMismatch::new(
-            planned_read_graph_digest,
+            &planned_read_graph_digest,
             handoff_read_graph_digest,
             graph_read_access_plan.digest(),
             graph_read_access_plan.admission().digest(),

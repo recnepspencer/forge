@@ -53,17 +53,6 @@ impl WorthQueryGraphTouchDescriptor {
         )
     }
 
-    pub(crate) fn from_mutation_command_batch(
-        commands: &[WorthQueryWriteCommand],
-    ) -> Result<Self, WorthQueryGraphTouchDescriptorDenial> {
-        Self::derive(
-            WorthQueryGraphTouchDescriptorKind::AuthoritativeMutationBatch,
-            &WorthQueryGraphCompositionProgram::empty(),
-            &WorthQueryGraphCompositionBreadth::empty(),
-            commands,
-        )
-    }
-
     pub fn read_family(
         collection: impl Into<String>,
         verbs: impl IntoIterator<Item = WorthQueryGraphTouchReadVerb>,

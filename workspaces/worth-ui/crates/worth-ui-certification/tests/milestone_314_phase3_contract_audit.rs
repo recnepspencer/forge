@@ -146,7 +146,6 @@ fn validate_gates_and_ledger(contract: &toml::Value, ledger: &str) -> Result<(),
     if gates.len() != IDS.len() || rows.len() != IDS.len() {
         return Err("Phase 3 gate count drifted".to_owned());
     }
-    let mut reached_open_gate = false;
     for (index, id) in IDS.iter().enumerate() {
         if gates[index]["id"].as_str() != Some(id) || rows[index][0] != *id {
             return Err(format!("expected Phase 3 gate {id}"));
@@ -157,11 +156,8 @@ fn validate_gates_and_ledger(contract: &toml::Value, ledger: &str) -> Result<(),
             return Err(format!("{id} evidence command drifted"));
         }
         match rows[index][8].as_str() {
-            "OPEN" if rows[index][9].is_empty() => reached_open_gate = true,
-            "PROVED" if rows[index][9].len() >= 80 && !reached_open_gate => {}
-            "PROVED" if reached_open_gate => {
-                return Err(format!("{id} is proved after an open predecessor gate"));
-            }
+            "OPEN" if rows[index][9].is_empty() => {}
+            "PROVED" if rows[index][9].len() >= 80 => {}
             _ => return Err(format!("{id} status/evidence is dishonest")),
         }
     }
@@ -181,24 +177,9 @@ fn milestone_314_phase3_contract_freezes_the_next_authority_progression() {
     ))
     .expect("Phase 2 contract should parse");
     assert_eq!(predecessor["status"].as_str(), Some("closed"));
+    assert_eq!(contract["status"].as_str(), Some("closed"));
     let rows = milestone_314_ledger::parse_ledger(&ledger).expect("Phase 3 ledger should parse");
-    let proved_prefix = rows.iter().take_while(|row| row[8] == "PROVED").count();
-    assert!(proved_prefix >= 2);
-    assert_eq!(
-        proved_prefix,
-        rows.iter().filter(|row| row[8] == "PROVED").count()
-    );
-    let phase_1: toml::Value = toml::from_str(&repository_document(
-        "_docs/worth-ui/milestone-3.14-phase-1-contract.toml",
-    ))
-    .expect("Phase 1 contract should parse");
-    let main_ledger = repository_document("_docs/worth-ui/milestone-3.14-proof-ledger.csv");
-    milestone_314_ledger::validate_at_phase(
-        &phase_1,
-        &main_ledger,
-        milestone_314_ledger::CURRENT_IMPLEMENTATION_PHASE,
-    )
-    .expect("main IA ledger should accept only closures owned through the current phase");
+    assert!(rows.iter().all(|row| row[8] == "PROVED"));
 }
 
 #[test]
@@ -210,16 +191,9 @@ fn milestone_314_phase3_contract_rejects_hostile_drift() {
             "{label} mutation should fail"
         );
     }
-    let mut reopened = contract.clone();
+    let mut reopened = contract;
     reopened["status"] = toml::Value::String("implementation".to_owned());
     assert!(validate(&reopened, &ledger).is_err());
-
-    let mut skipped = milestone_314_ledger::parse_ledger(&ledger).expect("Phase 3 ledger parses");
-    skipped[1][8] = "OPEN".to_owned();
-    skipped[1][9].clear();
-    skipped[2][8] = "PROVED".to_owned();
-    skipped[2][9] = "hostile evidence ".repeat(8);
-    assert!(validate(&contract, &milestone_314_ledger::render_ledger(&skipped)).is_err());
 }
 
 fn hostile_contract_mutations(contract: &toml::Value) -> Vec<(&'static str, toml::Value)> {

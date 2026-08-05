@@ -27,7 +27,7 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
     let fact = scalar_fact(observation);
     assert_pending_fact(&fact);
     let owner = completion
-        .admit_publication(fact)
+        .admit_publication(fact.into_observation())
         .expect("the exact returned pending fact readmits its owner");
 
     let current = owner
@@ -37,16 +37,16 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
         .expect("owner-issued refresh reaches Query");
     assert_eq!(current.observation().owner_order(), 2);
     let (observation, completion) = current.into_parts();
-    let fact = scalar_fact(observation);
-    match fact.availability() {
+    let observation = scalar_observation(observation);
+    match observation.fact().availability() {
         UiProjectionAvailability::Present(UiPresentProjection::Current(value)) => {
             assert_eq!(value.as_str(), "ONLINE")
         }
         other => panic!("expected current native Query value, got {other:?}"),
     }
     let owner = completion
-        .admit_publication(fact)
-        .expect("the exact current fact readmits its owner");
+        .admit_publication(observation)
+        .expect("the exact current observation readmits its owner");
     let updated = owner
         .advance(
             WorthUiScalarProjectionSourceRecord::new("UPDATED-LONG", 2)
@@ -55,16 +55,16 @@ fn product_host_installation_and_move_only_source_owner_reach_pending_and_curren
         .expect("owner-issued revalidation reaches Query");
     assert_eq!(updated.observation().owner_order(), 5);
     let (observation, completion) = updated.into_parts();
-    let fact = scalar_fact(observation);
-    match fact.availability() {
+    let observation = scalar_observation(observation);
+    match observation.fact().availability() {
         UiProjectionAvailability::Present(UiPresentProjection::Current(value)) => {
             assert_eq!(value.as_str(), "UPDATED-LONG")
         }
         other => panic!("expected updated native Query value, got {other:?}"),
     }
     let owner = completion
-        .admit_publication(fact)
-        .expect("the exact updated fact readmits its owner");
+        .admit_publication(observation)
+        .expect("the exact updated observation readmits its owner");
     let closed = owner.close().expect("the exact Query owner closes");
     assert!(closed.owner_terminal());
     assert_eq!(closed.live_source_count(), 0);
@@ -138,16 +138,16 @@ fn execute_and_publish_action(
     );
     let (_, action_advance) = executed.into_parts();
     let (observation, completion) = action_advance.into_parts();
-    let fact = scalar_fact(observation);
-    match fact.availability() {
+    let observation = scalar_observation(observation);
+    match observation.fact().availability() {
         UiProjectionAvailability::Present(UiPresentProjection::Current(value)) => {
             assert_eq!(value.as_str(), status)
         }
         other => panic!("expected Query-backed action value, got {other:?}"),
     }
     completion
-        .admit_publication(fact)
-        .expect("the exact action fact readmits its owner")
+        .admit_publication(observation)
+        .expect("the exact action observation readmits its owner")
 }
 
 fn assert_pending(observation: &crate::UiProjectionObservation) {
@@ -172,8 +172,14 @@ fn assert_pending_fact(fact: &crate::UiScalarProjectionFactReceipt) {
 fn scalar_fact(
     observation: crate::UiProjectionObservation,
 ) -> crate::UiScalarProjectionFactReceipt {
+    scalar_observation(observation).into_fact()
+}
+
+fn scalar_observation(
+    observation: crate::UiProjectionObservation,
+) -> crate::UiScalarProjectionObservation {
     match observation {
-        crate::UiProjectionObservation::Scalar(observation) => observation.into_fact(),
+        crate::UiProjectionObservation::Scalar(observation) => observation,
         crate::UiProjectionObservation::Collection(_) => {
             panic!("product scalar owner must not issue collection evidence")
         }
@@ -185,8 +191,8 @@ fn publish_action_advance(
 ) -> crate::WorthUiScalarProjectionActionLiveOwner {
     let (observation, completion) = advance.into_parts();
     completion
-        .admit_publication(scalar_fact(observation))
-        .expect("the exact action-capable fact readmits its owner")
+        .admit_publication(scalar_observation(observation))
+        .expect("the exact action-capable observation readmits its owner")
 }
 
 fn assert_zero_close(closed: crate::WorthUiScalarProjectionSourceCloseReceipt) {

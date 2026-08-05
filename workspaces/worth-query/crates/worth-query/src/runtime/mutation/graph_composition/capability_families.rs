@@ -17,8 +17,5 @@ pub(crate) const GRAPH_COMPOSITION_LIFECYCLE_FAMILIES: &[&str] = &[
     "mixed_existing_target_verified_retirement",
 ];
 
-pub(crate) const GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES: &[&str] = &[
-    "domain_lowering_hook",
-    "domain_invariant_pack_hook",
-    "domain_interpretation_hook",
-];
+pub(crate) const GRAPH_COMPOSITION_EXTENSION_HOOK_FAMILIES: &[&str] =
+    &["domain_lowering_hook", "domain_interpretation_hook"];

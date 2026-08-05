@@ -1,4 +1,4 @@
-use crate::{UiScalarProjectionFactReceipt, UiScalarProjectionRegistration};
+use crate::{UiScalarProjectionObservation, UiScalarProjectionRegistration};
 
 use super::{
     WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
@@ -132,10 +132,10 @@ impl WorthUiScalarProjectionActionPublicationCompletion {
     )]
     pub fn admit_publication(
         self,
-        predecessor: UiScalarProjectionFactReceipt,
-    ) -> Result<WorthUiScalarProjectionActionLiveOwner, UiScalarProjectionFactReceipt> {
+        observation: UiScalarProjectionObservation,
+    ) -> Result<WorthUiScalarProjectionActionLiveOwner, UiScalarProjectionObservation> {
         self.inner
-            .admit_publication(predecessor)
+            .admit_publication(observation)
             .map(|inner| WorthUiScalarProjectionActionLiveOwner { inner })
     }
 }

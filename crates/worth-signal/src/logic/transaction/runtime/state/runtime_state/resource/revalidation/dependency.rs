@@ -81,7 +81,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let resolved_timeout =
             self.resolve_timeout_admission(resource_node, &timeout_plan, current_tick, None)?;
         let prior_timeout_wake = self.resource.active_timeout_wake_for_node(resource_node);

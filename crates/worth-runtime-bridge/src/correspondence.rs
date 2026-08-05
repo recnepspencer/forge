@@ -7,12 +7,12 @@ mod delivery_outcome;
 mod delivery_preflight;
 mod installed_witness;
 mod mapping_admission;
-mod query_dependency_registry;
 mod rebuild_report;
 mod registration;
 mod resolution;
 mod semantic_delivery_match;
 mod semantic_dependency_candidate;
+mod semantic_dependency_registry;
 mod signal_admission;
 mod signal_graph_binding;
 mod signal_target_declaration;
@@ -23,8 +23,8 @@ mod target_mapping;
 pub(crate) use batch_admission::{
     isolate_allocation_state, prepare_registered_correspondence_batch,
 };
-pub(crate) use query_dependency_registry::{
-    AdmittedQueryDependencyExtension, AdmittedQueryDependencyRegistry,
+pub(crate) use semantic_dependency_registry::{
+    AdmittedSemanticDependencyExtension, AdmittedSemanticDependencyRegistry,
 };
 pub(crate) use slot_allocation::SharedCorrespondenceAllocationRegistry;
 
@@ -51,7 +51,8 @@ pub(crate) use installed_witness::{InstalledCorrespondenceTarget, ProvenCorrespo
 pub use rebuild_report::BridgeCorrespondenceRebuildReport;
 pub use registration::BridgeSemanticCorrespondenceRegistration;
 pub use semantic_dependency_candidate::{
-    BridgeSemanticDependencyCandidate, BridgeSemanticLocality,
+    BridgeSemanticDependencyCandidate, BridgeSemanticDependencyCandidateParts,
+    BridgeSemanticLocality,
 };
 pub use signal_graph_binding::BridgeSignalGraphBinding;
 pub use signal_target_declaration::BridgeSignalAspectTargetDeclaration;

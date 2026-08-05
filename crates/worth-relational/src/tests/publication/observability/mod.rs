@@ -8,4 +8,5 @@ mod harness_policy;
 mod harness_preparation_failures;
 mod invariant_diagnostics;
 mod mutation_convergence;
+mod publication_handle_lifecycle;
 mod publication_state;

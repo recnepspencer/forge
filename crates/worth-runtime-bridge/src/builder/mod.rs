@@ -5,7 +5,7 @@ use crate::adapter::{
     SnapshotReadSource, SnapshotReaderPool, TruthBranchHeadSource, TruthWritebackAuthority,
 };
 use crate::correspondence::{
-    AdmittedQueryDependencyRegistry, BridgeSemanticCorrespondenceRegistration,
+    AdmittedSemanticDependencyRegistry, BridgeSemanticCorrespondenceRegistration,
 };
 use crate::diagnostics::DiagnosticSink;
 use crate::error::{BridgeBuildError, BridgeBuildErrorKind};

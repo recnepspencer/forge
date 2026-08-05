@@ -56,12 +56,13 @@ fn runtime_bridge_snapshot_reader_requires_live_execution_basis_authority() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "managed");
     let version_id = created.version_id;
+    let branch_id = created.snapshot.branch_id.clone();
     let entity_identity = active_entity_identity(&created);
     assert!(runtime.snapshots().release_snapshot(&created.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
     let lease = source
-        .admit_execution_basis(version_id)
+        .admit_execution_basis(&branch_id, version_id)
         .expect("Relational source should admit its reconstructible version");
     let identity = bridge_snapshot_identity_for_handle(lease.snapshot_handle());
 

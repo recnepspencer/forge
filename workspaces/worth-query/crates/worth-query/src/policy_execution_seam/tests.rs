@@ -101,16 +101,12 @@ fn support_profile_and_handoff_report_keep_store_and_durable_debt_explicit() {
         PolicyExecutionSeamSupportStatus::Deferred
     )));
     assert!(profile.surfaces().contains(&(
-        PolicyExecutionSeamSurface::GraphMutationGate,
-        PolicyExecutionSeamSupportStatus::Verified
-    )));
-    assert!(profile.surfaces().contains(&(
         PolicyExecutionSeamSurface::DurablePolicyArtifactReload,
         PolicyExecutionSeamSupportStatus::Deferred
     )));
 
     let handoff = runtime_backed_policy_execution_seam_handoff_report();
-    assert_eq!(handoff.runtime_backed_verified_surface_count(), 8);
+    assert_eq!(handoff.runtime_backed_verified_surface_count(), 7);
     assert_eq!(handoff.limited_admission_surface_count(), 1);
     assert_eq!(handoff.blocked_or_deferred_surface_count(), 2);
     assert!(handoff

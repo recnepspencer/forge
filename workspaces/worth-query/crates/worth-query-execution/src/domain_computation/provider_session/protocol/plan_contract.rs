@@ -2,11 +2,8 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryInstalledGraphParticipationAuthority;
 
-use super::declared_closure::{
-    WorthQueryProviderPlanDeclarations, WorthQueryProviderPlanDeclaredClosure,
-};
+use super::declared_closure::WorthQueryProviderPlanDeclarations;
 use crate::domain_computation::operation_binding::WorthQueryExecutionBoundOperationAuthority;
-use crate::execution_digest::hash_parts;
 
 pub(crate) struct WorthQueryProviderPlanExecutionBinding<'a> {
     pub(crate) managed_run_identity: &'a str,
@@ -23,17 +20,6 @@ pub(crate) struct WorthQueryProviderPlanExecutionBinding<'a> {
 pub(crate) struct WorthQueryProviderPlanContractMaterial<'a> {
     pub(crate) declarations: &'a WorthQueryProviderPlanDeclarations,
     pub(crate) artifact_closure: Vec<String>,
-}
-
-struct WorthQueryProviderPlanIdentityObservation<'a, 'binding> {
-    operation: &'a WorthQueryExecutionBoundOperationAuthority,
-    scope: &'a WorthQueryProviderOperationScope,
-    execution: &'a WorthQueryProviderPlanExecutionBinding<'binding>,
-    closure: &'a WorthQueryProviderPlanDeclaredClosure,
-    artifact_closure: &'a [String],
-    invariant_requirements:
-        &'a [worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement],
-    reconciliation_posture: &'a str,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,6 +68,8 @@ pub struct WorthQueryProviderExecutionPlanContract {
         Arc<[worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement]>,
     transaction_posture: Arc<str>,
     reconciliation_posture: Arc<str>,
+    graph_work_session: Option<u64>,
+    graph_work_managed_run: Option<u64>,
 }
 
 impl WorthQueryProviderExecutionPlanContract {
@@ -107,17 +95,9 @@ impl WorthQueryProviderExecutionPlanContract {
         });
         let transaction_posture = operation.commit_posture().as_str();
         let reconciliation_posture = material.declarations.reconciliation_posture();
-        let identity = contract_identity(WorthQueryProviderPlanIdentityObservation {
-            operation,
-            scope: &scope,
-            execution,
-            closure: &closure,
-            artifact_closure: &material.artifact_closure,
-            invariant_requirements: &invariant_requirements,
-            reconciliation_posture,
-        });
+        let graph_work = operation.graph_work_affinity();
         Some(Self {
-            identity: identity.into(),
+            identity: execution.resource_attempt_identity.into(),
             operation_identity: operation.operation_identity().into(),
             binding_identity: operation.binding_identity().into(),
             scope,
@@ -141,6 +121,8 @@ impl WorthQueryProviderExecutionPlanContract {
             invariant_requirements: invariant_requirements.into(),
             transaction_posture: transaction_posture.into(),
             reconciliation_posture: reconciliation_posture.into(),
+            graph_work_session: graph_work.map(|affinity| affinity.session.as_u64()),
+            graph_work_managed_run: graph_work.map(|affinity| affinity.managed_run.as_u64()),
         })
     }
 
@@ -244,6 +226,14 @@ impl WorthQueryProviderExecutionPlanContract {
         &self.reconciliation_posture
     }
 
+    pub const fn graph_work_session_identity(&self) -> Option<u64> {
+        self.graph_work_session
+    }
+
+    pub const fn graph_work_managed_run_identity(&self) -> Option<u64> {
+        self.graph_work_managed_run
+    }
+
     pub(super) fn closure_width(&self) -> usize {
         self.read_closure.len()
             + self.touch_closure.len()
@@ -253,52 +243,4 @@ impl WorthQueryProviderExecutionPlanContract {
             + self.decision_fact_families.len()
             + self.invariant_requirements.len()
     }
-}
-
-fn contract_identity(observation: WorthQueryProviderPlanIdentityObservation<'_, '_>) -> String {
-    let operation = observation.operation;
-    let execution = observation.execution;
-    let closure = observation.closure;
-    hash_parts(&[
-        "worth_query_provider_execution_plan_v1".into(),
-        format!("binding:{}", operation.binding_identity()),
-        format!("operation:{}", operation.operation_identity()),
-        format!("basis:{}", operation.basis_identity()),
-        format!("managed-run:{}", execution.managed_run_identity),
-        format!("execution-basis:{}", execution.execution_basis_identity),
-        format!("admitted-session:{}", execution.admitted_session_identity),
-        format!("resource-attempt:{}", execution.resource_attempt_identity),
-        format!("snapshot:{}", execution.snapshot_identity),
-        format!(
-            "stage:{}",
-            observation.scope.stage_identity().unwrap_or("direct")
-        ),
-        format!("provider-role:{}", execution.graph.role()),
-        format!(
-            "provider-authority:{}",
-            execution.graph.authority_identity()
-        ),
-        format!(
-            "provider:{}:{}",
-            execution.provider_identity, execution.provider_generation
-        ),
-        format!("envelope:{}", execution.resource_envelope_identity),
-        format!("read:{}", hash_parts(&closure.read)),
-        format!("touch:{}", hash_parts(&closure.touch)),
-        format!("effect:{}", hash_parts(&closure.effect)),
-        format!("invariant:{}", hash_parts(&closure.invariant)),
-        format!("artifact:{}", hash_parts(observation.artifact_closure)),
-        format!(
-            "decision-facts:{}",
-            observation.operation.provider_plan_decision_fact_identity()
-        ),
-        format!(
-            "invariant-execution:{}",
-            observation
-                .operation
-                .provider_plan_invariant_execution_identity(observation.invariant_requirements)
-        ),
-        format!("transaction:{}", operation.commit_posture().as_str()),
-        format!("reconciliation:{}", observation.reconciliation_posture),
-    ])
 }

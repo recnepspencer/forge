@@ -75,7 +75,7 @@ fn digest_authority_rejects_native_basis_from_wrong_store_family() {
         StoreCanonicalBasisFamily::AspectBoundaryFact,
         page_header_basis(),
     )
-    .derive(CanonicalDigestAlgorithmId::test_stable_fixture());
+    .derive(CanonicalDigestAlgorithmId::sha256());
 
     let mismatch = match outcome {
         TransitionOutcome::Denied(StoreDigestAuthorityDenial::NativeBasisFamilyDomainMismatch(
@@ -185,7 +185,7 @@ fn derive_store_digest(
         StoreCanonicalBasisFamily::PhysicalPageHeader,
         basis,
     )
-    .derive(CanonicalDigestAlgorithmId::test_stable_fixture())
+    .derive(CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(evidence) => evidence,
         other => panic!("Store digest derivation should succeed: {other:?}"),

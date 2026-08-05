@@ -5,8 +5,7 @@ use super::{WorthQueryMutationFamily, WorthQueryWriteCommand};
 use crate::evidence_identity::WorthQueryEvidenceIdentity;
 use crate::runtime::WorthQueryJournalPosition;
 use crate::runtime::{
-    WorthQueryAspectMutationOperation, WorthQueryAspectTouch,
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryAuthorityLane,
+    WorthQueryAspectMutationOperation, WorthQueryAspectTouch, WorthQueryAuthorityLane,
     WorthQueryContinuityMutationEvidence, WorthQueryContinuityMutationIntent,
     WorthQueryDerivedMaterializationTarget, WorthQueryExistingTruthAssertionEvidence,
     WorthQueryExistingTruthBindingEvidence, WorthQueryExistingTruthTargetBinding,
@@ -71,7 +70,6 @@ pub struct WorthQueryWriteReceipt {
     pub(super) refresh_fallback: bool,
     pub(super) decision_trace_envelope: Option<WorthQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<WorthQueryIntentExecutionProvenance>,
-    pub(super) obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl WorthQueryWriteReceipt {
@@ -103,7 +101,6 @@ impl WorthQueryWriteReceipt {
         refresh_fallback: bool,
         decision_trace_envelope: Option<WorthQueryIntentDecisionTraceEnvelope>,
         execution_provenance: Option<WorthQueryIntentExecutionProvenance>,
-        obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     ) -> Self {
         let commit_evidence_identity =
             write_receipt_commit_evidence_identity(&inner.commit_identity);
@@ -210,7 +207,6 @@ impl WorthQueryWriteReceipt {
             refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
-            obligation_dispatch,
         }
     }
 
@@ -339,7 +335,6 @@ impl WorthQueryWriteReceipt {
             refresh_fallback: false,
             decision_trace_envelope: None,
             execution_provenance: None,
-            obligation_dispatch: None,
         }
     }
 }

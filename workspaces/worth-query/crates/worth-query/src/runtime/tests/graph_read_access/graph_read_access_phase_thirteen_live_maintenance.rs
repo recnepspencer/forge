@@ -27,11 +27,18 @@ fn live_plan_preserves_one_shot_access_shape_and_required_index_digests() {
 
     assert_eq!(
         live_plan.one_shot_access_shape_digest(),
-        one_shot.admission().requirement_set().access_shape_digest()
+        one_shot
+            .admission()
+            .requirement_set()
+            .access_shape_digest()
+            .render_hex()
     );
     assert_eq!(
         live_plan.required_index_digest(),
-        one_shot.graph_index_support().requirement_set_digest()
+        one_shot
+            .graph_index_support()
+            .requirement_set_digest()
+            .render_hex()
     );
     assert_eq!(
         live_plan.posture(),

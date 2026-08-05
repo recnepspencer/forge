@@ -384,18 +384,16 @@ impl SignalGraph {
                 self.transition_node_clean(node)?;
                 state_changed = !matches!(previous_state, NodeState::Clean);
             } else {
-                match effect.operational.verdict {
-                    EvaluationVerdict::Deferred {
-                        reason:
-                            DeferralReason::ConditionNotMet
-                            | DeferralReason::OnDemandNotRequested
-                            | DeferralReason::DebounceWindow
-                            | DeferralReason::TemporalConditionNotMet,
-                    } => {
-                        self.set_node_state(node, NodeState::MaybeStale)?;
-                        state_changed = !matches!(previous_state, NodeState::MaybeStale);
-                    }
-                    _ => {}
+                if let EvaluationVerdict::Deferred {
+                    reason:
+                        DeferralReason::ConditionNotMet
+                        | DeferralReason::OnDemandNotRequested
+                        | DeferralReason::DebounceWindow
+                        | DeferralReason::TemporalConditionNotMet,
+                } = effect.operational.verdict
+                {
+                    self.set_node_state(node, NodeState::MaybeStale)?;
+                    state_changed = !matches!(previous_state, NodeState::MaybeStale);
                 }
             }
         }
@@ -415,9 +413,7 @@ impl SignalGraph {
         &mut self,
         cold_intent: Option<ColdArtifactIntent>,
     ) -> Option<crate::data::trace::ColdArtifactRecord> {
-        let Some(cold_intent) = cold_intent else {
-            return None;
-        };
+        let cold_intent = cold_intent?;
         let policy = self.runtime_policy().retention_budget;
         if matches!(
             policy.explanation_retention,

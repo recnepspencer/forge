@@ -1,0 +1,107 @@
+use worth_query_decl::facade::application_query::{
+    ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
+    ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
+    ApplicationQueryDisclosureContract, ApplicationQueryInfluenceContract,
+    ApplicationQueryLaneEligibility,
+};
+use worth_query_decl::facade::worth_query_application_query;
+
+use crate::{
+    authorization::ViewEstateCase,
+    estate::{BankDisclosure, EmergencyAccessId, EstateAction, EstateCaseId, RestrictedBankField},
+    reads::EstateAccountView,
+    schema::{BankSchema, EstateCase, ViewEstateEmergencyProtectionCapability},
+};
+
+use super::emergency_account_details_selectors::{
+    account_identity, account_name, account_status, estate_account,
+};
+use super::emergency_account_details_shape::emergency_account_details_shape;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EstateEmergencyAccountDetailsQueryParameters;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EstateEmergencyAccountDetailsRequest {
+    estate: EstateCaseId,
+    access: EmergencyAccessId,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EstateEmergencyAccountDetails {
+    account: BankDisclosure<EstateAccountView>,
+}
+
+impl EstateEmergencyAccountDetailsRequest {
+    pub const fn estate(self) -> EstateCaseId {
+        self.estate
+    }
+
+    pub const fn capability_request(self) -> EstateAction {
+        EstateAction::ViewRestrictedEstateWithEmergencyAccess {
+            estate: self.estate,
+            access: self.access,
+            field: RestrictedBankField::AccountDetails,
+        }
+    }
+}
+
+impl EstateEmergencyAccountDetails {
+    pub const fn new(account: BankDisclosure<EstateAccountView>) -> Self {
+        Self { account }
+    }
+
+    pub const fn account(&self) -> &BankDisclosure<EstateAccountView> {
+        &self.account
+    }
+}
+
+pub const fn estate_emergency_account_details(
+    estate: EstateCaseId,
+    access: EmergencyAccessId,
+) -> EstateEmergencyAccountDetailsRequest {
+    EstateEmergencyAccountDetailsRequest { estate, access }
+}
+
+worth_query_application_query!(
+    pub EstateEmergencyAccountDetailsQuery in BankSchema,
+    parameters EstateEmergencyAccountDetailsQueryParameters,
+    result EstateEmergencyAccountDetails,
+    scope EstateCase,
+    name "estate_emergency_account_details"
+);
+
+pub fn estate_emergency_account_details_definition() -> ApplicationQueryDefinition<
+    BankSchema,
+    EstateEmergencyAccountDetailsQuery,
+    EstateEmergencyAccountDetailsQueryParameters,
+    EstateEmergencyAccountDetails,
+    EstateCase,
+> {
+    let field = RestrictedBankField::AccountDetails;
+    let influence = ApplicationQueryInfluenceContract::forbid_all();
+    let disclosure = ApplicationQueryDisclosureContract::governed_by(
+        "estate-emergency-account-details",
+        ViewEstateEmergencyProtectionCapability::reference(),
+    )
+    .disclose_relation_by(estate_account(), field, influence.clone())
+    .disclose_field_by(account_identity(), field, influence.clone())
+    .disclose_field_by(account_name(), field, influence.clone())
+    .disclose_field_by(account_status(), field, influence);
+    ApplicationQueryDefinitionBuilder::requires_ability(
+        EstateEmergencyAccountDetailsQuery::reference(),
+        EstateCase::reference(),
+        EstateCase::reference(),
+        emergency_account_details_shape(),
+        ApplicationQueryCardinality::ExactlyOne,
+        ApplicationQueryDependencyCeiling::bounded(1, 1, 3),
+        disclosure,
+        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
+        ApplicationQueryLaneEligibility::one_shot()
+            .with_historical()
+            .with_preview(),
+        ViewEstateCase::reference(),
+    )
+    .build()
+    .expect("estate emergency account details query is statically canonical")
+}

@@ -8,13 +8,10 @@ use crate::application::{
     WorthQuerySignalCompatiblePosture,
 };
 use crate::domain_installation::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainInvariantPredicate,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainInvariantPredicate,
 };
-use crate::runtime::{
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationOperatingWorldSelector,
-    WorthQueryGraphReadOperationLookup, WorthQueryGraphTouchSelector,
-};
+use crate::runtime::WorthQueryGraphReadOperationLookup;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct InstalledReadFamily;
@@ -44,13 +41,6 @@ fn full_substrate_package() -> WorthQueryDomainPackage<InstalledDomain> {
                 1,
             ),
         ))
-        .graph_obligation(WorthQueryDomainGraphObligationDefinition::new(
-            WorthQueryDomainIdentityName::new("outgoing-manager").unwrap(),
-            WorthQueryDomainSemanticVersion::new(1, 0),
-            WorthQueryGraphObligationKind::BlockingInvariant,
-            WorthQueryGraphTouchSelector::relation_kind("manager").unwrap(),
-            WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
-        ))
         .declaration_family(
             WorthQueryDomainDeclarationFamilyDefinition::from_marker::<
                 InstalledDomain,
@@ -77,32 +67,10 @@ fn installed_package_compiles_every_semantic_family_before_runtime_publication()
     let counters = receipt.construction_counters();
     assert_eq!(counters.package_lowerings(), 1);
     assert_eq!(counters.invariant_index_entries(), 1);
-    assert_eq!(counters.graph_obligation_index_entries(), 1);
     assert_eq!(counters.graph_read_operation_index_entries(), 1);
     assert_eq!(counters.declaration_family_index_entries(), 1);
     assert_eq!(counters.contribution_policy_index_entries(), 2);
-    assert_eq!(
-        runtime
-            .graph_obligation_registration_catalog()
-            .registration_count(),
-        1
-    );
-    let obligation_provenance = runtime
-        .graph_obligation_registration_catalog()
-        .registrations()[0]
-        .installed_provenance()
-        .expect("package obligation must retain installed provenance");
-    assert_eq!(
-        obligation_provenance.domain_owner(),
-        "WORTH.tests.installed-domain"
-    );
-    assert_eq!(obligation_provenance.package_version(), "1.0");
-
     let handle = runtime.domain(InstalledDomain).unwrap();
-    assert_eq!(
-        obligation_provenance.package_identity(),
-        handle.package_identity().as_str()
-    );
     assert_eq!(
         handle
             .authority()
@@ -125,12 +93,19 @@ fn installed_package_compiles_every_semantic_family_before_runtime_publication()
         .matching_declared_operation(operation.declaration(), Some(operation.authority()))
         .and_then(|registration| registration.admitted().installed_provenance().cloned())
         .expect("package operation must retain installed provenance");
-    assert_eq!(operation_provenance, obligation_provenance.clone());
+    assert_eq!(
+        operation_provenance.domain_owner(),
+        "WORTH.tests.installed-domain"
+    );
+    assert_eq!(operation_provenance.package_version(), "1.0");
+    assert_eq!(
+        operation_provenance.package_identity(),
+        handle.package_identity().as_str()
+    );
 
     let rebuild = runtime.verify_domain_execution_index_rebuild();
     assert!(rebuild.is_equivalent());
     assert_eq!(rebuild.invariant_count(), 1);
-    assert_eq!(rebuild.graph_obligation_count(), 1);
     assert_eq!(rebuild.operation_count(), 1);
     assert_eq!(rebuild.declaration_family_count(), 1);
     assert_eq!(rebuild.contribution_policy_count(), 2);

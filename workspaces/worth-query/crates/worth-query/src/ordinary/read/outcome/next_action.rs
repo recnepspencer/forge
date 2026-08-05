@@ -15,7 +15,6 @@ pub enum WorthQueryReadNextAction {
     SupplyRelationshipProofAuthority,
     ConfigureRuntime(WorthQueryRuntimeMissingComponent),
     SelectSupportedCapability,
-    ResolveDomainInvariant,
     InspectOperationalFailure,
 }
 
@@ -25,9 +24,6 @@ pub(super) fn classify_runtime_next_action(
     match error.stop_class() {
         WorthQueryStopClass::ReadCompositionDenied { denial } => {
             next_action_for_read_denial(denial.kind())
-        }
-        WorthQueryStopClass::ReadCompositionDomainInvariantDenied { .. } => {
-            WorthQueryReadNextAction::ResolveDomainInvariant
         }
         WorthQueryStopClass::MissingRuntimeComponent { component } => {
             WorthQueryReadNextAction::ConfigureRuntime(component)

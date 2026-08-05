@@ -98,10 +98,10 @@ impl UiProjectionInputRevision {
                 slot,
                 projection: fact.projection_identity().clone(),
                 observation_order: fact.observation_order(),
-                query_world: fact.query_world_authority().clone(),
-                binding: fact.binding_authority().clone(),
-                source_generation: fact.source_generation_authority().clone(),
-                result_generation: fact.result_generation_authority().clone(),
+                query_world: fact.query_world_identity().clone(),
+                binding: fact.binding_identity().clone(),
+                source_generation: fact.source_generation_identity().clone(),
+                result_generation: fact.result_generation_identity().clone(),
             }),
         }
     }
@@ -118,20 +118,20 @@ impl UiProjectionInputRevision {
         self.inner.observation_order
     }
 
-    pub fn query_world_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.inner.query_world)
+    pub fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.query_world
     }
 
-    pub fn binding_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.inner.binding)
+    pub fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.binding
     }
 
-    pub fn source_generation_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.inner.source_generation)
+    pub fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.source_generation
     }
 
-    pub fn result_generation_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.inner.result_generation)
+    pub fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.inner.result_generation
     }
 
     pub(super) fn has_same_projection_owner(&self, other: &Self) -> bool {
@@ -202,11 +202,11 @@ impl UiCollectionProjectionInputFact {
             return None;
         }
         let catalog = self.catalog.as_ref()?;
-        let (retained, _) = catalog.row(row.query_row_identity());
+        let (retained, _) = catalog.row(row.query_identity());
         retained.map(|retained| {
             UiProjectionOptionReference::query_issued(
                 self.revision.clone(),
-                retained.row().query_row_identity().clone(),
+                retained.row().query_identity().clone(),
             )
         })
     }
@@ -231,8 +231,8 @@ impl UiProjectionOptionReference {
         &self.owner_revision
     }
 
-    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.query_row_identity)
+    pub fn query_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_row_identity
     }
 }
 

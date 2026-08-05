@@ -90,6 +90,7 @@ checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -139,6 +140,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+]
+
+[[package]]
 name = "glob"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -149,6 +161,15 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest",
+]
 
 [[package]]
 name = "indexmap"
@@ -227,6 +248,12 @@ checksum = "dfbc457d0c7a0759a614551b11a6409e5951f6c7537be1f1b7682b9ae9230368"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rayon"
@@ -356,6 +383,12 @@ name = "stats_alloc"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c0e04424e733e69714ca1bbb9204c1a57f09f5493439520f9f68c132ad25eec"
+
+[[package]]
+name = "subtle"
+version = "2.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
@@ -567,6 +600,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "sha2",
  "worth-proof",
 ]
 
@@ -611,6 +645,7 @@ dependencies = [
 name = "worth-query-admission"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sha2",
  "worth-foundational",
  "worth-query-declaration",
@@ -625,6 +660,8 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query",
+ "worth-query-admission",
+ "worth-query-decl",
  "worth-query-execution",
  "worth-query-host",
  "worth-query-replay",
@@ -652,6 +689,7 @@ dependencies = [
 name = "worth-query-execution"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sha2",
  "stats_alloc",
  "worth-foundational",
@@ -677,10 +715,14 @@ dependencies = [
 name = "worth-query-installation"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
+ "hmac",
  "sha2",
+ "subtle",
  "worth-foundational",
  "worth-proof",
  "worth-query-declaration",
+ "zeroize",
 ]
 
 [[package]]
@@ -689,6 +731,9 @@ version = "0.1.0"
 dependencies = [
  "sha2",
  "worth-foundational",
+ "worth-proof",
+ "worth-query-admission",
+ "worth-query-declaration",
  "worth-query-execution",
  "worth-query-installation",
 ]
@@ -723,7 +768,6 @@ dependencies = [
  "worth-foundational",
  "worth-harness",
  "worth-proof",
- "worth-query-installation",
  "worth-signal",
 ]
 
@@ -745,6 +789,26 @@ dependencies = [
  "wasm-bindgen",
  "worth-foundational",
  "worth-proof",
+]
+
+[[package]]
+name = "zeroize"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c50655cbb0fe3fc43170059e702f1ce5e19b84cec58dc87b037a09935c2f328"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

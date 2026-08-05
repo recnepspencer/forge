@@ -152,8 +152,8 @@ fn admission_consumes_runtime_bound_graph_index_inventory_match_report_before_pl
         admission.graph_index_inventory().digest()
     );
     assert_eq!(
-        support.requirement_set_digest(),
-        admission.requirement_set().digest().as_str()
+        support.requirement_set_digest().render_hex(),
+        admission.requirement_set().digest().render_support_hex()
     );
     assert_eq!(
         support.counters().matched_requirement_count(),

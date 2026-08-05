@@ -28,7 +28,7 @@ where
             .resource
             .descriptor_for_node(resource_node)
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let prior_stale_after_wake = self
             .resource
             .active_stale_after_wake_for_node(resource_node);

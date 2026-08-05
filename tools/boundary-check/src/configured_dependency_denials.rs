@@ -195,4 +195,30 @@ mod tests {
         );
         assert_eq!(diagnostics.len(), 1);
     }
+
+    #[test]
+    fn runtime_bridge_denial_rejects_every_query_package_edge() {
+        let rule = DependencyDenialConfig {
+            workspace_manifest: "Cargo.toml".into(),
+            sources: vec!["worth-runtime-bridge".into()],
+            source_prefixes: Vec::new(),
+            forbidden_targets: Vec::new(),
+            forbidden_target_prefixes: vec!["worth-query".into()],
+            guidance: "Bridge cannot import Query authority".into(),
+        };
+        for dependency in [
+            "worth-query",
+            "worth-query-declaration",
+            "worth-query-installation",
+            "worth-query-replay",
+        ] {
+            let diagnostics = diagnostics_for_package(
+                "worth-runtime-bridge",
+                "crates/worth-runtime-bridge/Cargo.toml",
+                [dependency],
+                &rule,
+            );
+            assert_eq!(diagnostics.len(), 1, "missing fence for {dependency}");
+        }
+    }
 }

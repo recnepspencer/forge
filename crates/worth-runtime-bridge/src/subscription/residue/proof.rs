@@ -106,10 +106,9 @@ impl BridgeSubscriptionPreviewDiscardResidueProof {
         if total_residue_count != 0 {
             let nonzero_categories = category_counts
                 .iter()
-                .filter_map(|(category, count)| {
-                    (*count != 0).then(|| {
-                        BridgeSubscriptionPreviewResidueCategoryCount::new(*category, *count)
-                    })
+                .filter(|&(_category, count)| *count != 0)
+                .map(|(category, count)| {
+                    BridgeSubscriptionPreviewResidueCategoryCount::new(*category, *count)
                 })
                 .collect::<Vec<_>>();
             return Err(BridgeSubscriptionPreviewDiscardResidueRejection::new(

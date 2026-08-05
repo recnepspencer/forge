@@ -23,7 +23,7 @@ const DECLARATION_SOURCE_REOPENING_ALLOWED_FILES: &[&str] = &[
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/mode.rs",
     "crates/worth-ui-runtime/src/declaration/declared_posture/measurement_policy/ownership_posture.rs",
     "crates/worth-ui-runtime/src/declaration/family/admission.rs",
-    "crates/worth-ui-runtime/src/declaration/intent/source_admission.rs",
+    "crates/worth-ui-runtime/src/declaration/intent/authored_material.rs",
     "crates/worth-ui-runtime/src/declaration/rust_authored_declaration_fixture.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_dependency/worth_ui_subtree_digest_basis.rs",
     "crates/worth-ui-runtime/src/source/lower/artifact_equivalence/worth_ui_artifact_descriptor_basis.rs",
@@ -83,66 +83,90 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
         .collect::<Vec<_>>();
 
     for source_file in files {
-        let path = source_file.absolute_path();
-        let file_name = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("");
-        if file_name == "tests.rs" || file_name.ends_with("_tests.rs") {
-            continue;
-        }
-
-        let relative = path
-            .strip_prefix(inventory.root())
-            .expect("workspace file should strip to relative path");
-        let relative_text = relative.to_string_lossy().replace('\\', "/");
-
-        if should_skip_non_owner_audit_file(&relative_text) {
-            continue;
-        }
-
-        if DECLARATION_SOURCE_REOPENING_ALLOWED_FILES
-            .iter()
-            .any(|allowed| *allowed == relative_text)
-        {
-            continue;
-        }
-
-        for segments in collect_file_paths(inventory, path)
-            .into_iter()
-            .chain(collect_file_use_paths(inventory, path))
-        {
-            if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
-                violations.push(format!(
-                    "{} reopens declaration meaning by reaching DSL semantic authority type `{authority_name}` outside the owning declaration lowering/admission lanes",
-                    path.display()
-                ));
-            }
-        }
-
-        for method_name in collect_method_names(inventory, path) {
-            if DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
-                violations.push(format!(
-                    "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` outside the owning declaration lowering/admission lanes",
-                    path.display()
-                ));
-            }
-        }
-
-        let source = production_source_text(inventory, path);
-        for marker in DECLARATION_SEMANTIC_TOKEN_MARKERS {
-            if source.contains(marker) {
-                violations.push(format!(
-                    "{} reinterprets declaration semantics through raw declaration token vocabulary `{marker}` outside the owning declaration lowering/admission lanes",
-                    path.display()
-                ));
-            }
-        }
+        audit_non_owner_declaration_source_file(inventory, &source_file, &mut violations);
     }
 
     violations.sort();
     violations.dedup();
     violations
+}
+
+fn audit_non_owner_declaration_source_file(
+    inventory: &WorkspaceSourceInventory,
+    source_file: &super::WorkspaceSourceFile,
+    violations: &mut Vec<String>,
+) {
+    let path = source_file.absolute_path();
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    if file_name == "tests.rs" || file_name.ends_with("_tests.rs") {
+        return;
+    }
+    let relative = path
+        .strip_prefix(inventory.root())
+        .expect("workspace file should strip to relative path");
+    let relative_text = relative.to_string_lossy().replace('\\', "/");
+    if should_skip_non_owner_audit_file(&relative_text)
+        || DECLARATION_SOURCE_REOPENING_ALLOWED_FILES
+            .iter()
+            .any(|allowed| *allowed == relative_text)
+    {
+        return;
+    }
+    audit_declaration_authority_paths(inventory, path, violations);
+    audit_declaration_semantic_methods(inventory, path, violations);
+    audit_declaration_semantic_tokens(inventory, path, violations);
+}
+
+fn audit_declaration_authority_paths(
+    inventory: &WorkspaceSourceInventory,
+    path: &std::path::Path,
+    violations: &mut Vec<String>,
+) {
+    for segments in collect_file_paths(inventory, path)
+        .into_iter()
+        .chain(collect_file_use_paths(inventory, path))
+    {
+        if let Some(authority_name) = declaration_semantic_authority_path(&segments) {
+            violations.push(format!(
+                "{} reopens declaration meaning by reaching DSL semantic authority type `{authority_name}` outside the owning declaration lowering/admission lanes",
+                path.display()
+            ));
+        }
+    }
+}
+
+fn audit_declaration_semantic_methods(
+    inventory: &WorkspaceSourceInventory,
+    path: &std::path::Path,
+    violations: &mut Vec<String>,
+) {
+    for method_name in collect_method_names(inventory, path) {
+        if DECLARATION_SOURCE_REOPENING_METHODS.contains(&method_name.as_str()) {
+            violations.push(format!(
+                "{} reopens declaration meaning through DSL semantic accessor `{method_name}()` outside the owning declaration lowering/admission lanes",
+                path.display()
+            ));
+        }
+    }
+}
+
+fn audit_declaration_semantic_tokens(
+    inventory: &WorkspaceSourceInventory,
+    path: &std::path::Path,
+    violations: &mut Vec<String>,
+) {
+    let source = production_source_text(inventory, path);
+    for marker in DECLARATION_SEMANTIC_TOKEN_MARKERS {
+        if source.contains(marker) {
+            violations.push(format!(
+                "{} reinterprets declaration semantics through raw declaration token vocabulary `{marker}` outside the owning declaration lowering/admission lanes",
+                path.display()
+            ));
+        }
+    }
 }
 
 pub fn audit_phase4_authored_lookup_lane_does_not_reopen_declaration_source(

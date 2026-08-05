@@ -35,23 +35,30 @@ fn equivalent_contract_order_converges_to_one_semantic_identity() {
     assert_eq!(canonical, reversed);
     assert_eq!(canonical.identity(), reversed.identity());
     assert_eq!(canonical_index.identity(), reversed_index.identity());
+    let canonical_authority = canonical_index
+        .artifact_contract(
+            "worth.routing",
+            CandidateArtifactFamily::SEMANTIC_FAMILY,
+            WorthQueryArtifactSchemaVersion::new(2),
+            WorthQueryArtifactProtocolVersion::new(1),
+        )
+        .unwrap();
+    let reversed_authority = reversed_index
+        .artifact_contract(
+            "worth.routing",
+            CandidateArtifactFamily::SEMANTIC_FAMILY,
+            WorthQueryArtifactSchemaVersion::new(2),
+            WorthQueryArtifactProtocolVersion::new(1),
+        )
+        .unwrap();
     assert_eq!(
-        canonical_index
-            .artifact_contract(
-                "worth.routing",
-                CandidateArtifactFamily::SEMANTIC_FAMILY,
-                WorthQueryArtifactSchemaVersion::new(2),
-                WorthQueryArtifactProtocolVersion::new(1),
-            )
-            .unwrap(),
-        reversed_index
-            .artifact_contract(
-                "worth.routing",
-                CandidateArtifactFamily::SEMANTIC_FAMILY,
-                WorthQueryArtifactSchemaVersion::new(2),
-                WorthQueryArtifactProtocolVersion::new(1),
-            )
-            .unwrap()
+        canonical_authority.contract(),
+        reversed_authority.contract()
+    );
+    assert_ne!(canonical_authority, reversed_authority);
+    assert_eq!(
+        canonical_index.relation_to(&reversed_index),
+        WorthQueryInstalledPackageIndexRelation::ForeignRuntime
     );
 }
 

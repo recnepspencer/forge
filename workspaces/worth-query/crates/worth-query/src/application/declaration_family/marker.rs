@@ -1,3 +1,4 @@
+use super::taxonomy::WorthQueryDeclarationFamilyTaxonomy;
 use crate::application::{
     WorthQueryAsyncDeclarationSupport, WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
     WorthQueryDeclarationAspectContract, WorthQueryDeclarationAspectCoverage,
@@ -8,12 +9,6 @@ use crate::application::{
     WorthQueryDeclarationSignalCompatibilityTag, WorthQueryDomainEntryMarker,
     WorthQueryTemporalDeclarationSupport,
 };
-use crate::runtime::{
-    WorthQueryGraphObligationRegistration, WorthQueryGraphTouchDescriptor,
-    WorthQueryGraphTouchDescriptorDenial,
-};
-
-use super::taxonomy::WorthQueryDeclarationFamilyTaxonomy;
 
 pub trait WorthQueryDeclarationFamilyMarker<D: WorthQueryDomainEntryMarker> {
     type PrimaryAuthority: WorthQueryDeclarationPrimaryAuthorityTag;
@@ -87,19 +82,5 @@ pub trait WorthQueryDeclarationFamilyMarker<D: WorthQueryDomainEntryMarker> {
 
     fn signal_compatibility_contract() -> Option<WorthQueryDeclarationSignalCompatibilityContract> {
         None
-    }
-
-    fn orchestration_graph_touch_collection() -> Option<&'static str> {
-        None
-    }
-
-    fn orchestration_graph_touch_descriptor(
-    ) -> Option<Result<WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial>> {
-        None
-    }
-
-    fn orchestration_graph_obligation_registrations() -> Vec<WorthQueryGraphObligationRegistration>
-    {
-        Vec::new()
     }
 }

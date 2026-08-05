@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/application_query_foreign_schema_cannot_validate.rs:44:37
+   |
+44 |     schema.validate_installed_query(query).unwrap();
+   |            ------------------------ ^^^^^ expected `ForeignSchema`, found `Schema`
+   |            |
+   |            arguments to this method are incorrect
+   |
+   = note: expected reference `&WorthQueryInstalledApplicationQuery<ForeignSchema, _, _, _, _>`
+              found reference `&WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-installation/src/application_schema.rs
+   |
+   |     pub fn validate_installed_query<Query, Parameters, QueryResult, Scope>(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^

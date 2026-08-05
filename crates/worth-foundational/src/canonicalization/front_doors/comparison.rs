@@ -18,10 +18,10 @@ impl CanonicalComparisonFrontDoor {
         compare_canonical_basis(ready)
     }
 
-    pub fn equivalent_basis<'a>(
+    pub fn equivalent_basis(
         self,
-        outcome: &'a CanonicalComparisonOutcome,
-    ) -> Option<&'a CanonicalEquivalentBasis> {
+        outcome: &CanonicalComparisonOutcome,
+    ) -> Option<&CanonicalEquivalentBasis> {
         match outcome {
             CanonicalComparisonOutcome::Equivalent(equivalent) => Some(equivalent),
             CanonicalComparisonOutcome::Mismatched(_)
@@ -29,10 +29,10 @@ impl CanonicalComparisonFrontDoor {
         }
     }
 
-    pub fn mismatch_basis<'a>(
+    pub fn mismatch_basis(
         self,
-        outcome: &'a CanonicalComparisonOutcome,
-    ) -> Option<&'a CanonicalMismatchBasis> {
+        outcome: &CanonicalComparisonOutcome,
+    ) -> Option<&CanonicalMismatchBasis> {
         match outcome {
             CanonicalComparisonOutcome::Mismatched(mismatch) => Some(mismatch),
             CanonicalComparisonOutcome::Equivalent(_)
@@ -40,10 +40,10 @@ impl CanonicalComparisonFrontDoor {
         }
     }
 
-    pub fn unsupported_basis<'a>(
+    pub fn unsupported_basis(
         self,
-        outcome: &'a CanonicalComparisonOutcome,
-    ) -> Option<&'a CanonicalMismatchBasis> {
+        outcome: &CanonicalComparisonOutcome,
+    ) -> Option<&CanonicalMismatchBasis> {
         match outcome {
             CanonicalComparisonOutcome::Unsupported(mismatch) => Some(mismatch),
             CanonicalComparisonOutcome::Equivalent(_)

@@ -1,6 +1,25 @@
 use super::*;
+use crate::storage::data::RecordLifecycleState;
 
 impl<'runtime> VisibilityReadContext<'runtime> {
+    pub fn visible_entity_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<EntityReadRecord> {
+        self.authoritative_entity_record_at_version(entity_id, version_id)
+            .filter(|record| record.lifecycle == RecordLifecycleState::Live)
+    }
+
+    pub fn visible_relation_at_version(
+        &self,
+        relation_id: crate::identity::data::RelationId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<RelationReadRecord> {
+        self.authoritative_relation_record_at_version(relation_id, version_id)
+            .filter(|record| record.lifecycle == RecordLifecycleState::Live)
+    }
+
     pub fn visible_entities_of_kind(
         &self,
         kind_id: crate::identity::data::KindId,

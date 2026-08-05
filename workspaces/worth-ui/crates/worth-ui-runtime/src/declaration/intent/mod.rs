@@ -1,5 +1,6 @@
 mod application_fact;
 mod authored_declaration;
+mod authored_material;
 mod authored_payload_source;
 mod catalog;
 mod concurrency_scope;
@@ -12,7 +13,6 @@ mod identity;
 mod operability_contract;
 mod payload_source;
 mod route_binding;
-mod source_admission;
 
 pub use application_fact::{
     UiIntentApplicationFact, UiIntentApplicationFactIdentityError,
@@ -27,6 +27,10 @@ pub use authored_declaration::{
     UiIntentDeclarationConfirmationMissing, UiIntentDeclarationConsequencesBound,
     UiIntentDeclarationConsequencesMissing, UiIntentDeclarationConstructionError,
     UiIntentDeclarationOperabilityBound, UiIntentDeclarationOperabilityMissing,
+};
+pub(crate) use authored_material::{
+    prepare_authored_intent_material, WorthUiAuthoredIntentDeclaration,
+    WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
 };
 pub use authored_payload_source::UiIntentPayloadSource;
 pub(crate) use catalog::{
@@ -64,7 +68,3 @@ pub(crate) use payload_source::{
     UiResolvedIntentPayloadSource, UiResolvedIntentProjectionSource,
 };
 pub use route_binding::UiIntentRouteBinding;
-pub(crate) use source_admission::{
-    prepare_authored_intent_material, WorthUiAuthoredIntentDeclaration,
-    WorthUiAuthoredIntentMaterial, WorthUiAuthoredIntentRoute,
-};

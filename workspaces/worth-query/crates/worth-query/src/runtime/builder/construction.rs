@@ -7,6 +7,7 @@ impl WorthQueryRuntimeBuilder {
         let conditional_signal_graph = self.conditional_signal_graph.take();
         let pending_conditional_installations =
             std::mem::take(&mut self.pending_conditional_installations);
+        let pending_primary_graph_installation = self.pending_primary_graph_installation.take();
         if self.backend.is_some() && !self.backend_parts.is_empty() {
             return Err(WorthQueryRuntimeError::InvariantRegistration {
                 stage: "runtime_backend_authority_selection",
@@ -19,8 +20,7 @@ impl WorthQueryRuntimeBuilder {
                 message: "queued Query-owned invariant registrations cannot be applied after selecting an explicit runtime backend; lower them through WorthQueryRuntimeBuilder before backend(...) or relational_runtime(...)".to_string(),
             });
         }
-        self.assemble_graph_obligation_registration_catalog()?;
-        let backend = self
+        let mut backend = self
             .backend
             .ok_or(WorthQueryRuntimeError::MissingBackend)??;
         let consumer_support_profile =
@@ -28,13 +28,6 @@ impl WorthQueryRuntimeBuilder {
                 &backend.support_profile(),
             )
             .with_runtime_overrides(self.consumer_support_postures);
-        let graph_obligation_registration_catalog = match self.graph_obligation_registration_catalog
-        {
-            Some(result) => result?,
-            None => WorthQueryGraphObligationRegistrationCatalog::empty(),
-        };
-        let graph_obligation_index =
-            WorthQueryGraphObligationIndex::from_catalog(&graph_obligation_registration_catalog);
         let installed_domain_artifacts = self.pending_domain_installations.into_artifacts();
         let execution_runtime_installation = match self.host_execution_installation.take() {
             Some(installation) => installation,
@@ -52,7 +45,7 @@ impl WorthQueryRuntimeBuilder {
                     .expect("locally admitted packages must build the execution installed index")
             }
         };
-        let (execution_runtime, execution_installation_authority) =
+        let (mut execution_runtime, execution_installation_authority) =
             execution_runtime_installation.into_parts();
         let authority_identity = execution_runtime.authority_identity();
         let graph_participation_registry = self
@@ -67,6 +60,15 @@ impl WorthQueryRuntimeBuilder {
                 stage: "graph_participation_installation",
                 message: format!("{:?}: {}", denial.kind(), denial.detail()),
             })?;
+        let primary_graph_publication = pending_primary_graph_installation
+            .map(|pending| {
+                pending.install(
+                    &mut execution_runtime,
+                    &execution_installation_authority,
+                    backend.as_mut(),
+                )
+            })
+            .transpose()?;
         let domain_installation_registry =
             crate::domain_installation::WorthQueryDomainInstallationRegistry::from_artifacts(
                 installed_domain_artifacts,
@@ -116,6 +118,7 @@ impl WorthQueryRuntimeBuilder {
             authority_identity,
             execution_runtime,
             execution_installation_authority,
+            primary_graph_publication,
             domain_installation_registry,
             domain_operation_executor_registry,
             workflow_stage_executor_registry,
@@ -146,8 +149,6 @@ impl WorthQueryRuntimeBuilder {
             derived_dependency_index: WorthQueryComputedDependencyIndex::default(),
             effects: BTreeMap::new(),
             effect_index: WorthQueryEffectIndex::default(),
-            graph_obligation_registration_catalog,
-            graph_obligation_index,
             managed_live_resource_capability: WorthQueryManagedLiveWorkspaceCapability::shared(),
             next_run_id: 0,
         })

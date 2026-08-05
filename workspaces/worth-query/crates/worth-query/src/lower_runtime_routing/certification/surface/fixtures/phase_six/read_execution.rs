@@ -18,7 +18,6 @@ use crate::lower_runtime_routing::{
 };
 use crate::runtime::{WorthQueryReadFamily, WorthQueryReadResult, WorthQueryWorkspace};
 use crate::schema_view::{QuerySchemaView, ScalarAspectType, SchemaFieldView};
-use std::cell::Cell;
 
 use super::super::{RepresentativeArtifacts, WorthQueryLowerRuntimeRepresentativeEvidenceSource};
 
@@ -31,27 +30,6 @@ pub(crate) fn representative_compose_read_row() -> RepresentativeArtifacts {
     route_planned_read_row(
         WorthQueryLowerRuntimeSeamKey::ComposeRead,
         "Composed current read",
-        &result,
-    )
-}
-
-pub(crate) fn representative_compose_read_with_invariant_pack_row() -> RepresentativeArtifacts {
-    let mut workspace = certification_workspace("lower-runtime-compose-read-invariant");
-    let invoked = Cell::new(false);
-    let result = workspace
-        .compose_read_with_invariant_pack(read_declaration(), |_context| {
-            invoked.set(true);
-            Ok(())
-        })
-        .expect("compose-read-with-invariant-pack fixture should execute");
-    assert!(
-        invoked.get(),
-        "compose-read-with-invariant-pack fixture must prove invariant admission executes"
-    );
-
-    route_planned_read_row(
-        WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
-        "Composed current read with invariant pack",
         &result,
     )
 }

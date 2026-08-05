@@ -1,95 +1,122 @@
-use sha2::{Digest, Sha256};
+use worth_foundational::facade::{
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
+};
 
-use crate::canonical_hash_encoding::hash_text_field;
+use crate::canonical_digest_derivation::InstallationCanonicalIdentityBasis;
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::package::WorthQueryValidatedPortableDomainPackage;
 
 use super::WorthQueryInstallationAdmissionProfile;
 
+const ADMISSION_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(32_768, 4 * 1_024 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("fixed installation-admission canonical-work budget is valid"),
+    };
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryInstallationAdmissionIdentity(CanonicalDigestId);
+
+impl WorthQueryInstallationAdmissionIdentity {
+    pub const fn digest(&self) -> &CanonicalDigestId {
+        &self.0
+    }
+
+    pub const fn bytes(&self) -> &[u8; 32] {
+        self.0.bytes()
+    }
+
+    pub fn render_support_hex(&self) -> String {
+        self.0.render_hex()
+    }
+}
+
 pub(super) fn admission_identity(
     package: &WorthQueryValidatedPortableDomainPackage,
     profile: &WorthQueryInstallationAdmissionProfile,
-) -> String {
-    let mut hasher = Sha256::new();
-    hash_text_field(&mut hasher, "package", package.identity().as_str());
-    hash_text_field(&mut hasher, "support", &profile.support_identity);
-    hash_text_field(
-        &mut hasher,
-        "configuration-profile",
-        &profile.configuration_identity,
+) -> Result<
+    (
+        WorthQueryInstallationAdmissionIdentity,
+        WorthQueryCanonicalWorkEvidence,
+    ),
+    CanonicalDigestDerivationDenial,
+> {
+    let mut basis = InstallationCanonicalIdentityBasis::new(
+        "worth-query.installation-admission",
+        "worth-query-installation-admission-v2",
+        ADMISSION_BUDGET,
     );
-    hash_required_support(&mut hasher, package, profile);
-    hash_artifact_support(&mut hasher, package, profile);
-    format!("{:x}", hasher.finalize())
+    basis.digest("package", *package.identity().digest())?;
+    basis.text("support", &profile.support_identity)?;
+    basis.text("configuration-profile", &profile.configuration_identity)?;
+    append_required_support(&mut basis, package, profile)?;
+    append_artifact_support(&mut basis, package, profile)?;
+    let (digest, work) = basis.derive()?;
+    Ok((WorthQueryInstallationAdmissionIdentity(digest), work))
 }
 
-fn hash_required_support(
-    hasher: &mut Sha256,
+fn append_required_support(
+    basis: &mut InstallationCanonicalIdentityBasis,
     package: &WorthQueryValidatedPortableDomainPackage,
     profile: &WorthQueryInstallationAdmissionProfile,
-) {
-    for family in package.capabilities() {
-        let status = profile.capability_statuses[family.as_str()];
-        hash_profile_row(
-            hasher,
-            "capability",
-            family.as_str(),
-            status.canonical_part(),
-        );
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, family) in package.capabilities().iter().enumerate() {
+        let prefix = format!("capability[{index}]");
+        basis.text(format!("{prefix}.subject"), family.as_str())?;
+        basis.text(
+            format!("{prefix}.status"),
+            profile.capability_statuses[family.as_str()].canonical_part(),
+        )?;
     }
-    for section in package.configuration() {
-        hash_profile_row(
-            hasher,
-            "configuration",
-            section.as_str(),
+    for (index, section) in package.configuration().iter().enumerate() {
+        let prefix = format!("configuration[{index}]");
+        basis.text(format!("{prefix}.subject"), section.as_str())?;
+        basis.text(
+            format!("{prefix}.status"),
             if profile.configuration_statuses[section.as_str()] {
                 "enabled"
             } else {
                 "disabled"
             },
-        );
+        )?;
     }
-    for requirement in package.operating_requirements() {
-        let status = profile.operating_statuses[requirement.as_str()];
-        hash_profile_row(
-            hasher,
-            "operating",
-            requirement.as_str(),
-            status.canonical_part(),
-        );
+    for (index, requirement) in package.operating_requirements().iter().enumerate() {
+        let prefix = format!("operating[{index}]");
+        basis.text(format!("{prefix}.subject"), requirement.as_str())?;
+        basis.text(
+            format!("{prefix}.status"),
+            profile.operating_statuses[requirement.as_str()].canonical_part(),
+        )?;
     }
+    Ok(())
 }
 
-fn hash_artifact_support(
-    hasher: &mut Sha256,
+fn append_artifact_support(
+    basis: &mut InstallationCanonicalIdentityBasis,
     package: &WorthQueryValidatedPortableDomainPackage,
     profile: &WorthQueryInstallationAdmissionProfile,
-) {
-    for contract in package.artifact_contracts() {
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, contract) in package.artifact_contracts().iter().enumerate() {
+        let prefix = format!("artifact[{index}]");
         let key = (
             contract.family().as_str().to_string(),
             contract.schema_version().get(),
             contract.protocol_version().get(),
         );
-        let status = &profile.artifact_version_statuses[&key];
-        hash_profile_row(
-            hasher,
-            "artifact-version",
-            &format!("{}:{}:{}", key.0, key.1, key.2),
-            &status.canonical_part(),
-        );
+        basis.text(format!("{prefix}.family"), &key.0)?;
+        basis.unsigned_u32(format!("{prefix}.schema-version"), key.1)?;
+        basis.unsigned_u32(format!("{prefix}.protocol-version"), key.2)?;
+        basis.text(
+            format!("{prefix}.status"),
+            profile.artifact_version_statuses[&key].canonical_part(),
+        )?;
         if let Some(comparator) = contract.reproducibility().comparison().registered_family() {
-            hash_profile_row(
-                hasher,
-                "artifact-comparator",
-                comparator,
+            basis.text(format!("{prefix}.comparator"), comparator)?;
+            basis.text(
+                format!("{prefix}.comparator-status"),
                 profile.artifact_comparator_statuses[comparator].canonical_part(),
-            );
+            )?;
         }
     }
-}
-
-fn hash_profile_row(hasher: &mut Sha256, dimension: &str, subject: &str, status: &str) {
-    hash_text_field(hasher, "profile-dimension", dimension);
-    hash_text_field(hasher, "profile-subject", subject);
-    hash_text_field(hasher, "profile-status", status);
+    Ok(())
 }

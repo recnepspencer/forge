@@ -1,5 +1,7 @@
+mod application_outcome_identity;
 mod artifact_identity;
 pub(crate) mod artifact_owner;
+pub(crate) mod authorization;
 pub(crate) mod convergence_epoch;
 mod domain_evidence_binding;
 mod evidence_material;
@@ -7,6 +9,7 @@ mod execution_resource_attempt;
 pub(crate) mod execution_runtime;
 mod managed_run;
 mod operation_binding;
+pub(crate) mod primary_graph;
 pub(crate) mod provider_session;
 
 pub use artifact_owner::{
@@ -44,4 +47,5 @@ pub use evidence_material::{canonical_indexed_operation_material, canonical_oper
 pub use execution_runtime::*;
 pub use managed_run::*;
 pub use operation_binding::*;
+pub use primary_graph::*;
 pub use provider_session::*;

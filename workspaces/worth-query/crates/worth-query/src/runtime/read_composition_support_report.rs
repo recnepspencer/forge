@@ -234,9 +234,7 @@ fn build_rows(
 
 const ENTRY_POINTS: &[&str] = &[
     "compose_read",
-    "compose_read_with_invariant_pack",
     "define_read_family",
-    "define_read_family_with_invariant_pack",
     "execute_read_family",
     "execute_read_family_in_basis_context",
 ];
@@ -279,18 +277,16 @@ const BUILT_IN_OPERATORS: &[&str] = &[
 const RELATIONSHIP_PROOF_POSTURES: &[&str] =
     &["not_required", "descriptor_admitted_synthetic_runtime"];
 
-const FAMILY_ADMISSION_MODES: &[&str] = &["kernel_only", "domain_invariant_admitted"];
+const FAMILY_ADMISSION_MODES: &[&str] = &["kernel_only"];
 
 const READ_COMPOSITION_EXTENSION_HOOK_FAMILIES: &[WorthQueryReadCompositionExtensionHookFamily] = &[
     WorthQueryReadCompositionExtensionHookFamily::DomainReadFamilyLowering,
-    WorthQueryReadCompositionExtensionHookFamily::DomainInvariantPack,
     WorthQueryReadCompositionExtensionHookFamily::DomainDecoder,
     WorthQueryReadCompositionExtensionHookFamily::DomainResultCertification,
 ];
 
 const READ_COMPOSITION_EXTENSION_HOOK_FAMILY_NAMES: &[&str] = &[
     "domain_read_family_lowering",
-    "domain_invariant_pack",
     "domain_decoder",
     "domain_result_certification",
 ];
@@ -300,7 +296,6 @@ const BOUNDARY_GUARDS: &[&str] = &[
     "scope_class_relabeling_denies_typed",
     "built_in_operator_shape_denies_typed",
     "relationship_proof_admission_denies_typed",
-    "domain_invariant_pack_denies_before_execution",
 ];
 
 const DENIAL_LANES: &[&str] = &[
@@ -315,7 +310,6 @@ const DENIAL_LANES: &[&str] = &[
     "basis_resolution_denied",
     "basis_preflight_denied",
     "execution_denied",
-    "domain_invariant_denied",
 ];
 
 fn extension_hook_family_names() -> &'static [&'static str] {
@@ -324,7 +318,7 @@ fn extension_hook_family_names() -> &'static [&'static str] {
 
 fn default_read_composition_extension_hook_support_rows(
 ) -> Vec<WorthQueryReadCompositionExtensionHookSupportRow> {
-    debug_assert_eq!(READ_COMPOSITION_EXTENSION_HOOK_FAMILIES.len(), 4);
+    debug_assert_eq!(READ_COMPOSITION_EXTENSION_HOOK_FAMILIES.len(), 3);
     vec![
         WorthQueryReadCompositionExtensionHookSupportRow::new(
             READ_COMPOSITION_EXTENSION_HOOK_FAMILIES[0],
@@ -333,16 +327,11 @@ fn default_read_composition_extension_hook_support_rows(
         ),
         WorthQueryReadCompositionExtensionHookSupportRow::new(
             READ_COMPOSITION_EXTENSION_HOOK_FAMILIES[1],
-            WorthQueryReadCompositionExtensionHookBoundary::InvariantPack,
-            false,
-        ),
-        WorthQueryReadCompositionExtensionHookSupportRow::new(
-            READ_COMPOSITION_EXTENSION_HOOK_FAMILIES[2],
             WorthQueryReadCompositionExtensionHookBoundary::Decoder,
             false,
         ),
         WorthQueryReadCompositionExtensionHookSupportRow::new(
-            READ_COMPOSITION_EXTENSION_HOOK_FAMILIES[3],
+            READ_COMPOSITION_EXTENSION_HOOK_FAMILIES[2],
             WorthQueryReadCompositionExtensionHookBoundary::Certification,
             false,
         ),

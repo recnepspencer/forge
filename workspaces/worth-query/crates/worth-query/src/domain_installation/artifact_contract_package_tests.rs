@@ -1,6 +1,10 @@
 use worth_foundational::facade::{
     CanonicalizationRuleVersion, FoundationalPerformanceCounterName, RetentionDeliveryProfile,
 };
+use worth_query_declaration::facade::application_schema::{
+    ApplicationEntityRef, ApplicationSchema, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
+};
 
 use crate::application::{WorthQueryCapabilityFamily, WorthQueryDomainEntryMarker};
 
@@ -24,6 +28,26 @@ impl WorthQueryDomainEntryMarker for ArtifactContractDomain {
 }
 
 struct CandidateArtifact;
+struct PackageSchema;
+struct PackageEntity;
+
+impl ApplicationSchema for PackageSchema {
+    const OWNER: &'static str = "WORTH.tests.artifact-contract";
+    const NAME: &'static str = "PackageSchema";
+    const MAJOR: u32 = 1;
+    const MINOR: u32 = 0;
+
+    fn declaration(
+    ) -> Result<ApplicationSchemaDeclaration<Self>, ApplicationSchemaDeclarationDenial> {
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+            .entity(
+                ApplicationEntityRef::<Self, PackageEntity>::from_schema_identifier(
+                    "PackageEntity",
+                ),
+            )
+            .build()
+    }
+}
 
 impl WorthQueryArtifactFamily for CandidateArtifact {
     const SEMANTIC_FAMILY: &'static str = "WORTH.tests.artifact-contract.candidates";
@@ -45,6 +69,29 @@ fn typed_package_validation_carries_artifact_contract_into_portable_meaning() {
     .unwrap();
 
     assert_eq!(package.portable_package.artifact_contracts(), &[contract]);
+}
+
+#[test]
+fn typed_package_validation_carries_application_schema_into_portable_meaning() {
+    let package = WorthQueryDomainPackage::declare(
+        ArtifactContractDomain,
+        WorthQueryDomainIdentityDeclaration::new(
+            WorthQueryDomainIdentityNamespace::new("WORTH.tests").unwrap(),
+            WorthQueryDomainIdentityName::new("artifact-contract").unwrap(),
+            WorthQueryDomainSemanticVersion::new(1, 0),
+        ),
+    )
+    .application_schema(PackageSchema::declaration().unwrap())
+    .validate()
+    .unwrap();
+
+    let schemas = package.portable_package.application_schemas();
+    assert_eq!(schemas.len(), 1);
+    assert_eq!(schemas[0].name(), PackageSchema::NAME);
+    assert_eq!(
+        schemas[0].identity(),
+        PackageSchema::declaration().unwrap().identity()
+    );
 }
 
 fn candidate_contract() -> WorthQueryPortableArtifactContract {

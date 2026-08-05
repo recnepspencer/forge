@@ -1,7 +1,7 @@
 use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryBackendAdmissibleMutation,
-    WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial,
-    WorthQueryVerifiedExistingTruthAssertion, WorthQueryWriteCommand,
+    WorthQueryBackendAdmissibleMutation, WorthQueryGraphTouchDescriptor,
+    WorthQueryGraphTouchDescriptorDenial, WorthQueryVerifiedExistingTruthAssertion,
+    WorthQueryWriteCommand,
 };
 
 use super::{
@@ -23,7 +23,6 @@ pub struct WorthQueryAuthoritativeMutationExecutionPlan {
 pub struct WorthQueryAuthoritativeMutationBatchExecutionPlan {
     inner: WorthQueryAdmittedIntentPlanCore,
     seed: WorthQueryAuthoritativeMutationBatchIntentSeed,
-    obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
 }
 
 impl WorthQueryAuthoritativeMutationExecutionPlan {
@@ -120,7 +119,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionPlan {
                 Some(execution_seam),
             ),
             seed,
-            obligation_dispatch: None,
         }
     }
 
@@ -148,12 +146,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionPlan {
         &self,
     ) -> Result<WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial> {
         self.seed.graph_touch_descriptor()
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.obligation_dispatch.as_ref()
     }
 
     pub fn request_digest(&self) -> &str {

@@ -1,0 +1,22 @@
+[package]
+name = "bank-http-adapter"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Bank HTTP and Authentik OIDC adaptation."
+publish = false
+
+[features]
+cold-certification = []
+
+[dependencies]
+bank-domain.workspace = true
+bank-server.workspace = true
+openidconnect.workspace = true
+sha2.workspace = true
+tokio.workspace = true
+url.workspace = true
+worth-query-host.workspace = true
+
+[lints]
+workspace = true

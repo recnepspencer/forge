@@ -83,6 +83,13 @@ validator must execute against the exact proposal. State-load evidence carries
 provider, session, basis, proposal, attempt, plan, scope, and physical execution
 identity.
 
+For an installed application operation, the proposal inherits the same typed
+branch and branch-qualified basis that entered obligation selection and the
+managed session. A snapshot or version from another branch is foreign even if
+its numeric version is equal. Successful invariant progression seals a real
+Relational validated candidate; the application-operation provider consumes
+that candidate inside compare-and-commit before publication can exist.
+
 `admit_invariant_progression` requires one exact receipt for every installed
 invariant slot. Blocking requirements need passed receipts. Advisory
 requirements need advisory receipts. Missing, duplicate, foreign, violated,
@@ -187,7 +194,9 @@ state or authoritative graph.
 ## Current Limits
 
 - Proposed state is non-authoritative.
-- Commit preparation and commit are not exposed by this feature.
+- This low-level provisional-state feature does not expose commit. The higher
+  installed application-operation progression consumes its sealed validated
+  candidate through provider compare-and-commit.
 - Multi-authority publication requires a later boundary with genuine atomic
   authority or explicit compensation semantics.
 - Invariant progression proves only the exact proposal and attempt generation
@@ -195,6 +204,7 @@ state or authoritative graph.
 
 ## Related Docs
 
+- [Canonical Graph Obligation Progression](./canonical-graph-obligation-progression.md)
 - [Provider Sessions And Decision Read-Sets](./provider-sessions-and-decision-read-sets.md)
 - [Installed Computation Artifact Contracts](./installed-computation-artifact-contracts.md)
 - [Capability Gaps And Invariant Denials](./invariants/capability-gaps-and-invariant-denials.md)

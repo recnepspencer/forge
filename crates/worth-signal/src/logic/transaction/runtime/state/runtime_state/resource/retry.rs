@@ -90,7 +90,7 @@ where
         let timeout_plan = resource_node
             .and_then(|node| self.resource.descriptor_for_node(node))
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let prior_timeout_wake =
             resource_node.and_then(|node| self.resource.active_timeout_wake_for_node(node));
         let prior_stale_after_wake =

@@ -180,7 +180,7 @@ impl RuntimeBridge {
             &outcome,
         );
         let execution_record =
-            successful_authority_record(&attempt, &outcome, &replay_bundle, &receipt);
+            successful_authority_record(attempt, &outcome, &replay_bundle, &receipt);
         self.diagnostics
             .record_writeback_execution(execution_record.clone());
 

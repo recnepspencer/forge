@@ -3,7 +3,8 @@ use worth_query::facade::domain;
 use super::{bind, node};
 use crate::suite::conditional_node_contract::dependency;
 use crate::suite::installed_operation_fixture::conditional_workspace::{
-    ConditionalDonorWorkspaceScenario, ConditionalWorkspacePlacement,
+    conditional_controlled_workspace, ConditionalDonorWorkspaceScenario,
+    ConditionalWorkspacePlacement,
 };
 use crate::suite::installed_operation_fixture::{
     conditional_controlled_workspace_with_donor, conditional_workspace, DirectConditionalCompute,
@@ -99,6 +100,44 @@ fn portable_condition_trigger_and_temporal_drift_keep_exact_owner_dimensions() {
         assert_eq!(denial.counters().conditional_lowerings_compared, 0);
         assert_eq!(denial.counters().lower_runtime_contacts, 0);
     }
+}
+
+#[test]
+fn replaced_lowering_inventory_keeps_query_owned_conditional_mismatch_evidence() {
+    let source = dependency(domain::WorthQuerySemanticLocality::SourceRecord);
+    let owner_node = seam_node(
+        domain::WorthQueryConditionalEvaluationCondition::aspect_filtered([source]).unwrap(),
+        domain::WorthQueryConditionalTrigger::DependencyChange,
+        domain::WorthQueryMaintenancePosture::LazyUntilObserved,
+    );
+    let donor_node = seam_node(
+        domain::WorthQueryConditionalEvaluationCondition::always_eligible(),
+        domain::WorthQueryConditionalTrigger::DependencyChange,
+        domain::WorthQueryMaintenancePosture::LazyUntilObserved,
+    );
+    let mut owner =
+        conditional_controlled_workspace("installed-conditional-owner", owner_node).unwrap();
+    let donor = conditional_workspace("installed-conditional-donor", donor_node).unwrap();
+    let installed = owner.domain(GeometryDomain).unwrap();
+    let subject = bind(&owner, &installed);
+
+    owner
+        .replace_conditional_lowerings_from::<GeometryDomain, ReadVertex, ReadFamily>(&donor)
+        .unwrap();
+    let candidate = bind(&owner, &installed);
+    let denial = subject.compatible_basis_with(&candidate).unwrap_err();
+
+    assert_eq!(
+        denial.kind(),
+        domain::WorthQueryCompatibilityDenialKind::PortableConditionalMismatched
+    );
+    assert_eq!(
+        denial.installed_conditional_dimension(),
+        Some(&domain::WorthQueryPortableConditionalDimension::ConditionClass)
+    );
+    assert!(denial.canonical_mismatch().is_some());
+    assert!(denial.counters().conditional_foundational_comparisons > 0);
+    assert_eq!(denial.counters().lower_runtime_contacts, 0);
 }
 
 #[test]
@@ -231,7 +270,7 @@ where
     assert!(matches!(
         denial.conditional_affinity_mismatch(),
         Some(
-            worth_runtime_bridge::facade::BridgeConditionalExecutionAffinityMismatch::QueryCorrespondenceAuthority {
+            worth_runtime_bridge::facade::BridgeConditionalExecutionAffinityMismatch::SourceCorrespondenceAuthority {
                 ordinal: 0
             }
         )

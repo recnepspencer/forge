@@ -58,9 +58,13 @@ fn public_workflow_crosses_managed_artifact_native_evidence_and_resource_authori
         &[producer.identity()]
     );
     assert_eq!(consumer.predecessor_proof_count(), 1);
-    assert_ne!(
+    assert_eq!(
         trace.operation_resource_evidence().identity(),
         consumer.execution_resources().identity()
+    );
+    assert_ne!(
+        trace.operation_resource_evidence().admission_identity(),
+        consumer.execution_resources().admission_identity()
     );
     assert!(!trace.operation_resource_evidence().identity().is_empty());
     assert!(!producer.execution_resources().identity().is_empty());

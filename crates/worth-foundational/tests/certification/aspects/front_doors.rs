@@ -12,7 +12,7 @@ fn aspect_front_doors_cover_scalar_struct_mask_and_patch_progression() {
     let task_key = vocabulary.key("task.summary").expect("valid aspect key");
     let field_path = vocabulary.field_path(["label"]).expect("single field path");
 
-    assert_eq!(field_path.fields(), &[label_key.clone()]);
+    assert_eq!(field_path.fields(), std::slice::from_ref(&label_key));
 
     let struct_shape = aspects()
         .struct_fields()

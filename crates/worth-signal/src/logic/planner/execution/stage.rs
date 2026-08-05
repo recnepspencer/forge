@@ -106,7 +106,7 @@ where
         stage.tasks.len(),
     );
 
-    apply_stage::<F, R>(
+    apply_stage::<R>(
         ctx.graph,
         ctx.summary,
         stage,

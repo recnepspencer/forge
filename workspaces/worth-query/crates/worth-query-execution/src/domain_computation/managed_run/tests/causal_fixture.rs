@@ -188,18 +188,19 @@ fn relational_source_and_lease(
     let mut runtime = relational_runtime();
     let committed = create_fixture_entity(&mut runtime);
     let version_id = committed.snapshot.version_id;
+    let branch_id = committed.snapshot.branch_id.clone();
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
     let bridge_basis = source
-        .admit_execution_basis(version_id)
+        .admit_execution_basis(&branch_id, version_id)
         .expect("Relational source should retain the bridge execution basis");
     let substitute = if matching_snapshot {
         None
     } else {
         Some(
             source
-                .admit_execution_basis(version_id)
+                .admit_execution_basis(&branch_id, version_id)
                 .expect("same version should admit an independent execution basis"),
         )
     };

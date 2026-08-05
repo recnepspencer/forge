@@ -240,7 +240,7 @@ fn perf_fintech_mixed_fanout_profile_matrix() {
                     map.insert("read_after_nanos".into(), json!(read_after_nanos));
                 }
                 PerfMeasurement::new(
-                    (read_before_nanos + mutation_nanos + read_after_nanos) as u128 / 1_000,
+                    (read_before_nanos + mutation_nanos + read_after_nanos) / 1_000,
                     metrics,
                 )
             },
@@ -310,7 +310,7 @@ fn perf_topology_rewiring_churn_serial() {
                 if let Value::Object(ref mut map) = metrics {
                     map.insert("rewire_loop_nanos".into(), json!(rewire_loop_nanos));
                 }
-                PerfMeasurement::new(rewire_loop_nanos as u128 / 1_000, metrics)
+                PerfMeasurement::new(rewire_loop_nanos / 1_000, metrics)
             },
         )
     });
@@ -386,7 +386,7 @@ fn perf_topology_rewiring_rotating_window_serial() {
                 if let Value::Object(ref mut map) = metrics {
                     map.insert("rewire_loop_nanos".into(), json!(rewire_loop_nanos));
                 }
-                PerfMeasurement::new(rewire_loop_nanos as u128 / 1_000, metrics)
+                PerfMeasurement::new(rewire_loop_nanos / 1_000, metrics)
             },
         )
     });
@@ -470,7 +470,6 @@ fn perf_chain_10k_bootstrap_serial() {
 
                 PerfMeasurement::new(
                     (build_nanos + bootstrap_plan_nanos + bootstrap_execute_nanos + push_nanos)
-                        as u128
                         / 1_000,
                     metrics,
                 )
@@ -556,7 +555,7 @@ fn perf_dependency_reconciliation_rotating_window_serial() {
                 if let Value::Object(ref mut map) = metrics {
                     map.insert("reconcile_loop_nanos".into(), json!(reconcile_loop_nanos));
                 }
-                PerfMeasurement::new(reconcile_loop_nanos as u128 / 1_000, metrics)
+                PerfMeasurement::new(reconcile_loop_nanos / 1_000, metrics)
             },
         )
     });
@@ -1103,10 +1102,7 @@ fn perf_suppression_wide_fanout_serial() {
                         ),
                     );
                 }
-                PerfMeasurement::new(
-                    (transaction_nanos + leaf_reread_nanos) as u128 / 1_000,
-                    metrics,
-                )
+                PerfMeasurement::new((transaction_nanos + leaf_reread_nanos) / 1_000, metrics)
             },
         )
     });
@@ -1247,7 +1243,7 @@ fn perf_harness_observability_profile_delta() {
                     "observe_loop_nanos": observe_loop_nanos,
                 });
 
-                PerfMeasurement::new(observe_loop_nanos as u128 / 1_000, metrics)
+                PerfMeasurement::new(observe_loop_nanos / 1_000, metrics)
             },
         );
 

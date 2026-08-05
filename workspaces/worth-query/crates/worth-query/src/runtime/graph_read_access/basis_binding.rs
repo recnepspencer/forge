@@ -18,7 +18,7 @@ impl WorthQueryGraphReadBasisPosture {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryGraphReadBasisBinding {
     read_graph_digest: String,
-    schema_basis_digest: String,
+    schema_basis_digest: CanonicalDigestId,
     posture: WorthQueryGraphReadBasisPosture,
 }
 
@@ -27,7 +27,7 @@ impl WorthQueryGraphReadBasisBinding {
         &self.read_graph_digest
     }
 
-    pub fn schema_basis_digest(&self) -> &str {
+    pub const fn schema_basis_digest(&self) -> &CanonicalDigestId {
         &self.schema_basis_digest
     }
 
@@ -39,19 +39,19 @@ impl WorthQueryGraphReadBasisBinding {
         format!(
             "basis:{}:{}:{}",
             self.read_graph_digest,
-            self.schema_basis_digest,
+            self.schema_basis_digest.render_hex(),
             self.posture.as_str()
         )
     }
 
     pub(crate) fn new(
         read_graph_digest: impl Into<String>,
-        schema_basis_digest: impl Into<String>,
+        schema_basis_digest: CanonicalDigestId,
         posture: WorthQueryGraphReadBasisPosture,
     ) -> Self {
         Self {
             read_graph_digest: read_graph_digest.into(),
-            schema_basis_digest: schema_basis_digest.into(),
+            schema_basis_digest,
             posture,
         }
     }
@@ -168,3 +168,4 @@ impl WorthQueryGraphReadPolicyTenantProofBinding {
         }
     }
 }
+use worth_foundational::facade::CanonicalDigestId;

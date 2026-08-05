@@ -28,6 +28,9 @@ pub(crate) fn build_visibility_state(
 ) -> SnapshotState {
     let handle = SnapshotHandle {
         runtime_instance_id: runtime.runtime_instance_id(),
+        branch_id: crate::visibility::branch_scope::authoritative_branch_for_version(
+            runtime, version_id,
+        ),
         snapshot_id,
         version_id,
         read_policy,

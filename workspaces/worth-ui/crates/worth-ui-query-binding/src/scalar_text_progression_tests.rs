@@ -39,7 +39,11 @@ fn scalar_registration_admits_only_the_installed_live_view_contract() {
         binding.requirement().selected_field().declared_name(),
         "status"
     );
-    let _: &crate::UiQueryBindingReference = binding.core().query_binding_reference();
+    assert!(!binding
+        .core()
+        .query_binding_reporting_projection()
+        .as_str()
+        .is_empty());
 }
 
 #[test]
@@ -93,7 +97,13 @@ fn scalar_registration_rejects_missing_async_lifecycle_support() {
     };
 
     assert_eq!(unavailable.kind(), UiProjectionUnavailableKind::Unsupported);
-    let _: crate::UiQueryEvidenceReference = unavailable.query_transition_identity();
+    assert!(
+        !crate::UiQueryIdentityReportingProjection::from_query_identity(
+            unavailable.query_transition_identity(),
+        )
+        .as_str()
+        .is_empty()
+    );
 }
 
 #[test]

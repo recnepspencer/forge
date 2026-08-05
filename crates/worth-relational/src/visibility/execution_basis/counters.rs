@@ -1,6 +1,7 @@
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct RelationalExecutionBasisCounters {
     version_availability_check_count: usize,
+    branch_affinity_check_count: usize,
     snapshot_identity_allocation_count: usize,
     lease_registry_insert_count: usize,
 }
@@ -14,6 +15,10 @@ impl RelationalExecutionBasisCounters {
         self.snapshot_identity_allocation_count += 1;
     }
 
+    pub(crate) fn checked_branch_affinity(&mut self) {
+        self.branch_affinity_check_count += 1;
+    }
+
     pub(crate) fn inserted_lease_registry_entry(&mut self) {
         self.lease_registry_insert_count += 1;
     }
@@ -24,6 +29,10 @@ impl RelationalExecutionBasisCounters {
 
     pub fn snapshot_identity_allocation_count(&self) -> usize {
         self.snapshot_identity_allocation_count
+    }
+
+    pub fn branch_affinity_check_count(&self) -> usize {
+        self.branch_affinity_check_count
     }
 
     pub fn lease_registry_insert_count(&self) -> usize {

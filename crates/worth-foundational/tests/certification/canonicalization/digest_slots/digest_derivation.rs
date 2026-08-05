@@ -5,7 +5,7 @@ use worth_foundational::{
     prepare_canonical_export_bundle, CanonicalBasisDomain, CanonicalBasisEntry,
     CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisReadyArtifact, CanonicalBasisValue,
     CanonicalBundleReadyArtifact, CanonicalComparisonOutcome, CanonicalDigestAlgorithmId,
-    CanonicalDigestDebt, CanonicalDigestDerivationDenial, CanonicalDigestDerivationReadyArtifact,
+    CanonicalDigestDerivationDenial, CanonicalDigestDerivationReadyArtifact,
     CanonicalDigestInputDomain, CanonicalDigestInputShape,
     CanonicalDomainBundleDigestAlgorithmSlot, CanonicalEquivalenceBasis,
     CanonicalExportBundleDigestAlgorithmSlot, CanonicalIntegerWidth, CanonicalProducerShape,
@@ -80,10 +80,39 @@ fn ready_bundle(version: CanonicalizationRuleVersion) -> CanonicalBundleReadyArt
 fn accepts_digest_derivation_ready(_: &CanonicalDigestDerivationReadyArtifact) {}
 
 #[test]
+fn sha256_sequence_digest_records_exact_algorithm_metadata() {
+    let version = version("m2.phase5.sha256");
+    let ready = match admit_canonical_sequence_digest_derivation(
+        ready_sequence(
+            version.clone(),
+            CanonicalBasisDomain::Value,
+            [signed_value_entry(CanonicalBasisDomain::Value, "alpha", 1)],
+        ),
+        CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
+            CanonicalDigestAlgorithmId::sha256(),
+            CanonicalBasisDomain::Value,
+            version,
+        ),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("SHA-256 digest derivation should be admitted"),
+    };
+
+    accepts_digest_derivation_ready(&ready);
+    let digest = derive_canonical_digest(ready);
+
+    assert_eq!(
+        digest.metadata().algorithm().id(),
+        &CanonicalDigestAlgorithmId::sha256()
+    );
+    assert_eq!(digest.value().bytes().len(), 32);
+}
+
+#[test]
 fn sequence_digest_derivation_records_algorithm_version_domain_and_entry_count() {
     let version = version("m2.phase5.sequence");
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Value,
         version.clone(),
     );
@@ -104,7 +133,7 @@ fn sequence_digest_derivation_records_algorithm_version_domain_and_entry_count()
 
     assert_eq!(
         digest.metadata().algorithm().id(),
-        &CanonicalDigestAlgorithmId::test_stable_fixture()
+        &CanonicalDigestAlgorithmId::sha256()
     );
     assert_eq!(
         digest.metadata().algorithm().input_domain(),
@@ -116,9 +145,6 @@ fn sequence_digest_derivation_records_algorithm_version_domain_and_entry_count()
     );
     assert_eq!(digest.metadata().entry_count(), 1);
     assert_eq!(digest.value().bytes().len(), 32);
-    assert!(digest
-        .debt()
-        .contains(&CanonicalDigestDebt::ProductionCryptographicPolicyDeferred));
 }
 
 #[test]
@@ -127,7 +153,7 @@ fn bundle_and_export_digest_slots_have_distinct_input_shape_metadata() {
     let bundle_digest = match admit_canonical_bundle_digest_derivation(
         ready_bundle(version.clone()),
         CanonicalDomainBundleDigestAlgorithmSlot::domain_bundle(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             version.clone(),
         ),
     ) {
@@ -146,7 +172,7 @@ fn bundle_and_export_digest_slots_have_distinct_input_shape_metadata() {
     let export_digest = match admit_canonical_export_digest_derivation(
         export,
         CanonicalExportBundleDigestAlgorithmSlot::export_bundle(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             version,
         ),
     ) {
@@ -173,7 +199,7 @@ fn algorithm_slot_admission_denies_unsupported_version_domain_and_algorithm() {
         [signed_value_entry(CanonicalBasisDomain::Value, "alpha", 1)],
     );
     let wrong_version = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Value,
         version("m2.phase5.other"),
     );
@@ -184,7 +210,7 @@ fn algorithm_slot_admission_denies_unsupported_version_domain_and_algorithm() {
     ));
 
     let wrong_domain = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Identity,
         version("m2.phase5.domain"),
     );
@@ -226,7 +252,7 @@ fn equal_looking_storage_values_in_different_domains_produce_distinct_digests() 
             [signed_value_entry(CanonicalBasisDomain::Value, "same", 9)],
         ),
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             CanonicalBasisDomain::Value,
             version.clone(),
         ),
@@ -245,7 +271,7 @@ fn equal_looking_storage_values_in_different_domains_produce_distinct_digests() 
             )],
         ),
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             CanonicalBasisDomain::Identity,
             version,
         ),
@@ -269,7 +295,7 @@ fn delimiter_shaped_future_domain_tokens_remain_distinct_digest_inputs() {
             [signed_value_entry(left_domain, "same|locus:1", 9)],
         ),
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             left_domain,
             version.clone(),
         ),
@@ -284,7 +310,7 @@ fn delimiter_shaped_future_domain_tokens_remain_distinct_digest_inputs() {
             [signed_value_entry(right_domain, "same|locus:1;value", 9)],
         ),
         CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-            CanonicalDigestAlgorithmId::test_stable_fixture(),
+            CanonicalDigestAlgorithmId::sha256(),
             right_domain,
             version,
         ),

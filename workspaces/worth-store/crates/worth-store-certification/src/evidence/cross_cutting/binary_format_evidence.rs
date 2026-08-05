@@ -82,7 +82,7 @@ fn derive_witness_canonical_digest(
     };
 
     let digest_slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         domain,
         version,
     );

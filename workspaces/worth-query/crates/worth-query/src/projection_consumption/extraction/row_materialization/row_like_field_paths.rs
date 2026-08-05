@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
+use worth_foundational::facade::FieldKey;
 use worth_runtime_bridge::facade::BridgeMaterializedFieldProjection;
 
 use super::super::super::consumed::ConsumedNativeValue;
@@ -144,16 +144,10 @@ fn add_legacy_declared_aliases(
 fn legacy_alias_for_native_path(
     native: &ProjectionFactFieldPath,
 ) -> Option<ProjectionFactFieldPath> {
-    let aspect = native.native_aspect_key()?;
-    let mut fields = aspect
-        .as_str()
-        .split('.')
-        .map(|segment| FieldKey::new(segment.to_string()))
-        .collect::<Option<Vec<_>>>()?;
-    if let Some(field) = native.native_field_key() {
-        fields.push(field.clone());
-    }
-    CanonicalFieldPath::new(fields).map(ProjectionFactFieldPath::from_canonical_field_path)
+    native
+        .canonical_source_path()
+        .cloned()
+        .map(ProjectionFactFieldPath::from_canonical_field_path)
 }
 
 pub(super) fn identity_field_path() -> ProjectionFactFieldPath {
@@ -193,12 +187,10 @@ fn lookup_declared_scalar(
                 .and_then(|(_, value)| value.get(field))
                 .cloned()
                 .or_else(|| {
-                    let path = CanonicalFieldPath::new([
-                        FieldKey::new(aspect.as_str().to_owned())
-                            .expect("native aspect key remains a field-path segment"),
-                        field.clone(),
-                    ])?;
-                    row.scalar_value_at(&path).cloned()
+                    field_path
+                        .canonical_source_path()
+                        .and_then(|path| row.scalar_value_at(path))
+                        .cloned()
                 })
         })
     } else {

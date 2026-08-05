@@ -119,7 +119,7 @@ impl WorthQueryCheckedImpactBasis {
         counters.dependency_membership_lookups += 1;
         if !candidate
             .dependency()
-            .retains_same_installed_authority_as(dependency)
+            .retains_same_source_authority_as(dependency)
         {
             return Err(delivery_mismatch(counters));
         }

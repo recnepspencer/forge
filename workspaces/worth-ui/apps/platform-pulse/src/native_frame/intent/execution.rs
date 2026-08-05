@@ -11,6 +11,11 @@ use super::super::{
     PlatformPulseNativeFrame, PlatformPulsePendingQueryAction, PlatformPulseTerminalError,
 };
 
+enum PlatformPulseIntentTransitionContinuation {
+    ContinueToConsequence,
+    Finished(bool),
+}
+
 impl PlatformPulseNativeFrame {
     pub(in crate::native_frame) fn advance_intent_execution(&mut self) {
         let reading = match self.intent_clock.read() {
@@ -73,49 +78,9 @@ impl PlatformPulseNativeFrame {
     ) -> bool {
         let attempt = transition.attempt();
         let idempotency = transition.idempotency();
-        match shell.prepare_native_intent_terminal_posture(&transition) {
-            WorthUiNativeIntentTerminalPostureOutcome::Prepared(posture) => {
-                let observation = match transition.posture() {
-                    UiIntentExecutionTransitionPosture::CancelledBeforeEffect { .. } => {
-                        PlatformPulseIntentPostureObservation::cancelled(attempt, idempotency)
-                    }
-                    UiIntentExecutionTransitionPosture::RejectedBeforeEffect { .. }
-                    | UiIntentExecutionTransitionPosture::FailedBeforeEffect { .. }
-                    | UiIntentExecutionTransitionPosture::TimedOutBeforeEffect { .. } => {
-                        PlatformPulseIntentPostureObservation::Denied
-                    }
-                    _ => {
-                        self.fail_intent_settlement(
-                            "terminal execution posture disagreed with its transition",
-                        );
-                        return false;
-                    }
-                };
-                if !self.publish_native_intent_posture(shell, posture, observation) {
-                    return false;
-                }
-                if self
-                    .intent_evidence_index
-                    .retire_execution(attempt, idempotency)
-                    .is_none()
-                {
-                    self.fail_intent_settlement(
-                        "terminal attempt omitted its retained intent evidence reference",
-                    );
-                    return false;
-                }
-                return true;
-            }
-            WorthUiNativeIntentTerminalPostureOutcome::MissingExecutionBasis => {
-                self.fail_intent_settlement("terminal execution omitted its mounted target basis");
-                return false;
-            }
-            WorthUiNativeIntentTerminalPostureOutcome::PostureIdentityExhausted => {
-                self.fail_intent_settlement("terminal execution posture identity exhausted");
-                return false;
-            }
-            WorthUiNativeIntentTerminalPostureOutcome::RecoveryRetained
-            | WorthUiNativeIntentTerminalPostureOutcome::NotTerminal => {}
+        match self.finish_terminal_intent_posture(shell, &transition, attempt, idempotency) {
+            PlatformPulseIntentTransitionContinuation::Finished(finished) => return finished,
+            PlatformPulseIntentTransitionContinuation::ContinueToConsequence => {}
         }
         if !matches!(
             transition.posture(),
@@ -139,6 +104,61 @@ impl PlatformPulseNativeFrame {
                 }
             };
         self.finish_action_query_publication(shell, attempt, idempotency, receipt)
+    }
+
+    fn finish_terminal_intent_posture(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        transition: &UiIntentExecutionTransition,
+        attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
+        idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
+    ) -> PlatformPulseIntentTransitionContinuation {
+        match shell.prepare_native_intent_terminal_posture(transition) {
+            WorthUiNativeIntentTerminalPostureOutcome::Prepared(posture) => {
+                let observation = match transition.posture() {
+                    UiIntentExecutionTransitionPosture::CancelledBeforeEffect { .. } => {
+                        PlatformPulseIntentPostureObservation::cancelled(attempt, idempotency)
+                    }
+                    UiIntentExecutionTransitionPosture::RejectedBeforeEffect { .. }
+                    | UiIntentExecutionTransitionPosture::FailedBeforeEffect { .. }
+                    | UiIntentExecutionTransitionPosture::TimedOutBeforeEffect { .. } => {
+                        PlatformPulseIntentPostureObservation::Denied
+                    }
+                    _ => {
+                        self.fail_intent_settlement(
+                            "terminal execution posture disagreed with its transition",
+                        );
+                        return PlatformPulseIntentTransitionContinuation::Finished(false);
+                    }
+                };
+                if !self.publish_native_intent_posture(shell, posture, observation) {
+                    return PlatformPulseIntentTransitionContinuation::Finished(false);
+                }
+                if self
+                    .intent_evidence_index
+                    .retire_execution(attempt, idempotency)
+                    .is_none()
+                {
+                    self.fail_intent_settlement(
+                        "terminal attempt omitted its retained intent evidence reference",
+                    );
+                    return PlatformPulseIntentTransitionContinuation::Finished(false);
+                }
+                PlatformPulseIntentTransitionContinuation::Finished(true)
+            }
+            WorthUiNativeIntentTerminalPostureOutcome::MissingExecutionBasis => {
+                self.fail_intent_settlement("terminal execution omitted its mounted target basis");
+                PlatformPulseIntentTransitionContinuation::Finished(false)
+            }
+            WorthUiNativeIntentTerminalPostureOutcome::PostureIdentityExhausted => {
+                self.fail_intent_settlement("terminal execution posture identity exhausted");
+                PlatformPulseIntentTransitionContinuation::Finished(false)
+            }
+            WorthUiNativeIntentTerminalPostureOutcome::RecoveryRetained
+            | WorthUiNativeIntentTerminalPostureOutcome::NotTerminal => {
+                PlatformPulseIntentTransitionContinuation::ContinueToConsequence
+            }
+        }
     }
 
     fn finish_action_query_publication(
@@ -267,8 +287,8 @@ impl PlatformPulseNativeFrame {
         &mut self,
         receipt: worth_ui::facade::rebind::UiRebindReceipt,
     ) -> bool {
-        let fact = match receipt.release_scalar_projection_predecessor() {
-            Ok(fact) => fact,
+        let observation = match receipt.release_scalar_projection_observation() {
+            Ok(observation) => observation,
             Err(_) => {
                 self.fail_intent_settlement(
                     "intent consequence receipt omitted scalar Query predecessor",
@@ -280,7 +300,7 @@ impl PlatformPulseNativeFrame {
             .query_lifecycle
             .as_mut()
             .expect("prepared Pulse retains its Query lifecycle")
-            .admit_publication(fact);
+            .admit_publication(observation);
         if let Err(denial) = admission {
             self.fail(
                 PlatformPulseTerminalError::QueryLifecycle(denial),

@@ -171,7 +171,7 @@ pub(crate) fn deliver_prepared_route(
         ));
     }
     counters = counters.with_validation_record_count(read_result.records().len());
-    let validated_reads = match validate_snapshot_read_result_contract(&read_packet, read_result) {
+    let validated_reads = match validate_snapshot_read_result_contract(read_packet, read_result) {
         Ok(validated_reads) => validated_reads,
         Err(error) => {
             let failure = BridgeDeliveryError::new(

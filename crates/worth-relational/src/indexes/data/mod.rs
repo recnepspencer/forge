@@ -1,3 +1,33 @@
+mod bounded_entity_field_lookup;
+mod bounded_related_entity_ordered_lookup;
+mod bounded_relation_join_lookup;
+mod related_entity_ordering;
+mod relation_join;
+
+pub use bounded_entity_field_lookup::{
+    BoundedEntityFieldLookupDenial, BoundedEntityFieldLookupDenialKind,
+    BoundedEntityFieldLookupOutcome, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
+    MAX_BOUNDED_INDEX_CANDIDATES,
+};
+pub use bounded_related_entity_ordered_lookup::{
+    BoundedRelatedEntityOrderedLookupDenial, BoundedRelatedEntityOrderedLookupDenialKind,
+    BoundedRelatedEntityOrderedLookupOutcome, BoundedRelatedEntityOrderedLookupRequest,
+    MAX_BOUNDED_RELATED_ENTITY_PAGE_WIDTH,
+};
+pub(crate) use bounded_relation_join_lookup::BoundedRelationJoinLookupWork;
+pub use bounded_relation_join_lookup::{
+    BoundedRelationJoinLookupDenial, BoundedRelationJoinLookupDenialKind,
+    BoundedRelationJoinLookupOutcome, BoundedRelationJoinLookupRequest,
+};
+pub use related_entity_ordering::{
+    RelatedEntityEndpoint, RelatedEntityOrderingBoundary, RelatedEntityOrderingDirection,
+    RelatedEntityOrderingEntry, RelatedEntityOrderingField, RelatedEntityOrderingValue,
+};
+pub use relation_join::{
+    RelationJoinDefinition, RelationJoinEntry, RelationJoinKey, RelationJoinLeg,
+    RelationJoinSharedEndpoint,
+};
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -25,6 +55,13 @@ pub enum DerivedIndexKind {
         #[serde(with = "crate::aspect_wire::serde_canonical_aspect_field_locator")]
         field_locator: AspectFieldLocator,
     },
+    RelatedEntityOrdering {
+        relation_kind: crate::identity::data::KindId,
+        parent_endpoint: RelatedEntityEndpoint,
+        child_kind: crate::identity::data::KindId,
+        ordering: Vec<RelatedEntityOrderingField>,
+    },
+    RelationJoin(RelationJoinDefinition),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,6 +76,8 @@ pub struct DerivedIndexDefinition {
 pub enum DerivedIndexEntries {
     EntityField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<EntityId>>),
     RelationField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<RelationId>>),
+    RelatedEntityOrdering(BTreeMap<EntityId, Vec<RelatedEntityOrderingEntry>>),
+    RelationJoin(BTreeMap<RelationJoinKey, Vec<RelationJoinEntry>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -88,12 +88,11 @@ pub(crate) fn derive_receipt_digest(
         TransitionOutcome::Success(bundle) => bundle,
         outcome => panic!("receipt digest bundle should prepare cleanly: {outcome:?}"),
     };
-    let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(bundle, CanonicalDigestAlgorithmId::test_stable_fixture())
-    {
-        TransitionOutcome::Success(ready) => ready,
-        outcome => panic!("receipt digest derivation should succeed: {outcome:?}"),
-    };
+    let digest_ready =
+        match CanonicalDigestFrontDoor.for_bundle(bundle, CanonicalDigestAlgorithmId::sha256()) {
+            TransitionOutcome::Success(ready) => ready,
+            outcome => panic!("receipt digest derivation should succeed: {outcome:?}"),
+        };
     derive_canonical_digest(digest_ready)
 }
 

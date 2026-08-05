@@ -104,39 +104,18 @@ impl<'a> WorthQueryPreviewSession<'a> {
                     promoted_writes += 1;
                 }
                 Err(error) => {
-                    let graph_obligation_denial = match &error {
-                        WorthQueryRuntimeError::GraphObligationDenied(denial) => {
-                            Some(denial.projection().clone())
-                        }
-                        _ => None,
-                    };
                     let reason = error.to_string();
-                    let evidence = if let Some(denial) = graph_obligation_denial {
-                        WorthQueryPreviewPromotionDenialEvidence::write_failed_with_graph_obligation_denial(
-                            self.effect_policy,
-                            &self.basis_admission,
-                            &self.basis_snapshot_identity,
-                            &promotion_snapshot_identity,
-                            staged_preview_write_count,
-                            promoted_writes,
-                            index + 1,
-                            self.handle_bindings.len(),
-                            denial,
-                            reason,
-                        )
-                    } else {
-                        WorthQueryPreviewPromotionDenialEvidence::write_failed(
-                            self.effect_policy,
-                            &self.basis_admission,
-                            &self.basis_snapshot_identity,
-                            &promotion_snapshot_identity,
-                            staged_preview_write_count,
-                            promoted_writes,
-                            index + 1,
-                            self.handle_bindings.len(),
-                            reason,
-                        )
-                    };
+                    let evidence = WorthQueryPreviewPromotionDenialEvidence::write_failed(
+                        self.effect_policy,
+                        &self.basis_admission,
+                        &self.basis_snapshot_identity,
+                        &promotion_snapshot_identity,
+                        staged_preview_write_count,
+                        promoted_writes,
+                        index + 1,
+                        self.handle_bindings.len(),
+                        reason,
+                    );
                     return Err(WorthQueryRuntimeError::PreviewPromotionWriteFailed { evidence });
                 }
             }
@@ -227,15 +206,11 @@ impl<'a> WorthQueryPreviewSession<'a> {
             message: denial.message().to_string(),
             evidence: WorthQueryIntentDenialEvidence::new(&declaration, &denial, None),
         })?;
-        let obligation_dispatch = self
-            .runtime
-            .preview_intent_obligation_dispatch(&declaration)?;
         let receipt = WorthQueryPreviewIntentReceipt::new(
             &declaration,
             self.effect_policy,
             &self.basis_admission,
             admission,
-            obligation_dispatch,
         );
         self.intent_receipts.push(receipt.clone());
         self.execution_evidence

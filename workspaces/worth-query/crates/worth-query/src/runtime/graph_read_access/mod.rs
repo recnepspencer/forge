@@ -31,7 +31,6 @@ pub(crate) use access_admission::{
 #[cfg(test)]
 pub(crate) use access_authority_context::admit_graph_read_access_authority_from_policy_tenant_request;
 pub(crate) use boolean_expression::admit_boolean_predicate_expression_for_read_graph;
-pub(crate) use graph_index_inventory::match_graph_index_inventory_for_requirements;
 pub(crate) use installed_explanation::{
     explain_boolean_selectivity_shape_for_family_in_authority_with_lookup,
     explain_graph_read_access_requirements_for_family_in_authority_with_lookup,
@@ -186,9 +185,7 @@ pub use selectivity_vocabulary::{
 pub use shape_explanation::{
     WorthQueryGraphReadAccessShapeDerivationCounters, WorthQueryGraphReadAccessShapeExplanation,
 };
-pub(crate) use streaming_frontier_execution::{
-    streaming_frontier_is_admissible, streaming_receipt_for_admitted_read_result,
-};
+pub(crate) use streaming_frontier_execution::streaming_receipt_for_admitted_read_result;
 pub use streaming_frontier_execution::{
     WorthQueryGraphReadFrontierCursor, WorthQueryGraphReadStreamingCounters,
     WorthQueryGraphReadStreamingCursorDenial, WorthQueryGraphReadStreamingCursorDenialKind,

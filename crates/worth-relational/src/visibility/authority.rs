@@ -3,7 +3,7 @@ use crate::logic::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBind
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
-    reconstruct_state, residency_for_version,
+    residency_for_version, retained_state,
 };
 use crate::visibility::snapshot_states::build_visibility_state;
 
@@ -30,6 +30,10 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
         let handle = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
+            branch_id: crate::visibility::branch_scope::authoritative_branch_for_version(
+                self.runtime,
+                version_id,
+            ),
             snapshot_id,
             version_id,
             read_policy,
@@ -47,7 +51,11 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         }
         self.runtime.visibility.insert_active_handle(
             handle.snapshot_id,
-            SnapshotHandleBinding::new(handle.version_id, handle.read_policy),
+            SnapshotHandleBinding::new(
+                handle.branch_id.clone(),
+                handle.version_id,
+                handle.read_policy,
+            ),
         );
         bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
         handle
@@ -60,11 +68,41 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         )
     }
 
+    /// Opens the current immutable snapshot for one exact branch.
+    ///
+    /// This is the branch-qualified counterpart to [`Self::snapshot`]. It
+    /// refuses to infer another branch when the requested branch has no
+    /// current head or when retained version ownership disagrees.
+    pub fn snapshot_for_branch(
+        &mut self,
+        branch_id: &crate::history::data::BranchId,
+    ) -> Option<SnapshotHandle> {
+        let version_id = self
+            .runtime
+            .history()
+            .branch_head(branch_id)
+            .map(|head| head.version_id)
+            .or_else(|| {
+                (branch_id == &self.runtime.config.history.main_branch)
+                    .then(|| self.runtime.current_version_id())
+            })?;
+        let handle = self.open_active_snapshot(
+            version_id,
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        if &handle.branch_id == branch_id {
+            Some(handle)
+        } else {
+            self.release_snapshot(&handle);
+            None
+        }
+    }
+
     pub fn pin_snapshot(
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
-        reconstruct_state(self.runtime, version_id, false)?;
+        retained_state(self.runtime, version_id)?;
         let handle = self.open_active_snapshot(version_id, SnapshotReadPolicy::ImmutablePinned);
         Some(SnapshotGuard::new(handle))
     }
@@ -106,11 +144,24 @@ impl<'runtime> VisibilityAuthority<'runtime> {
 
     pub fn admit_execution_basis(
         &mut self,
+        branch_id: &crate::history::data::BranchId,
         version_id: crate::identity::data::VersionId,
     ) -> Result<
         crate::visibility::execution_basis::RelationalExecutionBasisLease,
         crate::visibility::execution_basis::RelationalExecutionBasisDenial,
     > {
-        crate::visibility::execution_basis::admit_execution_basis(self.runtime, version_id)
+        crate::visibility::execution_basis::admit_execution_basis(
+            self.runtime,
+            branch_id,
+            version_id,
+        )
+    }
+
+    pub fn execution_basis_is_live(
+        &self,
+        identity: &crate::visibility::execution_basis::RelationalExecutionBasisIdentity,
+    ) -> bool {
+        identity.runtime_instance_id() == self.runtime.runtime_instance_id()
+            && self.runtime.visibility.execution_basis_is_live(identity)
     }
 }

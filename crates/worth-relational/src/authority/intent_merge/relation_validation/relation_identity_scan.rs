@@ -131,7 +131,7 @@ mod tests {
         });
         let relation_id = RelationId::new(partition_id, relation_slot as u64, relation_generation);
         let mut adjacency = vec![AdjacencySet::new(&adjacency_policy); 3];
-        adjacency[source_slot].insert(relation_id);
+        adjacency[source_slot].insert(KindId(9), relation_id);
 
         let mut partitions = BTreeMap::new();
         partitions.insert(

@@ -78,7 +78,7 @@ pub(crate) fn build_bundle<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarat
     let digest = match derive_boundary_evidence_attachment_bundle_digest(
         version,
         &materialized,
-        worth_foundational::facade::CanonicalDigestAlgorithmId::test_stable_fixture(),
+        worth_foundational::facade::CanonicalDigestAlgorithmId::sha256(),
     ) {
         TransitionOutcome::Success(digest) => digest,
         TransitionOutcome::Denied(denial) => {

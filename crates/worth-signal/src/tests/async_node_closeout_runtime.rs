@@ -305,13 +305,10 @@ fn async_node_hierarchy_historical_parity_report_preserves_restore_honesty() {
             .observation_batch_report()
             .map(|report| report.performance())
     );
-    assert_eq!(
-        restored
-            .historical_parity_report()
-            .branch_restore_report()
-            .is_some(),
-        true
-    );
+    assert!(restored
+        .historical_parity_report()
+        .branch_restore_report()
+        .is_some());
     assert_eq!(
         restored.performance().boundary(),
         ResourceBoundaryKind::AsyncNodeHierarchyHistoricalParity

@@ -25,10 +25,10 @@ impl CanonicalExportFrontDoor {
         compare_canonical_exports(left, right)
     }
 
-    pub fn mismatch_basis<'a>(
+    pub fn mismatch_basis(
         self,
-        outcome: &'a CanonicalExportComparisonOutcome,
-    ) -> Option<&'a CanonicalMismatchBasis> {
+        outcome: &CanonicalExportComparisonOutcome,
+    ) -> Option<&CanonicalMismatchBasis> {
         match outcome {
             CanonicalExportComparisonOutcome::Mismatched(mismatch) => Some(mismatch),
             CanonicalExportComparisonOutcome::Equivalent
@@ -36,10 +36,10 @@ impl CanonicalExportFrontDoor {
         }
     }
 
-    pub fn manifest_mismatch<'a>(
+    pub fn manifest_mismatch(
         self,
-        outcome: &'a CanonicalExportComparisonOutcome,
-    ) -> Option<&'a CanonicalExportManifestMismatch> {
+        outcome: &CanonicalExportComparisonOutcome,
+    ) -> Option<&CanonicalExportManifestMismatch> {
         match outcome {
             CanonicalExportComparisonOutcome::ManifestMismatch(mismatch) => Some(mismatch),
             CanonicalExportComparisonOutcome::Equivalent

@@ -1,12 +1,12 @@
 use worth_ui::facade::query_binding::{
-    UiCollectionProjectionFactReceipt, UiCollectionProjectionRegistration,
+    UiCollectionProjectionObservation, UiCollectionProjectionRegistration,
     UiCollectionSchemaRequirement, UiInstalledProjectionView, UiPresentProjection,
     UiProjectionAvailability, UiProjectionFieldRequirement, UiProjectionLifecycleRequirement,
-    UiScalarProjectionFactReceipt, UiScalarProjectionRegistration, UiScalarSchemaRequirement,
+    UiScalarProjectionObservation, UiScalarProjectionRegistration, UiScalarSchemaRequirement,
 };
 
-fn observe_scalar(receipt: &UiScalarProjectionFactReceipt) {
-    match receipt.availability() {
+fn observe_scalar(observation: &UiScalarProjectionObservation) {
+    match observation.fact().availability() {
         UiProjectionAvailability::Unavailable(_) | UiProjectionAvailability::Stopped(_) => {}
         UiProjectionAvailability::Present(UiPresentProjection::Current(value))
         | UiProjectionAvailability::Present(UiPresentProjection::RetainedStale {
@@ -17,8 +17,8 @@ fn observe_scalar(receipt: &UiScalarProjectionFactReceipt) {
     }
 }
 
-fn observe_collection(receipt: &UiCollectionProjectionFactReceipt) {
-    if let UiProjectionAvailability::Present(present) = receipt.availability() {
+fn observe_collection(observation: &UiCollectionProjectionObservation) {
+    if let UiProjectionAvailability::Present(present) = observation.fact().availability() {
         let value = match present {
             UiPresentProjection::Current(value)
             | UiPresentProjection::RetainedStale { value, .. } => value,

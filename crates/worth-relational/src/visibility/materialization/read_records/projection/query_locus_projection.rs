@@ -1,41 +1,29 @@
-use worth_foundational::facade::{AspectFieldLocator, ContractValidatedAspectValueView, FieldKey};
+use worth_foundational::facade::{
+    AspectFieldLocator, AspectValue, ContractValidatedAspectValueView, FieldKey,
+};
 
 use crate::storage::data::{AuthoritativeFieldComparisonKey, EntityReadRecord, RelationReadRecord};
-
-use super::{EntityProjectionRecord, ProjectionAspectScope, RelationProjectionRecord};
 
 pub(crate) fn entity_query_locus_comparison_key(
     record: &EntityReadRecord,
     field_locator: &AspectFieldLocator,
 ) -> Option<AuthoritativeFieldComparisonKey> {
-    let aspect_key = field_locator.aspect().aspect_key();
-    match record
-        .authoritative_aspect_state
-        .as_ref()?
-        .get(aspect_key)?
-        .view()
-    {
-        ContractValidatedAspectValueView::Scalar(_) => {
-            let projection_scope = ProjectionAspectScope::whole_aspects([aspect_key.clone()]);
-            EntityProjectionRecord::new(record, &projection_scope)
-                .aspect_value(aspect_key)
-                .map(AuthoritativeFieldComparisonKey::from_aspect_value)
-        }
-        ContractValidatedAspectValueView::Struct(_) => {
-            let field = single_field_locator_key(field_locator)?;
-            let projection_scope =
-                ProjectionAspectScope::fields(aspect_key.clone(), [field.clone()]);
-            EntityProjectionRecord::new(record, &projection_scope)
-                .aspect_field_value(aspect_key, field)
-                .map(AuthoritativeFieldComparisonKey::from_aspect_value)
-        }
-    }
+    entity_query_locus_value(record, field_locator)
+        .map(AuthoritativeFieldComparisonKey::from_aspect_value)
 }
 
 pub(crate) fn relation_query_locus_comparison_key(
     record: &RelationReadRecord,
     field_locator: &AspectFieldLocator,
 ) -> Option<AuthoritativeFieldComparisonKey> {
+    relation_query_locus_value(record, field_locator)
+        .map(AuthoritativeFieldComparisonKey::from_aspect_value)
+}
+
+pub(crate) fn entity_query_locus_value<'record>(
+    record: &'record EntityReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> Option<&'record AspectValue> {
     let aspect_key = field_locator.aspect().aspect_key();
     match record
         .authoritative_aspect_state
@@ -43,19 +31,27 @@ pub(crate) fn relation_query_locus_comparison_key(
         .get(aspect_key)?
         .view()
     {
-        ContractValidatedAspectValueView::Scalar(_) => {
-            let projection_scope = ProjectionAspectScope::whole_aspects([aspect_key.clone()]);
-            RelationProjectionRecord::new(record, &projection_scope)
-                .aspect_value(aspect_key)
-                .map(AuthoritativeFieldComparisonKey::from_aspect_value)
+        ContractValidatedAspectValueView::Scalar(value) => Some(value),
+        ContractValidatedAspectValueView::Struct(value) => {
+            value.get(single_field_locator_key(field_locator)?)
         }
-        ContractValidatedAspectValueView::Struct(_) => {
-            let field = single_field_locator_key(field_locator)?;
-            let projection_scope =
-                ProjectionAspectScope::fields(aspect_key.clone(), [field.clone()]);
-            RelationProjectionRecord::new(record, &projection_scope)
-                .aspect_field_value(aspect_key, field)
-                .map(AuthoritativeFieldComparisonKey::from_aspect_value)
+    }
+}
+
+fn relation_query_locus_value<'record>(
+    record: &'record RelationReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> Option<&'record AspectValue> {
+    let aspect_key = field_locator.aspect().aspect_key();
+    match record
+        .authoritative_aspect_state
+        .as_ref()?
+        .get(aspect_key)?
+        .view()
+    {
+        ContractValidatedAspectValueView::Scalar(value) => Some(value),
+        ContractValidatedAspectValueView::Struct(value) => {
+            value.get(single_field_locator_key(field_locator)?)
         }
     }
 }

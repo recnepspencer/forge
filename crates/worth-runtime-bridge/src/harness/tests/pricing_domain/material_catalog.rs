@@ -120,7 +120,7 @@ pub(in crate::harness::tests) struct PricingProduct {
 
 impl PricingDomainWorld {
     pub(in crate::harness::tests) fn reference_catalog() -> Vec<PricingProduct> {
-        let templates = vec![
+        let templates = [
             (
                 "bicycle",
                 vec![

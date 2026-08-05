@@ -1,5 +1,7 @@
 use crate::capabilities::PublicationBundleSource;
-use crate::history::data::{BranchHead, BranchId, CommitId, CommitReference, VersionGraphSnapshot};
+use crate::history::data::{
+    BranchHead, BranchId, CommitId, CommitReference, CommittedVersionSummary, VersionGraphSnapshot,
+};
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::CanonicalCommitEnvelope;
 
@@ -25,6 +27,19 @@ impl<'runtime> HistoryAccess<'runtime> {
             (None, Some(history)) => Some(history),
             (None, None) => None,
         }
+    }
+
+    pub fn committed_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<CommittedVersionSummary> {
+        self.commit_envelope_for_version(version_id)
+            .map(|envelope| {
+                CommittedVersionSummary::new(
+                    envelope.commit.clone(),
+                    envelope.patch.authoritative_record_patches.len(),
+                )
+            })
     }
 
     pub(crate) fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {

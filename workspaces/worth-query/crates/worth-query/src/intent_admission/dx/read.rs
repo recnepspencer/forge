@@ -5,12 +5,13 @@ use crate::intent_admission::{
     WorthQueryReadExecutionBinding, WorthQueryReadExecutionHandoff,
 };
 use crate::query_context::ScopedQueryBasisContext;
+#[cfg(test)]
+use crate::runtime::WorthQueryAdmittedGraphReadAccessPlan;
 use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryCountResult,
-    WorthQueryGraphIndexInventoryMatchReport, WorthQueryGraphReadAccessAdmission,
-    WorthQueryGraphReadAccessAuthorityContext, WorthQueryGraphReadAccessPlanExplanation,
-    WorthQueryIntentConsumerInspection, WorthQueryReadFamily, WorthQueryReadResult,
-    WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryCountResult, WorthQueryGraphIndexInventoryMatchReport,
+    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
+    WorthQueryGraphReadAccessPlanExplanation, WorthQueryIntentConsumerInspection,
+    WorthQueryReadFamily, WorthQueryReadResult, WorthQueryRuntimeError, WorthQueryWorkspace,
 };
 
 pub struct WorthQueryWorkspaceReadIntentAuthoring<'a> {
@@ -109,7 +110,8 @@ impl<'a> WorthQueryWorkspaceReadIntentAdmissionReview<'a> {
         })
     }
 
-    pub fn graph_read_access_plan(
+    #[cfg(test)]
+    pub(crate) fn graph_read_access_plan(
         &self,
     ) -> Result<WorthQueryAdmittedGraphReadAccessPlan, WorthQueryRuntimeError> {
         let handoff = self

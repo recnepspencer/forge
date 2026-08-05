@@ -146,7 +146,7 @@ fn explicit_absolute_installation_reaches_real_application_preparation() {
     let receipt = publish_initial_pending_projection(&mut shell, pending);
     assert!(receipt.mounted_publication().is_some());
     let fact = receipt
-        .release_scalar_projection_predecessor()
+        .release_scalar_projection_observation()
         .unwrap_or_else(|_| panic!("the pending receipt returns its exact Query fact"));
     prepared
         .query_lifecycle

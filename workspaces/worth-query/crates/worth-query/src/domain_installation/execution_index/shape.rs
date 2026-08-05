@@ -1,7 +1,6 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub(crate) struct WorthQueryInstalledDomainExecutionIndexShape {
     pub(crate) invariant_count: usize,
-    pub(crate) graph_obligation_count: usize,
     pub(crate) operation_count: usize,
     pub(crate) domain_operation_count: usize,
     pub(crate) operation_graph_participation_count: usize,
@@ -21,7 +20,6 @@ pub(super) struct WorthQueryExecutionIndexShapeInputs<'a> {
     pub(super) declaration_families: &'a BTreeMap<InstalledDeclarationFamilySlot, String>,
     pub(super) contribution_policies: &'a BTreeMap<InstalledDomainOwner, Vec<String>>,
     pub(super) invariant_slots: &'a BTreeMap<InstalledInvariantSlot, String>,
-    pub(super) graph_obligation_identity_parts: &'a [String],
 }
 
 pub(super) fn execution_index_shape(
@@ -29,7 +27,6 @@ pub(super) fn execution_index_shape(
 ) -> WorthQueryInstalledDomainExecutionIndexShape {
     WorthQueryInstalledDomainExecutionIndexShape {
         invariant_count: inputs.invariant_slots.len(),
-        graph_obligation_count: inputs.graph_obligation_identity_parts.len(),
         operation_count: inputs.graph_read_operations.len(),
         domain_operation_count: inputs.domain_operations.len(),
         operation_graph_participation_count: inputs

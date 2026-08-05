@@ -108,7 +108,6 @@ impl AdapterDouble {
             observations: request
                 .targets
                 .iter()
-                .cloned()
                 .map(|target| SnapshotObservation {
                     target: target.clone(),
                     status: ObservationStatus::Unknown,

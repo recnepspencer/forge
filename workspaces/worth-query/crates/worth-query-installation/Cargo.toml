@@ -6,10 +6,14 @@ license.workspace = true
 description = "Portable domain package and installed identity authority for Worth Query."
 
 [dependencies]
+getrandom = "0.4"
+hmac = "0.12"
 sha2 = "0.10"
+subtle = "2.6"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-query-declaration = { path = "../worth-query-declaration" }
+zeroize = { version = "1.8", features = ["derive"] }
 
 [lints]
 workspace = true

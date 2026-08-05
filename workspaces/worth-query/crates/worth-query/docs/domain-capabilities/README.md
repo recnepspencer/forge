@@ -13,6 +13,9 @@ diagnostics, and current limits.
 
 ## Choose The Next Guide
 
+- [Canonical Graph Obligation Progression](./canonical-graph-obligation-progression.md)
+  for installed graph-work meaning, graph-read planning, managed sessions,
+  actual owner execution, terminals, publication, and downstream inspection.
 - [Runtime-Installed Domains And Operations](./runtime-installed-domains.md)
   for package declaration, operation semantics, provider installation,
   binding, execution, publication, and settlement.

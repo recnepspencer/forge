@@ -23,6 +23,8 @@ pub(crate) struct WorthQueryCompatibilityDenial {
     portable_operation_category: Option<
         worth_query_installation::facade::WorthQueryPortableOperationComparisonMismatchCategory,
     >,
+    installed_conditional_dimension:
+        Option<worth_query_installation::facade::WorthQueryPortableConditionalDimension>,
     conditional_continuity_mismatch:
         Option<worth_runtime_bridge::facade::BridgeConditionalContinuityMismatch>,
     conditional_affinity_mismatch:
@@ -51,6 +53,7 @@ impl WorthQueryCompatibilityDenial {
             export_manifest_mismatch: None,
             portable_operation_dimension: None,
             portable_operation_category: None,
+            installed_conditional_dimension: None,
             conditional_continuity_mismatch: None,
             conditional_affinity_mismatch: None,
             detail,
@@ -70,6 +73,7 @@ impl WorthQueryCompatibilityDenial {
             export_manifest_mismatch: None,
             portable_operation_dimension: None,
             portable_operation_category: None,
+            installed_conditional_dimension: None,
             conditional_continuity_mismatch: None,
             conditional_affinity_mismatch: None,
             detail,
@@ -88,6 +92,7 @@ impl WorthQueryCompatibilityDenial {
             export_manifest_mismatch: mismatch.export_manifest_mismatch().cloned(),
             portable_operation_dimension: Some(dimension),
             portable_operation_category: Some(mismatch.category()),
+            installed_conditional_dimension: None,
             conditional_continuity_mismatch: None,
             conditional_affinity_mismatch: None,
             detail: "portable operation meaning differs",
@@ -108,6 +113,7 @@ impl WorthQueryCompatibilityDenial {
             portable_operation_category: Some(
                 worth_query_installation::facade::WorthQueryPortableOperationComparisonMismatchCategory::Foundational,
             ),
+            installed_conditional_dimension: None,
             conditional_continuity_mismatch: None,
             conditional_affinity_mismatch: None,
             detail: "portable operation comparison is unsupported",
@@ -125,6 +131,34 @@ impl WorthQueryCompatibilityDenial {
             counters,
         );
         denial.conditional_continuity_mismatch = Some(mismatch);
+        denial
+    }
+
+    pub(crate) fn installed_conditional_mismatch(
+        mismatch: worth_query_installation::facade::WorthQueryPortableConditionalComparisonMismatch,
+        counters: WorthQueryCompatibilityCounters,
+    ) -> Self {
+        let mut denial = Self::canonical(
+            WorthQueryCompatibilityDenialKind::PortableConditionalMismatched,
+            mismatch.foundational_basis().clone(),
+            "installed Query conditional meaning differs",
+            counters,
+        );
+        denial.installed_conditional_dimension = Some(mismatch.dimension().clone());
+        denial
+    }
+
+    pub(crate) fn installed_conditional_unsupported(
+        mismatch: worth_query_installation::facade::WorthQueryPortableConditionalComparisonUnsupported,
+        counters: WorthQueryCompatibilityCounters,
+    ) -> Self {
+        let mut denial = Self::canonical(
+            WorthQueryCompatibilityDenialKind::PortableConditionalUnsupported,
+            mismatch.foundational_basis().clone(),
+            "installed Query conditional comparison is unsupported",
+            counters,
+        );
+        denial.installed_conditional_dimension = Some(mismatch.dimension().clone());
         denial
     }
 
@@ -222,6 +256,13 @@ macro_rules! relationship_denial {
                 worth_query_installation::facade::WorthQueryPortableOperationComparisonMismatchCategory,
             > {
                 self.0.portable_operation_category
+            }
+
+            pub fn installed_conditional_dimension(
+                &self,
+            ) -> Option<&worth_query_installation::facade::WorthQueryPortableConditionalDimension>
+            {
+                self.0.installed_conditional_dimension.as_ref()
             }
 
             pub fn detail(&self) -> &'static str {

@@ -173,8 +173,8 @@ impl PlatformPulseNativeFrame {
     }
 
     fn admit_query_publication(&mut self, receipt: worth_ui::facade::rebind::UiRebindReceipt) {
-        let fact = match receipt.release_scalar_projection_predecessor() {
-            Ok(fact) => fact,
+        let observation = match receipt.release_scalar_projection_observation() {
+            Ok(observation) => observation,
             Err(_) => {
                 self.fail(
                     PlatformPulseTerminalError::NativeProjection(
@@ -191,7 +191,7 @@ impl PlatformPulseNativeFrame {
             .query_lifecycle
             .as_mut()
             .expect("prepared Pulse retains its Query lifecycle")
-            .admit_publication(fact);
+            .admit_publication(observation);
         if let Err(denial) = admission {
             self.fail(PlatformPulseTerminalError::QueryLifecycle(denial), Ok(()));
         }

@@ -69,7 +69,7 @@ pub(crate) fn admit_query_schema_references_for_read_graph(
     orderings.sort_by_key(|row| row.digest_part());
     Ok(WorthQueryAdmittedQuerySchemaReferences::new(
         read_graph.digest(),
-        read_graph.schema_basis().as_str(),
+        *read_graph.schema_basis().digest(),
         request.target(),
         relations,
         projections,

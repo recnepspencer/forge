@@ -38,6 +38,7 @@ pub(super) struct ProvisionalProviderState {
     pub(super) invariant_outcome: InvariantFixtureOutcome,
     pub(super) provisional_stage_outcome: ProvisionalStageFixtureOutcome,
     pub(super) retained_invariant_admission: Option<WorthQueryInvariantVerdictAdmission>,
+    pub(super) decision_version: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -128,9 +129,18 @@ impl WorthQueryProviderSessionLifecycle for ProvisionalProvider {
 
     fn commit_prepared_session(
         &self,
-        _session: &WorthQueryProviderSessionView<'_>,
+        session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<String, WorthQueryProviderSessionFailure> {
-        Ok("unused-provisional-commit".to_owned())
+        let mut state = self.state.lock().unwrap();
+        let overlay_identity = state
+            .session_overlays
+            .remove(session.identity())
+            .expect("commit requires the exact session-owned overlay");
+        state.authoritative = state
+            .overlays
+            .remove(&overlay_identity)
+            .expect("prepared overlay must remain available through commit");
+        Ok(format!("provisional-commit:{overlay_identity}"))
     }
 
     fn abort_provider_session(
@@ -149,7 +159,8 @@ impl WorthQueryDecisionFactProvider for ProvisionalProvider {
         _request: WorthQueryDecisionFactRequestView<'_>,
         admission: WorthQueryDecisionFactAdmission,
     ) -> Result<WorthQueryDecisionFactEvidence, WorthQueryDecisionReadSetFailure> {
-        admission.observe("base-v1")
+        let state = self.state.lock().unwrap();
+        admission.observe(state.decision_version.as_deref().unwrap_or("base-v1"))
     }
 
     fn compare_decision_fact(
@@ -158,7 +169,8 @@ impl WorthQueryDecisionFactProvider for ProvisionalProvider {
         _evidence: WorthQueryDecisionFactEvidenceView<'_>,
         admission: WorthQueryDecisionFactComparisonAdmission,
     ) -> Result<WorthQueryDecisionFactComparisonEvidence, WorthQueryDecisionReadSetFailure> {
-        admission.observe_current_version("base-v1")
+        let state = self.state.lock().unwrap();
+        admission.observe_current_version(state.decision_version.as_deref().unwrap_or("base-v1"))
     }
 }
 

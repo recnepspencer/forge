@@ -140,6 +140,25 @@ pub(crate) fn reconstruct_state(
     ))
 }
 
+pub(crate) fn retained_state(
+    runtime: &RelationalRuntime,
+    version_id: crate::identity::data::VersionId,
+) -> Option<SnapshotState> {
+    if version_id.is_zero() || version_id.as_u64() > runtime.current_version_id().as_u64() {
+        return None;
+    }
+    if let Some(state) = cached_state_for_version(runtime, version_id) {
+        return Some(state);
+    }
+    if version_id != runtime.current_version_id()
+        && !is_protected_version(runtime, version_id)
+        && !runtime.visibility.retains_published_version(version_id)
+    {
+        return None;
+    }
+    Some(ensure_state(runtime, version_id, false))
+}
+
 pub(crate) fn is_protected_version(
     runtime: &RelationalRuntime,
     version_id: crate::identity::data::VersionId,
@@ -148,6 +167,9 @@ pub(crate) fn is_protected_version(
     residency.branch_head_refs > 0
         || residency.replay_refs > 0
         || (runtime.protect_active_snapshots() && residency.active_snapshot_refs > 0)
+        || runtime
+            .visibility
+            .retains_execution_basis_version(version_id)
 }
 
 pub(crate) fn mark_recent_state(

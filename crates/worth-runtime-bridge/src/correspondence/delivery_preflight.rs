@@ -19,7 +19,7 @@ pub(crate) fn preflight(
     let basis = correspondence.basis();
     if basis.bridge_runtime_key != runtime.signal_runtime_key {
         return Some(TransitionOutcome::Stale(
-            BridgeCorrespondenceStale::QueryOrBridgeBasis,
+            BridgeCorrespondenceStale::BridgeRuntimeBasis,
         ));
     }
     let graph = graph.installed_graph_capability();

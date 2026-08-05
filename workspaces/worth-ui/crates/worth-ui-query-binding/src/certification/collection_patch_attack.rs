@@ -22,8 +22,8 @@ pub enum WorthUiCollectionPatchAttack {
 pub struct WorthUiCollectionPatchAttackReport {
     attack: WorthUiCollectionPatchAttack,
     denial: WorthQueryCollectionDeliveryDenialKind,
-    rows_before_denial: Vec<crate::UiQueryEvidenceReference>,
-    rows_after_denial: Vec<crate::UiQueryEvidenceReference>,
+    rows_before_denial: Vec<String>,
+    rows_after_denial: Vec<String>,
     successful_facts: Box<[UiCollectionProjectionFactReceipt]>,
     closed_resources: usize,
     terminal_owners: usize,
@@ -38,11 +38,11 @@ impl WorthUiCollectionPatchAttackReport {
         self.denial
     }
 
-    pub fn rows_before_denial(&self) -> &[crate::UiQueryEvidenceReference] {
+    pub fn rows_before_denial(&self) -> &[String] {
         &self.rows_before_denial
     }
 
-    pub fn rows_after_denial(&self) -> &[crate::UiQueryEvidenceReference] {
+    pub fn rows_after_denial(&self) -> &[String] {
         &self.rows_after_denial
     }
 
@@ -75,8 +75,8 @@ pub fn certify_collection_patch_attack(
 
 struct PatchAttackOutcome {
     denial: WorthQueryCollectionDeliveryDenialKind,
-    rows_before_denial: Vec<crate::UiQueryEvidenceReference>,
-    rows_after_denial: Vec<crate::UiQueryEvidenceReference>,
+    rows_before_denial: Vec<String>,
+    rows_after_denial: Vec<String>,
     successful_facts: Vec<UiCollectionProjectionFactReceipt>,
 }
 

@@ -23,7 +23,7 @@ impl PreviewSessionDeclarationDigestRequirement {
         Self::RetainedArtifactSchema,
     ];
 
-    fn digest<'a>(self, declaration: &'a BridgePreviewSessionDeclaration) -> &'a str {
+    fn digest(self, declaration: &BridgePreviewSessionDeclaration) -> &str {
         match self {
             Self::TruthViewBasis => declaration.truth_view_basis_digest(),
             Self::SourceCapability => declaration.source_capability_digest(),
@@ -79,6 +79,21 @@ impl ValidatedBridgePreviewSessionDeclaration {
                 BridgeSpeculationErrorKind::PreviewBranchBindingMismatch,
                 format!(
                     "Preview session declaration `{}` requires non-empty truth and signal branch identities.",
+                    declaration.declaration_identity().as_str(),
+                ),
+            ));
+        }
+
+        if declaration.branch_binding().truth_branch_identity()
+            != declaration
+                .session_basis()
+                .truth_view_selector()
+                .branch_identity()
+        {
+            return Err(BridgeSpeculationError::new(
+                BridgeSpeculationErrorKind::PreviewBranchBindingMismatch,
+                format!(
+                    "Preview session declaration `{}` binds a different truth branch than its truth-view selector.",
                     declaration.declaration_identity().as_str(),
                 ),
             ));
@@ -167,6 +182,27 @@ mod tests {
         assert_eq!(
             error.kind(),
             crate::error::BridgeSpeculationErrorKind::PreviewRequestKindMismatch
+        );
+    }
+
+    #[test]
+    fn validation_rejects_truth_view_from_a_different_branch() {
+        let declaration = BridgePreviewSessionDeclaration::new(
+            BridgePreviewSessionDeclarationIdentity::admit_bridge_owned("preview-declaration"),
+            BridgeRequestKind::Preview,
+            BridgeSpeculativeBranchBinding::new(
+                BridgeSpeculativeBranchBindingIdentity::admit_bridge_owned("binding"),
+                crate::truth_identity_fixtures::truth_branch_fixture("bound-branch"),
+                BridgeSignalBranchIdentity::admit_bridge_owned("signal-branch"),
+            ),
+            preview_session_basis(),
+        );
+
+        let error = ValidatedBridgePreviewSessionDeclaration::new(declaration)
+            .expect_err("a selector for another branch must mint no preview authority");
+        assert_eq!(
+            error.kind(),
+            crate::error::BridgeSpeculationErrorKind::PreviewBranchBindingMismatch
         );
     }
 }

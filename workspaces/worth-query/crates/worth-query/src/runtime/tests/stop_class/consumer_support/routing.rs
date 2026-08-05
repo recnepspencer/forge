@@ -1,7 +1,7 @@
 use super::super::super::support::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in super::super) enum ConsumerStopRoute<'a> {
+pub(in super::super) enum ConsumerStopRoute {
     InstalledDomainAuthorityDenied(crate::domain_installation::WorthQueryDomainHandleDenialKind),
     MissingRuntimeComponent(WorthQueryRuntimeMissingComponent),
     ExistingTruthAssertionDenied(WorthQueryExistingTruthAssertionDenialKind),
@@ -9,31 +9,10 @@ pub(in super::super) enum ConsumerStopRoute<'a> {
     MutationBindingDenied(WorthQueryExistingTruthBindingDenialKind),
     MutationContinuityDenied(WorthQueryContinuityMutationDenialKind),
     MutationContractDenied(WorthQueryMutationContractDenialKind),
-    GraphObligationTouchDescriptorDenied(WorthQueryGraphTouchDescriptorDenialKind),
-    GraphObligationEffectTouchDescriptorMissing,
-    GraphObligationIntentTouchDescriptorMissing,
-    GraphMutationPolicyContextDenied {
-        expected: crate::policy_basis::PolicyExecutionModeRequest,
-        actual: crate::policy_basis::PolicyExecutionModeRequest,
-    },
-    GraphMutationPolicyGateDenied {
-        verdict: WorthQueryGraphMutationPolicyGateVerdict,
-    },
-    GraphObligationDenied {
-        blocking_count: usize,
-    },
     GraphCompositionDenied(WorthQueryGraphCompositionDenialKind),
-    GraphCompositionDomainInvariantDenied {
-        hook_family: &'a str,
-        invariant_family: &'a str,
-    },
     MutationNamingDenied(WorthQueryNamingMutationDenialKind),
     MutationTargetReferenceDenied(WorthQuerySymbolicTargetReferenceDenialKind),
     ReadCompositionDenied(WorthQueryReadDenialKind),
-    ReadCompositionDomainInvariantDenied {
-        hook_family: &'a str,
-        invariant_family: &'a str,
-    },
     WorkspaceDenied,
     ProgramDenied,
     RuntimeLookupDenied(WorthQueryRuntimeLookupFailureKind),
@@ -58,7 +37,7 @@ pub(in super::super) enum ConsumerStopRoute<'a> {
 
 pub(in super::super) fn route_consumer_stop_class(
     error: &WorthQueryRuntimeError,
-) -> ConsumerStopRoute<'_> {
+) -> ConsumerStopRoute {
     match error.stop_class() {
         WorthQueryStopClass::InstalledDomainAuthorityDenied { denial } => {
             ConsumerStopRoute::InstalledDomainAuthorityDenied(denial.kind())
@@ -81,36 +60,8 @@ pub(in super::super) fn route_consumer_stop_class(
         WorthQueryStopClass::MutationContractDenied { denial } => {
             ConsumerStopRoute::MutationContractDenied(denial.kind())
         }
-        WorthQueryStopClass::GraphObligationTouchDescriptorDenied { denial } => {
-            ConsumerStopRoute::GraphObligationTouchDescriptorDenied(denial.kind())
-        }
-        WorthQueryStopClass::GraphObligationEffectTouchDescriptorMissing { .. } => {
-            ConsumerStopRoute::GraphObligationEffectTouchDescriptorMissing
-        }
-        WorthQueryStopClass::GraphObligationIntentTouchDescriptorMissing { .. } => {
-            ConsumerStopRoute::GraphObligationIntentTouchDescriptorMissing
-        }
-        WorthQueryStopClass::GraphMutationPolicyContextDenied {
-            expected, actual, ..
-        } => ConsumerStopRoute::GraphMutationPolicyContextDenied { expected, actual },
-        WorthQueryStopClass::GraphMutationPolicyGateDenied { evidence } => {
-            ConsumerStopRoute::GraphMutationPolicyGateDenied {
-                verdict: evidence.verdict(),
-            }
-        }
-        WorthQueryStopClass::GraphObligationDenied { denial } => {
-            ConsumerStopRoute::GraphObligationDenied {
-                blocking_count: denial.blocking_count(),
-            }
-        }
         WorthQueryStopClass::GraphCompositionDenied { denial } => {
             ConsumerStopRoute::GraphCompositionDenied(denial.kind())
-        }
-        WorthQueryStopClass::GraphCompositionDomainInvariantDenied { denial } => {
-            ConsumerStopRoute::GraphCompositionDomainInvariantDenied {
-                hook_family: denial.hook_family(),
-                invariant_family: denial.invariant_family(),
-            }
         }
         WorthQueryStopClass::MutationNamingDenied { denial } => {
             ConsumerStopRoute::MutationNamingDenied(denial.kind())
@@ -120,12 +71,6 @@ pub(in super::super) fn route_consumer_stop_class(
         }
         WorthQueryStopClass::ReadCompositionDenied { denial } => {
             ConsumerStopRoute::ReadCompositionDenied(denial.kind().clone())
-        }
-        WorthQueryStopClass::ReadCompositionDomainInvariantDenied { denial } => {
-            ConsumerStopRoute::ReadCompositionDomainInvariantDenied {
-                hook_family: denial.hook_family(),
-                invariant_family: denial.invariant_family(),
-            }
         }
         WorthQueryStopClass::Workspace { .. } => ConsumerStopRoute::WorkspaceDenied,
         WorthQueryStopClass::Program { .. } => ConsumerStopRoute::ProgramDenied,

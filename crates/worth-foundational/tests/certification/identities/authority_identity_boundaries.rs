@@ -76,7 +76,7 @@ fn identity_digest() -> worth_foundational::CanonicalDerivedDigest {
         _ => panic!("identity basis should be ready"),
     };
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         CanonicalBasisDomain::Identity,
         version,
     );

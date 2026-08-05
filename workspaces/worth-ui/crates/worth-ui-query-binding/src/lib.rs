@@ -29,8 +29,7 @@ mod projection_binding;
 mod projection_consumption;
 mod projection_invalidation;
 mod projection_observation;
-mod query_binding_reference;
-mod query_evidence_reference;
+mod reporting_projection;
 #[cfg(test)]
 mod scalar_projection_async_fixture;
 #[cfg(test)]
@@ -178,14 +177,14 @@ pub use projection_consumption::{
     UiCollectionProjectionTextRow, UiCollectionProjectionValue, UiCollectionProjectionWorkCounters,
     UiNativeTextValue, UiPresentProjection, UiProjectionAvailability,
     UiProjectionConsumptionBudget, UiProjectionConsumptionBudgetError,
-    UiProjectionConsumptionLimits, UiProjectionFactReceipt, UiProjectionFactReportingProjection,
-    UiProjectionFactStopKind, UiProjectionFactStopReceipt, UiProjectionInputCollectionRow,
-    UiProjectionInputFactReference, UiProjectionInputFactTransition, UiProjectionInputPosture,
-    UiProjectionInputRevision, UiProjectionInputSlot, UiProjectionInputTransitionStopKind,
-    UiProjectionInputTransitionWork, UiProjectionOptionReference, UiProjectionPostureTrace,
-    UiProjectionRetainedActivityKind, UiProjectionRetainedActivityReceipt,
-    UiProjectionTransitionPosture, UiProjectionUnavailableKind, UiProjectionUnavailableReceipt,
-    UiScalarProjectionFactReceipt, UiScalarProjectionInputFact, UiScalarProjectionWorkCounters,
+    UiProjectionConsumptionLimits, UiProjectionFactReceipt, UiProjectionFactStopKind,
+    UiProjectionFactStopReceipt, UiProjectionInputCollectionRow, UiProjectionInputFactReference,
+    UiProjectionInputFactTransition, UiProjectionInputPosture, UiProjectionInputRevision,
+    UiProjectionInputSlot, UiProjectionInputTransitionStopKind, UiProjectionInputTransitionWork,
+    UiProjectionOptionReference, UiProjectionPostureTrace, UiProjectionRetainedActivityKind,
+    UiProjectionRetainedActivityReceipt, UiProjectionTransitionPosture,
+    UiProjectionUnavailableKind, UiProjectionUnavailableReceipt, UiScalarProjectionFactReceipt,
+    UiScalarProjectionInputFact, UiScalarProjectionWorkCounters,
 };
 pub use projection_invalidation::{
     UiScalarProjectionBatchOutcome, UiScalarProjectionInitialError,
@@ -194,8 +193,9 @@ pub use projection_invalidation::{
 pub use projection_observation::{
     UiCollectionProjectionObservation, UiProjectionObservation, UiScalarProjectionObservation,
 };
-pub use query_binding_reference::UiQueryBindingReference;
-pub use query_evidence_reference::UiQueryEvidenceReference;
+pub use reporting_projection::{
+    UiQueryIdentityReportingProjection, UiQueryObservationReportingProjection,
+};
 
 #[cfg(test)]
 mod installed_operations_tests;

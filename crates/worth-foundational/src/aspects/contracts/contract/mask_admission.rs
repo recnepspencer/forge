@@ -4,6 +4,20 @@ use crate::aspects::masks::{
 };
 
 impl AspectContract {
+    /// Projection masks cannot be replaced by diagnostic masks.
+    ///
+    /// ```compile_fail
+    /// use worth_foundational::facade::{
+    ///     AspectContract, AspectMask, DiagnosticMask,
+    /// };
+    ///
+    /// fn diagnostic_is_not_projection(
+    ///     contract: &AspectContract,
+    ///     diagnostic: &AspectMask<DiagnosticMask>,
+    /// ) {
+    ///     contract.admits_projection_mask(diagnostic);
+    /// }
+    /// ```
     pub fn admits_projection_mask(
         &self,
         mask: &AspectMask<ProjectionMask>,

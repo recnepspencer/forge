@@ -10,7 +10,7 @@ pub struct WorthQueryProposedPostState<'run> {
 
 impl<'run> WorthQueryProposedPostState<'run> {
     pub fn identity(&self) -> &str {
-        self.attempt.overlay.evidence().semantic_identity()
+        self.attempt.overlay.evidence().proposed_state_identity()
     }
 
     pub fn generation(&self) -> u64 {

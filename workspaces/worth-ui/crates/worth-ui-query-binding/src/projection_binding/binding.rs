@@ -36,22 +36,27 @@ impl<R> UiProjectionBindingAuthority<R> {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiProjectionBinding {
-    query_binding_reference: crate::UiQueryBindingReference,
+    query_binding_reporting_projection: crate::UiQueryIdentityReportingProjection,
 }
 
 impl UiProjectionBinding {
-    pub fn query_binding_reference(&self) -> &crate::UiQueryBindingReference {
-        &self.query_binding_reference
+    pub fn query_binding_reporting_projection(&self) -> &crate::UiQueryIdentityReportingProjection {
+        &self.query_binding_reporting_projection
     }
 
-    pub(crate) fn query_issued(reference: crate::UiQueryBindingReference) -> Self {
+    pub(crate) fn query_issued(binding_identity_for_reporting: &str) -> Self {
         Self {
-            query_binding_reference: reference,
+            query_binding_reporting_projection:
+                crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+                    binding_identity_for_reporting,
+                ),
         }
     }
 
-    pub(crate) fn retained_query_binding_reference(&self) -> crate::UiQueryBindingReference {
-        self.query_binding_reference.clone()
+    pub(crate) fn retained_query_binding_reporting_projection(
+        &self,
+    ) -> crate::UiQueryIdentityReportingProjection {
+        self.query_binding_reporting_projection.clone()
     }
 }
 
@@ -89,7 +94,7 @@ impl UiScalarProjectionBinding {
         prepared: crate::application_binding::WorthUiPreparedScalarTextConsumer,
     ) -> Self {
         let (query_world_identity, runtime_provenance, reference) = authority.into_parts();
-        let core = UiProjectionBinding::query_issued(prepared.binding_reference());
+        let core = UiProjectionBinding::query_issued(prepared.binding_identity_for_reporting());
         Self {
             core,
             requirement,
@@ -217,7 +222,7 @@ impl UiCollectionProjectionBinding {
         prepared: crate::application_binding::WorthUiPreparedCollectionTextConsumer,
     ) -> Self {
         let (query_world_identity, runtime_provenance, reference) = authority.into_parts();
-        let core = UiProjectionBinding::query_issued(prepared.binding_reference());
+        let core = UiProjectionBinding::query_issued(prepared.binding_identity_for_reporting());
         Self {
             core,
             requirement,

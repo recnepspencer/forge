@@ -75,8 +75,8 @@ fn graph_read_access_shape_changes_for_relation_direction_and_depth() {
             max_depth: 2,
             fanout: WorthQueryGraphReadFanoutPosture::SingleRelation,
             predicate: WorthQueryGraphReadPredicateFamily::None,
-            ordering: WorthQueryGraphReadOrderingPosture::Ordered,
-            result: WorthQueryGraphReadResultPressure::CollectionNarrow,
+            ordering: WorthQueryGraphReadOrderingPosture::ProviderOrdered,
+            result: WorthQueryGraphReadResultPressure::CollectionWide,
         },
     );
     assert_eq!(
@@ -214,11 +214,11 @@ fn graph_read_access_shape_distinguishes_canonical_and_explicit_ordering() {
     assert_ne!(canonical_shape.digest(), ordered_shape.digest());
     assert_eq!(
         canonical_shape.ordering_posture(),
-        &WorthQueryGraphReadOrderingPosture::Ordered
+        &WorthQueryGraphReadOrderingPosture::ProviderOrdered
     );
     assert_eq!(
         ordered_shape.ordering_posture(),
-        &WorthQueryGraphReadOrderingPosture::Ordered
+        &WorthQueryGraphReadOrderingPosture::ProviderOrdered
     );
     let canonical_orderings = canonical_shape
         .operation_resolution()

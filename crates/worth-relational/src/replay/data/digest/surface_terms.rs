@@ -233,6 +233,38 @@ impl ReplaySurfaceDigestBuilderExt for ReplayDigestBuilder {
                 }
                 self
             }
+            DerivedIndexEntries::RelatedEntityOrdering(rows) => {
+                self = self.tag(3).usize(rows.len());
+                for (parent, entries) in rows {
+                    self = self.entity_id(*parent).usize(entries.len());
+                    for entry in entries {
+                        self = self.usize(entry.ordering_values().len());
+                        for value in entry.ordering_values() {
+                            self = self.aspect_value(value.value());
+                        }
+                        self = self
+                            .entity_id(entry.child_entity_id())
+                            .relation_id(entry.relation_id());
+                    }
+                }
+                self
+            }
+            DerivedIndexEntries::RelationJoin(rows) => {
+                self = self.tag(4).usize(rows.len());
+                for (key, entries) in rows {
+                    self = self
+                        .entity_id(key.left_entity_id())
+                        .entity_id(key.right_entity_id())
+                        .usize(entries.len());
+                    for entry in entries {
+                        self = self
+                            .entity_id(entry.shared_entity_id())
+                            .relation_id(entry.left_relation_id())
+                            .relation_id(entry.right_relation_id());
+                    }
+                }
+                self
+            }
         }
     }
 }

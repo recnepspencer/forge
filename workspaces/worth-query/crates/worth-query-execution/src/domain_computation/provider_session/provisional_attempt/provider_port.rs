@@ -1,11 +1,7 @@
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use super::{WorthQueryLoweredProvisionalEffectProgram, WorthQueryProvisionalFailure};
-use crate::execution_digest::hash_parts;
-
-static NEXT_OVERLAY_EVIDENCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum WorthQueryProposedFactOrigin {
@@ -48,15 +44,6 @@ impl WorthQueryProposedFact {
 
     pub fn semantic_value(&self) -> &str {
         &self.semantic_value
-    }
-
-    fn canonical_token(&self) -> String {
-        hash_parts(&[
-            "worth_query_proposed_fact_v1".to_owned(),
-            self.identity.to_string(),
-            format!("{:?}", self.origin),
-            self.semantic_value.to_string(),
-        ])
     }
 }
 
@@ -131,26 +118,9 @@ impl WorthQueryProvisionalOverlayAdmission {
                 "provider returned duplicate proposed fact identities",
             ));
         }
-        let semantic_identity = hash_parts(
-            &std::iter::once("worth_query_proposed_state_v1".to_owned())
-                .chain(std::iter::once(self.program_identity.to_string()))
-                .chain(facts.iter().map(WorthQueryProposedFact::canonical_token))
-                .collect::<Vec<_>>(),
-        );
-        let occurrence = NEXT_OVERLAY_EVIDENCE.fetch_add(1, Ordering::Relaxed);
-        let identity = hash_parts(&[
-            "worth_query_provisional_overlay_evidence_v1".to_owned(),
-            semantic_identity.clone(),
-            self.binding_identity.to_string(),
-            self.token_identity.to_string(),
-            self.token_generation.to_string(),
-            physical_overlay_identity.to_string(),
-            self.generation.to_string(),
-            occurrence.to_string(),
-        ]);
         Ok(WorthQueryProvisionalOverlayEvidence {
-            identity: identity.into(),
-            semantic_identity: semantic_identity.into(),
+            identity: Arc::clone(&physical_overlay_identity),
+            proposed_state_identity: Arc::clone(&physical_overlay_identity),
             binding_identity: self.binding_identity,
             token_identity: self.token_identity,
             token_generation: self.token_generation,
@@ -164,7 +134,7 @@ impl WorthQueryProvisionalOverlayAdmission {
 
 pub struct WorthQueryProvisionalOverlayEvidence {
     identity: Arc<str>,
-    semantic_identity: Arc<str>,
+    proposed_state_identity: Arc<str>,
     binding_identity: Arc<str>,
     token_identity: Arc<str>,
     token_generation: u64,
@@ -179,8 +149,8 @@ impl WorthQueryProvisionalOverlayEvidence {
         &self.identity
     }
 
-    pub(crate) fn semantic_identity(&self) -> &str {
-        &self.semantic_identity
+    pub(crate) fn proposed_state_identity(&self) -> &str {
+        &self.proposed_state_identity
     }
 
     pub(crate) fn facts(&self) -> &[WorthQueryProposedFact] {

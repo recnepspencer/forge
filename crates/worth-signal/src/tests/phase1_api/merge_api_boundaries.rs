@@ -1,8 +1,8 @@
 use crate::facade::*;
 
 use super::source_corpus::{
-    BRANCH_BASIS_SOURCE, BRANCH_FORK_SOURCE, FACADE_SOURCE, LIFECYCLE_SOURCE, MERGE_REQUEST_SOURCE,
-    MERGE_RUNTIME_PLAN_SOURCE,
+    BRANCH_BASIS_RUNTIME_SOURCE, BRANCH_BASIS_SOURCE, BRANCH_FORK_SOURCE, FACADE_SOURCE,
+    LIFECYCLE_SOURCE, MERGE_REQUEST_SOURCE, MERGE_RUNTIME_PLAN_SOURCE,
 };
 
 #[test]
@@ -40,7 +40,7 @@ fn branch_basis_api_is_source_visible_through_branching_and_facade_surfaces() {
         "phase-1 branch basis should type untracked snapshot posture instead of silently minting basis from arbitrary packets"
     );
     assert!(
-        BRANCH_BASIS_SOURCE.contains("validate_branch_basis_artifact"),
+        BRANCH_BASIS_RUNTIME_SOURCE.contains("validate_branch_basis_artifact"),
         "phase-1 branch basis should expose typed validation instead of ambient active-branch assumptions"
     );
     assert!(

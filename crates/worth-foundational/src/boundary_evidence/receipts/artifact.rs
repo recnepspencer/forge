@@ -109,7 +109,11 @@ impl FoundationalBoundaryEvidenceCompletedReceiptArtifact {
     }
 
     pub const fn execution_posture(&self) -> FoundationalBoundaryEvidenceExecutionPosture {
-        FoundationalBoundaryEvidenceExecutionPosture::Executed
+        if self.closeout_disposition.is_some() {
+            FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+        } else {
+            FoundationalBoundaryEvidenceExecutionPosture::Executed
+        }
     }
 
     pub const fn locality(&self) -> FoundationalBoundaryEvidenceLocality {

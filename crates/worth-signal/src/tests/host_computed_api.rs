@@ -31,11 +31,11 @@ fn easy_computed_dynamic_dependencies_rewire_through_host_computed_admission() {
     let enabled = app.input(true);
     let name = app.input(String::from("Ada"));
     let fallback = app.input(String::from("disabled"));
-    let enabled_for_label = enabled.clone();
+    let enabled_for_label = enabled;
     let name_for_label = name.clone();
     let fallback_for_label = fallback.clone();
     let label = app.computed(move |context| {
-        if context.get(enabled_for_label.clone()) {
+        if context.get(enabled_for_label) {
             context.get(name_for_label.clone())
         } else {
             context.get(fallback_for_label.clone())

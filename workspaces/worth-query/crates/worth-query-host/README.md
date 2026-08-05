@@ -43,6 +43,7 @@ Host code must not:
 ## Related Docs
 
 - [Worth Query Orientation](../worth-query/docs/AI_README.md)
+- [Application Authorization And Emergency Elevation](../worth-query/docs/capabilities/application-authorization-and-emergency-elevation.md)
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../worth-query/docs/domain-capabilities/conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)

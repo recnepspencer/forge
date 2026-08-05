@@ -1,0 +1,154 @@
+use worth_query_declaration::facade::application_schema::TypedApplicationReadableValue;
+use worth_relational::facade::identity::{EntityId, KindId};
+
+use super::super::super::fixture::{
+    live_scope, CapabilityElevationApprover, CapabilityElevationIdentity,
+    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityReviewIdentity,
+    CapabilityReviewStatus, CapabilityReviewStatusField, CapabilityReviewer,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
+};
+
+type World = super::approval_transition::World;
+
+pub(super) fn elevation_status(world: &World) -> CapabilityElevationStatus {
+    let identity = world
+        .application
+        .resolve_entity(
+            CapabilityElevationIdentity::reference(),
+            "elevation-2".to_owned(),
+            &live_scope(),
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let field = CapabilityElevationStatusField::reference();
+    let locator = world
+        .application
+        .runtime
+        .primary_graph()
+        .unwrap()
+        .layout()
+        .field_locator(field.entity(), field.aspect(), field.field())
+        .unwrap()
+        .clone();
+    let value = observed_field(
+        &world.application,
+        identity.entity_id(),
+        identity.entity_kind(),
+        &locator,
+    );
+    CapabilityElevationStatus::from_foundational_value(&value).unwrap()
+}
+
+pub(super) fn review_status(world: &World) -> CapabilityReviewStatus {
+    let (review, kind) = resolved_review(world);
+    let field = CapabilityReviewStatusField::reference();
+    let locator = world
+        .application
+        .runtime
+        .primary_graph()
+        .unwrap()
+        .layout()
+        .field_locator(field.entity(), field.aspect(), field.field())
+        .unwrap()
+        .clone();
+    let value = observed_field(&world.application, review, kind, &locator);
+    CapabilityReviewStatus::from_foundational_value(&value).unwrap()
+}
+
+pub(super) fn has_exact_reviewer(world: &World, reviewer: EntityId) -> bool {
+    let (review, _) = resolved_review(world);
+    let graph = world.application.runtime.primary_graph().unwrap();
+    let relation_kind = graph
+        .layout()
+        .relation(CapabilityReviewer::reference().name())
+        .unwrap()
+        .kind;
+    graph.integration_handle().with_runtime_mut(|runtime| {
+        let snapshot = runtime.snapshots().snapshot();
+        runtime
+            .read_truth()
+            .bounded_incoming_relations_of_kind_at_version(
+                review,
+                relation_kind,
+                snapshot.version_id,
+                4,
+            )
+            .ok()
+            .is_some_and(|read| {
+                let relations = read.into_records();
+                relations.len() == 1
+                    && relations[0].source == reviewer
+                    && relations[0].target == review
+            })
+    })
+}
+
+pub(super) fn has_exact_approver(world: &World, approver: EntityId) -> bool {
+    let elevation = world
+        .application
+        .resolve_entity(
+            CapabilityElevationIdentity::reference(),
+            "elevation-2".to_owned(),
+            &live_scope(),
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let graph = world.application.runtime.primary_graph().unwrap();
+    let relation_kind = graph
+        .layout()
+        .relation(CapabilityElevationApprover::reference().name())
+        .unwrap()
+        .kind;
+    graph.integration_handle().with_runtime_mut(|runtime| {
+        let snapshot = runtime.snapshots().snapshot();
+        runtime
+            .read_truth()
+            .bounded_incoming_relations_of_kind_at_version(
+                elevation.entity_id(),
+                relation_kind,
+                snapshot.version_id,
+                4,
+            )
+            .ok()
+            .is_some_and(|read| {
+                let relations = read.into_records();
+                relations.len() == 1
+                    && relations[0].source == approver
+                    && relations[0].target == elevation.entity_id()
+            })
+    })
+}
+
+fn resolved_review(world: &World) -> (EntityId, KindId) {
+    let identity = world
+        .application
+        .resolve_entity(
+            CapabilityReviewIdentity::reference(),
+            "review-2".to_owned(),
+            &live_scope(),
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    (identity.entity_id(), identity.entity_kind())
+}
+
+fn observed_field<Schema>(
+    runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    entity: EntityId,
+    kind: KindId,
+    locator: &worth_foundational::facade::AspectFieldLocator,
+) -> worth_foundational::facade::AspectValue
+where
+    Schema: worth_query_installation::facade::ApplicationSchema,
+{
+    let graph = runtime.runtime.primary_graph().unwrap();
+    graph.integration_handle().with_runtime_mut(|relational| {
+        let snapshot = relational.snapshots().snapshot();
+        crate::domain_computation::primary_graph::application_attempt::observe_field_value(
+            relational, &snapshot, entity, kind, locator,
+        )
+        .unwrap()
+    })
+}

@@ -3,7 +3,8 @@ use std::sync::Arc;
 use worth_query_installation::facade::{
     WorthQueryCandidateOptimalityPosture, WorthQueryCandidateSearchPosture,
     WorthQueryConvergenceIncumbentPosture, WorthQueryConvergenceOscillationPosture,
-    WorthQueryInstallationGeneration, WorthQueryInstalledArtifactContractAuthority,
+    WorthQueryInstallationAdmissionIdentity, WorthQueryInstallationGeneration,
+    WorthQueryInstalledArtifactContractAuthority,
 };
 
 use super::WorthQueryConvergenceAdmissionCounters;
@@ -111,7 +112,7 @@ impl WorthQueryAdmittedConvergenceContract {
         self.generation
     }
 
-    pub fn artifact_admission_identity(&self) -> &str {
+    pub fn artifact_admission_identity(&self) -> &WorthQueryInstallationAdmissionIdentity {
         self.artifact_authority.admission_identity()
     }
 

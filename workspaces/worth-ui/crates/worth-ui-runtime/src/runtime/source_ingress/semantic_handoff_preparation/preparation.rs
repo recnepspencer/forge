@@ -1,5 +1,4 @@
 use crate::capability::CapabilitySnapshot;
-use crate::declaration::prepare_authored_intent_material;
 use crate::source::{
     WorthUiArtifactInputResolver, WorthUiBindingSemanticsLowerer,
     WorthUiCanonicalArtifactAssembler, WorthUiIdentitySeedLowerer,
@@ -24,12 +23,13 @@ pub(in crate::runtime::source_ingress) fn prepare_semantic_handoff(
             WorthUiSemanticHandoffPreparationStop::UnsupportedProtocol,
         ));
     }
-    let intent_material = prepare_authored_intent_material(&package).map_err(|_| {
-        denial(
-            evidence.clone(),
-            WorthUiSemanticHandoffPreparationStop::IntentDeclaration,
-        )
-    })?;
+    let intent_material =
+        crate::declaration::prepare_authored_intent_material(&package).map_err(|_| {
+            denial(
+                evidence.clone(),
+                WorthUiSemanticHandoffPreparationStop::IntentDeclaration,
+            )
+        })?;
     evidence.admit_intent_material(intent_material);
     let resolved = WorthUiArtifactInputResolver::resolve(&package, snapshot).map_err(|_| {
         denial(

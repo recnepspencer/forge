@@ -159,7 +159,7 @@ fn canonical_dependent_nodes(
     let mut canonical = declared_dependent_cancellation_nodes.to_vec();
     canonical.sort();
     canonical.dedup();
-    if canonical.iter().any(|node| *node == owner) {
+    if canonical.contains(&owner) {
         return Err(ResourcePolicyResolutionError::MalformedDescriptor {
             kind: ResourcePolicyKind::Cancellation,
             name: frozen.descriptor().semantic_name().clone(),

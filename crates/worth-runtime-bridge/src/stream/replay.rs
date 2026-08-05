@@ -39,7 +39,7 @@ impl CanonicalStreamReplayRecord {
             ));
         }
         validate_checkpoint_for_window(contract, window, checkpoint)?;
-        let replay_basis_digest: Arc<str> = Arc::from(digest_string(
+        let replay_basis_digest: Arc<str> = digest_string(
             "stream-replay-basis",
             &format!(
                 "{}|{}|{}",
@@ -47,7 +47,7 @@ impl CanonicalStreamReplayRecord {
                 checkpoint.acknowledged_member_set_digest(),
                 checkpoint.contiguous_acknowledged_through_position(),
             ),
-        ));
+        );
         let basis = format!(
             "canonical-stream-replay-record|contract={}|window={}|checkpoint={}|replay-basis-digest={}|protocol-semantics-version={}",
             contract.consumer_contract_identity().as_str(),

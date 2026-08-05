@@ -64,16 +64,31 @@ use std::sync::Arc;
 use crate::diagnostics::DiagnosticSink;
 use crate::mapping::{FrozenAspectMappingRegistry, FrozenMappingRegistry};
 use crate::subscription::FrozenSubscriptionFamilyRegistry;
+use preview_session_liveness::BridgePreviewSessionLivenessOwner;
 
 mod exports_core;
 mod exports_subscription;
+mod preview_session_liveness;
 mod request;
 mod runtime;
 mod standard_path;
 
+pub use crate::authorization::{
+    BridgeAuthorizationBindingIdentity, BridgeAuthorizationClauseContract,
+    BridgeAuthorizationClauseObservation, BridgeAuthorizationCorrespondenceIdentity,
+    BridgeAuthorizationDecisionEvidence, BridgeAuthorizationDenial, BridgeAuthorizationDenialKind,
+    BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
+    BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
+    BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
+    BridgeAuthorizationRuleDecisionEvidence, BridgeAuthorizationRuleEffect,
+    BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
+};
 pub use crate::identity_authority::*;
 pub use exports_core::*;
 pub use exports_subscription::*;
+pub use preview_session_liveness::{
+    BridgePreviewSessionLivenessGuard, BridgePreviewSessionLivenessObserver,
+};
 pub use request::BridgeRouteRequest;
 pub use runtime::RuntimeBridge;
 pub use standard_path::{

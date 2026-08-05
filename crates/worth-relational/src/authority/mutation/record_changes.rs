@@ -174,11 +174,12 @@ pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[Adjacen
         ensure_entity_adjacency_capacity(source_partition, source.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                source_partition.adjacency[source.slot_index()].insert(delta.relation_id);
+                source_partition.adjacency[source.slot_index()]
+                    .insert(delta.kind_id, delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
                 if let Some(relations) = source_partition.adjacency.get_mut(source.slot_index()) {
-                    relations.remove(&delta.relation_id);
+                    relations.remove(delta.kind_id, &delta.relation_id);
                 }
             }
         }
@@ -187,14 +188,15 @@ pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[Adjacen
         ensure_entity_adjacency_capacity(target_partition, target.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                target_partition.reverse_adjacency[target.slot_index()].insert(delta.relation_id);
+                target_partition.reverse_adjacency[target.slot_index()]
+                    .insert(delta.kind_id, delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
                 if let Some(relations) = target_partition
                     .reverse_adjacency
                     .get_mut(target.slot_index())
                 {
-                    relations.remove(&delta.relation_id);
+                    relations.remove(delta.kind_id, &delta.relation_id);
                 }
             }
         }

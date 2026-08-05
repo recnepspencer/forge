@@ -47,7 +47,7 @@ impl ValidatedQueryBundle {
             });
         }
 
-        if self.report.schema_basis_digest() != self.query.schema_basis().as_str() {
+        if self.report.schema_basis_digest() != self.query.schema_basis() {
             return Err(QueryValidationError::ValidationInvariantViolation {
                 message:
                     "validation report schema basis does not match validated artifact schema basis",

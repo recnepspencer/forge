@@ -35,13 +35,13 @@ impl WorthQueryInstalledPackageIndex {
                 &authority.owner,
             ));
         }
-        if record.package.admission_identity() != authority.admission_identity {
+        if record.package.admission_identity() != &authority.admission_identity {
             return Err(WorthQueryInstalledPackageIndexDenial::new(
                 WorthQueryInstalledPackageIndexDenialKind::AdmissionIdentityChanged,
                 &authority.owner,
             ));
         }
-        if record.authority_nonce != authority.authority_nonce {
+        if !record.authority_key.matches(&authority.authority_key) {
             return Err(WorthQueryInstalledPackageIndexDenial::new(
                 WorthQueryInstalledPackageIndexDenialKind::AuthorityMismatch,
                 &authority.owner,
@@ -60,7 +60,7 @@ impl WorthQueryInstalledPackageIndex {
             owner: authority.owner.clone(),
             package_identity: authority.package_identity.clone(),
             admission_identity: authority.admission_identity.clone(),
-            authority_nonce: authority.package_authority_nonce,
+            authority_key: authority.package_authority_key.clone(),
         })?;
         let current = self.operation(&authority.owner, &authority.operation_slot)?;
         if current.operation_semantics != authority.operation_semantics {
@@ -82,7 +82,7 @@ impl WorthQueryInstalledPackageIndex {
             owner: authority.owner.clone(),
             package_identity: authority.package_identity.clone(),
             admission_identity: authority.admission_identity.clone(),
-            authority_nonce: authority.package_authority_nonce,
+            authority_key: authority.package_authority_key.clone(),
         })?;
         let slot = authority.definition().identity().slot();
         let current = self
@@ -113,7 +113,7 @@ impl WorthQueryInstalledPackageIndex {
             owner: authority.owner.clone(),
             package_identity: authority.package_identity.clone(),
             admission_identity: authority.admission_identity.clone(),
-            authority_nonce: authority.package_authority_nonce,
+            authority_key: authority.package_authority_key.clone(),
         })?;
         let current = self.artifact_contract(
             &authority.owner,

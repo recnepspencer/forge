@@ -1,5 +1,5 @@
 use worth_ui::facade::query_binding::{
-    UiProjectionObservation, UiScalarProjectionFactReceipt, WorthUiScalarProjectionActionAdvance,
+    UiProjectionObservation, UiScalarProjectionObservation, WorthUiScalarProjectionActionAdvance,
     WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionIndeterminate,
     WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
     WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
@@ -156,14 +156,14 @@ impl PlatformPulseQueryLifecycle {
 
     pub(crate) fn admit_publication(
         &mut self,
-        fact: UiScalarProjectionFactReceipt,
+        observation: UiScalarProjectionObservation,
     ) -> Result<(), PlatformPulseQueryLifecycleDenial> {
         let state = std::mem::replace(&mut self.state, PlatformPulseQueryOwnerState::Closed);
         let PlatformPulseQueryOwnerState::AwaitingPublication(completion) = state else {
             self.state = state;
             return Err(PlatformPulseQueryLifecycleDenial::PublicationNotPending);
         };
-        match completion.admit_publication(fact) {
+        match completion.admit_publication(observation) {
             Ok(owner) => {
                 self.state = PlatformPulseQueryOwnerState::Live(owner);
                 Ok(())

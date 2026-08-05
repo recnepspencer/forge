@@ -7,6 +7,7 @@ mod intent_authority;
 mod merge_authority;
 mod mutation_authority;
 mod parts;
+mod primary_graph_runtime;
 mod receipts;
 mod snapshot_identity;
 mod writeback_effect_intent;
@@ -39,6 +40,10 @@ pub(crate) use mutation_authority::{
     build_bridge_authority_bundle, WorthQueryBridgeMutationTarget,
 };
 pub use parts::WorthQueryRuntimeBackendParts;
+#[doc(hidden)]
+pub use primary_graph_runtime::{
+    WorthQueryPrimaryGraphBackendHandle, WorthQueryUnpublishedPrimaryGraphRuntime,
+};
 pub use receipts::{
     LiveViewDeclarationAdmissionReceipt, SignalInvalidationRoutingReceipt,
     SubscriptionActivationReceipt,

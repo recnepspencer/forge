@@ -171,7 +171,10 @@ impl WorthQueryGraphReadAccessAdmission {
         let inventory_match_digest = inventory_match_digest(&inventory_matches);
         let digest = hash_parts(&[
             "worth_query_graph_read_access_admission_v1".to_string(),
-            format!("requirements:{}", requirement_set.digest().as_str()),
+            format!(
+                "requirements:{}",
+                requirement_set.digest().render_support_hex()
+            ),
             format!("estimate:{}", cost_estimate.digest().as_str()),
             format!("budget:{}", budget_check.budget_digest()),
             format!("case_registry:{}", case_registry.digest()),

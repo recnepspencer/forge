@@ -1,0 +1,331 @@
+use super::admitted_operation::{
+    WorthQueryAdmittedApplicationOperationInput, WorthQueryOperationAdmissionIdentity,
+    WorthQueryOperationAuthorizationBasis,
+};
+use super::bridge_observation::lower_bridge_observation;
+use super::graph_work_session::start_operation_graph_work;
+use super::{
+    WorthQueryAdmittedApplicationOperation, WorthQueryAuthorizationDecisionFact,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedAuthorizationDecisionFacts,
+};
+use crate::domain_computation::primary_graph::{
+    bind_mutation_preconditions, validate_entity_freshness_at_snapshot,
+    validate_freshness_at_snapshot, WorthQueryApplicationEntityIdentity,
+    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
+};
+use crate::domain_computation::provider_session::WorthQueryGraphWorkAccessContextAffinity;
+use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
+use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
+use worth_query_installation::facade::{
+    ApplicationSchema, ApplicationSchemaBindingIdentity, TypedApplicationValue,
+    WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperation,
+    WorthQueryInstalledApplicationOperationAuthorization,
+};
+use worth_relational::facade::authorization::RelationalAuthorizationObservationPlan;
+
+mod validation;
+pub(super) use validation::{admit_request, operation_scope_binding, validate_static_authority};
+use validation::{denial, validate_decision};
+
+impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
+where
+    Schema: ApplicationSchema,
+{
+    pub fn authorize_operation<Principal, PrincipalIdentity, Operation, Input, Scope>(
+        &self,
+        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+        scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
+        operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        preconditions: TypedMutationPreconditions<Schema, Operation, Scope>,
+        request: &WorthQueryRequestScope,
+    ) -> Result<
+        WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
+        WorthQueryOperationAuthorizationDenial,
+    > {
+        admit_request(request, operation.operation())?;
+        if operation.contracts().authorization().requires_capability() {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::CapabilityRequired,
+                operation.operation(),
+            ));
+        }
+        validate_static_authority(self, principal, scope_identity, operation)?;
+        let graph = self.runtime.primary_graph().ok_or_else(|| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+                operation.operation(),
+            )
+        })?;
+        let preconditions = bind_mutation_preconditions(
+            preconditions,
+            operation.contracts(),
+            scope_identity.entity_name(),
+            scope_identity.entity_id(),
+            graph.layout(),
+        )
+        .map_err(|()| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::MutationPreconditionRejected,
+                operation.operation(),
+            )
+        })?;
+        let admission_identity = WorthQueryOperationAdmissionIdentity::mint().ok_or_else(|| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::AdmissionIdentityExhausted,
+                operation.operation(),
+            )
+        })?;
+        let resource_binding_identity = admission_identity.resource_binding_identity();
+        let mut graph_work = start_operation_graph_work(
+            self,
+            operation,
+            &resource_binding_identity,
+            principal.principal_entity_id(),
+            WorthQueryGraphWorkAccessContextAffinity::entity(scope_identity.entity_id()),
+        )?;
+        let authorization = self.observe_operation_authorization(
+            principal,
+            scope_identity,
+            operation,
+            &graph_work,
+        )?;
+        admit_request(request, operation.operation())?;
+        if principal.is_expired() {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication,
+                principal.binding(),
+            ));
+        }
+        graph_work.record_decision_facts(authorization.exact_fact_count());
+        Ok(WorthQueryAdmittedApplicationOperation::mint(
+            WorthQueryAdmittedApplicationOperationInput {
+                admission_identity,
+                runtime_authority: self.runtime.authority_identity(),
+                binding_identity: operation.binding_identity().clone(),
+                operation: operation.operation().to_string(),
+                operation_authority_identity: operation.authority_identity().to_string(),
+                operation_authority_identity_bytes: operation.authority_identity_bytes(),
+                operation_scope_binding: operation_scope_binding(
+                    self,
+                    principal,
+                    scope_identity,
+                    operation,
+                ),
+                scope_entity_id: scope_identity.entity_id(),
+                scope_entity_kind: scope_identity.entity_kind(),
+                scope_entity_name: scope_identity.entity_name().to_string(),
+                authentication_valid_until: principal.valid_until(),
+                request_scope: request.clone(),
+                contracts: operation.contracts().clone(),
+                mutation_preconditions: preconditions,
+                authorization_admission_work:
+                    worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
+                authorization,
+                governed_input_identity: None,
+                authorization_basis: WorthQueryOperationAuthorizationBasis::Conventional,
+                graph_work,
+            },
+        ))
+    }
+
+    fn observe_operation_authorization<Principal, PrincipalIdentity, Operation, Input, Scope>(
+        &self,
+        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+        scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
+        operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+        graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    ) -> Result<WorthQueryRetainedAuthorizationDecisionFacts, WorthQueryOperationAuthorizationDenial>
+    {
+        let graph = self.runtime.primary_graph().ok_or_else(|| {
+            denial(
+                WorthQueryOperationAuthorizationDenialKind::ForeignRuntime,
+                operation.operation(),
+            )
+        })?;
+        let session_identity = graph_work.identity();
+        let principal_layout = graph
+            .layout()
+            .principal_binding(principal.binding())
+            .cloned()
+            .ok_or_else(|| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
+                    principal.binding(),
+                )
+            })?;
+        let expected_external_identity = principal
+            .external_identity()
+            .clone()
+            .into_foundational_value();
+        let principal_currentness = WorthQueryPrincipalCurrentnessDependency::capture(
+            session_identity,
+            principal,
+            &principal_layout,
+        );
+        let snapshot = graph_work
+            .mutation_snapshot()
+            .expect("a mutation session owns its admitted snapshot")
+            .clone();
+        let handle = graph_work
+            .mutation_handle()
+            .expect("a mutation session owns its graph handle")
+            .clone();
+        let result = handle.with_runtime_mut(|runtime| {
+            validate_freshness_at_snapshot(
+                runtime,
+                &snapshot,
+                principal,
+                &principal_layout,
+                &expected_external_identity,
+            )
+            .map_err(|_| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::StalePrincipal,
+                    principal.binding(),
+                )
+            })?;
+            validate_entity_freshness_at_snapshot(runtime, &snapshot, scope_identity).map_err(
+                |_| {
+                    denial(
+                        WorthQueryOperationAuthorizationDenialKind::StaleScope,
+                        scope_identity.entity_name(),
+                    )
+                },
+            )?;
+            self.observe_authorization_requirements(
+                session_identity,
+                runtime,
+                snapshot,
+                principal,
+                scope_identity,
+                operation.binding_identity(),
+                operation.contracts().ability_requirements(),
+            )
+        })?;
+        let authorization = match operation.contracts().authorization() {
+            WorthQueryInstalledApplicationOperationAuthorization::Principal
+                if result.is_empty() =>
+            {
+                WorthQueryRetainedAuthorizationDecisionFacts::principal(principal_currentness)
+            }
+            WorthQueryInstalledApplicationOperationAuthorization::Abilities => {
+                WorthQueryRetainedAuthorizationDecisionFacts::abilities(
+                    principal_currentness,
+                    result,
+                )
+            }
+            WorthQueryInstalledApplicationOperationAuthorization::Principal
+            | WorthQueryInstalledApplicationOperationAuthorization::Capability => {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    operation.operation(),
+                ));
+            }
+        };
+        if !authorization.belongs_to_session(session_identity) {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                operation.operation(),
+            ));
+        }
+        Ok(authorization)
+    }
+
+    pub(in crate::domain_computation) fn observe_authorization_requirements<
+        Principal,
+        PrincipalIdentity,
+        Scope,
+    >(
+        &self,
+        session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+        relational: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+        principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+        scope_identity: &WorthQueryApplicationEntityIdentity<Schema, Scope>,
+        binding_identity: &ApplicationSchemaBindingIdentity,
+        requirements: &[WorthQueryInstalledAbilityRequirement],
+    ) -> Result<Vec<WorthQueryAuthorizationDecisionFact>, WorthQueryOperationAuthorizationDenial>
+    {
+        let mut admitted = Vec::with_capacity(requirements.len());
+        for requirement in requirements {
+            if requirement.scope_entity() != scope_identity.entity_name() {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::ScopeMismatch,
+                    requirement.scope_entity(),
+                ));
+            }
+            let installed = self.authorization.policy(requirement)?;
+            if installed.scope_kind != scope_identity.entity_kind() {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::ScopeMismatch,
+                    requirement.scope_entity(),
+                ));
+            }
+            if !self.authorization.bridge().matches_installed_policy(
+                installed.correspondence,
+                &super::bridge_authorization_binding_identity(binding_identity),
+                requirement.ability(),
+                requirement.scope_entity(),
+                requirement.policy(),
+                &installed.bridge_rules,
+            ) {
+                return Err(denial(
+                    WorthQueryOperationAuthorizationDenialKind::PolicyNotInstalled,
+                    requirement.policy(),
+                ));
+            }
+            let plan = RelationalAuthorizationObservationPlan::try_new(
+                snapshot.clone(),
+                principal.principal_entity_id(),
+                scope_identity.entity_id(),
+                installed.principal_kind,
+                installed.scope_kind,
+                installed.relational_paths.clone(),
+                [],
+            )
+            .map_err(|_| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::InvalidInstalledPolicy,
+                    requirement.policy(),
+                )
+            })?;
+            let evidence = relational.observe_authorization(plan).map_err(|_| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::RelationalObservationRejected,
+                    requirement.policy(),
+                )
+            })?;
+            let dependency_identity = *evidence.observation_identity().bytes();
+            let bridge_observation = lower_bridge_observation(
+                installed,
+                &evidence,
+                dependency_identity,
+                requirement.policy(),
+            )?;
+            let bridge = self
+                .authorization
+                .bridge()
+                .evaluate(bridge_observation)
+                .map_err(|_| {
+                    denial(
+                        WorthQueryOperationAuthorizationDenialKind::BridgeEvaluationRejected,
+                        requirement.policy(),
+                    )
+                })?;
+            validate_decision(
+                self.authorization.bridge(),
+                &evidence,
+                &bridge,
+                dependency_identity,
+                requirement.policy(),
+            )?;
+            admitted.push(WorthQueryAuthorizationDecisionFact::new(
+                session_identity,
+                evidence,
+                bridge,
+            ));
+        }
+        Ok(admitted)
+    }
+}

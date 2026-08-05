@@ -17,10 +17,10 @@ impl CanonicalReadinessFrontDoor {
         certify_canonical_milestone2_production_readiness()
     }
 
-    pub fn require<'a>(
+    pub fn require(
         self,
-        readiness: &'a CanonicalProductionTestReadyArtifact,
-    ) -> &'a CanonicalProductionReadinessReport {
+        readiness: &CanonicalProductionTestReadyArtifact,
+    ) -> &CanonicalProductionReadinessReport {
         require_canonical_production_test_readiness(readiness)
     }
 
@@ -28,11 +28,11 @@ impl CanonicalReadinessFrontDoor {
         report.passes_readiness_checklist()
     }
 
-    pub fn phase_gate<'a>(
+    pub fn phase_gate(
         self,
-        report: &'a CanonicalProductionReadinessReport,
+        report: &CanonicalProductionReadinessReport,
         gate: CanonicalMilestone2PhaseGate,
-    ) -> Option<&'a CanonicalPhaseGateEvidence> {
+    ) -> Option<&CanonicalPhaseGateEvidence> {
         report
             .phase_gates()
             .iter()

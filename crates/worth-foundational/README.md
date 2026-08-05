@@ -54,6 +54,21 @@ When identity or equality crosses crates, use Foundational canonicalization and
 comparison artifacts. Do not format debug text or join strings to create a
 semantic digest.
 
+When a ready canonical sequence needs a compact SHA-256 key, use the admitted
+digest front door:
+
+```rust
+let ready = canonicalization()
+    .digest()
+    .for_sequence(sequence, CanonicalDigestAlgorithmId::sha256())
+    .into_result()?;
+let digest = canonicalization().digest().derive(ready);
+```
+
+Do not call a hashing library directly for cross-crate semantic identity. The
+digest front door binds the algorithm, input shape, domain, and rule version to
+the ready basis. Its output remains derived evidence rather than authority.
+
 Canonical artifacts describe and compare shared meaning. They do not become
 Query operation authority, a Relational patch, a Bridge correspondence witness,
 or a Signal decision.

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/application_query_relation_accessor_requires_cardinality.rs:26:22
+   |
+26 |     let _ = row.many(selector);
+   |                 ---- ^^^^^^^^ expected `ApplicationQueryResultRelationRef<..., _, ..., _, _, _, _, ...>`, found `ApplicationQueryResultRelationRef<..., ..., ..., ..., ..., ..., ..., ...>`
+   |                 |
+   |                 arguments to this method are incorrect
+   |
+   = note: expected struct `ApplicationQueryResultRelationRef<Query, _, Schema, _, _, _, _, ManyResults>`
+              found struct `ApplicationQueryResultRelationRef<Query, Slot, Schema, Relation, Parent, Child, ForwardResultTraversal, ExactlyOneResult>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/application_query/projection.rs
+   |
+   |     pub fn many<Slot, Relation, From, To, Direction>(
+   |            ^^^^

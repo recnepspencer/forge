@@ -49,26 +49,10 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
         }
     };
     let (mut live, fact) = opened.into_parts();
-    let plan = {
-        let mut turn = session.begin_observation_turn().unwrap();
-        turn.admit_projection_query(worth_ui_query_binding::UiProjectionObservation::Collection(
-            fact.into_observation(),
-        ))
-        .unwrap();
-        let admitted = turn.seal().unwrap();
-        let changed = match session.classify_observations(admitted).unwrap() {
-            UiChangeClassificationOutcome::Changed(changed) => changed,
-            _ => panic!("a real projection observation changes mounted content"),
-        };
-        let lifecycle = session
-            .resolve_affected_scope(changed)
-            .unwrap()
-            .resolve_identity_lifecycle()
-            .unwrap();
-        session
-            .compile_rebind_plan(lifecycle, super::super::UiRebindExecutionPolicy::ordinary())
-            .unwrap()
-    };
+    let plan = projection_plan(
+        &mut session,
+        worth_ui_query_binding::UiProjectionObservation::Collection(fact.into_observation()),
+    );
     let content = plan.content();
     let graph_node = content
         .graph_nodes()
@@ -89,14 +73,11 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
     assert_eq!(rows[1].selected_values()[0].as_ref(), "Bravo");
     assert_eq!(
         rows.iter()
-            .map(|row| row.identity().host_correlation_digest())
+            .map(|row| row.identity().query_reference().query_identity().clone())
             .collect::<Vec<_>>(),
         entities
             .iter()
-            .map(|entity| entity
-                .evidence_identity()
-                .operational_key()
-                .correlation_digest())
+            .map(|entity| entity.evidence_identity())
             .collect::<Vec<_>>()
     );
     assert_eq!(collection.posture().as_ref(), "CURRENT · COMPLETE");
@@ -113,26 +94,12 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
             panic!("the Query update must deliver its exact patch")
         }
     };
-    let patch_plan = {
-        let mut turn = session.begin_observation_turn().unwrap();
-        turn.admit_projection_query(worth_ui_query_binding::UiProjectionObservation::Collection(
+    let patch_plan = projection_plan(
+        &mut session,
+        worth_ui_query_binding::UiProjectionObservation::Collection(
             refreshed.into_fact().into_observation(),
-        ))
-        .unwrap();
-        let admitted = turn.seal().unwrap();
-        let changed = match session.classify_observations(admitted).unwrap() {
-            UiChangeClassificationOutcome::Changed(changed) => changed,
-            _ => panic!("a real projection observation changes mounted content"),
-        };
-        let lifecycle = session
-            .resolve_affected_scope(changed)
-            .unwrap()
-            .resolve_identity_lifecycle()
-            .unwrap();
-        session
-            .compile_rebind_plan(lifecycle, super::super::UiRebindExecutionPolicy::ordinary())
-            .unwrap()
-    };
+        ),
+    );
     let patch_content = patch_plan.content();
     let patch_node = patch_content.graph_nodes().next().unwrap();
     let crate::mounting::UiMountedSemanticTextContent::Collection(collection) =
@@ -147,8 +114,8 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
     assert!(matches!(
         changes.as_ref(),
         [crate::mounting::UiMountedCollectionTextChange::Update(row)]
-            if row.identity().host_correlation_digest()
-                == entities[1].evidence_identity().operational_key().correlation_digest()
+            if row.identity().query_reference().query_identity()
+                == &entities[1].evidence_identity()
                 && row.selected_values()[0].as_ref() == "Bravo updated"
     ));
 
@@ -160,6 +127,27 @@ fn real_collection_snapshot_compiles_distinct_keyed_mounted_rows() {
         }
     }
     let _ = session.shutdown();
+}
+
+fn projection_plan(
+    session: &mut crate::facade::WorthUiActiveApplicationSession,
+    observation: worth_ui_query_binding::UiProjectionObservation,
+) -> super::super::UiRebindPlan {
+    let mut turn = session.begin_observation_turn().unwrap();
+    turn.admit_projection_query(observation).unwrap();
+    let admitted = turn.seal().unwrap();
+    let changed = match session.classify_observations(admitted).unwrap() {
+        UiChangeClassificationOutcome::Changed(changed) => changed,
+        _ => panic!("a real projection observation changes mounted content"),
+    };
+    let lifecycle = session
+        .resolve_affected_scope(changed)
+        .unwrap()
+        .resolve_identity_lifecycle()
+        .unwrap();
+    session
+        .compile_rebind_plan(lifecycle, super::super::UiRebindExecutionPolicy::ordinary())
+        .unwrap()
 }
 
 fn projection_app(registration: UiCollectionProjectionRegistration) -> crate::facade::WorthUiApp {

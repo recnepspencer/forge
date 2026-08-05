@@ -39,39 +39,19 @@ impl UiProjectionFactReceipt {
         self.observation_order
     }
 
-    pub(crate) fn query_world_authority(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn query_world_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.query_world_identity
     }
 
-    pub(crate) fn binding_authority(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn binding_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.binding_identity
     }
 
-    pub(crate) fn source_generation_authority(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn source_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.source_generation_identity
     }
 
-    pub(crate) fn result_generation_authority(&self) -> &WorthQueryEvidenceIdentity {
+    pub fn result_generation_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.result_generation_identity
-    }
-
-    pub fn query_world_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.query_world_identity)
-    }
-
-    pub fn binding_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.binding_identity)
-    }
-
-    pub fn source_generation_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.source_generation_identity)
-    }
-
-    pub fn result_generation_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.result_generation_identity)
-    }
-
-    pub fn reporting_projection(&self) -> super::UiProjectionFactReportingProjection {
-        super::reporting::project(self)
     }
 }

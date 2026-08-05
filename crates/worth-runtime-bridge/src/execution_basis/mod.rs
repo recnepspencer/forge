@@ -4,6 +4,7 @@ mod counters;
 mod denial;
 mod finalization;
 mod interruption;
+mod lifecycle_observation;
 mod managed_declaration;
 mod queue_occupancy;
 mod queue_pressure;
@@ -28,6 +29,11 @@ pub use interruption::{
     BridgeManagedExecutionClockAdvance, BridgeManagedExecutionInterruptionFailure,
     BridgeManagedExecutionInterruptionFailureKind, BridgeManagedExecutionRejection,
     BridgeManagedExecutionRejectionReason, BridgeManagedExecutionTimeout,
+};
+pub use lifecycle_observation::{
+    BridgeExecutionBasisLifecycleObservation, BridgeExecutionBasisLifecycleObservationFailure,
+    BridgeExecutionBasisLifecycleObservationFailureKind, BridgeExecutionBasisLifecycleObserver,
+    BridgeExecutionBasisLifecycleSignalStatus,
 };
 pub use queue_occupancy::{
     BridgeManagedQueueAdmission, BridgeManagedQueueOccupancy, BridgeManagedQueueReleaseFailure,

@@ -1,0 +1,211 @@
+use worth_foundational::facade::{
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
+};
+use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
+
+use crate::canonical_identity_derivation::WorthQueryCanonicalIdentityBasis;
+
+use super::{WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementRow};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryGraphReadAccessRequirementSetDigest(CanonicalDigestId);
+
+impl WorthQueryGraphReadAccessRequirementSetDigest {
+    pub const fn as_digest(&self) -> &CanonicalDigestId {
+        &self.0
+    }
+
+    pub fn render_support_hex(&self) -> String {
+        self.0.render_hex()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryGraphReadAccessRequirementSet {
+    digest: WorthQueryGraphReadAccessRequirementSetDigest,
+    read_graph_digest: CanonicalDigestId,
+    access_shape_digest: CanonicalDigestId,
+    selectivity_shape_digest: CanonicalDigestId,
+    rows: Vec<WorthQueryGraphReadAccessRequirementRow>,
+    counters: WorthQueryGraphReadAccessRequirementCounters,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
+}
+
+impl WorthQueryGraphReadAccessRequirementSet {
+    pub fn new(
+        read_graph_digest: CanonicalDigestId,
+        access_shape_digest: CanonicalDigestId,
+        selectivity_shape_digest: CanonicalDigestId,
+        mut rows: Vec<WorthQueryGraphReadAccessRequirementRow>,
+        budget: CanonicalDigestWorkBudget,
+        prior_work: WorthQueryCanonicalWorkEvidence,
+    ) -> Result<Self, CanonicalDigestDerivationDenial> {
+        rows.sort_by_key(WorthQueryGraphReadAccessRequirementRow::digest_part);
+        rows.dedup();
+        let counters = WorthQueryGraphReadAccessRequirementCounters::from_rows(&rows);
+        let (digest, work) = derive_requirement_set_digest(
+            read_graph_digest,
+            access_shape_digest,
+            selectivity_shape_digest,
+            &rows,
+            budget,
+        )?;
+        Ok(Self {
+            digest: WorthQueryGraphReadAccessRequirementSetDigest(digest),
+            read_graph_digest,
+            access_shape_digest,
+            selectivity_shape_digest,
+            rows,
+            counters,
+            canonical_work: prior_work.combine(work),
+        })
+    }
+
+    pub fn digest(&self) -> &WorthQueryGraphReadAccessRequirementSetDigest {
+        &self.digest
+    }
+
+    pub const fn read_graph_digest(&self) -> &CanonicalDigestId {
+        &self.read_graph_digest
+    }
+
+    pub const fn access_shape_digest(&self) -> &CanonicalDigestId {
+        &self.access_shape_digest
+    }
+
+    pub const fn selectivity_shape_digest(&self) -> &CanonicalDigestId {
+        &self.selectivity_shape_digest
+    }
+
+    pub fn rows(&self) -> &[WorthQueryGraphReadAccessRequirementRow] {
+        &self.rows
+    }
+
+    pub fn counters(&self) -> &WorthQueryGraphReadAccessRequirementCounters {
+        &self.counters
+    }
+
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
+    }
+
+    pub fn diagnostic_canonical_parts(&self) -> Vec<String> {
+        let mut parts = vec![
+            format!("read_graph:{}", self.read_graph_digest.render_hex()),
+            format!("access_shape:{}", self.access_shape_digest.render_hex()),
+            format!(
+                "selectivity_shape:{}",
+                self.selectivity_shape_digest.render_hex()
+            ),
+            format!("row_count:{}", self.rows.len()),
+        ];
+        parts.extend(self.rows.iter().map(|row| row.digest_part()));
+        parts
+    }
+
+    pub fn contains_kind(&self, kind: &WorthQueryGraphReadAccessRequirementKind) -> bool {
+        self.rows.iter().any(|row| row.kind() == kind)
+    }
+
+    pub fn requires_kind(&self, kind: WorthQueryGraphReadAccessRequirementKind) -> bool {
+        self.contains_kind(&kind)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryGraphReadAccessRequirementCounters {
+    row_count: usize,
+    counts: [usize; 12],
+}
+
+impl WorthQueryGraphReadAccessRequirementCounters {
+    fn from_rows(rows: &[WorthQueryGraphReadAccessRequirementRow]) -> Self {
+        let kinds = WorthQueryGraphReadAccessRequirementKind::all();
+        let mut counts = [0; 12];
+        for (index, kind) in kinds.iter().enumerate() {
+            counts[index] = rows.iter().filter(|row| row.kind() == kind).count();
+        }
+        Self {
+            row_count: rows.len(),
+            counts,
+        }
+    }
+
+    pub const fn row_count(&self) -> usize {
+        self.row_count
+    }
+
+    pub const fn directional_adjacency_count(&self) -> usize {
+        self.counts[0]
+    }
+
+    pub const fn reverse_adjacency_count(&self) -> usize {
+        self.counts[1]
+    }
+
+    pub const fn predicate_support_count(&self) -> usize {
+        self.counts[2]
+    }
+
+    pub const fn ordering_support_count(&self) -> usize {
+        self.counts[3]
+    }
+
+    pub const fn traversal_workset_count(&self) -> usize {
+        self.counts[4]
+    }
+
+    pub const fn visited_set_count(&self) -> usize {
+        self.counts[5]
+    }
+
+    pub const fn dedup_set_count(&self) -> usize {
+        self.counts[6]
+    }
+
+    pub const fn workset_count(&self) -> usize {
+        self.counts[4] + self.counts[5] + self.counts[6]
+    }
+
+    pub const fn proof_support_count(&self) -> usize {
+        self.counts[7]
+    }
+
+    pub const fn buffer_count(&self) -> usize {
+        self.counts[8]
+    }
+
+    pub const fn materialization_lifecycle_count(&self) -> usize {
+        self.counts[9]
+    }
+
+    pub const fn live_maintenance_support_count(&self) -> usize {
+        self.counts[10]
+    }
+
+    pub const fn domain_operation_capability_registration_count(&self) -> usize {
+        self.counts[11]
+    }
+}
+
+fn derive_requirement_set_digest(
+    read_graph_digest: CanonicalDigestId,
+    access_shape_digest: CanonicalDigestId,
+    selectivity_shape_digest: CanonicalDigestId,
+    rows: &[WorthQueryGraphReadAccessRequirementRow],
+    budget: CanonicalDigestWorkBudget,
+) -> Result<(CanonicalDigestId, WorthQueryCanonicalWorkEvidence), CanonicalDigestDerivationDenial> {
+    let mut basis = WorthQueryCanonicalIdentityBasis::new(
+        "worth-query.application-query-access-requirements",
+        "worth-query-application-query-access-requirements-v1",
+        budget,
+    );
+    basis.digest("read-graph", read_graph_digest)?;
+    basis.digest("access-shape", access_shape_digest)?;
+    basis.digest("selectivity-shape", selectivity_shape_digest)?;
+    basis.unsigned("row-count", rows.len())?;
+    for (index, row) in rows.iter().enumerate() {
+        basis.text(format!("row[{index}]"), row.digest_part())?;
+    }
+    basis.derive()
+}

@@ -95,15 +95,15 @@ fn expected_bridge_identity_index(
     match artifact {
         ExpectedRetainedCausalDigestArtifact::ContinuityRecord => matches!(index, 0 | 2 | 3),
         ExpectedRetainedCausalDigestArtifact::HistoricalEvaluationRecord => {
-            matches!(index, 0 | 1 | 2)
+            matches!(index, 0..=2)
         }
         ExpectedRetainedCausalDigestArtifact::MergeRecord => matches!(index, 0 | 2),
         ExpectedRetainedCausalDigestArtifact::PreviewDiscardRecord => matches!(index, 0 | 1),
         ExpectedRetainedCausalDigestArtifact::PreviewExecutionRecord => index == 0,
         ExpectedRetainedCausalDigestArtifact::PreviewPromotionRecord => matches!(index, 0 | 1),
-        ExpectedRetainedCausalDigestArtifact::RouteRecord => matches!(index, 0 | 1 | 2),
+        ExpectedRetainedCausalDigestArtifact::RouteRecord => matches!(index, 0..=2),
         ExpectedRetainedCausalDigestArtifact::SourceMaterializationRecord => index == 0,
-        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord => matches!(index, 0 | 1 | 2),
+        ExpectedRetainedCausalDigestArtifact::StreamReplayRecord => matches!(index, 0..=2),
         ExpectedRetainedCausalDigestArtifact::StructuralBranchComparisonRecord
         | ExpectedRetainedCausalDigestArtifact::StructuralRemapRecord => matches!(index, 0 | 2),
     }

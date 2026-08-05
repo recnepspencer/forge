@@ -1,5 +1,6 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInstalledPackageIndexDenialKind {
+    AuthorityEntropyUnavailable,
     ConflictingPackage,
     ConflictingAdmissionProfile,
     ConflictingDefinition,
@@ -14,6 +15,10 @@ pub enum WorthQueryInstalledPackageIndexDenialKind {
     ConflictingArtifactContract,
     ArtifactContractNotInstalled,
     ArtifactContractSemanticsChanged,
+    ConflictingApplicationSchema,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

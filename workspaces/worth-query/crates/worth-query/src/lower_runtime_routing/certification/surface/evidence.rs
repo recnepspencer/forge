@@ -13,7 +13,6 @@ use super::fixtures::{
     representative_basis_subscription_readmission_row,
     representative_basis_truth_view_readmission_row,
     representative_causal_bridge_materialization_row, representative_compose_read_row,
-    representative_compose_read_with_invariant_pack_row,
     representative_effect_bridge_writeback_row, representative_effect_relational_merge_row,
     representative_effect_relational_mutation_row,
     representative_execute_read_family_in_basis_context_row,
@@ -196,7 +195,6 @@ pub fn worth_query_lower_runtime_representative_surface(
 ) -> WorthQueryLowerRuntimeRepresentativeSurface {
     let concrete_rows = vec![
         representative_compose_read_row(),
-        representative_compose_read_with_invariant_pack_row(),
         representative_execute_read_family_row(),
         representative_execute_read_family_in_basis_context_row(),
         representative_runtime_current_read_graph_row(),

@@ -1,9 +1,9 @@
 use worth_ui::facade::query_binding::{
-    UiCollectionProjectionFactReceipt, UiScalarProjectionObservation,
+    UiCollectionProjectionObservation, UiScalarProjectionObservation,
 };
 
-fn invalid(receipt: UiCollectionProjectionFactReceipt) -> UiScalarProjectionObservation {
-    receipt.into_observation()
+fn invalid(observation: UiCollectionProjectionObservation) -> UiScalarProjectionObservation {
+    observation
 }
 
 fn main() {}

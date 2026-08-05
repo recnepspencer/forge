@@ -1,13 +1,8 @@
 use worth_query::facade::domain::{
     WorthQueryCapabilityFamily, WorthQueryConfigSectionFamily,
-    WorthQueryDeclarationEntryContributionCategoryFamily,
-    WorthQueryDomainGraphObligationDefinition, WorthQueryDomainIdentityDeclaration,
+    WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainIdentityDeclaration,
     WorthQueryDomainIdentityName, WorthQueryDomainIdentityNamespace, WorthQueryDomainPackage,
     WorthQueryDomainSemanticVersion,
-};
-use worth_query::facade::runtime::{
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationOperatingWorldSelector,
-    WorthQueryGraphTouchSelector,
 };
 
 use crate::{
@@ -68,15 +63,6 @@ fn finish_domain_package(
     package: WorthQueryDomainPackage<WorthUiDomainEntry>,
 ) -> WorthQueryDomainPackage<WorthUiDomainEntry> {
     package
-        .graph_obligation(WorthQueryDomainGraphObligationDefinition::new(
-            WorthQueryDomainIdentityName::new("measurement-allocation-integrity")
-                .expect("static Worth UI invariant name must admit"),
-            WorthQueryDomainSemanticVersion::new(1, 0),
-            WorthQueryGraphObligationKind::BlockingInvariant,
-            WorthQueryGraphTouchSelector::relation_kind("measurement.allocation")
-                .expect("static Worth UI relation must admit"),
-            WorthQueryGraphObligationOperatingWorldSelector::any_committed_authority(),
-        ))
         .permits_contribution(WorthQueryDeclarationEntryContributionCategoryFamily::Admission)
         .permits_contribution(
             WorthQueryDeclarationEntryContributionCategoryFamily::InvariantCapability,

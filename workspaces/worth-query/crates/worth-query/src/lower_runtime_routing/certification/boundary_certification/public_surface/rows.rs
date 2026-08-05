@@ -17,13 +17,6 @@ pub(super) const PUBLIC_SURFACE_ROWS: &[WorthQueryLowerRuntimePublicSurfaceRow] 
         "read-family intent execution",
     ),
     WorthQueryLowerRuntimePublicSurfaceRow::new(
-        WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
-        "WorthQueryWorkspace::compose_read_with_invariant_pack(...)",
-        "crates/worth-query/src/runtime/workspace_queries.rs",
-        WorthQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "read-family intent execution after invariant admission",
-    ),
-    WorthQueryLowerRuntimePublicSurfaceRow::new(
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamily,
         "WorthQueryWorkspace::execute_read_family(...)",
         "crates/worth-query/src/runtime/workspace_queries.rs",
@@ -71,6 +64,13 @@ pub(super) const PUBLIC_SURFACE_ROWS: &[WorthQueryLowerRuntimePublicSurfaceRow] 
         "crates/worth-query/src/runtime/runtime_declarations.rs",
         WorthQueryLowerRuntimePublicSurfaceKind::PublicFacade,
         "live declaration receipt plus installation route",
+    ),
+    WorthQueryLowerRuntimePublicSurfaceRow::new(
+        WorthQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
+        "WorthQueryRuntime::declare_bridge_async_live_view(...)",
+        "crates/worth-query/src/runtime/bridge_async_live_view_declaration.rs",
+        WorthQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter,
+        "bridge-backed async live declaration remains a declared Query boundary adapter over an admitted Runtime Bridge request",
     ),
     WorthQueryLowerRuntimePublicSurfaceRow::new(
         WorthQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,

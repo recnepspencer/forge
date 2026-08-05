@@ -3,8 +3,8 @@ use super::{
     BridgeSignalAspectTargetDeclaration,
 };
 
-/// Frozen volatile lowering registration for one exact Query-installed
-/// dependency. Signal layout is deliberately absent from portable Query
+/// Frozen volatile lowering registration for one exact source-installed
+/// semantic dependency. Signal layout is deliberately absent from the source
 /// meaning and is selected only at runtime construction.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeSemanticCorrespondenceRegistration {

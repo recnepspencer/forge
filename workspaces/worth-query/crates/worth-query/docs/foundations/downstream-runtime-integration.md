@@ -141,7 +141,6 @@ explicit submission lane rather than direct workspace write or batch helpers.
 ### Graph-shaped authoring
 
 - `workspace.compose_graph(...)`
-- `workspace.compose_graph_with_invariant_pack(...)`
 
 Use these when one logical authoring step needs:
 
@@ -158,7 +157,6 @@ Do not simulate this with caller-owned command-batch choreography.
 - `WorthQueryExistingTruthTargetBinding::from_entity_target(...)`
 - `WorthQueryExistingTruthTargetBinding::from_relation_target(...)`
 - `workspace.compose_graph(...)`
-- `workspace.compose_graph_with_invariant_pack(...)`
 - `workspace.probe_existing_intent(...)`
 
 Use these when the runtime must preserve or verify an authoritative target

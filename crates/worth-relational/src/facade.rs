@@ -1,5 +1,6 @@
 //! Public API boundary for `worth-relational`.
-
+#[path = "facade/authorization.rs"]
+pub mod authorization;
 mod runtime_validation_exports;
 pub mod config {
     pub use crate::config::data::{
@@ -95,20 +96,16 @@ pub mod history {
         AspectHistoryLineageEventSpan, AspectHistoryOrigin, AspectHistoryQueryResult,
         AspectHistoryResolutionTrace, AspectResolutionContext, BranchCreateError,
         BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
-        HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
-        HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
-        LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
-        VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+        CommittedVersionSummary, HistoryAspectQueryTarget, HistoryDriftClass,
+        HistoryRetentionClass, HistoryShapeClassification, LineageAspectHistory,
+        LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
+        MergeInspection, OrderedParentList, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
     };
     pub use crate::history::logic::{HistoryAccess, HistoryAuthority};
 }
 
-pub mod identity {
-    pub use crate::identity::data::{
-        EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId,
-        RelationId, RelationStorageId, StructuralFingerprint, VersionBound, VersionId,
-    };
-}
+#[path = "facade/identity.rs"]
+pub mod identity;
 
 pub mod identity_authority {
     pub use crate::identity_authority::*;
@@ -139,14 +136,8 @@ pub mod inspection {
     pub use crate::inspection::logic::InspectionAccess;
 }
 
-pub mod indexes {
-    pub use crate::indexes::data::{
-        DerivedIndexApplicability, DerivedIndexArtifacts, DerivedIndexBuildOutcome,
-        DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexEntries,
-        DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId, DerivedIndexKind,
-        DerivedIndexPublicationStatus,
-    };
-}
+#[path = "facade/indexes.rs"]
+pub mod indexes;
 
 pub mod lineage {
     pub use crate::lineage::data::{
@@ -231,6 +222,8 @@ pub mod runtime {
         CompiledArtifactAuthorityStatus, CompiledArtifactError, CompiledExecutionArtifact,
         ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
+        RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
+        RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
         RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
         RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
         TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
@@ -251,6 +244,9 @@ pub mod runtime {
         RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
     };
     pub use crate::visibility::materialization::read_records::{
+        AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead,
+        BoundedFrontierAdjacencyTruthRead, BoundedFrontierFieldEqualityTruthRead,
+        FrontierAdjacencyTruthReadLimitExceeded, FrontierFieldEqualityTruthReadLimitExceeded,
         ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectRequirement,
         ProjectionAspectScope,
     };
@@ -361,7 +357,10 @@ pub mod visibility {
 }
 
 pub mod storage {
-    pub use crate::storage::data::RecordLifecycleState;
+    pub use crate::storage::data::{
+        authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
+        RecordLifecycleState,
+    };
 }
 
 pub mod symbols {
@@ -372,8 +371,6 @@ pub mod symbols {
 }
 
 pub mod transactions {
-    pub use worth_foundational::facade::AspectFieldLocator;
-
     pub use crate::transactions::data::{
         ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectEmissionTrace,
         AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
@@ -396,5 +393,8 @@ pub mod transactions {
         TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
         WorkerIntentBatch,
     };
-    pub use crate::transactions::logic::RelationalTransaction;
+    pub use crate::transactions::logic::{
+        RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
+    };
+    pub use worth_foundational::facade::AspectFieldLocator;
 }

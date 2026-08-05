@@ -1,8 +1,8 @@
 use super::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinition,
-    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainOperationDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainOperationGraphParticipationRecord,
     WorthQueryDomainOperationRequiredDomainRecord, WorthQueryDomainPackageValidationDenial,
     WorthQueryValidatedDomainPackage,
 };
@@ -11,7 +11,12 @@ use crate::application::{
     WorthQueryDeclarationEntryContributionCategoryFamily, WorthQueryDomainEntryMarker,
     WorthQueryDomainOperatingRequirement,
 };
-use worth_query_installation::facade::WorthQueryPortableArtifactContract;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationSchema, ApplicationSchemaDeclaration,
+};
+use worth_query_installation::facade::{
+    ErasedApplicationSchemaDeclaration, WorthQueryPortableArtifactContract,
+};
 
 pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) marker: D,
@@ -20,7 +25,6 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
     pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
-    pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
     pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
@@ -28,6 +32,7 @@ pub struct WorthQueryDomainPackage<D: WorthQueryDomainEntryMarker> {
         Vec<WorthQueryDomainOperationGraphParticipationRecord>,
     pub(crate) operation_required_domains: Vec<WorthQueryDomainOperationRequiredDomainRecord>,
     pub(crate) artifact_contracts: Vec<WorthQueryPortableArtifactContract>,
+    pub(crate) application_schemas: Vec<ErasedApplicationSchemaDeclaration>,
     pub(crate) contribution_policy: Vec<WorthQueryDeclarationEntryContributionCategoryFamily>,
 }
 
@@ -40,13 +45,13 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
             required_configuration: Vec::new(),
             operating_requirements: Vec::new(),
             invariant_definitions: Vec::new(),
-            graph_obligations: Vec::new(),
             graph_read_operations: Vec::new(),
             declaration_families: Vec::new(),
             domain_operations: Vec::new(),
             operation_graph_participations: Vec::new(),
             operation_required_domains: Vec::new(),
             artifact_contracts: Vec::new(),
+            application_schemas: Vec::new(),
             contribution_policy: Vec::new(),
         }
     }
@@ -75,15 +80,6 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
     #[must_use]
     pub fn invariant(mut self, definition: WorthQueryDomainInvariantDefinition) -> Self {
         self.invariant_definitions.push(definition);
-        self
-    }
-
-    #[must_use]
-    pub fn graph_obligation(
-        mut self,
-        definition: WorthQueryDomainGraphObligationDefinition,
-    ) -> Self {
-        self.graph_obligations.push(definition);
         self
     }
 
@@ -169,6 +165,18 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryDomainPackage<D> {
     #[must_use]
     pub fn artifact_contract(mut self, contract: WorthQueryPortableArtifactContract) -> Self {
         self.artifact_contracts.push(contract);
+        self
+    }
+
+    #[must_use]
+    pub fn application_schema<Schema>(
+        mut self,
+        declaration: ApplicationSchemaDeclaration<Schema>,
+    ) -> Self
+    where
+        Schema: ApplicationSchema,
+    {
+        self.application_schemas.push(declaration.into_erased());
         self
     }
 

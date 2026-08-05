@@ -138,7 +138,7 @@ impl CanonicalDependencies {
     pub fn canonicalize_unordered(edges: impl IntoIterator<Item = DependencyEdge>) -> Self {
         let mut edges = edges.into_iter().collect::<Vec<_>>();
         if edges.len() > 1 {
-            edges.sort_by(|left, right| left.sort_key().cmp(&right.sort_key()));
+            edges.sort_by_key(|left| left.sort_key());
             edges.dedup_by(|left, right| left.sort_key() == right.sort_key());
         }
         Self {

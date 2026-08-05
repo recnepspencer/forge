@@ -13,6 +13,7 @@ pub(crate) enum AdjacencyDeltaKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct AdjacencyDelta {
     pub(crate) relation_id: RelationId,
+    pub(crate) kind_id: crate::identity::data::KindId,
     pub(crate) kind: AdjacencyDeltaKind,
 }
 

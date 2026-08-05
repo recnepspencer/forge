@@ -1,12 +1,7 @@
-use super::read_composition_hooks::{
-    WorthQueryReadInvariantPackContext, WorthQueryReadInvariantPackViolation,
-};
-#[cfg(test)]
-use super::WorthQueryReadFamilyInvariantEvidence;
 use super::{
     WorthQueryCountResult, WorthQueryInspection, WorthQueryInspectionTarget, WorthQueryReadBuilder,
-    WorthQueryReadDomainInvariantDenial, WorthQueryReadFamily, WorthQueryReadGraph,
-    WorthQueryReadResult, WorthQueryRuntimeError, WorthQueryWorkspace,
+    WorthQueryReadFamily, WorthQueryReadGraph, WorthQueryReadResult, WorthQueryRuntimeError,
+    WorthQueryWorkspace,
 };
 
 impl WorthQueryWorkspace {
@@ -76,28 +71,10 @@ impl WorthQueryWorkspace {
             WorthQueryReadBuilder,
         ) -> Result<WorthQueryReadGraph, super::WorthQueryReadDenial>,
     ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
-        self.compose_read_with_invariant_pack(declaration, |_context| Ok(()))
-    }
-
-    pub(crate) fn compose_read_with_invariant_pack(
-        &mut self,
-        declaration: impl FnOnce(
-            WorthQueryReadBuilder,
-        ) -> Result<WorthQueryReadGraph, super::WorthQueryReadDenial>,
-        invariant_pack: impl FnOnce(
-            &WorthQueryReadInvariantPackContext<'_>,
-        ) -> Result<(), WorthQueryReadInvariantPackViolation>,
-    ) -> Result<WorthQueryReadResult, WorthQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
         let read_graph = declaration(WorthQueryReadBuilder::new())
             .map_err(WorthQueryRuntimeError::ReadCompositionDenied)?;
-        let invariant_context = WorthQueryReadInvariantPackContext::new(&read_graph);
-        invariant_pack(&invariant_context).map_err(|violation| {
-            WorthQueryRuntimeError::ReadCompositionDomainInvariantDenied(
-                WorthQueryReadDomainInvariantDenial::from_violation(violation, &invariant_context),
-            )
-        })?;
         let family = WorthQueryReadFamily::new_kernel_only("composed_read", read_graph);
         self.read_family_intent(&family).execute()
     }
@@ -115,39 +92,6 @@ impl WorthQueryWorkspace {
             .map_err(WorthQueryRuntimeError::ReadCompositionDenied)?;
         Ok(WorthQueryReadFamily::new_kernel_only(
             family_name,
-            read_graph,
-        ))
-    }
-
-    #[cfg(test)]
-    pub(crate) fn define_read_family_with_invariant_pack(
-        &mut self,
-        family_name: impl Into<String>,
-        invariant_family: impl Into<String>,
-        declaration: impl FnOnce(
-            WorthQueryReadBuilder,
-        ) -> Result<WorthQueryReadGraph, super::WorthQueryReadDenial>,
-        invariant_pack: impl FnOnce(
-            &WorthQueryReadInvariantPackContext<'_>,
-        ) -> Result<(), WorthQueryReadInvariantPackViolation>,
-    ) -> Result<WorthQueryReadFamily, WorthQueryRuntimeError> {
-        self.runtime
-            .admit_facade_family(super::WorthQueryRuntimeFacadeFamily::Read)?;
-        let read_graph = declaration(WorthQueryReadBuilder::new())
-            .map_err(WorthQueryRuntimeError::ReadCompositionDenied)?;
-        let invariant_context = WorthQueryReadInvariantPackContext::new(&read_graph);
-        invariant_pack(&invariant_context).map_err(|violation| {
-            WorthQueryRuntimeError::ReadCompositionDomainInvariantDenied(
-                WorthQueryReadDomainInvariantDenial::from_violation(violation, &invariant_context),
-            )
-        })?;
-        let invariant_evidence = WorthQueryReadFamilyInvariantEvidence::new(
-            invariant_family,
-            invariant_context.read_domain_invariant_summary(),
-        );
-        Ok(WorthQueryReadFamily::new_domain_invariant_admitted(
-            family_name,
-            invariant_evidence,
             read_graph,
         ))
     }

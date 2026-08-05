@@ -275,8 +275,10 @@ contact, native refinement, invalidation, or lifecycle work.
   equivalence, and artifact-reuse equivalence are distinct contracts. An
   implementation may share typed policies only where their declared semantics
   genuinely coincide; one generic comparator cannot silently decide all four.
-- The runtime bridge alone admits and lowers Query conditional-node intent into
-  the exact installed Signal node contract. Signal alone mints evaluation
+- Query alone validates portable conditional meaning and lowers its declaration
+  into a neutral Bridge conditional contract. The runtime bridge admits that
+  neutral contract against installed correspondence and installs the exact
+  Signal node contract. Signal alone mints evaluation
   eligibility, deferral, suppression, computation, and semantic-cleanliness
   evidence; Query consumes that evidence without restamping it.
 - Multi-domain operation authority is bound atomically. A tuple of separately
@@ -1751,14 +1753,16 @@ deny during installation before graph mutation or operation binding.
   capacity, equivalence, widening, and deterministic-observable contracts are
   fixed here.
 
-### Phase 10: Runtime-Bridge Conditional Lowering And Signal Decision Authority
+### Phase 10: Query Conditional Translation, Runtime-Bridge Admission, And Signal Decision Authority
 
-This phase lowers an admitted Query conditional-node declaration exactly once
-through the runtime bridge into an installed Signal node contract. Portable
+This phase has Query translate an admitted conditional-node declaration exactly
+once into a neutral Bridge contract, which the runtime bridge admits and lowers
+into an installed Signal node contract. Portable
 condition definitions remain callback-free. Volatile lowerers, condition
 resolvers, comparator providers, temporal wake sources, and on-demand trigger
-providers register separately under exact Query declaration and Signal target
-marker types. Runtime construction rejects missing, extra, foreign, stale, or
+providers register separately under the neutral Bridge contract and Signal
+target marker types. Query retains exact declaration and authority continuity;
+runtime construction rejects missing, extra, foreign, stale, or
 semantic-key-lookalike registrations before an operation can bind.
 
 Lowering consumes the Phase 9 installed semantic-aspect correspondence for

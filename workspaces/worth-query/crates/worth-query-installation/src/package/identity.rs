@@ -1,7 +1,16 @@
-use sha2::{Digest, Sha256};
+use worth_foundational::facade::{
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
+};
 
 use super::WorthQueryPortableDomainPackage;
-use crate::canonical_hash_encoding::hash_text_field;
+use crate::canonical_digest_derivation::InstallationCanonicalIdentityBasis;
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
+
+const PACKAGE_BUDGET: CanonicalDigestWorkBudget =
+    match CanonicalDigestWorkBudget::new(32_768, 4 * 1_024 * 1_024) {
+        Some(budget) => budget,
+        None => panic!("fixed package canonical-work budget is valid"),
+    };
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WorthQueryPortableDomainIdentity {
@@ -33,64 +42,116 @@ impl WorthQueryPortableDomainIdentity {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct WorthQueryPortableDomainPackageIdentity(String);
+pub struct WorthQueryPortableDomainPackageIdentity(CanonicalDigestId);
 
 impl WorthQueryPortableDomainPackageIdentity {
-    pub fn as_str(&self) -> &str {
+    pub const fn digest(&self) -> &CanonicalDigestId {
         &self.0
+    }
+
+    pub const fn bytes(&self) -> &[u8; 32] {
+        self.0.bytes()
+    }
+
+    pub fn render_support_hex(&self) -> String {
+        self.0.render_hex()
     }
 }
 
 pub(super) fn canonical_identity(
     package: &WorthQueryPortableDomainPackage,
-) -> WorthQueryPortableDomainPackageIdentity {
-    let mut hasher = Sha256::new();
-    hash_text_field(&mut hasher, "domain-owner", package.identity.owner());
-    hash_text_field(
-        &mut hasher,
-        "domain-major",
-        &package.identity.major().to_string(),
+) -> Result<
+    (
+        WorthQueryPortableDomainPackageIdentity,
+        WorthQueryCanonicalWorkEvidence,
+    ),
+    CanonicalDigestDerivationDenial,
+> {
+    let mut basis = InstallationCanonicalIdentityBasis::new(
+        "worth-query.portable-domain-package",
+        "worth-query-portable-domain-package-v2",
+        PACKAGE_BUDGET,
     );
-    hash_text_field(
-        &mut hasher,
-        "domain-minor",
-        &package.identity.minor().to_string(),
-    );
-    for capability in &package.capabilities {
-        hash_text_field(&mut hasher, "capability", capability.as_str());
+    append_domain_identity(&mut basis, package)?;
+    append_requirements(&mut basis, package)?;
+    append_definitions(&mut basis, package)?;
+    append_domain_operations(&mut basis, package)?;
+    append_contracts_and_schemas(&mut basis, package)?;
+    for (index, contribution) in package.contributions.iter().enumerate() {
+        basis.text(format!("contribution[{index}]"), contribution.as_str())?;
     }
-    for configuration in &package.configuration {
-        hash_text_field(&mut hasher, "configuration", configuration.as_str());
+    let (digest, work) = basis.derive()?;
+    Ok((WorthQueryPortableDomainPackageIdentity(digest), work))
+}
+
+fn append_domain_identity(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    basis.text("domain.owner", package.identity.owner())?;
+    basis.unsigned_u32("domain.major", package.identity.major())?;
+    basis.unsigned_u32("domain.minor", package.identity.minor())
+}
+
+fn append_requirements(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, capability) in package.capabilities.iter().enumerate() {
+        basis.text(format!("capability[{index}]"), capability.as_str())?;
     }
-    for operating in &package.operating {
-        hash_text_field(&mut hasher, "operating", operating.as_str());
+    for (index, configuration) in package.configuration.iter().enumerate() {
+        basis.text(format!("configuration[{index}]"), configuration.as_str())?;
     }
-    for definition in &package.definitions {
-        hash_text_field(&mut hasher, "definition-kind", definition.kind().as_str());
-        hash_text_field(&mut hasher, "definition-slot", definition.slot());
-        hash_text_field(&mut hasher, "definition-semantics", definition.semantics());
+    for (index, operating) in package.operating.iter().enumerate() {
+        basis.text(format!("operating[{index}]"), operating.as_str())?;
     }
-    for operation in &package.domain_operations {
-        hash_text_field(
-            &mut hasher,
-            "domain-operation-slot",
-            &operation.identity().slot(),
-        );
-        hash_text_field(
-            &mut hasher,
-            "domain-operation-identity",
-            operation.canonical_identity(),
-        );
+    Ok(())
+}
+
+fn append_definitions(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, definition) in package.definitions.iter().enumerate() {
+        let prefix = format!("definition[{index}]");
+        basis.text(format!("{prefix}.kind"), definition.kind().as_str())?;
+        basis.text(format!("{prefix}.slot"), definition.slot())?;
+        basis.text(format!("{prefix}.semantics"), definition.semantics())?;
     }
-    for contract in &package.artifact_contracts {
-        hash_text_field(
-            &mut hasher,
-            "artifact-contract-identity",
+    Ok(())
+}
+
+fn append_domain_operations(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, operation) in package.domain_operations.iter().enumerate() {
+        let prefix = format!("domain-operation[{index}]");
+        basis.text(format!("{prefix}.slot"), operation.identity().slot())?;
+        basis.text(format!("{prefix}.identity"), operation.canonical_identity())?;
+    }
+    Ok(())
+}
+
+fn append_contracts_and_schemas(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    package: &WorthQueryPortableDomainPackage,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    for (index, contract) in package.artifact_contracts.iter().enumerate() {
+        basis.text(
+            format!("artifact-contract[{index}].identity"),
             contract.identity().as_str(),
-        );
+        )?;
     }
-    for contribution in &package.contributions {
-        hash_text_field(&mut hasher, "contribution", contribution.as_str());
+    for (index, schema) in package.application_schemas.iter().enumerate() {
+        let prefix = format!("application-schema[{index}]");
+        basis.text(format!("{prefix}.owner"), schema.owner())?;
+        basis.text(format!("{prefix}.name"), schema.name())?;
+        basis.embedded_basis(
+            &format!("{prefix}.meaning"),
+            schema.identity().canonical_basis(),
+        )?;
     }
-    WorthQueryPortableDomainPackageIdentity(format!("{:x}", hasher.finalize()))
+    Ok(())
 }

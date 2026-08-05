@@ -1,8 +1,6 @@
 use super::*;
 #[cfg(test)]
 use crate::domain_capabilities::WorthQueryInvariantCatalogRegistrationArtifact;
-#[cfg(test)]
-use crate::runtime::registrations_from_relational_invariant_catalog;
 use worth_relational::facade::runtime::{
     CustomInvariantRegistration, InvariantCatalog, RelationalRuntimeBuilder,
 };
@@ -16,11 +14,12 @@ mod domain_packages;
 mod graph_participation;
 mod host_installation;
 mod lowering;
-mod queued_graph_obligation_registrations;
+mod primary_graph;
 mod workflow_parallel_admission;
 mod workflow_stage_executors;
-use queued_graph_obligation_registrations::{
-    graph_obligation_registration_error, QueuedGraphObligationRegistrations,
+pub use primary_graph::{
+    WorthQueryPrimaryGraphConfiguration, WorthQueryPrimaryGraphConfigurationDenial,
+    WorthQueryPrimaryGraphConfigurationDenialKind,
 };
 
 #[derive(Default)]
@@ -66,9 +65,6 @@ pub struct WorthQueryRuntimeBuilder {
     backend: Option<Result<Box<dyn WorthQueryRuntimeBackend>, WorthQueryRuntimeError>>,
     backend_parts: WorthQueryRuntimeBackendParts,
     queued_invariant_registrations: QueuedInvariantRegistrations,
-    queued_graph_obligation_registrations: QueuedGraphObligationRegistrations,
-    graph_obligation_registration_catalog:
-        Option<Result<WorthQueryGraphObligationRegistrationCatalog, WorthQueryRuntimeError>>,
     pending_domain_installations: crate::domain_installation::WorthQueryPendingDomainInstallations,
     pending_graph_participations: crate::domain_installation::WorthQueryPendingGraphParticipations,
     pending_domain_operation_executors:
@@ -86,6 +82,8 @@ pub struct WorthQueryRuntimeBuilder {
     conditional_signal_graph: Option<worth_signal::facade::SignalGraph>,
     pending_conditional_installations:
         Vec<Box<dyn crate::domain_installation::PendingConditionalInstallation>>,
+    pending_primary_graph_installation:
+        Option<Box<dyn primary_graph::PendingPrimaryGraphInstallation>>,
     host_execution_installation:
         Option<worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation>,
 }
@@ -113,7 +111,6 @@ impl WorthQueryRuntimeBuilder {
 
     #[cfg(test)]
     pub(crate) fn invariant_catalog(mut self, invariant_catalog: InvariantCatalog) -> Self {
-        self.queue_relational_schema_contract_obligations(&invariant_catalog);
         self.queued_invariant_registrations
             .push_invariant_catalog(invariant_catalog);
         self
@@ -124,32 +121,8 @@ impl WorthQueryRuntimeBuilder {
         mut self,
         artifact: WorthQueryInvariantCatalogRegistrationArtifact,
     ) -> Self {
-        self.queue_relational_schema_contract_obligations(artifact.invariant_catalog());
         self.queued_invariant_registrations
             .push_invariant_catalog(artifact.invariant_catalog().clone());
-        self
-    }
-
-    pub(crate) fn graph_obligation(
-        mut self,
-        registration: WorthQueryGraphObligationRegistration,
-    ) -> Self {
-        self.queued_graph_obligation_registrations
-            .push(registration);
-        self
-    }
-
-    #[cfg(test)]
-    pub(crate) fn graph_scoped_custom_invariant(
-        mut self,
-        registration: WorthQueryGraphScopedCustomInvariantRegistration,
-    ) -> Self {
-        let (custom_invariant, graph_obligation) = registration.into_parts();
-        self.queued_invariant_registrations
-            .custom_invariants
-            .push(custom_invariant);
-        self.queued_graph_obligation_registrations
-            .push(graph_obligation);
         self
     }
 
@@ -293,31 +266,17 @@ impl WorthQueryRuntimeBuilder {
             }));
             self.backend_parts = WorthQueryRuntimeBackendParts::new();
             self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
-            self.queued_graph_obligation_registrations =
-                QueuedGraphObligationRegistrations::default();
-            self.graph_obligation_registration_catalog = None;
-            return self;
-        }
-        if let Err(error) = self.assemble_graph_obligation_registration_catalog() {
-            self.backend = Some(Err(error));
-            self.backend_parts = WorthQueryRuntimeBackendParts::new();
-            self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
-            self.queued_graph_obligation_registrations =
-                QueuedGraphObligationRegistrations::default();
             return self;
         }
         if let Err(error) = self.lower_queued_invariant_registrations_into_backend_parts() {
             self.backend = Some(Err(error));
             self.backend_parts = WorthQueryRuntimeBackendParts::new();
             self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
-            self.queued_graph_obligation_registrations =
-                QueuedGraphObligationRegistrations::default();
             return self;
         }
         self.backend = Some(self.lower_bridge_backed_backend_from_parts());
         self.backend_parts = WorthQueryRuntimeBackendParts::new();
         self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
-        self.queued_graph_obligation_registrations = QueuedGraphObligationRegistrations::default();
         self
     }
 }

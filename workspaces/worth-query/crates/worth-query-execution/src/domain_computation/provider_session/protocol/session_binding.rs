@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::WorthQueryProviderSessionToken;
-use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthQuerySessionBinding {
@@ -17,20 +16,8 @@ impl WorthQuerySessionBinding {
         token: &WorthQueryProviderSessionToken,
         contract: &super::WorthQueryProviderExecutionPlanContract,
     ) -> Self {
-        let identity = hash_parts(&[
-            "worth_query_provider_session_binding_v1".to_owned(),
-            token.identity().to_owned(),
-            token.generation().to_string(),
-            contract.provider_identity().to_owned(),
-            contract.provider_generation().to_string(),
-            contract.identity().to_owned(),
-            contract.basis_identity().to_owned(),
-            contract.snapshot_identity().to_owned(),
-            contract.admitted_session_identity().to_owned(),
-            contract.resource_attempt_identity().to_owned(),
-        ]);
         Self {
-            identity: identity.into(),
+            identity: contract.resource_attempt_identity().into(),
             token_identity: token.identity().into(),
             token_generation: token.generation(),
             provider_identity: contract.provider_identity().into(),

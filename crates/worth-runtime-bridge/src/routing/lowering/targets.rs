@@ -87,6 +87,10 @@ impl CanonicalInvalidationTargets {
     pub fn len(&self) -> usize {
         self.targets.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.targets.is_empty()
+    }
 }
 
 fn invalidation_target_canonical_basis(

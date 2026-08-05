@@ -113,7 +113,7 @@ fn evaluate_conditionals<D, O, F, L: BasisOperationLane>(
     for node in bound.conditional_nodes().iter().filter(|node| {
         exact_location.map_or_else(
             || location_matches(node, scope),
-            |location| node.lowering.location() == location,
+            |location| &node.location == location,
         )
     }) {
         let provenance = evaluate_installed_conditional_node(bound, node, &mut evaluation)?;
@@ -136,7 +136,7 @@ fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
     let snapshot_identity = evaluation.snapshot.evidence_identity();
     let mut context =
         WorthQueryConditionalComputeContext::new(super::WorthQueryConditionalComputeContextParts {
-            location: node.lowering.location().clone(),
+            location: node.location.clone(),
             operation_identity: bound.definition().canonical_identity().to_string(),
             binding_identity: bound.binding_identity().to_string(),
             basis_identity: bound.basis().capability_digest().to_string(),
@@ -217,7 +217,7 @@ fn location_matches(
     node: &WorthQueryInstalledConditionalNode,
     scope: WorthQueryConditionalEvaluationScope<'_>,
 ) -> bool {
-    match (node.lowering.location(), scope) {
+    match (&node.location, scope) {
         (
             worth_query_installation::facade::WorthQueryConditionalNodeLocation::Operation {
                 ..

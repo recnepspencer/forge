@@ -1,6 +1,6 @@
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct BridgeConditionalComparisonWork {
-    portable_foundational_comparisons: u32,
+    bridge_contract_comparisons: u32,
     liveness_checks: u32,
     correspondences_inspected: u32,
     targets_inspected: u32,
@@ -11,8 +11,8 @@ pub struct BridgeConditionalComparisonWork {
 }
 
 impl BridgeConditionalComparisonWork {
-    pub const fn portable_foundational_comparisons(self) -> u32 {
-        self.portable_foundational_comparisons
+    pub const fn bridge_contract_comparisons(self) -> u32 {
+        self.bridge_contract_comparisons
     }
     pub const fn liveness_checks(self) -> u32 {
         self.liveness_checks
@@ -36,10 +36,9 @@ impl BridgeConditionalComparisonWork {
         self.bridge_affinity_dimensions_inspected
     }
 
-    pub(super) fn record_portable(&mut self, comparisons: u32) {
-        self.portable_foundational_comparisons = self
-            .portable_foundational_comparisons
-            .saturating_add(comparisons);
+    pub(super) fn record_bridge_contract(&mut self, comparisons: u32) {
+        self.bridge_contract_comparisons =
+            self.bridge_contract_comparisons.saturating_add(comparisons);
     }
     pub(super) fn inspect_liveness(&mut self) {
         self.liveness_checks = self.liveness_checks.saturating_add(1);

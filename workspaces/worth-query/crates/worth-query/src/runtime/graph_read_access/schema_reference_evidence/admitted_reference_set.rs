@@ -6,7 +6,7 @@ use super::admitted_reference_rows::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedQuerySchemaReferences {
     read_graph_digest: String,
-    schema_basis_digest: String,
+    schema_basis_digest: CanonicalDigestId,
     root: String,
     relations: Vec<WorthQueryAdmittedGraphReadRelation>,
     projections: Vec<WorthQueryAdmittedGraphReadProjectionField>,
@@ -19,7 +19,7 @@ impl WorthQueryAdmittedQuerySchemaReferences {
         &self.read_graph_digest
     }
 
-    pub fn schema_basis_digest(&self) -> &str {
+    pub const fn schema_basis_digest(&self) -> &CanonicalDigestId {
         &self.schema_basis_digest
     }
 
@@ -46,7 +46,7 @@ impl WorthQueryAdmittedQuerySchemaReferences {
     pub(crate) fn digest_parts(&self) -> Vec<String> {
         let mut parts = vec![
             format!("read_graph:{}", self.read_graph_digest),
-            format!("schema_basis:{}", self.schema_basis_digest),
+            format!("schema_basis:{}", self.schema_basis_digest.render_hex()),
             format!("root:{}", self.root),
         ];
         parts.extend(self.relations.iter().map(|row| row.digest_part()));
@@ -58,7 +58,7 @@ impl WorthQueryAdmittedQuerySchemaReferences {
 
     pub(crate) fn new(
         read_graph_digest: impl Into<String>,
-        schema_basis_digest: impl Into<String>,
+        schema_basis_digest: CanonicalDigestId,
         root: impl Into<String>,
         relations: Vec<WorthQueryAdmittedGraphReadRelation>,
         projections: Vec<WorthQueryAdmittedGraphReadProjectionField>,
@@ -67,7 +67,7 @@ impl WorthQueryAdmittedQuerySchemaReferences {
     ) -> Self {
         Self {
             read_graph_digest: read_graph_digest.into(),
-            schema_basis_digest: schema_basis_digest.into(),
+            schema_basis_digest,
             root: root.into(),
             relations,
             projections,
@@ -76,3 +76,4 @@ impl WorthQueryAdmittedQuerySchemaReferences {
         }
     }
 }
+use worth_foundational::facade::CanonicalDigestId;

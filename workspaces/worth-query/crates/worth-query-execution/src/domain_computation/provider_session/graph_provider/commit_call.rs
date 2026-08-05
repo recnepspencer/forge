@@ -85,7 +85,6 @@ pub(in crate::domain_computation::provider_session) struct WorthQueryGraphCommit
 pub struct WorthQueryGraphCommitCall {
     authority_identity: WorthQueryGraphCallAuthorityIdentity,
     call_identity: Arc<str>,
-    provider_session_identity: Arc<str>,
     spec: WorthQueryGraphCommitCallSpec,
     execution_resources: WorthQueryExecutionResourceAttemptEvidence,
     resource_envelope: Arc<WorthQueryExecutionResourceEnvelope>,
@@ -121,7 +120,6 @@ impl WorthQueryGraphCommitCall {
         Ok(Self {
             authority_identity,
             call_identity,
-            provider_session_identity: Arc::from(session.identity()),
             spec,
             execution_resources: execution_resources.clone(),
             resource_envelope,
@@ -177,10 +175,6 @@ impl WorthQueryGraphCommitCall {
 
     pub(super) fn call_identity(&self) -> &str {
         &self.call_identity
-    }
-
-    pub(super) fn provider_session_identity(&self) -> &str {
-        &self.provider_session_identity
     }
 
     pub(super) fn commit_authority_identity(&self) -> (u64, TypeId) {

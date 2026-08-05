@@ -76,8 +76,15 @@ impl WorthQueryLiveGraphReadAccessPlan {
         }
         Ok(Self::new(
             one_shot.digest(),
-            one_shot.admission().requirement_set().access_shape_digest(),
-            one_shot.graph_index_support().requirement_set_digest(),
+            one_shot
+                .admission()
+                .requirement_set()
+                .access_shape_digest()
+                .render_hex(),
+            one_shot
+                .graph_index_support()
+                .requirement_set_digest()
+                .render_hex(),
             posture,
             maintenance_budget,
             mutation_delta_scope,

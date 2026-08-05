@@ -7,15 +7,28 @@ use super::{WorthQueryExecutionRuntime, WorthQueryRuntimeAuthorityIdentity};
 /// authorizes installed provider closure and provider-call binding.
 pub struct WorthQueryExecutionInstallationAuthority {
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+    installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
 }
 
 impl WorthQueryExecutionInstallationAuthority {
-    pub(crate) fn new(runtime_authority: WorthQueryRuntimeAuthorityIdentity) -> Self {
-        Self { runtime_authority }
+    pub(crate) fn new(
+        runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
+    ) -> Self {
+        Self {
+            runtime_authority,
+            installation_runtime,
+        }
     }
 
     pub(crate) fn belongs_to(&self, runtime: &WorthQueryExecutionRuntime) -> bool {
         self.runtime_authority == runtime.authority_identity()
+    }
+
+    pub(crate) fn installation_runtime(
+        &self,
+    ) -> &worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity {
+        &self.installation_runtime
     }
 }
 
@@ -26,8 +39,14 @@ pub struct WorthQueryExecutionRuntimeInstallation {
 }
 
 impl WorthQueryExecutionRuntimeInstallation {
-    pub(crate) fn new(runtime: WorthQueryExecutionRuntime) -> Self {
-        let authority = WorthQueryExecutionInstallationAuthority::new(runtime.authority_identity());
+    pub(crate) fn new(
+        runtime: WorthQueryExecutionRuntime,
+        installation_runtime: worth_query_installation::facade::WorthQueryInstallationRuntimeIdentity,
+    ) -> Self {
+        let authority = WorthQueryExecutionInstallationAuthority::new(
+            runtime.authority_identity(),
+            installation_runtime,
+        );
         Self { runtime, authority }
     }
 

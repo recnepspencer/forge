@@ -67,7 +67,7 @@ where
             checkpoint: checkpoint.clone(),
             resource: resource.clone(),
             temporal: temporal.clone(),
-            telemetry: telemetry.clone(),
+            telemetry: *telemetry,
         }
     }
 }

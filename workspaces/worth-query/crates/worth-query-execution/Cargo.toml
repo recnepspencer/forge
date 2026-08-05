@@ -12,11 +12,12 @@ worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-relational = { path = "../../../../crates/worth-relational" }
 worth-runtime-bridge = { path = "../../../../crates/worth-runtime-bridge" }
 worth-query-admission = { path = "../worth-query-admission" }
+worth-query-declaration = { path = "../worth-query-declaration" }
 worth-query-installation = { path = "../worth-query-installation" }
 
 [dev-dependencies]
+serde_json = "1"
 stats_alloc = "0.1"
-worth-query-declaration = { path = "../worth-query-declaration" }
 
 [lints]
 workspace = true

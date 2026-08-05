@@ -1,226 +1,162 @@
 # Graph Touch Obligation Authority
 
-Graph touch obligation authority is Query's public model for deciding which
-graph obligations apply to a graph-shaped operation.
-
-It exists so consumers do not build local validator tables, local legality
-graphs, or command-adjacent callback piles to remember which checks must run.
-Most runtimes can traverse a DAG or run callbacks near graph operations. This
-feature does something stronger: Query turns declared graph meaning into
-runtime obligations with evidence.
-
-Use it when the operation is graph-shaped and the real question is not just
-"what nodes are connected?" but "what does this graph touch require before the
-operation is honest in this operating world?"
-
-The ordinary path is:
-
-```text
-touch descriptor + operating world descriptor + obligation index
-  -> selected obligations
-  -> dispatch plan
-  -> runtime executor verdict
-  -> receipt, trace, support row, and diagnostic evidence
-```
-
 ## What This Feature Is
 
-A graph touch names the graph shape a Query operation is trying to access or
-mutate. It can include entity kinds, relation kinds, authority lanes, branch or
-preview posture, read shape, live retention, aspect reads or writes, ownership
-movement, traversal breadth, and other touch facts that are relevant to
-obligation selection.
+Graph obligation authority records the graph work required by an installed
+application query or operation. Query derives that sealed meaning from typed
+application contracts and carries it through selection, planning, execution,
+and terminal evidence. Application callers do not register obligations or
+attach callbacks to a graph mutation.
 
-Graph Touch Obligation Authority lets you move graph semantics out of callers
-and into Query's runtime contract. Use it when you need graph checks selected
-from declared touch meaning, obligation behavior that changes between
-authoritative, preview, branch, live-read, policy-aware mutation, construction,
-and downstream adoption worlds, or budget-aware execution that can deny with
-`BudgetExceeded` before broad state load.
+Use this feature when you need to inspect why an installed query or operation
+requires graph reads, authorization observations, mutation touches, effects,
+or invariant execution.
 
-This applies to graph-bearing writes and graph-bearing reads. Read-family,
-live-read, preview, branch, construction, operator-catalog, and policy-aware
-lanes are part of the authority model when they carry covered graph meaning.
+## Why You Use It
 
-An operating world descriptor names where the touch is being evaluated:
-authoritative workspace, branch, preview, runtime-backed test workspace, or a
-future admitted world. It is part of the selector input. A branch-local graph
-touch is not automatically equivalent to an authoritative graph touch.
-
-An obligation index is the Query-owned registry of graph obligations. It is the
-place consumers register domain obligations and the place Query derives the
-dispatch plan from. This index is not a host-local lookup cache and not an
-optional performance helper.
+- Keep required graph work attached to the installed query or operation.
+- Make the required lower owners and terminal evidence inspectable.
+- Prevent selection or a support declaration from masquerading as execution.
+- Preserve resource, effect, and warm-work accounting across the whole
+  application progression.
 
 ## Stable Entry Points
 
-Use the public facade and graph-obligation modules rather than local ceremony:
+- Declare application queries and operations through `worth_query_declaration`.
+- Inspect `installed_query.graph_obligations()` or
+  `installed_operation.graph_obligations()` through
+  `worth_query_host::facade::domain`.
+- Produce downstream read-only evidence with
+  `worth_query_host::facade::inspect_installed_graph_obligations(...)`.
+- Execute through the ordinary application runtime, which owns selection,
+  planning, session progression, and terminal construction.
 
-- graph touch descriptor builders and inspected descriptor evidence
-- operating world descriptor builders and world support posture
-- graph obligation registration declarations
-- graph obligation selector coverage reports
-- graph obligation support rows and support pinning
-- graph obligation dispatch envelopes
-- graph obligation executor verdicts and in-memory proof workspaces
-- graph obligation adoption manifests and residue manifests
+There is no public obligation registry, executor, manual invariant callback,
+or caller-created dispatch envelope.
 
-The exact type names can evolve with the public facade, but those jobs must
-remain Query-owned. If a consumer cannot perform one of these jobs through the
-facade, that is a product gap, not permission to invent a private authority.
+## Core Mental Model
 
-The feature sits across adjacent surfaces:
+Every installed query or operation owns one non-empty sealed obligation set.
+Each row says:
 
-- graph composition authors graph-shaped mutations
-- read composition and live views declare graph-shaped access
-- intent admission carries selected obligation evidence through execution lanes
-- support matrix rows say whether each lane is supported, unsupported,
-  diagnostic-only, not applicable, or deferred
-- Consumer Kit proves downstream adoption and residue honestly
+- what kind of work is required;
+- which lower owner must provide evidence;
+- which installed contract selected it;
+- its resource and effect posture; and
+- which terminal proves completion.
 
-## Obligation Kinds
+The current kinds are:
 
-Graph obligation support and certification rows must use the same obligation
-kind vocabulary everywhere:
+- `GraphRead`;
+- `AuthorizationObservation`;
+- `MutationTouch`;
+- `EffectApplication`; and
+- `InvariantExecution`.
 
-- `BlockingInvariant`
-- `SchemaContractValidator`
-- `AdvisoryObligation`
-- `PreflightSequencingObligation`
-- `CapabilityGapScreen`
-- `OperatingContextGate`
+Selection is deterministic installed lookup. It carries no execution
+authority. A terminal exists only after the selected row reaches its real
+owner and the session consumes that owner's evidence.
 
-These names are semantic. A `BlockingInvariant` is not merely a hard error. A
-`CapabilityGapScreen` is not merely a validator that happens to deny. A
-`OperatingContextGate` is not a branch flag check. The kind tells Query how the
-obligation participates in admission, execution, diagnostics, and support
-posture.
+## How It Executes
 
-Canonical kind labels are `blocking-invariant`,
-`schema-contract-validator`, `advisory-obligation`,
-`preflight-sequencing-obligation`, `capability-gap-screen`, and
-`operating-context-gate`.
+```text
+installed query or operation
+  -> sealed obligation set
+  -> intent-specific selection
+  -> requirement, cost, budget, and capacity admission
+  -> branch- and basis-bound session
+  -> Relational / Runtime Bridge / Signal / installed-provider work
+  -> read or commit terminal
+  -> read-only publication and inspection
+```
 
-## Support Statuses
+Relational owns graph truth and exact invariant mechanics. Runtime Bridge owns
+installed neutral correspondence and crossing evidence. Signal owns policy
+evaluation evidence. Query owns their legal composition and the typed
+progression; it does not recreate the lower decisions.
 
-Graph obligation support rows use the same support status vocabulary as the
-certification and support matrix surfaces:
+## Small Example
 
-- `Supported`
-- `Unsupported`
-- `NotApplicable`
-- `DiagnosticOnly`
-- `DeferredToBackstop`
+```rust
+use worth_query_host::facade::inspect_installed_graph_obligations;
 
-`DiagnosticOnly` means Query can explain the touch and selected obligation but
-does not claim authoritative enforcement. `DeferredToBackstop` means the
-ordinary graph obligation lane did not own the final decision and the docs must
-name the backstop honestly.
+let proof = inspect_installed_graph_obligations(
+    "audit-service",
+    installed_query.graph_obligations(),
+)?;
 
-Canonical support status labels are `supported`, `unsupported`,
-`not-applicable`, `diagnostic-only`, and `deferred-to-backstop`.
+for row in proof.rows() {
+    println!("{:?} requires {:?}", row.kind(), row.required_owners());
+}
+```
 
-## Covered Lanes
+The returned proof is an inspection snapshot. It cannot select, plan, execute,
+validate, commit, or publish.
 
-The graph touch obligation hostile certification matrix and public docs use the
-same covered lane vocabulary:
+## Real Example
 
-- graph composition
-- authoritative command batch
-- scalar mutation
-- effect-triggered write intent
-- declaration entry
-- contribution orchestration
-- read family
-- live read
-- preview mutation
-- preview intent
-- branch intent
-- policy-aware graph mutation
-- primitive construction birth
-- worth-topo operator catalog
-- worth-kernel phase chain
+An application query with one installed graph read produces one `GraphRead`
+row. That row names `RelationalGraph` as its required owner and
+`GraphReadProduct` as its terminal requirement. Query binds the row's installed
+graph to the specialized graph-read review, reserves capacity, opens one
+managed session, and consumes the read through the session-owned port.
 
-Canonical covered lane labels are `graph-composition`,
-`authoritative-command-batch`, `scalar-mutation`,
-`effect-triggered-write-intent`, `declaration-entry`,
-`contribution-orchestration`, `read-family`, `live-read`,
-`preview-mutation`, `preview-intent`, `branch-intent`,
-`policy-aware-graph-mutation`, `primitive-construction-birth`,
-`worth-topo-operator-catalog`, and `worth-kernel-phase-chain`.
+The executable public proof is
+`worth-query-host/tests/canonical_graph_progression.rs`.
 
-These lanes are authority surfaces, not implementation conveniences. A support
-row may be `NotApplicable` or `DeferredToBackstop` for a lane, but it must not
-hide the lane behind a generic "batch", "operator", or "validator" label.
+An application mutation may install several rows. Query must obtain the
+complete authorization facts, build proposed state, execute every selected
+installed invariant through its real provider, and compare-and-commit before a
+commit publication receipt can exist.
 
-## Execution And Budgets
+## How It Relates To Other Features
 
-Selection is deterministic and bounded by descriptor data plus the obligation
-index. Execution is budgeted runtime work. Large graph and boolean-like
-operations must never be documented as unbounded automatic execution.
+- [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
+  owns the complete cross-surface model and migration map.
+- [Graph Read Access Planning](graph-read-access-planning.md) owns specialized
+  access requirements, budgets, and plan review for a `GraphRead` row.
+- [Provisional State And Invariant Execution](../domain-capabilities/provisional-state-and-invariant-execution.md)
+  owns real installed invariant execution.
+- [Graph Composition Authoring](graph-composition-authoring.md) remains a
+  generic workspace mutation feature. It does not select or execute installed
+  application obligations.
 
-Budget accounting must expose:
+## Inspection And Debugging
 
-- `BudgetExceeded` for denied budget overflow
-- `budget-exceeded` as the canonical execution-status label
-- state-load counters for executor state reads
-- cost classes such as `sparse-topology` for each planned obligation and
-  executor step
-- artifact-policy-gated diagnostics for expensive evidence
+Inspect:
 
-The escape hatch for a denied budget is not "try harder locally." Consumers can
-ask for a smaller touch, a different admitted world, a more explicit selector,
-a stronger support pin, or an artifact policy that permits the required
-diagnostic evidence. They cannot bypass Query by running private graph walks and
-calling the result equivalent.
+- set identity and installed subject;
+- row slot, kind, owners, selection basis, and terminal requirement;
+- installation row count and fixed selector-index size;
+- selection probes and exact-zero warm canonical work;
+- admitted plan and session identities; and
+- actual terminal work and cleanup receipts.
 
-## Consumer Contract
-
-The Consumer Kit is the ordinary downstream adoption path for graph obligation
-work. It must cover registration, selector coverage, support pinning,
-in-memory execution proof, bypass audit, adoption manifests, and residue
-manifests.
-
-When a downstream crate adopts graph obligations, it should be able to prove:
-
-- every supported obligation is registered through Query
-- every relevant touch descriptor has selector coverage
-- every depended-on support posture is pinned by obligation kind, support lane,
-  expected status, and budget digest where the consumer depends on a specific
-  execution budget
-- every proof test can run in a real in-memory Query workspace
-- execution-backed adoption proof connects selected obligations to real
-  executor rows and a manifest execution proof digest
-- every local bypass or local ceremony residue is visible in an audit
-- every adoption manifest names what was moved into Query
-- every residue manifest names what remains, why it remains, and whether it is
-  compatibility-only or a product gap
+If a selected row has no actual owner evidence, execution is incomplete. Do
+not infer completion from a selected kind, support row, callback return, or
+formatted receipt.
 
 ## Anti-Patterns
 
-- local validator maps keyed by node kind or relation kind
-- recursive graph walks that rediscover the same touch facts per operation
-- treating manual invariant packs as the primary covered graph obligation path
-- treating this as a DAG traversal helper instead of an obligation authority
-- unbounded graph expansion hidden behind "automatic index provisioning"
-- support rows that name a family but not the covered obligation kinds
-- test receipts or diagnostics that are fabricated without executor verdicts
-- treating branch, preview, and authoritative worlds as the same selector input
+- Consumer-owned obligation registries or validator tables.
+- Manual invariant packs beside installed provider execution.
+- Local graph walks used to replace a typed denial.
+- Selection-backed fake executor verdicts.
+- Public constructors for requirement, review, plan, session, or terminal
+  products.
+- Treating branch, preview, and current evidence as interchangeable.
 
-Manual invariant packs are compatibility/custom extension surfaces, not the
-primary covered graph obligation path.
+## Current Limits
 
-Graph read access planning owns derived access requirements, typed admission or
-denial, runtime-owned support rows, and receipt-backed no-N+1 proof for declared
-graph-shaped reads. It does not replace graph touch obligation authority. Read
-access planning changes how access structures are admitted and proved, not
-whether graph obligations belong to Query.
+- Read-only adoption is inspection, not an extension or execution API.
+- Generic workspace read and graph-composition engines remain supported for
+  their existing responsibilities.
+- Durability, restart recovery, multiple branch heads, and concurrent branch
+  writers are outside this feature.
 
 ## Related Docs
 
-- [Graph Obligation Consumer Kit](graph-obligation-consumer-kit.md)
+- [Canonical Graph Obligation Progression](../domain-capabilities/canonical-graph-obligation-progression.md)
+- [Graph Read Access Planning](graph-read-access-planning.md)
 - [Graph Composition Authoring](graph-composition-authoring.md)
-- [Intent Admission](../execution/intent-admission.md)
-- [Writes And Intent Boundaries](../execution/writes-and-intents.md)
-- [Branches And Previews](../foundations/branches-and-previews.md)
-- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Provider Sessions And Decision Read-Sets](../domain-capabilities/provider-sessions-and-decision-read-sets.md)

@@ -265,7 +265,7 @@ fn closure_digest(
         _ => panic!("Hadwiger aspect closure basis is built from stable literal fields"),
     };
     let ready = match CanonicalDigestFrontDoor
-        .for_sequence(sequence, CanonicalDigestAlgorithmId::test_stable_fixture())
+        .for_sequence(sequence, CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("Hadwiger aspect closure digest algorithm is a stable literal"),

@@ -44,19 +44,13 @@ fn milestone_312_phase4_native_source_rebind_is_the_only_ordinary_mutation_root(
 }
 
 #[test]
-fn milestone_312_phase4_protocol_guarantees_survive_current_protocol_evolution() {
+fn milestone_312_phase4_protocol_guarantees_survive_current_v5_evolution() {
     let envelope = workspace_source_inventory()
         .text("apps/platform-pulse/src/observation_contract/envelope.rs");
-    let current = envelope
-        .lines()
-        .find(|line| line.contains("PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 ="))
-        .and_then(|line| line.rsplit_once('='))
-        .and_then(|(_, value)| value.trim().trim_end_matches(';').parse::<u16>().ok())
-        .expect("current lifecycle schema version should remain explicit");
-    assert!(current >= 5, "3.12 protocol guarantees cannot regress");
-    assert!(envelope.contains(&format!("CompleteV{current}")));
+    assert!(envelope.contains("PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 5"));
+    assert!(envelope.contains("CompleteV5"));
     assert!(envelope.contains("InheritedLifecycleOnly"));
-    assert!(envelope.contains(&format!("schema_version @ 2..={}", current - 1)));
+    assert!(envelope.contains("schema_version @ 2..=4"));
     assert!(!envelope.contains("failure-artifact.v1"));
     let failure = workspace_source_inventory()
         .text("apps/platform-pulse/tests/executable_world/failure_teardown/retained_artifact.rs");

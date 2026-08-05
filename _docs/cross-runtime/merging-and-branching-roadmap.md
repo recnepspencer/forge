@@ -128,6 +128,49 @@ governed resolution. They may not create conflict identity, participant
 authority, durable decision state, branch-aware carry-forward, or resolution
 session recovery.
 
+Query Milestone 9.16 may establish linear current-head undo and redo through a
+freshly admitted inverse or compensating operation. Query Milestone 9.17 may
+preserve that same linear aftermath contract when advanced access or bulk
+execution participated. Neither milestone owns branch selection, branch-local
+inversion, branch-shaped redo, history navigation, merge interaction, or
+branch-aware recovery, and neither may create a placeholder API, directory,
+support posture, or dormant authority for those capabilities.
+
+## Branch-Aware Reversal And Redo Ownership
+
+Branch-aware reversal is a semantic-history operation, not a richer mode on a
+Query-local undo stack. It must name the exact source commit, admitted target
+branch and head generation, semantic-world and definition basis, canonical
+change being inverted or reapplied, current actor authority and policy,
+applicability against intervening history, conflict and invariant posture,
+publication plan, and recovery meaning.
+
+The capability enters through this roadmap in dependency order:
+
+- Milestone 3 owns the canonical commit, parent, branch, reference, and
+  compare-and-publish truth needed to identify the source and target history.
+- Milestone 4 owns lawful semantic inversion and reapplication as new canonical
+  changes, including non-invertible, revalidation-required, and
+  conflict-requiring posture. It never erases or moves existing history by
+  implication.
+- Milestones 7 and 8 own aspect-, relationship-, topology-, and
+  invariant-sensitive interaction with intervening branch changes.
+- Milestones 10 and 11 own governed conflict resolution and durable
+  multi-participant sessions when reversal or reapplication is not
+  automatically applicable.
+- Milestones 13 and 14 own cross-runtime publication, effect fate,
+  acknowledgment, indeterminate outcome, and recovery.
+- Milestone 15 owns the ordinary Query-facing branch-aware reversal, redo, and
+  history-navigation product surface over those completed authorities.
+- Milestone 22 owns hostile certification across divergence, merge, crash,
+  authority drift, and Store-backed restart.
+
+A Milestone 9.16 linear receipt or redo intent may later be readmitted as
+descriptive source evidence. It cannot mint a branch basis, canonical inverse,
+reference update, merge decision, publication capability, or recovery
+authority. Until the owning milestones above close, the supported Query
+surface remains explicitly linear and current-head only.
+
 ## Governing Summaries
 
 - `MENTALITY.md` protects adversarial-first, foundation-first construction. Its
@@ -758,6 +801,12 @@ path/value patch would discard exactly the meaning later merge policy needs.
   typed non-invertible and revalidation-required posture
 - scoped diff planning that declares bases, aspect/relationship selection,
   correspondence requirements, and materialization needs before execution
+- branch-local reversal and reapplication plans bound to an exact source
+  commit, admitted target head generation, canonical source change, current
+  authority and policy, and applicability against intervening history
+- typed cleanly-applicable, revalidation-required, conflict-requiring,
+  non-invertible, stale-head, and unavailable reversal or reapplication
+  posture
 - separate authoritative diff and derived impact/explanation artifacts
 - summary indexes that narrow candidate scope without becoming diff authority
 - query-shaped diff projection that preserves the full underlying semantic
@@ -786,6 +835,9 @@ changes with basis and ambiguity intact.
   identity, policy, conflict, and invariant drift reject or replan typed
 - composed changes preserve the final semantic world and provenance of their
   ordered source changes
+- branch-local reversal and reapplication create new canonical changes and
+  commits, preserve the original history, and agree with an independent
+  history oracle under intervening disjoint and conflicting changes
 - direct diff equals accumulated canonical commit effects after normalization
 - narrow diff work scales with candidate semantic delta plus declared
   dependency closure, not total graph size
@@ -1508,6 +1560,11 @@ projections over the real lower-authority model built in Milestones 1 through
   basis, tag/reference policy, mutation, fast-forward classification, true
   merge planning, conflict preview, resolution session, publication, and
   post-merge inspection workflows
+- branch-aware reversal and redo declarations that select exact source and
+  target history, expose applicability/conflict/invariant posture before
+  publication, create new canonical changes rather than rewriting history, and
+  use the same governed publication and recovery progression as other branch
+  operations
 - specialization-neutral governed-resolution authoring, inspection, proposal,
   approval, deferral, replan, cancellation, recovery, and publication
   projection over the Milestones 10-14 authorities
@@ -1543,6 +1600,8 @@ losing access to advanced plan and recovery detail.
   witness, conflict, outcome, and recovery identity
 - hostile tests prove Query cannot synthesize basis, strategy, merge,
   publication, or recovery authority
+- linear Query aftermath receipts cannot be promoted directly into
+  branch-aware reversal, redo, reference movement, or publication authority
 - ergonomic helpers are projections over one canonical workflow, not parallel
   execution paths
 - documentation, goldens, support matrices, inventories, and compile-fail
@@ -2019,6 +2078,10 @@ uncertified strategy behavior.
 - both branches add and remove aspect definitions, migrate populated aspects,
   replace node logic, change invariants and merge policies, split and join
   identities, restructure relationships, and modify large ordered topologies
+- users reverse and reapply selected historical changes onto diverged branch
+  heads; clean inversions publish as new commits while overlapping changes
+  enter the same typed conflict, invariant, and governed-resolution path as
+  other semantic branch work
 - ten readers remain pinned across historical bases while four writers per
   branch submit overlapping and disjoint work and global invariants force only
   narrow real coordination
@@ -2161,6 +2224,9 @@ This roadmap is complete only when WORTH can honestly say:
   creating Store-owned merge semantics
 - Query is the ordinary semantic-Git facade without becoming a second truth or
   merge engine
+- branch-aware reversal and redo are canonical new-history operations with
+  exact source/target bases, current authority, conflict handling, publication,
+  and recovery rather than extensions of a local linear undo stack
 - offline work crosses trust boundaries through capsules, quarantine, causal
   identity, migration, and fresh readmission
 - CRDT behavior is opt-in, law-proven, invariant-honest, and bounded

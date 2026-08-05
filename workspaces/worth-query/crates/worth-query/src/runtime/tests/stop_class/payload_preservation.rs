@@ -31,65 +31,6 @@ fn unsupported_facade_family_stop_class_preserves_denied_family_and_reason() {
 }
 
 #[test]
-fn graph_domain_invariant_stop_class_preserves_hook_and_invariant_families() {
-    let graph_domain_denial = WorthQueryGraphCompositionDomainInvariantDenial::from_contributed(
-        "graph.family",
-        "first graph domain invariant wording",
-        WorthQueryGraphCompositionDomainInvariantSummary::from_parts(
-            vec!["Task".to_string()],
-            vec!["task_symbol".to_string()],
-            vec!["same_batch_entity_relation_identity_edges".to_string()],
-            vec!["mixed_existing_target_followup_mutation".to_string()],
-            graph_domain_fixture_digest("program"),
-            graph_domain_fixture_digest("breadth"),
-            "components=1".to_string(),
-        ),
-    );
-    let reworded = WorthQueryGraphCompositionDomainInvariantDenial::from_contributed(
-        "graph.family",
-        "second graph domain invariant wording",
-        graph_domain_denial.domain_invariant_summary().clone(),
-    );
-    let first_digest = graph_domain_denial.denial_digest().to_string();
-    let second_digest = reworded.denial_digest().to_string();
-    let first_error =
-        WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(graph_domain_denial);
-    let second_error = WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(reworded);
-
-    for error in [&first_error, &second_error] {
-        match error.stop_class() {
-            WorthQueryStopClass::GraphCompositionDomainInvariantDenied { denial } => {
-                assert_eq!(denial.hook_family(), "domain_invariant_pack_hook");
-                assert_eq!(denial.invariant_family(), "graph.family");
-            }
-            other => panic!("expected graph domain invariant stop class, got {other:?}"),
-        }
-    }
-    assert_ne!(first_error.to_string(), second_error.to_string());
-    assert_eq!(
-        first_digest, second_digest,
-        "graph domain invariant denial digest must not change when only message text changes"
-    );
-}
-
-fn graph_domain_fixture_digest(
-    role: &'static str,
-) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
-    crate::evidence_identity::worth_query_evidence_identity(
-        crate::evidence_identity::WorthQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("role"),
-        "payload-graph-domain-fixture",
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("fixture"),
-        role,
-    )
-    .seal()
-}
-
-#[test]
 fn preview_promotion_stop_class_preserves_kind_and_evidence() {
     let mut runtime = WorthQueryRuntime::builder()
         .runtime_bridge(test_bridge())

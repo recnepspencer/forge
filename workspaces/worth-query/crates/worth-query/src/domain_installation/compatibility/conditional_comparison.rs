@@ -49,6 +49,7 @@ pub(super) fn compare_conditional_continuity<D, O, F, L: BasisOperationLane>(
         .zip(candidate.conditional_nodes())
     {
         counters.conditional_lowerings_compared += 1;
+        compare_query_conditional_meaning(subject, candidate, counters)?;
         match subject
             .lowering
             .compare_semantic_continuity(&candidate.lowering)
@@ -82,6 +83,7 @@ pub(super) fn compare_conditional_affinity<D, O, F, L: BasisOperationLane>(
         .zip(candidate.conditional_nodes())
     {
         counters.conditional_lowerings_compared += 1;
+        compare_query_conditional_meaning(subject, candidate, counters)?;
         match subject
             .lowering
             .compare_execution_affinity(&candidate.lowering)
@@ -100,6 +102,35 @@ pub(super) fn compare_conditional_affinity<D, O, F, L: BasisOperationLane>(
         }
     }
     Ok(WorthQueryConditionalAffinityEvidence { _items: items })
+}
+
+fn compare_query_conditional_meaning(
+    subject: &crate::domain_installation::WorthQueryInstalledConditionalNode,
+    candidate: &crate::domain_installation::WorthQueryInstalledConditionalNode,
+    counters: &mut WorthQueryCompatibilityCounters,
+) -> Result<(), WorthQueryCompatibilityDenial> {
+    use worth_query_installation::facade::WorthQueryPortableConditionalComparisonOutcome;
+    match worth_query_installation::facade::compare_portable_conditional_node_declarations(
+        &subject.declaration,
+        &candidate.declaration,
+    ) {
+        WorthQueryPortableConditionalComparisonOutcome::Equivalent(evidence) => {
+            counters.conditional_foundational_comparisons += evidence.comparison_count() as usize;
+            Ok(())
+        }
+        WorthQueryPortableConditionalComparisonOutcome::Mismatched(mismatch) => {
+            counters.conditional_foundational_comparisons += mismatch.comparison_count() as usize;
+            Err(WorthQueryCompatibilityDenial::installed_conditional_mismatch(mismatch, *counters))
+        }
+        WorthQueryPortableConditionalComparisonOutcome::Unsupported(mismatch) => {
+            counters.conditional_foundational_comparisons += mismatch.comparison_count() as usize;
+            Err(
+                WorthQueryCompatibilityDenial::installed_conditional_unsupported(
+                    mismatch, *counters,
+                ),
+            )
+        }
+    }
 }
 
 fn require_conditional_width<D, O, F, L: BasisOperationLane>(
@@ -122,8 +153,7 @@ fn record_owner_work(
     work: worth_runtime_bridge::facade::BridgeConditionalComparisonWork,
     counters: &mut WorthQueryCompatibilityCounters,
 ) {
-    counters.conditional_foundational_comparisons +=
-        work.portable_foundational_comparisons() as usize;
+    counters.conditional_bridge_contract_comparisons += work.bridge_contract_comparisons() as usize;
     counters.conditional_liveness_checks += work.liveness_checks() as usize;
     counters.conditional_correspondences_inspected += work.correspondences_inspected() as usize;
     counters.conditional_targets_inspected += work.targets_inspected() as usize;

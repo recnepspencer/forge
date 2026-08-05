@@ -7,6 +7,8 @@ use super::{
 };
 use crate::domain_installation::WorthQueryInstalledOperationGraphBinding;
 
+mod bridge_correspondence;
+
 type InstalledOperationMarker<D, O, F> = fn() -> (D, O, F);
 
 #[derive(Debug)]
@@ -60,79 +62,6 @@ impl<D, O, F> WorthQueryInstalledDomainOperation<D, O, F> {
 
     pub const fn lookup_counters(&self) -> WorthQueryInstalledDomainOperationLookupCounters {
         self.lookup_counters
-    }
-
-    pub(crate) fn semantic_correspondence_candidate<G: 'static>(
-        &self,
-        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
-        dependency_ordinal: usize,
-        graph: &super::super::WorthQueryInstalledGraphParticipation<G>,
-        source_record_identity: Option<
-            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
-        >,
-    ) -> Result<
-        worth_runtime_bridge::facade::BridgeSemanticDependencyCandidate,
-        worth_runtime_bridge::facade::BridgeCorrespondenceDenial,
-    > {
-        if !self.domain_authority.is_current_installation_generation() {
-            return Err(
-                worth_runtime_bridge::facade::BridgeCorrespondenceDenial::without_admission(
-                    worth_runtime_bridge::facade::BridgeCorrespondenceDenialKind::StaleQueryInstallation,
-                ),
-            );
-        }
-        let query_dependency = self
-            .operation_authority
-            .conditional_dependency(location, dependency_ordinal)
-            .map_err(|_| {
-                worth_runtime_bridge::facade::BridgeCorrespondenceDenial::without_admission(
-                    worth_runtime_bridge::facade::BridgeCorrespondenceDenialKind::PortableDependencyNotOwnedByOperation,
-                )
-            })?;
-        let dependency = query_dependency.dependency();
-        let graph_role = dependency.graph_read_role().as_str();
-        let graph_binding = self.graph_bindings.iter().find(|binding| {
-            binding.role == graph_role && binding.graph_marker == std::any::TypeId::of::<G>()
-        });
-        if graph_binding.is_none()
-            || graph.record.definition.role != graph_role
-            || graph.record.runtime_authority != self.domain_authority.runtime_authority().as_u64()
-        {
-            return Err(
-                worth_runtime_bridge::facade::BridgeCorrespondenceDenial::without_admission(
-                    worth_runtime_bridge::facade::BridgeCorrespondenceDenialKind::GraphParticipationNotOwnedByOperation,
-                ),
-            );
-        }
-        worth_runtime_bridge::facade::BridgeSemanticDependencyCandidate::from_query_authority(
-            query_dependency,
-            Arc::clone(&graph.record.installation_authority),
-            source_record_identity,
-        )
-    }
-
-    pub fn semantic_correspondence_registration<G: 'static>(
-        &self,
-        location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
-        dependency_ordinal: usize,
-        graph: &super::super::WorthQueryInstalledGraphParticipation<G>,
-        source_record_identity: Option<
-            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
-        >,
-        targets: Vec<worth_runtime_bridge::facade::BridgeSignalAspectTargetDeclaration>,
-    ) -> Result<
-        worth_runtime_bridge::facade::BridgeSemanticCorrespondenceRegistration,
-        worth_runtime_bridge::facade::BridgeCorrespondenceDenial,
-    > {
-        let dependency = self.semantic_correspondence_candidate(
-            location,
-            dependency_ordinal,
-            graph,
-            source_record_identity,
-        )?;
-        worth_runtime_bridge::facade::BridgeSemanticCorrespondenceRegistration::new(
-            dependency, targets,
-        )
     }
 
     pub(crate) fn domain_authority(&self) -> &Arc<WorthQueryInstalledDomainAuthority> {

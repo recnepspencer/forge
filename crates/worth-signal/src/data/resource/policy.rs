@@ -54,8 +54,9 @@ impl ResourcePolicyName {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceRetryPolicyDeclaration {
+    #[default]
     Disabled,
     FixedDelay {
         delay: TemporalDuration,
@@ -77,14 +78,9 @@ pub enum ResourceRetryPolicyDeclaration {
     },
 }
 
-impl Default for ResourceRetryPolicyDeclaration {
-    fn default() -> Self {
-        Self::Disabled
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceTimeoutPolicyDeclaration {
+    #[default]
     Disabled,
     TransactionInheritedDeadline,
     RuntimeInheritedDeadline,
@@ -115,71 +111,56 @@ pub enum ResourceTimeoutPolicyDeclaration {
     },
 }
 
-impl Default for ResourceTimeoutPolicyDeclaration {
-    fn default() -> Self {
-        Self::Disabled
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceCancellationPolicyDeclaration {
     RuntimeDenialOnly,
+    #[default]
     BestEffortHostSignalAndRuntimeDenial,
-    Named { name: ResourcePolicyName },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceCancellationPolicyDeclaration {
-    fn default() -> Self {
-        Self::BestEffortHostSignalAndRuntimeDenial
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceStaleAfterPolicyDeclaration {
+    #[default]
     Disabled,
-    RuntimeStaleAfter { stale_after: TemporalDuration },
-    Named { name: ResourcePolicyName },
+    RuntimeStaleAfter {
+        stale_after: TemporalDuration,
+    },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceStaleAfterPolicyDeclaration {
-    fn default() -> Self {
-        Self::Disabled
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceSupersessionPolicyDeclaration {
+    #[default]
     NewGenerationSupersedesPrior,
     OverlappingGenerationRetainsOldHostWork,
     OverlappingGenerationCancelsOldHostWork,
     IntentEquivalentCoalescesToActive,
-    Named { name: ResourcePolicyName },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceSupersessionPolicyDeclaration {
-    fn default() -> Self {
-        Self::NewGenerationSupersedesPrior
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceObservationPolicyDeclaration {
     LifecycleOnly,
+    #[default]
     LifecycleAndOutput,
     LifecycleOutputAndDeniedCompletion,
     LifecycleOutputAndRetrySchedule,
     LifecycleOutputAndDeniedCompletionAndRetrySchedule,
-    Named { name: ResourcePolicyName },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceObservationPolicyDeclaration {
-    fn default() -> Self {
-        Self::LifecycleAndOutput
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceRevalidationPolicyDeclaration {
+    #[default]
     ExplicitIntentOnly,
     ExplicitOrActiveHandleForced,
     ExplicitOrStaleAfterFulfilled,
@@ -194,47 +175,37 @@ pub enum ResourceRevalidationPolicyDeclaration {
     ExplicitOrTerminalStateOrActiveHandleForced,
     ExplicitOrFulfilledLifecycle,
     ExplicitOrFulfilledLifecycleOrActiveHandleForced,
-    Named { name: ResourcePolicyName },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceRevalidationPolicyDeclaration {
-    fn default() -> Self {
-        Self::ExplicitIntentOnly
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceOutputContinuityPolicyDeclaration {
+    #[default]
     PreserveLifecycleOutputSeparation,
     HideWhilePending,
     HideAfterRejection,
     HideAfterTimeout,
     HideAfterCancellation,
     HideAfterSupersession,
-    Named { name: ResourcePolicyName },
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
-impl Default for ResourceOutputContinuityPolicyDeclaration {
-    fn default() -> Self {
-        Self::PreserveLifecycleOutputSeparation
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceRetentionPolicyDeclaration {
     RetainAllTransitions,
+    #[default]
     RetainOperationalLifecycleSummary,
     TerminalSummariesOnly,
     CompactSuperseded,
     CompactCancelled,
     CompactTimedOut,
-    Named { name: ResourcePolicyName },
-}
-
-impl Default for ResourceRetentionPolicyDeclaration {
-    fn default() -> Self {
-        Self::RetainOperationalLifecycleSummary
-    }
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -261,7 +232,7 @@ impl Default for ResourceDiagnosticsPolicyDeclaration {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ResourceReplayPolicyDeclaration {
     IdenticalOnly,
     CompatibleParameterExpansion,
@@ -269,16 +240,13 @@ pub enum ResourceReplayPolicyDeclaration {
     CompatibleDiagnosticsRichnessChange,
     CompatibleParameterExpansionAndRetentionNarrowing,
     CompatibleParameterExpansionAndDiagnosticsRichnessChange,
+    #[default]
     CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange,
     CompatibleRetentionNarrowingAndDiagnosticsRichnessChange,
     DenyOnUnknownOrMissing,
-    Named { name: ResourcePolicyName },
-}
-
-impl Default for ResourceReplayPolicyDeclaration {
-    fn default() -> Self {
-        Self::CompatibleParameterExpansionAndRetentionNarrowingAndDiagnosticsRichnessChange
-    }
+    Named {
+        name: ResourcePolicyName,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

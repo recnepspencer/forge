@@ -23,7 +23,9 @@ impl<'runtime, 'graph> BridgeSignalGraphBinding<'runtime, 'graph> {
         graph: &'graph mut SignalGraph,
     ) -> Result<Self, BridgeCorrespondenceRebindRequired> {
         let graph_instance_id = graph.installed_graph_capability().graph_instance_id();
-        if let Some(registered_graph) = runtime.query_dependency_registry.signal_graph_instance_id()
+        if let Some(registered_graph) = runtime
+            .semantic_dependency_registry
+            .signal_graph_instance_id()
         {
             if registered_graph != graph_instance_id {
                 return Err(BridgeCorrespondenceRebindRequired::SignalGraphGeneration);

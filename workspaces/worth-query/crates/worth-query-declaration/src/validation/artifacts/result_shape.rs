@@ -43,7 +43,7 @@ pub fn build_validated_result_shape_artifact(
             "canonical_result_shape:{}",
             canonical_result_shape.digest().as_str()
         ),
-        format!("schema_basis:{}", schema_basis.as_str()),
+        format!("schema_basis:{}", schema_basis.render_support_hex()),
     ];
     parts.extend(
         bindings

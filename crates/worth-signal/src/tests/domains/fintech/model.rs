@@ -290,7 +290,7 @@ fn bucket_series(
 }
 
 fn sample_window(seed: u64, salt: u64, windows: &[ProbabilityWindow; 3]) -> i64 {
-    let roll = (mix(seed ^ salt) % windows.iter().map(|w| w.weight).sum::<u64>()) as u64;
+    let roll = mix(seed ^ salt) % windows.iter().map(|w| w.weight).sum::<u64>();
     let mut acc = 0_u64;
     let mut selected = windows[0];
     for window in windows {

@@ -9,13 +9,6 @@ pub use work::{
 
 use std::sync::Arc;
 
-use worth_foundational::facade::CanonicalMismatchBasis;
-use worth_query_installation::facade::{
-    compare_portable_conditional_node_declarations,
-    WorthQueryPortableConditionalComparisonEquivalent,
-    WorthQueryPortableConditionalComparisonOutcome, WorthQueryPortableConditionalDimension,
-};
-
 use super::BridgeInstalledConditionalLowering;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -37,43 +30,19 @@ pub enum BridgeConditionalLoweringAdmissionError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BridgeConditionalContinuityMismatch {
     CandidateLoweringNotLive,
-    PortableDeclarationMismatched {
-        dimension: WorthQueryPortableConditionalDimension,
-        foundational: CanonicalMismatchBasis,
-    },
-    PortableDeclarationUnsupported {
-        dimension: WorthQueryPortableConditionalDimension,
-        foundational: CanonicalMismatchBasis,
-    },
+    ConditionalContract,
     Location,
     CorrespondenceCount,
-    DependencyOrdinal {
-        ordinal: usize,
-    },
-    DependencyMeaning {
-        ordinal: usize,
-    },
-    DependencySource {
-        ordinal: usize,
-    },
-    GraphAdapter {
-        ordinal: usize,
-    },
-    SourceProfile {
-        ordinal: usize,
-    },
-    TargetCount {
-        ordinal: usize,
-    },
-    TargetMeaning {
-        ordinal: usize,
-        target: usize,
-    },
+    DependencyOrdinal { ordinal: usize },
+    DependencyMeaning { ordinal: usize },
+    DependencySource { ordinal: usize },
+    GraphAdapter { ordinal: usize },
+    SourceProfile { ordinal: usize },
+    TargetCount { ordinal: usize },
+    TargetMeaning { ordinal: usize, target: usize },
     Signal(worth_signal::facade::SignalConditionalSemanticMismatch),
     ProviderAdmission,
-    ProviderSemanticContract {
-        role: BridgeConditionalProviderRole,
-    },
+    ProviderSemanticContract { role: BridgeConditionalProviderRole },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -81,7 +50,7 @@ pub enum BridgeConditionalExecutionAffinityMismatch {
     Continuity(BridgeConditionalContinuityMismatch),
     CurrentLoweringNotLive,
     BridgeRuntime,
-    QueryCorrespondenceAuthority { ordinal: usize },
+    SourceCorrespondenceAuthority { ordinal: usize },
     GraphAuthority { ordinal: usize },
     GraphParticipationAuthority { ordinal: usize },
     SignalGraphBinding { ordinal: usize },
@@ -110,7 +79,6 @@ pub struct BridgeLiveConditionalLowering {
 pub struct BridgeConditionalLoweringContinuity {
     current: BridgeConditionalLoweringRetention,
     candidate: BridgeLiveConditionalLowering,
-    _portable: WorthQueryPortableConditionalComparisonEquivalent,
     work: BridgeConditionalComparisonWork,
 }
 
@@ -167,35 +135,13 @@ impl BridgeInstalledConditionalLowering {
                 work,
             )
         })?;
-        let portable = match compare_portable_conditional_node_declarations(
-            &self.declaration,
-            &candidate.declaration,
-        ) {
-            WorthQueryPortableConditionalComparisonOutcome::Equivalent(evidence) => {
-                work.record_portable(evidence.comparison_count());
-                evidence
-            }
-            WorthQueryPortableConditionalComparisonOutcome::Mismatched(mismatch) => {
-                work.record_portable(mismatch.comparison_count());
-                return Err(BridgeConditionalContinuityDenial::new(
-                    BridgeConditionalContinuityMismatch::PortableDeclarationMismatched {
-                        dimension: mismatch.dimension().clone(),
-                        foundational: mismatch.foundational_basis().clone(),
-                    },
-                    work,
-                ));
-            }
-            WorthQueryPortableConditionalComparisonOutcome::Unsupported(unsupported) => {
-                work.record_portable(unsupported.comparison_count());
-                return Err(BridgeConditionalContinuityDenial::new(
-                    BridgeConditionalContinuityMismatch::PortableDeclarationUnsupported {
-                        dimension: unsupported.dimension().clone(),
-                        foundational: unsupported.foundational_basis().clone(),
-                    },
-                    work,
-                ));
-            }
-        };
+        work.record_bridge_contract(1);
+        if self.contract != candidate.contract {
+            return Err(BridgeConditionalContinuityDenial::new(
+                BridgeConditionalContinuityMismatch::ConditionalContract,
+                work,
+            ));
+        }
         if self.location != candidate.location {
             return Err(BridgeConditionalContinuityDenial::new(
                 BridgeConditionalContinuityMismatch::Location,
@@ -228,7 +174,6 @@ impl BridgeInstalledConditionalLowering {
         Ok(BridgeConditionalLoweringContinuity {
             current: current_retention,
             candidate: candidate_liveness,
-            _portable: portable,
             work,
         })
     }

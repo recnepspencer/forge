@@ -100,14 +100,16 @@ impl UiLiveCollectionProjection {
         )
     }
 
-    pub(crate) fn certification_row_identities(&self) -> Vec<crate::UiQueryEvidenceReference> {
+    pub(crate) fn certification_row_identities(&self) -> Vec<String> {
         self.consumer
             .rows()
             .iter()
             .map(|row| {
-                crate::UiQueryEvidenceReference::query_issued(
+                crate::UiQueryIdentityReportingProjection::from_query_identity(
                     &row.entity_identity().evidence_identity(),
                 )
+                .as_str()
+                .to_owned()
             })
             .collect()
     }

@@ -21,6 +21,7 @@ use worth_runtime_bridge::facade::BridgeAdmittedWritebackExecution;
 use worth_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
 
 use super::{WorthQueryBackendInspectionError, WorthQueryBackendMergeAuthority};
+use super::{WorthQueryPrimaryGraphBackendHandle, WorthQueryUnpublishedPrimaryGraphRuntime};
 
 use crate::runtime::{
     WorthQueryBackendAdmissibleMutation, WorthQueryEffectPolicy,
@@ -48,6 +49,32 @@ pub fn runtime_subscription_support_evidence_identity(
 
 pub trait WorthQueryRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile;
+
+    /// Transfers an unpublished Relational runtime into execution-owned
+    /// primary-graph installation.
+    ///
+    /// The default denial makes custom backends incapable of accidentally
+    /// claiming support for a construction protocol they do not implement.
+    #[doc(hidden)]
+    fn surrender_unpublished_primary_graph_runtime(
+        &mut self,
+    ) -> Result<WorthQueryUnpublishedPrimaryGraphRuntime, WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend cannot surrender an unpublished primary graph runtime",
+        ))
+    }
+
+    /// Attaches the opaque shared handle only after execution publishes the
+    /// primary graph.
+    #[doc(hidden)]
+    fn attach_primary_graph_runtime(
+        &mut self,
+        _runtime: WorthQueryPrimaryGraphBackendHandle,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        Err(WorthQueryWorkspaceError::new(
+            "this runtime backend cannot attach an execution-owned primary graph",
+        ))
+    }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
         super::unavailable_snapshot_identity()

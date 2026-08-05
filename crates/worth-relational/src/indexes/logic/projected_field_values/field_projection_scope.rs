@@ -22,18 +22,8 @@ pub(super) enum EntityIndexFieldProjectionScope {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum RelationIndexFieldProjectionScope {
-    ScalarAspect {
-        kind_id: KindId,
-        aspect_key: AspectKey,
-        projection_scope: ProjectionAspectScope,
-    },
-    StructField {
-        kind_id: KindId,
-        aspect_key: AspectKey,
-        field: FieldKey,
-        projection_scope: ProjectionAspectScope,
-    },
+pub(super) struct RelationIndexFieldProjectionScope {
+    kind_id: KindId,
 }
 
 impl EntityIndexFieldProjectionScope {
@@ -69,32 +59,7 @@ impl EntityIndexFieldProjectionScope {
 
 impl RelationIndexFieldProjectionScope {
     pub(super) const fn kind_id(&self) -> KindId {
-        match self {
-            Self::ScalarAspect { kind_id, .. } | Self::StructField { kind_id, .. } => *kind_id,
-        }
-    }
-
-    pub(super) fn projection_scope(&self) -> ProjectionAspectScope {
-        match self {
-            Self::ScalarAspect {
-                projection_scope, ..
-            }
-            | Self::StructField {
-                projection_scope, ..
-            } => projection_scope.clone(),
-        }
-    }
-
-    pub(super) fn projected_value<'a>(
-        &self,
-        record: crate::logic::runtime::RelationProjectionRecord<'a>,
-    ) -> Option<&'a AspectValue> {
-        match self {
-            Self::ScalarAspect { aspect_key, .. } => record.aspect_value(aspect_key),
-            Self::StructField {
-                aspect_key, field, ..
-            } => record.aspect_field_value(aspect_key, field),
-        }
+        self.kind_id
     }
 }
 
@@ -164,22 +129,10 @@ fn relation_index_projection_scope(
 ) -> Option<RelationIndexFieldProjectionScope> {
     let field = single_field_locator_key(field_locator)?;
     let binding = matching_binding(plan, field_locator)?;
-    if binding.targets_relation_scalar_field(field) {
-        return Some(RelationIndexFieldProjectionScope::ScalarAspect {
+    if binding.targets_relation_scalar_field(field) || binding.targets_relation_struct_field(field)
+    {
+        return Some(RelationIndexFieldProjectionScope {
             kind_id: plan.kind_id,
-            aspect_key: binding.aspect_key().clone(),
-            projection_scope: ProjectionAspectScope::whole_aspects([binding.aspect_key().clone()]),
-        });
-    }
-    if binding.targets_relation_struct_field(field) {
-        return Some(RelationIndexFieldProjectionScope::StructField {
-            kind_id: plan.kind_id,
-            aspect_key: binding.aspect_key().clone(),
-            field: field.clone(),
-            projection_scope: ProjectionAspectScope::fields(
-                binding.aspect_key().clone(),
-                [field.clone()],
-            ),
         });
     }
     None

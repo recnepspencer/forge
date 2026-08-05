@@ -7,11 +7,11 @@ truth. It defines what collection or entity surface you care about, which
 projected aspects belong in the surface, what view shape it uses, and how
 incremental updates should be delivered back to the consumer.
 
-When a live view declares graph-shaped access, Graph Touch Obligation Authority
-is the covered path for graph obligation meaning. The live view defines the
-retained read surface; obligation authority keeps graph checks, diagnostic
-posture, budgets, and evidence aligned with the declared touch instead of
-asking consumers to maintain separate local graph validators.
+An installed application query that supports live execution uses the same
+installed `GraphRead` obligation, canonical graph-read plan, and managed
+session spine as its one-shot and historical lanes. The live view adds retained
+delivery, overflow, close, and cleanup behavior; it does not select a second
+obligation set.
 
 Graph Read Access Planning is the accountability lane for the access structures
 behind that same graph-shaped live read. If a live view needs adjacency,
@@ -28,8 +28,8 @@ behind a retained view.
   mutation noise
 - you need a retained surface that computed state, effects, preview sessions,
   and inspection can all reuse
-- you need live-read graph obligations to use the same support, budget, and
-  evidence vocabulary as other graph-bearing Query lanes
+- you need an installed application live query to preserve the same graph plan,
+  branch, basis, and terminal evidence as its other lanes
 
 ## Stable Entry Points
 

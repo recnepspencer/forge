@@ -150,7 +150,7 @@ fn derive_canonical_bridge_causal_digest(
         }
     };
     let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(bundle, CanonicalDigestAlgorithmId::test_stable_fixture())
+        .for_bundle(bundle, CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(ready) => ready,
         outcome => panic!("bridge causal envelope digest derivation should succeed: {outcome:?}"),

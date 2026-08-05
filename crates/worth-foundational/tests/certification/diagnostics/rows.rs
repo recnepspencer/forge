@@ -177,7 +177,7 @@ fn family_distinct_rows_stay_blind_consumer_interpretable() {
         FoundationalDiagnosticEvidencePosture::Reconstructed,
     );
 
-    let rows = vec![
+    let rows = [
         FoundationalDiagnosticRow::Decision(decision.clone()),
         FoundationalDiagnosticRow::Failure(failure.clone()),
         FoundationalDiagnosticRow::Comparison(comparison.clone()),

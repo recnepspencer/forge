@@ -255,6 +255,18 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         proof_tests: &["tests::complexity::contracts::complexity_budget_bidirectional_adjacency_avoids_relation_scans"],
     },
     ComplexityContract {
+        id: "runtime.authorization.observation",
+        function_path: "authorization/evaluation.rs::RelationalRuntime::observe_authorization",
+        declared_time_complexity: "Current snapshot: O(sum(path frontier adjacency degrees + predicate reads)); historical snapshot: O(path steps * visible relations) reconstructive fallback",
+        budget_summary: "Ordinary authorization must stay bounded to actual path frontiers and adjacency while historical re-observation must expose, count, and carry its reconstructive global relation scans.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &[
+            "authorization::tests::actual_snapshot_observation_mints_exact_allow_evidence",
+            "authorization::tests::unrelated_graph_scale_does_not_change_observation_work",
+            "authorization::tests::revocation_changes_only_new_snapshot_authority",
+        ],
+    },
+    ComplexityContract {
         id: "runtime.visible_entities.partition_scan",
         function_path: "storage/logic/introspection.rs::visible_entities_of_kind_in_partition",
         declared_time_complexity: "O(entity_slots_in_partition)",

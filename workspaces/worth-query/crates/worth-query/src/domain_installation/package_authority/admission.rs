@@ -8,11 +8,10 @@ use crate::evidence_identity::{
 };
 
 use super::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
-    WorthQueryDomainOperationGraphParticipationRecord, WorthQueryDomainPackageIdentity,
-    WorthQueryValidatedDomainPackage,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainPackageIdentity, WorthQueryValidatedDomainPackage,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -31,6 +30,9 @@ pub enum WorthQueryDomainPackageAdmissionDenialKind {
     AmbiguousArtifactMigration,
     DeferredArtifactComparator,
     UnsupportedArtifactComparator,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,7 +84,6 @@ pub(crate) struct WorthQueryAdmittedDomainPackage<D: WorthQueryDomainEntryMarker
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
     pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
-    pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
     pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
@@ -134,9 +135,9 @@ pub(crate) fn admit_domain_package_with_artifact_support<D: WorthQueryDomainEntr
                 WorthQueryEvidenceTag::new("configuration"),
                 facade.validated_config().validated_digest(),
             )
-            .field_value(
+            .field_digest(
                 WorthQueryEvidenceTag::new("portable_admission"),
-                portable_package.admission_identity(),
+                portable_package.admission_identity().digest(),
             )
             .seal();
 
@@ -151,7 +152,6 @@ pub(crate) fn admit_domain_package_with_artifact_support<D: WorthQueryDomainEntr
         required_configuration: package.required_configuration,
         operating_requirements: package.operating_requirements,
         invariant_definitions: package.invariant_definitions,
-        graph_obligations: package.graph_obligations,
         graph_read_operations: package.graph_read_operations,
         declaration_families: package.declaration_families,
         domain_operations: package.domain_operations,

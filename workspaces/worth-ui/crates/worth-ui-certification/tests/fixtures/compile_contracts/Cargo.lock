@@ -96,6 +96,7 @@ checksum = "9ed9a281f7bc9b7576e61468ba615a66a5c8cfdff42420a70aa82701a3b1e292"
 dependencies = [
  "block-buffer",
  "crypto-common",
+ "subtle",
 ]
 
 [[package]]
@@ -145,6 +146,26 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+]
+
+[[package]]
+name = "hmac"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
+dependencies = [
+ "digest",
 ]
 
 [[package]]
@@ -301,6 +322,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
 name = "rayon"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -422,6 +449,12 @@ checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
 dependencies = [
  "serde",
 ]
+
+[[package]]
+name = "subtle"
+version = "2.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
@@ -659,6 +692,7 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "sha2",
  "worth-proof",
 ]
 
@@ -731,6 +765,7 @@ dependencies = [
  "sha2",
  "worth-foundational",
  "worth-query-admission",
+ "worth-query-declaration",
  "worth-query-installation",
  "worth-relational",
  "worth-runtime-bridge",
@@ -740,10 +775,14 @@ dependencies = [
 name = "worth-query-installation"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
+ "hmac",
  "sha2",
+ "subtle",
  "worth-foundational",
  "worth-proof",
  "worth-query-declaration",
+ "zeroize",
 ]
 
 [[package]]
@@ -779,7 +818,6 @@ dependencies = [
  "worth-foundational",
  "worth-harness",
  "worth-proof",
- "worth-query-installation",
  "worth-signal",
 ]
 
@@ -868,6 +906,26 @@ name = "worth-ui-test-support"
 version = "0.1.0"
 dependencies = [
  "worth-ui-runtime",
+]
+
+[[package]]
+name = "zeroize"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c50655cbb0fe3fc43170059e702f1ce5e19b84cec58dc87b037a09935c2f328"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
 ]
 
 [[package]]

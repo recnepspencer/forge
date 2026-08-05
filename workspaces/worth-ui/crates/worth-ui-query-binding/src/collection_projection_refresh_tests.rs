@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use crate::{
     scalar_text_projection_fixture::{
         collection_projection_workspace, collection_projection_workspace_without_entity_lookup,
@@ -26,8 +24,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(matches!(
         update.fact().changes(),
         [UiCollectionProjectionChange::Update { row }]
-            if row.identity()
-                == crate::UiQueryEvidenceReference::query_issued(&bravo.evidence_identity())
+            if row.query_identity() == &bravo.evidence_identity()
     ));
     assert_changed_row_cost(&update, 1);
 
@@ -37,8 +34,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(insert.fact().changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Insert { row, .. }
-            if row.identity()
-                == crate::UiQueryEvidenceReference::query_issued(&between.evidence_identity())
+            if row.query_identity() == &between.evidence_identity()
     )));
     assert_changed_row_cost(&insert, 1);
 
@@ -50,8 +46,7 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
     assert!(remove.fact().changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Remove { row, .. }
-            if row.identity()
-                == crate::UiQueryEvidenceReference::query_issued(&between.evidence_identity())
+            if row.query_identity() == &between.evidence_identity()
     )));
     assert_changed_row_cost(&remove, 0);
 
@@ -62,23 +57,20 @@ fn refresh_translates_native_update_insert_remove_and_move_with_query_row_identi
         .changes()
         .iter()
         .map(|change| match change {
-            UiCollectionProjectionChange::Move { row, from, to } => (row.identity(), *from, *to),
+            UiCollectionProjectionChange::Move { row, from, to } => {
+                (row.query_identity().clone(), *from, *to)
+            }
             other => panic!("identity reorder invented a non-move change: {other:?}"),
         })
-        .collect::<BTreeSet<_>>();
-    let expected_moves = BTreeSet::from([
-        (
-            crate::UiQueryEvidenceReference::query_issued(&alpha.evidence_identity()),
-            0,
-            1,
-        ),
-        (
-            crate::UiQueryEvidenceReference::query_issued(&bravo.evidence_identity()),
-            1,
-            0,
-        ),
-    ]);
-    assert_eq!(actual_moves, expected_moves);
+        .collect::<Vec<_>>();
+    let expected_moves = [
+        (alpha.evidence_identity(), 0, 1),
+        (bravo.evidence_identity(), 1, 0),
+    ];
+    assert_eq!(actual_moves.len(), expected_moves.len());
+    assert!(expected_moves
+        .iter()
+        .all(|expected| actual_moves.contains(expected)));
     assert!(changed_values(moved.fact()).is_empty());
     assert_changed_row_cost(&moved, 0);
 }
@@ -222,7 +214,10 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
     let current_alpha = moved_input
         .current_option(&alpha_row)
         .expect("move retains exact alpha identity");
-    assert_eq!(current_alpha.identity(), original_alpha.identity());
+    assert_eq!(
+        current_alpha.query_identity(),
+        original_alpha.query_identity()
+    );
     assert_ne!(
         current_alpha.owner_revision(),
         original_alpha.owner_revision()

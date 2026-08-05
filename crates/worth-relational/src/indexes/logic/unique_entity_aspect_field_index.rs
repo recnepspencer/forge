@@ -101,9 +101,10 @@ fn collect_all_unique_entity_aspect_field_entries(
     crate::identity::data::EntityId,
 )> {
     let mut entries = Vec::new();
+    let source = super::projected_field_values::IndexProjectionSource::Current(projection);
     for field_locator in tracked_fields {
         entries.extend(
-            build_entity_aspect_field_index(runtime, projection, field_locator)
+            build_entity_aspect_field_index(runtime, &source, field_locator)
                 .into_iter()
                 .flat_map(|(value, entity_ids)| {
                     entity_ids

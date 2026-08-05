@@ -24,9 +24,6 @@ pub(super) fn project_scalar_native_key(
         expected_shape: format!("{:?}", key.expected_shape()),
         absence_posture: format!("{:?}", key.absence_posture()),
         lane: format!("{:?}", key.lane()),
-        contract_digest: settled
-            .certification_projection_contract()
-            .contract_digest()
-            .to_owned(),
+        contract_digest: settled.certification_contract_digest(),
     }
 }

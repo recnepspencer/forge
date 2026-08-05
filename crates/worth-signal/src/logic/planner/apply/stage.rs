@@ -69,7 +69,7 @@ fn take_lowered_slot<T>(slot: &mut Option<T>, context: &'static str) -> Result<T
     slot.take().ok_or_else(|| SignalError::internal(context))
 }
 
-pub(in crate::logic::planner) fn apply_stage<F, R>(
+pub(in crate::logic::planner) fn apply_stage<R>(
     graph: &mut SignalGraph,
     summary: &PlanSummary,
     stage: &StageSlice<'_>,
@@ -81,11 +81,6 @@ pub(in crate::logic::planner) fn apply_stage<F, R>(
     stage_record: &mut StageExecutionRecord,
 ) -> Result<(), SignalError>
 where
-    F: Fn(
-            crate::data::handle::NodeId,
-            &crate::logic::prepared::ExecutionReadView<'_>,
-        ) -> Result<crate::logic::prepared::PreparedEvaluation, SignalError>
-        + Sync,
     R: ComparatorPolicyResolver,
 {
     let lowered = build_stage_execution_form(

@@ -97,6 +97,22 @@ pub struct WorthQueryRunningDirectRun {
 }
 
 impl WorthQueryRunningDirectRun {
+    pub(crate) fn graph_work_affinity(
+        &self,
+    ) -> Option<crate::domain_computation::operation_binding::WorthQueryApplicationGraphWorkAffinity>
+    {
+        self.resource_attempt
+            .binding_authority()
+            .graph_work_affinity()
+    }
+
+    pub(crate) fn mutation_resource_release_expectation(&self) -> (&str, usize) {
+        (
+            self.resource_attempt.resources().identity(),
+            self.resource_attempt.retained_capacity_reservation_count(),
+        )
+    }
+
     pub fn identity(&self) -> &str {
         &self.identity
     }

@@ -1,4 +1,5 @@
 pub(crate) mod authority;
+pub(crate) mod branch_scope;
 pub(crate) mod cache_state;
 pub(crate) mod execution_basis;
 pub(crate) mod materialization;

@@ -314,7 +314,7 @@ where
             self.graph.get_state(node)?,
             crate::data::node::NodeState::Clean
         ) {
-            return Ok(self.graph.node_aspect_version(node)?);
+            return self.graph.node_aspect_version(node);
         }
         self.evaluate_with_plan_and_executor(
             node,
@@ -322,7 +322,7 @@ where
             EvaluationRequestMode::Default,
             executor,
         )?;
-        Ok(self.graph.node_aspect_version(node)?)
+        self.graph.node_aspect_version(node)
     }
 
     pub fn read_many<F, O>(

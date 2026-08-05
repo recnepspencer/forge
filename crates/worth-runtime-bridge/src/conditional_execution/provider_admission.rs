@@ -1,22 +1,19 @@
-use worth_query_installation::facade::{
-    WorthQueryArtifactReuseEquivalence, WorthQueryComparatorRequirement,
-    WorthQueryConditionalConditionClass, WorthQueryOutputEquivalenceRequirement,
-    WorthQueryPortableConditionalNodeDeclaration,
-};
-
 use super::provider_semantics::BridgeConditionalProviderSemanticContracts;
-use super::{BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalProviderSet};
+use super::{
+    BridgeConditionalContract, BridgeConditionalDenial, BridgeConditionalDenialKind,
+    BridgeConditionalProviderSet,
+};
 
 #[derive(Clone)]
 pub(super) struct BridgeConditionalProviderAdmission {
-    declaration: WorthQueryPortableConditionalNodeDeclaration,
+    contract: BridgeConditionalContract,
     required_roles: [bool; PROVIDER_DIMENSION_CHECK_COUNT],
     semantic_contracts: BridgeConditionalProviderSemanticContracts,
 }
 
 impl BridgeConditionalProviderAdmission {
-    pub(super) fn declaration(&self) -> &WorthQueryPortableConditionalNodeDeclaration {
-        &self.declaration
+    pub(super) fn contract(&self) -> &BridgeConditionalContract {
+        &self.contract
     }
 
     pub(super) const fn required_roles(&self) -> &[bool; PROVIDER_DIMENSION_CHECK_COUNT] {
@@ -29,37 +26,43 @@ impl BridgeConditionalProviderAdmission {
 }
 
 pub(super) fn admit_provider_set(
-    declaration: &WorthQueryPortableConditionalNodeDeclaration,
+    contract: &BridgeConditionalContract,
     providers: &BridgeConditionalProviderSet,
 ) -> Result<BridgeConditionalProviderAdmission, BridgeConditionalDenial> {
-    let required_roles = [
-        matches!(
-            declaration.condition().class(),
-            WorthQueryConditionalConditionClass::DomainSpecific
-        ),
-        matches!(
-            declaration.dependency_comparator(),
-            WorthQueryComparatorRequirement::Registered(_)
-        ),
-        matches!(
-            declaration.output_equivalence(),
-            WorthQueryOutputEquivalenceRequirement::Registered(_)
-        ),
-        matches!(
-            declaration.artifact_reuse_equivalence(),
-            WorthQueryArtifactReuseEquivalence::Registered(_)
-        ),
-        matches!(
-            declaration.condition().class(),
-            WorthQueryConditionalConditionClass::OnDemand
-        ),
-        matches!(
-            declaration.condition().class(),
-            WorthQueryConditionalConditionClass::Temporal
-        ),
+    let required_roles = required_provider_roles(contract);
+    let present_roles = present_provider_roles(providers);
+    for ((required, present), (missing, extra)) in required_roles
+        .into_iter()
+        .zip(present_roles)
+        .zip(PROVIDER_ROLE_DENIALS)
+    {
+        require_exact(required, present, missing, extra)?;
+    }
+    Ok(BridgeConditionalProviderAdmission {
+        contract: contract.clone(),
+        required_roles,
+        semantic_contracts: providers.semantic_contracts.clone(),
+    })
+}
+
+fn required_provider_roles(
+    contract: &BridgeConditionalContract,
+) -> [bool; PROVIDER_DIMENSION_CHECK_COUNT] {
+    [
+        contract.requires_condition_provider(),
+        contract.requires_dependency_comparator(),
+        contract.requires_output_comparator(),
+        contract.requires_reuse_comparator(),
+        contract.requires_trigger_provider(),
+        contract.requires_wake_provider(),
         true,
-    ];
-    let present_roles = [
+    ]
+}
+
+fn present_provider_roles(
+    providers: &BridgeConditionalProviderSet,
+) -> [bool; PROVIDER_DIMENSION_CHECK_COUNT] {
+    [
         providers.condition.is_some(),
         providers.dependency_comparator.is_some(),
         providers.output_comparator.is_some(),
@@ -67,47 +70,7 @@ pub(super) fn admit_provider_set(
         providers.trigger.is_some(),
         providers.wake.is_some(),
         providers.compute.is_some(),
-    ];
-    let denials = [
-        (
-            BridgeConditionalDenialKind::MissingConditionProvider,
-            BridgeConditionalDenialKind::ExtraConditionProvider,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingDependencyComparator,
-            BridgeConditionalDenialKind::ExtraDependencyComparator,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingOutputComparator,
-            BridgeConditionalDenialKind::ExtraOutputComparator,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingReuseComparator,
-            BridgeConditionalDenialKind::ExtraReuseComparator,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingTriggerProvider,
-            BridgeConditionalDenialKind::ExtraTriggerProvider,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingWakeProvider,
-            BridgeConditionalDenialKind::ExtraWakeProvider,
-        ),
-        (
-            BridgeConditionalDenialKind::MissingComputeProvider,
-            BridgeConditionalDenialKind::ExtraComputeProvider,
-        ),
-    ];
-    for ((required, present), (missing, extra)) in
-        required_roles.into_iter().zip(present_roles).zip(denials)
-    {
-        require_exact(required, present, missing, extra)?;
-    }
-    Ok(BridgeConditionalProviderAdmission {
-        declaration: declaration.clone(),
-        required_roles,
-        semantic_contracts: providers.semantic_contracts.clone(),
-    })
+    ]
 }
 
 fn require_exact(
@@ -130,3 +93,35 @@ fn require_exact(
 }
 
 pub(super) const PROVIDER_DIMENSION_CHECK_COUNT: usize = 7;
+
+const PROVIDER_ROLE_DENIALS: [(BridgeConditionalDenialKind, BridgeConditionalDenialKind);
+    PROVIDER_DIMENSION_CHECK_COUNT] = [
+    (
+        BridgeConditionalDenialKind::MissingConditionProvider,
+        BridgeConditionalDenialKind::ExtraConditionProvider,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingDependencyComparator,
+        BridgeConditionalDenialKind::ExtraDependencyComparator,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingOutputComparator,
+        BridgeConditionalDenialKind::ExtraOutputComparator,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingReuseComparator,
+        BridgeConditionalDenialKind::ExtraReuseComparator,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingTriggerProvider,
+        BridgeConditionalDenialKind::ExtraTriggerProvider,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingWakeProvider,
+        BridgeConditionalDenialKind::ExtraWakeProvider,
+    ),
+    (
+        BridgeConditionalDenialKind::MissingComputeProvider,
+        BridgeConditionalDenialKind::ExtraComputeProvider,
+    ),
+];

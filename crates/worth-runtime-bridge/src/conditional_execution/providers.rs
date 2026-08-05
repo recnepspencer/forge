@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration;
-
 use super::provider_semantics::{
     BridgeConditionalProviderSemanticContracts, BridgeErasedProviderSemanticContract,
 };
@@ -79,7 +77,6 @@ impl BridgeConditionalSemanticObservation {
 pub trait BridgeConditionalConditionProvider: Send + Sync + 'static {
     fn resolve(
         &self,
-        declaration: &WorthQueryPortableConditionalNodeDeclaration,
         context: BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String>;
 }
@@ -100,7 +97,6 @@ pub trait BridgeConditionalTriggerProvider: Send + Sync + 'static {
 pub trait BridgeConditionalWakeProvider: Send + Sync + 'static {
     fn resolve(
         &self,
-        declaration: &WorthQueryPortableConditionalNodeDeclaration,
         context: BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String>;
 }

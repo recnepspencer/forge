@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::domain_computation::provider_session::{
     WorthQueryFreshDecisionReadSet, WorthQuerySessionEffectAuthority,
 };
-use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryProvisionalProposalBasis {
@@ -34,6 +33,7 @@ pub struct WorthQueryProvisionalProposalBasisParts {
 
 impl WorthQueryProvisionalProposalBasis {
     pub(crate) fn new(
+        identity: impl Into<Arc<str>>,
         parts: WorthQueryProvisionalProposalBasisParts,
     ) -> Result<Self, super::WorthQueryProvisionalFailure> {
         let text = [
@@ -54,18 +54,6 @@ impl WorthQueryProvisionalProposalBasis {
                 "proposal basis fields must be non-empty canonical text",
             ));
         }
-        let identity = hash_parts(&[
-            "worth_query_provisional_proposal_basis_v1".to_owned(),
-            parts.source_occurrence.clone(),
-            parts.search_occurrence.clone(),
-            parts.candidate_identity.clone(),
-            parts.transformation_evidence.clone(),
-            parts.semantic_basis_identity.clone(),
-            parts.target_generation.to_string(),
-            parts.installed_policy_identity.clone(),
-            parts.correspondence_identity.clone(),
-            parts.identity_consequence_identity.clone(),
-        ]);
         Ok(Self {
             identity: identity.into(),
             source_occurrence: parts.source_occurrence.into(),
@@ -120,7 +108,8 @@ impl WorthQuerySessionEffectAuthority<'_> {
                 "proposal does not belong to the exact session and semantic basis",
             ));
         }
-        let proposal = WorthQueryProvisionalProposalBasis::new(parts)?;
+        let proposal =
+            WorthQueryProvisionalProposalBasis::new(read_set.read_set_identity(), parts)?;
         if proposal
             .dimensions()
             .into_iter()

@@ -130,8 +130,8 @@ impl WorthUiScalarTextOperatingWorldGateway<'_> {
 }
 
 impl WorthUiPreparedScalarTextConsumer {
-    pub(crate) fn binding_reference(&self) -> crate::UiQueryBindingReference {
-        crate::UiQueryBindingReference::query_issued(self.bound.binding_identity())
+    pub(crate) fn binding_identity_for_reporting(&self) -> &str {
+        self.bound.binding_identity()
     }
 
     #[allow(
@@ -339,10 +339,13 @@ impl WorthUiSettledScalarTextProjection {
     }
 
     #[cfg(any(test, feature = "certification-construction"))]
-    pub(crate) fn certification_projection_contract(
-        &self,
-    ) -> &worth_query::facade::foundation::MaterializedProjectionContract {
-        self.settled.authority().contract()
+    pub(crate) fn certification_contract_digest(&self) -> String {
+        crate::reporting_projection::scalar_contract_digest_for_reporting(self)
+    }
+
+    #[cfg(any(test, feature = "certification-construction"))]
+    pub(crate) fn certification_settled_projection(&self) -> &Settled {
+        &self.settled
     }
 
     #[cfg(any(test, feature = "certification-construction"))]

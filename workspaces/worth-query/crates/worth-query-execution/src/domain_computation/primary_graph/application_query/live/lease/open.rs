@@ -1,0 +1,408 @@
+use std::marker::PhantomData;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use worth_query_declaration::facade::{
+    application_capability::ApplicationCapabilityRequest,
+    application_query::{ApplicationQueryLiveCauseBinding, ApplicationQueryParameterSet},
+    application_schema::ApplicationSchema,
+};
+use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
+
+use super::super::{
+    controls::WorthQueryApplicationLiveControls,
+    outcome::{WorthQueryApplicationLiveOpenDenial, WorthQueryApplicationLiveOpenDenialKind},
+    scope_identity::read_scope_identity,
+};
+use super::validation::{
+    open_admission_denial, open_denial, open_read_denial, validate_live_binding,
+    validate_live_resource_controls,
+};
+use super::WorthQueryApplicationLiveLease;
+use crate::domain_computation::{
+    managed_run::{
+        admit_managed_lower_execution_basis, WorthQueryManagedLowerBinding,
+        WorthQueryManagedLowerExecutionBasis, WorthQueryManagedTruthReadRequest,
+    },
+    primary_graph::{
+        application_query::{
+            admission::prepare_governed_access,
+            authorized_read::{execute_authorized_read, refresh_governed_authorization},
+            disclosure::WorthQueryPendingApplicationQueryGovernance,
+            WorthQueryApplicationProjection, WorthQueryApplicationQueryAccessContext,
+            WorthQueryApplicationQueryControls,
+        },
+        live_delivery::WorthQueryLiveCauseQueue,
+        WorthQueryApplicationEntityIdentity, WorthQueryAuthenticatedPrincipal,
+        WorthQueryPrimaryGraphApplicationRuntime,
+    },
+};
+
+static NEXT_APPLICATION_QUERY_LIVE_LEASE: AtomicU64 = AtomicU64::new(1);
+
+struct WorthQueryApplicationLiveOpenRequest<
+    'principal,
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+> {
+    query: WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+    principal: &'principal WorthQueryAuthenticatedPrincipal<Schema, Principal, PrincipalIdentity>,
+    scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
+    parameters: ApplicationQueryParameterSet<Query>,
+    controls: WorthQueryApplicationLiveControls,
+    pending_governance: Option<WorthQueryPendingApplicationQueryGovernance>,
+}
+
+struct WorthQueryApplicationLiveInitialRead {
+    governance: crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
+    scope_identity: worth_foundational::facade::AspectValue,
+    graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    read_proof: crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof,
+    initial_read_work: crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork,
+    basis_release: worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt,
+}
+
+impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
+where
+    Schema: ApplicationSchema,
+{
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_application_query_live<
+        'runtime,
+        'principal,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Target,
+        Binding,
+    >(
+        &'runtime self,
+        query: WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+        principal: &'principal WorthQueryAuthenticatedPrincipal<
+            Schema,
+            Principal,
+            PrincipalIdentity,
+        >,
+        scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
+        parameters: ApplicationQueryParameterSet<Query>,
+        controls: WorthQueryApplicationLiveControls,
+    ) -> Result<
+        WorthQueryApplicationLiveLease<
+            'runtime,
+            'principal,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            Target,
+            Binding,
+        >,
+        WorthQueryApplicationLiveOpenDenial,
+    >
+    where
+        QueryResult: WorthQueryApplicationProjection<Schema, Query>,
+        Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
+    {
+        self.open_application_query_live_with_governance::<
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            Target,
+            Binding,
+        >(WorthQueryApplicationLiveOpenRequest {
+            query,
+            principal,
+            scope,
+            parameters,
+            controls,
+            pending_governance: None,
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_governed_application_query_live<
+        'runtime,
+        'principal,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Target,
+        Binding,
+        Capability,
+        Operation,
+        Input,
+    >(
+        &'runtime self,
+        query: WorthQueryInstalledApplicationQuery<Schema, Query, Parameters, QueryResult, Scope>,
+        principal: &'principal WorthQueryAuthenticatedPrincipal<
+            Schema,
+            Principal,
+            PrincipalIdentity,
+        >,
+        scope: WorthQueryApplicationEntityIdentity<Schema, Scope>,
+        capability: crate::domain_computation::authorization::WorthQueryAdmittedApplicationCapabilityAccess<
+            Schema,
+            Capability,
+            Operation,
+            Input,
+        >,
+        parameters: ApplicationQueryParameterSet<Query>,
+        controls: WorthQueryApplicationLiveControls,
+    ) -> Result<
+        WorthQueryApplicationLiveLease<
+            'runtime,
+            'principal,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            Target,
+            Binding,
+        >,
+        WorthQueryApplicationLiveOpenDenial,
+    >
+    where
+        QueryResult: WorthQueryApplicationProjection<Schema, Query>,
+        Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
+        Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>,
+    {
+        let access = WorthQueryApplicationQueryAccessContext::new(principal, &scope);
+        let query_controls = WorthQueryApplicationQueryControls::current_live(
+            controls.maximum_materialized_record_count(),
+            controls.maximum_work_per_delivery(),
+            controls.request(),
+        );
+        let pending = prepare_governed_access(self, &query, &access, capability, &query_controls)
+            .map_err(open_admission_denial)?;
+        self.open_application_query_live_with_governance::<
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            Target,
+            Binding,
+        >(WorthQueryApplicationLiveOpenRequest {
+            query,
+            principal,
+            scope,
+            parameters,
+            controls,
+            pending_governance: Some(pending),
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn open_application_query_live_with_governance<
+        'runtime,
+        'principal,
+        Query,
+        Parameters,
+        QueryResult,
+        Principal,
+        PrincipalIdentity,
+        Scope,
+        Target,
+        Binding,
+    >(
+        &'runtime self,
+        request: WorthQueryApplicationLiveOpenRequest<
+            'principal,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+        >,
+    ) -> Result<
+        WorthQueryApplicationLiveLease<
+            'runtime,
+            'principal,
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Principal,
+            PrincipalIdentity,
+            Scope,
+            Target,
+            Binding,
+        >,
+        WorthQueryApplicationLiveOpenDenial,
+    >
+    where
+        QueryResult: WorthQueryApplicationProjection<Schema, Query>,
+        Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
+    {
+        let live = validate_live_binding::<
+            Schema,
+            Query,
+            Parameters,
+            QueryResult,
+            Scope,
+            Target,
+            Binding,
+        >(&request.query)?;
+        validate_live_resource_controls(live, &request.controls, request.query.name())?;
+        let access =
+            WorthQueryApplicationQueryAccessContext::new(request.principal, &request.scope);
+        let query_controls = WorthQueryApplicationQueryControls::current_live(
+            request.controls.maximum_materialized_record_count(),
+            request.controls.maximum_work_per_delivery(),
+            request.controls.request(),
+        );
+        let (admitted_parameters, query_controls) = self
+            .prepare_application_query_admission(
+                &request.query,
+                &access,
+                request.parameters.clone(),
+                query_controls,
+            )
+            .map_err(open_admission_denial)?;
+        let plan = self
+            .finish_application_query_admission(
+                &request.query,
+                &access,
+                admitted_parameters,
+                query_controls,
+                request.pending_governance,
+            )
+            .map_err(open_admission_denial)?;
+        let initial_read = execute_live_initial_read(self, plan, request.query.name())?;
+        let basis =
+            admit_live_managed_basis(self, live, &initial_read.graph_work, request.query.name())?;
+        Ok(WorthQueryApplicationLiveLease {
+            runtime: self,
+            query: request.query,
+            principal: request.principal,
+            scope: request.scope,
+            parameters: request.parameters,
+            controls: request.controls,
+            governance: initial_read.governance,
+            scope_identity: initial_read.scope_identity,
+            basis: Some(basis),
+            graph_work: Some(initial_read.graph_work),
+            read_proof: Some(initial_read.read_proof),
+            initial_read_work: Some(initial_read.initial_read_work),
+            basis_release: Some(initial_read.basis_release),
+            read_completion: None,
+            queue: WorthQueryLiveCauseQueue::open(&self.primary_provider.live_delivery),
+            _target: PhantomData,
+            _thread_affinity: PhantomData,
+        })
+    }
+}
+
+fn execute_live_initial_read<
+    Schema,
+    Query,
+    Parameters,
+    QueryResult,
+    Principal,
+    PrincipalIdentity,
+    Scope,
+>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    mut plan: crate::domain_computation::primary_graph::application_query::WorthQueryAdmittedApplicationQueryPlan<
+        '_, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, Scope,
+    >,
+    subject: &str,
+) -> Result<WorthQueryApplicationLiveInitialRead, WorthQueryApplicationLiveOpenDenial>
+where
+    Schema: ApplicationSchema,
+{
+    refresh_governed_authorization(application, &mut plan)
+        .map_err(|denial| open_read_denial(denial, subject))?;
+    application.runtime.primary_graph().ok_or_else(|| {
+        open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
+            subject,
+        )
+    })?;
+    let ((scope_identity, initial_read_work), _, read_proof) =
+        execute_authorized_read(application, &plan, read_scope_identity)
+            .map_err(|denial| open_read_denial(denial, subject))?;
+    let governance = plan.take_governance();
+    let basis_release = plan.basis.release();
+    if !basis_release.released() {
+        return Err(open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::BasisReleaseFailed,
+            subject,
+        ));
+    }
+    Ok(WorthQueryApplicationLiveInitialRead {
+        governance,
+        scope_identity,
+        graph_work: plan.graph_work,
+        read_proof,
+        initial_read_work,
+        basis_release,
+    })
+}
+
+fn admit_live_managed_basis<Schema>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    live: &worth_query_installation::facade::WorthQueryInstalledApplicationLiveContract,
+    graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    subject: &str,
+) -> Result<WorthQueryManagedLowerExecutionBasis, WorthQueryApplicationLiveOpenDenial> {
+    let version = application
+        .primary_provider
+        .graph
+        .with_runtime(|runtime| {
+            runtime
+                .history()
+                .latest_commit()
+                .map(|head| head.version_id)
+        })
+        .ok_or_else(|| {
+            open_denial(
+                WorthQueryApplicationLiveOpenDenialKind::ProviderVersionUnavailable,
+                subject,
+            )
+        })?;
+    let attempt = NEXT_APPLICATION_QUERY_LIVE_LEASE.fetch_add(1, Ordering::Relaxed);
+    let attempt_identity = format!("application-query-live:{attempt}");
+    let binding =
+        WorthQueryManagedLowerBinding::new(subject, &attempt_identity, live.resource_envelope());
+    let request = WorthQueryManagedTruthReadRequest::new(
+        version,
+        graph_work.branch().truth().clone(),
+        worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
+    );
+    let request_bridge = application.bridge.fork_managed_request_lane();
+    admit_managed_lower_execution_basis(
+        &request_bridge,
+        &application.relational_source,
+        binding,
+        request,
+    )
+    .map_err(|failure| {
+        open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::BridgeBasisRejected,
+            failure.detail.as_ref(),
+        )
+    })
+}

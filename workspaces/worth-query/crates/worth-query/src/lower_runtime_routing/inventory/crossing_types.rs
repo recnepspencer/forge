@@ -81,7 +81,6 @@ impl WorthQueryLowerRuntimeArtifactStrength {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryLowerRuntimeSeamKey {
     ComposeRead,
-    ComposeReadWithInvariantPack,
     ExecuteReadFamily,
     ExecuteReadFamilyInBasisContext,
     ExecuteRuntimeCurrentReadGraph,
@@ -129,7 +128,6 @@ impl WorthQueryLowerRuntimeSeamKey {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ComposeRead => "compose-read",
-            Self::ComposeReadWithInvariantPack => "compose-read-with-invariant-pack",
             Self::ExecuteReadFamily => "execute-read-family",
             Self::ExecuteReadFamilyInBasisContext => "execute-read-family-in-basis-context",
             Self::ExecuteRuntimeCurrentReadGraph => "execute-runtime-current-read-graph",

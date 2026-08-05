@@ -121,7 +121,7 @@ where
         request,
         DeletionMergePolicy::PreserveTargetOnly,
     )?;
-    let mut reconciliation_policy = resolved_strategy.descriptor.reconciliation_policy().clone();
+    let mut reconciliation_policy = *resolved_strategy.descriptor.reconciliation_policy();
     reconciliation_policy.conflict = resolved_conflict_policy.descriptor.policy();
     reconciliation_policy.source_only = resolved_source_only_policy.descriptor.policy();
     reconciliation_policy.deletion = resolved_deletion_policy.descriptor.policy();

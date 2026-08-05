@@ -1,0 +1,21 @@
+error[E0277]: the trait bound `Status: OperationExpectsVersion<_>` is not satisfied
+  --> tests/ui/application_schema/mutation_precondition_requires_declared_family.rs:25:58
+   |
+25 |         TypedMutationPreconditions::new().expect_version(status, "open".to_owned());
+   |                                           -------------- ^^^^^^ unsatisfied trait bound
+   |                                           |
+   |                                           required by a bound introduced by this call
+   |
+help: the trait `OperationExpectsVersion<_>` is not implemented for `Status`
+  --> tests/ui/application_schema/mutation_precondition_requires_declared_family.rs:10:1
+   |
+10 | struct Status;
+   | ^^^^^^^^^^^^^
+note: required by a bound in `TypedMutationPreconditions::<Schema, Operation, Scope>::expect_version`
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/mutation_precondition.rs
+   |
+   |     pub fn expect_version<Aspect, Field, Value, Write, Equality, Currency>(
+   |            -------------- required by a bound in this associated function
+...
+   |         Field: OperationExpectsVersion<Operation>,
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `TypedMutationPreconditions::<Schema, Operation, Scope>::expect_version`

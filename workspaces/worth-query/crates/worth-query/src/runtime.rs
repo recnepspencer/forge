@@ -227,7 +227,6 @@ pub(crate) use evidence_identities::{
 };
 #[cfg(test)]
 mod fallback_seam_counters;
-mod graph_obligation_registration;
 mod graph_read_access;
 pub(crate) use graph_read_access::WorthQueryGraphReadOperationLookup;
 mod handle_contract;
@@ -253,6 +252,7 @@ mod ordinary_workflow_authority;
 mod ordinary_workflow_branch_name;
 mod ordinary_workflow_execution;
 mod preview;
+mod primary_graph;
 pub(crate) use installed_domain_substrate_provenance::WorthQueryInstalledDomainSubstrateProvenance;
 mod public_api;
 mod published_artifacts;
@@ -262,7 +262,6 @@ mod read_composition_builder_walks;
 mod read_composition_current_execution;
 mod read_composition_frontier;
 mod read_composition_frontier_search;
-mod read_composition_hooks;
 mod read_composition_installed_operation;
 mod read_composition_lowering;
 mod read_composition_materialization;
@@ -278,12 +277,12 @@ mod read_composition_support_report;
 mod read_composition_walks;
 mod remask_posture;
 mod runtime_api_contract;
-mod runtime_authoritative_mutation_obligation_dispatch;
 mod runtime_authoritative_mutation_routing;
 use runtime_authoritative_mutation_routing::{
     WorthQueryAuthoritativeMutationExecutionEvidence, WorthQueryAuthoritativeMutationRoutingInput,
     WorthQueryPreparedAuthoritativeMutationRouting,
 };
+mod bridge_async_live_view_declaration;
 mod runtime_batch_write_entrypoints;
 mod runtime_batch_write_intents;
 mod runtime_batch_writes;
@@ -298,13 +297,11 @@ mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
 mod runtime_journal_replay;
 mod runtime_live_read_intents;
-mod runtime_non_authoritative_obligation_dispatch;
 mod runtime_probe_routing_intents;
 mod runtime_provenance;
 mod runtime_read_access_plan;
 mod runtime_read_execution_receipts;
 mod runtime_read_intents;
-mod runtime_read_obligation_dispatch;
 mod runtime_reads_programs;
 mod runtime_session_lowering;
 
@@ -379,14 +376,14 @@ pub use backend::{
     SubscriptionActivationReceipt, WorthQueryBackendEntityLookup, WorthQueryBackendInspectionError,
     WorthQueryBackendInspectionErrorKind, WorthQueryBackendMergeAuthority,
     WorthQueryBridgeBackedRuntimeBackend, WorthQueryIntentAuthorityAdapter,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
+    WorthQueryPrimaryGraphBackendHandle, WorthQueryRuntimeBackend, WorthQueryRuntimeBackendParts,
     WorthQueryRuntimeDeclarationInitializationAdapter,
     WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeInspectorEvidenceAdapter,
     WorthQueryRuntimeIntentAuthorityAdapter, WorthQueryRuntimePreviewBasisAdapter,
     WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSignalSinkAdapter,
     WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeSourceAdapter,
     WorthQueryRuntimeSubscriptionActivationAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
-    WriteAuthorityExecutionReceipt,
+    WorthQueryUnpublishedPrimaryGraphRuntime, WriteAuthorityExecutionReceipt,
 };
 pub use branch::WorthQueryBranchSession;
 pub(crate) use branch::WorthQueryRuntimeBranchComparisonBasis;
@@ -395,7 +392,8 @@ pub use builder::{
     WorthQueryHostRuntimeCompletionError, WorthQueryHostRuntimeInstallationCompletion,
     WorthQueryHostRuntimeInstallationDenial, WorthQueryHostRuntimeInstallationDenialKind,
     WorthQueryHostRuntimeInstallationPlan, WorthQueryHostRuntimeInstallationRequest,
-    WorthQueryRuntimeBuilder,
+    WorthQueryPrimaryGraphConfiguration, WorthQueryPrimaryGraphConfigurationDenial,
+    WorthQueryPrimaryGraphConfigurationDenialKind, WorthQueryRuntimeBuilder,
 };
 use computed::{
     admit_derived_view_declaration, insert_derived_runtime,
@@ -442,21 +440,17 @@ pub use effect::{
     WorthQueryEffectTrigger, WorthQueryEffectTriggerSourceKind,
     WorthQueryEffectWriteAdjacentTrigger, WorthQueryEffectWriteAdjacentTriggerClass,
 };
-pub use error::{
-    WorthQueryGraphObligationDenial, WorthQueryRuntimeError, WorthQueryRuntimeMissingComponent,
-    WorthQueryStopClass,
-};
 #[cfg(test)]
 pub(crate) use error::{
     WorthQueryRuntimeDeclarationFailureKind, WorthQueryRuntimeLookupFailureKind,
     WorthQueryRuntimeMissingArtifactKind,
 };
+pub use error::{WorthQueryRuntimeError, WorthQueryRuntimeMissingComponent, WorthQueryStopClass};
 #[cfg(test)]
 pub(crate) use fallback_seam_counters::{
     forbidden_fallback_seam_invocation_count, record_forbidden_fallback_seam_invocation,
     reset_forbidden_fallback_seam_invocations, WorthQueryForbiddenFallbackSeam,
 };
-pub(crate) use graph_read_access::match_graph_index_inventory_for_requirements;
 pub(crate) use graph_read_access::provision_ephemeral_graph_indexes_for_read_execution;
 pub(crate) use graph_read_access::streaming_receipt_for_admitted_read_result;
 pub use graph_read_access::{
@@ -689,8 +683,6 @@ pub use mixed_cause_delivery::{
     WorthQueryRuntimeMixedCauseLaneKind, WorthQueryRuntimeMixedCauseMemberKind,
 };
 #[cfg(test)]
-pub(crate) use mutation::registrations_from_relational_invariant_catalog;
-#[cfg(test)]
 pub(crate) use mutation::WorthQueryDesiredAspectValue;
 use mutation::{admit_continuity_intent, admit_naming_intent};
 pub(crate) use mutation::{
@@ -700,9 +692,6 @@ pub use mutation::{
     WorthQueryAspectMutationBuilder, WorthQueryAspectMutationOperation,
     WorthQueryAspectMutationOperationKind, WorthQueryAspectTouch, WorthQueryAuthoredAspectMutation,
     WorthQueryAuthoredAspectValue, WorthQueryAuthoredMutationAdmissionDenial,
-    WorthQueryAuthoritativeMutationObligationDispatch,
-    WorthQueryAuthoritativeMutationObligationDispatchProjection,
-    WorthQueryAuthoritativeMutationObligationDispatchProjectionRow,
     WorthQueryBackendAdmissibleMutation, WorthQueryContinuityMutationDenial,
     WorthQueryContinuityMutationDenialKind, WorthQueryContinuityMutationFamily,
     WorthQueryContinuityMutationIntent, WorthQueryContinuityMutationOutcomeClass,
@@ -716,54 +705,18 @@ pub use mutation::{
     WorthQueryExistingTruthProbeRequest, WorthQueryExistingTruthTargetBinding,
     WorthQueryGraphCompositionBuilder, WorthQueryGraphCompositionDenial,
     WorthQueryGraphCompositionDenialKind, WorthQueryGraphCompositionDomainInvariantDenial,
-    WorthQueryGraphCompositionInvariantPackContext,
-    WorthQueryGraphCompositionInvariantPackViolation, WorthQueryGraphEntitySymbol,
-    WorthQueryGraphMutationPolicyGateEvidence, WorthQueryGraphMutationPolicyGateVerdict,
-    WorthQueryGraphObligationArtifactPolicy, WorthQueryGraphObligationAttachmentEvidence,
-    WorthQueryGraphObligationBudgetExceededPolicy,
-    WorthQueryGraphObligationDenialAttachmentProjection,
-    WorthQueryGraphObligationDenialAttachmentProjectionRow,
-    WorthQueryGraphObligationDenialProjection, WorthQueryGraphObligationDenialProjectionRow,
-    WorthQueryGraphObligationDiagnosticMaterialization, WorthQueryGraphObligationDispatchContext,
-    WorthQueryGraphObligationDispatchContextKind, WorthQueryGraphObligationDispatchEnvelope,
-    WorthQueryGraphObligationDispatchEnvelopeBuilder, WorthQueryGraphObligationDispatchError,
-    WorthQueryGraphObligationDispatchPlan, WorthQueryGraphObligationDispatchPlanDraft,
-    WorthQueryGraphObligationExecutionBudget, WorthQueryGraphObligationExecutionContext,
-    WorthQueryGraphObligationExecutionCostClass, WorthQueryGraphObligationExecutionInput,
-    WorthQueryGraphObligationExecutionResultEnvelope, WorthQueryGraphObligationExecutionResultRow,
-    WorthQueryGraphObligationExecutionScope, WorthQueryGraphObligationExecutionStatus,
-    WorthQueryGraphObligationExecutorContract, WorthQueryGraphObligationIndex,
-    WorthQueryGraphObligationIndexBuildCounters, WorthQueryGraphObligationIndexComplexityContract,
-    WorthQueryGraphObligationIndexComplexityContractStatus, WorthQueryGraphObligationIndexEntry,
-    WorthQueryGraphObligationIndexSupportRow, WorthQueryGraphObligationIndexSupportStatus,
-    WorthQueryGraphObligationKind, WorthQueryGraphObligationMaterializedDispatch,
-    WorthQueryGraphObligationMatrixCertificationCase,
-    WorthQueryGraphObligationOperatingWorldDescriptor,
-    WorthQueryGraphObligationOperatingWorldDescriptorKind,
-    WorthQueryGraphObligationOperatingWorldSelector, WorthQueryGraphObligationPreflightWitness,
-    WorthQueryGraphObligationReduction, WorthQueryGraphObligationRegistration,
-    WorthQueryGraphObligationRegistrationCatalog, WorthQueryGraphObligationRegistrationDenial,
-    WorthQueryGraphObligationRegistrationDenialKind, WorthQueryGraphObligationRuleIdentity,
-    WorthQueryGraphObligationSelection, WorthQueryGraphObligationSelectionCounters,
-    WorthQueryGraphObligationSelectorPerturbationCase, WorthQueryGraphObligationStateAccessPolicy,
-    WorthQueryGraphObligationStateLoadCounters, WorthQueryGraphObligationStateLoadPlan,
-    WorthQueryGraphObligationSupportLane, WorthQueryGraphObligationSupportMatrix,
-    WorthQueryGraphObligationSupportMatrixRow, WorthQueryGraphObligationSupportPosture,
-    WorthQueryGraphObligationSupportStatus, WorthQueryGraphObligationVerdict,
-    WorthQueryGraphReadTouchShape, WorthQueryGraphRelationMutationBuilder,
-    WorthQueryGraphRelationSymbol, WorthQueryGraphScopedCustomInvariantRegistration,
+    WorthQueryGraphEntitySymbol, WorthQueryGraphReadTouchShape,
+    WorthQueryGraphRelationMutationBuilder, WorthQueryGraphRelationSymbol,
     WorthQueryGraphTouchDescriptor, WorthQueryGraphTouchDescriptorDenial,
     WorthQueryGraphTouchDescriptorDenialKind, WorthQueryGraphTouchDescriptorKind,
     WorthQueryGraphTouchDescriptorRow, WorthQueryGraphTouchLifecycleFamily,
-    WorthQueryGraphTouchReadVerb, WorthQueryGraphTouchSelector, WorthQueryMutationBatchBuilder,
-    WorthQueryMutationMetadata, WorthQueryMutationMetadataKey, WorthQueryMutationMetadataValue,
-    WorthQueryNamingMutationDenial, WorthQueryNamingMutationDenialKind,
-    WorthQueryNamingMutationFamily, WorthQueryNamingMutationIntent,
-    WorthQuerySymbolicAspectReference, WorthQuerySymbolicAspectReferenceFamily,
-    WorthQuerySymbolicTargetReference, WorthQuerySymbolicTargetReferenceDenial,
-    WorthQuerySymbolicTargetReferenceDenialKind, WorthQuerySymbolicTargetReferenceFamily,
-    WorthQueryVerifiedExistingTruthAssertion,
-    WORTH_QUERY_GRAPH_OBLIGATION_DISPATCH_ENVELOPE_SCHEME,
+    WorthQueryGraphTouchReadVerb, WorthQueryMutationBatchBuilder, WorthQueryMutationMetadata,
+    WorthQueryMutationMetadataKey, WorthQueryMutationMetadataValue, WorthQueryNamingMutationDenial,
+    WorthQueryNamingMutationDenialKind, WorthQueryNamingMutationFamily,
+    WorthQueryNamingMutationIntent, WorthQuerySymbolicAspectReference,
+    WorthQuerySymbolicAspectReferenceFamily, WorthQuerySymbolicTargetReference,
+    WorthQuerySymbolicTargetReferenceDenial, WorthQuerySymbolicTargetReferenceDenialKind,
+    WorthQuerySymbolicTargetReferenceFamily, WorthQueryVerifiedExistingTruthAssertion,
 };
 pub use mutation_surface::{
     WorthQueryMutationSurfacePosture, WorthQueryMutationSurfaceReport, WorthQueryMutationSurfaceRow,
@@ -801,9 +754,6 @@ pub use public_api::{
 };
 pub use published_artifacts::WorthQueryPublishedArtifactDiagnostics;
 pub use read_composition::WorthQueryReadBuilder;
-pub use read_composition_hooks::{
-    WorthQueryReadInvariantPackContext, WorthQueryReadInvariantPackViolation,
-};
 pub use read_composition_operator_builders::{
     CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
 };
@@ -900,21 +850,19 @@ pub use surface::{
     WorthQueryReadBuiltInOperatorDenial, WorthQueryReadBuiltInOperatorDenialReason,
     WorthQueryReadCompositionExtensionHookBoundary, WorthQueryReadCompositionExtensionHookFamily,
     WorthQueryReadCompositionExtensionHookSupportRow, WorthQueryReadDenial,
-    WorthQueryReadDenialKind, WorthQueryReadDomainInvariantDenial,
-    WorthQueryReadDomainInvariantSummary, WorthQueryReadExecutionEngine,
-    WorthQueryReadFallbackClass, WorthQueryReadFamily, WorthQueryReadFamilyAdmission,
-    WorthQueryReadFamilyInvariantEvidence, WorthQueryReadGraph, WorthQueryReadGraphFamily,
-    WorthQueryReadOperatorFamily, WorthQueryReadReceipt, WorthQueryReadRelationshipProofDenial,
-    WorthQueryReadRelationshipProofDenialStage, WorthQueryReadRelationshipProofPosture,
-    WorthQueryReadResult, WorthQueryReadScopeClass, WorthQueryReadScopeShapeMismatch,
-    WorthQueryRetainedFieldPath, WorthQueryRetainedMaterializedRow,
-    WorthQueryRetainedScalarAlignment, WorthQueryRetainedScalarAlignmentFact,
-    WorthQueryRetainedScalarFactSet, WorthQueryRetainedScalarFieldFact,
-    WorthQueryRetainedValueView, WorthQueryRunReceipt, WorthQuerySymbolicAspectResolutionEvidence,
-    WorthQuerySymbolicTargetReferenceEvidence, WorthQueryUnifiedInspectionReceipt,
-    WorthQueryUnifiedInspectionResult, WorthQueryUnrefinedLiveShape,
-    WorthQueryVerificationReadSetBreadth, WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand,
-    WorthQueryWriteReceipt,
+    WorthQueryReadDenialKind, WorthQueryReadExecutionEngine, WorthQueryReadFallbackClass,
+    WorthQueryReadFamily, WorthQueryReadFamilyAdmission, WorthQueryReadGraph,
+    WorthQueryReadGraphFamily, WorthQueryReadOperatorFamily, WorthQueryReadReceipt,
+    WorthQueryReadRelationshipProofDenial, WorthQueryReadRelationshipProofDenialStage,
+    WorthQueryReadRelationshipProofPosture, WorthQueryReadResult, WorthQueryReadScopeClass,
+    WorthQueryReadScopeShapeMismatch, WorthQueryRetainedFieldPath,
+    WorthQueryRetainedMaterializedRow, WorthQueryRetainedScalarAlignment,
+    WorthQueryRetainedScalarAlignmentFact, WorthQueryRetainedScalarFactSet,
+    WorthQueryRetainedScalarFieldFact, WorthQueryRetainedValueView, WorthQueryRunReceipt,
+    WorthQuerySymbolicAspectResolutionEvidence, WorthQuerySymbolicTargetReferenceEvidence,
+    WorthQueryUnifiedInspectionReceipt, WorthQueryUnifiedInspectionResult,
+    WorthQueryUnrefinedLiveShape, WorthQueryVerificationReadSetBreadth,
+    WorthQueryVerifiedAssumptionSet, WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 pub use workspace::WorthQueryWorkspace;
 pub use workspace_declaration::{
@@ -924,6 +872,12 @@ pub use workspace_declaration::{
 pub use workspace_inspection::WorthQueryWorkspaceInspectionLane;
 pub use workspace_live_view_close::WorthQueryLiveViewCloseReceipt;
 pub use workspace_submission::WorthQueryWorkspaceSubmissionLane;
+pub use worth_query_execution::facade::primary_graph::{
+    WorthQueryApplicationPrincipalIdentity, WorthQueryApplicationPrincipalKey,
+    WorthQueryApplicationPrincipalKeyDenial, WorthQueryAuthenticatedPrincipal,
+    WorthQueryPrimaryGraphPublication, WorthQueryPrincipalResolutionDenial,
+    WorthQueryPrincipalResolutionDenialKind, WorthQueryPrincipalResolutionMode,
+};
 pub use worth_query_execution::facade::runtime::WorthQueryExecutionRuntimeInstallation;
 pub(crate) use worth_query_execution::facade::runtime::WorthQueryRuntimeAuthorityIdentity;
 pub use worth_query_installation::facade::{
@@ -937,6 +891,8 @@ pub struct WorthQueryRuntime {
     execution_runtime: worth_query_execution::facade::runtime::WorthQueryExecutionRuntime,
     execution_installation_authority:
         worth_query_execution::facade::runtime::WorthQueryExecutionInstallationAuthority,
+    primary_graph_publication:
+        Option<worth_query_execution::facade::primary_graph::WorthQueryPrimaryGraphPublication>,
     domain_installation_registry: crate::domain_installation::WorthQueryDomainInstallationRegistry,
     domain_operation_executor_registry:
         crate::domain_installation::WorthQueryDomainOperationExecutorRegistry,
@@ -971,8 +927,6 @@ pub struct WorthQueryRuntime {
     derived_dependency_index: WorthQueryComputedDependencyIndex,
     effects: BTreeMap<WorthQueryEffectTarget, WorthQueryEffectRuntime>,
     effect_index: WorthQueryEffectIndex,
-    graph_obligation_registration_catalog: WorthQueryGraphObligationRegistrationCatalog,
-    graph_obligation_index: WorthQueryGraphObligationIndex,
     managed_live_resource_capability: std::sync::Arc<WorthQueryManagedLiveWorkspaceCapability>,
     next_run_id: u64,
 }

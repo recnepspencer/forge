@@ -21,7 +21,7 @@ fn main() {
     });
 
     assert_eq!(app.get(progress_label.clone()), "2 of 5 tasks done");
-    assert_eq!(app.get(remaining_tasks.clone()), 3);
+    assert_eq!(app.get(remaining_tasks), 3);
 
     app.batch(|graph| {
         graph.set(done_tasks, 4);

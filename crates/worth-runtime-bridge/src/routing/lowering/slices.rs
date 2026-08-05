@@ -207,6 +207,10 @@ impl CanonicalSubscriptionSlices {
     pub fn len(&self) -> usize {
         self.slices.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.slices.is_empty()
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+mod application_schema;
 mod artifact_contract_admission;
 mod artifact_contract_authority;
 mod authority;
@@ -15,35 +16,42 @@ pub use authority::WorthQueryInstalledPackageAuthority;
 pub use denial::{
     WorthQueryInstalledPackageIndexDenial, WorthQueryInstalledPackageIndexDenialKind,
 };
+pub use index_identity::WorthQueryInstalledPackageIndexIdentity;
 pub use rebuild_report::{
     WorthQueryInstalledPackageIndexCounters, WorthQueryInstalledPackageIndexRebuildReport,
 };
 pub use relation::WorthQueryInstalledPackageIndexRelation;
 
 use crate::admission::WorthQueryAdmittedPortableDomainPackage;
+use crate::authority_cryptography::{InstallationAuthorityRootKey, PackageAuthorityKey};
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::WorthQueryValidatedDomainOperation;
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
 use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
+use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
 
 #[derive(Debug)]
 struct WorthQueryInstalledPackageRecord {
     package: WorthQueryAdmittedPortableDomainPackage,
-    authority_nonce: [u8; 32],
+    authority_key: PackageAuthorityKey,
 }
 
 #[derive(Debug)]
 pub struct WorthQueryInstalledPackageIndex {
     runtime: WorthQueryInstallationRuntimeIdentity,
     generation: WorthQueryInstallationGeneration,
+    authority_root: InstallationAuthorityRootKey,
     packages: BTreeMap<String, WorthQueryInstalledPackageRecord>,
     definitions:
         BTreeMap<(WorthQueryPortableDefinitionKind, String, String), WorthQueryPortableDefinition>,
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
-    identity: String,
+    application_schemas: BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    identity: WorthQueryInstalledPackageIndexIdentity,
+    installation_canonical_work: WorthQueryCanonicalWorkEvidence,
     counters: WorthQueryInstalledPackageIndexCounters,
     indexed_operation_lookups: AtomicUsize,
 }
@@ -61,8 +69,12 @@ impl WorthQueryInstalledPackageIndex {
         self.generation
     }
 
-    pub fn identity(&self) -> &str {
+    pub fn identity(&self) -> &WorthQueryInstalledPackageIndexIdentity {
         &self.identity
+    }
+
+    pub const fn installation_canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.installation_canonical_work
     }
 
     pub fn counters(&self) -> WorthQueryInstalledPackageIndexCounters {
@@ -79,6 +91,10 @@ impl WorthQueryInstalledPackageIndex {
 
     pub fn installed_artifact_contract_count(&self) -> usize {
         self.artifact_contracts.len()
+    }
+
+    pub fn installed_application_schema_count(&self) -> usize {
+        self.application_schemas.len()
     }
 
     pub fn indexed_operation_lookups(&self) -> usize {
@@ -100,8 +116,8 @@ impl WorthQueryInstalledPackageIndex {
             generation: self.generation,
             owner: owner.to_string(),
             package_identity: record.package.package().identity().clone(),
-            admission_identity: record.package.admission_identity().to_string(),
-            authority_nonce: record.authority_nonce,
+            admission_identity: record.package.admission_identity().clone(),
+            authority_key: record.authority_key.clone(),
         })
     }
 
@@ -137,8 +153,8 @@ impl WorthQueryInstalledPackageIndex {
             generation: self.generation,
             owner: owner.to_string(),
             package_identity: record.package.package().identity().clone(),
-            admission_identity: record.package.admission_identity().to_string(),
-            package_authority_nonce: record.authority_nonce,
+            admission_identity: record.package.admission_identity().clone(),
+            package_authority_key: record.authority_key.clone(),
             operation_slot: operation_slot.to_string(),
             operation_semantics: semantics.to_string(),
         })
@@ -173,26 +189,28 @@ impl WorthQueryInstalledPackageIndex {
             generation: self.generation,
             owner: owner.to_string(),
             package_identity: record.package.package().identity().clone(),
-            admission_identity: record.package.admission_identity().to_string(),
-            package_authority_nonce: record.authority_nonce,
+            admission_identity: record.package.admission_identity().clone(),
+            package_authority_key: record.authority_key.clone(),
             validated,
         })
     }
 
     pub fn rebuild(&self) -> Self {
-        Self::build(
+        Self::build_with_authority_root(
             self.runtime.retained(),
             self.generation,
             self.packages.values().map(|record| record.package.clone()),
+            self.authority_root.clone(),
         )
         .expect("an admitted installed package set must rebuild without conflict")
     }
 
     pub fn successor_generation(&self) -> Self {
-        Self::build(
+        Self::build_with_authority_root(
             self.runtime.retained(),
             self.generation.successor(),
             self.packages.values().map(|record| record.package.clone()),
+            self.authority_root.clone(),
         )
         .expect("an admitted installed package set must advance without conflict")
     }

@@ -348,42 +348,6 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         | WorthQueryEvidenceScope::GraphCompositionInvariantViolation
         | WorthQueryEvidenceScope::GraphTouchDescriptor
         | WorthQueryEvidenceScope::GraphTouchDescriptorRow
-        | WorthQueryEvidenceScope::GraphObligationRuleIdentity
-        | WorthQueryEvidenceScope::GraphObligationDispatchContext
-        | WorthQueryEvidenceScope::GraphObligationDispatchPlan
-        | WorthQueryEvidenceScope::GraphObligationDispatchEnvelope
-        | WorthQueryEvidenceScope::GraphObligationExecutionBudget
-        | WorthQueryEvidenceScope::GraphObligationExecutorContract
-        | WorthQueryEvidenceScope::GraphObligationExecutionInput
-        | WorthQueryEvidenceScope::GraphObligationExecutionContext
-        | WorthQueryEvidenceScope::GraphObligationStateLoadPlan
-        | WorthQueryEvidenceScope::GraphObligationStateLoadCounters
-        | WorthQueryEvidenceScope::GraphObligationExecutionResultRow
-        | WorthQueryEvidenceScope::GraphObligationExecutionResultEnvelope
-        | WorthQueryEvidenceScope::GraphObligationReduction
-        | WorthQueryEvidenceScope::GraphObligationDenialProjection
-        | WorthQueryEvidenceScope::GraphObligationDenialProjectionRow
-        | WorthQueryEvidenceScope::GraphObligationAttachmentEvidence
-        | WorthQueryEvidenceScope::GraphObligationDenialAttachmentProjection
-        | WorthQueryEvidenceScope::GraphObligationDenialAttachmentProjectionRow
-        | WorthQueryEvidenceScope::GraphObligationMaterializedDispatch
-        | WorthQueryEvidenceScope::GraphObligationSupportMatrixRow
-        | WorthQueryEvidenceScope::GraphObligationSupportMatrix
-        | WorthQueryEvidenceScope::GraphObligationTouchSelector
-        | WorthQueryEvidenceScope::GraphObligationOperatingWorldSelector
-        | WorthQueryEvidenceScope::GraphObligationOperatingWorldDescriptor
-        | WorthQueryEvidenceScope::GraphObligationSupportPosture
-        | WorthQueryEvidenceScope::GraphObligationRegistration
-        | WorthQueryEvidenceScope::GraphObligationRegistrationCatalog
-        | WorthQueryEvidenceScope::GraphObligationIndex
-        | WorthQueryEvidenceScope::GraphObligationIndexEntry
-        | WorthQueryEvidenceScope::GraphObligationIndexComplexityContract
-        | WorthQueryEvidenceScope::GraphObligationIndexBuildCounters
-        | WorthQueryEvidenceScope::GraphObligationSelection
-        | WorthQueryEvidenceScope::GraphObligationSelectionCounters
-        | WorthQueryEvidenceScope::GraphObligationIndexSupportRow
-        | WorthQueryEvidenceScope::ReadDomainInvariantDenial
-        | WorthQueryEvidenceScope::ReadInvariantViolation
         | WorthQueryEvidenceScope::ApplicationSupportSectionPosture
         | WorthQueryEvidenceScope::ApplicationSupportReport => {
             graph_application_evidence_scope_as_str(scope)

@@ -22,7 +22,6 @@ fn representative_surface_uses_runtime_backed_fixtures_for_named_phase_six_seams
 
     for seam_key in [
         WorthQueryLowerRuntimeSeamKey::ComposeRead,
-        WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamily,
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamilyInBasisContext,
         WorthQueryLowerRuntimeSeamKey::ExecuteRuntimeCurrentReadGraph,

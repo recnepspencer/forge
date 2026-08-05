@@ -4,6 +4,7 @@ use worth_query_installation::facade::WorthQueryExecutionResourceEnvelope;
 use worth_relational::facade::bridge::{
     bridge_snapshot_identity_for_handle, RuntimeBridgeRelationalSource,
 };
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::{
     BridgeAsyncRequestTruthViewBasis, BridgeBoundExecutionBasis, BridgeManagedExecutionIntent,
@@ -14,19 +15,19 @@ use worth_runtime_bridge::facade::{
 
 use super::WorthQueryManagedTruthReadRequest;
 
-pub(super) struct WorthQueryManagedLowerExecutionBasis {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerExecutionBasis {
     pub bridge: BridgeBoundExecutionBasis,
     pub relational: RelationalExecutionBasisLease,
 }
 
-pub(super) struct WorthQueryManagedLowerBinding<'a> {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerBinding<'a> {
     operation_identity: &'a str,
     resource_attempt_identity: &'a str,
     resource_envelope: &'a WorthQueryExecutionResourceEnvelope,
 }
 
 impl<'a> WorthQueryManagedLowerBinding<'a> {
-    pub(super) const fn new(
+    pub(in crate::domain_computation) const fn new(
         operation_identity: &'a str,
         resource_attempt_identity: &'a str,
         resource_envelope: &'a WorthQueryExecutionResourceEnvelope,
@@ -40,7 +41,7 @@ impl<'a> WorthQueryManagedLowerBinding<'a> {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum WorthQueryManagedLowerAdmissionFailureKind {
+pub(in crate::domain_computation) enum WorthQueryManagedLowerAdmissionFailureKind {
     BridgeSourceProfile,
     RelationalBasis,
     BridgePlanning,
@@ -48,12 +49,12 @@ pub(super) enum WorthQueryManagedLowerAdmissionFailureKind {
     BridgeExecutionBasis,
 }
 
-pub(super) struct WorthQueryManagedLowerAdmissionFailure {
+pub(in crate::domain_computation) struct WorthQueryManagedLowerAdmissionFailure {
     pub kind: WorthQueryManagedLowerAdmissionFailureKind,
     pub detail: Arc<str>,
 }
 
-pub(super) fn admit_managed_lower_execution_basis(
+pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
     bridge: &RuntimeBridge,
     relational: &RuntimeBridgeRelationalSource,
     binding: WorthQueryManagedLowerBinding<'_>,
@@ -69,8 +70,15 @@ pub(super) fn admit_managed_lower_execution_basis(
         });
     }
     let (version_id, branch, packet, replay, diagnostics, delivery) = request.into_parts();
+    let relational_branch = branch
+        .relational_branch_id()
+        .map(|branch| BranchId(branch.to_owned()))
+        .ok_or_else(|| WorthQueryManagedLowerAdmissionFailure {
+            kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
+            detail: Arc::from("managed truth branch is not a Relational branch identity"),
+        })?;
     let relational_basis = relational
-        .admit_execution_basis(version_id)
+        .admit_execution_basis(&relational_branch, version_id)
         .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
             kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
             detail: Arc::from(denial.detail()),

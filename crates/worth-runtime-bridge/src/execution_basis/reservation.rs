@@ -43,6 +43,13 @@ impl BridgeExecutionBasisReservationRegistry {
             .expect("bridge execution-basis reservation registry must remain available")
             .remove(&key)
     }
+
+    pub(super) fn contains(&self, key: &BridgeExecutionBasisReservationKey) -> bool {
+        self.reserved
+            .lock()
+            .expect("bridge execution-basis reservation registry must remain available")
+            .contains(key)
+    }
 }
 
 pub(crate) struct BridgeExecutionBasisReservation {
@@ -55,6 +62,21 @@ impl BridgeExecutionBasisReservation {
         self.key
             .take()
             .is_some_and(|key| self.registry.release(key))
+    }
+
+    pub(super) fn observer_parts(
+        &self,
+    ) -> (
+        Arc<BridgeExecutionBasisReservationRegistry>,
+        BridgeExecutionBasisReservationKey,
+    ) {
+        (
+            Arc::clone(&self.registry),
+            self.key
+                .as_ref()
+                .expect("active reservation retains its exact key")
+                .clone(),
+        )
     }
 }
 

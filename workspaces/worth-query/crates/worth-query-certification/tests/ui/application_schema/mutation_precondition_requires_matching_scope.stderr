@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/application_schema/mutation_precondition_requires_matching_scope.rs:27:55
+   |
+27 |         TypedMutationPreconditions::new().expect_fact(institution_status, "open".to_owned());
+   |                                           ----------- ^^^^^^^^^^^^^^^^^^ expected `ApplicationFieldRef<..., ..., _, _, ..., _, _, _>`, found `ApplicationFieldRef<..., ..., ..., ..., ..., ..., ...>`
+   |                                           |
+   |                                           arguments to this method are incorrect
+   |
+   = note: expected struct `ApplicationFieldRef<Schema, Account, _, _, std::string::String, _, _, _>`
+              found struct `ApplicationFieldRef<Schema, Institution, InstitutionFacts, Status, std::string::String, ReadOnly, worth_query_decl::facade::application_schema::EqualityPredicate>`
+note: method defined here
+  --> $WORKSPACE/crates/worth-query-declaration/src/application_schema/mutation_precondition.rs
+   |
+   |     pub fn expect_fact<Aspect, Field, Value, Write, Equality, Currency>(
+   |            ^^^^^^^^^^^

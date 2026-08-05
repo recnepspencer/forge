@@ -14,6 +14,7 @@ mod invariant_execution_fixture;
 mod invariant_provider_failures;
 mod invariant_session_affinity;
 mod invariant_state_load;
+mod provider_compare_and_commit;
 mod provider_contract_violation;
 mod provider_execution_admission;
 mod provider_execution_release;

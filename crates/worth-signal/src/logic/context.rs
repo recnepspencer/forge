@@ -62,7 +62,7 @@ impl<'graph, Ctx> EvaluationContext<'graph, Ctx> {
         aspect: Aspect,
     ) -> Result<AspectVersion, SignalError> {
         self.capture_dependency(source, aspect);
-        Ok(self.graph.node_aspect_version(source)?)
+        self.graph.node_aspect_version(source)
     }
 
     pub fn read_partitioned_aspect_version(
@@ -72,7 +72,7 @@ impl<'graph, Ctx> EvaluationContext<'graph, Ctx> {
         scope: PartitionSubscription,
     ) -> Result<AspectVersion, SignalError> {
         self.capture_partition_dependency(source, aspect, scope.clone());
-        Ok(self.graph.node_partitioned_aspect_version(source, &scope)?)
+        self.graph.node_partitioned_aspect_version(source, &scope)
     }
 
     pub fn capture_dependency(&mut self, source: NodeId, aspect: Aspect) {

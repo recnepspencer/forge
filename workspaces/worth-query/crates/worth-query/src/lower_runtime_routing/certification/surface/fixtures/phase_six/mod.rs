@@ -31,8 +31,7 @@ pub(crate) use projection::{
     representative_projection_relational_row,
 };
 pub(crate) use read_execution::{
-    representative_compose_read_row, representative_compose_read_with_invariant_pack_row,
-    representative_execute_read_family_in_basis_context_row,
+    representative_compose_read_row, representative_execute_read_family_in_basis_context_row,
     representative_execute_read_family_row, representative_runtime_basis_context_read_graph_row,
     representative_runtime_current_read_graph_row,
 };

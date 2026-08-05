@@ -2,22 +2,7 @@ use super::admitted_field_kind::WorthQueryAdmittedNativeFieldFamily;
 use crate::authoring::RelationName;
 use worth_foundational::facade::{AspectKey, FieldKey};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthQueryAdmittedGraphReadRelationDirection {
-    Forward,
-    Ancestor,
-    Descendant,
-}
-
-impl WorthQueryAdmittedGraphReadRelationDirection {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::Forward => "forward",
-            Self::Ancestor => "ancestor",
-            Self::Descendant => "descendant",
-        }
-    }
-}
+pub use worth_query_admission::facade::graph_read_access::WorthQueryAdmittedGraphReadRelationDirection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryAdmittedGraphReadRelation {

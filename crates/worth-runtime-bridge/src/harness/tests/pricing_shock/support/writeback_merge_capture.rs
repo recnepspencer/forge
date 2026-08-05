@@ -7,7 +7,7 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_writeback_bundle
     let runtime = build_pricing_runtime_with_policy_and_writeback_authority(
         pricing_reference_source(),
         RecordingSignalBridgeSink::default(),
-        policy.clone(),
+        policy,
         writeback_authority.clone(),
     );
     let lowered_policy = pricing_lowered_policy(&runtime);
@@ -258,19 +258,19 @@ pub(in crate::harness::tests::pricing_shock) fn capture_pricing_workload_certifi
     let hostile_runtime = build_pricing_runtime_with_policy(
         hostile_source,
         RecordingSignalBridgeSink::default(),
-        policy.clone(),
+        policy,
     );
 
     PricingWorkloadCertificationBundle {
-        matrix: capture_pricing_certification_matrix(policy.clone(), preview_session_identity),
-        aspect: capture_pricing_aspect_bundle(policy.clone()),
+        matrix: capture_pricing_certification_matrix(policy, preview_session_identity),
+        aspect: capture_pricing_aspect_bundle(policy),
         discard: capture_pricing_discard_bundle(),
         promotion: capture_pricing_promotion_bundle(),
         fanout: capture_pricing_fanout_bundle(),
-        restart_replay: capture_pricing_restart_replay_bundle(policy.clone()),
+        restart_replay: capture_pricing_restart_replay_bundle(policy),
         restart_failure: capture_pricing_restart_failure_bundle(),
-        writeback: capture_pricing_writeback_bundle(policy.clone()),
-        merge: capture_pricing_merge_bundle(policy.clone()),
+        writeback: capture_pricing_writeback_bundle(policy),
+        merge: capture_pricing_merge_bundle(policy),
         provenance: capture_pricing_historical_provenance_bundle(policy),
         portfolio: capture_pricing_portfolio_blast_radius_bundle(),
         crisis: capture_pricing_crisis_bundle(),

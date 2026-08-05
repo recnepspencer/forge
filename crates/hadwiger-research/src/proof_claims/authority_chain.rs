@@ -243,7 +243,7 @@ fn chain_digest(
         }
     };
     let ready = match CanonicalDigestFrontDoor
-        .for_sequence(sequence, CanonicalDigestAlgorithmId::test_stable_fixture())
+        .for_sequence(sequence, CanonicalDigestAlgorithmId::sha256())
     {
         TransitionOutcome::Success(ready) => ready,
         _ => {

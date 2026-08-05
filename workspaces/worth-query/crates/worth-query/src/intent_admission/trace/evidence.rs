@@ -37,9 +37,6 @@ pub enum WorthQueryIntentDecisionTraceEvidence {
         handoff_digest: String,
         execution_seam: WorthQueryIntentAdmissionExecutionSeam,
     },
-    ObligationDispatch {
-        envelope_digest: String,
-    },
     ExecutionOutcome {
         outcome_digest: String,
         execution_kind: String,
@@ -55,9 +52,7 @@ impl WorthQueryIntentDecisionTraceEvidence {
             Self::Eligibility(_) => {
                 WorthQueryIntentDecisionTraceEvidenceOwner::QueryIntentEligibility
             }
-            Self::AdmittedDecision { .. }
-            | Self::NonAdmittedDecision { .. }
-            | Self::ObligationDispatch { .. } => {
+            Self::AdmittedDecision { .. } | Self::NonAdmittedDecision { .. } => {
                 WorthQueryIntentDecisionTraceEvidenceOwner::QueryIntentDecision
             }
             Self::ExecutionHandoff { .. } | Self::ExecutionOutcome { .. } => {
@@ -75,7 +70,6 @@ impl WorthQueryIntentDecisionTraceEvidence {
             }
             | Self::NonAdmittedDecision { decision_digest } => decision_digest,
             Self::ExecutionHandoff { handoff_digest, .. } => handoff_digest,
-            Self::ObligationDispatch { envelope_digest } => envelope_digest,
             Self::ExecutionOutcome { outcome_digest, .. } => outcome_digest,
         }
     }

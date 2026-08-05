@@ -47,12 +47,12 @@ fn equivalent_access_shapes_derive_stable_requirement_sets() {
 
     assert_eq!(first_requirements.rows(), second_requirements.rows());
     assert_eq!(
-        first_requirements.digest().as_str(),
-        second_requirements.digest().as_str()
+        first_requirements.digest().render_support_hex(),
+        second_requirements.digest().render_support_hex()
     );
     assert_eq!(
-        first_requirements.canonical_parts(),
-        second_requirements.canonical_parts()
+        first_requirements.diagnostic_canonical_parts(),
+        second_requirements.diagnostic_canonical_parts()
     );
     assert!(first_requirements
         .requires_kind(WorthQueryGraphReadAccessRequirementKind::DirectionalAdjacency));
@@ -73,7 +73,7 @@ fn equivalent_access_shapes_derive_stable_requirement_sets() {
         .relation_authority()
         .expect("relation authority should be derived from schema proof");
     assert_eq!(authority.relation_name(), "manager");
-    assert!(!authority.schema_basis_digest().is_empty());
+    assert_ne!(authority.schema_basis_digest().bytes(), &[0; 32]);
     assert_eq!(
         adjacency.invalidation_basis(),
         &WorthQueryGraphReadAccessInvalidationBasis::AuthoritativeRelationDelta
@@ -220,18 +220,19 @@ fn requirement_derivation_consumes_access_and_selectivity_proofs() {
         derive_graph_read_access_requirements(explanation.access_shape(), &selectivity);
 
     assert_eq!(
-        requirements.read_graph_digest(),
+        requirements.read_graph_digest().render_hex(),
         explanation
             .access_shape()
             .operation_resolution()
-            .read_graph_digest()
+            .read_graph_canonical_digest()
+            .render_hex()
     );
     assert_eq!(
-        requirements.access_shape_digest(),
+        requirements.access_shape_digest().render_hex(),
         explanation.access_shape().digest().as_str()
     );
     assert_eq!(
-        requirements.selectivity_shape_digest(),
+        requirements.selectivity_shape_digest().render_hex(),
         selectivity.digest().as_str()
     );
 }

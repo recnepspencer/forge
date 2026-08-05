@@ -253,7 +253,11 @@ fn push_value_rows(
                             meaning: UiMountedSemanticTextValueMeaning::Collection {
                                 text: Arc::clone(value),
                                 row: UiMountedCollectionRowCorrelation::from_runtime_mounting(
-                                    row.identity().host_correlation_digest(),
+                                    row.identity()
+                                        .query_reference()
+                                        .query_identity()
+                                        .operational_key()
+                                        .correlation_digest(),
                                 ),
                                 selected_field_ordinal: u16::try_from(field_ordinal).map_err(
                                     |_| UiMountedProjectionDenial::SemanticTextCapacityExceeded,

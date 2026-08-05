@@ -97,10 +97,10 @@ impl UiCollectionProjectionInputPatch {
             let mutation = match change {
                 UiCollectionProjectionInputChange::Insert(row) => catalog.insert(row.clone()),
                 UiCollectionProjectionInputChange::Remove(row) => {
-                    catalog.remove(row.query_row_identity())
+                    catalog.remove(row.query_identity())
                 }
                 UiCollectionProjectionInputChange::Move(row) => {
-                    catalog.require(row.query_row_identity())
+                    catalog.require(row.query_identity())
                 }
                 UiCollectionProjectionInputChange::Update(row) => catalog.update(row.clone()),
                 UiCollectionProjectionInputChange::WindowShift => {
@@ -223,7 +223,7 @@ fn prepare_changes(
         .into_iter()
         .map(|row| {
             (
-                UiProjectionOptionKey::new(row.row().query_row_identity().clone()),
+                UiProjectionOptionKey::new(row.row().query_identity().clone()),
                 row,
             )
         })
@@ -232,9 +232,7 @@ fn prepare_changes(
     for change in changes {
         let next = match change {
             super::UiCollectionProjectionChange::Insert { row, .. } => changed_rows
-                .remove(&UiProjectionOptionKey::new(
-                    row.query_row_identity().clone(),
-                ))
+                .remove(&UiProjectionOptionKey::new(row.query_identity().clone()))
                 .map(UiCollectionProjectionInputChange::Insert),
             super::UiCollectionProjectionChange::Remove { row, .. } => {
                 Some(UiCollectionProjectionInputChange::Remove(row.clone()))
@@ -243,9 +241,7 @@ fn prepare_changes(
                 Some(UiCollectionProjectionInputChange::Move(row.clone()))
             }
             super::UiCollectionProjectionChange::Update { row } => changed_rows
-                .remove(&UiProjectionOptionKey::new(
-                    row.query_row_identity().clone(),
-                ))
+                .remove(&UiProjectionOptionKey::new(row.query_identity().clone()))
                 .map(UiCollectionProjectionInputChange::Update),
             super::UiCollectionProjectionChange::WindowShift => {
                 Some(UiCollectionProjectionInputChange::WindowShift)

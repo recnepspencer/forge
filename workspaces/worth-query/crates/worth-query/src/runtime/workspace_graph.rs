@@ -1,9 +1,7 @@
 use super::{
     WorthQueryBatchWriteReceipt, WorthQueryExistingTruthAssertionDenialKind,
     WorthQueryExistingTruthBindingDenialKind, WorthQueryGraphCompositionBuilder,
-    WorthQueryGraphCompositionDenialKind, WorthQueryGraphCompositionDomainInvariantDenial,
-    WorthQueryGraphCompositionInvariantPackContext,
-    WorthQueryGraphCompositionInvariantPackViolation, WorthQueryRuntimeError,
+    WorthQueryGraphCompositionDenialKind, WorthQueryRuntimeError,
     WorthQuerySymbolicTargetReferenceDenialKind, WorthQueryWorkspace,
 };
 use crate::runtime::mutation::graph_composition_error;
@@ -15,61 +13,9 @@ impl WorthQueryWorkspace {
             &mut WorthQueryGraphCompositionBuilder,
         ) -> Result<(), WorthQueryRuntimeError>,
     ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
-        self.compose_graph_with_invariant_pack(declaration, |_context| Ok(()))
-    }
-
-    pub fn compose_graph_with_invariant_pack(
-        &mut self,
-        declaration: impl FnOnce(
-            &mut WorthQueryGraphCompositionBuilder,
-        ) -> Result<(), WorthQueryRuntimeError>,
-        invariant_pack: impl FnOnce(
-            &WorthQueryGraphCompositionInvariantPackContext<'_>,
-        )
-            -> Result<(), WorthQueryGraphCompositionInvariantPackViolation>,
-    ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
-        self.compose_graph_with_invariant_gate(declaration, invariant_pack, |violation, context| {
-            WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(
-                WorthQueryGraphCompositionDomainInvariantDenial::from_violation(violation, context),
-            )
-        })
-    }
-
-    pub fn compose_graph_with_domain_invariant_denial(
-        &mut self,
-        declaration: impl FnOnce(
-            &mut WorthQueryGraphCompositionBuilder,
-        ) -> Result<(), WorthQueryRuntimeError>,
-        invariant_denial: impl FnOnce(
-            &WorthQueryGraphCompositionInvariantPackContext<'_>,
-        )
-            -> Result<(), WorthQueryGraphCompositionDomainInvariantDenial>,
-    ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
-        self.compose_graph_with_invariant_gate(declaration, invariant_denial, |denial, _context| {
-            WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(denial)
-        })
-    }
-
-    fn compose_graph_with_invariant_gate<E>(
-        &mut self,
-        declaration: impl FnOnce(
-            &mut WorthQueryGraphCompositionBuilder,
-        ) -> Result<(), WorthQueryRuntimeError>,
-        invariant_gate: impl FnOnce(
-            &WorthQueryGraphCompositionInvariantPackContext<'_>,
-        ) -> Result<(), E>,
-        map_invariant_error: impl FnOnce(
-            E,
-            &WorthQueryGraphCompositionInvariantPackContext<'_>,
-        ) -> WorthQueryRuntimeError,
-    ) -> Result<WorthQueryBatchWriteReceipt, WorthQueryRuntimeError> {
         let mut builder = WorthQueryGraphCompositionBuilder::new();
         declaration(&mut builder)?;
         let (commands, breadth, program) = builder.finish()?;
-        let invariant_context =
-            WorthQueryGraphCompositionInvariantPackContext::new(&commands, &breadth, &program);
-        invariant_gate(&invariant_context)
-            .map_err(|error| map_invariant_error(error, &invariant_context))?;
         match self.runtime.write_graph_batch(commands, breadth, program) {
             Err(WorthQueryRuntimeError::ExistingTruthAssertionDenied(denial)) => {
                 let kind = match denial.kind() {

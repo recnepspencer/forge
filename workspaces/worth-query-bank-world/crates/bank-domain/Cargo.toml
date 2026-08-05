@@ -1,0 +1,18 @@
+[package]
+name = "bank-domain"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Bank-world semantic contract and typed Query declarations."
+publish = false
+
+[dependencies]
+worth-foundational.workspace = true
+worth-query-decl.workspace = true
+worth-query-host.workspace = true
+
+[dev-dependencies]
+worth-query-host.workspace = true
+
+[lints]
+workspace = true

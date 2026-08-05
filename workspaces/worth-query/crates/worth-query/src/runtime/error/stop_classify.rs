@@ -75,35 +75,8 @@ pub(super) fn classify_stop_class(error: &WorthQueryRuntimeError) -> WorthQueryS
         WorthQueryRuntimeError::MutationContractDenied(denial) => {
             WorthQueryStopClass::MutationContractDenied { denial }
         }
-        WorthQueryRuntimeError::GraphObligationTouchDescriptorDenied(denial) => {
-            WorthQueryStopClass::GraphObligationTouchDescriptorDenied { denial }
-        }
-        WorthQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing { effect_name } => {
-            WorthQueryStopClass::GraphObligationEffectTouchDescriptorMissing { effect_name }
-        }
-        WorthQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing { intent_name } => {
-            WorthQueryStopClass::GraphObligationIntentTouchDescriptorMissing { intent_name }
-        }
-        WorthQueryRuntimeError::GraphMutationPolicyContextDenied {
-            expected,
-            actual,
-            policy_tenant_admission_digest,
-        } => WorthQueryStopClass::GraphMutationPolicyContextDenied {
-            expected: *expected,
-            actual: *actual,
-            policy_tenant_admission_digest,
-        },
-        WorthQueryRuntimeError::GraphMutationPolicyGateDenied(evidence) => {
-            WorthQueryStopClass::GraphMutationPolicyGateDenied { evidence }
-        }
-        WorthQueryRuntimeError::GraphObligationDenied(denial) => {
-            WorthQueryStopClass::GraphObligationDenied { denial }
-        }
         WorthQueryRuntimeError::GraphCompositionDenied(denial) => {
             WorthQueryStopClass::GraphCompositionDenied { denial }
-        }
-        WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(denial) => {
-            WorthQueryStopClass::GraphCompositionDomainInvariantDenied { denial }
         }
         WorthQueryRuntimeError::MutationNamingDenied(denial) => {
             WorthQueryStopClass::MutationNamingDenied { denial }
@@ -113,9 +86,6 @@ pub(super) fn classify_stop_class(error: &WorthQueryRuntimeError) -> WorthQueryS
         }
         WorthQueryRuntimeError::ReadCompositionDenied(denial) => {
             WorthQueryStopClass::ReadCompositionDenied { denial }
-        }
-        WorthQueryRuntimeError::ReadCompositionDomainInvariantDenied(denial) => {
-            WorthQueryStopClass::ReadCompositionDomainInvariantDenied { denial }
         }
         WorthQueryRuntimeError::Workspace(inner) => WorthQueryStopClass::Workspace { error: inner },
         WorthQueryRuntimeError::Program(inner) => WorthQueryStopClass::Program { error: inner },

@@ -119,7 +119,7 @@ impl BridgeNamingMutationBundle {
         Self {
             family: BridgeNamingMutationFamily::AttachNewTarget,
             outcome: BridgeNamingMutationOutcome::AttachedToNewTarget,
-            attachment_identity: attachment_identity.into(),
+            attachment_identity,
             prior_authoritative_identity: None,
             target_authoritative_identity: None,
             resolved_target_entity_identity: Some(resolved_target_entity_identity),
@@ -136,7 +136,7 @@ impl BridgeNamingMutationBundle {
         Self {
             family: BridgeNamingMutationFamily::AttachExistingTarget,
             outcome: BridgeNamingMutationOutcome::AttachedToExistingTarget,
-            attachment_identity: attachment_identity.into(),
+            attachment_identity,
             prior_authoritative_identity: None,
             target_authoritative_identity: Some(target_authoritative_identity),
             resolved_target_entity_identity: Some(resolved_target_entity_identity),
@@ -154,7 +154,7 @@ impl BridgeNamingMutationBundle {
         Self {
             family: BridgeNamingMutationFamily::RebindTarget,
             outcome: BridgeNamingMutationOutcome::ReboundTarget,
-            attachment_identity: attachment_identity.into(),
+            attachment_identity,
             prior_authoritative_identity: Some(prior_authoritative_identity),
             target_authoritative_identity: Some(target_authoritative_identity),
             resolved_target_entity_identity: Some(resolved_target_entity_identity),
@@ -171,7 +171,7 @@ impl BridgeNamingMutationBundle {
         Self {
             family: BridgeNamingMutationFamily::Remove,
             outcome: BridgeNamingMutationOutcome::Removed,
-            attachment_identity: attachment_identity.into(),
+            attachment_identity,
             prior_authoritative_identity: Some(prior_authoritative_identity),
             target_authoritative_identity: None,
             resolved_target_entity_identity,

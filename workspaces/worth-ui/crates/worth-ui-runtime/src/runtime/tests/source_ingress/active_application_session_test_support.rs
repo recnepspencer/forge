@@ -45,27 +45,17 @@ pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
 where
     Host: crate::facade::host::WorthUiHostAdapter + 'static,
 {
-    let capability_builder = component_builder()
-        .register_scalar_projection(registration.clone())
-        .expect("scalar projection should register in the source capability world");
-    let application_builder = component_builder()
+    let builder = component_builder()
+        .with_host(host)
         .register_scalar_projection(registration)
-        .expect("scalar projection should register in the launched application")
-        .with_host(host);
-    source_backed_component_app_from_builders(application_builder, capability_builder)
+        .expect("test projection registration should match its installed Query view");
+    source_backed_component_app_from_builder(builder)
 }
 
 fn source_backed_component_app_from_builder(
     builder: crate::facade::entry::WorthUiApplicationBuilder,
 ) -> WorthUiApp {
-    source_backed_component_app_from_builders(builder, component_builder())
-}
-
-fn source_backed_component_app_from_builders(
-    builder: crate::facade::entry::WorthUiApplicationBuilder,
-    capability_builder: crate::facade::entry::WorthUiApplicationBuilder,
-) -> WorthUiApp {
-    let snapshot = capability_builder
+    let snapshot = component_builder()
         .freeze()
         .expect("component snapshot should prepare");
     builder

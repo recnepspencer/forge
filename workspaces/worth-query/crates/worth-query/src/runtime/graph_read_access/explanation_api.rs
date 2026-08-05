@@ -16,7 +16,7 @@ use super::{
     WorthQueryGraphReadOperationUnsupportedDenial,
     WorthQueryGraphReadSchemaReferenceAdmissionError,
 };
-use crate::identity::hash_parts;
+use crate::identity::canonical_hash_parts;
 use crate::runtime::{WorthQueryReadFamily, WorthQueryReadGraph};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -278,13 +278,13 @@ pub(crate) fn explain_graph_read_access_requirements_for_family_with_operation_l
 pub(super) fn domain_operation_capability_requirement_set(
     requirement: WorthQueryGraphReadOperationCapabilityRequirement,
 ) -> WorthQueryGraphReadAccessRequirementSet {
-    let read_graph_digest = requirement.read_graph_digest().to_string();
+    let read_graph_digest = *requirement.read_graph_canonical_digest();
     let requirement_digest_part = requirement.digest_part();
-    let access_shape_digest = hash_parts(&[
+    let access_shape_digest = canonical_hash_parts(&[
         "domain_operation_capability_registration_access_shape_v1".to_string(),
         requirement_digest_part.clone(),
     ]);
-    let selectivity_shape_digest = hash_parts(&[
+    let selectivity_shape_digest = canonical_hash_parts(&[
         "domain_operation_capability_registration_selectivity_shape_v1".to_string(),
         requirement_digest_part,
     ]);
@@ -300,7 +300,11 @@ pub(super) fn domain_operation_capability_requirement_set(
             WorthQueryGraphReadAccessMemoryEstimateBasis::LifecycleManagedSupport,
         )
         .with_operation_capability_requirement(requirement)],
+        worth_foundational::facade::CanonicalDigestWorkBudget::new(64, 16 * 1024)
+            .expect("the domain-operation capability canonical budget is nonzero"),
+        worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
     )
+    .expect("domain-operation capability requirements fit their canonical budget")
 }
 
 pub(super) fn explain_boolean_selectivity_shape_for_access_shape(

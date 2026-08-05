@@ -1,26 +1,18 @@
 use super::algorithm::CanonicalDigestAlgorithmMetadata;
 use super::evidence::{CanonicalDigestDerivationInput, CanonicalDigestInputId};
-use super::material::{canonical_digest_material, stable_fixture_digest};
+use super::material::sha256_digest;
 use super::CanonicalDigestDerivationReadyArtifact;
+use super::CanonicalDigestWorkEvidence;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalDerivedDigest {
     metadata: CanonicalDigestMetadata,
     value: CanonicalDigestValue,
-    debt: Vec<CanonicalDigestDebt>,
 }
 
 impl CanonicalDerivedDigest {
-    fn new(
-        metadata: CanonicalDigestMetadata,
-        value: CanonicalDigestValue,
-        debt: Vec<CanonicalDigestDebt>,
-    ) -> Self {
-        Self {
-            metadata,
-            value,
-            debt,
-        }
+    fn new(metadata: CanonicalDigestMetadata, value: CanonicalDigestValue) -> Self {
+        Self { metadata, value }
     }
 
     pub fn metadata(&self) -> &CanonicalDigestMetadata {
@@ -30,10 +22,6 @@ impl CanonicalDerivedDigest {
     pub fn value(&self) -> &CanonicalDigestValue {
         &self.value
     }
-
-    pub fn debt(&self) -> &[CanonicalDigestDebt] {
-        &self.debt
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -41,6 +29,7 @@ pub struct CanonicalDigestMetadata {
     algorithm: CanonicalDigestAlgorithmMetadata,
     input_id: CanonicalDigestInputId,
     entry_count: u32,
+    work: CanonicalDigestWorkEvidence,
 }
 
 impl CanonicalDigestMetadata {
@@ -48,11 +37,13 @@ impl CanonicalDigestMetadata {
         algorithm: CanonicalDigestAlgorithmMetadata,
         input_id: CanonicalDigestInputId,
         entry_count: u32,
+        work: CanonicalDigestWorkEvidence,
     ) -> Self {
         Self {
             algorithm,
             input_id,
             entry_count,
+            work,
         }
     }
 
@@ -66,6 +57,10 @@ impl CanonicalDigestMetadata {
 
     pub const fn entry_count(&self) -> u32 {
         self.entry_count
+    }
+
+    pub const fn work(&self) -> CanonicalDigestWorkEvidence {
+        self.work
     }
 }
 
@@ -84,36 +79,30 @@ impl CanonicalDigestValue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum CanonicalDigestDebt {
-    ProductionCryptographicPolicyDeferred,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanonicalDigestDerivationDenial {
     UnsupportedAlgorithm,
     RuleVersionMismatch,
     InputDomainMismatch,
     InputShapeMismatch,
+    EntryLimitExceeded { maximum: u32, actual: u32 },
+    EncodedByteLimitExceeded { maximum: usize, attempted: usize },
 }
 
 pub fn derive_canonical_digest(
     ready: CanonicalDigestDerivationReadyArtifact,
 ) -> CanonicalDerivedDigest {
     let (input, _proofs, _basis) = ready.into_parts().into_parts();
-    let material = canonical_digest_material(&input);
-    let value = CanonicalDigestValue::new(stable_fixture_digest(material.as_bytes()));
+    debug_assert!(input.algorithm().id().is_sha256());
+    let value = CanonicalDigestValue::new(sha256_digest(input.material()));
     let metadata = CanonicalDigestMetadata::new(
         input.algorithm().clone(),
         input.evidence().input_id(),
         input.evidence().entry_count(),
+        input.work(),
     );
 
-    CanonicalDerivedDigest::new(
-        metadata,
-        value,
-        vec![CanonicalDigestDebt::ProductionCryptographicPolicyDeferred],
-    )
+    CanonicalDerivedDigest::new(metadata, value)
 }
 
 #[allow(dead_code)]

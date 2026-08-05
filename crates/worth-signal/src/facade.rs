@@ -55,6 +55,17 @@ pub mod core {
         REQUIRED_ASYNC_NODE_MILESTONE_D_PERFORMANCE_CLAIMS,
         REQUIRED_ASYNC_NODE_MILESTONE_D_SCENARIOS,
     };
+    pub use crate::data::authorization::{
+        InstalledSignalAuthorizationPolicy, SignalAuthorizationClauseContract,
+        SignalAuthorizationClauseObservation, SignalAuthorizationDecision,
+        SignalAuthorizationDecisionEvidence, SignalAuthorizationDenial,
+        SignalAuthorizationDependencyCardinality, SignalAuthorizationEvaluationCounters,
+        SignalAuthorizationObservation, SignalAuthorizationPolicyDefinition,
+        SignalAuthorizationPolicyIdentity, SignalAuthorizationRequirementContract,
+        SignalAuthorizationRequirementObservation, SignalAuthorizationRuleContract,
+        SignalAuthorizationRuleDecisionEvidence, SignalAuthorizationRuleEffect,
+        SignalAuthorizationRuleObservation,
+    };
     pub use crate::data::comparator::{
         ComparatorPolicyResolver, InstalledSignalComparatorIdentity, VersionComparatorPolicy,
         VersionComparatorResolver,
@@ -242,7 +253,7 @@ pub mod core {
     ) -> Result<(), SignalError> {
         #[cfg(any(test, doctest))]
         {
-            return crate::logic::invalidation::mark_dirty(graph, source, changed_aspect);
+            crate::logic::invalidation::mark_dirty(graph, source, changed_aspect)
         }
         #[cfg(not(any(test, doctest)))]
         {
@@ -274,12 +285,12 @@ pub mod core {
     ) -> Result<(), SignalError> {
         #[cfg(any(test, doctest))]
         {
-            return crate::logic::invalidation::mark_dirty_with_regions(
+            crate::logic::invalidation::mark_dirty_with_regions(
                 graph,
                 source,
                 changed_aspect,
                 changed_regions,
-            );
+            )
         }
         #[cfg(not(any(test, doctest)))]
         {
@@ -755,15 +766,23 @@ pub use self::core::{
     HostComputedEvaluator, HostComputedFailure, HostComputedFailureClass, HostComputedOutcomeClass,
     HostComputedPreparedResponse, InstalledSignalAspectCapability,
     InstalledSignalAspectLoweringAuthority, InstalledSignalAspectSetCapability,
-    InstalledSignalComparatorIdentity, InstalledSignalComparatorUse,
-    InstalledSignalConditionDecision, InstalledSignalConditionIdentity,
-    InstalledSignalConditionResolver, InstalledSignalConditionalContract,
-    InstalledSignalGraphCapability, InstalledSignalNodeCapability, IntervalAnchor,
-    IntervalCondition, IntervalPeriod, LoweredTemporalEligibility, MissedTickPolicy, NodeBuilder,
-    NodeEvaluationResult, NodeId, NodeState, OutputChange, OutputIdentity, PartitionMatchMode,
-    PartitionSubscription, PartitionToken, PreparedHostComputedEvaluation,
-    ReadyTemporalEligibility, RuntimeClockBasis, SignalAspectLoweringOwner,
-    SignalAspectLoweringOwnershipDenial, SignalConditionalArtifactReuse,
+    InstalledSignalAuthorizationPolicy, InstalledSignalComparatorIdentity,
+    InstalledSignalComparatorUse, InstalledSignalConditionDecision,
+    InstalledSignalConditionIdentity, InstalledSignalConditionResolver,
+    InstalledSignalConditionalContract, InstalledSignalGraphCapability,
+    InstalledSignalNodeCapability, IntervalAnchor, IntervalCondition, IntervalPeriod,
+    LoweredTemporalEligibility, MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId,
+    NodeState, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
+    PartitionToken, PreparedHostComputedEvaluation, ReadyTemporalEligibility, RuntimeClockBasis,
+    SignalAspectLoweringOwner, SignalAspectLoweringOwnershipDenial,
+    SignalAuthorizationClauseContract, SignalAuthorizationClauseObservation,
+    SignalAuthorizationDecision, SignalAuthorizationDecisionEvidence, SignalAuthorizationDenial,
+    SignalAuthorizationDependencyCardinality, SignalAuthorizationEvaluationCounters,
+    SignalAuthorizationObservation, SignalAuthorizationPolicyDefinition,
+    SignalAuthorizationPolicyIdentity, SignalAuthorizationRequirementContract,
+    SignalAuthorizationRequirementObservation, SignalAuthorizationRuleContract,
+    SignalAuthorizationRuleDecisionEvidence, SignalAuthorizationRuleEffect,
+    SignalAuthorizationRuleObservation, SignalConditionalArtifactReuse,
     SignalConditionalArtifactReuseClass, SignalConditionalArtifactReusePolicy,
     SignalConditionalComparatorClass, SignalConditionalComparatorPosition,
     SignalConditionalComparisonWork, SignalConditionalCondition, SignalConditionalConditionClass,

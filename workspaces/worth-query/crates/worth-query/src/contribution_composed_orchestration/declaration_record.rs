@@ -5,7 +5,6 @@ use crate::application::{
 use crate::binding_pipeline::WorthQueryBindingLinkedArtifacts;
 
 use super::aspect::WorthQueryContributionComposedDeclarationAspectRecord;
-use super::lower::DeclarationLowering;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryContributionComposedDeclarationRecord {
@@ -91,16 +90,4 @@ impl WorthQueryContributionComposedDeclarationRecord {
             .as_ref()
             .map(WorthQueryContributionComposedDeclarationAspectRecord::publication)
     }
-}
-
-pub(super) fn declaration_aspect_record_from_lowering<
-    D: WorthQueryDomainEntryMarker,
-    I: WorthQueryDeclarationInput<D>,
->(
-    declaration: &DeclarationLowering<D, I>,
-) -> WorthQueryContributionComposedDeclarationAspectRecord {
-    WorthQueryContributionComposedDeclarationAspectRecord::new(
-        declaration.envelope.aspect_contract().clone(),
-        declaration.envelope.aspect_publication().clone(),
-    )
 }

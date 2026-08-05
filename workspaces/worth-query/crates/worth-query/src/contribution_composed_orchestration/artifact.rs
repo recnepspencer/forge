@@ -4,7 +4,6 @@ use crate::application::{
     WorthQueryDeclarationEntryContributionComposition,
     WorthQueryDeclarationEntryContributionEvidence, WorthQueryDeclarationEnvelope,
     WorthQueryDeclarationInput, WorthQueryDomainEntryMarker,
-    WorthQueryGraphObligationOrchestrationDispatch,
 };
 
 use super::composition::{
@@ -148,7 +147,6 @@ pub struct WorthQueryContributionComposedOrchestration<
     intent_results: Vec<WorthQueryContributionComposedIntentResult>,
     composition: WorthQueryContributionComposedComposition,
     installed_authority: crate::domain_installation::WorthQueryInstalledDomainAuthorityWitness,
-    graph_obligation_dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
 }
 
 impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
@@ -177,16 +175,7 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
             intent_results,
             composition,
             installed_authority,
-            graph_obligation_dispatch: None,
         }
-    }
-
-    pub(crate) fn with_graph_obligation_dispatch(
-        mut self,
-        dispatch: Option<WorthQueryGraphObligationOrchestrationDispatch>,
-    ) -> Self {
-        self.graph_obligation_dispatch = dispatch;
-        self
     }
 
     pub fn envelope(&self) -> &WorthQueryDeclarationEnvelope<D, I> {
@@ -255,11 +244,5 @@ impl<D: WorthQueryDomainEntryMarker, I: WorthQueryDeclarationInput<D>>
 
     pub fn composition_identity(&self) -> &crate::WorthQueryEvidenceIdentity {
         self.composition.composition_identity()
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryGraphObligationOrchestrationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
     }
 }

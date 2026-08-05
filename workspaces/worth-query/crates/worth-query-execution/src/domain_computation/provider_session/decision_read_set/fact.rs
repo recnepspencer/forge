@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryDecisionFactKind;
@@ -6,10 +5,6 @@ use worth_query_installation::facade::WorthQueryDecisionFactKind;
 use crate::domain_computation::provider_session::{
     WorthQueryProviderSessionView, WorthQuerySessionBinding,
 };
-use crate::execution_digest::hash_parts;
-
-static NEXT_FACT_EVIDENCE: AtomicU64 = AtomicU64::new(1);
-
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct WorthQueryDecisionFactRequest {
     family_identity: Arc<str>,
@@ -44,15 +39,6 @@ impl WorthQueryDecisionFactRequest {
 
     pub fn locator(&self) -> &WorthQueryDecisionFactLocator {
         &self.locator
-    }
-
-    pub(crate) fn canonical_key(&self) -> String {
-        hash_parts(&[
-            "worth_query_decision_fact_request_v1".to_owned(),
-            self.kind().as_str().to_owned(),
-            self.family_identity.to_string(),
-            self.locator.identity().to_owned(),
-        ])
     }
 }
 
@@ -181,16 +167,8 @@ impl WorthQueryDecisionFactAdmission {
                 "provider fact version evidence must be non-empty canonical text",
             ));
         }
-        let occurrence = NEXT_FACT_EVIDENCE.fetch_add(1, Ordering::Relaxed);
-        let identity = hash_parts(&[
-            "worth_query_decision_fact_evidence_v1".into(),
-            self.binding_identity.to_string(),
-            self.request.canonical_key(),
-            physical_version_evidence.to_string(),
-            occurrence.to_string(),
-        ]);
         Ok(WorthQueryDecisionFactEvidence {
-            identity: identity.into(),
+            identity: Arc::clone(&physical_version_evidence),
             request: self.request,
             binding_identity: self.binding_identity,
             physical_version_evidence,
@@ -220,14 +198,6 @@ impl WorthQueryDecisionFactEvidence {
 
     pub(crate) fn view(&self) -> WorthQueryDecisionFactEvidenceView<'_> {
         WorthQueryDecisionFactEvidenceView { evidence: self }
-    }
-
-    pub(crate) fn canonical_token(&self) -> String {
-        hash_parts(&[
-            "worth_query_decision_fact_observation_v1".to_owned(),
-            self.request.canonical_key(),
-            self.physical_version_evidence.to_string(),
-        ])
     }
 }
 
@@ -359,6 +329,7 @@ pub enum WorthQueryDecisionReadSetDenialKind {
     EvidenceSubstitution,
     IncompleteRequiredFamilies,
     IncompleteRequiredFacts,
+    DecisionFactBudgetExceeded,
     ProviderRejected,
     ProviderPanicked,
 }

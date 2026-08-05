@@ -1,10 +1,9 @@
 use std::collections::BTreeSet;
 
 use crate::application::{
-    dispatch_graph_obligations_for_orchestration, WorthQueryDeclarationAspectCoverage,
-    WorthQueryDeclarationAspectCoverageBasis, WorthQueryDeclarationFamilyMarker,
+    WorthQueryDeclarationAspectCoverage, WorthQueryDeclarationAspectCoverageBasis,
     WorthQueryDeclarationInput, WorthQueryDomainEntryMarker, WorthQueryDomainOperatingContext,
-    WorthQueryGraphObligationOrchestrationBoundary, WorthQueryInstalledDomainDeclarationContext,
+    WorthQueryInstalledDomainDeclarationContext,
 };
 
 use super::artifact::{
@@ -41,35 +40,6 @@ pub(crate) fn worth_query_grouped_declaration_checked_on_handle<
         shared_rationale,
         member_inputs,
     ) = input.into_parts();
-    let graph_dispatch = match dispatch_graph_obligations_for_orchestration(
-        WorthQueryGraphObligationOrchestrationBoundary::DeclarationEntry,
-        handle.operating_context_identity_digest(),
-        I::Family::orchestration_graph_touch_descriptor(),
-        I::Family::orchestration_graph_touch_collection(),
-        I::Family::orchestration_graph_obligation_registrations(),
-    ) {
-        Ok(dispatch) => dispatch,
-        Err(error) => {
-            return WorthQueryGroupedDeclarationChecked::MemberStopped(
-                WorthQueryGroupedDeclarationStop::graph_obligation_dispatch_failed(
-                    0,
-                    I::Family::semantic_family_key(),
-                    error,
-                ),
-            )
-        }
-    };
-    if let Some(dispatch) = graph_dispatch.as_ref() {
-        if dispatch.blocking_denial_projection().is_some() {
-            return WorthQueryGroupedDeclarationChecked::MemberStopped(
-                WorthQueryGroupedDeclarationStop::graph_obligation_denied(
-                    0,
-                    I::Family::semantic_family_key(),
-                    dispatch.clone(),
-                ),
-            );
-        }
-    }
     let mut members = Vec::with_capacity(member_inputs.len());
     for (member_index, member_input) in member_inputs.into_iter().enumerate() {
         let role = member_role(member_index);
@@ -110,9 +80,7 @@ pub(crate) fn worth_query_grouped_declaration_checked_on_handle<
         participation,
         members,
     );
-    WorthQueryGroupedDeclarationChecked::Bound(
-        artifact.with_graph_obligation_dispatch(graph_dispatch),
-    )
+    WorthQueryGroupedDeclarationChecked::Bound(artifact)
 }
 
 fn member_role(member_index: usize) -> WorthQueryGroupedMemberRole {

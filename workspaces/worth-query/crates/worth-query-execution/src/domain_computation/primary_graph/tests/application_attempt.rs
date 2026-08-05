@@ -1,0 +1,292 @@
+use std::time::Duration;
+
+use super::fixture::{
+    installed_authorization_world, live_scope, AccountStatus, TouchAccountOperation,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitTerminalKind,
+    WorthQueryApplicationIdempotencyBinding, WorthQueryPrincipalResolutionMode,
+};
+#[path = "application_attempt/authority_lifecycle.rs"]
+mod authority_lifecycle;
+#[path = "application_attempt/authorization_causality.rs"]
+mod authorization_causality;
+#[path = "application_attempt/decision_adjacency.rs"]
+mod decision_adjacency;
+#[path = "application_attempt/decision_manifest_ceiling.rs"]
+mod decision_manifest_ceiling;
+#[path = "application_attempt/effect_authority.rs"]
+mod effect_authority;
+#[path = "application_attempt/emitted_effects.rs"]
+mod emitted_effects;
+#[path = "application_attempt/idempotency_behavior.rs"]
+mod idempotency_behavior;
+#[path = "application_attempt/mutation_terminal_lifecycle.rs"]
+mod mutation_terminal_lifecycle;
+#[path = "application_attempt/mutation_work_scale.rs"]
+mod mutation_work_scale;
+#[path = "application_attempt/program_fixture.rs"]
+mod program_fixture;
+#[path = "application_attempt/terminal_failures.rs"]
+mod terminal_failures;
+#[path = "application_attempt/touched_graph_closure.rs"]
+mod touched_graph_closure;
+
+use program_fixture::{
+    admitted_program, admitted_program_with_emit, admitted_program_with_expected_status,
+};
+
+#[test]
+fn same_fact_race_stales_loser_while_unrelated_drift_does_not_conflict() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let unrelated = resolved_account(&world, "unrelated", &request);
+
+    let first = admitted_program(&world, &principal, &account, &request, "first");
+    let losing = admitted_program(&world, &principal, &account, &request, "losing");
+    let unrelated_program =
+        admitted_program(&world, &principal, &unrelated, &request, "unrelated-after");
+
+    let unrelated_outcome = world
+        .application
+        .compare_and_commit_application(unrelated_program, idempotency(1, 1));
+    assert!(
+        matches!(
+            unrelated_outcome,
+            WorthQueryApplicationCommitOutcome::Committed(_)
+        ),
+        "unexpected unrelated outcome: {unrelated_outcome:?}"
+    );
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(2, 2)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let WorthQueryApplicationCommitOutcome::Stale(stale) = world
+        .application
+        .compare_and_commit_application(losing, idempotency(3, 3))
+    else {
+        panic!("the second same-fact attempt must be stale");
+    };
+    assert_eq!(stale.stale_fact_count(), 1);
+}
+
+#[test]
+fn concurrent_equivalent_attempts_publish_one_transaction() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program(&world, &principal, &account, &request, "once");
+    let second = admitted_program(&world, &principal, &account, &request, "once");
+
+    let (left, right) = std::thread::scope(|scope| {
+        let left = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(first, idempotency(12, 12))
+        });
+        let right = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(second, idempotency(12, 12))
+        });
+        (left.join().unwrap(), right.join().unwrap())
+    });
+    let receipts = [left, right]
+        .into_iter()
+        .map(|outcome| match outcome {
+            WorthQueryApplicationCommitOutcome::Committed(receipt)
+            | WorthQueryApplicationCommitOutcome::AlreadyCommitted(receipt) => receipt,
+            unexpected => panic!("unexpected concurrent outcome: {unexpected:?}"),
+        })
+        .collect::<Vec<_>>();
+    assert!(receipts[0].is_same_authoritative_commit(&receipts[1]));
+    let terminal_kinds = receipts
+        .iter()
+        .map(|receipt| receipt.terminal().kind())
+        .collect::<Vec<_>>();
+    assert!(terminal_kinds.contains(&WorthQueryApplicationCommitTerminalKind::Executed));
+    assert!(terminal_kinds.contains(&WorthQueryApplicationCommitTerminalKind::Recovered));
+}
+
+#[test]
+fn concurrent_independent_attempts_both_commit() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let first_account = resolved_account(&world, "open", &request);
+    let second_account = resolved_account(&world, "unrelated", &request);
+    let first = admitted_program(
+        &world,
+        &principal,
+        &first_account,
+        &request,
+        "first-independent",
+    );
+    let second = admitted_program(
+        &world,
+        &principal,
+        &second_account,
+        &request,
+        "second-independent",
+    );
+
+    let (left, right) = std::thread::scope(|scope| {
+        let left = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(first, idempotency(13, 13))
+        });
+        let right = scope.spawn(|| {
+            world
+                .application
+                .compare_and_commit_application(second, idempotency(14, 14))
+        });
+        (left.join().unwrap(), right.join().unwrap())
+    });
+    assert!(
+        matches!(left, WorthQueryApplicationCommitOutcome::Committed(_)),
+        "first independent outcome: {left:?}"
+    );
+    assert!(
+        matches!(right, WorthQueryApplicationCommitOutcome::Committed(_)),
+        "second independent outcome: {right:?}"
+    );
+}
+
+#[test]
+fn response_loss_resolves_the_published_commit_before_returning() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first = admitted_program_with_expected_status(
+        &world,
+        &principal,
+        &account,
+        &request,
+        ("open", "published"),
+    );
+    let retry = admitted_program_with_expected_status(
+        &world,
+        &principal,
+        &account,
+        &request,
+        ("open", "published"),
+    );
+
+    world.application.lose_next_commit_response();
+    let WorthQueryApplicationCommitOutcome::Committed(first_receipt) = world
+        .application
+        .compare_and_commit_application(first, idempotency(15, 15))
+    else {
+        panic!("authoritative idempotency must prove the response-lost commit");
+    };
+    let WorthQueryApplicationCommitOutcome::AlreadyCommitted(receipt) = world
+        .application
+        .compare_and_commit_application(retry, idempotency(15, 15))
+    else {
+        panic!("retry must recover the transaction published before response loss");
+    };
+    assert!(receipt.is_same_authoritative_commit(&first_receipt));
+    assert_eq!(receipt.outcome_identity(), first_receipt.outcome_identity());
+    assert_eq!(
+        first_receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Executed
+    );
+    assert_eq!(
+        receipt.terminal().kind(),
+        WorthQueryApplicationCommitTerminalKind::Recovered
+    );
+    assert_eq!(
+        receipt.precondition_comparison().expected_version_count(),
+        0
+    );
+    assert_eq!(receipt.precondition_comparison().expected_fact_count(), 1);
+    assert!(receipt.changed_record_count() >= 2);
+}
+
+#[test]
+fn preparation_commit_recovery_and_retry_perform_no_execution_digest_derivation() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let before = crate::execution_digest::test_hash_parts_call_count();
+    let first = admitted_program(&world, &principal, &account, &request, "digest-free");
+    let retry = admitted_program(&world, &principal, &account, &request, "digest-free");
+
+    world.application.lose_next_commit_response();
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(first, idempotency(31, 31)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let after_commit = crate::execution_digest::test_hash_parts_call_count();
+    assert_eq!(
+        after_commit,
+        before,
+        "preparation, provider execution, commit, or response-loss recovery derived legacy execution digests: {:?}",
+        crate::execution_digest::test_hash_parts_domains_since(before)
+    );
+
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(retry, idempotency(31, 31)),
+        WorthQueryApplicationCommitOutcome::AlreadyCommitted(_)
+    ));
+    assert_eq!(
+        crate::execution_digest::test_hash_parts_call_count(),
+        after_commit,
+        "idempotent retry or recovery derived a legacy execution digest"
+    );
+}
+
+pub(super) fn idempotency(key: u8, intent: u8) -> WorthQueryApplicationIdempotencyBinding {
+    WorthQueryApplicationIdempotencyBinding::new([key; 32], [intent; 32])
+}
+
+pub(super) fn authenticated_principal(
+    world: &super::fixture::AuthorizationWorld,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> crate::domain_computation::primary_graph::WorthQueryAuthenticatedPrincipal<
+    super::fixture::IdentityExecutionSchema,
+    super::fixture::Principal,
+    u64,
+> {
+    let external = world.authenticate("alice", Duration::from_secs(60), request);
+    world
+        .application
+        .resolve_authenticated_principal(
+            &world.binding,
+            external,
+            request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap()
+}
+
+pub(super) fn resolved_account(
+    world: &super::fixture::AuthorizationWorld,
+    status: &str,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> crate::domain_computation::primary_graph::WorthQueryApplicationEntityIdentity<
+    super::fixture::IdentityExecutionSchema,
+    super::fixture::Account,
+> {
+    world
+        .application
+        .resolve_entity(
+            AccountStatus::reference(),
+            status.to_string(),
+            request,
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap()
+}

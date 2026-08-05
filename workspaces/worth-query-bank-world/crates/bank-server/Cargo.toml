@@ -1,0 +1,17 @@
+[package]
+name = "bank-server"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Authoritative bank runtime composition."
+publish = false
+
+[dependencies]
+bank-domain.workspace = true
+worth-query-host.workspace = true
+
+[dev-dependencies]
+worth-foundational.workspace = true
+
+[lints]
+workspace = true

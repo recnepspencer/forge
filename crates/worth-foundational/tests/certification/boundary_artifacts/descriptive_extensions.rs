@@ -78,7 +78,7 @@ fn planned_work_and_same_family_descriptive_artifacts_stay_out_of_authority_tran
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        descriptive_profile.clone(),
+        descriptive_profile,
     )
     .expect("planned plan");
     let planned_artifact =
@@ -144,7 +144,7 @@ fn same_family_identity_is_stable_across_independent_producers_and_family_valida
             )),
             FoundationalBoundaryMaterializationSource::CompatibilityLowered,
             FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-            profile.clone(),
+            profile,
         )
         .expect("left artifact"),
         FoundationalSameFamilyBoundaryFamily::new("routing.summary")
@@ -201,7 +201,7 @@ fn same_family_and_planned_work_admission_denials_are_explicit() {
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("derived artifact");
     assert_eq!(

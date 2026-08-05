@@ -1,7 +1,9 @@
+mod bounded_adjacency;
 mod branch_locality;
 mod commit_projection;
 mod graph_scope_summaries;
 mod historical_record_truth;
+mod historical_relation_truth;
 mod structural_identity;
 mod transaction_staging;
 

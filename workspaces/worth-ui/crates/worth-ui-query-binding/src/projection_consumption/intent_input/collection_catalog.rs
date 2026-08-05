@@ -163,7 +163,7 @@ fn insert(
     Option<Arc<UiProjectionInputCollectionRow>>,
     UiProjectionInputTransitionWork,
 ) {
-    let key = UiProjectionOptionKey::new(row.row().query_row_identity().clone());
+    let key = UiProjectionOptionKey::new(row.row().query_identity().clone());
     let mut work = UiProjectionInputTransitionWork::default();
     let (root, previous) = mutation::insert(root, key, Arc::new(row), &mut work);
     (root, previous, work)

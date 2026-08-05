@@ -23,8 +23,11 @@ use crate::runtime::{
 
 use super::bootstrap::BridgeBackedRuntimeBootstrap;
 
+mod primary_graph_execution;
+
 pub struct WorthQueryBridgeBackedRuntimeBackend {
     relational_runtime: Option<RelationalRuntime>,
+    primary_graph_runtime: Option<super::WorthQueryPrimaryGraphBackendHandle>,
     runtime_bridge: RuntimeBridge,
     schema_adapter: Box<dyn super::WorthQueryRuntimeSchemaAdapter>,
     source_adapter: Box<dyn super::WorthQueryRuntimeSourceAdapter>,
@@ -57,6 +60,7 @@ impl WorthQueryBridgeBackedRuntimeBackend {
     ) -> Self {
         Self {
             relational_runtime: bootstrap.relational_runtime,
+            primary_graph_runtime: None,
             runtime_bridge: bootstrap.runtime_bridge,
             schema_adapter: bootstrap.schema_adapter,
             source_adapter: bootstrap.source_adapter,
@@ -77,6 +81,19 @@ impl WorthQueryBridgeBackedRuntimeBackend {
 impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()
+    }
+
+    fn surrender_unpublished_primary_graph_runtime(
+        &mut self,
+    ) -> Result<super::WorthQueryUnpublishedPrimaryGraphRuntime, WorthQueryWorkspaceError> {
+        self.surrender_unpublished_graph_runtime()
+    }
+
+    fn attach_primary_graph_runtime(
+        &mut self,
+        runtime: super::WorthQueryPrimaryGraphBackendHandle,
+    ) -> Result<(), WorthQueryWorkspaceError> {
+        self.attach_published_graph_runtime(runtime)
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
@@ -114,58 +131,14 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         &mut self,
         mutation: WorthQueryBackendAdmissibleMutation,
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
-        let expected_mutation = mutation.clone();
-        let write_execution = self.write_authority.write(
-            &self.runtime_bridge,
-            self.relational_runtime.as_mut(),
-            mutation,
-        )?;
-        if let Some(message) =
-            write_execution.drift_from_backend_admissible_mutation(&expected_mutation)
-        {
-            return Err(WorthQueryWorkspaceError::new(message));
-        }
-        let receipt = write_execution.mutation_receipt().clone();
-        let routed = self.signal_sink.route_write_receipt(&receipt)?;
-        if let Some(message) = routed.drift_from_mutation_receipt(&receipt) {
-            return Err(WorthQueryWorkspaceError::new(message));
-        }
-        Ok(receipt)
+        self.execute_backend_write(mutation)
     }
 
     fn write_batch(
         &mut self,
         mutations: Vec<WorthQueryBackendAdmissibleMutation>,
     ) -> Result<Vec<WorthQueryMutationReceipt>, WorthQueryWorkspaceError> {
-        let expected_mutations = mutations.clone();
-        let write_executions = self.write_authority.write_batch(
-            &self.runtime_bridge,
-            self.relational_runtime.as_mut(),
-            mutations,
-        )?;
-        for (mutation, execution) in expected_mutations.iter().zip(write_executions.iter()) {
-            if let Some(message) = execution.drift_from_backend_admissible_mutation(mutation) {
-                return Err(WorthQueryWorkspaceError::new(message));
-            }
-        }
-        let receipts = write_executions
-            .iter()
-            .map(|execution| execution.mutation_receipt().clone())
-            .collect::<Vec<_>>();
-        let routed = self.signal_sink.route_write_batch(&receipts)?;
-        if routed.len() != receipts.len() {
-            return Err(WorthQueryWorkspaceError::new(format!(
-                "signal invalidation routing batch width drifted from write batch: expected `{}`, found `{}`",
-                receipts.len(),
-                routed.len()
-            )));
-        }
-        for (receipt, routed_receipt) in receipts.iter().zip(routed.iter()) {
-            if let Some(message) = routed_receipt.drift_from_mutation_receipt(receipt) {
-                return Err(WorthQueryWorkspaceError::new(message));
-            }
-        }
-        Ok(receipts)
+        self.execute_backend_write_batch(mutations)
     }
 
     fn admit_existing_truth_binding(
@@ -231,17 +204,7 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         &mut self,
         declaration: &WorthQueryIntentDeclaration,
     ) -> Result<WorthQueryIntentExecution, WorthQueryRuntimeError> {
-        let Some(intent_authority) = self.intent_authority.as_mut() else {
-            return Err(WorthQueryRuntimeError::MissingIntentAuthority);
-        };
-        let execution = intent_authority
-            .execute_intent(
-                &self.runtime_bridge,
-                self.relational_runtime.as_mut(),
-                declaration,
-            )
-            .map_err(WorthQueryRuntimeError::Workspace)?;
-        Ok(execution)
+        self.execute_backend_intent(declaration)
     }
 
     fn admit_query_writeback_authority(&self) -> Result<(), WorthQueryWorkspaceError> {
@@ -269,24 +232,14 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         target_branch: &crate::runtime::WorthQueryAdmittedBranchName,
         source_branch: &crate::runtime::WorthQueryAdmittedBranchName,
     ) -> Result<WorthQueryBackendMergeAuthority, WorthQueryWorkspaceError> {
-        let runtime = self.relational_runtime.as_ref().ok_or_else(|| {
-            WorthQueryWorkspaceError::new(
-                "bridge-backed runtime has no configured relational merge authority",
-            )
-        })?;
-        WorthQueryBackendMergeAuthority::capture(runtime, target_branch, source_branch)
+        self.capture_backend_merge_authority(target_branch, source_branch)
     }
 
     fn validate_query_merge_authority(
         &self,
         authority: &WorthQueryBackendMergeAuthority,
     ) -> Result<(), WorthQueryWorkspaceError> {
-        let runtime = self.relational_runtime.as_ref().ok_or_else(|| {
-            WorthQueryWorkspaceError::new(
-                "bridge-backed runtime has no configured relational merge authority",
-            )
-        })?;
-        authority.validate_against(runtime)
+        self.validate_backend_merge_authority(authority)
     }
 
     fn execute_query_merge(
@@ -297,21 +250,7 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         worth_relational::facade::transactions::MergeExecutionOutcome,
         (crate::effect_lifecycle::EffectExecutionDenialKind, String),
     > {
-        let runtime = self.relational_runtime.as_mut().ok_or_else(|| {
-            (
-                crate::effect_lifecycle::EffectExecutionDenialKind::MissingRelationalAuthority,
-                "bridge-backed runtime has no configured relational merge authority".to_string(),
-            )
-        })?;
-        if declaration.merge_request().target_branch() != authority.target_branch()
-            || declaration.merge_request().source_branch() != authority.source_branch()
-        {
-            return Err((
-                crate::effect_lifecycle::EffectExecutionDenialKind::AuthorityOverrideRejected,
-                "lowered merge request does not match the captured branch authority".to_string(),
-            ));
-        }
-        crate::effect_lifecycle::execute_lowered_merge(runtime, declaration)
+        self.execute_backend_merge(authority, declaration)
     }
 
     fn execute_query_causal_inspection(

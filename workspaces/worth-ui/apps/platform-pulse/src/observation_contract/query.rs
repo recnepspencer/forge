@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use worth_ui::facade::query_binding::{
     UiPresentProjection, UiProjectionAvailability, UiProjectionObservation,
-    UiProjectionUnavailableKind,
+    UiProjectionUnavailableKind, UiQueryObservationReportingProjection,
 };
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -182,8 +182,7 @@ impl PlatformPulseQueryProjectionEvidence {
                 )
             }
         };
-        let core = fact.core();
-        let reporting = core.reporting_projection();
+        let reporting = UiQueryObservationReportingProjection::from_observation(observation);
         Ok(Self {
             projection_identity: observation.projection_identity().as_str().to_owned(),
             owner_order: observation.owner_order(),

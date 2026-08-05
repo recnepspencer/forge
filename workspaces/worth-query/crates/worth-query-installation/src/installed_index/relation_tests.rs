@@ -25,7 +25,7 @@ fn rebuild_retains_exact_runtime_generation_and_meaning() {
 fn same_generation_meaning_drift_is_not_an_equivalent_rebuild() {
     let current = empty_index();
     let mut drifted = current.rebuild();
-    drifted.identity.push_str("-corrupt");
+    drifted.identity.corrupt_for_test();
 
     assert_eq!(
         current.relation_to(&drifted),

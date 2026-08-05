@@ -20,7 +20,7 @@ pub enum UiProjectionBindingStopKind {
 pub struct UiProjectionBindingStopReceipt {
     kind: UiProjectionBindingStopKind,
     attempt_identity: WorthQueryEvidenceIdentity,
-    predecessor_binding: Option<crate::UiQueryBindingReference>,
+    predecessor_binding: Option<crate::UiQueryIdentityReportingProjection>,
     summary: Arc<str>,
 }
 
@@ -41,7 +41,7 @@ impl UiProjectionBindingStopReceipt {
     pub(crate) fn replacement(
         kind: UiProjectionBindingStopKind,
         attempt_identity: WorthQueryEvidenceIdentity,
-        predecessor_binding: crate::UiQueryBindingReference,
+        predecessor_binding: crate::UiQueryIdentityReportingProjection,
         summary: impl Into<Arc<str>>,
     ) -> Self {
         Self {
@@ -56,11 +56,11 @@ impl UiProjectionBindingStopReceipt {
         self.kind
     }
 
-    pub fn attempt_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.attempt_identity)
+    pub fn attempt_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.attempt_identity
     }
 
-    pub fn predecessor_binding(&self) -> Option<&crate::UiQueryBindingReference> {
+    pub fn predecessor_binding(&self) -> Option<&crate::UiQueryIdentityReportingProjection> {
         self.predecessor_binding.as_ref()
     }
 

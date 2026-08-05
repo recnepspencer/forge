@@ -161,7 +161,7 @@ fn derive_authority_digest(
         TransitionOutcome::Success(basis) => basis,
         _ => return Err(PhysicalIntegrityEvidenceDenial::AuthorityDigestDenied),
     };
-    let algorithm = worth_foundational::CanonicalDigestAlgorithmId::test_stable_fixture();
+    let algorithm = worth_foundational::CanonicalDigestAlgorithmId::sha256();
 
     match StoreDigestAuthority::for_native_basis(family, basis).derive(algorithm) {
         TransitionOutcome::Success(evidence) => Ok(evidence),

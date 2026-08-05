@@ -110,6 +110,56 @@ fn duplicate_discovery_for_one_fact_calls_the_provider_once() {
     cleanup(running);
 }
 
+#[test]
+fn bounded_family_accepts_attempt_exact_sets_only_within_installed_ceiling() {
+    let kind = WorthQueryDecisionFactKind::ObservedValue;
+    let family = WorthQueryDecisionFactFamily::new("family-0", kind.clone())
+        .unwrap()
+        .with_bounded_fact_count(2)
+        .unwrap();
+    let versions = Arc::new(Mutex::new(version_map(3)));
+    let (mut running, graph) = managed_decision_graph_run_with_provider(
+        DecisionProvider {
+            versions: Arc::clone(&versions),
+        },
+        vec![family],
+    );
+    let staged = staged(&mut running, &graph);
+    let reads = staged.read_authority();
+    let empty = reads
+        .capture_decision_read_set(std::iter::empty())
+        .expect("bounded families permit an attempt with no realized facts");
+    assert_eq!(empty.fact_count(), 0);
+    let one = reads
+        .capture_decision_read_set([bounded_request(0)])
+        .expect("one exact observed fact is within the installed ceiling");
+    assert_eq!(one.fact_count(), 1);
+    let two = reads
+        .capture_decision_read_set([bounded_request(0), bounded_request(1)])
+        .expect("two exact observed facts reach the installed ceiling");
+    assert_eq!(two.fact_count(), 2);
+    let observations_before_denial = observations(&versions);
+    let denial = reads
+        .capture_decision_read_set([bounded_request(0), bounded_request(1), bounded_request(2)])
+        .err()
+        .expect("the installed ceiling must deny before provider contact");
+    assert_eq!(
+        denial.kind(),
+        WorthQueryDecisionReadSetDenialKind::DecisionFactBudgetExceeded
+    );
+    assert_eq!(observations(&versions), observations_before_denial);
+    staged.abort();
+    cleanup(running);
+}
+
+fn bounded_request(index: usize) -> WorthQueryDecisionFactRequest {
+    WorthQueryDecisionFactRequest::new(
+        "family-0",
+        WorthQueryDecisionFactLocator::observed(format!("locator-{index}")).unwrap(),
+    )
+    .unwrap()
+}
+
 fn observations(versions: &Arc<Mutex<std::collections::BTreeMap<String, u64>>>) -> u64 {
     versions
         .lock()

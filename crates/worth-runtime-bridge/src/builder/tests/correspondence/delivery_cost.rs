@@ -91,7 +91,7 @@ fn correspondence_cost_exposes_truth_width_target_width_and_unrelated_items() {
 
 fn assert_admission_width(correspondence: &crate::facade::BridgeInstalledSemanticCorrespondence) {
     let admission = correspondence.admission_counters();
-    assert_eq!(admission.query_dependency_lookups(), 1);
+    assert_eq!(admission.semantic_dependency_lookups(), 1);
     assert_eq!(admission.registered_targets_materialized(), 2);
     assert_eq!(admission.source_profile_cache_reads(), 1);
     assert_eq!(admission.allocation_registry_lock_attempts(), 1);

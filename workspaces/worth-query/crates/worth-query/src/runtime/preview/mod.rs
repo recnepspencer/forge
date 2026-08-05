@@ -31,6 +31,7 @@ mod mutation_ops;
 mod outcome;
 mod session_closeout;
 mod session_execution;
+mod symbolic_targets;
 mod workflow_ops;
 
 use aspects::{relevant_computed_aspects, relevant_effect_aspects, relevant_live_aspects};

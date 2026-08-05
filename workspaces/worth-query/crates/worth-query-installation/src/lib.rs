@@ -7,10 +7,20 @@
 #![forbid(unsafe_code)]
 
 mod admission;
+mod application_ability;
+mod application_capability;
+mod application_operation;
+mod application_principal_binding;
+mod application_query;
+mod application_schema;
+mod authority_cryptography;
+mod canonical_digest_derivation;
 mod canonical_hash_encoding;
+mod canonical_work;
 mod domain_computation;
 mod domain_operation;
 mod generation;
+mod graph_obligation;
 mod installed_domain_operation;
 mod installed_graph_participation;
 mod installed_handle_denial;
@@ -21,6 +31,10 @@ mod package_requirements;
 
 #[cfg(test)]
 mod admission_profile_tests;
+#[cfg(test)]
+mod application_principal_binding_tests;
+#[cfg(test)]
+mod application_schema_tests;
 #[cfg(test)]
 mod domain_computation_admission_tests;
 #[cfg(test)]
@@ -55,15 +69,110 @@ mod domain_computation_workflow_test_support;
 mod package_validation_tests;
 
 pub mod facade {
+    pub use worth_query_declaration::facade::application_capability::{
+        ApplicationCapabilityRef, ErasedApplicationCapabilityContract,
+    };
+    pub use worth_query_declaration::facade::application_schema::{
+        ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
+        ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
+        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
+        ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+        ApplicationOperationProgramTarget, ApplicationRelationRef, ApplicationSchema,
+        ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
+        EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,
+        OperationLinks, OperationReads, OperationUnlinks, OperationWrites,
+        OptionalApplicationFieldValue, RequiredApplicationFieldValue,
+        TypedApplicationIdentityValue, TypedApplicationReadableValue,
+        TypedApplicationSignedAggregateValue, TypedApplicationValue, WritableCapability,
+        WritePosture,
+    };
+    pub use worth_query_declaration::facade::authentication::{
+        WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
+    };
+
     pub use crate::admission::{
         WorthQueryAdmittedPortableDomainPackage, WorthQueryArtifactVersionSupport,
         WorthQueryInstallationAdmissionDenial, WorthQueryInstallationAdmissionDenialKind,
-        WorthQueryInstallationAdmissionProfile, WorthQueryInstallationSupportStatus,
+        WorthQueryInstallationAdmissionIdentity, WorthQueryInstallationAdmissionProfile,
+        WorthQueryInstallationSupportStatus,
+    };
+    pub use crate::application_ability::{
+        WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
+        WorthQueryInstalledAbility,
+    };
+    pub use crate::application_capability::{
+        derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,
+        WorthQueryApplicationCapabilityInstallationDenial,
+        WorthQueryApplicationCapabilityInstallationDenialKind,
+        WorthQueryCapabilityCanonicalArtifact, WorthQueryCapabilityLookupEvidence,
+        WorthQueryCapabilityRevocationProposalBasis, WorthQueryCapabilityRevocationProposalDenial,
+        WorthQueryDelegationProposalIdentityBasis, WorthQueryDelegationProposalIdentityDenial,
+        WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationCapabilityIdentity,
+        WorthQueryInstalledApplicationCapabilityPlanSource,
+    };
+    pub use crate::application_operation::{
+        WorthQueryApplicationOperationInstallationDenial,
+        WorthQueryApplicationOperationInstallationDenialKind,
+        WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
+        WorthQueryInstalledApplicationOperation,
+        WorthQueryInstalledApplicationOperationAuthorization,
+        WorthQueryInstalledApplicationOperationExecutionPosture,
+        WorthQueryInstalledApplicationOperationGraphAuthority,
+        WorthQueryInstalledAuthorizationPath, WorthQueryInstalledMutationPrecondition,
+        APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
+        APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY, APPLICATION_EXECUTION_ALLOCATOR_FAMILY,
+        APPLICATION_EXECUTION_PROVIDER_FAMILY, APPLICATION_EXECUTION_SAFE_POINT_FAMILY,
+        APPLICATION_INVARIANT_SLOT,
+    };
+    pub use crate::application_principal_binding::{
+        WorthQueryInstalledPrincipalBinding, WorthQueryPrincipalBindingInstallationDenial,
+        WorthQueryPrincipalBindingInstallationDenialKind,
+    };
+    pub use crate::application_query::{
+        prepare_canonical_read_graph_planning_basis, WorthQueryApplicationCanonicalArtifact,
+        WorthQueryApplicationQueryCanonicalWorkPolicy,
+        WorthQueryApplicationQueryInstallationDenial,
+        WorthQueryApplicationQueryInstallationDenialKind,
+        WorthQueryInstalledApplicationContinuationContract,
+        WorthQueryInstalledApplicationLiveContract, WorthQueryInstalledApplicationQuery,
+        WorthQueryInstalledApplicationQueryAuthorization,
+        WorthQueryInstalledApplicationQueryIdentity,
+        WorthQueryInstalledApplicationReadFamilyBinding, WorthQueryInstalledGraphOrdering,
+        WorthQueryInstalledGraphPredicate, WorthQueryInstalledGraphProjection,
+        WorthQueryInstalledGraphReadContract, WorthQueryInstalledGraphRelation,
+        WorthQueryInstalledRootPath, WorthQueryInstalledRootPathGuard,
+        WorthQueryInstalledRootPathStep, WorthQueryPreparedReadGraphPlanningContract,
+        WorthQueryReadGraphGuardView, WorthQueryReadGraphOrderingMechanism,
+        WorthQueryReadGraphOrderingView, WorthQueryReadGraphPlanningContract,
+        WorthQueryReadGraphPredicateView, WorthQueryReadGraphProjectionView,
+        WorthQueryReadGraphRelationDirection, WorthQueryReadGraphRelationView,
+    };
+    pub use crate::application_schema::{
+        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
+        WorthQueryInstalledApplicationSchemaDenialKind,
+    };
+    pub use crate::canonical_work::{
+        WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
     };
     pub use crate::domain_computation::*;
     pub use crate::domain_operation::*;
     pub use crate::generation::{
         WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
+    };
+    pub use crate::graph_obligation::{
+        inspect_installed_graph_obligations, WorthQueryGraphObligationAdoptionDenial,
+        WorthQueryGraphObligationAdoptionDenialKind, WorthQueryGraphObligationAdoptionProof,
+        WorthQueryGraphObligationAdoptionRow, WorthQueryInstalledGraphAuthorizationRequirement,
+        WorthQueryInstalledGraphCapabilityRequirement, WorthQueryInstalledGraphObligation,
+        WorthQueryInstalledGraphObligationEffectPosture,
+        WorthQueryInstalledGraphObligationIdentity, WorthQueryInstalledGraphObligationInspection,
+        WorthQueryInstalledGraphObligationInstallationEvidence,
+        WorthQueryInstalledGraphObligationKind, WorthQueryInstalledGraphObligationLookup,
+        WorthQueryInstalledGraphObligationOwner, WorthQueryInstalledGraphObligationResourcePosture,
+        WorthQueryInstalledGraphObligationSelectionBasis, WorthQueryInstalledGraphObligationSet,
+        WorthQueryInstalledGraphObligationSetIdentity,
+        WorthQueryInstalledGraphObligationSubjectKind,
+        WorthQueryInstalledGraphObligationTerminalRequirement,
     };
     pub use crate::installed_domain_operation::{
         WorthQueryConditionalDependencyLookupDenial,

@@ -62,7 +62,7 @@ where
         let revalidation_descriptor = self.resource.descriptor_for_node(node);
         let timeout_plan = revalidation_descriptor
             .map(|descriptor| descriptor.timeout_decision_plan().clone())
-            .unwrap_or_else(|| LoweredResourceDescriptor::default_timeout_decision_plan());
+            .unwrap_or_else(LoweredResourceDescriptor::default_timeout_decision_plan);
         let revalidation_decision_digest = revalidation_descriptor
             .map(|descriptor| {
                 descriptor

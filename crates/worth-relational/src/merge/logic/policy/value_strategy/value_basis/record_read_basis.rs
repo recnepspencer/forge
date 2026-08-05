@@ -150,31 +150,6 @@ fn base_scalar_value(
     base_view: &PolicyReadViewContext<'_>,
     counters: &mut PolicyValueLookupCounters,
 ) -> Result<PolicyScalarValue, PolicyValueLookupFailure> {
-    let base_state = match binding {
-        ScalarPolicyAspectBinding::Entity { aspect_key } => {
-            entity_basis_for_visible_record(record, classification, base_view)
-                .ok_or(PolicyValueLookupFailure::MissingRecordBasis)
-                .and_then(|entity| {
-                    scalar_from_entity(entity, aspect_key, PolicyValueProvenance::BaseReadViewState)
-                })
-        }
-        ScalarPolicyAspectBinding::Relation { aspect_key } => {
-            relation_basis_for_visible_record(record, classification, base_view)
-                .ok_or(PolicyValueLookupFailure::MissingRecordBasis)
-                .and_then(|relation| {
-                    scalar_from_relation(
-                        relation,
-                        aspect_key,
-                        PolicyValueProvenance::BaseReadViewState,
-                    )
-                })
-        }
-    };
-    counters.record_base_state(base_state.as_ref().map(|_| ()).map_err(|failure| *failure));
-    if base_state.is_ok() {
-        return base_state;
-    }
-
     let aspect_key = binding.aspect_key();
     let candidate_targets = match binding {
         ScalarPolicyAspectBinding::Entity { .. } => {
@@ -196,7 +171,32 @@ fn base_scalar_value(
             },
         );
     counters.record_base_patch_authority(patch_value.is_some());
-    patch_value.ok_or(PolicyValueLookupFailure::MissingRecordBasis)
+    if let Some(patch_value) = patch_value {
+        return Ok(patch_value);
+    }
+
+    let base_state = match binding {
+        ScalarPolicyAspectBinding::Entity { aspect_key } => {
+            entity_basis_for_visible_record(record, classification, base_view)
+                .ok_or(PolicyValueLookupFailure::MissingRecordBasis)
+                .and_then(|entity| {
+                    scalar_from_entity(entity, aspect_key, PolicyValueProvenance::BaseReadViewState)
+                })
+        }
+        ScalarPolicyAspectBinding::Relation { aspect_key } => {
+            relation_basis_for_visible_record(record, classification, base_view)
+                .ok_or(PolicyValueLookupFailure::MissingRecordBasis)
+                .and_then(|relation| {
+                    scalar_from_relation(
+                        relation,
+                        aspect_key,
+                        PolicyValueProvenance::BaseReadViewState,
+                    )
+                })
+        }
+    };
+    counters.record_base_state(base_state.as_ref().map(|_| ()).map_err(|failure| *failure));
+    base_state
 }
 
 fn scalar_from_entity(

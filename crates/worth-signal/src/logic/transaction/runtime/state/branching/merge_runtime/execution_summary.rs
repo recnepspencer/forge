@@ -112,7 +112,7 @@ pub(super) fn build_execution_summary(
         selected_semantics: plan.selected_semantics().clone(),
         strategy_witness: plan.strategy_witness().clone(),
         compatibility_witness: finalization.compatibility_witness,
-        reconciliation_policy: plan.reconciliation_policy().clone(),
+        reconciliation_policy: *plan.reconciliation_policy(),
         boundary_witness: plan.boundary_witness().clone(),
         identity_correspondence: plan.identity_correspondence().clone(),
         deletion_plan: plan.deletion_plan().clone(),

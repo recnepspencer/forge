@@ -22,7 +22,7 @@ pub enum BridgeBuildErrorKind {
     SourceCapabilityMismatch,
     BuilderConfigurationConflict,
     InvalidFineGrainedWideningPolicy,
-    AmbiguousQueryDependencyRegistration,
+    AmbiguousSemanticDependencyRegistration,
     MixedSemanticCorrespondenceSignalGraphs,
 }
 

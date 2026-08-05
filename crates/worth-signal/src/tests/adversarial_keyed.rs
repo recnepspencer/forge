@@ -35,11 +35,11 @@ fn many_keys_in_one_family_reuse_stably_across_large_lookup_sequences() {
         );
     }
 
-    for index in 0..256 {
+    for (index, expected) in first_pass.iter().enumerate() {
         let reused = family
             .keyed(format!("component-{index}"))
             .node(&mut runtime);
-        assert_eq!(reused, first_pass[index]);
+        assert_eq!(&reused, expected);
     }
 }
 

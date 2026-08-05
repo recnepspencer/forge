@@ -58,6 +58,8 @@ pub(super) fn plan_index_packets(
             let record_domain = match definition.kind {
                 DerivedIndexKind::EntityField { .. } => PreparationRecordDomain::Entity,
                 DerivedIndexKind::RelationField { .. } => PreparationRecordDomain::Relation,
+                DerivedIndexKind::RelatedEntityOrdering { .. } => PreparationRecordDomain::Mixed,
+                DerivedIndexKind::RelationJoin(_) => PreparationRecordDomain::Mixed,
             };
             IndexPreparationPacket {
                 header: IndexPreparationHeader {

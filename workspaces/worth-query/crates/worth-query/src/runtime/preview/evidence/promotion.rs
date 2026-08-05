@@ -38,8 +38,6 @@ pub struct WorthQueryPreviewPromotionDenialEvidence {
     crossed_authoritative_residue_count: usize,
     recovery_posture: String,
     rebinding_identity: Option<WorthQueryEvidenceIdentity>,
-    graph_obligation_denial_projection:
-        Option<crate::runtime::WorthQueryGraphObligationDenialProjection>,
     reason: String,
     denial_identity: WorthQueryEvidenceIdentity,
 }
@@ -59,9 +57,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
         crossed_authoritative_residue_count: usize,
         recovery_posture: String,
         rebinding_identity: Option<WorthQueryEvidenceIdentity>,
-        graph_obligation_denial_projection: Option<
-            crate::runtime::WorthQueryGraphObligationDenialProjection,
-        >,
         reason: String,
     ) -> Self {
         let basis_evidence_rows = basis_admission.evidence_rows();
@@ -127,17 +122,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
                 rebinding_identity.as_str(),
             );
         }
-        if let Some(projection) = graph_obligation_denial_projection.as_ref() {
-            denial_builder = denial_builder
-                .field_value(
-                    WorthQueryEvidenceTag::new("graph_obligation_projection"),
-                    projection.projection_digest(),
-                )
-                .field_usize(
-                    WorthQueryEvidenceTag::new("graph_obligation_blocking_count"),
-                    projection.blocking_count(),
-                );
-        }
         let denial_identity = denial_builder.seal();
         let basis_evidence = basis_admission.evidence();
         Self {
@@ -154,7 +138,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
             crossed_authoritative_residue_count,
             recovery_posture,
             rebinding_identity,
-            graph_obligation_denial_projection,
             reason,
             denial_identity,
         }
@@ -180,7 +163,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
             preview_binding_count,
             0,
             "refresh_preview_basis".to_string(),
-            None,
             None,
             "preview promotion rejected because authoritative basis changed before promotion"
                 .to_string(),
@@ -212,38 +194,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
             0,
             "retry_authoritative_write".to_string(),
             None,
-            None,
-            reason,
-        )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub(in crate::runtime::preview) fn write_failed_with_graph_obligation_denial(
-        effect_policy: WorthQueryEffectPolicy,
-        basis_admission: &WorthQueryPreviewBasisAdmission,
-        basis_snapshot_identity: &WorthQuerySnapshotIdentity,
-        promotion_snapshot_identity: &WorthQuerySnapshotIdentity,
-        staged_preview_write_count: usize,
-        promoted_write_count: usize,
-        failed_write_sequence: usize,
-        preview_binding_count: usize,
-        denial_projection: crate::runtime::WorthQueryGraphObligationDenialProjection,
-        reason: String,
-    ) -> Self {
-        Self::new(
-            WorthQueryPreviewPromotionDenialKind::WriteFailed,
-            effect_policy,
-            basis_admission,
-            basis_snapshot_identity,
-            promotion_snapshot_identity,
-            staged_preview_write_count,
-            promoted_write_count,
-            Some(failed_write_sequence),
-            preview_binding_count,
-            0,
-            "retry_authoritative_write".to_string(),
-            None,
-            Some(denial_projection),
             reason,
         )
     }
@@ -268,7 +218,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
             preview_binding_count,
             0,
             "promote_with_atomic_batch_support".to_string(),
-            None,
             None,
             "preview promotion rejected because multiple staged writes require atomic promotion support"
                 .to_string(),
@@ -299,7 +248,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
             crossed_authoritative_residue_count,
             "discard_preview_and_readmit_authoritative".to_string(),
             Some(rebinding_identity),
-            None,
             "preview promotion rejected because preview-owned temporal or async residue requires authoritative re-admission before promotion"
                 .to_string(),
         )
@@ -369,12 +317,6 @@ impl WorthQueryPreviewPromotionDenialEvidence {
 
     pub fn rebinding_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
         self.rebinding_identity.as_ref()
-    }
-
-    pub fn graph_obligation_denial_projection(
-        &self,
-    ) -> Option<&crate::runtime::WorthQueryGraphObligationDenialProjection> {
-        self.graph_obligation_denial_projection.as_ref()
     }
 
     pub fn reason(&self) -> &str {

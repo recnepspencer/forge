@@ -186,10 +186,11 @@ impl WorthUiScalarProjectionPublicationCompletion {
     )]
     pub fn admit_publication(
         self,
-        predecessor: UiScalarProjectionFactReceipt,
-    ) -> Result<WorthUiScalarProjectionLiveOwner, UiScalarProjectionFactReceipt> {
+        predecessor: crate::UiScalarProjectionObservation,
+    ) -> Result<WorthUiScalarProjectionLiveOwner, crate::UiScalarProjectionObservation> {
+        let predecessor = predecessor.into_fact();
         if predecessor.core().observation_order() != self.expected_owner_order {
-            return Err(predecessor);
+            return Err(predecessor.into_observation());
         }
         let owner = self.owner;
         let predecessor = self.retained_predecessor.unwrap_or(predecessor);

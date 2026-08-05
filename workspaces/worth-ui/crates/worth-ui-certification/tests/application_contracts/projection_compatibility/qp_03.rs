@@ -18,7 +18,10 @@ fn compatible_scalar_and_collection_pairs_preserve_identity_only_with_query_proo
     ));
     assert_query_only_compatibility(scalar.proof());
     assert_eq!(
-        scalar.into_successor().core().query_binding_reference(),
+        scalar
+            .into_successor()
+            .core()
+            .query_binding_reporting_projection(),
         &scalar_identity
     );
 
@@ -27,7 +30,7 @@ fn compatible_scalar_and_collection_pairs_preserve_identity_only_with_query_proo
         collection_binding(&collection_world, "platform.pulse.statuses", false, true);
     let collection_identity = collection_predecessor
         .core()
-        .query_binding_reference()
+        .query_binding_reporting_projection()
         .clone();
     let collection = collection_admitted(collection_predecessor.replace_with(
         collection_binding(&collection_world, "platform.pulse.statuses", false, true),
@@ -35,7 +38,10 @@ fn compatible_scalar_and_collection_pairs_preserve_identity_only_with_query_proo
     ));
     assert_query_only_compatibility(collection.proof());
     assert_eq!(
-        collection.into_successor().core().query_binding_reference(),
+        collection
+            .into_successor()
+            .core()
+            .query_binding_reporting_projection(),
         &collection_identity
     );
 }
@@ -255,8 +261,8 @@ fn projection_view(
 
 fn binding_identity(
     binding: &UiScalarProjectionBinding,
-) -> worth_ui_query_binding::UiQueryBindingReference {
-    binding.core().query_binding_reference().clone()
+) -> worth_ui_query_binding::UiQueryIdentityReportingProjection {
+    binding.core().query_binding_reporting_projection().clone()
 }
 
 fn assert_query_only_compatibility(

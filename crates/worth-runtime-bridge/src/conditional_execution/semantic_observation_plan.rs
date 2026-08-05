@@ -1,8 +1,3 @@
-use worth_query_installation::facade::{
-    WorthQueryConditionalConditionClass as ConditionClass,
-    WorthQueryPortableConditionalNodeDeclaration,
-};
-
 use super::{BridgeConditionalDenial, BridgeConditionalDenialKind};
 
 pub(super) struct BridgeConditionalSemanticObservationPlan {
@@ -21,25 +16,24 @@ impl BridgeConditionalSemanticObservationPlan {
 }
 
 pub(super) fn compile_semantic_observation_plan(
-    declaration: &WorthQueryPortableConditionalNodeDeclaration,
+    contract: &super::BridgeConditionalContract,
     registrations: &[crate::correspondence::BridgeSemanticCorrespondenceRegistration],
 ) -> Result<Option<BridgeConditionalSemanticObservationPlan>, BridgeConditionalDenial> {
     if !matches!(
-        declaration.condition().class(),
-        ConditionClass::DeltaThreshold | ConditionClass::DomainSpecific
+        contract.condition(),
+        super::BridgeConditionalCondition::DeltaThreshold(_)
+            | super::BridgeConditionalCondition::RuntimePredicate
     ) {
         return Ok(None);
     }
-    let condition_dependencies = declaration.condition().dependencies();
+    let condition_dependencies = contract.condition_dependency_ordinals();
     let mut ordinals = Vec::new();
     let mut reads = Vec::new();
     for registration in registrations.iter().filter(|registration| {
         condition_dependencies.is_empty()
-            || condition_dependencies.iter().any(|dependency| {
-                registration
-                    .dependency()
-                    .matches_declared_dependency(dependency)
-            })
+            || condition_dependencies
+                .iter()
+                .any(|ordinal| registration.dependency().dependency_ordinal() == *ordinal)
     }) {
         let dependency = registration.dependency();
         let record = dependency.source_record_identity.ok_or_else(|| {

@@ -1,7 +1,4 @@
 use crate::memory_workspace::WorthQueryEntity;
-use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryGraphObligationAttachmentEvidence,
-};
 
 use super::{WorthQueryReadExecutionProduct, WorthQueryReadReceipt};
 
@@ -18,20 +15,6 @@ impl WorthQueryReadResult {
 
     pub fn receipt(&self) -> &WorthQueryReadReceipt {
         &self.receipt
-    }
-
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.receipt.graph_obligation_dispatch()
-    }
-
-    pub fn graph_obligation_evidence(&self) -> Option<WorthQueryGraphObligationAttachmentEvidence> {
-        self.receipt.graph_obligation_evidence()
-    }
-
-    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.receipt.graph_obligation_envelope_digest()
     }
 
     pub(in crate::runtime) fn new(

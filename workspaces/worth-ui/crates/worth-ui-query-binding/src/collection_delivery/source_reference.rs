@@ -46,10 +46,6 @@ impl WorthUiCollectionRowReference {
     pub fn source(&self) -> &WorthUiCollectionChangeSourceReference {
         &self.source
     }
-
-    pub fn identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.query_row_identity)
-    }
 }
 
 impl PartialEq for WorthUiCollectionChangeSourceReference {
@@ -86,7 +82,11 @@ impl std::fmt::Debug for WorthUiCollectionRowReference {
         formatter
             .debug_struct("WorthUiCollectionRowReference")
             .field("source", &self.source)
-            .field("query_row_identity", &"sealed Query evidence")
+            .field("query_row_identity_scope", &self.query_row_identity.scope())
+            .field(
+                "query_row_identity_scheme",
+                &self.query_row_identity.scheme(),
+            )
             .finish()
     }
 }

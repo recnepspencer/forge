@@ -391,7 +391,11 @@ impl FintechWorld {
         };
 
         self.runtime.transaction(&mut (), |tx| {
-            tx.mark_dirty_with_regions(source, super::aspects::PRICE, &[changed_region.clone()])?;
+            tx.mark_dirty_with_regions(
+                source,
+                super::aspects::PRICE,
+                std::slice::from_ref(&changed_region),
+            )?;
             tx.read(source, &|view| {
                 Ok(view.finish(
                     NodeEvaluationResult::from_version(bumped)
@@ -502,7 +506,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
     }
 
     let mut book_aggregates = Vec::with_capacity(scale.books);
-    for book_index in 0..scale.books {
+    for (book_index, aggregate_source) in aggregate_sources.iter().take(scale.books).enumerate() {
         let aggregate = runtime
             .graph_mut()
             .node()
@@ -511,15 +515,11 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .build();
         let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
         dependencies
-            .append_dependency(
-                aggregate,
-                aggregate_sources[book_index].book_state,
-                super::aspects::RISK,
-            )
+            .append_dependency(aggregate, aggregate_source.book_state, super::aspects::RISK)
             .unwrap()
             .append_dependency(
                 aggregate,
-                aggregate_sources[book_index].book_state,
+                aggregate_source.book_state,
                 super::aspects::ALERT,
             )
             .unwrap()
@@ -539,7 +539,7 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
     }
 
     let mut desk_aggregates = Vec::with_capacity(scale.desks);
-    for desk_index in 0..scale.desks {
+    for (desk_index, aggregate_source) in aggregate_sources.iter().take(scale.desks).enumerate() {
         let aggregate = runtime
             .graph_mut()
             .node()
@@ -548,15 +548,11 @@ pub(super) fn build_fixture(scale: FintechScale) -> FintechWorld {
             .build();
         let mut dependencies = DependencyBatchBuilder::new(runtime.graph_mut());
         dependencies
-            .append_dependency(
-                aggregate,
-                aggregate_sources[desk_index].desk_limit,
-                super::aspects::RISK,
-            )
+            .append_dependency(aggregate, aggregate_source.desk_limit, super::aspects::RISK)
             .unwrap()
             .append_dependency(
                 aggregate,
-                aggregate_sources[desk_index].desk_limit,
+                aggregate_source.desk_limit,
                 super::aspects::ALERT,
             )
             .unwrap();

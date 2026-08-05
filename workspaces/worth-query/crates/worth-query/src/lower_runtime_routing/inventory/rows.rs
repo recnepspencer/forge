@@ -20,6 +20,12 @@ const DIRECT_IMPORT_AUDIT_ROWS: &[WorthQueryLowerRuntimeDirectImportAuditRow] = 
         "historical policy lowering remains an allowed Query boundary adapter",
     ),
     WorthQueryLowerRuntimeDirectImportAuditRow::new(
+        WorthQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
+        "crates/worth-query/src/runtime/bridge_async_live_view_declaration.rs",
+        WorthQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
+        "bridge-backed async live declaration remains an allowed Query boundary adapter over an admitted Runtime Bridge request",
+    ),
+    WorthQueryLowerRuntimeDirectImportAuditRow::new(
         WorthQueryLowerRuntimeSeamKey::EffectBackedRelationalMutation,
         "crates/worth-query/src/effect_lifecycle/execution.rs",
         WorthQueryLowerRuntimeDirectImportPosture::AllowedAdapter,

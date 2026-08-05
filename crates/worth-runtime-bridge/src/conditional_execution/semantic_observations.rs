@@ -1,30 +1,21 @@
 use super::{
-    BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalSemanticObservation,
-    BridgeInstalledConditionalLowering,
+    BridgeConditionalCondition, BridgeConditionalDenial, BridgeConditionalDenialKind,
+    BridgeConditionalSemanticObservation, BridgeInstalledConditionalLowering,
 };
 
+type TruthSnapshotContext =
+    crate::snapshot::AdmittedSnapshotContext<Box<dyn crate::snapshot::TruthSnapshotReader>>;
+
 pub(super) fn read_condition_observations(
-    snapshot: Option<
-        &crate::snapshot::AdmittedSnapshotContext<Box<dyn crate::snapshot::TruthSnapshotReader>>,
-    >,
+    snapshot: Option<&TruthSnapshotContext>,
     lowering: &BridgeInstalledConditionalLowering,
     previous: &std::collections::BTreeMap<
         (worth_signal::facade::NodeId, usize),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
 ) -> Result<Vec<BridgeConditionalSemanticObservation>, BridgeConditionalDenial> {
-    use worth_query_installation::facade::WorthQueryConditionalConditionClass as Class;
-    let class = lowering.declaration.condition().class();
-    if !matches!(class, Class::DeltaThreshold | Class::DomainSpecific) {
-        return Ok(Vec::new());
-    }
-    let Some(snapshot) = snapshot else {
-        if matches!(class, Class::DeltaThreshold) {
-            return Err(BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::SnapshotAdmission,
-                "a typed delta threshold requires an admitted truth snapshot",
-            ));
-        }
+    let condition = lowering.contract.condition();
+    let Some(snapshot) = admit_observation_snapshot(condition, snapshot)? else {
         return Ok(Vec::new());
     };
     let plan = lowering.semantic_observation_plan.as_ref().ok_or_else(|| {
@@ -59,4 +50,24 @@ pub(super) fn read_condition_observations(
             )
         })
         .collect())
+}
+
+fn admit_observation_snapshot<'a>(
+    condition: &BridgeConditionalCondition,
+    snapshot: Option<&'a TruthSnapshotContext>,
+) -> Result<Option<&'a TruthSnapshotContext>, BridgeConditionalDenial> {
+    if !matches!(
+        condition,
+        BridgeConditionalCondition::DeltaThreshold(_)
+            | BridgeConditionalCondition::RuntimePredicate
+    ) {
+        return Ok(None);
+    }
+    if snapshot.is_none() && matches!(condition, BridgeConditionalCondition::DeltaThreshold(_)) {
+        return Err(BridgeConditionalDenial::new(
+            BridgeConditionalDenialKind::SnapshotAdmission,
+            "a typed delta threshold requires an admitted truth snapshot",
+        ));
+    }
+    Ok(snapshot)
 }

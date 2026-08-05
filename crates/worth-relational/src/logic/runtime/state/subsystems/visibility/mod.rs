@@ -93,12 +93,13 @@ impl VisibilitySubsystem {
     pub(crate) fn admit_execution_basis(
         &self,
         snapshot_id: SnapshotId,
+        branch_id: crate::history::data::BranchId,
         version_id: crate::identity::data::VersionId,
         read_policy: crate::snapshots::data::SnapshotReadPolicy,
     ) -> (u64, Arc<ExecutionBasisRegistry>) {
-        let lease_ordinal = self
-            .execution_bases
-            .admit(snapshot_id, version_id, read_policy);
+        let lease_ordinal =
+            self.execution_bases
+                .admit(snapshot_id, branch_id, version_id, read_policy);
         (lease_ordinal, Arc::clone(&self.execution_bases))
     }
 
@@ -109,10 +110,32 @@ impl VisibilitySubsystem {
         self.execution_bases.binding(snapshot_id)
     }
 
+    pub(crate) fn execution_basis_is_live(
+        &self,
+        identity: &crate::visibility::execution_basis::RelationalExecutionBasisIdentity,
+    ) -> bool {
+        self.execution_bases
+            .retains_identity(identity.snapshot_id(), identity.lease_ordinal())
+    }
+
     pub(crate) fn active_versions(
         &self,
     ) -> impl Iterator<Item = crate::identity::data::VersionId> + '_ {
         self.handles.active_versions()
+    }
+
+    pub(crate) fn retains_published_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        self.handles.retains_published_version(version_id)
+    }
+
+    pub(crate) fn retains_execution_basis_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        self.execution_bases.retains_version(version_id)
     }
 
     pub(crate) fn retention_fence_version(
@@ -129,6 +152,17 @@ impl VisibilitySubsystem {
             .map_or(non_execution_fence, |version| {
                 version.min(non_execution_fence)
             })
+    }
+
+    pub(crate) fn historical_reconstruction_fence_version(
+        &self,
+        published_version: crate::identity::data::VersionId,
+    ) -> crate::identity::data::VersionId {
+        let retention_fence = self.retention_fence_version(published_version);
+        self.handles
+            .published_versions()
+            .min()
+            .map_or(retention_fence, |version| version.min(retention_fence))
     }
 
     pub(crate) fn insert_published_handle(

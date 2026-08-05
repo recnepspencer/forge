@@ -109,7 +109,7 @@ pub(crate) fn fixture_canonical_sort_key(
 ) -> Result<[u8; 32], PhysicalScenarioDefinitionDenial> {
     let ready = prepare_fixture_basis(fixture)?;
     let slot = CanonicalSingleSequenceDigestAlgorithmSlot::single_sequence(
-        CanonicalDigestAlgorithmId::test_stable_fixture(),
+        CanonicalDigestAlgorithmId::sha256(),
         ready.payload().domain(),
         ready.payload().version().clone(),
     );

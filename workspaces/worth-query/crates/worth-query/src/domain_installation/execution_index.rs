@@ -34,7 +34,7 @@ use domain_operations::{
 use graph_participations::operation_graph_participation_index;
 pub(crate) use graph_participations::WorthQueryInstalledOperationGraphBinding;
 use identity::execution_index_identity;
-use identity_inputs::{graph_obligation_identity_parts, package_provenance_identity_parts};
+use identity_inputs::package_provenance_identity_parts;
 pub(crate) use operation_descriptors::{
     WorthQueryDomainOperationExecutionDescriptor, WorthQueryWorkflowExecutionDescriptor,
 };
@@ -85,7 +85,6 @@ impl WorthQueryInstalledDomainExecutionIndex {
         let declaration_families = declaration_family_index(artifacts);
         let contribution_policies = contribution_policy_index(artifacts);
         let invariant_slots = invariant_slot_index(artifacts);
-        let graph_obligation_digests = graph_obligation_identity_parts(artifacts);
         let package_provenance = package_provenance_identity_parts(artifacts);
         let identity = execution_index_identity(
             &package_provenance,
@@ -94,7 +93,6 @@ impl WorthQueryInstalledDomainExecutionIndex {
             &declaration_families,
             &contribution_policies,
             &invariant_slots,
-            &graph_obligation_digests,
         );
         let shape = execution_index_shape(WorthQueryExecutionIndexShapeInputs {
             graph_read_operations: &graph_read_operations,
@@ -104,7 +102,6 @@ impl WorthQueryInstalledDomainExecutionIndex {
             declaration_families: &declaration_families,
             contribution_policies: &contribution_policies,
             invariant_slots: &invariant_slots,
-            graph_obligation_identity_parts: &graph_obligation_digests,
         });
         Self {
             runtime_authority,

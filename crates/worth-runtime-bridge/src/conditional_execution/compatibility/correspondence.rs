@@ -73,24 +73,23 @@ pub(super) fn compare_exact_correspondences(
         let ordinal = current.dependency().dependency_ordinal();
         let current_basis = current.basis();
         let candidate_basis = candidate.basis();
-        if current_basis.query_runtime_authority != candidate_basis.query_runtime_authority
-            || current_basis.query_installation_generation
-                != candidate_basis.query_installation_generation
-            || current_basis.query_installation_identity
-                != candidate_basis.query_installation_identity
-            || current_basis.query_basis != candidate_basis.query_basis
+        if current_basis.source_runtime_authority != candidate_basis.source_runtime_authority
+            || current_basis.source_installation_generation
+                != candidate_basis.source_installation_generation
+            || current_basis.source_installation_identity
+                != candidate_basis.source_installation_identity
+            || current_basis.source_authority_binding_identity
+                != candidate_basis.source_authority_binding_identity
+            || current_basis.source_basis != candidate_basis.source_basis
             || current_basis.bridge_runtime_key != candidate_basis.bridge_runtime_key
         {
             return Err(
-                BridgeConditionalExecutionAffinityMismatch::QueryCorrespondenceAuthority {
+                BridgeConditionalExecutionAffinityMismatch::SourceCorrespondenceAuthority {
                     ordinal,
                 },
             );
         }
-        if !std::sync::Arc::ptr_eq(
-            &current_basis.graph_authority,
-            &candidate_basis.graph_authority,
-        ) {
+        if current_basis.graph_adapter_identity != candidate_basis.graph_adapter_identity {
             return Err(BridgeConditionalExecutionAffinityMismatch::GraphAuthority { ordinal });
         }
         if current_basis.graph_participation_identity

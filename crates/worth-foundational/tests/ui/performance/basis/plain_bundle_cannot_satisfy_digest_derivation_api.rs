@@ -29,5 +29,5 @@ fn main() {
 
     let _ = canonicalization()
         .digest()
-        .for_sequence(bundle, CanonicalDigestAlgorithmId::test_stable_fixture());
+        .for_sequence(bundle, CanonicalDigestAlgorithmId::sha256());
 }

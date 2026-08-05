@@ -42,7 +42,7 @@ fn invalid_static_contract_classes_deny_and_return_the_exact_artifact() {
         assert_eq!(rejection.denial().kind(), expected);
         assert_eq!(
             rejection.into_artifact().admission_identity(),
-            artifact_identity
+            &artifact_identity
         );
     }
 }
@@ -61,7 +61,7 @@ fn foreign_installed_authority_denial_preserves_artifact_for_its_real_operation(
         WorthQueryConvergenceAdmissionDenialKind::ForeignInstalledAuthorities
     );
     let recovered = rejection.into_artifact();
-    assert_eq!(recovered.admission_identity(), foreign_artifact_identity);
+    assert_eq!(recovered.admission_identity(), &foreign_artifact_identity);
     admit_convergence_epoch_contract(&second.operation, recovered)
         .expect("recovered artifact must still admit with its exact installed operation");
     admit_convergence_epoch_contract(&first.operation, first.artifact)

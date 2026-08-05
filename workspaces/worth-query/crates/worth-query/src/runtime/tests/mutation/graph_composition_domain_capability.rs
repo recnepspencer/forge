@@ -1,4 +1,3 @@
-use super::super::support::*;
 use crate::domain_capabilities::{
     admit_eligible_domain_capability_contribution,
     evaluate_requested_domain_capability_contribution,
@@ -9,57 +8,7 @@ use crate::domain_capabilities::{
 use worth_proof::TransitionOutcome;
 
 #[test]
-fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifact() {
-    let mut workspace = stateful_bridge_task_edge_runtime()
-        .workspace("tasks.graph-composition-domain-capability-denial")
-        .expect("runtime should open a named workspace");
-    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
-        .live_view(
-            "tasks.graph-composition-domain-capability-denial-tasks",
-            |q| {
-                q.from("Task")
-                    .select([
-                        crate::authoring::AspectFieldKey::from_authoring_parts("identity", "id")
-                            .unwrap(),
-                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
-                    ])
-                    .order_by(
-                        crate::authoring::AspectFieldKey::from_authoring_parts("title", "value")
-                            .unwrap(),
-                    )
-                    .schema_basis("tasks-graph-composition-domain-capability-denial-tasks")
-            },
-        )
-        .expect("task live view should declare");
-    let _: WorthQueryLiveView<WorthQueryUnrefinedLiveShape> = workspace
-        .live_view(
-            "tasks.graph-composition-domain-capability-denial-edges",
-            |q| {
-                q.from("TaskEdge")
-                    .select([
-                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
-                            .unwrap(),
-                        crate::authoring::AspectFieldKey::from_authoring_parts(
-                            "edge",
-                            "source_identity",
-                        )
-                        .unwrap(),
-                        crate::authoring::AspectFieldKey::from_authoring_parts(
-                            "edge",
-                            "target_identity",
-                        )
-                        .unwrap(),
-                    ])
-                    .order_by(
-                        crate::authoring::AspectFieldKey::from_authoring_parts("edge", "kind")
-                            .unwrap(),
-                    )
-                    .schema_basis("tasks-graph-composition-domain-capability-denial-edges")
-            },
-        )
-        .expect("edge live view should declare");
-
+fn contributed_domain_invariant_denial_preserves_owner_evidence() {
     let denial = success(materialize_graph_composition_domain_invariant_denial(
         ready_lower_runtime_invariant(
             WorthQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
@@ -77,55 +26,19 @@ fn compose_graph_with_domain_invariant_denial_accepts_contributed_denial_artifac
         ),
     ));
     let expected_digest = denial.denial_digest().to_string();
-
-    let error = workspace
-        .compose_graph_with_domain_invariant_denial(
-            |graph| {
-                let task = graph.insert_entity("draft-task", "Task", |task| {
-                    task.set_aspect(
-                        test_aspect_touch("identity.id"),
-                        test_authored_string_aspect_value("task-draft"),
-                    )
-                    .set_aspect(
-                        test_aspect_touch("title.value"),
-                        test_authored_string_aspect_value("Draft task"),
-                    )
-                })?;
-                graph.insert_relation("TaskEdge", |edge| {
-                    edge.set_aspect(
-                        test_aspect_touch("edge.kind"),
-                        test_authored_string_aspect_value("depends_on"),
-                    )
-                    .symbolic_entity_identity(test_aspect_touch("edge.source_identity"), &task)
-                    .existing_entity_identity(
-                        test_aspect_touch("edge.target_identity"),
-                        test_entity_identity("task-existing"),
-                    )
-                })?;
-                Ok(())
-            },
-            |_context| Err(denial),
-        )
-        .expect_err("contributed invariant denial should stop graph composition");
-
-    match error {
-        WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(denial) => {
-            assert_eq!(denial.invariant_family(), "non_manifold_topology");
-            assert_eq!(denial.hook_family(), "domain_invariant_pack_hook");
-            assert_eq!(denial.denial_digest(), expected_digest);
-            assert_eq!(
-                denial.domain_invariant_summary().declared_collections(),
-                &["HalfEdge".to_string(), "HalfEdgeNextRelation".to_string()]
-            );
-            assert_eq!(
-                denial
-                    .domain_invariant_summary()
-                    .target_combination_families(),
-                &["mixed_existing_and_symbolic_entity_identity_edges".to_string()]
-            );
-        }
-        other => panic!("expected contributed domain invariant denial, got {other:?}"),
-    }
+    assert_eq!(denial.invariant_family(), "non_manifold_topology");
+    assert_eq!(denial.owner_family(), "domain_capability_invariant_owner");
+    assert_eq!(denial.denial_digest(), expected_digest);
+    assert_eq!(
+        denial.domain_invariant_summary().declared_collections(),
+        &["HalfEdge".to_string(), "HalfEdgeNextRelation".to_string()]
+    );
+    assert_eq!(
+        denial
+            .domain_invariant_summary()
+            .target_combination_families(),
+        &["mixed_existing_and_symbolic_entity_identity_edges".to_string()]
+    );
 }
 
 fn ready_lower_runtime_invariant(

@@ -8,9 +8,8 @@ use crate::evidence_identity::{
 };
 use crate::memory_workspace::WorthQueryCommitIdentity;
 use crate::runtime::{
-    WorthQueryAspectTouch, WorthQueryAuthoritativeMutationObligationDispatch,
-    WorthQueryEffectDelivery, WorthQueryEffectWriteAdjacentTrigger, WorthQueryIntentDeclaration,
-    WorthQueryIntentSourceLane, WorthQueryWriteCommand,
+    WorthQueryAspectTouch, WorthQueryEffectDelivery, WorthQueryEffectWriteAdjacentTrigger,
+    WorthQueryIntentDeclaration, WorthQueryIntentSourceLane, WorthQueryWriteCommand,
 };
 
 use super::{
@@ -202,12 +201,6 @@ impl WorthQueryAuthoritativeMutationExecutionBinding {
         &self.handoff
     }
 
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.handoff.obligation_dispatch()
-    }
-
     pub fn binding_digest(&self) -> &str {
         &self.binding_digest
     }
@@ -242,12 +235,6 @@ impl WorthQueryAuthoritativeMutationBatchExecutionBinding {
 
     pub fn handoff(&self) -> &WorthQueryAuthoritativeMutationBatchExecutionHandoff {
         &self.handoff
-    }
-
-    pub fn obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.handoff.obligation_dispatch()
     }
 
     pub fn binding_digest(&self) -> &str {

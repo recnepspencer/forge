@@ -1,4 +1,5 @@
 use super::*;
+use crate::visibility::snapshot_states::build_visibility_state;
 
 impl<'runtime> VisibilityReadContext<'runtime> {
     pub fn inspect_snapshot(&self, handle: &SnapshotHandle) -> Option<SnapshotInspectionSummary> {
@@ -12,7 +13,10 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         Some(read_view)
     }
 
-    pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
+    pub(crate) fn read_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> RelationalReadView {
         let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
             build_visibility_state(
                 self.runtime,

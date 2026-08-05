@@ -100,8 +100,8 @@ pub use reuse::{
     UiMountedFrameReuseWitness,
 };
 pub(crate) use semantic_content::{
-    UiMountedCollectionSemanticTextContent, UiMountedCollectionTextChange,
-    UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
+    UiMountedCollectionRowIdentity, UiMountedCollectionSemanticTextContent,
+    UiMountedCollectionTextChange, UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
     UiMountedScalarSemanticTextContent, UiMountedSemanticContentInput,
     UiMountedSemanticTextContent, UiMountedSemanticTextValueDirective,
 };

@@ -1,3 +1,5 @@
+use crate::admission::WorthQueryInstallationAdmissionIdentity;
+use crate::authority_cryptography::PackageAuthorityKey;
 use crate::generation::WorthQueryInstallationGeneration;
 use crate::package::WorthQueryPortableDomainPackageIdentity;
 
@@ -9,8 +11,8 @@ pub struct WorthQueryInstalledOperationAuthority {
     pub(crate) generation: WorthQueryInstallationGeneration,
     pub(crate) owner: String,
     pub(crate) package_identity: WorthQueryPortableDomainPackageIdentity,
-    pub(crate) admission_identity: String,
-    pub(crate) package_authority_nonce: [u8; 32],
+    pub(crate) admission_identity: WorthQueryInstallationAdmissionIdentity,
+    pub(crate) package_authority_key: PackageAuthorityKey,
     pub(crate) operation_slot: String,
     pub(crate) operation_semantics: String,
 }
@@ -28,7 +30,7 @@ impl WorthQueryInstalledOperationAuthority {
         &self.package_identity
     }
 
-    pub fn admission_identity(&self) -> &str {
+    pub fn admission_identity(&self) -> &WorthQueryInstallationAdmissionIdentity {
         &self.admission_identity
     }
 }

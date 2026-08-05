@@ -118,7 +118,7 @@ fn workflow_plan_carries_the_exact_installed_artifact_contract() {
         crate::domain_computation::artifact_owner::installed_artifact_contract_for_managed_run();
     let expected = format!(
         "stage-output|admission={}|contract={}",
-        output.admission_identity(),
+        output.admission_identity().render_support_hex(),
         output.contract().identity().as_str(),
     );
     let (mut running, graph) =

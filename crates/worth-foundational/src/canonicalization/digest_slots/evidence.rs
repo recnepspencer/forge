@@ -5,21 +5,28 @@ use super::algorithm::{
     CanonicalDigestAlgorithmMetadata, CanonicalDigestInputDomain, CanonicalDigestInputShape,
 };
 use super::material::domain_material_token;
+use super::CanonicalDigestWorkEvidence;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalDigestDerivationInput {
     algorithm: CanonicalDigestAlgorithmMetadata,
     evidence: CanonicalDigestInputEvidence,
+    material: Vec<u8>,
+    work: CanonicalDigestWorkEvidence,
 }
 
 impl CanonicalDigestDerivationInput {
     pub(super) fn new(
         algorithm: CanonicalDigestAlgorithmMetadata,
         evidence: CanonicalDigestInputEvidence,
+        material: Vec<u8>,
+        work: CanonicalDigestWorkEvidence,
     ) -> Self {
         Self {
             algorithm,
             evidence,
+            material,
+            work,
         }
     }
 
@@ -29,6 +36,14 @@ impl CanonicalDigestDerivationInput {
 
     pub fn evidence(&self) -> &CanonicalDigestInputEvidence {
         &self.evidence
+    }
+
+    pub(super) fn material(&self) -> &[u8] {
+        &self.material
+    }
+
+    pub const fn work(&self) -> CanonicalDigestWorkEvidence {
+        self.work
     }
 }
 

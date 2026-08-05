@@ -3,7 +3,6 @@ use super::fixtures::{
     representative_basis_subscription_readmission_row,
     representative_basis_truth_view_readmission_row,
     representative_causal_bridge_materialization_row, representative_compose_read_row,
-    representative_compose_read_with_invariant_pack_row,
     representative_effect_bridge_writeback_row, representative_effect_relational_merge_row,
     representative_effect_relational_mutation_row,
     representative_execute_read_family_in_basis_context_row,
@@ -25,7 +24,6 @@ use crate::lower_runtime_routing::WorthQueryLowerRuntimeSeamKey;
 fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_constructors() {
     let surface = worth_query_lower_runtime_representative_surface();
     let compose_row = representative_compose_read_row();
-    let compose_invariant_row = representative_compose_read_with_invariant_pack_row();
     let read_family_row = representative_execute_read_family_row();
     let read_family_basis_row = representative_execute_read_family_in_basis_context_row();
     let runtime_current_row = representative_runtime_current_read_graph_row();
@@ -59,17 +57,6 @@ fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_cons
             .unwrap()
             .route_digest(),
         compose_row.route_plan.as_ref().unwrap().route_digest()
-    );
-    assert_eq!(
-        surface
-            .route_plan_for(WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack)
-            .unwrap()
-            .route_digest(),
-        compose_invariant_row
-            .route_plan
-            .as_ref()
-            .unwrap()
-            .route_digest()
     );
     assert_eq!(
         surface

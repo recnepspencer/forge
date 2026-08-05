@@ -9,8 +9,13 @@ publish = false
 [dependencies]
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-proof.workspace = true
 worth-query-execution = { path = "../worth-query-execution" }
 worth-query-installation = { path = "../worth-query-installation" }
+
+[dev-dependencies]
+worth-query-admission = { path = "../worth-query-admission" }
+worth-query-declaration = { path = "../worth-query-declaration" }
 
 [lints]
 workspace = true

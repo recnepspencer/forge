@@ -15,9 +15,7 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
         report.entry_points(),
         &[
             "compose_read",
-            "compose_read_with_invariant_pack",
             "define_read_family",
-            "define_read_family_with_invariant_pack",
             "execute_read_family",
             "execute_read_family_in_basis_context",
         ]
@@ -61,15 +59,11 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
         report.relationship_proof_postures(),
         &["not_required", "descriptor_admitted_synthetic_runtime"]
     );
-    assert_eq!(
-        report.family_admission_modes(),
-        &["kernel_only", "domain_invariant_admitted"]
-    );
+    assert_eq!(report.family_admission_modes(), &["kernel_only"]);
     assert_eq!(
         report.extension_hook_families(),
         &[
             "domain_read_family_lowering",
-            "domain_invariant_pack",
             "domain_decoder",
             "domain_result_certification",
         ]
@@ -80,14 +74,10 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
     assert!(report
         .boundary_guards()
         .contains(&"scope_class_relabeling_denies_typed"));
-    assert!(report
-        .boundary_guards()
-        .contains(&"domain_invariant_pack_denies_before_execution"));
     assert!(report.denial_lanes().contains(&"built_in_operator_denied"));
     assert!(report
         .denial_lanes()
         .contains(&"relationship_proof_admission_denied"));
-    assert!(report.denial_lanes().contains(&"domain_invariant_denied"));
     assert!(report.rows().iter().any(|row| {
         row.capability_family() == "frontier_search"
             && row.capability_class() == WorthQueryReadCompositionSupportClass::BuiltInOperator
@@ -108,11 +98,6 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
         &report,
         WorthQueryReadCompositionExtensionHookFamily::DomainReadFamilyLowering,
         WorthQueryReadCompositionExtensionHookBoundary::Lowering,
-    );
-    assert_extension_hook_boundary(
-        &report,
-        WorthQueryReadCompositionExtensionHookFamily::DomainInvariantPack,
-        WorthQueryReadCompositionExtensionHookBoundary::InvariantPack,
     );
     assert_extension_hook_boundary(
         &report,

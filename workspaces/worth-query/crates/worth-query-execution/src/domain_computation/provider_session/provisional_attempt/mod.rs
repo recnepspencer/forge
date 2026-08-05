@@ -1,4 +1,5 @@
 mod attempt;
+mod commit_progression;
 mod denial;
 mod discard;
 mod effect_program;
@@ -9,6 +10,7 @@ mod proposed_state;
 mod provider_port;
 
 pub use attempt::*;
+pub use commit_progression::*;
 pub use denial::*;
 pub use discard::*;
 pub use effect_program::*;

@@ -97,7 +97,7 @@ pub fn validate_canonical_bundle_with_failure_artifact(
     });
 
     let report = QueryValidationReport::new(
-        schema_basis.as_str().to_string(),
+        schema_basis.clone(),
         counters.validated_projection_entry_count(),
         counters.validated_traversal_clause_count(),
         counters.validated_result_shape_binding_count(),

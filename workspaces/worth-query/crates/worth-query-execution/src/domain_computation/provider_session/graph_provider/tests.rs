@@ -67,10 +67,7 @@ fn equal_semantic_results_keep_distinct_call_and_product_occurrences() {
 
     let first_product = first_product.graph_read_product().unwrap();
     let second_product = second_product.graph_read_product().unwrap();
-    assert_eq!(
-        first_product.result_digest(),
-        second_product.result_digest()
-    );
+    assert_eq!(first_product.rows(), second_product.rows());
     assert_ne!(
         first_product.call_identity(),
         second_product.call_identity()
@@ -79,7 +76,7 @@ fn equal_semantic_results_keep_distinct_call_and_product_occurrences() {
 }
 
 #[test]
-fn graph_product_digest_is_canonical_across_field_insertion_order() {
+fn graph_product_rows_are_canonical_across_field_insertion_order() {
     let attempt = attempt();
     let first = call(&attempt, "field-order-a");
     let second = call(&attempt, "field-order-b");
@@ -107,13 +104,13 @@ fn graph_product_digest_is_canonical_across_field_insertion_order() {
         .unwrap();
 
     assert_eq!(
-        first_receipt.graph_read_product().unwrap().result_digest(),
-        second_receipt.graph_read_product().unwrap().result_digest()
+        first_receipt.graph_read_product().unwrap().rows(),
+        second_receipt.graph_read_product().unwrap().rows()
     );
 }
 
 #[test]
-fn graph_product_digest_preserves_provider_row_order() {
+fn graph_product_preserves_provider_row_order_without_hashing_rows() {
     let attempt = attempt();
     let first = call(&attempt, "row-order-a");
     let second = call(&attempt, "row-order-b");
@@ -141,13 +138,13 @@ fn graph_product_digest_preserves_provider_row_order() {
         .unwrap();
 
     assert_ne!(
-        first_receipt.graph_read_product().unwrap().result_digest(),
-        second_receipt.graph_read_product().unwrap().result_digest()
+        first_receipt.graph_read_product().unwrap().rows(),
+        second_receipt.graph_read_product().unwrap().rows()
     );
 }
 
 #[test]
-fn graph_product_digest_changes_when_a_field_value_changes() {
+fn graph_product_retains_changed_field_values_without_hashing_rows() {
     let first_attempt = attempt();
     let second_attempt = attempt();
     let first = call(&first_attempt, "field-value-a");
@@ -176,8 +173,8 @@ fn graph_product_digest_changes_when_a_field_value_changes() {
         .unwrap();
 
     assert_ne!(
-        first_receipt.graph_read_product().unwrap().result_digest(),
-        second_receipt.graph_read_product().unwrap().result_digest()
+        first_receipt.graph_read_product().unwrap().rows(),
+        second_receipt.graph_read_product().unwrap().rows()
     );
 }
 

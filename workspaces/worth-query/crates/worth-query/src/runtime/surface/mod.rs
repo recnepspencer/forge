@@ -35,12 +35,11 @@ mod read_built_in_operator_denial;
 mod read_composition;
 mod read_count_result;
 mod read_denial;
-mod read_domain_invariant_denial;
-mod read_domain_invariant_summary;
 mod read_execution_product;
 mod read_extension_hook_support;
 mod read_family;
 mod read_graph_identity;
+mod read_graph_planning_contract;
 mod read_operator_coverage;
 mod read_receipt_accessors;
 mod read_receipt_construction;
@@ -132,16 +131,12 @@ pub use read_denial::{
     WorthQueryReadAccessPlanBindingMismatch, WorthQueryReadDenial, WorthQueryReadDenialKind,
     WorthQueryReadScopeShapeMismatch,
 };
-pub use read_domain_invariant_denial::WorthQueryReadDomainInvariantDenial;
-pub use read_domain_invariant_summary::WorthQueryReadDomainInvariantSummary;
 pub(in crate::runtime) use read_execution_product::WorthQueryReadExecutionProduct;
 pub use read_extension_hook_support::{
     WorthQueryReadCompositionExtensionHookBoundary, WorthQueryReadCompositionExtensionHookFamily,
     WorthQueryReadCompositionExtensionHookSupportRow,
 };
-pub use read_family::{
-    WorthQueryReadFamily, WorthQueryReadFamilyAdmission, WorthQueryReadFamilyInvariantEvidence,
-};
+pub use read_family::{WorthQueryReadFamily, WorthQueryReadFamilyAdmission};
 pub use read_operator_coverage::{WorthQueryReadBuiltInOperator, WorthQueryReadOperatorFamily};
 pub use read_relationship_proof_denial::{
     WorthQueryReadRelationshipProofDenial, WorthQueryReadRelationshipProofDenialStage,

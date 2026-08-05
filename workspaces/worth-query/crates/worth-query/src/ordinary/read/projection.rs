@@ -360,14 +360,14 @@ fn unrestricted_projection(
             .field_shape(WorthQueryEvidenceTag::new("read_graph"), graph.digest())
             .field_shape(
                 WorthQueryEvidenceTag::new("schema_basis"),
-                graph.schema_basis().as_str(),
+                graph.schema_basis().render_support_hex(),
             )
             .seal();
     derive_authorized_projection(
         graph.canonical().query(),
         graph.canonical().result_shape(),
         policy_identity.as_str(),
-        graph.schema_basis().as_str(),
+        &graph.schema_basis().render_support_hex(),
         &PolicyAspectMask::allow_all(),
         &PolicyInfluenceSet::none(),
         usize::MAX,

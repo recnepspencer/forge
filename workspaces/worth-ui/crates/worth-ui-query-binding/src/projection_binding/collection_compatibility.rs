@@ -68,8 +68,14 @@ impl UiCollectionProjectionBinding {
             Ok(prepared) => prepared,
             Err((kind, summary)) => return stopped(self, candidate, kind, summary),
         };
-        let predecessor_identity = predecessor_prepared.binding_reference();
-        let successor_identity = candidate_prepared.binding_reference();
+        let predecessor_identity =
+            crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+                predecessor_prepared.binding_identity_for_reporting(),
+            );
+        let successor_identity =
+            crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+                candidate_prepared.binding_identity_for_reporting(),
+            );
         let query_witness = match predecessor_prepared.replacement_witness_for(&candidate_prepared)
         {
             Ok(witness) => witness,
@@ -214,7 +220,9 @@ fn stopped(
     let stop = UiProjectionBindingStopReceipt::replacement(
         kind,
         candidate.replacement_attempt_identity(),
-        predecessor.core().retained_query_binding_reference(),
+        predecessor
+            .core()
+            .retained_query_binding_reporting_projection(),
         summary,
     );
     UiCollectionProjectionReplacementOutcome::Stopped(Box::new(

@@ -1,60 +1,5 @@
 use super::super::super::support::*;
-use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
-use crate::facade::foundation::TraversalSelector;
 use crate::runtime::async_result_state::runtime_async_checkpoint_label_identity;
-use crate::schema_view::{QuerySchemaView, SchemaRelationView};
-
-pub(in super::super) fn read_domain_invariant_denied_error() -> WorthQueryRuntimeError {
-    let mut workspace =
-        bridge_runtime_with_support(WorthQueryRuntimeSupportProfile::bridge_backed(
-            "test-subscription-activation",
-            "test-preview-basis",
-            "test-inspector-evidence",
-        ))
-        .workspace("runtime.read-composition.stop-class-domain-invariant")
-        .expect("read-backed runtime should open a workspace");
-
-    workspace
-        .define_read_family_with_invariant_pack(
-            "neighbors-stop-class",
-            "no_traversal_reads",
-            |read| {
-                read.anchored_detail(
-                    "user",
-                    expanded_manager_schema(),
-                    |query| {
-                        query
-                            .project(
-                                AspectFieldSelector::new("identity", "id")
-                                    .expect("identity projection should build"),
-                            )
-                            .traverse(
-                                TraversalSelector::bounded("manager", 2)
-                                    .expect("bounded traversal should build"),
-                            )
-                    },
-                    |shape| {
-                        shape.field(
-                            AuthoredResultShapeField::new("identity", "id", "id")
-                                .expect("identity result-shape field should build"),
-                        )
-                    },
-                )
-            },
-            |context| {
-                let summary = context.read_domain_invariant_summary();
-                if summary.declared_traversal_clause_count() > 0 {
-                    Err(WorthQueryReadInvariantPackViolation::new(
-                        "no_traversal_reads",
-                        "this domain hook denies traversal-bearing reads",
-                    ))
-                } else {
-                    Ok(())
-                }
-            },
-        )
-        .expect_err("denied invariant packs should reject before execution")
-}
 
 pub(in super::super) fn intent_commit_denied_error() -> WorthQueryRuntimeError {
     let attempted = std::rc::Rc::new(std::cell::Cell::new(0));
@@ -320,30 +265,4 @@ pub(in super::super) fn preview_promotion_rebinding_required_error() -> WorthQue
     preview
         .promote()
         .expect_err("crossed residue should require rebinding")
-}
-
-fn expanded_manager_schema() -> QuerySchemaView {
-    QuerySchemaView::new(
-        "runtime-read-composition-expanded",
-        [
-            SchemaFieldView::new(
-                crate::authoring::AspectName::new("identity")
-                    .expect("schema aspect literal must be valid"),
-                crate::authoring::FieldName::new("id").expect("schema field literal must be valid"),
-                ScalarAspectType::String,
-            ),
-            SchemaFieldView::new(
-                crate::authoring::AspectName::new("profile")
-                    .expect("schema aspect literal must be valid"),
-                crate::authoring::FieldName::new("display_name")
-                    .expect("schema field literal must be valid"),
-                ScalarAspectType::String,
-            ),
-        ],
-        [SchemaRelationView::new(
-            crate::authoring::RelationName::new("manager")
-                .expect("schema relation literal must be valid"),
-            2,
-        )],
-    )
 }

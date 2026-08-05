@@ -16,6 +16,20 @@ use worth_relational::facade::history::BranchId;
 
 type SharedState = Rc<RefCell<StatefulBridgeState>>;
 
+pub(in crate::runtime::tests) fn custom_backend_without_primary_graph_transfer_builder(
+) -> WorthQueryRuntimeBuilder {
+    let state = Rc::new(RefCell::new(StatefulBridgeState::new(
+        ["Task".to_string()].into_iter().collect(),
+    )));
+    WorthQueryRuntime::builder()
+        .backend(StatefulBridgeRuntimeBackend::new(
+            state,
+            graph_test_support_profile(),
+        ))
+        .aspect_contracts(stateful_bridge_aspect_contracts())
+        .expect("stateful bridge aspect contracts should admit")
+}
+
 pub(crate) fn stateful_bridge_task_runtime() -> WorthQueryRuntime {
     stateful_bridge_runtime_via_custom_backend(["Task"], graph_test_support_profile())
 }

@@ -111,8 +111,11 @@ pub fn materialize_grouped_execution_surface_from_truth_view(
             ViewShapeLiveFailureClass::BasisInvariantRejected,
             format!(
                 "grouped execution basis schema '{}' does not match validated query/result-shape schema '{}'",
-                basis.identity().schema_basis().as_str(),
-                plan.validated().query().schema_basis().as_str()
+                basis.identity().schema_basis().render_support_hex(),
+                plan.validated()
+                    .query()
+                    .schema_basis()
+                    .render_support_hex()
             ),
             ViewShapeLiveCounters::default(),
         ));

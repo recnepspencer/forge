@@ -62,6 +62,13 @@ impl Default for TransactionOptions {
 }
 
 impl TransactionOptions {
+    pub fn for_branch(target_branch: BranchId) -> Self {
+        Self {
+            target_branch: Some(target_branch),
+            ..Self::default()
+        }
+    }
+
     pub fn merge_from_branches(mut self, branches: Vec<BranchId>) -> Self {
         self.merge_parent_branches = branches;
         self

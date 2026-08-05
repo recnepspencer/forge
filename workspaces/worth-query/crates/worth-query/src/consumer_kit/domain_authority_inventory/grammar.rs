@@ -61,7 +61,6 @@ const PACKAGE_FIELDS: &[&str] = &[
     "required-configuration",
     "operating-requirements",
     "invariant-definitions",
-    "graph-obligations",
     "graph-read-operations",
     "declaration-families",
     "contribution-policy",

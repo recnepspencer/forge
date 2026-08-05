@@ -3,6 +3,7 @@ use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 mod configuration;
 mod construction;
 mod guided;
+mod initial_schema_installation;
 mod state;
 mod transactions;
 
@@ -25,6 +26,10 @@ pub use crate::visibility::materialization::read_records::{
     RelationRecordProjection, VisibilityProjectionView, VisibilityReadContext,
 };
 pub use crate::visibility::retention::VisibilityRetentionAuthority;
+pub use initial_schema_installation::{
+    RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
+    RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
+};
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub(crate) use construction::RuntimeExtensions;

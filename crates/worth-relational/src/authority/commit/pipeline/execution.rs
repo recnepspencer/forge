@@ -288,7 +288,7 @@ fn enforce_validated_strategy_basis(
     let validation_basis_branch = options
         .target_branch
         .clone()
-        .unwrap_or_else(|| crate::history::data::BranchId("main".to_string()));
+        .unwrap_or_else(|| runtime.config.history.main_branch.clone());
     let validation_basis_branch_head = runtime
         .history()
         .branch_head(&validation_basis_branch)

@@ -27,7 +27,7 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState, MappingState>
         mut self,
         registration: BridgeSemanticCorrespondenceRegistration,
     ) -> Self {
-        self.query_dependency_registrations.push(registration);
+        self.semantic_dependency_registrations.push(registration);
         self
     }
 }
@@ -67,7 +67,7 @@ impl<PatchState, SnapshotState, SignalState, BranchHeadState>
             diagnostic_sink: self.diagnostic_sink,
             mapping_registrations: PresentMappingRegistrations(vec![registration]),
             aspect_registrations: self.aspect_registrations,
-            query_dependency_registrations: self.query_dependency_registrations,
+            semantic_dependency_registrations: self.semantic_dependency_registrations,
         }
     }
 }

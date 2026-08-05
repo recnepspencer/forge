@@ -59,7 +59,7 @@ fn typed_detail_query_api_canonicalizes_and_validates() {
 fn generated_schema_view_matches_typed_surface_expectations() {
     let schema = UserSchema::schema_view();
 
-    assert!(!schema.basis().as_str().is_empty());
+    assert_ne!(schema.basis().bytes(), &[0; 32]);
     assert_eq!(
         schema_field(&schema, DisplayName::ASPECT, DisplayName::FIELD)
             .expect("display name field should exist")

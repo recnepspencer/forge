@@ -45,17 +45,6 @@ pub(crate) fn attach_graph_read_access_receipt<Product>(
     );
 }
 
-pub(crate) fn attach_graph_obligation_dispatch<Product>(
-    executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadProduct<Product>,
-    binding: &WorthQueryReadExecutionBinding,
-) where
-    Product: WorthQueryReadExecutionProduct,
-{
-    executed_read
-        .product_mut()
-        .attach_graph_obligation_dispatch(binding.graph_obligation_dispatch().cloned());
-}
-
 pub(crate) fn attach_read_intent_execution_evidence<Product>(
     executed_read: &mut super::read_composition_runtime::WorthQueryExecutedReadProduct<Product>,
     binding: &WorthQueryReadExecutionBinding,
@@ -63,11 +52,8 @@ pub(crate) fn attach_read_intent_execution_evidence<Product>(
 ) where
     Product: WorthQueryReadExecutionProduct,
 {
-    let obligation_dispatch_envelope_digest = binding
-        .graph_obligation_dispatch()
-        .and_then(|dispatch| dispatch.envelope_digest());
     let decision_trace_envelope =
-        WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts_with_obligation_dispatch(
+        WorthQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
             binding.family(),
             binding.entrypoint(),
             binding.read_family().family_name(),
@@ -76,7 +62,6 @@ pub(crate) fn attach_read_intent_execution_evidence<Product>(
             binding.handoff().decision_digest(),
             binding.handoff().handoff_digest(),
             binding.execution_seam(),
-            obligation_dispatch_envelope_digest,
             binding.read_family().family_name(),
             executed_read.product().receipt().result_digest(),
             binding.execution_seam().as_str(),

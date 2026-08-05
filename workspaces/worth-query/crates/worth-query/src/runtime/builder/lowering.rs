@@ -1,53 +1,9 @@
-#[cfg(test)]
-use super::registrations_from_relational_invariant_catalog;
 use super::{
-    graph_obligation_registration_error, WorthQueryBridgeBackedRuntimeBackend,
-    WorthQueryGraphObligationRegistrationCatalog, WorthQueryRuntimeBackend,
-    WorthQueryRuntimeBuilder, WorthQueryRuntimeError,
+    WorthQueryBridgeBackedRuntimeBackend, WorthQueryRuntimeBackend, WorthQueryRuntimeBuilder,
+    WorthQueryRuntimeError,
 };
-#[cfg(test)]
-use worth_relational::facade::runtime::InvariantCatalog;
 
 impl WorthQueryRuntimeBuilder {
-    #[cfg(test)]
-    pub(super) fn queue_relational_schema_contract_obligations(
-        &mut self,
-        catalog: &InvariantCatalog,
-    ) {
-        match registrations_from_relational_invariant_catalog(catalog) {
-            Ok(registrations) => self
-                .queued_graph_obligation_registrations
-                .extend(registrations),
-            Err(error) => {
-                self.graph_obligation_registration_catalog =
-                    Some(Err(graph_obligation_registration_error(
-                        "relational_schema_contract_obligation_lowering",
-                        error,
-                    )));
-            }
-        }
-    }
-
-    pub(super) fn assemble_graph_obligation_registration_catalog(
-        &mut self,
-    ) -> Result<(), WorthQueryRuntimeError> {
-        if self.graph_obligation_registration_catalog.is_some() {
-            return Ok(());
-        }
-        let queued = std::mem::take(&mut self.queued_graph_obligation_registrations);
-        let catalog = WorthQueryGraphObligationRegistrationCatalog::from_registrations(
-            queued.into_explicit_registrations(),
-        )
-        .map_err(|error| {
-            graph_obligation_registration_error(
-                "graph_obligation_registration_catalog_assembly",
-                error,
-            )
-        })?;
-        self.graph_obligation_registration_catalog = Some(Ok(catalog));
-        Ok(())
-    }
-
     pub(super) fn lower_queued_invariant_registrations_into_backend_parts(
         &mut self,
     ) -> Result<(), WorthQueryRuntimeError> {

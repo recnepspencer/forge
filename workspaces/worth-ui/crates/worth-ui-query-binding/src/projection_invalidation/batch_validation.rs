@@ -57,7 +57,7 @@ pub(super) fn validate_predecessor_lineage(
         batch,
         state,
     };
-    if predecessor.core().binding_authority() != batch.binding_identity() {
+    if predecessor.core().binding_identity() != batch.binding_identity() {
         return Some(super::fact_construction::state_stop(
             context,
             Some(predecessor),
@@ -65,7 +65,7 @@ pub(super) fn validate_predecessor_lineage(
             "the predecessor fact belongs to a different Query async binding",
         ));
     }
-    if predecessor.core().result_generation_authority() == state.result_state_identity() {
+    if predecessor.core().result_generation_identity() == state.result_state_identity() {
         return Some(super::fact_construction::state_stop(
             context,
             Some(predecessor),
@@ -73,7 +73,7 @@ pub(super) fn validate_predecessor_lineage(
             "the Query result generation was already consumed",
         ));
     }
-    if predecessor.core().source_generation_authority() != state.basis_identity()
+    if predecessor.core().source_generation_identity() != state.basis_identity()
         && !permits_basis_drift(state.kind())
     {
         return Some(super::fact_construction::state_stop(

@@ -13,6 +13,23 @@ use super::{
 };
 
 impl WorthQueryExecutionRuntime {
+    pub(crate) fn start_reserved_direct_resource_attempt(
+        &self,
+        authority: &WorthQueryExecutionBoundOperationAuthority,
+        resources: worth_query_admission::integration::WorthQueryCapacityReservedExecutionResourcePlan,
+    ) -> Result<WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionResourceAdmissionDenial>
+    {
+        self.validate_bound_authority(authority, resources.resources().counters())?;
+        if !authority.admits_direct_plan(resources.resources()) {
+            return Err(resource_plan_authority_mismatch(
+                resources.resources().counters(),
+            ));
+        }
+        Ok(WorthQueryDirectExecutionResourceAttempt::start(
+            resources, authority,
+        ))
+    }
+
     pub fn start_direct_resource_attempt(
         &self,
         authority: &WorthQueryExecutionBoundOperationAuthority,

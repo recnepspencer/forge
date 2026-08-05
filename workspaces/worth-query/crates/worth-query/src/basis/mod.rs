@@ -140,9 +140,9 @@ impl ResolvedSnapshotIdentity {
                 WorthQueryEvidenceTag::new("snapshot_identity"),
                 &self.snapshot_identity,
             )
-            .field_value(
+            .field_digest(
                 WorthQueryEvidenceTag::new("schema_basis"),
-                self.schema_basis().as_str(),
+                self.schema_basis().digest(),
             )
             .field_shape(
                 WorthQueryEvidenceTag::new("lineage_class"),

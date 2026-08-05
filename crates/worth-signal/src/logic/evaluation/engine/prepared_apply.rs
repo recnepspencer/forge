@@ -815,6 +815,33 @@ pub(crate) fn record_reuse_rejection_telemetry(
     }
 }
 
+fn apply_prepared_dependencies(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    capture: &PreparedDependencyCapture,
+) -> Result<u32, SignalError> {
+    let desired = build_prepared_dependency_edges(graph, capture);
+    let report = graph.reconcile_dependencies(node, &desired)?;
+    Ok(report.added + report.removed)
+}
+
+fn build_prepared_dependency_edges(
+    graph: &mut SignalGraph,
+    capture: &PreparedDependencyCapture,
+) -> Vec<DependencyEdge> {
+    capture
+        .as_slice()
+        .iter()
+        .map(|dependency| {
+            graph.build_dependency_edge(
+                dependency.source,
+                dependency.aspect,
+                dependency.scope.clone(),
+            )
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -871,11 +898,11 @@ mod tests {
                 .with_provenance_retention(ArtifactRetentionPolicy::Retain),
         );
 
-        let mut comparator_resolver = DefaultComparatorPolicyResolver::default();
+        let comparator_resolver = DefaultComparatorPolicyResolver::default();
         let (authority, detail) = resolve_effect_reuse_boundary(
             &graph,
             node,
-            &mut comparator_resolver,
+            &comparator_resolver,
             Some(&NodeEvaluationResult::from_version(version_ab(1, 0))),
             None,
             Some(ReuseStrategy::MemoizedArtifactReuse),
@@ -892,7 +919,7 @@ mod tests {
         let mut graph = SignalGraph::new();
         let node = graph.node().build();
         graph.set_runtime_policy(crate::facade::SignalRuntimePolicy::development());
-        let mut comparator_resolver = DefaultComparatorPolicyResolver::default();
+        let comparator_resolver = DefaultComparatorPolicyResolver::default();
         let keyed = PreparedKeyedContext {
             persistent_correspondence: Some(
                 PersistentCorrespondenceEvidence::lineage_backed_mapping("lineage-map:left->right"),
@@ -904,7 +931,7 @@ mod tests {
         let (authority, detail) = resolve_effect_reuse_boundary(
             &graph,
             node,
-            &mut comparator_resolver,
+            &comparator_resolver,
             Some(&NodeEvaluationResult::from_version(version_ab(1, 0))),
             Some(&keyed),
             Some(ReuseStrategy::CrossIdentityPersistentMatch),
@@ -940,31 +967,4 @@ mod tests {
             Some(ReuseStrategy::MemoizedArtifactReuse)
         ));
     }
-}
-
-fn apply_prepared_dependencies(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    capture: &PreparedDependencyCapture,
-) -> Result<u32, SignalError> {
-    let desired = build_prepared_dependency_edges(graph, capture);
-    let report = graph.reconcile_dependencies(node, &desired)?;
-    Ok(report.added + report.removed)
-}
-
-fn build_prepared_dependency_edges(
-    graph: &mut SignalGraph,
-    capture: &PreparedDependencyCapture,
-) -> Vec<DependencyEdge> {
-    capture
-        .as_slice()
-        .iter()
-        .map(|dependency| {
-            graph.build_dependency_edge(
-                dependency.source,
-                dependency.aspect,
-                dependency.scope.clone(),
-            )
-        })
-        .collect()
 }

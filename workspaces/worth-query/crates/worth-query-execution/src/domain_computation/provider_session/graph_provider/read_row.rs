@@ -1,10 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use worth_foundational::facade::{
-    prepare_aspect_value_identity_basis, prepare_struct_aspect_value_identity_basis, AspectKey,
-    AspectValue, CanonicalFieldPath, FieldKey, StructAspectValue,
-};
+use worth_foundational::facade::{AspectKey, AspectValue, CanonicalFieldPath, StructAspectValue};
 
 #[derive(Debug, PartialEq)]
 pub struct WorthQueryGraphReadRow {
@@ -79,45 +76,11 @@ impl WorthQueryGraphReadRow {
                     .saturating_add(value.owned_allocation_capacity_bytes())
             }))
     }
-
-    pub(super) fn digest_parts(&self) -> Vec<String> {
-        std::iter::once(format!("entity:{}", self.entity_identity))
-            .chain(self.aspect_values.iter().map(|(key, value)| {
-                format!(
-                    "aspect:{}={}",
-                    key.as_str(),
-                    prepare_aspect_value_identity_basis(value).as_str()
-                )
-            }))
-            .chain(self.struct_aspect_values.iter().map(|(key, value)| {
-                format!(
-                    "struct-aspect:{}={}",
-                    key.as_str(),
-                    prepare_struct_aspect_value_identity_basis(value).as_str()
-                )
-            }))
-            .chain(self.field_values.iter().map(|(path, value)| {
-                format!(
-                    "field:{}={}",
-                    canonical_field_path(path),
-                    prepare_aspect_value_identity_basis(value).as_str()
-                )
-            }))
-            .collect()
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryGraphReadRowConstructionDenial {
     EmptyEntityIdentity,
-}
-
-fn canonical_field_path(path: &CanonicalFieldPath) -> String {
-    path.fields()
-        .iter()
-        .map(FieldKey::as_str)
-        .collect::<Vec<_>>()
-        .join(".")
 }
 
 fn value_by_key<'a, K: Ord, V>(values: &'a [(K, V)], key: &K) -> Option<&'a V> {

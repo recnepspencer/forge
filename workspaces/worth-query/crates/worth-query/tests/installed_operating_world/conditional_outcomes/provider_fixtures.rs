@@ -30,7 +30,6 @@ impl worth_runtime_bridge::facade::BridgeConditionalProviderSemantics for Deferr
 impl worth_runtime_bridge::facade::BridgeConditionalWakeProvider for DeferredWake {
     fn resolve(
         &self,
-        _declaration: &domain::WorthQueryPortableConditionalNodeDeclaration,
         _context: worth_runtime_bridge::facade::BridgeConditionalResolverContext,
     ) -> Result<worth_signal::facade::InstalledSignalConditionDecision, String> {
         Ok(worth_signal::facade::InstalledSignalConditionDecision::Deferred)

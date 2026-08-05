@@ -3,9 +3,11 @@
 ## Goal
 
 Complete the one-way Query authority graph established by Milestone 9.13.1:
-extract admission, execution, and publication; retarget cold certification to
-the finished graph; cut every consumer to an audience facade; and delete the
-remaining `worth-query` monolith.
+extract admission, execution, and publication authority one semantic surface
+at a time; retarget cold certification to the resulting graph; and cut each
+covered consumer through the correct audience facade without losing product
+behavior. The milestone removes competing authority, not the `worth-query`
+product composition root or unrelated features that still live there.
 
 This milestone is a production decomposition, not a test-runner project. Cargo
 package selection is the iteration mechanism.
@@ -54,14 +56,18 @@ behavior, shared-support buckets, and compatibility re-export cycles
 unrepresentable or mechanically rejected.
 
 The hostile false success to refuse is a set of crates underneath an aggregate
-`worth-query` package that every facade still compiles. That shape changes
-folders while preserving the monolithic build and authority surface.
+`worth-query` package while the aggregate can still independently admit,
+execute, or publish the same covered meaning. That shape changes folders while
+preserving competing authority. A one-way product composition root that lowers
+into the sole authority package is lawful.
 
 ## Product Decision Lock
 
-- The current `worth-query` package is a migration source, not the final
-  aggregation root. It is deleted after the three audience facades and all
-  consumers cut over.
+- The current `worth-query` package is the product composition root and a
+  migration source for the exact authority surfaces named by this milestone.
+  It remains for unrelated product behavior and may lower one way through the
+  three audience facades. It may not retain an independently executable copy
+  of a covered authority after that surface cuts over.
 - Query's internal packages are an exact, reviewed extension of the existing
   framework-family exception. They are not ordinary Road 1 band crates and are
   not legal consumer dependencies.
@@ -88,9 +94,17 @@ folders while preserving the monolithic build and authority surface.
   ownership but may not recreate them, rename them, or move their meaning back
   into the monolith.
 - Every phase is a complete slice: boundary-local inventory, authority move,
-  consumer cut, owner-local tests, and one elapsed observation. There is no
-  milestone-wide inventory phase and no requirement to classify untouched code
-  before moving an obvious authority boundary.
+  consumer parity proof, atomic cutover, exact predecessor retirement,
+  owner-local tests, and one elapsed observation. There is no milestone-wide
+  inventory phase and no requirement to classify untouched code before moving
+  an obvious authority boundary.
+
+The migration unit is one named semantic authority surface, never a whole
+directory or crate merely because it contains that surface. Before cutover the
+predecessor remains the sole production authority. At cutover every covered
+consumer switches to the destination and the exact predecessor's ability to
+mint or execute authority is removed in the same slice. Missing destination
+behavior keeps the migration open; it is not permission to delete the feature.
 
 ## Frozen Package And Dependency Graph
 
@@ -332,7 +346,7 @@ Certification has no dependency on the migration monolith. Authority-local
 commands exclude it, while the explicit cold command composes real public
 authority journeys without product-owned test infrastructure.
 
-### Phase 5: Cut Facades And Consumers, Then Delete The Monolith
+### Phase 5: Cut Facades And Consumers, Then Retire Exact Predecessor Authority
 
 Inventory consumers one audience at a time: declaration-only, ordinary host,
 then cert/replay. Expand the three audience facades only with explicit re-
@@ -340,26 +354,32 @@ exports from their allowed packages, cut that audience completely, and run its
 owned tests before proceeding to the next. No consumer receives a temporary
 direct internal dependency.
 
-After all audiences are cut, delete
-`workspaces/worth-query/crates/worth-query`, compatibility re-
-exports, obsolete workspace dependencies, and aliases preserving the old crate
-spelling. Update boundary-check and generated agent contexts in the same slice.
+For each covered admission, execution, or publication authority surface, prove
+behavioral, denial, lifecycle, receipt, and relevant cost parity through every
+real consumer. Cut those consumers together, then remove the exact predecessor
+constructor, executor, or authority-capable alias in the same slice. Retain the
+`worth-query` product composition root, its unrelated responsibilities, and
+lawful one-way facade adapters. Update boundary-check and generated agent
+contexts in the same slice.
 
 **Adversarial tests**
 
-- dependency inspection reports zero packages depending on `worth-query` or an
-  internal authority outside the exact facade and internal DAG allowlists
+- dependency inspection reports zero destination authority packages depending
+  back on `worth-query`, and no consumer imports an internal authority outside
+  the exact facade and internal DAG allowlists
 - declaration-only, ordinary host, and cert/replay transcripts compile with
   exactly their intended closures; app/UI and derived replay imports fail
-- deleting the monolith changes no canonical declaration, installation,
-  admission, execution, publication, settlement, replay, or counter outcome
+- each authority cutover changes no canonical declaration, installation,
+  admission, execution, publication, settlement, replay, or counter outcome,
+  and unrelated `worth-query` features remain green
 
 **Exit condition**
 
-The monolith and every compatibility path are absent. Boundary-check and agent-
-context enforce the final graph, every consumer uses one audience facade, and
-owner-local commands remain within the iteration budgets established by
-9.13.1.
+Every covered predecessor authority and every compatibility path that can
+reopen it are absent. Boundary-check and agent-context enforce the final graph,
+every covered consumer uses one audience facade or lawful one-way composition
+adapter, unrelated product behavior remains available, and owner-local commands
+remain within the iteration budgets established by 9.13.1.
 
 ## Test Ownership Rules
 
@@ -414,6 +434,8 @@ owner-local commands remain within the iteration budgets established by
   unchanged; physical persistence stays in the Store roadmap.
 - Every retained compiler-owned authority, substitution, phase-order,
   move-only, and facade denial survives with the production owner.
+- The existing Query feature set and ordinary public facade remain available
+  until each exact semantic surface has proved parity and cut over.
 
 ## Allowed Debt
 
@@ -422,9 +444,11 @@ owner-local commands remain within the iteration budgets established by
 - Later 9.14 operation, workflow, sharing, lease, invalidation, and patch
   semantics remain unimplemented until 9.14, but their package homes and
   dependency direction must be ready.
-- No compatibility re-export, alternate engine root, direct internal-package
-  consumer edge, source-audit authority, shared test platform, reverse
-  dependency, or ordinary-to-certification dependency may remain debt.
+- No authority-capable compatibility re-export, alternate engine root, direct
+  internal-package consumer edge, source-audit authority, shared test platform,
+  reverse dependency, or ordinary-to-certification dependency may remain debt.
+  A one-way facade adapter that reaches the sole destination authority is not a
+  compatibility authority.
 
 ## Verification
 
@@ -464,8 +488,11 @@ closeout gate, not the inner development loop.
   internal or former-engine dependency
 - retained compiler denials remain load-bearing and the compiler portfolio
   does not regress into per-type privacy mirrors
-- source-audit catalogs, proof-of-proof tests, shared test platforms,
-  compatibility aliases, and the `worth-query` monolith are absent
+- source-audit catalogs, proof-of-proof tests, shared test platforms, and every
+  authority-capable predecessor or compatibility alias for a completed
+  migration row are absent
+- the `worth-query` composition root and all unrelated Query, Worth UI, and
+  server-consumer behavior remain green
 - the workspace line-cap guard is green for the migrated packages
 - one closeout report records per-authority and full-graph elapsed observations
   without enforcing them through a timing framework

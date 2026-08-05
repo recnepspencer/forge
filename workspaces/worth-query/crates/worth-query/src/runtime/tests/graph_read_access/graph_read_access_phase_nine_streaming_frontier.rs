@@ -44,7 +44,7 @@ fn frontier_read_admits_streaming_plan_before_execution() {
     assert_eq!(streaming_plan.admission_digest(), admission.digest());
     assert_eq!(
         streaming_plan.requirement_set_digest(),
-        admission.requirement_set().digest().as_str()
+        admission.requirement_set().digest().render_support_hex()
     );
     assert!(streaming_plan.page_budget().max_page_width() > 0);
 }

@@ -11,6 +11,32 @@ fn current_domain_authority_inventory_is_source_complete() {
 }
 
 #[test]
+fn runtime_core_package_inputs_are_classified_across_both_facades() {
+    let rows = worth_query_domain_authority_inventory_rows();
+    let expected_paths = [
+        "src/facade/exports_domain.rs",
+        "src/facade/exports_runtime_core.rs",
+    ];
+    for symbol in [
+        "WorthQueryDomainIdentityNamespace",
+        "WorthQueryDomainIdentityName",
+        "WorthQueryDomainSemanticVersion",
+        "WorthQueryDomainIdentityDeclaration",
+        "WorthQueryDomainPackage",
+    ] {
+        let row = rows
+            .iter()
+            .find(|row| row.symbol() == symbol)
+            .expect("every runtime-core package input needs one semantic authority row");
+        assert_eq!(
+            row.current_class(),
+            WorthQueryDomainAuthorityClass::PackageInput
+        );
+        assert_eq!(row.exporting_paths(), expected_paths);
+    }
+}
+
+#[test]
 fn authority_in_an_unlisted_production_file_cannot_evade_the_workspace_audit() {
     let root = std::env::temp_dir().join(format!(
         "worth-query-domain-authority-audit-{}-{}",
@@ -184,7 +210,8 @@ fn physical_adapter_is_not_semantic_domain_authority() {
 fn installation_grammar_freezes_order_fields_and_owners() {
     let grammar = worth_query_domain_installation_grammar();
     assert_eq!(grammar.stages().len(), 7);
-    assert_eq!(grammar.package_fields().len(), 10);
+    assert_eq!(grammar.package_fields().len(), 9);
+    assert!(!grammar.package_fields().contains(&"graph-obligations"));
     assert_eq!(grammar.transcript_owners().len(), grammar.stages().len());
     assert_eq!(
         grammar.stages()[4],

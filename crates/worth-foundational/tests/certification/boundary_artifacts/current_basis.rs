@@ -114,7 +114,7 @@ fn current_basis_boundary_artifact_and_bundle_require_explicit_readmission_after
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("materialized artifact");
     let rebound_basis = match prepare_materialized_boundary_artifact_for_canonical_basis(
@@ -150,7 +150,7 @@ fn current_basis_boundary_artifact_and_bundle_require_explicit_readmission_after
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("primary plan");
     let summary = plan_descriptive_boundary_materialization(

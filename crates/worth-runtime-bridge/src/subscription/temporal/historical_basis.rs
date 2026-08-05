@@ -93,8 +93,8 @@ impl AdmittedBridgeHistoricalTruthViewBasis {
             ));
         }
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-historical-truth-view-basis|temporal-truth-digest={}",
-            format!("{:?}", truth_basis.canonical_digest().value().bytes()),
+            "bridge-historical-truth-view-basis|temporal-truth-digest={:?}",
+            truth_basis.canonical_digest().value().bytes(),
         ));
         let digest = Sha256::digest(canonical_basis.as_bytes());
         Ok(Self {

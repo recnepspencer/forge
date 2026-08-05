@@ -7,7 +7,6 @@ use runtime_paths::{
     intent_commit_denied_error, intent_execution_routing_failed_error,
     preview_promotion_atomic_batch_unsupported_error, preview_promotion_rebinding_required_error,
     preview_promotion_stale_basis_error, preview_promotion_write_failed_error,
-    read_domain_invariant_denied_error,
 };
 pub(super) use variant_keys::{runtime_error_variant_key, stop_class_variant_key};
 
@@ -63,19 +62,6 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<WorthQueryRuntimeError
         ),
         "duplicate symbol",
     );
-    let graph_domain_denial = WorthQueryGraphCompositionDomainInvariantDenial::from_contributed(
-        "graph.family",
-        "graph domain invariant failed",
-        WorthQueryGraphCompositionDomainInvariantSummary::from_parts(
-            vec!["Task".to_string()],
-            vec!["task_symbol".to_string()],
-            vec!["same_batch_entity_relation_identity_edges".to_string()],
-            vec!["mixed_existing_target_followup_mutation".to_string()],
-            graph_domain_fixture_digest("program"),
-            graph_domain_fixture_digest("breadth"),
-            "components=1".to_string(),
-        ),
-    );
     let naming_intent = WorthQueryNamingMutationIntent::attach_new_target(
         crate::runtime::WorthQueryMutationAuthorityIdentity::naming_attachment(
             crate::runtime::WorthQueryNamingAttachmentAuthorityLabel::new("attachment-1")
@@ -115,11 +101,22 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<WorthQueryRuntimeError
         WorthQueryJournalReplayDenialKind::UnknownSegmentIdentity,
         "segment is not retained by replay registry",
     );
+    let domain_handle_denial = crate::domain_installation::WorthQueryDomainHandleDenial::new(
+        crate::domain_installation::WorthQueryDomainHandleDenialKind::DomainNotInstalled,
+    );
+    let mutation_contract_touch = test_aspect_touch("status.value");
+    let mutation_contract_denial = WorthQueryMutationContractDenial::portable_export_denied(
+        worth_foundational::facade::PortableAspectExportDenial::MissingContract(
+            mutation_contract_touch.native_aspect_key().clone(),
+        ),
+    );
 
     vec![
+        WorthQueryRuntimeError::InstalledDomainAuthorityDenied(domain_handle_denial),
         WorthQueryRuntimeError::MissingBackend,
         WorthQueryRuntimeError::MissingRuntimeBridge,
         WorthQueryRuntimeError::MissingSchemaAdapter,
+        WorthQueryRuntimeError::MissingSnapshotIdentityAdapter,
         WorthQueryRuntimeError::MissingSourceAdapter,
         WorthQueryRuntimeError::MissingWriteAuthority,
         WorthQueryRuntimeError::MissingSignalSink,
@@ -131,29 +128,11 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<WorthQueryRuntimeError
         WorthQueryRuntimeError::ExistingTruthProbeDenied(probe_denial),
         WorthQueryRuntimeError::MutationBindingDenied(binding_denial),
         WorthQueryRuntimeError::MutationContinuityDenied(continuity_denial),
-        WorthQueryRuntimeError::GraphObligationTouchDescriptorDenied(
-            WorthQueryGraphTouchDescriptorDenial::new(
-                WorthQueryGraphTouchDescriptorDenialKind::ProgramComponentCountMismatch,
-                "program and commands disagree",
-            ),
-        ),
-        WorthQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing {
-            effect_name: "effect.graph-obligation".to_string(),
-        },
-        WorthQueryRuntimeError::GraphObligationIntentTouchDescriptorMissing {
-            intent_name: "intent.graph-obligation".to_string(),
-        },
-        WorthQueryRuntimeError::GraphMutationPolicyContextDenied {
-            expected: crate::policy_basis::PolicyExecutionModeRequest::GraphMutation,
-            actual: crate::policy_basis::PolicyExecutionModeRequest::CurrentRead,
-            policy_tenant_admission_digest: "policy-admission:wrong-mode".to_string(),
-        },
+        WorthQueryRuntimeError::MutationContractDenied(mutation_contract_denial),
         WorthQueryRuntimeError::GraphCompositionDenied(graph_denial),
-        WorthQueryRuntimeError::GraphCompositionDomainInvariantDenied(graph_domain_denial),
         WorthQueryRuntimeError::MutationNamingDenied(naming_denial),
         WorthQueryRuntimeError::MutationTargetReferenceDenied(symbolic_denial),
         WorthQueryRuntimeError::ReadCompositionDenied(read_denial),
-        read_domain_invariant_denied_error(),
         WorthQueryRuntimeError::Workspace(WorthQueryWorkspaceError::new("workspace failed")),
         WorthQueryRuntimeError::Program(WorthQueryProgramError::new("program failed")),
         WorthQueryRuntimeError::UnknownProgram("missing.program".to_string()),
@@ -222,26 +201,8 @@ pub(super) fn representative_runtime_stop_errors() -> Vec<WorthQueryRuntimeError
     ]
 }
 
-fn graph_domain_fixture_digest(
-    role: &'static str,
-) -> crate::evidence_identity::WorthQueryEvidenceIdentity {
-    crate::evidence_identity::worth_query_evidence_identity(
-        crate::evidence_identity::WorthQueryEvidenceScope::MutationEvidenceAggregateDigest,
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("role"),
-        "stop-class-graph-domain-fixture",
-    )
-    .field_shape(
-        crate::evidence_identity::WorthQueryEvidenceTag::new("fixture"),
-        role,
-    )
-    .seal()
-}
-
 pub(super) fn representative_runtime_generated_stop_errors() -> Vec<WorthQueryRuntimeError> {
     vec![
-        read_domain_invariant_denied_error(),
         intent_commit_denied_error(),
         intent_execution_routing_failed_error(),
         preview_promotion_stale_basis_error(),

@@ -17,16 +17,6 @@ const CROSSING_ROWS: &[WorthQueryLowerRuntimeCrossingRow] = &[
         "delegate through the current-read route row; no side-door execution",
     ),
     WorthQueryLowerRuntimeCrossingRow::new(
-        WorthQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
-        "Composed current read with invariant pack",
-        "WorthQueryWorkspace::compose_read_with_invariant_pack(...)",
-        WorthQueryLowerRuntimeCrossingClassification::CanonicalLowerRuntimeReuse,
-        WorthQueryLowerRuntimeRouteKind::RoutePlanning,
-        WorthQueryLowerRuntimeAuthorityOwner::RuntimeBridge,
-        WorthQueryLowerRuntimeArtifactStrength::TypedReceipt,
-        "delegate through the current-read route row after invariant admission",
-    ),
-    WorthQueryLowerRuntimeCrossingRow::new(
         WorthQueryLowerRuntimeSeamKey::ExecuteReadFamily,
         "Defined read-family execution",
         "WorthQueryWorkspace::execute_read_family(...)",

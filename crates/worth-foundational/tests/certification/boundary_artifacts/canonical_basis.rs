@@ -34,7 +34,7 @@ fn materialized_boundary_artifacts_lower_shared_semantics_not_payload_layout() {
         RetentionDeliveryProfile::Durable,
         CertificationPostureProfile::EvidenceBacked,
     );
-    let left = materialize_projection_artifact(vec![1_u8, 2, 3], 2, profile.clone());
+    let left = materialize_projection_artifact(vec![1_u8, 2, 3], 2, profile);
     let right = materialize_projection_artifact(vec![9_u8, 8, 7], 2, profile);
 
     let left_ready = match prepare_materialized_boundary_artifact_for_canonical_basis(
@@ -119,7 +119,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
         )),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("primary plan");
     let summary = plan_descriptive_boundary_materialization(
@@ -128,7 +128,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
         ),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("summary plan");
     let report = plan_descriptive_boundary_materialization(
@@ -137,7 +137,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
         ),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("report plan");
     let receipt = plan_descriptive_boundary_materialization(
@@ -146,7 +146,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
         ),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        profile.clone(),
+        profile,
     )
     .expect("receipt plan");
     let first_bundle = plan_artifact_boundary_bundle(primary)
@@ -167,7 +167,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
             )),
             FoundationalBoundaryMaterializationSource::CompatibilityLowered,
             FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-            profile.clone(),
+            profile,
         )
         .expect("primary plan"),
     )
@@ -178,7 +178,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
             ),
             FoundationalBoundaryMaterializationSource::CompatibilityLowered,
             FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-            profile.clone(),
+            profile,
         )
         .expect("summary plan"),
     )
@@ -190,7 +190,7 @@ fn coordinated_boundary_bundles_reuse_one_boundary_artifact_basis_domain() {
             ),
             FoundationalBoundaryMaterializationSource::CompatibilityLowered,
             FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-            profile.clone(),
+            profile,
         )
         .expect("report plan"),
     )
@@ -286,7 +286,7 @@ fn bundle_basis_keeps_optional_member_absence_and_attachment_visibility_explicit
             )),
             FoundationalBoundaryMaterializationSource::CompatibilityLowered,
             FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-            profile.clone(),
+            profile,
         )
         .expect("primary plan"),
     )

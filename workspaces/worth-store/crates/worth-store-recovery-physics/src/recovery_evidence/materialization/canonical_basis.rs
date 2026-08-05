@@ -79,7 +79,7 @@ impl RecoveryEvidenceCanonicalBasis {
         };
         let derivation = match CanonicalizationFrontDoor.digest().for_bundle(
             ready,
-            worth_foundational::CanonicalDigestAlgorithmId::test_stable_fixture(),
+            worth_foundational::CanonicalDigestAlgorithmId::sha256(),
         ) {
             TransitionOutcome::Success(ready) => ready,
             _ => return Err(RecoveryEvidenceDenial::CanonicalBasisMaterializationDenied),

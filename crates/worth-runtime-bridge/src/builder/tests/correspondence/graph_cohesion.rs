@@ -56,7 +56,9 @@ fn one_signal_graph_rejects_a_second_bridge_allocation_authority() {
     let first_clone = first.clone();
     let second = runtime(exact_mapping(), vec![registration()]);
 
-    drop(first.bind_signal_graph(&mut graph).unwrap());
+    {
+        let _binding = first.bind_signal_graph(&mut graph).unwrap();
+    }
     assert!(matches!(
         second.bind_signal_graph(&mut graph),
         Err(crate::facade::BridgeCorrespondenceRebindRequired::SignalGraphLoweringOwner)
@@ -77,6 +79,8 @@ fn bridge_without_correspondence_allocations_cannot_monopolize_a_signal_graph() 
         )],
     );
 
-    drop(empty.bind_signal_graph(&mut graph).unwrap());
+    {
+        let _binding = empty.bind_signal_graph(&mut graph).unwrap();
+    }
     assert!(owner.bind_signal_graph(&mut graph).is_ok());
 }

@@ -1,9 +1,8 @@
 use crate::runtime::{
-    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryAuthoritativeMutationObligationDispatch,
-    WorthQueryEphemeralGraphIndexReceipt, WorthQueryGraphReadAccessComplexityCounters,
-    WorthQueryGraphReadAccessPlanConsumption, WorthQueryGraphReadAccessReceiptSummary,
-    WorthQueryGraphReadStreamingReceipt, WorthQueryIntentDecisionTraceEnvelope,
-    WorthQueryIntentExecutionProvenance,
+    WorthQueryAdmittedGraphReadAccessPlan, WorthQueryEphemeralGraphIndexReceipt,
+    WorthQueryGraphReadAccessComplexityCounters, WorthQueryGraphReadAccessPlanConsumption,
+    WorthQueryGraphReadAccessReceiptSummary, WorthQueryGraphReadStreamingReceipt,
+    WorthQueryIntentDecisionTraceEnvelope, WorthQueryIntentExecutionProvenance,
 };
 
 use super::WorthQueryReadReceipt;
@@ -20,13 +19,6 @@ pub(in crate::runtime) trait WorthQueryReadExecutionProduct {
     ) {
         self.receipt_mut().decision_trace_envelope = Some(decision_trace_envelope);
         self.receipt_mut().execution_provenance = Some(execution_provenance);
-    }
-
-    fn attach_graph_obligation_dispatch(
-        &mut self,
-        dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
-    ) {
-        self.receipt_mut().graph_obligation_dispatch = dispatch;
     }
 
     fn attach_graph_read_access_plan(

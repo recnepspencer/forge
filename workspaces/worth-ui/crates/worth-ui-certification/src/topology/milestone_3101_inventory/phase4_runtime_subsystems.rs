@@ -288,6 +288,7 @@ fn is_support_or_test(path: &Path) -> bool {
     let path = path.to_string_lossy().replace('\\', "/");
     path.contains("/certification_support/")
         || path.contains("/tests/")
+        || path.ends_with("/tests.rs")
         || path.ends_with("_tests.rs")
         || path.ends_with("_test_support.rs")
 }

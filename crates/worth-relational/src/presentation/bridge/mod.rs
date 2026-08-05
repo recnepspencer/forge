@@ -30,6 +30,9 @@ pub use authoritative_patch_publication::{
     RelationalOpaqueAspectWideningAdmissionDenial,
 };
 pub use identities::{bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle};
-pub use runtime_source::{RelationalBridgeSourceConfigurationError, RuntimeBridgeRelationalSource};
+pub use runtime_source::{
+    RelationalBridgeSourceConfigurationError, RelationalBridgeTruthViewBasisDenial,
+    RuntimeBridgeRelationalSource,
+};
 #[cfg(test)]
 pub use test_catalog::{PublicationBridgeCatalog, PublicationBridgeSnapshot};

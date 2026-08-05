@@ -60,14 +60,11 @@ fn async_node_nightmare_workload_preserves_combined_capability_truth_across_rest
             .is_some(),
         "restored capability equivalence should still carry explanation lineage"
     );
-    assert_eq!(
-        workload
-            .attachment_equivalence_after_restore
-            .historical_parity_report()
-            .branch_restore_report()
-            .is_some(),
-        true
-    );
+    assert!(workload
+        .attachment_equivalence_after_restore
+        .historical_parity_report()
+        .branch_restore_report()
+        .is_some());
 
     assert_eq!(
         workload.gate_state_before_restore.gate_digest(),

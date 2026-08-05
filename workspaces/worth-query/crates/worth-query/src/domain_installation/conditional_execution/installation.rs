@@ -158,6 +158,9 @@ pub enum WorthQueryConditionalNodeInstallationDenial {
     LocationNotDeclared,
     DeclarationLookupDrift,
     DependencyShape,
+    InvalidConditionalContract,
+    UnsupportedMaintenancePosture,
+    UnsupportedArtifactPosture,
     Correspondence(worth_runtime_bridge::facade::BridgeCorrespondenceDenialKind),
     Bridge {
         kind: worth_runtime_bridge::facade::BridgeConditionalDenialKind,
@@ -308,11 +311,18 @@ where
                 detail: denial.detail().to_string(),
             }
         })?;
+        let declaration = declared_node(operation.definition(), &self.location)
+            .cloned()
+            .ok_or(WorthQueryConditionalNodeInstallationDenial::DeclarationLookupDrift)?;
         registry
             .install::<D, O, F>(super::WorthQueryInstalledConditionalNode {
                 lowering,
+                location: self.location.clone(),
+                declaration,
+                graph_authority: std::sync::Arc::clone(&graph.record.installation_authority),
                 operation_identity: operation.definition().canonical_identity().to_string(),
                 runtime_authority: operation.domain_authority().runtime_authority().as_u64(),
+                installation_runtime_authority: operation.operation_authority().runtime_ordinal(),
                 installation_generation: operation.installation_generation().ordinal(),
                 resource_support: self.compute.execution_resource_support(),
             })
@@ -336,6 +346,8 @@ where
         let declaration = declared_node(operation.definition(), &self.location)
             .cloned()
             .ok_or(WorthQueryConditionalNodeInstallationDenial::DeclarationLookupDrift)?;
+        let contract = super::bridge_lowering::lower_bridge_contract(&declaration)?;
+        let bridge_location = super::bridge_lowering::lower_bridge_location(&self.location);
         if self.providers.has_compute_provider() {
             return Err(WorthQueryConditionalNodeInstallationDenial::Bridge {
                 kind:
@@ -356,8 +368,8 @@ where
         )?;
         Ok(
             worth_runtime_bridge::facade::BridgeConditionalInstallationRequest {
-                declaration,
-                location: self.location.clone(),
+                contract,
+                location: bridge_location,
                 registrations,
                 providers: with_compute_provider::<D, O, F, P>(
                     self.providers.clone(),

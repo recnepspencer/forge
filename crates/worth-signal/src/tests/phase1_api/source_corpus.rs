@@ -91,6 +91,8 @@ pub(super) const MERGE_RUNTIME_EXECUTION_FINALIZATION_SOURCE: &str = include_str
 );
 pub(super) const BRANCH_BASIS_SOURCE: &str =
     include_str!("../../logic/transaction/runtime/state/branching/basis.rs");
+pub(super) const BRANCH_BASIS_RUNTIME_SOURCE: &str =
+    include_str!("../../logic/transaction/runtime/state/branching/basis_runtime.rs");
 pub(super) const BRANCH_FORK_SOURCE: &str =
     include_str!("../../logic/transaction/runtime/state/branching/fork.rs");
 pub(super) const BRANCHES_SOURCE: &str =

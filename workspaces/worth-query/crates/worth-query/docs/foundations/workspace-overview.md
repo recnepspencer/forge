@@ -37,10 +37,8 @@ Stable runtime-backed entry points:
 - `workspace.write_intent(...)`
 - `workspace.write_batch_intent(...)`
 - `workspace.compose_graph(...)`
-- `workspace.compose_graph_with_invariant_pack(...)`
 - typed existing-truth binding artifacts consumed by graph composition
 - `workspace.probe_existing_intent(...)`
-- `workspace.compose_read(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.materialize_result(...)`
@@ -156,16 +154,17 @@ The typical workspace lifecycle looks like this:
    Aspect-level reset stays on the same path through builder calls such as
    `task.clear("description.value")`.
 4. Use `workspace.compose_graph(...)` when one logical authoring step needs
-   symbolic same-batch handles, graph lifecycle evidence, or invariant-pack
-   denial instead of plain ordered writes.
+   symbolic same-batch handles or graph lifecycle evidence instead of plain
+   ordered writes. Installed application invariants run through provider-session
+   progression, not a workspace callback.
 5. Use typed existing-truth binding artifacts inside graph composition, or
    `workspace.probe_existing_intent(...)`, when the target is already
    authoritative and target binding or backend verification is part of the
    contract.
 6. Read current rows, drain patches, or materialize derived rows from retained
    handles.
-7. Use `workspace.compose_read(...)` when you need one bounded graph read with
-   an attached runtime receipt instead of a retained live view.
+7. Use an installed application query when a typed graph-shaped read needs one
+   canonical access plan, managed session, and terminal receipt.
 8. Inspect handles or snapshot state when you need explanations or readiness.
 9. Open preview or branch sessions when you need isolated experimentation.
 
@@ -372,8 +371,8 @@ inspection without hand-built cache or invalidation glue.
 - Use [Effects](../execution/effects.md) when a surface should deliver or stage something
   because another surface changed.
 - Use [Graph Composition Authoring](../authoring/graph-composition-authoring.md) when one
-  logical write must carry symbolic same-batch handles, lifecycle evidence, or
-  invariant-pack denial instead of plain ordered writes.
+  logical write must carry symbolic same-batch handles or lifecycle evidence
+  instead of plain ordered writes.
 - Use [Existing Truth](../capabilities/existing-truth.md) when a mutation or probe starts
   from already authoritative truth instead of creating new truth from scratch.
 - Use [Projection Consumption](../capabilities/projection-consumption.md) when a read result,

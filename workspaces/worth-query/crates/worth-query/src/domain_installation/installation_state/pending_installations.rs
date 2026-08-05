@@ -5,7 +5,6 @@ use worth_relational::facade::runtime::CustomInvariantRegistration;
 
 use crate::application::WorthQueryDomainEntryMarker;
 use crate::runtime::{
-    WorthQueryGraphObligationRegistration, WorthQueryGraphObligationRegistrationCatalog,
     WorthQueryGraphReadOperationRegistration, WorthQueryGraphReadOperationRegistry,
     WorthQueryGraphReadRegistryAdmissionError,
 };
@@ -39,7 +38,6 @@ pub(crate) struct WorthQueryPendingDomainInstallationSnapshot {
     invariant_slots: Vec<String>,
     declaration_family_slots: Vec<String>,
     compiled_invariants: Vec<String>,
-    compiled_graph_obligations: Vec<String>,
 }
 
 impl WorthQueryPendingDomainInstallations {
@@ -60,13 +58,6 @@ impl WorthQueryPendingDomainInstallations {
             .map(|registration| registration.rule_id().as_str().to_string())
             .collect::<Vec<_>>();
         compiled_invariants.sort();
-        let mut compiled_graph_obligations = self
-            .compiled_substrates
-            .graph_obligations
-            .iter()
-            .map(|registration| registration.registration_digest().to_string())
-            .collect::<Vec<_>>();
-        compiled_graph_obligations.sort();
         WorthQueryPendingDomainInstallationSnapshot {
             artifact_packages,
             marker_packages,
@@ -75,7 +66,6 @@ impl WorthQueryPendingDomainInstallations {
             invariant_slots: self.invariant_slots.iter().cloned().collect(),
             declaration_family_slots: self.declaration_family_slots.iter().cloned().collect(),
             compiled_invariants,
-            compiled_graph_obligations,
         }
     }
 
@@ -104,22 +94,19 @@ impl WorthQueryPendingDomainInstallations {
         )?;
         let lowered_substrates = lower_package_substrates(&package, &candidate);
         self.validate_operation_union(&lowered_substrates.graph_read_operations)?;
-        self.validate_obligation_union(&lowered_substrates.graph_obligations)?;
         let custom_invariants = compile_package_invariants(&package, &candidate)?;
         let WorthQueryLoweredPackageSubstrates {
             graph_read_operations,
-            graph_obligations,
         } = lowered_substrates;
         let artifact =
             assemble_installed_domain_artifact(package, &candidate, graph_read_operations);
-        self.publish_installation(candidate, graph_obligations, custom_invariants, artifact);
+        self.publish_installation(candidate, custom_invariants, artifact);
         Ok(())
     }
 
     fn publish_installation(
         &mut self,
         candidate: WorthQueryPendingPackageCandidate,
-        graph_obligations: Vec<WorthQueryGraphObligationRegistration>,
         custom_invariants: Vec<CustomInvariantRegistration>,
         artifact: WorthQueryInstalledDomainArtifact,
     ) {
@@ -134,9 +121,6 @@ impl WorthQueryPendingDomainInstallations {
         self.compiled_substrates
             .custom_invariants
             .extend(custom_invariants);
-        self.compiled_substrates
-            .graph_obligations
-            .extend(graph_obligations);
     }
 
     pub(crate) fn take_compiled_substrates(&mut self) -> WorthQueryCompiledDomainSubstrates {
@@ -145,7 +129,6 @@ impl WorthQueryPendingDomainInstallations {
 
     pub(crate) fn compiled_substrates_are_empty(&self) -> bool {
         self.compiled_substrates.custom_invariants.is_empty()
-            && self.compiled_substrates.graph_obligations.is_empty()
     }
 
     pub(crate) fn host_installation_packages(
@@ -156,12 +139,7 @@ impl WorthQueryPendingDomainInstallations {
             .iter()
             .map(|artifact| artifact.portable_package.clone())
             .collect::<Vec<_>>();
-        packages.sort_by(|left, right| {
-            left.package()
-                .identity()
-                .as_str()
-                .cmp(right.package().identity().as_str())
-        });
+        packages.sort_by(|left, right| left.package().identity().cmp(right.package().identity()));
         packages
     }
 
@@ -226,27 +204,6 @@ impl WorthQueryPendingDomainInstallations {
         WorthQueryGraphReadOperationRegistry::admit(registrations)
             .map(|_| ())
             .map_err(operation_admission_denial)
-    }
-
-    fn validate_obligation_union(
-        &self,
-        additions: &[WorthQueryGraphObligationRegistration],
-    ) -> Result<(), WorthQueryDomainInstallationDenial> {
-        let registrations = self
-            .compiled_substrates
-            .graph_obligations
-            .iter()
-            .cloned()
-            .chain(additions.iter().cloned())
-            .collect::<Vec<_>>();
-        WorthQueryGraphObligationRegistrationCatalog::from_registrations(registrations)
-            .map(|_| ())
-            .map_err(|error| {
-                WorthQueryDomainInstallationDenial::new(
-                    WorthQueryDomainInstallationDenialKind::ConflictingGraphObligation,
-                    error.to_string(),
-                )
-            })
     }
 }
 

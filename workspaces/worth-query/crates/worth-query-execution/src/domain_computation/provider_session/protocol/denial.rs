@@ -30,6 +30,7 @@ pub enum WorthQueryProviderSessionDenialKind {
     ProviderPanicked,
     TokenNotMintedForPlan,
     EmptyPhysicalSessionIdentity,
+    SessionIdentityExhausted,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use worth_query_installation::facade::{
-    compare_portable_conditional_node_declarations, WorthQueryPortableConditionalComparisonOutcome,
-};
-
 use super::super::provider_admission::BridgeConditionalProviderAdmission;
 use super::super::provider_semantics::{
     BridgeConditionalProviderSemanticContracts, BridgeErasedProviderSemanticContract,
@@ -19,24 +15,10 @@ pub(super) fn compare_provider_admissions(
     candidate: &BridgeConditionalProviderAdmission,
     work: &mut BridgeConditionalComparisonWork,
 ) -> Result<(), BridgeConditionalContinuityMismatch> {
-    let same_contract = match compare_portable_conditional_node_declarations(
-        current.declaration(),
-        candidate.declaration(),
-    ) {
-        WorthQueryPortableConditionalComparisonOutcome::Equivalent(evidence) => {
-            work.record_portable(evidence.comparison_count());
-            true
-        }
-        WorthQueryPortableConditionalComparisonOutcome::Mismatched(mismatch) => {
-            work.record_portable(mismatch.comparison_count());
-            false
-        }
-        WorthQueryPortableConditionalComparisonOutcome::Unsupported(unsupported) => {
-            work.record_portable(unsupported.comparison_count());
-            false
-        }
-    };
-    if !same_contract || current.required_roles() != candidate.required_roles() {
+    work.record_bridge_contract(1);
+    if current.contract() != candidate.contract()
+        || current.required_roles() != candidate.required_roles()
+    {
         return Err(BridgeConditionalContinuityMismatch::ProviderAdmission);
     }
     compare_semantic_contracts(

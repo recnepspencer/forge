@@ -52,10 +52,10 @@ impl RuntimeBridge {
         let exact_index_parity = rebuilt == registry.owners;
         registry.owners = rebuilt;
         Ok(super::BridgeCorrespondenceRebuildReport::new(
-            self.query_dependency_registry.authoritative_count(),
+            self.semantic_dependency_registry.authoritative_count(),
             registry.authoritative_records.len(),
             registry.owners.len(),
-            self.query_dependency_registry.rebuild_has_exact_parity(),
+            self.semantic_dependency_registry.rebuild_has_exact_parity(),
             self.aspect_registry.rebuilt_id_index_has_exact_parity(),
             exact_index_parity,
         ))

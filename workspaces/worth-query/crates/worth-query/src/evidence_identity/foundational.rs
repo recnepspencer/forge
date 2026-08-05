@@ -2,7 +2,8 @@ use worth_foundational::facade::{
     derive_canonical_digest, prepare_canonical_basis_bundle, prepare_canonical_basis_sequence,
     CanonicalBasisDomain, CanonicalBasisEntry, CanonicalBasisEntryKind, CanonicalBasisLocus,
     CanonicalBasisReadyArtifact, CanonicalBasisValue, CanonicalDerivedDigest,
-    CanonicalDigestAlgorithmId, CanonicalDigestFrontDoor, CanonicalizationRuleVersion,
+    CanonicalDigestAlgorithmId, CanonicalDigestFrontDoor, CanonicalDigestId,
+    CanonicalizationRuleVersion,
 };
 use worth_proof::TransitionOutcome;
 
@@ -23,12 +24,11 @@ pub(crate) fn derive_evidence_identity(
         TransitionOutcome::Success(bundle) => bundle,
         outcome => panic!("evidence identity bundle should prepare cleanly: {outcome:?}"),
     };
-    let digest_ready = match CanonicalDigestFrontDoor
-        .for_bundle(bundle, CanonicalDigestAlgorithmId::test_stable_fixture())
-    {
-        TransitionOutcome::Success(ready) => ready,
-        outcome => panic!("evidence identity digest derivation should succeed: {outcome:?}"),
-    };
+    let digest_ready =
+        match CanonicalDigestFrontDoor.for_bundle(bundle, CanonicalDigestAlgorithmId::sha256()) {
+            TransitionOutcome::Success(ready) => ready,
+            outcome => panic!("evidence identity digest derivation should succeed: {outcome:?}"),
+        };
     let canonical_digest = derive_canonical_digest(digest_ready);
     SealedWorthQueryEvidenceIdentity::new(
         scope,
@@ -48,6 +48,19 @@ pub(crate) fn text_entry(
         CanonicalBasisLocus::Named(locus.into().into()),
         kind,
         CanonicalBasisValue::ExactText(value.into().into()),
+    )
+}
+
+pub(crate) fn digest_entry(
+    locus: impl Into<String>,
+    kind: CanonicalBasisEntryKind,
+    value: &CanonicalDigestId,
+) -> CanonicalBasisEntry {
+    CanonicalBasisEntry::new(
+        CanonicalBasisDomain::Future(EVIDENCE_IDENTITY_DOMAIN),
+        CanonicalBasisLocus::Named(locus.into().into()),
+        kind,
+        CanonicalBasisValue::BytesDigest(*value),
     )
 }
 

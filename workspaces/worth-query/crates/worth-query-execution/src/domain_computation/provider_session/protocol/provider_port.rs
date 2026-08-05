@@ -1,8 +1,6 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::execution_digest::hash_parts;
-
 use super::{
     WorthQueryProviderExecutionPlanContract, WorthQueryProviderSessionDenialKind,
     WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
@@ -41,23 +39,49 @@ impl WorthQueryProviderSessionTokenAdmission {
                 WorthQueryProviderSessionProtocolCounters::default(),
             ));
         }
-        let generation = NEXT_PROTOCOL_SESSION.fetch_add(1, Ordering::Relaxed);
-        let identity = hash_parts(&[
-            "worth_query_provider_session_token_v1".into(),
-            format!("plan:{}", self.plan_identity),
-            format!("provider:{}", self.provider_identity),
-            format!("provider-generation:{}", self.provider_generation),
-            format!("session-generation:{generation}"),
-            format!("physical:{physical_session_identity}"),
-        ]);
+        let generation =
+            next_protocol_session_generation(&NEXT_PROTOCOL_SESSION).ok_or_else(|| {
+                WorthQueryProviderSessionFailure::new(
+                    WorthQueryProviderSessionDenialKind::SessionIdentityExhausted,
+                    WorthQueryProviderSessionProtocolStage::PlanReadmission,
+                    "provider session identity space is exhausted",
+                    WorthQueryProviderSessionProtocolCounters::default(),
+                )
+            })?;
         Ok(WorthQueryProviderSessionToken {
-            identity: identity.into(),
+            identity: Arc::from(format!("provider-session:{generation}")),
             plan_identity: self.plan_identity,
             provider_identity: self.provider_identity,
             provider_generation: self.provider_generation,
             generation,
             physical_session_identity: physical_session_identity.into(),
         })
+    }
+}
+
+fn next_protocol_session_generation(counter: &AtomicU64) -> Option<u64> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_session_generation_exhaustion_cannot_wrap() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+
+        assert_eq!(
+            next_protocol_session_generation(&counter),
+            Some(u64::MAX - 1)
+        );
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+        assert_eq!(next_protocol_session_generation(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
     }
 }
 

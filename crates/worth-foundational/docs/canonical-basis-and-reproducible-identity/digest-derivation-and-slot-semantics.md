@@ -80,7 +80,7 @@ use worth_proof::TransitionOutcome;
 
 let ready = match canonicalization()
     .digest()
-    .for_sequence(sequence_ready, CanonicalDigestAlgorithmId::Sha256)
+    .for_sequence(sequence_ready, CanonicalDigestAlgorithmId::sha256())
 {
     TransitionOutcome::Success(ready) => ready,
     other => return Err(format!("digest admission failed: {other:?}").into()),
@@ -100,7 +100,7 @@ use worth_proof::TransitionOutcome;
 
 let ready = match canonicalization()
     .digest()
-    .for_export(export_ready, CanonicalDigestAlgorithmId::Sha256)
+    .for_export(export_ready, CanonicalDigestAlgorithmId::sha256())
 {
     TransitionOutcome::Success(ready) => ready,
     other => return Err(format!("export digest admission failed: {other:?}").into()),
@@ -146,10 +146,11 @@ before questioning canonical basis law.
 
 ## Current Limits
 
-- This layer standardizes derivation from ready canonical inputs. It does not
-  close final cryptographic policy for the whole workspace.
-- Slot semantics are explicit, but later milestones may still own additional
-  runtime or artifact-level digest usage.
+- `CanonicalDigestAlgorithmId::sha256()` is the only admitted digest algorithm.
+  Unsupported algorithm identifiers fail before derivation.
+- This layer standardizes derivation from ready canonical inputs. Owning
+  runtimes still decide which semantic families require a compact key and keep
+  their stronger authority artifacts.
 
 ## Related Docs
 

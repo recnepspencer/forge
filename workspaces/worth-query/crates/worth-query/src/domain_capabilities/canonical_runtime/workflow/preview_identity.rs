@@ -104,13 +104,13 @@ pub(super) fn preview_declaration_identity(
 pub(super) fn canonical_query_digest_from_identity(
     identity: &crate::WorthQueryEvidenceIdentity,
 ) -> CanonicalQueryDigest {
-    CanonicalQueryDigest::from_parts(&[identity.as_str().to_string()])
+    CanonicalQueryDigest::from_canonical_digest(identity.canonical_digest())
 }
 
 pub(super) fn validated_query_digest_from_identity(
     identity: &crate::WorthQueryEvidenceIdentity,
 ) -> ValidatedQueryDigest {
-    ValidatedQueryDigest::from_parts(&[identity.as_str().to_string()])
+    ValidatedQueryDigest::from_canonical_digest(identity.canonical_digest())
 }
 
 pub(super) fn sealed_preview_declaration_bridge_identity(

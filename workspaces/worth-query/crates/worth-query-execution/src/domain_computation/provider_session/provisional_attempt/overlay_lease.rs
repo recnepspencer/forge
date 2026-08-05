@@ -48,6 +48,10 @@ impl WorthQueryProvisionalOverlayLease {
         }
         result
     }
+
+    pub(crate) fn release_to_provider_resolution(&mut self) {
+        self.active = false;
+    }
 }
 
 impl Drop for WorthQueryProvisionalOverlayLease {

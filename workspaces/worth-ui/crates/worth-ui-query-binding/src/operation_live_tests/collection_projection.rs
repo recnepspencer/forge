@@ -129,7 +129,6 @@ fn query_row_identity_survives_reorder_across_distinct_applied_patches() {
     let after_reorder = reordered_row(&reordered, 1, 0);
 
     assert_eq!(before_reorder, *after_reorder);
-    assert_eq!(before_reorder.identity(), after_reorder.identity());
     fixture.admit_and_publish(reordered);
     fixture.close();
 }

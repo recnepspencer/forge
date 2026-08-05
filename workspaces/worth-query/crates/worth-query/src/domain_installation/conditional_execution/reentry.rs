@@ -34,6 +34,8 @@ pub enum WorthQueryConditionalAdmissionDenial {
 /// evidence; the derived class is inspection-only and grants no authority.
 pub struct WorthQueryConditionalProvenance {
     pub(crate) location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+    pub(crate) declaration:
+        worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
     pub(crate) bridge: worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence,
     pub(crate) _lowering:
         std::sync::Arc<worth_runtime_bridge::facade::BridgeInstalledConditionalLowering>,
@@ -47,6 +49,8 @@ pub struct WorthQueryConditionalSemanticObservation<'a> {
 
 pub(crate) struct WorthQueryConditionalAuthorityAdmission {
     lowering: std::sync::Arc<worth_runtime_bridge::facade::BridgeInstalledConditionalLowering>,
+    location: worth_query_installation::facade::WorthQueryConditionalNodeLocation,
+    declaration: worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration,
     binding_identity: std::sync::Arc<str>,
     capability_identity: u64,
 }
@@ -97,7 +101,7 @@ impl WorthQueryConditionalProvenance {
     pub fn declaration(
         &self,
     ) -> &worth_query_installation::facade::WorthQueryPortableConditionalNodeDeclaration {
-        self._lowering.declaration()
+        &self.declaration
     }
     pub fn condition(
         &self,
@@ -261,7 +265,8 @@ pub(crate) fn admit_conditional_decision<D, O, F, L: BasisOperationLane>(
         operation_phase_basis(bound.authority_proof()).clone(),
     );
     Ok(WorthQueryConditionalProvenance {
-        location: authority.lowering.location().clone(),
+        location: authority.location,
+        declaration: authority.declaration,
         _lowering: authority.lowering,
         bridge,
         class,
@@ -285,19 +290,31 @@ pub(crate) fn admit_conditional_authority<D, O, F, L: BasisOperationLane>(
     {
         return Err(WorthQueryConditionalAdmissionDenial::StaleInstallation);
     }
-    let graph_authorities = bound.conditional_graph_authorities();
-    node.lowering
-        .validate_query_authority_continuity(
-            &authority_basis.operation_identity,
-            authority_basis.installation_runtime_authority,
-            authority_basis.installation_generation,
-            &graph_authorities,
-        )
-        .map_err(|denial| {
-            WorthQueryConditionalAdmissionDenial::AuthorityContinuity(denial.kind())
-        })?;
+    if authority_basis.operation_identity != node.operation_identity
+        || authority_basis.installation_runtime_authority != node.installation_runtime_authority
+        || authority_basis.installation_generation != node.installation_generation
+    {
+        return Err(WorthQueryConditionalAdmissionDenial::AuthorityContinuity(
+            worth_runtime_bridge::facade::BridgeConditionalDenialKind::OperationAuthorityMismatch,
+        ));
+    }
+    let graph_authority_is_current =
+        bound
+            .conditional_graph_authorities()
+            .iter()
+            .any(|(role, authority)| {
+                *role == node.graph_authority.role()
+                    && std::sync::Arc::ptr_eq(authority, &node.graph_authority)
+            });
+    if !graph_authority_is_current {
+        return Err(WorthQueryConditionalAdmissionDenial::AuthorityContinuity(
+            worth_runtime_bridge::facade::BridgeConditionalDenialKind::GraphAuthorityMismatch,
+        ));
+    }
     Ok(WorthQueryConditionalAuthorityAdmission {
         lowering: std::sync::Arc::clone(&node.lowering),
+        location: node.location.clone(),
+        declaration: node.declaration.clone(),
         binding_identity: bound.binding_identity().into(),
         capability_identity: bound.capability_identity(),
     })

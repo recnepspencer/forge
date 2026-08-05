@@ -90,7 +90,6 @@ impl WorthQueryRuntime {
                 )
             })?;
         let declaration = binding.declaration().clone();
-        self.admit_effect_write_intent_graph_obligation_boundary(&handoff, &pending_delivery)?;
         let execution = self
             .backend
             .execute_intent(&declaration)?
@@ -152,25 +151,6 @@ impl WorthQueryRuntime {
             .ok_or_else(|| {
                 WorthQueryRuntimeError::MissingPendingWriteIntent(binding.effect_name().to_string())
             })
-    }
-
-    fn admit_effect_write_intent_graph_obligation_boundary(
-        &self,
-        _handoff: &WorthQueryAdmittedIntentExecutionHandoff,
-        pending_delivery: &WorthQueryEffectDelivery,
-    ) -> Result<(), WorthQueryRuntimeError> {
-        if self
-            .graph_obligation_registration_catalog()
-            .registration_count()
-            == 0
-        {
-            return Ok(());
-        }
-        Err(
-            WorthQueryRuntimeError::GraphObligationEffectTouchDescriptorMissing {
-                effect_name: pending_delivery.effect_name().to_string(),
-            },
-        )
     }
 
     fn route_admitted_intent_execution(

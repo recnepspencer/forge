@@ -241,7 +241,7 @@ fn bind(
 
 fn assert_conditional_continuity_work(counters: domain::WorthQueryCompatibilityCounters) {
     assert_eq!(counters.conditional_lowerings_compared, 1);
-    assert_eq!(counters.conditional_foundational_comparisons, 62);
+    assert_eq!(counters.conditional_foundational_comparisons, 31);
     assert_eq!(counters.conditional_liveness_checks, 1);
     assert_eq!(counters.conditional_correspondences_inspected, 1);
     assert_eq!(counters.conditional_targets_inspected, 1);
@@ -253,7 +253,7 @@ fn assert_conditional_continuity_work(counters: domain::WorthQueryCompatibilityC
 
 fn assert_conditional_affinity_work(counters: domain::WorthQueryCompatibilityCounters) {
     assert_eq!(counters.conditional_lowerings_compared, 1);
-    assert_eq!(counters.conditional_foundational_comparisons, 62);
+    assert_eq!(counters.conditional_foundational_comparisons, 31);
     assert_eq!(counters.conditional_liveness_checks, 2);
     assert_eq!(counters.conditional_correspondences_inspected, 2);
     assert_eq!(counters.conditional_targets_inspected, 2);

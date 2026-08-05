@@ -1,7 +1,8 @@
 use worth_query_installation::facade::{
-    WorthQueryPortableArtifactContract, WorthQueryPortableDefinition,
-    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
-    WorthQueryPortablePackageValidationDenial, WorthQueryValidatedPortableDomainPackage,
+    ErasedApplicationSchemaDeclaration, WorthQueryPortableArtifactContract,
+    WorthQueryPortableDefinition, WorthQueryPortableDomainIdentity,
+    WorthQueryPortableDomainPackage, WorthQueryPortablePackageValidationDenial,
+    WorthQueryValidatedPortableDomainPackage,
 };
 
 use crate::application::{
@@ -11,9 +12,9 @@ use crate::application::{
 };
 
 use super::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainOperationDefinitionRecord,
 };
 
 pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
@@ -22,11 +23,11 @@ pub(super) struct WorthQueryPortablePackageDeclaration<'a, D> {
     pub(super) required_configuration: &'a [WorthQueryConfigSectionFamily],
     pub(super) operating_requirements: &'a [WorthQueryDomainOperatingRequirement],
     pub(super) invariant_definitions: &'a [WorthQueryDomainInvariantDefinition],
-    pub(super) graph_obligations: &'a [WorthQueryDomainGraphObligationDefinition],
     pub(super) graph_read_operations: &'a [WorthQueryDomainGraphReadOperationDefinition],
     pub(super) declaration_families: &'a [WorthQueryDomainDeclarationFamilyDefinition],
     pub(super) domain_operations: &'a [WorthQueryDomainOperationDefinitionRecord],
     pub(super) artifact_contracts: &'a [WorthQueryPortableArtifactContract],
+    pub(super) application_schemas: &'a [ErasedApplicationSchemaDeclaration],
     pub(super) contribution_policy: &'a [WorthQueryDeclarationEntryContributionCategoryFamily],
 }
 
@@ -56,12 +57,6 @@ where
             definition.canonical_part(),
         ));
     }
-    for definition in package.graph_obligations {
-        portable = portable.definition(WorthQueryPortableDefinition::graph_obligation(
-            definition.slot_key(),
-            definition.canonical_part(),
-        ));
-    }
     for definition in package.graph_read_operations {
         portable = portable.definition(WorthQueryPortableDefinition::graph_read_operation(
             definition.slot_key(),
@@ -79,6 +74,9 @@ where
     }
     for contract in package.artifact_contracts {
         portable = portable.artifact_contract(contract.clone());
+    }
+    for schema in package.application_schemas {
+        portable = portable.application_schema_erased(schema.clone());
     }
     for category in package.contribution_policy {
         portable = portable.permits_contribution(category.as_str());

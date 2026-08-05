@@ -138,6 +138,12 @@ pub struct SignalHarnessRuntimeBuilder {
     labels: BTreeMap<String, NodeId>,
 }
 
+impl Default for SignalHarnessRuntimeBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SignalHarnessRuntimeBuilder {
     pub fn new() -> Self {
         Self {

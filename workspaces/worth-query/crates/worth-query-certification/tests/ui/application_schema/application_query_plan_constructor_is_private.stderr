@@ -1,0 +1,14 @@
+error: cannot construct `WorthQueryAdmittedApplicationQueryPlan<'static, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, Scope>` with struct literal syntax due to private fields
+  --> tests/ui/application_schema/application_query_plan_constructor_is_private.rs:12:13
+   |
+12 |       let _ = WorthQueryAdmittedApplicationQueryPlan::<
+   |  _____________^
+13 | |         'static,
+14 | |         Schema,
+15 | |         Query,
+...  |
+20 | |         Scope,
+21 | |     > {};
+   | |_____^
+   |
+   = note: private fields that were not provided

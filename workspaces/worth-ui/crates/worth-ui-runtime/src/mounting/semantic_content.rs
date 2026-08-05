@@ -62,7 +62,7 @@ pub(crate) enum UiMountedCollectionTextDirective {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct UiMountedCollectionTextRow {
-    identity: worth_ui_query_binding::UiQueryEvidenceReference,
+    identity: UiMountedCollectionRowIdentity,
     selected_values: Box<[Arc<str>]>,
 }
 
@@ -73,17 +73,22 @@ pub(crate) enum UiMountedCollectionTextChange {
         at: usize,
     },
     Remove {
-        identity: worth_ui_query_binding::UiQueryEvidenceReference,
+        identity: UiMountedCollectionRowIdentity,
         from: usize,
     },
     Move {
-        identity: worth_ui_query_binding::UiQueryEvidenceReference,
+        identity: UiMountedCollectionRowIdentity,
         from: usize,
         to: usize,
     },
     Update(UiMountedCollectionTextRow),
     WindowShift,
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct UiMountedCollectionRowIdentity(
+    worth_ui_query_binding::UiCollectionProjectionRowReference,
+);
 
 impl UiMountedSemanticContentInput {
     pub(crate) fn empty() -> Self {
@@ -265,7 +270,7 @@ impl UiMountedCollectionSemanticTextContent {
 
 impl UiMountedCollectionTextRow {
     pub(crate) fn new(
-        identity: worth_ui_query_binding::UiQueryEvidenceReference,
+        identity: UiMountedCollectionRowIdentity,
         selected_values: impl Into<Box<[Arc<str>]>>,
     ) -> Self {
         Self {
@@ -274,11 +279,25 @@ impl UiMountedCollectionTextRow {
         }
     }
 
-    pub(crate) const fn identity(&self) -> worth_ui_query_binding::UiQueryEvidenceReference {
-        self.identity
+    pub(crate) fn identity(&self) -> &UiMountedCollectionRowIdentity {
+        &self.identity
     }
 
     pub(crate) fn selected_values(&self) -> &[Arc<str>] {
         &self.selected_values
+    }
+}
+
+impl UiMountedCollectionRowIdentity {
+    pub(crate) fn from_query(
+        identity: &worth_ui_query_binding::UiCollectionProjectionRowReference,
+    ) -> Self {
+        Self(identity.clone())
+    }
+
+    pub(crate) fn query_reference(
+        &self,
+    ) -> &worth_ui_query_binding::UiCollectionProjectionRowReference {
+        &self.0
     }
 }

@@ -1,3 +1,4 @@
+mod application_query_resources;
 mod installation_authority;
 mod runtime_identity;
 mod runtime_root;
@@ -5,6 +6,9 @@ mod runtime_root;
 #[cfg(test)]
 mod tests;
 
+pub use application_query_resources::{
+    WorthQueryApplicationQueryResourceProfile, WorthQueryApplicationQueryResourceProfileDenial,
+};
 pub use installation_authority::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntimeInstallation,
 };

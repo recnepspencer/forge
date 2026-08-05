@@ -1,8 +1,6 @@
 use std::any::TypeId;
 use std::sync::Arc;
 
-use crate::execution_digest::hash_parts;
-
 use super::call_identity::WorthQueryGraphCallAuthorityIdentity;
 use super::{
     WorthQueryExecutionGraphReadProduct, WorthQueryExecutionGraphReadStreamEvidence,
@@ -21,13 +19,6 @@ impl WorthQueryGraphProjectionEvidence {
         match self {
             Self::Materialized(product) => product.authority_identity(),
             Self::Streamed(stream) => stream.authority_identity(),
-        }
-    }
-
-    fn result_digest(&self) -> &str {
-        match self {
-            Self::Materialized(product) => product.result_digest(),
-            Self::Streamed(stream) => stream.result_digest(),
         }
     }
 }
@@ -128,16 +119,7 @@ impl WorthQueryGraphProviderReceipt {
             return Err(WorthQueryGraphReceiptAdmissionDenial::UnexpectedProjection);
         }
         let roles = call.graph_roles().to_vec();
-        let evidence_identity = Arc::<str>::from(hash_parts(&[
-            "worth_query_bound_graph_commit_evidence_v2".into(),
-            format!("call:{}", call.call_identity()),
-            format!("session:{}", call.provider_session_identity()),
-            format!("operation:{}", call.operation_identity()),
-            format!("binding:{}", call.binding_identity()),
-            format!("scope:{}", call.scope_identity()),
-            format!("roles:{}", roles.join(",")),
-            format!("resources:{}", call.execution_resources().identity()),
-        ]));
+        let evidence_identity = Arc::<str>::from(call.call_identity());
         Ok(WorthQueryBoundGraphExecutionReceipt {
             role: format!("commit({})", roles.join(",")),
             kind: WorthQueryGraphProviderCallKind::CommitAdmission,
@@ -215,23 +197,7 @@ impl WorthQueryBoundGraphExecutionReceipt {
 
 fn graph_evidence_identity(
     call: &WorthQueryGraphProviderCall,
-    projection: Option<&WorthQueryGraphProjectionEvidence>,
+    _projection: Option<&WorthQueryGraphProjectionEvidence>,
 ) -> Arc<str> {
-    Arc::from(hash_parts(&[
-        "worth_query_bound_graph_call_evidence_v2".into(),
-        format!("call:{}", call.call_identity()),
-        format!("session:{}", call.provider_session_identity()),
-        format!("operation:{}", call.operation_identity()),
-        format!("binding:{}", call.binding_identity()),
-        format!("role:{}", call.graph_role()),
-        format!("kind:{}", call.kind().as_str()),
-        format!("scope:{}", call.scope_identity()),
-        format!("resources:{}", call.execution_resources().identity()),
-        format!(
-            "projection:{}",
-            projection
-                .map(WorthQueryGraphProjectionEvidence::result_digest)
-                .unwrap_or("not-projected")
-        ),
-    ]))
+    Arc::from(call.call_identity())
 }

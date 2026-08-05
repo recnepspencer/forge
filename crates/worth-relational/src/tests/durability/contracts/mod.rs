@@ -1,3 +1,4 @@
+mod adjacency_checkpoint;
 mod branch_and_aspect_history;
 mod checkpoint_recovery;
 mod descriptor_continuity;

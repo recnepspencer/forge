@@ -97,7 +97,7 @@ fn canonicalization_front_door_exposes_all_five_milestone2_lanes() {
     };
     let digest_ready = match front.digest().for_sequence(
         left_for_digest,
-        worth_foundational::CanonicalDigestAlgorithmId::test_stable_fixture(),
+        worth_foundational::CanonicalDigestAlgorithmId::sha256(),
     ) {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("digest derivation should be ready"),
@@ -194,7 +194,7 @@ fn canonicalization_digest_front_door_keeps_basis_authority_upstream_of_digest_o
     };
     let digest_ready = match canonicalization().digest().for_sequence(
         ready_for_digest,
-        worth_foundational::CanonicalDigestAlgorithmId::test_stable_fixture(),
+        worth_foundational::CanonicalDigestAlgorithmId::sha256(),
     ) {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("digest derivation should be ready"),
@@ -226,10 +226,7 @@ fn canonicalization_digest_front_door_keeps_basis_authority_upstream_of_digest_o
         _ => panic!("comparison should be ready"),
     };
 
-    assert_eq!(
-        digest.metadata().algorithm().id().as_str(),
-        "worth.test.stable-digest-v1"
-    );
+    assert_eq!(digest.metadata().algorithm().id().as_str(), "sha256");
     assert!(matches!(
         canonicalization().compare().evaluate(&comparison),
         worth_foundational::CanonicalComparisonOutcome::Equivalent(_)

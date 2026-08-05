@@ -1,52 +1,125 @@
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
-use crate::identity::data::RelationId;
+use crate::identity::data::{KindId, RelationId};
+
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone)]
 pub(crate) enum AdjacencySet {
-    Inline(Vec<RelationId>),
-    Compressed(Vec<RelationId>),
+    Inline(AdjacencyEntries),
+    Compressed(AdjacencyEntries),
+}
+
+#[derive(Debug, Clone)]
+// The kind indexes are cold until a kind-filtered traversal first needs them.
+// Keeping them indirect preserves the small ordinary adjacency value layout.
+#[allow(clippy::box_collection)]
+pub(crate) struct AdjacencyEntries {
+    current: Vec<RelationId>,
+    current_by_kind: Option<Box<BTreeMap<KindId, Vec<RelationId>>>>,
+    historical_by_kind: Option<Box<BTreeMap<KindId, Vec<RelationId>>>>,
 }
 
 impl AdjacencySet {
     pub(crate) fn new(policy: &AdjacencyPolicy) -> Self {
+        let entries = || AdjacencyEntries {
+            current: Vec::with_capacity(policy.small_degree_inline_capacity),
+            current_by_kind: None,
+            historical_by_kind: None,
+        };
         match policy.backend {
-            AdjacencyBackend::InlineSmallDegreeAdjacency => {
-                Self::Inline(Vec::with_capacity(policy.small_degree_inline_capacity))
-            }
-            AdjacencyBackend::CompressedFanoutAdjacency => Self::Compressed(Vec::new()),
+            AdjacencyBackend::InlineSmallDegreeAdjacency => Self::Inline(entries()),
+            AdjacencyBackend::CompressedFanoutAdjacency => Self::Compressed(entries()),
         }
+    }
+
+    pub(crate) fn compressed_from_current(current: Vec<RelationId>) -> Self {
+        Self::Compressed(AdjacencyEntries {
+            current,
+            current_by_kind: None,
+            historical_by_kind: None,
+        })
     }
 
     pub(crate) fn clear(&mut self) {
-        match self {
-            Self::Inline(relations) | Self::Compressed(relations) => relations.clear(),
+        let entries = self.entries_mut();
+        entries.current.clear();
+        entries.current_by_kind = None;
+        entries.historical_by_kind = None;
+    }
+
+    pub(crate) fn insert(&mut self, kind_id: KindId, relation_id: RelationId) {
+        let entries = self.entries_mut();
+        insert_sorted(&mut entries.current, relation_id);
+        insert_kind_relation(&mut entries.current_by_kind, kind_id, relation_id);
+        insert_kind_relation(&mut entries.historical_by_kind, kind_id, relation_id);
+    }
+
+    pub(crate) fn reset_kind_buckets(&mut self) {
+        let entries = self.entries_mut();
+        entries.current_by_kind = None;
+        entries.historical_by_kind = None;
+    }
+
+    pub(crate) fn index_current_kind(&mut self, kind_id: KindId, relation_id: RelationId) {
+        insert_kind_relation(
+            &mut self.entries_mut().current_by_kind,
+            kind_id,
+            relation_id,
+        );
+    }
+
+    pub(crate) fn index_historical_kind(&mut self, kind_id: KindId, relation_id: RelationId) {
+        insert_kind_relation(
+            &mut self.entries_mut().historical_by_kind,
+            kind_id,
+            relation_id,
+        );
+    }
+
+    pub(crate) fn remove(&mut self, kind_id: KindId, relation_id: &RelationId) {
+        let entries = self.entries_mut();
+        remove_sorted(&mut entries.current, relation_id);
+        if let Some(relations) = entries
+            .current_by_kind
+            .as_deref_mut()
+            .and_then(|by_kind| by_kind.get_mut(&kind_id))
+        {
+            remove_sorted(relations, relation_id);
         }
     }
 
-    pub(crate) fn insert(&mut self, relation_id: RelationId) {
+    pub(crate) fn current_kind_slice(&self, kind_id: KindId) -> &[RelationId] {
+        self.entries()
+            .current_by_kind
+            .as_deref()
+            .and_then(|by_kind| by_kind.get(&kind_id))
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn historical_kind_slice(&self, kind_id: KindId) -> &[RelationId] {
+        self.entries()
+            .historical_by_kind
+            .as_deref()
+            .and_then(|by_kind| by_kind.get(&kind_id))
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+    }
+
+    fn entries(&self) -> &AdjacencyEntries {
         match self {
-            Self::Inline(relations) | Self::Compressed(relations) => {
-                if let Err(index) = relations.binary_search(&relation_id) {
-                    relations.insert(index, relation_id);
-                }
-            }
+            Self::Inline(entries) | Self::Compressed(entries) => entries,
         }
     }
 
-    pub(crate) fn remove(&mut self, relation_id: &RelationId) {
+    fn entries_mut(&mut self) -> &mut AdjacencyEntries {
         match self {
-            Self::Inline(relations) | Self::Compressed(relations) => {
-                if let Ok(index) = relations.binary_search(relation_id) {
-                    relations.remove(index);
-                }
-            }
+            Self::Inline(entries) | Self::Compressed(entries) => entries,
         }
     }
 
     pub(crate) fn as_slice(&self) -> &[RelationId] {
-        match self {
-            Self::Inline(relations) | Self::Compressed(relations) => relations.as_slice(),
-        }
+        &self.entries().current
     }
 
     pub(crate) fn ids(&self) -> Vec<RelationId> {
@@ -55,5 +128,56 @@ impl AdjacencySet {
 
     pub(crate) fn extend_into(&self, target: &mut std::collections::BTreeSet<RelationId>) {
         target.extend(self.as_slice().iter().copied())
+    }
+}
+
+#[allow(clippy::box_collection)]
+fn insert_kind_relation(
+    buckets: &mut Option<Box<BTreeMap<KindId, Vec<RelationId>>>>,
+    kind_id: KindId,
+    relation_id: RelationId,
+) {
+    let relations = buckets
+        .get_or_insert_with(|| Box::new(BTreeMap::new()))
+        .entry(kind_id)
+        .or_default();
+    insert_sorted(relations, relation_id);
+}
+
+fn insert_sorted(relations: &mut Vec<RelationId>, relation_id: RelationId) {
+    if let Err(index) = relations.binary_search(&relation_id) {
+        relations.insert(index, relation_id);
+    }
+}
+
+fn remove_sorted(relations: &mut Vec<RelationId>, relation_id: &RelationId) {
+    if let Ok(index) = relations.binary_search(relation_id) {
+        relations.remove(index);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::identity::data::PartitionId;
+
+    #[test]
+    fn kind_buckets_isolate_current_work_and_retain_historical_membership() {
+        let policy = AdjacencyPolicy {
+            backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
+            small_degree_inline_capacity: 4,
+        };
+        let first = RelationId::new(PartitionId::main(), 1, 1);
+        let unrelated = RelationId::new(PartitionId::main(), 2, 1);
+        let mut adjacency = AdjacencySet::new(&policy);
+        adjacency.insert(KindId(7), first);
+        adjacency.insert(KindId(8), unrelated);
+
+        assert_eq!(adjacency.current_kind_slice(KindId(7)), [first]);
+        assert_eq!(adjacency.current_kind_slice(KindId(8)), [unrelated]);
+
+        adjacency.remove(KindId(7), &first);
+        assert!(adjacency.current_kind_slice(KindId(7)).is_empty());
+        assert_eq!(adjacency.historical_kind_slice(KindId(7)), [first]);
     }
 }

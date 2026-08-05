@@ -3,6 +3,7 @@ use super::RelationalExecutionBasisCounters;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RelationalExecutionBasisDenialKind {
     VersionUnavailable,
+    BranchMismatch,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

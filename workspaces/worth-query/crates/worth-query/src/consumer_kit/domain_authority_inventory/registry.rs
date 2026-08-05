@@ -5,8 +5,6 @@ use super::{
 const DOMAIN_IDENTITY: &str = "src/domain_installation/package_authority/identity.rs";
 const DOMAIN_INVARIANTS: &str =
     "src/domain_installation/package_authority/package_definitions/invariant.rs";
-const DOMAIN_OBLIGATIONS: &str =
-    "src/domain_installation/package_authority/package_definitions/graph_obligation.rs";
 const DOMAIN_OPERATIONS: &str =
     "src/domain_installation/package_authority/package_definitions/graph_read_operation.rs";
 const DOMAIN_DECLARATION_FAMILIES: &str =
@@ -18,23 +16,23 @@ const BUILDER_GRAPH_PARTICIPATION: &str = "src/runtime/builder/graph_participati
 const RUNTIME_DOMAIN_API: &str = "src/runtime/domain_installation_api.rs";
 const WORKSPACE_DOMAIN_API: &str = "src/runtime/workspace_domain_installation.rs";
 const DOMAIN_FACADE_EXPORTS: &str = "src/facade/exports_domain.rs";
+const RUNTIME_CORE_EXPORTS: &str = "src/facade/exports_runtime_core.rs";
 const CONTRIBUTION_SURFACE: &str = "src/domain_capabilities/dx/common/root.rs";
 const OPERATION_REGISTRY: &str = "src/runtime/graph_read_access/operation_resolution/registry.rs";
+const NO_EXPORTS: &[&str] = &[];
+const DOMAIN_EXPORTS: &[&str] = &[DOMAIN_FACADE_EXPORTS];
+const DOMAIN_AND_RUNTIME_CORE_EXPORTS: &[&str] = &[DOMAIN_FACADE_EXPORTS, RUNTIME_CORE_EXPORTS];
 
 pub fn worth_query_domain_authority_inventory_rows() -> &'static [Row] {
     CORE_ROWS
 }
 
 const CORE_ROWS: &[Row] = &[
-    package_type("WorthQueryDomainIdentityNamespace", DOMAIN_IDENTITY),
-    package_type("WorthQueryDomainIdentityName", DOMAIN_IDENTITY),
-    package_type("WorthQueryDomainSemanticVersion", DOMAIN_IDENTITY),
-    package_type("WorthQueryDomainIdentityDeclaration", DOMAIN_IDENTITY),
+    runtime_core_package_type("WorthQueryDomainIdentityNamespace", DOMAIN_IDENTITY),
+    runtime_core_package_type("WorthQueryDomainIdentityName", DOMAIN_IDENTITY),
+    runtime_core_package_type("WorthQueryDomainSemanticVersion", DOMAIN_IDENTITY),
+    runtime_core_package_type("WorthQueryDomainIdentityDeclaration", DOMAIN_IDENTITY),
     package_type("WorthQueryDomainInvariantDefinition", DOMAIN_INVARIANTS),
-    package_type(
-        "WorthQueryDomainGraphObligationDefinition",
-        DOMAIN_OBLIGATIONS,
-    ),
     package_type(
         "WorthQueryDomainGraphReadOperationDefinition",
         DOMAIN_OPERATIONS,
@@ -43,7 +41,7 @@ const CORE_ROWS: &[Row] = &[
         "WorthQueryDomainDeclarationFamilyDefinition",
         DOMAIN_DECLARATION_FAMILIES,
     ),
-    package_type("WorthQueryDomainPackage", DOMAIN_PACKAGE),
+    runtime_core_package_type("WorthQueryDomainPackage", DOMAIN_PACKAGE),
     package_input("WorthQueryDomainIdentityNamespace::new", DOMAIN_IDENTITY),
     package_input("WorthQueryDomainIdentityName::new", DOMAIN_IDENTITY),
     package_input("WorthQueryDomainSemanticVersion::new", DOMAIN_IDENTITY),
@@ -55,14 +53,6 @@ const CORE_ROWS: &[Row] = &[
     package_input(
         "WorthQueryDomainInvariantDefinition::new",
         DOMAIN_INVARIANTS,
-    ),
-    package_input(
-        "WorthQueryDomainGraphObligationDefinition::new",
-        DOMAIN_OBLIGATIONS,
-    ),
-    package_input(
-        "WorthQueryDomainGraphObligationDefinition::with_support_posture",
-        DOMAIN_OBLIGATIONS,
     ),
     package_input(
         "WorthQueryDomainGraphReadOperationDefinition::new",
@@ -98,7 +88,6 @@ const CORE_ROWS: &[Row] = &[
         DOMAIN_PACKAGE,
     ),
     package_input("WorthQueryDomainPackage::invariant", DOMAIN_PACKAGE),
-    package_input("WorthQueryDomainPackage::graph_obligation", DOMAIN_PACKAGE),
     package_input(
         "WorthQueryDomainPackage::graph_read_operation",
         DOMAIN_PACKAGE,
@@ -118,7 +107,7 @@ const CORE_ROWS: &[Row] = &[
     Row::new(
         "WorthQueryRuntimeBuilder::domain_package",
         BUILDER_DOMAIN_PACKAGES,
-        None,
+        NO_EXPORTS,
         Class::CanonicalInstallation,
         Class::CanonicalInstallation,
         "runtime-domain-installation-registry",
@@ -137,7 +126,7 @@ const CORE_ROWS: &[Row] = &[
     Row::new(
         "WorthQueryGraphReadOperationRegistry",
         OPERATION_REGISTRY,
-        None,
+        NO_EXPORTS,
         Class::DerivedIndex,
         Class::DerivedIndex,
         "installed-domain-execution-index",
@@ -248,7 +237,18 @@ const fn package_type(symbol: &'static str, path: &'static str) -> Row {
     Row::new(
         symbol,
         path,
-        Some(DOMAIN_FACADE_EXPORTS),
+        DOMAIN_EXPORTS,
+        Class::PackageInput,
+        Class::PackageInput,
+        "domain-package",
+    )
+}
+
+const fn runtime_core_package_type(symbol: &'static str, path: &'static str) -> Row {
+    Row::new(
+        symbol,
+        path,
+        DOMAIN_AND_RUNTIME_CORE_EXPORTS,
         Class::PackageInput,
         Class::PackageInput,
         "domain-package",
@@ -259,7 +259,7 @@ const fn package_input(symbol: &'static str, path: &'static str) -> Row {
     Row::new(
         symbol,
         path,
-        None,
+        NO_EXPORTS,
         Class::PackageInput,
         Class::PackageInput,
         "domain-package",
@@ -270,7 +270,7 @@ const fn installed_handle_type(symbol: &'static str, path: &'static str) -> Row 
     Row::new(
         symbol,
         path,
-        Some(DOMAIN_FACADE_EXPORTS),
+        DOMAIN_EXPORTS,
         Class::InstalledHandleCapability,
         Class::InstalledHandleCapability,
         "installed-domain-handle",
@@ -281,7 +281,7 @@ const fn installed_handle(symbol: &'static str, path: &'static str, owner: &'sta
     Row::new(
         symbol,
         path,
-        None,
+        NO_EXPORTS,
         Class::InstalledHandleCapability,
         Class::InstalledHandleCapability,
         owner,
@@ -292,7 +292,7 @@ const fn provider_capability(symbol: &'static str) -> Row {
     Row::new(
         symbol,
         BUILDER_GRAPH_PARTICIPATION,
-        None,
+        NO_EXPORTS,
         Class::CanonicalInstallation,
         Class::CanonicalInstallation,
         "runtime-graph-provider-registry",

@@ -1,8 +1,7 @@
 use super::{
-    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphObligationDefinition,
-    WorthQueryDomainGraphReadOperationDefinition, WorthQueryDomainIdentityDeclaration,
-    WorthQueryDomainInvariantDefinition, WorthQueryDomainOperationDefinitionRecord,
-    WorthQueryDomainOperationGraphParticipationRecord,
+    WorthQueryDomainDeclarationFamilyDefinition, WorthQueryDomainGraphReadOperationDefinition,
+    WorthQueryDomainIdentityDeclaration, WorthQueryDomainInvariantDefinition,
+    WorthQueryDomainOperationDefinitionRecord, WorthQueryDomainOperationGraphParticipationRecord,
     WorthQueryDomainOperationRequiredDomainRecord, WorthQueryDomainPackage,
     WorthQueryDomainPackageIdentity,
 };
@@ -20,8 +19,6 @@ pub enum WorthQueryDomainPackageValidationDenialKind {
     MissingMarkerCapability,
     DuplicateInvariant,
     ConflictingInvariant,
-    DuplicateGraphObligation,
-    ConflictingGraphObligation,
     DuplicateGraphReadOperation,
     ConflictingGraphReadOperation,
     DuplicateDeclarationFamily,
@@ -87,7 +84,6 @@ pub(crate) struct WorthQueryValidatedDomainPackage<D: WorthQueryDomainEntryMarke
     pub(crate) required_configuration: Vec<WorthQueryConfigSectionFamily>,
     pub(crate) operating_requirements: Vec<WorthQueryDomainOperatingRequirement>,
     pub(crate) invariant_definitions: Vec<WorthQueryDomainInvariantDefinition>,
-    pub(crate) graph_obligations: Vec<WorthQueryDomainGraphObligationDefinition>,
     pub(crate) graph_read_operations: Vec<WorthQueryDomainGraphReadOperationDefinition>,
     pub(crate) declaration_families: Vec<WorthQueryDomainDeclarationFamilyDefinition>,
     pub(crate) domain_operations: Vec<WorthQueryDomainOperationDefinitionRecord>,
@@ -107,10 +103,6 @@ impl<D: WorthQueryDomainEntryMarker> WorthQueryValidatedDomainPackage<D> {
     #[cfg(test)]
     pub fn invariant_count(&self) -> usize {
         self.invariant_definitions.len()
-    }
-    #[cfg(test)]
-    pub fn graph_obligation_count(&self) -> usize {
-        self.graph_obligations.len()
     }
     #[cfg(test)]
     pub fn graph_read_operation_count(&self) -> usize {
@@ -157,13 +149,13 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
     let required_configuration = canonicalize(package.required_configuration);
     let operating_requirements = canonicalize(package.operating_requirements);
     let mut invariant_definitions = package.invariant_definitions;
-    let mut graph_obligations = package.graph_obligations;
     let mut graph_read_operations = package.graph_read_operations;
     let mut declaration_families = package.declaration_families;
     let mut domain_operations = package.domain_operations;
     let operation_graph_participations = package.operation_graph_participations;
     let operation_required_domains = package.operation_required_domains;
     let artifact_contracts = package.artifact_contracts;
+    let application_schemas = package.application_schemas;
     let mut contribution_policy = package.contribution_policy;
 
     validate_invariant_predicates(&invariant_definitions)?;
@@ -184,18 +176,17 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
             required_configuration: &required_configuration,
             operating_requirements: &operating_requirements,
             invariant_definitions: &invariant_definitions,
-            graph_obligations: &graph_obligations,
             graph_read_operations: &graph_read_operations,
             declaration_families: &declaration_families,
             domain_operations: &domain_operations,
             artifact_contracts: &artifact_contracts,
+            application_schemas: &application_schemas,
             contribution_policy: &contribution_policy,
         },
     )
     .map_err(map_portable_validation_denial)?;
 
     invariant_definitions.sort_by_key(WorthQueryDomainInvariantDefinition::canonical_part);
-    graph_obligations.sort_by_key(WorthQueryDomainGraphObligationDefinition::canonical_part);
     graph_read_operations.sort_by_key(WorthQueryDomainGraphReadOperationDefinition::canonical_part);
     declaration_families.sort_by_key(WorthQueryDomainDeclarationFamilyDefinition::canonical_part);
     domain_operations.sort_by(|left, right| {
@@ -208,9 +199,9 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
         crate::evidence_identity::worth_query_evidence_identity(
             crate::evidence_identity::WorthQueryEvidenceScope::DomainPackageIdentity,
         )
-        .field_value(
+        .field_digest(
             crate::evidence_identity::WorthQueryEvidenceTag::new("portable_package"),
-            portable_package.identity().as_str(),
+            portable_package.identity().digest(),
         )
         .seal(),
     );
@@ -222,7 +213,6 @@ pub(super) fn validate_domain_package<D: WorthQueryDomainEntryMarker>(
         required_configuration,
         operating_requirements,
         invariant_definitions,
-        graph_obligations,
         graph_read_operations,
         declaration_families,
         domain_operations,

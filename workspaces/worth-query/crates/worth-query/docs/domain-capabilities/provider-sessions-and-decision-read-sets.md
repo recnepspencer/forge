@@ -61,6 +61,18 @@ The sealed plan binds provider identity and generation, session token, operation
 binding, resource attempt, Bridge basis, graph role, decision-fact families,
 provisional dimensions, and installed invariant requirements.
 
+Installed application queries and operations enter this protocol only after
+one sealed obligation selection and graph-work plan. Read-only queries consume
+the session-owned read port and terminate. Mutations continue through complete
+decision facts, proposed state, real invariant execution, and
+compare-and-commit. The lower managed run is the exact worker inside that
+application session, not a competing session authority.
+
+The basis is branch-qualified. A version ordinal has meaning only with its
+typed branch and runtime identity; an equal ordinal from another branch cannot
+satisfy the plan, session, read-set, proposal, invariant, commit, retry, or
+publication chain.
+
 Preparation does not authorize effects. Only
 `WorthQuerySessionBoundReadsAndEffects` exposes separate read and effect
 authorities. The read authority cannot stage effects; the effect authority
@@ -191,6 +203,7 @@ occurred.
 
 ## Related Docs
 
+- [Canonical Graph Obligation Progression](./canonical-graph-obligation-progression.md)
 - [Execution Resource Admission And Managed Runs](./execution-resource-admission-and-managed-runs.md)
 - [Provisional State And Invariant Execution](./provisional-state-and-invariant-execution.md)
 - [Conditional Installed Operations](./conditional-installed-operations.md)

@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryInstallationGeneration;
 
-use super::{WorthQueryExecutionInstallationCommitDenial, WorthQueryExecutionRuntimeInstaller};
+use super::{
+    WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionInstallationCommitDenial,
+    WorthQueryExecutionRuntimeInstaller,
+};
 use crate::domain_computation::operation_binding::WorthQueryInstalledDomainExecutionAuthority;
 
 fn empty_runtime() -> super::WorthQueryExecutionRuntime {
@@ -43,6 +46,22 @@ fn runtime_retains_the_exact_installed_index_owner() {
 }
 
 #[test]
+fn runtime_retains_the_installer_owned_query_resource_profile() {
+    let resources = WorthQueryApplicationQueryResourceProfile::bounded(12_000, 3_000, 400).unwrap();
+    let runtime = WorthQueryExecutionRuntimeInstaller::new()
+        .application_query_resources(resources)
+        .install(
+            WorthQueryInstallationGeneration::initial(),
+            std::iter::empty(),
+        )
+        .unwrap()
+        .into_parts()
+        .0;
+
+    assert_eq!(runtime.application_query_resource_profile(), resources);
+}
+
+#[test]
 fn deterministic_rebuild_replaces_storage_without_changing_identity() {
     let mut runtime = empty_runtime();
     let rebuilt = Arc::new(runtime.installed_packages().rebuild());
@@ -65,9 +84,9 @@ fn successor_commit_requires_the_current_owner_and_a_new_identity() {
     );
 
     let successor = Arc::new(runtime.installed_packages().successor_generation());
-    let successor_identity = successor.identity().to_string();
+    let successor_identity = successor.identity().clone();
     runtime.commit_successor_installation(successor).unwrap();
-    assert_eq!(runtime.installed_packages().identity(), successor_identity);
+    assert_eq!(runtime.installed_packages().identity(), &successor_identity);
 }
 
 #[test]

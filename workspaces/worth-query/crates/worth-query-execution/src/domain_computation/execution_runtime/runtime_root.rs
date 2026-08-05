@@ -7,7 +7,13 @@ use worth_query_installation::facade::{
     WorthQueryInstalledPackageIndexDenial, WorthQueryInstalledPackageIndexRelation,
 };
 
-use super::{WorthQueryExecutionRuntimeInstallation, WorthQueryRuntimeAuthorityIdentity};
+use super::{
+    WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionRuntimeInstallation,
+    WorthQueryRuntimeAuthorityIdentity,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryPrimaryGraph, WorthQueryPrimaryGraphIntegrationHandle,
+};
 
 /// Execution-owned root for one installed Query operating world.
 ///
@@ -18,6 +24,8 @@ pub struct WorthQueryExecutionRuntime {
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     installed_packages: Arc<WorthQueryInstalledPackageIndex>,
     current_generation: Arc<AtomicU64>,
+    primary_graph: Option<WorthQueryPrimaryGraph>,
+    application_query_resources: WorthQueryApplicationQueryResourceProfile,
 }
 
 /// Move-only construction authority for one execution runtime.
@@ -27,6 +35,7 @@ pub struct WorthQueryExecutionRuntime {
 pub struct WorthQueryExecutionRuntimeInstaller {
     authority_identity: WorthQueryRuntimeAuthorityIdentity,
     installation_runtime: WorthQueryInstallationRuntimeIdentity,
+    application_query_resources: WorthQueryApplicationQueryResourceProfile,
 }
 
 impl WorthQueryExecutionRuntimeInstaller {
@@ -34,7 +43,16 @@ impl WorthQueryExecutionRuntimeInstaller {
         Self {
             authority_identity: WorthQueryRuntimeAuthorityIdentity::mint(),
             installation_runtime: WorthQueryInstallationRuntimeIdentity::fresh(),
+            application_query_resources: WorthQueryApplicationQueryResourceProfile::default(),
         }
+    }
+
+    pub fn application_query_resources(
+        mut self,
+        profile: WorthQueryApplicationQueryResourceProfile,
+    ) -> Self {
+        self.application_query_resources = profile;
+        self
     }
 
     pub fn authority_identity(&self) -> WorthQueryRuntimeAuthorityIdentity {
@@ -50,6 +68,9 @@ impl WorthQueryExecutionRuntimeInstaller {
         generation: WorthQueryInstallationGeneration,
         packages: impl IntoIterator<Item = WorthQueryAdmittedPortableDomainPackage>,
     ) -> Result<WorthQueryExecutionRuntimeInstallation, WorthQueryInstalledPackageIndexDenial> {
+        let retained_installation_runtime = self
+            .installation_runtime
+            .retain_for_execution_installation();
         let installed_packages = WorthQueryInstalledPackageIndex::build(
             self.installation_runtime,
             generation,
@@ -60,7 +81,10 @@ impl WorthQueryExecutionRuntimeInstaller {
                 authority_identity: self.authority_identity,
                 current_generation: Arc::new(AtomicU64::new(generation.ordinal())),
                 installed_packages: Arc::new(installed_packages),
+                primary_graph: None,
+                application_query_resources: self.application_query_resources,
             },
+            retained_installation_runtime,
         ))
     }
 }
@@ -82,6 +106,28 @@ impl WorthQueryExecutionRuntime {
 
     pub fn retain_installed_packages(&self) -> Arc<WorthQueryInstalledPackageIndex> {
         Arc::clone(&self.installed_packages)
+    }
+
+    pub fn primary_graph(&self) -> Option<&WorthQueryPrimaryGraph> {
+        self.primary_graph.as_ref()
+    }
+
+    pub const fn application_query_resource_profile(
+        &self,
+    ) -> WorthQueryApplicationQueryResourceProfile {
+        self.application_query_resources
+    }
+
+    pub(crate) fn retain_primary_graph_integration_handle(
+        &self,
+    ) -> Option<WorthQueryPrimaryGraphIntegrationHandle> {
+        self.primary_graph
+            .as_ref()
+            .map(WorthQueryPrimaryGraph::integration_handle)
+    }
+
+    pub(crate) fn install_primary_graph(&mut self, graph: WorthQueryPrimaryGraph) {
+        self.primary_graph = Some(graph);
     }
 
     pub(crate) fn retain_current_generation(&self) -> Arc<AtomicU64> {

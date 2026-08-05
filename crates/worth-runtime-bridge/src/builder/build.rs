@@ -65,8 +65,8 @@ impl
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
         let subscription_family_registry =
             crate::subscription::freeze_subscription_family_registry()?;
-        let query_dependency_registry =
-            AdmittedQueryDependencyRegistry::freeze(self.query_dependency_registrations)?;
+        let semantic_dependency_registry =
+            AdmittedSemanticDependencyRegistry::freeze(self.semantic_dependency_registrations)?;
         let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
@@ -91,7 +91,7 @@ impl
             mapping_registry,
             aspect_registry,
             subscription_family_registry,
-            query_dependency_registry,
+            semantic_dependency_registry,
         ))
     }
 }
@@ -110,8 +110,8 @@ impl
         let aspect_registry = FrozenAspectMappingRegistry::freeze(self.aspect_registrations)?;
         let subscription_family_registry =
             crate::subscription::freeze_subscription_family_registry()?;
-        let query_dependency_registry =
-            AdmittedQueryDependencyRegistry::freeze(self.query_dependency_registrations)?;
+        let semantic_dependency_registry =
+            AdmittedSemanticDependencyRegistry::freeze(self.semantic_dependency_registrations)?;
         let policy = super::policy::finalize_runtime_policy(self.policy);
         let (source_registry, source_adapter) = finalize_source_configuration(
             self.source_declarations,
@@ -136,7 +136,7 @@ impl
             mapping_registry,
             aspect_registry,
             subscription_family_registry,
-            query_dependency_registry,
+            semantic_dependency_registry,
         ))
     }
 }

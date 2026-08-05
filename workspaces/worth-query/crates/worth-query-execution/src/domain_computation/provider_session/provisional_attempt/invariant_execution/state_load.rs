@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use super::{WorthQueryInvariantExecutionDenialKind, WorthQueryInvariantExecutionFailure};
-use crate::execution_digest::hash_parts;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct WorthQueryInvariantStateLocator {
@@ -35,6 +34,7 @@ pub struct WorthQueryAdmittedInvariantStateLoadPlan {
 
 impl WorthQueryAdmittedInvariantStateLoadPlan {
     pub(crate) fn admit(
+        identity: impl Into<Arc<str>>,
         locators: impl IntoIterator<Item = WorthQueryInvariantStateLocator>,
         allowed_families: &[String],
     ) -> Result<Self, WorthQueryInvariantExecutionFailure> {
@@ -55,13 +55,6 @@ impl WorthQueryAdmittedInvariantStateLoadPlan {
                 WorthQueryInvariantExecutionDenialKind::UndeclaredStateLoadFamily,
             ));
         }
-        let identity = hash_parts(
-            &std::iter::once("worth_query_invariant_state_load_plan_v1".to_owned())
-                .chain(locators.iter().flat_map(|locator| {
-                    [locator.family().to_owned(), locator.identity().to_owned()]
-                }))
-                .collect::<Vec<_>>(),
-        );
         Ok(Self {
             identity: identity.into(),
             locators: locators.into(),

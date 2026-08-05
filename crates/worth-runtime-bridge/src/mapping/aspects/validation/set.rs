@@ -67,10 +67,10 @@ pub(crate) fn validate_registration_set(
                 return Err(BridgeBuildError::new(
                     BridgeBuildErrorKind::AmbiguousAspectRegistration,
                     format!(
-                        "Aspect registrations `{}` and `{}` overlap on `{}` without a single most-specific registration.",
+                        "Aspect registrations `{}` and `{}` overlap on `{:?}` without a single most-specific registration.",
                         left.registration_id().as_str(),
                         right.registration_id().as_str(),
-                        format!("{:?}", left.truth_scope())
+                        left.truth_scope()
                     ),
                 ));
             }

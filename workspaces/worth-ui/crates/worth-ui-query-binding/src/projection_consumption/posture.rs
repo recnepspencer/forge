@@ -98,8 +98,8 @@ impl UiProjectionUnavailableReceipt {
         self.kind
     }
 
-    pub fn query_transition_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.query_transition_identity)
+    pub fn query_transition_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_transition_identity
     }
 }
 
@@ -130,8 +130,8 @@ impl UiProjectionRetainedActivityReceipt {
         self.kind
     }
 
-    pub fn query_transition_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.query_transition_identity)
+    pub fn query_transition_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.query_transition_identity
     }
 }
 
@@ -177,14 +177,12 @@ impl UiProjectionFactStopReceipt {
         self.kind
     }
 
-    pub fn attempt_identity(&self) -> crate::UiQueryEvidenceReference {
-        crate::UiQueryEvidenceReference::query_issued(&self.attempt_identity)
+    pub fn attempt_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.attempt_identity
     }
 
-    pub fn predecessor_fact_identity(&self) -> Option<crate::UiQueryEvidenceReference> {
-        self.predecessor_fact_identity
-            .as_ref()
-            .map(crate::UiQueryEvidenceReference::query_issued)
+    pub fn predecessor_fact_identity(&self) -> Option<&WorthQueryEvidenceIdentity> {
+        self.predecessor_fact_identity.as_ref()
     }
 
     pub fn summary(&self) -> &str {

@@ -60,7 +60,7 @@ fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
     assert!(matches!(
         updated.changes(),
         [UiCollectionProjectionChange::Update { row }]
-            if row.identity().host_correlation_digest() == changed[0]
+            if row.reporting_projection().as_str() == changed[0]
     ));
 
     let inserted_identity = world.insert("pulse.00000a", "Inserted");
@@ -74,7 +74,7 @@ fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
     assert!(inserted.changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Insert { row, .. }
-            if row.identity().host_correlation_digest() == inserted_identity
+            if row.reporting_projection().as_str() == inserted_identity
     )));
 
     let stable_identity = world.reorder(0, "pulse.zzzzz");
@@ -95,14 +95,14 @@ fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
 
 fn assert_stable_move(
     fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
-    stable_identity: &[u8; 32],
+    stable_identity: &str,
 ) {
     let moved = fact
         .changes()
         .iter()
         .filter_map(|change| match change {
             UiCollectionProjectionChange::Move { row, .. } => {
-                Some(row.identity().host_correlation_digest())
+                Some(row.reporting_projection().as_str().to_owned())
             }
             _ => None,
         })
@@ -112,12 +112,12 @@ fn assert_stable_move(
 
 fn assert_removed(
     fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
-    removed_identity: &[u8; 32],
+    removed_identity: &str,
 ) {
     assert!(fact.changes().iter().any(|change| matches!(
         change,
         UiCollectionProjectionChange::Remove { row, .. }
-            if row.identity().host_correlation_digest() == *removed_identity
+            if row.reporting_projection().as_str() == removed_identity
     )));
 }
 

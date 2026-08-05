@@ -5,7 +5,9 @@ use worth_proof::{
     CurrentValidity, FreshnessScopedBasis, Recipe, Unresolved,
 };
 
+use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::package::WorthQueryValidatedPortableDomainPackage;
+use worth_foundational::facade::{CanonicalDigestDerivationDenial, CanonicalDigestId};
 
 mod artifact_support;
 mod identity;
@@ -14,6 +16,7 @@ mod requirements;
 
 pub use artifact_support::WorthQueryArtifactVersionSupport;
 use identity::admission_identity;
+pub use identity::WorthQueryInstallationAdmissionIdentity;
 use meaning::{admission_meaning, WorthQueryInstallationAdmissionMeaning};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,10 +118,12 @@ impl WorthQueryInstallationAdmissionProfile {
         self.admit_declared_requirements(&package)?;
         self.admit_artifact_contracts(&package)?;
 
-        let admission_identity = admission_identity(&package, self);
+        let (admission_identity, admission_work) =
+            admission_identity(&package, self).map_err(map_admission_canonical_denial)?;
+        let canonical_work = package.canonical_work().combine(admission_work);
         let admission_meaning = admission_meaning(&package, self);
         let basis = WorthQueryInstallationAdmissionBasis {
-            package_identity: package.identity().as_str().to_string(),
+            package_identity: *package.identity().digest(),
             support_identity: self.support_identity.clone(),
             configuration_identity: self.configuration_identity.clone(),
             admission_identity: admission_identity.clone(),
@@ -139,6 +144,7 @@ impl WorthQueryInstallationAdmissionProfile {
             recipe,
             admission_identity,
             admission_meaning,
+            canonical_work,
         })
     }
 }
@@ -146,8 +152,9 @@ impl WorthQueryInstallationAdmissionProfile {
 #[derive(Clone, Debug)]
 pub struct WorthQueryAdmittedPortableDomainPackage {
     recipe: AdmittedPortablePackageRecipe,
-    admission_identity: String,
+    admission_identity: WorthQueryInstallationAdmissionIdentity,
     admission_meaning: WorthQueryInstallationAdmissionMeaning,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
 }
 
 impl WorthQueryAdmittedPortableDomainPackage {
@@ -155,8 +162,12 @@ impl WorthQueryAdmittedPortableDomainPackage {
         self.recipe.payload()
     }
 
-    pub fn admission_identity(&self) -> &str {
+    pub fn admission_identity(&self) -> &WorthQueryInstallationAdmissionIdentity {
         &self.admission_identity
+    }
+
+    pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
     }
 
     pub(crate) fn has_same_admission_authority(&self, other: &Self) -> bool {
@@ -166,10 +177,10 @@ impl WorthQueryAdmittedPortableDomainPackage {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct WorthQueryInstallationAdmissionBasis {
-    package_identity: String,
+    package_identity: CanonicalDigestId,
     support_identity: String,
     configuration_identity: String,
-    admission_identity: String,
+    admission_identity: WorthQueryInstallationAdmissionIdentity,
 }
 
 struct InstallationProfileResolutionAuthority {
@@ -212,6 +223,9 @@ pub enum WorthQueryInstallationAdmissionDenialKind {
     AmbiguousArtifactMigration,
     DeferredArtifactComparator,
     UnsupportedArtifactComparator,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 trait AdmissionProfileKey: Ord + Clone {
@@ -259,4 +273,26 @@ impl WorthQueryInstallationAdmissionDenial {
     pub fn subject(&self) -> &str {
         &self.subject
     }
+
+    fn canonical(kind: WorthQueryInstallationAdmissionDenialKind) -> Self {
+        Self {
+            kind,
+            subject: "installation-admission-canonical-identity".to_string(),
+        }
+    }
+}
+
+fn map_admission_canonical_denial(
+    denial: CanonicalDigestDerivationDenial,
+) -> WorthQueryInstallationAdmissionDenial {
+    let kind = match denial {
+        CanonicalDigestDerivationDenial::EntryLimitExceeded { .. } => {
+            WorthQueryInstallationAdmissionDenialKind::CanonicalEntryBudgetExceeded
+        }
+        CanonicalDigestDerivationDenial::EncodedByteLimitExceeded { .. } => {
+            WorthQueryInstallationAdmissionDenialKind::CanonicalEncodedByteBudgetExceeded
+        }
+        _ => WorthQueryInstallationAdmissionDenialKind::CanonicalDigestSlotRejected,
+    };
+    WorthQueryInstallationAdmissionDenial::canonical(kind)
 }

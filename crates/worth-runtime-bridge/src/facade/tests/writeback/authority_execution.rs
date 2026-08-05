@@ -45,12 +45,9 @@ fn runtime_executes_writeback_through_bound_authority() {
         .authoritative_artifact_digest()
         .starts_with("truth-writeback-authoritative-artifact:sha256:"));
     assert_eq!(receipt.failure_class(), None);
-    assert_eq!(
-        outcome
-            .digest()
-            .starts_with("bridge-writeback-authority-outcome:sha256:"),
-        true
-    );
+    assert!(outcome
+        .digest()
+        .starts_with("bridge-writeback-authority-outcome:sha256:"));
 }
 
 #[test]

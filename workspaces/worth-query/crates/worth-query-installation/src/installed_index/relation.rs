@@ -17,7 +17,9 @@ impl WorthQueryInstalledPackageIndex {
     pub fn relation_to(&self, candidate: &Self) -> WorthQueryInstalledPackageIndexRelation {
         use WorthQueryInstalledPackageIndexRelation as Relation;
 
-        if self.runtime != candidate.runtime {
+        if self.runtime != candidate.runtime
+            || self.authority_root.lineage() != candidate.authority_root.lineage()
+        {
             return Relation::ForeignRuntime;
         }
         if self.generation == candidate.generation {

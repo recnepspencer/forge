@@ -8,6 +8,7 @@ use super::RelationalExecutionBasisCounters;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RelationalExecutionBasisIdentity {
     runtime_instance_id: u64,
+    branch_id: crate::history::data::BranchId,
     snapshot_id: SnapshotId,
     lease_ordinal: u64,
 }
@@ -19,6 +20,10 @@ impl RelationalExecutionBasisIdentity {
 
     pub fn snapshot_id(&self) -> SnapshotId {
         self.snapshot_id
+    }
+
+    pub fn branch_id(&self) -> &crate::history::data::BranchId {
+        &self.branch_id
     }
 
     pub fn lease_ordinal(&self) -> u64 {
@@ -45,6 +50,7 @@ impl RelationalExecutionBasisLease {
         Self {
             identity: RelationalExecutionBasisIdentity {
                 runtime_instance_id: handle.runtime_instance_id,
+                branch_id: handle.branch_id.clone(),
                 snapshot_id: handle.snapshot_id,
                 lease_ordinal,
             },
@@ -83,6 +89,7 @@ impl RelationalExecutionBasisLease {
         self.registry.as_ref().is_some_and(|registry| {
             registry.retains(
                 self.identity.snapshot_id,
+                &self.identity.branch_id,
                 self.handle.version_id,
                 self.handle.read_policy,
                 self.identity.lease_ordinal,

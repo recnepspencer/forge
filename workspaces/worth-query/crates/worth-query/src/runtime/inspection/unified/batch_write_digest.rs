@@ -8,7 +8,6 @@ use crate::runtime::{
     WorthQueryAspectTouch, WorthQueryBatchMutationEvidence, WorthQueryGraphCompositionBreadth,
     WorthQueryGraphCompositionEvidence, WorthQueryGraphCompositionLifecycleOutcomes,
     WorthQueryGraphCompositionProgram, WorthQueryGraphCompositionResolutionMap,
-    WorthQueryGraphObligationAttachmentEvidence,
 };
 
 #[path = "batch_write_digest_components.rs"]
@@ -28,7 +27,6 @@ pub(super) struct WorthQueryBatchWriteDigestInputs<'a> {
     pub journal_position_identities: &'a [WorthQueryEvidenceIdentity],
     pub component_operations: &'a [WorthQueryBatchWriteComponentInspection],
     pub graph_composition_resolution_map: &'a WorthQueryGraphCompositionResolutionMap,
-    pub graph_obligation_evidence: Option<&'a WorthQueryGraphObligationAttachmentEvidence>,
     pub touched_aspects: &'a [WorthQueryAspectTouch],
     pub affected_live_view_ids: &'a [String],
     pub affected_derived_view_ids: &'a [String],
@@ -321,12 +319,6 @@ pub(super) fn build_batch_write_receipt_inspection_digest(
         .field_evidence_identity_sequence(
             WorthQueryEvidenceTag::new("graph_resolution_identity"),
             graph_resolution_identities.iter(),
-        )
-        .optional_value(
-            WorthQueryEvidenceTag::new("graph_obligation_evidence"),
-            inputs
-                .graph_obligation_evidence
-                .map(WorthQueryGraphObligationAttachmentEvidence::evidence_digest),
         )
         .field_evidence_identity_sequence(
             WorthQueryEvidenceTag::new("touched_aspect"),

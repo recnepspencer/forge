@@ -30,7 +30,6 @@ pub(super) struct WorthQueryAuthoritativeMutationTargetEvidence {
 pub(super) struct WorthQueryAuthoritativeMutationExecutionEvidence {
     pub(super) decision_trace_envelope: Option<WorthQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<WorthQueryIntentExecutionProvenance>,
-    pub(super) obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
 }
 
 pub(super) struct WorthQueryPreparedAuthoritativeMutationRouting {
@@ -129,7 +128,6 @@ impl WorthQueryAuthoritativeMutationRoutingInput {
             execution_evidence: WorthQueryAuthoritativeMutationExecutionEvidence {
                 decision_trace_envelope: Some(decision_trace_envelope),
                 execution_provenance: Some(execution_provenance),
-                obligation_dispatch: None,
             },
         }
     }
@@ -165,7 +163,6 @@ impl WorthQueryRuntime {
         let WorthQueryAuthoritativeMutationExecutionEvidence {
             decision_trace_envelope,
             execution_provenance,
-            obligation_dispatch,
         } = execution_evidence;
         let (_, target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
@@ -204,7 +201,6 @@ impl WorthQueryRuntime {
             summary.refresh_fallback,
             decision_trace_envelope,
             execution_provenance,
-            obligation_dispatch,
         ))
     }
 

@@ -123,6 +123,9 @@ Direct write receipts now carry:
 - verified assumption-set evidence on backend-verified existing-truth lanes,
   including assumption snapshot token, assumption snapshot digest, verified
   precondition digest, and verification read-set breadth
-- graph obligation dispatch and verdict evidence when a graph touch selected
-  registered obligations, including budget posture such as `BudgetExceeded`,
-  state-load counters, cost classes, and artifact-policy-gated diagnostics
+- generic graph-composition program, resolution, breadth, lifecycle, and
+  lineage evidence when the write was authored as one graph batch
+
+Installed application-operation obligations are separate. Their owner work is
+proved by the managed session and application commit terminal, not by a direct
+workspace write receipt.

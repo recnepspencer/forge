@@ -3,9 +3,8 @@ use crate::intent_admission::WorthQueryIntentDecisionTraceEnvelope;
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::projection_consumption::ProjectionMaterializedFactPosture;
 use crate::runtime::{
-    WorthQueryAuthoritativeMutationObligationDispatch, WorthQueryIntentConsumerInspection,
-    WorthQueryIntentExecutionProvenance, WorthQueryLiveGraphReadAccessReceipt,
-    WorthQueryRuntimeLiveSubscriptionInstallation,
+    WorthQueryIntentConsumerInspection, WorthQueryIntentExecutionProvenance,
+    WorthQueryLiveGraphReadAccessReceipt, WorthQueryRuntimeLiveSubscriptionInstallation,
 };
 
 use super::read_receipt_support::materialized_result_digest;
@@ -25,7 +24,6 @@ pub struct WorthQueryLiveReadReceipt {
     snapshot_evidence_identity: crate::evidence_identity::WorthQueryEvidenceIdentity,
     row_count: usize,
     materialized_fact_posture: Option<ProjectionMaterializedFactPosture>,
-    pub(super) graph_obligation_dispatch: Option<WorthQueryAuthoritativeMutationObligationDispatch>,
     pub(super) live_graph_read_access: Option<WorthQueryLiveGraphReadAccessReceipt>,
     pub(super) decision_trace_envelope: Option<WorthQueryIntentDecisionTraceEnvelope>,
     pub(super) execution_provenance: Option<WorthQueryIntentExecutionProvenance>,
@@ -62,7 +60,6 @@ impl WorthQueryLiveReadReceipt {
             snapshot_evidence_identity,
             row_count: rows.len(),
             materialized_fact_posture,
-            graph_obligation_dispatch: None,
             live_graph_read_access: None,
             decision_trace_envelope: None,
             execution_provenance: None,
@@ -129,26 +126,6 @@ impl WorthQueryLiveReadReceipt {
         self.materialized_fact_posture.as_ref()
     }
 
-    pub fn graph_obligation_dispatch(
-        &self,
-    ) -> Option<&WorthQueryAuthoritativeMutationObligationDispatch> {
-        self.graph_obligation_dispatch.as_ref()
-    }
-
-    pub fn graph_obligation_envelope_digest(&self) -> Option<&str> {
-        self.graph_obligation_dispatch
-            .as_ref()
-            .and_then(WorthQueryAuthoritativeMutationObligationDispatch::envelope_digest)
-    }
-
-    pub fn graph_obligation_evidence(
-        &self,
-    ) -> Option<crate::runtime::WorthQueryGraphObligationAttachmentEvidence> {
-        self.graph_obligation_dispatch
-            .as_ref()
-            .map(|dispatch| dispatch.attachment_evidence())
-    }
-
     pub fn live_graph_read_access(&self) -> Option<&WorthQueryLiveGraphReadAccessReceipt> {
         self.live_graph_read_access.as_ref()
     }
@@ -205,7 +182,6 @@ impl WorthQueryLiveReadReceipt {
             snapshot_evidence_identity,
             row_count,
             materialized_fact_posture: None,
-            graph_obligation_dispatch: None,
             live_graph_read_access: None,
             decision_trace_envelope: None,
             execution_provenance: None,

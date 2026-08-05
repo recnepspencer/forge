@@ -12,7 +12,10 @@ fn query_witness_is_required_before_scalar_replacement_preserves_identity() {
     let workspace = projection_workspace(true);
     let predecessor = scalar_binding(&workspace);
     let candidate = scalar_binding(&workspace);
-    let logical_identity = predecessor.core().query_binding_reference().clone();
+    let logical_identity = predecessor
+        .core()
+        .query_binding_reporting_projection()
+        .clone();
 
     let replacement = match predecessor.replace_with(candidate, &workspace) {
         UiScalarProjectionReplacementOutcome::Admitted(replacement) => *replacement,
@@ -33,7 +36,7 @@ fn query_witness_is_required_before_scalar_replacement_preserves_identity() {
     assert_eq!(counters.maintenance_calls, 0);
     let successor = replacement.into_successor();
     assert_eq!(
-        successor.core().query_binding_reference(),
+        successor.core().query_binding_reporting_projection(),
         &logical_identity
     );
 }
@@ -75,7 +78,10 @@ fn query_witness_is_required_before_collection_replacement_preserves_identity() 
     let workspace = collection_projection_workspace();
     let predecessor = collection_binding(&workspace, false, true);
     let candidate = collection_binding(&workspace, false, true);
-    let logical_identity = predecessor.core().query_binding_reference().clone();
+    let logical_identity = predecessor
+        .core()
+        .query_binding_reporting_projection()
+        .clone();
 
     let replacement = match predecessor.replace_with(candidate, &workspace) {
         UiCollectionProjectionReplacementOutcome::Admitted(replacement) => *replacement,
@@ -95,7 +101,7 @@ fn query_witness_is_required_before_collection_replacement_preserves_identity() 
         replacement
             .into_successor()
             .core()
-            .query_binding_reference(),
+            .query_binding_reporting_projection(),
         &logical_identity
     );
 }

@@ -33,6 +33,7 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
             return WorthQueryGraphReadOperationOutcome::Resolved(
                 WorthQueryGraphReadOperationResolution::new(
                     read_graph.digest(),
+                    read_graph.evidence_identity().canonical_digest_id(),
                     read_graph.family().clone(),
                     read_graph.scope_class().clone(),
                     references.relations().len()
@@ -54,7 +55,11 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
                     support_family,
                 );
             return WorthQueryGraphReadOperationOutcome::RequiresAccessCapabilityRegistration(
-                requirement.resolve_for_read_graph(read_graph.digest(), declared_relation_names),
+                requirement.resolve_for_read_graph(
+                    read_graph.digest(),
+                    read_graph.evidence_identity().canonical_digest_id(),
+                    declared_relation_names,
+                ),
             );
         }
         let requirement =
@@ -64,7 +69,11 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
                 "worth.query.installed-domain-operation",
             );
         return WorthQueryGraphReadOperationOutcome::RequiresAccessCapabilityRegistration(
-            requirement.resolve_for_read_graph(read_graph.digest(), declared_relation_names),
+            requirement.resolve_for_read_graph(
+                read_graph.digest(),
+                read_graph.evidence_identity().canonical_digest_id(),
+                declared_relation_names,
+            ),
         );
     }
 
@@ -80,6 +89,7 @@ pub(crate) fn resolve_graph_read_operations_for_read_graph(
 
     WorthQueryGraphReadOperationOutcome::Resolved(WorthQueryGraphReadOperationResolution::new(
         read_graph.digest(),
+        read_graph.evidence_identity().canonical_digest_id(),
         read_graph.family().clone(),
         read_graph.scope_class().clone(),
         references.relations().len()

@@ -12,6 +12,12 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     InvalidDomainOperation,
     DuplicateArtifactContract,
     ConflictingArtifactContract,
+    ApplicationSchemaIdentityMismatch,
+    DuplicateApplicationSchema,
+    ConflictingApplicationSchema,
+    CanonicalEntryBudgetExceeded,
+    CanonicalEncodedByteBudgetExceeded,
+    CanonicalDigestSlotRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -111,6 +117,54 @@ impl WorthQueryPortablePackageValidationDenial {
         )
     }
 
+    pub(super) fn application_schema_identity_mismatch(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ApplicationSchemaIdentityMismatch,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn duplicate_application_schema(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::DuplicateApplicationSchema,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn conflicting_application_schema(subject: impl Into<String>) -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::ConflictingApplicationSchema,
+            None,
+            subject,
+        )
+    }
+
+    pub(super) fn canonical_entry_budget_exceeded() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalEntryBudgetExceeded,
+            None,
+            "package-canonical-entry-budget",
+        )
+    }
+
+    pub(super) fn canonical_encoded_byte_budget_exceeded() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalEncodedByteBudgetExceeded,
+            None,
+            "package-canonical-encoded-byte-budget",
+        )
+    }
+
+    pub(super) fn canonical_digest_slot_rejected() -> Self {
+        Self::new(
+            WorthQueryPortablePackageValidationDenialKind::CanonicalDigestSlotRejected,
+            None,
+            "package-canonical-digest-slot",
+        )
+    }
+
     fn new(
         kind: WorthQueryPortablePackageValidationDenialKind,
         definition_kind: Option<WorthQueryPortableDefinitionKind>,
@@ -135,3 +189,15 @@ impl WorthQueryPortablePackageValidationDenial {
         &self.slot
     }
 }
+
+impl std::fmt::Display for WorthQueryPortablePackageValidationDenial {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            formatter,
+            "portable package validation denied: {:?} ({})",
+            self.kind, self.slot
+        )
+    }
+}
+
+impl std::error::Error for WorthQueryPortablePackageValidationDenial {}
