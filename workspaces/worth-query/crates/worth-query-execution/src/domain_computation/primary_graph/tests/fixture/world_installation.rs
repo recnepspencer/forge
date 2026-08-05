@@ -63,7 +63,13 @@ pub(in crate::domain_computation::primary_graph::tests) fn installed_world_with_
             .unwrap();
     }
     if include_policy_fact {
-        bind_account(&mut bootstrap, "account-1", "open", "primary");
+        bind_account(
+            &mut bootstrap,
+            "account-1",
+            "open",
+            "primary",
+            Some("reviewed"),
+        );
         bootstrap
             .bind_relation(WorthQueryApplicationRelationSeed::new(
                 AccountOwner::reference(),
@@ -206,8 +212,14 @@ pub(super) fn installed_authorization_world_with_principal_count(
         principal_count <= 3,
         "fixture supports at most three principals"
     );
-    bind_account(&mut bootstrap, "account-1", "open", primary_label);
-    bind_account(&mut bootstrap, "account-2", "unrelated", "secondary");
+    bind_account(
+        &mut bootstrap,
+        "account-1",
+        "open",
+        primary_label,
+        Some("reviewed"),
+    );
+    bind_account(&mut bootstrap, "account-2", "unrelated", "secondary", None);
     bind_activity(&mut bootstrap, "activity-primary", 11);
     bind_activity(&mut bootstrap, "activity-secondary", 22);
     bootstrap
@@ -339,18 +351,19 @@ fn bind_account(
     key: &str,
     status: &str,
     label: &str,
+    note: Option<&str>,
 ) {
-    bootstrap
-        .bind_entity(
-            WorthQueryApplicationEntitySeed::new(
-                Account::reference(),
-                WorthQueryApplicationEntityKey::new(key).unwrap(),
-            )
-            .field(AccountIdentity::reference(), key.to_owned())
-            .field(AccountStatus::reference(), status.to_string())
-            .field(AccountLabel::reference(), label.to_string()),
-        )
-        .unwrap();
+    let mut seed = WorthQueryApplicationEntitySeed::new(
+        Account::reference(),
+        WorthQueryApplicationEntityKey::new(key).unwrap(),
+    )
+    .field(AccountIdentity::reference(), key.to_owned())
+    .field(AccountStatus::reference(), status.to_string())
+    .field(AccountLabel::reference(), label.to_string());
+    if let Some(note) = note {
+        seed = seed.field(AccountNote::reference(), note.to_string());
+    }
+    bootstrap.bind_entity(seed).unwrap();
 }
 
 fn bind_activity(

@@ -1,5 +1,9 @@
 use bank_domain::{
-    estate::{BankEstateWorld, CapabilityGrantId, EstateWorkflowStage},
+    estate::{
+        BankEstateWorld, CapabilityGrantId, DelegationLimit, EmergencyAccessReason,
+        EmergencyAccessStatus, EstateEmergencyAccess, EstateMoment, EstateWorkflowStage,
+        MandatoryEstateReview, MandatoryReviewKind, MandatoryReviewStatus,
+    },
     model::{AccountName, BankSnapshotVersion, EmployeeRole},
     proposals::{BankSnapshot, BankSnapshotBuilder},
     schema::AccountStatus,
@@ -9,8 +13,10 @@ use worth_query_host::facade::declaration::authentication::WorthQueryExternalPri
 use super::{
     base_estate, external_identity, extra_principal, grant, GrantSpec, ACCOUNT, APPROVAL_GRANT,
     APPROVER, APPROVER_ASSIGNMENT, APPROVER_REQUEST_GRANT, APPROVER_UPPER_BOUND_GRANT, ASSIGNMENT,
-    CLOSE_GRANT, COMMAND_GRANT, DECEASED, EXECUTOR, GRANT, INSTITUTION, OTHER_ACCOUNT, REVIEWER,
-    REVIEWER_ASSIGNMENT, REVIEW_GRANT, SELF_APPROVAL_GRANT, SPECIALIST,
+    CLOSED_ACCESS, CLOSE_GRANT, COMMAND_GRANT, COMPLETED_REVIEW, DECEASED, DELEGATED_GRANT,
+    DISBURSEMENT_GRANT, EMERGENCY_BOUND_GRANT, EXECUTOR, GRANT, INSTITUTION, OTHER_ACCOUNT,
+    REQUESTED_ACCESS, REQUESTED_REVIEW, REVIEWER, REVIEWER_ASSIGNMENT, REVIEW_GRANT,
+    SELF_APPROVAL_GRANT, SPECIALIST,
 };
 use crate::{BankEmployeeAssignmentSeed, BankIdentityRuntime, BankPrincipalSeed, BankWorldSeed};
 
@@ -20,7 +26,14 @@ pub(super) struct FixtureWorldSpec<'a> {
     pub(super) case_stage: EstateWorkflowStage,
     pub(super) specialist_holds_authority: bool,
     pub(super) unrelated_grants: usize,
-    pub(super) install_command_grants: bool,
+    pub(super) composition: FixtureWorldComposition,
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum FixtureWorldComposition {
+    Admission,
+    Lifecycle,
+    GovernanceProjection,
 }
 
 pub(super) struct InstalledFixtureWorld {
@@ -96,11 +109,13 @@ fn estate(spec: &FixtureWorldSpec<'_>) -> BankEstateWorld {
     } else {
         EXECUTOR
     };
-    let mut estate =
+    let estate =
         base_estate(spec.case_stage, holder).with_grant(grant(GRANT, SPECIALIST, spec.spec));
-    if spec.install_command_grants {
-        estate = install_lifecycle_grants(estate);
-    }
+    let mut estate = match spec.composition {
+        FixtureWorldComposition::Admission => estate,
+        FixtureWorldComposition::Lifecycle => install_lifecycle_grants(estate),
+        FixtureWorldComposition::GovernanceProjection => install_governance_projection(estate),
+    };
     for ordinal in 0..spec.unrelated_grants {
         estate = estate.with_grant(grant(
             CapabilityGrantId::new(2_000 + ordinal as u64).unwrap(),
@@ -109,6 +124,64 @@ fn estate(spec: &FixtureWorldSpec<'_>) -> BankEstateWorld {
         ));
     }
     estate
+}
+
+fn install_governance_projection(estate: BankEstateWorld) -> BankEstateWorld {
+    let mut parent = grant(GRANT, SPECIALIST, GrantSpec::governance_view());
+    parent.scope.delegation = DelegationLimit::generations(1);
+    let mut child = grant(DELEGATED_GRANT, APPROVER, GrantSpec::governance_view());
+    child.parent = Some(GRANT);
+    estate
+        .with_grant(parent)
+        .with_grant(child)
+        .with_grant(grant(
+            DISBURSEMENT_GRANT,
+            REVIEWER,
+            GrantSpec::disburse(50_000),
+        ))
+        .with_grant(grant(
+            EMERGENCY_BOUND_GRANT,
+            SPECIALIST,
+            GrantSpec::emergency_view(),
+        ))
+        .with_review(MandatoryEstateReview {
+            id: REQUESTED_REVIEW,
+            estate: super::ESTATE,
+            kind: MandatoryReviewKind::EmergencyAccess,
+            reviewer: None,
+            status: MandatoryReviewStatus::Required,
+        })
+        .with_review(MandatoryEstateReview {
+            id: COMPLETED_REVIEW,
+            estate: super::ESTATE,
+            kind: MandatoryReviewKind::EmergencyAccess,
+            reviewer: Some(REVIEWER),
+            status: MandatoryReviewStatus::Completed,
+        })
+        .with_emergency_access(EstateEmergencyAccess {
+            id: REQUESTED_ACCESS,
+            requester: SPECIALIST,
+            approver: None,
+            reviewer: None,
+            grant: EMERGENCY_BOUND_GRANT,
+            review: REQUESTED_REVIEW,
+            reason: EmergencyAccessReason::PreventImmediateLoss,
+            status: EmergencyAccessStatus::Requested,
+            issued_at: EstateMoment::from_epoch_seconds(100),
+            expires_at: EstateMoment::from_epoch_seconds(200),
+        })
+        .with_emergency_access(EstateEmergencyAccess {
+            id: CLOSED_ACCESS,
+            requester: SPECIALIST,
+            approver: Some(APPROVER),
+            reviewer: Some(REVIEWER),
+            grant: EMERGENCY_BOUND_GRANT,
+            review: COMPLETED_REVIEW,
+            reason: EmergencyAccessReason::MeetLegalDeadline,
+            status: EmergencyAccessStatus::Revoked,
+            issued_at: EstateMoment::from_epoch_seconds(300),
+            expires_at: EstateMoment::from_epoch_seconds(400),
+        })
 }
 
 fn install_lifecycle_grants(estate: BankEstateWorld) -> BankEstateWorld {

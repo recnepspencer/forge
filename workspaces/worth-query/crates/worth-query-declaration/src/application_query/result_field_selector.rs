@@ -9,6 +9,31 @@ use crate::application_schema::{
     OptionalApplicationFieldValue, RequiredApplicationFieldValue, TypedApplicationValue,
 };
 
+/// Selector for a schema-required result field.
+///
+/// An optional schema field cannot be smuggled into the required result API:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::{
+///     application_query::ApplicationQueryResultFieldRef,
+///     application_schema::{
+///         EqualityPredicate, NoApplicationCurrency, ReadWrite,
+///     },
+/// };
+/// struct Schema;
+/// struct Query;
+/// struct Slot;
+/// worth_query_declaration::worth_query_entity!(pub Record in Schema);
+/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record);
+/// worth_query_declaration::worth_query_field!(
+///     pub OptionalText in Schema, Record, Facts:
+///     optional String, read_write, equality
+/// );
+/// let _ = ApplicationQueryResultFieldRef::<
+///     Query, Slot, Schema, Record, Facts, OptionalText, String,
+///     ReadWrite, EqualityPredicate, NoApplicationCurrency,
+/// >::new("text", OptionalText::reference());
+/// ```
 pub struct ApplicationQueryResultFieldRef<
     Query,
     Slot,
@@ -29,7 +54,31 @@ pub struct ApplicationQueryResultFieldRef<
     _field_contract: PhantomData<fn() -> (Field, Value, Write, Equality, Currency)>,
 }
 
-/// Typed selector for a result field whose schema value may be lawfully absent.
+/// Selector for a schema-optional result field.
+///
+/// A required schema field cannot be reinterpreted as lawfully absent:
+///
+/// ```compile_fail
+/// use worth_query_declaration::facade::{
+///     application_query::ApplicationQueryOptionalResultFieldRef,
+///     application_schema::{
+///         EqualityPredicate, NoApplicationCurrency, ReadWrite,
+///     },
+/// };
+/// struct Schema;
+/// struct Query;
+/// struct Slot;
+/// worth_query_declaration::worth_query_entity!(pub Record in Schema);
+/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record);
+/// worth_query_declaration::worth_query_field!(
+///     pub RequiredText in Schema, Record, Facts:
+///     String, read_write, equality
+/// );
+/// let _ = ApplicationQueryOptionalResultFieldRef::<
+///     Query, Slot, Schema, Record, Facts, RequiredText, String,
+///     ReadWrite, EqualityPredicate, NoApplicationCurrency,
+/// >::new("text", RequiredText::reference());
+/// ```
 pub struct ApplicationQueryOptionalResultFieldRef<
     Query,
     Slot,
@@ -70,7 +119,10 @@ where
     pub fn new(
         output_name: &'static str,
         field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
-    ) -> Self {
+    ) -> Self
+    where
+        Field: RequiredApplicationFieldValue<Value = Value>,
+    {
         Self {
             output_name,
             entity: field.entity(),
@@ -157,10 +209,7 @@ where
     pub fn new(
         output_name: &'static str,
         field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
-    ) -> Self
-    where
-        Field: RequiredApplicationFieldValue<Value = Value>,
-    {
+    ) -> Self {
         Self {
             output_name,
             entity: field.entity(),

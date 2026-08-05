@@ -46,6 +46,11 @@ pub(super) use application_queries::{
     CrossRootQuery, GovernedAccountSummaryQuery, OrderedAccountSummaryQuery,
     ScopedAccountSummaryQuery,
 };
+#[path = "fixture/optional_account_field_query.rs"]
+mod optional_account_field_query;
+pub(super) use optional_account_field_query::{
+    OptionalAccountFieldQuery, OptionalAccountFieldResult,
+};
 #[path = "fixture/nested_account.rs"]
 mod nested_account;
 pub(super) use nested_account::{NestedAccountQuery, NestedAccountResult};
@@ -163,6 +168,7 @@ worth_query_application_schema! {
                 .field(Account::reference(), AccountIdentity::reference())
                 .field(Account::reference(), AccountStatus::reference())
                 .field(Account::reference(), AccountLabel::reference())
+                .field(Account::reference(), AccountNote::reference())
                 .aspect(Activity::reference(), ActivityFacts::reference())
                 .field(Activity::reference(), ActivityIdentity::reference())
                 .field(Activity::reference(), ActivitySequence::reference())
@@ -330,6 +336,7 @@ worth_query_application_schema! {
                 .application_query(application_queries::cross_root_definition("open"))
                 .application_query(application_queries::governed_account_summary_definition())
                 .application_query(application_queries::ordered_account_summary_definition())
+                .application_query(optional_account_field_query::optional_account_field_definition())
                 .application_query(nested_account::nested_account_definition())
                 .application_query(forged_selector::forged_selector_definition())
                 .application_query(live_account_query::live_account_activity_definition())

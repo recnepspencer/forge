@@ -98,7 +98,7 @@ impl BankIdentityRuntime {
         .admit(validated)
         .map_err(BankIdentityRuntimeBuildError::PackageAdmission)?;
         let application_query_resources =
-            WorthQueryApplicationQueryResourceProfile::bounded(32_768, 4_096, 32_768)
+            WorthQueryApplicationQueryResourceProfile::bounded(32_768, 32_768, 32_768)
                 .expect("bank application-query resource profile is statically non-zero");
         let installation = WorthQueryExecutionRuntimeInstaller::new()
             .application_query_resources(application_query_resources)

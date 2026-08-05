@@ -2,15 +2,16 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
     ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
     ApplicationQueryDisclosureContract, ApplicationQueryInfluenceContract,
-    ApplicationQueryLaneEligibility, ApplicationQueryResultFieldRef,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder, ForwardResultTraversal,
-    ManyResults,
+    ApplicationQueryLaneEligibility, ApplicationQueryOptionalResultFieldRef,
+    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultShapeBuilder, ForwardResultTraversal, ManyResults,
+    TypedApplicationQueryResultShape,
 };
 use worth_query_declaration::worth_query_application_query;
 
 use super::application_queries::AccountSummaryParameters;
 use super::{
-    Account, AccountAllActivity, AccountLabel, AccountPolicy, AccountStatus, Activity,
+    Account, AccountAllActivity, AccountLabel, AccountNote, AccountPolicy, AccountStatus, Activity,
     ActivityFacts, ActivityIdentity, ActivitySequence, CapabilityDisclosure,
     IdentityExecutionSchema, TouchAccountCapability,
 };
@@ -21,6 +22,7 @@ use crate::domain_computation::primary_graph::{
 
 pub struct StatusSlot;
 pub struct LabelSlot;
+pub struct NoteSlot;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
@@ -29,6 +31,7 @@ pub struct ActivitySequenceSlot;
 pub struct GovernedAccountOmissionResult {
     status: WorthQueryApplicationDisclosed<String>,
     label: WorthQueryApplicationDisclosed<String>,
+    note: WorthQueryApplicationDisclosed<Option<String>>,
     activities: WorthQueryApplicationDisclosed<usize>,
 }
 
@@ -39,6 +42,10 @@ impl GovernedAccountOmissionResult {
 
     pub const fn label(&self) -> &WorthQueryApplicationDisclosed<String> {
         &self.label
+    }
+
+    pub const fn note(&self) -> &WorthQueryApplicationDisclosed<Option<String>> {
+        &self.note
     }
 
     pub const fn activities(&self) -> &WorthQueryApplicationDisclosed<usize> {
@@ -61,6 +68,31 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
     GovernedAccountOmissionResult,
     Account,
 > {
+    let shape = governed_account_shape();
+    let disclosure = governed_account_disclosure();
+    ApplicationQueryDefinitionBuilder::public(
+        GovernedAccountOmissionQuery::reference(),
+        Account::reference(),
+        Account::reference(),
+        shape,
+        ApplicationQueryCardinality::ExactlyOne,
+        ApplicationQueryDependencyCeiling::bounded(1, 1, 5),
+        disclosure,
+        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
+        ApplicationQueryLaneEligibility::one_shot()
+            .with_historical()
+            .with_preview(),
+    )
+    .build()
+    .unwrap()
+}
+
+fn governed_account_shape() -> TypedApplicationQueryResultShape<
+    IdentityExecutionSchema,
+    GovernedAccountOmissionQuery,
+    Account,
+    GovernedAccountOmissionResult,
+> {
     let activity = ApplicationQueryResultShapeBuilder::<
         IdentityExecutionSchema,
         GovernedAccountOmissionQuery,
@@ -69,7 +101,7 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
     >::new(Activity::reference())
     .field(activity_identity())
     .field(activity_sequence());
-    let shape = ApplicationQueryResultShapeBuilder::<
+    ApplicationQueryResultShapeBuilder::<
         IdentityExecutionSchema,
         GovernedAccountOmissionQuery,
         Account,
@@ -77,9 +109,13 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
     >::new(Account::reference())
     .field(status())
     .field(label())
+    .optional_field(note())
     .relation(activities(), activity)
-    .build();
-    let disclosure = ApplicationQueryDisclosureContract::governed_by(
+    .build()
+}
+
+fn governed_account_disclosure() -> ApplicationQueryDisclosureContract {
+    ApplicationQueryDisclosureContract::governed_by(
         "account-omission",
         TouchAccountCapability::reference(),
     )
@@ -90,6 +126,11 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
     )
     .disclose_field_by(
         label(),
+        CapabilityDisclosure::PrivateLabel,
+        ApplicationQueryInfluenceContract::forbid_all(),
+    )
+    .disclose_optional_field_by(
+        note(),
         CapabilityDisclosure::PrivateLabel,
         ApplicationQueryInfluenceContract::forbid_all(),
     )
@@ -107,22 +148,7 @@ pub(super) fn governed_account_omission_definition() -> ApplicationQueryDefiniti
         activity_sequence(),
         CapabilityDisclosure::PrivateLabel,
         ApplicationQueryInfluenceContract::forbid_all(),
-    );
-    ApplicationQueryDefinitionBuilder::public(
-        GovernedAccountOmissionQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 4),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview(),
     )
-    .build()
-    .unwrap()
 }
 
 impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedAccountOmissionQuery>
@@ -146,6 +172,7 @@ impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedAccountOmi
         Ok(Self {
             status: row.disclosed_field(status())?,
             label: row.disclosed_field(label())?,
+            note: row.disclosed_optional_field(note())?,
             activities,
         })
     }
@@ -179,6 +206,21 @@ fn label() -> ApplicationQueryResultFieldRef<
     worth_query_declaration::facade::application_schema::NoApplicationCurrency,
 > {
     ApplicationQueryResultFieldRef::new("label", AccountLabel::reference())
+}
+
+fn note() -> ApplicationQueryOptionalResultFieldRef<
+    GovernedAccountOmissionQuery,
+    NoteSlot,
+    IdentityExecutionSchema,
+    Account,
+    AccountPolicy,
+    AccountNote,
+    String,
+    worth_query_declaration::facade::application_schema::ReadWrite,
+    worth_query_declaration::facade::application_schema::EqualityPredicate,
+    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+> {
+    ApplicationQueryOptionalResultFieldRef::new("note", AccountNote::reference())
 }
 
 fn activity_identity() -> ApplicationQueryResultFieldRef<

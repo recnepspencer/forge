@@ -1,143 +1,167 @@
-use crate::estate::{
-    CapabilityGrantId, CapabilityGrantStatus, DelegationLimit, EmergencyAccessId,
-    EmergencyAccessReason, EmergencyAccessStatus, EstateCapabilityOperation,
-    EstateCapabilityPurpose, EstateCaseId, EstateMoment, EstateWorkflowStage,
+use crate::{
+    estate::{
+        BranchId, CapabilityGrantId, CapabilityGrantStatus, CapabilityValidity, DelegationLimit,
+        EmergencyAccessId, EmergencyAccessReason, EmergencyAccessStatus, EstateCapabilityGrant,
+        EstateCapabilityOperation, EstateCapabilityPurpose, EstateCaseId, EstateEmergencyAccess,
+        EstateMoment, EstateWorkflowStage, MandatoryEstateReview, MandatoryReviewId,
+        RestrictedBankField,
+    },
+    model::{AccountId, BankPrincipalId, InstitutionId, Money, USD},
 };
-use crate::model::BankPrincipalId;
 
 use super::EstateAssignmentView;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EstateEmergencyContext {
-    id: EmergencyAccessId,
-    reason: EmergencyAccessReason,
-    status: EmergencyAccessStatus,
-    requester: BankPrincipalId,
-    approver: Option<BankPrincipalId>,
+    access: EstateEmergencyAccess,
+    review: MandatoryEstateReview,
 }
 
 impl EstateEmergencyContext {
     pub(crate) const fn from_projection(
-        id: EmergencyAccessId,
-        reason: EmergencyAccessReason,
-        status: EmergencyAccessStatus,
-        requester: BankPrincipalId,
-        approver: Option<BankPrincipalId>,
+        access: EstateEmergencyAccess,
+        review: MandatoryEstateReview,
     ) -> Self {
-        Self {
-            id,
-            reason,
-            status,
-            requester,
-            approver,
-        }
+        Self { access, review }
+    }
+
+    pub const fn access(&self) -> EstateEmergencyAccess {
+        self.access
+    }
+
+    pub const fn mandatory_review(&self) -> MandatoryEstateReview {
+        self.review
     }
 
     pub const fn id(&self) -> EmergencyAccessId {
-        self.id
+        self.access.id
     }
 
     pub const fn reason(&self) -> EmergencyAccessReason {
-        self.reason
+        self.access.reason
     }
 
     pub const fn status(&self) -> EmergencyAccessStatus {
-        self.status
+        self.access.status
     }
 
     pub const fn requester(&self) -> BankPrincipalId {
-        self.requester
+        self.access.requester
     }
 
     pub const fn approver(&self) -> Option<BankPrincipalId> {
-        self.approver
+        self.access.approver
+    }
+
+    pub const fn reviewer(&self) -> Option<BankPrincipalId> {
+        self.access.reviewer
+    }
+
+    pub const fn grant(&self) -> CapabilityGrantId {
+        self.access.grant
+    }
+
+    pub const fn review(&self) -> MandatoryReviewId {
+        self.access.review
+    }
+
+    pub const fn issued_at(&self) -> EstateMoment {
+        self.access.issued_at
+    }
+
+    pub const fn expires_at(&self) -> EstateMoment {
+        self.access.expires_at
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EstateCapabilityContext {
-    id: CapabilityGrantId,
-    operation: EstateCapabilityOperation,
-    purpose: EstateCapabilityPurpose,
-    valid_from: EstateMoment,
-    valid_through: EstateMoment,
-    delegation: DelegationLimit,
-    workflow_stage: EstateWorkflowStage,
-    status: CapabilityGrantStatus,
-    grantee: BankPrincipalId,
-    grantor: BankPrincipalId,
+    grant: EstateCapabilityGrant,
     emergencies: Vec<EstateEmergencyContext>,
 }
 
-pub(crate) struct EstateCapabilityProjection {
-    pub(crate) id: CapabilityGrantId,
-    pub(crate) operation: EstateCapabilityOperation,
-    pub(crate) purpose: EstateCapabilityPurpose,
-    pub(crate) valid_from: EstateMoment,
-    pub(crate) valid_through: EstateMoment,
-    pub(crate) delegation: DelegationLimit,
-    pub(crate) workflow_stage: EstateWorkflowStage,
-    pub(crate) status: CapabilityGrantStatus,
-    pub(crate) grantee: BankPrincipalId,
-    pub(crate) grantor: BankPrincipalId,
-    pub(crate) emergencies: Vec<EstateEmergencyContext>,
-}
-
 impl EstateCapabilityContext {
-    pub(crate) fn from_projection(value: EstateCapabilityProjection) -> Self {
-        Self {
-            id: value.id,
-            operation: value.operation,
-            purpose: value.purpose,
-            valid_from: value.valid_from,
-            valid_through: value.valid_through,
-            delegation: value.delegation,
-            workflow_stage: value.workflow_stage,
-            status: value.status,
-            grantee: value.grantee,
-            grantor: value.grantor,
-            emergencies: value.emergencies,
-        }
+    pub(crate) fn from_projection(
+        grant: EstateCapabilityGrant,
+        emergencies: Vec<EstateEmergencyContext>,
+    ) -> Self {
+        Self { grant, emergencies }
+    }
+
+    pub const fn grant(&self) -> EstateCapabilityGrant {
+        self.grant
     }
 
     pub const fn id(&self) -> CapabilityGrantId {
-        self.id
+        self.grant.id
+    }
+
+    pub const fn account(&self) -> Option<AccountId> {
+        self.grant.scope.account
+    }
+
+    pub const fn estate(&self) -> EstateCaseId {
+        self.grant.scope.estate
+    }
+
+    pub const fn institution(&self) -> InstitutionId {
+        self.grant.scope.institution
+    }
+
+    pub const fn branch(&self) -> BranchId {
+        self.grant.scope.branch
     }
 
     pub const fn operation(&self) -> EstateCapabilityOperation {
-        self.operation
+        self.grant.scope.operation
     }
 
     pub const fn purpose(&self) -> EstateCapabilityPurpose {
-        self.purpose
+        self.grant.scope.purpose
+    }
+
+    pub const fn field(&self) -> Option<RestrictedBankField> {
+        self.grant.scope.field
+    }
+
+    pub const fn amount_ceiling(&self) -> Option<Money<USD>> {
+        self.grant.scope.amount_ceiling
+    }
+
+    pub const fn validity(&self) -> CapabilityValidity {
+        self.grant.scope.validity
     }
 
     pub const fn valid_from(&self) -> EstateMoment {
-        self.valid_from
+        self.grant.scope.validity.not_before()
     }
 
     pub const fn valid_through(&self) -> EstateMoment {
-        self.valid_through
+        self.grant.scope.validity.not_after()
     }
 
     pub const fn delegation(&self) -> DelegationLimit {
-        self.delegation
+        self.grant.scope.delegation
     }
 
     pub const fn workflow_stage(&self) -> EstateWorkflowStage {
-        self.workflow_stage
+        self.grant.scope.workflow_stage
     }
 
     pub const fn status(&self) -> CapabilityGrantStatus {
-        self.status
+        self.grant.status
     }
 
     pub const fn grantee(&self) -> BankPrincipalId {
-        self.grantee
+        self.grant.grantee
     }
 
     pub const fn grantor(&self) -> BankPrincipalId {
-        self.grantor
+        self.grant.grantor
+    }
+
+    pub const fn parent(&self) -> Option<CapabilityGrantId> {
+        self.grant.parent
     }
 
     pub fn emergencies(&self) -> &[EstateEmergencyContext] {

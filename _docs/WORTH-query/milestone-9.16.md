@@ -2433,6 +2433,15 @@ It must:
   command input or query parameter authority consumed downstream; Bank
   adapters cannot submit a narrower authorization summary beside a wider
   operation;
+- preserve required-versus-optional field presence through application-query
+  result declaration, canonical installation, disclosure, and domain
+  projection; lawful schema absence is `None`, policy denial is a typed
+  `Omitted`, present wrong-family values deny, and neither posture may be
+  represented by a sentinel;
+- project the administration-governed estate result as exact descriptive Bank
+  grant, optional scope, parent-lineage, emergency-access, and mandatory-review
+  meaning while keeping that result incapable of opening lifecycle or command
+  authority without a fresh Query admission;
 - re-admit the strengthened access context for one-shot, continuation,
   historical, preview, and live lanes without changing canonical query
   identity or result meaning;

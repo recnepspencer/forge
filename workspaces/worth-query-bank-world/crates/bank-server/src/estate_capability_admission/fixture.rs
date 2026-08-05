@@ -23,7 +23,7 @@ use bank_domain::model::{
     AccountId, BankPrincipalId, EmployeeAssignmentId, EmployeeRole, InstitutionId,
 };
 pub(super) use grant_spec::GrantSpec;
-use world::{install_fixture_world, FixtureWorldSpec};
+use world::{install_fixture_world, FixtureWorldComposition, FixtureWorldSpec};
 use worth_query_host::facade::declaration::authentication::WorthQueryExternalPrincipalIdentity;
 
 use crate::{BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankIdentityRuntime};
@@ -52,6 +52,17 @@ pub(super) const APPROVER_UPPER_BOUND_GRANT: CapabilityGrantId =
     CapabilityGrantId::new(25).unwrap();
 pub(super) const CLOSE_GRANT: CapabilityGrantId = CapabilityGrantId::new(26).unwrap();
 pub(super) const REVIEW_GRANT: CapabilityGrantId = CapabilityGrantId::new(27).unwrap();
+pub(super) const DELEGATED_GRANT: CapabilityGrantId = CapabilityGrantId::new(30).unwrap();
+pub(super) const DISBURSEMENT_GRANT: CapabilityGrantId = CapabilityGrantId::new(31).unwrap();
+pub(super) const EMERGENCY_BOUND_GRANT: CapabilityGrantId = CapabilityGrantId::new(32).unwrap();
+pub(super) const REQUESTED_ACCESS: bank_domain::estate::EmergencyAccessId =
+    bank_domain::estate::EmergencyAccessId::new(40).unwrap();
+pub(super) const CLOSED_ACCESS: bank_domain::estate::EmergencyAccessId =
+    bank_domain::estate::EmergencyAccessId::new(41).unwrap();
+pub(super) const REQUESTED_REVIEW: bank_domain::estate::MandatoryReviewId =
+    bank_domain::estate::MandatoryReviewId::new(50).unwrap();
+pub(super) const COMPLETED_REVIEW: bank_domain::estate::MandatoryReviewId =
+    bank_domain::estate::MandatoryReviewId::new(51).unwrap();
 
 pub(super) struct CapabilityFixture {
     pub(super) runtime: BankIdentityRuntime,
@@ -118,14 +129,14 @@ pub(super) fn capability_world(
     specialist_holds_authority: bool,
     unrelated_grants: usize,
 ) -> CapabilityFixture {
-    capability_world_with_command_grant(
+    capability_world_from_spec(FixtureWorldSpec {
         scenario,
         spec,
         case_stage,
         specialist_holds_authority,
         unrelated_grants,
-        false,
-    )
+        composition: FixtureWorldComposition::Admission,
+    })
 }
 
 pub(super) fn emergency_request_world(
@@ -133,25 +144,30 @@ pub(super) fn emergency_request_world(
     upper_bound: GrantSpec,
     case_stage: EstateWorkflowStage,
 ) -> CapabilityFixture {
-    capability_world_with_command_grant(scenario, upper_bound, case_stage, false, 0, true)
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: upper_bound,
+        case_stage,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Lifecycle,
+    })
 }
 
-fn capability_world_with_command_grant(
-    scenario: &str,
-    spec: GrantSpec,
-    case_stage: EstateWorkflowStage,
-    specialist_holds_authority: bool,
-    unrelated_grants: usize,
-    install_command_grant: bool,
-) -> CapabilityFixture {
-    let installed = install_fixture_world(FixtureWorldSpec {
+pub(super) fn governance_projection_world(scenario: &str) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
         scenario,
-        spec,
-        case_stage,
-        specialist_holds_authority,
-        unrelated_grants,
-        install_command_grants: install_command_grant,
-    });
+        spec: GrantSpec::governance_view(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::GovernanceProjection,
+    })
+}
+
+fn capability_world_from_spec(spec: FixtureWorldSpec<'_>) -> CapabilityFixture {
+    let case_stage = spec.case_stage;
+    let installed = install_fixture_world(spec);
     let runtime = installed.runtime;
     let authentication = runtime
         .admit_authentication_adapter(authentication_configuration(), TestAuthenticationAdapter)

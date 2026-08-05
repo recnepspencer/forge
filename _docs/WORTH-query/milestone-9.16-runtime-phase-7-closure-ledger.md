@@ -56,6 +56,7 @@ Query product.
 | R7.26 | 7.4 | Exact delegation lineage remains private non-reusable Query evidence. Any later portable provenance attachment is downstream descriptive material and cannot construct, replace, or re-admit a grant, lineage, access context, or operation authority. | **PROVED** | Facade/compiler/residue evidence proves private lineage construction, move-only access, no authority constructor from provenance, and no reverse Foundational/Relational/Runtime-Bridge dependency. |
 | R7.27 | 7.7 | Public authorization and elevation explanations preserve typed missing-capability, scope, purpose, conflict, separation-of-duty, field-omission, elevation-required, elevation-denied, elevation-expired, and review-required meaning without reconstructing policy from generic denials or strings. | **OPEN** | Public consumer and publication transcripts over every semantically distinct denial family, with compiler and residue proof that explanation material carries no Query authority. |
 | R7.28 | 7.7 | Query's exact authorization, disclosure, elevation, and review outcomes lower into Foundational diagnostic categories, provenance, boundary-evidence receipt posture, and target-aware profiles only after the exact Query transition, without replacing or reopening Query authority. | **OPEN** | Generic elevation and review outcomes now lower only from exact Query transition receipts into typed Foundational receipt-category, diagnostic, provenance, and target-aware profile artifacts, with widening and authority non-promotion proof. Phase 7.7 must complete the structured comparison and public transcript across ordinary and emergency Bank outcomes. |
+| R7.29 | 7.7 | Application-query results preserve exact required-versus-optional schema presence independently from disclosure: lawful absence is `None`, protected knowledge is typed `Omitted`, present wrong-family values deny, and required/optional selectors cannot be substituted. | **PROVED** | Required and optional selector constructors and shape methods demand their exact schema marker; compile-fail examples cover substitution in both directions. Canonical declaration and installed graph identity retain presence. A public production query proves `Some` and lawful `None` from one typed optional field, while the governed production path proves the same present value becomes `WorthQueryApplicationDisclosed::Omitted` without entering projection. Typed bootstrap prevents wrong-family values from entering ordinary graph truth, and execution retains an explicit fail-closed family check at the provider boundary. |
 | R7.L | all | The ledger maps every normative Phase 7 requirement, causal dependency, relevant risk category, consumer boundary, and performance claim without duplicating tests into a Cartesian matrix. | **OPEN** | Skeptical ledger audit at every gate closure; discoveries append findings and block unfinished causal rows or create an append-only corrective phase. |
 
 ## Finding ledger
@@ -151,7 +152,10 @@ Query product.
 | Q7.87 | Critical | Query automatically anchored every grant-kind traversal in installed composition policy to the grant authorizing the current command. A context-anchored approval or review actor path that traversed the lifecycle's carried governed grant therefore could not match when command and carried authority were honestly distinct, silently disabling requester/approver separation. | **CLOSED** | Capability lowering now retains the command-grant anchor only until an exact context anchor has selected the lifecycle object; a later grant traversal remains the carried relationship fact instead of impersonating command authority. Bank's causal control gives one principal independent approval-command authority and proves that principal may approve another request but cannot approve its own. A distinct approver commits the public Query approval transition while all 46 generic elevation tests remain green. |
 | Q7.88 | Critical | Capability observation required the projected context set to equal only the context anchors traversed by graph policy. Bank's revoke command correctly selected the emergency-access subject required by Query's close binder, but its simple employee authorization graph did not traverse that subject, so Query rejected the honest command before lifecycle authority. The generic close fixture concealed the defect by embedding its subject in an authorization path. | **CLOSED** | Observation still requires every graph-policy anchor but permits additional schema-declared, exactly resolved operation context. Such context opens no graph authority, remains part of the retained request, is recomputed at operation progression, and is consumed by the specialized lifecycle binder. The public Bank close proves an unanchored command subject reaches exact receipt comparison; the complete 496-test execution suite proves ordinary capability and elevation behavior remain intact. |
 | Q7.89 | Critical | Bank's public `EstateGovernanceRequest` entered the generic ungoverned query executor, while its governed disclosure declaration supplied no rule for any of the 30 result slots. The only public outcome was therefore `DisclosureContractInvalid`; adding a capability proof alone still could not execute the query. The public result types also exposed no observation methods. | **CLOSED** | Both governed Bank queries now derive their exact capability request from domain-owned request meaning and execute behind responsibility-specific governed-query modules. `GovernanceMetadata` is a distinct highly restricted field class permitted only for estate administration, and every declared governance result slot requires it. One exact public grant discloses all 30 slots with governed receipt evidence; missing, wrong-purpose, and wrong-field worlds deny at capability admission. Read-only result accessors make the admitted result consumable without exposing construction or authority. |
-| Q7.90 | High | The declared `EstateGovernanceContext` is still a bounded summary rather than a complete capability-scope projection: grant field, account, amount ceiling, parent lineage, institution, and branch are absent, while emergency issued/expiry and mandatory-review facts are also absent. A later Bank command must not treat this summary as exact request or lifecycle authority. | **OPEN** | Either extend Query's typed result contract to represent the exact optional scope and lifecycle dimensions with honest disclosure, or narrow/rename the public result so completeness cannot be inferred. Until then, public command cutover must derive exact dimensions from command input and current Query admission rather than this summary. Full R7.13 and cross-lane R7.14 closure remain unavailable. |
+| Q7.90 | High | The declared `EstateGovernanceContext` was a bounded summary rather than a complete capability-scope projection: grant field, account, amount ceiling, parent lineage, institution, and branch were absent, while emergency issued/expiry and mandatory-review facts were also absent. A later Bank command could therefore mistake a descriptive summary for exact request or lifecycle meaning. | **CLOSED** | Query result identity now preserves optional presence, and the Bank shape projects exact `EstateCapabilityGrant`, `EstateEmergencyAccess`, and `MandatoryEstateReview` meaning including every optional scope, lineage, time, and actor axis. A causally complete world proves both present and absent optionals, lawful delegation, account/amount bounds, requested review, and completed review. The result exports no Query proof and still cannot open a command without fresh admission. |
+| Q7.91 | Critical | The first optional-result selector implementation accidentally required `RequiredApplicationFieldValue` in the optional constructor, and no production query or compile-fail evidence exercised the new API before checkpointing it. The declaration surface compiled only because it was unused. | **CLOSED** | The optional constructor now requires only `OptionalApplicationFieldValue`; required and optional construction are compile-fail tested in both directions, and the public and governed execution fixtures consume the optional selector through installation and projection. |
+| Q7.92 | High | Bank bootstrap omitted the required issued-at and expires-at fields when loading pre-existing `EstateEmergencyAccess` records, so a realistic emergency world could not satisfy the exact governance projection even though Query-created lifecycle records carried those fields. | **CLOSED** | The estate entity bootstrap now binds both required time fields from domain truth. The complete governance fixture installs two pre-existing emergency records and projects their independent issued/expiry values through the public query. |
+| Q7.93 | Medium | Bank's 4 KiB per-root application-query result reservation admitted the earlier governance summary but denied the exact bounded result before delivery, making the declared query unusable for its lawful composite world. | **CLOSED** | The installed Bank profile now reserves a bounded 32 KiB per root while retaining the existing 32 KiB inline-index and intermediate-set ceilings. The exact four-grant/two-emergency world executes without fallback, and receipt evidence retains bounded allocation and release. |
 
 ## Phase 7.1 closure evidence
 
@@ -1055,6 +1059,59 @@ cross-lane proof may consume it as exact authority. This checkpoint therefore
 advances R7.13 but does not close it; R7.14-R7.15, R7.27-R7.28, Q7.52, Q7.90,
 and R7.L remain open with the other command, cross-lane, locality, diagnostic,
 oracle-removal, and certification work.
+
+### Phase 7.7D exact optional result and estate-governance checkpoint
+
+The fourth Phase 7.7 slice closes the result-shape defect that prevented the
+administration query from honestly representing Bank's complete capability
+and emergency meaning. Required-versus-optional presence now survives typed
+selector construction, declaration identity, member closure, installed graph
+identity, disclosure, materialization, and domain projection. The public result
+API returns `Option<T>` only for lawful schema absence. Governed projection
+returns `WorthQueryApplicationDisclosed<Option<T>>`, so policy denial remains a
+typed `Omitted` and does not reveal whether a protected value was absent.
+
+The generic courtroom uses one optional account field in two causally valid
+records to prove `Some` and `None`, then runs the present value through the
+governed disclosure path to prove it becomes `Omitted` before domain
+projection. Public compile-fail examples reject required/optional selector
+substitution in both directions. This closes R7.29 and Q7.91 without relying on
+Bank-specific behavior as the only evidence.
+
+Bank's `EstateGovernanceContext` now wraps exact `EstateCapabilityGrant`,
+`EstateEmergencyAccess`, and `MandatoryEstateReview` values. Its installed
+shape includes optional field, account, amount, and parent axes; required
+institution and branch; emergency issued/expiry; and exact review estate,
+kind, status, and optional reviewer. The selector topology is split by root,
+capability, emergency, and review ownership. A named governance-projection
+world proves absent and present optional scope, lawful parent lineage,
+account/amount bounds, requested review, and completed distinct-actor review.
+
+That world exposed two adjacent producer/resource defects. Bootstrap now binds
+the required emergency issued/expiry fields from domain truth, closing Q7.92.
+The exact result exceeded Bank's former 4 KiB per-root reservation; the Bank
+profile now installs a bounded 32 KiB result reservation and the full public
+query completes without fallback, closing Q7.93. Q7.90 is closed because the
+result is exact descriptive meaning, but the result remains non-authority: a
+later command or lifecycle transition still requires fresh Query admission.
+
+Checkpoint verification includes all `108` declaration, `151` installation,
+and `497` execution library tests; all `4` declaration compile-fail
+documentation tests; the complete Bank domain and server suites; and the exact
+governance receipt assertion that peak retained result bytes exceed the former
+4 KiB ceiling, remain within the installed 32 KiB ceiling, and are released.
+Strict dependency-excluding `-D warnings` Clippy passes across the affected
+Query and Bank crates. Both constitutional boundary checks, formatting, and
+diff-whitespace validation pass. Every dirty Rust file remains below `400`
+lines. The repository-wide line-cap inventory remains independently red on
+`104` pre-existing, untouched violations; none is in this checkpoint's dirty
+surface.
+
+This checkpoint advances R7.13 but does not close Phase 7.7. Other estate
+command cutovers, complete cross-lane parity, typed diagnostic/publication
+comparison, warm-locality growth proof, legacy oracle removal, and final
+courtroom/residue certification remain under R7.13-R7.15, R7.27-R7.28, Q7.52,
+and R7.L.
 
 ## Test-selection policy
 

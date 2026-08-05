@@ -20,6 +20,7 @@ mod identity_convergence;
 mod lane_hostility;
 mod lane_parity;
 mod lifecycle;
+mod optional_result_presence;
 mod pinned_basis;
 mod planning_budget;
 mod result_projection;

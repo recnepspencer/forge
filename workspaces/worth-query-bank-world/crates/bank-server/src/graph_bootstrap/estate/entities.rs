@@ -119,7 +119,9 @@ fn bind_emergency_access(
             )
             .field(EmergencyAccessIdentityField::reference(), value.id)
             .field(EmergencyAccessReasonField::reference(), value.reason)
-            .field(EmergencyAccessStatusField::reference(), value.status),
+            .field(EmergencyAccessStatusField::reference(), value.status)
+            .field(EmergencyAccessIssuedAtField::reference(), value.issued_at)
+            .field(EmergencyAccessExpiresAtField::reference(), value.expires_at),
         )?;
     }
     Ok(())

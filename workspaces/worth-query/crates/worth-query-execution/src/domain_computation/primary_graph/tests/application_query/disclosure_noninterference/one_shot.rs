@@ -14,9 +14,13 @@ use super::super::super::fixture::{
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationDisclosed, WorthQueryApplicationDisclosureDecisionFact,
     WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceiptPosture,
-    WorthQueryApplicationQueryAccessContext, WorthQueryApplicationQueryControls,
-    WorthQueryApplicationQueryOmissionPosture, WorthQueryPrincipalResolutionMode,
+    WorthQueryApplicationOneShotResult, WorthQueryApplicationQueryAccessContext,
+    WorthQueryApplicationQueryControls, WorthQueryApplicationQueryOmissionPosture,
+    WorthQueryPrincipalResolutionMode,
 };
+
+type GovernedResult =
+    WorthQueryApplicationOneShotResult<GovernedAccountOmissionQuery, GovernedAccountOmissionResult>;
 
 #[derive(Debug, Eq, PartialEq)]
 struct ConsumerObservation {
@@ -60,10 +64,14 @@ fn protected_label_difference_is_absent_from_every_one_shot_observable() {
         &CapabilityDisclosure::PrivateLabel.into_foundational_value()
     );
     assert!(matches!(
+        left.rows[0].note(),
+        WorthQueryApplicationDisclosed::Omitted(_)
+    ));
+    assert!(matches!(
         left.rows[0].activities(),
         WorthQueryApplicationDisclosed::Omitted(_)
     ));
-    assert_eq!(left.disclosure_decision_count, 5);
+    assert_eq!(left.disclosure_decision_count, 6);
     assert_eq!(
         left.decisions
             .iter()
@@ -72,7 +80,7 @@ fn protected_label_difference_is_absent_from_every_one_shot_observable() {
                     == &CapabilityDisclosure::PrivateLabel.into_foundational_value()
             })
             .count(),
-        4
+        5
     );
     assert_eq!(
         left.decisions
@@ -81,7 +89,7 @@ fn protected_label_difference_is_absent_from_every_one_shot_observable() {
                 decision.outcome() == WorthQueryApplicationDisclosureOutcome::Omitted
             })
             .count(),
-        4
+        5
     );
     let slots = left
         .decisions
@@ -157,6 +165,10 @@ fn execute(world: &AuthorizationWorld) -> ConsumerObservation {
         .application
         .execute_application_query_one_shot(plan)
         .unwrap();
+    capture_observation(&result)
+}
+
+fn capture_observation(result: &GovernedResult) -> ConsumerObservation {
     let disclosure = result.receipt().disclosure();
     ConsumerObservation {
         rows: result.rows().to_vec(),

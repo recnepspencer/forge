@@ -61,7 +61,7 @@ pub fn estate_governance_definition() -> ApplicationQueryDefinition<
         EstateCase::reference(),
         governance_shape(),
         ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 9, 21),
+        ApplicationQueryDependencyCeiling::bounded(4, 16, 34),
         governance_disclosure(),
         ApplicationQueryBasisSupport::current_and_pinned(),
         ApplicationQueryLaneEligibility::one_shot(),

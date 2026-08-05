@@ -11,7 +11,6 @@ pub use estate::{
     EstateAccountView, EstateAssignmentView, EstateCaseOverview, EstateDeathNoticeView,
     EstateLegalAuthorityView, EstateReviewView,
 };
-pub(crate) use estate_governance::EstateCapabilityProjection;
 pub use estate_governance::{
     EstateCapabilityContext, EstateEmergencyContext, EstateGovernanceContext,
 };

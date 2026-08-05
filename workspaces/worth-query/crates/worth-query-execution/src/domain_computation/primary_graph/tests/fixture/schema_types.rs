@@ -44,6 +44,10 @@ worth_query_field!(
     pub AccountLabel in IdentityExecutionSchema, Account, AccountPolicy:
     String, read_write, equality
 );
+worth_query_field!(
+    pub AccountNote in IdentityExecutionSchema, Account, AccountPolicy:
+    optional String, read_write, equality
+);
 worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity);
 worth_query_field!(
     pub ActivityIdentity in IdentityExecutionSchema, Activity, ActivityFacts:
