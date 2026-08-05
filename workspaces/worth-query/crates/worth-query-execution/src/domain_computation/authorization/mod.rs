@@ -30,6 +30,7 @@ mod retained_capability_request;
 pub(in crate::domain_computation) use retained_capability_request::WorthQueryRetainedCapabilityRequest;
 mod retained_capability_support;
 mod time_basis;
+mod time_source;
 
 pub use admitted_capability_access::WorthQueryAdmittedApplicationCapabilityAccess;
 pub use admitted_operation::WorthQueryAdmittedApplicationOperation;
@@ -71,6 +72,7 @@ pub(in crate::domain_computation) use retained_capability_support::{
 pub(in crate::domain_computation) use time_basis::{
     WorthQueryAuthorizationClock, WorthQueryAuthorizationTimeSample,
 };
+pub use time_source::{WorthQueryAuthorizationTimeSource, WorthQueryAuthorizationTimeSourceDenial};
 
 fn authorization_denial(
     subject: impl Into<String>,

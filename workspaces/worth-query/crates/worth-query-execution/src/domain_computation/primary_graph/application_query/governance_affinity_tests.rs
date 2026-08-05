@@ -172,13 +172,11 @@ fn governance_rejects_real_query_parameter_principal_and_scope_substitution() {
 }
 
 fn governance_context(label: &str) -> GovernanceContext {
-    let mut world = installed_capability_live_world_with_label(label);
-    world
-        .application
-        .script_authorization_time(std::iter::repeat_n(
-            UNIX_EPOCH + Duration::from_secs(100),
-            16,
-        ));
+    let world = installed_capability_live_world_with_label(label);
+    world.authorization_time.script(std::iter::repeat_n(
+        UNIX_EPOCH + Duration::from_secs(100),
+        16,
+    ));
     let request = live_scope();
     let principal = resolve_principal(&world, &request, "alice");
     let account = world

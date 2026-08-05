@@ -3,6 +3,12 @@ use std::time::{Duration, Instant};
 #[path = "fixture/authentication.rs"]
 mod authentication;
 use authentication::authenticate_external;
+#[path = "fixture/account_seed.rs"]
+mod account_seed;
+#[path = "fixture/authorization_time.rs"]
+mod authorization_time;
+#[path = "fixture/authorization_world_installation.rs"]
+mod authorization_world_installation;
 #[path = "fixture/capability.rs"]
 pub(super) mod capability;
 #[path = "fixture/capability_access_fixture.rs"]
@@ -103,6 +109,7 @@ mod schema_types;
 mod world_authentication;
 #[path = "fixture/world_installation.rs"]
 mod world_installation;
+pub(in crate::domain_computation::primary_graph) use authorization_world_installation::AuthorizationWorld;
 pub(in crate::domain_computation::primary_graph) use capability_world_installation::{
     installed_capability_authorization_world, installed_capability_live_world,
     installed_capability_live_world_with_label, installed_capability_replacement_world,
@@ -116,7 +123,6 @@ pub(in crate::domain_computation::primary_graph) use schema_types::*;
 pub(in crate::domain_computation::primary_graph) use world_installation::{
     installed_authorization_world, installed_authorization_world_with_label,
     installed_authorization_world_with_resource_profile, installed_blocked_authorization_world,
-    AuthorizationWorld,
 };
 pub(super) use world_installation::{
     installed_two_principal_authorization_world, installed_world, installed_world_with_policy_fact,
@@ -139,6 +145,8 @@ use worth_query_installation::facade::{
     WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
     WorthQueryValidatedPortableDomainPackage,
 };
+
+use authorization_time::AuthorizationTimeController;
 
 use crate::domain_computation::execution_runtime::{
     WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionRuntime,

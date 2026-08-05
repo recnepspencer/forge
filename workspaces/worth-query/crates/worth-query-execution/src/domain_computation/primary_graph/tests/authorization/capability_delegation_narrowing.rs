@@ -39,8 +39,8 @@ fn every_stored_narrowing_axis_is_enforced_by_production_admission() {
         NarrowingAxis::ValidityEnd,
         NarrowingAxis::DownstreamDelegation,
     ] {
-        let mut world = installed_delegated_capability_world();
-        world.application.script_authorization_time([time(100)]);
+        let world = installed_delegated_capability_world();
+        world.authorization_time.script([time(100)]);
         break_narrowing_axis(&world, axis);
         let request = live_scope();
         let principal = authenticated_principal(&world, &request);

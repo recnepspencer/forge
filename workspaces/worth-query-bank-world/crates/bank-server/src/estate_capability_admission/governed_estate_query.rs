@@ -299,8 +299,6 @@ fn assert_governance_denied(scenario: &str, grant: GrantSpec) {
         scenario,
         grant,
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let denial = fixture

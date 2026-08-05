@@ -18,10 +18,8 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn delegated_chain_expiry_between_access_and_governed_query_sessions_denies() {
-    let mut world = installed_delegated_capability_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(102)]);
+    let world = installed_delegated_capability_world();
+    world.authorization_time.script([time(100), time(102)]);
     update_grant_field(
         &world,
         "capability-parent",

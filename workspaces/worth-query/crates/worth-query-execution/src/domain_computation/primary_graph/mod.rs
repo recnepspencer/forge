@@ -32,11 +32,12 @@ mod tests;
 
 pub use crate::domain_computation::authorization::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryApplicationAuthorizationExplanationCause,
-    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
-    WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialIdentity, WorthQueryOperationAuthorizationDenialKind,
-    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryAuthorizationTimeSource,
+    WorthQueryAuthorizationTimeSourceDenial, WorthQueryElevationApprovalAuthorizationDenial,
+    WorthQueryElevationCloseAuthorizationDenial, WorthQueryMandatoryReviewAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialIdentity,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
+    WorthQueryOperationScopeEntityBinding,
 };
 pub(in crate::domain_computation) use application_attempt::application_resource_request;
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{

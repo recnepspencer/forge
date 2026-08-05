@@ -2,29 +2,77 @@ use bank_domain::estate::{BankDisclosure, EstateWorkflowStage, RestrictedBankFie
 use bank_domain::schema::{
     ViewEstateIdentityVerificationCapability, ViewRestrictedEstateOperation,
 };
-use worth_foundational::facade::{
-    FoundationalBoundaryArtifactCategory, FoundationalBoundaryEvidenceCloseoutDisposition,
-    FoundationalBoundaryEvidenceExecutionPosture, FoundationalBoundaryEvidenceReceiptKind,
-    FoundationalDiagnosticDenialClass, FoundationalDiagnosticOutcomeKind,
-};
 use worth_query_host::facade::domain::TypedApplicationValue;
 use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationDisclosureOutcome,
-    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceipt,
+    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenialKind,
 };
 use worth_query_host::facade::publication::domain_computation::{
-    publish_application_authorization_denial, publish_application_field_omission,
-    WorthQueryApplicationAuthorizationPublicationProfile,
+    publish_application_field_omission, WorthQueryApplicationAuthorizationPublicationProfile,
     WorthQueryApplicationQueryPublicationInspection,
 };
 
 use super::fixture::{
-    capability_world, request_scope, CapabilityFixture, GrantSpec, DECEASED, ESTATE,
+    capability_world, governed_disclosure_world, request_scope, CapabilityFixture, GrantSpec,
+    APPROVER, DECEASED, ESTATE, EXECUTOR,
 };
-use super::publication_evidence::publication_profile;
+use super::publication_evidence::{
+    assert_authorization_denial_publication, assert_field_omission_publication,
+    assert_omission_noninterference, publication_profile,
+    ExpectedAuthorizationDenialPublication,
+};
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
+
+#[test]
+fn present_protected_beneficiary_value_cannot_influence_public_omission_material() {
+    let first = governed_disclosure_world("governed-disclosure-hidden-twin", APPROVER);
+    let second = governed_disclosure_world("governed-disclosure-hidden-twin", EXECUTOR);
+    assert_eq!(first.source_beneficiaries(), vec![APPROVER]);
+    assert_eq!(second.source_beneficiaries(), vec![EXECUTOR]);
+    assert_ne!(first.source_beneficiaries(), second.source_beneficiaries());
+
+    let first_principal = first.authenticate();
+    let second_principal = second.authenticate();
+    let first_result = first
+        .runtime
+        .query(queries::estate_customer_identity(ESTATE))
+        .as_principal(&first_principal)
+        .controls(BankReadControls::current(request_scope(), 1, 512).unwrap())
+        .execute()
+        .unwrap();
+    let second_result = second
+        .runtime
+        .query(queries::estate_customer_identity(ESTATE))
+        .as_principal(&second_principal)
+        .controls(BankReadControls::current(request_scope(), 1, 512).unwrap())
+        .execute()
+        .unwrap();
+
+    assert_eq!(first_result.rows(), second_result.rows());
+    let first_disclosure = first_result.receipt().disclosure();
+    let second_disclosure = second_result.receipt().disclosure();
+    assert_eq!(first_disclosure.disclosed(), second_disclosure.disclosed());
+    assert_eq!(first_disclosure.omitted(), second_disclosure.omitted());
+    assert_eq!(first_disclosure.decisions(), second_disclosure.decisions());
+    assert_ne!(
+        first_disclosure.outcome_identity(),
+        second_disclosure.outcome_identity()
+    );
+
+    let profile = publication_profile();
+    let first_publication = publish_application_field_omission(
+        first_disclosure,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
+    )
+    .unwrap();
+    let second_publication = publish_application_field_omission(
+        second_disclosure,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
+    )
+    .unwrap();
+    assert_omission_noninterference(&first_publication, &second_publication, profile);
+}
 
 #[test]
 fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
@@ -32,8 +80,6 @@ fn authenticated_bank_consumer_receives_only_the_governed_published_shape() {
         "governed-disclosure",
         GrantSpec::identity_verification(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let controls = BankReadControls::current(request_scope(), 1, 512).unwrap();
@@ -158,44 +204,12 @@ fn assert_query_publication(
     assert_eq!(publication.publication_identity_text_materializations(), 0);
 }
 
-fn assert_field_omission_publication(disclosure: &WorthQueryApplicationDisclosureReceipt) {
-    let omission = publish_application_field_omission(
-        disclosure,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
-    )
-    .unwrap();
-    assert_eq!(
-        omission.boundary_category(),
-        FoundationalBoundaryArtifactCategory::Artifact
-    );
-    assert_eq!(omission.artifact().disclosure(), disclosure);
-    let locator = omission
-        .provenance()
-        .source_basis()
-        .boundary_artifact_locator()
-        .unwrap();
-    assert_eq!(
-        locator.artifact_id().get(),
-        disclosure.outcome_identity().unwrap().get()
-    );
-    assert_eq!(
-        omission.explanation().outcome_kind(),
-        FoundationalDiagnosticOutcomeKind::Partial
-    );
-    assert_eq!(
-        omission.publication_receipt().receipt_kind(),
-        FoundationalBoundaryEvidenceReceiptKind::Publication
-    );
-}
-
 #[test]
 fn bank_consumer_cannot_repurpose_an_administration_grant_for_identity_disclosure() {
     let fixture = capability_world(
         "wrong-purpose-disclosure",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let controls = BankReadControls::current(request_scope(), 1, 256).unwrap();
@@ -218,52 +232,11 @@ fn bank_consumer_cannot_repurpose_an_administration_grant_for_identity_disclosur
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
-    assert_authorization_denial_publication(&denial);
-}
-
-fn assert_authorization_denial_publication(denial: &WorthQueryOperationAuthorizationDenial) {
-    let published = publish_application_authorization_denial(
-        denial,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
-    )
-    .unwrap();
-    assert_eq!(published.artifact().denial(), denial);
-    assert_eq!(
-        published.artifact().cause(),
-        WorthQueryApplicationAuthorizationExplanationCause::MissingCapability
-    );
-    assert_eq!(
-        published.boundary_category(),
-        FoundationalBoundaryArtifactCategory::Artifact
-    );
-    assert_eq!(
-        published.explanation().outcome_kind(),
-        FoundationalDiagnosticOutcomeKind::Denied
-    );
-    assert_eq!(
-        published.explanation().rows()[0].code().as_str(),
-        "worth.query.authorization.missing-capability"
-    );
-    let worth_foundational::facade::FoundationalDiagnosticRow::Decision(row) =
-        &published.explanation().rows()[0]
-    else {
-        panic!("authorization denial must publish one decision row");
-    };
-    assert_eq!(
-        row.denial_class(),
-        Some(FoundationalDiagnosticDenialClass::PolicyDenied)
-    );
-    assert_eq!(
-        published.denied_closeout_receipt().closeout_disposition(),
-        Some(FoundationalBoundaryEvidenceCloseoutDisposition::Denied)
-    );
-    assert_eq!(
-        published.denied_closeout_receipt().execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
-    );
-    assert!(!published.denied_closeout_receipt().did_execute());
-    assert_eq!(
-        published.publication_receipt().execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::Executed
+    assert_authorization_denial_publication(
+        &denial,
+        ExpectedAuthorizationDenialPublication {
+            cause: worth_query_host::facade::primary_graph::WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+            code: "worth.query.authorization.missing-capability",
+        },
     );
 }

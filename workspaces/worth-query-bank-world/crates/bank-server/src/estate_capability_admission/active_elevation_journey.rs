@@ -1,5 +1,7 @@
 //! Successful Bank emergency-use lifecycle and authoritative readback evidence.
 
+use std::time::Duration;
+
 use bank_domain::{
     estate::{
         BankDisclosure, EmergencyAccessId, EmergencyAccessReason, EmergencyAccessStatus,
@@ -26,7 +28,9 @@ use super::{
         emergency_request_world, request_scope, CapabilityFixture, GrantSpec, ACCOUNT, ESTATE,
         GRANT, REVIEWER, SPECIALIST,
     },
-    lifecycle_journey::{approve_elevation, request_elevation},
+    lifecycle_journey::{
+        approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+    },
 };
 use crate::{queries, BankAuthenticatedPrincipal, BankReadControls};
 
@@ -56,13 +60,24 @@ fn approved_emergency_discloses_account_details_and_terminal_state_reads_back() 
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        361,
-        362,
-        91,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 361,
+            review: 362,
+            idempotency: 91,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
-    let approved = approve_elevation(&fixture, &approver, requested, 361, 93);
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 361,
+            idempotency: 93,
+        },
+    );
 
     assert_approved_account_disclosure(&fixture, &requester, identity.access, &approved);
     let mandatory = close_elevation(&fixture, &approver, approved, identity.access);

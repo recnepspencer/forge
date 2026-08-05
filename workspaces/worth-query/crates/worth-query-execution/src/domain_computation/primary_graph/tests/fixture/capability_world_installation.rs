@@ -1,5 +1,5 @@
-use super::world_installation::{
-    installed_authorization_world_with_principal_count, AuthorizationWorld,
+use super::authorization_world_installation::{
+    install_authorization_world, AuthorizationWorld, AuthorizationWorldSpec,
     CapabilityGrantPopulation,
 };
 use super::WorthQueryApplicationQueryResourceProfile;
@@ -23,14 +23,10 @@ pub(in crate::domain_computation::primary_graph) fn installed_capability_live_wo
 pub(in crate::domain_computation::primary_graph) fn installed_capability_live_world_with_label(
     label: &str,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[("principal-1", "account-1")],
-        false,
-        2,
-        label,
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::Current,
-    )
+    install_authorization_world(AuthorizationWorldSpec {
+        owner_bindings: &[("principal-1", "account-1")],
+        ..capability_spec(2, label, CapabilityGrantPopulation::Current)
+    })
 }
 
 pub(in crate::domain_computation::primary_graph) fn installed_capability_replacement_world(
@@ -108,14 +104,10 @@ pub(in crate::domain_computation::primary_graph) fn installed_elevated_capabilit
 pub(in crate::domain_computation::primary_graph) fn installed_elevated_capability_live_world(
     scenario: super::capability_elevation_seed::CapabilityElevationScenario,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[("principal-2", "account-1")],
-        false,
-        3,
-        "primary",
-        WorthQueryApplicationQueryResourceProfile::default(),
-        CapabilityGrantPopulation::Elevated(scenario),
-    )
+    install_authorization_world(AuthorizationWorldSpec {
+        owner_bindings: &[("principal-2", "account-1")],
+        ..capability_spec(3, "primary", CapabilityGrantPopulation::Elevated(scenario))
+    })
 }
 
 fn capability_world(
@@ -123,12 +115,20 @@ fn capability_world(
     label: &str,
     grants: CapabilityGrantPopulation,
 ) -> AuthorizationWorld {
-    installed_authorization_world_with_principal_count(
-        &[],
-        false,
+    install_authorization_world(capability_spec(principal_count, label, grants))
+}
+
+fn capability_spec(
+    principal_count: usize,
+    primary_label: &str,
+    capability_grants: CapabilityGrantPopulation,
+) -> AuthorizationWorldSpec<'_> {
+    AuthorizationWorldSpec {
+        owner_bindings: &[],
+        blocked: false,
         principal_count,
-        label,
-        WorthQueryApplicationQueryResourceProfile::default(),
-        grants,
-    )
+        primary_label,
+        resources: WorthQueryApplicationQueryResourceProfile::default(),
+        capability_grants,
+    }
 }

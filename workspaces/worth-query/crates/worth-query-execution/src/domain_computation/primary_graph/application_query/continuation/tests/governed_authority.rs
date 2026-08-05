@@ -26,10 +26,10 @@ type GovernedContinuation = WorthQueryApplicationQueryContinuation<
 
 #[test]
 fn governed_cursor_alone_cannot_resume_disclosure() {
-    let (mut world, principal, account, query, request) = context();
+    let (world, principal, account, query, request) = context();
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let continuation = issue(&world, &principal, &account, &query, &request);
     let access = WorthQueryApplicationQueryAccessContext::new(&principal, &account);
 
@@ -53,10 +53,10 @@ fn governed_cursor_alone_cannot_resume_disclosure() {
 
 #[test]
 fn governed_continuation_consumes_fresh_capability_evidence() {
-    let (mut world, principal, account, query, request) = context();
+    let (world, principal, account, query, request) = context();
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let continuation = issue(&world, &principal, &account, &query, &request);
     let fresh = admit_touch_account_capability(&world, &principal, &request).unwrap();
     let access = WorthQueryApplicationQueryAccessContext::new(&principal, &account);

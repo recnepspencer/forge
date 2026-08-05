@@ -4,10 +4,14 @@ use bank_server::{
 };
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryEvidenceCloseoutDisposition,
-    FoundationalBoundaryEvidenceExecutionPosture, FoundationalDiagnosticOutcomeKind,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    DiagnosticRichnessProfile, FoundationalBoundaryArtifactCategory,
+    FoundationalBoundaryEvidenceCloseoutDisposition, FoundationalBoundaryEvidenceExecutionPosture,
+    FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceLocality,
+    FoundationalBoundaryEvidenceReceiptKind, FoundationalDiagnosticDenialClass,
+    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticOutcomeKind,
+    FoundationalDiagnosticRow, FoundationalDiagnosticWidenedFalloutPosture,
+    FoundationalProfileAttachmentTargetKind, FoundationalProfileSet,
+    FoundationalProfileSetInput, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_query_host::facade::{
     primary_graph::{
@@ -17,6 +21,7 @@ use worth_query_host::facade::{
     publication::domain_computation::{
         publish_application_authorization_denial,
         WorthQueryApplicationAuthorizationPublicationProfile,
+        WorthQueryPublishedApplicationAuthorizationDenial,
     },
 };
 
@@ -200,24 +205,60 @@ fn beneficiary_and_executor_actors_deny_at_capability_composition() {
             ActorConflict::None => unreachable!(),
         };
         assert_eq!(denial.kind(), kind);
-        assert_authorization_publication(&denial, cause, code);
+        assert_authorization_publication(
+            &denial,
+            ExpectedAuthorizationPublication { cause, code },
+        );
         assert_no_disbursement_effects(&fixture);
     }
 }
 
+struct ExpectedAuthorizationPublication {
+    cause: WorthQueryApplicationAuthorizationExplanationCause,
+    code: &'static str,
+}
+
 fn assert_authorization_publication(
     denial: &WorthQueryOperationAuthorizationDenial,
-    expected_cause: WorthQueryApplicationAuthorizationExplanationCause,
-    expected_code: &str,
+    expected: ExpectedAuthorizationPublication,
 ) {
+    let profile = publication_profile();
     let published = publish_application_authorization_denial(
         denial,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(profile),
     )
     .unwrap();
 
     assert_eq!(published.artifact().denial(), denial);
-    assert_eq!(published.artifact().cause(), expected_cause);
+    assert_eq!(published.artifact().cause(), expected.cause);
+    assert_boundary_profile(&published, profile);
+    assert_violation_diagnostic(&published, expected.code);
+    assert_denied_and_publication_receipts(&published);
+    assert_exact_provenance(&published, denial);
+}
+
+fn assert_boundary_profile(
+    published: &WorthQueryPublishedApplicationAuthorizationDenial,
+    expected_profile: FoundationalProfileSet,
+) {
+    assert_eq!(
+        published.boundary_category(),
+        FoundationalBoundaryArtifactCategory::Artifact
+    );
+    assert_eq!(
+        published.boundary().payload().target_kind(),
+        FoundationalProfileAttachmentTargetKind::BoundaryArtifact
+    );
+    let progression = published.boundary().payload().profile();
+    assert_eq!(progression.requested(), &expected_profile);
+    assert_eq!(progression.admitted(), &expected_profile);
+    assert_eq!(progression.materialized(), &expected_profile);
+}
+
+fn assert_violation_diagnostic(
+    published: &WorthQueryPublishedApplicationAuthorizationDenial,
+    expected_code: &str,
+) {
     assert_eq!(
         published.explanation().outcome_kind(),
         FoundationalDiagnosticOutcomeKind::Violation
@@ -226,17 +267,63 @@ fn assert_authorization_publication(
         published.explanation().rows()[0].code().as_str(),
         expected_code
     );
+    let FoundationalDiagnosticRow::Decision(row) = &published.explanation().rows()[0] else {
+        panic!("conflict publication must contain one decision row");
+    };
     assert_eq!(
-        published.denied_closeout_receipt().closeout_disposition(),
+        row.denial_class(),
+        Some(FoundationalDiagnosticDenialClass::PolicyDenied)
+    );
+    assert_eq!(
+        row.locality_claim(),
+        FoundationalDiagnosticLocalityClaim::ExactSubject
+    );
+    assert_eq!(
+        row.widened_fallout_posture(),
+        FoundationalDiagnosticWidenedFalloutPosture::NotWidened
+    );
+}
+
+fn assert_denied_and_publication_receipts(
+    published: &WorthQueryPublishedApplicationAuthorizationDenial,
+) {
+    let closeout = published.denied_closeout_receipt();
+    assert_eq!(
+        closeout.closeout_disposition(),
         Some(FoundationalBoundaryEvidenceCloseoutDisposition::Denied)
     );
     assert_eq!(
-        published.denied_closeout_receipt().execution_posture(),
+        closeout.execution_posture(),
         FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
     );
     assert_eq!(
-        published.publication_receipt().execution_posture(),
+        closeout.receipt_kind(),
+        FoundationalBoundaryEvidenceReceiptKind::Closeout
+    );
+    assert!(!closeout.did_execute());
+    let publication = published.publication_receipt();
+    assert_eq!(
+        publication.execution_posture(),
         FoundationalBoundaryEvidenceExecutionPosture::Executed
+    );
+    assert_eq!(
+        publication.receipt_kind(),
+        FoundationalBoundaryEvidenceReceiptKind::Publication
+    );
+    assert!(publication.did_execute());
+}
+
+fn assert_exact_provenance(
+    published: &WorthQueryPublishedApplicationAuthorizationDenial,
+    denial: &WorthQueryOperationAuthorizationDenial,
+) {
+    assert_eq!(
+        published.provenance().locality(),
+        FoundationalBoundaryEvidenceLocality::Current
+    );
+    assert_eq!(
+        published.provenance().freshness_posture(),
+        FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
     );
     let locator = published
         .provenance()

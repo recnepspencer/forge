@@ -248,8 +248,8 @@ fn forbidden_live_target_influence_denies_before_result_construction() {
 }
 
 fn admission_context() -> AdmissionContext {
-    let mut world = installed_capability_world_with_label("private");
-    world.application.script_authorization_time([
+    let world = installed_capability_world_with_label("private");
+    world.authorization_time.script([
         UNIX_EPOCH + Duration::from_secs(100),
         UNIX_EPOCH + Duration::from_secs(100),
     ]);

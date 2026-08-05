@@ -17,8 +17,8 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn exact_conflicted_approver_cannot_open_elevation_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     add_approver_conflict(&world);
 
@@ -35,10 +35,8 @@ fn exact_conflicted_approver_cannot_open_elevation_authority() {
 
 #[test]
 fn approver_conflict_drift_stales_admitted_elevation_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access =
         super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();

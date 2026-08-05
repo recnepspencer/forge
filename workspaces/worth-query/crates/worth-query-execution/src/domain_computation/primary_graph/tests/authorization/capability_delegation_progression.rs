@@ -12,10 +12,8 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn parent_revocation_after_program_admission_denies_final_commit() {
-    let mut world = installed_delegated_capability_world();
-    world
-        .application
-        .script_authorization_time(vec![time(100); 16]);
+    let world = installed_delegated_capability_world();
+    world.authorization_time.script(vec![time(100); 16]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = admitted_capability_program(&world, &principal, &request, "denied").0;
@@ -31,10 +29,8 @@ fn parent_revocation_after_program_admission_denies_final_commit() {
 
 #[test]
 fn parent_revocation_denies_idempotency_receipt_inspection() {
-    let mut world = installed_delegated_capability_world();
-    world
-        .application
-        .script_authorization_time(vec![time(100); 32]);
+    let world = installed_delegated_capability_world();
+    world.authorization_time.script(vec![time(100); 32]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let first = admitted_capability_program(&world, &principal, &request, "committed").0;

@@ -2216,6 +2216,8 @@ dependencies = [
  "sha2",
  "worth-foundational",
  "worth-proof",
+ "worth-query-admission",
+ "worth-query-declaration",
  "worth-query-execution",
  "worth-query-installation",
 ]

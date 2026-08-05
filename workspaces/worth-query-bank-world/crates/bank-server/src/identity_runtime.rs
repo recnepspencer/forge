@@ -1,5 +1,8 @@
 use std::collections::BTreeSet;
 
+#[path = "identity_runtime/installation.rs"]
+mod installation;
+
 use bank_domain::estate::BankEstateWorld;
 use bank_domain::model::BankPrincipalId;
 use bank_domain::proposals::BankSnapshot;
@@ -9,24 +12,16 @@ use worth_query_host::facade::admission::authenticated_principal::{
     WorthQueryAuthenticationAdapterAdmission, WorthQueryAuthenticationAudience,
     WorthQueryAuthenticationMethod, WorthQueryRequestScope,
 };
-use worth_query_host::facade::domain::{
-    WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
-    WorthQueryInstalledPrincipalBinding,
-};
+use worth_query_host::facade::domain::WorthQueryInstalledPrincipalBinding;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationInvariantProjectionAuthority, WorthQueryPrimaryGraphApplicationRuntime,
-    WorthQueryPrincipalResolutionMode,
-};
-use worth_query_host::facade::runtime::{
-    WorthQueryApplicationQueryResourceProfile, WorthQueryExecutionRuntimeInstaller,
+    WorthQueryApplicationInvariantProjectionAuthority, WorthQueryAuthorizationTimeSource,
+    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
 };
 
-use crate::domain_package::bank_domain_package;
 use crate::error::{
     BankAuthenticationBoundaryBuildError, BankIdentityRuntimeBuildError,
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
-use crate::graph_bootstrap::bind_bank_world_with_estate;
 use crate::principal_seed::{BankPrincipalSeed, PreparedBankPrincipalSeed};
 use crate::{
     BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankAuthenticationBoundary,
@@ -64,94 +59,36 @@ impl BankIdentityRuntime {
         seeds: impl IntoIterator<Item = BankPrincipalSeed>,
     ) -> Result<Self, BankIdentityRuntimeBuildError> {
         let seeds = prepare_seeds(seeds)?;
-        Self::install_prepared(seeds, None)
+        installation::install_prepared(
+            seeds,
+            None,
+            installation::BankAuthorizationTimeInstallation::System,
+        )
     }
 
     pub fn install_world(seed: BankWorldSeed) -> Result<Self, BankIdentityRuntimeBuildError> {
-        let (snapshot, principals, owners, employees, estate) = seed.into_parts();
-        let principals = prepare_seeds(principals)?;
-        validate_world_principals(&snapshot, &principals)?;
-        Self::install_prepared(
+        let (principals, world) = prepare_world(seed)?;
+        installation::install_prepared(
             principals,
-            Some(BankGraphSeed {
-                snapshot,
-                owners,
-                employees,
-                estate,
-            }),
+            Some(world),
+            installation::BankAuthorizationTimeInstallation::System,
         )
     }
 
-    fn install_prepared(
-        seeds: Vec<PreparedBankPrincipalSeed>,
-        world: Option<BankGraphSeed>,
+    /// Installs a world with one runtime-lifetime authorization-time source.
+    ///
+    /// The source is an external mechanism rather than Bank or Query
+    /// authority. Operation callers cannot replace it or provide samples.
+    pub fn install_world_with_authorization_time_source(
+        seed: BankWorldSeed,
+        source: impl WorthQueryAuthorizationTimeSource,
     ) -> Result<Self, BankIdentityRuntimeBuildError> {
-        let package =
-            bank_domain_package().map_err(BankIdentityRuntimeBuildError::SchemaDeclaration)?;
-        let validated = package
-            .validate()
-            .map_err(BankIdentityRuntimeBuildError::PackageValidation)?;
-        let admitted = WorthQueryInstallationAdmissionProfile::new(
-            "worth-query-primary-graph-host-v1",
-            "bank-primary-graph-v1",
+        let (principals, world) = prepare_world(seed)?;
+        installation::install_prepared(
+            principals,
+            Some(world),
+            installation::BankAuthorizationTimeInstallation::Installed(Box::new(source)),
         )
-        .admit(validated)
-        .map_err(BankIdentityRuntimeBuildError::PackageAdmission)?;
-        let application_query_resources =
-            WorthQueryApplicationQueryResourceProfile::bounded(32_768, 32_768, 32_768)
-                .expect("bank application-query resource profile is statically non-zero");
-        let installation = WorthQueryExecutionRuntimeInstaller::new()
-            .application_query_resources(application_query_resources)
-            .install(WorthQueryInstallationGeneration::initial(), [admitted])
-            .map_err(BankIdentityRuntimeBuildError::RuntimeInstallation)?;
-        let (runtime, authority) = installation.into_parts();
-        let installed_schema = runtime
-            .installed_packages()
-            .bind_application_schema(
-                BankSchema::declaration()
-                    .map_err(BankIdentityRuntimeBuildError::SchemaDeclaration)?,
-            )
-            .map_err(BankIdentityRuntimeBuildError::InstalledSchema)?;
-        let mut graph = authority
-            .prepare_primary_graph(&runtime, &installed_schema)
-            .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
-        for seed in seeds {
-            graph
-                .bind_principal(
-                    &installed_schema
-                        .principal_binding(BankPrincipalBinding::reference())
-                        .map_err(BankIdentityRuntimeBuildError::InstalledBinding)?,
-                    seed.key,
-                    seed.principal_id,
-                    seed.external_identity,
-                    seed.status,
-                )
-                .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
-        }
-        if let Some(world) = &world {
-            bind_bank_world_with_estate(
-                &mut graph,
-                &world.snapshot,
-                &world.owners,
-                &world.employees,
-                world.estate.as_ref(),
-            )
-            .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
-        }
-        let invariant_projection = graph.retain_invariant_projection_authority();
-        let runtime = graph
-            .publish_application_runtime(runtime, authority, installed_schema)
-            .map_err(BankIdentityRuntimeBuildError::PrimaryGraph)?;
-        let binding = runtime
-            .installed_schema()
-            .principal_binding(BankPrincipalBinding::reference())
-            .map_err(BankIdentityRuntimeBuildError::InstalledBinding)?;
-
-        Ok(Self {
-            runtime,
-            binding,
-            invariant_projection,
-        })
     }
 
     pub fn admit_authentication_adapter<Adapter>(
@@ -241,6 +178,23 @@ struct BankGraphSeed {
     owners: Vec<BankBusinessOwnerSeed>,
     employees: Vec<BankEmployeeAssignmentSeed>,
     estate: Option<BankEstateWorld>,
+}
+
+fn prepare_world(
+    seed: BankWorldSeed,
+) -> Result<(Vec<PreparedBankPrincipalSeed>, BankGraphSeed), BankIdentityRuntimeBuildError> {
+    let (snapshot, principals, owners, employees, estate) = seed.into_parts();
+    let principals = prepare_seeds(principals)?;
+    validate_world_principals(&snapshot, &principals)?;
+    Ok((
+        principals,
+        BankGraphSeed {
+            snapshot,
+            owners,
+            employees,
+            estate,
+        },
+    ))
 }
 
 fn prepare_seeds(

@@ -39,10 +39,10 @@ type CapabilityAccess = WorthQueryAdmittedApplicationCapabilityAccess<
 
 #[test]
 fn current_capability_progresses_through_the_real_application_commit() {
-    let mut world = installed_capability_authorization_world();
+    let world = installed_capability_authorization_world();
     world
-        .application
-        .script_authorization_time([time(100), time(100), time(100), time(100)]);
+        .authorization_time
+        .script([time(100), time(100), time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let (program, evidence) = admitted_capability_program(&world, &principal, &request, "updated");
@@ -66,8 +66,8 @@ fn current_capability_progresses_through_the_real_application_commit() {
 
 #[test]
 fn caller_time_cannot_substitute_for_the_query_owned_sample() {
-    let mut world = installed_capability_authorization_world();
-    world.application.script_authorization_time([time(300)]);
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([time(300)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -88,8 +88,8 @@ fn caller_time_cannot_substitute_for_the_query_owned_sample() {
 
 #[test]
 fn explicit_purpose_mismatch_preserves_its_exact_explanation_cause() {
-    let mut world = installed_capability_authorization_world();
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let capability = world
@@ -152,8 +152,8 @@ fn capability_governed_operation_rejects_conventional_authorization() {
 
 #[test]
 fn admitted_access_is_runtime_affine_at_operation_progression() {
-    let mut source = installed_capability_authorization_world();
-    source.application.script_authorization_time([time(100)]);
+    let source = installed_capability_authorization_world();
+    source.authorization_time.script([time(100)]);
     let target = installed_capability_authorization_world();
     let request = live_scope();
     let principal = authenticated_principal(&source, &request);
@@ -179,8 +179,8 @@ fn admitted_access_is_runtime_affine_at_operation_progression() {
 
 #[test]
 fn missing_grant_membership_mints_no_access_authority() {
-    let mut world = installed_authorization_world(false);
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_authorization_world(false);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 

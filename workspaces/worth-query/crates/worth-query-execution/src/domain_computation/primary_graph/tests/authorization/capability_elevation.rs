@@ -55,7 +55,7 @@ struct AliasedRequestCapabilityElevationOperation;
 
 #[test]
 fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_authority() {
-    let (mut world, request, approved) = approval_transition::exact_approved_world();
+    let (world, request, approved) = approval_transition::exact_approved_world();
     assert_eq!(
         world
             .application
@@ -81,9 +81,7 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
             RequestElevationInput,
         >("RequestCapabilityElevationOperation")
         .is_err());
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access = admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
 
@@ -101,8 +99,8 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
 
 #[test]
 fn selector_only_admission_cannot_bypass_the_approval_transition() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -118,8 +116,8 @@ fn selector_only_admission_cannot_bypass_the_approval_transition() {
 
 #[test]
 fn governed_capability_without_elevation_preserves_required_explanation() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -200,8 +198,8 @@ fn non_governed_capability_rejects_an_elevation_selector() {
 
 #[test]
 fn revoked_approved_elevation_cannot_open_active_authority() {
-    let (mut world, request, approved) = approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, approved) = approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     mutation::set_status(&world, "elevation-2", CapabilityElevationStatus::Revoked);
 
@@ -221,10 +219,8 @@ fn revoked_approved_elevation_cannot_open_active_authority() {
 
 #[test]
 fn elevation_status_drift_after_admission_is_stale_at_operation_progression() {
-    let (mut world, request, approved) = approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access = admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
     mutation::set_status(&world, "elevation-2", CapabilityElevationStatus::Revoked);
@@ -250,10 +246,8 @@ fn elevation_status_drift_after_admission_is_stale_at_operation_progression() {
 
 #[test]
 fn approver_drift_after_admission_is_stale_before_operation_authority() {
-    let (mut world, request, approved) = approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access = admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
     mutation::add_self_approver(&world, "elevation-2", principal.principal_entity_id());

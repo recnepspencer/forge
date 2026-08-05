@@ -3,9 +3,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityValidityTimeline;
 
+use super::time_source::{
+    WorthQueryAuthorizationTimeSource, WorthQuerySystemAuthorizationTimeSource,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation) enum WorthQueryAuthorizationTimeDenial {
-    #[cfg(test)]
     SourceUnavailable,
     BeforeUnixEpoch,
     TimelineValueOverflow,
@@ -35,18 +38,6 @@ impl WorthQueryAuthorizationTimeSample {
     }
 }
 
-trait WorthQueryAuthorizationTimeSource: Send + Sync {
-    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial>;
-}
-
-struct WorthQuerySystemAuthorizationTimeSource;
-
-impl WorthQueryAuthorizationTimeSource for WorthQuerySystemAuthorizationTimeSource {
-    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial> {
-        Ok(SystemTime::now())
-    }
-}
-
 pub(in crate::domain_computation) struct WorthQueryAuthorizationClock {
     source: Box<dyn WorthQueryAuthorizationTimeSource>,
 }
@@ -58,11 +49,23 @@ impl WorthQueryAuthorizationClock {
         }
     }
 
+    pub(in crate::domain_computation) fn from_source(
+        source: impl WorthQueryAuthorizationTimeSource,
+    ) -> Self {
+        Self {
+            source: Box::new(source),
+        }
+    }
+
     pub(in crate::domain_computation) fn sample(
         &self,
         timeline: ApplicationCapabilityValidityTimeline,
     ) -> Result<WorthQueryAuthorizationTimeSample, WorthQueryAuthorizationTimeDenial> {
-        sample_at(self.source.current_time()?, timeline)
+        let now = self
+            .source
+            .current_time()
+            .map_err(|_| WorthQueryAuthorizationTimeDenial::SourceUnavailable)?;
+        sample_at(now, timeline)
     }
 
     pub(in crate::domain_computation) fn sample_interval(
@@ -80,15 +83,6 @@ impl WorthQueryAuthorizationClock {
             .map(AspectValue::UInt64)
             .ok_or(WorthQueryAuthorizationTimeDenial::TimelineValueOverflow)?;
         Ok(WorthQueryAuthorizationTimeInterval { issued, expires })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn scripted(samples: impl IntoIterator<Item = SystemTime>) -> Self {
-        Self {
-            source: Box::new(WorthQueryScriptedAuthorizationTimeSource {
-                samples: std::sync::Mutex::new(samples.into_iter().collect()),
-            }),
-        }
     }
 }
 
@@ -115,22 +109,6 @@ fn duration_units(
     }
 }
 
-#[cfg(test)]
-struct WorthQueryScriptedAuthorizationTimeSource {
-    samples: std::sync::Mutex<std::collections::VecDeque<SystemTime>>,
-}
-
-#[cfg(test)]
-impl WorthQueryAuthorizationTimeSource for WorthQueryScriptedAuthorizationTimeSource {
-    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeDenial> {
-        self.samples
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .pop_front()
-            .ok_or(WorthQueryAuthorizationTimeDenial::SourceUnavailable)
-    }
-}
-
 fn sample_at(
     now: SystemTime,
     timeline: ApplicationCapabilityValidityTimeline,
@@ -153,16 +131,41 @@ fn sample_at(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+    use std::sync::Mutex;
     use std::time::Duration;
 
     use super::*;
+    use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSourceDenial;
+
+    struct SequenceTimeSource {
+        samples: Mutex<VecDeque<SystemTime>>,
+    }
+
+    impl SequenceTimeSource {
+        fn new(samples: impl IntoIterator<Item = SystemTime>) -> Self {
+            Self {
+                samples: Mutex::new(samples.into_iter().collect()),
+            }
+        }
+    }
+
+    impl WorthQueryAuthorizationTimeSource for SequenceTimeSource {
+        fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeSourceDenial> {
+            self.samples
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .pop_front()
+                .ok_or(WorthQueryAuthorizationTimeSourceDenial::Unavailable)
+        }
+    }
 
     #[test]
     fn scripted_clock_retains_exact_installed_timeline_samples() {
-        let clock = WorthQueryAuthorizationClock::scripted([
+        let clock = WorthQueryAuthorizationClock::from_source(SequenceTimeSource::new([
             UNIX_EPOCH + Duration::from_millis(12_345),
             UNIX_EPOCH + Duration::from_millis(12_345),
-        ]);
+        ]));
         let seconds = clock
             .sample(ApplicationCapabilityValidityTimeline::UnixEpochSeconds)
             .unwrap();
@@ -178,7 +181,8 @@ mod tests {
         let before_epoch = UNIX_EPOCH
             .checked_sub(Duration::from_secs(1))
             .expect("the platform supports a pre-epoch test time");
-        let clock = WorthQueryAuthorizationClock::scripted([before_epoch]);
+        let clock =
+            WorthQueryAuthorizationClock::from_source(SequenceTimeSource::new([before_epoch]));
         assert_eq!(
             clock.sample(ApplicationCapabilityValidityTimeline::UnixEpochSeconds),
             Err(WorthQueryAuthorizationTimeDenial::BeforeUnixEpoch)

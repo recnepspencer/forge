@@ -105,10 +105,10 @@ fn protected_label_is_absent_from_every_implemented_lane_observable() {
 }
 
 fn observe_protected_world(label: &str) -> ProtectedWorldObservation {
-    let mut world = installed_capability_live_world_with_label(label);
+    let world = installed_capability_live_world_with_label(label);
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let request = live_scope();
     let principal = resolve_principal(&world, "alice", &request);
     let committer = resolve_principal(&world, "bob", &request);

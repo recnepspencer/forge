@@ -12,10 +12,10 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn approved_elevation_closes_to_a_linear_review_obligation_and_cuts_active_use() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 24));
     let requester = super::approval_transition::authenticated(&world, "alice", &request);
     let active =
         super::admit(&world, &approved, &requester, &request, Some("elevation-2")).unwrap();
@@ -52,10 +52,10 @@ fn approved_elevation_closes_to_a_linear_review_obligation_and_cuts_active_use()
 
 #[test]
 fn query_time_selects_expired_instead_of_accepting_caller_authored_terminal_state() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(106), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(106), 16));
 
     let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
 
@@ -75,10 +75,10 @@ fn query_time_selects_expired_instead_of_accepting_caller_authored_terminal_stat
 
 #[test]
 fn close_command_cannot_select_a_different_elevation_subject() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 8));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 8));
     let closer = super::approval_transition::authenticated(&world, "bob", &request);
     let access = super::terminal_lifecycle_support::close_access_with_input(
         &world,
@@ -109,10 +109,10 @@ fn close_command_cannot_select_a_different_elevation_subject() {
 
 #[test]
 fn exact_relation_set_drift_stales_close_and_returns_approved_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 16));
     let requester = approved.requester();
     let program = super::terminal_lifecycle_support::materialize_close(&world, &request, approved);
     super::mutation::add_self_approver(&world, "elevation-2", requester);
@@ -129,10 +129,10 @@ fn exact_relation_set_drift_stales_close_and_returns_approved_authority() {
 
 #[test]
 fn ordinary_commit_cannot_publish_close_lifecycle_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 16));
     let ordinary = super::terminal_lifecycle_support::close_reads(&world, &request, approved)
         .begin_effect_program()
         .finish()

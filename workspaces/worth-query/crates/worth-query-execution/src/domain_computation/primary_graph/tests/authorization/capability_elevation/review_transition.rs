@@ -8,10 +8,10 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn lawful_request_approve_close_review_sequence_commits_exact_distinct_actors() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 32));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 32));
     let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
     let reviewed = super::terminal_lifecycle_support::review_exact(&world, &request, mandatory);
 
@@ -35,10 +35,10 @@ fn lawful_request_approve_close_review_sequence_commits_exact_distinct_actors() 
 
 #[test]
 fn requester_and_approver_are_denied_by_installed_review_actor_composition() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 24));
     let _mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
 
     for subject in ["alice", "bob"] {
@@ -55,10 +55,10 @@ fn requester_and_approver_are_denied_by_installed_review_actor_composition() {
 
 #[test]
 fn concurrent_review_completion_stales_and_returned_obligation_cannot_be_reused() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 40));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 40));
     let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
     let reviewer = super::approval_transition::authenticated(&world, "carol", &request);
     let program =
@@ -84,17 +84,17 @@ fn concurrent_review_completion_stales_and_returned_obligation_cannot_be_reused(
 
 #[test]
 fn mandatory_review_receipt_cannot_cross_runtime_authority() {
-    let (mut source, source_request, approved) = super::approval_transition::exact_approved_world();
+    let (source, source_request, approved) = super::approval_transition::exact_approved_world();
     source
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 24));
     let mandatory =
         super::terminal_lifecycle_support::close_exact(&source, &source_request, approved);
-    let (mut target, target_request, _target_approved) =
+    let (target, target_request, _target_approved) =
         super::approval_transition::exact_approved_world();
     target
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 16));
     let reviewer = super::approval_transition::authenticated(&target, "carol", &target_request);
     let access =
         super::terminal_lifecycle_support::review_access(&target, &reviewer, &target_request)
@@ -120,10 +120,10 @@ fn mandatory_review_receipt_cannot_cross_runtime_authority() {
 
 #[test]
 fn mandatory_review_receipt_rejects_a_different_selected_review() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 24));
     let mandatory = super::terminal_lifecycle_support::close_exact(&world, &request, approved);
     let reviewer = super::approval_transition::authenticated(&world, "carol", &request);
     let access = super::terminal_lifecycle_support::review_access_with_input(

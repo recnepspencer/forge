@@ -35,7 +35,7 @@ pub(super) fn prepare_temporal_path(
     } else if path_index == temporal.not_after_path_index {
         (
             temporal.not_after.clone(),
-            RelationalAuthorizationFieldComparison::AtLeast,
+            RelationalAuthorizationFieldComparison::StrictlyGreater,
         )
     } else {
         return Err(invalid_policy(installed.contract.name()));

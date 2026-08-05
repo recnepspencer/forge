@@ -16,8 +16,8 @@ use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDen
 use super::{
     current_admission::view_action,
     fixture::{
-        capability_world, request_scope, GrantSpec, ACCOUNT, AUTHORITY, ESTATE, EXECUTOR,
-        OTHER_ACCOUNT, OTHER_AUTHORITY,
+        capability_world, capability_world_with_specialist_authority, request_scope, GrantSpec,
+        ACCOUNT, AUTHORITY, ESTATE, EXECUTOR, OTHER_ACCOUNT, OTHER_AUTHORITY,
     },
 };
 
@@ -27,8 +27,6 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
         "view-binding",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();
@@ -111,12 +109,10 @@ fn relation_and_amount_are_derived_from_the_exact_bank_action() {
 
 #[test]
 fn separation_of_duty_is_anchored_to_the_exact_action_authority() {
-    let fixture = capability_world(
+    let fixture = capability_world_with_specialist_authority(
         "context-anchor",
         GrantSpec::recognize(),
         EstateWorkflowStage::Administration,
-        true,
-        0,
     );
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();
@@ -173,15 +169,11 @@ fn installed_capability_authority_is_runtime_affine() {
         "foreign-capability-source",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let target = capability_world(
         "foreign-capability-target",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let capability = source
         .runtime
@@ -216,8 +208,6 @@ fn assert_wrong_account_denied() {
         "wrong-account",
         GrantSpec::freeze(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();
@@ -247,8 +237,6 @@ fn assert_amount_over_ceiling_denied() {
         "amount-ceiling",
         GrantSpec::disburse(1_000),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();

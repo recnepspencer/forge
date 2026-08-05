@@ -1,0 +1,174 @@
+//! Construction phases for one published application runtime.
+
+use worth_query_installation::facade::{
+    ApplicationSchema, WorthQueryInstalledApplicationSchema,
+    WorthQueryInstalledGraphParticipationAuthority,
+};
+
+use super::{
+    WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrimaryGraphBootstrap,
+    WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
+    WorthQueryPrimaryGraphProvider,
+};
+use crate::domain_computation::authorization::{
+    WorthQueryAuthorizationClock, WorthQueryInstalledAuthorizationRegistry,
+};
+use crate::domain_computation::execution_runtime::{
+    WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
+};
+use crate::domain_computation::primary_graph::authentication_clock::WorthQueryAuthenticationClock;
+
+pub(super) struct ApplicationRuntimePublication<Schema> {
+    pub(super) bootstrap: WorthQueryPrimaryGraphBootstrap<Schema>,
+    pub(super) runtime: WorthQueryExecutionRuntime,
+    pub(super) authority: WorthQueryExecutionInstallationAuthority,
+    pub(super) installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+    pub(super) authorization_clock: WorthQueryAuthorizationClock,
+}
+
+pub(super) fn publish_application_runtime_with_clock<Schema>(
+    input: ApplicationRuntimePublication<Schema>,
+) -> Result<
+    WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    WorthQueryPrimaryGraphInstallationDenial,
+>
+where
+    Schema: ApplicationSchema,
+{
+    let ApplicationRuntimePublication {
+        bootstrap,
+        runtime,
+        authority,
+        installed_schema,
+        authorization_clock,
+    } = input;
+    validate_application_schema(&runtime, &installed_schema)?;
+    let authorization = compile_authorization(&bootstrap, &installed_schema)?;
+    let graph = publish_application_graph(bootstrap, runtime, authority, &installed_schema)?;
+    Ok(assemble_application_runtime(
+        graph,
+        installed_schema,
+        authorization,
+        authorization_clock,
+    ))
+}
+
+struct PublishedApplicationGraph {
+    runtime: WorthQueryExecutionRuntime,
+    publication: super::WorthQueryPrimaryGraphPublication,
+    relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
+    bridge: worth_runtime_bridge::facade::RuntimeBridge,
+    primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
+    primary_graph_authority: WorthQueryInstalledGraphParticipationAuthority,
+}
+
+fn validate_application_schema<Schema>(
+    runtime: &WorthQueryExecutionRuntime,
+    installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+) -> Result<(), WorthQueryPrimaryGraphInstallationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    runtime
+        .installed_packages()
+        .validate_application_schema(installed_schema)
+        .map_err(|denial| {
+            WorthQueryPrimaryGraphInstallationDenial::new(
+                WorthQueryPrimaryGraphInstallationDenialKind::StaleInstalledSchema,
+                denial.subject(),
+            )
+        })
+}
+
+fn compile_authorization<Schema>(
+    bootstrap: &WorthQueryPrimaryGraphBootstrap<Schema>,
+    installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+) -> Result<WorthQueryInstalledAuthorizationRegistry, WorthQueryPrimaryGraphInstallationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    WorthQueryInstalledAuthorizationRegistry::compile(installed_schema, &bootstrap.graph.layout)
+        .map_err(|denial| {
+            WorthQueryPrimaryGraphInstallationDenial::new(
+                WorthQueryPrimaryGraphInstallationDenialKind::AuthorizationPolicyRejected,
+                denial.subject(),
+            )
+        })
+}
+
+fn publish_application_graph<Schema>(
+    bootstrap: WorthQueryPrimaryGraphBootstrap<Schema>,
+    mut runtime: WorthQueryExecutionRuntime,
+    authority: WorthQueryExecutionInstallationAuthority,
+    installed_schema: &WorthQueryInstalledApplicationSchema<Schema>,
+) -> Result<PublishedApplicationGraph, WorthQueryPrimaryGraphInstallationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let publication = bootstrap.publish(&mut runtime, &authority)?;
+    let graph = runtime
+        .retain_primary_graph_integration_handle()
+        .expect("publishing the primary graph installs its integration authority");
+    let relational_source = graph.relational_bridge_source();
+    let bridge = super::super::managed_bridge::install_application_bridge(
+        installed_schema,
+        relational_source.clone(),
+    )?;
+    let (provider_anchor, primary_provider) = WorthQueryPrimaryGraphProvider::install(graph);
+    let primary_graph_authority =
+        install_graph_participation_authority(&authority, provider_anchor)?;
+    Ok(PublishedApplicationGraph {
+        runtime,
+        publication,
+        relational_source,
+        bridge,
+        primary_provider,
+        primary_graph_authority,
+    })
+}
+
+fn install_graph_participation_authority(
+    authority: &WorthQueryExecutionInstallationAuthority,
+    provider_anchor: std::sync::Arc<
+        crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor,
+    >,
+) -> Result<WorthQueryInstalledGraphParticipationAuthority, WorthQueryPrimaryGraphInstallationDenial>
+{
+    WorthQueryInstalledGraphParticipationAuthority::install(
+        authority.installation_runtime(),
+        "primary",
+        provider_anchor.provider_identity(),
+        true,
+        Some("primary"),
+        provider_anchor,
+    )
+    .map_err(|detail| {
+        WorthQueryPrimaryGraphInstallationDenial::new(
+            WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
+            detail,
+        )
+    })
+}
+
+fn assemble_application_runtime<Schema>(
+    graph: PublishedApplicationGraph,
+    installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
+    authorization: WorthQueryInstalledAuthorizationRegistry,
+    authorization_clock: WorthQueryAuthorizationClock,
+) -> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
+    WorthQueryPrimaryGraphApplicationRuntime {
+        runtime: graph.runtime,
+        installed_schema,
+        publication: graph.publication,
+        authorization,
+        authorization_clock,
+        authentication_clock: WorthQueryAuthenticationClock::system(),
+        relational_source: graph.relational_source,
+        bridge: graph.bridge,
+        primary_provider: graph.primary_provider,
+        primary_graph_authority: graph.primary_graph_authority,
+        result_buffers: Default::default(),
+        basis_leases: Default::default(),
+        next_preview_session: std::sync::atomic::AtomicU64::new(1),
+    }
+}

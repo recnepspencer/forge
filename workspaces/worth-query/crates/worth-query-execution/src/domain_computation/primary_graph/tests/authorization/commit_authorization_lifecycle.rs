@@ -12,10 +12,10 @@ use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDe
 
 #[test]
 fn commit_authorization_rechecks_cancellation_when_governed() {
-    let mut world = installed_capability_authorization_world();
+    let world = installed_capability_authorization_world();
     world
-        .application
-        .script_authorization_time([time(100), time(100), time(100)]);
+        .authorization_time
+        .script([time(100), time(100), time(100)]);
     let cancellation = WorthQueryCancellationSource::new();
     let request = WorthQueryRequestScope::new(
         Instant::now() + Duration::from_secs(60),
@@ -46,10 +46,10 @@ fn commit_authorization_rechecks_cancellation_when_governed() {
 
 #[test]
 fn commit_basis_cannot_be_paired_with_a_different_admitted_operation() {
-    let mut world = installed_capability_authorization_world();
+    let world = installed_capability_authorization_world();
     world
-        .application
-        .script_authorization_time([time(100), time(100), time(100), time(100)]);
+        .authorization_time
+        .script([time(100), time(100), time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let mut source = admitted_capability_operation(&world, &principal, &request);

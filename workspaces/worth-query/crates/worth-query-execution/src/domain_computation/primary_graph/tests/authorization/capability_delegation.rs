@@ -15,8 +15,8 @@ use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDe
 
 #[test]
 fn lawful_multi_link_delegation_is_one_composite_exact_authorization_fact() {
-    let mut world = installed_delegated_capability_world();
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_delegated_capability_world();
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -34,8 +34,8 @@ fn lawful_multi_link_delegation_is_one_composite_exact_authorization_fact() {
 
 #[test]
 fn width_and_cycle_attacks_are_typed_denials_before_access_authority() {
-    let mut width = installed_delegated_capability_world();
-    width.application.script_authorization_time([time(100)]);
+    let width = installed_delegated_capability_world();
+    width.authorization_time.script([time(100)]);
     add_parent(
         &width,
         "capability-child",
@@ -52,8 +52,8 @@ fn width_and_cycle_attacks_are_typed_denials_before_access_authority() {
         WorthQueryOperationAuthorizationDenialKind::DelegationRejected
     );
 
-    let mut cycle = installed_delegated_capability_world();
-    cycle.application.script_authorization_time([time(100)]);
+    let cycle = installed_delegated_capability_world();
+    cycle.authorization_time.script([time(100)]);
     add_parent(
         &cycle,
         "capability-grandparent",
@@ -70,8 +70,8 @@ fn width_and_cycle_attacks_are_typed_denials_before_access_authority() {
         WorthQueryOperationAuthorizationDenialKind::DelegationCycle
     );
 
-    let mut depth = installed_delegated_capability_world();
-    depth.application.script_authorization_time([time(100)]);
+    let depth = installed_delegated_capability_world();
+    depth.authorization_time.script([time(100)]);
     add_parent(
         &depth,
         "capability-grandparent",
@@ -91,8 +91,8 @@ fn width_and_cycle_attacks_are_typed_denials_before_access_authority() {
 
 #[test]
 fn resource_and_grantor_grantee_link_drift_deny_at_the_transition() {
-    let mut resource = installed_delegated_capability_world();
-    resource.application.script_authorization_time([time(100)]);
+    let resource = installed_delegated_capability_world();
+    resource.authorization_time.script([time(100)]);
     replace_parent_resource(&resource);
     let request = live_scope();
     let principal = authenticated_principal(&resource, &request);
@@ -104,8 +104,8 @@ fn resource_and_grantor_grantee_link_drift_deny_at_the_transition() {
         WorthQueryOperationAuthorizationDenialKind::DelegationRejected
     );
 
-    let mut actors = installed_delegated_capability_world();
-    actors.application.script_authorization_time([time(100)]);
+    let actors = installed_delegated_capability_world();
+    actors.authorization_time.script([time(100)]);
     replace_child_grantor_with_grantee(&actors);
     let request = live_scope();
     let principal = authenticated_principal(&actors, &request);
@@ -120,8 +120,8 @@ fn resource_and_grantor_grantee_link_drift_deny_at_the_transition() {
 
 #[test]
 fn exact_parent_policy_cannot_borrow_an_alternate_grant_path() {
-    let mut world = installed_delegated_capability_world();
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_delegated_capability_world();
+    world.authorization_time.script([time(100)]);
     replace_parent_grantor_with_child_grantee(&world);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
@@ -147,10 +147,8 @@ fn every_parent_currentness_drift_stales_retained_authority() {
         ParentDrift::PolicyPath,
         ParentDrift::Substitute,
     ] {
-        let mut world = installed_delegated_capability_world();
-        world
-            .application
-            .script_authorization_time([time(100), time(100)]);
+        let world = installed_delegated_capability_world();
+        world.authorization_time.script([time(100), time(100)]);
         let request = live_scope();
         let principal = authenticated_principal(&world, &request);
         let access = admitted_capability_access(&world, &principal, &request, 100).unwrap();

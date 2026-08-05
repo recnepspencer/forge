@@ -11,8 +11,8 @@ use worth_query_installation::facade::{
 
 #[test]
 fn canonical_governed_input_work_is_owned_once_by_each_capability_admission() {
-    let mut world = installed_capability_authorization_world();
-    world.application.script_authorization_time([time(100); 8]);
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([time(100); 8]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let before_materialization = canonical_governed_input_materialization_count();
@@ -65,8 +65,8 @@ fn canonical_governed_input_work_is_owned_once_by_each_capability_admission() {
 
 #[test]
 fn precomputed_governed_input_identity_adds_no_canonical_work_in_any_phase() {
-    let mut world = installed_capability_authorization_world();
-    world.application.script_authorization_time([time(100); 8]);
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([time(100); 8]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let identity = CapabilityGovernedInputIdentity::FixedU64([29, 31, 37, 41]);

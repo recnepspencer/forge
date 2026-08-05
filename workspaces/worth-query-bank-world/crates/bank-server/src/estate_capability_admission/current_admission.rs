@@ -17,8 +17,6 @@ fn active_bank_grant_mints_only_a_current_move_only_access_proof() {
         "active-capability",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();
@@ -96,7 +94,7 @@ fn view_denial(
     spec: GrantSpec,
     stage: EstateWorkflowStage,
 ) -> WorthQueryOperationAuthorizationDenialKind {
-    let fixture = capability_world(scenario, spec, stage, false, 0);
+    let fixture = capability_world(scenario, spec, stage);
     assert!(matches!(
         fixture.oracle_decision(view_action()),
         EstateDecision::Denied(_)

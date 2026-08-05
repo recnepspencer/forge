@@ -8,15 +8,15 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn provider_time_rejects_stale_revoked_classification_then_commits_exact_expired_close() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 16));
     let program = super::terminal_lifecycle_support::materialize_close(&world, &request, approved);
 
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(106), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(106), 16));
     let WorthQueryElevationCloseOutcome::Denied(denial, approved) = world
         .application
         .compare_and_commit_elevation_close(program, idempotency(177, 177))
@@ -41,8 +41,8 @@ fn provider_time_rejects_stale_revoked_classification_then_commits_exact_expired
     );
 
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(106), 16));
+        .authorization_time
+        .script(std::iter::repeat_n(time(106), 16));
     let program = super::terminal_lifecycle_support::materialize_close(&world, &request, approved);
     let WorthQueryElevationCloseOutcome::Closed(mandatory) = world
         .application

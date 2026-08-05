@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bank_domain::{
     estate::{
         CapabilityGrantId, CapabilityGrantStatus, EmergencyAccessId, EstateAction,
@@ -19,7 +21,9 @@ use super::super::{
         emergency_request_world_with_alternate_bound, request_scope, CapabilityFixture, GrantSpec,
         ALTERNATE_EMERGENCY_BOUND_GRANT, ESTATE, GRANT,
     },
-    lifecycle_journey::{approve_elevation, request_elevation},
+    lifecycle_journey::{
+        approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+    },
 };
 use crate::{queries, BankAuthenticatedPrincipal, BankMutationCommitOutcome, BankReadControls};
 
@@ -44,11 +48,39 @@ pub(super) fn activity_world(scenario: &str) -> ActivityWorld {
     );
     let requester = fixture.authenticate();
     let approver = fixture.authenticate_approver();
-    let first_requested =
-        request_elevation(&fixture, &requester, GRANT, FIRST_ACCESS, 701, 141, field);
-    let second_requested =
-        request_elevation(&fixture, &requester, GRANT, SECOND_ACCESS, 702, 143, field);
-    let approved = approve_elevation(&fixture, &approver, second_requested, SECOND_ACCESS, 145);
+    let first_requested = request_elevation(
+        &fixture,
+        &requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: FIRST_ACCESS,
+            review: 701,
+            idempotency: 141,
+            field,
+            duration: Duration::from_secs(300),
+        },
+    );
+    let second_requested = request_elevation(
+        &fixture,
+        &requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: SECOND_ACCESS,
+            review: 702,
+            idempotency: 143,
+            field,
+            duration: Duration::from_secs(300),
+        },
+    );
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        second_requested,
+        ElevationApprovalSpec {
+            access: SECOND_ACCESS,
+            idempotency: 145,
+        },
+    );
     ActivityWorld {
         fixture,
         requester,
@@ -78,8 +110,10 @@ pub(super) fn approve_first(world: &ActivityWorld, requested: WorthQueryRequeste
         &world.fixture,
         &world.approver,
         requested,
-        FIRST_ACCESS,
-        149,
+        ElevationApprovalSpec {
+            access: FIRST_ACCESS,
+            idempotency: 149,
+        },
     );
 }
 

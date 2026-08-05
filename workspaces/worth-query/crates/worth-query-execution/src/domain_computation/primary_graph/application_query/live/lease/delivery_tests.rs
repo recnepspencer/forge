@@ -96,10 +96,10 @@ fn committed_live_cause_projects_with_bounded_result_buffer_evidence() {
 
 #[test]
 fn governed_live_delivery_reuses_only_query_owned_current_authority() {
-    let mut world = installed_capability_live_world();
+    let world = installed_capability_live_world();
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let request = live_scope();
     let external = world.authenticate("alice", Duration::from_secs(60), &request);
     let principal = world
@@ -182,10 +182,10 @@ fn governed_live_delivery_reuses_only_query_owned_current_authority() {
 
 #[test]
 fn revoked_capability_stops_governed_live_delivery_before_projection() {
-    let mut world = installed_capability_live_world();
+    let world = installed_capability_live_world();
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     let request = live_scope();
     let external = world.authenticate("alice", Duration::from_secs(60), &request);
     let principal = world

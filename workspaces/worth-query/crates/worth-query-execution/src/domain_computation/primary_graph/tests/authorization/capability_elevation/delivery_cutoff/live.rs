@@ -62,13 +62,11 @@ fn revocation_after_a_queued_live_cause_terminates_delivery() {
 
 #[test]
 fn query_time_expiry_after_a_queued_live_cause_terminates_delivery() {
-    let mut context = context(true);
-    context.world.application.script_authorization_time([
-        time(100),
-        time(100),
-        time(100),
-        time(106),
-    ]);
+    let context = context(true);
+    context
+        .world
+        .authorization_time
+        .script([time(100), time(100), time(100), time(106)]);
     let capability = context.elevated_access();
     let mut lease = context
         .world

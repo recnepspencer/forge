@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bank_domain::{
     estate::{
         CapabilityGrantId, CapabilityGrantStatus, EmergencyAccessId, EstateAction,
@@ -18,7 +20,9 @@ use super::{
         emergency_request_world_with_alternate_bound, request_scope, CapabilityFixture, GrantSpec,
         ALTERNATE_EMERGENCY_BOUND_GRANT, ESTATE, GRANT,
     },
-    lifecycle_journey::{approve_elevation, request_elevation},
+    lifecycle_journey::{
+        approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+    },
 };
 use crate::{
     queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankMutationCommitOutcome,
@@ -192,13 +196,24 @@ fn approve(
     let requested = request_elevation(
         fixture,
         &requester,
-        GRANT,
-        access,
-        review,
-        idempotency_seed,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access,
+            review,
+            idempotency: idempotency_seed,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
-    let approved = approve_elevation(fixture, &approver, requested, access, idempotency_seed + 2);
+    let approved = approve_elevation(
+        fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access,
+            idempotency: idempotency_seed + 2,
+        },
+    );
     (requester, approved)
 }
 

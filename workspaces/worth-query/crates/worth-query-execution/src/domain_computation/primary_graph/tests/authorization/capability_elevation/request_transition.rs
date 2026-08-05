@@ -36,7 +36,7 @@ type Reads = WorthQueryCompleteApplicationReadSet<
 
 #[test]
 fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt() {
-    let mut world = request_world(8);
+    let world = request_world(8);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = request_reads(&world, &principal, &request, honest_input())
@@ -64,7 +64,7 @@ fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt()
     assert_eq!(receipt.review_status(), &string("required"));
 
     resolve_created_identities(&world, &request);
-    world.application.script_authorization_time([time(100)]);
+    world.authorization_time.script([time(100)]);
     let denial = super::admit_raw(&world, &principal, &request, Some("elevation-2"))
         .err()
         .expect("a requested selector cannot bypass the lifecycle transition");
@@ -184,10 +184,8 @@ fn request_upper_bound_cannot_widen_scope_or_swap_purpose() {
 
 #[test]
 fn proposed_grant_must_independently_authorize_the_governed_upper_bound() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::WrongGrant);
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::WrongGrant);
+    world.authorization_time.script([time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let access = request_access(
@@ -339,10 +337,10 @@ fn request_operation(
 }
 
 fn request_world(samples: usize) -> World {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), samples));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), samples));
     world
 }
 

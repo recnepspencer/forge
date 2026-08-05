@@ -75,16 +75,14 @@ fn requester_and_conflicted_approver_cannot_enter_approval_progression() {
 
 #[test]
 fn approval_after_the_exact_request_window_returns_the_request_receipt() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 12));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 12));
     let request = live_scope();
     let requested = super::request_support::commit_exact_request(&world, &request);
     super::request_support::resolve_exact_request_identities(&world, &request);
-    world
-        .application
-        .script_authorization_time([time(106), time(106)]);
+    world.authorization_time.script([time(106), time(106)]);
     let approver = authenticated(&world, "bob", &request);
     let access = approval_access(&world, &approver, &request).unwrap();
     let denial = world
@@ -148,10 +146,10 @@ pub(super) fn requested_world_with_input(
     worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
     WorthQueryRequestedElevation,
 ) {
-    let mut world = installed_elevated_capability_world(scenario);
+    let world = installed_elevated_capability_world(scenario);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 24));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 24));
     let request = live_scope();
     let requested = super::request_support::commit_request(&world, &request, input);
     super::request_support::resolve_exact_request_identities(&world, &request);

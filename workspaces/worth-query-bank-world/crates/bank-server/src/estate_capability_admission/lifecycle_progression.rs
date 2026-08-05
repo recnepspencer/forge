@@ -18,7 +18,9 @@ use super::fixture::{
     capability_world, emergency_request_world, request_scope, GrantSpec,
     APPROVER_UPPER_BOUND_GRANT, ESTATE, GRANT,
 };
-use super::lifecycle_journey::{approve_elevation, request_elevation};
+use super::lifecycle_journey::{
+    approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+};
 use super::publication_evidence::{
     assert_review_required_publication_lineage, publication_profile,
 };
@@ -70,8 +72,6 @@ fn governed_view_grant_cannot_substitute_for_request_command_authority() {
         "estate-emergency-command-substitution",
         GrantSpec::emergency_view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let action = EstateAction::RequestEmergencyAccess {
@@ -108,8 +108,6 @@ fn request_command_grant_cannot_substitute_for_governed_upper_bound_authority() 
         "estate-emergency-upper-bound-substitution",
         GrantSpec::emergency_request(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
     let principal = fixture.authenticate();
     let action = EstateAction::RequestEmergencyAccess {
@@ -151,11 +149,14 @@ fn distinct_approver_commits_the_public_query_approval_transition() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        331,
-        332,
-        61,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 331,
+            review: 332,
+            idempotency: 61,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
     let approver = fixture.authenticate_approver();
 
@@ -191,21 +192,27 @@ fn requester_cannot_approve_their_own_elevation() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        341,
-        342,
-        71,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 341,
+            review: 342,
+            idempotency: 71,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
     let other_requester = fixture.authenticate_approver();
     let other_requested = request_elevation(
         &fixture,
         &other_requester,
-        APPROVER_UPPER_BOUND_GRANT,
-        343,
-        344,
-        75,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: APPROVER_UPPER_BOUND_GRANT,
+            access: 343,
+            review: 344,
+            idempotency: 75,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
 
     fixture
@@ -255,11 +262,14 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        351,
-        352,
-        81,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 351,
+            review: 352,
+            idempotency: 81,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
     let requested_publication = publish_requested_elevation(
         &requested,
@@ -267,7 +277,15 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
     )
     .unwrap();
     let approver = fixture.authenticate_approver();
-    let approved = approve_elevation(&fixture, &approver, requested, 351, 83);
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 351,
+            idempotency: 83,
+        },
+    );
     let approved_publication = publish_approved_elevation(
         &approved,
         WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),

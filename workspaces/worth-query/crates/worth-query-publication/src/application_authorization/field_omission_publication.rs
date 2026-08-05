@@ -25,6 +25,22 @@ impl WorthQueryApplicationFieldOmissionArtifact {
     }
 }
 
+/// Descriptive governed-omission publication. It cannot become active-use
+/// elevation authority.
+///
+/// ```compile_fail
+/// use worth_query_execution::facade::primary_graph::WorthQueryApprovedElevation;
+/// use worth_query_publication::facade::domain_computation::
+///     WorthQueryPublishedApplicationFieldOmission;
+///
+/// fn requires_query_authority(_: &WorthQueryApprovedElevation) {}
+///
+/// fn omission_description_cannot_authorize(
+///     published: &WorthQueryPublishedApplicationFieldOmission,
+/// ) {
+///     requires_query_authority(published);
+/// }
+/// ```
 #[derive(Debug)]
 pub struct WorthQueryPublishedApplicationFieldOmission {
     boundary: BoundaryProfiledArtifact<

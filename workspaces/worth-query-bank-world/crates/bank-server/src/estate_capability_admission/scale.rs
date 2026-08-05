@@ -1,6 +1,8 @@
 use super::{
     current_admission::view_action,
-    fixture::{capability_world, request_scope, GrantSpec},
+    fixture::{
+        capability_world, capability_world_with_unrelated_grants, request_scope, GrantSpec,
+    },
 };
 use crate::{queries, BankReadControls};
 use bank_domain::{
@@ -14,14 +16,11 @@ fn unrelated_grant_population_does_not_enter_warm_capability_work() {
         "scale-baseline",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
-    let expanded = capability_world(
+    let expanded = capability_world_with_unrelated_grants(
         "scale-expanded",
         GrantSpec::view(),
         EstateWorkflowStage::Administration,
-        false,
         128,
     );
     let baseline_principal = baseline.authenticate();
@@ -100,14 +99,11 @@ fn unrelated_grant_population_does_not_widen_terminal_publication() {
         "publication-scale-baseline",
         GrantSpec::identity_verification(),
         EstateWorkflowStage::Administration,
-        false,
-        0,
     );
-    let expanded = capability_world(
+    let expanded = capability_world_with_unrelated_grants(
         "publication-scale-expanded",
         GrantSpec::identity_verification(),
         EstateWorkflowStage::Administration,
-        false,
         128,
     );
     let baseline_principal = baseline.authenticate();

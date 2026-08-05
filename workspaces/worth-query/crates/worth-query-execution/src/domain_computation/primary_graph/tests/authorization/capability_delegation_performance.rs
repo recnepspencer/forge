@@ -77,8 +77,8 @@ fn same_resource_unrelated_grants_do_not_enter_exact_grant_selection() {
 
 #[test]
 fn exact_pair_population_overflow_denies_before_authority() {
-    let mut world = installed_capability_world_with_exact_pair_population(65);
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_capability_world_with_exact_pair_population(65);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -92,8 +92,8 @@ fn exact_pair_population_overflow_denies_before_authority() {
     );
 }
 
-fn admission_work(mut world: AuthorizationWorld) -> DelegationAdmissionWork {
-    world.application.script_authorization_time([time(100)]);
+fn admission_work(world: AuthorizationWorld) -> DelegationAdmissionWork {
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let access = admitted_capability_access(&world, &principal, &request, 100).unwrap();

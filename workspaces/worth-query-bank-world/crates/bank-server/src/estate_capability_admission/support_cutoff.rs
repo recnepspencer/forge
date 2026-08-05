@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bank_domain::{
     estate::{
         CapabilityGrantId, CapabilityGrantStatus, EmergencyAccessId, EmergencyAccessStatus,
@@ -18,7 +20,9 @@ use super::{
         emergency_request_world_with_alternate_bound, request_scope, CapabilityFixture, GrantSpec,
         ALTERNATE_EMERGENCY_BOUND_GRANT, ESTATE, GRANT, REVIEWER,
     },
-    lifecycle_journey::{approve_elevation, request_elevation},
+    lifecycle_journey::{
+        approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+    },
 };
 use crate::{
     queries, BankApplicationQueryDenial, BankAuthenticatedPrincipal, BankEstateProgressionDenial,
@@ -39,13 +43,24 @@ fn revoked_support_cuts_active_use_but_not_close_or_mandatory_review() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        381,
-        382,
-        111,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 381,
+            review: 382,
+            idempotency: 111,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
-    let approved = approve_elevation(&fixture, &approver, requested, 381, 113);
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 381,
+            idempotency: 113,
+        },
+    );
 
     let published = fixture
         .runtime
@@ -144,11 +159,14 @@ fn revoked_request_support_cannot_be_replaced_during_approval() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        391,
-        392,
-        121,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 391,
+            review: 392,
+            idempotency: 121,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
     revoke_exact_support(&fixture, &requester, 123);
 

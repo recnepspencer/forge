@@ -99,11 +99,11 @@ fn unrelated_lifecycle_drift_does_not_stale_exact_support() {
 
 #[test]
 fn support_expiry_denies_approval_while_the_request_lifecycle_is_current() {
-    let (mut world, request, requested) =
+    let (world, request, requested) =
         super::approval_transition::requested_world(CapabilityElevationScenario::ExpiringSupport);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(103), 8));
+        .authorization_time
+        .script(std::iter::repeat_n(time(103), 8));
     let approver = super::approval_transition::authenticated(&world, "bob", &request);
     let access = super::approval_transition::approval_access(&world, &approver, &request)
         .expect("the approval command and request lifecycle remain current at time 103");
@@ -169,13 +169,13 @@ fn replacement_policy_path_for_the_same_grant_cannot_launder_request_support() {
 
 #[test]
 fn replacement_policy_path_for_the_same_grant_cuts_off_approved_use() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
     let requester = super::approval_transition::authenticated(&world, "alice", &request);
     super::mutation::replace_support_grantor_with_custodian(
         &world,
         requester.principal_entity_id(),
     );
-    world.application.script_authorization_time([time(100)]);
+    world.authorization_time.script([time(100)]);
     let capability = super::installed_capability(&world);
 
     let Err(denial) = world.application.admit_approved_elevation_access(
@@ -200,14 +200,14 @@ fn replacement_policy_path_for_the_same_grant_cuts_off_approved_use() {
 
 #[test]
 fn request_expiry_after_approval_materialization_denies_provider_commit() {
-    let (mut world, request, requested) =
+    let (world, request, requested) =
         super::approval_transition::requested_world(CapabilityElevationScenario::Active);
     let approver = super::approval_transition::authenticated(&world, "bob", &request);
     let program =
         super::approval_transition::materialize_exact_approval(&world, &request, requested);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(106), 4));
+        .authorization_time
+        .script(std::iter::repeat_n(time(106), 4));
 
     let WorthQueryElevationApprovalOutcome::Denied(denial, requested) = world
         .application

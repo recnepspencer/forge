@@ -78,4 +78,13 @@ impl CapabilityFixture {
             },
         )
     }
+
+    pub(in crate::estate_capability_admission) fn source_beneficiaries(
+        &self,
+    ) -> Vec<bank_domain::model::BankPrincipalId> {
+        self.estate_world
+            .beneficiaries()
+            .filter_map(|(estate, principal)| (estate == super::ESTATE).then_some(principal))
+            .collect()
+    }
 }

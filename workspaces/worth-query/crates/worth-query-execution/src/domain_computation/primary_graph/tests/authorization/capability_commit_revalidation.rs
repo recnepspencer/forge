@@ -30,10 +30,8 @@ type World = super::super::fixture::AuthorizationWorld;
 
 #[test]
 fn revoked_access_cannot_progress_to_operation_authority() {
-    let mut world = installed_capability_authorization_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let access = admitted_capability_access(&world, &principal, &request, 100).unwrap();
@@ -92,12 +90,12 @@ fn equivalent_retry_denies_before_receipt_after_principal_disablement() {
 
 #[test]
 fn equivalent_retry_denies_before_receipt_after_capability_expiry() {
-    let mut world = current_retry_world();
+    let world = current_retry_world();
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let (first, retry) = equivalent_programs(&world, &principal, &request);
     commit_first(&world, first, 53);
-    world.application.script_authorization_time([time(300)]);
+    world.authorization_time.script([time(300)]);
 
     assert_readmission_denial(
         world
@@ -108,8 +106,8 @@ fn equivalent_retry_denies_before_receipt_after_capability_expiry() {
 
 #[test]
 fn future_equivalent_grant_cannot_inherit_an_expired_access_context() {
-    let mut world = installed_capability_replacement_world();
-    world.application.script_authorization_time([
+    let world = installed_capability_replacement_world();
+    world.authorization_time.script([
         time(100),
         time(100),
         time(100),
@@ -121,7 +119,7 @@ fn future_equivalent_grant_cannot_inherit_an_expired_access_context() {
     let principal = authenticated_principal(&world, &request);
     let (first, retry) = equivalent_programs(&world, &principal, &request);
     commit_first(&world, first, 56);
-    world.application.script_authorization_time([time(120)]);
+    world.authorization_time.script([time(120)]);
 
     assert_readmission_denial(
         world
@@ -195,8 +193,8 @@ fn unrelated_graph_drift_preserves_current_idempotent_recovery() {
 }
 
 fn current_retry_world() -> World {
-    let mut world = installed_capability_authorization_world();
-    world.application.script_authorization_time([
+    let world = installed_capability_authorization_world();
+    world.authorization_time.script([
         time(100),
         time(100),
         time(100),

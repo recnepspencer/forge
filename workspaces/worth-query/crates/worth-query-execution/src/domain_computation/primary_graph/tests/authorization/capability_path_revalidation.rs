@@ -17,10 +17,10 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn final_commit_rejects_a_replacement_policy_path_for_the_same_grant() {
-    let mut world = installed_capability_authorization_world();
+    let world = installed_capability_authorization_world();
     world
-        .application
-        .script_authorization_time([time(100), time(100), time(100)]);
+        .authorization_time
+        .script([time(100), time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let mut admission = admitted_capability_operation(&world, &principal, &request);

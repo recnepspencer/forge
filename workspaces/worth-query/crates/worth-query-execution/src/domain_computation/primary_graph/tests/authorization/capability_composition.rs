@@ -35,8 +35,8 @@ type ComposedProgram = WorthQueryApplicationEffectProgram<
 
 #[test]
 fn lawful_combination_is_one_decision_over_presence_and_absence_facts() {
-    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
-    world.application.script_authorization_time([time(100)]);
+    let world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -86,8 +86,8 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
             WorthQueryApplicationAuthorizationExplanationCause::ExplicitPolicyDenial,
         ),
     ] {
-        let mut world = installed_composed_capability_world(scenario);
-        world.application.script_authorization_time([time(100)]);
+        let world = installed_composed_capability_world(scenario);
+        world.authorization_time.script([time(100)]);
         let request = live_scope();
         let principal = authenticated_principal(&world, &request);
 
@@ -108,9 +108,9 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
 
 #[test]
 fn unrelated_actor_records_do_not_poison_the_selected_transition() {
-    let mut world =
+    let world =
         installed_composed_capability_world(CapabilityCompositionScenario::UnrelatedActorRecords);
-    world.application.script_authorization_time([time(100)]);
+    world.authorization_time.script([time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
 
@@ -119,10 +119,8 @@ fn unrelated_actor_records_do_not_poison_the_selected_transition() {
 
 #[test]
 fn required_assignment_loss_denies_at_operation_progression() {
-    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world.authorization_time.script([time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let access = admit_composed_access(&world, &principal, &request).unwrap();
@@ -134,10 +132,8 @@ fn required_assignment_loss_denies_at_operation_progression() {
 
 #[test]
 fn new_conflict_denies_at_operation_progression() {
-    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world.authorization_time.script([time(100), time(100)]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let access = admit_composed_access(&world, &principal, &request).unwrap();
@@ -153,10 +149,8 @@ fn new_conflict_denies_at_operation_progression() {
 
 #[test]
 fn new_prior_actor_denies_final_commit_before_effect_authority() {
-    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
-    world
-        .application
-        .script_authorization_time(vec![time(100); 16]);
+    let world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world.authorization_time.script(vec![time(100); 16]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = composed_program(&world, &principal, &request);
@@ -186,10 +180,8 @@ fn new_prior_actor_denies_final_commit_before_effect_authority() {
 
 #[test]
 fn unrelated_actor_drift_does_not_stale_the_selected_transition() {
-    let mut world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
-    world
-        .application
-        .script_authorization_time(vec![time(100); 16]);
+    let world = installed_composed_capability_world(CapabilityCompositionScenario::Lawful);
+    world.authorization_time.script(vec![time(100); 16]);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = composed_program(&world, &principal, &request);

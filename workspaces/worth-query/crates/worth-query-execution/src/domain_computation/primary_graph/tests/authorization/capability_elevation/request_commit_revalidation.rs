@@ -12,10 +12,10 @@ use crate::domain_computation::primary_graph::{
 
 #[test]
 fn governed_upper_bound_support_is_revalidated_at_request_commit() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 8));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 8));
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = super::request_transition::request_reads(
@@ -47,10 +47,10 @@ fn governed_upper_bound_support_is_revalidated_at_request_commit() {
 
 #[test]
 fn provider_time_rejects_a_request_program_after_its_exact_window_expires() {
-    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    let world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 8));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 8));
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = super::request_transition::request_reads(
@@ -63,8 +63,8 @@ fn provider_time_rejects_a_request_program_after_its_exact_window_expires() {
     .unwrap();
 
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(106), 4));
+        .authorization_time
+        .script(std::iter::repeat_n(time(106), 4));
     let WorthQueryElevationRequestOutcome::Denied(denial) = world
         .application
         .compare_and_commit_elevation_request(program, idempotency(75, 75))

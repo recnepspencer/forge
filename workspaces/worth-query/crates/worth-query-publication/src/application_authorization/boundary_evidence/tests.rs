@@ -1,7 +1,9 @@
 use worth_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
     DiagnosticRichnessProfile, FoundationalBoundaryEvidenceReceiptKind,
-    FoundationalDiagnosticOutcomeKind, FoundationalProfileAttachmentTargetKind,
+    FoundationalDiagnosticDenialClass, FoundationalDiagnosticLocalityClaim,
+    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticRow,
+    FoundationalDiagnosticWidenedFalloutPosture, FoundationalProfileAttachmentTargetKind,
     FoundationalProfileNarrowingKind, FoundationalProfileNarrowingRecord,
     FoundationalProfileProgressionDenial, FoundationalProfileSet, FoundationalProfileSetInput,
     RetentionDeliveryProfile, SupportPostureProfile,
@@ -115,6 +117,10 @@ fn closed_publication_taxonomy_preserves_every_exact_denial_family() {
         assert_eq!(explanation.outcome_kind(), outcome, "{cause:?}");
         assert_eq!(explanation.rows().len(), 1, "{cause:?}");
         assert_eq!(explanation.rows()[0].code().as_str(), code, "{cause:?}");
+        assert_decision_posture(
+            &explanation.rows()[0],
+            Some(FoundationalDiagnosticDenialClass::PolicyDenied),
+        );
     }
 }
 
@@ -137,6 +143,7 @@ fn successful_governed_outcomes_remain_distinct_from_denials() {
         omission.rows()[0].code().as_str(),
         "worth.query.disclosure.field-omission"
     );
+    assert_decision_posture(&omission.rows()[0], None);
     assert_eq!(
         review_required.outcome_kind(),
         FoundationalDiagnosticOutcomeKind::Accepted
@@ -144,6 +151,25 @@ fn successful_governed_outcomes_remain_distinct_from_denials() {
     assert_eq!(
         review_required.rows()[0].code().as_str(),
         "worth.query.elevation.revoked.review-required"
+    );
+    assert_decision_posture(&review_required.rows()[0], None);
+}
+
+fn assert_decision_posture(
+    row: &FoundationalDiagnosticRow,
+    denial_class: Option<FoundationalDiagnosticDenialClass>,
+) {
+    let FoundationalDiagnosticRow::Decision(row) = row else {
+        panic!("authorization publication must materialize one decision row");
+    };
+    assert_eq!(row.denial_class(), denial_class);
+    assert_eq!(
+        row.locality_claim(),
+        FoundationalDiagnosticLocalityClaim::ExactSubject
+    );
+    assert_eq!(
+        row.widened_fallout_posture(),
+        FoundationalDiagnosticWidenedFalloutPosture::NotWidened
     );
 }
 

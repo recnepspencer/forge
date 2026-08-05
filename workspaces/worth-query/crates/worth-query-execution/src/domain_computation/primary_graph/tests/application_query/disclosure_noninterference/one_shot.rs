@@ -104,10 +104,10 @@ fn protected_label_difference_is_absent_from_every_one_shot_observable() {
 }
 
 fn observe(label: &str) -> ConsumerObservation {
-    let mut world = installed_capability_world_with_label(label);
+    let world = installed_capability_world_with_label(label);
     world
-        .application
-        .script_authorization_time(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
+        .authorization_time
+        .script(vec![UNIX_EPOCH + Duration::from_secs(100); 32]);
     execute(&world)
 }
 

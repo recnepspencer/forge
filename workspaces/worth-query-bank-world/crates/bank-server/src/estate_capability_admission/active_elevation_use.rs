@@ -1,35 +1,115 @@
+use std::time::Duration;
+
 use bank_domain::{
     estate::{
-        EmergencyAccessId, EstateAction, EstateDisbursement, EstatePosting, EstateWorkflowStage,
-        RestrictedBankField,
+        BankDisclosure, EmergencyAccessId, EstateAction, EstateDisbursement, EstatePosting,
+        EstateWorkflowStage, RestrictedBankField,
     },
     model::{Money, SignedMoney},
     schema::{DisburseEstateCapability, DisburseEstateOperation},
 };
-use worth_foundational::facade::{
-    FoundationalBoundaryEvidenceExecutionPosture, FoundationalDiagnosticOutcomeKind,
-};
-use worth_query_host::facade::{
-    primary_graph::{
-        WorthQueryApplicationAuthorizationExplanationCause,
-        WorthQueryApplicationIdempotencyBinding, WorthQueryOperationAuthorizationDenialKind,
-    },
-    publication::domain_computation::{
-        publish_application_authorization_denial,
-        WorthQueryApplicationAuthorizationPublicationProfile,
-    },
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationIdempotencyBinding,
+    WorthQueryOperationAuthorizationDenialKind,
 };
 
 use super::{
     fixture::{
-        emergency_request_world, emergency_request_world_with_alternate_bound, request_scope,
-        GrantSpec, ACCOUNT, ALTERNATE_EMERGENCY_BOUND_GRANT, APPROVER, ESTATE, GRANT,
-        OTHER_ACCOUNT,
+        emergency_request_world, emergency_request_world_at,
+        emergency_request_world_with_alternate_bound, request_scope, AuthorizationTimeController,
+        GrantSpec, ACCOUNT, ALTERNATE_EMERGENCY_BOUND_GRANT, APPROVER, ESTATE, GRANT, OTHER_ACCOUNT,
     },
-    lifecycle_journey::{approve_elevation, request_elevation},
-    publication_evidence::publication_profile,
+    lifecycle_journey::{
+        approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
+    },
+    publication_evidence::{
+        assert_authorization_denial_publication, ExpectedAuthorizationDenialPublication,
+    },
 };
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
+
+#[test]
+fn real_approved_elevation_expires_at_the_installed_time_boundary() {
+    let authorization_time = AuthorizationTimeController::at_epoch_seconds(100);
+    let fixture = emergency_request_world_at(
+        "estate-emergency-expired-publication",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+        authorization_time.clone(),
+    );
+    let requester = fixture.authenticate();
+    let approver = fixture.authenticate_approver();
+    let approved = approve_two_second_account_details_elevation(&fixture, &requester, &approver);
+    let query = queries::estate_emergency_account_details(
+        ESTATE,
+        EmergencyAccessId::new(391).unwrap(),
+    );
+
+    authorization_time.advance_to_epoch_seconds(101);
+    let current = fixture
+        .runtime
+        .query(query)
+        .as_principal(&requester)
+        .controls(controls())
+        .execute_with_approved_elevation(&approved)
+        .expect("the real approved elevation must disclose before expiry");
+    assert!(matches!(
+        current.rows()[0].account(),
+        BankDisclosure::Disclosed(_)
+    ));
+
+    authorization_time.advance_to_epoch_seconds(102);
+    let denial = match fixture
+        .runtime
+        .query(query)
+        .as_principal(&requester)
+        .controls(controls())
+        .execute_with_approved_elevation(&approved)
+    {
+        Ok(_) => panic!("the exact expiry boundary must not disclose account details"),
+        Err(BankApplicationQueryDenial::CapabilityAdmission(denial)) => denial,
+        Err(denial) => panic!("expiry must fail during capability admission: {denial:?}"),
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationExpired
+    );
+    assert_authorization_denial_publication(
+        &denial,
+        ExpectedAuthorizationDenialPublication {
+            cause: WorthQueryApplicationAuthorizationExplanationCause::ElevationExpired,
+            code: "worth.query.authorization.elevation-expired",
+        },
+    );
+}
+
+fn approve_two_second_account_details_elevation(
+    fixture: &super::fixture::CapabilityFixture,
+    requester: &crate::BankAuthenticatedPrincipal,
+    approver: &crate::BankAuthenticatedPrincipal,
+) -> worth_query_host::facade::primary_graph::WorthQueryApprovedElevation {
+    let requested = request_elevation(
+        fixture,
+        requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 391,
+            review: 392,
+            idempotency: 121,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(2),
+        },
+    );
+    approve_elevation(
+        fixture,
+        approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 391,
+            idempotency: 123,
+        },
+    )
+}
 
 #[test]
 fn approved_different_field_cannot_open_account_details() {
@@ -44,24 +124,46 @@ fn approved_different_field_cannot_open_account_details() {
     let wrong_requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        371,
-        372,
-        101,
-        RestrictedBankField::BeneficiaryIdentity,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 371,
+            review: 372,
+            idempotency: 101,
+            field: RestrictedBankField::BeneficiaryIdentity,
+            duration: Duration::from_secs(300),
+        },
     );
-    let wrong_approved = approve_elevation(&fixture, &approver, wrong_requested, 371, 103);
+    let wrong_approved = approve_elevation(
+        &fixture,
+        &approver,
+        wrong_requested,
+        ElevationApprovalSpec {
+            access: 371,
+            idempotency: 103,
+        },
+    );
     let account_access = EmergencyAccessId::new(373).unwrap();
     let account_requested = request_elevation(
         &fixture,
         &requester,
-        ALTERNATE_EMERGENCY_BOUND_GRANT,
-        373,
-        374,
-        105,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: ALTERNATE_EMERGENCY_BOUND_GRANT,
+            access: 373,
+            review: 374,
+            idempotency: 105,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
-    let _account_approved = approve_elevation(&fixture, &approver, account_requested, 373, 107);
+    let _account_approved = approve_elevation(
+        &fixture,
+        &approver,
+        account_requested,
+        ElevationApprovalSpec {
+            access: 373,
+            idempotency: 107,
+        },
+    );
 
     let denial = match fixture
         .runtime
@@ -83,10 +185,12 @@ fn approved_different_field_cannot_open_account_details() {
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected
     );
-    assert_denial_publication(
+    assert_authorization_denial_publication(
         &denial,
-        WorthQueryApplicationAuthorizationExplanationCause::ElevationDenied,
-        "worth.query.authorization.elevation-denied",
+        ExpectedAuthorizationDenialPublication {
+            cause: WorthQueryApplicationAuthorizationExplanationCause::ElevationDenied,
+            code: "worth.query.authorization.elevation-denied",
+        },
     );
 }
 
@@ -102,13 +206,24 @@ fn real_approved_elevation_cannot_enter_the_bank_disbursement_operation() {
     let requested = request_elevation(
         &fixture,
         &requester,
-        GRANT,
-        381,
-        382,
-        111,
-        RestrictedBankField::AccountDetails,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 381,
+            review: 382,
+            idempotency: 111,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
     );
-    let approved = approve_elevation(&fixture, &approver, requested, 381, 113);
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 381,
+            idempotency: 113,
+        },
+    );
     let capability = fixture
         .runtime
         .application_runtime()
@@ -170,35 +285,4 @@ fn disbursement_action() -> EstateAction {
 
 fn controls() -> BankReadControls {
     BankReadControls::current(request_scope(), 1, 20_000).unwrap()
-}
-
-fn assert_denial_publication(
-    denial: &worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenial,
-    expected_cause: WorthQueryApplicationAuthorizationExplanationCause,
-    expected_code: &str,
-) {
-    let published = publish_application_authorization_denial(
-        denial,
-        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
-    )
-    .unwrap();
-
-    assert_eq!(published.artifact().denial(), denial);
-    assert_eq!(published.artifact().cause(), expected_cause);
-    assert_eq!(
-        published.explanation().outcome_kind(),
-        FoundationalDiagnosticOutcomeKind::Denied
-    );
-    assert_eq!(
-        published.explanation().rows()[0].code().as_str(),
-        expected_code
-    );
-    assert_eq!(
-        published.denied_closeout_receipt().execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
-    );
-    assert_eq!(
-        published.publication_receipt().execution_posture(),
-        FoundationalBoundaryEvidenceExecutionPosture::Executed
-    );
 }

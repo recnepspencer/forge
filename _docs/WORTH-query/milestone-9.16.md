@@ -2151,9 +2151,12 @@ ledger.
   validity, disclosure, purpose, or downstream delegation posture;
 - purpose-bound request context introduced at an explicit entry boundary and
   thereafter Query-carried without ambient or adapter-owned policy;
-- an installed validity timeline and Query-owned current-time source whose
-  exact sample enters the decision facts; callers and transport adapters
-  cannot choose the moment at which a grant is evaluated;
+- an installed validity timeline and Query-owned current-time interpretation
+  whose exact sample enters the decision facts; the application host may fix
+  one trusted external time source when it publishes the Query application
+  runtime, but operation callers and transport adapters cannot supply a
+  sample, replace the source, or choose the moment at which a grant is
+  evaluated;
 - separate typed internal-computation and consumer-disclosure admission,
   including noninterference posture for protected facts that influence
   predicates, ordering, cursors, counts, aggregates, explanations, history,
@@ -2881,6 +2884,22 @@ compile-fail consumer evidence proves elevation cannot be omitted at that
 front door; the exact `ElevationRequired` runtime outcome is likewise proved at
 Query's public generic admission boundary rather than by inventing a second
 Bank API.
+
+The elevation-expiry courtroom must use the same production application-runtime
+publication boundary as a real host. Query exposes one non-authoritative
+authorization-time source port at that installation boundary and retains the
+system source as the default adapter. The chosen source is fixed for the
+runtime lifetime; it is not part of capability identity, graph authority,
+request input, or a lower-runtime capability, and source failure maps to the
+existing fail-closed trusted-time denial. Query alone converts the external
+sample into the installed timeline and decides validity. Tests may implement
+that production port with a controllable source, but no `cfg(test)` source,
+post-install clock replacement, caller-authored `now`, wall-clock sleep, or
+synthetic elevation receipt can satisfy this proof. Bank must request and
+approve a real short-lived elevation at a fixed instant, prove lawful use
+before expiry, advance only the installed source to the exact expiry boundary,
+and obtain and publish `ElevationExpired` through the public Bank query with no
+disclosed result or governed effect.
 Denied mutations must prove zero effects. Phase 8 non-authorization outcomes
 and Gate D's complete scale, residue, and external certification remain
 outside this focused publication slice.

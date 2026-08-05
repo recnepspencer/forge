@@ -5,10 +5,8 @@ use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDe
 
 #[test]
 fn approved_receipt_rejects_another_elevation_and_a_narrowed_amount() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let capability = super::installed_capability(&world);
     let wrong_elevation = super::elevated_input(Some("elevation-1"));
@@ -31,8 +29,8 @@ fn approved_receipt_rejects_another_elevation_and_a_narrowed_amount() {
 #[test]
 fn approved_receipt_from_another_runtime_cannot_open_active_use() {
     let (_source, _source_request, foreign) = super::approval_transition::exact_approved_world();
-    let (mut world, request, _local) = super::approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, _local) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     let capability = super::installed_capability(&world);
 
@@ -55,8 +53,8 @@ fn approved_receipt_from_another_runtime_cannot_open_active_use() {
 
 #[test]
 fn approved_touch_elevation_cannot_authorize_a_disbursement_request() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     let capability = super::installed_capability(&world);
     let mut disbursement = super::elevated_input(Some("elevation-2"));
@@ -76,8 +74,8 @@ fn approved_touch_elevation_cannot_authorize_a_disbursement_request() {
 
 #[test]
 fn missing_direct_elevation_resource_denies_active_admission() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     super::mutation::replace_elevation_resource(&world, "elevation-2", None);
 
@@ -93,8 +91,8 @@ fn missing_direct_elevation_resource_denies_active_admission() {
 
 #[test]
 fn additional_foreign_elevation_resource_denies_fresh_active_admission() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world.application.script_authorization_time([time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100)]);
     let principal = authenticated_principal(&world, &request);
     super::mutation::add_elevation_resource(&world, "elevation-2", "account-2");
 
@@ -110,10 +108,8 @@ fn additional_foreign_elevation_resource_denies_fresh_active_admission() {
 
 #[test]
 fn retargeted_direct_elevation_resource_stales_admitted_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access =
         super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
@@ -140,10 +136,8 @@ fn retargeted_direct_elevation_resource_stales_admitted_authority() {
 
 #[test]
 fn additional_foreign_elevation_resource_stales_admitted_authority() {
-    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
-    world
-        .application
-        .script_authorization_time([time(100), time(100)]);
+    let (world, request, approved) = super::approval_transition::exact_approved_world();
+    world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);
     let access =
         super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();

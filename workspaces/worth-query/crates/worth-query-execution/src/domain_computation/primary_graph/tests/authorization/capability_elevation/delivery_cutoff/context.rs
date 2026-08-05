@@ -43,8 +43,8 @@ pub(super) struct ElevatedQueryContext {
 impl ElevatedQueryContext {
     pub(super) fn script_current_time(&mut self) {
         self.world
-            .application
-            .script_authorization_time(std::iter::repeat_n(time(100), 32));
+            .authorization_time
+            .script(std::iter::repeat_n(time(100), 32));
     }
 
     pub(super) fn elevated_access(
@@ -67,14 +67,14 @@ impl ElevatedQueryContext {
 }
 
 pub(super) fn context(live: bool) -> ElevatedQueryContext {
-    let mut world = if live {
+    let world = if live {
         installed_elevated_capability_live_world(CapabilityElevationScenario::Active)
     } else {
         installed_elevated_capability_world(CapabilityElevationScenario::Active)
     };
     world
-        .application
-        .script_authorization_time(std::iter::repeat_n(time(100), 64));
+        .authorization_time
+        .script(std::iter::repeat_n(time(100), 64));
     let request = live_scope();
     let requested = super::super::request_support::commit_exact_request(&world, &request);
     super::super::request_support::resolve_exact_request_identities(&world, &request);
