@@ -21,6 +21,7 @@ pub enum EstateWorkflowStage {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EstateCaseStatus {
+    PendingOpening,
     Open,
     Released,
     Closed,

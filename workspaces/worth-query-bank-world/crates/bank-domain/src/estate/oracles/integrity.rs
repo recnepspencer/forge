@@ -100,6 +100,7 @@ fn validate_estate_record_action(
             if action_estate != estate.id
                 || notice.id != estate.death_notice
                 || notice.status != crate::estate::DeathNoticeStatus::Verified
+                || estate.status != EstateCaseStatus::PendingOpening
             {
                 return Err(EstateDenial::LegalAuthorityMismatch);
             }

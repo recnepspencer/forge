@@ -77,6 +77,7 @@ fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
             "CompleteEstateMandatoryReviewOperation",
             "FreezeEstateAccountOperation",
             "NotifyDeathEstateOperation",
+            "OpenEstateCaseOperation",
             "RecognizeEstateExecutorOperation",
             "RequestEstateEmergencyAccessOperation",
             "RevokeEstateEmergencyAccessOperation",

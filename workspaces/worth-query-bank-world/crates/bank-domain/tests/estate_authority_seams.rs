@@ -9,6 +9,57 @@ use support::{courtroom, grant, Courtroom};
 const NOW: EstateMoment = EstateMoment::from_epoch_seconds(150);
 
 #[test]
+fn case_opening_requires_a_verified_notice_and_distinct_pre_open_posture() {
+    let courtroom = courtroom();
+    let opening_grant = grant(
+        80,
+        courtroom.specialist,
+        EstateCapabilityOperation::OpenEstateCase,
+        None,
+        None,
+        None,
+        DelegationLimit::none(),
+    );
+    let action = EstateAction::OpenEstateCase {
+        estate: courtroom.estate,
+        notice: courtroom
+            .world
+            .case(courtroom.estate)
+            .expect("the canonical courtroom owns its estate")
+            .death_notice,
+    };
+    let mut pending_case = *courtroom
+        .world
+        .case(courtroom.estate)
+        .expect("the canonical courtroom owns its estate");
+    pending_case.status = EstateCaseStatus::PendingOpening;
+    let pending_world = courtroom
+        .world
+        .clone()
+        .with_case(pending_case)
+        .with_grant(opening_grant);
+    assert_eq!(
+        BankEstateOracles::evaluate(
+            &pending_world,
+            specialist(&courtroom),
+            action,
+            capability_use(opening_grant.id, None),
+        ),
+        EstateDecision::Allowed
+    );
+
+    let already_open = courtroom.world.clone().with_grant(opening_grant);
+    assert_denied(
+        &already_open,
+        specialist(&courtroom),
+        action,
+        opening_grant.id,
+        None,
+        EstateDenial::LegalAuthorityMismatch,
+    );
+}
+
+#[test]
 fn administrative_targets_cannot_escape_the_capability_estate() {
     let courtroom = courtroom();
     let revoke_authority = grant(

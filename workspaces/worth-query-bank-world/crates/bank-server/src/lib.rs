@@ -36,8 +36,8 @@ pub use error::{
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
 pub use estate_progression::{
-    BankDeathNotificationProjectionDenial, BankEstateFreezeProjectionDenial,
-    BankEstateProgressionDenial,
+    BankDeathNotificationProjectionDenial, BankEstateCaseOpeningProjectionDenial,
+    BankEstateFreezeProjectionDenial, BankEstateProgressionDenial,
     BankExecutorRecognitionProjectionDenial,
 };
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};

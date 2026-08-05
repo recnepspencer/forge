@@ -106,6 +106,7 @@ string_application_value!(DeathNoticeStatus, {
     DeathNoticeStatus::Rejected => "rejected",
 });
 string_application_value!(EstateCaseStatus, {
+    EstateCaseStatus::PendingOpening => "pending-opening",
     EstateCaseStatus::Open => "open",
     EstateCaseStatus::Released => "released",
     EstateCaseStatus::Closed => "closed",
