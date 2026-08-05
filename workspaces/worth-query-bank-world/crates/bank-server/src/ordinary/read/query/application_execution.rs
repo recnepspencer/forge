@@ -4,13 +4,13 @@ use bank_domain::queries::{
     EstateCaseOverviewQuery, EstateCaseOverviewRequest, EstateCustomerDisclosure,
     EstateCustomerDisclosureQuery, EstateCustomerDisclosureRequest, EstateEmergencyAccountDetails,
     EstateEmergencyAccountDetailsQuery, EstateEmergencyAccountDetailsRequest,
-    EstateGovernanceQuery, EstateGovernanceRequest, InstitutionAuditQuery, InstitutionAuditRequest,
-    PaymentDetailQuery, PaymentDetailRequest, PendingPaymentsQuery, PendingPaymentsRequest,
+    InstitutionAuditQuery, InstitutionAuditRequest, PaymentDetailQuery, PaymentDetailRequest,
+    PendingPaymentsQuery, PendingPaymentsRequest,
 };
 use bank_domain::queries::{AccountSummaryQuery, AccountSummaryRequest};
 use bank_domain::reads::{
-    AccountDetail, AccountSummary, EstateCaseOverview, EstateGovernanceContext,
-    InstitutionAuditView, PaymentSummary, VisibleAccount,
+    AccountDetail, AccountSummary, EstateCaseOverview, InstitutionAuditView, PaymentSummary,
+    VisibleAccount,
 };
 use bank_domain::schema::{
     AccountIdentity, EstateCaseIdentityField, InstitutionIdentityField, PaymentIdentityField,
@@ -27,9 +27,8 @@ use worth_query_host::facade::{
 
 use super::BankReadyQuery;
 use crate::application_query::{
-    execute_estate_customer_disclosure, execute_estate_emergency_account_details,
-    execute_estate_governance, execute_one_shot, execute_preview,
-    BankAdmittedEstateEmergencyAccountDetailsHistorical,
+    execute_estate_customer_disclosure, execute_estate_emergency_account_details, execute_one_shot,
+    execute_preview, BankAdmittedEstateEmergencyAccountDetailsHistorical,
     BankAdmittedEstateEmergencyAccountDetailsPreview, BankApplicationQueryDenial,
     BankApplicationQueryInvocation, BankEstateEmergencyAccountDetailsAdmission, BankPreviewSession,
 };
@@ -227,22 +226,6 @@ impl BankReadyQuery<'_, '_, EstateCustomerDisclosureRequest> {
         BankApplicationQueryDenial,
     > {
         execute_estate_customer_disclosure(
-            self.runtime,
-            self.principal,
-            self.query,
-            self.controls.application_query_controls(),
-        )
-    }
-}
-
-impl BankReadyQuery<'_, '_, EstateGovernanceRequest> {
-    pub fn execute(
-        self,
-    ) -> Result<
-        WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>,
-        BankApplicationQueryDenial,
-    > {
-        execute_estate_governance(
             self.runtime,
             self.principal,
             self.query,

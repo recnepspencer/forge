@@ -222,6 +222,8 @@ fn assert_application_query_inventory(members: &[ApplicationSchemaMember]) {
             "estate_emergency_account_details",
             "estate_emergency_access_activity",
             "estate_governance_context",
+            "estate_legal_compliance",
+            "estate_mandatory_reviews",
             "institution_audit",
             "payment_detail",
             "pending_payments",

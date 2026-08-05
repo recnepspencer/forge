@@ -87,6 +87,14 @@ impl WorthQueryRetainedCapabilityAuthorization {
         }
     }
 
+    pub(in crate::domain_computation) const fn authorization_requirement_count(&self) -> usize {
+        if self.supporting.is_some() {
+            2
+        } else {
+            1
+        }
+    }
+
     pub(in crate::domain_computation) fn installed_capability_identity(&self) -> [u8; 32] {
         self.request.capability_identity
     }
@@ -103,7 +111,9 @@ impl WorthQueryRetainedCapabilityAuthorization {
                 .is_none_or(|supporting| supporting.decision().session_identity() == session)
     }
 
-    pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
+    pub(in crate::domain_computation) fn relational_counters(
+        &self,
+    ) -> RelationalAuthorizationObservationCounters {
         let mut counters = self.decision.relational_counters();
         if let Some(supporting) = &self.supporting {
             super::decision_facts::authorization::add_counters(
@@ -114,7 +124,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         counters
     }
 
-    pub(super) fn signal_dependency_count(&self) -> usize {
+    pub(in crate::domain_computation) fn signal_dependency_count(&self) -> usize {
         self.decision.signal_dependency_count()
             + self.supporting.as_ref().map_or(0, |supporting| {
                 supporting.decision().signal_dependency_count()

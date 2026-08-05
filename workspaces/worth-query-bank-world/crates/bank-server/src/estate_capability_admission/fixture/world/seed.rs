@@ -20,7 +20,17 @@ pub(super) fn assemble(
     identities: &[WorthQueryExternalPrincipalIdentity; 5],
     spec: &FixtureWorldSpec<'_>,
 ) -> BankWorldSeed {
-    let mut seed = BankWorldSeed::new(snapshot)
+    let seed = base_seed(snapshot, estate, identities);
+    let seed = install_delegation_assignments(seed, spec.composition);
+    install_additional_principals(seed, spec)
+}
+
+fn base_seed(
+    snapshot: BankSnapshot,
+    estate: BankEstateWorld,
+    identities: &[WorthQueryExternalPrincipalIdentity; 5],
+) -> BankWorldSeed {
+    BankWorldSeed::new(snapshot)
         .principal(BankPrincipalSeed::enabled(DECEASED, identities[0].clone()))
         .principal(BankPrincipalSeed::enabled(
             SPECIALIST,
@@ -47,23 +57,43 @@ pub(super) fn assemble(
             REVIEWER,
             EmployeeRole::Compliance,
         ))
-        .estate(estate);
-    if matches!(spec.composition, FixtureWorldComposition::Delegation { .. }) {
-        seed = seed
-            .employee(BankEmployeeAssignmentSeed::new(
-                DELEGATION_EXECUTOR_ASSIGNMENT,
-                INSTITUTION,
-                EXECUTOR,
-                EmployeeRole::EstateSpecialist,
-            ))
-            .employee(BankEmployeeAssignmentSeed::new(
-                DELEGATION_REVIEWER_ASSIGNMENT,
-                INSTITUTION,
-                REVIEWER,
-                EmployeeRole::EstateSpecialist,
-            ));
+        .estate(estate)
+}
+
+fn install_delegation_assignments(
+    seed: BankWorldSeed,
+    composition: FixtureWorldComposition,
+) -> BankWorldSeed {
+    if matches!(composition, FixtureWorldComposition::Delegation { .. }) {
+        seed.employee(BankEmployeeAssignmentSeed::new(
+            DELEGATION_EXECUTOR_ASSIGNMENT,
+            INSTITUTION,
+            EXECUTOR,
+            EmployeeRole::EstateSpecialist,
+        ))
+        .employee(BankEmployeeAssignmentSeed::new(
+            DELEGATION_REVIEWER_ASSIGNMENT,
+            INSTITUTION,
+            REVIEWER,
+            EmployeeRole::EstateSpecialist,
+        ))
+    } else {
+        seed
     }
-    for ordinal in 0..spec.unrelated_grants {
+}
+
+fn install_additional_principals(
+    mut seed: BankWorldSeed,
+    spec: &FixtureWorldSpec<'_>,
+) -> BankWorldSeed {
+    let additional_principals = match spec.composition {
+        FixtureWorldComposition::WarmLocality {
+            axis: super::WarmLocalityAxis::Relationships,
+            count,
+        } => spec.unrelated_grants.max(count),
+        _ => spec.unrelated_grants,
+    };
+    for ordinal in 0..additional_principals {
         seed = seed.principal(BankPrincipalSeed::enabled(
             extra_principal(ordinal),
             external_identity(spec.scenario, &format!("extra-{ordinal}")),

@@ -43,6 +43,22 @@ impl GrantSpec {
         }
     }
 
+    pub(crate) fn legal_compliance_view() -> Self {
+        Self {
+            purpose: EstateCapabilityPurpose::LegalCompliance,
+            field: Some(RestrictedBankField::LegalDocument),
+            ..Self::view()
+        }
+    }
+
+    pub(crate) fn mandatory_review_view() -> Self {
+        Self {
+            purpose: EstateCapabilityPurpose::MandatoryReview,
+            field: Some(RestrictedBankField::AuditTrail),
+            ..Self::view()
+        }
+    }
+
     pub(crate) fn freeze() -> Self {
         Self {
             operation: EstateCapabilityOperation::FreezeAccount,

@@ -22,12 +22,16 @@ mod foreign_estate;
 mod governance_projection;
 #[path = "world/lifecycle.rs"]
 mod lifecycle;
+#[path = "world/product_projection.rs"]
+mod product_projection;
 #[path = "world/release.rs"]
 mod release;
 #[path = "world/seed.rs"]
 mod seed;
 #[path = "world/snapshot.rs"]
 mod snapshot_fixture;
+#[path = "world/warm_locality.rs"]
+mod warm_locality;
 
 pub(crate) use foreign_estate::{foreign_estate_revocation_world, FOREIGN_ESTATE, FOREIGN_GRANT};
 
@@ -49,6 +53,11 @@ pub(super) enum FixtureWorldComposition {
     },
     Lifecycle,
     GovernanceProjection,
+    ProductProjection,
+    WarmLocality {
+        axis: WarmLocalityAxis,
+        count: usize,
+    },
     Delegation {
         command_authority: bool,
         parent_context: DelegationParentContext,
@@ -56,6 +65,15 @@ pub(super) enum FixtureWorldComposition {
     ForeignEstateRevocation,
     Release,
     Disbursement,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum WarmLocalityAxis {
+    Grants,
+    Relationships,
+    Fields,
+    Cases,
+    ResultRows,
 }
 
 #[derive(Clone, Copy)]
@@ -90,7 +108,7 @@ fn install_fixture_world_with_source(
     let snapshot = if matches!(spec.composition, FixtureWorldComposition::Disbursement) {
         disbursement::snapshot()
     } else {
-        snapshot_fixture::snapshot(spec.unrelated_grants)
+        snapshot_fixture::snapshot(additional_principal_count(&spec))
     };
     let estate = compose_estate(&spec);
     let estate_world = estate.clone();
@@ -138,6 +156,13 @@ fn install_scenario_truth(estate: BankEstateWorld, spec: &FixtureWorldSpec<'_>) 
         FixtureWorldComposition::GovernanceProjection => {
             governance_projection::install_truth(estate)
         }
+        FixtureWorldComposition::ProductProjection => {
+            product_projection::install_truth(estate, spec.spec)
+        }
+        FixtureWorldComposition::WarmLocality { axis, count } => {
+            let estate = product_projection::install_truth(estate, spec.spec);
+            warm_locality::install_growth(estate, axis, count)
+        }
         FixtureWorldComposition::Delegation {
             command_authority,
             parent_context,
@@ -147,6 +172,16 @@ fn install_scenario_truth(estate: BankEstateWorld, spec: &FixtureWorldSpec<'_>) 
         }
         FixtureWorldComposition::Release => release::install_truth(estate),
         FixtureWorldComposition::Disbursement => disbursement::install_truth(estate),
+    }
+}
+
+fn additional_principal_count(spec: &FixtureWorldSpec<'_>) -> usize {
+    match spec.composition {
+        FixtureWorldComposition::WarmLocality {
+            axis: WarmLocalityAxis::Relationships,
+            count,
+        } => spec.unrelated_grants.max(count),
+        _ => spec.unrelated_grants,
     }
 }
 

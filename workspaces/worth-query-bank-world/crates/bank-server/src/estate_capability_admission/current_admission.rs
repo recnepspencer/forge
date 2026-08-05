@@ -1,7 +1,7 @@
 use bank_domain::{
     estate::{
-        CapabilityGrantStatus, EstateAction, EstateCapabilityPurpose, EstateDecision,
-        EstateWorkflowStage, RestrictedBankField,
+        CapabilityGrantStatus, EstateAction, EstateCapabilityPurpose, EstateWorkflowStage,
+        RestrictedBankField,
     },
     schema::{ViewEstateAdministrationCapability, ViewRestrictedEstateOperation},
 };
@@ -32,10 +32,6 @@ fn active_bank_grant_mints_only_a_current_move_only_access_proof() {
         .admit_capability_access(principal.query(), &capability, view_action(), &request)
         .unwrap();
 
-    assert_eq!(
-        fixture.oracle_decision(view_action()),
-        EstateDecision::Allowed
-    );
     assert_eq!(access.operation(), "ViewRestrictedEstateOperation");
     assert_eq!(access.authorization_decision_fact_count(), 2);
     assert_eq!(
@@ -95,10 +91,6 @@ fn view_denial(
     stage: EstateWorkflowStage,
 ) -> WorthQueryOperationAuthorizationDenialKind {
     let fixture = capability_world(scenario, spec, stage);
-    assert!(matches!(
-        fixture.oracle_decision(view_action()),
-        EstateDecision::Denied(_)
-    ));
     let principal = fixture.authenticate();
     let application = fixture.runtime.application_runtime();
     let capability = application

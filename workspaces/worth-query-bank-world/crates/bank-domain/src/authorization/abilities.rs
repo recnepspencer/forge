@@ -16,3 +16,5 @@ worth_query_ability!(pub ApproveBusinessFunds scoped_to PaymentIntent, in BankSc
 worth_query_ability!(pub ServiceInstitutionAccount scoped_to Institution, in BankSchema);
 worth_query_ability!(pub AuditInstitution scoped_to Institution, in BankSchema);
 worth_query_ability!(pub ViewEstateCase scoped_to EstateCase, in BankSchema);
+worth_query_ability!(pub ViewEstateLegalCompliance scoped_to EstateCase, in BankSchema);
+worth_query_ability!(pub ViewEstateMandatoryReview scoped_to EstateCase, in BankSchema);

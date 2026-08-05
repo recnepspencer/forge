@@ -1,3 +1,5 @@
+#[path = "live_activity/consumer_scale.rs"]
+mod consumer_scale;
 #[allow(
     dead_code,
     reason = "the shared read fixture includes scenarios used by sibling consumer courtrooms"
@@ -91,57 +93,6 @@ fn live_activity_delivers_only_matching_commits_as_fresh_reads() {
         panic!("live close must return its read-only terminal");
     };
     assert_eq!(close_terminal.release().released_reservation_count(), 1);
-}
-
-#[test]
-fn live_consumer_fanout_keeps_each_delivery_free_of_canonical_work() {
-    const CONSUMER_COUNT: usize = 32;
-
-    let fixture = ordinary_read_world("live-consumer-canonical-scale", 0);
-    let owner = fixture.authenticate(OWNER);
-    let teller = fixture.authenticate(TELLER);
-    let mut leases = (0..CONSUMER_COUNT)
-        .map(|_| {
-            fixture
-                .world
-                .runtime
-                .account_activity(fixture.personal_account)
-                .as_principal(&owner)
-                .subscribe(live_controls())
-                .expect("each bounded authenticated live consumer should open")
-        })
-        .collect::<Vec<_>>();
-
-    commit_deposit(
-        &fixture,
-        &teller,
-        fixture.personal_account,
-        "live-consumer-canonical-scale-deposit",
-    );
-
-    let mut expected_phases = None;
-    let mut delivered = 0usize;
-    for lease in &mut leases {
-        let BankAccountActivityLiveOutcome::Delivered(update) = lease.poll() else {
-            panic!("each retained consumer must receive the matching commit")
-        };
-        delivered += 1;
-        let phases = update.receipt().canonical_work();
-        assert_phase_posture(phases);
-        assert_eq!(update.receipt().authorization_work().requirement_count(), 1);
-        if let Some(expected) = expected_phases {
-            assert_eq!(phases, expected);
-        } else {
-            expected_phases = Some(phases);
-        }
-    }
-    assert_eq!(delivered, CONSUMER_COUNT);
-    for lease in leases {
-        assert!(matches!(
-            lease.close(),
-            worth_query_host::facade::primary_graph::WorthQueryApplicationLiveCloseOutcome::Completed(_)
-        ));
-    }
 }
 
 #[test]

@@ -24,7 +24,9 @@ pub(crate) use capability_fixture::CapabilityFixture;
 use estate_baseline::{base_estate, extra_principal, grant};
 pub(crate) use grant_spec::GrantSpec;
 pub(crate) use identity_catalog::*;
-pub(crate) use world::{foreign_estate_revocation_world, FOREIGN_ESTATE, FOREIGN_GRANT};
+pub(crate) use world::{
+    foreign_estate_revocation_world, WarmLocalityAxis, FOREIGN_ESTATE, FOREIGN_GRANT,
+};
 use world::{install_fixture_world, FixtureWorldComposition, FixtureWorldSpec};
 
 pub(super) fn capability_world(
@@ -194,6 +196,39 @@ pub(super) fn governance_projection_world(scenario: &str) -> CapabilityFixture {
     })
 }
 
+pub(super) fn product_projection_world(scenario: &str, grant: GrantSpec) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: grant,
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::ProductProjection,
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(super) fn warm_locality_world(
+    scenario: &str,
+    axis: WarmLocalityAxis,
+    count: usize,
+) -> CapabilityFixture {
+    let unrelated_grants = if matches!(axis, WarmLocalityAxis::Grants) {
+        count
+    } else {
+        0
+    };
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::legal_compliance_view(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants,
+        composition: FixtureWorldComposition::WarmLocality { axis, count },
+        alternate_emergency_bound: None,
+    })
+}
+
 pub(crate) fn delegation_world(scenario: &str) -> CapabilityFixture {
     capability_world_from_spec(FixtureWorldSpec {
         scenario,
@@ -271,24 +306,19 @@ pub(crate) fn delegation_world_with_parent_spec(
 }
 
 fn capability_world_from_spec(spec: FixtureWorldSpec<'_>) -> CapabilityFixture {
-    let case_stage = spec.case_stage;
     let installed = install_fixture_world(spec);
-    capability_fixture(case_stage, installed)
+    capability_fixture(installed)
 }
 
 fn capability_world_from_spec_with_authorization_time(
     spec: FixtureWorldSpec<'_>,
     authorization_time: AuthorizationTimeController,
 ) -> CapabilityFixture {
-    let case_stage = spec.case_stage;
     let installed = world::install_fixture_world_with_authorization_time(spec, authorization_time);
-    capability_fixture(case_stage, installed)
+    capability_fixture(installed)
 }
 
-fn capability_fixture(
-    case_stage: EstateWorkflowStage,
-    installed: world::InstalledFixtureWorld,
-) -> CapabilityFixture {
+fn capability_fixture(installed: world::InstalledFixtureWorld) -> CapabilityFixture {
     let runtime = installed.runtime;
     let authentication = runtime
         .admit_authentication_adapter(authentication_configuration(), TestAuthenticationAdapter)
@@ -296,7 +326,6 @@ fn capability_fixture(
     CapabilityFixture {
         runtime,
         estate_world: installed.estate_world,
-        workflow_stage: case_stage,
         authentication,
         specialist_identity: installed.identities[1].clone(),
         executor_identity: installed.identities[2].clone(),

@@ -1,4 +1,6 @@
 use crate::domain_computation::authorization::WorthQueryAuthorizationDecisionFact;
+use crate::domain_computation::authorization::WorthQueryRetainedCapabilityAuthorization;
+use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct WorthQueryApplicationAuthorizationWorkEvidence {
@@ -13,6 +15,7 @@ pub struct WorthQueryApplicationAuthorizationWorkEvidence {
     reconstructive_graph_scans: usize,
     reconstructive_relation_records_scanned: usize,
     signal_dependency_count: usize,
+    canonical_work: WorthQueryCanonicalWorkEvidence,
 }
 
 impl WorthQueryApplicationAuthorizationWorkEvidence {
@@ -60,6 +63,51 @@ impl WorthQueryApplicationAuthorizationWorkEvidence {
         )
     }
 
+    pub(super) fn with_capability_authorization(
+        mut self,
+        authorization: Option<&WorthQueryRetainedCapabilityAuthorization>,
+        canonical_work: WorthQueryCanonicalWorkEvidence,
+    ) -> Self {
+        if let Some(authorization) = authorization {
+            let relational = authorization.relational_counters();
+            self.requirement_count = self
+                .requirement_count
+                .saturating_add(authorization.authorization_requirement_count());
+            self.paths_evaluated = self
+                .paths_evaluated
+                .saturating_add(relational.paths_evaluated);
+            self.adjacency_lists_read = self
+                .adjacency_lists_read
+                .saturating_add(relational.adjacency_lists_read);
+            self.adjacency_edges_inspected = self
+                .adjacency_edges_inspected
+                .saturating_add(relational.adjacency_edges_inspected);
+            self.relation_records_inspected = self
+                .relation_records_inspected
+                .saturating_add(relational.relation_records_inspected);
+            self.entity_records_inspected = self
+                .entity_records_inspected
+                .saturating_add(relational.entity_records_inspected);
+            self.predicate_fields_inspected = self
+                .predicate_fields_inspected
+                .saturating_add(relational.predicate_fields_inspected);
+            self.maximum_frontier_width = self
+                .maximum_frontier_width
+                .max(relational.maximum_frontier_width);
+            self.reconstructive_graph_scans = self
+                .reconstructive_graph_scans
+                .saturating_add(relational.reconstructive_graph_scans);
+            self.reconstructive_relation_records_scanned = self
+                .reconstructive_relation_records_scanned
+                .saturating_add(relational.reconstructive_relation_records_scanned);
+            self.signal_dependency_count = self
+                .signal_dependency_count
+                .saturating_add(authorization.signal_dependency_count());
+        }
+        self.canonical_work = self.canonical_work.combine(canonical_work);
+        self
+    }
+
     pub const fn requirement_count(self) -> usize {
         self.requirement_count
     }
@@ -102,6 +150,10 @@ impl WorthQueryApplicationAuthorizationWorkEvidence {
 
     pub const fn signal_dependency_count(self) -> usize {
         self.signal_dependency_count
+    }
+
+    pub const fn canonical_work(self) -> WorthQueryCanonicalWorkEvidence {
+        self.canonical_work
     }
 
     pub const fn observation_work_units(self) -> usize {

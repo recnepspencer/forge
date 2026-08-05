@@ -1,0 +1,16 @@
+[package]
+name = "bank-estate-certification"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "External consumer and boundary certification for the Bank estate facade."
+publish = false
+
+[dependencies]
+bank-domain.workspace = true
+bank-server.workspace = true
+worth-foundational.workspace = true
+worth-query-host.workspace = true
+
+[lints]
+workspace = true

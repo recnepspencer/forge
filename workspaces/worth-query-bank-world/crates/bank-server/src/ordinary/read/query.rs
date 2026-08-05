@@ -1,6 +1,7 @@
 mod application_execution;
 mod declarations;
 mod emergency_access_activity_execution;
+mod governed_product_reads;
 
 pub use declarations::queries;
 

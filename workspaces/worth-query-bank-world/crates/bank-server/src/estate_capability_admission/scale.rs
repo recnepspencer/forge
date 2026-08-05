@@ -1,8 +1,6 @@
 use super::{
     current_admission::view_action,
-    fixture::{
-        capability_world, capability_world_with_unrelated_grants, request_scope, GrantSpec,
-    },
+    fixture::{capability_world, capability_world_with_unrelated_grants, request_scope, GrantSpec},
 };
 use crate::{queries, BankReadControls};
 use bank_domain::{

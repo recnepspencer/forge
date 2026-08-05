@@ -10,8 +10,8 @@ use worth_foundational::facade::{
     FoundationalBoundaryEvidenceReceiptKind, FoundationalDiagnosticDenialClass,
     FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticOutcomeKind,
     FoundationalDiagnosticRow, FoundationalDiagnosticWidenedFalloutPosture,
-    FoundationalProfileAttachmentTargetKind, FoundationalProfileSet,
-    FoundationalProfileSetInput, RetentionDeliveryProfile, SupportPostureProfile,
+    FoundationalProfileAttachmentTargetKind, FoundationalProfileSet, FoundationalProfileSetInput,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_query_host::facade::{
     primary_graph::{
@@ -205,10 +205,7 @@ fn beneficiary_and_executor_actors_deny_at_capability_composition() {
             ActorConflict::None => unreachable!(),
         };
         assert_eq!(denial.kind(), kind);
-        assert_authorization_publication(
-            &denial,
-            ExpectedAuthorizationPublication { cause, code },
-        );
+        assert_authorization_publication(&denial, ExpectedAuthorizationPublication { cause, code });
         assert_no_disbursement_effects(&fixture);
     }
 }

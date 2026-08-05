@@ -61,6 +61,7 @@ where
     validate_admission_request(controls.request_scope(), query.name())?;
     let capability_name = capability.capability_name().to_string();
     let capability_type = capability.capability_type().to_string();
+    let authorization_canonical_work = capability.admission_canonical_work();
     let disclosure_value = capability.disclosure_value().cloned().ok_or_else(|| {
         denial(
             WorthQueryApplicationQueryAdmissionDenialKind::DisclosureAuthorizationMismatch,
@@ -71,6 +72,7 @@ where
         capability_name,
         capability_type,
         disclosure_value,
+        authorization_canonical_work,
         capability.into_query_authorization(),
     ))
 }

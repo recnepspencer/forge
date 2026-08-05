@@ -2,7 +2,9 @@ use worth_foundational::facade::{AspectValue, CanonicalDigestId};
 use worth_query_declaration::facade::application_query::{
     ApplicationQueryObservableInfluence, ApplicationQueryResultSlotKey,
 };
-use worth_query_installation::facade::WorthQueryInstalledApplicationQueryIdentity;
+use worth_query_installation::facade::{
+    WorthQueryCanonicalWorkEvidence, WorthQueryInstalledApplicationQueryIdentity,
+};
 use worth_relational::facade::identity::EntityId;
 
 use super::super::WorthQueryApplicationDisclosureReceipt;
@@ -26,12 +28,14 @@ impl WorthQueryApplicationQueryGovernance {
                 capability_name,
                 capability_type,
                 disclosure_value,
+                authorization_canonical_work,
                 authorization,
                 ..
             } => Some(WorthQueryPendingApplicationQueryGovernance {
                 capability_name,
                 capability_type,
                 disclosure_value,
+                authorization_canonical_work,
                 authorization,
             }),
         }
@@ -119,6 +123,18 @@ impl WorthQueryApplicationQueryGovernance {
         match self {
             Self::Public => None,
             Self::Governed { authorization, .. } => Some(authorization),
+        }
+    }
+
+    pub(in crate::domain_computation) const fn authorization_canonical_work(
+        &self,
+    ) -> WorthQueryCanonicalWorkEvidence {
+        match self {
+            Self::Public => WorthQueryCanonicalWorkEvidence::zero(),
+            Self::Governed {
+                authorization_canonical_work,
+                ..
+            } => *authorization_canonical_work,
         }
     }
 

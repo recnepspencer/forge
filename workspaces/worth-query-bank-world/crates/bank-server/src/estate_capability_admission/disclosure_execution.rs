@@ -19,8 +19,7 @@ use super::fixture::{
 };
 use super::publication_evidence::{
     assert_authorization_denial_publication, assert_field_omission_publication,
-    assert_omission_noninterference, publication_profile,
-    ExpectedAuthorizationDenialPublication,
+    assert_omission_noninterference, publication_profile, ExpectedAuthorizationDenialPublication,
 };
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
 

@@ -1,0 +1,91 @@
+use worth_query_decl::facade::application_query::{
+    ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinition,
+    ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
+    ApplicationQueryDisclosureContract, ApplicationQueryInfluenceContract,
+    ApplicationQueryLaneEligibility,
+};
+use worth_query_decl::facade::worth_query_application_query;
+
+use crate::{
+    authorization::ViewEstateMandatoryReview,
+    estate::{EstateAction, EstateCapabilityPurpose, EstateCaseId, RestrictedBankField},
+    schema::{BankSchema, EstateCase, ViewEstateMandatoryReviewCapability},
+};
+
+use super::{
+    mandatory_review_projection::EstateMandatoryReviewResult, mandatory_review_selectors::*,
+    mandatory_review_shape::mandatory_review_shape,
+};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EstateMandatoryReviewQueryParameters;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EstateMandatoryReviewRequest {
+    estate: EstateCaseId,
+}
+
+impl EstateMandatoryReviewRequest {
+    pub const fn estate(self) -> EstateCaseId {
+        self.estate
+    }
+
+    pub const fn capability_request(self) -> EstateAction {
+        EstateAction::ViewRestrictedEstate {
+            estate: self.estate,
+            field: RestrictedBankField::AuditTrail,
+            purpose: EstateCapabilityPurpose::MandatoryReview,
+        }
+    }
+}
+
+pub const fn estate_mandatory_reviews(estate: EstateCaseId) -> EstateMandatoryReviewRequest {
+    EstateMandatoryReviewRequest { estate }
+}
+
+worth_query_application_query!(
+    pub EstateMandatoryReviewQuery in BankSchema,
+    parameters EstateMandatoryReviewQueryParameters,
+    result EstateMandatoryReviewResult,
+    scope EstateCase,
+    name "estate_mandatory_reviews"
+);
+
+pub fn estate_mandatory_review_definition() -> ApplicationQueryDefinition<
+    BankSchema,
+    EstateMandatoryReviewQuery,
+    EstateMandatoryReviewQueryParameters,
+    EstateMandatoryReviewResult,
+    EstateCase,
+> {
+    ApplicationQueryDefinitionBuilder::requires_ability(
+        EstateMandatoryReviewQuery::reference(),
+        EstateCase::reference(),
+        EstateCase::reference(),
+        mandatory_review_shape(),
+        ApplicationQueryCardinality::ExactlyOne,
+        ApplicationQueryDependencyCeiling::bounded(3, 16, 16),
+        disclosure_contract(),
+        ApplicationQueryBasisSupport::current_and_pinned(),
+        ApplicationQueryLaneEligibility::one_shot(),
+        ViewEstateMandatoryReview::reference(),
+    )
+    .build()
+    .expect("bank estate mandatory-review query is statically canonical")
+}
+
+fn disclosure_contract() -> ApplicationQueryDisclosureContract {
+    let field = RestrictedBankField::AuditTrail;
+    let influence = ApplicationQueryInfluenceContract::forbid_all();
+    ApplicationQueryDisclosureContract::governed_by(
+        "estate-mandatory-review",
+        ViewEstateMandatoryReviewCapability::reference(),
+    )
+    .disclose_field_by(estate_identity(), field, influence.clone())
+    .disclose_relation_by(estate_reviews(), field, influence.clone())
+    .disclose_field_by(review_identity(), field, influence.clone())
+    .disclose_field_by(review_kind(), field, influence.clone())
+    .disclose_field_by(review_status(), field, influence.clone())
+    .disclose_relation_by(review_principal(), field, influence.clone())
+    .disclose_field_by(review_principal_identity(), field, influence)
+}

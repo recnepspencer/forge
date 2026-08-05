@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectValue, CanonicalDigestId};
 use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
+use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 use worth_query_installation::facade::WorthQueryInstalledApplicationQueryIdentity;
 use worth_relational::facade::{
     history::BranchId, identity::EntityId, runtime::RelationalExecutionBasisIdentity,
@@ -29,6 +30,7 @@ pub(in crate::domain_computation) struct WorthQueryPendingApplicationQueryGovern
     capability_name: String,
     capability_type: String,
     disclosure_value: AspectValue,
+    authorization_canonical_work: WorthQueryCanonicalWorkEvidence,
     authorization: WorthQueryRetainedCapabilityAuthorization,
 }
 
@@ -37,12 +39,14 @@ impl WorthQueryPendingApplicationQueryGovernance {
         capability_name: impl Into<String>,
         capability_type: impl Into<String>,
         disclosure_value: AspectValue,
+        authorization_canonical_work: WorthQueryCanonicalWorkEvidence,
         authorization: WorthQueryRetainedCapabilityAuthorization,
     ) -> Self {
         Self {
             capability_name: capability_name.into(),
             capability_type: capability_type.into(),
             disclosure_value,
+            authorization_canonical_work,
             authorization,
         }
     }
@@ -80,6 +84,7 @@ pub(in crate::domain_computation) enum WorthQueryApplicationQueryGovernance {
         computation: WorthQueryApplicationInternalComputationAuthority,
         disclosure: WorthQueryApplicationDisclosureDecision,
         authorization: WorthQueryRetainedCapabilityAuthorization,
+        authorization_canonical_work: WorthQueryCanonicalWorkEvidence,
     },
 }
 
@@ -139,6 +144,7 @@ pub(in crate::domain_computation) fn admit_application_query_governance(
                 capability_name: pending.capability_name,
                 capability_type: pending.capability_type,
                 disclosure_value: pending.disclosure_value.clone(),
+                authorization_canonical_work: pending.authorization_canonical_work,
                 computation: WorthQueryApplicationInternalComputationAuthority {
                     binding,
                     internal_field_rules,

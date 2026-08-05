@@ -2,6 +2,8 @@ mod customer_disclosure;
 mod emergency_access_activity;
 mod emergency_account_details;
 mod estate_governance;
+mod estate_legal_compliance;
+mod estate_mandatory_review;
 
 pub(crate) use customer_disclosure::execute_estate_customer_disclosure;
 pub(crate) use emergency_access_activity::BankEstateEmergencyAccessActivityAdmission;
@@ -21,3 +23,5 @@ pub use emergency_account_details::{
     BankAdmittedEstateEmergencyAccountDetailsPreview, BankEstateEmergencyAccountDetailsResult,
 };
 pub(crate) use estate_governance::execute_estate_governance;
+pub(crate) use estate_legal_compliance::execute_estate_legal_compliance;
+pub(crate) use estate_mandatory_review::execute_estate_mandatory_review;

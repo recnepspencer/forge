@@ -3,11 +3,13 @@ resolver = "2"
 members = [
     "crates/bank-courtroom",
     "crates/bank-domain",
+    "crates/bank-estate-certification",
     "crates/bank-http-adapter",
     "crates/bank-server",
 ]
 default-members = [
     "crates/bank-domain",
+    "crates/bank-estate-certification",
     "crates/bank-http-adapter",
     "crates/bank-server",
 ]

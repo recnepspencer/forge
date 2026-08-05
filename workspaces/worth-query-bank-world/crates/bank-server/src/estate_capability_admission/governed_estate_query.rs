@@ -295,11 +295,7 @@ fn public_estate_governance_query_rejects_one_axis_purpose_and_field_substitutio
 }
 
 fn assert_governance_denied(scenario: &str, grant: GrantSpec) {
-    let fixture = capability_world(
-        scenario,
-        grant,
-        EstateWorkflowStage::Administration,
-    );
+    let fixture = capability_world(scenario, grant, EstateWorkflowStage::Administration);
     let principal = fixture.authenticate();
     let denial = fixture
         .runtime

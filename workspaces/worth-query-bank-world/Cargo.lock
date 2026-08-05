@@ -101,6 +101,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bank-estate-certification"
+version = "0.1.0"
+dependencies = [
+ "bank-domain",
+ "bank-server",
+ "worth-foundational",
+ "worth-query-host",
+]
+
+[[package]]
 name = "bank-http-adapter"
 version = "0.1.0"
 dependencies = [

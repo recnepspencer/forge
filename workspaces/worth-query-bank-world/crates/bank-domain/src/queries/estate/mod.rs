@@ -13,6 +13,14 @@ mod governance_fields;
 mod governance_projection;
 mod governance_relations;
 mod governance_shape;
+mod legal_compliance;
+mod legal_compliance_projection;
+mod legal_compliance_selectors;
+mod legal_compliance_shape;
+mod mandatory_review;
+mod mandatory_review_projection;
+mod mandatory_review_selectors;
+mod mandatory_review_shape;
 mod overview;
 mod overview_fields;
 mod overview_projection;
@@ -39,6 +47,16 @@ pub use governance::{
     estate_governance_context, estate_governance_definition, EstateGovernanceQuery,
     EstateGovernanceQueryParameters, EstateGovernanceRequest,
 };
+pub use legal_compliance::{
+    estate_legal_compliance, estate_legal_compliance_definition, EstateLegalComplianceQuery,
+    EstateLegalComplianceQueryParameters, EstateLegalComplianceRequest,
+};
+pub use legal_compliance_projection::EstateLegalComplianceResult;
+pub use mandatory_review::{
+    estate_mandatory_review_definition, estate_mandatory_reviews, EstateMandatoryReviewQuery,
+    EstateMandatoryReviewQueryParameters, EstateMandatoryReviewRequest,
+};
+pub use mandatory_review_projection::EstateMandatoryReviewResult;
 pub use overview::{
     estate_case, estate_case_overview_definition, EstateCaseOverviewQuery,
     EstateCaseOverviewQueryParameters, EstateCaseOverviewRequest,

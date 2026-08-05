@@ -17,7 +17,8 @@ use super::{
     fixture::{
         emergency_request_world, emergency_request_world_at,
         emergency_request_world_with_alternate_bound, request_scope, AuthorizationTimeController,
-        GrantSpec, ACCOUNT, ALTERNATE_EMERGENCY_BOUND_GRANT, APPROVER, ESTATE, GRANT, OTHER_ACCOUNT,
+        GrantSpec, ACCOUNT, ALTERNATE_EMERGENCY_BOUND_GRANT, APPROVER, ESTATE, GRANT,
+        OTHER_ACCOUNT,
     },
     lifecycle_journey::{
         approve_elevation, request_elevation, ElevationApprovalSpec, ElevationRequestSpec,
@@ -40,10 +41,8 @@ fn real_approved_elevation_expires_at_the_installed_time_boundary() {
     let requester = fixture.authenticate();
     let approver = fixture.authenticate_approver();
     let approved = approve_two_second_account_details_elevation(&fixture, &requester, &approver);
-    let query = queries::estate_emergency_account_details(
-        ESTATE,
-        EmergencyAccessId::new(391).unwrap(),
-    );
+    let query =
+        queries::estate_emergency_account_details(ESTATE, EmergencyAccessId::new(391).unwrap());
 
     authorization_time.advance_to_epoch_seconds(101);
     let current = fixture

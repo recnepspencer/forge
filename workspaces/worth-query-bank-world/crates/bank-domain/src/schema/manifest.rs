@@ -223,6 +223,8 @@ worth_query_application_schema! {
                 .ability(ServiceInstitutionAccount::reference())
                 .ability(AuditInstitution::reference())
                 .ability(ViewEstateCase::reference())
+                .ability(ViewEstateLegalCompliance::reference())
+                .ability(ViewEstateMandatoryReview::reference())
                 .operation(CreatePersonalAccountOperation::reference())
                 .operation(CreateBusinessAccountOperation::reference())
                 .operation(ApplyOpeningFundingOperation::reference())
@@ -257,6 +259,8 @@ worth_query_application_schema! {
                 .application_query(crate::queries::estate_emergency_account_details_definition())
                 .application_query(crate::queries::estate_emergency_access_activity_definition())
                 .application_query(crate::queries::estate_governance_definition())
+                .application_query(crate::queries::estate_legal_compliance_definition())
+                .application_query(crate::queries::estate_mandatory_review_definition())
                 .application_query(crate::queries::institution_audit_definition());
             install_ability_policies(install_operation_abilities(schema))
         }

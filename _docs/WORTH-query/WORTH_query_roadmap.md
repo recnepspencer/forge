@@ -4660,6 +4660,9 @@ have one governing home in Milestones 9.16 and 9.17.
 
 ## Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
+**Status:** Runtime Hardening is complete through Phase 7; Runtime Phase 8 is
+the next implementation boundary.
+
 ### Goal
 
 Prove the ordinary Query front door with a legitimate in-memory bank and

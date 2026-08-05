@@ -11,6 +11,13 @@ use super::abilities::*;
 pub(crate) fn install_ability_policies(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
+    let schema = install_employee_and_estate_policies(schema);
+    install_account_and_payment_policies(schema)
+}
+
+fn install_employee_and_estate_policies(
+    schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
+) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
     schema
         .ability_policy(
             OpenAccount::reference(),
@@ -32,6 +39,22 @@ pub(crate) fn install_ability_policies(
             EstateCapabilityScopePolicy::reference(),
             estate_view_paths(),
         )
+        .ability_policy(
+            ViewEstateLegalCompliance::reference(),
+            EstateCapabilityScopePolicy::reference(),
+            estate_governance_paths(),
+        )
+        .ability_policy(
+            ViewEstateMandatoryReview::reference(),
+            EstateCapabilityScopePolicy::reference(),
+            estate_governance_paths(),
+        )
+}
+
+fn install_account_and_payment_policies(
+    schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
+) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
+    schema
         .ability_policy(
             DiscoverOwnAccounts::reference(),
             AccountVisibilityPolicy::reference(),
@@ -90,12 +113,22 @@ fn estate_view_paths() -> Vec<ApplicationAuthorizationPath> {
         ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
             .forward(EstateExecutor::reference())
             .allow(EstateCase::reference()),
-        ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
-            .reverse(AssignmentPrincipal::reference())
-            .where_equal(AssignmentRole::reference(), EmployeeRole::EstateSpecialist)
-            .forward(EstateAssignment::reference())
-            .allow(EstateCase::reference()),
+        estate_assignment_path(EmployeeRole::EstateSpecialist),
     ]
+}
+
+fn estate_governance_paths() -> Vec<ApplicationAuthorizationPath> {
+    [EmployeeRole::Compliance, EmployeeRole::Legal]
+        .map(estate_assignment_path)
+        .into()
+}
+
+fn estate_assignment_path(role: EmployeeRole) -> ApplicationAuthorizationPath {
+    ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .reverse(AssignmentPrincipal::reference())
+        .where_equal(AssignmentRole::reference(), role)
+        .forward(EstateAssignment::reference())
+        .allow(EstateCase::reference())
 }
 
 fn account_view_paths() -> Vec<ApplicationAuthorizationPath> {

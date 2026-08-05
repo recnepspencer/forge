@@ -1,4 +1,5 @@
 pub(super) use crate::domain_computation::authorization::application_disclosure::compile_disclosure_contract;
+pub(super) use crate::domain_computation::authorization::application_disclosure::contract::WorthQueryAdmittedApplicationDisclosureContract;
 pub(super) use crate::domain_computation::authorization::application_disclosure::{
     admit_application_query_governance, WorthQueryApplicationGovernanceBinding,
     WorthQueryApplicationInternalProjectionAdmission, WorthQueryApplicationQueryGovernance,

@@ -33,6 +33,8 @@ fn bank_ability_inventory_and_operation_requirements_are_exact() {
             ("ViewAccount", "Account"),
             ("ViewAccountAccess", "Account"),
             ("ViewEstateCase", "EstateCase"),
+            ("ViewEstateLegalCompliance", "EstateCase"),
+            ("ViewEstateMandatoryReview", "EstateCase"),
             ("ViewPayment", "PaymentIntent"),
         ])
     );
@@ -121,7 +123,7 @@ fn bank_ability_policies_are_closed_over_declared_graph_paths() {
         })
         .collect::<BTreeMap<_, _>>();
 
-    assert_eq!(policies.len(), 12);
+    assert_eq!(policies.len(), 14);
     let (approval_scope, approval_paths) = policies
         .get("ApproveBusinessFunds")
         .expect("approval policy must be installed");

@@ -1,6 +1,7 @@
 # Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
-> **Current execution posture:** Runtime Hardening Phase 7.7 Gate D is open.
+> **Current execution posture:** Runtime Hardening Phase 7 is closed through
+> Phase 7.7 Gate D; Runtime Phase 8 is the next implementation boundary.
 > [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
 > graph-progression substrate remains inherited. Gates A-C and the executable
 > release/disbursement slices are closed; typed outcome publication, the two

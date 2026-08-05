@@ -41,7 +41,10 @@ parallel authority lane.
 - Authority is proof-carrying. Governed public surfaces demand concrete
   platform authority types from `worth-proof`, never generic
   `AuthorityMarker` bounds. Forged authority must open no doors.
-- A red constitution blocks completion. Do not route around enforcement.
+- A constitutional failure caused by or present in the complete scoped dirty
+  set blocks completion. Do not route around enforcement. A pre-existing
+  failure in an untouched file is reported as repository debt but does not
+  expand a scoped task or block its completion.
 
 ## File And Module Discipline
 
@@ -53,10 +56,15 @@ parallel authority lane.
 - The CI-enforced Rust allowlist is
   `scripts/ci/workspace_rust_line_cap_allowlist.txt`.
 - The guard is `scripts/ci/check_workspace_rust_line_caps.sh`.
+- Scoped implementation and review work runs the guard with `dirty`; that
+  scope includes staged, unstaged, renamed, and untracked Rust files. The
+  repository-wide mode remains the CI and dedicated debt-remediation check.
 - Specifications and roadmap documents are not subject to this cap unless a
   specification explicitly says otherwise.
 - If a touched code or test file already exceeds the limit, splitting or
   restructuring it is part of the work unless an explicit exemption exists.
+- Never infer authority to restructure untouched files merely because the
+  repository-wide guard reports pre-existing debt.
 
 ## Search And Repository Navigation
 

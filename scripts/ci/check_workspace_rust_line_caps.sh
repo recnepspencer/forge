@@ -22,8 +22,11 @@ case "$SCOPE" in
   worth-ui)
     PATHS=('workspaces/worth-ui/crates/**/*.rs')
     ;;
+  dirty)
+    PATHS=()
+    ;;
   *)
-    echo "usage: $0 [workspace|worth-ui]" >&2
+    echo "usage: $0 [workspace|worth-ui|dirty]" >&2
     exit 2
     ;;
 esac
@@ -44,7 +47,15 @@ while read -r line_count file; do
     fi
   fi
 done < <(
-  git ls-files -z -- "${PATHS[@]}" \
+  if [[ "$SCOPE" == dirty ]]; then
+    {
+      git diff --name-only --diff-filter=ACMR -z -- '*.rs'
+      git diff --cached --name-only --diff-filter=ACMR -z -- '*.rs'
+      git ls-files --others --exclude-standard -z -- '*.rs'
+    }
+  else
+    git ls-files -z -- "${PATHS[@]}"
+  fi \
     | while IFS= read -r -d '' file; do
         [[ -f "$file" ]] && printf '%s\0' "$file"
       done \
