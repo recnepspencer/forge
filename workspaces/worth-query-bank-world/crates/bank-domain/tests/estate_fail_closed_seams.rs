@@ -107,6 +107,9 @@ fn release_requires_both_executor_relation_and_release_review_kind() {
     );
     let action = EstateAction::ReleaseEstate {
         estate: courtroom.estate,
+        executor: courtroom.executor,
+        authority: courtroom.authority,
+        review: courtroom.review,
     };
     let world_without_executor = courtroom
         .world

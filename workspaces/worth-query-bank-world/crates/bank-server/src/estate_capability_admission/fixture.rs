@@ -1,49 +1,53 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 #[path = "fixture/authentication.rs"]
 mod authentication;
+#[path = "fixture/capability_fixture.rs"]
+mod capability_fixture;
 #[path = "fixture/grant_spec.rs"]
 mod grant_spec;
 #[path = "fixture/world.rs"]
 mod world;
 
-pub(super) use authentication::request_scope;
+pub(crate) use authentication::request_scope;
 use authentication::{
     authentication_configuration, block_on, external_identity, TestAuthenticationAdapter,
     TestCredential,
 };
 use bank_domain::estate::{
-    BankEstateOracles, BankEstateWorld, BranchId, CapabilityGrantId, CapabilityValidity,
-    DeathNoticeId, DeathNoticeStatus, DelegationLimit, EstateAction, EstateActorContext,
-    EstateBranch, EstateCapabilityGrant, EstateCapabilityScope, EstateCapabilityUse, EstateCase,
-    EstateCaseId, EstateCaseStatus, EstateDeathNotice, EstateDecision, EstateEmployeeAssignment,
+    BankEstateWorld, BranchId, CapabilityGrantId, CapabilityValidity, DeathNoticeId,
+    DeathNoticeStatus, DelegationLimit, EstateBranch, EstateCapabilityGrant, EstateCapabilityScope,
+    EstateCase, EstateCaseId, EstateCaseStatus, EstateDeathNotice, EstateEmployeeAssignment,
     EstateLegalAuthority, EstateMoment, EstateWorkflowStage, LegalAuthorityId, LegalAuthorityKind,
 };
 use bank_domain::model::{
     AccountId, BankPrincipalId, EmployeeAssignmentId, EmployeeRole, InstitutionId,
 };
-pub(super) use grant_spec::GrantSpec;
+pub(crate) use capability_fixture::CapabilityFixture;
+pub(crate) use grant_spec::GrantSpec;
+pub(crate) use world::{foreign_estate_revocation_world, FOREIGN_ESTATE, FOREIGN_GRANT};
 use world::{install_fixture_world, FixtureWorldComposition, FixtureWorldSpec};
-use worth_query_host::facade::declaration::authentication::WorthQueryExternalPrincipalIdentity;
-
-use crate::{BankAuthenticatedPrincipal, BankAuthenticationBoundary, BankIdentityRuntime};
-
-pub(super) const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
-pub(super) const BRANCH: BranchId = BranchId::new(2).unwrap();
-pub(super) const ESTATE: EstateCaseId = EstateCaseId::new(3).unwrap();
-pub(super) const ACCOUNT: AccountId = AccountId::new(4).unwrap();
-pub(super) const OTHER_ACCOUNT: AccountId = AccountId::new(5).unwrap();
-pub(super) const DECEASED: BankPrincipalId = BankPrincipalId::new(6).unwrap();
+pub(crate) const INSTITUTION: InstitutionId = InstitutionId::new(1).unwrap();
+pub(crate) const BRANCH: BranchId = BranchId::new(2).unwrap();
+pub(crate) const ESTATE: EstateCaseId = EstateCaseId::new(3).unwrap();
+pub(super) const ALTERNATE_INSTITUTION: InstitutionId = InstitutionId::new(101).unwrap();
+pub(super) const ALTERNATE_BRANCH: BranchId = BranchId::new(102).unwrap();
+pub(crate) const ACCOUNT: AccountId = AccountId::new(4).unwrap();
+pub(crate) const OTHER_ACCOUNT: AccountId = AccountId::new(5).unwrap();
+pub(crate) const DECEASED: BankPrincipalId = BankPrincipalId::new(6).unwrap();
 pub(super) const SPECIALIST: BankPrincipalId = BankPrincipalId::new(7).unwrap();
-pub(super) const EXECUTOR: BankPrincipalId = BankPrincipalId::new(8).unwrap();
+pub(crate) const EXECUTOR: BankPrincipalId = BankPrincipalId::new(8).unwrap();
 pub(super) const ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(9).unwrap();
-pub(super) const APPROVER: BankPrincipalId = BankPrincipalId::new(13).unwrap();
+pub(crate) const APPROVER: BankPrincipalId = BankPrincipalId::new(13).unwrap();
 pub(super) const APPROVER_ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(14).unwrap();
-pub(super) const REVIEWER: BankPrincipalId = BankPrincipalId::new(15).unwrap();
+pub(crate) const REVIEWER: BankPrincipalId = BankPrincipalId::new(15).unwrap();
 pub(super) const REVIEWER_ASSIGNMENT: EmployeeAssignmentId = EmployeeAssignmentId::new(16).unwrap();
-pub(super) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
+pub(super) const DELEGATION_EXECUTOR_ASSIGNMENT: EmployeeAssignmentId =
+    EmployeeAssignmentId::new(17).unwrap();
+pub(super) const DELEGATION_REVIEWER_ASSIGNMENT: EmployeeAssignmentId =
+    EmployeeAssignmentId::new(18).unwrap();
+pub(crate) const AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(10).unwrap();
+pub(crate) const NOTICE: DeathNoticeId = DeathNoticeId::new(12).unwrap();
 pub(super) const OTHER_AUTHORITY: LegalAuthorityId = LegalAuthorityId::new(11).unwrap();
-pub(super) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();
+pub(crate) const GRANT: CapabilityGrantId = CapabilityGrantId::new(20).unwrap();
 pub(super) const COMMAND_GRANT: CapabilityGrantId = CapabilityGrantId::new(21).unwrap();
 pub(super) const APPROVAL_GRANT: CapabilityGrantId = CapabilityGrantId::new(22).unwrap();
 pub(super) const SELF_APPROVAL_GRANT: CapabilityGrantId = CapabilityGrantId::new(23).unwrap();
@@ -52,75 +56,24 @@ pub(super) const APPROVER_UPPER_BOUND_GRANT: CapabilityGrantId =
     CapabilityGrantId::new(25).unwrap();
 pub(super) const CLOSE_GRANT: CapabilityGrantId = CapabilityGrantId::new(26).unwrap();
 pub(super) const REVIEW_GRANT: CapabilityGrantId = CapabilityGrantId::new(27).unwrap();
+pub(super) const LIFECYCLE_OBSERVER_GRANT: CapabilityGrantId = CapabilityGrantId::new(28).unwrap();
+pub(super) const ALTERNATE_EMERGENCY_BOUND_GRANT: CapabilityGrantId =
+    CapabilityGrantId::new(29).unwrap();
 pub(super) const DELEGATED_GRANT: CapabilityGrantId = CapabilityGrantId::new(30).unwrap();
 pub(super) const DISBURSEMENT_GRANT: CapabilityGrantId = CapabilityGrantId::new(31).unwrap();
 pub(super) const EMERGENCY_BOUND_GRANT: CapabilityGrantId = CapabilityGrantId::new(32).unwrap();
+pub(super) const REVOKE_CAPABILITY_GRANT: CapabilityGrantId = CapabilityGrantId::new(33).unwrap();
+pub(super) const APPROVER_DELEGATION_GRANT: CapabilityGrantId = CapabilityGrantId::new(34).unwrap();
+pub(crate) const UNRELATED_GOVERNANCE_GRANT: CapabilityGrantId =
+    CapabilityGrantId::new(35).unwrap();
 pub(super) const REQUESTED_ACCESS: bank_domain::estate::EmergencyAccessId =
     bank_domain::estate::EmergencyAccessId::new(40).unwrap();
 pub(super) const CLOSED_ACCESS: bank_domain::estate::EmergencyAccessId =
     bank_domain::estate::EmergencyAccessId::new(41).unwrap();
 pub(super) const REQUESTED_REVIEW: bank_domain::estate::MandatoryReviewId =
     bank_domain::estate::MandatoryReviewId::new(50).unwrap();
-pub(super) const COMPLETED_REVIEW: bank_domain::estate::MandatoryReviewId =
+pub(crate) const COMPLETED_REVIEW: bank_domain::estate::MandatoryReviewId =
     bank_domain::estate::MandatoryReviewId::new(51).unwrap();
-
-pub(super) struct CapabilityFixture {
-    pub(super) runtime: BankIdentityRuntime,
-    estate_world: BankEstateWorld,
-    workflow_stage: EstateWorkflowStage,
-    authentication: BankAuthenticationBoundary<TestAuthenticationAdapter>,
-    specialist_identity: WorthQueryExternalPrincipalIdentity,
-    approver_identity: WorthQueryExternalPrincipalIdentity,
-    reviewer_identity: WorthQueryExternalPrincipalIdentity,
-}
-
-impl CapabilityFixture {
-    pub(super) fn authenticate(&self) -> BankAuthenticatedPrincipal {
-        self.authenticate_identity(self.specialist_identity.clone())
-    }
-
-    pub(super) fn authenticate_approver(&self) -> BankAuthenticatedPrincipal {
-        self.authenticate_identity(self.approver_identity.clone())
-    }
-
-    pub(super) fn authenticate_reviewer(&self) -> BankAuthenticatedPrincipal {
-        self.authenticate_identity(self.reviewer_identity.clone())
-    }
-
-    fn authenticate_identity(
-        &self,
-        identity: WorthQueryExternalPrincipalIdentity,
-    ) -> BankAuthenticatedPrincipal {
-        let request = request_scope();
-        block_on(self.runtime.authenticate_with(
-            &self.authentication,
-            TestCredential(identity),
-            &request,
-        ))
-        .expect("the mapped employee should authenticate")
-    }
-
-    pub(super) fn oracle_decision(&self, action: EstateAction) -> EstateDecision {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("the test clock is after the Unix epoch")
-            .as_secs();
-        BankEstateOracles::evaluate(
-            &self.estate_world,
-            EstateActorContext {
-                principal: SPECIALIST,
-                assignment: ASSIGNMENT,
-            },
-            action,
-            EstateCapabilityUse {
-                grant: GRANT,
-                workflow_stage: self.workflow_stage,
-                now: EstateMoment::from_epoch_seconds(now),
-                emergency_access: None,
-            },
-        )
-    }
-}
 
 pub(super) fn capability_world(
     scenario: &str,
@@ -136,6 +89,31 @@ pub(super) fn capability_world(
         specialist_holds_authority,
         unrelated_grants,
         composition: FixtureWorldComposition::Admission,
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(crate) fn release_world(scenario: &str) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::release(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Release,
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(crate) fn disbursement_world(scenario: &str) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::disburse(50_000),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Disbursement,
+        alternate_emergency_bound: None,
     })
 }
 
@@ -151,6 +129,24 @@ pub(super) fn emergency_request_world(
         specialist_holds_authority: false,
         unrelated_grants: 0,
         composition: FixtureWorldComposition::Lifecycle,
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(crate) fn emergency_request_world_with_alternate_bound(
+    scenario: &str,
+    upper_bound: GrantSpec,
+    alternate_bound: GrantSpec,
+    case_stage: EstateWorkflowStage,
+) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: upper_bound,
+        case_stage,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Lifecycle,
+        alternate_emergency_bound: Some(alternate_bound),
     })
 }
 
@@ -162,6 +158,83 @@ pub(super) fn governance_projection_world(scenario: &str) -> CapabilityFixture {
         specialist_holds_authority: false,
         unrelated_grants: 0,
         composition: FixtureWorldComposition::GovernanceProjection,
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(crate) fn delegation_world(scenario: &str) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::governance_view(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Delegation {
+            command_authority: true,
+            parent_context: world::DelegationParentContext::Exact,
+        },
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(super) fn delegation_world_without_command(scenario: &str) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::governance_view(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Delegation {
+            command_authority: false,
+            parent_context: world::DelegationParentContext::Exact,
+        },
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(super) fn delegation_world_with_parent_branch_mismatch(scenario: &str) -> CapabilityFixture {
+    delegation_world_with_parent_context(scenario, world::DelegationParentContext::Branch)
+}
+
+pub(super) fn delegation_world_with_parent_institution_mismatch(
+    scenario: &str,
+) -> CapabilityFixture {
+    delegation_world_with_parent_context(scenario, world::DelegationParentContext::Institution)
+}
+
+fn delegation_world_with_parent_context(
+    scenario: &str,
+    parent_context: world::DelegationParentContext,
+) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: GrantSpec::governance_view(),
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Delegation {
+            command_authority: true,
+            parent_context,
+        },
+        alternate_emergency_bound: None,
+    })
+}
+
+pub(crate) fn delegation_world_with_parent_spec(
+    scenario: &str,
+    parent: GrantSpec,
+) -> CapabilityFixture {
+    capability_world_from_spec(FixtureWorldSpec {
+        scenario,
+        spec: parent,
+        case_stage: EstateWorkflowStage::Administration,
+        specialist_holds_authority: false,
+        unrelated_grants: 0,
+        composition: FixtureWorldComposition::Delegation {
+            command_authority: true,
+            parent_context: world::DelegationParentContext::Exact,
+        },
+        alternate_emergency_bound: None,
     })
 }
 
@@ -178,6 +251,7 @@ fn capability_world_from_spec(spec: FixtureWorldSpec<'_>) -> CapabilityFixture {
         workflow_stage: case_stage,
         authentication,
         specialist_identity: installed.identities[1].clone(),
+        executor_identity: installed.identities[2].clone(),
         approver_identity: installed.identities[3].clone(),
         reviewer_identity: installed.identities[4].clone(),
     }
@@ -189,8 +263,12 @@ fn base_estate(stage: EstateWorkflowStage, authority_holder: BankPrincipalId) ->
             id: BRANCH,
             institution: INSTITUTION,
         })
+        .with_branch(EstateBranch {
+            id: ALTERNATE_BRANCH,
+            institution: INSTITUTION,
+        })
         .with_death_notice(EstateDeathNotice {
-            id: DeathNoticeId::new(12).unwrap(),
+            id: NOTICE,
             subject: DECEASED,
             status: DeathNoticeStatus::Verified,
         })
@@ -200,7 +278,7 @@ fn base_estate(stage: EstateWorkflowStage, authority_holder: BankPrincipalId) ->
             branch: BRANCH,
             deceased: DECEASED,
             account: ACCOUNT,
-            death_notice: DeathNoticeId::new(12).unwrap(),
+            death_notice: NOTICE,
             stage,
             status: EstateCaseStatus::Open,
         })

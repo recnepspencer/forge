@@ -4,7 +4,9 @@ use worth_query_admission::facade::{
 };
 use worth_query_installation::facade::WorthQueryApplicationQueryInstallationDenialKind;
 
-use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use crate::domain_computation::primary_graph::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationQueryAdmissionDenialKind {
@@ -50,6 +52,7 @@ pub enum WorthQueryApplicationQueryAdmissionDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationQueryAdmissionDenial {
     kind: WorthQueryApplicationQueryAdmissionDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -60,7 +63,16 @@ impl WorthQueryApplicationQueryAdmissionDenial {
     ) -> Self {
         Self {
             kind,
+            authorization_denial: None,
             subject: subject.into(),
+        }
+    }
+
+    pub(super) fn from_authorization(denial: WorthQueryOperationAuthorizationDenial) -> Self {
+        Self {
+            kind: WorthQueryApplicationQueryAdmissionDenialKind::Authorization(denial.kind()),
+            subject: denial.subject().to_string(),
+            authorization_denial: Some(Box::new(denial)),
         }
     }
 
@@ -70,6 +82,16 @@ impl WorthQueryApplicationQueryAdmissionDenial {
 
     pub fn subject(&self) -> &str {
         &self.subject
+    }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
+    }
+
+    pub(super) fn into_authorization_denial(
+        self,
+    ) -> Option<WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.map(|denial| *denial)
     }
 }
 

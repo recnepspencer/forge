@@ -62,8 +62,8 @@ impl BankIdentityRuntime {
             .map_err(|denial| BankEstateProgressionDenial::ReviewAuthorization(Box::new(denial)))?;
         let projected = self
             .invariant_projection()
-            .project_admitted_operation(&admission, |reader, _| {
-                seal_review_lifecycle_facts(reader, access, review)
+            .project_admitted_operation(&admission, |reader, estate| {
+                seal_review_lifecycle_facts(reader, access, review, estate)
             })
             .map_err(BankEstateProgressionDenial::Projection)?;
         let (lifecycle_result, projection, _) = projected.into_parts();

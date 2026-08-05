@@ -6,9 +6,10 @@ use super::super::super::fixture::{
     ApproveElevationCapability, ApproveElevationInput, CapabilityElevationApprover,
     CapabilityElevationGrant, CapabilityElevationIdentity, CapabilityElevationNotAfter,
     CapabilityElevationNotBefore, CapabilityElevationReason, CapabilityElevationRequester,
-    CapabilityElevationReview, CapabilityElevationScenario, CapabilityElevationStatusField,
-    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
-    CapabilityReviewStatusField, CapabilityReviewer, IdentityExecutionSchema, Principal,
+    CapabilityElevationResource, CapabilityElevationReview, CapabilityElevationScenario,
+    CapabilityElevationStatusField, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewStatusField, CapabilityReviewer,
+    IdentityExecutionSchema, Principal,
 };
 use super::super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
@@ -49,19 +50,26 @@ fn exact_request_approval_reobserves_lifecycle_and_commits_two_derived_effects()
 
 #[test]
 fn requester_and_conflicted_approver_cannot_enter_approval_progression() {
-    for (scenario, subject) in [
-        (CapabilityElevationScenario::Active, "alice"),
-        (CapabilityElevationScenario::ConflictedApprover, "bob"),
+    for (scenario, subject, expected) in [
+        (
+            CapabilityElevationScenario::Active,
+            "alice",
+            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+        ),
+        (
+            CapabilityElevationScenario::ConflictedApprover,
+            "bob",
+            WorthQueryOperationAuthorizationDenialKind::ConflictRuleMatched,
+        ),
     ] {
         let (world, request, _requested) = requested_world(scenario);
         let principal = authenticated(&world, subject, &request);
         let denial = approval_access(&world, &principal, &request)
             .err()
             .expect("actor policy must deny before lifecycle authority");
-        assert_eq!(
-            denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied
-        );
+        assert_eq!(denial.kind(), expected);
+        assert!(denial.identity().is_some());
+        assert_eq!(denial.causes(), [expected]);
     }
 }
 
@@ -129,12 +137,23 @@ pub(super) fn requested_world(
     worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
     WorthQueryRequestedElevation,
 ) {
+    requested_world_with_input(scenario, super::request_transition::honest_input())
+}
+
+pub(super) fn requested_world_with_input(
+    scenario: CapabilityElevationScenario,
+    input: super::super::super::fixture::RequestElevationInput,
+) -> (
+    World,
+    worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    WorthQueryRequestedElevation,
+) {
     let mut world = installed_elevated_capability_world(scenario);
     world
         .application
         .script_authorization_time(std::iter::repeat_n(time(100), 24));
     let request = live_scope();
-    let requested = super::request_support::commit_exact_request(&world, &request);
+    let requested = super::request_support::commit_request(&world, &request, input);
     super::request_support::resolve_exact_request_identities(&world, &request);
     (world, request, requested)
 }
@@ -252,6 +271,9 @@ pub(super) fn seal_approval_facts(
         .unwrap();
     reader
         .decision_relations_from(CapabilityElevationGrant::reference(), &elevation)
+        .unwrap();
+    reader
+        .decision_relations_from(CapabilityElevationResource::reference(), &elevation)
         .unwrap();
     reader
         .decision_relations_from(CapabilityElevationReview::reference(), &elevation)

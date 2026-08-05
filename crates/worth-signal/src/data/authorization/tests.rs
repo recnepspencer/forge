@@ -49,6 +49,28 @@ fn installed_nested_policy_preserves_or_and_prohibition_meaning() {
     assert_eq!(primary_role.counters().requirements_evaluated, 3);
     assert_eq!(primary_role.counters().clauses_evaluated, 4);
     assert_eq!(primary_role.counters().entities_depended_on, 8);
+    assert_eq!(
+        missing_actor
+            .rule_decisions()
+            .iter()
+            .map(|decision| (decision.effect(), decision.matched()))
+            .collect::<Vec<_>>(),
+        vec![
+            (SignalAuthorizationRuleEffect::Required, false),
+            (SignalAuthorizationRuleEffect::Prohibited, false),
+        ]
+    );
+    assert_eq!(
+        prohibited
+            .rule_decisions()
+            .iter()
+            .map(|decision| (decision.effect(), decision.matched()))
+            .collect::<Vec<_>>(),
+        vec![
+            (SignalAuthorizationRuleEffect::Required, true),
+            (SignalAuthorizationRuleEffect::Prohibited, true),
+        ]
+    );
 }
 
 #[test]

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use worth_query_declaration::facade::application_capability::{
-    ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRequestProjection,
-    ApplicationCapabilityRequest,
+    ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRequest,
+    ApplicationCapabilityElevationRequestProjection, ApplicationCapabilityRequest,
 };
 use worth_query_installation::facade::{ApplicationOperationProgramTarget, ApplicationSchema};
 
@@ -28,8 +28,8 @@ pub(super) fn bind_request<Schema, Capability, Operation, Input>(
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     proposed: &ApplicationCapabilityElevationRequestProjection<
         Schema,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Scope,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Context,
     >,
 ) -> Result<
     (
@@ -40,7 +40,9 @@ pub(super) fn bind_request<Schema, Capability, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
+    Input: ApplicationCapabilityRequest<Schema, Capability>
+        + ApplicationCapabilityElevationRequest<Schema, Operation>
+        + 'static,
 {
     let elevation = installed
         .elevation
@@ -71,6 +73,7 @@ where
             capability_identity,
             capability_authority_identity: Arc::clone(&installed.capability_authority_identity),
             upper_bound,
+            supporting: supporting.retained_for_operation(),
             elevation_kind: elevation.elevation_kind,
             review_kind: lifecycle.review_kind,
             elevation_key: proposed.elevation_key().to_string(),
@@ -93,6 +96,7 @@ where
             review_required_status: lifecycle.review_required.clone(),
             requester_relation: lifecycle.requester_relation,
             grant_relation: lifecycle.grant_relation,
+            resource_relation: lifecycle.resource_relation,
             review_relation: lifecycle.review_relation,
             review_scope_relation: lifecycle.review_scope_relation,
             required_program_targets: required_program_targets(
@@ -102,6 +106,17 @@ where
                     .definition()
                     .expect("installed elevation plan retains its governed declaration"),
             ),
+            lifecycle_effect: super::super::lifecycle_effect::derive_lifecycle_effect(
+                installed
+                    .contract
+                    .elevation()
+                    .definition()
+                    .unwrap()
+                    .lifecycle()
+                    .request(),
+                &access.input,
+                installed.contract.name(),
+            )?,
         },
         supporting,
     ))
@@ -114,8 +129,8 @@ fn resolve_upper_bound<Schema, Capability, Operation, Input>(
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     proposed: &ApplicationCapabilityElevationRequestProjection<
         Schema,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Scope,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Context,
     >,
     sample: &super::super::super::WorthQueryAuthorizationTimeSample,
 ) -> Result<
@@ -127,7 +142,8 @@ fn resolve_upper_bound<Schema, Capability, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
+    Input: ApplicationCapabilityRequest<Schema, Capability>
+        + ApplicationCapabilityElevationRequest<Schema, Operation>,
 {
     let graph = runtime.runtime.primary_graph().ok_or_else(|| {
         denial(
@@ -164,9 +180,7 @@ where
         )?;
         Ok((target, grant))
     })?;
-    if target.resource.entity_id() != access.resolved.resource.entity_id()
-        || grant.entity_kind != installed.grant_kind
-    {
+    if grant.entity_kind != installed.grant_kind {
         return Err(projection_denial(installed.contract.name()));
     }
     let retained = WorthQueryRetainedCapabilityRequest::capture(
@@ -200,7 +214,7 @@ where
             &target,
             grant.entity_id,
         ),
-        WorthQueryRetainedCapabilitySupport::new(
+        WorthQueryRetainedCapabilitySupport::elevation_upper_bound(
             decision,
             Arc::clone(&installed.capability_authority_identity),
             grant.entity_id,
@@ -253,6 +267,22 @@ fn required_program_targets(
             from: relation.from().to_string(),
             to: relation.to().to_string(),
         }),
+    );
+    targets.extend(elevation.resource_relation().map(|relation| {
+        ApplicationOperationProgramTarget::Link {
+            relation: relation.relation().to_string(),
+            from: relation.from().to_string(),
+            to: relation.to().to_string(),
+        }
+    }));
+    targets.extend(
+        elevation
+            .lifecycle()
+            .request()
+            .lifecycle_effect()
+            .map(|effect| ApplicationOperationProgramTarget::Emit {
+                effect: effect.effect().to_string(),
+            }),
     );
     targets
 }

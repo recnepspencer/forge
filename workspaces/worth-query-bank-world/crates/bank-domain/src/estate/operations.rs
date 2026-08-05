@@ -2,8 +2,8 @@ use crate::model::{AccountId, BankPrincipalId, Money, SignedMoney, USD};
 
 use super::{
     CapabilityGrantId, DeathNoticeId, EmergencyAccessId, EmergencyAccessReason,
-    EstateCapabilityOperation, EstateCapabilityPurpose, EstateCaseId, LegalAuthorityId,
-    MandatoryReviewId, RestrictedBankField,
+    EstateCapabilityDelegationRequest, EstateCapabilityOperation, EstateCapabilityPurpose,
+    EstateCaseId, LegalAuthorityId, MandatoryReviewId, RestrictedBankField,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,7 +45,7 @@ pub enum EstateAction {
     DelegateCapability {
         estate: EstateCaseId,
         parent: CapabilityGrantId,
-        child: CapabilityGrantId,
+        child: EstateCapabilityDelegationRequest,
     },
     RevokeCapability {
         estate: EstateCaseId,
@@ -75,12 +75,20 @@ pub enum EstateAction {
     },
     ReleaseEstate {
         estate: EstateCaseId,
+        executor: BankPrincipalId,
+        authority: LegalAuthorityId,
+        review: MandatoryReviewId,
     },
     DisburseEstate(EstateDisbursement),
     ViewRestrictedEstate {
         estate: EstateCaseId,
         field: RestrictedBankField,
         purpose: EstateCapabilityPurpose,
+    },
+    ViewRestrictedEstateWithEmergencyAccess {
+        estate: EstateCaseId,
+        access: EmergencyAccessId,
+        field: RestrictedBankField,
     },
 }
 
@@ -105,7 +113,10 @@ impl EstateAction {
             }
             Self::ReleaseEstate { .. } => EstateCapabilityOperation::ReleaseEstate,
             Self::DisburseEstate(_) => EstateCapabilityOperation::DisburseEstate,
-            Self::ViewRestrictedEstate { .. } => EstateCapabilityOperation::ViewRestrictedEstate,
+            Self::ViewRestrictedEstate { .. }
+            | Self::ViewRestrictedEstateWithEmergencyAccess { .. } => {
+                EstateCapabilityOperation::ViewRestrictedEstate
+            }
         }
     }
 
@@ -121,8 +132,9 @@ impl EstateAction {
             | Self::ApproveEmergencyAccess { estate, .. }
             | Self::RevokeEmergencyAccess { estate, .. }
             | Self::CompleteMandatoryReview { estate, .. }
-            | Self::ReleaseEstate { estate }
-            | Self::ViewRestrictedEstate { estate, .. } => Some(estate),
+            | Self::ReleaseEstate { estate, .. }
+            | Self::ViewRestrictedEstate { estate, .. }
+            | Self::ViewRestrictedEstateWithEmergencyAccess { estate, .. } => Some(estate),
             Self::DisburseEstate(disbursement) => Some(disbursement.estate),
         }
     }
@@ -137,7 +149,8 @@ impl EstateAction {
 
     pub const fn field(self) -> Option<RestrictedBankField> {
         match self {
-            Self::ViewRestrictedEstate { field, .. } => Some(field),
+            Self::ViewRestrictedEstate { field, .. }
+            | Self::ViewRestrictedEstateWithEmergencyAccess { field, .. } => Some(field),
             _ => None,
         }
     }
@@ -146,6 +159,9 @@ impl EstateAction {
         match self {
             Self::DisburseEstate(_) => EstateCapabilityPurpose::EstateDisbursement,
             Self::ViewRestrictedEstate { purpose, .. } => purpose,
+            Self::ViewRestrictedEstateWithEmergencyAccess { .. } => {
+                EstateCapabilityPurpose::EmergencyProtection
+            }
             Self::CompleteMandatoryReview { .. } => EstateCapabilityPurpose::MandatoryReview,
             Self::RequestEmergencyAccess { .. }
             | Self::ApproveEmergencyAccess { .. }

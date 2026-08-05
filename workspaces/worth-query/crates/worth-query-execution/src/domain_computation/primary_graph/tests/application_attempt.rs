@@ -19,6 +19,8 @@ mod decision_manifest_ceiling;
 mod effect_authority;
 #[path = "application_attempt/emitted_effects.rs"]
 mod emitted_effects;
+#[path = "application_attempt/idempotency_behavior.rs"]
+mod idempotency_behavior;
 #[path = "application_attempt/mutation_terminal_lifecycle.rs"]
 mod mutation_terminal_lifecycle;
 #[path = "application_attempt/mutation_work_scale.rs"]
@@ -70,51 +72,6 @@ fn same_fact_race_stales_loser_while_unrelated_drift_does_not_conflict() {
         panic!("the second same-fact attempt must be stale");
     };
     assert_eq!(stale.stale_fact_count(), 1);
-}
-
-#[test]
-fn equivalent_retry_recovers_original_receipt_while_intent_drift_is_denied() {
-    let world = installed_authorization_world(true);
-    let request = live_scope();
-    let principal = authenticated_principal(&world, &request);
-    let account = resolved_account(&world, "open", &request);
-    let first = admitted_program(&world, &principal, &account, &request, "committed");
-    let retry = admitted_program(&world, &principal, &account, &request, "committed");
-    let drift = admitted_program(&world, &principal, &account, &request, "different");
-
-    let WorthQueryApplicationCommitOutcome::Committed(original) = world
-        .application
-        .compare_and_commit_application(first, idempotency(9, 7))
-    else {
-        panic!("the first idempotent application attempt must commit");
-    };
-    let WorthQueryApplicationCommitOutcome::AlreadyCommitted(recovered) = world
-        .application
-        .compare_and_commit_application(retry, idempotency(9, 7))
-    else {
-        panic!("an equivalent retry must recover the original commit");
-    };
-    assert!(recovered.is_same_authoritative_commit(&original));
-    assert_eq!(
-        original.terminal().kind(),
-        WorthQueryApplicationCommitTerminalKind::Executed
-    );
-    assert_eq!(
-        recovered.terminal().kind(),
-        WorthQueryApplicationCommitTerminalKind::Recovered
-    );
-    assert!(recovered.terminal().retry_inspection().is_none());
-
-    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
-        .application
-        .compare_and_commit_application(drift, idempotency(9, 8))
-    else {
-        panic!("reusing a key for another intent must be denied");
-    };
-    assert_eq!(
-        denial.kind(),
-        crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift
-    );
 }
 
 #[test]

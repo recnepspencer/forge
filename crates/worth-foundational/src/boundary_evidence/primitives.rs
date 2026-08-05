@@ -20,6 +20,7 @@ pub enum FoundationalBoundaryEvidenceLocality {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum FoundationalBoundaryEvidenceExecutionPosture {
     Planned,
+    NotExecuted,
     Executed,
 }
 
@@ -158,13 +159,19 @@ pub const fn foundational_boundary_evidence_locality_definitions(
 
 pub const fn foundational_boundary_evidence_execution_posture_definitions(
 ) -> [FoundationalBoundaryEvidencePrimitiveDefinition<FoundationalBoundaryEvidenceExecutionPosture>;
-       2] {
+       3] {
     [
         definition(
             FoundationalBoundaryEvidenceExecutionPosture::Planned,
             "planned",
             "intent, planning, or pre-execution boundary meaning",
             "completed execution or attested effectful boundary truth",
+        ),
+        definition(
+            FoundationalBoundaryEvidenceExecutionPosture::NotExecuted,
+            "not_executed",
+            "a completed blocked or denied boundary at which governed execution did not occur",
+            "planning intent, successful execution, or a missing terminal outcome",
         ),
         definition(
             FoundationalBoundaryEvidenceExecutionPosture::Executed,

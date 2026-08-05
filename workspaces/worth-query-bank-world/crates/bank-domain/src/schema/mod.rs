@@ -5,6 +5,7 @@ mod estate;
 mod fields;
 mod governance;
 mod manifest;
+mod money_movement_program;
 mod operations;
 mod precondition_manifest;
 mod program_manifest;

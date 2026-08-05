@@ -71,6 +71,10 @@ worth_query_relation!(
     EmergencyAccess => CapabilityGrant
 );
 worth_query_relation!(
+    pub EmergencyEstate in BankSchema,
+    EmergencyAccess => EstateCase
+);
+worth_query_relation!(
     pub EmergencyReview in BankSchema,
     EmergencyAccess => MandatoryReview
 );

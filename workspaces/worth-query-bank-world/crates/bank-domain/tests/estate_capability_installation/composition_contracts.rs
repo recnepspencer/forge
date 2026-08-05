@@ -1,11 +1,12 @@
 use bank_domain::{
-    estate::{CapabilityGrantStatus, EmergencyAccessStatus, RestrictedBankField},
+    estate::{CapabilityGrantStatus, RestrictedBankField},
+    model::EmployeeRole,
     schema::{
         ApproveEstateEmergencyAccessCapability, ApproveEstateEmergencyAccessOperation,
         CompleteEstateMandatoryReviewCapability, CompleteEstateMandatoryReviewOperation,
         RecognizeEstateExecutorCapability, RecognizeEstateExecutorOperation,
-        RequestEstateEmergencyAccessCapability, RequestEstateEmergencyAccessOperation,
-        ViewEstateAdministrationCapability, ViewEstateEmergencyProtectionCapability,
+        ReleaseEstateCapability, ReleaseEstateOperation, RequestEstateEmergencyAccessCapability,
+        RequestEstateEmergencyAccessOperation, ViewEstateAdministrationCapability,
         ViewRestrictedEstateOperation,
     },
 };
@@ -13,7 +14,6 @@ use worth_query_host::facade::{
     declaration::{
         application_capability::{
             ApplicationCapabilityDisclosureRule, ApplicationCapabilityGraphRule,
-            ApplicationCapabilityValidityTimeline,
         },
         application_schema::TypedApplicationValue,
     },
@@ -21,6 +21,44 @@ use worth_query_host::facade::{
 };
 
 use super::installed_bank;
+
+#[test]
+fn release_contract_installs_exact_roles_conflict_and_executor_separation() {
+    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
+    let capability = bank
+        .capability(
+            ReleaseEstateCapability::reference(),
+            ReleaseEstateOperation::reference(),
+        )
+        .unwrap();
+    let composition = capability.contract().composition();
+
+    let allow = composition.decision().allow().graph();
+    assert_eq!(requirement_widths(allow), vec![3]);
+    let mut roles = all_clauses(allow)
+        .iter()
+        .flat_map(|clause| clause.path().predicates())
+        .filter(|predicate| predicate.field() == "AssignmentRole")
+        .map(|predicate| predicate.value().clone())
+        .collect::<Vec<_>>();
+    roles.sort();
+    assert_eq!(
+        roles,
+        expected_roles([
+            EmployeeRole::EstateSpecialist,
+            EmployeeRole::Compliance,
+            EmployeeRole::Legal,
+        ])
+    );
+    assert_eq!(
+        path_relations(composition.decision().conflict().graph().unwrap()),
+        vec!["EstateBeneficiary"]
+    );
+    assert_eq!(
+        path_relations(composition.actors().separation_of_duty().graph().unwrap()),
+        vec!["EstateExecutor"]
+    );
+}
 
 #[test]
 fn estate_view_contract_installs_exact_role_and_disclosure_composition() {
@@ -130,67 +168,6 @@ fn emergency_approval_contract_installs_conflict_and_requester_separation() {
         composition.propagation().disclosure(),
         ApplicationCapabilityDisclosureRule::NotApplicable
     ));
-}
-
-#[test]
-fn emergency_view_installs_expiry_and_exact_lifecycle_roles() {
-    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
-    let capability = bank
-        .capability(
-            ViewEstateEmergencyProtectionCapability::reference(),
-            ViewRestrictedEstateOperation::reference(),
-        )
-        .unwrap();
-    let elevation = capability
-        .contract()
-        .elevation()
-        .definition()
-        .expect("emergency protection view is elevation governed");
-
-    assert_eq!(
-        elevation.states().expired().value(),
-        &EmergencyAccessStatus::Expired.into_foundational_value()
-    );
-    assert_eq!(
-        elevation.validity().timeline(),
-        ApplicationCapabilityValidityTimeline::UnixEpochSeconds
-    );
-    assert_eq!(
-        elevation.validity().not_before().field(),
-        "EmergencyAccessIssuedAtField"
-    );
-    assert_eq!(
-        elevation.validity().not_after().field(),
-        "EmergencyAccessExpiresAtField"
-    );
-    let lifecycle = elevation.lifecycle();
-    assert_eq!(
-        lifecycle.elevation_slot().slot(),
-        "EstateEmergencyAccessSlot"
-    );
-    assert_eq!(lifecycle.review_slot().slot(), "EstateMandatoryReviewSlot");
-    assert_eq!(
-        lifecycle
-            .transitions()
-            .map(|transition| transition.operation().operation()),
-        [
-            "RequestEstateEmergencyAccessOperation",
-            "ApproveEstateEmergencyAccessOperation",
-            "RevokeEstateEmergencyAccessOperation",
-            "CompleteEstateMandatoryReviewOperation",
-        ]
-    );
-    assert_eq!(
-        lifecycle
-            .transitions()
-            .map(|transition| transition.capability()),
-        [
-            "RequestEstateEmergencyAccessCapability",
-            "ApproveEstateEmergencyAccessCapability",
-            "RevokeEstateEmergencyAccessCapability",
-            "CompleteEstateMandatoryReviewCapability",
-        ]
-    );
 }
 
 #[test]
@@ -386,6 +363,17 @@ fn expected_values(
     fields: impl IntoIterator<Item = RestrictedBankField>,
 ) -> Vec<worth_foundational::facade::AspectValue> {
     let mut values = fields
+        .into_iter()
+        .map(TypedApplicationValue::into_foundational_value)
+        .collect::<Vec<_>>();
+    values.sort();
+    values
+}
+
+fn expected_roles(
+    roles: impl IntoIterator<Item = EmployeeRole>,
+) -> Vec<worth_foundational::facade::AspectValue> {
+    let mut values = roles
         .into_iter()
         .map(TypedApplicationValue::into_foundational_value)
         .collect::<Vec<_>>();

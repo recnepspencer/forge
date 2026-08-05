@@ -1,4 +1,7 @@
+mod capability_revocation;
 mod decision_facts;
+mod delegation_activation;
+mod elevation_currentness;
 mod elevation_lifecycle;
 mod entry;
 mod outcome;

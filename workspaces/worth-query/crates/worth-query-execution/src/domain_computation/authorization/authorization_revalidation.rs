@@ -1,11 +1,10 @@
 //! Re-admission of retained authorization at privileged transitions.
 
 mod currentness;
-
 use worth_query_installation::facade::ApplicationSchema;
 
 use super::decision_facts::WorthQueryObservedCommitBasis;
-use super::delegation_admission::{observe_capability, observe_elevation_upper_bound};
+use super::delegation_admission::{observe_capability, observe_retained_capability_support};
 use super::{
     WorthQueryApplicationCommitAuthorization, WorthQueryCapabilityCommitBasis,
     WorthQueryCapabilitySupportCommitBasis, WorthQueryCommitAuthorizationBasis,
@@ -344,7 +343,8 @@ where
                     return Err(stale_authorization());
                 }
                 let sample = self.sample_capability_time(installed)?;
-                observe_elevation_upper_bound(
+                observe_retained_capability_support(
+                    supporting.posture(),
                     supporting.decision().session_identity(),
                     runtime,
                     snapshot.clone(),
@@ -383,7 +383,8 @@ where
             return Err(stale_authorization());
         }
         let sample = self.sample_capability_time(installed)?;
-        observe_elevation_upper_bound(
+        observe_retained_capability_support(
+            supporting.posture(),
             supporting.decision().session_identity(),
             runtime,
             snapshot.clone(),

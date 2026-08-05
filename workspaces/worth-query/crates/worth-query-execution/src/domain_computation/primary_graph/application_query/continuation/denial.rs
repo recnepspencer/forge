@@ -1,4 +1,6 @@
-use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use crate::domain_computation::primary_graph::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationContinuationDenialKind {
@@ -30,6 +32,7 @@ pub enum WorthQueryApplicationContinuationDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationContinuationDenial {
     kind: WorthQueryApplicationContinuationDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -40,7 +43,16 @@ impl WorthQueryApplicationContinuationDenial {
     ) -> Self {
         Self {
             kind,
+            authorization_denial: None,
             subject: subject.into(),
+        }
+    }
+
+    pub(super) fn from_authorization(denial: WorthQueryOperationAuthorizationDenial) -> Self {
+        Self {
+            kind: WorthQueryApplicationContinuationDenialKind::Authorization(denial.kind()),
+            subject: denial.subject().to_string(),
+            authorization_denial: Some(Box::new(denial)),
         }
     }
 
@@ -50,6 +62,10 @@ impl WorthQueryApplicationContinuationDenial {
 
     pub fn subject(&self) -> &str {
         &self.subject
+    }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
     }
 }
 

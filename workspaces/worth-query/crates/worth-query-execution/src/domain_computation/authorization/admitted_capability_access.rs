@@ -152,6 +152,7 @@ where
     pub(super) operation: Arc<str>,
     pub(super) principal_entity_id: worth_relational::facade::identity::EntityId,
     pub(super) input: Input,
+    pub(super) governed_input_identity: Option<[u8; 32]>,
     pub(super) projection: ApplicationCapabilityRequestProjection<
         Schema,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
@@ -185,6 +186,7 @@ where
         operation: impl Into<Arc<str>>,
         principal_entity_id: worth_relational::facade::identity::EntityId,
         input: Input,
+        governed_input_identity: Option<[u8; 32]>,
         projection: ApplicationCapabilityRequestProjection<
             Schema,
             <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
@@ -209,6 +211,7 @@ where
             operation: operation.into(),
             principal_entity_id,
             input,
+            governed_input_identity,
             projection,
             resolved,
             authentication_valid_until,

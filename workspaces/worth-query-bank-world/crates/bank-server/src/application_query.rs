@@ -13,7 +13,20 @@ pub use account_activity::{
 pub use denial::BankApplicationQueryDenial;
 pub(crate) use execution::{execute_one_shot, execute_preview};
 pub(crate) use governed_execution::{
-    execute_estate_customer_disclosure, execute_estate_governance,
+    execute_estate_customer_disclosure, execute_estate_emergency_account_details,
+    execute_estate_governance, BankEstateEmergencyAccessActivityAdmission,
+    BankEstateEmergencyAccountDetailsAdmission,
+};
+pub use governed_execution::{
+    BankAdmittedEstateEmergencyAccessActivityContinuation,
+    BankAdmittedEstateEmergencyAccessActivityHistorical,
+    BankAdmittedEstateEmergencyAccessActivityPreview,
+    BankAdmittedEstateEmergencyAccountDetailsHistorical,
+    BankAdmittedEstateEmergencyAccountDetailsPreview,
+    BankEstateEmergencyAccessActivityContinuation, BankEstateEmergencyAccessActivityLiveLease,
+    BankEstateEmergencyAccessActivityLiveOutcome, BankEstateEmergencyAccessActivityLiveUpdate,
+    BankEstateEmergencyAccessActivityPageResult, BankEstateEmergencyAccessActivityResult,
+    BankEstateEmergencyAccountDetailsResult,
 };
 pub(crate) use request::BankApplicationQueryInvocation;
 

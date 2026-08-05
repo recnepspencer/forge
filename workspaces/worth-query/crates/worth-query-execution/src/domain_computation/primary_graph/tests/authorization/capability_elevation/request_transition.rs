@@ -36,7 +36,7 @@ type Reads = WorthQueryCompleteApplicationReadSet<
 
 #[test]
 fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt() {
-    let mut world = request_world(6);
+    let mut world = request_world(8);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
     let program = request_reads(&world, &principal, &request, honest_input())
@@ -50,7 +50,7 @@ fn exact_request_commits_query_derived_state_and_returns_one_requested_receipt()
         panic!("the exact request transition must commit: {outcome:?}");
     };
 
-    assert_eq!(receipt.commit_receipt().changed_record_count(), 7);
+    assert_eq!(receipt.commit_receipt().changed_record_count(), 8);
     assert_eq!(receipt.commit_receipt().emitted_effect_count(), 0);
     assert_eq!(receipt.elevation_key(), "elevation-request-2");
     assert_eq!(receipt.review_key(), "review-request-2");
@@ -151,15 +151,21 @@ fn equivalent_request_retry_recovers_the_same_authoritative_commit() {
 
 #[test]
 fn request_upper_bound_cannot_widen_scope_or_swap_purpose() {
-    for input in [
-        RequestElevationInput {
-            target_account: "account-2".to_owned(),
-            ..honest_input()
-        },
-        RequestElevationInput {
-            target_purpose: CapabilityPurpose::Audit,
-            ..honest_input()
-        },
+    for (input, expected) in [
+        (
+            RequestElevationInput {
+                target_account: "account-2".to_owned(),
+                ..honest_input()
+            },
+            WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
+        ),
+        (
+            RequestElevationInput {
+                target_purpose: CapabilityPurpose::Audit,
+                ..honest_input()
+            },
+            WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected,
+        ),
     ] {
         let world = request_world(2);
         let request = live_scope();
@@ -172,10 +178,7 @@ fn request_upper_bound_cannot_widen_scope_or_swap_purpose() {
             .authorize_elevation_request(access, &operation, Default::default())
             .err()
             .expect("a widened request target must not mint lifecycle authority");
-        assert_eq!(
-            denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::ElevationRequestRejected
-        );
+        assert_eq!(denial.kind(), expected);
     }
 }
 
@@ -205,7 +208,12 @@ fn proposed_grant_must_independently_authorize_the_governed_upper_bound() {
         .expect("a different grant cannot become the elevation upper bound");
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
+    );
+    assert!(denial.identity().is_some());
+    assert_eq!(
+        denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing]
     );
 }
 

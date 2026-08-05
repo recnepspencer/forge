@@ -81,7 +81,7 @@ fn lookup_candidate_grants(
     let candidates = lookup.candidate_entity_ids();
     if candidates.is_empty() {
         return Err(denial(
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
             installed.contract.name(),
         ));
     }

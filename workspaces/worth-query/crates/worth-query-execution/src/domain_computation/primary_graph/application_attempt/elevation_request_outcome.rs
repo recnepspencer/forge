@@ -118,6 +118,21 @@ impl WorthQueryRequestedElevation {
     ) -> &WorthQueryElevationRequestBinding {
         &self.binding
     }
+
+    pub(in crate::domain_computation) const fn binding_mut(
+        &mut self,
+    ) -> &mut WorthQueryElevationRequestBinding {
+        &mut self.binding
+    }
+
+    pub(in crate::domain_computation) fn into_parts(
+        self,
+    ) -> (
+        WorthQueryElevationRequestBinding,
+        WorthQueryApplicationCommitReceipt,
+    ) {
+        (self.binding, self.commit)
+    }
 }
 
 #[derive(Debug)]

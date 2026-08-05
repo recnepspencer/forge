@@ -103,6 +103,32 @@ fn sealed_adjacency_membership_supplies_exact_unlink_evidence() {
 }
 
 #[test]
+fn removing_an_observed_present_relation_stales_a_competing_program() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let actor = authenticated(&world, "alice", &request);
+    let principal = resolved_principal(&world, 1, &request);
+    let account = resolved_account(&world, "open", &request);
+    let winner = unlink_program(&world, &actor, &principal, &account, &request);
+    let loser = unlink_program(&world, &actor, &principal, &account, &request);
+
+    assert!(matches!(
+        world
+            .application
+            .compare_and_commit_application(winner, idempotency(36, 36)),
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let WorthQueryApplicationCommitOutcome::Stale(stale) = world
+        .application
+        .compare_and_commit_application(loser, idempotency(37, 37))
+    else {
+        panic!("removing the retained relation must stale the competing unlink");
+    };
+    assert_eq!(stale.stale_fact_count(), 1);
+    assert_membership_absent(&world, &actor, &principal, &account, &request);
+}
+
+#[test]
 fn compile_capability_cannot_widen_the_installed_relation_manifest() {
     let world = installed_authorization_world(true);
     let request = live_scope();

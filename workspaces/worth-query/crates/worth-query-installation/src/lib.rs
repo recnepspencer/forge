@@ -101,9 +101,12 @@ pub mod facade {
         WorthQueryInstalledAbility,
     };
     pub use crate::application_capability::{
+        derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,
         WorthQueryApplicationCapabilityInstallationDenial,
         WorthQueryApplicationCapabilityInstallationDenialKind,
         WorthQueryCapabilityCanonicalArtifact, WorthQueryCapabilityLookupEvidence,
+        WorthQueryCapabilityRevocationProposalBasis, WorthQueryCapabilityRevocationProposalDenial,
+        WorthQueryDelegationProposalIdentityBasis, WorthQueryDelegationProposalIdentityDenial,
         WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationCapabilityIdentity,
         WorthQueryInstalledApplicationCapabilityPlanSource,
     };
@@ -113,6 +116,7 @@ pub mod facade {
         WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
         WorthQueryInstalledApplicationOperation,
         WorthQueryInstalledApplicationOperationAuthorization,
+        WorthQueryInstalledApplicationOperationExecutionPosture,
         WorthQueryInstalledApplicationOperationGraphAuthority,
         WorthQueryInstalledAuthorizationPath, WorthQueryInstalledMutationPrecondition,
         APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,

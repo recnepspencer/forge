@@ -25,6 +25,8 @@ mod domain_computation;
 mod identity;
 #[path = "canonical_authority.rs"]
 mod identity_authority;
+#[doc(hidden)]
+pub mod lifecycle_effect_derivation_authority;
 mod result_shape;
 #[macro_use]
 mod schema_macro;

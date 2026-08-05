@@ -54,10 +54,7 @@ impl NotificationFixture {
     }
 }
 
-pub(super) fn notification_world(
-    scenario: &str,
-    status: DeathNoticeStatus,
-) -> NotificationFixture {
+pub(super) fn notification_world(scenario: &str, status: DeathNoticeStatus) -> NotificationFixture {
     let identities = [
         DynamicIdentity::new(&format!("{scenario}-deceased")),
         DynamicIdentity::new(&format!("{scenario}-specialist")),

@@ -73,6 +73,7 @@ fn lower_paths(
                 guard: lower_guard(contract, clause.guard())?,
                 grant_ordinal: grant_ordinal(contract, clause.path())?.map(|ordinal| ordinal + 2),
                 elevation_ordinals: vec![1],
+                elevation_resource_ordinal: None,
                 context_anchors,
             });
             indices.push(path_index);

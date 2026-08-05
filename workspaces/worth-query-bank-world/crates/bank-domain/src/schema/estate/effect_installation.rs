@@ -1,10 +1,12 @@
 use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBuilder;
 
-use super::EstateDeathNotificationEffect;
+use super::{EstateDeathNotificationEffect, EstateEmergencyAccessActivityEffect};
 use crate::schema::BankSchema;
 
 pub(super) fn install(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
-    schema.effect(EstateDeathNotificationEffect::reference())
+    schema
+        .effect(EstateDeathNotificationEffect::reference())
+        .effect(EstateEmergencyAccessActivityEffect::reference())
 }

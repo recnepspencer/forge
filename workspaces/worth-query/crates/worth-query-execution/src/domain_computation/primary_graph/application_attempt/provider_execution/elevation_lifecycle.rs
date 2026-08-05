@@ -10,6 +10,7 @@ use super::super::{
     WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
     WorthQueryMandatoryReviewOutcome, WorthQueryMandatoryReviewProgram,
 };
+use super::elevation_currentness::WorthQueryElevationCommitCurrentness;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
@@ -27,13 +28,22 @@ where
                 WorthQueryApplicationCommitDenial::elevation_request_program_mismatch(),
             );
         }
+        let currentness = program
+            .read_set
+            .admission
+            .elevation_request_binding()
+            .map(WorthQueryElevationCommitCurrentness::request);
         let Some(binding) = program.read_set.admission.take_elevation_request_binding() else {
             return WorthQueryElevationRequestOutcome::Denied(
                 WorthQueryApplicationCommitDenial::elevation_request_program_mismatch(),
             );
         };
         requested_outcome(
-            self.compare_and_commit_application_inner(program, idempotency),
+            self.compare_and_commit_application_inner_with_currentness(
+                program,
+                idempotency,
+                currentness,
+            ),
             binding,
         )
     }
@@ -55,11 +65,20 @@ where
                 binding.into_requested(),
             );
         }
+        let currentness = program
+            .read_set
+            .admission
+            .elevation_approval_binding()
+            .map(WorthQueryElevationCommitCurrentness::approval);
         let Some(binding) = program.read_set.admission.take_elevation_approval_binding() else {
             return WorthQueryElevationApprovalOutcome::Indeterminate;
         };
         approved_outcome(
-            self.compare_and_commit_application_inner(program, idempotency),
+            self.compare_and_commit_application_inner_with_currentness(
+                program,
+                idempotency,
+                currentness,
+            ),
             binding,
         )
     }
@@ -79,11 +98,20 @@ where
                 binding.into_approved(),
             );
         }
+        let currentness = program
+            .read_set
+            .admission
+            .elevation_close_binding()
+            .map(WorthQueryElevationCommitCurrentness::close);
         let Some(binding) = program.read_set.admission.take_elevation_close_binding() else {
             return WorthQueryElevationCloseOutcome::Indeterminate;
         };
         closed_outcome(
-            self.compare_and_commit_application_inner(program, idempotency),
+            self.compare_and_commit_application_inner_with_currentness(
+                program,
+                idempotency,
+                currentness,
+            ),
             binding,
         )
     }

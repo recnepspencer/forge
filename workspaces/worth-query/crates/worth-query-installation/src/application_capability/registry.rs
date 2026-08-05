@@ -3,7 +3,8 @@ use std::{collections::BTreeMap, sync::Arc};
 use worth_query_declaration::facade::{
     application_capability::{ApplicationCapabilityRef, ErasedApplicationCapabilityContract},
     application_schema::{
-        ApplicationOperationRef, ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
+        ApplicationOperationProgramTarget, ApplicationOperationRef,
+        ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
     },
 };
 
@@ -13,6 +14,7 @@ use crate::{
 
 use super::{
     authority_seal::derive_capability_authority_seal, canonical_basis::prepare_capability_basis,
+    delegation::CompiledApplicationCapabilityDelegation,
     WorthQueryApplicationCapabilityInstallationDenial,
     WorthQueryApplicationCapabilityInstallationDenialKind, WorthQueryCapabilityCanonicalArtifact,
     WorthQueryInstalledApplicationCapabilityIdentity,
@@ -61,6 +63,7 @@ pub(crate) struct CompiledApplicationCapability {
     identity: WorthQueryInstalledApplicationCapabilityIdentity,
     authority_identity: AuthoritySeal,
     contract: ErasedApplicationCapabilityContract,
+    delegation: CompiledApplicationCapabilityDelegation,
 }
 
 impl CompiledApplicationCapability {
@@ -78,6 +81,12 @@ impl CompiledApplicationCapability {
 
     pub(crate) fn contract(&self) -> &ErasedApplicationCapabilityContract {
         &self.contract
+    }
+
+    pub(crate) fn delegation_activation_program(
+        &self,
+    ) -> Option<&[ApplicationOperationProgramTarget]> {
+        self.delegation.activation_program()
     }
 }
 
@@ -108,11 +117,13 @@ pub(crate) fn compile_capability_registry(
             contract,
         );
         let key = ApplicationCapabilityRegistryKey::from_contract(contract);
+        let delegation = CompiledApplicationCapabilityDelegation::compile(contract);
         let compiled = Arc::new(CompiledApplicationCapability {
             canonical,
             identity,
             authority_identity,
             contract: contract.clone(),
+            delegation,
         });
         if registry.insert(key, compiled).is_some() {
             return Err(WorthQueryApplicationCapabilityInstallationDenial::new(

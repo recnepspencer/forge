@@ -1,5 +1,7 @@
 use super::capability::*;
-use super::capability_seed::{bind_command_grant, bind_future_replacement_grant, bind_grant};
+use super::capability_seed::{
+    bind_command_grant, bind_future_replacement_grant, bind_grant, bind_grant_window,
+};
 use super::IdentityExecutionSchema;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityKey, WorthQueryApplicationEntitySeed,
@@ -9,7 +11,10 @@ use crate::domain_computation::primary_graph::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) enum CapabilityElevationScenario {
     Active,
+    AlternateCurrentGrant,
     ConflictedApprover,
+    DistinctCommandResource,
+    ExpiringSupport,
     WrongGrant,
 }
 
@@ -17,33 +22,48 @@ pub(super) fn bind_elevated_capability(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
     scenario: CapabilityElevationScenario,
 ) {
-    bind_grant(bootstrap);
+    if scenario == CapabilityElevationScenario::ExpiringSupport {
+        bind_grant_window(bootstrap, "capability-1", 90, 102, 50);
+    } else {
+        bind_grant(bootstrap);
+    }
     bind_command_grant(
         bootstrap,
         "capability-request-command",
         "principal-0",
+        if scenario == CapabilityElevationScenario::DistinctCommandResource {
+            "account-2"
+        } else {
+            "account-1"
+        },
         CapabilityAction::RequestElevation,
     );
     bind_command_grant(
         bootstrap,
         "capability-approve-command",
         "principal-1",
+        "account-1",
         CapabilityAction::ApproveElevation,
     );
     bind_command_grant(
         bootstrap,
         "capability-revoke-command",
         "principal-1",
+        "account-1",
         CapabilityAction::RevokeElevation,
     );
     bind_command_grant(
         bootstrap,
         "capability-review-command",
         "principal-2",
+        "account-1",
         CapabilityAction::CompleteReview,
     );
     if scenario == CapabilityElevationScenario::WrongGrant {
         bind_future_replacement_grant(bootstrap);
+    }
+    if scenario == CapabilityElevationScenario::AlternateCurrentGrant {
+        bind_grant_window(bootstrap, "capability-2", 90, 110, 50);
     }
     bootstrap
         .bind_entity(
@@ -108,6 +128,13 @@ pub(super) fn bind_elevated_capability(
         } else {
             "capability-1"
         },
+    );
+    bind_relation(
+        bootstrap,
+        CapabilityElevationResource::reference(),
+        "elevation-resource-1",
+        "elevation-1",
+        "account-1",
     );
     bind_relation(
         bootstrap,

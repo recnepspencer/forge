@@ -19,7 +19,9 @@ use super::{
 };
 
 mod anchored_paths;
+mod exact_adjacency;
 mod freshness;
+mod strictly_greater;
 mod witnesses;
 
 const ENTITY_KIND: KindId = KindId(1);

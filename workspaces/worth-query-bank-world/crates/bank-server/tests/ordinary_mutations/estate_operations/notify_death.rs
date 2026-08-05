@@ -38,7 +38,10 @@ fn public_query_observes_one_committed_notification_request() {
     assert_eq!(receipt.expected_fact_count(), 0);
     assert_eq!(receipt.decision_fact_count(), Some(8));
     assert_zero_canonical_work(receipt.canonical_work());
-    assert_eq!(notice_status(&fixture), DeathNoticeStatus::NotificationRequested);
+    assert_eq!(
+        notice_status(&fixture),
+        DeathNoticeStatus::NotificationRequested
+    );
 
     let retry = fixture
         .world
@@ -79,8 +82,13 @@ fn public_query_observes_one_committed_notification_request() {
 #[test]
 fn command_authority_cannot_substitute_a_foreign_notice_or_subject() {
     let fixture = notification_world("notify-death-hostile-input", DeathNoticeStatus::Reported);
-    let foreign = notify(&fixture, fixture.foreign_notice, fixture.foreign_deceased, 91)
-        .expect_err("an unrelated real notice must fail exact estate projection");
+    let foreign = notify(
+        &fixture,
+        fixture.foreign_notice,
+        fixture.foreign_deceased,
+        91,
+    )
+    .expect_err("an unrelated real notice must fail exact estate projection");
     assert!(matches!(
         foreign,
         BankEstateProgressionDenial::DeathNotificationProjection(

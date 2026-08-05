@@ -133,11 +133,20 @@ fn blocked_and_denied_closeout_receipts_preserve_completed_boundary_truth_withou
         blocked.closeout_disposition(),
         Some(FoundationalBoundaryEvidenceCloseoutDisposition::Blocked)
     );
+    assert_eq!(
+        blocked.execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+    );
     assert!(!blocked.did_execute());
     assert_eq!(
         denied.closeout_disposition(),
         Some(FoundationalBoundaryEvidenceCloseoutDisposition::Denied)
     );
+    assert_eq!(
+        denied.execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+    );
+    assert!(!denied.did_execute());
     assert_eq!(blocked.completed_boundary(), denied.completed_boundary());
 }
 

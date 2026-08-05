@@ -155,6 +155,7 @@ string_application_value!(RestrictedBankField, {
     RestrictedBankField::PostingHistory => "posting-history",
     RestrictedBankField::AuditTrail => "audit-trail",
     RestrictedBankField::GovernanceMetadata => "governance-metadata",
+    RestrictedBankField::EmergencyAccessActivity => "emergency-access-activity",
 });
 string_application_value!(EstateCapabilityPurpose, {
     EstateCapabilityPurpose::EstateAdministration => "estate-administration",

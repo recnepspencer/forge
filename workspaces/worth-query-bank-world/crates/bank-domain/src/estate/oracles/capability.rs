@@ -56,7 +56,7 @@ fn validate_delegation(
     if parent.grantee != grant.grantor {
         return Err(EstateDenial::DelegationGrantorMismatch);
     }
-    if !grant.scope.is_within(parent.scope) {
+    if !super::integrity::oracle_scope_is_within(grant.scope, parent.scope) {
         return Err(EstateDenial::DelegationWidensAuthority);
     }
     Ok(())

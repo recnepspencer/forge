@@ -11,11 +11,11 @@ use worth_query_declaration::{
 use super::{
     CapabilityAction, CapabilityElevationApprover, CapabilityElevationGrant,
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
-    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
-    CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityPurpose,
-    CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewKindField,
-    CapabilityReviewResource, CapabilityReviewSlot, CapabilityReviewStatusField,
-    CapabilityReviewer,
+    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationResource,
+    CapabilityElevationReview, CapabilityElevationSlot, CapabilityElevationStatusField,
+    CapabilityPurpose, CapabilityRequestContext, CapabilityReviewIdentity,
+    CapabilityReviewKindField, CapabilityReviewResource, CapabilityReviewSlot,
+    CapabilityReviewStatusField, CapabilityReviewer,
 };
 use crate::domain_computation::primary_graph::tests::fixture::{
     Account, AccountIdentity, IdentityExecutionSchema,
@@ -31,7 +31,7 @@ pub struct CompleteElevationReviewInput {
 }
 
 worth_query_operation!(pub CompleteCapabilityReviewOperation(CompleteElevationReviewInput) in IdentityExecutionSchema);
-worth_query_operation_reads!(CompleteCapabilityReviewOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
+worth_query_operation_reads!(CompleteCapabilityReviewOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationResource, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
 worth_query_operation_writes!(CompleteCapabilityReviewOperation => [CapabilityReviewStatusField]);
 worth_query_operation_links!(CompleteCapabilityReviewOperation => [CapabilityReviewer]);
 

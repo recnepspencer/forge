@@ -24,6 +24,8 @@ pub(in crate::domain_computation) struct WorthQueryElevationCloseDraft {
         Vec<ApplicationOperationDecisionReadTarget>,
     pub(in crate::domain_computation) required_program_targets:
         Vec<ApplicationOperationProgramTarget>,
+    pub(in crate::domain_computation) lifecycle_effect:
+        Option<worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect>,
 }
 
 pub(in crate::domain_computation) struct WorthQueryElevationCloseBinding {

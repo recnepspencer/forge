@@ -249,7 +249,7 @@ fn revoked_capability_stops_governed_live_delivery_before_projection() {
     revoke_current_capability(&world);
 
     let outcome = lease.poll();
-    let WorthQueryApplicationLiveOutcome::AuthorizationDenied(kind) = outcome else {
+    let WorthQueryApplicationLiveOutcome::AuthorizationDenied(denial) = outcome else {
         let posture = match outcome {
             WorthQueryApplicationLiveOutcome::Delivered(_) => "delivered",
             WorthQueryApplicationLiveOutcome::Pending => "pending",
@@ -267,7 +267,12 @@ fn revoked_capability_stops_governed_live_delivery_before_projection() {
         panic!("revoked governed live authority returned {posture}");
     };
     assert_eq!(
-        kind,
+        denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+    );
+    assert!(denial.identity().is_some());
+    assert_eq!(
+        denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::StaleAuthorization]
     );
 }

@@ -12,10 +12,7 @@ pub(super) enum WorthQueryAuthorizedApplicationReadDenial {
     StalePrincipal,
     StaleScope,
     StaleBasisScope(crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind),
-    Authorization(
-        crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind,
-        String,
-    ),
+    Authorization(crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial),
     Read(WorthQueryApplicationReadExecutionDenial),
     Session,
 }
@@ -125,7 +122,10 @@ where
                 WorthQueryAuthorizedApplicationReadDenial::StalePrincipal
             }
             kind => WorthQueryAuthorizedApplicationReadDenial::Authorization(
-                kind, plan.query.name().to_string(),
+                crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial::new(
+                    kind,
+                    plan.query.name(),
+                ),
             ),
         })?;
     if let Some(authorization) = plan.governance.authorization() {
@@ -133,8 +133,10 @@ where
             .validate_currentness_in(runtime, current, application.authorization.bridge())
             .map_err(|kind| {
                 WorthQueryAuthorizedApplicationReadDenial::Authorization(
-                    kind,
-                    plan.query.name().to_string(),
+                    crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial::new(
+                        kind,
+                        plan.query.name(),
+                    ),
                 )
             })?;
     }
@@ -147,8 +149,9 @@ where
         plan.scope.entity_id(),
     ) {
         return Err(WorthQueryAuthorizedApplicationReadDenial::Authorization(
-            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-            plan.query.name().to_string(),
+            crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial::inconsistent(
+                plan.query.name(),
+            ),
         ));
     }
     validate_entity_freshness_at_snapshot(runtime, current, plan.scope)
@@ -186,10 +189,5 @@ where
     };
     application
         .refresh_capability_authorization_for_graph_work(authorization, graph_work)
-        .map_err(|denial| {
-            WorthQueryAuthorizedApplicationReadDenial::Authorization(
-                denial.kind(),
-                plan.query.name().to_string(),
-            )
-        })
+        .map_err(WorthQueryAuthorizedApplicationReadDenial::Authorization)
 }

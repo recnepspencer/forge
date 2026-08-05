@@ -11,5 +11,6 @@ pub(in crate::domain_computation) use decision::{
 };
 pub use receipt::{
     WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
-    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
+    WorthQueryApplicationDisclosureOutcomeIdentity, WorthQueryApplicationDisclosureReceipt,
+    WorthQueryApplicationDisclosureReceiptPosture,
 };

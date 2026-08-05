@@ -22,10 +22,13 @@ use super::{
 use crate::domain_computation::primary_graph::WorthQueryBoundMutationPreconditions;
 
 mod authorization_basis;
+mod capability_revocation;
+mod delegation_activation;
 mod elevation_approval;
 mod elevation_close;
 mod elevation_request;
 mod graph_work_inspection;
+mod idempotency_binding;
 mod mandatory_review;
 
 pub(super) use authorization_basis::WorthQueryOperationAuthorizationBasis;
@@ -74,6 +77,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     binding_identity: ApplicationSchemaBindingIdentity,
     operation: String,
     operation_authority_identity: Arc<str>,
+    operation_authority_identity_bytes: [u8; 32],
     admission_identity: WorthQueryOperationAdmissionIdentity,
     resource_binding_identity: Arc<str>,
     operation_scope_binding: WorthQueryOperationScopeBinding,
@@ -86,6 +90,7 @@ pub struct WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scop
     contracts: WorthQueryCompiledApplicationOperationContracts,
     mutation_preconditions: WorthQueryBoundMutationPreconditions,
     authorization: Option<WorthQueryRetainedAuthorizationDecisionFacts>,
+    governed_input_identity: Option<[u8; 32]>,
     authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
     graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     _marker: PhantomData<fn(Input) -> (Schema, Operation, Scope)>,
@@ -100,6 +105,7 @@ impl<Schema, Operation, Input, Scope>
         binding_identity: ApplicationSchemaBindingIdentity,
         operation: String,
         operation_authority_identity: String,
+        operation_authority_identity_bytes: [u8; 32],
         operation_scope_binding: WorthQueryOperationScopeBinding,
         scope_entity_id: worth_relational::facade::identity::EntityId,
         scope_entity_kind: worth_relational::facade::identity::KindId,
@@ -110,6 +116,7 @@ impl<Schema, Operation, Input, Scope>
         mutation_preconditions: WorthQueryBoundMutationPreconditions,
         authorization_admission_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
         authorization: WorthQueryRetainedAuthorizationDecisionFacts,
+        governed_input_identity: Option<[u8; 32]>,
         authorization_basis: WorthQueryOperationAuthorizationBasis<Input>,
         graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     ) -> Self {
@@ -125,6 +132,7 @@ impl<Schema, Operation, Input, Scope>
             binding_identity,
             operation,
             operation_authority_identity: operation_authority_identity.into(),
+            operation_authority_identity_bytes,
             admission_identity,
             resource_binding_identity,
             operation_scope_binding,
@@ -137,6 +145,7 @@ impl<Schema, Operation, Input, Scope>
             contracts,
             mutation_preconditions,
             authorization: Some(authorization),
+            governed_input_identity,
             authorization_basis,
             graph_work,
             _marker: PhantomData,

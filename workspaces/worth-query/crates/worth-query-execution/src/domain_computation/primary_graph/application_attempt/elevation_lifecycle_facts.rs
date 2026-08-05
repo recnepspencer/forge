@@ -28,6 +28,7 @@ pub(super) struct WorthQueryElevationLifecycleFactExpectation<'a> {
     pub(super) requester_relation: KindId,
     pub(super) approver_relation: KindId,
     pub(super) grant_relation: KindId,
+    pub(super) resource_relation: Option<KindId>,
     pub(super) review_relation: KindId,
     pub(super) review_scope_relation: KindId,
     pub(super) reviewer_relation: KindId,
@@ -47,7 +48,7 @@ pub(super) fn lifecycle_facts_are_exact(
         (expected.review, expected.review_type),
         (expected.review, expected.review_status),
     ];
-    facts.len() == 14
+    facts.len() == 14 + usize::from(expected.resource_relation.is_some())
         && fields
             .into_iter()
             .all(|(entity, (locator, value))| exact_field(facts, entity, locator, value))
@@ -72,6 +73,15 @@ pub(super) fn lifecycle_facts_are_exact(
             WorthQueryApplicationAdjacencyDirection::Outgoing,
             WorthQueryExpectedLifecycleRelation::Present(expected.grant),
         )
+        && expected.resource_relation.is_none_or(|relation| {
+            exact_relation_set(
+                facts,
+                relation,
+                expected.elevation,
+                WorthQueryApplicationAdjacencyDirection::Outgoing,
+                WorthQueryExpectedLifecycleRelation::Present(expected.resource),
+            )
+        })
         && exact_relation_set(
             facts,
             expected.review_relation,

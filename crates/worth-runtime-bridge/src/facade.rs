@@ -80,7 +80,8 @@ pub use crate::authorization::{
     BridgeAuthorizationDependencyCardinality, BridgeAuthorizationInstallationRequest,
     BridgeAuthorizationObservation, BridgeAuthorizationRequirementContract,
     BridgeAuthorizationRequirementObservation, BridgeAuthorizationRuleContract,
-    BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
+    BridgeAuthorizationRuleDecisionEvidence, BridgeAuthorizationRuleEffect,
+    BridgeAuthorizationRuleObservation, BridgeAuthorizationRuntime,
 };
 pub use crate::identity_authority::*;
 pub use exports_core::*;

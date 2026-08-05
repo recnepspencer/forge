@@ -3,6 +3,7 @@ mod approval_binding;
 mod context_identity;
 mod elevation_close;
 mod elevation_close_binding;
+mod lifecycle_effect;
 mod mandatory_review;
 mod mandatory_review_binding;
 mod operation_role;

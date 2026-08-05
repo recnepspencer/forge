@@ -61,11 +61,6 @@ impl CapabilityValidity {
             && moment.epoch_seconds() <= self.not_after.epoch_seconds()
     }
 
-    pub const fn is_within(self, parent: Self) -> bool {
-        parent.not_before.epoch_seconds() <= self.not_before.epoch_seconds()
-            && self.not_after.epoch_seconds() <= parent.not_after.epoch_seconds()
-    }
-
     pub const fn not_before(self) -> EstateMoment {
         self.not_before
     }
@@ -90,20 +85,11 @@ pub struct EstateCapabilityScope {
     pub workflow_stage: EstateWorkflowStage,
 }
 
-impl EstateCapabilityScope {
-    pub fn is_within(self, parent: Self) -> bool {
-        self.account == parent.account
-            && self.estate == parent.estate
-            && self.institution == parent.institution
-            && self.branch == parent.branch
-            && self.operation == parent.operation
-            && self.purpose == parent.purpose
-            && self.field == parent.field
-            && amount_is_within(self.amount_ceiling, parent.amount_ceiling)
-            && self.validity.is_within(parent.validity)
-            && self.delegation.remaining() < parent.delegation.remaining()
-            && self.workflow_stage == parent.workflow_stage
-    }
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EstateCapabilityDelegationRequest {
+    pub id: CapabilityGrantId,
+    pub grantee: BankPrincipalId,
+    pub scope: EstateCapabilityScope,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -114,12 +100,4 @@ pub struct EstateCapabilityGrant {
     pub scope: EstateCapabilityScope,
     pub parent: Option<CapabilityGrantId>,
     pub status: CapabilityGrantStatus,
-}
-
-const fn amount_is_within(child: Option<Money<USD>>, parent: Option<Money<USD>>) -> bool {
-    match (child, parent) {
-        (None, None) => true,
-        (Some(child), Some(parent)) => child.minor_units() <= parent.minor_units(),
-        (Some(_), None) | (None, Some(_)) => false,
-    }
 }

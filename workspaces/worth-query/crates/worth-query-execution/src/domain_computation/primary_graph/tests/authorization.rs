@@ -19,6 +19,8 @@ mod capability_delegation_progression;
 mod capability_delegation_session;
 #[path = "authorization/capability_elevation.rs"]
 mod capability_elevation;
+#[path = "authorization/capability_governed_input_work.rs"]
+mod capability_governed_input_work;
 #[path = "authorization/capability_path_revalidation.rs"]
 mod capability_path_revalidation;
 #[path = "authorization/capability_progression.rs"]

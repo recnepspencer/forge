@@ -332,7 +332,7 @@ fn map_admission_denial(denial: BankOperationAdmissionError) -> BankMutationDeni
             BankMutationDenial::Installation(denial.kind())
         }
         BankOperationAdmissionError::Authorization(denial) => {
-            BankMutationDenial::Authorization(denial.kind())
+            BankMutationDenial::Authorization(Box::new(denial))
         }
     }
 }

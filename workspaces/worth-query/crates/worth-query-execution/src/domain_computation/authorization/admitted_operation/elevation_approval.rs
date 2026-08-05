@@ -10,15 +10,24 @@ impl<Schema, Operation, Input, Scope>
     pub(in crate::domain_computation) fn bind_elevation_approval(
         mut self,
         binding: WorthQueryElevationApprovalBinding,
-    ) -> Result<Self, WorthQueryOperationAuthorizationDenial> {
+    ) -> Result<
+        Self,
+        (
+            WorthQueryOperationAuthorizationDenial,
+            WorthQueryElevationApprovalBinding,
+        ),
+    > {
         let basis = std::mem::replace(
             &mut self.authorization_basis,
             WorthQueryOperationAuthorizationBasis::Conventional,
         );
         let WorthQueryOperationAuthorizationBasis::Capability { input } = basis else {
-            return Err(WorthQueryOperationAuthorizationDenial::new(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                &self.operation,
+            return Err((
+                WorthQueryOperationAuthorizationDenial::new(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    &self.operation,
+                ),
+                binding,
             ));
         };
         self.authorization_basis =

@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 
 use bank_domain::schema::BankSchema;
-use worth_query_decl::facade::application_schema::ApplicationSchemaMember;
+use worth_query_decl::facade::application_schema::{
+    ApplicationOperationDecisionReadTarget, ApplicationSchemaMember,
+};
 
 #[test]
 fn required_estate_topology_and_policy_contributions_are_present() {
@@ -75,10 +77,12 @@ fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
         [
             "ApproveEstateEmergencyAccessOperation",
             "CompleteEstateMandatoryReviewOperation",
+            "DisburseEstateOperation",
             "FreezeEstateAccountOperation",
             "NotifyDeathEstateOperation",
             "OpenEstateCaseOperation",
             "RecognizeEstateExecutorOperation",
+            "ReleaseEstateOperation",
             "RequestEstateEmergencyAccessOperation",
             "RevokeEstateEmergencyAccessOperation",
         ]
@@ -88,6 +92,49 @@ fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
     );
 
     assert_estate_sources_have_no_local_authority_lane();
+}
+
+#[test]
+fn delegation_activation_keeps_bank_reads_without_an_application_effect_program() {
+    let declaration = BankSchema::declaration().unwrap();
+    let members = declaration.erased().members();
+    assert!(members.iter().all(|member| !matches!(
+        member,
+        ApplicationSchemaMember::OperationProgram { operation, .. }
+            if operation == "DelegateEstateCapabilityOperation"
+    )));
+
+    let reads = members
+        .iter()
+        .filter_map(delegation_activation_read)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        reads,
+        [
+            ("field", "AccountIdentity"),
+            ("field", "BranchIdentityField"),
+            ("field", "InstitutionIdentityField"),
+            ("relation", "BranchInstitution"),
+            ("relation", "EstateAccount"),
+            ("relation", "EstateBranch"),
+        ]
+        .into_iter()
+        .collect()
+    );
+}
+
+fn delegation_activation_read(member: &ApplicationSchemaMember) -> Option<(&'static str, &str)> {
+    let ApplicationSchemaMember::OperationDecisionRead { operation, target } = member else {
+        return None;
+    };
+    if operation != "DelegateEstateCapabilityOperation" {
+        return None;
+    }
+    Some(match target {
+        ApplicationOperationDecisionReadTarget::Entity { entity } => ("entity", entity),
+        ApplicationOperationDecisionReadTarget::Field { field, .. } => ("field", field),
+        ApplicationOperationDecisionReadTarget::Relation { relation, .. } => ("relation", relation),
+    })
 }
 
 fn assert_estate_sources_have_no_local_authority_lane() {
@@ -215,6 +262,7 @@ fn estate_relations() -> BTreeSet<&'static str> {
         "CapabilityParent",
         "DeathNoticeSubject",
         "EmergencyApprover",
+        "EmergencyEstate",
         "EmergencyGrant",
         "EmergencyRequester",
         "EmergencyReview",

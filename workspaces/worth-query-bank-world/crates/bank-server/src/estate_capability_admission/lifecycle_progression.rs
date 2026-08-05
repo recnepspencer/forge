@@ -14,6 +14,7 @@ use super::fixture::{
     capability_world, emergency_request_world, request_scope, GrantSpec,
     APPROVER_UPPER_BOUND_GRANT, ESTATE, GRANT,
 };
+use super::lifecycle_journey::{approve_elevation, request_elevation};
 use crate::estate_progression::BankEstateProgressionDenial;
 
 #[test]
@@ -49,7 +50,11 @@ fn public_bank_runtime_commits_exact_emergency_request_through_query() {
 
     assert_eq!(requested.elevation_key(), "estate-emergency-access-301");
     assert_eq!(requested.review_key(), "estate-mandatory-review-302");
-    assert_eq!(requested.commit_receipt().changed_record_count(), 7);
+    assert_eq!(
+        requested.commit_receipt().changed_record_count(),
+        8,
+        "the request creates its direct authoritative EmergencyEstate relation"
+    );
 }
 
 #[test]
@@ -124,7 +129,7 @@ fn request_command_grant_cannot_substitute_for_governed_upper_bound_authority() 
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
     );
 }
 
@@ -136,7 +141,15 @@ fn distinct_approver_commits_the_public_query_approval_transition() {
         EstateWorkflowStage::Administration,
     );
     let requester = fixture.authenticate();
-    let requested = request_elevation(&fixture, &requester, GRANT, 331, 332, 61);
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        GRANT,
+        331,
+        332,
+        61,
+        RestrictedBankField::AccountDetails,
+    );
     let approver = fixture.authenticate_approver();
 
     let outcome = fixture
@@ -168,7 +181,15 @@ fn requester_cannot_approve_their_own_elevation() {
         EstateWorkflowStage::Administration,
     );
     let requester = fixture.authenticate();
-    let requested = request_elevation(&fixture, &requester, GRANT, 341, 342, 71);
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        GRANT,
+        341,
+        342,
+        71,
+        RestrictedBankField::AccountDetails,
+    );
     let other_requester = fixture.authenticate_approver();
     let other_requested = request_elevation(
         &fixture,
@@ -177,6 +198,7 @@ fn requester_cannot_approve_their_own_elevation() {
         343,
         344,
         75,
+        RestrictedBankField::AccountDetails,
     );
 
     fixture
@@ -211,7 +233,7 @@ fn requester_cannot_approve_their_own_elevation() {
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::DistinctActorRuleMatched
     );
 }
 
@@ -223,7 +245,15 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
         EstateWorkflowStage::Administration,
     );
     let requester = fixture.authenticate();
-    let requested = request_elevation(&fixture, &requester, GRANT, 351, 352, 81);
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        GRANT,
+        351,
+        352,
+        81,
+        RestrictedBankField::AccountDetails,
+    );
     let approver = fixture.authenticate_approver();
     let approved = approve_elevation(&fixture, &approver, requested, 351, 83);
 
@@ -270,61 +300,4 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
     assert_ne!(reviewed.reviewer(), reviewed.requester());
     assert_ne!(reviewed.reviewer(), reviewed.approver());
     assert_eq!(reviewed.review_commit_receipt().changed_record_count(), 3);
-}
-
-fn approve_elevation(
-    fixture: &super::fixture::CapabilityFixture,
-    approver: &crate::BankAuthenticatedPrincipal,
-    requested: worth_query_host::facade::primary_graph::WorthQueryRequestedElevation,
-    access: u64,
-    idempotency: u8,
-) -> worth_query_host::facade::primary_graph::WorthQueryApprovedElevation {
-    let outcome = fixture
-        .runtime
-        .approve_estate_emergency_access(
-            approver,
-            requested,
-            EstateAction::ApproveEmergencyAccess {
-                estate: ESTATE,
-                access: EmergencyAccessId::new(access).unwrap(),
-            },
-            WorthQueryApplicationIdempotencyBinding::new([idempotency; 32], [idempotency + 1; 32]),
-            &request_scope(),
-        )
-        .expect("the terminal lifecycle prerequisite approval should commit");
-    let WorthQueryElevationApprovalOutcome::Approved(approved) = outcome else {
-        panic!("the terminal prerequisite approval must be fresh: {outcome:?}");
-    };
-    approved
-}
-
-fn request_elevation(
-    fixture: &super::fixture::CapabilityFixture,
-    requester: &crate::BankAuthenticatedPrincipal,
-    grant: bank_domain::estate::CapabilityGrantId,
-    access: u64,
-    review: u64,
-    idempotency: u8,
-) -> worth_query_host::facade::primary_graph::WorthQueryRequestedElevation {
-    let outcome = fixture
-        .runtime
-        .request_estate_emergency_access(
-            requester,
-            EstateAction::RequestEmergencyAccess {
-                estate: ESTATE,
-                access: EmergencyAccessId::new(access).unwrap(),
-                review: MandatoryReviewId::new(review).unwrap(),
-                grant,
-                reason: EmergencyAccessReason::PreventImmediateLoss,
-                field: RestrictedBankField::AccountDetails,
-                duration: Duration::from_secs(300),
-            },
-            WorthQueryApplicationIdempotencyBinding::new([idempotency; 32], [idempotency + 1; 32]),
-            &request_scope(),
-        )
-        .expect("the approval prerequisite request should commit");
-    let WorthQueryElevationRequestOutcome::Requested(requested) = outcome else {
-        panic!("the approval prerequisite must be fresh: {outcome:?}");
-    };
-    requested
 }

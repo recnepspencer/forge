@@ -116,6 +116,19 @@ pub struct BankIdempotencyClaim {
 }
 
 impl BankIdempotencyClaim {
+    /// Retains an application runtime's descriptive idempotency identities for
+    /// deterministic domain-created IDs. This carries no Query authority and
+    /// does not replace the runtime's own retry or intent-drift decision.
+    pub const fn from_application_binding(
+        key_identity: [u8; 32],
+        intent_identity: [u8; 32],
+    ) -> Self {
+        Self {
+            key: BankIdempotencyKeyIdentity(CanonicalDigestId::new(key_identity)),
+            intent: BankIdempotencyIntent(CanonicalDigestId::new(intent_identity)),
+        }
+    }
+
     pub(crate) fn derive(
         binding: BankOperationScopeBinding,
         key: &BankIdempotencyKey,

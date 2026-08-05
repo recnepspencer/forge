@@ -41,6 +41,7 @@ pub enum PostingPurpose {
     Deposit,
     Withdrawal,
     Transfer,
+    EstateDisbursement,
     Reversal,
 }
 
@@ -94,6 +95,7 @@ string_application_value!(PostingPurpose, {
     PostingPurpose::Deposit => "deposit",
     PostingPurpose::Withdrawal => "withdrawal",
     PostingPurpose::Transfer => "transfer",
+    PostingPurpose::EstateDisbursement => "estate-disbursement",
     PostingPurpose::Reversal => "reversal",
 });
 string_application_value!(CustomerRole, {
@@ -287,3 +289,23 @@ macro_rules! idempotency_application_value {
 }
 
 idempotency_application_value!(BankIdempotencyKeyIdentity, BankIdempotencyIntent);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn estate_disbursement_is_a_distinct_round_tripping_posting_purpose() {
+        let encoded = PostingPurpose::EstateDisbursement.into_foundational_value();
+
+        assert_eq!(
+            PostingPurpose::from_foundational_value(&encoded),
+            Some(PostingPurpose::EstateDisbursement)
+        );
+        assert_ne!(
+            encoded,
+            PostingPurpose::Transfer.into_foundational_value(),
+            "estate disbursement must not masquerade as an ordinary transfer"
+        );
+    }
+}

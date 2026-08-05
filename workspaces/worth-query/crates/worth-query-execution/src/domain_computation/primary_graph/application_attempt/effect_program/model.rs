@@ -22,7 +22,10 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryApplicationEmi
 }
 
 impl WorthQueryApplicationEmission {
-    pub(super) fn new<Payload>(effect: &'static str, payload: Payload) -> Self
+    pub(in crate::domain_computation::primary_graph::application_attempt) fn new<Payload>(
+        effect: &'static str,
+        payload: Payload,
+    ) -> Self
     where
         Payload: ApplicationEffectPayload,
     {
@@ -35,6 +38,31 @@ impl WorthQueryApplicationEmission {
             retained_bytes,
             measure_retained_bytes: measure_retained_bytes::<Payload>,
         }
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_attempt) fn from_lifecycle(
+        derived: &worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect,
+    ) -> Self {
+        Self {
+            effect: derived.effect(),
+            payload_type: derived.payload_type(),
+            payload_type_id: derived.payload_type_id(),
+            payload: derived.payload(),
+            retained_bytes: derived.retained_bytes(),
+            measure_retained_bytes: derived.measure_retained_bytes(),
+        }
+    }
+
+    pub(in crate::domain_computation::primary_graph::application_attempt) fn is_exact_lifecycle(
+        &self,
+        derived: &worth_query_declaration::lifecycle_effect_derivation_authority::DerivedApplicationCapabilityLifecycleEffect,
+    ) -> bool {
+        self.effect == derived.effect()
+            && self.payload_type == derived.payload_type()
+            && self.payload_type_id == derived.payload_type_id()
+            && self.retained_bytes == derived.retained_bytes()
+            && derived.payload_is(&self.payload)
+            && self.is_well_formed()
     }
 
     pub(in crate::domain_computation::primary_graph) fn is_well_formed(&self) -> bool {

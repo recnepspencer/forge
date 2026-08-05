@@ -219,7 +219,19 @@ pub(super) fn installed_authorization_world_with_principal_count(
         primary_label,
         Some("reviewed"),
     );
-    bind_account(&mut bootstrap, "account-2", "unrelated", "secondary", None);
+    let secondary_status = match capability_grants {
+        CapabilityGrantPopulation::Elevated(
+            super::capability_elevation_seed::CapabilityElevationScenario::DistinctCommandResource,
+        ) => "open",
+        _ => "unrelated",
+    };
+    bind_account(
+        &mut bootstrap,
+        "account-2",
+        secondary_status,
+        "secondary",
+        None,
+    );
     bind_activity(&mut bootstrap, "activity-primary", 11);
     bind_activity(&mut bootstrap, "activity-secondary", 22);
     bootstrap

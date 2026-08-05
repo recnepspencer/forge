@@ -1,8 +1,12 @@
+mod capability_revocation;
+mod delegation;
+mod disburse_estate;
 mod freeze_account;
 mod lifecycle;
 mod notify_death;
 mod open_estate_case;
 mod recognize_executor;
+mod release_estate;
 
 use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBuilder;
 
@@ -13,7 +17,11 @@ pub(super) fn install(
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
     let schema = lifecycle::install(schema);
     let schema = freeze_account::install(schema);
+    let schema = delegation::install(schema);
+    let schema = capability_revocation::install(schema);
     let schema = recognize_executor::install(schema);
     let schema = notify_death::install(schema);
-    open_estate_case::install(schema)
+    let schema = open_estate_case::install(schema);
+    let schema = disburse_estate::install(schema);
+    release_estate::install(schema)
 }

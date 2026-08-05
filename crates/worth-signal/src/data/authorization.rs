@@ -210,11 +210,32 @@ pub struct SignalAuthorizationEvaluationCounters {
     pub fields_depended_on: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SignalAuthorizationRuleDecisionEvidence {
+    effect: SignalAuthorizationRuleEffect,
+    matched: bool,
+}
+
+impl SignalAuthorizationRuleDecisionEvidence {
+    pub(super) const fn new(effect: SignalAuthorizationRuleEffect, matched: bool) -> Self {
+        Self { effect, matched }
+    }
+
+    pub const fn effect(self) -> SignalAuthorizationRuleEffect {
+        self.effect
+    }
+
+    pub const fn matched(self) -> bool {
+        self.matched
+    }
+}
+
 pub struct SignalAuthorizationDecisionEvidence {
     graph_instance_id: u64,
     policy_identity: SignalAuthorizationPolicyIdentity,
     dependency_identity: [u8; 32],
     decision: SignalAuthorizationDecision,
+    rule_decisions: Vec<SignalAuthorizationRuleDecisionEvidence>,
     counters: SignalAuthorizationEvaluationCounters,
     authority: Arc<SignalAuthorizationAuthority>,
 }
@@ -230,6 +251,10 @@ impl SignalAuthorizationDecisionEvidence {
 
     pub const fn decision(&self) -> SignalAuthorizationDecision {
         self.decision
+    }
+
+    pub fn rule_decisions(&self) -> &[SignalAuthorizationRuleDecisionEvidence] {
+        &self.rule_decisions
     }
 
     pub const fn counters(&self) -> SignalAuthorizationEvaluationCounters {

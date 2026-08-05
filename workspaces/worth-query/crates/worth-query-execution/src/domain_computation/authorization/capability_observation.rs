@@ -1,10 +1,5 @@
 //! Capability observation across Relational and Runtime Bridge authority.
 
-use std::collections::BTreeSet;
-
-use worth_query_declaration::facade::application_capability::{
-    ApplicationCapabilityCardinalityDimension, ApplicationCapabilityRelationDimension,
-};
 use worth_relational::facade::authorization::RelationalAuthorizationObservationPlan;
 use worth_runtime_bridge::facade::BridgeAuthorizationRuntime;
 
@@ -17,9 +12,11 @@ use super::{
 use crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample;
 
 mod bridge_observation;
+mod decision_denial;
 mod elevation;
 mod grant_selection;
 mod path_preparation;
+mod projection_validation;
 
 pub(super) struct WorthQueryObservedCapabilityDecision {
     decision: WorthQueryAuthorizationDecisionFact,
@@ -54,7 +51,7 @@ pub(super) fn observe_capability_policy(
     sample: &WorthQueryAuthorizationTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
-    validate_projection_shape(
+    projection_validation::validate_projection_shape(
         installed,
         request,
         installed.paths.len(),
@@ -104,7 +101,12 @@ pub(super) fn observe_upper_bound_policy(
         .upper_bound
         .as_ref()
         .ok_or_else(|| invalid_policy(installed.contract.name()))?;
-    validate_projection_shape(installed, request, upper_bound.path_count, false)?;
+    projection_validation::validate_projection_shape(
+        installed,
+        request,
+        upper_bound.path_count,
+        false,
+    )?;
     let paths = path_preparation::prepare_upper_bound_policy_paths(
         installed,
         request,
@@ -119,6 +121,31 @@ pub(super) fn observe_upper_bound_policy(
         &evidence,
         dependency_identity,
     )?;
+    let bridge_evidence =
+        evaluate_upper_bound_policy(bridge, installed, upper_bound, &evidence, observation)?;
+    let observed_grant = extract_exact_grant(installed, &evidence)?;
+    if observed_grant != exact_grant {
+        return Err(WorthQueryOperationAuthorizationDenial::new(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            installed.contract.name(),
+        ));
+    }
+    Ok(WorthQueryObservedCapabilityDecision::new(
+        WorthQueryAuthorizationDecisionFact::new(session_identity, evidence, bridge_evidence),
+        observed_grant,
+    ))
+}
+
+fn evaluate_upper_bound_policy(
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    upper_bound: &super::capability_registry::WorthQueryCapabilityUpperBoundBindings,
+    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
+    observation: worth_runtime_bridge::facade::BridgeAuthorizationObservation,
+) -> Result<
+    worth_runtime_bridge::facade::BridgeAuthorizationDecisionEvidence,
+    WorthQueryOperationAuthorizationDenial,
+> {
     let bridge_evidence = bridge.evaluate(observation).map_err(|_| {
         WorthQueryOperationAuthorizationDenial::new(
             WorthQueryOperationAuthorizationDenialKind::BridgeEvaluationRejected,
@@ -134,22 +161,17 @@ pub(super) fn observe_upper_bound_policy(
         ));
     }
     if !bridge_evidence.is_allowed() {
-        return Err(WorthQueryOperationAuthorizationDenial::new(
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+        let causes = decision_denial::decision_denial_causes(
+            &upper_bound.decision_rules,
+            &bridge_evidence,
+            None,
+        )?;
+        return Err(WorthQueryOperationAuthorizationDenial::from_ordered_causes(
+            causes,
             installed.contract.name(),
         ));
     }
-    let observed_grant = extract_exact_grant(installed, &evidence)?;
-    if observed_grant != exact_grant {
-        return Err(WorthQueryOperationAuthorizationDenial::new(
-            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-            installed.contract.name(),
-        ));
-    }
-    Ok(WorthQueryObservedCapabilityDecision::new(
-        WorthQueryAuthorizationDecisionFact::new(session_identity, evidence, bridge_evidence),
-        observed_grant,
-    ))
+    Ok(bridge_evidence)
 }
 
 fn resolve_exact_grant(
@@ -236,10 +258,13 @@ fn evaluate_exact_policy(
         ));
     }
     if !bridge_evidence.is_allowed() {
-        let kind = elevation_denial_kind(installed, evidence)
-            .unwrap_or(WorthQueryOperationAuthorizationDenialKind::PermissionDenied);
-        return Err(WorthQueryOperationAuthorizationDenial::new(
-            kind,
+        let causes = decision_denial::decision_denial_causes(
+            &installed.decision_rules,
+            &bridge_evidence,
+            decision_denial::elevation_denial_kind(installed, evidence),
+        )?;
+        return Err(WorthQueryOperationAuthorizationDenial::from_ordered_causes(
+            causes,
             installed.contract.name(),
         ));
     }
@@ -258,121 +283,7 @@ fn extract_exact_grant(
         .ok_or_else(|| invalid_policy(installed.contract.name()))
 }
 
-fn validate_projection_shape(
-    installed: &WorthQueryInstalledCapabilityPlan,
-    projection: &WorthQueryRetainedCapabilityRequest,
-    path_count: usize,
-    elevation_required: bool,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-    let request = &installed.request;
-    if projection.action != request.action
-        || projection.purpose != request.purpose
-        || projection.resource_entity.as_ref() != request.resource_entity
-        || projection.context_name.as_ref() != request.context
-        || projection.context_type.as_ref() != request.context_type
-        || !cardinality_admitted(request.cardinality, projection.cardinality)
-        || projection.field.is_some() != request.field.is_some()
-        || projection.amount.is_some() != request.amount.is_some()
-        || projection.elevation.is_some() != elevation_required
-    {
-        return Err(projection_denial(installed.contract.name()));
-    }
-    let relation_matches = match (
-        installed.contract.target().relation(),
-        projection.related_relation.as_ref(),
-    ) {
-        (ApplicationCapabilityRelationDimension::NotApplicable, None) => true,
-        (ApplicationCapabilityRelationDimension::Bound(expected), Some(actual)) => {
-            expected == actual
-        }
-        _ => false,
-    };
-    if !relation_matches {
-        return Err(projection_denial(installed.contract.name()));
-    }
-    let expected_context = installed
-        .paths
-        .iter()
-        .take(path_count)
-        .flat_map(|path| {
-            path.context_anchors
-                .iter()
-                .map(path_preparation::context_key)
-        })
-        .collect::<BTreeSet<_>>();
-    if !expected_context
-        .iter()
-        .all(|key| projection.context.contains_key(key))
-    {
-        return Err(projection_denial(installed.contract.name()));
-    }
-    Ok(())
-}
-
-fn elevation_denial_kind(
-    installed: &WorthQueryInstalledCapabilityPlan,
-    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
-) -> Option<WorthQueryOperationAuthorizationDenialKind> {
-    let elevation = installed.elevation.as_ref()?;
-    let active = evidence.paths().get(elevation.active_path_index)?;
-    let not_before = evidence
-        .paths()
-        .get(elevation.temporal.not_before_path_index)?;
-    let not_after = evidence
-        .paths()
-        .get(elevation.temporal.not_after_path_index)?;
-    let expired = evidence.paths().get(elevation.expired_path_index)?;
-    let self_approval = evidence.paths().get(elevation.self_approval_path_index)?;
-    if self_approval.matched() {
-        Some(WorthQueryOperationAuthorizationDenialKind::ElevationSelfApproval)
-    } else if requirements_match(evidence, &elevation.approver_conflict_requirements) {
-        Some(WorthQueryOperationAuthorizationDenialKind::ElevationApproverConflict)
-    } else if expired.matched()
-        || (active.matched() && not_before.matched() && !not_after.matched())
-    {
-        Some(WorthQueryOperationAuthorizationDenialKind::ElevationExpired)
-    } else if !active.matched() || !not_before.matched() {
-        Some(WorthQueryOperationAuthorizationDenialKind::ElevationInactive)
-    } else {
-        None
-    }
-}
-
-fn requirements_match(
-    evidence: &worth_relational::facade::authorization::RelationalAuthorizationObservationEvidence,
-    requirements: &[Vec<usize>],
-) -> bool {
-    requirements.iter().all(|requirement| {
-        requirement.iter().any(|path_index| {
-            evidence
-                .paths()
-                .get(*path_index)
-                .is_some_and(|path| path.matched())
-        })
-    })
-}
-
-const fn cardinality_admitted(
-    installed: ApplicationCapabilityCardinalityDimension,
-    requested: u32,
-) -> bool {
-    match installed {
-        ApplicationCapabilityCardinalityDimension::One => requested == 1,
-        ApplicationCapabilityCardinalityDimension::Many => requested > 0,
-        ApplicationCapabilityCardinalityDimension::Bounded(maximum) => {
-            requested > 0 && requested <= maximum
-        }
-    }
-}
-
-fn projection_denial(subject: impl Into<String>) -> WorthQueryOperationAuthorizationDenial {
-    WorthQueryOperationAuthorizationDenial::new(
-        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
-        subject,
-    )
-}
-
-fn invalid_policy(subject: &str) -> WorthQueryOperationAuthorizationDenial {
+pub(super) fn invalid_policy(subject: &str) -> WorthQueryOperationAuthorizationDenial {
     WorthQueryOperationAuthorizationDenial::new(
         WorthQueryOperationAuthorizationDenialKind::InvalidInstalledPolicy,
         subject,

@@ -116,10 +116,12 @@ fn assert_authorization_denied(
     >,
     expected: WorthQueryOperationAuthorizationDenialKind,
 ) {
-    let WorthQueryApplicationLiveOutcome::AuthorizationDenied(kind) = outcome else {
+    let WorthQueryApplicationLiveOutcome::AuthorizationDenied(denial) = outcome else {
         panic!("elevated live delivery did not terminate at authorization re-admission");
     };
-    assert_eq!(kind, expected);
+    assert_eq!(denial.kind(), expected);
+    assert!(denial.identity().is_some());
+    assert_eq!(denial.causes(), [expected]);
 }
 
 fn close_elevation(

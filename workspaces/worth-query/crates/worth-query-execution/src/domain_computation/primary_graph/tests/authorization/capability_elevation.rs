@@ -21,10 +21,14 @@ use crate::domain_computation::primary_graph::{
 mod active_use;
 #[path = "capability_elevation/approval_adversarial.rs"]
 mod approval_adversarial;
+#[path = "capability_elevation/approval_support_currentness.rs"]
+mod approval_support_currentness;
 #[path = "capability_elevation/approval_transition.rs"]
 mod approval_transition;
 #[path = "capability_elevation/approver_conflict.rs"]
 mod approver_conflict;
+#[path = "capability_elevation/close_provider_currentness.rs"]
+mod close_provider_currentness;
 #[path = "capability_elevation/close_transition.rs"]
 mod close_transition;
 #[path = "capability_elevation/delivery_cutoff.rs"]

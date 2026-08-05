@@ -13,7 +13,8 @@ use super::capability_composition_mutation::{
 };
 use super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryApplicationCommitDenialKind,
+    WorthQueryAdmittedApplicationCapabilityAccess,
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationEffectProgram, WorthQueryAuthenticatedPrincipal,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -48,13 +49,42 @@ fn lawful_combination_is_one_decision_over_presence_and_absence_facts() {
 
 #[test]
 fn every_installed_combination_predicate_denies_independently_and_together() {
-    for scenario in [
-        CapabilityCompositionScenario::MissingAssignment,
-        CapabilityCompositionScenario::ExplicitDeny,
-        CapabilityCompositionScenario::ConflictingBeneficiary,
-        CapabilityCompositionScenario::RequestActor,
-        CapabilityCompositionScenario::PriorActor,
-        CapabilityCompositionScenario::AccumulatedProhibitions,
+    for (scenario, expected_causes, expected_explanation) in [
+        (
+            CapabilityCompositionScenario::MissingAssignment,
+            vec![WorthQueryOperationAuthorizationDenialKind::PermissionDenied],
+            WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+        ),
+        (
+            CapabilityCompositionScenario::ExplicitDeny,
+            vec![WorthQueryOperationAuthorizationDenialKind::ExplicitDenyRuleMatched],
+            WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+        ),
+        (
+            CapabilityCompositionScenario::ConflictingBeneficiary,
+            vec![WorthQueryOperationAuthorizationDenialKind::ConflictRuleMatched],
+            WorthQueryApplicationAuthorizationExplanationCause::Conflict,
+        ),
+        (
+            CapabilityCompositionScenario::RequestActor,
+            vec![WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched],
+            WorthQueryApplicationAuthorizationExplanationCause::SeparationOfDuty,
+        ),
+        (
+            CapabilityCompositionScenario::PriorActor,
+            vec![WorthQueryOperationAuthorizationDenialKind::DistinctActorRuleMatched],
+            WorthQueryApplicationAuthorizationExplanationCause::SeparationOfDuty,
+        ),
+        (
+            CapabilityCompositionScenario::AccumulatedProhibitions,
+            vec![
+                WorthQueryOperationAuthorizationDenialKind::ExplicitDenyRuleMatched,
+                WorthQueryOperationAuthorizationDenialKind::ConflictRuleMatched,
+                WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched,
+                WorthQueryOperationAuthorizationDenialKind::DistinctActorRuleMatched,
+            ],
+            WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+        ),
     ] {
         let mut world = installed_composed_capability_world(scenario);
         world.application.script_authorization_time([time(100)]);
@@ -65,9 +95,12 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
             .err()
             .unwrap_or_else(|| panic!("{scenario:?} must deny at initial access admission"));
 
+        assert!(denial.identity().is_some(), "{scenario:?}");
+        assert_eq!(denial.kind(), expected_causes[0], "{scenario:?}");
+        assert_eq!(denial.causes(), expected_causes, "{scenario:?}");
         assert_eq!(
-            denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            denial.explanation_cause(),
+            Some(expected_explanation),
             "{scenario:?}"
         );
     }
@@ -268,5 +301,6 @@ fn composed_input() -> CapabilityTouchInput {
         caller_time: 100,
         request_record: "selected-request".to_owned(),
         prior_record: "selected-prior".to_owned(),
+        governed_input_identity: Default::default(),
     }
 }

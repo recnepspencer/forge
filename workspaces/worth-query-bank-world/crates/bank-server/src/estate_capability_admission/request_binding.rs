@@ -46,13 +46,18 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
         field: RestrictedBankField::CustomerIdentity,
         purpose: EstateCapabilityPurpose::LegalCompliance,
     };
+    let wrong_purpose_denial = application
+        .admit_capability_access(principal.query(), &capability, wrong_purpose, &request)
+        .err()
+        .expect("the wrong purpose must deny");
     assert_eq!(
-        application
-            .admit_capability_access(principal.query(), &capability, wrong_purpose, &request)
-            .err()
-            .expect("the wrong purpose must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected
+        wrong_purpose_denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::PurposeMismatch
+    );
+    assert!(wrong_purpose_denial.identity().is_some());
+    assert_eq!(
+        wrong_purpose_denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::PurposeMismatch]
     );
     let wrong_field = EstateAction::ViewRestrictedEstate {
         estate: ESTATE,
@@ -128,18 +133,23 @@ fn separation_of_duty_is_anchored_to_the_exact_action_authority() {
         executor: EXECUTOR,
         authority: AUTHORITY,
     };
+    let self_recognition_denial = application
+        .admit_capability_access(
+            principal.query(),
+            &capability,
+            self_recognition,
+            &request_scope(),
+        )
+        .err()
+        .expect("the selected self-held authority must deny");
     assert_eq!(
-        application
-            .admit_capability_access(
-                principal.query(),
-                &capability,
-                self_recognition,
-                &request_scope(),
-            )
-            .err()
-            .expect("the selected self-held authority must deny")
-            .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        self_recognition_denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched
+    );
+    assert!(self_recognition_denial.identity().is_some());
+    assert_eq!(
+        self_recognition_denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched]
     );
 
     let other_authority = EstateAction::RecognizeExecutor {

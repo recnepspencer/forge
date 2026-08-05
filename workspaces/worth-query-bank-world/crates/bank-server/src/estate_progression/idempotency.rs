@@ -1,4 +1,7 @@
-use bank_domain::{estate::EstateAction, schema::{BankSchema, EstateCase}};
+use bank_domain::{
+    estate::EstateAction,
+    schema::{BankSchema, EstateCase},
+};
 use worth_query_host::facade::primary_graph::{
     WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationIdempotencyBinding,

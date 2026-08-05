@@ -56,6 +56,20 @@ pub(super) fn append_elevation(
     append_relation(components, "elevation.requester", elevation.requester());
     append_relation(components, "elevation.approver", elevation.approver());
     append_relation(components, "elevation.grant", elevation.grant());
+    if let Some(resource_relation) = elevation.resource_relation() {
+        text(
+            components,
+            "elevation.resource-relation.posture",
+            "governed",
+        );
+        append_relation(components, "elevation.resource-relation", resource_relation);
+    } else {
+        text(
+            components,
+            "elevation.resource-relation.posture",
+            "not-applicable",
+        );
+    }
     append_lifecycle(components, elevation.lifecycle());
     let review = elevation.review();
     append_relation(components, "elevation.review.relation", review.relation());
@@ -112,6 +126,26 @@ fn append_transition(
         transition.capability_type(),
     );
     append_operation(components, prefix, transition.operation());
+    if let Some(effect) = transition.lifecycle_effect() {
+        text(components, format!("{prefix}.effect.posture"), "derived");
+        text(components, format!("{prefix}.effect"), effect.effect());
+        text(
+            components,
+            format!("{prefix}.effect-type"),
+            effect.effect_type(),
+        );
+        text(
+            components,
+            format!("{prefix}.effect-payload-type"),
+            effect.payload_type(),
+        );
+    } else {
+        text(
+            components,
+            format!("{prefix}.effect.posture"),
+            "not-applicable",
+        );
+    }
 }
 
 fn append_slot(
@@ -130,7 +164,7 @@ fn append_slot(
     text(components, format!("{prefix}.entity"), slot.entity());
 }
 
-fn append_operation(
+pub(super) fn append_operation(
     components: &mut Vec<ApplicationCapabilityCanonicalComponent>,
     prefix: &str,
     operation: &ApplicationCapabilityOperationBinding,

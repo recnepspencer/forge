@@ -3,9 +3,8 @@ mod fixture;
 
 use bank_domain::estate::{DeathNoticeStatus, EstateCaseStatus, EstateWorkflowStage};
 use bank_server::{
-    queries, BankAuthenticatedPrincipal, BankCommitReceipt,
-    BankEstateCaseOpeningProjectionDenial, BankEstateProgressionDenial,
-    BankMutationCommitOutcome, BankReadControls,
+    queries, BankAuthenticatedPrincipal, BankCommitReceipt, BankEstateCaseOpeningProjectionDenial,
+    BankEstateProgressionDenial, BankMutationCommitOutcome, BankReadControls,
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
@@ -43,7 +42,11 @@ fn public_query_progression_opens_the_exact_verified_estate_case() {
     assert_eq!(receipt.expected_fact_count(), 0);
     assert_eq!(receipt.decision_fact_count(), Some(7));
     assert_zero_canonical_work(receipt.canonical_work());
-    assert_case_posture(&fixture, EstateCaseStatus::Open, DeathNoticeStatus::Verified);
+    assert_case_posture(
+        &fixture,
+        EstateCaseStatus::Open,
+        DeathNoticeStatus::Verified,
+    );
 
     assert_equivalent_retry(&fixture, &specialist, binding, &receipt);
     assert_intent_drift(&fixture, &specialist);
@@ -72,10 +75,7 @@ fn assert_equivalent_retry(
     assert_zero_canonical_work(recovered.canonical_work());
 }
 
-fn assert_intent_drift(
-    fixture: &CaseOpeningFixture,
-    specialist: &BankAuthenticatedPrincipal,
-) {
+fn assert_intent_drift(fixture: &CaseOpeningFixture, specialist: &BankAuthenticatedPrincipal) {
     let drift = fixture
         .world
         .runtime

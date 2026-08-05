@@ -82,7 +82,12 @@ where
         ) {
             return Err(WorthQueryApplicationIdempotencyResolutionDenial::foreign_admission());
         }
-        let binding = binding.bind_preconditions(admission.mutation_preconditions().identity());
+        let binding = binding
+            .bind_operation(admission.operation_authority_identity_bytes())
+            .bind_operation_scope(admission.operation_scope_binding())
+            .bind_preconditions(admission.mutation_preconditions().identity())
+            .bind_governed_input(admission.governed_input_identity())
+            .bind_governed_proposal(admission.governed_proposal_identity());
         let serialization = self.primary_provider.serialize_application_commit();
         let proof = self
             .authorize_idempotency_inspection(admission, &serialization)

@@ -9,7 +9,52 @@ use super::installed_contract_support::operation_denial;
 use super::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind, WorthQueryInstalledAbilityRequirement,
+    WorthQueryInstalledApplicationOperationExecutionPosture,
 };
+use worth_query_declaration::facade::application_capability::{
+    application_capability_delegation_activation_program_targets,
+    application_capability_revocation_decision_reads,
+    application_capability_revocation_program_target,
+};
+
+mod elevation_lifecycle_program;
+use elevation_lifecycle_program::{lifecycle_program_targets, lifecycle_resource_decision_read};
+
+pub(super) fn operation_execution_posture(
+    members: &[ApplicationSchemaMember],
+    operation: &str,
+    input_type: &str,
+) -> WorthQueryInstalledApplicationOperationExecutionPosture {
+    if members.iter().any(|member| {
+        let ApplicationSchemaMember::ApplicationCapability { contract } = member else {
+            return false;
+        };
+        contract
+            .delegation()
+            .activation()
+            .is_some_and(|activation| {
+                activation.operation().operation() == operation
+                    && activation.operation().input_type() == input_type
+            })
+    }) {
+        WorthQueryInstalledApplicationOperationExecutionPosture::DelegationActivation
+    } else if members.iter().any(|member| {
+        let ApplicationSchemaMember::ApplicationCapability { contract } = member else {
+            return false;
+        };
+        contract
+            .delegation()
+            .revocation()
+            .is_some_and(|revocation| {
+                revocation.operation().operation() == operation
+                    && revocation.operation().input_type() == input_type
+            })
+    }) {
+        WorthQueryInstalledApplicationOperationExecutionPosture::CapabilityRevocation
+    } else {
+        WorthQueryInstalledApplicationOperationExecutionPosture::Ordinary
+    }
+}
 
 pub(super) fn ability_requirement_meaning_matches(
     members: &[ApplicationSchemaMember],
@@ -84,27 +129,58 @@ pub(super) fn operation_decision_fact_budget(
 pub(super) fn operation_decision_reads<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     operation: &str,
+    input_type: &str,
 ) -> Vec<ApplicationOperationDecisionReadTarget>
 where
     Schema: ApplicationSchema,
 {
-    operation_decision_reads_from_members(schema.installed_declaration().members(), operation)
+    operation_decision_reads_from_members(
+        schema.installed_declaration().members(),
+        operation,
+        input_type,
+    )
 }
 
 pub(super) fn operation_decision_reads_from_members(
     members: &[ApplicationSchemaMember],
     operation: &str,
+    input_type: &str,
 ) -> Vec<ApplicationOperationDecisionReadTarget> {
-    let mut reads = members
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::OperationDecisionRead {
-                operation: installed,
-                target,
-            } if installed == operation => Some(target.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
+    let mut reads = if operation_has_revocation(members, operation) {
+        members
+            .iter()
+            .filter_map(|member| match member {
+                ApplicationSchemaMember::ApplicationCapability { contract }
+                    if contract
+                        .delegation()
+                        .revocation()
+                        .is_some_and(|revocation| {
+                            revocation.operation().operation() == operation
+                        }) =>
+                {
+                    application_capability_revocation_decision_reads(contract)
+                }
+                _ => None,
+            })
+            .flatten()
+            .collect::<Vec<_>>()
+    } else {
+        members
+            .iter()
+            .filter_map(|member| match member {
+                ApplicationSchemaMember::OperationDecisionRead {
+                    operation: installed,
+                    target,
+                } if installed == operation => Some(target.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    reads.sort();
+    reads.dedup();
+    reads.extend(lifecycle_resource_decision_read(
+        members, operation, input_type,
+    ));
     reads.sort();
     reads.dedup();
     reads
@@ -180,28 +256,87 @@ where
 pub(super) fn operation_program<Schema>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     operation: &str,
+    input_type: &str,
 ) -> Vec<ApplicationOperationProgramTarget>
 where
     Schema: ApplicationSchema,
 {
-    operation_program_from_members(schema.installed_declaration().members(), operation)
+    operation_program_from_members(
+        schema.installed_declaration().members(),
+        operation,
+        input_type,
+    )
 }
 
 pub(super) fn operation_program_from_members(
     members: &[ApplicationSchemaMember],
     operation: &str,
+    input_type: &str,
 ) -> Vec<ApplicationOperationProgramTarget> {
-    let mut program = members
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::OperationProgram {
-                operation: installed,
-                target,
-            } if installed == operation => Some(target.clone()),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
+    let posture = operation_execution_posture(members, operation, input_type);
+    let mut program = if posture.requires_delegation_activation() {
+        members
+            .iter()
+            .filter_map(|member| match member {
+                ApplicationSchemaMember::ApplicationCapability { contract }
+                    if contract
+                        .delegation()
+                        .activation()
+                        .is_some_and(|activation| {
+                            activation.operation().operation() == operation
+                                && activation.operation().input_type() == input_type
+                        }) =>
+                {
+                    application_capability_delegation_activation_program_targets(contract)
+                }
+                _ => None,
+            })
+            .flatten()
+            .collect::<Vec<_>>()
+    } else if posture.requires_capability_revocation() {
+        members
+            .iter()
+            .filter_map(|member| match member {
+                ApplicationSchemaMember::ApplicationCapability { contract }
+                    if contract
+                        .delegation()
+                        .revocation()
+                        .is_some_and(|revocation| {
+                            revocation.operation().operation() == operation
+                                && revocation.operation().input_type() == input_type
+                        }) =>
+                {
+                    application_capability_revocation_program_target(contract)
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    } else {
+        members
+            .iter()
+            .filter_map(|member| match member {
+                ApplicationSchemaMember::OperationProgram {
+                    operation: installed,
+                    target,
+                } if installed == operation => Some(target.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    program.extend(lifecycle_program_targets(members, operation, input_type));
     program.sort();
     program.dedup();
     program
+}
+
+fn operation_has_revocation(members: &[ApplicationSchemaMember], operation: &str) -> bool {
+    members.iter().any(|member| {
+        matches!(
+            member,
+            ApplicationSchemaMember::ApplicationCapability { contract }
+                if contract.delegation().revocation().is_some_and(|revocation| {
+                    revocation.operation().operation() == operation
+                })
+        )
+    })
 }

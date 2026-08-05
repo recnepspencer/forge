@@ -1,7 +1,16 @@
+mod active_elevation_use;
+mod capability_revocation;
 mod current_admission;
+mod delegation_context_narrowing;
+mod delegation_progression;
+mod delegation_scope_narrowing;
 mod disclosure_execution;
-mod fixture;
+mod elevated_activity_lanes;
+mod elevated_query_lanes;
+pub(crate) mod fixture;
 mod governed_estate_query;
+mod lifecycle_journey;
 mod lifecycle_progression;
 mod request_binding;
 mod scale;
+mod support_cutoff;

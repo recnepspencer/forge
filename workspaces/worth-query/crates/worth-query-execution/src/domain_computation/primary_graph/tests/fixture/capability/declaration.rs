@@ -1,9 +1,10 @@
 use worth_foundational::facade::{AspectValue, InternedString, ScalarAspectType};
 use worth_query_declaration::facade::{
     application_capability::{
-        ApplicationCapabilityEntitySelector, ApplicationCapabilityRelatedEntitySelector,
-        ApplicationCapabilityRequest, ApplicationCapabilityRequestContext,
-        ApplicationCapabilityRequestProjection, ApplicationCapabilityRequestProjectionDenial,
+        ApplicationCapabilityEntitySelector, ApplicationCapabilityGovernedInputIdentity,
+        ApplicationCapabilityRelatedEntitySelector, ApplicationCapabilityRequest,
+        ApplicationCapabilityRequestContext, ApplicationCapabilityRequestProjection,
+        ApplicationCapabilityRequestProjectionDenial,
     },
     application_schema::{TypedApplicationReadableValue, TypedApplicationValue},
 };
@@ -15,6 +16,7 @@ use worth_query_declaration::{
 };
 
 use super::super::{Account, AccountIdentity, AccountLabel, IdentityExecutionSchema, Principal};
+use super::governed_input::CapabilityGovernedInputIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapabilityAction {
@@ -212,6 +214,7 @@ pub struct CapabilityTouchInput {
     pub prior_record: String,
     pub amount: u64,
     pub caller_time: u64,
+    pub governed_input_identity: CapabilityGovernedInputIdentity,
 }
 
 worth_query_operation!(
@@ -231,6 +234,10 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, TouchAccountCapabilit
     type Scope = Account;
     type Context = CapabilityRequestContext;
 
+    fn governed_input_identity(&self) -> Option<ApplicationCapabilityGovernedInputIdentity> {
+        self.governed_input_identity.materialize(self.amount)
+    }
+
     fn capability_request(
         &self,
     ) -> Result<
@@ -248,6 +255,10 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, ComposedTouchAccountC
 {
     type Scope = Account;
     type Context = CapabilityRequestContext;
+
+    fn governed_input_identity(&self) -> Option<ApplicationCapabilityGovernedInputIdentity> {
+        self.governed_input_identity.materialize(self.amount)
+    }
 
     fn capability_request(
         &self,

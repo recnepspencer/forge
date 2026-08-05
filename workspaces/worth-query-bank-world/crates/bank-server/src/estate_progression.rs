@@ -1,18 +1,26 @@
 mod approval;
 mod close;
+mod delegation;
+mod disburse_estate;
 mod freeze_account;
 mod idempotency;
 mod lifecycle_facts;
 mod notify_death;
 mod open_estate_case;
 mod recognize_executor;
+mod release_estate;
 mod request;
 mod review;
 
+pub use delegation::{
+    BankCapabilityDelegationProjectionDenial, BankCapabilityRevocationProjectionDenial,
+};
+pub use disburse_estate::BankEstateDisbursementProjectionDenial;
 pub use freeze_account::BankEstateFreezeProjectionDenial;
 pub use notify_death::BankDeathNotificationProjectionDenial;
 pub use open_estate_case::BankEstateCaseOpeningProjectionDenial;
 pub use recognize_executor::BankExecutorRecognitionProjectionDenial;
+pub use release_estate::BankEstateReleaseProjectionDenial;
 
 use worth_query_host::facade::domain::{
     WorthQueryApplicationCapabilityInstallationDenial,
@@ -34,6 +42,9 @@ pub enum BankEstateLifecycleProjectionDenial {
         expected: usize,
         observed: usize,
     },
+    RelationTargetMismatch {
+        relation: &'static str,
+    },
     EntityResolution(WorthQueryEntityResolutionDenial),
     DecisionPlan(WorthQueryInvariantDecisionPlanDenial),
     Traversal(WorthQueryInvariantProjectionTraversalDenial),
@@ -54,6 +65,12 @@ pub enum BankEstateProgressionDenial {
     DeathNotificationProjection(BankDeathNotificationProjectionDenial),
     CaseOpeningProjection(BankEstateCaseOpeningProjectionDenial),
     ExecutorRecognitionProjection(BankExecutorRecognitionProjectionDenial),
+    EstateReleaseProjection(BankEstateReleaseProjectionDenial),
+    EstateDisbursementProjection(BankEstateDisbursementProjectionDenial),
+    Proposal(bank_domain::proposals::BankProposalDenial),
+    CommitPreparation(crate::operation_commit::BankCommitPreparationDenial),
+    CapabilityDelegationProjection(BankCapabilityDelegationProjectionDenial),
+    CapabilityRevocationProjection(BankCapabilityRevocationProjectionDenial),
     Idempotency(WorthQueryApplicationIdempotencyResolutionDenial),
     LifecycleProjection(BankEstateLifecycleProjectionDenial),
     Attempt(WorthQueryApplicationAttemptDenial),
@@ -77,6 +94,12 @@ impl std::fmt::Display for BankEstateProgressionDenial {
             Self::DeathNotificationProjection(denial) => denial.fmt(formatter),
             Self::CaseOpeningProjection(denial) => denial.fmt(formatter),
             Self::ExecutorRecognitionProjection(denial) => denial.fmt(formatter),
+            Self::EstateReleaseProjection(denial) => denial.fmt(formatter),
+            Self::EstateDisbursementProjection(denial) => denial.fmt(formatter),
+            Self::Proposal(denial) => denial.fmt(formatter),
+            Self::CommitPreparation(denial) => denial.fmt(formatter),
+            Self::CapabilityDelegationProjection(denial) => write!(formatter, "{denial:?}"),
+            Self::CapabilityRevocationProjection(denial) => write!(formatter, "{denial:?}"),
             Self::Idempotency(denial) => denial.fmt(formatter),
             Self::LifecycleProjection(denial) => denial.fmt(formatter),
             Self::Attempt(denial) => denial.fmt(formatter),
@@ -85,6 +108,12 @@ impl std::fmt::Display for BankEstateProgressionDenial {
 }
 
 impl std::error::Error for BankEstateProgressionDenial {}
+
+impl From<WorthQueryApplicationAttemptDenial> for BankEstateProgressionDenial {
+    fn from(denial: WorthQueryApplicationAttemptDenial) -> Self {
+        Self::Attempt(denial)
+    }
+}
 
 impl std::fmt::Display for BankEstateLifecycleProjectionDenial {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -100,6 +129,12 @@ impl std::fmt::Display for BankEstateLifecycleProjectionDenial {
                 formatter,
                 "lifecycle relation {relation} expected {expected} target, observed {observed}"
             ),
+            Self::RelationTargetMismatch { relation } => {
+                write!(
+                    formatter,
+                    "lifecycle relation {relation} targets the wrong estate"
+                )
+            }
             Self::EntityResolution(denial) => denial.fmt(formatter),
             Self::DecisionPlan(denial) => denial.fmt(formatter),
             Self::Traversal(denial) => denial.fmt(formatter),

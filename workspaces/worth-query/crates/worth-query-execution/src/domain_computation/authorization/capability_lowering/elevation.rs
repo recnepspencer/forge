@@ -120,6 +120,10 @@ fn lower_lifecycle(
         requester_relation: relation_kind(elevation.requester())?,
         approver_relation: relation_kind(elevation.approver())?,
         grant_relation: relation_kind(elevation.grant())?,
+        resource_relation: elevation
+            .resource_relation()
+            .map(relation_kind)
+            .transpose()?,
         review_relation: relation_kind(review.relation())?,
         review_scope_relation: relation_kind(review.scope())?,
         reviewer_relation: relation_kind(review.reviewer())?,

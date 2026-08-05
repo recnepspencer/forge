@@ -3,7 +3,9 @@ use super::super::{
     read_execution::WorthQueryApplicationReadExecutionDenialKind,
     WorthQueryApplicationProjectionDenialKind,
 };
-use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use crate::domain_computation::primary_graph::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryBoundedLaneDenialKind {
@@ -33,6 +35,7 @@ pub enum WorthQueryBoundedLaneDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryBoundedLaneDenial {
     kind: WorthQueryBoundedLaneDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -43,6 +46,10 @@ impl WorthQueryBoundedLaneDenial {
 
     pub fn subject(&self) -> &str {
         &self.subject
+    }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
     }
 }
 
@@ -73,10 +80,9 @@ pub(super) fn map_authorized_read_denial(
             WorthQueryBoundedLaneDenialKind::StaleBasisScope(kind),
             subject,
         ),
-        WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, subject) => denial(
-            WorthQueryBoundedLaneDenialKind::Authorization(kind),
-            subject,
-        ),
+        WorthQueryAuthorizedApplicationReadDenial::Authorization(denial) => {
+            authorization_denial(denial)
+        }
         WorthQueryAuthorizedApplicationReadDenial::Read(read) => {
             denial(map_read_denial(read.kind()), read.subject())
         }
@@ -132,6 +138,17 @@ pub(super) fn denial(
 ) -> WorthQueryBoundedLaneDenial {
     WorthQueryBoundedLaneDenial {
         kind,
+        authorization_denial: None,
         subject: subject.into(),
+    }
+}
+
+fn authorization_denial(
+    denial: WorthQueryOperationAuthorizationDenial,
+) -> WorthQueryBoundedLaneDenial {
+    WorthQueryBoundedLaneDenial {
+        kind: WorthQueryBoundedLaneDenialKind::Authorization(denial.kind()),
+        subject: denial.subject().to_string(),
+        authorization_denial: Some(Box::new(denial)),
     }
 }

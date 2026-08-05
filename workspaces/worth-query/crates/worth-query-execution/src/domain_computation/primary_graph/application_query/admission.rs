@@ -303,10 +303,7 @@ where
                 &graph_work,
             )
             .map_err(|denial| {
-                WorthQueryApplicationQueryAdmissionDenial::new(
-                    WorthQueryApplicationQueryAdmissionDenialKind::Authorization(denial.kind()),
-                    denial.subject(),
-                )
+                WorthQueryApplicationQueryAdmissionDenial::from_authorization(denial)
             })?;
         }
         let governance = admit_application_query_governance(

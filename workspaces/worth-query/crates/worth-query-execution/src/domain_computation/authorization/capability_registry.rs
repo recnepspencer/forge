@@ -24,7 +24,10 @@ use super::WorthQueryOperationAuthorizationDenial;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout;
 
 mod delegation;
-pub(super) use delegation::WorthQueryCapabilityDelegationBindings;
+pub(super) use delegation::{
+    WorthQueryCapabilityDelegationActivationBindings, WorthQueryCapabilityDelegationBindings,
+    WorthQueryCapabilityRevocationBindings,
+};
 mod elevation;
 pub(super) use elevation::{
     WorthQueryCapabilityElevationBindings, WorthQueryCapabilityElevationLifecycleBindings,
@@ -199,10 +202,21 @@ pub(super) struct WorthQueryInstalledCapabilityPlan {
     pub(super) paths: Vec<WorthQueryCapabilityPathTemplate>,
     pub(super) bridge_rules: Vec<BridgeAuthorizationRuleContract>,
     pub(super) rule_path_indices: Vec<Vec<Vec<usize>>>,
+    pub(super) decision_rules: WorthQueryCapabilityDecisionRuleBindings,
     pub(super) request: WorthQueryCapabilityRequestBindings,
     pub(super) delegation: WorthQueryCapabilityDelegationBindings,
     pub(super) elevation: Option<WorthQueryCapabilityElevationBindings>,
     pub(super) upper_bound: Option<WorthQueryCapabilityUpperBoundBindings>,
+}
+
+#[derive(Clone)]
+pub(super) struct WorthQueryCapabilityDecisionRuleBindings {
+    pub(super) grant: usize,
+    pub(super) allow: usize,
+    pub(super) deny: Option<usize>,
+    pub(super) conflict: Option<usize>,
+    pub(super) separation_of_duty: Option<usize>,
+    pub(super) distinct_actor: Option<usize>,
 }
 
 #[derive(Clone, Copy)]
@@ -234,6 +248,7 @@ pub(super) struct WorthQueryCapabilityPathTemplate {
     pub(super) guard: WorthQueryCapabilityRequestGuard,
     pub(super) grant_ordinal: Option<usize>,
     pub(super) elevation_ordinals: Vec<usize>,
+    pub(super) elevation_resource_ordinal: Option<usize>,
     pub(super) context_anchors: Vec<WorthQueryCapabilityContextAnchor>,
 }
 

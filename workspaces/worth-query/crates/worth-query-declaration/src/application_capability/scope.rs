@@ -272,6 +272,8 @@ pub struct ApplicationCapabilityDelegationDefinition {
     limit: ApplicationCapabilityFieldBinding,
     provenance: String,
     provenance_type: String,
+    activation: Option<super::ApplicationCapabilityDelegationActivationDefinition>,
+    revocation: Option<super::ApplicationCapabilityRevocationDefinition>,
 }
 
 impl ApplicationCapabilityDelegationDefinition {
@@ -289,7 +291,25 @@ impl ApplicationCapabilityDelegationDefinition {
             limit,
             provenance: provenance.name().to_string(),
             provenance_type: provenance.marker_type().to_string(),
+            activation: None,
+            revocation: None,
         }
+    }
+
+    pub fn with_activation(
+        mut self,
+        activation: super::ApplicationCapabilityDelegationActivationDefinition,
+    ) -> Self {
+        self.activation = Some(activation);
+        self
+    }
+
+    pub fn with_revocation(
+        mut self,
+        revocation: super::ApplicationCapabilityRevocationDefinition,
+    ) -> Self {
+        self.revocation = Some(revocation);
+        self
     }
 
     pub fn parent(&self) -> &ApplicationCapabilityRelationBinding {
@@ -314,5 +334,15 @@ impl ApplicationCapabilityDelegationDefinition {
 
     pub fn provenance_type(&self) -> &str {
         &self.provenance_type
+    }
+
+    pub const fn activation(
+        &self,
+    ) -> Option<&super::ApplicationCapabilityDelegationActivationDefinition> {
+        self.activation.as_ref()
+    }
+
+    pub const fn revocation(&self) -> Option<&super::ApplicationCapabilityRevocationDefinition> {
+        self.revocation.as_ref()
     }
 }

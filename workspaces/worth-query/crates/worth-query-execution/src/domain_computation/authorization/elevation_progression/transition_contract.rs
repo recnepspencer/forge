@@ -26,24 +26,22 @@ pub(super) fn lifecycle_decision_reads(
         field: field.field().to_string(),
     })
     .collect::<Vec<_>>();
-    reads.extend(
-        [
-            elevation.requester(),
-            elevation.approver(),
-            elevation.grant(),
-            review.relation(),
-            review.scope(),
-            review.reviewer(),
-        ]
-        .into_iter()
-        .map(
-            |relation| ApplicationOperationDecisionReadTarget::Relation {
-                relation: relation.relation().to_string(),
-                from: relation.from().to_string(),
-                to: relation.to().to_string(),
-            },
-        ),
-    );
+    let mut relations = vec![
+        elevation.requester(),
+        elevation.approver(),
+        elevation.grant(),
+        review.relation(),
+        review.scope(),
+        review.reviewer(),
+    ];
+    relations.extend(elevation.resource_relation());
+    reads.extend(relations.into_iter().map(|relation| {
+        ApplicationOperationDecisionReadTarget::Relation {
+            relation: relation.relation().to_string(),
+            from: relation.from().to_string(),
+            to: relation.to().to_string(),
+        }
+    }));
     reads
 }
 
@@ -51,17 +49,21 @@ pub(super) fn approval_program_targets(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationProgramTarget> {
     let elevation = installed.contract.elevation().definition().unwrap();
-    vec![
+    let mut targets = vec![
         write_target(elevation.status()),
         link_target(elevation.approver()),
-    ]
+    ];
+    append_lifecycle_effect(&mut targets, elevation.lifecycle().approve());
+    targets
 }
 
 pub(super) fn close_program_targets(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Vec<ApplicationOperationProgramTarget> {
     let elevation = installed.contract.elevation().definition().unwrap();
-    vec![write_target(elevation.status())]
+    let mut targets = vec![write_target(elevation.status())];
+    append_lifecycle_effect(&mut targets, elevation.lifecycle().revoke());
+    targets
 }
 
 pub(super) fn review_program_targets(
@@ -73,10 +75,32 @@ pub(super) fn review_program_targets(
         .definition()
         .unwrap()
         .review();
-    vec![
+    let mut targets = vec![
         write_target(review.status()),
         link_target(review.reviewer()),
-    ]
+    ];
+    append_lifecycle_effect(
+        &mut targets,
+        installed
+            .contract
+            .elevation()
+            .definition()
+            .unwrap()
+            .lifecycle()
+            .complete_review(),
+    );
+    targets
+}
+
+fn append_lifecycle_effect(
+    targets: &mut Vec<ApplicationOperationProgramTarget>,
+    transition: &worth_query_declaration::facade::application_capability::ApplicationCapabilityTransitionBinding,
+) {
+    targets.extend(transition.lifecycle_effect().map(|effect| {
+        ApplicationOperationProgramTarget::Emit {
+            effect: effect.effect().to_string(),
+        }
+    }));
 }
 
 fn write_target(

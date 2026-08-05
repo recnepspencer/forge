@@ -27,21 +27,21 @@ use super::super::super::{
 };
 use super::super::declaration::{
     CapabilityAction, CapabilityActionField, CapabilityAmountField,
-    CapabilityConflictingBeneficiary, CapabilityDelegationLimitField, CapabilityDisclosure,
-    CapabilityDisclosureField, CapabilityGrant, CapabilityGrantee, CapabilityGrantor,
-    CapabilityNotAfterField, CapabilityNotBeforeField, CapabilityParent, CapabilityProvenance,
-    CapabilityPurpose, CapabilityPurposeField, CapabilityRequestContext, CapabilityResource,
-    CapabilityStatus, CapabilityStatusField, CapabilityWorkflowField,
+    CapabilityConflictingBeneficiary, CapabilityCustodian, CapabilityDelegationLimitField,
+    CapabilityDisclosure, CapabilityDisclosureField, CapabilityGrant, CapabilityGrantee,
+    CapabilityGrantor, CapabilityNotAfterField, CapabilityNotBeforeField, CapabilityParent,
+    CapabilityProvenance, CapabilityPurpose, CapabilityPurposeField, CapabilityRequestContext,
+    CapabilityResource, CapabilityStatus, CapabilityStatusField, CapabilityWorkflowField,
 };
 use super::{
     ApproveCapabilityElevationOperation, CapabilityElevation, CapabilityElevationApprover,
     CapabilityElevationFacts, CapabilityElevationGrant, CapabilityElevationIdentity,
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
-    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationSlot,
-    CapabilityElevationStatusField, CapabilityReview, CapabilityReviewFacts,
-    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
-    CapabilityReviewSlot, CapabilityReviewStatusField, CapabilityReviewer,
-    CompleteCapabilityReviewOperation, ElevatedCapabilityTouchInput,
+    CapabilityElevationRequester, CapabilityElevationResource, CapabilityElevationReview,
+    CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityReview,
+    CapabilityReviewFacts, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewSlot, CapabilityReviewStatusField,
+    CapabilityReviewer, CompleteCapabilityReviewOperation, ElevatedCapabilityTouchInput,
     ElevatedCapabilityTouchOperation, ElevatedTouchAccountCapability,
     RequestCapabilityElevationOperation, RevokeCapabilityElevationOperation,
 };
@@ -117,6 +117,11 @@ pub(in crate::domain_computation::primary_graph::tests::fixture::capability) fn 
             CapabilityElevationGrant::reference(),
             CapabilityElevation::reference(),
             CapabilityGrant::reference(),
+        )
+        .relation(
+            CapabilityElevationResource::reference(),
+            CapabilityElevation::reference(),
+            Account::reference(),
         )
         .relation(
             CapabilityElevationReview::reference(),
@@ -286,8 +291,12 @@ pub(super) fn command_composition() -> ApplicationCapabilityComposition {
 fn composition_with_propagation(
     propagation: ApplicationCapabilityPropagationComposition,
 ) -> ApplicationCapabilityComposition {
-    let allow = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+    let grantor = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
         .forward(CapabilityGrantor::reference())
+        .forward(CapabilityResource::reference())
+        .allow(Account::reference());
+    let custodian = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
+        .forward(CapabilityCustodian::reference())
         .forward(CapabilityResource::reference())
         .allow(Account::reference());
     let conflict = ApplicationAuthorizationPathBuilder::from_principal(Principal::reference())
@@ -296,7 +305,8 @@ fn composition_with_propagation(
     ApplicationCapabilityComposition::new(
         ApplicationCapabilityDecisionComposition::new(
             ApplicationCapabilityAllowRule::new(ApplicationCapabilityGraphRule::any([
-                ApplicationCapabilityGraphClause::new(allow),
+                ApplicationCapabilityGraphClause::new(grantor),
+                ApplicationCapabilityGraphClause::new(custodian),
             ])),
             ApplicationCapabilityDenyRule::not_applicable(),
             ApplicationCapabilityConflictRule::when(ApplicationCapabilityGraphRule::any([

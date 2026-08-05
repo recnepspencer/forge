@@ -44,6 +44,9 @@ fn lawful_specialist_can_recognize_release_and_disburse_without_superuser_author
         specialist(&courtroom),
         EstateAction::ReleaseEstate {
             estate: courtroom.estate,
+            executor: courtroom.executor,
+            authority: courtroom.authority,
+            review: courtroom.review,
         },
         41,
     );

@@ -19,6 +19,7 @@ pub(super) fn bind_command_grant(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
     key: &str,
     principal: &str,
+    resource: &str,
     action: CapabilityAction,
 ) {
     bind_grant_entity_with_action(bootstrap, key, 90, 110, 0, 0, action);
@@ -36,7 +37,7 @@ pub(super) fn bind_command_grant(
         principal,
         key,
     );
-    bind_resource(bootstrap, key, "account-1");
+    bind_resource(bootstrap, key, resource);
 }
 
 pub(super) fn bind_future_replacement_grant(
@@ -172,7 +173,7 @@ fn bind_delegation_root(
     bind_related(bootstrap, grant, "account-2");
 }
 
-fn bind_grant_window(
+pub(super) fn bind_grant_window(
     bootstrap: &mut WorthQueryPrimaryGraphBootstrap<IdentityExecutionSchema>,
     key: &str,
     not_before: u64,

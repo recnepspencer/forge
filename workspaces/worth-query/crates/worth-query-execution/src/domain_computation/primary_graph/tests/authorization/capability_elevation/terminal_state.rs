@@ -2,9 +2,9 @@ use worth_query_declaration::facade::application_schema::TypedApplicationReadabl
 use worth_relational::facade::identity::{EntityId, KindId};
 
 use super::super::super::fixture::{
-    live_scope, CapabilityElevationIdentity, CapabilityElevationStatus,
-    CapabilityElevationStatusField, CapabilityReviewIdentity, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer,
+    live_scope, CapabilityElevationApprover, CapabilityElevationIdentity,
+    CapabilityElevationStatus, CapabilityElevationStatusField, CapabilityReviewIdentity,
+    CapabilityReviewStatus, CapabilityReviewStatusField, CapabilityReviewer,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
@@ -81,6 +81,42 @@ pub(super) fn has_exact_reviewer(world: &World, reviewer: EntityId) -> bool {
                 relations.len() == 1
                     && relations[0].source == reviewer
                     && relations[0].target == review
+            })
+    })
+}
+
+pub(super) fn has_exact_approver(world: &World, approver: EntityId) -> bool {
+    let elevation = world
+        .application
+        .resolve_entity(
+            CapabilityElevationIdentity::reference(),
+            "elevation-2".to_owned(),
+            &live_scope(),
+            WorthQueryPrincipalResolutionMode::Ordinary,
+        )
+        .unwrap();
+    let graph = world.application.runtime.primary_graph().unwrap();
+    let relation_kind = graph
+        .layout()
+        .relation(CapabilityElevationApprover::reference().name())
+        .unwrap()
+        .kind;
+    graph.integration_handle().with_runtime_mut(|runtime| {
+        let snapshot = runtime.snapshots().snapshot();
+        runtime
+            .read_truth()
+            .bounded_incoming_relations_of_kind_at_version(
+                elevation.entity_id(),
+                relation_kind,
+                snapshot.version_id,
+                4,
+            )
+            .ok()
+            .is_some_and(|read| {
+                let relations = read.into_records();
+                relations.len() == 1
+                    && relations[0].source == approver
+                    && relations[0].target == elevation.entity_id()
             })
     })
 }

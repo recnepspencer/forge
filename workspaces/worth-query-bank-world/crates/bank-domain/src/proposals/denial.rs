@@ -29,6 +29,7 @@ pub enum BankProposalDenial {
     JournalAlreadyReversed(JournalEntryId),
     JournalHasTooFewPostings,
     JournalIsUnbalanced,
+    DisbursementPostingMismatch,
     ArithmeticOverflow,
     IdentityExhausted,
     InvalidIdempotencyKey,

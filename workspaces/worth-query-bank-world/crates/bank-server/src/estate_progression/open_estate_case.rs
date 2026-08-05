@@ -151,7 +151,9 @@ impl BankIdentityRuntime {
                 EstateCaseStatus::Open,
             )
             .map_err(BankEstateProgressionDenial::Attempt)?;
-        effects.finish().map_err(BankEstateProgressionDenial::Attempt)
+        effects
+            .finish()
+            .map_err(BankEstateProgressionDenial::Attempt)
     }
 }
 
@@ -195,9 +197,7 @@ fn project_case_opening(
         .decision_field(estate, EstateCaseStatusField::reference())?
         .ok_or(BankEstateCaseOpeningProjectionDenial::MissingCaseStatus)?;
     if status != EstateCaseStatus::PendingOpening {
-        return Err(
-            BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening(status),
-        );
+        return Err(BankEstateCaseOpeningProjectionDenial::CaseNotPendingOpening(status));
     }
     let relations = reader.decision_relations_from(EstateDeathNotice::reference(), estate)?;
     let [relation] = relations.as_slice() else {
@@ -241,9 +241,7 @@ impl From<WorthQueryInvariantDecisionPlanDenial> for BankEstateCaseOpeningProjec
     }
 }
 
-impl From<WorthQueryInvariantProjectionTraversalDenial>
-    for BankEstateCaseOpeningProjectionDenial
-{
+impl From<WorthQueryInvariantProjectionTraversalDenial> for BankEstateCaseOpeningProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
         Self::Traversal(denial)
     }

@@ -186,10 +186,9 @@ fn map_authorized_read_denial(
             WorthQueryApplicationContinuationDenialKind::StaleScope,
             subject.to_string(),
         ),
-        WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, subject) => (
-            WorthQueryApplicationContinuationDenialKind::Authorization(kind),
-            subject,
-        ),
+        WorthQueryAuthorizedApplicationReadDenial::Authorization(denial) => {
+            return WorthQueryApplicationContinuationDenial::from_authorization(denial);
+        }
         WorthQueryAuthorizedApplicationReadDenial::Read(read) => {
             let kind = match read.kind() {
                 WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable => {

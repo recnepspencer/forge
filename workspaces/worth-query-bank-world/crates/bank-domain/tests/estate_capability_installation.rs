@@ -2,6 +2,14 @@ use std::collections::BTreeSet;
 
 #[path = "estate_capability_installation/composition_contracts.rs"]
 mod composition_contracts;
+#[path = "estate_capability_installation/delegation_activation.rs"]
+mod delegation_activation;
+#[path = "estate_capability_installation/disburse_estate.rs"]
+mod disburse_estate;
+#[path = "estate_capability_installation/emergency_access_activity.rs"]
+mod emergency_access_activity;
+#[path = "estate_capability_installation/release_estate.rs"]
+mod release_estate;
 #[path = "estate_capability_installation/transition_dimensions.rs"]
 mod transition_dimensions;
 
@@ -9,10 +17,10 @@ use bank_domain::{estate::EstateAction, schema::*};
 use worth_query_host::facade::declaration::application_schema::ApplicationOperationRef;
 use worth_query_host::facade::domain::{
     ApplicationCapabilityRef, WorthQueryApplicationCapabilityInstallationDenialKind,
-    WorthQueryApplicationOperationInstallationDenialKind, WorthQueryInstallationAdmissionProfile,
-    WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity,
-    WorthQueryInstalledApplicationSchema, WorthQueryInstalledPackageIndex,
-    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+    WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
+    WorthQueryInstallationRuntimeIdentity, WorthQueryInstalledApplicationSchema,
+    WorthQueryInstalledPackageIndex, WorthQueryPortableDomainIdentity,
+    WorthQueryPortableDomainPackage,
 };
 
 macro_rules! assert_installed {
@@ -326,19 +334,6 @@ fn repeated_typed_lookup_reuses_the_installed_basis_and_digest() {
         assert_eq!(evidence.digest_derivations(), 0);
         assert_eq!(evidence.digest_text_materializations(), 0);
     }
-}
-
-#[test]
-fn phase_seven_one_declaration_does_not_install_estate_execution_authority() {
-    let (_index, bank) = installed_bank(WorthQueryInstallationRuntimeIdentity::fresh());
-    let denial = match bank.installed_operation(DisburseEstateOperation::reference()) {
-        Ok(_) => panic!("Phase 7.1 must not install estate execution authority"),
-        Err(denial) => denial,
-    };
-    assert_eq!(
-        denial.kind(),
-        WorthQueryApplicationOperationInstallationDenialKind::MissingProgram
-    );
 }
 
 fn installed_bank(

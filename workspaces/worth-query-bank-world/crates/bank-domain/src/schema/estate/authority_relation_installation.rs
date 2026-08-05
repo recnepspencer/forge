@@ -3,8 +3,8 @@ use worth_query_decl::facade::application_schema::ApplicationSchemaDeclarationBu
 use super::{
     Branch, CapabilityAccount, CapabilityBranch, CapabilityEstate, CapabilityGrant,
     CapabilityGrantee, CapabilityGrantor, CapabilityInstitution, CapabilityParent, EmergencyAccess,
-    EmergencyApprover, EmergencyGrant, EmergencyRequester, EmergencyReview, EstateCase,
-    MandatoryReview, ReviewEstate, ReviewPrincipal,
+    EmergencyApprover, EmergencyEstate, EmergencyGrant, EmergencyRequester, EmergencyReview,
+    EstateCase, MandatoryReview, ReviewEstate, ReviewPrincipal,
 };
 use crate::schema::{Account, BankSchema, Institution, Principal};
 
@@ -73,6 +73,11 @@ fn install_elevation_relations(
             EmergencyGrant::reference(),
             EmergencyAccess::reference(),
             CapabilityGrant::reference(),
+        )
+        .relation(
+            EmergencyEstate::reference(),
+            EmergencyAccess::reference(),
+            EstateCase::reference(),
         )
         .relation(
             EmergencyReview::reference(),

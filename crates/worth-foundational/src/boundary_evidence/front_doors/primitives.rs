@@ -33,7 +33,7 @@ impl BoundaryEvidenceFrontDoor {
         self,
     ) -> [FoundationalBoundaryEvidencePrimitiveDefinition<
         FoundationalBoundaryEvidenceExecutionPosture,
-    >; 2] {
+    >; 3] {
         foundational_boundary_evidence_execution_posture_definitions()
     }
 

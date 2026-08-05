@@ -1,5 +1,9 @@
 //! Typed authorization denial topology.
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_AUTHORIZATION_DENIAL_IDENTITY: AtomicU64 = AtomicU64::new(1);
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationAuthorizationDenialKind {
     Cancelled,
@@ -14,6 +18,12 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     CanonicalWorkDenied,
     TrustedTimeUnavailable,
     CapabilityProjectionRejected,
+    CapabilityGrantMissing,
+    PurposeMismatch,
+    ExplicitDenyRuleMatched,
+    ConflictRuleMatched,
+    SeparationOfDutyRuleMatched,
+    DistinctActorRuleMatched,
     CapabilityRequired,
     CapabilityNotRequired,
     CapabilityExpired,
@@ -32,6 +42,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     MandatoryReviewRejected,
     ElevationDurationExceeded,
     DelegationRejected,
+    DelegationTransitionRequired,
     DelegationDepthExceeded,
     DelegationCycle,
     DelegationLineageChanged,
@@ -48,19 +59,109 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     PermissionDenied,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryApplicationAuthorizationExplanationCause {
+    MissingCapability,
+    ScopeMismatch,
+    PurposeMismatch,
+    Conflict,
+    SeparationOfDuty,
+    ElevationRequired,
+    ElevationDenied,
+    ElevationExpired,
+}
+
+impl WorthQueryApplicationAuthorizationExplanationCause {
+    const fn from_denial_kind(kind: WorthQueryOperationAuthorizationDenialKind) -> Option<Self> {
+        use WorthQueryOperationAuthorizationDenialKind as Denial;
+        match kind {
+            Denial::CapabilityGrantMissing
+            | Denial::CapabilityRequired
+            | Denial::ExplicitDenyRuleMatched
+            | Denial::PermissionDenied => Some(Self::MissingCapability),
+            Denial::ScopeMismatch => Some(Self::ScopeMismatch),
+            Denial::PurposeMismatch => Some(Self::PurposeMismatch),
+            Denial::ConflictRuleMatched => Some(Self::Conflict),
+            Denial::SeparationOfDutyRuleMatched | Denial::DistinctActorRuleMatched => {
+                Some(Self::SeparationOfDuty)
+            }
+            Denial::ElevationRequired => Some(Self::ElevationRequired),
+            Denial::CapabilityExpired | Denial::ElevationExpired => Some(Self::ElevationExpired),
+            Denial::ElevationProjectionRejected
+            | Denial::ElevationInactive
+            | Denial::ElevationSelfApproval
+            | Denial::ElevationApproverConflict
+            | Denial::ElevationTransitionRequired
+            | Denial::ElevationLifecycleRoleMismatch
+            | Denial::ElevationRequestRejected
+            | Denial::ElevationApprovalRejected
+            | Denial::ElevationCloseRejected
+            | Denial::MandatoryReviewRejected
+            | Denial::ElevationDurationExceeded => Some(Self::ElevationDenied),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct WorthQueryOperationAuthorizationDenialIdentity(u64);
+
+impl WorthQueryOperationAuthorizationDenialIdentity {
+    fn mint() -> Option<Self> {
+        NEXT_AUTHORIZATION_DENIAL_IDENTITY
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .ok()
+            .map(Self)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryOperationAuthorizationDenial {
+    identity: Option<WorthQueryOperationAuthorizationDenialIdentity>,
     kind: WorthQueryOperationAuthorizationDenialKind,
+    causes: Vec<WorthQueryOperationAuthorizationDenialKind>,
+    explanation_cause: Option<WorthQueryApplicationAuthorizationExplanationCause>,
     subject: String,
 }
 
 impl WorthQueryOperationAuthorizationDenial {
-    pub(super) fn new(
+    pub(in crate::domain_computation) fn new(
         kind: WorthQueryOperationAuthorizationDenialKind,
         subject: impl Into<String>,
     ) -> Self {
         Self {
+            identity: WorthQueryOperationAuthorizationDenialIdentity::mint(),
             kind,
+            causes: vec![kind],
+            explanation_cause: WorthQueryApplicationAuthorizationExplanationCause::from_denial_kind(
+                kind,
+            ),
+            subject: subject.into(),
+        }
+    }
+
+    pub(super) fn from_ordered_causes(
+        causes: impl IntoIterator<Item = WorthQueryOperationAuthorizationDenialKind>,
+        subject: impl Into<String>,
+    ) -> Self {
+        let mut causes = causes.into_iter().collect::<Vec<_>>();
+        if causes.is_empty() {
+            causes.push(WorthQueryOperationAuthorizationDenialKind::InconsistentDecision);
+        }
+        let kind = causes[0];
+        Self {
+            identity: WorthQueryOperationAuthorizationDenialIdentity::mint(),
+            kind,
+            causes,
+            explanation_cause: WorthQueryApplicationAuthorizationExplanationCause::from_denial_kind(
+                kind,
+            ),
             subject: subject.into(),
         }
     }
@@ -74,6 +175,20 @@ impl WorthQueryOperationAuthorizationDenial {
 
     pub const fn kind(&self) -> WorthQueryOperationAuthorizationDenialKind {
         self.kind
+    }
+
+    pub const fn identity(&self) -> Option<WorthQueryOperationAuthorizationDenialIdentity> {
+        self.identity
+    }
+
+    pub fn causes(&self) -> &[WorthQueryOperationAuthorizationDenialKind] {
+        &self.causes
+    }
+
+    pub const fn explanation_cause(
+        &self,
+    ) -> Option<WorthQueryApplicationAuthorizationExplanationCause> {
+        self.explanation_cause
     }
 
     pub fn subject(&self) -> &str {

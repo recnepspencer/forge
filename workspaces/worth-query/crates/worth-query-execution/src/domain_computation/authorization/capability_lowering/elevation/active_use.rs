@@ -120,6 +120,7 @@ fn active_path(
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
         grant_ordinal: Some(4),
         elevation_ordinals: vec![1, 3],
+        elevation_resource_ordinal: elevation.resource_relation().map(|_| 1),
         context_anchors: Vec::new(),
     })
 }
@@ -142,6 +143,7 @@ fn temporal_path(
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
         grant_ordinal: Some(2),
         elevation_ordinals: vec![1],
+        elevation_resource_ordinal: Some(1),
         context_anchors: Vec::new(),
     }
 }
@@ -179,6 +181,7 @@ fn self_approval_path(
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
         grant_ordinal: Some(2),
         elevation_ordinals: vec![1],
+        elevation_resource_ordinal: None,
         context_anchors: Vec::new(),
     }
 }

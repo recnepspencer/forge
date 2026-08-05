@@ -17,6 +17,7 @@ use super::{
 };
 
 mod anchored_traversal;
+mod exact_adjacency;
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct RelationalAuthorizationWitness {
@@ -157,6 +158,7 @@ fn apply_constraints(
     apply_field_constraints(context, path, ordinal, frontier, state);
     apply_entity_anchors(path, ordinal, frontier);
     apply_related_entities(context, path, ordinal, frontier, state);
+    exact_adjacency::apply(context, path, ordinal, frontier, state);
 }
 
 fn apply_field_constraints(

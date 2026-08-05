@@ -4,9 +4,13 @@ mod authorization_requirement;
 mod contract_resolution;
 mod contracts;
 mod denial;
+mod execution_posture;
 mod installed;
 mod installed_contract_support;
 mod precondition_contract;
+
+#[cfg(test)]
+mod tests;
 
 pub use authorization_mode::WorthQueryInstalledApplicationOperationAuthorization;
 pub(crate) use authorization_requirement::{
@@ -25,6 +29,7 @@ pub use denial::{
     WorthQueryApplicationOperationInstallationDenial,
     WorthQueryApplicationOperationInstallationDenialKind,
 };
+pub use execution_posture::WorthQueryInstalledApplicationOperationExecutionPosture;
 pub use installed::{
     WorthQueryInstalledApplicationOperation, WorthQueryInstalledApplicationOperationGraphAuthority,
 };

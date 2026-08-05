@@ -37,8 +37,13 @@ impl SignalGraph {
         let mut counters = SignalAuthorizationEvaluationCounters::default();
         let mut required_rules_match = true;
         let mut prohibited_rule_matches = false;
+        let mut rule_decisions = Vec::with_capacity(observation.rules.len());
         for rule in &observation.rules {
             let rule_matches = evaluate_rule(rule, &mut counters);
+            rule_decisions.push(super::SignalAuthorizationRuleDecisionEvidence::new(
+                rule.effect,
+                rule_matches,
+            ));
             match rule.effect {
                 SignalAuthorizationRuleEffect::Required => {
                     required_rules_match &= rule_matches;
@@ -60,6 +65,7 @@ impl SignalGraph {
             policy_identity: policy.identity,
             dependency_identity: observation.dependency_identity,
             decision,
+            rule_decisions,
             counters,
             authority: Arc::clone(&policy.authority),
         })

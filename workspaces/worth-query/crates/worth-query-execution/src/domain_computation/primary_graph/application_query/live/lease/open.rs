@@ -14,7 +14,8 @@ use super::super::{
     scope_identity::read_scope_identity,
 };
 use super::validation::{
-    open_admission_denial, open_denial, validate_live_binding, validate_live_resource_controls,
+    open_admission_denial, open_denial, open_read_denial, validate_live_binding,
+    validate_live_resource_controls,
 };
 use super::WorthQueryApplicationLiveLease;
 use crate::domain_computation::{
@@ -254,16 +255,8 @@ where
                 pending_governance,
             )
             .map_err(open_admission_denial)?;
-        refresh_governed_authorization(self, &mut plan).map_err(|denial| {
-            let kind = match denial {
-                crate::domain_computation::primary_graph::application_query::authorized_read::WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, _) => kind,
-                _ => crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-            };
-            open_denial(
-                WorthQueryApplicationLiveOpenDenialKind::AuthorizationDenied(kind),
-                query.name(),
-            )
-        })?;
+        refresh_governed_authorization(self, &mut plan)
+            .map_err(|denial| open_read_denial(denial, query.name()))?;
         self.runtime.primary_graph().ok_or_else(|| {
             open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
@@ -271,12 +264,8 @@ where
             )
         })?;
         let ((scope_identity, initial_read_work), _, read_proof) =
-            execute_authorized_read(self, &plan, read_scope_identity).map_err(|_| {
-                open_denial(
-                    WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
-                    query.name(),
-                )
-            })?;
+            execute_authorized_read(self, &plan, read_scope_identity)
+                .map_err(|denial| open_read_denial(denial, query.name()))?;
         let governance = plan.take_governance();
         let basis_release = plan.basis.release();
         if !basis_release.released() {

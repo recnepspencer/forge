@@ -70,7 +70,15 @@ fn delegated_chain_expiry_between_access_and_governed_query_sessions_denies() {
     assert_eq!(
         denial.kind(),
         WorthQueryApplicationQueryAdmissionDenialKind::Authorization(
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
         )
+    );
+    let authorization = denial
+        .authorization_denial()
+        .expect("governed readmission must retain its exact authorization denial");
+    assert!(authorization.identity().is_some());
+    assert_eq!(
+        authorization.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing]
     );
 }

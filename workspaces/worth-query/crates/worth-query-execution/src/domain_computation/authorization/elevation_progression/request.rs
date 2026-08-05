@@ -10,7 +10,9 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use super::super::capability_operation_progression::progress_capability_operation;
+use super::super::capability_operation_progression::{
+    progress_capability_operation, WorthQueryCapabilityOperationProgression,
+};
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
 };
@@ -52,12 +54,8 @@ where
     >
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>
-            + ApplicationCapabilityElevationRequest<
-                Schema,
-                Operation,
-                Scope = <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-                Context = <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
-            >,
+            + ApplicationCapabilityElevationRequest<Schema, Operation>
+            + 'static,
     {
         let proposed = access.input.elevation_request().map_err(|rejection| {
             denial(
@@ -67,7 +65,7 @@ where
         })?;
         let (capability_identity, installed) =
             installed_request_lifecycle(self, &access, operation)?;
-        validate_request_projection(installed, &access, &proposed)?;
+        validate_request_projection::<Schema, Operation, Input>(installed, &proposed)?;
         let (binding, supporting) =
             bind_request(self, capability_identity, installed, &access, &proposed)?;
         access
@@ -80,8 +78,14 @@ where
                 )
             })?;
         access.graph_work.record_decision_facts(1);
-        progress_capability_operation(self, access, operation, preconditions, true)?
-            .bind_elevation_request(binding)
+        progress_capability_operation(
+            self,
+            access,
+            operation,
+            preconditions,
+            WorthQueryCapabilityOperationProgression::ElevationLifecycle,
+        )?
+        .bind_elevation_request(binding)
     }
 }
 
@@ -123,17 +127,16 @@ where
     Ok((capability, installed))
 }
 
-fn validate_request_projection<Schema, Capability, Operation, Input>(
+fn validate_request_projection<Schema, Operation, Input>(
     installed: &WorthQueryInstalledCapabilityPlan,
-    access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     proposed: &ApplicationCapabilityElevationRequestProjection<
         Schema,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
-        <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Scope,
+        <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Context,
     >,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
+    Input: ApplicationCapabilityElevationRequest<Schema, Operation>,
 {
     let target = proposed.target();
     let request = &installed.request;
@@ -151,7 +154,6 @@ where
         || !cardinality_admitted(request.cardinality, target.cardinality_value())
         || target.field_value().is_some() != request.field.is_some()
         || target.amount_value().is_some() != request.amount.is_some()
-        || !same_resource(target.resource(), access.projection.resource())
         || !relation_matches(installed, target)
         || !context_matches(installed, target)
         || proposed.grant().entity() != installed.contract.grant_entity()
@@ -232,24 +234,6 @@ fn context_matches<Schema, Scope, Context>(
         })
         .collect::<BTreeSet<_>>();
     expected == actual
-}
-
-fn same_resource<Schema, Scope>(
-    left: &worth_query_declaration::facade::application_capability::ApplicationCapabilityEntitySelector<
-        Schema,
-        Scope,
-    >,
-    right: &worth_query_declaration::facade::application_capability::ApplicationCapabilityEntitySelector<
-        Schema,
-        Scope,
-    >,
-) -> bool {
-    left.entity() == right.entity()
-        && left.aspect() == right.aspect()
-        && left.field() == right.field()
-        && left.scalar_family() == right.scalar_family()
-        && left.value_type() == right.value_type()
-        && left.value() == right.value()
 }
 
 const fn cardinality_admitted(

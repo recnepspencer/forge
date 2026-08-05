@@ -2,7 +2,7 @@ use worth_query_host::facade::domain::WorthQueryApplicationOperationInstallation
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryEntityResolutionDenialKind, WorthQueryInvariantProjectionWork,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial,
 };
 
 use bank_domain::proposals::BankProposalDenial;
@@ -13,7 +13,7 @@ use crate::{BankCommitPreparationDenial, BankCommitReceipt, BankOperationProposa
 pub enum BankMutationDenial {
     Scope(WorthQueryEntityResolutionDenialKind),
     Installation(WorthQueryApplicationOperationInstallationDenialKind),
-    Authorization(WorthQueryOperationAuthorizationDenialKind),
+    Authorization(Box<WorthQueryOperationAuthorizationDenial>),
     Proposal(BankOperationProposalError),
     Preparation(BankCommitPreparationDenial),
     Commit {

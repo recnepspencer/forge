@@ -127,31 +127,7 @@ impl BridgeAuthorizationRuntime {
                 &installed.policy,
             ));
         }
-        let signal_observation = SignalAuthorizationObservation::new(
-            observation.dependency_identity,
-            observation.rules.iter().map(|rule| {
-                SignalAuthorizationRuleObservation::all(
-                    lower_effect(rule.effect),
-                    rule.requirements.iter().map(|requirement| {
-                        SignalAuthorizationRequirementObservation::any(
-                            requirement.clauses.iter().map(|clause| {
-                                let dependencies = clause.dependencies();
-                                SignalAuthorizationClauseObservation::new(
-                                    clause.matched(),
-                                    clause.exhaustive(),
-                                    SignalAuthorizationDependencyCardinality {
-                                        entities: dependencies.entities,
-                                        relations: dependencies.relations,
-                                        adjacency_lists: dependencies.adjacency_lists,
-                                        fields: dependencies.fields,
-                                    },
-                                )
-                            }),
-                        )
-                    }),
-                )
-            }),
-        );
+        let signal_observation = lower_signal_observation(&observation);
         let signal = self
             .graph
             .evaluate_authorization(&installed.signal_policy, signal_observation)
@@ -161,10 +137,12 @@ impl BridgeAuthorizationRuntime {
                     &installed.policy,
                 )
             })?;
+        let rule_decisions = retain_rule_decisions(installed, &signal)?;
         Ok(BridgeAuthorizationDecisionEvidence::mint(
             installed.identity,
             observation.dependency_identity,
             signal,
+            rule_decisions,
             Arc::clone(&installed.authority),
         ))
     }
@@ -176,8 +154,72 @@ impl BridgeAuthorizationRuntime {
                 Arc::ptr_eq(&installed.authority, evidence.authority())
                     && installed.signal_policy.retains(evidence.signal())
                     && evidence.dependency_identity() == evidence.signal().dependency_identity()
+                    && installed.rules.len() == evidence.rule_decisions().len()
+                    && installed
+                        .rules
+                        .iter()
+                        .zip(evidence.rule_decisions())
+                        .zip(evidence.signal().rule_decisions())
+                        .all(|((rule, decision), signal_decision)| {
+                            rule.effect() == decision.effect()
+                                && lower_effect(rule.effect()) == signal_decision.effect()
+                                && decision.matched() == signal_decision.matched()
+                        })
             })
     }
+}
+
+fn lower_signal_observation(
+    observation: &BridgeAuthorizationObservation,
+) -> SignalAuthorizationObservation {
+    SignalAuthorizationObservation::new(
+        observation.dependency_identity,
+        observation.rules.iter().map(|rule| {
+            SignalAuthorizationRuleObservation::all(
+                lower_effect(rule.effect),
+                rule.requirements.iter().map(|requirement| {
+                    SignalAuthorizationRequirementObservation::any(requirement.clauses.iter().map(
+                        |clause| {
+                            let dependencies = clause.dependencies();
+                            SignalAuthorizationClauseObservation::new(
+                                clause.matched(),
+                                clause.exhaustive(),
+                                SignalAuthorizationDependencyCardinality {
+                                    entities: dependencies.entities,
+                                    relations: dependencies.relations,
+                                    adjacency_lists: dependencies.adjacency_lists,
+                                    fields: dependencies.fields,
+                                },
+                            )
+                        },
+                    ))
+                }),
+            )
+        }),
+    )
+}
+
+fn retain_rule_decisions(
+    installed: &BridgeInstalledAuthorizationCorrespondence,
+    signal: &worth_signal::facade::SignalAuthorizationDecisionEvidence,
+) -> Result<Vec<super::BridgeAuthorizationRuleDecisionEvidence>, BridgeAuthorizationDenial> {
+    installed
+        .rules
+        .iter()
+        .zip(signal.rule_decisions())
+        .map(|(rule, decision)| {
+            if lower_effect(rule.effect()) != decision.effect() {
+                return Err(denial(
+                    BridgeAuthorizationDenialKind::SignalEvaluationRejected,
+                    &installed.policy,
+                ));
+            }
+            Ok(super::BridgeAuthorizationRuleDecisionEvidence::new(
+                rule.effect(),
+                decision.matched(),
+            ))
+        })
+        .collect()
 }
 
 impl Default for BridgeAuthorizationRuntime {

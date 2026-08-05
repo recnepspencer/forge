@@ -1,6 +1,7 @@
 use crate::application_schema::ApplicationOperationRef;
 
 use super::{ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityRef};
+use super::{ApplicationCapabilityLifecycleEffect, ApplicationCapabilityLifecycleEffectBinding};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityOperationBinding {
@@ -14,6 +15,7 @@ pub struct ApplicationCapabilityTransitionBinding {
     capability: String,
     capability_type: String,
     operation: ApplicationCapabilityOperationBinding,
+    lifecycle_effect: Option<ApplicationCapabilityLifecycleEffectBinding>,
 }
 
 impl ApplicationCapabilityTransitionBinding {
@@ -25,6 +27,26 @@ impl ApplicationCapabilityTransitionBinding {
             capability: capability.name().to_string(),
             capability_type: capability.marker_type().to_string(),
             operation: ApplicationCapabilityOperationBinding::from_reference(operation),
+            lifecycle_effect: None,
+        }
+    }
+
+    pub fn from_references_with_lifecycle_effect<Schema, Capability, Operation, Input>(
+        capability: ApplicationCapabilityRef<Schema, Capability>,
+        operation: ApplicationOperationRef<Schema, Operation, Input>,
+    ) -> Self
+    where
+        Input: ApplicationCapabilityLifecycleEffect<Schema, Operation>,
+    {
+        Self {
+            capability: capability.name().to_string(),
+            capability_type: capability.marker_type().to_string(),
+            operation: ApplicationCapabilityOperationBinding::from_reference(operation),
+            lifecycle_effect: Some(ApplicationCapabilityLifecycleEffectBinding::from_input::<
+                Schema,
+                Operation,
+                Input,
+            >()),
         }
     }
 
@@ -38,6 +60,10 @@ impl ApplicationCapabilityTransitionBinding {
 
     pub const fn operation(&self) -> &ApplicationCapabilityOperationBinding {
         &self.operation
+    }
+
+    pub const fn lifecycle_effect(&self) -> Option<&ApplicationCapabilityLifecycleEffectBinding> {
+        self.lifecycle_effect.as_ref()
     }
 }
 

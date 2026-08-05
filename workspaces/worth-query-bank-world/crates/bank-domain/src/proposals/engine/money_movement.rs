@@ -243,6 +243,17 @@ fn prepare_transfer_from_decision(
     purpose: PostingPurpose,
 ) -> Result<BankInvariantApprovedProposal, BankProposalDenial> {
     let intent = transfer_intent(binding, key, operation, debit, credit, amount);
+    prepare_claimed_transfer_from_decision(decision, intent, debit, credit, amount, purpose)
+}
+
+pub(super) fn prepare_claimed_transfer_from_decision(
+    decision: BankDecisionSnapshot,
+    intent: BankIdempotencyClaim,
+    debit: AccountId,
+    credit: AccountId,
+    amount: Money<USD>,
+    purpose: PostingPurpose,
+) -> Result<BankInvariantApprovedProposal, BankProposalDenial> {
     let (basis, required_balance_accounts, starting_balances) = decision.into_parts();
     let mut proposed = basis.clone();
     let journal = append_balanced_transfer(

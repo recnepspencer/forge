@@ -21,12 +21,13 @@ pub(in crate::domain_computation::primary_graph) use capability_access_fixture::
 #[path = "fixture/capability_status_mutation.rs"]
 mod capability_status_mutation;
 pub(super) use capability::{
-    elevated_account_activity_parameters, ApproveCapabilityElevationOperation,
-    ApproveElevationCapability, ApproveElevationInput, CapabilityAction, CapabilityDisclosure,
-    CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
-    CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
-    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatus,
-    CapabilityElevationStatusField, CapabilityIdentity, CapabilityPurpose,
+    canonical_governed_input_materialization_count, elevated_account_activity_parameters,
+    ApproveCapabilityElevationOperation, ApproveElevationCapability, ApproveElevationInput,
+    CapabilityAction, CapabilityDisclosure, CapabilityElevationApprover, CapabilityElevationGrant,
+    CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
+    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationResource,
+    CapabilityElevationReview, CapabilityElevationStatus, CapabilityElevationStatusField,
+    CapabilityGovernedInputIdentity, CapabilityIdentity, CapabilityPurpose,
     CapabilityRequestContext, CapabilityReviewIdentity, CapabilityReviewKindField,
     CapabilityReviewResource, CapabilityReviewStatus, CapabilityReviewStatusField,
     CapabilityReviewer, CapabilityStatus, CapabilityStatusField, CapabilityTouchInput,

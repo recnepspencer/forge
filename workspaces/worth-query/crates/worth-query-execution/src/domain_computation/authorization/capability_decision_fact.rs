@@ -8,7 +8,8 @@ use worth_relational::facade::authorization::RelationalAuthorizationObservationC
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryAuthorizationDecisionFact, WorthQueryAuthorizationTimeSample,
-    WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryCapabilitySupportCommitBasis, WorthQueryPrincipalCurrentnessDependency,
+    WorthQueryRetainedCapabilitySupport,
 };
 
 pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorization {
@@ -19,14 +20,6 @@ pub(in crate::domain_computation) struct WorthQueryRetainedCapabilityAuthorizati
     request: WorthQueryRetainedCapabilityRequest,
     sample: WorthQueryAuthorizationTimeSample,
     supporting: Option<WorthQueryRetainedCapabilitySupport>,
-}
-
-pub(in crate::domain_computation) struct WorthQueryRetainedCapabilitySupport {
-    decision: WorthQueryAuthorizationDecisionFact,
-    capability_authority_identity: Arc<str>,
-    grant: worth_relational::facade::identity::EntityId,
-    request: WorthQueryRetainedCapabilityRequest,
-    sample: WorthQueryAuthorizationTimeSample,
 }
 
 impl WorthQueryRetainedCapabilityAuthorization {
@@ -54,8 +47,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         supporting: WorthQueryRetainedCapabilitySupport,
     ) -> Result<(), ()> {
         if self.supporting.is_some()
-            || supporting.decision.session_identity() != self.decision.session_identity()
-            || supporting.request.principal != self.request.principal
+            || supporting.decision().session_identity() != self.decision.session_identity()
         {
             return Err(());
         }
@@ -108,7 +100,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
             && self
                 .supporting
                 .as_ref()
-                .is_none_or(|supporting| supporting.decision.session_identity() == session)
+                .is_none_or(|supporting| supporting.decision().session_identity() == session)
     }
 
     pub(super) fn relational_counters(&self) -> RelationalAuthorizationObservationCounters {
@@ -116,7 +108,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         if let Some(supporting) = &self.supporting {
             super::decision_facts::authorization::add_counters(
                 &mut counters,
-                supporting.decision.relational_counters(),
+                supporting.decision().relational_counters(),
             );
         }
         counters
@@ -125,7 +117,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
     pub(super) fn signal_dependency_count(&self) -> usize {
         self.decision.signal_dependency_count()
             + self.supporting.as_ref().map_or(0, |supporting| {
-                supporting.decision.signal_dependency_count()
+                supporting.decision().signal_dependency_count()
             })
     }
 
@@ -153,7 +145,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
             && self
                 .supporting
                 .as_ref()
-                .is_none_or(|supporting| supporting.decision.bridge_is_retained(bridge))
+                .is_none_or(|supporting| supporting.decision().bridge_is_retained(bridge))
     }
 
     pub(super) fn replace_current_decision(
@@ -206,7 +198,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         }
         if self.supporting.as_ref().is_some_and(|supporting| {
             !supporting
-                .decision
+                .decision()
                 .remains_current_in(runtime, snapshot, bridge)
         }) {
             return Err(super::WorthQueryOperationAuthorizationDenialKind::StaleAuthorization);
@@ -224,7 +216,7 @@ impl WorthQueryRetainedCapabilityAuthorization {
         let supporting = self.supporting.map(Into::into);
         let mut decisions = vec![self.decision.clone()];
         decisions.extend(supporting.as_ref().map(
-            |supporting: &WorthQueryCapabilitySupportCommitBasis| supporting.decision.clone(),
+            |supporting: &WorthQueryCapabilitySupportCommitBasis| supporting.decision().clone(),
         ));
         let commit = WorthQueryCapabilityCommitBasis {
             principal: self.principal.clone(),
@@ -238,56 +230,6 @@ impl WorthQueryRetainedCapabilityAuthorization {
     }
 }
 
-impl WorthQueryRetainedCapabilitySupport {
-    pub(super) fn new(
-        decision: WorthQueryAuthorizationDecisionFact,
-        capability_authority_identity: Arc<str>,
-        grant: worth_relational::facade::identity::EntityId,
-        request: WorthQueryRetainedCapabilityRequest,
-        sample: WorthQueryAuthorizationTimeSample,
-    ) -> Self {
-        Self {
-            decision,
-            capability_authority_identity,
-            grant,
-            request,
-            sample,
-        }
-    }
-
-    pub(super) fn replace_current(
-        &mut self,
-        sample: WorthQueryAuthorizationTimeSample,
-        decision: WorthQueryAuthorizationDecisionFact,
-    ) -> Result<(), ()> {
-        if self.sample.timeline() != sample.timeline()
-            || !self.decision.has_same_lineage(&decision)
-            || self.decision.session_identity() != decision.session_identity()
-        {
-            return Err(());
-        }
-        self.sample = sample;
-        self.decision = decision;
-        Ok(())
-    }
-
-    pub(super) fn decision(&self) -> &WorthQueryAuthorizationDecisionFact {
-        &self.decision
-    }
-
-    pub(super) fn capability_authority_identity(&self) -> &str {
-        &self.capability_authority_identity
-    }
-
-    pub(super) const fn grant(&self) -> worth_relational::facade::identity::EntityId {
-        self.grant
-    }
-
-    pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {
-        &self.request
-    }
-}
-
 pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
     principal: WorthQueryPrincipalCurrentnessDependency,
     decision: WorthQueryAuthorizationDecisionFact,
@@ -297,30 +239,17 @@ pub(in crate::domain_computation) struct WorthQueryCapabilityCommitBasis {
     supporting: Option<WorthQueryCapabilitySupportCommitBasis>,
 }
 
-pub(in crate::domain_computation) struct WorthQueryCapabilitySupportCommitBasis {
-    decision: WorthQueryAuthorizationDecisionFact,
-    capability_authority_identity: Arc<str>,
-    grant: worth_relational::facade::identity::EntityId,
-    request: WorthQueryRetainedCapabilityRequest,
-}
-
-impl From<WorthQueryRetainedCapabilitySupport> for WorthQueryCapabilitySupportCommitBasis {
-    fn from(supporting: WorthQueryRetainedCapabilitySupport) -> Self {
-        Self {
-            decision: supporting.decision,
-            capability_authority_identity: supporting.capability_authority_identity,
-            grant: supporting.grant,
-            request: supporting.request,
-        }
-    }
-}
-
 impl WorthQueryCapabilityCommitBasis {
     pub(super) fn belongs_to_session(
         &self,
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     ) -> bool {
-        self.principal.session_identity() == session && self.decision.session_identity() == session
+        self.principal.session_identity() == session
+            && self.decision.session_identity() == session
+            && self
+                .supporting
+                .as_ref()
+                .is_none_or(|supporting| supporting.decision().session_identity() == session)
     }
 
     pub(super) fn principal(&self) -> &WorthQueryPrincipalCurrentnessDependency {
@@ -345,23 +274,5 @@ impl WorthQueryCapabilityCommitBasis {
 
     pub(super) const fn supporting(&self) -> Option<&WorthQueryCapabilitySupportCommitBasis> {
         self.supporting.as_ref()
-    }
-}
-
-impl WorthQueryCapabilitySupportCommitBasis {
-    pub(super) fn decision(&self) -> &WorthQueryAuthorizationDecisionFact {
-        &self.decision
-    }
-
-    pub(super) fn capability_authority_identity(&self) -> &str {
-        &self.capability_authority_identity
-    }
-
-    pub(super) const fn grant(&self) -> worth_relational::facade::identity::EntityId {
-        self.grant
-    }
-
-    pub(super) fn request(&self) -> &WorthQueryRetainedCapabilityRequest {
-        &self.request
     }
 }

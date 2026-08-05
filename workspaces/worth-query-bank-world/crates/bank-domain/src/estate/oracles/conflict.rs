@@ -23,6 +23,7 @@ pub(super) fn validate(
         && matches!(
             action,
             EstateAction::ViewRestrictedEstate { .. }
+                | EstateAction::ViewRestrictedEstateWithEmergencyAccess { .. }
                 | EstateAction::ApproveEmergencyAccess { .. }
                 | EstateAction::CompleteMandatoryReview { .. }
                 | EstateAction::ReleaseEstate { .. }

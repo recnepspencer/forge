@@ -6,5 +6,6 @@ pub(super) use crate::domain_computation::authorization::application_disclosure:
 };
 pub use crate::domain_computation::authorization::application_disclosure::{
     WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
-    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
+    WorthQueryApplicationDisclosureOutcomeIdentity, WorthQueryApplicationDisclosureReceipt,
+    WorthQueryApplicationDisclosureReceiptPosture,
 };

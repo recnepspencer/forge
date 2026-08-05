@@ -29,18 +29,21 @@ pub(super) fn validate(role: EmployeeRole, action: EstateAction) -> Result<(), E
             role,
             EmployeeRole::EstateSpecialist | EmployeeRole::Compliance | EmployeeRole::Legal
         ),
-        EstateAction::ViewRestrictedEstate { field, .. } => match field.classification() {
-            crate::estate::BankDisclosureClassification::Restricted => {
-                !matches!(role, EmployeeRole::Teller | EmployeeRole::Auditor)
+        EstateAction::ViewRestrictedEstate { field, .. }
+        | EstateAction::ViewRestrictedEstateWithEmergencyAccess { field, .. } => {
+            match field.classification() {
+                crate::estate::BankDisclosureClassification::Restricted => {
+                    !matches!(role, EmployeeRole::Teller | EmployeeRole::Auditor)
+                }
+                crate::estate::BankDisclosureClassification::HighlyRestricted => matches!(
+                    role,
+                    EmployeeRole::EstateSpecialist | EmployeeRole::Compliance | EmployeeRole::Legal
+                ),
+                crate::estate::BankDisclosureClassification::LegalSealed => {
+                    matches!(role, EmployeeRole::Compliance | EmployeeRole::Legal)
+                }
             }
-            crate::estate::BankDisclosureClassification::HighlyRestricted => matches!(
-                role,
-                EmployeeRole::EstateSpecialist | EmployeeRole::Compliance | EmployeeRole::Legal
-            ),
-            crate::estate::BankDisclosureClassification::LegalSealed => {
-                matches!(role, EmployeeRole::Compliance | EmployeeRole::Legal)
-            }
-        },
+        }
     };
     if allowed {
         Ok(())

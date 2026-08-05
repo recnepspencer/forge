@@ -1,5 +1,6 @@
 mod application_execution;
 mod declarations;
+mod emergency_access_activity_execution;
 
 pub use declarations::queries;
 

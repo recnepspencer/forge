@@ -135,6 +135,7 @@ pub struct ApplicationCapabilityElevationDefinition {
     requester: ApplicationCapabilityRelationBinding,
     approver: ApplicationCapabilityRelationBinding,
     grant: ApplicationCapabilityRelationBinding,
+    resource_relation: Option<ApplicationCapabilityRelationBinding>,
     lifecycle: ApplicationCapabilityElevationLifecycleDefinition,
     review: ApplicationCapabilityMandatoryReviewDefinition,
 }
@@ -164,6 +165,7 @@ impl ApplicationCapabilityElevationDefinition {
             requester,
             approver,
             grant,
+            resource_relation: None,
             lifecycle,
             review,
         }
@@ -203,6 +205,18 @@ impl ApplicationCapabilityElevationDefinition {
 
     pub const fn grant(&self) -> &ApplicationCapabilityRelationBinding {
         &self.grant
+    }
+
+    pub fn with_resource_relation(
+        mut self,
+        resource_relation: ApplicationCapabilityRelationBinding,
+    ) -> Self {
+        self.resource_relation = Some(resource_relation);
+        self
+    }
+
+    pub const fn resource_relation(&self) -> Option<&ApplicationCapabilityRelationBinding> {
+        self.resource_relation.as_ref()
     }
 
     pub const fn lifecycle(&self) -> &ApplicationCapabilityElevationLifecycleDefinition {

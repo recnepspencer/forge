@@ -5,9 +5,9 @@ use super::super::super::fixture::capability::{CapabilityElevation, CapabilityRe
 use super::super::super::fixture::{
     Account, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationIdentity,
     CapabilityElevationNotAfter, CapabilityElevationNotBefore, CapabilityElevationReason,
-    CapabilityElevationRequester, CapabilityElevationReview, CapabilityElevationStatusField,
-    CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewResource,
-    CapabilityReviewStatusField, CapabilityReviewer, CloseElevationInput,
+    CapabilityElevationRequester, CapabilityElevationResource, CapabilityElevationReview,
+    CapabilityElevationStatusField, CapabilityReviewIdentity, CapabilityReviewKindField,
+    CapabilityReviewResource, CapabilityReviewStatusField, CapabilityReviewer, CloseElevationInput,
     CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
     CompleteElevationReviewInput, IdentityExecutionSchema, RevokeCapabilityElevationOperation,
     RevokeElevationCapability,
@@ -262,6 +262,7 @@ pub(super) fn seal_lifecycle_facts<Operation>(
     CapabilityElevationRequester: OperationReads<Operation>,
     CapabilityElevationApprover: OperationReads<Operation>,
     CapabilityElevationGrant: OperationReads<Operation>,
+    CapabilityElevationResource: OperationReads<Operation>,
     CapabilityElevationReview: OperationReads<Operation>,
     CapabilityReviewResource: OperationReads<Operation>,
     CapabilityReviewer: OperationReads<Operation>,
@@ -333,6 +334,7 @@ fn seal_lifecycle_relations<Operation>(
     CapabilityElevationRequester: OperationReads<Operation>,
     CapabilityElevationApprover: OperationReads<Operation>,
     CapabilityElevationGrant: OperationReads<Operation>,
+    CapabilityElevationResource: OperationReads<Operation>,
     CapabilityElevationReview: OperationReads<Operation>,
     CapabilityReviewResource: OperationReads<Operation>,
     CapabilityReviewer: OperationReads<Operation>,
@@ -345,6 +347,9 @@ fn seal_lifecycle_relations<Operation>(
         .unwrap();
     reader
         .decision_relations_from(CapabilityElevationGrant::reference(), elevation)
+        .unwrap();
+    reader
+        .decision_relations_from(CapabilityElevationResource::reference(), elevation)
         .unwrap();
     reader
         .decision_relations_from(CapabilityElevationReview::reference(), elevation)

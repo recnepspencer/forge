@@ -5,7 +5,9 @@ use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
 
-use super::super::capability_operation_progression::progress_capability_operation;
+use super::super::capability_operation_progression::{
+    progress_capability_operation, WorthQueryCapabilityOperationProgression,
+};
 use super::super::capability_registry::{
     WorthQueryElevationLifecycleOperationRole, WorthQueryInstalledCapabilityPlan,
 };
@@ -63,16 +65,22 @@ where
     >
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>,
+        Input: 'static,
     {
         let draft = match bind_close(self, &approved, &access, operation) {
             Ok(draft) => draft,
             Err(denial) => return Err(close_denial(approved, denial)),
         };
-        let admission =
-            match progress_capability_operation(self, access, operation, preconditions, true) {
-                Ok(admission) => admission,
-                Err(denial) => return Err(close_denial(approved, denial)),
-            };
+        let admission = match progress_capability_operation(
+            self,
+            access,
+            operation,
+            preconditions,
+            WorthQueryCapabilityOperationProgression::ElevationLifecycle,
+        ) {
+            Ok(admission) => admission,
+            Err(denial) => return Err(close_denial(approved, denial)),
+        };
         admission
             .bind_elevation_close(draft.bind(approved))
             .map_err(|(denial, binding)| close_denial(binding.into_approved(), denial))
@@ -88,6 +96,7 @@ fn bind_close<Schema, Capability, Operation, Input>(
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
+    Input: 'static,
 {
     let (capability_identity, installed) = installed_lifecycle_owner(
         runtime,
@@ -100,8 +109,7 @@ where
         access.graph_work.branch().relational(),
         capability_identity,
         installed.capability_authority_identity.as_ref(),
-    ) || approved.resource() != access.resolved.resource.entity_id()
-    {
+    ) {
         return Err(close_rejected(installed.contract.name()));
     }
     let elevation = selected_elevation_entity(access, installed)
@@ -127,6 +135,11 @@ where
         reviewer_relation: lifecycle.lifecycle.reviewer_relation,
         required_decision_reads: lifecycle_decision_reads(installed),
         required_program_targets: close_program_targets(installed),
+        lifecycle_effect: super::lifecycle_effect::derive_lifecycle_effect(
+            definition.lifecycle().revoke(),
+            &access.input,
+            installed.contract.name(),
+        )?,
     })
 }
 

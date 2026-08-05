@@ -11,6 +11,7 @@ use worth_query_declaration::facade::domain_computation::{
 
 use super::{
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperationAuthorization,
+    WorthQueryInstalledApplicationOperationExecutionPosture,
     WorthQueryInstalledMutationPrecondition,
 };
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
@@ -55,6 +56,7 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     projection_work_budget: usize,
     additional_authorization_fact_count: usize,
     mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+    execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
 }
 
 impl WorthQueryCompiledApplicationOperationContracts {
@@ -67,6 +69,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
         projection_work_budget: usize,
         additional_authorization_fact_count: usize,
         mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+        execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
     ) -> Self {
         ability_requirements.sort();
         ability_requirements.dedup();
@@ -130,6 +133,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
             projection_work_budget,
             additional_authorization_fact_count,
             mutation_preconditions,
+            execution_posture,
         }
     }
 
@@ -145,6 +149,30 @@ impl WorthQueryCompiledApplicationOperationContracts {
         let count = u32::try_from(self.mutation_preconditions.len()).ok()?;
         let entries = count.checked_mul(5)?.checked_add(1)?;
         CanonicalDigestWorkBudget::new(entries, 256 * 1_024)
+    }
+
+    /// Bounds the canonical digest over one complete delegation proposal.
+    ///
+    /// Entry width follows the installed program so adding a governed axis
+    /// cannot retain a stale fixed-width hashing allowance.
+    pub fn delegation_activation_proposal_canonical_work_budget(
+        &self,
+    ) -> Option<CanonicalDigestWorkBudget> {
+        if !self.execution_posture.requires_delegation_activation() {
+            return None;
+        }
+        let width = u32::try_from(self.program.len()).ok()?;
+        let entries = width.checked_mul(6)?.checked_add(16)?;
+        CanonicalDigestWorkBudget::new(entries, 256 * 1_024)
+    }
+
+    pub fn capability_revocation_proposal_canonical_work_budget(
+        &self,
+    ) -> Option<CanonicalDigestWorkBudget> {
+        if !self.execution_posture.requires_capability_revocation() {
+            return None;
+        }
+        CanonicalDigestWorkBudget::new(16, 64 * 1_024)
     }
 
     pub fn canonical_work(&self) -> WorthQueryCanonicalWorkEvidence {
@@ -207,6 +235,12 @@ impl WorthQueryCompiledApplicationOperationContracts {
 
     pub const fn projection_work_budget(&self) -> usize {
         self.projection_work_budget
+    }
+
+    pub const fn execution_posture(
+        &self,
+    ) -> WorthQueryInstalledApplicationOperationExecutionPosture {
+        self.execution_posture
     }
 
     pub(crate) const fn additional_authorization_fact_count(&self) -> usize {

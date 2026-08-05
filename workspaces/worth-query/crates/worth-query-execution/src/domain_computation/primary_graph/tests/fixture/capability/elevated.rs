@@ -85,6 +85,7 @@ worth_query_field!(pub CapabilityReviewStatusField in IdentityExecutionSchema, C
 worth_query_relation!(pub CapabilityElevationRequester in IdentityExecutionSchema, Principal => CapabilityElevation);
 worth_query_relation!(pub CapabilityElevationApprover in IdentityExecutionSchema, Principal => CapabilityElevation);
 worth_query_relation!(pub CapabilityElevationGrant in IdentityExecutionSchema, CapabilityElevation => CapabilityGrant);
+worth_query_relation!(pub CapabilityElevationResource in IdentityExecutionSchema, CapabilityElevation => Account);
 worth_query_relation!(pub CapabilityElevationReview in IdentityExecutionSchema, CapabilityElevation => CapabilityReview);
 worth_query_relation!(pub CapabilityReviewResource in IdentityExecutionSchema, CapabilityReview => Account);
 worth_query_relation!(pub CapabilityReviewer in IdentityExecutionSchema, Principal => CapabilityReview);
@@ -136,8 +137,8 @@ worth_query_operation_writes!(ElevatedCapabilityTouchOperation => [AccountLabel]
 worth_query_operation_reads!(RequestCapabilityElevationOperation => [AccountLabel]);
 worth_query_operation_creates!(RequestCapabilityElevationOperation => [CapabilityElevation, CapabilityReview]);
 worth_query_operation_writes!(RequestCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField]);
-worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource]);
-worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
+worth_query_operation_links!(RequestCapabilityElevationOperation => [CapabilityElevationRequester, CapabilityElevationGrant, CapabilityElevationResource, CapabilityElevationReview, CapabilityReviewResource]);
+worth_query_operation_reads!(ApproveCapabilityElevationOperation => [CapabilityElevationIdentity, CapabilityElevationReason, CapabilityElevationStatusField, CapabilityElevationNotBefore, CapabilityElevationNotAfter, CapabilityReviewIdentity, CapabilityReviewKindField, CapabilityReviewStatusField, CapabilityElevationRequester, CapabilityElevationApprover, CapabilityElevationGrant, CapabilityElevationResource, CapabilityElevationReview, CapabilityReviewResource, CapabilityReviewer]);
 worth_query_operation_writes!(ApproveCapabilityElevationOperation => [CapabilityElevationStatusField]);
 worth_query_operation_links!(ApproveCapabilityElevationOperation => [CapabilityElevationApprover]);
 

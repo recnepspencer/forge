@@ -10,6 +10,8 @@ use worth_runtime_bridge::facade::{
 
 mod delegation;
 pub(in crate::domain_computation::authorization) use delegation::WorthQueryDelegationDecisionFact;
+mod delegation_activation;
+pub(in crate::domain_computation::authorization) use delegation_activation::WorthQueryDelegationActivationDecisionFact;
 
 #[derive(Clone)]
 pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
@@ -18,6 +20,7 @@ pub(in crate::domain_computation) struct WorthQueryAuthorizationDecisionFact {
     relational: Arc<RelationalAuthorizationObservationEvidence>,
     bridge: Arc<BridgeAuthorizationDecisionEvidence>,
     delegation: Option<Arc<WorthQueryDelegationDecisionFact>>,
+    delegation_activation: Option<Arc<WorthQueryDelegationActivationDecisionFact>>,
     preparatory_relational_work: RelationalAuthorizationObservationCounters,
 }
 
@@ -32,6 +35,7 @@ impl WorthQueryAuthorizationDecisionFact {
             relational: Arc::new(relational),
             bridge: Arc::new(bridge),
             delegation: None,
+            delegation_activation: None,
             preparatory_relational_work: RelationalAuthorizationObservationCounters::default(),
         }
     }
@@ -53,6 +57,34 @@ impl WorthQueryAuthorizationDecisionFact {
         self
     }
 
+    pub(in crate::domain_computation::authorization) fn attach_delegation_activation(
+        &mut self,
+        activation: WorthQueryDelegationActivationDecisionFact,
+    ) -> Result<(), ()> {
+        if self.delegation_activation.is_some()
+            || !activation.belongs_to_session(self.session_identity)
+        {
+            return Err(());
+        }
+        self.delegation_activation = Some(Arc::new(activation));
+        Ok(())
+    }
+
+    pub(in crate::domain_computation::authorization) fn retain_delegation_activation_from(
+        &mut self,
+        prior: &Self,
+    ) -> Result<(), ()> {
+        if self.delegation_activation.is_some() {
+            return Err(());
+        }
+        if let Some(activation) = &prior.delegation_activation {
+            self.delegation_activation = Some(Arc::new(
+                activation.retained_for_session(self.session_identity),
+            ));
+        }
+        Ok(())
+    }
+
     pub(in crate::domain_computation) const fn session_identity(
         &self,
     ) -> crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity {
@@ -71,6 +103,9 @@ impl WorthQueryAuthorizationDecisionFact {
         if let Some(delegation) = &self.delegation {
             delegation.add_relational_counters(&mut counters);
         }
+        if let Some(activation) = &self.delegation_activation {
+            activation.add_relational_counters(&mut counters);
+        }
         counters
     }
 
@@ -80,6 +115,10 @@ impl WorthQueryAuthorizationDecisionFact {
                 .delegation
                 .as_ref()
                 .map_or(0, |delegation| delegation.signal_dependency_count())
+            + self
+                .delegation_activation
+                .as_ref()
+                .map_or(0, |activation| activation.signal_dependency_count())
     }
 
     pub(in crate::domain_computation) fn bridge_is_retained(
@@ -92,6 +131,10 @@ impl WorthQueryAuthorizationDecisionFact {
                 .delegation
                 .as_ref()
                 .is_none_or(|delegation| delegation.bridge_is_retained(bridge))
+            && self
+                .delegation_activation
+                .as_ref()
+                .is_none_or(|activation| activation.bridge_is_retained(bridge))
     }
 
     pub(in crate::domain_computation) fn remains_current_in(
@@ -106,6 +149,10 @@ impl WorthQueryAuthorizationDecisionFact {
                 .delegation
                 .as_ref()
                 .is_none_or(|delegation| delegation.remains_current_in(runtime, snapshot, bridge))
+            && self
+                .delegation_activation
+                .as_ref()
+                .is_none_or(|activation| activation.remains_current_in(runtime, snapshot, bridge))
     }
 
     pub(in crate::domain_computation) fn remains_equal_in(
@@ -119,6 +166,10 @@ impl WorthQueryAuthorizationDecisionFact {
                 .delegation
                 .as_ref()
                 .is_none_or(|delegation| delegation.remains_equal_in(runtime, snapshot))
+            && self
+                .delegation_activation
+                .as_ref()
+                .is_none_or(|activation| activation.remains_equal_in(runtime, snapshot))
     }
 
     pub(in crate::domain_computation::authorization) fn has_same_lineage(

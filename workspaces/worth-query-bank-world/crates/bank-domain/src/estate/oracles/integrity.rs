@@ -57,7 +57,7 @@ pub(super) fn validate_action(
 ) -> Result<(), EstateDenial> {
     validate_estate_record_action(world, action, estate)?;
     validate_legal_action(world, action, actor, estate)?;
-    validate_capability_action(world, action, estate)?;
+    validate_capability_action(world, action, actor, estate)?;
     validate_emergency_action(world, action, actor, estate)?;
     validate_disbursement(world, action, estate)
 }
@@ -124,10 +124,25 @@ fn validate_legal_action(
         } => validate_executor_recognition(world, action_estate, executor, authority, estate)?,
         EstateAction::ReleaseEstate {
             estate: action_estate,
+            executor,
+            authority,
+            review,
         } => {
+            let review = world
+                .review(review)
+                .ok_or(EstateDenial::MandatoryReviewIncomplete)?;
+            let authority = world
+                .legal_authority(authority)
+                .ok_or(EstateDenial::LegalAuthorityMissing)?;
             if action_estate != estate.id
-                || !world.has_recognized_executor(estate.id)
-                || !world.has_completed_review(estate.id, MandatoryReviewKind::EstateRelease)
+                || !world.is_executor(estate.id, executor)
+                || authority.estate != estate.id
+                || authority.holder != executor
+                || !authority.recognized
+                || review.estate != estate.id
+                || review.kind != MandatoryReviewKind::EstateRelease
+                || review.status != MandatoryReviewStatus::Completed
+                || review.reviewer.is_none()
             {
                 return Err(EstateDenial::MandatoryReviewIncomplete);
             }
@@ -171,6 +186,7 @@ fn validate_executor_recognition(
 fn validate_capability_action(
     world: &BankEstateWorld,
     action: EstateAction,
+    actor: EstateActorContext,
     estate: &EstateCase,
 ) -> Result<(), EstateDenial> {
     match action {
@@ -178,19 +194,16 @@ fn validate_capability_action(
             let parent = world
                 .grant(parent)
                 .ok_or(EstateDenial::DelegationParentMissing)?;
-            let child = world.grant(child).ok_or(EstateDenial::UnknownGrant)?;
             if parent.scope.estate != estate.id
                 || child.scope.estate != estate.id
-                || child.parent != Some(parent.id)
                 || parent.status != CapabilityGrantStatus::Active
-                || child.status != CapabilityGrantStatus::Active
             {
                 return Err(EstateDenial::GrantScopeMismatch);
             }
-            if parent.grantee != child.grantor {
+            if parent.grantee != actor.principal {
                 return Err(EstateDenial::DelegationGrantorMismatch);
             }
-            if !child.scope.is_within(parent.scope) {
+            if !oracle_scope_is_within(child.scope, parent.scope) {
                 return Err(EstateDenial::DelegationWidensAuthority);
             }
         }
@@ -200,6 +213,35 @@ fn validate_capability_action(
         _ => {}
     }
     Ok(())
+}
+
+pub(super) fn oracle_scope_is_within(
+    child: crate::estate::EstateCapabilityScope,
+    parent: crate::estate::EstateCapabilityScope,
+) -> bool {
+    child.account == parent.account
+        && child.estate == parent.estate
+        && child.institution == parent.institution
+        && child.branch == parent.branch
+        && child.operation == parent.operation
+        && child.purpose == parent.purpose
+        && child.field == parent.field
+        && oracle_amount_is_within(child.amount_ceiling, parent.amount_ceiling)
+        && parent.validity.not_before() <= child.validity.not_before()
+        && child.validity.not_after() <= parent.validity.not_after()
+        && child.delegation.remaining() < parent.delegation.remaining()
+        && child.workflow_stage == parent.workflow_stage
+}
+
+const fn oracle_amount_is_within(
+    child: Option<crate::model::Money<crate::model::USD>>,
+    parent: Option<crate::model::Money<crate::model::USD>>,
+) -> bool {
+    match (child, parent) {
+        (None, None) => true,
+        (Some(child), Some(parent)) => child.minor_units() <= parent.minor_units(),
+        (Some(_), None) | (None, Some(_)) => false,
+    }
 }
 
 fn validate_emergency_action(

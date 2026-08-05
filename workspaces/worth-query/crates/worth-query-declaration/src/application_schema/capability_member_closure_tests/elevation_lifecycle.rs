@@ -12,6 +12,8 @@ mod bindings;
 mod canonical_identity;
 #[path = "elevation_lifecycle/duration.rs"]
 mod duration;
+#[path = "elevation_lifecycle/emission.rs"]
+mod emission;
 #[path = "elevation_lifecycle/member_fixture.rs"]
 mod member_fixture;
 #[path = "elevation_lifecycle/ownership.rs"]
@@ -168,6 +170,20 @@ fn elevation_definition(
     lifecycle: LifecyclePosture,
     maximum_duration: std::time::Duration,
 ) -> ApplicationCapabilityElevationDefinition {
+    elevation_definition_with_lifecycle(
+        states,
+        review,
+        maximum_duration,
+        lifecycle_definition(lifecycle),
+    )
+}
+
+fn elevation_definition_with_lifecycle(
+    states: StatePosture,
+    review: ReviewPosture,
+    maximum_duration: std::time::Duration,
+    lifecycle: ApplicationCapabilityElevationLifecycleDefinition,
+) -> ApplicationCapabilityElevationDefinition {
     let values = match states {
         StatePosture::Distinct => [1, 2, 3, 4],
         StatePosture::Duplicate => [1, 2, 3, 3],
@@ -195,7 +211,7 @@ fn elevation_definition(
         relation::<Requester, Principal, Elevation>("Requester", "Principal", "Elevation"),
         relation::<Approver, Principal, Elevation>("Approver", "Principal", "Elevation"),
         relation::<ElevationGrant, Elevation, Grant>("ElevationGrant", "Elevation", "Grant"),
-        lifecycle_definition(lifecycle),
+        lifecycle,
         ApplicationCapabilityMandatoryReviewDefinition::new(
             relation::<ElevationReview, Elevation, Review>(
                 "ElevationReview",

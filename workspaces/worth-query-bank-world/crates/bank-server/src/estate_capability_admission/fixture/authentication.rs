@@ -24,7 +24,7 @@ pub(super) fn external_identity(
     .unwrap()
 }
 
-pub(in crate::estate_capability_admission) fn request_scope() -> WorthQueryRequestScope {
+pub(crate) fn request_scope() -> WorthQueryRequestScope {
     WorthQueryRequestScope::new(
         Instant::now() + Duration::from_secs(60),
         WorthQueryCancellationSource::new().token(),

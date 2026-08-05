@@ -15,7 +15,7 @@ use crate::installed_index::WorthQueryInstalledPackageAuthority;
 
 use super::contract_resolution::{
     ability_requirement_meaning_matches, ability_requirements, operation_decision_fact_budget,
-    operation_decision_reads, operation_decision_reads_from_members,
+    operation_decision_reads, operation_decision_reads_from_members, operation_execution_posture,
     operation_mutation_preconditions, operation_program, operation_program_from_members,
     operation_projection_work_budget,
 };
@@ -195,8 +195,8 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             abilities.len(),
             schema.installed_capability_count_for_operation(operation, input_type),
         )?;
-        let program = operation_program(schema, operation);
-        let decision_reads = operation_decision_reads(schema, operation);
+        let program = operation_program(schema, operation, input_type);
+        let decision_reads = operation_decision_reads(schema, operation, input_type);
         let mutation_preconditions = super::precondition_contract::compile_precondition_contract(
             operation_mutation_preconditions(schema.installed_declaration().members(), operation),
             &decision_reads,
@@ -237,8 +237,13 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
-            schema.lifecycle_request_support_fact_count(operation, input_type),
+            schema.progression_support_fact_count(operation, input_type),
             mutation_preconditions,
+            operation_execution_posture(
+                schema.installed_declaration().members(),
+                operation,
+                input_type,
+            ),
         );
         let binding_identity = schema.binding_identity();
         let capability_requirements =
@@ -300,8 +305,19 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
         &self.contracts
     }
 
+    pub const fn execution_posture(
+        &self,
+    ) -> super::WorthQueryInstalledApplicationOperationExecutionPosture {
+        self.contracts.execution_posture()
+    }
+
     pub fn authority_identity(&self) -> &str {
         self.authority_identity.as_str()
+    }
+
+    #[doc(hidden)]
+    pub fn authority_identity_bytes(&self) -> [u8; 32] {
+        *self.authority_identity.bytes()
     }
 
     pub const fn graph_obligations(&self) -> WorthQueryInstalledGraphObligationInspection<'_> {
@@ -340,8 +356,11 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             )
             && {
                 let requirements = self.contracts.ability_requirements().to_vec();
-                let decision_reads =
-                    operation_decision_reads_from_members(members, &self.operation);
+                let decision_reads = operation_decision_reads_from_members(
+                    members,
+                    &self.operation,
+                    &self.input_type,
+                );
                 let Ok(mutation_preconditions) =
                     super::precondition_contract::compile_precondition_contract(
                         operation_mutation_preconditions(members, &self.operation),
@@ -354,12 +373,13 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                 WorthQueryCompiledApplicationOperationContracts::compile(
                     self.contracts.authorization(),
                     requirements,
-                    operation_program_from_members(members, &self.operation),
+                    operation_program_from_members(members, &self.operation, &self.input_type),
                     decision_reads,
                     decision_fact_budget,
                     projection_work_budget,
                     self.contracts.additional_authorization_fact_count(),
                     mutation_preconditions,
+                    operation_execution_posture(members, &self.operation, &self.input_type),
                 ) == self.contracts
             }
     }

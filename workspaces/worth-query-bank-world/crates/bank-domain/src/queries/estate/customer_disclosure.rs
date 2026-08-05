@@ -13,7 +13,9 @@ use crate::estate::{
 use crate::model::BankPrincipalId;
 use crate::schema::{BankSchema, EstateCase, ViewEstateIdentityVerificationCapability};
 
-use super::customer_disclosure_selectors::{customer_identity, estate_customer};
+use super::customer_disclosure_selectors::{
+    beneficiary_identity, customer_identity, estate_beneficiaries, estate_customer,
+};
 use super::customer_disclosure_shape::customer_disclosure_shape;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -24,9 +26,10 @@ pub struct EstateCustomerDisclosureRequest {
     estate: EstateCaseId,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EstateCustomerDisclosure {
     customer: BankDisclosure<BankPrincipalId>,
+    beneficiaries: BankDisclosure<Vec<BankPrincipalId>>,
 }
 
 impl EstateCustomerDisclosureRequest {
@@ -44,12 +47,22 @@ impl EstateCustomerDisclosureRequest {
 }
 
 impl EstateCustomerDisclosure {
-    pub const fn new(customer: BankDisclosure<BankPrincipalId>) -> Self {
-        Self { customer }
+    pub fn new(
+        customer: BankDisclosure<BankPrincipalId>,
+        beneficiaries: BankDisclosure<Vec<BankPrincipalId>>,
+    ) -> Self {
+        Self {
+            customer,
+            beneficiaries,
+        }
     }
 
-    pub const fn customer(self) -> BankDisclosure<BankPrincipalId> {
+    pub const fn customer(&self) -> BankDisclosure<BankPrincipalId> {
         self.customer
+    }
+
+    pub const fn beneficiaries(&self) -> &BankDisclosure<Vec<BankPrincipalId>> {
+        &self.beneficiaries
     }
 }
 
@@ -85,6 +98,16 @@ pub fn estate_customer_disclosure_definition() -> ApplicationQueryDefinition<
     .disclose_field_by(
         customer_identity(),
         crate::estate::RestrictedBankField::CustomerIdentity,
+        influence.clone(),
+    )
+    .disclose_relation_by(
+        estate_beneficiaries(),
+        RestrictedBankField::BeneficiaryIdentity,
+        influence.clone(),
+    )
+    .disclose_field_by(
+        beneficiary_identity(),
+        RestrictedBankField::BeneficiaryIdentity,
         influence,
     );
     ApplicationQueryDefinitionBuilder::requires_ability(
@@ -93,7 +116,7 @@ pub fn estate_customer_disclosure_definition() -> ApplicationQueryDefinition<
         EstateCase::reference(),
         customer_disclosure_shape(),
         ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 1),
+        ApplicationQueryDependencyCeiling::bounded(1, 2, 2),
         disclosure,
         ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
         ApplicationQueryLaneEligibility::one_shot()

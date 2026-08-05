@@ -129,11 +129,12 @@ impl BankIdentityRuntime {
         admission: AdmittedNotificationOperation,
         command: NotificationCommand,
     ) -> Result<NotificationEffectProgram, BankEstateProgressionDenial> {
-        let projected = self.invariant_projection().project_admitted_operation(
-            &admission,
-            |reader, estate| project_notification(reader, estate, command),
-        )
-        .map_err(BankEstateProgressionDenial::Projection)?;
+        let projected = self
+            .invariant_projection()
+            .project_admitted_operation(&admission, |reader, estate| {
+                project_notification(reader, estate, command)
+            })
+            .map_err(BankEstateProgressionDenial::Projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::DeathNotificationProjection)?;
         let reads = self
@@ -167,7 +168,9 @@ impl BankIdentityRuntime {
                 ),
             )
             .map_err(BankEstateProgressionDenial::Attempt)?;
-        effects.finish().map_err(BankEstateProgressionDenial::Attempt)
+        effects
+            .finish()
+            .map_err(BankEstateProgressionDenial::Attempt)
     }
 }
 
@@ -238,10 +241,7 @@ fn exact_notice(
         .decision_field(&notice, DeathNoticeIdentityField::reference())?
         .ok_or(BankDeathNotificationProjectionDenial::MissingNoticeIdentity)?;
     if observed != expected {
-        return Err(BankDeathNotificationProjectionDenial::NoticeMismatch {
-            expected,
-            observed,
-        });
+        return Err(BankDeathNotificationProjectionDenial::NoticeMismatch { expected, observed });
     }
     Ok(notice)
 }
@@ -260,14 +260,11 @@ fn require_notice_subject(
     };
     let observed = reader
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
-        .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity(
-            "death notice",
-        ))?;
+        .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity("death notice"))?;
     if observed != expected {
-        return Err(BankDeathNotificationProjectionDenial::NoticeSubjectMismatch {
-            expected,
-            observed,
-        });
+        return Err(
+            BankDeathNotificationProjectionDenial::NoticeSubjectMismatch { expected, observed },
+        );
     }
     Ok(())
 }
@@ -286,14 +283,11 @@ fn require_estate_subject(
     };
     let observed = reader
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
-        .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity(
-            "estate",
-        ))?;
+        .ok_or(BankDeathNotificationProjectionDenial::MissingSubjectIdentity("estate"))?;
     if observed != expected {
-        return Err(BankDeathNotificationProjectionDenial::EstateSubjectMismatch {
-            expected,
-            observed,
-        });
+        return Err(
+            BankDeathNotificationProjectionDenial::EstateSubjectMismatch { expected, observed },
+        );
     }
     Ok(())
 }
@@ -321,9 +315,7 @@ impl From<WorthQueryInvariantDecisionPlanDenial> for BankDeathNotificationProjec
     }
 }
 
-impl From<WorthQueryInvariantProjectionTraversalDenial>
-    for BankDeathNotificationProjectionDenial
-{
+impl From<WorthQueryInvariantProjectionTraversalDenial> for BankDeathNotificationProjectionDenial {
     fn from(denial: WorthQueryInvariantProjectionTraversalDenial) -> Self {
         Self::Traversal(denial)
     }

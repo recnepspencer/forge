@@ -65,6 +65,7 @@ struct Provenance;
 struct OtherProvenance;
 struct ResourceSlot;
 
+pub(crate) mod delegation_activation_fixture;
 mod identity_axes;
 
 fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {

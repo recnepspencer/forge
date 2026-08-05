@@ -5,6 +5,8 @@ mod journal;
 mod money_movement;
 mod reversal;
 
+pub(crate) use journal::{lower_journal, resolve_journal_accounts};
+
 use worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases;
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,

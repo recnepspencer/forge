@@ -33,10 +33,17 @@ pub use account_summary::{
 };
 pub use estate::{
     estate_case, estate_case_overview_definition, estate_customer_disclosure_definition,
-    estate_customer_identity, estate_governance_context, estate_governance_definition,
-    EstateCaseOverviewQuery, EstateCaseOverviewQueryParameters, EstateCaseOverviewRequest,
-    EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
+    estate_customer_identity, estate_emergency_access_activity,
+    estate_emergency_access_activity_definition, estate_emergency_account_details,
+    estate_emergency_account_details_definition, estate_governance_context,
+    estate_governance_definition, EstateCaseOverviewQuery, EstateCaseOverviewQueryParameters,
+    EstateCaseOverviewRequest, EstateCustomerDisclosure, EstateCustomerDisclosureQuery,
     EstateCustomerDisclosureQueryParameters, EstateCustomerDisclosureRequest,
+    EstateEmergencyAccessActivity, EstateEmergencyAccessActivityItem,
+    EstateEmergencyAccessActivityLiveCause, EstateEmergencyAccessActivityQuery,
+    EstateEmergencyAccessActivityQueryParameters, EstateEmergencyAccessActivityRequest,
+    EstateEmergencyAccountDetails, EstateEmergencyAccountDetailsQuery,
+    EstateEmergencyAccountDetailsQueryParameters, EstateEmergencyAccountDetailsRequest,
     EstateGovernanceQuery, EstateGovernanceQueryParameters, EstateGovernanceRequest,
 };
 pub use institution_audit::{

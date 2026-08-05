@@ -102,6 +102,10 @@ impl AuthoritySeal {
     pub(crate) fn as_str(&self) -> &str {
         &self.text
     }
+
+    pub(crate) const fn bytes(&self) -> &[u8; 32] {
+        &self.bytes
+    }
 }
 
 impl Debug for AuthoritySeal {

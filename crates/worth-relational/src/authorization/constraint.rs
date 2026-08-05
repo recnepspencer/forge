@@ -10,6 +10,7 @@ pub enum RelationalAuthorizationFieldComparison {
     AtMost,
     AtLeast,
     StrictlyLess,
+    StrictlyGreater,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,6 +83,7 @@ impl RelationalAuthorizationPredicate {
             RelationalAuthorizationFieldComparison::AtMost => observed <= &self.expected,
             RelationalAuthorizationFieldComparison::AtLeast => observed >= &self.expected,
             RelationalAuthorizationFieldComparison::StrictlyLess => observed < &self.expected,
+            RelationalAuthorizationFieldComparison::StrictlyGreater => observed > &self.expected,
         }
     }
 }
@@ -156,6 +158,7 @@ impl RelationalAuthorizationFieldConstraint {
             RelationalAuthorizationFieldComparison::AtMost => left <= right,
             RelationalAuthorizationFieldComparison::AtLeast => left >= right,
             RelationalAuthorizationFieldComparison::StrictlyLess => left < right,
+            RelationalAuthorizationFieldComparison::StrictlyGreater => left > right,
         }
     }
 }
@@ -219,5 +222,42 @@ impl RelationalAuthorizationRelatedEntityConstraint {
 
     pub const fn entity(&self) -> EntityId {
         self.entity
+    }
+}
+
+/// Requires the complete visible adjacency at one path entity to equal an
+/// expected multiset of related entities.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationalAuthorizationExactAdjacencyConstraint {
+    traversal_ordinal: usize,
+    traversal: RelationalAuthorizationTraversal,
+    expected_entities: Vec<EntityId>,
+}
+
+impl RelationalAuthorizationExactAdjacencyConstraint {
+    pub fn new(
+        traversal_ordinal: usize,
+        traversal: RelationalAuthorizationTraversal,
+        expected_entities: impl IntoIterator<Item = EntityId>,
+    ) -> Self {
+        let mut expected_entities = expected_entities.into_iter().collect::<Vec<_>>();
+        expected_entities.sort_unstable();
+        Self {
+            traversal_ordinal,
+            traversal,
+            expected_entities,
+        }
+    }
+
+    pub const fn traversal_ordinal(&self) -> usize {
+        self.traversal_ordinal
+    }
+
+    pub const fn traversal(&self) -> &RelationalAuthorizationTraversal {
+        &self.traversal
+    }
+
+    pub fn expected_entities(&self) -> &[EntityId] {
+        &self.expected_entities
     }
 }

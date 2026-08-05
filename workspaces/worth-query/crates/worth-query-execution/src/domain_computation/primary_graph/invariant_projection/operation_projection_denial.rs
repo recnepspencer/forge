@@ -11,6 +11,7 @@ pub enum WorthQueryOperationProjectionDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryOperationProjectionDenial {
     kind: WorthQueryOperationProjectionDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -18,6 +19,7 @@ impl WorthQueryOperationProjectionDenial {
     pub(super) fn work_budget_exceeded(subject: impl Into<String>) -> Self {
         Self {
             kind: WorthQueryOperationProjectionDenialKind::WorkBudgetExceeded,
+            authorization_denial: None,
             subject: subject.into(),
         }
     }
@@ -29,6 +31,14 @@ impl WorthQueryOperationProjectionDenial {
     pub fn subject(&self) -> &str {
         &self.subject
     }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
+    }
+
+    pub fn into_authorization_denial(self) -> Option<WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.map(|denial| *denial)
+    }
 }
 
 impl From<WorthQueryOperationAuthorizationDenial> for WorthQueryOperationProjectionDenial {
@@ -36,6 +46,7 @@ impl From<WorthQueryOperationAuthorizationDenial> for WorthQueryOperationProject
         Self {
             kind: WorthQueryOperationProjectionDenialKind::Authorization(denial.kind()),
             subject: denial.subject().to_string(),
+            authorization_denial: Some(Box::new(denial)),
         }
     }
 }

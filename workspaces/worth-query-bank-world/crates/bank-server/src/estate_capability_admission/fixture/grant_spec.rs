@@ -61,9 +61,13 @@ impl GrantSpec {
     }
 
     pub(crate) fn emergency_view() -> Self {
+        Self::emergency_view_for(RestrictedBankField::AccountDetails)
+    }
+
+    pub(crate) fn emergency_view_for(field: RestrictedBankField) -> Self {
         Self {
             purpose: EstateCapabilityPurpose::EmergencyProtection,
-            field: Some(RestrictedBankField::AccountDetails),
+            field: Some(field),
             ..Self::view()
         }
     }
@@ -121,6 +125,37 @@ impl GrantSpec {
             purpose: EstateCapabilityPurpose::LegalCompliance,
             account: None,
             field: None,
+            ..Self::view()
+        }
+    }
+
+    pub(crate) fn delegate() -> Self {
+        Self {
+            operation: EstateCapabilityOperation::DelegateCapability,
+            purpose: EstateCapabilityPurpose::EstateAdministration,
+            account: None,
+            field: None,
+            ..Self::view()
+        }
+    }
+
+    pub(crate) fn revoke_capability() -> Self {
+        Self {
+            operation: EstateCapabilityOperation::RevokeCapability,
+            purpose: EstateCapabilityPurpose::EstateAdministration,
+            account: None,
+            field: None,
+            ..Self::view()
+        }
+    }
+
+    pub(crate) fn release() -> Self {
+        Self {
+            operation: EstateCapabilityOperation::ReleaseEstate,
+            purpose: EstateCapabilityPurpose::EstateAdministration,
+            account: None,
+            field: None,
+            amount_ceiling: None,
             ..Self::view()
         }
     }

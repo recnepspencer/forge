@@ -34,6 +34,17 @@ fn installed_correspondence_retains_nested_signal_decision_and_dependency_identi
         worth_signal::facade::SignalAuthorizationDecision::Allowed
     );
     assert_eq!(evidence.counters().requirements_evaluated, 2);
+    assert_eq!(
+        evidence
+            .rule_decisions()
+            .iter()
+            .map(|decision| (decision.effect(), decision.matched()))
+            .collect::<Vec<_>>(),
+        vec![
+            (BridgeAuthorizationRuleEffect::Required, true),
+            (BridgeAuthorizationRuleEffect::Prohibited, false),
+        ]
+    );
 }
 
 #[test]

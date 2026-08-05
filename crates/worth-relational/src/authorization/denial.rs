@@ -76,6 +76,17 @@ pub enum RelationalAuthorizationPlanDenial {
         expected: KindId,
         actual: KindId,
     },
+    ExactAdjacencyOutsidePath {
+        path: usize,
+        ordinal: usize,
+        traversals: usize,
+    },
+    ExactAdjacencyStartsAtWrongKind {
+        path: usize,
+        ordinal: usize,
+        expected: KindId,
+        actual: KindId,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

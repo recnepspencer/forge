@@ -8,6 +8,7 @@ use super::{
 pub(super) mod authorization;
 mod principal_currentness;
 pub(in crate::domain_computation) use authorization::WorthQueryAuthorizationDecisionFact;
+pub(in crate::domain_computation::authorization) use authorization::WorthQueryDelegationActivationDecisionFact;
 pub(in crate::domain_computation::authorization) use authorization::WorthQueryDelegationDecisionFact;
 pub(in crate::domain_computation) use principal_currentness::WorthQueryPrincipalCurrentnessDependency;
 

@@ -2,9 +2,10 @@ use bank_domain::queries::{
     AccountAuthorizedUsersQuery, AccountAuthorizedUsersQueryResult, AccountAuthorizedUsersRequest,
     AccountDetailQuery, AccountDetailRequest, AccountDiscoveryQuery, AccountDiscoveryRequest,
     EstateCaseOverviewQuery, EstateCaseOverviewRequest, EstateCustomerDisclosure,
-    EstateCustomerDisclosureQuery, EstateCustomerDisclosureRequest, EstateGovernanceQuery,
-    EstateGovernanceRequest, InstitutionAuditQuery, InstitutionAuditRequest, PaymentDetailQuery,
-    PaymentDetailRequest, PendingPaymentsQuery, PendingPaymentsRequest,
+    EstateCustomerDisclosureQuery, EstateCustomerDisclosureRequest, EstateEmergencyAccountDetails,
+    EstateEmergencyAccountDetailsQuery, EstateEmergencyAccountDetailsRequest,
+    EstateGovernanceQuery, EstateGovernanceRequest, InstitutionAuditQuery, InstitutionAuditRequest,
+    PaymentDetailQuery, PaymentDetailRequest, PendingPaymentsQuery, PendingPaymentsRequest,
 };
 use bank_domain::queries::{AccountSummaryQuery, AccountSummaryRequest};
 use bank_domain::reads::{
@@ -17,15 +18,20 @@ use bank_domain::schema::{
 };
 use worth_query_host::facade::{
     declaration::application_query::ApplicationQueryParameterSet,
-    primary_graph::{WorthQueryApplicationOneShotResult, WorthQueryApplicationPreviewResult},
+    primary_graph::{
+        WorthQueryApplicationOneShotResult, WorthQueryApplicationPreviewResult,
+        WorthQueryApprovedElevation,
+    },
     publication::domain_computation::WorthQueryPublishedApplicationResult,
 };
 
 use super::BankReadyQuery;
 use crate::application_query::{
-    execute_estate_customer_disclosure, execute_estate_governance, execute_one_shot,
-    execute_preview, BankApplicationQueryDenial, BankApplicationQueryInvocation,
-    BankPreviewSession,
+    execute_estate_customer_disclosure, execute_estate_emergency_account_details,
+    execute_estate_governance, execute_one_shot, execute_preview,
+    BankAdmittedEstateEmergencyAccountDetailsHistorical,
+    BankAdmittedEstateEmergencyAccountDetailsPreview, BankApplicationQueryDenial,
+    BankApplicationQueryInvocation, BankEstateEmergencyAccountDetailsAdmission, BankPreviewSession,
 };
 
 impl BankReadyQuery<'_, '_, AccountSummaryRequest> {
@@ -242,6 +248,64 @@ impl BankReadyQuery<'_, '_, EstateGovernanceRequest> {
             self.query,
             self.controls.application_query_controls(),
         )
+    }
+}
+
+impl BankReadyQuery<'_, '_, EstateEmergencyAccountDetailsRequest> {
+    pub fn execute_with_approved_elevation(
+        self,
+        approved: &WorthQueryApprovedElevation,
+    ) -> Result<
+        WorthQueryPublishedApplicationResult<
+            EstateEmergencyAccountDetailsQuery,
+            EstateEmergencyAccountDetails,
+        >,
+        BankApplicationQueryDenial,
+    > {
+        execute_estate_emergency_account_details(
+            self.runtime,
+            self.principal,
+            self.query,
+            approved,
+            &self.controls,
+        )
+    }
+
+    pub fn admit_historical_with_approved_elevation<Output>(
+        self,
+        approved: &WorthQueryApprovedElevation,
+        after_admission: impl for<'admitted> FnOnce(
+            BankAdmittedEstateEmergencyAccountDetailsHistorical<'admitted>,
+        )
+            -> Result<Output, BankApplicationQueryDenial>,
+    ) -> Result<Output, BankApplicationQueryDenial> {
+        BankEstateEmergencyAccountDetailsAdmission::new(
+            self.runtime,
+            self.principal,
+            self.query,
+            approved,
+            &self.controls,
+        )
+        .historical(after_admission)
+    }
+
+    pub fn admit_preview_with_approved_elevation<Output>(
+        self,
+        approved: &WorthQueryApprovedElevation,
+        session: &BankPreviewSession,
+        after_admission: impl for<'admitted> FnOnce(
+            BankAdmittedEstateEmergencyAccountDetailsPreview<'admitted>,
+        )
+            -> Result<Output, BankApplicationQueryDenial>,
+    ) -> Result<Output, BankApplicationQueryDenial> {
+        BankEstateEmergencyAccountDetailsAdmission::new(
+            self.runtime,
+            self.principal,
+            self.query,
+            approved,
+            &self.controls,
+        )
+        .preview(session, after_admission)
     }
 }
 

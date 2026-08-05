@@ -11,6 +11,8 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityUppe
     pub(in crate::domain_computation::authorization) bridge_rules:
         Vec<BridgeAuthorizationRuleContract>,
     pub(in crate::domain_computation::authorization) rule_path_indices: Vec<Vec<Vec<usize>>>,
+    pub(in crate::domain_computation::authorization) decision_rules:
+        super::WorthQueryCapabilityDecisionRuleBindings,
 }
 
 pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElevationBindings {
@@ -46,6 +48,7 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityElev
     pub(in crate::domain_computation::authorization) requester_relation: KindId,
     pub(in crate::domain_computation::authorization) approver_relation: KindId,
     pub(in crate::domain_computation::authorization) grant_relation: KindId,
+    pub(in crate::domain_computation::authorization) resource_relation: Option<KindId>,
     pub(in crate::domain_computation::authorization) review_relation: KindId,
     pub(in crate::domain_computation::authorization) review_scope_relation: KindId,
     pub(in crate::domain_computation::authorization) reviewer_relation: KindId,

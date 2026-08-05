@@ -10,5 +10,8 @@ publish = false
 bank-domain.workspace = true
 worth-query-host.workspace = true
 
+[dev-dependencies]
+worth-foundational.workspace = true
+
 [lints]
 workspace = true

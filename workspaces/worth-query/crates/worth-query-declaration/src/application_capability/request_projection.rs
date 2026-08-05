@@ -9,7 +9,8 @@ use crate::application_schema::{
 
 use super::{
     ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityContextEntitySlotRef,
-    ApplicationCapabilityContextRef, ApplicationCapabilityRelationBinding,
+    ApplicationCapabilityContextRef, ApplicationCapabilityGovernedInputIdentity,
+    ApplicationCapabilityRelationBinding,
 };
 
 /// Application-owned projection of one exact operation input into the
@@ -20,6 +21,14 @@ use super::{
 pub trait ApplicationCapabilityRequest<Schema, Capability> {
     type Scope;
     type Context;
+
+    /// Stable application-owned identity of governed input dimensions whose
+    /// drift must make an idempotent retry inequivalent. Query retains and
+    /// privately composes this identity with the installed operation and
+    /// admitted scope; it is not capability authority or graph truth.
+    fn governed_input_identity(&self) -> Option<ApplicationCapabilityGovernedInputIdentity> {
+        None
+    }
 
     fn capability_request(
         &self,

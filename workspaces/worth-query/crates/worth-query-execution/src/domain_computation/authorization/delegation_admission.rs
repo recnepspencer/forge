@@ -48,7 +48,7 @@ pub(super) fn observe_capability(
         sample,
         exact_grant,
         expected,
-        CapabilityObservationPosture::Active,
+        WorthQueryCapabilityObservationPosture::Active,
     )
 }
 
@@ -73,14 +73,41 @@ pub(super) fn observe_elevation_upper_bound(
         sample,
         Some(exact_grant),
         expected,
-        CapabilityObservationPosture::UpperBound,
+        WorthQueryCapabilityObservationPosture::UpperBound,
     )
 }
 
-#[derive(Clone, Copy)]
-enum CapabilityObservationPosture {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryCapabilityObservationPosture {
     Active,
     UpperBound,
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn observe_retained_capability_support(
+    posture: WorthQueryCapabilityObservationPosture,
+    session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
+    relational: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: worth_relational::facade::snapshots::SnapshotHandle,
+    bridge: &BridgeAuthorizationRuntime,
+    installed: &WorthQueryInstalledCapabilityPlan,
+    request: &WorthQueryRetainedCapabilityRequest,
+    sample: &WorthQueryAuthorizationTimeSample,
+    exact_grant: worth_relational::facade::identity::EntityId,
+    expected: Option<&WorthQueryAuthorizationDecisionFact>,
+) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
+    observe_capability_with_posture(
+        session_identity,
+        relational,
+        snapshot,
+        bridge,
+        installed,
+        request,
+        sample,
+        Some(exact_grant),
+        expected,
+        posture,
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -94,7 +121,7 @@ fn observe_capability_with_posture(
     sample: &WorthQueryAuthorizationTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
-    posture: CapabilityObservationPosture,
+    posture: WorthQueryCapabilityObservationPosture,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     let leaf = observe_policy(
         posture,
@@ -142,7 +169,7 @@ fn observe_lineage(
     sample: &WorthQueryAuthorizationTimeSample,
     leaf_grant: worth_relational::facade::identity::EntityId,
     leaf_policy: WorthQueryAuthorizationDecisionFact,
-    posture: CapabilityObservationPosture,
+    posture: WorthQueryCapabilityObservationPosture,
 ) -> Result<WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial> {
     let mut visited = BTreeSet::from([leaf_grant]);
     let mut frames: Vec<DelegationFrame> = Vec::new();
@@ -227,7 +254,7 @@ fn observe_lineage(
 
 #[allow(clippy::too_many_arguments)]
 fn observe_policy(
-    posture: CapabilityObservationPosture,
+    posture: WorthQueryCapabilityObservationPosture,
     session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     relational: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
@@ -238,7 +265,7 @@ fn observe_policy(
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     match posture {
-        CapabilityObservationPosture::Active => observe_capability_policy(
+        WorthQueryCapabilityObservationPosture::Active => observe_capability_policy(
             session_identity,
             relational,
             snapshot,
@@ -248,7 +275,7 @@ fn observe_policy(
             sample,
             exact_grant,
         ),
-        CapabilityObservationPosture::UpperBound => observe_upper_bound_policy(
+        WorthQueryCapabilityObservationPosture::UpperBound => observe_upper_bound_policy(
             session_identity,
             relational,
             snapshot,

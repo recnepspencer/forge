@@ -26,7 +26,8 @@ pub use plan::{
 #[cfg(test)]
 mod tests;
 pub use constraint::{
-    RelationalAuthorizationEntityAnchor, RelationalAuthorizationFieldComparison,
-    RelationalAuthorizationFieldConstraint, RelationalAuthorizationFieldOperand,
-    RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
+    RelationalAuthorizationEntityAnchor, RelationalAuthorizationExactAdjacencyConstraint,
+    RelationalAuthorizationFieldComparison, RelationalAuthorizationFieldConstraint,
+    RelationalAuthorizationFieldOperand, RelationalAuthorizationPredicate,
+    RelationalAuthorizationRelatedEntityConstraint,
 };

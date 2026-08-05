@@ -1,4 +1,5 @@
 use crate::domain_computation::authorization::{
+    WorthQueryCapabilityRevocationBinding, WorthQueryDelegationActivationBinding,
     WorthQueryElevationApprovalBinding, WorthQueryElevationCloseBinding,
     WorthQueryElevationRequestBinding, WorthQueryMandatoryReviewBinding,
 };
@@ -7,6 +8,14 @@ pub(in crate::domain_computation) enum WorthQueryOperationAuthorizationBasis<Inp
     Conventional,
     Capability {
         input: Input,
+    },
+    DelegationActivation {
+        input: Input,
+        binding: WorthQueryDelegationActivationBinding,
+    },
+    CapabilityRevocation {
+        input: Input,
+        binding: WorthQueryCapabilityRevocationBinding,
     },
     ElevationRequest {
         input: Input,
@@ -31,6 +40,8 @@ impl<Input> WorthQueryOperationAuthorizationBasis<Input> {
         match self {
             Self::Conventional => None,
             Self::Capability { input }
+            | Self::DelegationActivation { input, .. }
+            | Self::CapabilityRevocation { input, .. }
             | Self::ElevationRequest { input, .. }
             | Self::ElevationApproval { input, .. }
             | Self::ElevationClose { input, .. }

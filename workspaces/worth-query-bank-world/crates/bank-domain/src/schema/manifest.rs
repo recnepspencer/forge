@@ -254,6 +254,8 @@ worth_query_application_schema! {
                 .application_query(crate::queries::pending_payments_definition())
                 .application_query(crate::queries::estate_case_overview_definition())
                 .application_query(crate::queries::estate_customer_disclosure_definition())
+                .application_query(crate::queries::estate_emergency_account_details_definition())
+                .application_query(crate::queries::estate_emergency_access_activity_definition())
                 .application_query(crate::queries::estate_governance_definition())
                 .application_query(crate::queries::institution_audit_definition());
             install_ability_policies(install_operation_abilities(schema))

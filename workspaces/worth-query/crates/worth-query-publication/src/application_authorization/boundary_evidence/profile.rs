@@ -2,7 +2,8 @@ use worth_foundational::facade::{
     admit_requested_foundational_profile, attach_boundary_profiled_artifact,
     foundational_profile_progression_authority, request_foundational_profile_set,
     AdmittedFoundationalProfileArtifact, BoundaryProfiledArtifact,
-    FoundationalBoundaryReceiptSurface, FoundationalProfileNarrowingRecord, FoundationalProfileSet,
+    FoundationalBoundaryArtifactSurface, FoundationalBoundaryReceiptSurface,
+    FoundationalProfileNarrowingRecord, FoundationalProfileSet,
 };
 use worth_proof::TransitionOutcome;
 
@@ -100,6 +101,28 @@ pub(super) fn profile_boundary(
         profile.materialized,
         profile.admitted_to_materialized,
         boundary,
+        foundational_profile_progression_authority(),
+    ) {
+        TransitionOutcome::Success(boundary) => Ok(boundary),
+        TransitionOutcome::Denied(denial) => {
+            Err(WorthQueryApplicationAuthorizationPublicationDenial::ProfileMaterialization(denial))
+        }
+        _ => unreachable!("Foundational profile materialization has no nonterminal outcome"),
+    }
+}
+
+pub(in crate::application_authorization) fn profile_boundary_artifact<T>(
+    artifact: FoundationalBoundaryArtifactSurface<T>,
+    profile: WorthQueryApplicationAuthorizationPublicationProfile,
+) -> Result<
+    BoundaryProfiledArtifact<FoundationalBoundaryArtifactSurface<T>>,
+    WorthQueryApplicationAuthorizationPublicationDenial,
+> {
+    match attach_boundary_profiled_artifact(
+        admit_profile(profile)?,
+        profile.materialized,
+        profile.admitted_to_materialized,
+        artifact,
         foundational_profile_progression_authority(),
     ) {
         TransitionOutcome::Success(boundary) => Ok(boundary),

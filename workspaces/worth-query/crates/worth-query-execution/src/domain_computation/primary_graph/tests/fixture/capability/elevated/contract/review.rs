@@ -16,12 +16,12 @@ use worth_query_declaration::facade::{
 use super::super::{
     CapabilityConflictingBeneficiary, CapabilityElevationApprover, CapabilityElevationGrant,
     CapabilityElevationIdentity, CapabilityElevationNotAfter, CapabilityElevationNotBefore,
-    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationReview,
-    CapabilityElevationSlot, CapabilityElevationStatusField, CapabilityGrant, CapabilityGrantor,
-    CapabilityResource, CapabilityReviewIdentity, CapabilityReviewKindField,
-    CapabilityReviewResource, CapabilityReviewSlot, CapabilityReviewStatusField,
-    CapabilityReviewer, CompleteCapabilityReviewOperation, CompleteElevationReviewCapability,
-    CompleteElevationReviewInput,
+    CapabilityElevationReason, CapabilityElevationRequester, CapabilityElevationResource,
+    CapabilityElevationReview, CapabilityElevationSlot, CapabilityElevationStatusField,
+    CapabilityGrant, CapabilityGrantor, CapabilityResource, CapabilityReviewIdentity,
+    CapabilityReviewKindField, CapabilityReviewResource, CapabilityReviewSlot,
+    CapabilityReviewStatusField, CapabilityReviewer, CompleteCapabilityReviewOperation,
+    CompleteElevationReviewCapability, CompleteElevationReviewInput,
 };
 use super::{command_constraints, command_propagation, command_target, delegation};
 use crate::domain_computation::primary_graph::tests::fixture::{
@@ -33,7 +33,7 @@ pub(super) fn install(
 ) -> ApplicationSchemaDeclarationBuilder<IdentityExecutionSchema> {
     let operation = CompleteCapabilityReviewOperation::reference();
     schema
-        .operation_decision_fact_budget(operation, 14)
+        .operation_decision_fact_budget(operation, 15)
         .operation_projection_work_budget(operation, 96)
         .operation_read_field(operation, CapabilityElevationIdentity::reference())
         .operation_read_field(operation, CapabilityElevationReason::reference())
@@ -46,6 +46,7 @@ pub(super) fn install(
         .operation_read_relation(operation, CapabilityElevationRequester::reference())
         .operation_read_relation(operation, CapabilityElevationApprover::reference())
         .operation_read_relation(operation, CapabilityElevationGrant::reference())
+        .operation_read_relation(operation, CapabilityElevationResource::reference())
         .operation_read_relation(operation, CapabilityElevationReview::reference())
         .operation_read_relation(operation, CapabilityReviewResource::reference())
         .operation_read_relation(operation, CapabilityReviewer::reference())

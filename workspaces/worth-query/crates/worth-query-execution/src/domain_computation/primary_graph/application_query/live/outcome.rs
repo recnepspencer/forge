@@ -6,7 +6,9 @@ use super::super::{
     WorthQueryApplicationProjectionDenialKind, WorthQueryApplicationQueryAccessReceipt,
     WorthQueryApplicationQueryAdmissionDenialKind,
 };
-use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use crate::domain_computation::primary_graph::{
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationLiveOpenDenialKind {
@@ -25,6 +27,7 @@ pub enum WorthQueryApplicationLiveOpenDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationLiveOpenDenial {
     kind: WorthQueryApplicationLiveOpenDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -35,7 +38,19 @@ impl WorthQueryApplicationLiveOpenDenial {
     ) -> Self {
         Self {
             kind,
+            authorization_denial: None,
             subject: subject.into(),
+        }
+    }
+
+    pub(super) fn with_authorization(
+        kind: WorthQueryApplicationLiveOpenDenialKind,
+        denial: WorthQueryOperationAuthorizationDenial,
+    ) -> Self {
+        Self {
+            kind,
+            subject: denial.subject().to_string(),
+            authorization_denial: Some(Box::new(denial)),
         }
     }
 
@@ -45,6 +60,10 @@ impl WorthQueryApplicationLiveOpenDenial {
 
     pub fn subject(&self) -> &str {
         &self.subject
+    }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
     }
 }
 
@@ -146,7 +165,7 @@ pub enum WorthQueryApplicationLiveOutcome<Query, QueryResult> {
     Delivered(WorthQueryApplicationLiveUpdate<Query, QueryResult>),
     Pending,
     Overflow(WorthQueryApplicationLiveOverflow),
-    AuthorizationDenied(WorthQueryOperationAuthorizationDenialKind),
+    AuthorizationDenied(Box<WorthQueryOperationAuthorizationDenial>),
     StalePrincipal,
     StaleScope,
     ProjectionDenied(WorthQueryApplicationProjectionDenialKind),

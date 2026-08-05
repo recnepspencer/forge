@@ -12,7 +12,7 @@ pub use contract::{
     BridgeAuthorizationRuleEffect, BridgeAuthorizationRuleObservation,
 };
 pub use denial::{BridgeAuthorizationDenial, BridgeAuthorizationDenialKind};
-pub use evidence::BridgeAuthorizationDecisionEvidence;
+pub use evidence::{BridgeAuthorizationDecisionEvidence, BridgeAuthorizationRuleDecisionEvidence};
 pub use runtime::BridgeAuthorizationRuntime;
 
 #[cfg(test)]

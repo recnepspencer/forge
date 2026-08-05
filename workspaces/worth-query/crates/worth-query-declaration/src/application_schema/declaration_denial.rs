@@ -12,6 +12,7 @@ pub enum ApplicationSchemaDeclarationDenial {
     DuplicateApplicationCapability,
     MissingApplicationCapabilityDependency,
     InvalidApplicationCapability,
+    InvalidApplicationCapabilityDelegationActivationProgram,
     DuplicateApplicationCapabilityContext,
     DuplicateApplicationCapabilityContextSlot,
     DuplicateApplicationCapabilityProvenance,

@@ -4,10 +4,10 @@ use worth_foundational::facade::{
 
 use super::{
     canonical_composition_components::append_composition,
-    canonical_elevation_components::append_elevation, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
-    ApplicationCapabilityRelationDimension, ApplicationCapabilityValueBinding,
-    ErasedApplicationCapabilityContract,
+    canonical_elevation_components::{append_elevation, append_operation},
+    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+    ApplicationCapabilityValueBinding, ErasedApplicationCapabilityContract,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -139,6 +139,45 @@ fn append_delegation(
         "delegation.provenance-type",
         delegation.provenance_type(),
     );
+    if let Some(activation) = delegation.activation() {
+        text(components, "delegation.activation.posture", "governed");
+        append_operation(components, "delegation.activation", activation.operation());
+        append_field(
+            components,
+            "delegation.activation.identity",
+            activation.identity(),
+        );
+        structural_count(
+            components,
+            "delegation.activation.context-relation-count",
+            activation.context_relations().len(),
+        );
+        for (ordinal, relation) in activation.context_relations().iter().enumerate() {
+            append_relation(
+                components,
+                &format!("delegation.activation.context-relation.{ordinal}"),
+                relation,
+            );
+        }
+    } else {
+        text(components, "delegation.activation.posture", "unavailable");
+    }
+    if let Some(revocation) = delegation.revocation() {
+        text(components, "delegation.revocation.posture", "governed");
+        append_operation(components, "delegation.revocation", revocation.operation());
+        append_field(
+            components,
+            "delegation.revocation.identity",
+            revocation.identity(),
+        );
+        append_value_binding(
+            components,
+            "delegation.revocation.revoked-status",
+            revocation.revoked_status(),
+        );
+    } else {
+        text(components, "delegation.revocation.posture", "unavailable");
+    }
 }
 
 pub(super) fn append_field(

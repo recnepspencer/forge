@@ -11,8 +11,9 @@ use worth_foundational::facade::{
 };
 use worth_proof::TransitionOutcome;
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitReceipt, WorthQueryApprovedElevation,
-    WorthQueryElevationClosureKind, WorthQueryMandatoryReview, WorthQueryRequestedElevation,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationDisclosureOutcomeIdentity,
+    WorthQueryApprovedElevation, WorthQueryElevationClosureKind, WorthQueryMandatoryReview,
+    WorthQueryOperationAuthorizationDenialIdentity, WorthQueryRequestedElevation,
     WorthQueryReviewedElevation,
 };
 
@@ -22,7 +23,7 @@ use super::explanation::{
     materialize_explanation, WorthQueryPublishedApplicationAuthorizationKind,
 };
 
-mod profile;
+pub(super) mod profile;
 #[cfg(test)]
 mod tests;
 
@@ -46,6 +47,26 @@ impl WorthQueryApplicationAuthorizationBoundaryIdentity {
         }
     }
 
+    pub(super) fn from_denial(identity: WorthQueryOperationAuthorizationDenialIdentity) -> Self {
+        Self {
+            locator: BoundaryArtifactLocator::new(
+                BoundaryArtifactId::new(identity.get()),
+                BoundaryArtifactField::Payload,
+            ),
+        }
+    }
+
+    pub(super) fn from_disclosure(
+        identity: WorthQueryApplicationDisclosureOutcomeIdentity,
+    ) -> Self {
+        Self {
+            locator: BoundaryArtifactLocator::new(
+                BoundaryArtifactId::new(identity.get()),
+                BoundaryArtifactField::Payload,
+            ),
+        }
+    }
+
     pub(super) const fn artifact_id(self) -> BoundaryArtifactId {
         self.locator.artifact_id()
     }
@@ -57,6 +78,8 @@ impl WorthQueryApplicationAuthorizationBoundaryIdentity {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationAuthorizationPublicationDenial {
+    OutcomeIdentityUnavailable,
+    OutcomeNotPublishable,
     BoundaryCategory(FoundationalBoundaryCategoryConstructionDenial),
     ProfileAdmission(FoundationalProfileProgressionDenial),
     ProfileMaterialization(FoundationalProfileProgressionDenial),
@@ -240,7 +263,7 @@ fn lower_boundary_material(
     })
 }
 
-fn current_provenance(
+pub(super) fn current_provenance(
     identity: WorthQueryApplicationAuthorizationBoundaryIdentity,
 ) -> Result<
     FoundationalBoundaryEvidenceProvenanceArtifact,

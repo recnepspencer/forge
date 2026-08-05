@@ -5,6 +5,7 @@ use super::super::{
     controls::WorthQueryApplicationLiveControls,
     outcome::{WorthQueryApplicationLiveOpenDenial, WorthQueryApplicationLiveOpenDenialKind},
 };
+use crate::domain_computation::primary_graph::application_query::authorized_read::WorthQueryAuthorizedApplicationReadDenial;
 use crate::domain_computation::primary_graph::application_query::WorthQueryApplicationQueryAdmissionDenial;
 
 pub(super) fn validate_live_binding<
@@ -76,10 +77,45 @@ pub(super) fn validate_live_resource_controls(
 pub(super) fn open_admission_denial(
     denial: WorthQueryApplicationQueryAdmissionDenial,
 ) -> WorthQueryApplicationLiveOpenDenial {
-    open_denial(
-        WorthQueryApplicationLiveOpenDenialKind::Admission(denial.kind()),
-        denial.subject(),
-    )
+    let kind = WorthQueryApplicationLiveOpenDenialKind::Admission(denial.kind());
+    let subject = denial.subject().to_string();
+    match denial.into_authorization_denial() {
+        Some(authorization) => {
+            WorthQueryApplicationLiveOpenDenial::with_authorization(kind, authorization)
+        }
+        None => open_denial(kind, subject),
+    }
+}
+
+pub(super) fn open_read_denial(
+    denial: WorthQueryAuthorizedApplicationReadDenial,
+    subject: &str,
+) -> WorthQueryApplicationLiveOpenDenial {
+    match denial {
+        WorthQueryAuthorizedApplicationReadDenial::StalePrincipal => open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::Admission(
+                super::super::super::WorthQueryApplicationQueryAdmissionDenialKind::StalePrincipal,
+            ),
+            subject,
+        ),
+        WorthQueryAuthorizedApplicationReadDenial::StaleScope
+        | WorthQueryAuthorizedApplicationReadDenial::StaleBasisScope(_) => open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::Admission(
+                super::super::super::WorthQueryApplicationQueryAdmissionDenialKind::StaleScope,
+            ),
+            subject,
+        ),
+        WorthQueryAuthorizedApplicationReadDenial::Authorization(authorization) => {
+            let kind =
+                WorthQueryApplicationLiveOpenDenialKind::AuthorizationDenied(authorization.kind());
+            WorthQueryApplicationLiveOpenDenial::with_authorization(kind, authorization)
+        }
+        WorthQueryAuthorizedApplicationReadDenial::Read(_)
+        | WorthQueryAuthorizedApplicationReadDenial::Session => open_denial(
+            WorthQueryApplicationLiveOpenDenialKind::ScopeIdentityUnavailable,
+            subject,
+        ),
+    }
 }
 
 pub(super) fn open_denial(

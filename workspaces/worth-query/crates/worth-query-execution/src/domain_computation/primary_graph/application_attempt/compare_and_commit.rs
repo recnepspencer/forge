@@ -89,6 +89,8 @@ pub enum WorthQueryApplicationCommitDenialKind {
     ElevationApprovalProgramMismatch,
     ElevationCloseProgramMismatch,
     MandatoryReviewProgramMismatch,
+    DelegationActivationRequired,
+    CapabilityRevocationRequired,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -103,6 +105,7 @@ pub enum WorthQueryApplicationCommitDenialStage {
     DecisionReadSet,
     EffectLowering,
     ElevationTransition,
+    DelegationTransition,
     ProvisionalState,
     InvariantExecution,
     ProviderCommit,
@@ -155,6 +158,20 @@ impl WorthQueryApplicationCommitDenial {
         Self {
             kind: WorthQueryApplicationCommitDenialKind::ElevationTransitionRequired,
             stage: WorthQueryApplicationCommitDenialStage::ElevationTransition,
+        }
+    }
+
+    pub(super) const fn delegation_activation_required() -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::DelegationActivationRequired,
+            stage: WorthQueryApplicationCommitDenialStage::DelegationTransition,
+        }
+    }
+
+    pub(super) const fn capability_revocation_required() -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::CapabilityRevocationRequired,
+            stage: WorthQueryApplicationCommitDenialStage::DelegationTransition,
         }
     }
 

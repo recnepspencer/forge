@@ -20,6 +20,7 @@ fn every_restricted_field_has_domain_owned_classification() {
         RestrictedBankField::PostingHistory,
         RestrictedBankField::AuditTrail,
         RestrictedBankField::GovernanceMetadata,
+        RestrictedBankField::EmergencyAccessActivity,
     ] {
         assert_eq!(
             field.classification(),
@@ -71,7 +72,7 @@ fn estate_result_shape_distinguishes_typed_disclosure_from_typed_omission() {
 }
 
 #[test]
-fn field_purpose_law_is_an_exact_seven_row_partition() {
+fn field_purpose_law_is_an_exact_eight_row_partition() {
     let purposes = [
         EstateCapabilityPurpose::EstateAdministration,
         EstateCapabilityPurpose::IdentityVerification,
@@ -108,6 +109,10 @@ fn field_purpose_law_is_an_exact_seven_row_partition() {
         (
             RestrictedBankField::GovernanceMetadata,
             [true, false, false, false, false, false],
+        ),
+        (
+            RestrictedBankField::EmergencyAccessActivity,
+            [false, false, false, true, false, false],
         ),
     ];
     for (field, allowed) in expected {

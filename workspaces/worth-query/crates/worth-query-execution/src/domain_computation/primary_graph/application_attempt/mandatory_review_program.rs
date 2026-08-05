@@ -6,6 +6,7 @@ use worth_relational::facade::transactions::EntityReference;
 use super::effect_program::WorthQueryApplicationRealizedEffect;
 use super::effect_validation::{canonical_key, denial};
 use super::elevation_lifecycle_effects::lifecycle_effects_are_exact;
+use super::elevation_lifecycle_emission::{append_lifecycle_emission, lifecycle_emission_is_exact};
 use super::elevation_lifecycle_facts::{
     lifecycle_facts_are_exact, WorthQueryElevationLifecycleFactExpectation,
     WorthQueryExpectedLifecycleRelation,
@@ -42,7 +43,7 @@ impl<Schema, Operation, Input, Scope>
             .ok_or_else(|| transition_required(self.admission.operation()))?;
         validate_installed_contract(binding, &self)?;
         validate_lifecycle_facts(binding, &self.facts)?;
-        let effects = review_effects(binding)?;
+        let mut effects = review_effects(binding)?;
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -50,10 +51,16 @@ impl<Schema, Operation, Input, Scope>
             .expect("installed application operation has exactly one execution strategy")
             .envelope()
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
+        let emission_retained_bytes = append_lifecycle_emission(
+            &mut effects,
+            binding.draft.lifecycle_effect.as_ref(),
+            emission_retained_bytes_ceiling,
+            self.admission.operation(),
+        )?;
         let program = WorthQueryApplicationEffectProgram {
             read_set: self,
             effects,
-            emission_retained_bytes: 0,
+            emission_retained_bytes,
             emission_retained_bytes_ceiling,
         };
         validate_mandatory_review_program(&program)?;
@@ -87,9 +94,17 @@ pub(in crate::domain_computation::primary_graph) fn validate_mandatory_review_pr
     validate_installed_contract(binding, &program.read_set)?;
     validate_lifecycle_facts(binding, &program.read_set.facts)?;
     let expected = review_effects(binding)?;
-    if lifecycle_effects_are_exact(&program.effects, &expected)
-        && program.emission_retained_bytes == 0
-        && expected.len() == 2
+    if expected.len() == 2
+        && program
+            .effects
+            .get(..2)
+            .is_some_and(|actual| lifecycle_effects_are_exact(actual, &expected))
+        && lifecycle_emission_is_exact(
+            &program.effects,
+            2,
+            binding.draft.lifecycle_effect.as_ref(),
+            program.emission_retained_bytes,
+        )
     {
         Ok(())
     } else {
@@ -173,6 +188,7 @@ fn validate_lifecycle_facts(
             requester_relation: requested.requester_relation,
             approver_relation: binding.draft.approver_relation,
             grant_relation: requested.grant_relation,
+            resource_relation: requested.resource_relation,
             review_relation: requested.review_relation,
             review_scope_relation: requested.review_scope_relation,
             reviewer_relation: binding.draft.reviewer_relation,

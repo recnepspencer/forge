@@ -176,19 +176,27 @@ where
             .count()
     }
 
-    pub(crate) fn lifecycle_request_support_fact_count(
+    pub(crate) fn progression_support_fact_count(
         &self,
         operation: &str,
         input_type: &str,
     ) -> usize {
         usize::from(self.capability_registry.values().any(|capability| {
-            capability
-                .contract()
-                .elevation()
-                .definition()
-                .is_some_and(|definition| {
-                    let request = definition.lifecycle().request().operation();
-                    request.operation() == operation && request.input_type() == input_type
+            let contract = capability.contract();
+            contract.elevation().definition().is_some_and(|definition| {
+                let lifecycle = definition.lifecycle();
+                [lifecycle.request(), lifecycle.approve()]
+                    .into_iter()
+                    .any(|transition| {
+                        let transition = transition.operation();
+                        transition.operation() == operation && transition.input_type() == input_type
+                    })
+            }) || contract
+                .delegation()
+                .activation()
+                .is_some_and(|activation| {
+                    activation.operation().operation() == operation
+                        && activation.operation().input_type() == input_type
                 })
         }))
     }

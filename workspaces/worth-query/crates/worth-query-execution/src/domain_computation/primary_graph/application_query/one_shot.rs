@@ -18,7 +18,8 @@ use super::{
     WorthQueryApplicationQueryAccessReceipt,
 };
 use crate::domain_computation::primary_graph::{
-    WorthQueryAuthenticatedPrincipal, WorthQueryPrimaryGraphApplicationRuntime,
+    WorthQueryAuthenticatedPrincipal, WorthQueryOperationAuthorizationDenial,
+    WorthQueryPrimaryGraphApplicationRuntime,
 };
 use outcome::finalize_one_shot;
 
@@ -50,6 +51,7 @@ pub enum WorthQueryApplicationOneShotDenialKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationOneShotDenial {
     kind: WorthQueryApplicationOneShotDenialKind,
+    authorization_denial: Option<Box<WorthQueryOperationAuthorizationDenial>>,
     subject: String,
 }
 
@@ -145,10 +147,9 @@ fn map_authorized_read_denial(
             WorthQueryApplicationOneShotDenialKind::StaleScope,
             subject.to_string(),
         ),
-        WorthQueryAuthorizedApplicationReadDenial::Authorization(kind, subject) => (
-            WorthQueryApplicationOneShotDenialKind::Authorization(kind),
-            subject,
-        ),
+        WorthQueryAuthorizedApplicationReadDenial::Authorization(denial) => {
+            return authorization_denial(denial);
+        }
         WorthQueryAuthorizedApplicationReadDenial::Read(read) => {
             let kind = match read.kind() {
                 WorthQueryApplicationReadExecutionDenialKind::PredicateIndexUnavailable => {
@@ -298,7 +299,18 @@ fn denial(
 ) -> WorthQueryApplicationOneShotDenial {
     WorthQueryApplicationOneShotDenial {
         kind,
+        authorization_denial: None,
         subject: subject.into(),
+    }
+}
+
+fn authorization_denial(
+    denial: WorthQueryOperationAuthorizationDenial,
+) -> WorthQueryApplicationOneShotDenial {
+    WorthQueryApplicationOneShotDenial {
+        kind: WorthQueryApplicationOneShotDenialKind::Authorization(denial.kind()),
+        subject: denial.subject().to_string(),
+        authorization_denial: Some(Box::new(denial)),
     }
 }
 
@@ -309,6 +321,10 @@ impl WorthQueryApplicationOneShotDenial {
 
     pub fn subject(&self) -> &str {
         &self.subject
+    }
+
+    pub fn authorization_denial(&self) -> Option<&WorthQueryOperationAuthorizationDenial> {
+        self.authorization_denial.as_deref()
     }
 }
 

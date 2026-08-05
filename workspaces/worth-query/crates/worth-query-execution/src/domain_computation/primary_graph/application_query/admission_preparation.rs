@@ -273,10 +273,7 @@ where
 fn map_authorization_denial(
     authorization: crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenial,
 ) -> WorthQueryApplicationQueryAdmissionDenial {
-    WorthQueryApplicationQueryAdmissionDenial::new(
-        WorthQueryApplicationQueryAdmissionDenialKind::Authorization(authorization.kind()),
-        authorization.subject(),
-    )
+    WorthQueryApplicationQueryAdmissionDenial::from_authorization(authorization)
 }
 
 pub(super) fn validate_admission_request(

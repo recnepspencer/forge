@@ -35,6 +35,29 @@ pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityDele
     pub(in crate::domain_computation::authorization) not_before: AspectFieldLocator,
     pub(in crate::domain_computation::authorization) not_after: AspectFieldLocator,
     pub(in crate::domain_computation::authorization) remaining: AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) activation:
+        Option<WorthQueryCapabilityDelegationActivationBindings>,
+    pub(in crate::domain_computation::authorization) revocation:
+        Option<WorthQueryCapabilityRevocationBindings>,
+}
+
+pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityDelegationActivationBindings
+{
+    pub(in crate::domain_computation::authorization) operation: String,
+    pub(in crate::domain_computation::authorization) operation_type: String,
+    pub(in crate::domain_computation::authorization) input_type: String,
+    pub(in crate::domain_computation::authorization) identity: AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) context_relations:
+        Vec<RelationalAuthorizationTraversal>,
+}
+
+pub(in crate::domain_computation::authorization) struct WorthQueryCapabilityRevocationBindings {
+    pub(in crate::domain_computation::authorization) operation: String,
+    pub(in crate::domain_computation::authorization) operation_type: String,
+    pub(in crate::domain_computation::authorization) input_type: String,
+    pub(in crate::domain_computation::authorization) identity: AspectFieldLocator,
+    pub(in crate::domain_computation::authorization) revoked_status:
+        (AspectFieldLocator, AspectValue),
 }
 
 impl WorthQueryCapabilityDelegationBindings {
@@ -46,6 +69,10 @@ impl WorthQueryCapabilityDelegationBindings {
         let currentness = contract.constraints().currentness();
         let workflow = currentness.workflow();
         let validity = currentness.validity();
+        let active_status = (
+            field_locator(layout, currentness.active_status().field())?,
+            currentness.active_status().value().clone(),
+        );
         Ok(Self {
             rule: contract.composition().propagation().delegation(),
             parent: relation(
@@ -89,15 +116,56 @@ impl WorthQueryCapabilityDelegationBindings {
             amount: field_binding(contract.constraints().amount())
                 .map(|binding| field_locator(layout, binding))
                 .transpose()?,
-            active_status: (
-                field_locator(layout, currentness.active_status().field())?,
-                currentness.active_status().value().clone(),
-            ),
+            active_status: active_status.clone(),
             grant_workflow: field_locator(layout, workflow.grant())?,
             resource_workflow: field_locator(layout, workflow.resource())?,
             not_before: field_locator(layout, validity.not_before())?,
             not_after: field_locator(layout, validity.not_after())?,
             remaining: field_locator(layout, delegation.limit())?,
+            activation: delegation
+                .activation()
+                .map(|activation| {
+                    Ok(WorthQueryCapabilityDelegationActivationBindings {
+                        operation: activation.operation().operation().to_string(),
+                        operation_type: activation.operation().operation_type().to_string(),
+                        input_type: activation.operation().input_type().to_string(),
+                        identity: field_locator(layout, activation.identity())?,
+                        context_relations: activation
+                            .context_relations()
+                            .iter()
+                            .map(|binding| {
+                                relation(
+                                    layout,
+                                    binding,
+                                    RelationalAuthorizationTraversalDirection::Forward,
+                                )
+                            })
+                            .collect::<Result<Vec<_>, _>>()?,
+                    })
+                })
+                .transpose()?,
+            revocation: delegation
+                .revocation()
+                .map(|revocation| {
+                    let revoked_status = (
+                        field_locator(layout, revocation.revoked_status().field())?,
+                        revocation.revoked_status().value().clone(),
+                    );
+                    if revoked_status.0 != active_status.0 || revoked_status.1 == active_status.1 {
+                        return Err(WorthQueryOperationAuthorizationDenial::new(
+                            crate::domain_computation::authorization::WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                            contract.name(),
+                        ));
+                    }
+                    Ok(WorthQueryCapabilityRevocationBindings {
+                        operation: revocation.operation().operation().to_string(),
+                        operation_type: revocation.operation().operation_type().to_string(),
+                        input_type: revocation.operation().input_type().to_string(),
+                        identity: field_locator(layout, revocation.identity())?,
+                        revoked_status,
+                    })
+                })
+                .transpose()?,
         })
     }
 }

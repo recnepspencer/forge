@@ -6,8 +6,9 @@ use crate::transactions::data::RecordRef;
 
 use super::{
     plan_validation::validate_plan, RelationalAuthorizationEntityAnchor,
-    RelationalAuthorizationFieldConstraint, RelationalAuthorizationPlanDenial,
-    RelationalAuthorizationPredicate, RelationalAuthorizationRelatedEntityConstraint,
+    RelationalAuthorizationExactAdjacencyConstraint, RelationalAuthorizationFieldConstraint,
+    RelationalAuthorizationPlanDenial, RelationalAuthorizationPredicate,
+    RelationalAuthorizationRelatedEntityConstraint,
 };
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -63,6 +64,7 @@ pub struct RelationalAuthorizationPathPlan {
     field_constraints: Vec<RelationalAuthorizationFieldConstraint>,
     entity_anchors: Vec<RelationalAuthorizationEntityAnchor>,
     related_entities: Vec<RelationalAuthorizationRelatedEntityConstraint>,
+    exact_adjacencies: Vec<RelationalAuthorizationExactAdjacencyConstraint>,
 }
 
 impl RelationalAuthorizationPathPlan {
@@ -76,6 +78,7 @@ impl RelationalAuthorizationPathPlan {
             field_constraints: Vec::new(),
             entity_anchors: Vec::new(),
             related_entities: Vec::new(),
+            exact_adjacencies: Vec::new(),
         }
     }
 
@@ -111,6 +114,14 @@ impl RelationalAuthorizationPathPlan {
         self
     }
 
+    pub fn with_exact_adjacencies(
+        mut self,
+        constraints: impl IntoIterator<Item = RelationalAuthorizationExactAdjacencyConstraint>,
+    ) -> Self {
+        self.exact_adjacencies = constraints.into_iter().collect();
+        self
+    }
+
     pub fn traversals(&self) -> &[RelationalAuthorizationTraversal] {
         &self.traversals
     }
@@ -129,6 +140,10 @@ impl RelationalAuthorizationPathPlan {
 
     pub fn related_entities(&self) -> &[RelationalAuthorizationRelatedEntityConstraint] {
         &self.related_entities
+    }
+
+    pub fn exact_adjacencies(&self) -> &[RelationalAuthorizationExactAdjacencyConstraint] {
+        &self.exact_adjacencies
     }
 }
 

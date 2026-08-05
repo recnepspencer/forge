@@ -48,6 +48,10 @@ impl BankReadControls {
         self.maximum_results.get()
     }
 
+    pub(crate) const fn maximum_result_count(&self) -> NonZeroUsize {
+        self.maximum_results
+    }
+
     pub const fn maximum_work(&self) -> NonZeroUsize {
         self.maximum_work
     }

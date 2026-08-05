@@ -25,12 +25,14 @@ use super::capability_binding_lowering::{
     capability_principal, clause_identity, kind, lower_context_anchors, operand, predicate,
     relation, request_bindings,
 };
-use super::capability_registry::WorthQueryCapabilityDelegationBindings;
 use super::capability_registry::{
     field_binding, WorthQueryCapabilityContextAnchor, WorthQueryCapabilityGrantWitnessBinding,
     WorthQueryCapabilityPathTemplate, WorthQueryCapabilityRequestGuard,
     WorthQueryCapabilityRequestValueAxis, WorthQueryCapabilityUpperBoundBindings,
     WorthQueryInstalledCapabilityPlan,
+};
+use super::capability_registry::{
+    WorthQueryCapabilityDecisionRuleBindings, WorthQueryCapabilityDelegationBindings,
 };
 use super::lowering::lower_authorization_path;
 use super::{authorization_denial, WorthQueryOperationAuthorizationDenial};
@@ -78,7 +80,7 @@ where
         &paths,
     )];
     let mut rule_path_indices = vec![vec![vec![0]]];
-    compile_composition_rules(
+    let decision_rules = compile_composition_rules(
         contract,
         layout,
         source.identity().bytes(),
@@ -119,6 +121,7 @@ where
             path_count: upper_bound_path_count,
             bridge_rules: upper_bound_rules,
             rule_path_indices: upper_bound_rule_path_indices,
+            decision_rules: decision_rules.clone(),
         })
     } else {
         None
@@ -149,6 +152,7 @@ where
         paths,
         bridge_rules: rules,
         rule_path_indices,
+        decision_rules,
     })
 }
 
@@ -201,6 +205,7 @@ fn compile_grant_path(
         guard: WorthQueryCapabilityRequestGuard::Unconditional,
         grant_ordinal: Some(1),
         elevation_ordinals: Vec::new(),
+        elevation_resource_ordinal: None,
         context_anchors: Vec::new(),
     })
 }
@@ -212,9 +217,9 @@ fn compile_composition_rules(
     paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
     rules: &mut Vec<BridgeAuthorizationRuleContract>,
     rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+) -> Result<WorthQueryCapabilityDecisionRuleBindings, WorthQueryOperationAuthorizationDenial> {
     let composition = contract.composition();
-    compile_graph_rule(
+    let allow = compile_graph_rule(
         contract,
         layout,
         capability,
@@ -224,27 +229,34 @@ fn compile_composition_rules(
         rules,
         rule_path_indices,
     )?;
-    for graph in [
-        composition.decision().deny().graph(),
-        composition.decision().conflict().graph(),
-        composition.actors().separation_of_duty().graph(),
-        composition.actors().distinct_actor().graph(),
-    ]
-    .into_iter()
-    .flatten()
-    {
-        compile_graph_rule(
-            contract,
-            layout,
-            capability,
-            BridgeAuthorizationRuleEffect::Prohibited,
-            graph,
-            paths,
-            rules,
-            rule_path_indices,
-        )?;
-    }
-    Ok(())
+    let mut compile_optional = |graph: Option<&ApplicationCapabilityGraphRule>| {
+        graph
+            .map(|graph| {
+                compile_graph_rule(
+                    contract,
+                    layout,
+                    capability,
+                    BridgeAuthorizationRuleEffect::Prohibited,
+                    graph,
+                    paths,
+                    rules,
+                    rule_path_indices,
+                )
+            })
+            .transpose()
+    };
+    let deny = compile_optional(composition.decision().deny().graph())?;
+    let conflict = compile_optional(composition.decision().conflict().graph())?;
+    let separation_of_duty = compile_optional(composition.actors().separation_of_duty().graph())?;
+    let distinct_actor = compile_optional(composition.actors().distinct_actor().graph())?;
+    Ok(WorthQueryCapabilityDecisionRuleBindings {
+        grant: 0,
+        allow,
+        deny,
+        conflict,
+        separation_of_duty,
+        distinct_actor,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -257,7 +269,7 @@ fn compile_graph_rule(
     paths: &mut Vec<WorthQueryCapabilityPathTemplate>,
     rules: &mut Vec<BridgeAuthorizationRuleContract>,
     rule_path_indices: &mut Vec<Vec<Vec<usize>>>,
-) -> Result<(), WorthQueryOperationAuthorizationDenial> {
+) -> Result<usize, WorthQueryOperationAuthorizationDenial> {
     let mut requirements = Vec::with_capacity(graph.requirements().len());
     for requirement in graph.requirements() {
         let mut indices = Vec::with_capacity(requirement.clauses().len());
@@ -273,15 +285,17 @@ fn compile_graph_rule(
                 guard,
                 grant_ordinal,
                 elevation_ordinals: Vec::new(),
+                elevation_resource_ordinal: None,
                 context_anchors: anchors,
             });
             indices.push(path_index);
         }
         requirements.push(indices);
     }
+    let rule_index = rules.len();
     rules.push(bridge_rule(effect, requirements.clone(), paths));
     rule_path_indices.push(requirements);
-    Ok(())
+    Ok(rule_index)
 }
 
 fn grant_ordinal(

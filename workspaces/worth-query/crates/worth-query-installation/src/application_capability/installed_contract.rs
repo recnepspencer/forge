@@ -4,7 +4,8 @@ use worth_foundational::facade::CanonicalDigestId;
 use worth_query_declaration::facade::{
     application_capability::{ApplicationCapabilityRef, ErasedApplicationCapabilityContract},
     application_schema::{
-        ApplicationOperationRef, ApplicationSchema, ApplicationSchemaBindingIdentity,
+        ApplicationOperationProgramTarget, ApplicationOperationRef, ApplicationSchema,
+        ApplicationSchemaBindingIdentity,
     },
 };
 
@@ -160,6 +161,13 @@ impl<Schema, Capability, Operation, Input>
 
     pub fn contract(&self) -> &ErasedApplicationCapabilityContract {
         self.compiled.contract()
+    }
+
+    /// Returns the cold-compiled exact effects for activating this target.
+    pub fn delegation_activation_program_targets(
+        &self,
+    ) -> Option<&[ApplicationOperationProgramTarget]> {
+        self.compiled.delegation_activation_program()
     }
 
     pub const fn lookup_evidence(&self) -> WorthQueryCapabilityLookupEvidence {

@@ -25,7 +25,6 @@ use crate::application_capability::{
     ApplicationCapabilityWorkflowDefinition,
 };
 use worth_foundational::facade::ScalarAspectType;
-
 struct Schema;
 struct Capability;
 struct Operation;
@@ -59,12 +58,13 @@ struct OtherContext;
 struct OtherResourceSlot;
 type ErasedContract = crate::application_capability::ErasedApplicationCapabilityContract;
 
+mod capability_revocation;
 #[path = "capability_member_closure_tests/context_anchors.rs"]
 mod context_anchors;
 #[path = "capability_member_closure_tests/contract_validation.rs"]
 mod contract_validation;
-#[path = "capability_member_closure_tests/declared_dimensions.rs"]
 mod declared_dimensions;
+mod delegation_activation;
 #[path = "capability_member_closure_tests/elevation_lifecycle.rs"]
 mod elevation_lifecycle;
 #[path = "capability_member_closure_tests/fixture_members.rs"]

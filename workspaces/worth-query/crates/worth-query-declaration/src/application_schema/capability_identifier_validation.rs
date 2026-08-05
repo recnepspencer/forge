@@ -36,6 +36,10 @@ pub(super) fn validate_capability_identifiers(
     validate_relation(contract.delegation().grantor())?;
     validate_relation(contract.delegation().grantee())?;
     validate_field(contract.delegation().limit())?;
+    if let Some(activation) = contract.delegation().activation() {
+        validate_simple_identifier(activation.operation().operation())?;
+        validate_field(activation.identity())?;
+    }
     validate_composition(contract)
 }
 

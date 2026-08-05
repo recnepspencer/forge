@@ -2,9 +2,11 @@ use worth_query_decl::facade::{
     application_capability::{
         ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityDelegationActivationDefinition,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityFieldBinding,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityRevocationDefinition,
         ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
         ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
         ApplicationCapabilityWorkflowDefinition,
@@ -338,4 +340,26 @@ fn delegation() -> ApplicationCapabilityDelegationDefinition {
         ),
         EstateGrantChainProvenance::reference(),
     )
+    .with_activation(ApplicationCapabilityDelegationActivationDefinition::new(
+        DelegateEstateCapabilityOperation::reference(),
+        ApplicationCapabilityFieldBinding::from_reference(
+            CapabilityGrantIdentityField::reference(),
+        ),
+    )
+    .with_context_relations([
+        ApplicationCapabilityRelationBinding::from_reference(
+            CapabilityInstitution::reference(),
+        ),
+        ApplicationCapabilityRelationBinding::from_reference(CapabilityBranch::reference()),
+    ]))
+    .with_revocation(ApplicationCapabilityRevocationDefinition::new(
+        RevokeEstateCapabilityOperation::reference(),
+        ApplicationCapabilityFieldBinding::from_reference(
+            CapabilityGrantIdentityField::reference(),
+        ),
+        ApplicationCapabilityValueBinding::new(
+            CapabilityGrantStatusField::reference(),
+            CapabilityGrantStatus::Revoked,
+        ),
+    ))
 }

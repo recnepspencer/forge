@@ -27,7 +27,8 @@ fn validate_path(
     validate_predicates(path_index, path, &kinds)?;
     validate_field_constraints(path_index, path, &kinds)?;
     validate_entity_anchors(path_index, path, &kinds)?;
-    validate_related_entities(path_index, path, &kinds)
+    validate_related_entities(path_index, path, &kinds)?;
+    validate_exact_adjacencies(path_index, path, &kinds)
 }
 
 fn path_kinds(
@@ -204,6 +205,36 @@ fn validate_related_entities(
                 RelationalAuthorizationPlanDenial::RelatedEntityStartsAtWrongKind {
                     path: path_index,
                     ordinal: related.traversal_ordinal(),
+                    expected,
+                    actual,
+                },
+            );
+        }
+    }
+    Ok(())
+}
+
+fn validate_exact_adjacencies(
+    path_index: usize,
+    path: &RelationalAuthorizationPathPlan,
+    kinds: &[KindId],
+) -> Result<(), RelationalAuthorizationPlanDenial> {
+    for exact in path.exact_adjacencies() {
+        let Some(expected) = kinds.get(exact.traversal_ordinal()).copied() else {
+            return Err(
+                RelationalAuthorizationPlanDenial::ExactAdjacencyOutsidePath {
+                    path: path_index,
+                    ordinal: exact.traversal_ordinal(),
+                    traversals: path.traversals().len(),
+                },
+            );
+        };
+        let actual = traversal_start_kind(exact.traversal());
+        if actual != expected {
+            return Err(
+                RelationalAuthorizationPlanDenial::ExactAdjacencyStartsAtWrongKind {
+                    path: path_index,
+                    ordinal: exact.traversal_ordinal(),
                     expected,
                     actual,
                 },

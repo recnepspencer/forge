@@ -6,8 +6,8 @@ use super::{
     WorthQueryRequestedElevation,
 };
 use crate::domain_computation::authorization::{
-    WorthQueryElevationApprovalBinding, WorthQueryElevationRequestBinding,
-    WorthQueryRetainedCapabilityRequest,
+    WorthQueryAuthorizationDecisionFact, WorthQueryElevationApprovalBinding,
+    WorthQueryElevationRequestBinding, WorthQueryRetainedCapabilityRequest,
 };
 
 /// Move-only authority proving that Query committed the exact approval.
@@ -116,6 +116,24 @@ impl WorthQueryApprovedElevation {
         &self,
     ) -> &WorthQueryElevationRequestBinding {
         &self.requested
+    }
+
+    pub(in crate::domain_computation) fn support_remains_current_in(
+        &self,
+        runtime: &worth_relational::facade::runtime::RelationalRuntime,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+        bridge: &worth_runtime_bridge::facade::BridgeAuthorizationRuntime,
+    ) -> bool {
+        self.requested
+            .supporting
+            .decision()
+            .remains_current_in(runtime, snapshot, bridge)
+    }
+
+    pub(in crate::domain_computation) fn support_decision(
+        &self,
+    ) -> &WorthQueryAuthorizationDecisionFact {
+        self.requested.supporting.decision()
     }
 
     #[allow(clippy::too_many_arguments)]

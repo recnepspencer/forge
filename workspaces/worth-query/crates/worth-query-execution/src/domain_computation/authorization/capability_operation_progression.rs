@@ -49,8 +49,22 @@ where
     where
         Input: ApplicationCapabilityRequest<Schema, Capability>,
     {
-        progress_capability_operation(self, access, operation, preconditions, false)
+        progress_capability_operation(
+            self,
+            access,
+            operation,
+            preconditions,
+            WorthQueryCapabilityOperationProgression::Ordinary,
+        )
     }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub(super) enum WorthQueryCapabilityOperationProgression {
+    Ordinary,
+    DelegationActivation,
+    CapabilityRevocation,
+    ElevationLifecycle,
 }
 
 pub(super) fn progress_capability_operation<Schema, Capability, Operation, Input>(
@@ -62,7 +76,7 @@ pub(super) fn progress_capability_operation<Schema, Capability, Operation, Input
         Operation,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
     >,
-    allow_lifecycle: bool,
+    progression: WorthQueryCapabilityOperationProgression,
 ) -> Result<
     WorthQueryAdmittedApplicationOperation<
         Schema,
@@ -76,7 +90,7 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    validate_progression_authority(runtime, &access, operation, allow_lifecycle)?;
+    validate_progression_authority(runtime, &access, operation, progression)?;
     validate_current_projection(&access)?;
     runtime.refresh_capability_authorization_for_graph_work(
         &mut access.authorization,
@@ -93,12 +107,14 @@ where
             operation.operation(),
         ));
     }
+    let governed_input_identity = access.governed_input_identity;
     Ok(WorthQueryAdmittedApplicationOperation::mint(
         access.operation_admission_identity,
         runtime.runtime.authority_identity(),
         operation.binding_identity().clone(),
         operation.operation().to_string(),
         operation.authority_identity().to_string(),
+        operation.authority_identity_bytes(),
         WorthQueryOperationScopeBinding::mint(
             runtime.runtime.authority_identity(),
             operation.binding_identity(),
@@ -115,6 +131,7 @@ where
         preconditions,
         access.canonical_work,
         authorization,
+        governed_input_identity,
         WorthQueryOperationAuthorizationBasis::Capability {
             input: access.input,
         },
@@ -126,14 +143,14 @@ fn validate_progression_authority<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    allow_lifecycle: bool,
+    progression: WorthQueryCapabilityOperationProgression,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     validate_access_lifecycle(access)?;
-    validate_installed_operation_identity(runtime, access, operation, allow_lifecycle)?;
+    validate_installed_operation_identity(runtime, access, operation, progression)?;
     validate_graph_work_authority(access, operation)
 }
 
@@ -141,7 +158,7 @@ fn validate_installed_operation_identity<Schema, Capability, Operation, Input>(
     runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
-    allow_lifecycle: bool,
+    progression: WorthQueryCapabilityOperationProgression,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
@@ -156,9 +173,31 @@ where
                 operation.operation(),
             )
         })?;
-    if lifecycle.is_some() && !allow_lifecycle {
+    if lifecycle.is_some()
+        && progression != WorthQueryCapabilityOperationProgression::ElevationLifecycle
+    {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired,
+            operation.operation(),
+        ));
+    }
+    if operation
+        .execution_posture()
+        .requires_delegation_activation()
+        && progression != WorthQueryCapabilityOperationProgression::DelegationActivation
+    {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::DelegationTransitionRequired,
+            operation.operation(),
+        ));
+    }
+    if operation
+        .execution_posture()
+        .requires_capability_revocation()
+        && progression != WorthQueryCapabilityOperationProgression::CapabilityRevocation
+    {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::DelegationTransitionRequired,
             operation.operation(),
         ));
     }

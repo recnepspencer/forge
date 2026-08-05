@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
 
@@ -22,6 +24,7 @@ pub struct WorthQueryApplicationDisclosureDecisionFact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationDisclosureReceipt {
+    outcome_identity: Option<WorthQueryApplicationDisclosureOutcomeIdentity>,
     posture: WorthQueryApplicationDisclosureReceiptPosture,
     classification: Option<String>,
     decisions: Vec<WorthQueryApplicationDisclosureDecisionFact>,
@@ -35,6 +38,7 @@ pub struct WorthQueryApplicationDisclosureReceipt {
 impl WorthQueryApplicationDisclosureReceipt {
     pub(in crate::domain_computation) const fn public() -> Self {
         Self {
+            outcome_identity: None,
             posture: WorthQueryApplicationDisclosureReceiptPosture::Public,
             classification: None,
             decisions: Vec::new(),
@@ -73,6 +77,7 @@ impl WorthQueryApplicationDisclosureReceipt {
             .collect::<Vec<_>>();
         decisions.sort_by_key(|decision| decision.slot);
         Self {
+            outcome_identity: WorthQueryApplicationDisclosureOutcomeIdentity::mint(),
             posture: WorthQueryApplicationDisclosureReceiptPosture::Governed,
             classification: Some(classification.into()),
             decisions,
@@ -86,6 +91,10 @@ impl WorthQueryApplicationDisclosureReceipt {
 
     pub const fn posture(&self) -> WorthQueryApplicationDisclosureReceiptPosture {
         self.posture
+    }
+
+    pub const fn outcome_identity(&self) -> Option<WorthQueryApplicationDisclosureOutcomeIdentity> {
+        self.outcome_identity
     }
 
     pub fn classification(&self) -> Option<&str> {
@@ -136,5 +145,24 @@ impl WorthQueryApplicationDisclosureDecisionFact {
 
     pub const fn outcome(&self) -> WorthQueryApplicationDisclosureOutcome {
         self.outcome
+    }
+}
+static NEXT_APPLICATION_DISCLOSURE_OUTCOME_IDENTITY: AtomicU64 = AtomicU64::new(1);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct WorthQueryApplicationDisclosureOutcomeIdentity(u64);
+
+impl WorthQueryApplicationDisclosureOutcomeIdentity {
+    fn mint() -> Option<Self> {
+        NEXT_APPLICATION_DISCLOSURE_OUTCOME_IDENTITY
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .ok()
+            .map(Self)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
     }
 }

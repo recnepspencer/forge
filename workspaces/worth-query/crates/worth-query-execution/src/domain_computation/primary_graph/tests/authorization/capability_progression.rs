@@ -5,8 +5,9 @@ use worth_foundational::facade::AspectValue;
 use super::super::application_attempt::{authenticated_principal, idempotency, resolved_account};
 use super::super::fixture::{
     installed_authorization_world, installed_capability_authorization_world, live_scope, Account,
-    AccountLabel, CapabilityAction, CapabilityPurpose, CapabilityTouchInput,
-    CapabilityTouchOperation, IdentityExecutionSchema, TouchAccountCapability,
+    AccountLabel, CapabilityAction, CapabilityGovernedInputIdentity, CapabilityPurpose,
+    CapabilityTouchInput, CapabilityTouchOperation, IdentityExecutionSchema,
+    TouchAccountCapability,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
@@ -71,6 +72,11 @@ fn caller_time_cannot_substitute_for_the_query_owned_sample() {
     assert_eq!(
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+    );
+    assert!(denial.identity().is_some());
+    assert_eq!(
+        denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::PermissionDenied]
     );
 }
 
@@ -142,7 +148,12 @@ fn missing_grant_membership_mints_no_access_authority() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
+    );
+    assert!(denial.identity().is_some());
+    assert_eq!(
+        denial.causes(),
+        [WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing]
     );
 }
 
@@ -154,6 +165,7 @@ pub(super) struct AdmissionEvidence {
     canonical_encoded_bytes: usize,
     requires_capability: bool,
     ability_count: usize,
+    pub(super) canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkEvidence,
 }
 
 pub(super) fn admitted_capability_program(
@@ -162,12 +174,35 @@ pub(super) fn admitted_capability_program(
     request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
     replacement: &str,
 ) -> (Program, AdmissionEvidence) {
+    admitted_capability_program_with_governed_input(
+        world,
+        principal,
+        request,
+        replacement,
+        CapabilityGovernedInputIdentity::None,
+    )
+}
+
+pub(super) fn admitted_capability_program_with_governed_input(
+    world: &World,
+    principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    replacement: &str,
+    governed_input_identity: CapabilityGovernedInputIdentity,
+) -> (Program, AdmissionEvidence) {
     let operation = world
         .application
         .installed_schema()
         .installed_operation(CapabilityTouchOperation::reference())
         .unwrap();
-    let access = admitted_capability_access(world, principal, request, 100).unwrap();
+    let access = admitted_capability_access_with_governed_input(
+        world,
+        principal,
+        request,
+        100,
+        governed_input_identity,
+    )
+    .unwrap();
     let work = access.admission_canonical_work();
     let evidence = AdmissionEvidence {
         time_sample: access.capability_time_sample().clone(),
@@ -177,6 +212,7 @@ pub(super) fn admitted_capability_program(
         canonical_encoded_bytes: work.canonical_encoded_bytes(),
         requires_capability: operation.contracts().authorization().requires_capability(),
         ability_count: operation.contracts().ability_requirements().len(),
+        canonical_work: work,
     };
     let admission = world
         .application
@@ -221,6 +257,30 @@ pub(super) fn admitted_capability_access(
     >,
     WorthQueryOperationAuthorizationDenial,
 > {
+    admitted_capability_access_with_governed_input(
+        world,
+        principal,
+        request,
+        caller_time,
+        CapabilityGovernedInputIdentity::None,
+    )
+}
+
+pub(super) fn admitted_capability_access_with_governed_input(
+    world: &World,
+    principal: &WorthQueryAuthenticatedPrincipal<IdentityExecutionSchema, Principal, u64>,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+    caller_time: u64,
+    governed_input_identity: CapabilityGovernedInputIdentity,
+) -> Result<
+    WorthQueryAdmittedApplicationCapabilityAccess<
+        IdentityExecutionSchema,
+        TouchAccountCapability,
+        CapabilityTouchOperation,
+        CapabilityTouchInput,
+    >,
+    WorthQueryOperationAuthorizationDenial,
+> {
     let capability = world
         .application
         .installed_schema()
@@ -242,6 +302,7 @@ pub(super) fn admitted_capability_access(
             caller_time,
             request_record: "selected-request".to_owned(),
             prior_record: "selected-prior".to_owned(),
+            governed_input_identity,
         },
         request,
     )

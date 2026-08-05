@@ -123,11 +123,12 @@ impl BankIdentityRuntime {
         admission: AdmittedRecognitionOperation,
         command: RecognitionCommand,
     ) -> Result<RecognitionEffectProgram, BankEstateProgressionDenial> {
-        let projected = self.invariant_projection().project_admitted_operation(
-            &admission,
-            |reader, estate| project_recognition(reader, estate, command),
-        )
-        .map_err(BankEstateProgressionDenial::Projection)?;
+        let projected = self
+            .invariant_projection()
+            .project_admitted_operation(&admission, |reader, estate| {
+                project_recognition(reader, estate, command)
+            })
+            .map_err(BankEstateProgressionDenial::Projection)?;
         let (projection_result, projection, _) = projected.into_parts();
         projection_result.map_err(BankEstateProgressionDenial::ExecutorRecognitionProjection)?;
         let mut reads = self
@@ -170,7 +171,9 @@ impl BankIdentityRuntime {
                 &estate,
             )
             .map_err(BankEstateProgressionDenial::Attempt)?;
-        effects.finish().map_err(BankEstateProgressionDenial::Attempt)
+        effects
+            .finish()
+            .map_err(BankEstateProgressionDenial::Attempt)
     }
 }
 
@@ -181,7 +184,9 @@ struct RecognitionCommand {
     authority: LegalAuthorityId,
 }
 
-fn recognition_command(action: EstateAction) -> Result<RecognitionCommand, BankEstateProgressionDenial> {
+fn recognition_command(
+    action: EstateAction,
+) -> Result<RecognitionCommand, BankEstateProgressionDenial> {
     match action {
         EstateAction::RecognizeExecutor {
             estate,
@@ -206,10 +211,8 @@ fn project_recognition(
     estate: &WorthQueryInvariantEntityIdentity<BankSchema, EstateCase>,
     command: RecognitionCommand,
 ) -> Result<(), BankExecutorRecognitionProjectionDenial> {
-    let authority = reader.resolve_entity(
-        LegalAuthorityIdentityField::reference(),
-        command.authority,
-    )?;
+    let authority =
+        reader.resolve_entity(LegalAuthorityIdentityField::reference(), command.authority)?;
     let recognized = reader
         .decision_field(&authority, LegalAuthorityRecognizedField::reference())?
         .unwrap_or(false);
@@ -233,20 +236,21 @@ fn require_authority_estate(
 ) -> Result<(), BankExecutorRecognitionProjectionDenial> {
     let relations = reader.decision_relations_from(LegalAuthorityEstate::reference(), authority)?;
     let [relation] = relations.as_slice() else {
-        return Err(BankExecutorRecognitionProjectionDenial::RelationCardinality {
-            relation: "LegalAuthorityEstate",
-            expected: 1,
-            observed: relations.len(),
-        });
+        return Err(
+            BankExecutorRecognitionProjectionDenial::RelationCardinality {
+                relation: "LegalAuthorityEstate",
+                expected: 1,
+                observed: relations.len(),
+            },
+        );
     };
     let observed = reader
         .decision_field(relation.to(), EstateCaseIdentityField::reference())?
         .ok_or(BankExecutorRecognitionProjectionDenial::MissingEstateIdentity)?;
     if observed != expected {
-        return Err(BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch {
-            expected,
-            observed,
-        });
+        return Err(
+            BankExecutorRecognitionProjectionDenial::AuthorityEstateMismatch { expected, observed },
+        );
     }
     Ok(())
 }
@@ -261,20 +265,21 @@ fn require_authority_holder(
 ) -> Result<(), BankExecutorRecognitionProjectionDenial> {
     let relations = reader.decision_relations_from(LegalAuthorityHolder::reference(), authority)?;
     let [relation] = relations.as_slice() else {
-        return Err(BankExecutorRecognitionProjectionDenial::RelationCardinality {
-            relation: "LegalAuthorityHolder",
-            expected: 1,
-            observed: relations.len(),
-        });
+        return Err(
+            BankExecutorRecognitionProjectionDenial::RelationCardinality {
+                relation: "LegalAuthorityHolder",
+                expected: 1,
+                observed: relations.len(),
+            },
+        );
     };
     let observed = reader
         .decision_field(relation.to(), PrincipalIdentityField::reference())?
         .ok_or(BankExecutorRecognitionProjectionDenial::MissingHolderIdentity)?;
     if observed != expected {
-        return Err(BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch {
-            expected,
-            observed,
-        });
+        return Err(
+            BankExecutorRecognitionProjectionDenial::AuthorityHolderMismatch { expected, observed },
+        );
     }
     Ok(())
 }

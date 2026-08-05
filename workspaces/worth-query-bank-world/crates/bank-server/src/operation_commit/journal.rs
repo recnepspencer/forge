@@ -16,7 +16,7 @@ use worth_query_host::facade::primary_graph::{
 use super::{entity_key, BankCommitPreparationDenial};
 use crate::graph_bootstrap::{journal_key, posting_key};
 
-pub(super) fn resolve_journal_accounts<Operation, Input, Scope>(
+pub(crate) fn resolve_journal_accounts<Operation, Input, Scope>(
     reads: &mut WorthQueryApplicationReadAttempt<
         BankSchema,
         Operation,
@@ -64,7 +64,7 @@ where
     Ok(TouchedAccounts(accounts))
 }
 
-pub(super) fn lower_journal<Operation, Input, Scope>(
+pub(crate) fn lower_journal<Operation, Input, Scope>(
     effects: &mut WorthQueryApplicationEffectProgramBuilder<BankSchema, Operation, Input, Scope>,
     journal: &BankJournalEntry,
     mut accounts: TouchedAccounts,
@@ -185,7 +185,7 @@ where
     Ok(())
 }
 
-pub(super) struct TouchedAccounts(BTreeMap<AccountId, TouchedAccount>);
+pub(crate) struct TouchedAccounts(BTreeMap<AccountId, TouchedAccount>);
 
 struct TouchedAccount {
     identity: WorthQueryApplicationEntityIdentity<BankSchema, Account>,

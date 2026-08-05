@@ -2,7 +2,7 @@
 
 use worth_query_installation::facade::ApplicationSchema;
 
-use super::delegation_admission::{observe_capability, observe_elevation_upper_bound};
+use super::delegation_admission::{observe_capability, observe_retained_capability_support};
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -155,7 +155,8 @@ where
                     installed.contract.name(),
                 ));
             };
-            let result = observe_elevation_upper_bound(
+            let result = observe_retained_capability_support(
+                supporting.posture(),
                 session_identity,
                 runtime,
                 snapshot.clone(),
@@ -176,12 +177,14 @@ where
                 installed.contract.name(),
             ));
         }
-        supporting.replace_current(sample, decision).map_err(|()| {
-            denial(
-                WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
-                installed.contract.name(),
-            )
-        })
+        supporting
+            .replace_current_session(session_identity, sample, decision)
+            .map_err(|()| {
+                denial(
+                    WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+                    installed.contract.name(),
+                )
+            })
     }
 
     pub(super) fn installed_capability_plan(

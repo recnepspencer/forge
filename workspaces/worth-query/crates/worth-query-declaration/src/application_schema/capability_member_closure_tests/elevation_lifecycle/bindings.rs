@@ -15,6 +15,7 @@ pub(super) struct ReviewStatus;
 pub(super) struct Requester;
 pub(super) struct Approver;
 pub(super) struct ElevationGrant;
+pub(super) struct ElevationResource;
 pub(super) struct ElevationReview;
 pub(super) struct ReviewScope;
 pub(super) struct Reviewer;

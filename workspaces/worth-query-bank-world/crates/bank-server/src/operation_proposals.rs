@@ -18,7 +18,8 @@ use crate::BankAdmittedOperation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BankOperationProposalError {
-    Authorization(WorthQueryOperationAuthorizationDenialKind),
+    Authorization(Box<WorthQueryOperationAuthorizationDenial>),
+    AuthorizationLineageUnavailable(WorthQueryOperationAuthorizationDenialKind),
     ProjectionWorkBudgetExceeded,
     Projection(BankProjectionDenial),
     Invariant(BankProposalDenial),
@@ -27,16 +28,18 @@ pub enum BankOperationProposalError {
 
 impl From<WorthQueryOperationAuthorizationDenial> for BankOperationProposalError {
     fn from(denial: WorthQueryOperationAuthorizationDenial) -> Self {
-        Self::Authorization(denial.kind())
+        Self::Authorization(Box::new(denial))
     }
 }
 
 impl From<WorthQueryOperationProjectionDenial> for BankOperationProposalError {
     fn from(denial: WorthQueryOperationProjectionDenial) -> Self {
-        match denial.kind() {
-            WorthQueryOperationProjectionDenialKind::Authorization(kind) => {
-                Self::Authorization(kind)
-            }
+        let kind = denial.kind();
+        match kind {
+            WorthQueryOperationProjectionDenialKind::Authorization(authorization_kind) => denial
+                .into_authorization_denial()
+                .map(|denial| Self::Authorization(Box::new(denial)))
+                .unwrap_or(Self::AuthorizationLineageUnavailable(authorization_kind)),
             WorthQueryOperationProjectionDenialKind::WorkBudgetExceeded => {
                 Self::ProjectionWorkBudgetExceeded
             }
@@ -60,7 +63,17 @@ impl std::fmt::Display for BankOperationProposalError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Authorization(kind) => {
-                write!(formatter, "bank projection authorization denied: {kind:?}")
+                write!(
+                    formatter,
+                    "bank projection authorization denied: {:?}",
+                    kind.kind()
+                )
+            }
+            Self::AuthorizationLineageUnavailable(kind) => {
+                write!(
+                    formatter,
+                    "bank projection authorization lineage unavailable: {kind:?}"
+                )
             }
             Self::ProjectionWorkBudgetExceeded => {
                 formatter.write_str("bank projection work budget exceeded")

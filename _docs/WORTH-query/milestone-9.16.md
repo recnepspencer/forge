@@ -956,7 +956,11 @@ bank-local commit path ahead of Runtime Hardening Phase 4.
 - private causal binding of each invariant witness to the exact in-memory
   snapshot basis used to mint it; an independently built snapshot with the
   same descriptive version is not the same basis;
-- typed idempotency intent bound to the authenticated operation.
+- typed idempotency intent bound privately to the exact installed-operation
+  authority identity, authenticated principal and typed scope, mutation
+  preconditions, governed application input, and any Query-owned lifecycle
+  proposal in fixed, non-aliasing component slots; the caller-supplied key and
+  business intent cannot omit or substitute those components.
 - no authoritative mutation or `Committed`/`AlreadyCommitted` outcome before
   provider compare-and-commit.
 
@@ -992,7 +996,20 @@ provider-proven compare-and-commit progression.
 - **4.3 — Idempotent terminal resolution.** Bind the typed operation intent to
   an authoritative idempotency record in the same provider transaction and
   resolve equivalent retries, payload drift, response loss, and ambiguous
-  provider outcomes without guessing.
+  provider outcomes without guessing. Provider intent composition uses fixed,
+  domain-labeled slots for the installed-operation authority identity,
+  operation scope (runtime, installation, authenticated principal, and typed
+  scope), typed mutation preconditions, governed input identity, and lifecycle
+  proposal identity. An absent slot is distinct from every present slot, two
+  slot kinds containing identical bytes cannot alias, and the same caller key
+  and business intent cannot cross installed operations, principals, or
+  scopes.
+  A governed input identity is materialized exactly once during capability
+  admission. Injective fixed-width identities report zero canonical work;
+  identities derived through the Foundational canonical digest front door
+  carry that exact bounded digest work in the admission phase. Operation
+  progression, provider commit, retry resolution, and projection retain the
+  admitted bytes and must not rederive the identity or recount its work.
 - **4.4 — Derived accounting truth and conflict dependency.** Remove stored
   available balance as an authoritative decision field. Reconstruct monetary
   balance only from the installed journal, posting, and posting-account graph.
@@ -2173,12 +2190,14 @@ ledger.
 
 ```text
 worth-query-declaration/src/application_capability/
-    capability.rs
+    contract.rs
     scope.rs
-    purpose.rs
     disclosure.rs
     delegation.rs
+    delegation_transition.rs
     elevation.rs
+    elevation_lifecycle.rs
+    elevation_transition.rs
 
 worth-query-installation/src/application_capability/
     canonical_basis.rs
@@ -2191,23 +2210,90 @@ worth-query-installation/src/application_capability/
     elevation.rs
 
 worth-query-execution/src/domain_computation/authorization/
-    access_context.rs
     capability_admission.rs
-    purpose_context.rs
-    decision_facts.rs
+    capability_decision_fact.rs
+    retained_capability_support.rs
+    authorization_revalidation/
+        currentness.rs
     disclosure_admission.rs
-    delegation_admission.rs
+    delegation_admission/
+        discovery.rs
+        transition.rs
+    delegation_progression/
+        binding.rs
+        narrowing.rs
+        support.rs
     conflict_admission.rs
-    elevation_progression.rs
-    currentness.rs
-    time_basis.rs
+    elevation_progression/
+        request.rs
+        approval.rs
+        elevation_close.rs
+        mandatory_review.rs
+        upper_bound.rs
+
+worth-query-execution/src/domain_computation/primary_graph/application_attempt/
+    delegation_activation_program.rs
+    capability_revocation_program.rs
+    elevation_request_program.rs
+    elevation_approval_program.rs
+    elevation_close_program.rs
+    mandatory_review_program.rs
+    provider_execution/
+        decision_facts.rs
+        delegation_activation.rs
+        capability_revocation.rs
+        elevation_lifecycle.rs
 
 worth-query-publication/src/application_authorization/
     disclosed_result.rs
     omission.rs
     explanation.rs
     boundary_evidence.rs
+
+worth-query-bank-world/crates/bank-domain/src/schema/estate/
+    capability_contract_installation.rs
+    capability_elevation.rs
+    operation_program_installation/
+        lifecycle.rs
+        delegation.rs
+        capability_revocation.rs
+
+worth-query-bank-world/crates/bank-domain/src/queries/estate/
+    emergency_account_details.rs
+
+worth-query-bank-world/crates/bank-server/src/
+    application_query/governed_execution/
+        estate_governance.rs
+        elevated_restricted_estate.rs
+    estate_progression/
+        request.rs
+        approval.rs
+        close.rs
+        review.rs
+        delegation/
+            activation.rs
+            authorization.rs
+            revocation.rs
 ```
+
+The existing elevation declaration, progression, programs, provider owner, and
+Bank lifecycle files remain. `retained_capability_support.rs` is created by
+extracting the independently refreshable supporting-authority owner from the
+broader capability decision; both elevation and delegation consume it without
+erasing their distinct lifecycle bindings. `delegation_progression/support.rs`
+is created for only the proposed child, exact parent/lineage, narrowing, and
+target-timeline binding. `capability_revocation_program.rs`, its provider
+counterpart, the emergency account-details query and governed executor, and the
+Bank delegation `activation.rs` / `revocation.rs` siblings are committed
+successor files. The current flat dirty delegation progression is replaced by
+that directory rather than preserved as a second entry path.
+
+Provider files own final comparison and effect admission, never policy
+reconstruction. Bank's governed-query files are public composition roots; Bank
+operation-program declarations describe domain effects but cannot construct
+Query authority. Flat `helpers`, `common`, parallel Bank authorization
+executors, and application-maintained copies of installed obligation meaning
+are forbidden.
 
 These are semantic ownership boundaries, not permission-themed bags.
 `application_capability/` declares and installs application-defined authority
@@ -2346,6 +2432,18 @@ It must:
 - make parent revocation or expiry invalidate every dependent admission without
   scanning unrelated grants or trusting a cached positive decision.
 
+The later Bank activation command must consume this narrowing meaning without
+collapsing it into command authorization. Authority to issue the delegation
+command, the exact current parent authority, and the complete proposed child
+upper bound are separate inputs. A child may be created or activated only by
+an installed effect program after the parent, lineage, and every narrowing
+dimension have been revalidated with fresh trusted time through idempotency and
+provider commit. The installed activation contract must mechanically own its
+complete graph-read and create/write/link obligation set; an application-owned
+inventory beside that contract is not closure evidence. Revocation must be a
+real status transition whose currentness consequence cuts off both the exact
+grant and dependent descendants.
+
 Proof requires depth and width attacks, copied-parent attacks, purpose and field
 widening, validity extension, provenance substitution, and revocation after a
 previously lawful admission. Warm admission work must depend on the declared
@@ -2395,6 +2493,22 @@ It must:
   preserving a separately authorized, immutable governed upper bound; a grant
   for the upper bound cannot authorize request, approval, revocation, or review,
   and a transition-command grant cannot widen or replace the upper bound;
+- retain the governed upper bound as independently refreshable decision
+  evidence and revalidate its exact grant, policy path, resource, purpose,
+  scope, field, action, and Query-owned trusted-time currentness before every
+  approval, close or expiry, mandatory-review, provider-commit, active-use, and
+  delivery boundary; immutable meaning does not make an earlier allow decision
+  timeless;
+- type and resolve the transition command target and the governed upper-bound
+  target independently: their actions, purposes, resources, scope types, and
+  contexts may differ, while exact lifecycle entity slots and the consumed
+  receipt bind the command to the transition it may progress; equality of the
+  command resource and governed resource is neither authority nor a required
+  affinity rule;
+- revalidate time-dependent lifecycle decisions after equivalent-idempotency
+  recovery and before provider effects: request and approval must still be
+  inside the exact request window, and close must still classify the same
+  `Revoked` or `Expired` terminal state from fresh Query-owned time;
 - require a non-conflicted distinct approver and preserve the ordinary
   capability, disclosure, invariant, irreversible-commit, and provider
   boundaries underneath the elevated upper bound;
@@ -2433,6 +2547,33 @@ It must:
   command input or query parameter authority consumed downstream; Bank
   adapters cannot submit a narrower authorization summary beside a wider
   operation;
+- keep estate-disbursement command authorization and effect integrity
+  orthogonal: capability traversal is bounded by the exact estate, source
+  account relation, purpose, and amount ceiling, while private governed-input
+  identity additionally binds the operation variant, destination,
+  beneficiary, and both ordered posting accounts and signed amounts;
+- install estate disbursement as a distinct double-entry accounting program,
+  not an alias for ordinary transfer: the combined pre-effect decision
+  boundary must prove the open estate and its unique source account, distinct
+  open source and destination accounts, revision-matched journal-derived
+  balances, the selected estate beneficiary's joint ownership of the
+  destination, and at least one recognized exact executor authority before
+  emitting a balanced `EstateDisbursement` journal, two postings, both
+  revision advances, and both account-activity effects; the Bank projection
+  owns graph and account-snapshot truth while the pure domain proposal owns
+  open/distinct-account and balanced-posting validation;
+- treat the same-estate legal-authority set as fail-closed authoritative
+  input: unrecognized records do not qualify, malformed candidate records deny
+  rather than being hidden by a different valid candidate, and multiple valid
+  candidates select one deterministic authority/executor pair whose exact
+  estate, holder, and executor relations are reobserved before effects;
+- use `AccountingRevision` as the exclusive currentness token for the
+  journal-derived account aggregate only while installation proves that every
+  lawful `PostingAmount` or `PostingAccount` writer is the shared money-
+  movement program, creates immutable posting truth, and atomically advances
+  every touched account revision; projection must require aggregate source
+  count to equal revision, and provider comparison must stale a retained
+  disbursement after any lawful posting change;
 - preserve required-versus-optional field presence through application-query
   result declaration, canonical installation, disclosure, and domain
   projection; lawful schema absence is `None`, policy denial is a typed
@@ -2445,12 +2586,295 @@ It must:
 - re-admit the strengthened access context for one-shot, continuation,
   historical, preview, and live lanes without changing canonical query
   identity or result meaning;
+- install one estate-scoped emergency-access activity query whose naturally
+  many lifecycle children and exact lifecycle effect correspondence make all
+  five lanes truthful; ordinary account activity or multiple differently
+  governed queries cannot be composed to impersonate this proof;
 - preserve exact authorization and disclosure facts through commit,
   continuation, history, preview, publication, and every live payload;
 - remove or privatize superseded monolith and application-owned authority
   paths, then prove the destination dependency direction; and
 - preserve bounded warm authorization work as unrelated grants,
   relationships, fields, cases, and consumers grow.
+
+Phase 7.7 closes through ordered vertical gates. Gate A completes the public
+Bank emergency journey before delegation expands the same authority machinery.
+Gate B completes effectful delegation activation and revocation. Gate C proves
+cross-lane re-admission and delivery cutoff. Gate D closes publication,
+explanation, performance, oracle-removal, and residue evidence. A later gate
+cannot lend closure to an earlier incomplete authority or effect boundary.
+
+Gate A's decisive public courtroom is one production Bank journey:
+
+1. request an exact restricted-estate field using separate command and governed
+   upper-bound grants;
+2. prove on a causal twin that revoking or expiring the exact governed support
+   after request prevents approval even while an equivalent alternate grant
+   remains current, while the lawful branch approves through a distinct,
+   non-conflicted command-authorized actor;
+3. consume the lawful approved elevation through the real public query facade
+   for the exact field while a wider field and forbidden action deny;
+4. revoke or expire the exact governed support after approval, deny later
+   one-shot use without accepting an equivalent alternate grant, then close the
+   elevation through its independently authorized close command;
+5. independently read back the exact terminal elevation and mandatory-review
+   state;
+6. complete the exact review through a distinct authorized reviewer; and
+7. deny repeated, copied, substituted, or wrong-review completion.
+
+Every transition in that courtroom must cross command admission, lifecycle
+authorization, invariant projection, an exact effect program, provider
+compare-and-commit, and authoritative graph readback. A commit receipt without
+independent poststate observation, a declaration-only command, or a no-op
+program is not consumer closure.
+
+The Gate A caller-facing target is the ordinary Bank query workflow with one
+explicit approved-elevation input, not a lifecycle-only executor or a second
+query API:
+
+```rust
+let requested = bank.request_estate_emergency_access(
+    &requester,
+    request_action,
+    request_idempotency,
+    &scope,
+)?;
+let approved = bank.approve_estate_emergency_access(
+    &approver,
+    requested.requested()?,
+    approval_action,
+    approval_idempotency,
+    &scope,
+)?;
+let disclosed = bank
+    .query(estate_emergency_account_details(estate))
+    .as_principal(&requester)
+    .controls(read_controls)
+    .execute_with_approved_elevation(approved.approved()?)?;
+```
+
+`execute_with_approved_elevation` borrows the exact approved receipt and lowers
+through the same installed query and lane progression as ordinary governed
+execution. It can open only the exact requested field and purpose. It neither
+consumes close authority nor manufactures a reusable access token.
+
+Gate B must independently deny missing delegation-command authority and
+missing, stale, or unlawful parent authority. It must bind the complete child
+proposal into idempotency, refresh the exact parent and lineage before commit,
+create or activate the child only after narrowing succeeds, perform an exact
+`Active -> Revoked` transition, and prove immediate direct and descendant
+cutoff through authoritative readback. The new semantic surface must re-prove
+the inherited Milestone 9.16.1 obligation-closure, session, exact-read-set, and
+provider-currentness contracts; historical closure of those contracts for
+earlier surfaces is not evidence for delegation activation.
+
+Gate C owns one canonical `EstateEmergencyAccessActivityQuery` across one-shot,
+continuation, history, preview, and live cutoff. Its capability field is the
+new highly restricted `EmergencyAccessActivity`, permitted only for
+`EmergencyProtection`; it must not widen `PostingHistory` or borrow ordinary
+`ViewAccount` authority. The query is scoped to one exact estate and projects
+its naturally many emergency-access lifecycles through a direct authoritative
+`EmergencyEstate` relation. Each activity projects only the access identity,
+reason, status, issued-at and expires-at bounds, plus its exact mandatory-review
+identity and status. Requester, approver, and reviewer identities remain outside
+this result. Ordering is issued-at followed by access identity, and
+continuation targets the many emergency-access relation rather than a synthetic
+event log or a singular estate relation. Because those two fields control the
+stable order consumed by every supported lane, their disclosure contracts
+permit exactly `Ordering`, `Pagination`, `HistoricalMembership`, `Preview`, and
+`LiveMembership`; this is ordering-influence authority, not permission to
+disclose another result field. The estate identity permits only
+`LiveMembership`, the many relation permits only `Pagination`, and every other
+projected field or relation forbids observable influence.
+
+`EmergencyEstate` is not a caller-authored convenience edge. The elevation
+definition declares it as the exact governed-resource relation, Query creates it
+inside the typed request program, and approval, close, review, and governed-use
+currentness revalidate the same edge. Missing, duplicated, or retargeted estate
+ownership denies; Bank cannot install or mutate a parallel ownership link.
+
+Request, approval, close, and mandatory-review completion each change this
+query's result and therefore emit one exact
+`EstateEmergencyAccessActivityEffect { estate, access }`. Query installation
+must include that typed emission in the framework-owned lifecycle program.
+Query derives its payload from the already-bound transition input and retained
+lifecycle lineage; Bank cannot append, omit, retarget, or otherwise author an
+emission beside the typed lifecycle program. The live cause binds the effect's
+estate identity to the query scope and its access identity to the exact result
+child. An operation without the installed effect obligation, an extra caller-
+authored effect, or a mismatched estate/access payload denies before commit.
+
+For every lane, the same installed query, scope, parameters, result shape,
+ordering, disclosure contract, capability purpose, and approved elevation must
+be retained. The Bank request carries both the estate and exact emergency-access
+identity used to compare the borrowed approved receipt; neither is accepted as
+a second loose executor argument. Historical and preview support for the exact-one emergency
+account-details query and ordinary AccountActivity continuation/live tests are
+supporting lower-bound evidence only; they cannot compose to close Gate C or
+R7.14 because their query identity or authority meaning differs.
+
+The continuation cutoff must readmit the next page, revoke or expire the exact
+governed support while an equivalent alternate remains active, and then obtain
+typed stale-authorization denial before page execution returns any row. The
+live cutoff must open under the same approved elevation, queue a real matching
+lifecycle cause, remove the exact support before polling, deny before the queued
+payload, transition the lease to `Closed`, and restore basis, buffer, and live-
+lease resource baselines. The lawful twin aggregates every continuation page
+and compares one-shot, historical, preview, and live result meaning plus exact
+installed query identity and lane posture. Gate A's one-shot courtroom cannot
+lend closure to those contracts.
+
+The intended production surface remains Bank-shaped while retaining Query's
+opaque move-only authorities:
+
+```rust
+let activity = bank
+    .query(estate_emergency_access_activity(estate, access))
+    .as_principal(&requester)
+    .controls(read_controls);
+
+let first = activity.page_with_approved_elevation(approved.approved()?)?;
+let next = bank
+    .query(estate_emergency_access_activity(estate, access))
+    .as_principal(&requester)
+    .resume_with_approved_elevation(
+        approved.approved()?,
+        first.continuation()?,
+        resume_controls,
+    )?;
+let live = bank
+    .query(estate_emergency_access_activity(estate, access))
+    .as_principal(&requester)
+    .subscribe_with_approved_elevation(approved.approved()?, live_controls)?;
+```
+
+The destination topology is responsibility-shaped:
+
+```text
+bank-domain/src/queries/estate/emergency_access_activity.rs
+bank-domain/src/queries/estate/emergency_access_activity/
+    selectors.rs
+    shape.rs
+    projection.rs
+    live_cause.rs
+bank-domain/src/schema/estate/effects/
+    death_notification.rs
+    emergency_access_activity.rs
+bank-server/src/application_query/governed_execution/emergency_access_activity/
+    admission.rs
+    bounded.rs
+    continuation.rs
+    live.rs
+bank-server/src/estate_capability_admission/elevated_activity_lanes/
+    parity.rs
+    continuation_cutoff.rs
+    live_cutoff.rs
+```
+
+Gate D's estate-release consumer is an executable Query mutation, not a Bank
+oracle verdict or a declaration-only capability. `ReleaseEstate` names one
+exact estate plus the executor, legal-authority, and completed-release-review
+witnesses selected for that attempt. Those witnesses are retained operation
+input and effect-integrity evidence. They are not capability context, command
+authority targets, or lifecycle authority, and their existence must not be
+resolved while authorizing the estate-scoped release command.
+
+The installed release program must:
+
+- derive the selected witnesses from the input retained inside the admitted
+  operation rather than accepting a second copied command beside admission;
+- privately bind the exact estate, executor, legal-authority, and review input
+  tuple into idempotency in addition to the installed release-operation
+  identity, so changing any selected witness cannot recover an earlier commit
+  before projection;
+- require the exact estate to be `Open`, the selected principal to have the
+  exact executor relation to that estate, and the selected recognized legal
+  authority to have exactly that holder and estate;
+- require the selected review to have kind `EstateRelease`, status `Completed`,
+  exactly one relation to the target estate, and exactly one reviewer;
+- retain every field and exact relation that influenced readiness through
+  provider comparison, then write only `EstateCaseStatusField` from `Open` to
+  `Released`;
+- admit lawful co-executors and unrelated reviews without enumerating them into
+  the selected release proof; and
+- publish typed integrity denial for a missing, unrecognized, mismatched,
+  incomplete, wrong-kind, retargeted, or malformed selected witness rather than
+  collapsing those failures into command authorization or a Bank-local boolean.
+
+The declared projection ceiling applies only to causally selected witness
+truth. Unrelated executors, authorities, cases, grants, reviews, fields, and
+consumers must contribute zero release decision facts and cannot exhaust that
+ceiling. External proof must include authoritative exact-estate readback,
+equivalent retry, intent drift, conflict and separation denial, malformed
+witness denial, related and unrelated scale, provider currentness, and
+exact-zero warm canonical-basis and digest work. Static installation proof must
+enumerate the complete role composition, exact decision-read inventory, and
+sole status-write obligation rather than asserting only their counts.
+
+Gate D publication must preserve a closed ten-family outcome taxonomy:
+missing capability, explicit safe scope mismatch, purpose mismatch, conflict,
+separation of duty, field omission, elevation required, elevation denied,
+elevation expired, and review required. These are authorization, disclosure,
+elevation, and review outcomes, not ten interchangeable denials. Field omission
+is a successful governed disclosure outcome, and review required is the
+successful result of a close transition. Publication must not turn either into
+a failed operation.
+
+Query execution must mint the explanation cause while it still owns the exact
+installed rule and retained decision evidence. Signal must retain the exact
+per-rule evaluation result it owns, Runtime Bridge must preserve that result
+with its correspondence evidence, and Query must map the installed semantic
+rule role and exact evaluated result into one closed non-authoritative cause.
+Missing-capability, purpose, conflict, or separation meaning may not be guessed
+from `PermissionDenied`, a subject string, diagnostic code, or a later graph
+inspection. The public result retains the original typed Query outcome and its
+exact outcome identity beside the descriptive publication.
+
+When more than one rule rejects the same attempt, Query publishes one primary
+cause without erasing the ordered exact cause set retained internally. Request-
+shape causes precede graph causes because they are known without observation.
+For graph decisions, absence of the exact required grant precedes prohibited
+rule matches so a caller without baseline authority cannot learn protected
+conflict relationships. Otherwise installed semantic order is deny, conflict,
+separation of duty, distinct actor, and elevation-specific posture. Distinct-
+actor remains an exact internal subkind of the public separation-of-duty
+family; it may not be mislabeled as conflict.
+
+`ScopeMismatch` is publishable only when an explicit mismatch is already
+present in admitted request or grant evidence. Query and publication must not
+search unrelated grants merely to distinguish missing authority from authority
+held over another scope; such a search would add undeclared work and disclose
+protected grant existence. Purpose mismatch follows the same retained-evidence
+rule. Field-omission explanation may reveal only its already-admitted typed
+omission posture, never the protected value or a wider disclosure decision.
+
+Foundational lowering must distinguish two independent facts for a denial: the
+governed operation or query did not execute, while publication of its
+description did complete. A denied or blocked closeout therefore cannot report
+the `Executed` posture or attest effects. Query publication must use the
+truthful Foundational closeout category, diagnostic outcome and denial class,
+provenance, target-aware profile, and denied receipt disposition. Exact or
+narrowed profiles may materialize; widening must fail before publication.
+Foundational material remains descriptive and cannot be promoted into Query
+capability, admission, operation, elevation, review, disclosure, provider, or
+receipt authority.
+
+Proof requires an exhaustive Query-publication table over all ten families,
+one-axis cause and non-aliasing twins at the real decision boundary, exact
+Foundational category/diagnostic/provenance/profile/receipt assertions,
+string-independence, no post-denial graph work, protected-value
+noninterference, and compile/runtime non-promotion. The public Bank transcript
+must exercise ordinary missing-capability, scope, purpose, conflict, and
+separation outcomes; a governed query with an actually omitted field; and an
+emergency journey covering an explicitly enumerated elevation-denied subkind,
+elevation expired, and the successful review-required close result. Bank's
+approved-elevation query intentionally has no no-elevation overload, so
+compile-fail consumer evidence proves elevation cannot be omitted at that
+front door; the exact `ElevationRequired` runtime outcome is proved at Query's
+public generic admission boundary rather than by inventing a second Bank API.
+Denied mutations must prove zero effects. Phase 8 non-authorization outcomes
+and Gate D's complete scale, residue, and external certification remain
+outside this focused publication slice.
 
 The hostile consumer evidence must exercise purpose, field, missing-resource,
 related-entity, amount-ceiling, and context-conflict attacks at their truthful

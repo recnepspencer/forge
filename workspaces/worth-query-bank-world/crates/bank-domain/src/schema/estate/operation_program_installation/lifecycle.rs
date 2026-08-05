@@ -90,6 +90,7 @@ where
     EmergencyRequester: worth_query_decl::facade::application_schema::OperationReads<Operation>,
     EmergencyApprover: worth_query_decl::facade::application_schema::OperationReads<Operation>,
     EmergencyGrant: worth_query_decl::facade::application_schema::OperationReads<Operation>,
+    EmergencyEstate: worth_query_decl::facade::application_schema::OperationReads<Operation>,
     EmergencyReview: worth_query_decl::facade::application_schema::OperationReads<Operation>,
     ReviewEstate: worth_query_decl::facade::application_schema::OperationReads<Operation>,
     ReviewPrincipal: worth_query_decl::facade::application_schema::OperationReads<Operation>,
@@ -108,6 +109,7 @@ where
         .operation_read_relation(operation, EmergencyRequester::reference())
         .operation_read_relation(operation, EmergencyApprover::reference())
         .operation_read_relation(operation, EmergencyGrant::reference())
+        .operation_read_relation(operation, EmergencyEstate::reference())
         .operation_read_relation(operation, EmergencyReview::reference())
         .operation_read_relation(operation, ReviewEstate::reference())
         .operation_read_relation(operation, ReviewPrincipal::reference())

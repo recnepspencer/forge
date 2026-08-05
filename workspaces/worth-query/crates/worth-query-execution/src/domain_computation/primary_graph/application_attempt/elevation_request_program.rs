@@ -7,6 +7,7 @@ use worth_relational::facade::transactions::{CreatedEntityRef, EntityReference};
 
 use super::effect_program::WorthQueryApplicationRealizedEffect;
 use super::effect_validation::{canonical_key, denial};
+use super::elevation_lifecycle_emission::{append_lifecycle_emission, lifecycle_emission_is_exact};
 use super::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationEffectProgram, WorthQueryCompleteApplicationReadSet,
@@ -43,7 +44,7 @@ impl<Schema, Operation, Input, Scope>
             .elevation_request_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
         validate_installed_program(binding, self.admission.allowed_graph_contract().program())?;
-        let effects = request_effects(binding)?;
+        let mut effects = request_effects(binding)?;
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -51,10 +52,16 @@ impl<Schema, Operation, Input, Scope>
             .expect("installed application operation has exactly one execution strategy")
             .envelope()
             .resource_ceiling(WorthQueryResourceDimension::RetainedBytes);
+        let emission_retained_bytes = append_lifecycle_emission(
+            &mut effects,
+            binding.lifecycle_effect.as_ref(),
+            emission_retained_bytes_ceiling,
+            self.admission.operation(),
+        )?;
         let program = WorthQueryApplicationEffectProgram {
             read_set: self,
             effects,
-            emission_retained_bytes: 0,
+            emission_retained_bytes,
             emission_retained_bytes_ceiling,
         };
         validate_elevation_request_program(&program)?;
@@ -86,9 +93,18 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_request_p
         .elevation_request_binding()
         .ok_or_else(|| transition_required(program.read_set.admission.operation()))?;
     let expected = request_effects(binding)?;
-    if same_effects(&program.effects, &expected)
-        && program.emission_retained_bytes == 0
-        && expected.len() == 6
+    let base_count = 6 + usize::from(binding.resource_relation.is_some());
+    if expected.len() == base_count
+        && program
+            .effects
+            .get(..base_count)
+            .is_some_and(|actual| same_effects(actual, &expected))
+        && lifecycle_emission_is_exact(
+            &program.effects,
+            base_count,
+            binding.lifecycle_effect.as_ref(),
+            program.emission_retained_bytes,
+        )
     {
         Ok(())
     } else {
@@ -124,7 +140,7 @@ fn request_effects(
     let review = created(binding.review_kind, &review_key);
     let elevation_fields = elevation_fields(binding)?;
     let review_fields = review_fields(binding)?;
-    Ok(vec![
+    let mut effects = vec![
         WorthQueryApplicationRealizedEffect::CreateEntity {
             kind: binding.elevation_kind,
             key: elevation_key.clone(),
@@ -150,7 +166,7 @@ fn request_effects(
         WorthQueryApplicationRealizedEffect::CreateRelation {
             kind: binding.review_relation,
             key: elevation_key.clone(),
-            from: elevation,
+            from: elevation.clone(),
             to: review.clone(),
         },
         WorthQueryApplicationRealizedEffect::CreateRelation {
@@ -159,7 +175,16 @@ fn request_effects(
             from: review,
             to: EntityReference::Existing(binding.resource()),
         },
-    ])
+    ];
+    if let Some(resource_relation) = binding.resource_relation {
+        effects.push(WorthQueryApplicationRealizedEffect::CreateRelation {
+            kind: resource_relation,
+            key: elevation_key,
+            from: elevation,
+            to: EntityReference::Existing(binding.resource()),
+        });
+    }
+    Ok(effects)
 }
 
 fn elevation_fields(

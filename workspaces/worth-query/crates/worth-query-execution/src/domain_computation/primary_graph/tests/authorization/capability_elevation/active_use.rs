@@ -73,3 +73,97 @@ fn approved_touch_elevation_cannot_authorize_a_disbursement_request() {
         WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected
     );
 }
+
+#[test]
+fn missing_direct_elevation_resource_denies_active_admission() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world.application.script_authorization_time([time(100)]);
+    let principal = authenticated_principal(&world, &request);
+    super::mutation::replace_elevation_resource(&world, "elevation-2", None);
+
+    let denial = super::admit(&world, &approved, &principal, &request, Some("elevation-2"))
+        .err()
+        .expect("active authority requires the exact direct elevation resource");
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationInactive
+    );
+}
+
+#[test]
+fn additional_foreign_elevation_resource_denies_fresh_active_admission() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world.application.script_authorization_time([time(100)]);
+    let principal = authenticated_principal(&world, &request);
+    super::mutation::add_elevation_resource(&world, "elevation-2", "account-2");
+
+    let denial = super::admit(&world, &approved, &principal, &request, Some("elevation-2"))
+        .err()
+        .expect("active authority requires the complete resource adjacency to remain exact");
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationInactive
+    );
+}
+
+#[test]
+fn retargeted_direct_elevation_resource_stales_admitted_authority() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time([time(100), time(100)]);
+    let principal = authenticated_principal(&world, &request);
+    let access =
+        super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
+    super::mutation::replace_elevation_resource(&world, "elevation-2", Some("account-2"));
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(
+            super::super::super::fixture::ElevatedCapabilityTouchOperation::reference(),
+        )
+        .unwrap();
+
+    let denial = world
+        .application
+        .authorize_capability_operation(access, &operation, Default::default())
+        .err()
+        .expect("retargeting the direct resource must stale admitted authority");
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+    );
+}
+
+#[test]
+fn additional_foreign_elevation_resource_stales_admitted_authority() {
+    let (mut world, request, approved) = super::approval_transition::exact_approved_world();
+    world
+        .application
+        .script_authorization_time([time(100), time(100)]);
+    let principal = authenticated_principal(&world, &request);
+    let access =
+        super::admit(&world, &approved, &principal, &request, Some("elevation-2")).unwrap();
+    super::mutation::add_elevation_resource(&world, "elevation-2", "account-2");
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(
+            super::super::super::fixture::ElevatedCapabilityTouchOperation::reference(),
+        )
+        .unwrap();
+
+    let denial = world
+        .application
+        .authorize_capability_operation(access, &operation, Default::default())
+        .err()
+        .expect("an additive resource edge must stale the exact retained adjacency");
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization
+    );
+}

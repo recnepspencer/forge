@@ -144,6 +144,20 @@ impl WorthQueryCanonicalWorkPhases {
         self.execution
     }
 
+    pub const fn with_execution_work(self, work: WorthQueryCanonicalWorkEvidence) -> Self {
+        Self {
+            installation: self.installation,
+            admission: self.admission,
+            execution: self.execution.combine(work),
+            provider_commit: self.provider_commit,
+            projection: self.projection,
+            live_delivery: self.live_delivery,
+            retry_resolution: self.retry_resolution,
+            recovery_inspection: self.recovery_inspection,
+            publication: self.publication,
+        }
+    }
+
     pub const fn provider_commit(self) -> WorthQueryCanonicalWorkEvidence {
         self.provider_commit
     }

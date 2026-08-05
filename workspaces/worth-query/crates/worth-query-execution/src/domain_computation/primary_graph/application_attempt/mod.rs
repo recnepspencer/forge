@@ -1,5 +1,7 @@
+mod capability_revocation_program;
 mod commit_terminal;
 mod compare_and_commit;
+mod delegation_activation_program;
 mod denial;
 mod effect_program;
 mod effect_validation;
@@ -8,6 +10,7 @@ mod elevation_approval_program;
 mod elevation_close_outcome;
 mod elevation_close_program;
 mod elevation_lifecycle_effects;
+mod elevation_lifecycle_emission;
 mod elevation_lifecycle_facts;
 mod elevation_request_outcome;
 mod elevation_request_program;
@@ -26,6 +29,7 @@ mod read_scope;
 mod read_set;
 pub(super) mod snapshot_lease;
 
+pub use capability_revocation_program::WorthQueryCapabilityRevocationProgram;
 pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
 };
@@ -35,6 +39,7 @@ pub use compare_and_commit::{
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationStaleAttempt,
 };
+pub use delegation_activation_program::WorthQueryDelegationActivationProgram;
 pub use denial::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
 pub(in crate::domain_computation::primary_graph) use effect_program::{
     WorthQueryAdmittedApplicationEmissionBatch, WorthQueryApplicationEmission,

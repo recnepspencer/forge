@@ -5,16 +5,14 @@ use super::entities::{
 };
 use super::fields::{
     AccountAuthorizationIdentity, AccountDisplayName, AccountIdentity, AccountingRevision,
-    AuthorizationRole, JournalIdentityField, JournalPurpose, Kind, PaymentAmount,
-    PaymentIdentityField, PaymentStatusField, PostingAccountSequence, PostingAmount,
-    PostingIdentityField, Purpose, Status,
+    AuthorizationRole, Kind, PaymentAmount, PaymentIdentityField, PaymentStatusField, Status,
 };
-use super::governance::AccountActivityEffect;
+use super::money_movement_program::MoneyMovementProgram;
 use super::operations::*;
 use super::relations::{
     AccountAuthorizedUser, ApprovalPrincipal, AuthorizationAccount, BusinessAccount,
-    InstitutionAccount, JournalPosting, JournalReversal, PaymentApproval, PaymentBusiness,
-    PaymentDestination, PaymentInitiator, PaymentSource, PersonalOwner, PostingAccount,
+    InstitutionAccount, JournalReversal, PaymentApproval, PaymentBusiness, PaymentDestination,
+    PaymentInitiator, PaymentSource, PersonalOwner,
 };
 use super::BankSchema;
 
@@ -237,70 +235,4 @@ fn install_authorization_program(
             RevokeAccountAuthorizationOperation::reference(),
             AccountAuthorization::reference(),
         )
-}
-
-trait MoneyMovementProgram {
-    fn money_movement_program<Operation, Input>(
-        self,
-        operation: worth_query_decl::facade::application_schema::ApplicationOperationRef<
-            BankSchema,
-            Operation,
-            Input,
-        >,
-    ) -> Self
-    where
-        JournalIdentityField:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        JournalPurpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingIdentityField:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingAmount: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingAccountSequence:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        Purpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        AccountingRevision:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        JournalPosting: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
-        PostingAccount: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
-        AccountActivityEffect:
-            worth_query_decl::facade::application_schema::OperationEmits<Operation>;
-}
-
-impl MoneyMovementProgram for ApplicationSchemaDeclarationBuilder<BankSchema> {
-    fn money_movement_program<Operation, Input>(
-        self,
-        operation: worth_query_decl::facade::application_schema::ApplicationOperationRef<
-            BankSchema,
-            Operation,
-            Input,
-        >,
-    ) -> Self
-    where
-        JournalIdentityField:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        JournalPurpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingIdentityField:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingAmount: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        PostingAccountSequence:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        Purpose: worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        AccountingRevision:
-            worth_query_decl::facade::application_schema::OperationWrites<Operation>,
-        JournalPosting: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
-        PostingAccount: worth_query_decl::facade::application_schema::OperationLinks<Operation>,
-        AccountActivityEffect:
-            worth_query_decl::facade::application_schema::OperationEmits<Operation>,
-    {
-        self.operation_write(operation, PostingAmount::reference())
-            .operation_write(operation, PostingAccountSequence::reference())
-            .operation_write(operation, PostingIdentityField::reference())
-            .operation_write(operation, Purpose::reference())
-            .operation_write(operation, JournalIdentityField::reference())
-            .operation_write(operation, JournalPurpose::reference())
-            .operation_write(operation, AccountingRevision::reference())
-            .operation_link(operation, JournalPosting::reference())
-            .operation_link(operation, PostingAccount::reference())
-            .operation_emit(operation, AccountActivityEffect::reference())
-    }
 }

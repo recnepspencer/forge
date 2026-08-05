@@ -185,6 +185,7 @@ where
             operation.binding_identity().clone(),
             operation.operation().to_string(),
             operation.authority_identity().to_string(),
+            operation.authority_identity_bytes(),
             operation_scope_binding(self, principal, scope_identity, operation),
             scope_identity.entity_id(),
             scope_identity.entity_kind(),
@@ -195,6 +196,7 @@ where
             preconditions,
             worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero(),
             authorization,
+            None,
             WorthQueryOperationAuthorizationBasis::Conventional,
             graph_work,
         ))

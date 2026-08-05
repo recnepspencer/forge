@@ -3,7 +3,8 @@
 use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
 use worth_query_installation::facade::{
-    ApplicationSchema, TypedApplicationValue, WorthQueryInstalledApplicationCapability,
+    ApplicationSchema, TypedApplicationValue, WorthQueryCanonicalWorkEvidence,
+    WorthQueryInstalledApplicationCapability,
 };
 
 use super::admission::admit_request;
@@ -120,6 +121,7 @@ where
                 capability.contract().name(),
             ));
         }
+        let governed_input_identity = input.governed_input_identity();
         let projection = input.capability_request().map_err(|projection_denial| {
             denial(
                 WorthQueryOperationAuthorizationDenialKind::CapabilityProjectionRejected,
@@ -168,6 +170,19 @@ where
                 *capability.identity().bytes(),
             ),
         )?;
+        if approved.is_some_and(|approved| {
+            !approved.belongs_to_lifecycle(
+                self.runtime.authority_identity(),
+                graph_work.branch().relational(),
+                *capability.identity().bytes(),
+                &installed.capability_authority_identity,
+            )
+        }) {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected,
+                capability.contract().name(),
+            ));
+        }
         let session_identity = graph_work.identity();
         let principal_layout = graph
             .layout()
@@ -225,6 +240,18 @@ where
                     &projection,
                     &resolved,
                 );
+                if approved.is_some_and(|approved| {
+                    !approved.support_remains_current_in(
+                        runtime,
+                        &snapshot,
+                        self.authorization.bridge(),
+                    )
+                }) {
+                    return Err(denial(
+                        WorthQueryOperationAuthorizationDenialKind::StaleAuthorization,
+                        capability.contract().name(),
+                    ));
+                }
                 let authorization = observe_capability(
                     session_identity,
                     runtime,
@@ -234,7 +261,7 @@ where
                     &revalidation,
                     &sample,
                     None,
-                    None,
+                    approved.map(WorthQueryApprovedElevation::support_decision),
                 )?;
                 Ok((resolved, revalidation, authorization))
             })()
@@ -278,11 +305,17 @@ where
             capability.contract().operation(),
             principal.principal_entity_id(),
             input,
+            governed_input_identity.map(|binding| binding.identity()),
             projection,
             resolved,
             principal.valid_until(),
             request.clone(),
-            capability.lookup_evidence().canonical_work(),
+            capability.lookup_evidence().canonical_work().combine(
+                governed_input_identity
+                    .and_then(|binding| binding.canonical_work())
+                    .map(WorthQueryCanonicalWorkEvidence::one_digest)
+                    .unwrap_or_else(WorthQueryCanonicalWorkEvidence::zero),
+            ),
             WorthQueryRetainedCapabilityAuthorization::new(
                 principal_currentness,
                 authorization,

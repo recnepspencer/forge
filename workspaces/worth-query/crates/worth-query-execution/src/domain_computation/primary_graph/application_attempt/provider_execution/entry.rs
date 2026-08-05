@@ -13,6 +13,7 @@ use super::super::{
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationIdempotencyBinding,
 };
+use super::elevation_currentness::WorthQueryElevationCommitCurrentness;
 use super::outcome::WorthQueryProviderProgressionOutcome;
 use super::progression::execute_provider_progression;
 use super::support::denied;
@@ -38,6 +39,28 @@ where
                 WorthQueryApplicationCommitDenial::elevation_transition_required(),
             );
         }
+        if program
+            .read_set
+            .admission
+            .allowed_graph_contract()
+            .execution_posture()
+            .requires_delegation_activation()
+        {
+            return WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::delegation_activation_required(),
+            );
+        }
+        if program
+            .read_set
+            .admission
+            .allowed_graph_contract()
+            .execution_posture()
+            .requires_capability_revocation()
+        {
+            return WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::capability_revocation_required(),
+            );
+        }
         self.compare_and_commit_application_inner(program, idempotency)
     }
 
@@ -46,6 +69,15 @@ where
         program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
         idempotency: WorthQueryApplicationIdempotencyBinding,
     ) -> WorthQueryApplicationCommitOutcome {
+        self.compare_and_commit_application_inner_with_currentness(program, idempotency, None)
+    }
+
+    pub(super) fn compare_and_commit_application_inner_with_currentness<Operation, Input, Scope>(
+        &self,
+        program: WorthQueryApplicationEffectProgram<Schema, Operation, Input, Scope>,
+        idempotency: WorthQueryApplicationIdempotencyBinding,
+        elevation_currentness: Option<WorthQueryElevationCommitCurrentness>,
+    ) -> WorthQueryApplicationCommitOutcome {
         let WorthQueryApplicationEffectProgram {
             read_set,
             effects,
@@ -53,8 +85,12 @@ where
             emission_retained_bytes_ceiling,
         } = program;
         let mut admission = read_set.admission;
-        let idempotency =
-            idempotency.bind_preconditions(admission.mutation_preconditions().identity());
+        let idempotency = idempotency
+            .bind_operation(admission.operation_authority_identity_bytes())
+            .bind_operation_scope(admission.operation_scope_binding())
+            .bind_preconditions(admission.mutation_preconditions().identity())
+            .bind_governed_input(admission.governed_input_identity())
+            .bind_governed_proposal(admission.governed_proposal_identity());
         if admission.validate_current_authority().is_err() {
             return WorthQueryApplicationCommitOutcome::Cancelled;
         }
@@ -88,6 +124,12 @@ where
                 }
                 Ok(Err(_)) => return denied(DenialStage::Idempotency),
             }
+        }
+        if elevation_currentness
+            .as_ref()
+            .is_some_and(|currentness| !currentness.remains_current(&self.authorization_clock))
+        {
+            return denied(DenialStage::DecisionReadSet);
         }
         let (authorization, commit_authorization) =
             match admission.take_authorization_dependencies(self.authorization.bridge()) {

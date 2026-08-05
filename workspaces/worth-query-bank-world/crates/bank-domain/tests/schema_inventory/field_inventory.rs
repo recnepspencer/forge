@@ -117,6 +117,7 @@ fn assert_governance_inventory(members: &[ApplicationSchemaMember]) {
         expected(&[
             "AccountActivityEffect",
             "EstateDeathNotificationEffect",
+            "EstateEmergencyAccessActivityEffect",
         ])
     );
 }
