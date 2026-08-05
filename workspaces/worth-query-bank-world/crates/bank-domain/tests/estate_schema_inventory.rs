@@ -76,12 +76,14 @@ fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
             "ApproveEstateEmergencyAccessOperation",
             "CompleteEstateMandatoryReviewOperation",
             "FreezeEstateAccountOperation",
+            "NotifyDeathEstateOperation",
+            "RecognizeEstateExecutorOperation",
             "RequestEstateEmergencyAccessOperation",
             "RevokeEstateEmergencyAccessOperation",
         ]
         .into_iter()
         .collect(),
-        "Phase 7.7 installs the exact emergency lifecycle and first ordinary estate mutation programs"
+        "Phase 7.7 installs the exact emergency lifecycle and currently completed ordinary estate mutation programs"
     );
 
     assert_estate_sources_have_no_local_authority_lane();

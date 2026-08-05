@@ -1,11 +1,16 @@
 mod approval;
 mod close;
 mod freeze_account;
+mod idempotency;
 mod lifecycle_facts;
+mod notify_death;
+mod recognize_executor;
 mod request;
 mod review;
 
 pub use freeze_account::BankEstateFreezeProjectionDenial;
+pub use notify_death::BankDeathNotificationProjectionDenial;
+pub use recognize_executor::BankExecutorRecognitionProjectionDenial;
 
 use worth_query_host::facade::domain::{
     WorthQueryApplicationCapabilityInstallationDenial,
@@ -44,6 +49,8 @@ pub enum BankEstateProgressionDenial {
     Projection(WorthQueryOperationProjectionDenial),
     DecisionProjection(WorthQueryInvariantDecisionPlanDenial),
     FreezeProjection(BankEstateFreezeProjectionDenial),
+    DeathNotificationProjection(BankDeathNotificationProjectionDenial),
+    ExecutorRecognitionProjection(BankExecutorRecognitionProjectionDenial),
     Idempotency(WorthQueryApplicationIdempotencyResolutionDenial),
     LifecycleProjection(BankEstateLifecycleProjectionDenial),
     Attempt(WorthQueryApplicationAttemptDenial),
@@ -64,6 +71,8 @@ impl std::fmt::Display for BankEstateProgressionDenial {
             Self::Projection(denial) => denial.fmt(formatter),
             Self::DecisionProjection(denial) => denial.fmt(formatter),
             Self::FreezeProjection(denial) => denial.fmt(formatter),
+            Self::DeathNotificationProjection(denial) => denial.fmt(formatter),
+            Self::ExecutorRecognitionProjection(denial) => denial.fmt(formatter),
             Self::Idempotency(denial) => denial.fmt(formatter),
             Self::LifecycleProjection(denial) => denial.fmt(formatter),
             Self::Attempt(denial) => denial.fmt(formatter),

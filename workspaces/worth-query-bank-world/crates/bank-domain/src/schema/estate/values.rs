@@ -101,6 +101,7 @@ macro_rules! string_application_value {
 
 string_application_value!(DeathNoticeStatus, {
     DeathNoticeStatus::Reported => "reported",
+    DeathNoticeStatus::NotificationRequested => "notification-requested",
     DeathNoticeStatus::Verified => "verified",
     DeathNoticeStatus::Rejected => "rejected",
 });

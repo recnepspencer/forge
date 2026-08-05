@@ -158,6 +158,11 @@ Query product.
 | Q7.93 | Medium | Bank's 4 KiB per-root application-query result reservation admitted the earlier governance summary but denied the exact bounded result before delivery, making the declared query unusable for its lawful composite world. | **CLOSED** | The installed Bank profile now reserves a bounded 32 KiB per root while retaining the existing 32 KiB inline-index and intermediate-set ceilings. The exact four-grant/two-emergency world executes without fallback, and receipt evidence retains bounded allocation and release. |
 | Q7.94 | Critical | An exact `FreezeAccount` capability request can bind a real account that is related to the grant and estate capability but is not the account named by the authoritative `EstateAccount` relation. Capability admission alone could therefore authorize a foreign-account effect while still matching every declared request selector. | **CLOSED** | The installed freeze program declares and retains the exact `EstateAccount` adjacency, its target's typed `AccountIdentity`, and current `Status`. Public progression derives the effect target from that relation, requires its identity to equal the command account and its status to be `Open`, and only then writes `Frozen`. A causal external-consumer world proves a grant-bound foreign real account reaches operation projection, receives a typed mismatch, and leaves both accounts unchanged without consulting `BankEstateOracles`. |
 | Q7.95 | High | State-transition projection precedes ordinary compare-and-commit, so an equivalent freeze retry observes the committed `Frozen` postcondition and could deny as non-open before Query recovers the original idempotency receipt. Treating `Frozen` as generally admissible would instead let a different intent perform an unlawful second transition. | **CLOSED** | After exact capability and operation authorization, Bank invokes Query's authority-revalidating admitted-idempotency inspection. Equivalent intent returns the original commit before state-transition projection, intent drift returns the typed idempotency denial, and only an unseen intent may require `Open` and build the freeze effect. The external consumer proves all three outcomes and exact authoritative-commit identity. |
+| Q7.96 | Critical | `RecognizeExecutor` command admission uses the selected `EstateLegalAuthoritySlot` for separation of duty, but that authorization context does not prove the selected authority belongs to the command estate or names the command executor. Treating context selection as effect-integrity proof would let a valid command grant turn a recognized authority from another estate or holder into an `EstateExecutor` edge. | **CLOSED** | The installed recognition program retains the authority's current recognized flag, its complete exact estate and holder adjacencies, both endpoint identities, and the requested executor edge. Query-owned invariant projection requires one recognized authority whose estate and holder exactly equal the command, while causal hostile worlds prove valid command authorization still denies a foreign-estate authority and a wrong-holder authority with no public executor mutation. The capability target remains the estate; the carried legal facts constrain only effect integrity and do not impersonate command authority. |
+| Q7.97 | High | Relation creation is key-addressed, so a new idempotency key could attempt to create a second `EstateExecutor` record for an already-recognized pair. Conversely, checking the poststate before idempotency recovery could reject an equivalent retry instead of returning its original authoritative receipt. | **CLOSED** | The decision plan retains the exact executor pair and the projected read attempt requires it to be absent before emitting one canonical-keyed link. Query's authority-revalidating admitted-idempotency inspection runs first: equivalent intent recovers the exact original commit, drift receives the typed idempotency denial, and only unseen intent reaches duplicate-state denial. Public query evidence proves the existing relation remains singular. |
+| Q7.98 | Critical | `NotifyDeath` was declared reconcilable with an external authority, but the Bank model had no durable posture between a locally reported notice and external verification or rejection. An emission-only program could publish again under a fresh key, while writing `Verified` would falsely collapse application causality, dispatch, acknowledgement, and legal confirmation. | **CLOSED** | Bank now defines `NotificationRequested` as the exact durable posture meaning only that typed application causality committed. Query atomically writes that posture and emits one fixed-width `EstateDeathNotificationEffect`; verified and rejected remain separately authored external truth. A fresh key cannot re-enter from requested, verified, or rejected posture. The checkpoint expressly does not claim dispatch, acknowledgement, verification, rejection, or reconciliation, which remain later authorities. |
+| Q7.99 | Critical | The `NotifyDeath` capability request selects only the estate, so valid command authority does not prove the action's notice or subject. Without exact graph projection, a caller could substitute another real notice or principal while satisfying every declared capability selector. | **CLOSED** | The bounded program retains the complete `EstateDeathNotice`, `DeathNoticeSubject`, and `EstateDeceased` adjacencies plus typed notice, status, and principal identities. Query requires the estate notice to equal the command notice and both notice subject and estate deceased to equal the command subject before effect authority exists. Causal hostile worlds prove foreign-notice and wrong-subject commands reach projection, receive typed denials, publish no notification, and leave the public notice posture unchanged. |
+| Q7.100 | High | Notification poststate must block new intent without blocking recovery: inspecting `NotificationRequested` before idempotency resolution would reject an equivalent retry, while permitting that state generally would allow a new key to emit again. Emission response loss could also duplicate application causality if receipt recovery were not provider-authoritative. | **CLOSED** | All ordinary estate mutations now share one authority-revalidating admitted-idempotency progression before semantic poststate projection. Equivalent notification intent recovers the exact authoritative receipt and its one emitted-effect count; drift is typed; unseen intent alone requires `Reported`. The generic Query emitted-effect suite independently proves response-loss recovery without duplicate publication, pre-transaction rejection publishes nothing, retained payload accounting, and eviction-safe receipt recovery. Freeze and executor-recognition proofs were rerun after the shared cutover. |
 
 ## Phase 7.1 closure evidence
 
@@ -1159,6 +1164,115 @@ revocation, release, and disbursement still need genuine programs and public
 progression. Complete cross-lane parity, diagnostic/publication comparison,
 all-axis warm locality, oracle-role cleanup, and final courtroom/residue
 certification remain under R7.13-R7.15, R7.27-R7.28, Q7.52, and R7.L.
+
+### Phase 7.7F public executor-recognition checkpoint
+
+The sixth Phase 7.7 slice installs the first estate relationship mutation
+through public Query progression. `RecognizeEstateExecutorOperation` declares
+a bounded six-fact decision program over the selected legal authority's
+recognized posture, complete estate and holder adjacencies, both typed
+endpoint identities, and the exact requested `EstateExecutor` pair. Its sole
+effect authority is one `EstateExecutor` link.
+
+`BankIdentityRuntime::recognize_estate_executor` independently resolves the
+installed command capability and operation, performs authority-revalidating
+idempotency inspection, and then asks Query invariant projection to prove the
+selected authority is recognized, belongs to the command estate, and is held
+by the command executor. The exact requested relation must remain absent in
+the projected read attempt before Query can materialize the canonical link.
+The capability command target remains the estate; `EstateLegalAuthoritySlot`
+supplies separation-of-duty context but does not impersonate effect-integrity
+proof. No `BankEstateOracles` result or Bank snapshot mutation participates.
+
+One causal production-installable fixture observes the result through the
+public estate overview. The lawful path commits one executor relation, retains
+eight combined authorization/projection decision facts, leaves the legal
+authority recognized, and performs zero canonical work. Equivalent retry
+recovers the exact authoritative commit before inspecting duplicate poststate;
+same-key intent drift remains a typed Query idempotency denial. Independent
+hostile worlds prove that a valid command grant cannot turn an authority from
+another estate or another holder into executor authority. Unrecognized
+authority and pre-existing executor state deny without changing the public
+executor set. These proofs close Q7.96-Q7.97.
+
+Checkpoint verification includes all `73` Bank domain tests and the complete
+default Bank server suite with `105` passing tests and one separately
+scheduled ignored speed probe. Dependency-excluding `-D warnings` Clippy
+passes across both affected crates. Every dirty Rust file remains below `400`
+lines and the dirty-function scrutiny reports no advisory candidate. Both
+constitutional boundary checks, formatting, and diff-whitespace validation
+pass. The repository-wide line-cap guard was run through Git Bash and remains
+independently red on pre-existing, untouched violations; none is in this
+checkpoint's dirty surface.
+
+This checkpoint advances but does not close R7.13 or R7.15. Death
+notification, case opening, capability delegation and revocation, release,
+and disbursement still need genuine programs and public progression. Complete
+cross-lane parity, diagnostic/publication comparison, all-axis warm locality,
+oracle-role cleanup, and final courtroom/residue certification remain under
+R7.13-R7.15, R7.27-R7.28, Q7.52, and R7.L.
+
+### Phase 7.7G public death-notification checkpoint
+
+The seventh Phase 7.7 slice installs the first reconcilable estate command
+without pretending application causality proves an external effect. Bank adds
+the durable `NotificationRequested` death-notice posture, meaning exactly that
+one typed request entered Query's committed application-causality source.
+`Verified` and `Rejected` remain separately authored external truth; dispatch,
+acknowledgement, confirmation, rejection, and reconciliation are not inferred
+from the local commit.
+
+`NotifyDeathEstateOperation` now owns a bounded seven-fact ceiling over the
+complete estate-notice, notice-subject, and estate-deceased adjacencies plus
+their typed notice, status, and principal identities. Its only admitted
+consequences are the notice-status write and one fixed-width
+`EstateDeathNotificationEffect`. The lawful path uses six projection facts,
+for eight combined authorization/projection facts; the seventh program slot
+permits Query to retain and type-deny a hostile graph whose two subject edges
+name different principals rather than failing through accidental budget
+exhaustion.
+
+`BankIdentityRuntime::notify_estate_death` resolves the exact installed command
+capability and operation, performs Query's authority-revalidating admitted
+idempotency inspection, proves the command notice and subject from current
+graph truth, and only then atomically writes `Reported ->
+NotificationRequested` and emits the typed request. The repeated idempotency
+mechanics used by freeze and executor recognition moved into one named estate
+progression owner before this third consumer was added; their causal proofs
+were rerun after cutover.
+
+One production-installable external-consumer fixture observes local
+consequences through the public estate overview. Lawful notification commits
+one emission and the requested posture with exact-zero canonical work;
+equivalent retry recovers the same authoritative commit, intent drift stays
+typed, and fresh intent cannot re-enter from requested, verified, or rejected
+posture. A real notice owned by another estate and a real wrong principal both
+pass the estate-only command selector and then fail exact Query projection
+without changing the public notice. Query's independent five-test emitted-
+effect family proves exact provider publication, rejection-before-transaction,
+response-loss recovery without duplicate publication, retained-byte
+accounting, and eviction-safe receipt recovery. These proofs close
+Q7.98-Q7.100.
+
+Checkpoint verification includes all `74` Bank domain tests and the complete
+default Bank server suite with `108` passing tests and one separately
+scheduled ignored speed probe. Dependency-excluding `-D warnings` Clippy
+passes across both affected crates. Every dirty Rust file remains below `400`
+lines. Dirty-function scrutiny reports one inspected advisory: the independent
+oracle's 19-line executor-recognition comparison takes the exact five semantic
+axes it validates and does not collapse responsibilities; the mixed schema-
+inventory function found in the same pass was split by aspect, field, and
+governance ownership. Both constitutional boundary checks, formatting, and
+diff-whitespace validation pass. The repository-wide line-cap guard remains independently red on
+pre-existing, untouched violations; none is in this checkpoint's dirty
+surface.
+
+This checkpoint advances but does not close R7.13 or R7.15. Case opening,
+capability delegation and revocation, release, and disbursement still need
+genuine programs and public progression. Complete cross-lane parity,
+diagnostic/publication comparison, all-axis warm locality, oracle-role cleanup,
+and final courtroom/residue certification remain under R7.13-R7.15,
+R7.27-R7.28, Q7.52, and R7.L.
 
 ## Test-selection policy
 

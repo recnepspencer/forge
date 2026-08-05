@@ -1,13 +1,14 @@
 use worth_query_decl::facade::{
     worth_query_capability, worth_query_capability_context,
     worth_query_capability_context_entity_slot, worth_query_capability_provenance,
-    worth_query_operation, worth_query_operation_creates, worth_query_operation_links,
-    worth_query_operation_reads, worth_query_operation_writes,
+    worth_query_operation, worth_query_operation_creates, worth_query_operation_emits,
+    worth_query_operation_links, worth_query_operation_reads, worth_query_operation_writes,
 };
 
 use crate::estate::EstateAction;
 use crate::schema::{
-    AccountIdentity, BankSchema, EmergencyAccess, LegalAuthority, MandatoryReview, Status,
+    AccountIdentity, BankSchema, EmergencyAccess, LegalAuthority, LegalAuthorityRecognizedField,
+    MandatoryReview, PrincipalIdentityField, Status,
 };
 
 use super::*;
@@ -43,6 +44,11 @@ worth_query_operation!(pub ViewRestrictedEstateOperation(EstateAction) in BankSc
 
 worth_query_operation_reads!(FreezeEstateAccountOperation => [AccountIdentity, Status, EstateAccount]);
 worth_query_operation_writes!(FreezeEstateAccountOperation => [Status]);
+worth_query_operation_reads!(NotifyDeathEstateOperation => [DeathNoticeIdentityField, DeathNoticeStatusField, PrincipalIdentityField, EstateDeathNotice, DeathNoticeSubject, EstateDeceased]);
+worth_query_operation_writes!(NotifyDeathEstateOperation => [DeathNoticeStatusField]);
+worth_query_operation_emits!(NotifyDeathEstateOperation => [EstateDeathNotificationEffect]);
+worth_query_operation_reads!(RecognizeEstateExecutorOperation => [EstateCaseIdentityField, LegalAuthorityIdentityField, LegalAuthorityRecognizedField, PrincipalIdentityField, LegalAuthorityEstate, LegalAuthorityHolder, EstateExecutor]);
+worth_query_operation_links!(RecognizeEstateExecutorOperation => [EstateExecutor]);
 worth_query_operation_reads!(RequestEstateEmergencyAccessOperation => [EstateCaseIdentityField]);
 worth_query_operation_creates!(RequestEstateEmergencyAccessOperation => [EmergencyAccess, MandatoryReview]);
 worth_query_operation_writes!(RequestEstateEmergencyAccessOperation => [EmergencyAccessIdentityField, EmergencyAccessReasonField, EmergencyAccessStatusField, EmergencyAccessIssuedAtField, EmergencyAccessExpiresAtField, MandatoryReviewIdentityField, MandatoryReviewKindField, MandatoryReviewStatusField]);

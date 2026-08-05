@@ -77,6 +77,7 @@ fn validate_estate_record_action(
             if notice.id != estate.death_notice
                 || notice.subject != subject
                 || subject != estate.deceased
+                || notice.status != crate::estate::DeathNoticeStatus::Reported
             {
                 return Err(EstateDenial::LegalAuthorityMismatch);
             }

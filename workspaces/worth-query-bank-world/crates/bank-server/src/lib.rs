@@ -35,7 +35,11 @@ pub use error::{
     BankAuthenticationBoundaryBuildError, BankIdentityRuntimeBuildError,
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
-pub use estate_progression::{BankEstateFreezeProjectionDenial, BankEstateProgressionDenial};
+pub use estate_progression::{
+    BankDeathNotificationProjectionDenial, BankEstateFreezeProjectionDenial,
+    BankEstateProgressionDenial,
+    BankExecutorRecognitionProjectionDenial,
+};
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};
 pub use operation_admission::{BankAdmittedOperation, BankOperationAdmissionError};
 pub use operation_commit::{

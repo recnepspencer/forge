@@ -5,6 +5,12 @@ use super::support::{
 };
 
 pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchemaMember]) {
+    assert_aspect_inventory(members);
+    assert_field_inventory(members);
+    assert_governance_inventory(members);
+}
+
+fn assert_aspect_inventory(members: &[ApplicationSchemaMember]) {
     assert_eq!(
         names(members, aspect_name),
         expected(&[
@@ -34,6 +40,9 @@ pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchema
             "PrincipalIdentity",
         ])
     );
+}
+
+fn assert_field_inventory(members: &[ApplicationSchemaMember]) {
     assert_eq!(
         names(members, field_name),
         expected(&[
@@ -89,6 +98,9 @@ pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchema
             "Status",
         ])
     );
+}
+
+fn assert_governance_inventory(members: &[ApplicationSchemaMember]) {
     assert_eq!(
         names(members, policy_name),
         expected(&[
@@ -102,6 +114,9 @@ pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchema
     assert_eq!(names(members, currency_name), expected(&["UsdCurrency"]));
     assert_eq!(
         names(members, effect_name),
-        expected(&["AccountActivityEffect"])
+        expected(&[
+            "AccountActivityEffect",
+            "EstateDeathNotificationEffect",
+        ])
     );
 }

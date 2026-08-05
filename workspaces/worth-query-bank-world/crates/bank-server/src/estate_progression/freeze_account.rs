@@ -10,9 +10,8 @@ use worth_query_host::facade::{
     admission::authenticated_principal::WorthQueryRequestScope,
     declaration::application_schema::TypedMutationPreconditions,
     primary_graph::{
-        WorthQueryAdmittedApplicationOperation, WorthQueryApplicationCommitDenialKind,
-        WorthQueryApplicationCommitDenialStage, WorthQueryApplicationEffectProgram,
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationIdempotencyResolution,
+        WorthQueryAdmittedApplicationOperation, WorthQueryApplicationEffectProgram,
+        WorthQueryApplicationIdempotencyBinding,
         WorthQueryApplicationOperationInvariantProjectionReader,
         WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantEntityIdentity,
         WorthQueryInvariantProjectionTraversalDenial,
@@ -20,7 +19,6 @@ use worth_query_host::facade::{
 };
 
 use super::BankEstateProgressionDenial;
-use crate::operation_commit::commit_receipt;
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime, BankMutationCommitOutcome};
 
 type AdmittedFreezeOperation = WorthQueryAdmittedApplicationOperation<
@@ -63,7 +61,9 @@ impl BankIdentityRuntime {
     ) -> Result<BankMutationCommitOutcome, BankEstateProgressionDenial> {
         let account = freeze_command_account(action)?;
         let admission = self.admit_freeze_operation(principal, action, request)?;
-        if let Some(outcome) = self.resolve_freeze_idempotency(&admission, idempotency)? {
+        if let Some(outcome) =
+            super::idempotency::resolve_admitted_idempotency(self, &admission, idempotency)?
+        {
             return Ok(outcome);
         }
         let program = self.materialize_freeze_effect(admission, account)?;
@@ -107,29 +107,6 @@ impl BankIdentityRuntime {
                 >::default(),
             )
             .map_err(BankEstateProgressionDenial::Authorization)
-    }
-
-    fn resolve_freeze_idempotency(
-        &self,
-        admission: &AdmittedFreezeOperation,
-        idempotency: WorthQueryApplicationIdempotencyBinding,
-    ) -> Result<Option<BankMutationCommitOutcome>, BankEstateProgressionDenial> {
-        match self
-            .application_runtime()
-            .resolve_admitted_application_idempotency(admission, idempotency)
-            .map_err(BankEstateProgressionDenial::Idempotency)?
-        {
-            WorthQueryApplicationIdempotencyResolution::Unseen => Ok(None),
-            WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt) => Ok(Some(
-                BankMutationCommitOutcome::AlreadyCommitted(commit_receipt(receipt)),
-            )),
-            WorthQueryApplicationIdempotencyResolution::IntentDrift => {
-                Ok(Some(BankMutationCommitOutcome::Denied {
-                    kind: WorthQueryApplicationCommitDenialKind::IdempotencyIntentDrift,
-                    stage: WorthQueryApplicationCommitDenialStage::Idempotency,
-                }))
-            }
-        }
     }
 
     fn materialize_freeze_effect(

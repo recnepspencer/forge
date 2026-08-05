@@ -29,6 +29,7 @@ pub enum EstateCaseStatus {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeathNoticeStatus {
     Reported,
+    NotificationRequested,
     Verified,
     Rejected,
 }
