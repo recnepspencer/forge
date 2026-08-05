@@ -19,7 +19,7 @@ pub use basis::{
 };
 pub use basis_canonical::SignalBranchBasisCompactExplanation;
 pub(in crate::logic::transaction::runtime) use branches::{
-    BranchAncestryState, BranchManager, BranchState, SnapshotBranchState,
+    BranchAncestryState, BranchManager, BranchState,
 };
 pub use fork::{
     SignalBranchForkDenial, SignalBranchForkReceipt, SignalBranchForkRequest,
