@@ -1,5 +1,7 @@
 #[path = "ordinary_mutations/assertions.rs"]
 mod assertions;
+#[path = "ordinary_mutations/estate_operations.rs"]
+mod estate_operations;
 #[allow(
     dead_code,
     reason = "the shared read fixture has discovery-only helpers exercised by its owning test binary"

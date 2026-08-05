@@ -47,6 +47,13 @@ impl BankCommitReceipt {
             .expected_fact_count()
     }
 
+    pub const fn decision_fact_count(&self) -> Option<usize> {
+        match self.application.terminal().mutation_work() {
+            Some(work) => Some(work.decision_fact_count()),
+            None => None,
+        }
+    }
+
     pub const fn precondition_comparison_identity(&self) -> Option<&[u8; 32]> {
         self.application
             .terminal()

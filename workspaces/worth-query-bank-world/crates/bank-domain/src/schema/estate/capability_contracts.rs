@@ -6,7 +6,9 @@ use worth_query_decl::facade::{
 };
 
 use crate::estate::EstateAction;
-use crate::schema::{BankSchema, EmergencyAccess, LegalAuthority, MandatoryReview};
+use crate::schema::{
+    AccountIdentity, BankSchema, EmergencyAccess, LegalAuthority, MandatoryReview, Status,
+};
 
 use super::*;
 
@@ -39,6 +41,8 @@ worth_query_operation!(pub ReleaseEstateOperation(EstateAction) in BankSchema);
 worth_query_operation!(pub DisburseEstateOperation(EstateAction) in BankSchema);
 worth_query_operation!(pub ViewRestrictedEstateOperation(EstateAction) in BankSchema);
 
+worth_query_operation_reads!(FreezeEstateAccountOperation => [AccountIdentity, Status, EstateAccount]);
+worth_query_operation_writes!(FreezeEstateAccountOperation => [Status]);
 worth_query_operation_reads!(RequestEstateEmergencyAccessOperation => [EstateCaseIdentityField]);
 worth_query_operation_creates!(RequestEstateEmergencyAccessOperation => [EmergencyAccess, MandatoryReview]);
 worth_query_operation_writes!(RequestEstateEmergencyAccessOperation => [EmergencyAccessIdentityField, EmergencyAccessReasonField, EmergencyAccessStatusField, EmergencyAccessIssuedAtField, EmergencyAccessExpiresAtField, MandatoryReviewIdentityField, MandatoryReviewKindField, MandatoryReviewStatusField]);

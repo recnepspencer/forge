@@ -1,19 +1,22 @@
 mod approval;
 mod close;
+mod freeze_account;
 mod lifecycle_facts;
 mod request;
 mod review;
+
+pub use freeze_account::BankEstateFreezeProjectionDenial;
 
 use worth_query_host::facade::domain::{
     WorthQueryApplicationCapabilityInstallationDenial,
     WorthQueryApplicationOperationInstallationDenial,
 };
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationAttemptDenial, WorthQueryElevationApprovalAuthorizationDenial,
-    WorthQueryElevationCloseAuthorizationDenial, WorthQueryEntityResolutionDenial,
-    WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantProjectionTraversalDenial,
-    WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationProjectionDenial,
+    WorthQueryApplicationAttemptDenial, WorthQueryApplicationIdempotencyResolutionDenial,
+    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
+    WorthQueryEntityResolutionDenial, WorthQueryInvariantDecisionPlanDenial,
+    WorthQueryInvariantProjectionTraversalDenial, WorthQueryMandatoryReviewAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationProjectionDenial,
 };
 
 #[derive(Debug)]
@@ -40,6 +43,8 @@ pub enum BankEstateProgressionDenial {
     CommandInput(&'static str),
     Projection(WorthQueryOperationProjectionDenial),
     DecisionProjection(WorthQueryInvariantDecisionPlanDenial),
+    FreezeProjection(BankEstateFreezeProjectionDenial),
+    Idempotency(WorthQueryApplicationIdempotencyResolutionDenial),
     LifecycleProjection(BankEstateLifecycleProjectionDenial),
     Attempt(WorthQueryApplicationAttemptDenial),
 }
@@ -58,6 +63,8 @@ impl std::fmt::Display for BankEstateProgressionDenial {
             }
             Self::Projection(denial) => denial.fmt(formatter),
             Self::DecisionProjection(denial) => denial.fmt(formatter),
+            Self::FreezeProjection(denial) => denial.fmt(formatter),
+            Self::Idempotency(denial) => denial.fmt(formatter),
             Self::LifecycleProjection(denial) => denial.fmt(formatter),
             Self::Attempt(denial) => denial.fmt(formatter),
         }

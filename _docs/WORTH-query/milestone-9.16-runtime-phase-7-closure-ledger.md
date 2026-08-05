@@ -156,6 +156,8 @@ Query product.
 | Q7.91 | Critical | The first optional-result selector implementation accidentally required `RequiredApplicationFieldValue` in the optional constructor, and no production query or compile-fail evidence exercised the new API before checkpointing it. The declaration surface compiled only because it was unused. | **CLOSED** | The optional constructor now requires only `OptionalApplicationFieldValue`; required and optional construction are compile-fail tested in both directions, and the public and governed execution fixtures consume the optional selector through installation and projection. |
 | Q7.92 | High | Bank bootstrap omitted the required issued-at and expires-at fields when loading pre-existing `EstateEmergencyAccess` records, so a realistic emergency world could not satisfy the exact governance projection even though Query-created lifecycle records carried those fields. | **CLOSED** | The estate entity bootstrap now binds both required time fields from domain truth. The complete governance fixture installs two pre-existing emergency records and projects their independent issued/expiry values through the public query. |
 | Q7.93 | Medium | Bank's 4 KiB per-root application-query result reservation admitted the earlier governance summary but denied the exact bounded result before delivery, making the declared query unusable for its lawful composite world. | **CLOSED** | The installed Bank profile now reserves a bounded 32 KiB per root while retaining the existing 32 KiB inline-index and intermediate-set ceilings. The exact four-grant/two-emergency world executes without fallback, and receipt evidence retains bounded allocation and release. |
+| Q7.94 | Critical | An exact `FreezeAccount` capability request can bind a real account that is related to the grant and estate capability but is not the account named by the authoritative `EstateAccount` relation. Capability admission alone could therefore authorize a foreign-account effect while still matching every declared request selector. | **CLOSED** | The installed freeze program declares and retains the exact `EstateAccount` adjacency, its target's typed `AccountIdentity`, and current `Status`. Public progression derives the effect target from that relation, requires its identity to equal the command account and its status to be `Open`, and only then writes `Frozen`. A causal external-consumer world proves a grant-bound foreign real account reaches operation projection, receives a typed mismatch, and leaves both accounts unchanged without consulting `BankEstateOracles`. |
+| Q7.95 | High | State-transition projection precedes ordinary compare-and-commit, so an equivalent freeze retry observes the committed `Frozen` postcondition and could deny as non-open before Query recovers the original idempotency receipt. Treating `Frozen` as generally admissible would instead let a different intent perform an unlawful second transition. | **CLOSED** | After exact capability and operation authorization, Bank invokes Query's authority-revalidating admitted-idempotency inspection. Equivalent intent returns the original commit before state-transition projection, intent drift returns the typed idempotency denial, and only an unseen intent may require `Open` and build the freeze effect. The external consumer proves all three outcomes and exact authoritative-commit identity. |
 
 ## Phase 7.1 closure evidence
 
@@ -1112,6 +1114,51 @@ command cutovers, complete cross-lane parity, typed diagnostic/publication
 comparison, warm-locality growth proof, legacy oracle removal, and final
 courtroom/residue certification remain under R7.13-R7.15, R7.27-R7.28, Q7.52,
 and R7.L.
+
+### Phase 7.7E public estate-account freeze checkpoint
+
+The fifth Phase 7.7 slice installs the first ordinary estate mutation through
+the public Query progression. `FreezeEstateAccountOperation` now declares a
+bounded three-fact decision program over `EstateAccount`, `AccountIdentity`,
+and `Status`, with one `Status` write. Estate operation-program installation is
+split into lifecycle and freeze-account owners so the remaining commands can
+enter as named siblings rather than enlarge a mixed program bucket.
+
+`BankIdentityRuntime::freeze_estate_account` resolves the exact installed
+capability and operation, consumes the command-owned `EstateAction`, and lets
+Query authorize the operation. Its invariant projection derives the effect
+account from the authoritative estate relation, rejects missing or multiple
+targets, compares the relation target's typed identity with the command
+account, and requires current `Open` posture before Query can materialize the
+single `Frozen` write. No Bank snapshot mutation or `BankEstateOracles`
+decision participates in this production path.
+
+One causal external-consumer fixture starts from production-installable Bank
+worlds and observes consequences through public installed queries. The lawful
+world commits once, reports five combined authorization/projection decision
+facts, and independently reads `Frozen`. The hostile world gives the
+specialist a valid freeze grant for a second real account while the estate
+still relates to its original account; it reaches the typed projection
+mismatch and independently reads both accounts as unchanged. Frozen and
+closed starting states deny as non-open. Equivalent retry recovers the exact
+authoritative commit through Query's admitted-idempotency inspection, while a
+same-key different intent receives the typed idempotency denial. These proofs
+close Q7.94-Q7.95.
+
+Checkpoint verification includes the complete `bank-domain` and `bank-server`
+package suites, including all 28 ordinary-mutation tests and the three causal
+freeze-account cases. Dependency-excluding `-D warnings` Clippy passes across
+both affected crates. Every dirty Rust file remains below `400` lines; the new
+production progression and external proof have no long-function advisory.
+Both constitutional boundary checks, formatting, and diff-whitespace
+validation pass.
+
+This checkpoint advances but does not close R7.13 or R7.15. Death
+notification, case opening, executor recognition, capability delegation and
+revocation, release, and disbursement still need genuine programs and public
+progression. Complete cross-lane parity, diagnostic/publication comparison,
+all-axis warm locality, oracle-role cleanup, and final courtroom/residue
+certification remain under R7.13-R7.15, R7.27-R7.28, Q7.52, and R7.L.
 
 ## Test-selection policy
 

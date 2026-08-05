@@ -49,7 +49,7 @@ fn required_estate_topology_and_policy_contributions_are_present() {
 }
 
 #[test]
-fn estate_capabilities_and_phase_seven_lifecycle_programs_are_declared() {
+fn estate_capabilities_and_installed_phase_seven_programs_are_declared() {
     let declaration = BankSchema::declaration().unwrap();
     let members = declaration.erased().members();
     assert_required_subset_present(
@@ -75,14 +75,19 @@ fn estate_capabilities_and_phase_seven_lifecycle_programs_are_declared() {
         [
             "ApproveEstateEmergencyAccessOperation",
             "CompleteEstateMandatoryReviewOperation",
+            "FreezeEstateAccountOperation",
             "RequestEstateEmergencyAccessOperation",
             "RevokeEstateEmergencyAccessOperation",
         ]
         .into_iter()
         .collect(),
-        "Phase 7.7 installs the exact emergency lifecycle programs before its consumer cutover"
+        "Phase 7.7 installs the exact emergency lifecycle and first ordinary estate mutation programs"
     );
 
+    assert_estate_sources_have_no_local_authority_lane();
+}
+
+fn assert_estate_sources_have_no_local_authority_lane() {
     let sources = [
         include_str!("../src/estate/mod.rs"),
         include_str!("../src/estate/identities.rs"),
