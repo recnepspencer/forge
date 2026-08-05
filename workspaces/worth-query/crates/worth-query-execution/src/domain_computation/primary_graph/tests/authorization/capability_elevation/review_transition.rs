@@ -48,7 +48,7 @@ fn requester_and_approver_are_denied_by_installed_review_actor_composition() {
             .expect("requester and approver must fail before review lifecycle authority");
         assert_eq!(
             denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+            WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
         );
     }
 }

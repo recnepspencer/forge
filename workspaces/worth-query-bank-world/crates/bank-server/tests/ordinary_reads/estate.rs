@@ -6,8 +6,22 @@ use bank_domain::{
     model::EmployeeRole,
 };
 use bank_server::{queries, BankApplicationQueryDenial, BankReadControls};
-use worth_query_host::facade::primary_graph::WorthQueryApplicationQueryBasisPosture;
-use worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use worth_foundational::facade::{
+    AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
+    DiagnosticRichnessProfile, FoundationalBoundaryEvidenceExecutionPosture,
+    FoundationalDiagnosticOutcomeKind, FoundationalProfileSet, FoundationalProfileSetInput,
+    RetentionDeliveryProfile, SupportPostureProfile,
+};
+use worth_query_host::facade::{
+    primary_graph::{
+        WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationQueryBasisPosture,
+        WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    },
+    publication::domain_computation::{
+        publish_application_authorization_denial,
+        WorthQueryApplicationAuthorizationPublicationProfile,
+    },
+};
 
 use super::estate_fixture::estate_read_world;
 use crate::support::request_scope;
@@ -169,13 +183,67 @@ fn missing_capability_fails_the_public_governance_query_at_capability_admission(
         panic!("the governance context unexpectedly executed")
     };
     match denial {
-        BankApplicationQueryDenial::CapabilityAdmission(denial) => assert_eq!(
-            denial.kind(),
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
-            "{denial:#?}"
-        ),
+        BankApplicationQueryDenial::CapabilityAdmission(denial) => {
+            assert_eq!(
+                denial.kind(),
+                WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing,
+                "{denial:#?}"
+            );
+            assert_missing_capability_publication(&denial);
+        }
         denial => panic!("unexpected governance boundary denial: {denial:#?}"),
     }
+}
+
+fn assert_missing_capability_publication(denial: &WorthQueryOperationAuthorizationDenial) {
+    let published = publish_application_authorization_denial(
+        denial,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+    )
+    .unwrap();
+
+    assert_eq!(published.artifact().denial(), denial);
+    assert_eq!(
+        published.artifact().cause(),
+        WorthQueryApplicationAuthorizationExplanationCause::MissingCapability
+    );
+    assert_eq!(
+        published.explanation().outcome_kind(),
+        FoundationalDiagnosticOutcomeKind::Denied
+    );
+    assert_eq!(
+        published.explanation().rows()[0].code().as_str(),
+        "worth.query.authorization.missing-capability"
+    );
+    assert_eq!(
+        published.denied_closeout_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+    );
+    assert_eq!(
+        published.publication_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::Executed
+    );
+    let locator = published
+        .provenance()
+        .source_basis()
+        .boundary_artifact_locator()
+        .unwrap();
+    assert_eq!(
+        locator.artifact_id().get(),
+        denial.identity().unwrap().get()
+    );
+}
+
+fn publication_profile() -> FoundationalProfileSet {
+    FoundationalProfileSet::new(FoundationalProfileSetInput {
+        diagnostic_richness: DiagnosticRichnessProfile::Standard,
+        support_posture: SupportPostureProfile::SupportReady,
+        compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
+        admission_readiness: AdmissionReadinessProfile::Admitted,
+        retention_delivery: RetentionDeliveryProfile::Retained,
+        certification_posture: CertificationPostureProfile::EvidenceBacked,
+    })
+    .unwrap()
 }
 
 fn controls() -> BankReadControls {

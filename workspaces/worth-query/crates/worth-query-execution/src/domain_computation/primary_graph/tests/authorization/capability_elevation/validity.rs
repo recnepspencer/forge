@@ -2,7 +2,9 @@ use super::super::super::application_attempt::authenticated_principal;
 use super::super::super::fixture::{CapabilityElevationStatus, ElevatedCapabilityTouchOperation};
 use super::super::capability_progression::time;
 use super::admit;
-use crate::domain_computation::primary_graph::WorthQueryOperationAuthorizationDenialKind;
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryOperationAuthorizationDenialKind,
+};
 
 #[test]
 fn explicitly_expired_elevation_has_a_typed_denial() {
@@ -18,6 +20,10 @@ fn explicitly_expired_elevation_has_a_typed_denial() {
     assert_eq!(
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::ElevationExpired
+    );
+    assert_eq!(
+        denial.explanation_cause(),
+        Some(WorthQueryApplicationAuthorizationExplanationCause::ElevationExpired)
     );
 }
 

@@ -3,19 +3,16 @@ use bank_domain::schema::{
     ViewEstateIdentityVerificationCapability, ViewRestrictedEstateOperation,
 };
 use worth_foundational::facade::{
-    AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
-    DiagnosticRichnessProfile, FoundationalBoundaryArtifactCategory,
-    FoundationalBoundaryEvidenceCloseoutDisposition, FoundationalBoundaryEvidenceExecutionPosture,
-    FoundationalBoundaryEvidenceReceiptKind, FoundationalDiagnosticDenialClass,
-    FoundationalDiagnosticOutcomeKind, FoundationalProfileSet, FoundationalProfileSetInput,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    FoundationalBoundaryArtifactCategory, FoundationalBoundaryEvidenceCloseoutDisposition,
+    FoundationalBoundaryEvidenceExecutionPosture, FoundationalBoundaryEvidenceReceiptKind,
+    FoundationalDiagnosticDenialClass, FoundationalDiagnosticOutcomeKind,
 };
 use worth_query_host::facade::domain::TypedApplicationValue;
 use worth_query_host::facade::installed::domain_computation::WorthQueryApplicationQueryOmissionPosture;
 use worth_query_host::facade::primary_graph::{
-    WorthQueryApplicationDisclosureOutcome, WorthQueryApplicationDisclosureReceipt,
-    WorthQueryApplicationDisclosureReceiptPosture, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApplicationDisclosureOutcome,
+    WorthQueryApplicationDisclosureReceipt, WorthQueryApplicationDisclosureReceiptPosture,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
 };
 use worth_query_host::facade::publication::domain_computation::{
     publish_application_authorization_denial, publish_application_field_omission,
@@ -26,6 +23,7 @@ use worth_query_host::facade::publication::domain_computation::{
 use super::fixture::{
     capability_world, request_scope, CapabilityFixture, GrantSpec, DECEASED, ESTATE,
 };
+use super::publication_evidence::publication_profile;
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
 
 #[test]
@@ -171,6 +169,15 @@ fn assert_field_omission_publication(disclosure: &WorthQueryApplicationDisclosur
         FoundationalBoundaryArtifactCategory::Artifact
     );
     assert_eq!(omission.artifact().disclosure(), disclosure);
+    let locator = omission
+        .provenance()
+        .source_basis()
+        .boundary_artifact_locator()
+        .unwrap();
+    assert_eq!(
+        locator.artifact_id().get(),
+        disclosure.outcome_identity().unwrap().get()
+    );
     assert_eq!(
         omission.explanation().outcome_kind(),
         FoundationalDiagnosticOutcomeKind::Partial
@@ -209,7 +216,7 @@ fn bank_consumer_cannot_repurpose_an_administration_grant_for_identity_disclosur
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
     assert_authorization_denial_publication(&denial);
 }
@@ -222,12 +229,20 @@ fn assert_authorization_denial_publication(denial: &WorthQueryOperationAuthoriza
     .unwrap();
     assert_eq!(published.artifact().denial(), denial);
     assert_eq!(
+        published.artifact().cause(),
+        WorthQueryApplicationAuthorizationExplanationCause::MissingCapability
+    );
+    assert_eq!(
         published.boundary_category(),
         FoundationalBoundaryArtifactCategory::Artifact
     );
     assert_eq!(
         published.explanation().outcome_kind(),
         FoundationalDiagnosticOutcomeKind::Denied
+    );
+    assert_eq!(
+        published.explanation().rows()[0].code().as_str(),
+        "worth.query.authorization.missing-capability"
     );
     let worth_foundational::facade::FoundationalDiagnosticRow::Decision(row) =
         &published.explanation().rows()[0]
@@ -251,16 +266,4 @@ fn assert_authorization_denial_publication(denial: &WorthQueryOperationAuthoriza
         published.publication_receipt().execution_posture(),
         FoundationalBoundaryEvidenceExecutionPosture::Executed
     );
-}
-
-fn publication_profile() -> FoundationalProfileSet {
-    FoundationalProfileSet::new(FoundationalProfileSetInput {
-        diagnostic_richness: DiagnosticRichnessProfile::Standard,
-        support_posture: SupportPostureProfile::SupportReady,
-        compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
-        admission_readiness: AdmissionReadinessProfile::Admitted,
-        retention_delivery: RetentionDeliveryProfile::Retained,
-        certification_posture: CertificationPostureProfile::EvidenceBacked,
-    })
-    .unwrap()
 }

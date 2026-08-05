@@ -7,6 +7,7 @@ use super::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorthQueryApplicationCommitReceipt {
+    outcome_identity: Option<super::WorthQueryApplicationCommitOutcomeIdentity>,
     provider_runtime_instance_id: u64,
     commit_id: CommitId,
     changed_record_count: usize,
@@ -26,6 +27,12 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryPendingApplica
 }
 
 impl WorthQueryApplicationCommitReceipt {
+    pub const fn outcome_identity(
+        &self,
+    ) -> Option<super::WorthQueryApplicationCommitOutcomeIdentity> {
+        self.outcome_identity
+    }
+
     pub const fn provider_runtime_instance_id(&self) -> u64 {
         self.provider_runtime_instance_id
     }
@@ -213,6 +220,7 @@ impl WorthQueryApplicationCommitReceipt {
         let terminal =
             WorthQueryApplicationCommitTerminalEvidence::recovered(provider.branch().clone());
         Self {
+            outcome_identity: provider.application_outcome_identity(),
             provider_runtime_instance_id: provider.runtime_instance_id(),
             commit_id: provider.commit_id(),
             changed_record_count: provider.changed_record_count(),
@@ -255,6 +263,7 @@ impl WorthQueryPendingApplicationCommitReceipt {
         }
         let mutation_work = self.provider.mutation_work()?;
         Some(WorthQueryApplicationCommitReceipt {
+            outcome_identity: self.provider.application_outcome_identity(),
             provider_runtime_instance_id: self.provider.runtime_instance_id(),
             commit_id: self.provider.commit_id(),
             changed_record_count: self.provider.changed_record_count(),

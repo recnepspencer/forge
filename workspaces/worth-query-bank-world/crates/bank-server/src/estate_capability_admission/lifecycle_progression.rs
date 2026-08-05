@@ -9,12 +9,19 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryElevationCloseOutcome, WorthQueryElevationClosureKind,
     WorthQueryElevationRequestOutcome, WorthQueryMandatoryReviewOutcome,
 };
+use worth_query_host::facade::publication::domain_computation::{
+    publish_approved_elevation, publish_requested_elevation,
+    WorthQueryApplicationAuthorizationPublicationProfile,
+};
 
 use super::fixture::{
     capability_world, emergency_request_world, request_scope, GrantSpec,
     APPROVER_UPPER_BOUND_GRANT, ESTATE, GRANT,
 };
 use super::lifecycle_journey::{approve_elevation, request_elevation};
+use super::publication_evidence::{
+    assert_review_required_publication_lineage, publication_profile,
+};
 use crate::estate_progression::BankEstateProgressionDenial;
 
 #[test]
@@ -91,7 +98,7 @@ fn governed_view_grant_cannot_substitute_for_request_command_authority() {
     };
     assert_eq!(
         denial.kind(),
-        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 
@@ -254,13 +261,38 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
         81,
         RestrictedBankField::AccountDetails,
     );
+    let requested_publication = publish_requested_elevation(
+        &requested,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+    )
+    .unwrap();
     let approver = fixture.authenticate_approver();
     let approved = approve_elevation(&fixture, &approver, requested, 351, 83);
+    let approved_publication = publish_approved_elevation(
+        &approved,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+    )
+    .unwrap();
 
+    let mandatory = close_approved_elevation(&fixture, &approver, approved);
+    assert_review_required_publication_lineage(
+        &requested_publication,
+        &approved_publication,
+        &mandatory,
+    );
+
+    complete_required_review(&fixture, mandatory);
+}
+
+fn close_approved_elevation(
+    fixture: &super::fixture::CapabilityFixture,
+    approver: &crate::BankAuthenticatedPrincipal,
+    approved: worth_query_host::facade::primary_graph::WorthQueryApprovedElevation,
+) -> worth_query_host::facade::primary_graph::WorthQueryMandatoryReview {
     let close = fixture
         .runtime
         .revoke_estate_emergency_access(
-            &approver,
+            approver,
             approved,
             EstateAction::RevokeEmergencyAccess {
                 estate: ESTATE,
@@ -278,9 +310,15 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
         WorthQueryElevationClosureKind::Revoked
     );
     assert_eq!(mandatory.close_commit_receipt().changed_record_count(), 2);
+    mandatory
+}
 
+fn complete_required_review(
+    fixture: &super::fixture::CapabilityFixture,
+    mandatory: worth_query_host::facade::primary_graph::WorthQueryMandatoryReview,
+) {
     let reviewer = fixture.authenticate_reviewer();
-    let review = fixture
+    let outcome = fixture
         .runtime
         .complete_estate_mandatory_review(
             &reviewer,
@@ -294,8 +332,8 @@ fn public_bank_runtime_completes_the_exact_close_and_review_lifecycle() {
             &request_scope(),
         )
         .expect("a distinct reviewer should reach Query review completion");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(reviewed) = review else {
-        panic!("the exact review should commit once: {review:?}");
+    let WorthQueryMandatoryReviewOutcome::Reviewed(reviewed) = outcome else {
+        panic!("the exact review should commit once: {outcome:?}");
     };
     assert_ne!(reviewed.reviewer(), reviewed.requester());
     assert_ne!(reviewed.reviewer(), reviewed.approver());

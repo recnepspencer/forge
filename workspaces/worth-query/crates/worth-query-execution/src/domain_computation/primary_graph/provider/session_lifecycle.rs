@@ -116,6 +116,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                 "application attempt lost its complete session decision facts",
             ));
         }
+        let outcome_identity = attempt.outcome_identity;
         let emissions = attempt.emissions;
         self.graph.with_runtime_mut(|runtime| {
             let Some(before) = runtime.snapshots().snapshot_for_branch(&branch) else {
@@ -188,8 +189,9 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
                 ));
             }
             Ok(format!(
-                "primary-application-commit:{runtime_instance_id}:{}:{changed}:{emitted}",
+                "primary-application-commit:{runtime_instance_id}:{}:{changed}:{emitted}:{}",
                 commit_id.0,
+                outcome_identity.get(),
             ))
         })
     }

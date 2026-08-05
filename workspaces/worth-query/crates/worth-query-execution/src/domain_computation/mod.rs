@@ -1,3 +1,4 @@
+mod application_outcome_identity;
 mod artifact_identity;
 pub(crate) mod artifact_owner;
 pub(crate) mod authorization;

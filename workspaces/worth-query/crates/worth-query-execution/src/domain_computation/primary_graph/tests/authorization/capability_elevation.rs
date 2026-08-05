@@ -14,7 +14,8 @@ use super::super::fixture::{
 };
 use super::capability_progression::time;
 use crate::domain_computation::primary_graph::{
-    WorthQueryApprovedElevation, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryApprovedElevation,
+    WorthQueryOperationAuthorizationDenialKind,
 };
 
 #[path = "capability_elevation/active_use.rs"]
@@ -116,6 +117,27 @@ fn selector_only_admission_cannot_bypass_the_approval_transition() {
 }
 
 #[test]
+fn governed_capability_without_elevation_preserves_required_explanation() {
+    let mut world = installed_elevated_capability_world(CapabilityElevationScenario::Active);
+    world.application.script_authorization_time([time(100)]);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+
+    let Err(denial) = admit_raw(&world, &principal, &request, None) else {
+        panic!("a governed capability cannot omit elevation")
+    };
+
+    assert_eq!(
+        denial.kind(),
+        WorthQueryOperationAuthorizationDenialKind::ElevationRequired
+    );
+    assert_eq!(
+        denial.explanation_cause(),
+        Some(WorthQueryApplicationAuthorizationExplanationCause::ElevationRequired)
+    );
+}
+
+#[test]
 fn resource_selector_cannot_substitute_for_the_declared_elevation_identity() {
     let (world, request, approved) = approval_transition::exact_approved_world();
     let principal = authenticated_principal(&world, &request);
@@ -190,6 +212,10 @@ fn revoked_approved_elevation_cannot_open_active_authority() {
     assert_eq!(
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::ElevationInactive
+    );
+    assert_eq!(
+        denial.explanation_cause(),
+        Some(WorthQueryApplicationAuthorizationExplanationCause::ElevationDenied)
     );
 }
 

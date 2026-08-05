@@ -63,6 +63,7 @@ const fn diagnostic_code(
     use WorthQueryApplicationAuthorizationExplanationCause as Cause;
     match cause {
         Cause::MissingCapability => "worth.query.authorization.missing-capability",
+        Cause::ExplicitPolicyDenial => "worth.query.authorization.explicit-policy-denial",
         Cause::ScopeMismatch => "worth.query.authorization.scope-mismatch",
         Cause::PurposeMismatch => "worth.query.authorization.purpose-mismatch",
         Cause::Conflict => "worth.query.authorization.conflict",
@@ -83,6 +84,7 @@ const fn diagnostic_outcome(
         }
         Cause::Conflict | Cause::SeparationOfDuty => FoundationalDiagnosticOutcomeKind::Violation,
         Cause::MissingCapability
+        | Cause::ExplicitPolicyDenial
         | Cause::ElevationRequired
         | Cause::ElevationDenied
         | Cause::ElevationExpired => FoundationalDiagnosticOutcomeKind::Denied,

@@ -11,8 +11,9 @@ use worth_foundational::facade::{
 };
 use worth_proof::TransitionOutcome;
 use worth_query_execution::facade::primary_graph::{
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationDisclosureOutcomeIdentity,
-    WorthQueryApprovedElevation, WorthQueryElevationClosureKind, WorthQueryMandatoryReview,
+    WorthQueryApplicationCommitOutcomeIdentity, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationDisclosureOutcomeIdentity, WorthQueryApprovedElevation,
+    WorthQueryElevationClosureKind, WorthQueryMandatoryReview,
     WorthQueryOperationAuthorizationDenialIdentity, WorthQueryRequestedElevation,
     WorthQueryReviewedElevation,
 };
@@ -38,10 +39,10 @@ pub(super) struct WorthQueryApplicationAuthorizationBoundaryIdentity {
 }
 
 impl WorthQueryApplicationAuthorizationBoundaryIdentity {
-    fn from_commit(commit: &WorthQueryApplicationCommitReceipt) -> Self {
+    fn from_commit(identity: WorthQueryApplicationCommitOutcomeIdentity) -> Self {
         Self {
             locator: BoundaryArtifactLocator::new(
-                BoundaryArtifactId::new(commit.commit_id().0),
+                BoundaryArtifactId::new(identity.get()),
                 BoundaryArtifactField::Payload,
             ),
         }
@@ -217,7 +218,11 @@ fn publish_transition(
     WorthQueryPublishedApplicationAuthorization,
     WorthQueryApplicationAuthorizationPublicationDenial,
 > {
-    let identity = WorthQueryApplicationAuthorizationBoundaryIdentity::from_commit(commit);
+    let outcome_identity = commit
+        .outcome_identity()
+        .ok_or(WorthQueryApplicationAuthorizationPublicationDenial::OutcomeIdentityUnavailable)?;
+    let identity =
+        WorthQueryApplicationAuthorizationBoundaryIdentity::from_commit(outcome_identity);
     let lowered = lower_boundary_material(kind, identity, commit.emitted_effect_count(), profile)?;
     Ok(WorthQueryPublishedApplicationAuthorization {
         kind,

@@ -1,11 +1,11 @@
 # Milestone 9.16: Authenticated Async Bank World And The Ordinary Query Front Door
 
-> **Current execution posture:** Paused after Runtime Hardening Phase 7.2.
-> [Milestone 9.16.1](./milestone-9.16.1.md) must close before Runtime Phase 7.3
-> begins. Completed milestone and phase guarantees retain their recorded
-> status; 9.16.1 adds the stronger canonical graph-progression prerequisite
-> through parity-gated migration of the exact competing authority surfaces. It
-> does not authorize crate-wide monolith deletion or loss of Phase 6 behavior.
+> **Current execution posture:** Runtime Hardening Phase 7.7 Gate D is open.
+> [Milestone 9.16.1](./milestone-9.16.1.md) is closed, and its canonical
+> graph-progression substrate remains inherited. Gates A-C and the executable
+> release/disbursement slices are closed; typed outcome publication, the two
+> lower-capability product consumers, complete warm-locality proof, and final
+> external certification must close before Runtime Phase 8 begins.
 
 ## Goal
 
@@ -2811,14 +2811,15 @@ exact-zero warm canonical-basis and digest work. Static installation proof must
 enumerate the complete role composition, exact decision-read inventory, and
 sole status-write obligation rather than asserting only their counts.
 
-Gate D publication must preserve a closed ten-family outcome taxonomy:
-missing capability, explicit safe scope mismatch, purpose mismatch, conflict,
-separation of duty, field omission, elevation required, elevation denied,
-elevation expired, and review required. These are authorization, disclosure,
-elevation, and review outcomes, not ten interchangeable denials. Field omission
-is a successful governed disclosure outcome, and review required is the
-successful result of a close transition. Publication must not turn either into
-a failed operation.
+Gate D publication must preserve a closed eleven-family outcome taxonomy:
+missing capability, explicit policy denial, explicit safe scope mismatch,
+purpose mismatch, conflict, separation of duty, field omission, elevation
+required, elevation denied, elevation expired, and review required. These are
+authorization, disclosure, elevation, and review outcomes, not eleven
+interchangeable denials. An installed explicit deny is not missing authority
+and may not be relabeled as missing capability. Field omission is a successful
+governed disclosure outcome, and review required is the successful result of a
+close transition. Publication must not turn either into a failed operation.
 
 Query execution must mint the explanation cause while it still owns the exact
 installed rule and retained decision evidence. Signal must retain the exact
@@ -2859,19 +2860,27 @@ Foundational material remains descriptive and cannot be promoted into Query
 capability, admission, operation, elevation, review, disclosure, provider, or
 receipt authority.
 
-Proof requires an exhaustive Query-publication table over all ten families,
+Proof requires an exhaustive Query-publication table over all eleven families,
 one-axis cause and non-aliasing twins at the real decision boundary, exact
 Foundational category/diagnostic/provenance/profile/receipt assertions,
 string-independence, no post-denial graph work, protected-value
 noninterference, and compile/runtime non-promotion. The public Bank transcript
-must exercise ordinary missing-capability, scope, purpose, conflict, and
-separation outcomes; a governed query with an actually omitted field; and an
-emergency journey covering an explicitly enumerated elevation-denied subkind,
-elevation expired, and the successful review-required close result. Bank's
-approved-elevation query intentionally has no no-elevation overload, so
+must exercise ordinary missing-capability, conflict, and separation outcomes;
+a governed query with an actually omitted field; and an emergency journey
+covering an explicitly enumerated elevation-denied subkind, elevation expired,
+and the successful review-required close result. Bank installs no product
+explicit-deny rule, so the exact explicit-policy-denial family is proved at
+Query's real installed-composition boundary rather than by inventing Bank
+policy. Bank's product builders fix scope and purpose rather than exposing raw
+mismatch knobs, so safe scope and purpose mismatch are proved at Query's public
+generic admission boundary; Bank separately proves those dimensions cannot be
+caller-substituted and a wrong-scope or wrong-purpose grant remains the
+privacy-preserving missing-capability family without alternate-grant search.
+Bank's approved-elevation query intentionally has no no-elevation overload, so
 compile-fail consumer evidence proves elevation cannot be omitted at that
-front door; the exact `ElevationRequired` runtime outcome is proved at Query's
-public generic admission boundary rather than by inventing a second Bank API.
+front door; the exact `ElevationRequired` runtime outcome is likewise proved at
+Query's public generic admission boundary rather than by inventing a second
+Bank API.
 Denied mutations must prove zero effects. Phase 8 non-authorization outcomes
 and Gate D's complete scale, residue, and external certification remain
 outside this focused publication slice.

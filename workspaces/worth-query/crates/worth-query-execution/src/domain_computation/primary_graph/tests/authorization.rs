@@ -32,3 +32,5 @@ mod decision_ownership;
 mod graph_work_capacity;
 #[path = "authorization/ordinary_admission.rs"]
 mod ordinary_admission;
+#[path = "authorization/scope_mismatch.rs"]
+mod scope_mismatch;

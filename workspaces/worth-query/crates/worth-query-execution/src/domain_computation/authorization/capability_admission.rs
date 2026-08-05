@@ -93,20 +93,11 @@ where
                     capability.contract().name(),
                 )
             })?;
-        match (installed.elevation.is_some(), approved.is_some()) {
-            (true, false) => {
-                return Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired,
-                    capability.contract().name(),
-                ));
-            }
-            (false, true) => {
-                return Err(denial(
-                    WorthQueryOperationAuthorizationDenialKind::ElevationNotApplicable,
-                    capability.contract().name(),
-                ));
-            }
-            _ => {}
+        if installed.elevation.is_none() && approved.is_some() {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::ElevationNotApplicable,
+                capability.contract().name(),
+            ));
         }
         if !self.authorization.bridge().matches_installed_policy(
             installed.correspondence,
@@ -129,6 +120,12 @@ where
             )
         })?;
         validate_elevation_projection(&installed.contract, &projection)?;
+        if installed.elevation.is_some() && approved.is_none() {
+            return Err(denial(
+                WorthQueryOperationAuthorizationDenialKind::ElevationTransitionRequired,
+                capability.contract().name(),
+            ));
+        }
         let sample = self
             .authorization_clock
             .sample(installed.request.timeline)

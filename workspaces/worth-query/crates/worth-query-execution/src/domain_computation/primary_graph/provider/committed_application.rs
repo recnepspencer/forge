@@ -2,6 +2,8 @@ use worth_relational::facade::history::{BranchId, CommitId};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCommittedApplication {
+    application_outcome_identity:
+        Option<super::super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity>,
     runtime_instance_id: u64,
     branch: BranchId,
     commit_id: CommitId,
@@ -11,7 +13,8 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCo
 }
 
 impl WorthQueryPrimaryGraphCommittedApplication {
-    pub(in crate::domain_computation::primary_graph) const fn new(
+    pub(in crate::domain_computation::primary_graph) fn new(
+        application_outcome_identity: super::super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity,
         runtime_instance_id: u64,
         branch: BranchId,
         commit_id: CommitId,
@@ -19,6 +22,7 @@ impl WorthQueryPrimaryGraphCommittedApplication {
         emitted_effect_count: usize,
     ) -> Self {
         Self {
+            application_outcome_identity: Some(application_outcome_identity),
             runtime_instance_id,
             branch,
             commit_id,
@@ -30,6 +34,12 @@ impl WorthQueryPrimaryGraphCommittedApplication {
 
     pub(in crate::domain_computation::primary_graph) const fn runtime_instance_id(&self) -> u64 {
         self.runtime_instance_id
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn application_outcome_identity(
+        &self,
+    ) -> Option<super::super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity> {
+        self.application_outcome_identity
     }
 
     pub(in crate::domain_computation::primary_graph) const fn branch(&self) -> &BranchId {

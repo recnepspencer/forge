@@ -131,7 +131,7 @@ fn exact_parent_policy_cannot_borrow_an_alternate_grant_path() {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing,
     );
 }
 

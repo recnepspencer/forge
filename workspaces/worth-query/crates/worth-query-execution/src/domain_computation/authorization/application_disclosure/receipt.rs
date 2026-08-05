@@ -1,7 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
-
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
+
+use crate::domain_computation::application_outcome_identity::WorthQueryApplicationOutcomeIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationDisclosureReceiptPosture {
@@ -147,22 +147,15 @@ impl WorthQueryApplicationDisclosureDecisionFact {
         self.outcome
     }
 }
-static NEXT_APPLICATION_DISCLOSURE_OUTCOME_IDENTITY: AtomicU64 = AtomicU64::new(1);
-
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WorthQueryApplicationDisclosureOutcomeIdentity(u64);
+pub struct WorthQueryApplicationDisclosureOutcomeIdentity(WorthQueryApplicationOutcomeIdentity);
 
 impl WorthQueryApplicationDisclosureOutcomeIdentity {
     fn mint() -> Option<Self> {
-        NEXT_APPLICATION_DISCLOSURE_OUTCOME_IDENTITY
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-                current.checked_add(1)
-            })
-            .ok()
-            .map(Self)
+        WorthQueryApplicationOutcomeIdentity::mint().map(Self)
     }
 
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }

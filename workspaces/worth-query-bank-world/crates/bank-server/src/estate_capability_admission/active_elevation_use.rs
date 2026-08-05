@@ -1,23 +1,22 @@
 use bank_domain::{
     estate::{
-        BankDisclosure, EmergencyAccessId, EmergencyAccessReason, EmergencyAccessStatus,
-        EstateAction, EstateDisbursement, EstatePosting, EstateWorkflowStage, MandatoryReviewId,
-        MandatoryReviewStatus, RestrictedBankField,
+        EmergencyAccessId, EstateAction, EstateDisbursement, EstatePosting, EstateWorkflowStage,
+        RestrictedBankField,
     },
     model::{Money, SignedMoney},
-    queries::EstateGovernanceQuery,
-    reads::EstateGovernanceContext,
-    schema::{
-        AccountStatus, DisburseEstateCapability, DisburseEstateOperation,
-        ViewEstateEmergencyProtectionCapability, ViewRestrictedEstateOperation,
-    },
+    schema::{DisburseEstateCapability, DisburseEstateOperation},
+};
+use worth_foundational::facade::{
+    FoundationalBoundaryEvidenceExecutionPosture, FoundationalDiagnosticOutcomeKind,
 };
 use worth_query_host::facade::{
-    domain::TypedApplicationValue,
     primary_graph::{
-        WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationOneShotResult,
-        WorthQueryElevationCloseOutcome, WorthQueryMandatoryReviewOutcome,
-        WorthQueryOperationAuthorizationDenialKind,
+        WorthQueryApplicationAuthorizationExplanationCause,
+        WorthQueryApplicationIdempotencyBinding, WorthQueryOperationAuthorizationDenialKind,
+    },
+    publication::domain_computation::{
+        publish_application_authorization_denial,
+        WorthQueryApplicationAuthorizationPublicationProfile,
     },
 };
 
@@ -25,142 +24,12 @@ use super::{
     fixture::{
         emergency_request_world, emergency_request_world_with_alternate_bound, request_scope,
         GrantSpec, ACCOUNT, ALTERNATE_EMERGENCY_BOUND_GRANT, APPROVER, ESTATE, GRANT,
-        OTHER_ACCOUNT, REVIEWER, SPECIALIST,
+        OTHER_ACCOUNT,
     },
     lifecycle_journey::{approve_elevation, request_elevation},
+    publication_evidence::publication_profile,
 };
 use crate::{queries, BankApplicationQueryDenial, BankReadControls};
-
-type GovernanceResult =
-    WorthQueryApplicationOneShotResult<EstateGovernanceQuery, EstateGovernanceContext>;
-
-#[test]
-fn approved_emergency_discloses_account_details_and_terminal_state_reads_back() {
-    let fixture = emergency_request_world(
-        "estate-emergency-active-use",
-        GrantSpec::emergency_view(),
-        EstateWorkflowStage::Administration,
-    );
-    let requester = fixture.authenticate();
-    let approver = fixture.authenticate_approver();
-    let reviewer = fixture.authenticate_reviewer();
-    let access = EmergencyAccessId::new(361).unwrap();
-    let review = MandatoryReviewId::new(362).unwrap();
-    let requested = request_elevation(
-        &fixture,
-        &requester,
-        GRANT,
-        361,
-        362,
-        91,
-        RestrictedBankField::AccountDetails,
-    );
-    let approved = approve_elevation(&fixture, &approver, requested, 361, 93);
-
-    let published = fixture
-        .runtime
-        .query(queries::estate_emergency_account_details(ESTATE, access))
-        .as_principal(&requester)
-        .controls(controls())
-        .execute_with_approved_elevation(&approved)
-        .expect("the exact approved field should reach the public Bank query");
-    assert_eq!(published.rows().len(), 1);
-    let BankDisclosure::Disclosed(account) = published.rows()[0].account() else {
-        panic!("the exact approved account details must be disclosed");
-    };
-    assert_eq!(account.id(), ACCOUNT);
-    assert_eq!(account.display_name().as_str(), "Estate Operating");
-    assert_eq!(account.status(), AccountStatus::Frozen);
-    let disclosure = published.receipt().disclosure();
-    assert_eq!(
-        disclosure.classification(),
-        Some("estate-emergency-account-details")
-    );
-    assert_eq!(disclosure.decisions().len(), 4);
-    assert!(disclosure.decisions().iter().all(|decision| {
-        decision.required_disclosure()
-            == &RestrictedBankField::AccountDetails.into_foundational_value()
-    }));
-    let capability = fixture
-        .runtime
-        .application_runtime()
-        .installed_schema()
-        .capability(
-            ViewEstateEmergencyProtectionCapability::reference(),
-            ViewRestrictedEstateOperation::reference(),
-        )
-        .unwrap();
-    assert_eq!(
-        disclosure.capability_authority_identity(),
-        Some(capability.authority_identity())
-    );
-
-    let close = fixture
-        .runtime
-        .revoke_estate_emergency_access(
-            &approver,
-            approved,
-            EstateAction::RevokeEmergencyAccess {
-                estate: ESTATE,
-                access,
-            },
-            WorthQueryApplicationIdempotencyBinding::new([95; 32], [96; 32]),
-            &request_scope(),
-        )
-        .expect("the used elevation should remain closable through its exact command");
-    let WorthQueryElevationCloseOutcome::Closed(mandatory) = close else {
-        panic!("the close must commit before readback: {close:?}");
-    };
-    let closed = governance_readback(&fixture, &requester);
-    let closed_emergency = emergency(&closed, access);
-    assert_eq!(closed_emergency.status(), EmergencyAccessStatus::Revoked);
-    assert_eq!(closed_emergency.grant(), GRANT);
-    assert_eq!(closed_emergency.requester(), SPECIALIST);
-    assert_eq!(
-        closed_emergency.reason(),
-        EmergencyAccessReason::PreventImmediateLoss
-    );
-    assert_eq!(closed_emergency.approver(), Some(approver.principal_id()));
-    assert_eq!(closed_emergency.reviewer(), None);
-    assert_eq!(closed_emergency.mandatory_review().id, review);
-    assert_eq!(
-        closed_emergency.mandatory_review().status,
-        MandatoryReviewStatus::Required
-    );
-    assert_eq!(closed_emergency.mandatory_review().reviewer, None);
-
-    let reviewed = fixture
-        .runtime
-        .complete_estate_mandatory_review(
-            &reviewer,
-            mandatory,
-            EstateAction::CompleteMandatoryReview {
-                estate: ESTATE,
-                access,
-                review,
-            },
-            WorthQueryApplicationIdempotencyBinding::new([97; 32], [98; 32]),
-            &request_scope(),
-        )
-        .expect("the exact mandatory review should commit after readback");
-    let WorthQueryMandatoryReviewOutcome::Reviewed(_) = reviewed else {
-        panic!("the exact review must be fresh: {reviewed:?}");
-    };
-    let completed = governance_readback(&fixture, &requester);
-    let completed_emergency = emergency(&completed, access);
-    assert_eq!(completed_emergency.grant(), GRANT);
-    assert_eq!(completed_emergency.requester(), SPECIALIST);
-    assert_eq!(completed_emergency.review(), review);
-    assert_eq!(completed_emergency.reviewer(), Some(REVIEWER));
-    assert_eq!(
-        completed_emergency.mandatory_review().status,
-        MandatoryReviewStatus::Completed
-    );
-    assert_eq!(
-        completed_emergency.mandatory_review().reviewer,
-        Some(REVIEWER)
-    );
-}
 
 #[test]
 fn approved_different_field_cannot_open_account_details() {
@@ -213,6 +82,11 @@ fn approved_different_field_cannot_open_account_details() {
     assert_eq!(
         denial.kind(),
         WorthQueryOperationAuthorizationDenialKind::ElevationApprovalRejected
+    );
+    assert_denial_publication(
+        &denial,
+        WorthQueryApplicationAuthorizationExplanationCause::ElevationDenied,
+        "worth.query.authorization.elevation-denied",
     );
 }
 
@@ -294,34 +168,37 @@ fn disbursement_action() -> EstateAction {
     })
 }
 
-fn governance_readback(
-    fixture: &super::fixture::CapabilityFixture,
-    observer: &crate::BankAuthenticatedPrincipal,
-) -> GovernanceResult {
-    fixture
-        .runtime
-        .query(queries::estate_governance_context(ESTATE))
-        .as_principal(observer)
-        .controls(controls())
-        .execute()
-        .expect("the governance observer should read authoritative lifecycle state")
-}
-
-fn emergency(
-    result: &GovernanceResult,
-    access: EmergencyAccessId,
-) -> &bank_domain::reads::EstateEmergencyContext {
-    result.rows()[0]
-        .capabilities()
-        .iter()
-        .find(|capability| capability.id() == GRANT)
-        .expect("the original governed grant should remain observable")
-        .emergencies()
-        .iter()
-        .find(|emergency| emergency.id() == access)
-        .expect("the exact lifecycle record should be projected from current graph truth")
-}
-
 fn controls() -> BankReadControls {
     BankReadControls::current(request_scope(), 1, 20_000).unwrap()
+}
+
+fn assert_denial_publication(
+    denial: &worth_query_host::facade::primary_graph::WorthQueryOperationAuthorizationDenial,
+    expected_cause: WorthQueryApplicationAuthorizationExplanationCause,
+    expected_code: &str,
+) {
+    let published = publish_application_authorization_denial(
+        denial,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+    )
+    .unwrap();
+
+    assert_eq!(published.artifact().denial(), denial);
+    assert_eq!(published.artifact().cause(), expected_cause);
+    assert_eq!(
+        published.explanation().outcome_kind(),
+        FoundationalDiagnosticOutcomeKind::Denied
+    );
+    assert_eq!(
+        published.explanation().rows()[0].code().as_str(),
+        expected_code
+    );
+    assert_eq!(
+        published.denied_closeout_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+    );
+    assert_eq!(
+        published.publication_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::Executed
+    );
 }

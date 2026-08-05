@@ -1,4 +1,5 @@
 mod application_attempt;
+mod application_outcome_identity;
 mod application_query;
 mod authorization;
 pub(in crate::domain_computation::primary_graph) mod fixture;

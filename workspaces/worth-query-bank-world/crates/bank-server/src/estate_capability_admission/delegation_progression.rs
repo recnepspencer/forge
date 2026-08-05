@@ -335,7 +335,7 @@ fn assert_governance_denied(fixture: &CapabilityFixture, principal: &BankAuthent
     };
     assert!(matches!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
             | WorthQueryOperationAuthorizationDenialKind::DelegationRejected
     ));
 }

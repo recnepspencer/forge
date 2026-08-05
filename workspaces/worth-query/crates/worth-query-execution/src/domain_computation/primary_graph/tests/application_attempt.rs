@@ -193,6 +193,7 @@ fn response_loss_resolves_the_published_commit_before_returning() {
         panic!("retry must recover the transaction published before response loss");
     };
     assert!(receipt.is_same_authoritative_commit(&first_receipt));
+    assert_eq!(receipt.outcome_identity(), first_receipt.outcome_identity());
     assert_eq!(
         first_receipt.terminal().kind(),
         WorthQueryApplicationCommitTerminalKind::Executed

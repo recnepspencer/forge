@@ -317,7 +317,7 @@ fn assert_governance_denied(scenario: &str, grant: GrantSpec) {
     };
     assert_eq!(
         denial.kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 

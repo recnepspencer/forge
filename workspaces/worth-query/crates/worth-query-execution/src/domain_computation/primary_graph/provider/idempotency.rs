@@ -9,6 +9,7 @@ use worth_relational::facade::transactions::{
 };
 
 use super::WorthQueryPrimaryGraphProvider;
+use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity;
 use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationIdempotencyBinding;
 use crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication;
 use crate::domain_computation::primary_graph::schema_layout::WorthQueryProviderIdempotencyLayout;
@@ -23,6 +24,7 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryProviderIdempote
 pub(super) fn idempotency_create_intent(
     layout: &WorthQueryProviderIdempotencyLayout,
     binding: WorthQueryApplicationIdempotencyBinding,
+    outcome_identity: WorthQueryApplicationCommitOutcomeIdentity,
     emitted_effect_count: u64,
 ) -> MutationIntent {
     let key = binding.key_text();
@@ -34,6 +36,10 @@ pub(super) fn idempotency_create_intent(
         (
             layout.intent_locator.clone(),
             AspectValue::String(InternedString::from(binding.intent_text())),
+        ),
+        (
+            layout.outcome_identity_locator.clone(),
+            AspectValue::UInt64(outcome_identity.get()),
         ),
         (
             layout.emitted_effect_count_locator.clone(),
@@ -133,11 +139,19 @@ fn resolve_at_snapshot(
         .first()
         .cloned()
         .ok_or("provider idempotency emitted-effect-count locator is empty")?;
+    let outcome_identity_field = layout
+        .outcome_identity_locator
+        .field_path()
+        .fields()
+        .first()
+        .cloned()
+        .ok_or("provider idempotency outcome-identity locator is empty")?;
     let scope = ProjectionAspectScope::from_requirements([ProjectionAspectRequirement::fields(
         layout.key_locator.aspect().aspect_key().clone(),
         [
             key_field.clone(),
             intent_field.clone(),
+            outcome_identity_field.clone(),
             emitted_effect_count_field.clone(),
         ],
     )]);
@@ -162,6 +176,12 @@ fn resolve_at_snapshot(
                             .cloned(),
                         record
                             .aspect_field_value(
+                                layout.outcome_identity_locator.aspect().aspect_key(),
+                                &outcome_identity_field,
+                            )
+                            .cloned(),
+                        record
+                            .aspect_field_value(
                                 layout.emitted_effect_count_locator.aspect().aspect_key(),
                                 &emitted_effect_count_field,
                             )
@@ -179,13 +199,19 @@ fn resolve_at_snapshot(
         .history()
         .committed_version(record.0)
         .ok_or("provider idempotency creation commit is unavailable")?;
-    let Some(AspectValue::UInt64(emitted)) = record.2 else {
+    let Some(AspectValue::UInt64(outcome_identity)) = record.2 else {
+        return Err("provider idempotency outcome identity is unavailable");
+    };
+    let outcome_identity = WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)
+        .ok_or("provider idempotency outcome identity is invalid")?;
+    let Some(AspectValue::UInt64(emitted)) = record.3 else {
         return Err("provider idempotency emitted-effect count is unavailable");
     };
     let emitted = usize::try_from(emitted)
         .map_err(|_| "provider idempotency emitted-effect count exceeds host representation")?;
     Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
         WorthQueryPrimaryGraphCommittedApplication::new(
+            outcome_identity,
             snapshot.runtime_instance_id,
             snapshot.branch_id.clone(),
             committed.commit().commit_id,
@@ -226,6 +252,7 @@ mod tests {
                 idempotency_create_intent(
                     provider.graph.layout.provider_idempotency(),
                     WorthQueryApplicationIdempotencyBinding::new([93; 32], [94; 32]),
+                    WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
                     0,
                 ),
             ));
@@ -233,7 +260,12 @@ mod tests {
             let mut transaction: RelationalTransaction<'_> =
                 runtime.begin_transaction(Default::default());
             transaction.push_batch(WorkerIntentBatch::new("branch-idempotency").push(
-                idempotency_create_intent(provider.graph.layout.provider_idempotency(), binding, 0),
+                idempotency_create_intent(
+                    provider.graph.layout.provider_idempotency(),
+                    binding,
+                    WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
+                    0,
+                ),
             ));
             transaction.commit().unwrap();
             provider

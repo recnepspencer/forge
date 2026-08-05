@@ -70,7 +70,7 @@ fn purpose_field_resource_and_input_variant_cannot_understate_the_view_request()
             .err()
             .expect("the wrong field must deny")
             .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
     let missing_resource = EstateAction::ViewRestrictedEstate {
         estate: bank_domain::estate::EstateCaseId::new(99_999).unwrap(),
@@ -238,7 +238,7 @@ fn assert_wrong_account_denied() {
             .err()
             .expect("the wrong related account must deny")
             .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 
@@ -283,6 +283,6 @@ fn assert_amount_over_ceiling_denied() {
             .err()
             .expect("an amount over the grant ceiling must deny")
             .kind(),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }

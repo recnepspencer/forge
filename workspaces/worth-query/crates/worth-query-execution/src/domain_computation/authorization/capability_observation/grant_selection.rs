@@ -147,7 +147,7 @@ fn selected_grant(
         .and_then(|witness| witness.entity_at(installed.grant_witness.entity_ordinal()))
         .ok_or_else(|| {
             denial(
-                WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+                WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing,
                 installed.contract.name(),
             )
         })

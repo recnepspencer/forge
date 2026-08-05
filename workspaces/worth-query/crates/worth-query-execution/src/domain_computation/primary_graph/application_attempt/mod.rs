@@ -1,4 +1,5 @@
 mod capability_revocation_program;
+mod commit_outcome_identity;
 mod commit_terminal;
 mod compare_and_commit;
 mod delegation_activation_program;
@@ -30,6 +31,7 @@ mod read_set;
 pub(super) mod snapshot_lease;
 
 pub use capability_revocation_program::WorthQueryCapabilityRevocationProgram;
+pub use commit_outcome_identity::WorthQueryApplicationCommitOutcomeIdentity;
 pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
 };

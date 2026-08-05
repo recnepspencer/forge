@@ -54,7 +54,7 @@ fn requester_and_conflicted_approver_cannot_enter_approval_progression() {
         (
             CapabilityElevationScenario::Active,
             "alice",
-            WorthQueryOperationAuthorizationDenialKind::PermissionDenied,
+            WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing,
         ),
         (
             CapabilityElevationScenario::ConflictedApprover,

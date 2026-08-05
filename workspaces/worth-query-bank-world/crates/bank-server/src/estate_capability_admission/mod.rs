@@ -1,3 +1,4 @@
+mod active_elevation_journey;
 mod active_elevation_use;
 mod capability_revocation;
 mod current_admission;
@@ -11,6 +12,7 @@ pub(crate) mod fixture;
 mod governed_estate_query;
 mod lifecycle_journey;
 mod lifecycle_progression;
+mod publication_evidence;
 mod request_binding;
 mod scale;
 mod support_cutoff;

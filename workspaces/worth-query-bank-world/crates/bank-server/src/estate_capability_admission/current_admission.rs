@@ -62,21 +62,21 @@ fn revoked_expired_future_and_workflow_drifted_grants_fail_current_admission() {
     revoked.status = CapabilityGrantStatus::Revoked;
     assert_eq!(
         view_denial("revoked", revoked, EstateWorkflowStage::Administration),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 
     let mut expired = GrantSpec::view();
     expired.not_after = 1;
     assert_eq!(
         view_denial("expired", expired, EstateWorkflowStage::Administration),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 
     let mut future = GrantSpec::view();
     future.not_before = u64::MAX;
     assert_eq!(
         view_denial("future", future, EstateWorkflowStage::Administration),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 
     let mut workflow = GrantSpec::view();
@@ -87,7 +87,7 @@ fn revoked_expired_future_and_workflow_drifted_grants_fail_current_admission() {
             workflow,
             EstateWorkflowStage::Administration
         ),
-        WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+        WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
     );
 }
 

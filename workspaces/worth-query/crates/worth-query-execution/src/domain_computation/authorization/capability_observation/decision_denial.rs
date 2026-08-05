@@ -30,7 +30,7 @@ pub(super) fn decision_denial_causes(
         causes.push(elevation);
     }
     if causes.is_empty() && !matched(bindings.allow)? {
-        causes.push(WorthQueryOperationAuthorizationDenialKind::PermissionDenied);
+        causes.push(WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing);
     }
     if causes.is_empty() {
         return Err(invalid_policy(

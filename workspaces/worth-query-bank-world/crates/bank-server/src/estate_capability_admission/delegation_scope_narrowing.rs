@@ -119,7 +119,7 @@ fn assert_denied(fixture: CapabilityFixture, action: EstateAction, seed: u8) {
         matches!(
             denial.kind(),
             WorthQueryOperationAuthorizationDenialKind::CapabilityGrantMissing
-                | WorthQueryOperationAuthorizationDenialKind::PermissionDenied
+                | WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing
                 | WorthQueryOperationAuthorizationDenialKind::DelegationRejected
         ),
         "unexpected exact delegation denial: {:?}",

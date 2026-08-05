@@ -2,6 +2,23 @@ use bank_domain::{proposals::BankProposalDenial, schema::AccountStatus};
 use bank_server::{
     BankEstateDisbursementProjectionDenial, BankEstateProgressionDenial, BankMutationCommitOutcome,
 };
+use worth_foundational::facade::{
+    AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
+    DiagnosticRichnessProfile, FoundationalBoundaryEvidenceCloseoutDisposition,
+    FoundationalBoundaryEvidenceExecutionPosture, FoundationalDiagnosticOutcomeKind,
+    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
+    SupportPostureProfile,
+};
+use worth_query_host::facade::{
+    primary_graph::{
+        WorthQueryApplicationAuthorizationExplanationCause, WorthQueryOperationAuthorizationDenial,
+        WorthQueryOperationAuthorizationDenialKind,
+    },
+    publication::domain_computation::{
+        publish_application_authorization_denial,
+        WorthQueryApplicationAuthorizationPublicationProfile,
+    },
+};
 
 use super::{assert_no_disbursement_effects, disburse, fixture::*, idempotency};
 
@@ -166,14 +183,82 @@ fn beneficiary_and_executor_actors_deny_at_capability_composition() {
             idempotency(91 + ordinal as u8),
         )
         .expect_err("conflicted authority must deny before invariant projection");
-        assert!(matches!(
-            denial,
-            BankEstateProgressionDenial::Authorization(_)
-        ));
-        if ordinal == 0 {
-            assert_no_disbursement_effects(&fixture);
-        }
+        let BankEstateProgressionDenial::Authorization(denial) = denial else {
+            panic!("actor conflict must deny at Query authorization")
+        };
+        let (kind, cause, code) = match actor_conflict {
+            ActorConflict::Beneficiary => (
+                WorthQueryOperationAuthorizationDenialKind::ConflictRuleMatched,
+                WorthQueryApplicationAuthorizationExplanationCause::Conflict,
+                "worth.query.authorization.conflict",
+            ),
+            ActorConflict::Executor => (
+                WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched,
+                WorthQueryApplicationAuthorizationExplanationCause::SeparationOfDuty,
+                "worth.query.authorization.separation-of-duty",
+            ),
+            ActorConflict::None => unreachable!(),
+        };
+        assert_eq!(denial.kind(), kind);
+        assert_authorization_publication(&denial, cause, code);
+        assert_no_disbursement_effects(&fixture);
     }
+}
+
+fn assert_authorization_publication(
+    denial: &WorthQueryOperationAuthorizationDenial,
+    expected_cause: WorthQueryApplicationAuthorizationExplanationCause,
+    expected_code: &str,
+) {
+    let published = publish_application_authorization_denial(
+        denial,
+        WorthQueryApplicationAuthorizationPublicationProfile::exact(publication_profile()),
+    )
+    .unwrap();
+
+    assert_eq!(published.artifact().denial(), denial);
+    assert_eq!(published.artifact().cause(), expected_cause);
+    assert_eq!(
+        published.explanation().outcome_kind(),
+        FoundationalDiagnosticOutcomeKind::Violation
+    );
+    assert_eq!(
+        published.explanation().rows()[0].code().as_str(),
+        expected_code
+    );
+    assert_eq!(
+        published.denied_closeout_receipt().closeout_disposition(),
+        Some(FoundationalBoundaryEvidenceCloseoutDisposition::Denied)
+    );
+    assert_eq!(
+        published.denied_closeout_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::NotExecuted
+    );
+    assert_eq!(
+        published.publication_receipt().execution_posture(),
+        FoundationalBoundaryEvidenceExecutionPosture::Executed
+    );
+    let locator = published
+        .provenance()
+        .source_basis()
+        .boundary_artifact_locator()
+        .unwrap();
+    assert_eq!(
+        locator.artifact_id().get(),
+        denial.identity().unwrap().get()
+    );
+}
+
+fn publication_profile() -> FoundationalProfileSet {
+    FoundationalProfileSet::new(FoundationalProfileSetInput {
+        diagnostic_richness: DiagnosticRichnessProfile::Standard,
+        support_posture: SupportPostureProfile::SupportReady,
+        compatibility_posture: CompatibilityPostureProfile::CompatibilityLowered,
+        admission_readiness: AdmissionReadinessProfile::Admitted,
+        retention_delivery: RetentionDeliveryProfile::Retained,
+        certification_posture: CertificationPostureProfile::EvidenceBacked,
+    })
+    .unwrap()
 }
 
 #[test]

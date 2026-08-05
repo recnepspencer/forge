@@ -52,13 +52,13 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
     for (scenario, expected_causes, expected_explanation) in [
         (
             CapabilityCompositionScenario::MissingAssignment,
-            vec![WorthQueryOperationAuthorizationDenialKind::PermissionDenied],
+            vec![WorthQueryOperationAuthorizationDenialKind::CapabilityAuthorizationMissing],
             WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
         ),
         (
             CapabilityCompositionScenario::ExplicitDeny,
             vec![WorthQueryOperationAuthorizationDenialKind::ExplicitDenyRuleMatched],
-            WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+            WorthQueryApplicationAuthorizationExplanationCause::ExplicitPolicyDenial,
         ),
         (
             CapabilityCompositionScenario::ConflictingBeneficiary,
@@ -83,7 +83,7 @@ fn every_installed_combination_predicate_denies_independently_and_together() {
                 WorthQueryOperationAuthorizationDenialKind::SeparationOfDutyRuleMatched,
                 WorthQueryOperationAuthorizationDenialKind::DistinctActorRuleMatched,
             ],
-            WorthQueryApplicationAuthorizationExplanationCause::MissingCapability,
+            WorthQueryApplicationAuthorizationExplanationCause::ExplicitPolicyDenial,
         ),
     ] {
         let mut world = installed_composed_capability_world(scenario);

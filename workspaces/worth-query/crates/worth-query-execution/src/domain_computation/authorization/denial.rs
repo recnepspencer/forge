@@ -1,8 +1,6 @@
 //! Typed authorization denial topology.
 
-use std::sync::atomic::{AtomicU64, Ordering};
-
-static NEXT_AUTHORIZATION_DENIAL_IDENTITY: AtomicU64 = AtomicU64::new(1);
+use crate::domain_computation::application_outcome_identity::WorthQueryApplicationOutcomeIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryOperationAuthorizationDenialKind {
@@ -19,6 +17,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
     TrustedTimeUnavailable,
     CapabilityProjectionRejected,
     CapabilityGrantMissing,
+    CapabilityAuthorizationMissing,
     PurposeMismatch,
     ExplicitDenyRuleMatched,
     ConflictRuleMatched,
@@ -62,6 +61,7 @@ pub enum WorthQueryOperationAuthorizationDenialKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationAuthorizationExplanationCause {
     MissingCapability,
+    ExplicitPolicyDenial,
     ScopeMismatch,
     PurposeMismatch,
     Conflict,
@@ -76,9 +76,9 @@ impl WorthQueryApplicationAuthorizationExplanationCause {
         use WorthQueryOperationAuthorizationDenialKind as Denial;
         match kind {
             Denial::CapabilityGrantMissing
-            | Denial::CapabilityRequired
-            | Denial::ExplicitDenyRuleMatched
-            | Denial::PermissionDenied => Some(Self::MissingCapability),
+            | Denial::CapabilityAuthorizationMissing
+            | Denial::CapabilityRequired => Some(Self::MissingCapability),
+            Denial::ExplicitDenyRuleMatched => Some(Self::ExplicitPolicyDenial),
             Denial::ScopeMismatch => Some(Self::ScopeMismatch),
             Denial::PurposeMismatch => Some(Self::PurposeMismatch),
             Denial::ConflictRuleMatched => Some(Self::Conflict),
@@ -104,20 +104,15 @@ impl WorthQueryApplicationAuthorizationExplanationCause {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct WorthQueryOperationAuthorizationDenialIdentity(u64);
+pub struct WorthQueryOperationAuthorizationDenialIdentity(WorthQueryApplicationOutcomeIdentity);
 
 impl WorthQueryOperationAuthorizationDenialIdentity {
     fn mint() -> Option<Self> {
-        NEXT_AUTHORIZATION_DENIAL_IDENTITY
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
-                current.checked_add(1)
-            })
-            .ok()
-            .map(Self)
+        WorthQueryApplicationOutcomeIdentity::mint().map(Self)
     }
 
     pub const fn get(self) -> u64 {
-        self.0
+        self.0.get()
     }
 }
 

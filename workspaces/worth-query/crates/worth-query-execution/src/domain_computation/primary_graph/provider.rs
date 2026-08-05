@@ -60,6 +60,8 @@ pub(super) struct WorthQueryPrimaryGraphOverlay {
 }
 
 pub(super) struct WorthQueryPrimaryGraphApplicationAttempt {
+    pub(super) outcome_identity:
+        super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity,
     pub(super) facts: BTreeMap<String, WorthQueryPrimaryGraphApplicationDecisionFact>,
     pub(super) expected_steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
     pub(super) batch: worth_relational::facade::transactions::WorkerIntentBatch,
@@ -128,9 +130,13 @@ impl WorthQueryPrimaryGraphProvider {
     ) -> Result<(), &'static str> {
         let emitted_effect_count = u64::try_from(emissions.len())
             .map_err(|_| "application emission count exceeds provider representation")?;
+        let outcome_identity =
+            super::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::mint()
+                .ok_or("application outcome identity space is exhausted")?;
         batch = batch.push(idempotency::idempotency_create_intent(
             self.graph.layout.provider_idempotency(),
             idempotency,
+            outcome_identity,
             emitted_effect_count,
         ));
         if facts
@@ -162,6 +168,7 @@ impl WorthQueryPrimaryGraphProvider {
             .insert(
                 session_identity.to_owned(),
                 WorthQueryPrimaryGraphApplicationAttempt {
+                    outcome_identity,
                     facts,
                     expected_steps,
                     batch,

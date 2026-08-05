@@ -30,11 +30,13 @@ pub(super) fn parse_provider_receipt(
     let commit = parts.next()?.parse().ok()?;
     let changed = parts.next()?.parse().ok()?;
     let emitted = parts.next()?.parse().ok()?;
+    let outcome_identity = parts.next()?.parse().ok()?;
     if parts.next().is_some() {
         return None;
     }
     Some(
         crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication::new(
+        crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)?,
         runtime,
         branch.clone(),
         worth_relational::facade::history::CommitId(commit),
