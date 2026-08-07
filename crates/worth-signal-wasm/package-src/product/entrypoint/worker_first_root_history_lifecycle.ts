@@ -1,4 +1,8 @@
 import { buildActiveImportContext } from "./sessions/support/worker_first_root_import_context.js";
+import {
+  historyOperationMayDropAuthoredCatalog,
+  tipBranchId,
+} from "./sessions/support/authored/worker_first_authored_tip_catalog.js";
 
 export function createWorkerFirstRootHistoryLifecycle(deps) {
   return Object.freeze({
@@ -156,8 +160,30 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
 export async function refreshWorkerFirstRootAfterHistoryMutation(deps, operation, activeImportContext) {
   const activeImportController = deps.activeImportController();
   if (activeImportController === null || activeImportContext === null) {
+    const previousTipBranchId = tipBranchId(
+      typeof deps.readCachedCurrentBranch === "function"
+        ? deps.readCachedCurrentBranch()
+        : null,
+    );
     await deps.refreshBranchCache();
+    const nextTipBranchId = tipBranchId(
+      typeof deps.readCachedCurrentBranch === "function"
+        ? deps.readCachedCurrentBranch()
+        : null,
+    );
+    // Re-admit only when tip identity changes, or restore/merge rewrites catalog
+    // contents in place. Avoid O(authored) probes on create_branch no-ops.
+    if (
+      historyOperationMayDropAuthoredCatalog(operation)
+      || previousTipBranchId !== nextTipBranchId
+    ) {
+      deps.authoredRuntime.markActiveTipCatalogChanged();
+      await deps.authoredRuntime.readmitReadyAuthoredOntoActiveTip();
+    }
     await deps.authoredRuntime.refreshAllReadables();
+    if (typeof deps.publishDiagnosticsChanged === "function") {
+      await deps.publishDiagnosticsChanged();
+    }
     return;
   }
   deps.authoredRuntime.invalidate(
@@ -175,4 +201,7 @@ export async function refreshWorkerFirstRootAfterHistoryMutation(deps, operation
     await activeImportController.refreshFromRootRuntime();
   }
   deps.requireControllerActive(activeImportController, operation);
+  if (typeof deps.publishDiagnosticsChanged === "function") {
+    await deps.publishDiagnosticsChanged();
+  }
 }

@@ -35,12 +35,30 @@ export function createAuthoredInputPublication(id, initial, options = {}) {
   };
 }
 
-export function createWorkerFirstAuthoredInputState(initial) {
+export function createWorkerFirstAuthoredInputState(
+  initial,
+  publicationState = "ready",
+  publicationOptions = {},
+) {
   return {
     baselineValue: materializeWorkerCachedValue(initial),
     currentValue: materializeWorkerCachedValue(initial),
     invalidatedMessage: null,
+    publicationState,
+    // Carried so tip re-admit republishes the same admission contract.
+    publicationOptions: cloneAuthoredInputPublicationOptions(publicationOptions),
+    // Stamped when the input is known present on the active worker tip catalog.
+    admittedTipEpoch: 0,
   };
+}
+
+function cloneAuthoredInputPublicationOptions(options) {
+  if (!options || typeof options !== "object") {
+    return {};
+  }
+  return options.producesAspects === undefined
+    ? {}
+    : { producesAspects: options.producesAspects };
 }
 
 export function invalidateWorkerFirstAuthoredInputs(authoredInputs, message) {
@@ -50,7 +68,17 @@ export function invalidateWorkerFirstAuthoredInputs(authoredInputs, message) {
 }
 
 export function hasMutableWorkerFirstAuthoredInputId(authoredInputs, id) {
-  return authoredInputs.get(id)?.invalidatedMessage === null;
+  const authoredInput = authoredInputs.get(id);
+  return authoredInput != null
+    && authoredInput.invalidatedMessage === null
+    && authoredInput.publicationState !== "failed";
+}
+
+export function isWorkerFirstAuthoredInputPublicationReady(authoredInputs, id) {
+  const authoredInput = authoredInputs.get(id);
+  return authoredInput != null
+    && authoredInput.invalidatedMessage === null
+    && authoredInput.publicationState === "ready";
 }
 
 export function readWorkerFirstAuthoredInputValue(authoredInputs, id) {

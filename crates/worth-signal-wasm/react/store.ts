@@ -33,6 +33,14 @@ function readSignalValue(
   signals: SignalsLike,
   target: SignalHandleLike | string,
 ): unknown {
+  // Always enter root read first so worker-first ownership checks still fire for
+  // foreign handles. Then prefer the handle callable: resource line.signal() and
+  // similar local-truth views can be honest immediately while read(id) still
+  // waits on authored publication catch-up.
+  if (typeof target === "function") {
+    signals.read(target);
+    return target();
+  }
   return signals.read(target);
 }
 
@@ -76,7 +84,11 @@ function createReactPerformanceSummary(
 
 function notifyAll(listeners: Set<() => void>): void {
   for (const listener of Array.from(listeners)) {
-    listener();
+    try {
+      listener();
+    } catch {
+      // One React subscriber fault must not silence sibling delivery.
+    }
   }
 }
 
@@ -120,6 +132,9 @@ export function createReactSignalsStore<TSignals extends SignalsLike>(
     diagnosticsRuntimeHandle = signals.diagnostics().subscribe(() => {
       scheduleDiagnosticsRefresh();
     });
+    // Mutations may have landed before the first React diagnostics subscriber
+    // attached; sync immediately so getDiagnosticsSnapshot is not permanently stale.
+    refreshDiagnosticsSnapshot();
   }
 
   function releaseDiagnosticsRuntimeSubscription(): void {
@@ -146,8 +161,12 @@ export function createReactSignalsStore<TSignals extends SignalsLike>(
         listeners: new Set(),
       };
       signalEntries.set(id, entry);
-    } else {
+    } else if (entry.target !== target) {
+      // Ids can collide across worker-first runtimes; never reuse a snapshot
+      // keyed only by id when the handle identity changed.
       entry.target = target;
+      entry.snapshotVersion = -1;
+      entry.snapshot = undefined;
     }
     return entry;
   }
@@ -198,9 +217,14 @@ export function createReactSignalsStore<TSignals extends SignalsLike>(
 
   function getSignalSnapshot(target: SignalHandleLike | string): unknown {
     const entry = ensureSignalEntry(target);
-    if (entry.snapshotVersion !== entry.version) {
+    // Always enter root read before serving a cached snapshot. importGraph
+    // supersession (and foreign-handle attacks) can invalidate authority without
+    // a per-signal watch notice; sticky React cache must not zombie-serve truth.
+    if (entry.listeners.size === 0 || entry.snapshotVersion !== entry.version) {
       entry.snapshot = readSignalValue(signals, entry.target);
       entry.snapshotVersion = entry.version;
+    } else {
+      signals.read(entry.target);
     }
     return entry.snapshot;
   }

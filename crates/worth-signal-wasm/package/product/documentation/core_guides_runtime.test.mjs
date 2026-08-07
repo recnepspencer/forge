@@ -61,15 +61,25 @@ test("the first-signal tutorial executes on default worker-first deployment", as
   try {
     const quantity = signals.input(2, { debugName: "quantity" });
     const unitPrice = signals.input(18, { debugName: "unitPrice" });
-    const total = signals.computed(() => quantity() * unitPrice(), { debugName: "total" });
+    const customerTier = signals.input("standard", { debugName: "customerTier" });
+    const subtotal = signals.computed(() => quantity() * unitPrice(), {
+      debugName: "subtotal",
+    });
+    const discount = signals.computed(
+      () => (customerTier() === "partner" ? subtotal() * 0.1 : 0),
+      { debugName: "discount" },
+    );
+    const total = signals.output(() => subtotal() - discount(), { debugName: "total" });
 
     const summary = await signals.transaction((tx) => {
       tx.set(quantity, 4);
-      tx.set(unitPrice, 20);
+      tx.set(customerTier, "partner");
     });
 
     assert.equal(summary.touchedNodes > 0, true);
-    assert.equal(total(), 80);
+    assert.equal(total(), 64.8);
+    const explanation = await signals.diagnostics().why(total.id);
+    assert.equal(explanation.id, total.id);
   } finally {
     signals.free();
     await cleanup();

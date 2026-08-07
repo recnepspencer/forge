@@ -23,7 +23,25 @@ export function createWorkerFirstRootMutation(deps) {
       return trackMutation(() => applyActiveInputMutation(deps, id, mutation));
     },
     applyAuthoredInputMutation(id, mutation) {
-      return trackMutation(() => applyAuthoredInputMutation(deps, id, mutation));
+      // Optimistic local truth must land before the mutation queue schedules the
+      // worker round-trip; otherwise set()/resource binding reads stay stale
+      // across microtasks even though beginAuthoredInputMutation already knows
+      // the next value.
+      deps.requireActive("signals.inputAsync");
+      const pendingMutation = deps.authoredRuntime.beginAuthoredInputMutation(id, mutation);
+      return trackMutation(async () => {
+        try {
+          await deps.ready();
+          // settle + publication-ready + tip ensure live in applyWorkerOwnedTransaction
+          return await applyWorkerOwnedTransaction(
+            deps,
+            pendingMutation.transactionOps,
+          );
+        } catch (error) {
+          pendingMutation.rollback();
+          throw error;
+        }
+      });
     },
     async settlePendingMutations() {
       while (pendingMutations.size > 0) {
@@ -72,6 +90,7 @@ async function applyImportMutation(deps, controller, transactionOps, outputIds) 
   deps.authoredRuntime.applyCommittedInputs(transactionOps);
   await deps.authoredRuntime.refreshReadables(extractChangedSignalIds(transactionOps));
   deps.requireControllerActive(activeImportController, "importedGraph.apply");
+  await deps.publishDiagnosticsChanged();
   return projectionPacket.transaction.runSummary;
 }
 
@@ -117,25 +136,12 @@ async function applyActiveInputMutation(deps, id, mutation) {
   );
 }
 
-function applyAuthoredInputMutation(deps, id, mutation) {
-  deps.requireActive("signals.inputAsync");
-  const pendingMutation = deps.authoredRuntime.beginAuthoredInputMutation(id, mutation);
-  return (async () => {
-    try {
-      await deps.ready();
-      return await applyWorkerOwnedTransaction(
-        deps,
-        pendingMutation.transactionOps,
-      );
-    } catch (error) {
-      pendingMutation.rollback();
-      throw error;
-    }
-  })();
-}
-
 async function applyWorkerOwnedTransaction(deps, transactionOps) {
   await deps.authoredRuntime.settlePendingPublications();
+  requireAuthoredTransactionOpsPublicationReady(deps.authoredRuntime, transactionOps);
+  const authoredOpIds = extractChangedSignalIds(transactionOps);
+  // Epoch-gated: no bridge work when tip readmit already stamped these ids.
+  await deps.authoredRuntime.ensureAuthoredInputsPresentOnWorker(authoredOpIds);
   const activeImportController = deps.activeImportController();
   const activeImportContext = deps.activeImportContext();
   if (activeImportController === null || activeImportContext === null) {
@@ -143,9 +149,10 @@ async function applyWorkerOwnedTransaction(deps, transactionOps) {
     const transaction = await deps.bridge.applyTransaction(transactionOps);
     await deps.refreshBranchCache();
     deps.authoredRuntime.applyCommittedInputs(transactionOps);
-    await deps.authoredRuntime.refreshReadables(extractChangedSignalIds(transactionOps));
+    await deps.authoredRuntime.refreshReadables(authoredOpIds);
     const deliveryPacket = await deps.bridge.deliverLatestObservation().catch(() => null);
     deps.observations.deliverCurrent(deliveryPacket);
+    await deps.publishDiagnosticsChanged();
     return transaction.runSummary;
   }
   return applyImportMutation(
@@ -154,6 +161,18 @@ async function applyWorkerOwnedTransaction(deps, transactionOps) {
     transactionOps,
     activeImportContext.definition.descriptors.map((entry) => entry.publishedId),
   );
+}
+
+function requireAuthoredTransactionOpsPublicationReady(authoredRuntime, transactionOps) {
+  if (!Array.isArray(transactionOps)) {
+    return;
+  }
+  for (const op of transactionOps) {
+    if (!op || typeof op.id !== "string" || !authoredRuntime.hasAuthoredSignalId(op.id)) {
+      continue;
+    }
+    authoredRuntime.requireAuthoredInputPublicationReady(op.id);
+  }
 }
 
 function buildActiveInputMutationOperation(id, mutation) {

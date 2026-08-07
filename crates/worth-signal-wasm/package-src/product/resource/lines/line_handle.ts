@@ -11,11 +11,11 @@ import { readLineFreshness } from "./reads/line_freshness_read.js";
 import { readLineHistory } from "./reads/line_history_read.js";
 import { readLineProcessing } from "./reads/line_processing_read.js";
 import { readLineRequest } from "./reads/line_request_read.js";
-import { readLineSignal } from "./reads/line_signal_read.js";
 import { readLineStatus } from "./reads/line_status_read.js";
 import { readLineSummary } from "./reads/line_summary_read.js";
 import { readLineUpload } from "./reads/line_upload_read.js";
 import { readLineValue } from "./reads/line_value_read.js";
+import { createLineSignalLocalTruthHandle } from "./reads/line_signal_local_truth_handle.js";
 import { createLineView } from "./line_view_factory.js";
 import { requireCurrentMaterialization } from "./state/line_handle_helpers.js";
 import { readLineBindingState } from "./state/line_binding_state.js";
@@ -79,10 +79,19 @@ function releaseRuntimeWatch(handle) {
   }
 }
 
+async function drainWorkerFirstAuthoredWork(lineBacking) {
+  const materialization = requireCurrentMaterialization(lineBacking);
+  const settleAuthoredWork = materialization.lineScope?.settleAuthoredWork;
+  if (typeof settleAuthoredWork !== "function") {
+    return;
+  }
+  await settleAuthoredWork.call(materialization.lineScope);
+}
+
 function awaitLineSettlement(lineBacking, activeWaiterFailures, options = {}) {
   const settled = readAwaitSettlementResult(lineBacking);
   if (settled !== null) {
-    return Promise.resolve(settled);
+    return drainWorkerFirstAuthoredWork(lineBacking).then(() => settled);
   }
   return new Promise((resolve, reject) => {
     let finished = false;
@@ -116,7 +125,10 @@ function awaitLineSettlement(lineBacking, activeWaiterFailures, options = {}) {
       }
       finished = true;
       cleanup();
-      resolve(result);
+      drainWorkerFirstAuthoredWork(lineBacking).then(
+        () => resolve(result),
+        (error) => reject(error),
+      );
     }
 
     function bindCurrentStatusSignal() {
@@ -204,6 +216,7 @@ function createLineExecution(lineHandle, lineBacking, activeWaiterFailures, opti
 function createLineHandle(lineBacking) {
   const activeWaiterFailures = new Set();
   let summarySignalHandle = null;
+  let valueSignalHandle = null;
 
   function cancelActiveAwaiters(reason) {
     for (const fail of [...activeWaiterFailures]) {
@@ -231,6 +244,15 @@ function createLineHandle(lineBacking) {
     return handle;
   }
 
+  function ensureValueSignalHandle() {
+    if (valueSignalHandle !== null) {
+      return valueSignalHandle;
+    }
+    const materialization = requireCurrentMaterialization(lineBacking);
+    valueSignalHandle = createLineSignalLocalTruthHandle(materialization);
+    return valueSignalHandle;
+  }
+
   return Object.freeze({
     value() {
       const materialization = requireCurrentMaterialization(lineBacking);
@@ -240,7 +262,7 @@ function createLineHandle(lineBacking) {
     signal() {
       const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "signal");
-      return readLineSignal(materialization);
+      return ensureValueSignalHandle();
     },
     descriptor() {
       const materialization = requireCurrentMaterialization(lineBacking);
