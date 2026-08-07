@@ -1,0 +1,1103 @@
+{
+  "gate": "gate0-vite-asset-certification",
+  "generatedAt": "2026-08-07T19:49:39.029Z",
+  "package": {
+    "name": "worth-signals-wasm",
+    "version": "1.3.0",
+    "pkgDir": "C:\\forge\\crates\\worth-signal-wasm\\pkg",
+    "tarballPath": "C:\\forge\\crates\\worth-signal-wasm\\pkg\\worth-signals-wasm-1.3.0.tgz"
+  },
+  "matrix": {
+    "includeVite7": true,
+    "includeVite7Assets": true,
+    "includePreview": false,
+    "includeSpaFallback": true,
+    "forceOptimizeInclude": true,
+    "defaultAssetsInjection": false,
+    "vite7AssetsInjection": true,
+    "installShape": "npm-pack-tarball",
+    "workerFormat": "es"
+  },
+  "cells": [
+    {
+      "cellId": "vite8-dev-mainThread",
+      "mode": "vite-dev",
+      "deployment": "mainThreadCompatibility",
+      "world": {
+        "viteVersion": "^8.0.1",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": false,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:53589/?deployment=mainThreadCompatibility&cell=vite8-dev-mainThread",
+      "construction": {
+        "phase": "succeeded",
+        "deployment": "mainThreadCompatibility",
+        "elapsedMs": 78.09999999962747,
+        "contract": {
+          "surfaceFamily": "mainThreadCompatibilityCallable",
+          "surfaceVersion": "1",
+          "deployment": "mainThreadCompatibility",
+          "scopeId": null,
+          "capabilities": {
+            "callableSurface": true,
+            "scopedAuthoring": true,
+            "specNamespace": true,
+            "workerRuntime": false
+          }
+        },
+        "smoke": {
+          "input": 2,
+          "doubled": 4
+        },
+        "moduleUrl": "http://127.0.0.1:53589/src/probe.js",
+        "assetsInjection": false
+      },
+      "wasm": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "wasmMagic"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "application/wasm"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "application/wasm",
+            "prefixHex": "00 61 73 6d",
+            "prefixClass": "wasmMagic",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 0,
+        "urls": [],
+        "prefixClasses": [],
+        "statuses": [],
+        "contentTypes": [],
+        "entries": []
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:53589/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite8-fqPw06\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "defaultRelativeAssetsLoadUnderVitePrebundle",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded",
+        "constructionPhase": "succeeded",
+        "constructionError": null,
+        "wasmPrefixClasses": [
+          "wasmMagic"
+        ],
+        "workerPrefixClasses": [],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:53589/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": false,
+          "wasmRequestedWithPackagePath": true
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite8-fqPw06\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"succeeded\",\n  \"deployment\": \"mainThreadCompatibility\",\n  \"elapsedMs\": 78.09999999962747,\n  \"contract\": {\n    \"surfaceFamily\": \"mainThreadCompatibilityCallable\",\n    \"surfaceVersion\": \"1\",\n    \"deployment\": \"mainThreadCompatibility\",\n    \"scopeId\": null,\n    \"capabilities\": {\n      \"callableSurface\": true,\n      \"scopedAuthoring\": true,\n      \"specNamespace\": true,\n      \"workerRuntime\": false\n    }\n  },\n  \"smoke\": {\n    \"input\": 2,\n    \"doubled\": 4\n  },\n  \"moduleUrl\": \"http://127.0.0.1:53589/src/probe.js\",\n  \"assetsInjection\": false\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "vite8-dev-workerFirst",
+      "mode": "vite-dev",
+      "deployment": "workerFirst",
+      "world": {
+        "viteVersion": "^8.0.1",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": false,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:53589/?deployment=workerFirst&cell=vite8-dev-workerFirst",
+      "construction": {
+        "phase": "succeeded",
+        "deployment": "workerFirst",
+        "elapsedMs": 172.09999999962747,
+        "contract": {
+          "surfaceFamily": "workerFirstCallable",
+          "surfaceVersion": "1",
+          "deployment": "workerFirst",
+          "scopeId": null,
+          "capabilities": {
+            "callableSurface": true,
+            "scopedAuthoring": true,
+            "specNamespace": true,
+            "workerRuntime": true
+          }
+        },
+        "smoke": {
+          "input": 2,
+          "doubled": 4
+        },
+        "moduleUrl": "http://127.0.0.1:53589/src/probe.js",
+        "assetsInjection": false
+      },
+      "wasm": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "wasmMagic"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "application/wasm"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "application/wasm",
+            "prefixHex": "00 61 73 6d",
+            "prefixClass": "wasmMagic",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module"
+        ],
+        "prefixClasses": [
+          "empty"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "text/javascript"
+        ],
+        "entries": [
+          {
+            "kind": "worker",
+            "url": "http://127.0.0.1:53589/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite8-fqPw06/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module",
+            "status": 200,
+            "contentType": "text/javascript",
+            "prefixHex": "",
+            "prefixClass": "empty",
+            "prefixError": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found",
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:53589/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite8-fqPw06\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "defaultRelativeAssetsLoadUnderVitePrebundle",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded",
+        "constructionPhase": "succeeded",
+        "constructionError": null,
+        "wasmPrefixClasses": [
+          "wasmMagic"
+        ],
+        "workerPrefixClasses": [
+          "empty"
+        ],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:53589/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": false,
+          "wasmRequestedWithPackagePath": true
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite8-fqPw06\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"succeeded\",\n  \"deployment\": \"workerFirst\",\n  \"elapsedMs\": 172.09999999962747,\n  \"contract\": {\n    \"surfaceFamily\": \"workerFirstCallable\",\n    \"surfaceVersion\": \"1\",\n    \"deployment\": \"workerFirst\",\n    \"scopeId\": null,\n    \"capabilities\": {\n      \"callableSurface\": true,\n      \"scopedAuthoring\": true,\n      \"specNamespace\": true,\n      \"workerRuntime\": true\n    }\n  },\n  \"smoke\": {\n    \"input\": 2,\n    \"doubled\": 4\n  },\n  \"moduleUrl\": \"http://127.0.0.1:53589/src/probe.js\",\n  \"assetsInjection\": false\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "spa-fallback-mainThread",
+      "mode": "vite-dev-spa-fallback",
+      "deployment": "mainThreadCompatibility",
+      "world": {
+        "viteVersion": "^8.0.1",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": true,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:53599/?deployment=mainThreadCompatibility&cell=spa-fallback-mainThread",
+      "construction": {
+        "phase": "failed",
+        "deployment": "mainThreadCompatibility",
+        "elapsedMs": 7.799999998882413,
+        "errorName": "Error",
+        "errorMessage": "worth-signals-wasm: expected WASM bytes from http://127.0.0.1:53599/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-spa-QgM6LR/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \"worth-signals-wasm/wasm?url\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \"es\".",
+        "artifactFamily": null,
+        "moduleUrl": "http://127.0.0.1:53599/src/probe.js",
+        "assetsInjection": false
+      },
+      "wasm": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:53599/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "htmlDoctype"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "text/html; charset=utf-8"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:53599/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "prefixHex": "3c 21 64 6f",
+            "prefixClass": "htmlDoctype",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 0,
+        "urls": [],
+        "prefixClasses": [],
+        "statuses": [],
+        "contentTypes": [],
+        "entries": []
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:53599/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": null,
+      "verdict": {
+        "claim": "spaHtmlFallbackIsObservableAsNonWasmMagic",
+        "status": "passed",
+        "reason": "harnessDetectedHtmlWasmAndPackageDiagnostic",
+        "constructionPhase": "failed",
+        "constructionError": "worth-signals-wasm: expected WASM bytes from http://127.0.0.1:53599/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-spa-QgM6LR/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \"worth-signals-wasm/wasm?url\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \"es\".",
+        "wasmPrefixClasses": [
+          "htmlDoctype"
+        ],
+        "directWasmProbe": {
+          "url": "http://127.0.0.1:53599/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "prefixHex": "3c 21 64 6f",
+          "prefixClass": "htmlDoctype"
+        },
+        "packageExplainsFailure": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"failed\",\n  \"deployment\": \"mainThreadCompatibility\",\n  \"elapsedMs\": 7.799999998882413,\n  \"errorName\": \"Error\",\n  \"errorMessage\": \"worth-signals-wasm: expected WASM bytes from http://127.0.0.1:53599/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-spa-QgM6LR/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \\\"worth-signals-wasm/wasm?url\\\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \\\"es\\\".\",\n  \"artifactFamily\": null,\n  \"moduleUrl\": \"http://127.0.0.1:53599/src/probe.js\",\n  \"assetsInjection\": false\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "vite7-dev-mainThread",
+      "mode": "vite-dev",
+      "deployment": "mainThreadCompatibility",
+      "world": {
+        "viteVersion": "7.1.12",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": false,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:64257/?deployment=mainThreadCompatibility&cell=vite7-dev-mainThread",
+      "construction": {
+        "phase": "failed",
+        "deployment": "mainThreadCompatibility",
+        "elapsedMs": 7.400000000372529,
+        "errorName": "Error",
+        "errorMessage": "worth-signals-wasm: expected WASM bytes from http://127.0.0.1:64257/node_modules/.vite/deps/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \"worth-signals-wasm/wasm?url\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \"es\".",
+        "artifactFamily": null,
+        "moduleUrl": "http://127.0.0.1:64257/src/probe.js",
+        "assetsInjection": false
+      },
+      "wasm": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:64257/node_modules/.vite/deps/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "htmlDoctype"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "text/html"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:64257/node_modules/.vite/deps/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "text/html",
+            "prefixHex": "3c 21 64 6f",
+            "prefixClass": "htmlDoctype",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 0,
+        "urls": [],
+        "prefixClasses": [],
+        "statuses": [],
+        "contentTypes": [],
+        "entries": []
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:64257/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": true,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-a3chAo\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "defaultRelativeAssetsLoadUnderVitePrebundle",
+        "status": "failed",
+        "reason": "wasmResponseWasHtml",
+        "constructionPhase": "failed",
+        "constructionError": "worth-signals-wasm: expected WASM bytes from http://127.0.0.1:64257/node_modules/.vite/deps/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \"worth-signals-wasm/wasm?url\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \"es\".",
+        "wasmPrefixClasses": [
+          "htmlDoctype"
+        ],
+        "workerPrefixClasses": [],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:64257/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": true,
+          "wasmRequestedWithPackagePath": true
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-a3chAo\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"failed\",\n  \"deployment\": \"mainThreadCompatibility\",\n  \"elapsedMs\": 7.400000000372529,\n  \"errorName\": \"Error\",\n  \"errorMessage\": \"worth-signals-wasm: expected WASM bytes from http://127.0.0.1:64257/node_modules/.vite/deps/worth_signal_wasm_bg.wasm, but received HTML (prefix 3c 21 64 6f). This usually means a bundler relocated the module (for example Vite prebundling into .vite/deps) or the host SPA-fell back missing asset routes to index.html. Fix: pass createSignals({ assets: { wasmUrl, workerUrl } }) with bundler-emitted URLs (Vite: import wasmUrl from \\\"worth-signals-wasm/wasm?url\\\"), ensure missing .wasm routes return 404 not HTML, and on Vite set worker.format = \\\"es\\\".\",\n  \"artifactFamily\": null,\n  \"moduleUrl\": \"http://127.0.0.1:64257/src/probe.js\",\n  \"assetsInjection\": false\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "vite7-dev-workerFirst",
+      "mode": "vite-dev",
+      "deployment": "workerFirst",
+      "world": {
+        "viteVersion": "7.1.12",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": false,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:64257/?deployment=workerFirst&cell=vite7-dev-workerFirst",
+      "construction": {
+        "phase": "failed",
+        "deployment": "workerFirst",
+        "elapsedMs": 13.699999999254942,
+        "errorName": "WorkerRuntimeBridgeWorkerError",
+        "errorMessage": "Worker runtime bridge worker failed",
+        "artifactFamily": null,
+        "moduleUrl": "http://127.0.0.1:64257/src/probe.js",
+        "assetsInjection": false
+      },
+      "wasm": {
+        "count": 0,
+        "urls": [],
+        "prefixClasses": [],
+        "statuses": [],
+        "contentTypes": [],
+        "entries": []
+      },
+      "worker": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:64257/node_modules/.vite/deps/worker_runtime_bridge_worker.js?worker_file&type=module"
+        ],
+        "prefixClasses": [
+          "empty"
+        ],
+        "statuses": [
+          404
+        ],
+        "contentTypes": [
+          null
+        ],
+        "entries": [
+          {
+            "kind": "worker",
+            "url": "http://127.0.0.1:64257/node_modules/.vite/deps/worker_runtime_bridge_worker.js?worker_file&type=module",
+            "status": 404,
+            "contentType": null,
+            "prefixHex": "",
+            "prefixClass": "empty",
+            "prefixError": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found",
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:64257/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": false
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-a3chAo\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "defaultRelativeAssetsLoadUnderVitePrebundle",
+        "status": "failed",
+        "reason": "workerScriptMissingBesidePrebundle",
+        "constructionPhase": "failed",
+        "constructionError": "Worker runtime bridge worker failed",
+        "wasmPrefixClasses": [],
+        "workerPrefixClasses": [
+          "empty"
+        ],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:64257/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": false,
+          "wasmRequestedWithPackagePath": false
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-a3chAo\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"failed\",\n  \"deployment\": \"workerFirst\",\n  \"elapsedMs\": 13.699999999254942,\n  \"errorName\": \"WorkerRuntimeBridgeWorkerError\",\n  \"errorMessage\": \"Worker runtime bridge worker failed\",\n  \"artifactFamily\": null,\n  \"moduleUrl\": \"http://127.0.0.1:64257/src/probe.js\",\n  \"assetsInjection\": false\n}",
+      "waitError": null,
+      "failedResponses": [
+        {
+          "url": "http://127.0.0.1:64257/node_modules/.vite/deps/worker_runtime_bridge_worker.js?worker_file&type=module",
+          "status": 404,
+          "contentType": null
+        }
+      ],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "vite7-assets-mainThread",
+      "mode": "vite-dev",
+      "deployment": "mainThreadCompatibility",
+      "world": {
+        "viteVersion": "7.1.12",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": true,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:50797/?deployment=mainThreadCompatibility&cell=vite7-assets-mainThread",
+      "construction": {
+        "phase": "succeeded",
+        "deployment": "mainThreadCompatibility",
+        "elapsedMs": 79.09999999962747,
+        "contract": {
+          "surfaceFamily": "mainThreadCompatibilityCallable",
+          "surfaceVersion": "1",
+          "deployment": "mainThreadCompatibility",
+          "scopeId": null,
+          "capabilities": {
+            "callableSurface": true,
+            "scopedAuthoring": true,
+            "specNamespace": true,
+            "workerRuntime": false
+          }
+        },
+        "smoke": {
+          "input": 2,
+          "doubled": 4
+        },
+        "moduleUrl": "http://127.0.0.1:50797/src/probe.js",
+        "assetUrls": {
+          "wasmUrl": "/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+          "workerUrl": "/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module"
+        },
+        "assetsInjection": true
+      },
+      "wasm": {
+        "count": 2,
+        "urls": [
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm?import&url",
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "other",
+          "wasmMagic"
+        ],
+        "statuses": [
+          200,
+          200
+        ],
+        "contentTypes": [
+          "text/javascript",
+          "application/wasm"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm?import&url",
+            "status": 200,
+            "contentType": "text/javascript",
+            "prefixHex": "65 78 70 6f",
+            "prefixClass": "other",
+            "prefixError": null,
+            "fromServiceWorker": false
+          },
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "application/wasm",
+            "prefixHex": "00 61 73 6d",
+            "prefixClass": "wasmMagic",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 1,
+        "urls": [
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker&url"
+        ],
+        "prefixClasses": [
+          "other"
+        ],
+        "statuses": [
+          200
+        ],
+        "contentTypes": [
+          "text/javascript"
+        ],
+        "entries": [
+          {
+            "kind": "worker",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker&url",
+            "status": 200,
+            "contentType": "text/javascript",
+            "prefixHex": "65 78 70 6f",
+            "prefixClass": "other",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:50797/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-assets-MmUjbH\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "createSignalsAssetsInjectionLoadsUnderVitePrebundle",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded",
+        "constructionPhase": "succeeded",
+        "constructionError": null,
+        "wasmPrefixClasses": [
+          "other",
+          "wasmMagic"
+        ],
+        "workerPrefixClasses": [
+          "other"
+        ],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:50797/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": false,
+          "wasmRequestedWithPackagePath": true
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-assets-MmUjbH\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"succeeded\",\n  \"deployment\": \"mainThreadCompatibility\",\n  \"elapsedMs\": 79.09999999962747,\n  \"contract\": {\n    \"surfaceFamily\": \"mainThreadCompatibilityCallable\",\n    \"surfaceVersion\": \"1\",\n    \"deployment\": \"mainThreadCompatibility\",\n    \"scopeId\": null,\n    \"capabilities\": {\n      \"callableSurface\": true,\n      \"scopedAuthoring\": true,\n      \"specNamespace\": true,\n      \"workerRuntime\": false\n    }\n  },\n  \"smoke\": {\n    \"input\": 2,\n    \"doubled\": 4\n  },\n  \"moduleUrl\": \"http://127.0.0.1:50797/src/probe.js\",\n  \"assetUrls\": {\n    \"wasmUrl\": \"/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm\",\n    \"workerUrl\": \"/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module\"\n  },\n  \"assetsInjection\": true\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    },
+    {
+      "cellId": "vite7-assets-workerFirst",
+      "mode": "vite-dev",
+      "deployment": "workerFirst",
+      "world": {
+        "viteVersion": "7.1.12",
+        "forceOptimizeInclude": true,
+        "spaFallbackWasm": false,
+        "assetsInjection": true,
+        "packageName": "worth-signals-wasm"
+      },
+      "targetUrl": "http://127.0.0.1:50797/?deployment=workerFirst&cell=vite7-assets-workerFirst",
+      "construction": {
+        "phase": "succeeded",
+        "deployment": "workerFirst",
+        "elapsedMs": 182.2999999988824,
+        "contract": {
+          "surfaceFamily": "workerFirstCallable",
+          "surfaceVersion": "1",
+          "deployment": "workerFirst",
+          "scopeId": null,
+          "capabilities": {
+            "callableSurface": true,
+            "scopedAuthoring": true,
+            "specNamespace": true,
+            "workerRuntime": true
+          }
+        },
+        "smoke": {
+          "input": 2,
+          "doubled": 4
+        },
+        "moduleUrl": "http://127.0.0.1:50797/src/probe.js",
+        "assetUrls": {
+          "wasmUrl": "/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+          "workerUrl": "/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module"
+        },
+        "assetsInjection": true
+      },
+      "wasm": {
+        "count": 2,
+        "urls": [
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm?import&url",
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm"
+        ],
+        "prefixClasses": [
+          "empty",
+          "wasmMagic"
+        ],
+        "statuses": [
+          304,
+          200
+        ],
+        "contentTypes": [
+          null,
+          "application/wasm"
+        ],
+        "entries": [
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm?import&url",
+            "status": 304,
+            "contentType": null,
+            "prefixHex": "",
+            "prefixClass": "empty",
+            "prefixError": "response.body: Response body is unavailable for redirect responses",
+            "fromServiceWorker": false
+          },
+          {
+            "kind": "wasm",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm",
+            "status": 200,
+            "contentType": "application/wasm",
+            "prefixHex": "00 61 73 6d",
+            "prefixClass": "wasmMagic",
+            "prefixError": null,
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "worker": {
+        "count": 2,
+        "urls": [
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker&url",
+          "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module"
+        ],
+        "prefixClasses": [
+          "empty",
+          "empty"
+        ],
+        "statuses": [
+          304,
+          200
+        ],
+        "contentTypes": [
+          null,
+          "text/javascript"
+        ],
+        "entries": [
+          {
+            "kind": "worker",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker&url",
+            "status": 304,
+            "contentType": null,
+            "prefixHex": "",
+            "prefixClass": "empty",
+            "prefixError": "response.body: Response body is unavailable for redirect responses",
+            "fromServiceWorker": false
+          },
+          {
+            "kind": "worker",
+            "url": "http://127.0.0.1:50797/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module",
+            "status": 200,
+            "contentType": "text/javascript",
+            "prefixHex": "",
+            "prefixClass": "empty",
+            "prefixError": "response.body: Protocol error (Network.getResponseBody): No resource with given identifier found",
+            "fromServiceWorker": false
+          }
+        ]
+      },
+      "prebundleEvidence": {
+        "probeModuleUrl": "http://127.0.0.1:50797/src/probe.js",
+        "probeAppearsFromViteDeps": false,
+        "wasmRequestedFromViteDeps": false,
+        "wasmRequestedWithPackagePath": true
+      },
+      "prebundleCache": {
+        "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-assets-MmUjbH\\node_modules\\.vite\\deps",
+        "present": true,
+        "entryCount": 4,
+        "packageRelatedEntries": [
+          "worth-signals-wasm.js",
+          "worth-signals-wasm.js.map"
+        ],
+        "metadataMentionsPackage": true
+      },
+      "verdict": {
+        "claim": "createSignalsAssetsInjectionLoadsUnderVitePrebundle",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded",
+        "constructionPhase": "succeeded",
+        "constructionError": null,
+        "wasmPrefixClasses": [
+          "empty",
+          "wasmMagic"
+        ],
+        "workerPrefixClasses": [
+          "empty"
+        ],
+        "prebundleEvidence": {
+          "probeModuleUrl": "http://127.0.0.1:50797/src/probe.js",
+          "probeAppearsFromViteDeps": false,
+          "wasmRequestedFromViteDeps": false,
+          "wasmRequestedWithPackagePath": true
+        },
+        "prebundleCache": {
+          "depsDir": "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-assets-MmUjbH\\node_modules\\.vite\\deps",
+          "present": true,
+          "entryCount": 4,
+          "packageRelatedEntries": [
+            "worth-signals-wasm.js",
+            "worth-signals-wasm.js.map"
+          ],
+          "metadataMentionsPackage": true
+        },
+        "prebundleConfirmed": true
+      },
+      "pageErrors": [],
+      "pageStatusText": "{\n  \"phase\": \"succeeded\",\n  \"deployment\": \"workerFirst\",\n  \"elapsedMs\": 182.2999999988824,\n  \"contract\": {\n    \"surfaceFamily\": \"workerFirstCallable\",\n    \"surfaceVersion\": \"1\",\n    \"deployment\": \"workerFirst\",\n    \"scopeId\": null,\n    \"capabilities\": {\n      \"callableSurface\": true,\n      \"scopedAuthoring\": true,\n      \"specNamespace\": true,\n      \"workerRuntime\": true\n    }\n  },\n  \"smoke\": {\n    \"input\": 2,\n    \"doubled\": 4\n  },\n  \"moduleUrl\": \"http://127.0.0.1:50797/src/probe.js\",\n  \"assetUrls\": {\n    \"wasmUrl\": \"/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/worth_signal_wasm_bg.wasm\",\n    \"workerUrl\": \"/@fs/C:/Users/shepworth/AppData/Local/Temp/worth-gate0-vite7-assets-MmUjbH/node_modules/worth-signals-wasm/product/entrypoint/bridge/worker_runtime_bridge_worker.js?worker_file&type=module\"\n  },\n  \"assetsInjection\": true\n}",
+      "waitError": null,
+      "failedResponses": [],
+      "consoleMessages": [
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connecting..."
+        },
+        {
+          "type": "debug",
+          "text": "[vite] connected."
+        }
+      ]
+    }
+  ],
+  "decision": {
+    "recommendation": "vite8DefaultRelativeAssetsAppearViable_withWorkerFormatEsAndFsAllow; vite7DefaultStillBroken; createSignalsAssetsInjectionProvenOnVite7",
+    "vite8DevDefaultCells": [
+      {
+        "cellId": "vite8-dev-mainThread",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded"
+      },
+      {
+        "cellId": "vite8-dev-workerFirst",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded"
+      }
+    ],
+    "vite8PreviewCells": [],
+    "vite7DevCells": [
+      {
+        "cellId": "vite7-dev-mainThread",
+        "status": "failed",
+        "reason": "wasmResponseWasHtml"
+      },
+      {
+        "cellId": "vite7-dev-workerFirst",
+        "status": "failed",
+        "reason": "workerScriptMissingBesidePrebundle"
+      }
+    ],
+    "vite7AssetsCells": [
+      {
+        "cellId": "vite7-assets-mainThread",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded"
+      },
+      {
+        "cellId": "vite7-assets-workerFirst",
+        "status": "passed",
+        "reason": "wasmMagicAndConstructionSucceeded"
+      }
+    ],
+    "spaFallbackCells": [
+      {
+        "cellId": "spa-fallback-mainThread",
+        "status": "passed",
+        "reason": "harnessDetectedHtmlWasmAndPackageDiagnostic"
+      }
+    ],
+    "notes": [
+      "Vite 8 optimizer rebases wasm URLs out of .vite/deps toward the package files.",
+      "Consumer vite configs need worker.format='es' because the worker uses top-level await.",
+      "Vite 7 default relative URLs still request wasm beside .vite/deps and receive SPA HTML (3c 21 64 6f).",
+      "Vite 7 + createSignals({ assets }) with worth-signals-wasm/wasm?url and worker?worker&url is the portable repair path."
+    ]
+  },
+  "keptWorlds": [
+    "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite8-fqPw06",
+    "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-spa-QgM6LR",
+    "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-a3chAo",
+    "C:\\Users\\SHEPWO~1\\AppData\\Local\\Temp\\worth-gate0-vite7-assets-MmUjbH"
+  ]
+}

@@ -1,10 +1,11 @@
 import React from "react";
-import {
-  createSignals,
-  type CallableSignalDiagnostics,
-  type CallableSignals,
+import type {
+  CallableSignalDiagnostics,
+  CallableSignals,
 } from "worth-signals-wasm";
 import { createReactSignalsStore } from "worth-signals-wasm/react";
+
+import { createDemoSignals } from "../platform/createDemoSignals";
 
 import {
   createTransferGraph,
@@ -34,7 +35,7 @@ export function SignalsSection({ onNavigate }: SignalsSectionProps): React.React
     let active = true;
     let createdGraphs: DemoOneGraphs | null = null;
 
-    createSignals({ deployment: "mainThreadCompatibility" })
+    createDemoSignals({ deployment: "mainThreadCompatibility" })
       .then((signals) => {
         const diagnostics = signals.diagnostics();
         const reactStore = createReactSignalsStore(signals);

@@ -63,8 +63,25 @@ programming failures into unexplained architecture changes.
 See [Installation And Deployment](../getting-started/installation.md) for the
 complete recovery example.
 
+## Bundler Asset Placement
+
+Worker-first construction loads a dedicated worker script and a `.wasm` binary.
+Bundlers that relocate the package JS (for example Vite optimizeDeps) can break
+default relative asset URLs. Prefer:
+
+```ts
+import wasmUrl from "worth-signals-wasm/wasm?url";
+import workerUrl from "worth-signals-wasm/worker?worker&url";
+
+await createSignals({ assets: { wasmUrl, workerUrl } });
+```
+
+with `worker: { format: "es" }` on Vite. Hosts must serve missing asset routes as
+404, not SPA HTML. Full matrix: [Support Status](../reference/support-status.md).
+
 ## Related Docs
 
 - [Support Status](../reference/support-status.md)
+- [Installation And Deployment](../getting-started/installation.md)
 - [Lower-Level Compatibility Surface](../api-reference/compatibility-surface.md)
 - [Browser Host Capabilities](./host-capabilities.md)

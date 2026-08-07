@@ -147,7 +147,7 @@ test("Demo 5 has no compatibility or rejection-time repair shortcut", async () =
   const packageJson = await readFile(new URL("../package.json", import.meta.url), "utf8");
   const viteConfig = await readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
 
-  assert.match(WORTHPanel, /createSignals\(\)/u);
+  assert.match(WORTHPanel, /createDemoSignals\(\)/u);
   assert.doesNotMatch(WORTHPanel, /mainThreadCompatibility/u);
   assert.doesNotMatch(WORTHPanel, /linesFamily\.patch\.delete|setLines/u);
   assert.match(WORTHPanel, /effects\(\)\.confirm/u);

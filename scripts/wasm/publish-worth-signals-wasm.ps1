@@ -27,6 +27,9 @@ param(
     [switch]$SkipVerify,
 
     [Parameter(Mandatory = $false)]
+    [switch]$SkipDemoPacked,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipPublish
 )
 
@@ -55,12 +58,17 @@ if (-not $packageNameWasExplicit) {
 
 $cratePath = Resolve-Path $CrateDir
 
-wasm-pack build $cratePath --target bundler --release --out-dir $OutDir
+wasm-pack build $cratePath --target bundler --profile release-wasm --no-opt --out-dir $OutDir
 if ($LASTEXITCODE -ne 0) {
     throw "wasm-pack build failed with exit code $LASTEXITCODE"
 }
 
 $pkgPath = Join-Path $cratePath $OutDir
+node scripts/wasm/optimize-worth-signals-wasm.mjs $pkgPath
+if ($LASTEXITCODE -ne 0) {
+    throw "wasm-opt size pass failed with exit code $LASTEXITCODE"
+}
+
 $env:WORTH_SIGNAL_WASM_SCOPE = $Scope
 $env:WORTH_SIGNAL_WASM_PACKAGE_NAME = $PackageName
 $env:WORTH_SIGNAL_WASM_REPOSITORY_URL = $RepositoryUrl
@@ -76,6 +84,13 @@ if (-not $SkipVerify) {
     node scripts/wasm/verify-worth-signals-wasm-package.mjs $pkgPath
     if ($LASTEXITCODE -ne 0) {
         throw "package verification failed with exit code $LASTEXITCODE"
+    }
+}
+
+if (-not $SkipDemoPacked) {
+    node scripts/wasm/verify-worth-signals-demo-packed.mjs --pkg-dir $pkgPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "packed demo consumer verification failed with exit code $LASTEXITCODE"
     }
 }
 

@@ -5,6 +5,7 @@ import {
 import { wrapSignals } from "../../signals.js";
 import { workerFirstHostCapabilitiesUnsupportedReason } from "../worker_first_host_capabilities.js";
 import { createWorkerFirstCallableSignals } from "../worker_first_callable_signals.js";
+import { normalizeCreateSignalsAssets } from "./create_signals_assets.js";
 
 const DEPLOYMENT_VALUES = new Set([
   "workerFirst",
@@ -72,6 +73,7 @@ function normalizeCreateSignalsOptions(options) {
     return Object.freeze({
       deployment: "workerFirst",
       hostCapabilities: null,
+      assets: null,
     });
   }
   const normalizedOptions = requirePlainObject(
@@ -81,6 +83,7 @@ function normalizeCreateSignalsOptions(options) {
   const {
     deployment = "workerFirst",
     hostCapabilities,
+    assets,
     ...unknownOptions
   } = normalizedOptions;
   const unknownKeys = Object.keys(unknownOptions);
@@ -105,12 +108,16 @@ function normalizeCreateSignalsOptions(options) {
   return Object.freeze({
     deployment,
     hostCapabilities: hostCapabilities ?? null,
+    assets: normalizeCreateSignalsAssets(assets, deployment),
   });
 }
 
 async function createMainThreadCompatibilitySignals(request) {
   const rawSurface = await import("../../../raw_surface.js");
-  await rawSurface.default();
+  const wasmInput = request.assets?.wasmUrl;
+  await rawSurface.default(wasmInput === null || wasmInput === undefined
+    ? undefined
+    : wasmInput);
   return request.hostCapabilities === null
     ? wrapSignals(rawSurface.createRawSignals())
     : wrapSignals(rawSurface.createRawSignals(), {

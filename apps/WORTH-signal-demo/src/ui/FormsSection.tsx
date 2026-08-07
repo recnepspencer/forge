@@ -1,5 +1,5 @@
 import React from "react";
-import { createSignals } from "worth-signals-wasm";
+import { createDemoSignals } from "../platform/createDemoSignals";
 import { DxCorner } from "./DxCorner";
 import { FormsSectionCodeSample } from "./FormsSectionCodeSample";
 
@@ -38,7 +38,7 @@ interface FormsSectionProps {
   onNavigate: (path: string) => void;
 }
 
-type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
+type SignalsRuntime = Awaited<ReturnType<typeof createDemoSignals>>;
 
 type FieldId = "limit" | "justification" | "notes";
 
@@ -600,7 +600,7 @@ export function FormsSection({ onNavigate }: FormsSectionProps): React.ReactElem
 
   React.useEffect(() => {
     let active = true;
-    createSignals({ deployment: "mainThreadCompatibility" })
+    createDemoSignals({ deployment: "mainThreadCompatibility" })
       .then((signals) => {
         if (!active) return;
         setOffice(buildOffice(signals));

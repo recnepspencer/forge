@@ -1,4 +1,4 @@
-+# worth-signals-wasm
+# worth-signals-wasm
 
 Worth Signals is a browser state runtime for applications that need explicit
 behavior, inspectable decisions, and reproducible execution.
@@ -23,6 +23,24 @@ const signals = await createSignals();
 
 The default deployment is worker-first. Construction is asynchronous and does
 not silently fall back to the main thread.
+
+### Vite / bundler assets
+
+On Vite, set `worker.format: "es"` (the worker uses top-level await). Vite 8 can
+usually resolve the default relative WASM/worker URLs after optimizeDeps. For
+older Vite, webpack, or CDN-hashed assets, inject explicit URLs:
+
+```ts
+import { createSignals } from "worth-signals-wasm";
+import wasmUrl from "worth-signals-wasm/wasm?url";
+import workerUrl from "worth-signals-wasm/worker?worker&url";
+
+const signals = await createSignals({
+  assets: { wasmUrl, workerUrl },
+});
+```
+
+Missing `.wasm` / worker routes must return 404, not SPA `index.html`.
 
 ## Your First Signal
 

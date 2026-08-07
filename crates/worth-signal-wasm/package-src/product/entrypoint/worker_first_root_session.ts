@@ -34,9 +34,7 @@ class WorkerFirstRootSession {
   #terminated;
 
   constructor(options) {
-    this.#bridge = createWorkerRuntimeBridge(
-      options.workerUrl === undefined ? {} : { workerUrl: options.workerUrl },
-    );
+    this.#bridge = createWorkerRuntimeBridge(resolveRootBridgeOptions(options));
     this.#activeImportController = null;
     this.#activeImportDependents = new Set();
     this.#activeImportContext = null;
@@ -395,4 +393,19 @@ class WorkerFirstRootSession {
     this.#cachedCurrentBranch = currentBranch;
     this.#cachedBranches = await this.#bridge.branches();
   }
+}
+
+function resolveRootBridgeOptions(options = {}) {
+  const bridgeOptions = {};
+  if (options.workerUrl !== undefined) {
+    bridgeOptions.workerUrl = options.workerUrl;
+  } else if (options.assets?.workerUrl != null) {
+    bridgeOptions.workerUrl = options.assets.workerUrl;
+  }
+  if (options.assets?.wasmUrl != null) {
+    bridgeOptions.wasmUrl = options.assets.wasmUrl;
+  } else if (options.wasmUrl !== undefined) {
+    bridgeOptions.wasmUrl = options.wasmUrl;
+  }
+  return bridgeOptions;
 }

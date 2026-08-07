@@ -9,9 +9,11 @@ import {
   attachErrorListener,
   attachMessageListener,
   deserializeError,
+  normalizeOptionalWasmUrl,
   normalizeWorkerUrl,
 } from "./worker_runtime_bridge_support.js";
 import { createWorkerRuntimeBridgeHistory } from "./worker_runtime_bridge_history.js";
+import { createWorkerRuntimeWasmBootstrapMessage } from "./worker_runtime_wasm_bootstrap.js";
 
 export function createWorkerRuntimeBridge(options = {}) {
   return new WorkerRuntimeBridge(options);
@@ -62,6 +64,12 @@ class WorkerRuntimeBridge {
       });
       this.#rejectAll(error);
     });
+    // Worker top-level init waits for this before constructing the runtime.
+    this.#worker.postMessage(
+      createWorkerRuntimeWasmBootstrapMessage(
+        normalizeOptionalWasmUrl(options.wasmUrl),
+      ),
+    );
   }
 
   bootstrapRecord() {

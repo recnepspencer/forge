@@ -22,6 +22,12 @@ jobs:
       - name: Install wasm-pack
         run: cargo install wasm-pack --locked
 
+      - name: Install Binaryen (wasm-opt)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y binaryen
+          wasm-opt --version
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -33,7 +39,10 @@ jobs:
         run: npm ci
 
       - name: Build wasm package
-        run: wasm-pack build crates/worth-signal-wasm --target bundler --release --out-dir pkg
+        run: wasm-pack build crates/worth-signal-wasm --target bundler --profile release-wasm --no-opt --out-dir pkg
+
+      - name: Optimize wasm (Track 6)
+        run: node scripts/wasm/optimize-worth-signals-wasm.mjs crates/worth-signal-wasm/pkg
 
       - name: Prepare npm metadata
         env:

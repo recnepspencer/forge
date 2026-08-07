@@ -41,6 +41,9 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../../packages/worth-signal/src/index.ts"),
       },
     ],
+    // Local workspace installs may use file:…/pkg. Packed-tarball CI
+    // (verify-worth-signals-demo-packed.mjs) proves the real npm consumer shape
+    // without preserveSymlinks.
     preserveSymlinks: true,
   },
 });

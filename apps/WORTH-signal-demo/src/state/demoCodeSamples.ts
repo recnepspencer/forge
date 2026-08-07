@@ -1,7 +1,9 @@
 export const DEMO_ONE_CODE = `import { createSignals } from "worth-signals-wasm";
+import wasmUrl from "worth-signals-wasm/wasm?url";
 
 const signals = await createSignals({
   deployment: "mainThreadCompatibility",
+  assets: { wasmUrl },
 });
 
 const amount = signals.input(8_000);

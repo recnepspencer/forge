@@ -31,14 +31,35 @@ wrapSignals(rawSignals, options?): CallableSignals
 ## Options
 
 ```ts
+interface CreateSignalsAssets {
+  wasmUrl?: string | URL;
+  workerUrl?: string | URL;
+}
+
 interface CreateSignalsOptions<TPersistence = SignalValue> {
   deployment?: "workerFirst" | "mainThreadCompatibility";
   hostCapabilities?: HostCapabilityPlan<TPersistence>;
+  assets?: CreateSignalsAssets;
 }
 ```
 
 `deployment` defaults to `"workerFirst"`. `hostCapabilities` must be created
 with `hostCapabilityPlan(...)`; an equivalent-looking plain object is rejected.
+
+When `assets` is provided for worker-first construction, both `wasmUrl` and
+`workerUrl` are required. Main-thread compatibility accepts `wasmUrl` only.
+Use the package asset exports with your bundler:
+
+```ts
+import wasmUrl from "worth-signals-wasm/wasm?url";
+import workerUrl from "worth-signals-wasm/worker?worker&url";
+
+await createSignals({ assets: { wasmUrl, workerUrl } });
+```
+
+On Vite, also set `worker: { format: "es" }`. Missing `.wasm` / worker routes
+must 404 rather than return SPA HTML. See the host/bundler matrix in
+[Support Status](../reference/support-status.md).
 
 Unknown option names and deployment strings are invalid input and throw a
 `TypeError` before construction begins.

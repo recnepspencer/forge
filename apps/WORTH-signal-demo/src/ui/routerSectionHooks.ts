@@ -1,5 +1,5 @@
 import React from "react";
-import { createSignals } from "worth-signals-wasm";
+import { createDemoSignals } from "../platform/createDemoSignals";
 
 import {
   currentRoutePresentation,
@@ -116,7 +116,7 @@ export function useRouterSectionState(): RouterSectionState {
   React.useEffect(() => {
     let cancelled = false;
 
-    createSignals({ deployment: "mainThreadCompatibility" })
+    createDemoSignals({ deployment: "mainThreadCompatibility" })
       .then((instance) => {
         if (cancelled) {
           return;

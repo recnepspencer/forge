@@ -281,9 +281,29 @@ export interface HostCapabilityPlan<TPersistence = SignalValue> {
 
 export type SignalsDeployment = "workerFirst" | "mainThreadCompatibility";
 
+export interface CreateSignalsAssets {
+  /**
+   * Bundler-emitted URL for `worth_signal_wasm_bg.wasm`.
+   * Vite: `import wasmUrl from "worth-signals-wasm/wasm?url"`.
+   */
+  wasmUrl?: string | URL;
+  /**
+   * Bundler-emitted URL for the worker-first runtime worker.
+   * Required together with `wasmUrl` when `deployment` is `workerFirst`.
+   * Vite: `import workerUrl from "worth-signals-wasm/worker?worker&url"`.
+   */
+  workerUrl?: string | URL;
+}
+
 export interface CreateSignalsOptions<TPersistence = SignalValue> {
   deployment?: SignalsDeployment;
   hostCapabilities?: HostCapabilityPlan<TPersistence>;
+  /**
+   * Explicit asset URLs for bundlers that relocate package modules
+   * (for example older Vite optimizeDeps hosts). Optional on Vite 8+ when
+   * default relative resolution works; recommended as the portable path.
+   */
+  assets?: CreateSignalsAssets;
 }
 
 export interface WrapSignalsOptions<TPersistence = SignalValue> {

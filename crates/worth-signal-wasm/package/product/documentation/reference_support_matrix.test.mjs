@@ -43,8 +43,16 @@ test("phase 9 reference pages preserve the published entrypoint and status bound
     /createCallableSignals\(\).*Always selects `mainThreadCompatibility`/u,
   );
   assert.match(status, /does not\s+mean deprecated/u);
+  assert.match(status, /Host And Bundler Asset Loading/u);
+  assert.match(status, /Vite 8\+ with `worker\.format: "es"`/u);
+  assert.match(status, /Vite 7 \+ `createSignals\(\{ assets \}\)`/u);
+  assert.match(status, /must return \*\*404\*\*, never SPA/u);
+  assert.match(status, /optimizeDeps\.exclude/u);
+  assert.match(status, /Compatibility-only workaround/u);
 
   assert.match(entrypoints, /worth-signals-wasm\/react/u);
+  assert.match(entrypoints, /worth-signals-wasm\/wasm/u);
+  assert.match(entrypoints, /worth-signals-wasm\/worker/u);
   assert.match(entrypoints, /worth-signals-wasm\/raw_surface\.js/u);
   assert.match(entrypoints, /signalsCompatibilityAssertionFailed/u);
   assert.match(entrypoints, /a handle belongs to the runtime that created\s+it/iu);

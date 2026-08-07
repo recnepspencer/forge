@@ -3,9 +3,30 @@ function normalizeWorkerUrl(workerUrl) {
     return workerUrl;
   }
   if (typeof workerUrl === "string") {
+    // Absolute URLs ignore the base; relative bundler paths resolve against this module.
     return new URL(workerUrl, import.meta.url);
   }
   throw new TypeError("createWorkerRuntimeBridge workerUrl must be a string or URL");
+}
+
+function normalizeOptionalWasmUrl(wasmUrl) {
+  if (wasmUrl === undefined || wasmUrl === null) {
+    return null;
+  }
+  if (wasmUrl instanceof URL) {
+    return wasmUrl.href;
+  }
+  if (typeof wasmUrl === "string") {
+    if (wasmUrl.length === 0) {
+      throw new TypeError("createWorkerRuntimeBridge wasmUrl must not be an empty string");
+    }
+    try {
+      return new URL(wasmUrl).href;
+    } catch {
+      return wasmUrl;
+    }
+  }
+  throw new TypeError("createWorkerRuntimeBridge wasmUrl must be a string or URL");
 }
 
 function normalizeWorkerBranchId(branchId, operation) {
@@ -110,6 +131,7 @@ export {
   attachErrorListener,
   attachMessageListener,
   deserializeError,
+  normalizeOptionalWasmUrl,
   normalizeWorkerBranchId,
   normalizeWorkerMergePreviewRequest,
   normalizeWorkerUrl,

@@ -10,12 +10,14 @@ boundary; do not let individual components decide their own deployment.
 | --- | --- | --- |
 | `worth-signals-wasm` | Stable named facade; compatibility default export | `createSignals`, callable/domain facades, public types, and the default Wasm initializer. |
 | `worth-signals-wasm/react` | Stable | React store, subscriptions, and form bindings. |
+| `worth-signals-wasm/wasm` | Stable asset | `worth_signal_wasm_bg.wasm` for bundler `?url` imports. |
+| `worth-signals-wasm/worker` | Stable asset | Worker-first runtime worker for bundler `?worker&url` imports. |
 | `worth-signals-wasm/raw` | Compatibility-only | Raw `SignalApp`, `SignalRuntime`, structural definitions, and branch commands. |
 | `worth-signals-wasm/raw_surface.js` | Compatibility-only | Alias of `./raw`. |
 
 The package does not publish deep imports into `product/` or `types/` as
 supported npm subpaths. Import public values and types from the root, `./react`,
-or the explicit raw entrypoint.
+the asset subpaths, or the explicit raw entrypoint.
 
 ## Recommended Runtime Module
 
@@ -59,7 +61,14 @@ it.
 
 - `deployment?: "workerFirst" | "mainThreadCompatibility"`;
 - `hostCapabilities?: HostCapabilityPlan` created by
-  `hostCapabilityPlan(...)`.
+  `hostCapabilityPlan(...)`;
+- `assets?: { wasmUrl?: string | URL; workerUrl?: string | URL }` for
+  bundler-emitted asset URLs. Worker-first requires both URLs when `assets` is
+  provided; main-thread compatibility accepts `wasmUrl` only.
+
+Host and bundler asset loading (Vite zero-config vs portable `assets`, SPA 404
+rules, and the `optimizeDeps.exclude` workaround) is summarized in
+[Support Status](./support-status.md).
 
 Unknown keys, unknown deployment strings, and plain objects passed as host
 capability plans are rejected as invalid construction input.

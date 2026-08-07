@@ -40,10 +40,13 @@
       "status": "stable",
       "guideStatus": "current",
       "referenceStatus": "incomplete",
-      "canonicalDocs": ["core/inputs-and-computed", "core/transactions", "core/linked-state", "integrations/host-capabilities", "api-reference/callable-signals", "reference/typed-results-and-unavailability"],
-      "truthOwners": ["package-src/product/signals.ts", "package-src/product/authoring"],
-      "evidence": ["package/product/signals_runtime/authoring/opaque_authoring_equivalence.test.mjs"],
-      "baseline": { "declarationCount": 85, "directMemberCount": 326, "signatureDigest": "f776a7f1e98c93709a35829c2a8e4d0c185d4193ad06fd63828239775428ebd1", "declarationFileCount": 5, "declarationFileDigest": "c9e4397862d6877d6c1c4cb9612c7b898566b064e09754701bea12260a470170" }
+      "canonicalDocs": ["core/inputs-and-computed", "core/transactions", "core/linked-state", "integrations/host-capabilities", "api-reference/callable-signals", "api-reference/construction", "reference/typed-results-and-unavailability"],
+      "truthOwners": ["package-src/product/signals.ts", "package-src/product/authoring", "package-src/product/entrypoint/construction"],
+      "evidence": [
+        "package/product/signals_runtime/authoring/opaque_authoring_equivalence.test.mjs",
+        "package/product/signals_runtime/entrypoint/construction/create_signals_assets_admission.test.mjs"
+      ],
+      "baseline": { "declarationCount": 86, "directMemberCount": 329, "signatureDigest": "97176851b2a8c890059eec7f7d762547babffb151a12cddd7a2ca814d695de2a", "declarationFileCount": 5, "declarationFileDigest": "c96ee6522cde7615c62ba8b0a9ffcd2a2b3246b3fa12e901740a3cb51725d2bf" }
     },
     {
       "id": "core.graphs",

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  createSignals,
   resourcePatch,
   type ResourceEffectSettlementResult,
   type ResourcePatchExecutionResult,
 } from "worth-signals-wasm";
+
+import { createDemoSignals } from "../platform/createDemoSignals";
 
 import { useSignal } from "./Demos";
 import { ResourcesOutcomeActivity, type EffectOutcome } from "./ResourcesOutcomeActivity";
@@ -27,7 +28,7 @@ import {
   type PoWriteBody,
 } from "./resourcesSectionSupport";
 
-type SignalsRuntime = Awaited<ReturnType<typeof createSignals>>;
+type SignalsRuntime = Awaited<ReturnType<typeof createDemoSignals>>;
 
 interface EffectSummaryLike {
   readonly lifecycle: string;
@@ -81,7 +82,7 @@ export function ResourcesWORTHPanel({
   useEffect(() => {
     let active = true;
     let runtime: SignalsRuntime | null = null;
-    void createSignals().then((created) => {
+    void createDemoSignals().then((created) => {
       runtime = created;
       if (active) setSignals(created);
       else void created.terminate();
