@@ -189,6 +189,9 @@ export function createFormController(signalNamespace, declaration, options = {})
     scopeRegistry: presentationScopeRegistry,
     collaborationDeclaration,
     collaborations,
+    readResourceSource: () => (
+      typeof form.resourceSource === "function" ? form.resourceSource() : null
+    ),
   });
   const actionRuntimeBindings = createActionRuntimeBindings({
     formRef: () => form,

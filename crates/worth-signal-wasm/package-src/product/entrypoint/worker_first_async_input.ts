@@ -4,6 +4,7 @@ import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
 } from "./worker_first_callback_tracking.js";
+import { brandWorkerFirstRootHandle } from "./worker_first_handle_ownership.js";
 
 export function createWorkerFirstAsyncInputHandle(rootSession, id, debugName = null) {
   const read = () => readWorkerFirstTrackedSignal(rootSession, id, () => rootSession.readSignalValue(id));
@@ -33,5 +34,5 @@ export function createWorkerFirstAsyncInputHandle(rootSession, id, debugName = n
     denyWorkerFirstMutationDuringCallbackAuthoring();
     return rootSession.applyAuthoredInputMutation(id, { kind: "patch", value: fields });
   };
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, rootSession));
 }

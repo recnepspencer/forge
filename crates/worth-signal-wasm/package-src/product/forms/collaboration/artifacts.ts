@@ -1,5 +1,11 @@
 import { FormDeclarationError } from "../form_errors.js";
 import { stableValueDigest } from "../values/value_paths.js";
+import {
+  deriveCollaborationResourceProof,
+  noResourceProof,
+  pinCollaborationBranchId,
+  readCollaborationBranchId,
+} from "./collaboration_resource_proof.js";
 import { collaborationDeclarationDefaults } from "./declarations.js";
 import { deriveCollaborationEvents } from "./events.js";
 
@@ -40,7 +46,7 @@ export function readCollaborationReport(declaration, store, resourceSource = nul
     reason: effectiveReason(current?.reason, declaration.mode, resourceProof),
     lockOwnerId: current?.lockOwnerId ?? null,
     leasedFields: Object.freeze(current?.leasedFields ?? []),
-    branchId: resourceProof.admitted ? (current?.branchId ?? resourceProof.branchId) : resourceProof.branchId,
+    branchId: readCollaborationBranchId(resourceProof, current?.branchId ?? null),
     readOnly: current?.readOnly ?? declaration.mode === "reviewerCommentOnly",
     remoteUpdateDigest: current?.remoteUpdateDigest ?? null,
     presence: Object.freeze(current?.presence ?? []),
@@ -149,7 +155,7 @@ export function collaborationReadinessBlockers(report, patchPlan) {
   ]);
 }
 
-export function normalizeCollaborationUpdate(declaration, update) {
+export function normalizeCollaborationUpdate(declaration, update, resourceSource = null) {
   if (!declaration) {
     throw new FormDeclarationError("collaboration is not declared for this form");
   }
@@ -161,6 +167,7 @@ export function normalizeCollaborationUpdate(declaration, update) {
   const comments = normalizeComments(update.comments ?? [], declaration.supportsComments === true);
   const declaredDefaults = collaborationDeclarationDefaults(declaration.mode);
   const posture = normalizePosture(update.posture ?? declaredDefaults.posture);
+  const resourceProof = deriveCollaborationResourceProof(declaration, resourceSource);
   return Object.freeze({
     posture,
     reason: String(update.reason ?? declaredDefaults.reason),
@@ -168,7 +175,10 @@ export function normalizeCollaborationUpdate(declaration, update) {
     actorId: declaration.actorId,
     lockOwnerId: optionalString(update.lockOwnerId),
     leasedFields,
-    branchId: optionalBranchId(update.branchId),
+    branchId: pinCollaborationBranchId(
+      resourceProof,
+      optionalBranchId(update.branchId),
+    ),
     readOnly: update.readOnly === true,
     remoteUpdateDigest: optionalString(update.remoteUpdateDigest),
     presence,
@@ -335,56 +345,3 @@ function requireNonEmptyString(value, label) {
   return value;
 }
 
-function deriveCollaborationResourceProof(declaration, resourceSource) {
-  if (declaration.mode !== "branchPerActor" && declaration.mode !== "optimisticMerge") {
-    return noResourceProof();
-  }
-  if (resourceSource === null) {
-    return collaborationResourceProof({
-      required: true,
-      admitted: false,
-      sourceKind: null,
-      visibleSelectionKind: null,
-      branchId: null,
-      reason: `declared collaboration mode "${declaration.mode}" requires a resource line form source`,
-    });
-  }
-  const visibleSelectionKind = resourceSource.visibleSelection.kind;
-  const branchId = resourceSource.visibleSelection.branchId ?? null;
-  if (resourceSource.visibleSelection.branchProof.admitted !== true || branchId === null) {
-    return collaborationResourceProof({
-      required: true,
-      admitted: false,
-      sourceKind: resourceSource.sourceKind,
-      visibleSelectionKind,
-      branchId,
-      reason: `declared collaboration mode "${declaration.mode}" requires admitted native branch-visible resource proof`,
-    });
-  }
-  return collaborationResourceProof({
-    required: true,
-    admitted: true,
-    sourceKind: resourceSource.sourceKind,
-    visibleSelectionKind,
-    branchId,
-    reason: null,
-  });
-}
-
-function noResourceProof() {
-  return collaborationResourceProof({
-    required: false,
-    admitted: true,
-    sourceKind: null,
-    visibleSelectionKind: null,
-    branchId: null,
-    reason: null,
-  });
-}
-
-function collaborationResourceProof(proof) {
-  return Object.freeze({
-    ...proof,
-    digest: stableValueDigest(proof),
-  });
-}

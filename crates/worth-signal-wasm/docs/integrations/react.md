@@ -32,6 +32,10 @@ import {
 
 const signals = await createSignals();
 const store = createReactSignalsStore(signals);
+// Worker-first empty roots are supported: React attach does not require
+// importGraph(...) first. Snapshot diagnostics start empty and refresh after
+// standalone mutations or importGraph(...). why(id) works for known authored
+// or imported signal ids.
 
 root.render(
   <ReactSignalsStoreProvider store={store}>

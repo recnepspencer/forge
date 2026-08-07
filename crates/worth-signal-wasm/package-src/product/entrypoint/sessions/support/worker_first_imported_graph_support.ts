@@ -9,6 +9,7 @@ import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
 } from "../../worker_first_callback_tracking.js";
+import { brandWorkerFirstRootHandle } from "../../worker_first_handle_ownership.js";
 import { cloneWorkerCachedValue } from "./worker_cached_value.js";
 
 export function normalizeImportedGraphSessionOptions(options) {
@@ -134,7 +135,7 @@ function createWorkerImportedReadableSignal(runtimeMarker, id, kind, read) {
   handle[PRODUCT_SIGNAL_KIND] = kind === "input" || kind === "computed" || kind === "output"
     ? kind
     : "signal";
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, runtimeMarker));
 }
 
 function createWorkerImportedInputSignal(runtimeMarker, id, read, mutationMethods) {
@@ -165,5 +166,5 @@ function createWorkerImportedInputSignal(runtimeMarker, id, read, mutationMethod
     denyWorkerFirstMutationDuringCallbackAuthoring();
     return mutationMethods.assign(fields);
   };
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, runtimeMarker));
 }

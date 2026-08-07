@@ -35,6 +35,7 @@ void run();
 
 function buildAssetsInjectionProbeModule() {
   return `import { createSignals } from "worth-signals-wasm";
+import { createReactSignalsStore } from "worth-signals-wasm/react";
 import wasmUrl from "worth-signals-wasm/wasm?url";
 import workerUrl from "worth-signals-wasm/worker?worker&url";
 
@@ -64,14 +65,22 @@ async function finishSucceeded(signals, startedAt, extras) {
   const contract = typeof signals.contract === "function"
     ? signals.contract()
     : null;
+  const store = createReactSignalsStore(signals);
   const input = signals.input(2, { debugName: "gate0.input" });
   const doubled = signals.computed(() => input() * 2, {
     debugName: "gate0.doubled",
   });
-  const smoke = { input: input(), doubled: doubled() };
-  if (smoke.doubled !== 4) {
-    throw new Error(\`gate0 smoke expected doubled===4, got \${smoke.doubled}\`);
+  const smoke = {
+    input: input(),
+    doubled: doubled(),
+    storeSnapshot: store.getSignalSnapshot(doubled),
+  };
+  if (smoke.doubled !== 4 || smoke.storeSnapshot !== 4) {
+    throw new Error(
+      \`gate0 smoke expected doubled===4 and React store snapshot===4, got \${JSON.stringify(smoke)}\`,
+    );
   }
+  store.dispose();
   if (typeof signals.free === "function") {
     signals.free();
   }
@@ -81,6 +90,7 @@ async function finishSucceeded(signals, startedAt, extras) {
     elapsedMs: performance.now() - startedAt,
     contract,
     smoke,
+    reactAttached: true,
     moduleUrl: import.meta.url,
     assetUrls: {
       wasmUrl: String(wasmUrl),

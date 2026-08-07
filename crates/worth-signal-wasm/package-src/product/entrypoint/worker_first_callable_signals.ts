@@ -122,6 +122,9 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     scope(localScopeId) {
       return namespace().scope(localScopeId);
     },
+    settleAuthoredWork() {
+      return rootSession.settleAuthoredWork();
+    },
     controller(definitionOrBuilder) {
       return namespace().controller(definitionOrBuilder);
     },

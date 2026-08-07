@@ -5,6 +5,7 @@ import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
 } from "./worker_first_callback_tracking.js";
+import { brandWorkerFirstRootHandle } from "./worker_first_handle_ownership.js";
 
 export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
   return freezeObject({
@@ -89,7 +90,7 @@ function createWorkerFirstSpecInputHandle(rootSession, id) {
     denyWorkerFirstMutationDuringCallbackAuthoring();
     return rootSession.applyActiveInputMutation(id, { kind: "patch", value: fields });
   };
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, rootSession));
 }
 
 function createWorkerFirstSpecReadableHandle(rootSession, id, family) {
@@ -109,7 +110,7 @@ function createWorkerFirstSpecReadableHandle(rootSession, id, family) {
   handle.id = id;
   handle.debugName = null;
   handle[PRODUCT_SIGNAL_KIND] = family;
-  return freezeObject(handle);
+  return freezeObject(brandWorkerFirstRootHandle(handle, rootSession));
 }
 
 function readWorkerFirstSpecSignalValue(rootSession, id, family) {
