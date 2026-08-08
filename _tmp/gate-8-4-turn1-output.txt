@@ -1,5 +1,0 @@
-﻿Background verification finished:
-
-- **Bank `ordinary_mutations`**: first run failed on one publication test; re-run **51 passed**.
-- **Query consumers**, **compile_certification**, **warning-clean**, **execution `--lib` ×5**: all green.
-- **Boundary/agent-context/line-cap**: the combined run exited 1 because WSL `bash` is missing; `boundary-check` and `agent-context` had already completed. Dirty line-cap re-run via Git Bash: **PASS**.
