@@ -1238,10 +1238,12 @@ merely share a durability barrier.
 
 ## C.8: Fresh-Process Recovery And Reopen
 
-C.8 starts from the bounded
+C.8 is governed by the
+[standalone fresh-process recovery specification](physical-reconstruction-c8-fresh-process-recovery-and-reopen.md).
+It starts from the bounded crash-recovery contract described by the
 [C.7 successor handoff](physical-reconstruction-c7-durable-publication-join.md#c8-successor-handoff),
-not from a live runtime. The caller-facing boundary and current exclusions are
-summarized in the
+not from that in-memory closeout value or a live runtime. The caller-facing
+boundary and current exclusions are summarized in the
 [C.7 current limits and C.8 handoff](physical-durability-and-checkpoints.md#current-limits-and-c8-handoff).
 
 ### Goal
@@ -1271,11 +1273,15 @@ successor writer.
 - recovery reconciliation indexed by stable physical operation identity and
   Store incarnation, returning the weakest exact fate rather than promoting an
   unresolved effect to success or no-effect
+- a separate reconstruction-band composition facade; recovery physics remains
+  pure selection, redo, fate, and cost law and ordinary Store crates do not
+  import replay
 - new runtime identity and fresh handles after every recovery
 - recovery time/work bounded by checkpoint interval, tail, and damaged scope,
   not total store size
 - post-recovery checkpoint/root cleanup policy that preserves evidence until
-  current truth is safely published
+  current truth is namespace durable and independently reopened, with cleanup
+  failure reported as deferred maintenance rather than recovery rollback
 - a narrow recovery handoff exposing verified physical roots, bounded access
   capabilities, reconciled physical operation fates, and unsupported or
   quarantined scope; no semantic checkpoint, branch head, or writer lease is

@@ -1,8 +1,15 @@
 # Storage Foundation S.4 Engineering Spec: WAL, Checkpoint, LSN, And Recovery Physics
 
-> **Status:** Planned
+> **Status:** Historical; superseded for current durability and recovery
+> authority by
+> [C.7 durable publication](physical-reconstruction-c7-durable-publication-join.md)
+> and
+> [C.8 fresh-process recovery](physical-reconstruction-c8-fresh-process-recovery-and-reopen.md).
+> Retain this document only as design history; implementation and review must
+> not use its wide recovery-physics facade, same-crate verifier placement,
+> sharp-checkpoint assumptions, or pre-C.7 WAL ownership as current authority.
 >
-> **Roadmap parent:** [physical-database-roadmap.md](/Users/Esther/Documents/Programming/worth_workspace/worth/_docs/worth-store/physical-database-roadmap.md)
+> **Roadmap parent:** [physical-database-roadmap.md](physical-database-roadmap.md)
 >
 > **Primary prerequisite:** `S.3 Physical Integrity, Scrub, Quarantine, And Corruption Localization`
 >
