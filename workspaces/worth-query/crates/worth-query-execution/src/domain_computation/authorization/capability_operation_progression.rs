@@ -3,9 +3,7 @@
 use std::time::Instant;
 
 use worth_query_declaration::facade::{
-    application_capability::{
-        ApplicationCapabilityRequest, ApplicationCapabilityRequestProjection,
-    },
+    application_capability::ApplicationCapabilityRequest,
     application_schema::TypedMutationPreconditions,
 };
 use worth_query_installation::facade::{
@@ -16,6 +14,7 @@ use super::admission::admit_request;
 use super::admitted_operation::{
     WorthQueryAdmittedApplicationOperationInput, WorthQueryOperationAuthorizationBasis,
 };
+use super::graph_work_session::transition_capability_to_operation_graph_work;
 use super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
@@ -25,6 +24,10 @@ use crate::domain_computation::primary_graph::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+
+mod projection_equivalence;
+
+use projection_equivalence::same_projection;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -94,13 +97,23 @@ where
 {
     validate_progression_authority(runtime, &access, operation, progression)?;
     validate_current_projection(&access)?;
-    runtime.refresh_capability_authorization_for_graph_work(
-        &mut access.authorization,
-        &access.graph_work,
-    )?;
     let preconditions = bind_progression_preconditions(runtime, &access, operation, preconditions)?;
     validate_access_lifecycle(&access)?;
-    let session_identity = access.graph_work.identity();
+    let resource_binding_identity = access
+        .operation_admission_identity
+        .resource_binding_identity();
+    let mut graph_work = transition_capability_to_operation_graph_work(
+        runtime,
+        operation,
+        &resource_binding_identity,
+        access.resolved.resource.entity_id(),
+        access.graph_work,
+    )?;
+    validate_operation_graph_work_authority(&graph_work, operation)?;
+    runtime
+        .refresh_capability_authorization_for_graph_work(&mut access.authorization, &graph_work)?;
+    graph_work.set_retained_decision_facts(access.authorization.exact_fact_count());
+    let session_identity = graph_work.identity();
     let authorization =
         WorthQueryRetainedAuthorizationDecisionFacts::capability(access.authorization);
     if !authorization.belongs_to_session(session_identity) {
@@ -138,7 +151,7 @@ where
             authorization_basis: WorthQueryOperationAuthorizationBasis::Capability {
                 input: access.input,
             },
-            graph_work: access.graph_work,
+            graph_work,
         },
     ))
 }
@@ -155,7 +168,7 @@ where
 {
     validate_access_lifecycle(access)?;
     validate_installed_operation_identity(runtime, access, operation, progression)?;
-    validate_graph_work_authority(access, operation)
+    validate_capability_graph_work_authority(access, operation)
 }
 
 fn validate_installed_operation_identity<Schema, Capability, Operation, Input>(
@@ -237,7 +250,7 @@ where
         })
 }
 
-fn validate_graph_work_authority<Schema, Capability, Operation, Input>(
+fn validate_capability_graph_work_authority<Schema, Capability, Operation, Input>(
     access: &WorthQueryAdmittedApplicationCapabilityAccess<Schema, Capability, Operation, Input>,
     operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial>
@@ -245,9 +258,11 @@ where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
-    if access.graph_work.binding() != operation.binding_identity()
-        || access.graph_work.obligation() != operation.graph_obligations().identity()
-        || access.graph_work.subject_authority() != operation.authority_identity()
+    if access.graph_work.runtime_authority() != access.runtime_authority
+        || access.graph_work.binding() != &access.binding_identity
+        || access.graph_work.principal() != access.principal_entity_id
+        || access.graph_work.capability_access_context()
+            != Some(access.authorization.installed_capability_identity())
     {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
@@ -261,6 +276,25 @@ where
         ));
     }
     if access.authorization.exact_fact_count() != access.graph_work.retained_decision_facts() {
+        return Err(denial(
+            WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
+            operation.operation(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_operation_graph_work_authority<Schema, Operation, Input>(
+    graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
+    operation: &WorthQueryInstalledApplicationOperation<Schema, Operation, Input>,
+) -> Result<(), WorthQueryOperationAuthorizationDenial>
+where
+    Schema: ApplicationSchema,
+{
+    if graph_work.binding() != operation.binding_identity()
+        || graph_work.obligation() != operation.graph_obligations().identity()
+        || graph_work.subject_authority() != operation.authority_identity()
+    {
         return Err(denial(
             WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
             operation.operation(),
@@ -340,48 +374,6 @@ where
         ));
     }
     Ok(())
-}
-
-fn same_projection<Schema, Scope, Context>(
-    expected: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-    actual: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-) -> bool {
-    same_resource(expected, actual)
-        && expected.elevation_selector() == actual.elevation_selector()
-        && expected.action() == actual.action()
-        && expected.purpose() == actual.purpose()
-        && same_related(expected, actual)
-        && expected.field_value() == actual.field_value()
-        && expected.amount_value() == actual.amount_value()
-        && expected.cardinality_value() == actual.cardinality_value()
-        && expected.context_value().context() == actual.context_value().context()
-        && expected.context_value().context_type() == actual.context_value().context_type()
-        && expected.context_value().entities() == actual.context_value().entities()
-}
-
-fn same_resource<Schema, Scope, Context>(
-    expected: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-    actual: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-) -> bool {
-    expected.resource().entity() == actual.resource().entity()
-        && expected.resource().aspect() == actual.resource().aspect()
-        && expected.resource().field() == actual.resource().field()
-        && expected.resource().scalar_family() == actual.resource().scalar_family()
-        && expected.resource().value_type() == actual.resource().value_type()
-        && expected.resource().value() == actual.resource().value()
-}
-
-fn same_related<Schema, Scope, Context>(
-    expected: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-    actual: &ApplicationCapabilityRequestProjection<Schema, Scope, Context>,
-) -> bool {
-    match (expected.related(), actual.related()) {
-        (None, None) => true,
-        (Some(expected), Some(actual)) => {
-            expected.relation() == actual.relation() && expected.selector() == actual.selector()
-        }
-        _ => false,
-    }
 }
 
 fn denial(

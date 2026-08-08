@@ -20,9 +20,8 @@ the neighboring Query docs feel close together.
 - [Binding Vs Orchestration Vs Helpers](./binding-vs-orchestration-vs-helpers.md)
   Choose between explicit next-input binding, declaration-entry lowering, and
   family-native helper ergonomics.
-- [Inspection Vs Readiness Vs Recovery](./inspection-vs-readiness-vs-recovery.md)
-  Choose between "what is supported", "what happened", and "what should I do
-  next".
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)
+  Interpret a typed stop and choose the next ordinary application action.
 - [Grouped Authoring Vs Grouped Products Vs Grouped Contributions](./grouped-authoring-vs-grouped-products-vs-grouped-contributions.md)
   Choose between defining one neighborhood meaning, reading grouped route or
   envelope truth, and composing shared or member-local contributions.
@@ -44,8 +43,8 @@ the neighboring Query docs feel close together.
   Query to lower it through the declaration-entry pipeline
 - choose helpers when you want family-native ergonomics over the same canonical
   surfaces
-- choose readiness before a run, inspection after a run, and recovery after a
-  stop
+- choose readiness before a run, inspection for retained evidence, and
+  remediation guidance after a typed stop
 - choose grouped authoring when the group itself is part of the meaning
 - choose grouped products when you need grouped route, receipt, or envelope
   artifacts
@@ -58,4 +57,4 @@ the neighboring Query docs feel close together.
 - [Typed Binding Pipeline](../typed-binding-pipeline.md)
 - [Declaration Entry Orchestration](../declaration-entry-orchestration.md)
 - [Family Helpers](../family-helpers.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)

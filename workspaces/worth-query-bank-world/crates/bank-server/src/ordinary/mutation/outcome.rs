@@ -1,8 +1,8 @@
 use worth_query_host::facade::domain::WorthQueryApplicationOperationInstallationDenialKind;
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryEntityResolutionDenialKind, WorthQueryInvariantProjectionWork,
-    WorthQueryOperationAuthorizationDenial,
+    WorthQueryApplicationUnresolvedCommitEvidence, WorthQueryEntityResolutionDenialKind,
+    WorthQueryInvariantProjectionWork, WorthQueryOperationAuthorizationDenial,
 };
 
 use bank_domain::proposals::BankProposalDenial;
@@ -33,8 +33,8 @@ pub enum BankMutationStatus {
     Denied(BankMutationDenial),
     InvariantViolated(BankProposalDenial),
     Aborted,
-    PartialEffect,
-    Indeterminate,
+    PartialEffect(WorthQueryApplicationUnresolvedCommitEvidence),
+    Indeterminate(WorthQueryApplicationUnresolvedCommitEvidence),
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -83,6 +83,17 @@ impl BankMutationOutcome {
 
     pub fn into_status(self) -> BankMutationStatus {
         self.status
+    }
+
+    /// Query's retained evidence when this mutation did not resolve.
+    pub const fn unresolved_evidence(
+        &self,
+    ) -> Option<&WorthQueryApplicationUnresolvedCommitEvidence> {
+        match &self.status {
+            BankMutationStatus::PartialEffect(evidence)
+            | BankMutationStatus::Indeterminate(evidence) => Some(evidence),
+            _ => None,
+        }
     }
 }
 

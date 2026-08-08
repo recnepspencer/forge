@@ -18,8 +18,8 @@ use super::capability_observation_admission::{
 use super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::graph_work_session::start_capability_graph_work;
 use super::{
-    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthorizationTimeSample,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryRuntimeTimeSample,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal,
@@ -152,7 +152,7 @@ where
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Scope,
         <Input as ApplicationCapabilityRequest<Schema, Capability>>::Context,
     >,
-    sample: WorthQueryAuthorizationTimeSample,
+    sample: WorthQueryRuntimeTimeSample,
     operation_admission_identity: WorthQueryOperationAdmissionIdentity,
     graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
 }
@@ -249,7 +249,6 @@ where
     let graph_work = start_capability_graph_work(
         runtime,
         &operation,
-        &operation_admission_identity.resource_binding_identity(),
         principal.principal_entity_id(),
         WorthQueryGraphWorkAccessContextAffinity::installed_capability(
             *capability.identity().bytes(),

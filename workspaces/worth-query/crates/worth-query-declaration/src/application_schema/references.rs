@@ -2,9 +2,7 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::ScalarAspectType;
 
-use super::capabilities::{
-    ApplicationFieldCurrency, NoApplicationCurrency, NoEqualityPredicate, ReadOnly,
-};
+use super::capabilities::{ApplicationFieldUnit, NoApplicationUnit, NoEqualityPredicate, ReadOnly};
 use super::values::TypedApplicationValue;
 
 macro_rules! named_reference {
@@ -58,7 +56,7 @@ macro_rules! named_reference {
 named_reference!(ApplicationEntityRef, Schema, Entity);
 named_reference!(ApplicationAspectRef, Schema, Entity, Aspect);
 named_reference!(ApplicationPolicyRef, Schema, Policy);
-named_reference!(ApplicationCurrencyRef, Schema, Currency);
+named_reference!(ApplicationUnitRef, Schema, Unit);
 
 pub struct ApplicationAbilityRef<Schema, Ability, Scope> {
     name: &'static str,
@@ -183,40 +181,29 @@ pub struct ApplicationFieldRef<
     Value,
     Write = ReadOnly,
     Equality = NoEqualityPredicate,
-    Currency = NoApplicationCurrency,
+    Unit = NoApplicationUnit,
 > {
     entity: &'static str,
     aspect: &'static str,
     field: &'static str,
-    _marker: PhantomData<
-        fn() -> (
-            Schema,
-            Entity,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            Equality,
-            Currency,
-        ),
-    >,
+    _marker: PhantomData<fn() -> (Schema, Entity, Aspect, Field, Value, Write, Equality, Unit)>,
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Copy
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Copy
+    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 {
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Clone
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Clone
+    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> std::fmt::Debug
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> std::fmt::Debug
+    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -228,24 +215,24 @@ impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> std::fmt::
     }
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> PartialEq
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> PartialEq
+    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 {
     fn eq(&self, other: &Self) -> bool {
         (self.entity, self.aspect, self.field) == (other.entity, other.aspect, other.field)
     }
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency> Eq
-    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit> Eq
+    for ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 {
 }
 
-impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
-    ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>
+impl<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
+    ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
 where
     Value: TypedApplicationValue,
-    Currency: ApplicationFieldCurrency,
+    Unit: ApplicationFieldUnit,
 {
     #[doc(hidden)]
     pub const fn from_schema_identifiers(
@@ -281,8 +268,8 @@ where
         std::any::type_name::<Value>()
     }
 
-    pub const fn currency(&self) -> Option<&'static str> {
-        Currency::NAME
+    pub const fn unit(&self) -> Option<&'static str> {
+        Unit::NAME
     }
 }
 

@@ -1,0 +1,53 @@
+error: cannot construct `WorthQueryRecoveryEffectAuthority` with struct literal syntax due to private fields
+ --> tests/ui/application_aftermath/recovery_authority_constructor_is_private.rs:8:13
+  |
+8 |     let _ = WorthQueryRecoveryEffectAuthority {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private field `current` that was not provided
+help: you might have meant to use the `mint` associated function
+  |
+8 -     let _ = WorthQueryRecoveryEffectAuthority {};
+8 +     let _ = WorthQueryRecoveryEffectAuthority::mint(_, _);
+  |
+
+error: cannot construct `WorthQueryRecoveryInspectAuthority` with struct literal syntax due to private fields
+ --> tests/ui/application_aftermath/recovery_authority_constructor_is_private.rs:9:13
+  |
+9 |     let _ = WorthQueryRecoveryInspectAuthority {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private field `current` that was not provided
+help: you might have meant to use the `mint` associated function
+  |
+9 -     let _ = WorthQueryRecoveryInspectAuthority {};
+9 +     let _ = WorthQueryRecoveryInspectAuthority::mint(_, _);
+  |
+
+error[E0624]: associated function `mint` is private
+  --> tests/ui/application_aftermath/recovery_authority_constructor_is_private.rs:10:50
+   |
+10 |       let _ = <WorthQueryRecoveryEffectAuthority>::mint;
+   |                                                    ^^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/recovery_progression/authority.rs
+   |
+   | /     pub(crate) fn mint(
+   | |         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+   | |         handle_authority: WorthQueryRecoveryHandleAuthorityIdentity,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `mint` is private
+  --> tests/ui/application_aftermath/recovery_authority_constructor_is_private.rs:11:51
+   |
+11 |       let _ = <WorthQueryRecoveryInspectAuthority>::mint;
+   |                                                     ^^^^ private associated function
+   |
+  ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/application_aftermath/recovery_progression/authority.rs
+   |
+   | /     pub(crate) fn mint(
+   | |         runtime_authority: WorthQueryRuntimeAuthorityIdentity,
+   | |         handle_authority: WorthQueryRecoveryHandleAuthorityIdentity,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

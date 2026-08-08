@@ -12,6 +12,10 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationUnresolvedCommitEvidence,
+};
+use worth_query_host::facade::publication::application_aftermath::{
+    WorthQueryPublishedApplicationAftermath, WorthQueryPublishedExternalEffectPosture,
 };
 use worth_query_host::facade::publication::domain_computation::{
     publish_application_commit, WorthQueryApplicationCommitPublicationReceipt,
@@ -20,65 +24,113 @@ use worth_query_host::facade::publication::domain_computation::{
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BankCommitReceipt {
     application: WorthQueryApplicationCommitPublicationReceipt,
+    execution: WorthQueryApplicationCommitReceipt,
 }
 
 impl BankCommitReceipt {
+    pub const fn outcome_identity(&self) -> Option<u64> {
+        match self.execution.outcome_identity() {
+            Some(identity) => Some(identity.get()),
+            None => None,
+        }
+    }
+
     pub const fn commit_id(&self) -> u64 {
-        self.application.terminal().commit_id().0
+        self.execution.commit_id().0
     }
 
     pub const fn changed_record_count(&self) -> usize {
-        self.application.terminal().changed_record_count()
+        self.execution.changed_record_count()
     }
 
     pub const fn emitted_effect_count(&self) -> usize {
-        self.application.terminal().emitted_effect_count()
+        self.execution.emitted_effect_count()
     }
 
     pub const fn expected_version_count(&self) -> usize {
-        self.application
-            .terminal()
+        self.execution
             .precondition_comparison()
             .expected_version_count()
     }
 
     pub const fn expected_fact_count(&self) -> usize {
-        self.application
-            .terminal()
+        self.execution
             .precondition_comparison()
             .expected_fact_count()
     }
 
-    pub const fn decision_fact_count(&self) -> Option<usize> {
-        match self.application.terminal().mutation_work() {
-            Some(work) => Some(work.decision_fact_count()),
-            None => None,
-        }
+    pub fn decision_fact_count(&self) -> Option<usize> {
+        self.execution
+            .mutation_work()
+            .map(|work| work.decision_fact_count())
     }
 
     pub const fn precondition_comparison_identity(&self) -> Option<&[u8; 32]> {
-        self.application
-            .terminal()
-            .precondition_comparison()
-            .identity()
+        self.execution.precondition_comparison().identity()
     }
 
     pub const fn canonical_work(&self) -> WorthQueryCanonicalWorkPhases {
-        self.application.terminal().canonical_work()
+        self.execution.canonical_work()
     }
 
     pub const fn publication(&self) -> &WorthQueryApplicationCommitPublicationReceipt {
         &self.application
     }
 
+    pub const fn aftermath(&self) -> &WorthQueryPublishedApplicationAftermath {
+        self.application.aftermath()
+    }
+
     pub fn is_same_authoritative_commit(&self, other: &Self) -> bool {
-        self.application
-            .terminal()
-            .is_same_authoritative_commit(other.application.terminal())
+        self.execution
+            .is_same_authoritative_commit(&other.execution)
+    }
+
+    /// What production dispatch observed for a declared external effect.
+    ///
+    /// `None` for every operation that declares no external effect, which is
+    /// the ordinary money-movement case.
+    pub const fn external_dispatch_posture(
+        &self,
+    ) -> Option<WorthQueryPublishedExternalEffectPosture> {
+        match self.aftermath().external_effect() {
+            WorthQueryPublishedExternalEffectPosture::NotDeclared
+            | WorthQueryPublishedExternalEffectPosture::PendingDispatch => None,
+            posture => Some(posture),
+        }
+    }
+
+    /// True when this commit durably co-committed a dispatch outbox record.
+    pub const fn co_committed_dispatch_outbox(&self) -> bool {
+        self.execution.dispatch_outbox().is_some()
+    }
+
+    /// Installed operation identity retained on the commit receipt (R8.62 / C1).
+    pub const fn installed_operation(&self) -> &[u8; 32] {
+        self.execution.installed_operation()
+    }
+
+    /// Admitted principal scope retained on the commit receipt (R8.62 / C1).
+    pub const fn principal_scope(
+        &self,
+    ) -> &worth_query_host::facade::primary_graph::WorthQueryOperationScopeBinding {
+        self.execution.principal_scope()
+    }
+
+    /// Idempotency binding retained on the commit receipt (R8.62 / C1).
+    pub const fn idempotency_binding(
+        &self,
+    ) -> worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding {
+        self.execution.idempotency_binding()
+    }
+
+    /// Whether the commit retained an inverse pre-image slice (R8.2).
+    pub const fn retained_preimage(&self) -> bool {
+        self.execution.retained_preimage().is_some()
     }
 
     pub(crate) const fn application(&self) -> &WorthQueryApplicationCommitReceipt {
-        self.application.terminal()
+        &self.execution
     }
 }
 
@@ -95,8 +147,35 @@ pub enum BankMutationCommitOutcome {
         stage: WorthQueryApplicationCommitDenialStage,
     },
     Aborted,
-    PartialEffect,
-    Indeterminate,
+    /// Some effect may have landed. Query's correlation evidence is retained
+    /// so recovery can distinguish commit-path from abort-path repair.
+    PartialEffect(WorthQueryApplicationUnresolvedCommitEvidence),
+    /// The commit's fate is unknown. The same retained Query evidence names
+    /// which recovery the operator owes.
+    Indeterminate(WorthQueryApplicationUnresolvedCommitEvidence),
+}
+
+impl BankMutationCommitOutcome {
+    /// Query's retained evidence when the commit did not resolve.
+    ///
+    /// Bank does not re-derive this: it is exactly what the provider session
+    /// observed, including whether commit or abort recovery is owed.
+    pub const fn unresolved_evidence(
+        &self,
+    ) -> Option<&WorthQueryApplicationUnresolvedCommitEvidence> {
+        match self {
+            Self::PartialEffect(evidence) | Self::Indeterminate(evidence) => Some(evidence),
+            _ => None,
+        }
+    }
+
+    /// Which recovery an unresolved outcome owes, straight from Query.
+    pub const fn commit_recovery_kind(&self) -> Option<WorthQueryApplicationCommitRecoveryKind> {
+        match self.unresolved_evidence() {
+            Some(evidence) => Some(evidence.recovery()),
+            None => None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -136,8 +215,12 @@ impl From<WorthQueryApplicationCommitOutcome> for BankMutationCommitOutcome {
                 stage: denial.stage(),
             },
             WorthQueryApplicationCommitOutcome::Aborted => Self::Aborted,
-            WorthQueryApplicationCommitOutcome::PartialEffect => Self::PartialEffect,
-            WorthQueryApplicationCommitOutcome::Indeterminate => Self::Indeterminate,
+            WorthQueryApplicationCommitOutcome::PartialEffect(evidence) => {
+                Self::PartialEffect(evidence)
+            }
+            WorthQueryApplicationCommitOutcome::Indeterminate(evidence) => {
+                Self::Indeterminate(evidence)
+            }
         }
     }
 }
@@ -145,8 +228,10 @@ impl From<WorthQueryApplicationCommitOutcome> for BankMutationCommitOutcome {
 pub(crate) fn commit_receipt(
     receipt: worth_query_host::facade::primary_graph::WorthQueryApplicationCommitReceipt,
 ) -> BankCommitReceipt {
+    let application = publish_application_commit(receipt.clone()).into_receipt();
     BankCommitReceipt {
-        application: publish_application_commit(receipt).into_receipt(),
+        application,
+        execution: receipt,
     }
 }
 

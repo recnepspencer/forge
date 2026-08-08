@@ -1,0 +1,16 @@
+﻿**Gate 8.3 is still not closed.** Turn 2 fixed the R8.31 inversion: current authority is no longer a caller-asserted boolean bag.
+
+### What changed
+- Replaced `WorthQueryRecoveryFreshAuthority` with privately minted `WorthQueryRecoveryEffectAuthority` / `InspectAuthority` / `DisclosureAdmission`. Binding axes are compared against admitted operation + recovery-target receipt + aftermath + runtime clock.
+- Production path on `BankIdentityRuntime`: `open_commit_recovery`, admit/dispose/reconcile/resolve/inspect, `evaluate_commit_recovery_expiry`. Cross-gate lost-response uses this path.
+- Expiry wired through the runtime clock (M2/M3 sample recorded; premature expire denies).
+- Compensate/reconcile now deny with distinct kinds. Q8.3: earlier ladder posture ctors sealed `pub(crate)` (dated residual in the ledger).
+- trybuild: no Clone, no duplicate transition, inspect rejects effect authority.
+
+### Verification
+Gate 8.1/8.2 suites green; 7 `phase8*` tests pass; trybuild pass; `boundary-check` / `agent-context` pass.
+
+### Still open
+Full per-axis drift (foreign runtime / branch-equal-ordinal), clock-advanced Expired terminal, and grant-revocation (vs foreign-principal) as `CurrentPolicyDenied`.
+
+Plan: `_tmp/gate-8-3-turn-2-boundary-and-plan.md`. Report: `_tmp/gate-8-3-turn-2-report.md`.Both background checks finished successfully: recovery unit tests passed, and the trybuild compile-fail cases (including the new recovery-handle stderr fixtures) were generated and passed.

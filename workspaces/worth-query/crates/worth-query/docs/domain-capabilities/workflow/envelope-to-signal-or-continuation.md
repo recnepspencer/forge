@@ -114,7 +114,7 @@ instead of a signal-facing combined answer.
   is the combined signal-facing next-step surface.
 - [Continuation Pipeline](../continuation-pipeline.md) owns prepared and
   executed continuation truth.
-- [Stop To Recovery](./stop-to-recovery.md) is the next step when either lane
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md) is the next guide when either lane
   stops.
 
 ## Inspection And Debugging
@@ -149,4 +149,4 @@ Use the continuation pipeline when you need:
 
 - [Signal Compatibility Orchestration](../signal-compatibility-orchestration.md)
 - [Continuation Pipeline](../continuation-pipeline.md)
-- [Recovery Boundary](../recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](../typed-stops-and-remediation-guidance.md)

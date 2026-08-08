@@ -132,7 +132,7 @@ fn resolve_upper_bound<Schema, Capability, Operation, Input>(
         <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Scope,
         <Input as ApplicationCapabilityElevationRequest<Schema, Operation>>::Context,
     >,
-    sample: &super::super::super::WorthQueryAuthorizationTimeSample,
+    sample: &super::super::super::WorthQueryRuntimeTimeSample,
 ) -> Result<
     (
         WorthQueryElevationUpperBound,

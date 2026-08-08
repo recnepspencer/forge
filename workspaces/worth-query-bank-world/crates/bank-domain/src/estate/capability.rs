@@ -8,6 +8,7 @@ use super::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EstateCapabilityOperation {
     NotifyDeath,
+    RetransmitDeathNotice,
     FreezeAccount,
     OpenEstateCase,
     RecognizeExecutor,

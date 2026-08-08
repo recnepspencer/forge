@@ -2188,6 +2188,7 @@ dependencies = [
  "sha2",
  "stats_alloc",
  "worth-foundational",
+ "worth-proof",
  "worth-query-admission",
  "worth-query-declaration",
  "worth-query-installation",

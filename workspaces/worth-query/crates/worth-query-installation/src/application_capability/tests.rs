@@ -23,7 +23,7 @@ use worth_query_declaration::facade::{
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
         ApplicationFieldRef, ApplicationOperationRef, ApplicationRelationRef, EqualityPredicate,
-        NoApplicationCurrency, ReadOnly,
+        NoApplicationUnit, ReadOnly,
     },
 };
 
@@ -184,7 +184,7 @@ fn constraints<ContextMarker>(
         ApplicationCapabilityValidityTimeline::UnixEpochSeconds
     };
     ApplicationCapabilityConstraintDefinition::new(
-        if matches!(axis, Some(Axis::Amount)) {
+        if matches!(axis, Some(Axis::Magnitude)) {
             ApplicationCapabilityFieldDimension::not_applicable()
         } else {
             ApplicationCapabilityFieldDimension::bound(field::<Amount>("Amount"))
@@ -356,7 +356,7 @@ fn field<FieldMarker>(
     u64,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 > {
     ApplicationFieldRef::from_schema_identifiers("Grant", "Facts", name)
 }
@@ -374,7 +374,7 @@ fn resource_field_binding<FieldMarker>(name: &'static str) -> ApplicationCapabil
         u64,
         ReadOnly,
         EqualityPredicate,
-        NoApplicationCurrency,
+        NoApplicationUnit,
     >::from_schema_identifiers(
         "Resource", "ResourceFacts", name
     ))

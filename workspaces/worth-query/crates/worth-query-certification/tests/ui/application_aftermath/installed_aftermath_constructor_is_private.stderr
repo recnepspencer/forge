@@ -1,0 +1,7 @@
+error: cannot construct `WorthQueryInstalledAftermathContract` with struct literal syntax due to private fields
+ --> tests/ui/application_aftermath/installed_aftermath_constructor_is_private.rs:6:13
+  |
+6 |     let _ = WorthQueryInstalledAftermathContract {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided

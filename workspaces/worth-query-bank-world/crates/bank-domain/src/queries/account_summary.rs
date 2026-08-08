@@ -53,20 +53,18 @@ pub fn account_summary_definition() -> ApplicationQueryDefinition<
     AccountSummary,
     Account,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        AccountSummaryQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        account_summary_shape().build(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 6),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewAccount::reference(),
-    )
-    .build()
-    .expect("bank account summary query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(AccountSummaryQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(account_summary_shape().build())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 6))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewAccount::reference())
+        .build()
+        .expect("bank account summary query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, AccountSummaryQuery> for AccountSummary {

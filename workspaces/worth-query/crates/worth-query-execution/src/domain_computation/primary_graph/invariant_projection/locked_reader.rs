@@ -3,7 +3,7 @@ use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationSchema, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationSchema, EqualityPredicate,
     TypedApplicationReadableValue, TypedApplicationValue, WritePosture,
 };
 
@@ -191,7 +191,7 @@ where
         self.snapshot.version_id
     }
 
-    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -201,14 +201,14 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<WorthQueryInvariantEntityIdentity<Schema, Entity>, WorthQueryEntityResolutionDenial>
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let layout = self
             .layout
@@ -250,7 +250,7 @@ where
         })
     }
 
-    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_optional_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -260,7 +260,7 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<
@@ -270,7 +270,7 @@ where
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         match self.resolve_entity(field, value) {
             Ok(identity) => Ok(Some(identity)),
@@ -281,15 +281,15 @@ where
         }
     }
 
-    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Option<Value>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         if !self.identity_is_local(identity, field.entity()) {
             return None;

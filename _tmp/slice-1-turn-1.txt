@@ -1,0 +1,54 @@
+﻿## Slice 1 complete (Q8.18)
+
+Aftermath is now a compiled field of the installed application operation. Identities and pre-image coverage come from the operation under compilation; the public free installer is gone.
+
+### Built
+- `OperationAftermath` schema member + `operation_aftermath(...)` authoring
+- `WorthQueryCompiledApplicationOperationContracts.aftermath: Option<...>` resolved beside `external_effect`
+- `pub(crate) install_application_aftermath(binding, slot, declared, reads, catalog)` — package/schema/generation/slot from binding
+- Coverage from the operation’s decision-read field names (application declared reads; compiled `graph_reads` still carry no field slots)
+- Lowering catalog derived at compile from binding + declared correspondence slot
+- Bank schema wires aftermath for estate ops that can satisfy coverage
+- Bank tests read via `BankIdentityRuntime::installed_operation_aftermath(...)`
+- Adversarial install tests + compile-fail `installed_aftermath_constructor_is_private`
+
+### Retired
+- Public `install_application_aftermath(package, schema, slot, …)`
+- `AftermathDeclaredReadCoverage`
+
+### Still callable (honest remainder)
+| Path | Caller may supply |
+|---|---|
+| Application compile | Nothing beyond schema declaration + package admission (authority already held) |
+| `install_domain_operation_aftermath` | Operation slot, canonical-identity string, **declared** contract, read field slots, lowering catalog |
+| Bank recovery APIs | Still take `&WorthQueryInstalledAftermathContract` (slices 2–4) |
+
+Domain installer still accepts read slots/catalog — needed for geometry/UI/execution fixtures until domain ops compile aftermath the same way. Application path does not.
+
+### Could not fully close
+- **DelegateCapability** and **RequestEmergencyAccess** do not get `OperationAftermath` members yet: their RecordedInverse slots are not coverable by application-owned decision reads (framework-owned activation/request lanes). `declared_aftermath_for` still returns contracts; installation skips those two until covering reads are honest.
+- Pre-image demand field names for capability/emergency inverses were aligned to real field ids (`CapabilityGrantStatusField`, `EmergencyAccessStatusField`).
+
+### Out-of-scope defects noticed (not fixed)
+- Recovery still accepts a caller-supplied aftermath at transition (Q8.19+)
+- Handle still not bound to aftermath identity (Q8.19)
+- `install_domain_operation_aftermath` remains a second public install door for domain fixtures
+
+### Verification (exit codes)
+
+| Check | Scope | Exit |
+|---|---|---|
+| `cargo fmt --all --check` | worth-query | 0 |
+| `cargo fmt --all --check` | bank-world | 0 |
+| `cargo test -p bank-server --test ordinary_mutations` | bank | 0 (88) |
+| `cargo test -p worth-query-certification --test compile_certification` | cert | 0 |
+| `cargo test -p worth-query-certification --test application_aftermath_compile_fail` | cert (incl. new privacy case) | 0 |
+| `cargo test -p worth-query-execution --lib` | ×5 | 0,0,0,0,0 (579 each) |
+| `installed_operating_world` / `public_declarative_journeys` / `runtime_public_journeys` | worth-query | 0 / 0 / 0 |
+| `RUSTFLAGS=-Dwarnings cargo check --workspace --all-targets` | both workspaces | 0 / 0 |
+| boundary-check / agent-context / line-caps dirty | repo | 0 / 0 / 0 |Standing verification finished green after two early failures:
+
+- First bank `ordinary_mutations` run exited 101; a later full run passed.
+- First worth-query warning-clean check exited 101 (unused `geometry_fixture_owner_digest`); that was removed and the re-check passed.
+
+Fmt, certification, aftermath compile-fail, execution lib (×5), journey targets, and both warning-clean checks are all exit 0.

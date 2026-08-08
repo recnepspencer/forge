@@ -29,7 +29,7 @@ use super::BankEstateProgressionDenial;
 #[cfg(test)]
 mod tests;
 
-type AdmittedEstateDisbursement = WorthQueryAdmittedApplicationOperation<
+pub(crate) type AdmittedEstateDisbursement = WorthQueryAdmittedApplicationOperation<
     BankSchema,
     DisburseEstateOperation,
     EstateAction,
@@ -63,7 +63,7 @@ impl BankIdentityRuntime {
             .into())
     }
 
-    fn admit_estate_disbursement(
+    pub(crate) fn admit_estate_disbursement(
         &self,
         principal: &BankAuthenticatedPrincipal,
         action: EstateAction,
@@ -99,7 +99,7 @@ impl BankIdentityRuntime {
             .map_err(BankEstateProgressionDenial::Authorization)
     }
 
-    fn materialize_estate_disbursement(
+    pub(crate) fn materialize_estate_disbursement(
         &self,
         admission: AdmittedEstateDisbursement,
         idempotency: WorthQueryApplicationIdempotencyBinding,

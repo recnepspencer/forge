@@ -240,7 +240,7 @@ fn assert_forged_currency_denied(bank: &WorthQueryInstalledApplicationSchema<Ban
         .unwrap_err();
     assert_denial(
         denial.kind(),
-        ApplicationSchemaAuthoringDenialKind::FieldCurrencyMismatch,
+        ApplicationSchemaAuthoringDenialKind::FieldUnitMismatch,
     );
 }
 

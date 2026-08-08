@@ -1,0 +1,136 @@
+# Corrective Slice: The Dispatch Outbox Has No Drain
+
+An end-to-end trace of the external-effect subsystem found a real architectural
+gap. This slice closes it.
+
+## The finding
+
+`dispatch_external_effect` has **exactly one call site**:
+`provider_execution/external_dispatch.rs:57`, in-process, immediately after
+commit. There is no drain, relay, or sweeper that reads outbox rows back from
+the graph. `safe_retry_recovery_handle` returns an *admission* to retry but
+performs no dispatch and has **zero consumers**.
+
+So the outbox is write-only. A crash — or any failure — between commit and
+dispatch leaves a durable outbox row that nothing will ever read.
+
+The specification's own D1 rationale names this exact scenario as the reason the
+outbox exists:
+
+> "A crash between commit and dispatch would also lose the effect silently,
+> making the 'distinct typed postures' requirement decorative."
+
+Co-committing the intent makes the loss **detectable**. Only a drain makes it
+**recoverable**. Today we have the first half.
+
+## What is already correct — do not disturb it
+
+- Dispatch is gated on `receipt.dispatch_outbox()`, so an effect cannot escape
+  without a durable anchor. That is R8.55 enforced by control flow.
+- Dispatch runs strictly after the commit transaction.
+- `ClientKey` derives from the correlation digest, so re-creating the outbox row
+  is idempotent.
+- Transport faults return `Ok` with a typed `Unresolved` posture; `Err` is only
+  internal derivation failure.
+- Record-on-receipt and graph row come from the same variable in the same
+  commit and cannot diverge.
+
+## Layering — this is the part to get right
+
+Two facts constrain the design, and both were checked:
+
+1. **`worth-query-execution` does not depend on `worth-signal`.** Only the
+   top-level `worth-query` crate does. Do **not** add a Signal dependency to
+   execution — that is a boundary change and `boundary-check` governs it.
+2. **R8.11**: *"No Signal decision, slot value, or explanation may classify an
+   external effect, admit a recovery transition, or authorize an inverse."*
+
+So:
+
+- **`worth-query-execution` owns the mechanism**: reading pending outbox rows
+  and re-dispatching them. No policy, no Signal types.
+- **The scheduling policy lives above**, where Signal is already a dependency.
+
+Signal's `ResourceRetryDecisionPlan` (`data/resource/policy/retry.rs`) is a pure
+policy value — `ResourceRetryDecisionClass` (`Disabled`, `FixedDelay`,
+`ExponentialBackoff`, `CappedExponentialBackoff`), initial delay, multiplier,
+max delay, max attempts, jitter, budget scope and limit. It has no lifecycle
+coupling, so reusing it to answer *"when is the next drain attempt due"* is
+legitimate: it schedules, it does not classify.
+
+The line you must not cross: Signal may decide **when** a drain runs. Query
+alone decides **what posture** the resulting dispatch has. Reuse the vocabulary;
+do not route the outcome through Signal's decision classes.
+
+## Build this
+
+**1. An admitted read for pending dispatch rows (`worth-query-execution`).**
+
+Find committed outbox rows whose effect has not reached a terminal posture. Use
+an **admitted graph read**, the same discipline `resolve_admitted_application_idempotency`
+uses — not a privileged back door. Follow §5 G5's reasoning: the graph-persisted
+record is the authoritative answer, not provider memory.
+
+**2. A drain that re-dispatches through the existing path.**
+
+It must call the **same** `dispatch_external_effect`, so `classify_observation`
+remains the single classification site. Do not add a second classification path
+— that is precisely the "second, weaker effect lane" the milestone exists to
+prevent.
+
+Exactly-once is the load-bearing property: draining a row that already
+completed must not emit again. The correlation-derived `ClientKey` and the
+rail's own dedupe give you two mechanisms; assert the outcome at the **rail**
+(`transport.attempts().len()`), not at the request layer.
+
+**3. Give `safe_retry` a consumer, or say why it has none.**
+
+It currently returns an admission nothing consumes. Either wire it to the drain
+— an operator-driven re-dispatch of one handle's effect — or state in the
+ledger why it stands alone. Do not leave a transition that admits an action the
+system cannot perform.
+
+**4. Type the in-memory limit honestly.**
+
+We are in-memory today; `worth-store` is still being built, and **G11 says Store
+is out of scope and must be typed as such**. R8.12 set the precedent with an
+explicit `StoreCapabilityRequired` durability posture rather than silence.
+
+The drain inherits that: a process-local outbox survives only as long as the
+process. Publish that as an explicit posture, exactly as R8.12 does. Do not
+imply durability we do not have, and do not add a `worth-store` dependency to
+any Query crate.
+
+## Tests — all provable in-memory today
+
+Crash recovery across processes is not testable yet, but the drain is:
+
+1. **Commit with the transport failing or absent** → the outbox row commits, no
+   dispatch, no `Completed` posture.
+2. **Then drain** → the effect is emitted, and the rail records exactly **one**
+   attempt.
+3. **Drain again** → **no second emission.** Rail attempts unchanged. This is
+   the row that matters most.
+4. **Drain a row whose effect already completed** → no emission.
+5. **Positive twin**: ordinary commit with a healthy transport still dispatches
+   once and leaves nothing pending to drain.
+6. **Zero-cost**: an operation declaring no external effect leaves nothing for
+   the drain to find, with the transport live (the R8.4 discipline).
+
+Use the real `bank-external-rail` process, as Gate 8.2's scenarios do.
+
+## Ledger
+
+Record this as a new finding (**Q8.13**) with its origin — found by end-to-end
+trace of the dispatch subsystem after Phase 8's gates had closed, not by a
+failing test — and update R8.25's evidence to name the drain. Note explicitly
+that no `R8.*` row required a relay, which is why every gate passed without one.
+
+## Standard
+
+Standing verification set, every target by name, plus `cargo test --workspace
+--no-fail-fast` in **both** workspaces — Phase 8 had two red certification
+targets that the six-target standing set never ran. Report every result.
+
+**No `#[allow(...)]` in the new code.** A suppression with a comment asserting
+the item is used is how the last three defects hid.

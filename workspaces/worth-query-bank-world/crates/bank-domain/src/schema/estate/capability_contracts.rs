@@ -33,6 +33,7 @@ worth_query_capability_context_entity_slot!(
 worth_query_capability_provenance!(pub EstateGrantChainProvenance in BankSchema);
 
 worth_query_operation!(pub NotifyDeathEstateOperation(EstateAction) in BankSchema);
+worth_query_operation!(pub RetransmitDeathNoticeEstateOperation(EstateAction) in BankSchema);
 worth_query_operation!(pub FreezeEstateAccountOperation(EstateAction) in BankSchema);
 worth_query_operation!(pub OpenEstateCaseOperation(EstateAction) in BankSchema);
 worth_query_operation!(pub RecognizeEstateExecutorOperation(EstateAction) in BankSchema);
@@ -51,6 +52,8 @@ worth_query_operation_writes!(FreezeEstateAccountOperation => [Status]);
 worth_query_operation_reads!(NotifyDeathEstateOperation => [DeathNoticeIdentityField, DeathNoticeStatusField, PrincipalIdentityField, EstateDeathNotice, DeathNoticeSubject, EstateDeceased]);
 worth_query_operation_writes!(NotifyDeathEstateOperation => [DeathNoticeStatusField]);
 worth_query_operation_emits!(NotifyDeathEstateOperation => [EstateDeathNotificationEffect]);
+worth_query_operation_reads!(RetransmitDeathNoticeEstateOperation => [DeathNoticeIdentityField, DeathNoticeStatusField, PrincipalIdentityField, EstateDeathNotice, DeathNoticeSubject, EstateDeceased]);
+worth_query_operation_emits!(RetransmitDeathNoticeEstateOperation => [EstateDeathNotificationEffect]);
 worth_query_operation_reads!(OpenEstateCaseOperation => [EstateCaseIdentityField, EstateCaseStatusField, DeathNoticeIdentityField, DeathNoticeStatusField, EstateDeathNotice]);
 worth_query_operation_writes!(OpenEstateCaseOperation => [EstateCaseStatusField]);
 worth_query_operation_reads!(RecognizeEstateExecutorOperation => [EstateCaseIdentityField, LegalAuthorityIdentityField, LegalAuthorityRecognizedField, PrincipalIdentityField, LegalAuthorityEstate, LegalAuthorityHolder, EstateExecutor]);
@@ -83,6 +86,7 @@ worth_query_operation_links!(DisburseEstateOperation => [JournalPosting, Posting
 worth_query_operation_emits!(DisburseEstateOperation => [AccountActivityEffect]);
 
 worth_query_capability!(pub NotifyDeathEstateCapability in BankSchema);
+worth_query_capability!(pub RetransmitDeathNoticeEstateCapability in BankSchema);
 worth_query_capability!(pub FreezeEstateAccountCapability in BankSchema);
 worth_query_capability!(pub OpenEstateCaseCapability in BankSchema);
 worth_query_capability!(pub RecognizeEstateExecutorCapability in BankSchema);

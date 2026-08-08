@@ -110,20 +110,20 @@ pub fn estate_customer_disclosure_definition() -> ApplicationQueryDefinition<
         RestrictedBankField::BeneficiaryIdentity,
         influence,
     );
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateCustomerDisclosureQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        customer_disclosure_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 2, 2),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview(),
-        ViewEstateCase::reference(),
-    )
-    .build()
-    .expect("estate customer disclosure query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateCustomerDisclosureQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(customer_disclosure_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 2, 2))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_preview(),
+        )
+        .requires_ability(ViewEstateCase::reference())
+        .build()
+        .expect("estate customer disclosure query is statically canonical")
 }

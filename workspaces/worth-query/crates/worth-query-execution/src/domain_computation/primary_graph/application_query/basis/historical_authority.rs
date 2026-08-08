@@ -3,9 +3,10 @@ use std::time::Instant;
 
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
 use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
+#[cfg(test)]
+use worth_runtime_bridge::facade::TruthBranchIdentity;
 use worth_runtime_bridge::facade::{
-    BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector, TruthBranchIdentity,
-    TruthCommitIdentity,
+    BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector, TruthCommitIdentity,
 };
 
 use super::super::resource_lifecycle::WorthQueryApplicationBasisLease;
@@ -30,7 +31,7 @@ impl WorthQueryApplicationHistoricalRead {
     pub fn at_application_commit(receipt: &WorthQueryApplicationCommitReceipt) -> Self {
         Self {
             selector: BridgeTruthViewSelector::historical_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
+                crate::domain_computation::primary_graph::primary_truth_branch_identity(),
                 TruthCommitIdentity::from_relational_commit_id(receipt.commit_id().0),
             ),
             provider_runtime_instance_id: Some(receipt.provider_runtime_instance_id()),

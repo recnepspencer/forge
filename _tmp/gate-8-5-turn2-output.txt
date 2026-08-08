@@ -1,0 +1,21 @@
+﻿**Gate 8.5 is CLOSED (turn 2).** The residual A9/X2/X3 row is proved through the Bank production path.
+
+### Landed
+- **A9 / X3** — after proved undo, grant expires; honest intent unchanged; Bank denies `NewlyUnauthorized`; positive twin admits
+- **X2** — after proved undo, recovery handle clock-expires; honest intent unchanged; Bank denies `Stale`; positive twin admits
+- Fixture: `disbursement_world_with_clock_and_grant_validity`
+- Tests: `phase8_redo_world_drift.rs`
+- Ledger corrected to **CLOSED (turn 2)**; string-typed derive `Result<&'static str>` recorded as an **8.6 residue finding** (not fixed here)
+- Gate 8.6 not started
+
+### Standing verification
+| Check | Result |
+|---|---|
+| bank `ordinary_mutations` | **72** |
+| consumers | **313 / 37 / 22** |
+| `compile_certification` | **14** |
+| execution `--lib` × 5 | **578 × 5** |
+| `-Dwarnings` check | clean |
+| boundary-check / agent-context / dirty line-cap | exit 0 / PASS |
+
+Details: `_tmp/gate-8-5-turn-2-boundary-and-plan.md`, `_tmp/gate-8-5-turn-2-status.md`.

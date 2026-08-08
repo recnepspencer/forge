@@ -53,7 +53,7 @@ impl ApplicationCapabilityRequest<BankSchema, DisburseEstateCapability> for Esta
                     disbursement.source_account,
                 ),
             ))
-            .amount(disbursement.amount))
+            .magnitude(disbursement.amount))
     }
 }
 

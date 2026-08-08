@@ -47,6 +47,16 @@ impl ApplicationSchemaCanonicalBasis {
         );
     }
 
+    pub(super) fn u64(&mut self, locus: impl Into<String>, value: u64) {
+        self.push(
+            locus,
+            CanonicalBasisValue::UnsignedInteger {
+                width: CanonicalIntegerWidth::Bits64,
+                value: value.into(),
+            },
+        );
+    }
+
     pub(super) fn usize(&mut self, locus: impl Into<String>, value: usize) {
         self.push(
             locus,

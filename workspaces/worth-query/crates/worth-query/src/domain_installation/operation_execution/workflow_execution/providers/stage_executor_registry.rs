@@ -17,15 +17,6 @@ type WorkflowExecutorMarker<D, O, F> = fn() -> (D, O, F);
 
 trait ErasedWorkflowStageExecutor: Send + Sync {
     fn idempotent_stage_retry(&self) -> bool;
-    fn prepare_aftermath_intent(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-    ) -> Option<super::WorthQueryNormalizedWorkflowIntent>;
-    fn verify_aftermath_postcondition(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-        candidate: &super::WorthQueryWorkflowTraceSemantics,
-    ) -> bool;
     fn execute(
         &self,
         input: WorthQueryWorkflowValue,
@@ -55,22 +46,6 @@ where
 {
     fn idempotent_stage_retry(&self) -> bool {
         E::IDEMPOTENT_STAGE_RETRY
-    }
-
-    fn prepare_aftermath_intent(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-    ) -> Option<super::WorthQueryNormalizedWorkflowIntent> {
-        self.executor.prepare_aftermath_intent(original)
-    }
-
-    fn verify_aftermath_postcondition(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-        candidate: &super::WorthQueryWorkflowTraceSemantics,
-    ) -> bool {
-        self.executor
-            .verify_aftermath_postcondition(original, candidate)
     }
 
     fn execute(
@@ -154,22 +129,6 @@ impl WorthQueryInstalledWorkflowStageExecutor {
 
     pub(crate) fn replay_comparator(&self) -> Option<Arc<dyn ErasedReplaySemanticComparator>> {
         self.replay_comparator.as_ref().map(Arc::clone)
-    }
-
-    pub(crate) fn prepare_aftermath_intent(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-    ) -> Option<super::WorthQueryNormalizedWorkflowIntent> {
-        self.executor.prepare_aftermath_intent(original)
-    }
-
-    pub(crate) fn verify_aftermath_postcondition(
-        &self,
-        original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-        candidate: &super::WorthQueryWorkflowTraceSemantics,
-    ) -> bool {
-        self.executor
-            .verify_aftermath_postcondition(original, candidate)
     }
 }
 

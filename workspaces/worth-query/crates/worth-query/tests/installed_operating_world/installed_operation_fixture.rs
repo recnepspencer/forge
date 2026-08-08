@@ -1,7 +1,6 @@
 pub(super) use super::conditional_node_contract::identity_contract;
 use worth_query::facade::consumer_kit::{in_memory_test_runtime, WorthQueryTestBackendSchema};
 use worth_query::facade::{domain, runtime};
-mod aftermath;
 mod artifact_workflow;
 pub(crate) mod collection_impact;
 mod conditional_workflow;
@@ -18,6 +17,7 @@ mod lineage_workflow;
 mod mutation_workflow;
 mod operating_world_families;
 mod operation_semantics;
+mod provisional_discard;
 mod read_operation_types;
 mod required_domains;
 mod semantic_drift;
@@ -26,10 +26,6 @@ mod workflow;
 #[path = "installed_operation_fixture/workflow_lifecycle_runtime.rs"]
 mod workflow_lifecycle_runtime;
 mod workflow_parallel_providers;
-pub use aftermath::{
-    aftermath_workspace, provisional_workflow_workspace, AftermathCandidate, AftermathContract,
-    AftermathFamily, AftermathOriginal, ProvisionalWorkflow,
-};
 pub use artifact_workflow::{
     artifact_controlled_workspace, artifact_integrated_workspace, artifact_lease_workspace,
     artifact_move_workspace, artifact_workspace_without_support, bind_artifact_workflow,
@@ -94,6 +90,9 @@ pub(super) use operation_semantics::{
     operation_identity_contract, partial_effect_execution_resource_contract,
     partial_effect_execution_resource_request, partial_effect_execution_resource_support,
     semantic_closure,
+};
+pub use provisional_discard::{
+    provisional_workflow_workspace, ProvisionalDiscardFamily, ProvisionalWorkflow,
 };
 pub use read_operation_types::{
     FederatedRead, GeometryDomain, ReadExecutionInput, ReadFamily, ReadVertex, ReadVertexLookalike,

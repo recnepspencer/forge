@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# WORTH composition guards, at commit time.
+#
+# This hook is checked into the repository and activated with:
+#
+#   git config core.hooksPath .githooks
+#
+# It therefore applies to every tool that commits — Claude Code, cursor-agent,
+# Codex, Cursor, a plain terminal — rather than to one agent harness. That is
+# the point: editor-specific hooks cover one surface, and most edits in this
+# repository are made by agents running outside it.
+#
+# Scope is `dirty` so a commit is judged on what it touches, never on
+# pre-existing debt. Bypass with `git commit --no-verify` when you genuinely
+# mean to, and say so in the message.
+
+set -uo pipefail
+
+ROOT_DIR="$(git rev-parse --show-toplevel)"
+cd "$ROOT_DIR" || exit 0
+
+# python3 is the CI spelling; Windows installs usually only provide `python`,
+# where `python3` is a Store alias stub that prints help and exits 0.
+PY=""
+for candidate in python3 python py; do
+  if command -v "$candidate" >/dev/null 2>&1 &&
+     "$candidate" -c "import sys; sys.exit(0)" >/dev/null 2>&1; then
+    PY="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$PY" ]]; then
+  echo "pre-commit: no working Python found; composition guards did NOT run." >&2
+  echo "pre-commit: install Python 3 or commit with --no-verify deliberately." >&2
+  exit 1
+fi
+
+status=0
+
+echo "pre-commit: composition guards (dirty scope)"
+if ! "$PY" scripts/ci/check_composition_advisories.py dirty; then
+  status=1
+fi
+
+if command -v cargo >/dev/null 2>&1; then
+  echo "pre-commit: formatting"
+  for manifest in \
+    Cargo.toml \
+    workspaces/worth-query/Cargo.toml \
+    workspaces/worth-query-bank-world/Cargo.toml
+  do
+    [[ -f "$manifest" ]] || continue
+    if ! cargo fmt --all --check --manifest-path "$manifest" >/dev/null 2>&1; then
+      echo "FAIL: cargo fmt --all --check failed for $manifest" >&2
+      echo "      run: cargo fmt --all --manifest-path $manifest" >&2
+      status=1
+    fi
+  done
+fi
+
+if (( status != 0 )); then
+  echo "pre-commit: blocked. Fix the above, or use --no-verify and explain why." >&2
+fi
+
+exit "$status"

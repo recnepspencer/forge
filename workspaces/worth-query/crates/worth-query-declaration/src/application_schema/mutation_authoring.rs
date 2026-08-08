@@ -4,7 +4,7 @@ use worth_foundational::facade::AspectValue;
 
 use super::authoring_context::{ApplicationFieldAdmission, ApplicationOperationProgramAdmission};
 use super::capabilities::{
-    ApplicationFieldCurrency, CreatableBy, OperationCreates, OperationDeletes, OperationLinks,
+    ApplicationFieldUnit, CreatableBy, OperationCreates, OperationDeletes, OperationLinks,
     OperationUnlinks, OperationWrites, WritableCapability,
 };
 use super::references::{
@@ -258,16 +258,16 @@ impl<Schema, Operation, Input> TypedMutationIntentBuilder<Schema, Operation, Inp
         self
     }
 
-    pub fn set<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn set<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Self
     where
         Field: OperationWrites<Operation>,
         Value: TypedApplicationValue,
         Write: WritableCapability,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         if self.denial.is_none() {
             self.denial = self.context.as_ref().and_then(|context| {
@@ -278,7 +278,7 @@ impl<Schema, Operation, Input> TypedMutationIntentBuilder<Schema, Operation, Inp
                         field: field.field(),
                         scalar_family: field.scalar_family(),
                         value_type: field.value_type_name(),
-                        currency: field.currency(),
+                        unit: field.unit(),
                         requires_write: true,
                         requires_equality: false,
                     })

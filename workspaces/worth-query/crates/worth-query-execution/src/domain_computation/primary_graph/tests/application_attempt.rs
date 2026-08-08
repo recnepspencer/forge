@@ -25,6 +25,8 @@ mod idempotency_behavior;
 mod mutation_terminal_lifecycle;
 #[path = "application_attempt/mutation_work_scale.rs"]
 mod mutation_work_scale;
+#[path = "application_attempt/preimage_retention.rs"]
+mod preimage_retention;
 #[path = "application_attempt/program_fixture.rs"]
 mod program_fixture;
 #[path = "application_attempt/terminal_failures.rs"]

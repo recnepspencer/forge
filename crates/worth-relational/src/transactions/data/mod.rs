@@ -57,7 +57,8 @@ pub use primitives::{
     AuthorityMode, BulkMutationLineagePlan, BulkMutationLocalityFootprint, BulkMutationNamingPlan,
     BulkMutationProvenancePlan, BulkMutationScope, CommitAuthority, CreatedEntityRef,
     CrossContextEndpointClass, EntityReference, EntitySpec, ExistingRecordTarget,
-    LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch, PlannedBulkMutationBatch,
-    PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef, RelationIdentity,
-    RelationScope, RelationSpec, SavepointId, TransactionId, TransactionOptions, WorkerIntentBatch,
+    ExpectedBranchHead, LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch,
+    PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
+    RecordRef, RelationIdentity, RelationScope, RelationSpec, SavepointId, TransactionId,
+    TransactionOptions, WorkerIntentBatch,
 };

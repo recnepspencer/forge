@@ -265,7 +265,7 @@ pub(super) enum WorthQueryCapabilityRequestValueAxis {
     Action,
     Purpose,
     Field,
-    Amount,
+    Magnitude,
 }
 
 pub(super) struct WorthQueryCapabilityContextAnchor {
@@ -284,7 +284,7 @@ pub(super) struct WorthQueryCapabilityRequestBindings {
     pub(super) resource_entity: String,
     pub(super) related_relation: Option<RelationalAuthorizationTraversal>,
     pub(super) field: Option<AspectFieldLocator>,
-    pub(super) amount: Option<AspectFieldLocator>,
+    pub(super) magnitude: Option<AspectFieldLocator>,
     pub(super) cardinality: ApplicationCapabilityCardinalityDimension,
     pub(super) timeline: ApplicationCapabilityValidityTimeline,
     pub(super) not_before: AspectFieldLocator,

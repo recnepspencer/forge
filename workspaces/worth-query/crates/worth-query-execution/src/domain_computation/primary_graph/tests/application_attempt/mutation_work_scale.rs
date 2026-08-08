@@ -16,7 +16,30 @@ fn mutation_work_is_invariant_to_unrelated_graph_population() {
     let baseline = mutation_work(0, 71);
     let expanded = mutation_work(128, 72);
 
-    assert_eq!(expanded, baseline);
+    assert_eq!(
+        expanded.decision_fact_count(),
+        baseline.decision_fact_count()
+    );
+    assert_eq!(
+        expanded.proposed_fact_count(),
+        baseline.proposed_fact_count()
+    );
+    assert_eq!(
+        expanded.invariant_state_fact_count(),
+        baseline.invariant_state_fact_count()
+    );
+    assert_eq!(
+        expanded.invariant_work_units(),
+        baseline.invariant_work_units()
+    );
+    assert_eq!(
+        expanded.relational_invariant_execution_count(),
+        baseline.relational_invariant_execution_count()
+    );
+    assert_eq!(
+        expanded.relational_invariant_result_count(),
+        baseline.relational_invariant_result_count()
+    );
     assert!(baseline.decision_fact_count() > 0);
     assert!(baseline.proposed_fact_count() > 0);
     assert_eq!(
@@ -29,6 +52,14 @@ fn mutation_work_is_invariant_to_unrelated_graph_population() {
     );
     assert_eq!(baseline.relational_invariant_execution_count(), 3);
     assert!(baseline.relational_invariant_result_count() > 0);
+    // C2 — commit-derived names are present. Absolute EntityIds differ across
+    // separately populated worlds; the *count* of records this mutation
+    // touched must not grow with unrelated graph width.
+    assert!(!baseline.touched_records().is_empty());
+    assert_eq!(
+        expanded.touched_record_count(),
+        baseline.touched_record_count()
+    );
 }
 
 fn mutation_work(

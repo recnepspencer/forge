@@ -24,11 +24,11 @@ pub(super) fn collect_aspects(members: &[ApplicationSchemaMember]) -> BTreeSet<(
         .collect()
 }
 
-pub(super) fn collect_currencies(members: &[ApplicationSchemaMember]) -> BTreeSet<&str> {
+pub(super) fn collect_units(members: &[ApplicationSchemaMember]) -> BTreeSet<&str> {
     members
         .iter()
         .filter_map(|member| match member {
-            ApplicationSchemaMember::Currency { currency } => Some(currency.as_str()),
+            ApplicationSchemaMember::Unit { unit } => Some(unit.as_str()),
             _ => None,
         })
         .collect()

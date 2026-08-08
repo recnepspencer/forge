@@ -1,5 +1,6 @@
 use super::super::{
-    provider_recomparison::recover_equivalent_commit_evidence, WorthQueryApplicationCommitDenial,
+    provider_recomparison::recover_equivalent_commit_evidence,
+    WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationStaleAttempt,
 };
 use super::outcome::{progression_denied, WorthQueryProviderProgressionOutcome};
@@ -27,6 +28,7 @@ pub(super) struct WorthQueryProviderReadSetContext<'a, 'provider, Schema, Operat
     pub(super) commit_authorization: &'a WorthQueryCommitAuthorizationBasis,
     pub(super) session_identity: &'a str,
     pub(super) serialization: &'a WorthQueryApplicationCommitSerialization<'provider>,
+    pub(super) idempotency: super::super::WorthQueryApplicationIdempotencyBinding,
 }
 
 pub(super) enum WorthQueryProviderReadSetProgression<'run> {
@@ -44,6 +46,7 @@ pub(super) fn compare_provider_read_set<'run, Schema, Operation, Input, Scope>(
 ) -> WorthQueryProviderReadSetProgression<'run>
 where
     Schema: ApplicationSchema,
+    Input: Clone + Send + Sync + 'static,
 {
     let receipt = match staged.read_authority().capture_decision_read_set(requests) {
         Ok(receipt) => receipt,
@@ -77,6 +80,7 @@ fn resolve_stale_provider_read_set<'run, Schema, Operation, Input, Scope>(
 ) -> WorthQueryProviderReadSetProgression<'run>
 where
     Schema: ApplicationSchema,
+    Input: Clone + Send + Sync + 'static,
 {
     let proof = match context.application.authorize_application_commit(
         context.admission,
@@ -104,6 +108,10 @@ where
                     receipt,
                     recover_equivalent_commit_evidence(context.admission.mutation_preconditions()),
                     context.admission.canonical_work(),
+                    WorthQueryApplicationCommitAuthorityBinding::from_admission(
+                        context.admission,
+                        context.idempotency,
+                    ),
                 ),
             )
         }

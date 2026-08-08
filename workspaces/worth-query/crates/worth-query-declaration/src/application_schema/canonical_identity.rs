@@ -9,7 +9,7 @@ use super::canonical_decision_read_identity::append_decision_read_target;
 use super::canonical_operation_identity::append_operation_target;
 use super::{ApplicationSchemaIdentity, ApplicationSchemaMember};
 
-const RULE_VERSION: &str = "worth-query-application-schema-v9";
+const RULE_VERSION: &str = "worth-query-application-schema-v10";
 
 pub(super) struct ApplicationSchemaCanonicalHeader<'a> {
     pub owner: &'a str,
@@ -159,6 +159,40 @@ fn append_member(
             basis.text(format!("{prefix}.operation"), operation);
             basis.usize(format!("{prefix}.maximum-work-units"), *maximum_work_units);
         }
+        ApplicationSchemaMember::OperationExternalEffect {
+            operation,
+            effect,
+            rust_payload_type,
+            protocol,
+            maximum_payload_bytes,
+            correlation_family,
+        } => {
+            basis.text(format!("{prefix}.kind"), "operation-external-effect");
+            basis.text(format!("{prefix}.operation"), operation);
+            basis.text(format!("{prefix}.effect"), effect);
+            basis.text(format!("{prefix}.rust-payload-type"), rust_payload_type);
+            basis.text(
+                format!("{prefix}.protocol-identity"),
+                protocol.identity().as_str(),
+            );
+            basis.u64(
+                format!("{prefix}.protocol-version"),
+                u64::from(protocol.version().get()),
+            );
+            basis.u64(
+                format!("{prefix}.maximum-payload-bytes"),
+                *maximum_payload_bytes,
+            );
+            basis.text(format!("{prefix}.correlation-family"), correlation_family);
+        }
+        ApplicationSchemaMember::OperationAftermath {
+            operation,
+            contract,
+        } => {
+            basis.text(format!("{prefix}.kind"), "operation-aftermath");
+            basis.text(format!("{prefix}.operation"), operation);
+            append_declared_aftermath(basis, &format!("{prefix}.contract"), contract);
+        }
         ApplicationSchemaMember::Policy { policy } => {
             basis.text(format!("{prefix}.kind"), "policy");
             basis.text(format!("{prefix}.policy"), policy);
@@ -196,9 +230,9 @@ fn append_member(
                 append_authorization_path(basis, &format!("{prefix}.path[{path_index}]"), path);
             }
         }
-        ApplicationSchemaMember::Currency { currency } => {
-            basis.text(format!("{prefix}.kind"), "currency");
-            basis.text(format!("{prefix}.currency"), currency);
+        ApplicationSchemaMember::Unit { unit } => {
+            basis.text(format!("{prefix}.kind"), "unit");
+            basis.text(format!("{prefix}.unit"), unit);
         }
         ApplicationSchemaMember::Effect {
             effect,
@@ -272,7 +306,7 @@ fn append_schema_field(
         presence,
         scalar_family,
         value_type,
-        currency,
+        unit,
         writable,
         equality_queryable,
     } = member
@@ -289,9 +323,66 @@ fn append_schema_field(
         scalar_family.canonical_name(),
     );
     basis.text(format!("{prefix}.value-type"), value_type);
-    basis.optional_text(format!("{prefix}.currency"), currency.as_deref());
+    basis.optional_text(format!("{prefix}.unit"), unit.as_deref());
     basis.bool(format!("{prefix}.writable"), *writable);
     basis.bool(format!("{prefix}.equality-queryable"), *equality_queryable);
+}
+
+fn append_declared_aftermath(
+    basis: &mut ApplicationSchemaCanonicalBasis,
+    prefix: &str,
+    contract: &crate::application_aftermath::DeclaredApplicationAftermathContract,
+) {
+    use crate::application_aftermath::{DeclaredCorrectionAuthority, DeclaredCorrectionMechanism};
+    basis.text(
+        format!("{prefix}.authority"),
+        match contract.authority() {
+            DeclaredCorrectionAuthority::RuntimeAlone => "runtime-alone",
+            DeclaredCorrectionAuthority::RuntimeWithExternalOwner => "runtime-with-external-owner",
+            DeclaredCorrectionAuthority::NotCorrectable => "not-correctable",
+        },
+    );
+    match contract.mechanism() {
+        Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) => {
+            basis.text(format!("{prefix}.mechanism"), "recorded-inverse");
+            basis.text(
+                format!("{prefix}.inverse-operation"),
+                inverse.inverse_operation_slot(),
+            );
+            basis.text(
+                format!("{prefix}.lowering"),
+                inverse.lowering_correspondence().correspondence_slot(),
+            );
+            for (index, slot) in inverse.preimage_demand().field_slots().iter().enumerate() {
+                basis.text(format!("{prefix}.preimage-{index}"), slot);
+            }
+        }
+        Some(DeclaredCorrectionMechanism::Compensation(compensation)) => {
+            basis.text(format!("{prefix}.mechanism"), "compensation");
+            basis.text(
+                format!("{prefix}.compensating-operation"),
+                compensation.compensating_operation_slot(),
+            );
+        }
+        None => {
+            basis.text(format!("{prefix}.mechanism"), "none");
+        }
+    }
+    match contract.reconciliation() {
+        Some(reconciliation) => {
+            basis.text(
+                format!("{prefix}.reconciliation"),
+                reconciliation.procedure_slot(),
+            );
+        }
+        None => {
+            basis.text(format!("{prefix}.reconciliation"), "none");
+        }
+    }
+    // The escaping-effect posture is not appended here. It is no longer an
+    // aftermath axis: `ApplicationSchemaMember::OperationExternalEffect` is the
+    // single declaration of the lane, and it contributes its own basis entries
+    // — including the payload type and byte bound this contract never saw.
 }
 
 #[cfg(test)]

@@ -256,21 +256,6 @@ pub trait WorthQueryDomainWorkflowStageExecutor<D, O, F>: Send + Sync + 'static 
         context: &WorthQueryWorkflowStageExecutionContext<'_>,
         workspace: &mut WorthQueryWorkflowStageWorkspace<'_>,
     ) -> Result<WorthQueryWorkflowStageMaterial, WorthQueryWorkflowStageExecutorFailure>;
-
-    fn prepare_aftermath_intent(
-        &self,
-        _original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-    ) -> Option<crate::domain_installation::WorthQueryNormalizedWorkflowIntent> {
-        None
-    }
-
-    fn verify_aftermath_postcondition(
-        &self,
-        _original: &crate::domain_installation::WorthQueryAftermathOriginalEvidence,
-        _candidate: &crate::domain_installation::WorthQueryWorkflowTraceSemantics,
-    ) -> bool {
-        false
-    }
 }
 
 /// Domain-owned semantic comparison for an executor registered on the

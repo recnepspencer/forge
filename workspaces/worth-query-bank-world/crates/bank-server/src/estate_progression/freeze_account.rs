@@ -73,7 +73,7 @@ impl BankIdentityRuntime {
             .into())
     }
 
-    fn admit_freeze_operation(
+    pub(crate) fn admit_freeze_operation(
         &self,
         principal: &BankAuthenticatedPrincipal,
         action: EstateAction,

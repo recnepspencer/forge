@@ -1,4 +1,5 @@
 mod capability_revocation_program;
+mod commit_authority_binding;
 mod commit_outcome_identity;
 mod commit_terminal;
 mod compare_and_commit;
@@ -31,6 +32,8 @@ mod read_set;
 pub(super) mod snapshot_lease;
 
 pub use capability_revocation_program::WorthQueryCapabilityRevocationProgram;
+pub use commit_authority_binding::WorthQueryApplicationCommitAuthorityBinding;
+pub(crate) use commit_authority_binding::WorthQueryRetainedGovernedInput;
 pub use commit_outcome_identity::WorthQueryApplicationCommitOutcomeIdentity;
 pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
@@ -39,7 +42,8 @@ pub(in crate::domain_computation::primary_graph) use compare_and_commit::WorthQu
 pub use compare_and_commit::{
     WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
     WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitReceipt, WorthQueryApplicationStaleAttempt,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitRecoveryKind,
+    WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
 };
 pub use delegation_activation_program::WorthQueryDelegationActivationProgram;
 pub use denial::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
@@ -83,6 +87,9 @@ pub(super) use mandatory_review_program::validate_mandatory_review_program;
 pub use mandatory_review_program::WorthQueryMandatoryReviewProgram;
 pub(in crate::domain_computation::primary_graph) use observation::observe_field_value;
 pub(in crate::domain_computation) use provider_execution::application_resource_request;
+pub use provider_execution::{
+    WorthQueryExternalRedispatchDenial, WorthQueryExternalTransportInstallationDenial,
+};
 pub use provider_recomparison::WorthQueryMutationPreconditionComparisonEvidence;
 pub use read_phase::{WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation};
 pub use read_set::{

@@ -26,6 +26,7 @@ pub(super) fn resolve_admitted_idempotency<Operation>(
         .application_runtime()
         .resolve_admitted_application_idempotency(admission, idempotency)
         .map_err(BankEstateProgressionDenial::Idempotency)?
+        .into_resolution()
     {
         WorthQueryApplicationIdempotencyResolution::Unseen => Ok(None),
         WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt) => Ok(Some(

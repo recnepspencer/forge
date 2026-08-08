@@ -1,9 +1,7 @@
 use bank_domain::model::BankPrincipalId;
 use bank_domain::schema::{BankSchema, Principal};
 use worth_query_host::facade::{
-    declaration::application_schema::{
-        ApplicationFieldCurrency, TypedApplicationValue, WritePosture,
-    },
+    declaration::application_schema::{ApplicationFieldUnit, TypedApplicationValue, WritePosture},
     primary_graph::{
         WorthQueryAdmittedApplicationQueryPlan, WorthQueryApplicationOneShotResult,
         WorthQueryApplicationPreviewResult, WorthQueryApplicationProjection,
@@ -24,7 +22,7 @@ pub(crate) fn execute_one_shot<
     ScopeField,
     ScopeIdentity,
     ScopeWrite,
-    ScopeCurrency,
+    ScopeUnit,
 >(
     runtime: &BankIdentityRuntime,
     principal: &BankAuthenticatedPrincipal,
@@ -38,14 +36,14 @@ pub(crate) fn execute_one_shot<
         ScopeField,
         ScopeIdentity,
         ScopeWrite,
-        ScopeCurrency,
+        ScopeUnit,
     >,
 ) -> Result<WorthQueryApplicationOneShotResult<Query, QueryResult>, BankApplicationQueryDenial>
 where
     QueryResult: WorthQueryApplicationProjection<BankSchema, Query>,
     ScopeIdentity: TypedApplicationValue,
     ScopeWrite: WritePosture,
-    ScopeCurrency: ApplicationFieldCurrency,
+    ScopeUnit: ApplicationFieldUnit,
 {
     execute_with_lane(runtime, principal, invocation, |application, plan| {
         application
@@ -63,7 +61,7 @@ pub(crate) fn execute_preview<
     ScopeField,
     ScopeIdentity,
     ScopeWrite,
-    ScopeCurrency,
+    ScopeUnit,
 >(
     runtime: &BankIdentityRuntime,
     principal: &BankAuthenticatedPrincipal,
@@ -77,14 +75,14 @@ pub(crate) fn execute_preview<
         ScopeField,
         ScopeIdentity,
         ScopeWrite,
-        ScopeCurrency,
+        ScopeUnit,
     >,
 ) -> Result<WorthQueryApplicationPreviewResult<Query, QueryResult>, BankApplicationQueryDenial>
 where
     QueryResult: WorthQueryApplicationProjection<BankSchema, Query>,
     ScopeIdentity: TypedApplicationValue,
     ScopeWrite: WritePosture,
-    ScopeCurrency: ApplicationFieldCurrency,
+    ScopeUnit: ApplicationFieldUnit,
 {
     execute_with_lane(runtime, principal, invocation, |application, plan| {
         application
@@ -102,7 +100,7 @@ fn execute_with_lane<
     ScopeField,
     ScopeIdentity,
     ScopeWrite,
-    ScopeCurrency,
+    ScopeUnit,
     Output,
 >(
     runtime: &BankIdentityRuntime,
@@ -117,7 +115,7 @@ fn execute_with_lane<
         ScopeField,
         ScopeIdentity,
         ScopeWrite,
-        ScopeCurrency,
+        ScopeUnit,
     >,
     execute: impl FnOnce(
         &WorthQueryPrimaryGraphApplicationRuntime<BankSchema>,
@@ -137,7 +135,7 @@ where
     QueryResult: WorthQueryApplicationProjection<BankSchema, Query>,
     ScopeIdentity: TypedApplicationValue,
     ScopeWrite: WritePosture,
-    ScopeCurrency: ApplicationFieldCurrency,
+    ScopeUnit: ApplicationFieldUnit,
 {
     let BankApplicationQueryInvocation {
         reference,

@@ -81,8 +81,29 @@ jobs:
       - name: Signal runtime guards
         run: bash scripts/ci/check_signal_runtime_guards.sh
 
-      - name: Workspace Rust line caps
-        run: bash scripts/ci/check_workspace_rust_line_caps.sh
+      # Composition guards: the 400-line cap plus the 60-line function and
+      # 5-parameter advisories. clippy.toml raises too-many-arguments-threshold
+      # to 32 and justifies it as "repository-specific function scrutiny ...
+      # remain the composition enforcement" — this is that scrutiny.
+      #
+      # `changed` scope, not `workspace`: the repository has known pre-existing
+      # over-cap files being chipped away deliberately. A change is gated on
+      # what it touches. Run `check_composition_advisories.py workspace`
+      # locally for the full picture — it is an audit, never a gate.
+      - name: Composition guards
+        run: python3 scripts/ci/check_composition_advisories.py changed
+
+      # Boundary check owns crate-DAG topology, facade export snapshots, and
+      # source identifier denials. It existed and passed for the whole of
+      # Phase 8 without ever being gated here.
+      - name: Boundary check
+        run: cargo run --quiet --manifest-path tools/boundary-check/Cargo.toml -- --root .
+
+      - name: Formatting
+        run: |
+          cargo fmt --all --check --manifest-path workspaces/worth-query/Cargo.toml
+          cargo fmt --all --check --manifest-path workspaces/worth-query-bank-world/Cargo.toml
+          cargo fmt --all --check
 
       - name: Constitution
         shell: pwsh

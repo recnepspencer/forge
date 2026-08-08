@@ -8,9 +8,18 @@ mod lifecycle_facts;
 mod notify_death;
 mod open_estate_case;
 mod recognize_executor;
+mod recovery;
+mod redo;
+mod redo_admission;
 mod release_estate;
 mod request;
+mod retransmit_death_notice;
 mod review;
+mod undo;
+mod undo_admission;
+
+pub use undo::{compensating_reverse_journal, BankUndoCommitOutcome};
+pub use undo_admission::{BankCompensationUndoAdmission, BankRecordedInverseUndoAdmission};
 
 pub use delegation::{
     BankCapabilityDelegationProjectionDenial, BankCapabilityRevocationProjectionDenial,
@@ -20,6 +29,7 @@ pub use freeze_account::BankEstateFreezeProjectionDenial;
 pub use notify_death::BankDeathNotificationProjectionDenial;
 pub use open_estate_case::BankEstateCaseOpeningProjectionDenial;
 pub use recognize_executor::BankExecutorRecognitionProjectionDenial;
+pub use redo_admission::BankDisbursementRedoAdmission;
 pub use release_estate::BankEstateReleaseProjectionDenial;
 
 use worth_query_host::facade::domain::{
@@ -32,7 +42,9 @@ use worth_query_host::facade::primary_graph::{
     WorthQueryEntityResolutionDenial, WorthQueryInvariantDecisionPlanDenial,
     WorthQueryInvariantProjectionTraversalDenial, WorthQueryMandatoryReviewAuthorizationDenial,
     WorthQueryOperationAuthorizationDenial, WorthQueryOperationProjectionDenial,
+    WorthQueryRecoveryHandleDenial,
 };
+use worth_query_host::facade::provisional_aftermath::{WorthQueryRedoDenial, WorthQueryUndoDenial};
 
 #[derive(Debug)]
 pub enum BankEstateLifecycleProjectionDenial {
@@ -74,6 +86,9 @@ pub enum BankEstateProgressionDenial {
     Idempotency(WorthQueryApplicationIdempotencyResolutionDenial),
     LifecycleProjection(BankEstateLifecycleProjectionDenial),
     Attempt(WorthQueryApplicationAttemptDenial),
+    Recovery(WorthQueryRecoveryHandleDenial),
+    Undo(WorthQueryUndoDenial),
+    Redo(WorthQueryRedoDenial),
 }
 
 impl std::fmt::Display for BankEstateProgressionDenial {
@@ -103,6 +118,11 @@ impl std::fmt::Display for BankEstateProgressionDenial {
             Self::Idempotency(denial) => denial.fmt(formatter),
             Self::LifecycleProjection(denial) => denial.fmt(formatter),
             Self::Attempt(denial) => denial.fmt(formatter),
+            Self::Recovery(denial) => {
+                write!(formatter, "recovery handle denied: {:?}", denial.kind())
+            }
+            Self::Undo(denial) => write!(formatter, "undo denied: {:?}", denial.kind()),
+            Self::Redo(denial) => write!(formatter, "redo denied: {:?}", denial.kind()),
         }
     }
 }

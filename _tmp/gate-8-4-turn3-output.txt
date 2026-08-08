@@ -1,0 +1,27 @@
+﻿**Gate 8.4 is closeable.** Turn 3 fixed the three audit gaps and left Gate 8.5 unopened.
+
+### What landed
+1. **R8.39 for real** — Deleted the enum-dedup theatre. Eight production scenarios (`phase8_undo_denials` / `phase8_undo_denials_lifecycle`): legal, audit, approval, released, escaped, stale, conflicted, already-consumed — each through Bank undo admission/progression, each typed cause at the public boundary, each with before/after journal+activity equality and a positive twin. Irreversible denies via `deny_irreversible_undo_attempt` before recovery mint (recovery is NotAdmitted for irreversible).
+
+2. **No-write = undo attempt, not install** — Snapshots taken around the actual undo call, not around aftermath install.
+
+3. **RecordedInverse end-to-end** — Freeze attaches `Status` pre-image demand → retention at commit → admit consumes it → `progress_undo_recorded_inverse` restores the retained prior through ordinary `compare_and_commit`. Same contract routed through the compensation journal lane denies `CorrectionNotAdmitted` (T4b divergence).
+
+### Rows I consider proved
+| Row | Evidence |
+|---|---|
+| R8.2 consumption | `phase8_undo_recorded_inverse` |
+| R8.9, R8.40, R8.41 | turn 2 (still green) |
+| R8.36–R8.38 | money + inverse ordinary progression |
+| R8.39 | eight denial scenarios + no-write |
+
+### Standing verification
+| Target | Result |
+|---|---|
+| `ordinary_mutations` | **62** |
+| consumers | **313 / 37 / 22** |
+| `compile_certification` | **14** |
+| `worth-query-execution --lib` × 5 | **562 × 5** |
+| warning-clean / boundary-check / agent-context / dirty line-cap | pass |
+
+Ledger updated under R8.63 (`CLOSED — turn 3`). Details: `_tmp/gate-8-4-turn-3-status.md`.

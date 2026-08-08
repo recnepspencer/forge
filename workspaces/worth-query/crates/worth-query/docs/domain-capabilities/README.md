@@ -2,7 +2,7 @@
 
 Domain work enters Query through a package installed into one runtime. The
 runtime returns an installed handle, and that handle is the root for domain
-reads, workflows, declarations, contributions, live work, recovery, and
+reads, workflows, declarations, contributions, live work, remediation, and
 inspection.
 
 Start with
@@ -25,9 +25,6 @@ diagnostics, and current limits.
 - [Installed Operation Re-Execution And Replay](./installed-operation-reexecution-and-replay.md)
   for fresh workflow execution, cert-only equivalence, localized divergence,
   and retained-snapshot historical replay.
-- [Installed Operation Aftermath](./installed-operation-aftermath.md) for exact
-  inverse, compensation, postcondition verification, and partial-effect
-  recovery evidence.
 - [Installed Operation Lineage And Promotion](./installed-operation-lineage-and-promotion.md)
   for effect-bound identity evolution, persistent naming, and sparse durable
   graph identity.
@@ -42,15 +39,13 @@ diagnostics, and current limits.
   declaration context must select the next proof-bearing input.
 - [Ordinary Outcomes](./ordinary-outcomes.md) for the common completed/stopped
   result vocabulary.
-- [Recovery Boundary](./recovery-boundary.md) for typed next actions after a
-  stale, unsupported, or mismatched operation.
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
+  for explanations and descriptive next actions after a stale, unsupported,
+  mismatched, denied, or conflicted operation.
 - [Continuation Pipeline](./continuation-pipeline.md) for prepared work that
   must be readmitted before execution.
 - [Lower-Runtime Capability Routing](./lower-runtime-capability-routing.md) when
   domain meaning crosses into a lower runtime with explicit boundary evidence.
-- [Inspection Vs Readiness Vs Recovery](./choosing/inspection-vs-readiness-vs-recovery.md)
-  when you need to choose between support posture, retained truth, and repair
-  guidance.
 
 ## Domain-Owned Vocabulary
 
@@ -74,7 +69,7 @@ Family helpers and grouped authoring follow the same rule:
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
-- [Recovery Boundary](./recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)
 
 These surfaces consume installed authority or artifacts derived from it. They
 are not alternative setup roots.

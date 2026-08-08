@@ -202,19 +202,18 @@ fn query_definition<Query: 'static, Parameters>(
         ),
     }
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        reference,
-        Parent::reference(),
-        Parent::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 2),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Parent::reference())
+        .scope(Parent::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .unwrap()
 }
 
 fn installed_schema() -> crate::facade::WorthQueryInstalledApplicationSchema<CardinalitySchema> {

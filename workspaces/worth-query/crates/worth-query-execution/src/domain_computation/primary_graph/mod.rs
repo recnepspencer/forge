@@ -32,40 +32,48 @@ mod tests;
 
 pub use crate::domain_computation::authorization::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-    WorthQueryApplicationAuthorizationExplanationCause, WorthQueryAuthorizationTimeSource,
-    WorthQueryAuthorizationTimeSourceDenial, WorthQueryElevationApprovalAuthorizationDenial,
-    WorthQueryElevationCloseAuthorizationDenial, WorthQueryMandatoryReviewAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialIdentity,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryOperationScopeBinding,
-    WorthQueryOperationScopeEntityBinding,
+    WorthQueryApplicationAuthorizationExplanationCause,
+    WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationCloseAuthorizationDenial,
+    WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialIdentity, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationScopeBinding, WorthQueryOperationScopeEntityBinding,
+};
+pub use crate::domain_computation::runtime_time::{
+    WorthQueryRuntimeTimeSource, WorthQueryRuntimeTimeSourceDenial,
 };
 pub(in crate::domain_computation) use application_attempt::application_resource_request;
 pub(in crate::domain_computation) use application_attempt::precondition_binding::{
     bind_mutation_preconditions, WorthQueryBoundMutationPreconditions,
 };
 pub(in crate::domain_computation) use application_attempt::WorthQueryApplicationSnapshotLease;
+pub(crate) use application_attempt::WorthQueryRetainedGovernedInput;
 pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
-    WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitOutcomeIdentity, WorthQueryApplicationCommitReceipt,
+    WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
+    WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitRecoveryKind,
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder, WorthQueryApplicationIdempotencyBinding,
     WorthQueryApplicationIdempotencyResolution, WorthQueryApplicationIdempotencyResolutionDenial,
     WorthQueryApplicationIdempotencyResolutionDenialKind, WorthQueryApplicationReadAttempt,
-    WorthQueryApplicationStaleAttempt, WorthQueryApprovedElevation,
-    WorthQueryCapabilityRevocationProgram, WorthQueryCompleteApplicationReadSet,
-    WorthQueryDelegationActivationProgram, WorthQueryElevationApprovalOutcome,
-    WorthQueryElevationApprovalProgram, WorthQueryElevationCloseOutcome,
-    WorthQueryElevationCloseProgram, WorthQueryElevationClosureKind,
-    WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
-    WorthQueryMandatoryReview, WorthQueryMandatoryReviewOutcome, WorthQueryMandatoryReviewProgram,
+    WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
+    WorthQueryApprovedElevation, WorthQueryCapabilityRevocationProgram,
+    WorthQueryCompleteApplicationReadSet, WorthQueryDelegationActivationProgram,
+    WorthQueryElevationApprovalOutcome, WorthQueryElevationApprovalProgram,
+    WorthQueryElevationCloseOutcome, WorthQueryElevationCloseProgram,
+    WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
+    WorthQueryElevationRequestProgram, WorthQueryExternalRedispatchDenial,
+    WorthQueryExternalTransportInstallationDenial, WorthQueryMandatoryReview,
+    WorthQueryMandatoryReviewOutcome, WorthQueryMandatoryReviewProgram,
     WorthQueryMutationPreconditionComparisonEvidence, WorthQueryObservedApplicationRelation,
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
     WorthQueryRequestedElevation, WorthQueryReviewedElevation,
 };
-pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
+pub(in crate::domain_computation) use application_branch::{
+    primary_relational_branch_id, primary_truth_branch_identity,
+};
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
     WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
@@ -103,6 +111,9 @@ pub use application_query::{
     WorthQueryBoundedLaneDenial, WorthQueryBoundedLaneDenialKind,
 };
 pub use application_runtime::WorthQueryPrimaryGraphApplicationRuntime;
+pub(in crate::domain_computation) use application_runtime::{
+    WorthQueryAdmittedExternalDispatchAttempt, WorthQueryExternalDispatchAttemptOrdinal,
+};
 pub use authenticated_principal::{
     WorthQueryApplicationPrincipalIdentity, WorthQueryAuthenticatedPrincipal,
 };
@@ -148,7 +159,11 @@ pub use principal_key::{
     WorthQueryApplicationPrincipalKey, WorthQueryApplicationPrincipalKeyDenial,
 };
 pub(in crate::domain_computation) use provider::WorthQueryApplicationCommitSerialization;
-pub use provider::WorthQueryPrimaryMutationWorkEvidence;
+pub use provider::{
+    WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
+    WorthQueryCommittedDispatchOutboxReadWork, WorthQueryPrimaryMutationWorkEvidence,
+    WorthQueryTouchedRecordIdentity,
+};
 pub use resolution::WorthQueryPrincipalResolutionMode;
 pub use resolution_denial::{
     WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,

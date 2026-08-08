@@ -8,7 +8,7 @@ use worth_query_decl::facade::{
         ApplicationQueryResultRelationRef, ApplicationQueryResultShapeBuilder, ExactlyOneResult,
         ManyResults, ReverseResultTraversal,
     },
-    application_schema::{EqualityPredicate, NoApplicationCurrency, ReadOnly, ReadWrite},
+    application_schema::{EqualityPredicate, NoApplicationUnit, ReadOnly, ReadWrite},
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
@@ -85,7 +85,7 @@ type AuthorizationIdentitySelector = ApplicationQueryResultFieldRef<
     AccountAuthorizationId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type AuthorizationRoleSelector = ApplicationQueryResultFieldRef<
@@ -98,7 +98,7 @@ type AuthorizationRoleSelector = ApplicationQueryResultFieldRef<
     CustomerRole,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PrincipalIdentitySelector = ApplicationQueryResultFieldRef<
@@ -111,7 +111,7 @@ type PrincipalIdentitySelector = ApplicationQueryResultFieldRef<
     BankPrincipalId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 pub fn account_authorized_users_definition() -> ApplicationQueryDefinition<
@@ -145,25 +145,23 @@ pub fn account_authorized_users_definition() -> ApplicationQueryDefinition<
     >::new(Account::reference())
     .relation(account_authorizations(), authorization)
     .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        AccountAuthorizedUsersQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(2, 2, 3),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewAccountAccess::reference(),
-    )
-    .order_by(
-        authorization_identity(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .continue_by(account_authorizations())
-    .build()
-    .expect("bank authorized account users query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(AccountAuthorizedUsersQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(2, 2, 3))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewAccountAccess::reference())
+        .order_by(
+            authorization_identity(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .continue_by(account_authorizations())
+        .build()
+        .expect("bank authorized account users query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, AccountAuthorizedUsersQuery>

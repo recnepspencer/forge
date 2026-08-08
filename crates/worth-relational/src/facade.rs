@@ -238,6 +238,10 @@ pub mod runtime {
         RelationReadRecord, RelationalReadView, StorageStats,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
+    pub use crate::visibility::exact_commit_snapshot::{
+        RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial,
+        RelationalRetainedCommitSnapshotDenialKind,
+    };
     pub use crate::visibility::execution_basis::{
         RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
         RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
@@ -370,31 +374,5 @@ pub mod symbols {
     };
 }
 
-pub mod transactions {
-    pub use crate::transactions::data::{
-        ApplyEntityAspectPatchIntent, ApplyRelationAspectPatchIntent, AspectEmissionTrace,
-        AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
-        AspectLifecycleTransitionClass, AspectTagAccuracyReport, AspectTraceEvidence,
-        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
-        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
-        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
-        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
-        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
-        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
-        CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
-        DeleteEntityIntent, DeleteRelationIntent, EntityAspectCreateIntent, EntityMutationIntent,
-        EntityReference, EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan,
-        MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
-        MergedCommitPlan, MutationIntent, NamingStableBulkMutationBatch, PatchVsTruthDeltaReport,
-        PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
-        PublishedMergeExecutionAuthority, RecordRef, RelationAspectCreateIntent,
-        RelationMutationIntent, RelationScope, RelationSpec, ReplaceEntityIntent, RollbackEffect,
-        RollbackOutcome, RollbackSummary, SavepointId, TransactionCommitError, TransactionId,
-        TransactionOptions, UndoRecord, UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent,
-        WorkerIntentBatch,
-    };
-    pub use crate::transactions::logic::{
-        RelationalMutationInvariantEvidence, RelationalTransaction, ValidatedRelationalMutation,
-    };
-    pub use worth_foundational::facade::AspectFieldLocator;
-}
+#[path = "facade/transactions.rs"]
+pub mod transactions;

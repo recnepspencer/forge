@@ -214,7 +214,7 @@ where
 
 fn validate_approval_time(
     requested: &super::WorthQueryElevationRequestBinding,
-    sample: &super::super::WorthQueryAuthorizationTimeSample,
+    sample: &super::super::WorthQueryRuntimeTimeSample,
     subject: &str,
 ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
     match (sample.value(), &requested.issued_at, &requested.expires_at) {

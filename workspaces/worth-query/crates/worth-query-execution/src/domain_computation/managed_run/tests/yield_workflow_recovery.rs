@@ -129,18 +129,18 @@ fn terminalized_workflow_yield_types_double_artifact_release_panic_as_recovery()
     assert!(release.relational().released());
     assert_eq!(release.attempt().capacity().released_reservation_count(), 3);
     let artifact_release = match handle.owner_snapshot().provider_release() {
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
             evidence,
         ) => evidence,
         posture => panic!("terminalized artifact release reported {posture:?}"),
     };
     assert_eq!(
         artifact_release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Panicked
     );
     assert_eq!(
         artifact_release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Panicked
     );
 }
 

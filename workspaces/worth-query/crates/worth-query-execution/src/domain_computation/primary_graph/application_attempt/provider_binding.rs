@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use worth_query_installation::facade::{
+    InstalledCorrectionMechanism, InstalledPreImageDemand, WorthQueryInstalledAftermathContract,
+};
 use worth_relational::facade::identity::{EntityId, RelationId};
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
@@ -23,6 +26,27 @@ pub(super) struct WorthQueryPreparedApplicationProviderAttempt {
     pub(super) steps: Vec<WorthQueryProvisionalEffectStep>,
     pub(super) batch: WorkerIntentBatch,
     pub(super) emissions: WorthQueryAdmittedApplicationEmissionBatch,
+    pub(super) preimage_demand: Option<worth_query_installation::facade::InstalledPreImageDemand>,
+}
+
+/// Derive the retention demand from the admitted operation's compiled aftermath
+/// (Q8.26-C1).
+///
+/// The demand is a property of the installed contract — `InstalledRecordedInverse`
+/// carries it non-optionally — so nothing about retention is a caller's to supply.
+/// It was previously attached through a public `with_preimage_demand` builder each
+/// operation had to remember to call, which made retention opt-in to the very party
+/// it constrains: an operation could declare `RecordedInverse`, never attach the
+/// demand, and commit with nothing retained and no diagnostic.
+pub(super) fn installed_preimage_demand(
+    aftermath: Option<&WorthQueryInstalledAftermathContract>,
+) -> Option<InstalledPreImageDemand> {
+    match aftermath?.mechanism()? {
+        InstalledCorrectionMechanism::RecordedInverse(inverse) => {
+            Some(inverse.preimage_demand().clone())
+        }
+        InstalledCorrectionMechanism::Compensation(_) => None,
+    }
 }
 
 pub(super) fn prepare_provider_attempt(
@@ -30,6 +54,7 @@ pub(super) fn prepare_provider_attempt(
     effects: Vec<WorthQueryApplicationRealizedEffect>,
     expected_emission_retained_bytes: u64,
     emission_retained_bytes_ceiling: u64,
+    preimage_demand: Option<worth_query_installation::facade::InstalledPreImageDemand>,
 ) -> Result<WorthQueryPreparedApplicationProviderAttempt, WorthQueryApplicationAttemptDenial> {
     let symbols = created_entity_symbols(&effects);
     let mut steps = Vec::new();
@@ -62,6 +87,7 @@ pub(super) fn prepare_provider_attempt(
         steps,
         batch,
         emissions,
+        preimage_demand,
     })
 }
 

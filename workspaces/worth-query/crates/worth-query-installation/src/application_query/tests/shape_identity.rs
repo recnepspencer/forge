@@ -197,17 +197,16 @@ fn grouped_shape_definition<Query: 'static, Parameters>(
             second,
         )
         .build();
-    ApplicationQueryDefinitionBuilder::public(
-        reference,
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(1, 2, 4),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 2, 4))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .unwrap()
 }

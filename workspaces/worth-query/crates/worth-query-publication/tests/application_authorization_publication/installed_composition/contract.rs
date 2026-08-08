@@ -1,16 +1,16 @@
 use worth_query_declaration::facade::{
     application_capability::{
         ApplicationCapabilityActorComposition, ApplicationCapabilityAllowRule,
-        ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
-        ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
-        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContract,
-        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
-        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
-        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
-        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
-        ApplicationCapabilityElevationRule, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+        ApplicationCapabilityCardinalityDimension, ApplicationCapabilityComposition,
+        ApplicationCapabilityConflictRule, ApplicationCapabilityConstraintDefinition,
+        ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
+        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
+        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
+        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
+        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
+        ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRule,
+        ApplicationCapabilityMagnitudeDimension, ApplicationCapabilityPathContextAnchor,
         ApplicationCapabilityPropagationComposition, ApplicationCapabilityRelationBinding,
         ApplicationCapabilityRelationDimension, ApplicationCapabilitySeparationOfDutyRule,
         ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
@@ -64,7 +64,7 @@ fn target() -> ApplicationCapabilityTargetDefinition {
 
 fn constraints() -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
-        ApplicationCapabilityAmountDimension::not_applicable(),
+        ApplicationCapabilityMagnitudeDimension::not_applicable(),
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(

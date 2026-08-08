@@ -1,0 +1,34 @@
+﻿Gate 8.3 verification integrity is closed. Product rows from turn 4 are unchanged.
+
+### 1. Flaky live-lease deadline (Q8.8) — option 2
+Live-lease deadlines still use wall-clock `Instant`, not Gate 8.3’s injectable `WorthQueryRuntimeClock`, so option 1 was not available without a larger admission rewrite.
+
+- Open under a non-expiring scope
+- Bind an already-settled deadline only for the poll phase
+- Removed the 2s sleep / race
+
+### 2. Production-callable registry reset (Q8.9) — feature gate
+Took the `test-support` cargo feature (not instance-scoped registry).
+
+- `reset_for_integration_test` only under `worth-query-execution/test-support`
+- Forwarded by `worth-query-host`; enabled only from `bank-server` `[dev-dependencies]`
+- Production builds omit the symbol
+- Parallel `--lib` race on `assert_no_live_handles` fixed with `lock_for_test()` for registry-touching tests
+
+**Owed before 8.4/8.5:** scope the registry to the runtime instance so neither reset nor the test lock is needed.
+
+### Ledger
+`Q8.8` CLOSED, `Q8.9` CLOSED at instance / PARTIAL at cause; `R8.65` updated.
+
+### Evidence
+| Target | Result |
+|---|---|
+| `worth-query-execution --lib` ×5 | **all 549 passed** (runs 1–5) |
+| bank `ordinary_mutations` | 49 passed |
+| consumers | 313 / 37 / 22 |
+| `compile_certification` | 14 passed |
+| boundary-check / agent-context | ok |
+| warning-clean `cargo check` | clean |
+| dirty line-cap | all ≤ 400 |
+
+Did not start Gate 8.4.

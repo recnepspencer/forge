@@ -4,6 +4,7 @@ mod bulk_mutation_planning;
 mod commit_artifact_summaries;
 mod entity_field_patch_denials;
 mod entity_field_patch_evidence;
+mod exact_commit_snapshots;
 mod failure_boundaries;
 mod native_aspect_conflicts;
 mod native_aspect_mutations;

@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
 use crate::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef, EqualityCapable,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef, EqualityCapable,
     EqualityPosture, TypedApplicationValue, WritePosture,
 };
 
@@ -80,15 +80,15 @@ impl<Schema, Entity> Clone for ApplicationCapabilityEntitySelector<Schema, Entit
 }
 
 impl<Schema, Entity> ApplicationCapabilityEntitySelector<Schema, Entity> {
-    pub fn new<Aspect, Field, Value, Write, Equality, Currency>(
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+    pub fn new<Aspect, Field, Value, Write, Equality, Unit>(
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
         value: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
         Equality: EqualityPosture + EqualityCapable,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         Self {
             entity: field.entity(),
@@ -268,7 +268,7 @@ pub struct ApplicationCapabilityRequestProjection<Schema, Scope, Context> {
     purpose: AspectValue,
     related_entity: Option<ApplicationCapabilityRelatedEntitySelector<Schema>>,
     field: Option<AspectValue>,
-    amount: Option<AspectValue>,
+    magnitude: Option<AspectValue>,
     cardinality: u32,
     context: ApplicationCapabilityRequestContext<Schema, Context>,
 }
@@ -291,7 +291,7 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
             purpose: purpose.into_foundational_value(),
             related_entity: None,
             field: None,
-            amount: None,
+            magnitude: None,
             cardinality: 1,
             context,
         }
@@ -321,8 +321,8 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
         self
     }
 
-    pub fn amount<Value: TypedApplicationValue>(mut self, amount: Value) -> Self {
-        self.amount = Some(amount.into_foundational_value());
+    pub fn magnitude<Value: TypedApplicationValue>(mut self, magnitude: Value) -> Self {
+        self.magnitude = Some(magnitude.into_foundational_value());
         self
     }
 
@@ -355,8 +355,8 @@ impl<Schema, Scope, Context> ApplicationCapabilityRequestProjection<Schema, Scop
         self.field.as_ref()
     }
 
-    pub const fn amount_value(&self) -> Option<&AspectValue> {
-        self.amount.as_ref()
+    pub const fn magnitude_value(&self) -> Option<&AspectValue> {
+        self.magnitude.as_ref()
     }
 
     pub const fn cardinality_value(&self) -> u32 {

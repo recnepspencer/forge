@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::AspectValue;
 
-use super::capabilities::{ApplicationFieldCurrency, EqualityCapable, EqualityPredicate};
+use super::capabilities::{ApplicationFieldUnit, EqualityCapable, EqualityPredicate};
 use super::references::{ApplicationEntityRef, ApplicationFieldRef, ApplicationRelationRef};
 use super::values::TypedApplicationValue;
 
@@ -165,7 +165,7 @@ impl<Schema, Current> ApplicationAuthorizationPathBuilder<Schema, Current> {
         }
     }
 
-    pub fn where_equal<Aspect, Field, Value, Write, Currency>(
+    pub fn where_equal<Aspect, Field, Value, Write, Unit>(
         mut self,
         field: ApplicationFieldRef<
             Schema,
@@ -175,13 +175,13 @@ impl<Schema, Current> ApplicationAuthorizationPathBuilder<Schema, Current> {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
         EqualityPredicate: EqualityCapable,
     {
         self.predicates.push(ApplicationAuthorizationPredicate {

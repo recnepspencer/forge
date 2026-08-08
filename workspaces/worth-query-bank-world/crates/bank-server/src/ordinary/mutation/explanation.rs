@@ -1,5 +1,7 @@
 use bank_domain::proposals::BankProposalDenial;
-use worth_query_host::facade::primary_graph::WorthQueryApplicationCommitDenialStage;
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitRecoveryKind,
+};
 
 use super::{BankMutationDenial, BankMutationOutcome, BankMutationStatus};
 use crate::{BankCommitReceipt, BankOperationProposalError};
@@ -30,8 +32,14 @@ pub enum BankMutationExplanation<'outcome> {
     },
     InvariantViolated(&'outcome BankProposalDenial),
     Aborted,
-    PartialEffect,
-    Indeterminate,
+    /// Some effect may have landed; `recovery` is Query's own verdict on
+    /// which repair the operator owes, not a Bank re-derivation.
+    PartialEffect {
+        recovery: WorthQueryApplicationCommitRecoveryKind,
+    },
+    Indeterminate {
+        recovery: WorthQueryApplicationCommitRecoveryKind,
+    },
 }
 
 impl BankMutationOutcome {
@@ -58,8 +66,12 @@ impl BankMutationOutcome {
                 BankMutationExplanation::InvariantViolated(reason)
             }
             BankMutationStatus::Aborted => BankMutationExplanation::Aborted,
-            BankMutationStatus::PartialEffect => BankMutationExplanation::PartialEffect,
-            BankMutationStatus::Indeterminate => BankMutationExplanation::Indeterminate,
+            BankMutationStatus::PartialEffect(evidence) => BankMutationExplanation::PartialEffect {
+                recovery: evidence.recovery(),
+            },
+            BankMutationStatus::Indeterminate(evidence) => BankMutationExplanation::Indeterminate {
+                recovery: evidence.recovery(),
+            },
         }
     }
 }
@@ -127,12 +139,6 @@ mod tests {
         );
         assert_explanation(BankMutationStatus::Aborted, |explanation| {
             matches!(explanation, BankMutationExplanation::Aborted)
-        });
-        assert_explanation(BankMutationStatus::PartialEffect, |explanation| {
-            matches!(explanation, BankMutationExplanation::PartialEffect)
-        });
-        assert_explanation(BankMutationStatus::Indeterminate, |explanation| {
-            matches!(explanation, BankMutationExplanation::Indeterminate)
         });
     }
 

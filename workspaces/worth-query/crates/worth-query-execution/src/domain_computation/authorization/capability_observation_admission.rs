@@ -14,9 +14,9 @@ use super::capability_request_resolution::{
 use super::delegation_admission::observe_capability;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind, WorthQueryPrincipalCurrentnessDependency,
-    WorthQueryRetainedCapabilityAuthorization,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryPrincipalCurrentnessDependency, WorthQueryRetainedCapabilityAuthorization,
+    WorthQueryRuntimeTimeSample,
 };
 use crate::domain_computation::primary_graph::{
     validate_freshness_at_snapshot, WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal,
@@ -47,7 +47,7 @@ pub(super) struct WorthQueryCapabilityObservationContext<
     >,
     pub(super) approved: Option<&'a WorthQueryApprovedElevation>,
     pub(super) graph_work: &'a WorthQueryManagedGraphWorkSession,
-    pub(super) sample: &'a WorthQueryAuthorizationTimeSample,
+    pub(super) sample: &'a WorthQueryRuntimeTimeSample,
 }
 
 pub(super) struct WorthQueryAdmittedCapabilityObservation<Schema, Scope> {

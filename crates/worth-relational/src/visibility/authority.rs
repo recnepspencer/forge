@@ -5,6 +5,10 @@ use crate::visibility::cache_state::{
     bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
     residency_for_version, retained_state,
 };
+use crate::visibility::exact_commit_snapshot::{
+    open_retained_commit_snapshot, RelationalRetainedCommitSnapshot,
+    RelationalRetainedCommitSnapshotDenial,
+};
 use crate::visibility::snapshot_states::build_visibility_state;
 
 pub struct VisibilityAuthority<'runtime> {
@@ -96,6 +100,20 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             self.release_snapshot(&handle);
             None
         }
+    }
+
+    /// Observes the already-published snapshot for one exact canonical commit.
+    ///
+    /// This does not open a current branch head, allocate a snapshot identity,
+    /// reconstruct historical state, or acquire replay retention. A pruned
+    /// publication is therefore a typed denial rather than a reconstruction
+    /// request.
+    pub fn retained_snapshot_for_commit(
+        &self,
+        expected_runtime_instance_id: u64,
+        commit: &crate::history::data::CommitReference,
+    ) -> Result<RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial> {
+        open_retained_commit_snapshot(self.runtime, expected_runtime_instance_id, commit)
     }
 
     pub fn pin_snapshot(

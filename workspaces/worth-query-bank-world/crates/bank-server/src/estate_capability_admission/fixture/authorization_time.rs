@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use worth_query_host::facade::primary_graph::{
-    WorthQueryAuthorizationTimeSource, WorthQueryAuthorizationTimeSourceDenial,
+    WorthQueryRuntimeTimeSource, WorthQueryRuntimeTimeSourceDenial,
 };
 
 #[derive(Clone)]
@@ -26,8 +26,8 @@ impl AuthorizationTimeController {
     }
 }
 
-impl WorthQueryAuthorizationTimeSource for AuthorizationTimeController {
-    fn current_time(&self) -> Result<SystemTime, WorthQueryAuthorizationTimeSourceDenial> {
+impl WorthQueryRuntimeTimeSource for AuthorizationTimeController {
+    fn current_time(&self) -> Result<SystemTime, WorthQueryRuntimeTimeSourceDenial> {
         Ok(*self
             .current
             .lock()

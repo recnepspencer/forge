@@ -213,8 +213,10 @@ from becoming emergency or disbursement authority.
     indeterminate, recovery, compensation, and irreversible posture. An access
     product, footprint, attachment, summary, or reused stage cannot manufacture
     a recovery, undo, redo, or external-completion transition.
-29. Linear undo and redo consume the Milestone 9.16 aftermath contract even
-    when the original operation used advanced access or bulk execution.
+29. Advanced access and bulk execution preserve the accepted Milestone 9.16
+    aftermath foundation. They may consume a linear undo/redo contract only
+    after a future separately governed Query Undo/Redo Semantics milestone accepts
+    one; the current Milestone 9.16 implementation is provisional.
     Branch-aware undo/redo and history navigation belong exclusively to the
     [cross-runtime merging-and-branching roadmap](../cross-runtime/merging-and-branching-roadmap.md).
     This milestone neither designs them nor carries a placeholder. Cache reuse,

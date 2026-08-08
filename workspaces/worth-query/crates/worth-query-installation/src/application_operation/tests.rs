@@ -93,16 +93,20 @@ fn compiled(
     support_count: usize,
 ) -> WorthQueryCompiledApplicationOperationContracts {
     WorthQueryCompiledApplicationOperationContracts::compile(
-        WorthQueryInstalledApplicationOperationAuthorization::Capability,
-        Vec::new(),
-        vec![ApplicationOperationProgramTarget::Create {
-            entity: "Grant".to_owned(),
-        }],
-        Vec::new(),
-        1,
-        16,
-        support_count,
-        Vec::new(),
-        posture,
+        super::contracts::WorthQueryApplicationOperationContractSources {
+            authorization: WorthQueryInstalledApplicationOperationAuthorization::Capability,
+            ability_requirements: Vec::new(),
+            program: vec![ApplicationOperationProgramTarget::Create {
+                entity: "Grant".to_owned(),
+            }],
+            decision_reads: Vec::new(),
+            decision_fact_budget: 1,
+            projection_work_budget: 16,
+            additional_authorization_fact_count: support_count,
+            mutation_preconditions: Vec::new(),
+            execution_posture: posture,
+            external_effect: crate::application_aftermath::InstalledExternalEffectContract::None,
+            aftermath: None,
+        },
     )
 }

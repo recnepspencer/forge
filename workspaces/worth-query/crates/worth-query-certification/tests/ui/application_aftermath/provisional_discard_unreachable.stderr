@@ -1,0 +1,11 @@
+error[E0599]: no variant or associated item named `ProvisionalDiscard` found for enum `PublishedAftermathPosture` in the current scope
+ --> tests/ui/application_aftermath/provisional_discard_unreachable.rs:8:40
+  |
+8 |     let _ = PublishedAftermathPosture::ProvisionalDiscard;
+  |                                        ^^^^^^^^^^^^^^^^^^ variant or associated item not found in `PublishedAftermathPosture`
+
+error[E0599]: no variant or associated item named `ProvisionalDiscard` found for enum `InstalledAftermathNextActionContract` in the current scope
+ --> tests/ui/application_aftermath/provisional_discard_unreachable.rs:9:51
+  |
+9 |     let _ = InstalledAftermathNextActionContract::ProvisionalDiscard;
+  |                                                   ^^^^^^^^^^^^^^^^^^ variant or associated item not found in `InstalledAftermathNextActionContract`

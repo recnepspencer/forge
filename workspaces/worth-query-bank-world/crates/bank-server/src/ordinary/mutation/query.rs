@@ -7,7 +7,7 @@ use super::BankMutationControls;
 use crate::{BankAuthenticatedPrincipal, BankIdentityRuntime};
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::declaration::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, OperationExpectsFact, OperationExpectsVersion,
+    ApplicationFieldRef, ApplicationFieldUnit, OperationExpectsFact, OperationExpectsVersion,
     TypedApplicationValue, TypedMutationPreconditions,
 };
 
@@ -110,47 +110,29 @@ impl<'runtime, 'principal, Mutation, Operation, Scope>
     ///         );
     /// }
     /// ```
-    pub fn expect_version<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn expect_version<Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
-        field: ApplicationFieldRef<
-            BankSchema,
-            Scope,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            Equality,
-            Currency,
-        >,
+        field: ApplicationFieldRef<BankSchema, Scope, Aspect, Field, Value, Write, Equality, Unit>,
         expected: Value,
     ) -> Self
     where
         Field: OperationExpectsVersion<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.preconditions = self.preconditions.expect_version(field, expected);
         self
     }
 
-    pub fn expect_fact<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn expect_fact<Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
-        field: ApplicationFieldRef<
-            BankSchema,
-            Scope,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            Equality,
-            Currency,
-        >,
+        field: ApplicationFieldRef<BankSchema, Scope, Aspect, Field, Value, Write, Equality, Unit>,
         expected: Value,
     ) -> Self
     where
         Field: OperationExpectsFact<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.preconditions = self.preconditions.expect_fact(field, expected);
         self

@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use worth_query_installation::facade::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit,
     ApplicationOperationDecisionReadTarget, ApplicationRelationRef, OperationReads,
     TypedApplicationReadableValue, WritePosture,
 };
@@ -47,16 +47,16 @@ impl<Schema, Operation, Input, Scope, Phase>
         Ok(())
     }
 
-    pub fn observe_field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn observe_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &mut self,
         identity: &WorthQueryApplicationEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Result<Value, WorthQueryApplicationAttemptDenial>
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let target = ApplicationOperationDecisionReadTarget::Field {
             entity: field.entity().to_string(),

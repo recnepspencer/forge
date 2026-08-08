@@ -22,12 +22,11 @@ use worth_query_installation::facade::{
     WorthQueryOperationNativeProjectionContract, WorthQueryOperationParameterContract,
     WorthQueryOperationProjectionConsumptionContract, WorthQueryOperationPromotionContract,
     WorthQueryOperationPublicationContract, WorthQueryOperationReplayContract,
-    WorthQueryOperationResultState, WorthQueryOperationReversalContract,
-    WorthQueryOperationSupportRequirements, WorthQueryOperationTerminalContract,
-    WorthQueryOperationTouchContract, WorthQueryOperationWorkflowContract,
-    WorthQueryPortableDomainOperationDefinition, WorthQueryPortableWorkflowDefinition,
-    WorthQueryPortableWorkflowStage, WorthQuerySupportRequirement,
-    WorthQueryWorkflowStageSemantics,
+    WorthQueryOperationResultState, WorthQueryOperationSupportRequirements,
+    WorthQueryOperationTerminalContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationWorkflowContract, WorthQueryPortableDomainOperationDefinition,
+    WorthQueryPortableWorkflowDefinition, WorthQueryPortableWorkflowStage,
+    WorthQuerySupportRequirement, WorthQueryWorkflowStageSemantics,
 };
 
 use super::fixture_identity::{GRAPH_ROLE, WORKFLOW_STAGE};
@@ -98,7 +97,7 @@ pub(super) fn direct_operation(
         invariants: WorthQueryOperationInvariantContract::NotRequired,
         invariant_execution: WorthQueryInvariantExecutionContract::NotRequired,
         replay: WorthQueryOperationReplayContract::ReExecutable,
-        reversal: WorthQueryOperationReversalContract::Irreversible,
+        aftermath: None,
         lineage: WorthQueryOperationLineageContract::NotRequired,
         promotion: WorthQueryOperationPromotionContract::NotRequired,
         publication: WorthQueryOperationPublicationContract::NotRequired,

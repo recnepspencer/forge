@@ -323,7 +323,8 @@ fn push_recovery_row(
         checked_topology_kind: WorthQueryOrchestrationCheckedTopologyKind::RecoveryBoundary,
         support_surface: WorthQueryOrchestrationSupportSurface::RecoveryBoundary,
         semantic_profile,
-        doc_path: "crates/worth-query/docs/domain-capabilities/recovery-boundary.md",
+        doc_path:
+            "crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md",
         doc_section,
         certification_suite: "recovery_boundary",
         certification_command,

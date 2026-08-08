@@ -15,7 +15,13 @@ worth_query_application_schema! {
         members: |schema| {
             schema
                 .entity(Account::reference())
-                .operation(TransferOperation::reference())
+                .operation(
+                    TransferOperation::reference()
+                        .definition()
+                        .no_external_effect()
+                        .no_aftermath()
+                        .finish(),
+                )
                 .ability(SendMoney::reference())
                 .operation_requires_ability(
                     TransferOperation::reference(),

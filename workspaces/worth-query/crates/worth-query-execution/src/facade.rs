@@ -1,7 +1,17 @@
 //! Public contract for the internal execution authority.
 
 pub mod domain_computation {
-    pub use crate::domain_computation::*;
+    pub use super::primary_graph::*;
+    pub use crate::domain_computation::artifact_owner::*;
+    pub use crate::domain_computation::convergence_epoch::*;
+    pub use crate::domain_computation::execution_runtime::*;
+    pub use crate::domain_computation::managed_run::*;
+    pub use crate::domain_computation::operation_binding::*;
+    pub use crate::domain_computation::provider_session::*;
+    pub use crate::domain_computation::{
+        canonical_indexed_operation_material, canonical_operation_material,
+        WorthQueryDomainEvidenceBindingDenial, WorthQueryDomainEvidenceExecutionBinding,
+    };
 }
 
 pub mod runtime {
@@ -17,15 +27,39 @@ pub mod provider_session {
 }
 
 pub mod primary_graph {
+    pub use crate::domain_computation::application_aftermath::{
+        compensate_recovery_handle, dispose_recovery_handle, expire_recovery_handle,
+        inspect_recovery_handle, map_ordinary_commit_conflict, reconcile_recovery_handle,
+        resolve_recovery_handle, safe_retry_recovery_handle, ExternalEffectCausalLink,
+        ExternalEffectClassification, ExternalEffectCorrelationIdentity, ExternalEffectPosture,
+        ExternalEffectPostureIdentity, ExternalEffectPostureKind, ExternalRailTransportFault,
+        WorthQueryAdmittedIdempotencyRead, WorthQueryAftermathDerivationFailure,
+        WorthQueryDispatchOutboxDurabilityPosture, WorthQueryDispatchOutboxRecord,
+        WorthQueryExternalDispatchPosture, WorthQueryExternalDispatchPostureKind,
+        WorthQueryExternalDispatchRequest, WorthQueryExternalEffectCausalLadder,
+        WorthQueryExternalEffectDispatch, WorthQueryExternalEffectTransport,
+        WorthQueryExternalTransportOutcome, WorthQueryOpaqueRecoveryWireIdentity,
+        WorthQueryPerformedExternalRedispatch, WorthQueryRecoveryCompensateAdmission,
+        WorthQueryRecoveryCurrentDecision, WorthQueryRecoveryDisclosureAdmission,
+        WorthQueryRecoveryDisposalReceipt, WorthQueryRecoveryDurabilityPosture,
+        WorthQueryRecoveryEffectAuthority, WorthQueryRecoveryExpiryDecision,
+        WorthQueryRecoveryExpiryEvaluation, WorthQueryRecoveryHandle,
+        WorthQueryRecoveryHandleBinding, WorthQueryRecoveryHandleDenial,
+        WorthQueryRecoveryHandleDenialKind, WorthQueryRecoveryInspectAuthority,
+        WorthQueryRecoveryInspectionView, WorthQueryRecoveryReconcileAdmission,
+        WorthQueryRecoverySafeRetryAdmission,
+    };
     pub use crate::domain_computation::primary_graph::{
         WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAdmittedApplicationOperation,
-        WorthQueryAdmittedApplicationQueryPlan, WorthQueryAdmittedDisclosedApplicationResult,
-        WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
-        WorthQueryApplicationAuthorizationExplanationCause,
-        WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationCommitDenial,
-        WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-        WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
-        WorthQueryApplicationCommitReceipt, WorthQueryApplicationCommitTerminalEvidence,
+        WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
+        WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAttemptDenial,
+        WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationAuthorizationExplanationCause,
+        WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationBasisObservation,
+        WorthQueryApplicationBasisObserver, WorthQueryApplicationCommitAuthorityBinding,
+        WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
+        WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
+        WorthQueryApplicationCommitOutcomeIdentity, WorthQueryApplicationCommitReceipt,
+        WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationCommitTerminalEvidence,
         WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationContinuationDenial,
         WorthQueryApplicationContinuationDenialKind, WorthQueryApplicationContinuationPageResult,
         WorthQueryApplicationDisclosed, WorthQueryApplicationDisclosureDecisionFact,
@@ -67,19 +101,22 @@ pub mod primary_graph {
         WorthQueryApplicationQueryAdmissionDenialKind, WorthQueryApplicationQueryBasisPosture,
         WorthQueryApplicationQueryConsistency, WorthQueryApplicationQueryContinuation,
         WorthQueryApplicationQueryControls, WorthQueryApplicationQueryFreshness,
-        WorthQueryApplicationQueryResumeControls, WorthQueryApplicationReadAttempt,
-        WorthQueryApplicationRelationSeed, WorthQueryApplicationStaleAttempt,
-        WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal,
-        WorthQueryAuthorizationTimeSource, WorthQueryAuthorizationTimeSourceDenial,
-        WorthQueryBoundedLaneDenial, WorthQueryBoundedLaneDenialKind,
-        WorthQueryCapabilityRevocationProgram, WorthQueryCompleteApplicationReadSet,
-        WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
-        WorthQueryDelegationActivationProgram, WorthQueryElevationApprovalAuthorizationDenial,
-        WorthQueryElevationApprovalOutcome, WorthQueryElevationApprovalProgram,
-        WorthQueryElevationCloseAuthorizationDenial, WorthQueryElevationCloseOutcome,
-        WorthQueryElevationCloseProgram, WorthQueryElevationClosureKind,
-        WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
-        WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
+        WorthQueryApplicationQueryOmissionPosture, WorthQueryApplicationQueryResumeControls,
+        WorthQueryApplicationQueryWorkEvidence, WorthQueryApplicationReadAttempt,
+        WorthQueryApplicationRelationSeed, WorthQueryApplicationResultBufferEvidence,
+        WorthQueryApplicationResultBufferObservation, WorthQueryApplicationResultBufferObserver,
+        WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
+        WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal, WorthQueryBoundedLaneDenial,
+        WorthQueryBoundedLaneDenialKind, WorthQueryCapabilityRevocationProgram,
+        WorthQueryCompleteApplicationReadSet, WorthQueryCompletedInvariantProjection,
+        WorthQueryCompletedOperationInvariantProjection, WorthQueryDelegationActivationProgram,
+        WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationApprovalOutcome,
+        WorthQueryElevationApprovalProgram, WorthQueryElevationCloseAuthorizationDenial,
+        WorthQueryElevationCloseOutcome, WorthQueryElevationCloseProgram,
+        WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
+        WorthQueryElevationRequestProgram, WorthQueryEntityResolutionDenial,
+        WorthQueryEntityResolutionDenialKind, WorthQueryExternalRedispatchDenial,
+        WorthQueryExternalTransportInstallationDenial,
         WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
         WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
         WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
@@ -100,7 +137,29 @@ pub mod primary_graph {
         WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,
         WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
         WorthQueryPrincipalResolutionMode, WorthQueryProjectedApplicationMutation,
-        WorthQueryRequestedElevation, WorthQueryReviewedElevation,
+        WorthQueryRequestedElevation, WorthQueryReviewedElevation, WorthQueryRuntimeTimeSource,
+        WorthQueryRuntimeTimeSourceDenial, WorthQueryTouchedRecordIdentity,
+    };
+    pub use crate::domain_computation::primary_graph::{
+        WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
+        WorthQueryCommittedDispatchOutboxReadWork,
+    };
+    pub use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSample;
+}
+
+/// Compatibility surface for the current undo/redo experiment.
+///
+/// These types remain compiled but are not accepted Phase 8 product contracts.
+pub mod provisional_aftermath {
+    pub use crate::domain_computation::application_aftermath::{
+        admit_undo, deny_irreversible_undo_attempt, map_ordinary_commit_conflict_to_redo,
+        progress_admitted_redo, progress_admitted_undo, WorthQueryAftermathCausalRole,
+        WorthQueryCommittedAftermathCausality, WorthQueryProvedUndo, WorthQueryRedoAdmission,
+        WorthQueryRedoDenial, WorthQueryRedoDenialKind, WorthQueryRedoIntent,
+        WorthQueryRedoIntentIdentity, WorthQueryRedoProgressionHandoff, WorthQueryRedoRecovery,
+        WorthQueryRetainedPreImage, WorthQueryUndoAdmission, WorthQueryUndoDenial,
+        WorthQueryUndoDenialKind, WorthQueryUndoDerivedRequest, WorthQueryUndoIntentIdentity,
+        WorthQueryUndoProgressionHandoff,
     };
 }
 

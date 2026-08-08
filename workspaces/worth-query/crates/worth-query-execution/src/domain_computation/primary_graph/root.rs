@@ -72,6 +72,26 @@ impl WorthQueryPrimaryGraph {
             branch_scoped: false,
         });
         provider_idempotency.key_index_id = installed.index_id;
+        let dispatch_outbox = layout.provider_dispatch_outbox_mut();
+        let installed = runtime.index_authority().register(DerivedIndexDefinition {
+            index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+            name: "worth-query-provider.dispatch-outbox-correlation".to_owned(),
+            kind: DerivedIndexKind::EntityField {
+                field_locator: dispatch_outbox.correlation_locator.clone(),
+            },
+            branch_scoped: false,
+        });
+        dispatch_outbox.correlation_index_id = installed.index_id;
+        let aftermath_causality = layout.provider_aftermath_causality_mut();
+        let installed = runtime.index_authority().register(DerivedIndexDefinition {
+            index_id: worth_relational::facade::indexes::DerivedIndexId(0),
+            name: "worth-query-provider.aftermath-causality-key".to_owned(),
+            kind: DerivedIndexKind::EntityField {
+                field_locator: aftermath_causality.key_locator.clone(),
+            },
+            branch_scoped: false,
+        });
+        aftermath_causality.key_index_id = installed.index_id;
         Self {
             binding_identity,
             layout: Arc::new(layout),
@@ -108,6 +128,12 @@ impl WorthQueryPrimaryGraph {
             .chain(self.layout.capability_grant_join_index_ids())
             .chain(std::iter::once(
                 self.layout.provider_idempotency().key_index_id,
+            ))
+            .chain(std::iter::once(
+                self.layout.provider_dispatch_outbox().correlation_index_id,
+            ))
+            .chain(std::iter::once(
+                self.layout.provider_aftermath_causality().key_index_id,
             ))
             .collect::<BTreeSet<_>>()
             .into_iter()

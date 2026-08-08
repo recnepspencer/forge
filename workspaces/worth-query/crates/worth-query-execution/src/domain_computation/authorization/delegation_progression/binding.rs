@@ -232,12 +232,12 @@ fn child_fields<Schema, Scope, Context>(
     )?;
     bind_optional(
         &mut fields,
-        installed.delegation.amount.as_ref(),
-        target.amount_value(),
+        installed.delegation.magnitude.as_ref(),
+        target.magnitude_value(),
     )?;
     let expected = 8
         + usize::from(installed.delegation.disclosure.is_some())
-        + usize::from(installed.delegation.amount.is_some());
+        + usize::from(installed.delegation.magnitude.is_some());
     (fields.len() == expected)
         .then_some(fields)
         .ok_or_else(|| delegation_denial(installed))

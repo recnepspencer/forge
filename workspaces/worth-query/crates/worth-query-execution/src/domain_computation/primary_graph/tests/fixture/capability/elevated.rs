@@ -180,7 +180,7 @@ impl ApplicationCapabilityRequest<IdentityExecutionSchema, ElevatedTouchAccountC
             }
             (None, _) => projection,
         };
-        Ok(projection.field(self.disclosure).amount(self.amount))
+        Ok(projection.field(self.disclosure).magnitude(self.amount))
     }
 }
 
@@ -318,7 +318,7 @@ impl RequestElevationInput {
             ApplicationCapabilityRequestContext::new(CapabilityRequestContext::reference()),
         )
         .field(self.disclosure)
-        .amount(self.amount)
+        .magnitude(self.amount)
     }
 }
 

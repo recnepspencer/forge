@@ -33,7 +33,7 @@ macro_rules! assert_transition_target {
             ApplicationCapabilityFieldDimension::NotApplicable
         ));
         assert!(matches!(
-            contract.constraints().amount(),
+            contract.constraints().magnitude(),
             ApplicationCapabilityFieldDimension::NotApplicable
         ));
     }};

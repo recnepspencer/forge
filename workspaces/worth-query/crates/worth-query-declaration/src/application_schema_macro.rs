@@ -107,7 +107,7 @@ macro_rules! worth_query_aspect {
 macro_rules! worth_query_field {
     (
         $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:
-        optional $Value:ty, currency $Currency:ty, $write:ident, $equality:ident
+        optional $Value:ty, unit $Unit:ty, $write:ident, $equality:ident
     ) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Field;
@@ -129,9 +129,9 @@ macro_rules! worth_query_field {
                 $Value,
                 $crate::worth_query_field!(@write $write),
                 $crate::worth_query_field!(@equality $equality),
-                $crate::facade::application_schema::DeclaredApplicationCurrency<
-                    $Currency,
-                    <$Value as $crate::facade::application_schema::TypedCurrencyApplicationValue>::Currency,
+                $crate::facade::application_schema::DeclaredApplicationUnit<
+                    $Unit,
+                    <$Value as $crate::facade::application_schema::TypedUnitApplicationValue>::Unit,
                 >,
             > {
                 $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
@@ -177,7 +177,7 @@ macro_rules! worth_query_field {
     };
     (
         $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:
-        $Value:ty, currency $Currency:ty, $write:ident, $equality:ident
+        $Value:ty, unit $Unit:ty, $write:ident, $equality:ident
     ) => {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Field;
@@ -199,9 +199,9 @@ macro_rules! worth_query_field {
                 $Value,
                 $crate::worth_query_field!(@write $write),
                 $crate::worth_query_field!(@equality $equality),
-                $crate::facade::application_schema::DeclaredApplicationCurrency<
-                    $Currency,
-                    <$Value as $crate::facade::application_schema::TypedCurrencyApplicationValue>::Currency,
+                $crate::facade::application_schema::DeclaredApplicationUnit<
+                    $Unit,
+                    <$Value as $crate::facade::application_schema::TypedUnitApplicationValue>::Unit,
                 >,
             > {
                 $crate::facade::application_schema::ApplicationFieldRef::from_schema_identifiers(
@@ -326,7 +326,7 @@ macro_rules! worth_query_principal_binding {
                     _,
                     $IdentityField,
                     $crate::facade::authentication::WorthQueryExternalPrincipalIdentity,
-                    _,
+                    $crate::facade::application_schema::ReadOnly,
                     $crate::facade::application_schema::EqualityPredicate,
                     _,
                 > = <$IdentityField>::reference();
@@ -336,7 +336,7 @@ macro_rules! worth_query_principal_binding {
                     _,
                     $StatusField,
                     $crate::facade::authentication::WorthQueryPrincipalMappingStatus,
-                    _,
+                    $crate::facade::application_schema::ReadWrite,
                     _,
                     _,
                 > = <$StatusField>::reference();
@@ -362,17 +362,14 @@ macro_rules! worth_query_principal_binding {
                     $Mapping,
                     $Principal,
                     <$PrincipalIdentityField as $crate::facade::application_schema::DeclaredApplicationFieldValue>::Value,
-                >::from_schema_identifiers(
+                >::from_requirements(
                     stringify!($Binding),
-                    identity.entity(),
-                    identity.aspect(),
-                    identity.field(),
-                    status.aspect(),
-                    status.field(),
-                    target.name(),
-                    target.to(),
-                    principal_identity.aspect(),
-                    principal_identity.field(),
+                    $crate::facade::application_schema::ApplicationPrincipalBindingRequirements {
+                        mapping_identity: $crate::facade::application_schema::ApplicationPrincipalMappingIdentityRequirement::from_field(identity),
+                        mapping_status: $crate::facade::application_schema::ApplicationPrincipalMappingStatusRequirement::from_field(status),
+                        target: $crate::facade::application_schema::ApplicationPrincipalTargetRequirement::from_relation(target),
+                        principal_identity: $crate::facade::application_schema::ApplicationPrincipalIdentityRequirement::from_field(principal_identity),
+                    },
                 )
             }
         }

@@ -1,6 +1,6 @@
 use bank_domain::schema::BankSchema;
 use worth_query_host::facade::declaration::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef, OperationReads,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef, OperationReads,
     TypedApplicationReadableValue, WritePosture,
 };
 use worth_query_host::facade::primary_graph::{
@@ -11,35 +11,17 @@ use super::{BoundedProjectionState, ProjectionDependencyMode, ProjectionReader};
 use crate::BankProjectionDenial;
 
 impl BoundedProjectionState {
-    pub(super) fn projected_field<
-        Operation,
-        Entity,
-        Aspect,
-        Field,
-        Value,
-        Write,
-        Equality,
-        Currency,
-    >(
+    pub(super) fn projected_field<Operation, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         reader: &mut ProjectionReader<'_, '_, Operation>,
         identity: &WorthQueryInvariantEntityIdentity<BankSchema, Entity>,
-        field: ApplicationFieldRef<
-            BankSchema,
-            Entity,
-            Aspect,
-            Field,
-            Value,
-            Write,
-            Equality,
-            Currency,
-        >,
+        field: ApplicationFieldRef<BankSchema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Result<Option<Value>, BankProjectionDenial>
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         match self.dependency_mode {
             ProjectionDependencyMode::InstalledDecisions => {

@@ -147,7 +147,8 @@ mod tests {
     #[test]
     fn pinned_branch_snapshot_does_not_require_current_head() {
         let semantic = normalized(RawBasisIntent::BranchSnapshot {
-            branch_identity: "main".into(),
+            branch_identity:
+                crate::domain_computation::primary_graph::primary_relational_branch_id().0,
             snapshot_identity: "snapshot-v7".into(),
         });
         assert_eq!(

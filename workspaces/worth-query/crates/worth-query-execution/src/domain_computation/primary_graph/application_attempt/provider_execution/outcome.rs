@@ -12,7 +12,7 @@ pub(super) enum WorthQueryProviderProgressionOutcome {
     Cancelled,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
-    Indeterminate,
+    Indeterminate(super::super::WorthQueryApplicationUnresolvedCommitEvidence),
 }
 
 impl WorthQueryProviderProgressionOutcome {
@@ -33,7 +33,9 @@ impl WorthQueryProviderProgressionOutcome {
             Self::Cancelled => WorthQueryApplicationCommitOutcome::Cancelled,
             Self::Denied(denial) => WorthQueryApplicationCommitOutcome::Denied(denial),
             Self::Aborted => WorthQueryApplicationCommitOutcome::Aborted,
-            Self::Indeterminate => WorthQueryApplicationCommitOutcome::Indeterminate,
+            Self::Indeterminate(evidence) => {
+                WorthQueryApplicationCommitOutcome::Indeterminate(evidence)
+            }
         })
     }
 }

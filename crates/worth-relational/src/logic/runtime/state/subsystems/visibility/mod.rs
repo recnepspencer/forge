@@ -194,6 +194,13 @@ impl VisibilitySubsystem {
         self.handles.published_binding(snapshot_id).cloned()
     }
 
+    pub(crate) fn published_snapshot_binding_for_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<(SnapshotId, SnapshotHandleBinding)> {
+        self.handles.published_binding_for_version(version_id)
+    }
+
     pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {
         self.handles.oldest_published_snapshot_id()
     }

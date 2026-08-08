@@ -19,7 +19,7 @@ enum NarrowingAxis {
     Purpose,
     Disclosure,
     RelatedRelationship,
-    Amount,
+    Magnitude,
     Workflow,
     ValidityStart,
     ValidityEnd,
@@ -33,7 +33,7 @@ fn every_stored_narrowing_axis_is_enforced_by_production_admission() {
         NarrowingAxis::Purpose,
         NarrowingAxis::Disclosure,
         NarrowingAxis::RelatedRelationship,
-        NarrowingAxis::Amount,
+        NarrowingAxis::Magnitude,
         NarrowingAxis::Workflow,
         NarrowingAxis::ValidityStart,
         NarrowingAxis::ValidityEnd,
@@ -77,7 +77,7 @@ fn break_narrowing_axis(world: &super::super::fixture::AuthorizationWorld, axis:
             super::super::fixture::CapabilityDisclosure::PrivateLabel.into_foundational_value(),
             "capability-parent",
         ),
-        NarrowingAxis::Amount => (
+        NarrowingAxis::Magnitude => (
             field(world, CapabilityAmountField::reference()),
             76_u64.into_foundational_value(),
             "capability-child",

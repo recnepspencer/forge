@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationEntityRef, ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef,
+    ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef,
     ApplicationSchema, ApplicationSchemaBindingIdentity, TypedApplicationReadableValue,
     WritePosture,
 };
@@ -166,15 +166,15 @@ where
         })
     }
 
-    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         &self,
         identity: &WorthQueryInvariantEntityIdentity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Option<Value>
     where
         Value: TypedApplicationReadableValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         if identity.authority_identity != self.authority_identity
             || identity.entity.as_ref() != field.entity()

@@ -85,6 +85,39 @@ fn unrelated_death_notice_drift_does_not_stale_the_disbursement() {
     ));
 }
 
+/// Q8.26-C6: a `Compensation` operation retains no pre-image.
+///
+/// `DisburseEstate` declares `Compensation`, not `RecordedInverse` — it is
+/// corrected by a compensating transfer, not by restoring a prior value. The
+/// demand derivation returns `None` for that mechanism, so a retained slice here
+/// would be a pre-image no correction lane consumes, and a receipt that appears
+/// to promise an inverse the contract never declared.
+#[test]
+fn compensation_operations_retain_no_preimage() {
+    let fixture = disbursement_world("estate-disbursement-retains-no-preimage");
+    let specialist = fixture.authenticate();
+    let admission = fixture
+        .runtime
+        .admit_estate_disbursement(&specialist, action(250), &request_scope())
+        .expect("the exact disbursement should admit");
+    let program = fixture
+        .runtime
+        .materialize_estate_disbursement(admission, idempotency(231))
+        .expect("the exact disbursement should materialize");
+    let outcome = fixture
+        .runtime
+        .application_runtime()
+        .compare_and_commit_application(program, idempotency(231));
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = outcome else {
+        panic!("the disbursement must commit: {outcome:?}");
+    };
+    assert!(
+        receipt.retained_preimage().is_none(),
+        "DisburseEstate declares Compensation, so its commit must retain no \
+         inverse pre-image"
+    );
+}
+
 fn action(amount: i64) -> EstateAction {
     EstateAction::DisburseEstate(EstateDisbursement {
         estate: ESTATE,

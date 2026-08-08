@@ -6,7 +6,6 @@ use worth_query_admission::facade::authenticated_principal::{
 };
 use worth_query_declaration::facade::authentication::WorthQueryPrincipalMappingStatus;
 use worth_query_installation::facade::TypedApplicationValue;
-use worth_relational::facade::history::BranchId;
 use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::indexes::DerivedIndexBuildRequest;
 use worth_relational::facade::symbols::ClientKey;
@@ -310,7 +309,7 @@ fn append_duplicate_mapping(world: &mut super::fixture::IdentityWorld, subject: 
             .index_authority()
             .build_for_commit(DerivedIndexBuildRequest {
                 source_commit_id: commit.commit.commit_id,
-                branch_id: BranchId("main".to_string()),
+                branch_id: crate::domain_computation::primary_graph::primary_relational_branch_id(),
                 index_ids: vec![layout.index_id],
             });
         assert!(build.failed_indexes.is_empty());

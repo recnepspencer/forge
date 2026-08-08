@@ -46,12 +46,12 @@ pub(super) fn validate_member_identifiers(
                 entity,
                 aspect,
                 field,
-                currency,
+                unit,
                 ..
             } => {
                 validate_identifiers([entity, aspect, field])?;
-                if let Some(currency) = currency {
-                    validate_simple_identifier(currency)?;
+                if let Some(unit) = unit {
+                    validate_simple_identifier(unit)?;
                 }
             }
             ApplicationSchemaMember::Relation { relation, from, to } => {
@@ -124,6 +124,15 @@ pub(super) fn validate_member_identifiers(
             ApplicationSchemaMember::OperationProjectionWorkBudget { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }
+            ApplicationSchemaMember::OperationExternalEffect {
+                operation,
+                effect,
+                correlation_family,
+                ..
+            } => validate_identifiers([operation, effect, correlation_family])?,
+            ApplicationSchemaMember::OperationAftermath { operation, .. } => {
+                validate_simple_identifier(operation)?;
+            }
             ApplicationSchemaMember::Policy { policy } => validate_simple_identifier(policy)?,
             ApplicationSchemaMember::Ability {
                 ability,
@@ -145,8 +154,8 @@ pub(super) fn validate_member_identifiers(
                     validate_authorization_path(path)?;
                 }
             }
-            ApplicationSchemaMember::Currency { currency } => {
-                validate_simple_identifier(currency)?;
+            ApplicationSchemaMember::Unit { unit } => {
+                validate_simple_identifier(unit)?;
             }
             ApplicationSchemaMember::Effect { effect, .. } => {
                 validate_simple_identifier(effect)?;

@@ -2,7 +2,7 @@ use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationSchema, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationSchema, EqualityPredicate,
     TypedApplicationValue, WritePosture,
 };
 use worth_relational::facade::indexes::{
@@ -21,7 +21,7 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
-    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &self,
         field: ApplicationFieldRef<
             Schema,
@@ -31,7 +31,7 @@ where
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
         scope: &WorthQueryRequestScope,
@@ -40,7 +40,7 @@ where
     where
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         admit_request(scope, field.field())?;
         let graph = self.runtime.primary_graph().ok_or_else(|| {

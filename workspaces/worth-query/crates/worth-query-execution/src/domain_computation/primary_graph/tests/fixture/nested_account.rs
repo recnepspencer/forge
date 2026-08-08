@@ -121,22 +121,21 @@ pub(super) fn nested_account_definition() -> ApplicationQueryDefinition<
     .relation(all_activity(), all)
     .relation(reverse_activity(), reverse)
     .build();
-    ApplicationQueryDefinitionBuilder::public(
-        NestedAccountQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 4, 4),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .parameter(status_parameter())
-    .where_equal(AccountStatus::reference(), status_parameter())
-    .order_by(all_sequence(), ApplicationQueryOrderingDirection::Ascending)
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(NestedAccountQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 4, 4))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .parameter(status_parameter())
+        .where_equal(AccountStatus::reference(), status_parameter())
+        .order_by(all_sequence(), ApplicationQueryOrderingDirection::Ascending)
+        .build()
+        .unwrap()
 }
 
 fn nested_shape<Slot: 'static>(
@@ -150,7 +149,7 @@ fn nested_shape<Slot: 'static>(
         u64,
         worth_query_declaration::facade::application_schema::ReadOnly,
         worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-        worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+        worth_query_declaration::facade::application_schema::NoApplicationUnit,
     >,
 ) -> ApplicationQueryResultShapeBuilder<IdentityExecutionSchema, NestedAccountQuery, Activity, ()> {
     ApplicationQueryResultShapeBuilder::new(Activity::reference()).field(field)
@@ -166,7 +165,7 @@ fn primary_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }
@@ -181,7 +180,7 @@ fn secondary_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }
@@ -196,7 +195,7 @@ fn all_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }
@@ -211,7 +210,7 @@ fn reverse_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

@@ -2,9 +2,7 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::AspectValue;
 
-use super::capabilities::{
-    ApplicationFieldCurrency, OperationExpectsFact, OperationExpectsVersion,
-};
+use super::capabilities::{ApplicationFieldUnit, OperationExpectsFact, OperationExpectsVersion};
 use super::references::ApplicationFieldRef;
 use super::values::TypedApplicationValue;
 
@@ -99,15 +97,15 @@ impl<Schema, Operation, Scope> TypedMutationPreconditions<Schema, Operation, Sco
         }
     }
 
-    pub fn expect_version<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn expect_version<Aspect, Field, Value, Write, Equality, Unit>(
         self,
-        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Unit>,
         expected: Value,
     ) -> Self
     where
         Field: OperationExpectsVersion<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.push(
             ApplicationMutationPreconditionFamily::ExpectedVersion,
@@ -116,15 +114,15 @@ impl<Schema, Operation, Scope> TypedMutationPreconditions<Schema, Operation, Sco
         )
     }
 
-    pub fn expect_fact<Aspect, Field, Value, Write, Equality, Currency>(
+    pub fn expect_fact<Aspect, Field, Value, Write, Equality, Unit>(
         self,
-        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Unit>,
         expected: Value,
     ) -> Self
     where
         Field: OperationExpectsFact<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.push(
             ApplicationMutationPreconditionFamily::ExpectedFact,
@@ -142,15 +140,15 @@ impl<Schema, Operation, Scope> TypedMutationPreconditions<Schema, Operation, Sco
         self.entries
     }
 
-    fn push<Aspect, Field, Value, Write, Equality, Currency>(
+    fn push<Aspect, Field, Value, Write, Equality, Unit>(
         mut self,
         family: ApplicationMutationPreconditionFamily,
-        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Scope, Aspect, Field, Value, Write, Equality, Unit>,
         expected: Value,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let expected_value = expected.into_foundational_value();
         self.entries.push(TypedMutationPrecondition {

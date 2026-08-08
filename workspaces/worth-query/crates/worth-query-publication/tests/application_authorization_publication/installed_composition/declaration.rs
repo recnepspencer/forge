@@ -58,7 +58,13 @@ worth_query_application_schema! {
                 .capability_context_entity_slot(RequestActorSlot::reference())
                 .capability_context_entity_slot(PriorActorSlot::reference())
                 .capability_provenance(PublicationCapabilityProvenance::reference())
-                .operation(PublicationOperation::reference())
+                .operation(
+                    PublicationOperation::reference()
+                        .definition()
+                        .no_external_effect()
+                        .no_aftermath()
+                        .finish(),
+                )
                 .operation_decision_fact_budget(PublicationOperation::reference(), 1)
                 .operation_projection_work_budget(PublicationOperation::reference(), 16)
                 .operation_read_field(PublicationOperation::reference(), ResourceLabelField::reference())

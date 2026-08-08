@@ -138,10 +138,10 @@ Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
 progression outcomes for one already-authored declaration.
 
-Readiness is also not the recovery surface for one concrete failed run. If an
-ordinary, checked, or proof-visible declaration-entry lane already stopped and
-you need the next supported repair step, use the recovery boundary instead of
-trying to infer a fix from family-level readiness rows.
+Readiness is also not the remediation surface for one concrete stopped run. If
+an ordinary, checked, or proof-visible declaration-entry lane already stopped,
+use typed-stop remediation guidance instead of inferring a response from
+family-level readiness rows.
 
 Readiness also is not an orchestration transcript surface. It answers which
 declaration-entry seam rows are structurally available for a family in one
@@ -262,7 +262,7 @@ Use readiness when you need to know:
 - admitted-plan-bound evidence composes only when both a retained
   declaration-entry subject and matching retained admitted-plan proof are
   attached
-- lower-runtime-bound explanation and aftermath evidence compose only when both
+- lower-runtime-bound explanation and consequence evidence compose only when both
   a retained declaration-entry subject and matching retained lower-runtime
   boundary proof are attached
 - it does not replace retained route, receipt, envelope, or signal inspection
@@ -274,4 +274,4 @@ Use readiness when you need to know:
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - Runtime-Installed Domain Handles
-- [Recovery Boundary](./recovery-boundary.md)
+- [Typed Stops And Remediation Guidance](./typed-stops-and-remediation-guidance.md)

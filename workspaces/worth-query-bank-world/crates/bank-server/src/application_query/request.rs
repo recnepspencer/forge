@@ -2,7 +2,7 @@ use bank_domain::schema::BankSchema;
 use worth_query_host::facade::declaration::{
     application_query::{ApplicationQueryParameterSet, ApplicationQueryReference},
     application_schema::{
-        ApplicationFieldCurrency, ApplicationFieldRef, EqualityPredicate, TypedApplicationValue,
+        ApplicationFieldRef, ApplicationFieldUnit, EqualityPredicate, TypedApplicationValue,
         WritePosture,
     },
 };
@@ -18,7 +18,7 @@ pub(crate) struct BankApplicationQueryInvocation<
     ScopeField,
     ScopeIdentity,
     ScopeWrite,
-    ScopeCurrency,
+    ScopeUnit,
 > {
     pub(super) reference:
         ApplicationQueryReference<BankSchema, Query, Parameters, QueryResult, Scope>,
@@ -30,7 +30,7 @@ pub(crate) struct BankApplicationQueryInvocation<
         ScopeIdentity,
         ScopeWrite,
         EqualityPredicate,
-        ScopeCurrency,
+        ScopeUnit,
     >,
     pub(super) scope_identity: ScopeIdentity,
     pub(super) parameters: ApplicationQueryParameterSet<Query>,
@@ -47,7 +47,7 @@ impl<
         ScopeField,
         ScopeIdentity,
         ScopeWrite,
-        ScopeCurrency,
+        ScopeUnit,
     >
     BankApplicationQueryInvocation<
         'request,
@@ -59,12 +59,12 @@ impl<
         ScopeField,
         ScopeIdentity,
         ScopeWrite,
-        ScopeCurrency,
+        ScopeUnit,
     >
 where
     ScopeIdentity: TypedApplicationValue,
     ScopeWrite: WritePosture,
-    ScopeCurrency: ApplicationFieldCurrency,
+    ScopeUnit: ApplicationFieldUnit,
 {
     pub(crate) const fn new(
         reference: ApplicationQueryReference<BankSchema, Query, Parameters, QueryResult, Scope>,
@@ -76,7 +76,7 @@ where
             ScopeIdentity,
             ScopeWrite,
             EqualityPredicate,
-            ScopeCurrency,
+            ScopeUnit,
         >,
         scope_identity: ScopeIdentity,
         parameters: ApplicationQueryParameterSet<Query>,

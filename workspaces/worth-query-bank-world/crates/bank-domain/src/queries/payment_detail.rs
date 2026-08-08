@@ -53,20 +53,18 @@ pub fn payment_detail_definition() -> ApplicationQueryDefinition<
     PaymentSummary,
     PaymentIntent,
 > {
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        PaymentDetailQuery::reference(),
-        PaymentIntent::reference(),
-        PaymentIntent::reference(),
-        payment_summary_shape().build(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(2, 6, 8),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewPayment::reference(),
-    )
-    .build()
-    .expect("bank payment detail query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(PaymentDetailQuery::reference())
+        .root(PaymentIntent::reference())
+        .scope(PaymentIntent::reference())
+        .result_shape(payment_summary_shape().build())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(2, 6, 8))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewPayment::reference())
+        .build()
+        .expect("bank payment detail query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, PaymentDetailQuery> for PaymentSummary {

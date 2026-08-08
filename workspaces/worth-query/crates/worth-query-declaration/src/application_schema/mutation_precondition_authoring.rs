@@ -1,6 +1,4 @@
-use super::capabilities::{
-    ApplicationFieldCurrency, OperationExpectsFact, OperationExpectsVersion,
-};
+use super::capabilities::{ApplicationFieldUnit, OperationExpectsFact, OperationExpectsVersion};
 use super::references::{ApplicationFieldRef, ApplicationOperationRef};
 use super::values::TypedApplicationValue;
 use super::{
@@ -18,16 +16,16 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: OperationExpectsVersion<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.precondition(
             operation.name(),
@@ -45,16 +43,16 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: OperationExpectsFact<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.precondition(
             operation.name(),
@@ -63,15 +61,15 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         )
     }
 
-    fn precondition<Entity, Aspect, Field, Value, Write, Equality, Currency>(
+    fn precondition<Entity, Aspect, Field, Value, Write, Equality, Unit>(
         self,
         operation: &str,
         family: ApplicationMutationPreconditionFamily,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.push_member(ApplicationSchemaMember::OperationMutationPrecondition {
             operation: operation.to_owned(),

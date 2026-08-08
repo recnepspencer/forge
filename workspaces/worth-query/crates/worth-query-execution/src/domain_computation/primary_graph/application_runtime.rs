@@ -1,4 +1,5 @@
 use std::sync::atomic::AtomicU64;
+use std::sync::Arc;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryAuthenticatedExternalPrincipal, WorthQueryRequestScope,
 };
@@ -7,12 +8,13 @@ use worth_query_installation::facade::{
     WorthQueryInstalledPrincipalBinding,
 };
 
-use crate::domain_computation::authorization::{
-    WorthQueryAuthorizationClock, WorthQueryAuthorizationTimeSource,
-};
+use crate::domain_computation::application_aftermath::WorthQueryExternalEffectTransport;
+use crate::domain_computation::authorization::WorthQueryRuntimeClock;
 use crate::domain_computation::execution_runtime::{
     WorthQueryExecutionInstallationAuthority, WorthQueryExecutionRuntime,
 };
+use crate::domain_computation::managed_run::WorthQueryRecoveryHandleRegistry;
+use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSource;
 
 use super::provider::WorthQueryPrimaryGraphProvider;
 use super::{
@@ -23,7 +25,10 @@ use super::{
 };
 use crate::domain_computation::authorization::WorthQueryInstalledAuthorizationRegistry;
 
+mod external_dispatch_attempt;
 mod installation;
+
+pub(in crate::domain_computation) use external_dispatch_attempt::WorthQueryAdmittedExternalDispatchAttempt;
 
 /// Purpose-scoped application runtime published from one typed primary graph.
 ///
@@ -47,7 +52,7 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
         WorthQueryInstalledApplicationSchema<Schema>,
     publication: WorthQueryPrimaryGraphPublication,
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
-    pub(in crate::domain_computation) authorization_clock: WorthQueryAuthorizationClock,
+    pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,
     authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
     pub(super) bridge: worth_runtime_bridge::facade::RuntimeBridge,
@@ -59,6 +64,26 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(super) basis_leases:
         super::application_query::resource_lifecycle::WorthQueryApplicationBasisRegistry,
     pub(super) next_preview_session: AtomicU64,
+    pub(super) next_external_dispatch_attempt: AtomicU64,
+    pub(super) external_effect_transport:
+        std::sync::OnceLock<std::sync::Arc<dyn WorthQueryExternalEffectTransport>>,
+    /// Instance-local recovery-handle live set (Q8.9 / R8.29).
+    pub(crate) recovery_handles: Arc<WorthQueryRecoveryHandleRegistry>,
+}
+
+/// Runtime-minted ordinal for one physical external dispatch attempt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation) struct WorthQueryExternalDispatchAttemptOrdinal(u64);
+
+impl WorthQueryExternalDispatchAttemptOrdinal {
+    pub(in crate::domain_computation) const fn get(self) -> u64 {
+        self.0
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn fixture(value: u64) -> Self {
+        Self(value)
+    }
 }
 
 impl<Schema> WorthQueryPrimaryGraphBootstrap<Schema>
@@ -80,7 +105,7 @@ where
                 runtime,
                 authority,
                 installed_schema,
-                authorization_clock: WorthQueryAuthorizationClock::system(),
+                authorization_clock: WorthQueryRuntimeClock::system(),
             },
         )
     }
@@ -95,7 +120,7 @@ where
         runtime: WorthQueryExecutionRuntime,
         authority: WorthQueryExecutionInstallationAuthority,
         installed_schema: WorthQueryInstalledApplicationSchema<Schema>,
-        source: impl WorthQueryAuthorizationTimeSource,
+        source: impl WorthQueryRuntimeTimeSource,
     ) -> Result<
         WorthQueryPrimaryGraphApplicationRuntime<Schema>,
         WorthQueryPrimaryGraphInstallationDenial,
@@ -106,13 +131,26 @@ where
                 runtime,
                 authority,
                 installed_schema,
-                authorization_clock: WorthQueryAuthorizationClock::from_source(source),
+                authorization_clock: WorthQueryRuntimeClock::from_source(source),
             },
         )
     }
 }
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
+    pub(in crate::domain_computation) fn next_external_dispatch_attempt(
+        &self,
+    ) -> Option<WorthQueryExternalDispatchAttemptOrdinal> {
+        self.next_external_dispatch_attempt
+            .fetch_update(
+                std::sync::atomic::Ordering::AcqRel,
+                std::sync::atomic::Ordering::Acquire,
+                |current| current.checked_add(1),
+            )
+            .ok()
+            .map(WorthQueryExternalDispatchAttemptOrdinal)
+    }
+
     pub(in crate::domain_computation::primary_graph) fn authentication_is_expired(
         &self,
         valid_until: std::time::Instant,
@@ -195,6 +233,9 @@ where
             .len()
             .saturating_add(sessions.session_overlays.len())
             .saturating_add(sessions.overlays.len())
+            .saturating_add(sessions.validated_mutations.len())
+            .saturating_add(sessions.invariant_work.len())
+            .saturating_add(sessions.completed_commit_evidence.len())
     }
 
     #[cfg(test)]

@@ -48,14 +48,15 @@ Runtime-backed observation and explanation:
 - live inspection `async_result_state()`
 - compact runtime posture `ordinary_runtime_posture().async_posture()`
 
-Materialized fact and recovery surfaces:
+Materialized fact and typed-stop remediation surfaces:
 
 - `WorthQueryReadCompletion::consume_projection(...)`
 - `read::project_facts()`
 - `ProjectionConsumptionReceipt::materialized_fact_posture()`
 - `execute_prepared_continuation(...)`
 - `execute_prepared_continuation_outcome(...)`
-- `recover_from_continuation_execution_checked(...)`
+- `recover_from_continuation_execution_checked(...)` projects descriptive
+  remediation guidance from a typed stop
 
 Good to know:
 
@@ -83,9 +84,9 @@ Think of async capabilities as three linked layers.
    `denied`.
 
 3. **Downstream consumers**
-   Projection consumption, continuation/recovery, and downstream delivery carry
-   that async posture forward so callers do not have to reopen bridge/runtime
-   artifacts to understand what happened.
+   Projection consumption, continuation remediation, and downstream delivery
+   carry that async posture forward so callers do not have to reopen
+   Bridge/runtime artifacts to understand what happened.
 
 In this doc, "basis" means the concrete runtime identity the current async
 state is bound to. If that identity drifts, Query should preserve typed drift
@@ -348,7 +349,8 @@ expected:
 - downstream delivery:
   `workspace.downstream_delivery(&view)?`
 - continuation drift:
-  `execute_prepared_continuation_outcome(...)` and the recovery boundary
+  `execute_prepared_continuation_outcome(...)` and
+  [Typed Stops And Remediation Guidance](../domain-capabilities/typed-stops-and-remediation-guidance.md)
 
 When you inspect retained async runtime state, expect typed result-state values
 such as:

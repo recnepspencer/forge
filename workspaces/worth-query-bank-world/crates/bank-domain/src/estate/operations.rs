@@ -29,6 +29,11 @@ pub enum EstateAction {
         notice: DeathNoticeId,
         subject: BankPrincipalId,
     },
+    RetransmitDeathNotice {
+        estate: EstateCaseId,
+        notice: DeathNoticeId,
+        subject: BankPrincipalId,
+    },
     FreezeAccount {
         estate: EstateCaseId,
         account: AccountId,
@@ -96,6 +101,7 @@ impl EstateAction {
     pub const fn operation(self) -> EstateCapabilityOperation {
         match self {
             Self::NotifyDeath { .. } => EstateCapabilityOperation::NotifyDeath,
+            Self::RetransmitDeathNotice { .. } => EstateCapabilityOperation::RetransmitDeathNotice,
             Self::FreezeAccount { .. } => EstateCapabilityOperation::FreezeAccount,
             Self::OpenEstateCase { .. } => EstateCapabilityOperation::OpenEstateCase,
             Self::RecognizeExecutor { .. } => EstateCapabilityOperation::RecognizeExecutor,
@@ -123,6 +129,7 @@ impl EstateAction {
     pub const fn estate(self) -> Option<EstateCaseId> {
         match self {
             Self::NotifyDeath { estate, .. }
+            | Self::RetransmitDeathNotice { estate, .. }
             | Self::FreezeAccount { estate, .. }
             | Self::OpenEstateCase { estate, .. }
             | Self::RecognizeExecutor { estate, .. }

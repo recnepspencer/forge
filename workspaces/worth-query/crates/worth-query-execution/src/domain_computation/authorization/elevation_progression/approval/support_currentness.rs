@@ -7,8 +7,8 @@ use super::super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::super::super::delegation_admission::observe_elevation_upper_bound;
 use super::super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthorizationDecisionFact,
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 use super::super::WorthQueryElevationRequestBinding;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
@@ -22,7 +22,7 @@ pub(super) fn refresh_exact_support<Schema, Capability, Operation, Input>(
         Operation,
         Input,
     >,
-) -> Result<WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial>
+) -> Result<WorthQueryRuntimeTimeSample, WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
@@ -50,7 +50,7 @@ fn observe_current_support<Schema, Capability, Operation, Input>(
     installed: &WorthQueryInstalledCapabilityPlan,
 ) -> Result<
     (
-        WorthQueryAuthorizationTimeSample,
+        WorthQueryRuntimeTimeSample,
         WorthQueryAuthorizationDecisionFact,
     ),
     WorthQueryOperationAuthorizationDenial,

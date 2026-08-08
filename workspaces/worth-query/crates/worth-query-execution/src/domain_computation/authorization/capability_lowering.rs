@@ -378,8 +378,8 @@ fn guard_axis(
     if field_binding(contract.target().field()) == Some(field) {
         return Ok(WorthQueryCapabilityRequestValueAxis::Field);
     }
-    if field_binding(contract.constraints().amount()) == Some(field) {
-        return Ok(WorthQueryCapabilityRequestValueAxis::Amount);
+    if field_binding(contract.constraints().magnitude()) == Some(field) {
+        return Ok(WorthQueryCapabilityRequestValueAxis::Magnitude);
     }
     Err(authorization_denial(
         field.field(),

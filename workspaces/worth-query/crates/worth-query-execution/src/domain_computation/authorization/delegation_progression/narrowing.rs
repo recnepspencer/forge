@@ -111,7 +111,8 @@ fn predicates<Schema, Scope, Context>(
     if let (Some(field), Some(value)) = (&installed.delegation.disclosure, target.field_value()) {
         predicates.push(predicate(installed, field, Comparison::Equal, value));
     }
-    if let (Some(field), Some(value)) = (&installed.delegation.amount, target.amount_value()) {
+    if let (Some(field), Some(value)) = (&installed.delegation.magnitude, target.magnitude_value())
+    {
         predicates.push(predicate(installed, field, Comparison::AtLeast, value));
     }
     predicates

@@ -13,10 +13,6 @@ impl<'receipt> WorthQueryApplicationCommitPublicationInspection<'receipt> {
         Self { terminal }
     }
 
-    pub const fn terminal(&self) -> &'receipt WorthQueryApplicationCommitReceipt {
-        self.terminal
-    }
-
     pub const fn kind(&self) -> WorthQueryApplicationCommitTerminalKind {
         self.terminal.terminal().kind()
     }
@@ -39,7 +35,7 @@ impl<'receipt> WorthQueryApplicationCommitPublicationInspection<'receipt> {
         }
     }
 
-    pub const fn mutation_work(&self) -> Option<WorthQueryPrimaryMutationWorkEvidence> {
+    pub fn mutation_work(&self) -> Option<&WorthQueryPrimaryMutationWorkEvidence> {
         self.terminal.mutation_work()
     }
 

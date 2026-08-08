@@ -1,4 +1,9 @@
-use worth_query_declaration::facade::application_schema::ApplicationPrincipalBindingRef;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationFieldRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
+    ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
+    ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
+    ApplicationRelationRef, EqualityPredicate, ReadOnly, ReadWrite,
+};
 use worth_query_declaration::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
 };
@@ -100,29 +105,73 @@ fn copied_binding_identifiers_cannot_change_target_principal_identity_type() {
     let schema = index
         .bind_application_schema(IdentitySchema::declaration().unwrap())
         .unwrap();
-    let forged = ApplicationPrincipalBindingRef::<
-        IdentitySchema,
-        IdentityBinding,
-        ExternalMapping,
-        Principal,
-        String,
-    >::from_schema_identifiers(
-        "IdentityBinding",
-        "ExternalMapping",
-        "ExternalIdentity",
-        "ExternalIdentityField",
-        "ExternalIdentity",
-        "MappingStatusField",
-        "MappingTarget",
-        "Principal",
-        "PrincipalIdentity",
-        "PrincipalIdentityField",
-    );
+    let forged = forged_string_identity_binding();
 
     assert_eq!(
         schema.principal_binding(forged).unwrap_err().kind(),
         WorthQueryPrincipalBindingInstallationDenialKind::BindingMeaningChanged
     );
+}
+
+fn forged_string_identity_binding() -> ApplicationPrincipalBindingRef<
+    IdentitySchema,
+    IdentityBinding,
+    ExternalMapping,
+    Principal,
+    String,
+> {
+    let identity = ApplicationFieldRef::<
+        IdentitySchema,
+        ExternalMapping,
+        ExternalIdentity,
+        ExternalIdentityField,
+        WorthQueryExternalPrincipalIdentity,
+        ReadOnly,
+        EqualityPredicate,
+    >::from_schema_identifiers(
+        "ExternalMapping",
+        "ExternalIdentity",
+        "ExternalIdentityField",
+    );
+    let status = ApplicationFieldRef::<
+        IdentitySchema,
+        ExternalMapping,
+        ExternalIdentity,
+        MappingStatusField,
+        WorthQueryPrincipalMappingStatus,
+        ReadWrite,
+        EqualityPredicate,
+    >::from_schema_identifiers(
+        "ExternalMapping", "ExternalIdentity", "MappingStatusField"
+    );
+    let target = ApplicationRelationRef::<
+        IdentitySchema,
+        MappingTarget,
+        ExternalMapping,
+        Principal,
+    >::from_schema_identifiers("MappingTarget", "ExternalMapping", "Principal");
+    let principal_identity = ApplicationFieldRef::<
+        IdentitySchema,
+        Principal,
+        PrincipalIdentity,
+        PrincipalIdentityField,
+        String,
+        ReadOnly,
+        EqualityPredicate,
+    >::from_schema_identifiers(
+        "Principal", "PrincipalIdentity", "PrincipalIdentityField"
+    );
+    ApplicationPrincipalBindingRef::from_requirements(
+        "IdentityBinding",
+        ApplicationPrincipalBindingRequirements {
+            mapping_identity: ApplicationPrincipalMappingIdentityRequirement::from_field(identity),
+            mapping_status: ApplicationPrincipalMappingStatusRequirement::from_field(status),
+            target: ApplicationPrincipalTargetRequirement::from_relation(target),
+            principal_identity: ApplicationPrincipalIdentityRequirement::from_field(
+                principal_identity,
+            ),
+        },
+    )
 }
 
 fn installed_index() -> WorthQueryInstalledPackageIndex {

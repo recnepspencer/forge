@@ -1,5 +1,7 @@
 #[path = "ordinary_mutations/assertions.rs"]
 mod assertions;
+#[path = "ordinary_mutations/authorization_time.rs"]
+mod authorization_time;
 #[path = "ordinary_mutations/estate_operations.rs"]
 mod estate_operations;
 #[allow(

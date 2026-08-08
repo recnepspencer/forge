@@ -88,7 +88,7 @@ impl BankIdentityRuntime {
             .into())
     }
 
-    fn admit_notification_operation(
+    pub(crate) fn admit_notification_operation(
         &self,
         principal: &BankAuthenticatedPrincipal,
         action: EstateAction,
@@ -159,7 +159,7 @@ impl BankIdentityRuntime {
             )
             .map_err(BankEstateProgressionDenial::Attempt)?;
         effects
-            .emit(
+            .emit_external(
                 EstateDeathNotificationEffect::reference(),
                 EstateDeathNotificationRequest::new(
                     command.estate,

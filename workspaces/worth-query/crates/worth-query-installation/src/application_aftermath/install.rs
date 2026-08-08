@@ -1,0 +1,256 @@
+//! Installation of declared aftermath contracts.
+
+use worth_foundational::facade::CanonicalDigestId;
+use worth_query_declaration::facade::application_aftermath::{
+    DeclaredApplicationAftermathContract, DeclaredCorrectionMechanism,
+};
+use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
+
+use super::canonical_basis::{prepare_aftermath_basis, WorthQueryAftermathCanonicalArtifact};
+use super::correction_authority::InstalledCorrectionAuthority;
+use super::correction_mechanism::InstalledCorrectionMechanism;
+use super::denial::{
+    WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
+};
+use super::external_effect_contract::{
+    InstalledExternalEffectContract, InstalledExternalEffectPosture,
+};
+use super::install_validation::{
+    escaping_effect_subject, validate_axis_pair, validate_preimage_coverage,
+    OperationDeclaredReadFields,
+};
+use super::lowering_correspondence::{
+    AftermathLoweringCorrespondenceCatalog, InstalledLoweringCorrespondence,
+};
+use super::next_action_contract::InstalledAftermathNextActionContract;
+use super::owner_identity::aftermath_owner_identity_digest;
+use super::published_posture::{derive_published_posture, PublishedAftermathPosture};
+use super::recovery_contract::InstalledAftermathRecoveryContract;
+
+/// Opaque installed aftermath identity retained from the Foundational digest.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct WorthQueryInstalledAftermathIdentity(CanonicalDigestId);
+
+impl WorthQueryInstalledAftermathIdentity {
+    pub const fn digest(&self) -> &CanonicalDigestId {
+        &self.0
+    }
+
+    pub const fn bytes(&self) -> &[u8; 32] {
+        self.0.bytes()
+    }
+
+    pub fn render_support_hex(&self) -> String {
+        self.0.render_hex()
+    }
+}
+
+/// Installed aftermath contract for one mutation operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryInstalledAftermathContract {
+    identity: WorthQueryInstalledAftermathIdentity,
+    authority: InstalledCorrectionAuthority,
+    mechanism: Option<InstalledCorrectionMechanism>,
+    external_effect: InstalledExternalEffectPosture,
+    published_posture: PublishedAftermathPosture,
+    next_actions: InstalledAftermathNextActionContract,
+    recovery: InstalledAftermathRecoveryContract,
+    canonical: WorthQueryAftermathCanonicalArtifact,
+    operation_slot: String,
+    compatibility_generation: u64,
+}
+
+impl WorthQueryInstalledAftermathContract {
+    pub const fn identity(&self) -> &WorthQueryInstalledAftermathIdentity {
+        &self.identity
+    }
+
+    pub const fn authority(&self) -> InstalledCorrectionAuthority {
+        self.authority
+    }
+
+    pub const fn mechanism(&self) -> Option<&InstalledCorrectionMechanism> {
+        self.mechanism.as_ref()
+    }
+
+    pub const fn external_effect(&self) -> &InstalledExternalEffectPosture {
+        &self.external_effect
+    }
+
+    pub const fn published_posture(&self) -> PublishedAftermathPosture {
+        self.published_posture
+    }
+
+    pub const fn next_actions(&self) -> InstalledAftermathNextActionContract {
+        self.next_actions
+    }
+
+    pub const fn recovery(&self) -> InstalledAftermathRecoveryContract {
+        self.recovery
+    }
+
+    pub const fn canonical(&self) -> &WorthQueryAftermathCanonicalArtifact {
+        &self.canonical
+    }
+
+    pub fn operation_slot(&self) -> &str {
+        &self.operation_slot
+    }
+
+    pub const fn compatibility_generation(&self) -> u64 {
+        self.compatibility_generation
+    }
+}
+
+/// Every fact about the one operation whose aftermath is being installed.
+///
+/// These travel together because they are all resolved from a single operation
+/// compile â€” the same binding, the same operation slot, the same schema member
+/// list. Bundling them is what lets `external_effect` be the operation's own
+/// installed lane rather than a second posture the aftermath declared for
+/// itself (Q8.25-C1).
+pub(crate) struct OperationAftermathInstallation<'a> {
+    pub binding: &'a ApplicationSchemaBindingIdentity,
+    pub operation_slot: &'a str,
+    pub declared: &'a DeclaredApplicationAftermathContract,
+    pub declared_reads: &'a OperationDeclaredReadFields,
+    pub external_effect: &'a InstalledExternalEffectContract,
+    pub lowering_catalog: &'a AftermathLoweringCorrespondenceCatalog,
+}
+
+/// Install one declared aftermath contract for an application operation.
+///
+/// Package identity, schema identity, generation, and operation slot are taken
+/// from the binding and operation already under compilation. Pre-image coverage
+/// is validated against `declared_reads` from that same operation, and the
+/// escaping posture is derived from that same operation's external-effect
+/// contract. This is the sole aftermath installation door.
+pub(crate) fn install_application_aftermath(
+    operation: OperationAftermathInstallation<'_>,
+) -> Result<WorthQueryInstalledAftermathContract, WorthQueryAftermathInstallationDenial> {
+    let OperationAftermathInstallation {
+        binding,
+        operation_slot,
+        declared,
+        declared_reads,
+        external_effect,
+        lowering_catalog,
+    } = operation;
+    let compatibility_generation = binding.generation();
+    validate_axis_pair(declared)?;
+    validate_preimage_coverage(declared, declared_reads)?;
+    let resolved_lowering = resolve_lowering_correspondence(
+        declared,
+        compatibility_generation,
+        binding.schema_identity(),
+        lowering_catalog,
+    )?;
+    let canonical = prepare_aftermath_basis(binding, operation_slot, declared, external_effect)?;
+    let authority = InstalledCorrectionAuthority::from(declared.authority());
+    let mechanism = match declared.mechanism() {
+        Some(declared_mechanism) => Some(
+            InstalledCorrectionMechanism::from_declared(declared_mechanism, resolved_lowering)
+                .map_err(|subject| {
+                    WorthQueryAftermathInstallationDenial::new(
+                        WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceUnresolved,
+                        subject,
+                    )
+                })?,
+        ),
+        None => None,
+    };
+    let published_posture = derive_published_posture(authority, mechanism.as_ref())?;
+    // The single reversibility guard, and it reads two derived facts: the
+    // posture the runtime just derived, and the operation's own escaping lane.
+    // Neither is a claim the aftermath declaration could have made about itself
+    // (Q8.25-C1). A pre-flight twin of this check used to re-derive "would this
+    // be reversible?" from (authority, mechanism) inline — a second declaration
+    // of what `derive_published_posture` already owns, free to drift from it.
+    if published_posture == PublishedAftermathPosture::Reversible && external_effect.is_declared() {
+        return Err(WorthQueryAftermathInstallationDenial::new(
+            WorthQueryAftermathInstallationDenialKind::ExternalEffectRejectsReversible,
+            escaping_effect_subject(external_effect),
+        ));
+    }
+    let next_actions = InstalledAftermathNextActionContract::for_posture(published_posture);
+    let recovery = InstalledAftermathRecoveryContract::for_posture(published_posture);
+    Ok(WorthQueryInstalledAftermathContract {
+        identity: WorthQueryInstalledAftermathIdentity(*canonical.digest()),
+        authority,
+        mechanism,
+        external_effect: InstalledExternalEffectPosture::from_operation_contract(external_effect),
+        published_posture,
+        next_actions,
+        recovery,
+        canonical,
+        operation_slot: operation_slot.to_owned(),
+        compatibility_generation,
+    })
+}
+
+/// Build a lowering catalog for a recorded-inverse declaration from binding truth.
+pub(crate) fn derived_lowering_catalog(
+    binding: &ApplicationSchemaBindingIdentity,
+    declared: &DeclaredApplicationAftermathContract,
+) -> Result<AftermathLoweringCorrespondenceCatalog, WorthQueryAftermathInstallationDenial> {
+    let Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) = declared.mechanism() else {
+        return Ok(AftermathLoweringCorrespondenceCatalog::empty());
+    };
+    let slot = inverse.lowering_correspondence().correspondence_slot();
+    let correspondence_identity =
+        aftermath_owner_identity_digest("worth-query.lowering-correspondence", slot, 1, 0)?;
+    Ok(AftermathLoweringCorrespondenceCatalog::new([
+        InstalledLoweringCorrespondence::new(
+            slot,
+            correspondence_identity,
+            binding.generation(),
+            *binding.schema_identity(),
+        )
+        .map_err(|subject| {
+            WorthQueryAftermathInstallationDenial::new(
+                WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceUnresolved,
+                subject,
+            )
+        })?,
+    ]))
+}
+
+fn resolve_lowering_correspondence(
+    declared: &DeclaredApplicationAftermathContract,
+    compatibility_generation: u64,
+    graph_participation_identity: &CanonicalDigestId,
+    lowering_catalog: &AftermathLoweringCorrespondenceCatalog,
+) -> Result<Option<super::InstalledLoweringCorrespondence>, WorthQueryAftermathInstallationDenial> {
+    let Some(DeclaredCorrectionMechanism::RecordedInverse(inverse)) = declared.mechanism() else {
+        return Ok(None);
+    };
+    use super::LoweringCorrespondenceResolutionDenial as D;
+    lowering_catalog
+        .resolve(
+            inverse.lowering_correspondence().correspondence_slot(),
+            compatibility_generation,
+            graph_participation_identity,
+        )
+        .map(Some)
+        .map_err(|denial| {
+            let (kind, subject) = match denial {
+                D::Unresolved => (
+                    WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceUnresolved,
+                    "unresolved-lowering-correspondence",
+                ),
+                D::WrongGeneration => (
+                    WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceWrongGeneration,
+                    "wrong-generation-lowering-correspondence",
+                ),
+                D::MismatchedGraphParticipation => (
+                    WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceMismatchedGraphParticipation,
+                    "mismatched-graph-participation-lowering-correspondence",
+                ),
+                D::Ambiguous => (
+                    WorthQueryAftermathInstallationDenialKind::LoweringCorrespondenceAmbiguous,
+                    "ambiguous-lowering-correspondence",
+                ),
+            };
+            WorthQueryAftermathInstallationDenial::new(kind, subject)
+        })
+}

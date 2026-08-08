@@ -16,8 +16,8 @@ use super::super::delegation_admission::observe_capability;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
     WorthQueryAdmittedApplicationCapabilityAccess, WorthQueryAuthorizationDecisionFact,
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryRetainedCapabilitySupport,
+    WorthQueryOperationAuthorizationDenial, WorthQueryRetainedCapabilitySupport,
+    WorthQueryRuntimeTimeSample,
 };
 use super::{delegation_denial, inconsistent, observe_narrowing, stale};
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
@@ -218,7 +218,7 @@ fn observe_exact_parent_support<Schema, Scope, Context>(
     installed: &super::super::capability_registry::WorthQueryInstalledCapabilityPlan,
     session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
     retained: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     proposed: &worth_query_declaration::facade::application_capability::ApplicationCapabilityDelegationRequestProjection<Schema, Scope, Context>,
     resolved: &WorthQueryDelegationResolvedRequest,
 ) -> Result<

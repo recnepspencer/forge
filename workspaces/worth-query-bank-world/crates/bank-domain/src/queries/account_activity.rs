@@ -10,7 +10,7 @@ use worth_query_decl::facade::{
         ManyResults, OptionalOneResult, ReverseResultTraversal,
     },
     application_schema::{
-        DeclaredApplicationCurrency, EqualityPredicate, NoApplicationCurrency, NoEqualityPredicate,
+        DeclaredApplicationUnit, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
         ReadOnly, ReadWrite,
     },
 };
@@ -80,7 +80,7 @@ type AccountIdentitySelector = ApplicationQueryResultFieldRef<
     AccountId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PostingSequenceSelector = ApplicationQueryResultFieldRef<
@@ -93,7 +93,7 @@ type PostingSequenceSelector = ApplicationQueryResultFieldRef<
     AccountJournalRevision,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PostingIdentitySelector = ApplicationQueryResultFieldRef<
@@ -106,7 +106,7 @@ type PostingIdentitySelector = ApplicationQueryResultFieldRef<
     PostingId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PostingAmountSelector = ApplicationQueryResultFieldRef<
@@ -119,7 +119,7 @@ type PostingAmountSelector = ApplicationQueryResultFieldRef<
     SignedMoney<USD>,
     ReadWrite,
     NoEqualityPredicate,
-    DeclaredApplicationCurrency<UsdCurrency, USD>,
+    DeclaredApplicationUnit<UsdCurrency, USD>,
 >;
 
 type PostingPurposeSelector = ApplicationQueryResultFieldRef<
@@ -132,7 +132,7 @@ type PostingPurposeSelector = ApplicationQueryResultFieldRef<
     PostingPurpose,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type JournalIdentitySelector<Slot> = ApplicationQueryResultFieldRef<
@@ -145,7 +145,7 @@ type JournalIdentitySelector<Slot> = ApplicationQueryResultFieldRef<
     JournalEntryId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type JournalPurposeSelector = ApplicationQueryResultFieldRef<
@@ -158,7 +158,7 @@ type JournalPurposeSelector = ApplicationQueryResultFieldRef<
     PostingPurpose,
     ReadWrite,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 pub fn account_activity_definition() -> ApplicationQueryDefinition<
@@ -202,32 +202,32 @@ pub fn account_activity_definition() -> ApplicationQueryDefinition<
     .field(account_identity())
     .relation(account_postings(), posting)
     .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        AccountActivityQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(3, 3, 8),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_live(),
-        ViewAccount::reference(),
-    )
-    .order_by(
-        posting_sequence(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .continue_by(account_postings())
-    .live_by::<Posting, AccountActivityLiveCause, _, _, _, _, _, _, _, _>(
-        account_identity(),
-        posting_identity(),
-        ApplicationQueryLiveResourceContract::bounded(64, 2_048, 4_096),
-    )
-    .build()
-    .expect("bank account activity query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(AccountActivityQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 3, 8))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_live(),
+        )
+        .requires_ability(ViewAccount::reference())
+        .order_by(
+            posting_sequence(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .continue_by(account_postings())
+        .live_by::<Posting, AccountActivityLiveCause, _, _, _, _, _, _, _, _>(
+            account_identity(),
+            posting_identity(),
+            ApplicationQueryLiveResourceContract::bounded(64, 2_048, 4_096),
+        )
+        .build()
+        .expect("bank account activity query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, AccountActivityQuery>

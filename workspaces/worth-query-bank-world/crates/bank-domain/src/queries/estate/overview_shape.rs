@@ -108,7 +108,7 @@ fn principal_shape<Slot: 'static>(
         crate::model::BankPrincipalId,
         worth_query_decl::facade::application_schema::ReadOnly,
         worth_query_decl::facade::application_schema::EqualityPredicate,
-        worth_query_decl::facade::application_schema::NoApplicationCurrency,
+        worth_query_decl::facade::application_schema::NoApplicationUnit,
     >,
 ) -> ApplicationQueryResultShapeBuilder<BankSchema, EstateCaseOverviewQuery, Principal, ()> {
     ApplicationQueryResultShapeBuilder::new(Principal::reference()).field(selector)

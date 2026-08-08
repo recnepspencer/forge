@@ -12,14 +12,14 @@ use super::super::capability_registry::{
 use super::super::capability_request_resolution::WorthQueryCapabilityContextKey;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) fn prepare_exact_policy_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
 ) -> Result<
     Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,
@@ -80,7 +80,7 @@ fn bind_exact_elevation_resource(
 pub(super) fn prepare_upper_bound_policy_paths(
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
 ) -> Result<
     Vec<worth_relational::facade::authorization::RelationalAuthorizationPathPlan>,

@@ -87,7 +87,8 @@ fn same_caller_intent_cannot_cross_installed_operation_identity() {
     let resolution = world
         .application
         .resolve_admitted_application_idempotency(&admission, idempotency(10, 10))
-        .unwrap();
+        .unwrap()
+        .into_resolution();
     assert_eq!(
         resolution,
         WorthQueryApplicationIdempotencyResolution::IntentDrift

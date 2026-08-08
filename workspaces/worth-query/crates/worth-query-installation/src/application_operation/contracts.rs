@@ -14,6 +14,9 @@ use super::{
     WorthQueryInstalledApplicationOperationExecutionPosture,
     WorthQueryInstalledMutationPrecondition,
 };
+use crate::application_aftermath::{
+    InstalledExternalEffectContract, WorthQueryInstalledAftermathContract,
+};
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
@@ -57,20 +60,44 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     additional_authorization_fact_count: usize,
     mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
     execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    external_effect: InstalledExternalEffectContract,
+    aftermath: Option<WorthQueryInstalledAftermathContract>,
+}
+
+/// Everything compilation needs that is resolved from installed schema members.
+///
+/// Grouping these keeps the compiled-contract constructor honest as the
+/// governed axis set grows: a new axis is a new named field, never another
+/// positional argument that an existing call site can silently mis-order.
+pub(crate) struct WorthQueryApplicationOperationContractSources {
+    pub authorization: WorthQueryInstalledApplicationOperationAuthorization,
+    pub ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
+    pub program: Vec<ApplicationOperationProgramTarget>,
+    pub decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    pub decision_fact_budget: usize,
+    pub projection_work_budget: usize,
+    pub additional_authorization_fact_count: usize,
+    pub mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
+    pub execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
+    pub external_effect: InstalledExternalEffectContract,
+    pub aftermath: Option<WorthQueryInstalledAftermathContract>,
 }
 
 impl WorthQueryCompiledApplicationOperationContracts {
-    pub(crate) fn compile(
-        authorization: WorthQueryInstalledApplicationOperationAuthorization,
-        mut ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
-        mut program: Vec<ApplicationOperationProgramTarget>,
-        mut decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
-        decision_fact_budget: usize,
-        projection_work_budget: usize,
-        additional_authorization_fact_count: usize,
-        mutation_preconditions: Vec<WorthQueryInstalledMutationPrecondition>,
-        execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
-    ) -> Self {
+    pub(crate) fn compile(sources: WorthQueryApplicationOperationContractSources) -> Self {
+        let WorthQueryApplicationOperationContractSources {
+            authorization,
+            mut ability_requirements,
+            mut program,
+            mut decision_reads,
+            decision_fact_budget,
+            projection_work_budget,
+            additional_authorization_fact_count,
+            mutation_preconditions,
+            execution_posture,
+            external_effect,
+            aftermath,
+        } = sources;
         ability_requirements.sort();
         ability_requirements.dedup();
         program.sort();
@@ -134,11 +161,26 @@ impl WorthQueryCompiledApplicationOperationContracts {
             additional_authorization_fact_count,
             mutation_preconditions,
             execution_posture,
+            external_effect,
+            aftermath,
         }
     }
 
     pub fn mutation_preconditions(&self) -> &[WorthQueryInstalledMutationPrecondition] {
         &self.mutation_preconditions
+    }
+
+    /// The operation's installed external-effect contract.
+    ///
+    /// `None` is the load-bearing case: it is what makes an ordinary mutation
+    /// pay exactly zero dispatch cost.
+    pub const fn external_effect(&self) -> &InstalledExternalEffectContract {
+        &self.external_effect
+    }
+
+    /// The operation's installed aftermath contract, when declared.
+    pub const fn aftermath(&self) -> Option<&WorthQueryInstalledAftermathContract> {
+        self.aftermath.as_ref()
     }
 
     pub const fn authorization(&self) -> WorthQueryInstalledApplicationOperationAuthorization {

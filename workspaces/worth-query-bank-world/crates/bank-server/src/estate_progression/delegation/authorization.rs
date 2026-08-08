@@ -46,6 +46,13 @@ pub(super) fn authorize_target(
             authorize!(NotifyDeathEstateCapability, NotifyDeathEstateOperation)
         }
         (
+            EstateCapabilityOperation::RetransmitDeathNotice,
+            EstateCapabilityPurpose::EstateAdministration,
+        ) => authorize!(
+            RetransmitDeathNoticeEstateCapability,
+            RetransmitDeathNoticeEstateOperation
+        ),
+        (
             EstateCapabilityOperation::FreezeAccount,
             EstateCapabilityPurpose::EstateAdministration,
         ) => authorize!(FreezeEstateAccountCapability, FreezeEstateAccountOperation),

@@ -1,6 +1,6 @@
 use worth_foundational::facade::AspectValue;
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationRelationRef, ApplicationSchema,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef, ApplicationSchema,
     TypedApplicationSignedAggregateValue, WritePosture,
 };
 
@@ -68,17 +68,17 @@ where
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         &mut self,
         relation: ApplicationRelationRef<Schema, Relation, From, To>,
-        field: ApplicationFieldRef<Schema, From, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, From, Aspect, Field, Value, Write, Equality, Unit>,
         target: &WorthQueryInvariantEntityIdentity<Schema, To>,
     ) -> Result<WorthQueryInvariantAggregate<Value>, WorthQueryInvariantAggregateDenial>
     where
         Value: TypedApplicationSignedAggregateValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let relation_layout = self
             .layout

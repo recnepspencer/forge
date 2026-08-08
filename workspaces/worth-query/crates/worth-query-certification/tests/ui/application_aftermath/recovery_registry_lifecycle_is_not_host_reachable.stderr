@@ -1,0 +1,20 @@
+error[E0432]: unresolved import `worth_query_execution::facade::primary_graph::WorthQueryRecoveryHandleRegistry`
+ --> tests/ui/application_aftermath/recovery_registry_lifecycle_is_not_host_reachable.rs:8:31
+  |
+8 |     WorthQueryRecoveryHandle, WorthQueryRecoveryHandleRegistry,
+  |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                               |
+  |                               no `WorthQueryRecoveryHandleRegistry` in `facade::primary_graph`
+  |                               help: a similar name exists in the module: `WorthQueryRecoveryHandleDenial`
+
+error[E0599]: no method named `registry_arc` found for reference `&WorthQueryRecoveryHandle` in the current scope
+  --> tests/ui/application_aftermath/recovery_registry_lifecycle_is_not_host_reachable.rs:12:20
+   |
+12 |     let _ = handle.registry_arc();
+   |                    ^^^^^^^^^^^^ method not found in `&WorthQueryRecoveryHandle`
+
+error[E0599]: no method named `registry_slot` found for reference `&WorthQueryRecoveryHandle` in the current scope
+  --> tests/ui/application_aftermath/recovery_registry_lifecycle_is_not_host_reachable.rs:13:20
+   |
+13 |     let _ = handle.registry_slot();
+   |                    ^^^^^^^^^^^^^ method not found in `&WorthQueryRecoveryHandle`

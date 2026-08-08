@@ -8,11 +8,13 @@ mod application_query;
 mod authenticated_principal;
 mod authentication_boundary;
 mod bank_projection;
+mod committed_dispatch_outbox;
 mod domain_package;
 mod error;
 #[cfg(test)]
 mod estate_capability_admission;
 mod estate_progression;
+mod external_effect_transport;
 mod graph_bootstrap;
 mod identity_runtime;
 mod operation_admission;
@@ -39,17 +41,24 @@ pub use application_query::{
 pub use authenticated_principal::BankAuthenticatedPrincipal;
 pub use authentication_boundary::BankAuthenticationBoundary;
 pub use bank_projection::BankProjectionDenial;
+pub use committed_dispatch_outbox::{
+    BankCommittedDispatchOutboxObservation, BankCommittedDispatchOutboxReadDenial,
+};
 pub use error::{
     BankAuthenticationBoundaryBuildError, BankIdentityRuntimeBuildError,
     BankPrincipalAdmissionError, BankWorldSeedDenial,
 };
 pub use estate_progression::{
-    BankCapabilityDelegationProjectionDenial, BankCapabilityRevocationProjectionDenial,
-    BankDeathNotificationProjectionDenial, BankEstateCaseOpeningProjectionDenial,
-    BankEstateDisbursementProjectionDenial, BankEstateFreezeProjectionDenial,
-    BankEstateLifecycleProjectionDenial, BankEstateProgressionDenial,
-    BankEstateReleaseProjectionDenial, BankExecutorRecognitionProjectionDenial,
+    compensating_reverse_journal, BankCapabilityDelegationProjectionDenial,
+    BankCapabilityRevocationProjectionDenial, BankCompensationUndoAdmission,
+    BankDeathNotificationProjectionDenial, BankDisbursementRedoAdmission,
+    BankEstateCaseOpeningProjectionDenial, BankEstateDisbursementProjectionDenial,
+    BankEstateFreezeProjectionDenial, BankEstateLifecycleProjectionDenial,
+    BankEstateProgressionDenial, BankEstateReleaseProjectionDenial,
+    BankExecutorRecognitionProjectionDenial, BankRecordedInverseUndoAdmission,
+    BankUndoCommitOutcome,
 };
+pub use external_effect_transport::BankExternalEffectTransportDenial;
 pub use identity_runtime::{BankAuthenticationConfiguration, BankIdentityRuntime};
 pub use operation_admission::{BankAdmittedOperation, BankOperationAdmissionError};
 pub use operation_commit::{

@@ -33,8 +33,13 @@ impl ApplicationSchema for ReadTestSchema {
                 "TestAbility",
                 "TestEntity",
             );
-        test_schema_members::<Self>()
-            .operation(read)
+        test_schema_members::<Self>(None)
+            .operation(
+                read.definition()
+                    .no_external_effect()
+                    .no_aftermath()
+                    .finish(),
+            )
             .operation_decision_fact_budget(read, 1)
             .operation_projection_work_budget(read, 16)
             .operation_requires_ability(read, ability)
@@ -54,7 +59,13 @@ impl ApplicationSchema for ReadTestSchema {
                     "PrincipalIdentityField",
                 ),
             )
-            .operation(empty)
+            .operation(
+                empty
+                    .definition()
+                    .no_external_effect()
+                    .no_aftermath()
+                    .finish(),
+            )
             .operation_decision_fact_budget(empty, 1)
             .operation_projection_work_budget(empty, 16)
             .operation_requires_ability(empty, ability)

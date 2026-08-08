@@ -123,7 +123,7 @@ where
         authorization: &mut WorthQueryRetainedCapabilityAuthorization,
         session_identity: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
         branch: &worth_relational::facade::history::BranchId,
-        primary_sample: &super::WorthQueryAuthorizationTimeSample,
+        primary_sample: &super::WorthQueryRuntimeTimeSample,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let Some(supporting) = authorization.supporting_mut() else {
             return Ok(());
@@ -208,7 +208,7 @@ where
         &self,
         installed: &super::capability_registry::WorthQueryInstalledCapabilityPlan,
     ) -> Result<
-        crate::domain_computation::authorization::WorthQueryAuthorizationTimeSample,
+        crate::domain_computation::authorization::WorthQueryRuntimeTimeSample,
         WorthQueryOperationAuthorizationDenial,
     > {
         self.authorization_clock

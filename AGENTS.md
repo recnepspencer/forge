@@ -41,6 +41,14 @@ parallel authority lane.
 - Authority is proof-carrying. Governed public surfaces demand concrete
   platform authority types from `worth-proof`, never generic
   `AuthorityMarker` bounds. Forged authority must open no doors.
+- Place a new authority, phase, proof, binding, or lifecycle type before
+  designing it. Three questions, first `yes` wins: does it decide whether an
+  operation is **legal** — `worth-proof`; would it mean the same thing crossing
+  a boundary in another runtime — `worth-foundational`; does it need a clock, a
+  counter, a live table, or `Drop` to exist — the owning runtime, never a
+  substrate crate. A substrate a crate cannot see from its own manifest will be
+  hand-rolled instead; verify the dependency exists before concluding the
+  vocabulary does not.
 - A constitutional failure caused by or present in the complete scoped dirty
   set blocks completion. Do not route around enforcement. A pre-existing
   failure in an untouched file is reported as repository debt but does not

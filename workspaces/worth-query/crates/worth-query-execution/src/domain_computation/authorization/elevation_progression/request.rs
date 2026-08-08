@@ -153,7 +153,7 @@ where
         || target.context_value().context_type() != request.context_type
         || !cardinality_admitted(request.cardinality, target.cardinality_value())
         || target.field_value().is_some() != request.field.is_some()
-        || target.amount_value().is_some() != request.amount.is_some()
+        || target.magnitude_value().is_some() != request.magnitude.is_some()
         || !relation_matches(installed, target)
         || !context_matches(installed, target)
         || proposed.grant().entity() != installed.contract.grant_entity()

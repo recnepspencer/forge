@@ -1,0 +1,5 @@
+error[E0599]: no method named `undo_via_recorded_inverse` found for struct `IrreversibleNextActionContract` in the current scope
+ --> tests/ui/application_aftermath/irreversible_has_no_undo_method.rs:6:21
+  |
+6 |     let _ = actions.undo_via_recorded_inverse();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `IrreversibleNextActionContract`

@@ -1,5 +1,5 @@
 #[path = "freeze_account/fixture.rs"]
-mod fixture;
+pub(crate) mod fixture;
 
 use bank_domain::{estate::EstateWorkflowStage, schema::AccountStatus};
 use bank_server::{
@@ -37,7 +37,7 @@ fn public_query_progression_freezes_the_exact_estate_account() {
     assert_eq!(receipt.emitted_effect_count(), 0);
     assert_eq!(receipt.expected_fact_count(), 0);
     assert_eq!(receipt.decision_fact_count(), Some(5));
-    assert_zero_canonical_work(receipt.canonical_work());
+    assert_freeze_canonical_work(receipt.canonical_work());
     assert_eq!(estate_account_status(&fixture), AccountStatus::Frozen);
 
     let retry = fixture
@@ -54,7 +54,7 @@ fn public_query_progression_freezes_the_exact_estate_account() {
         panic!("the equivalent retry must recover the exact commit: {retry:?}");
     };
     assert!(receipt.is_same_authoritative_commit(&recovered));
-    assert_zero_canonical_work(recovered.canonical_work());
+    assert_freeze_canonical_work(recovered.canonical_work());
     assert_eq!(estate_account_status(&fixture), AccountStatus::Frozen);
 
     let drift = fixture
@@ -171,12 +171,16 @@ fn idempotency(identity: u8) -> WorthQueryApplicationIdempotencyBinding {
     WorthQueryApplicationIdempotencyBinding::new([identity; 32], [identity + 1; 32])
 }
 
-fn assert_zero_canonical_work(
+fn assert_freeze_canonical_work(
     phases: worth_query_host::facade::domain::WorthQueryCanonicalWorkPhases,
 ) {
+    let input_identity = phases.admission();
+    assert_eq!(input_identity.basis_preparations(), 1);
+    assert_eq!(input_identity.digest_derivations(), 1);
+    assert_eq!(input_identity.canonical_encoded_bytes(), 821);
+    assert_eq!(input_identity.digest_text_materializations(), 0);
     for work in [
         phases.installation(),
-        phases.admission(),
         phases.execution(),
         phases.provider_commit(),
         phases.projection(),

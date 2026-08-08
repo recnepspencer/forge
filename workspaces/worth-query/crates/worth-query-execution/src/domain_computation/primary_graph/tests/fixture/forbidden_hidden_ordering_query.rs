@@ -57,21 +57,20 @@ pub(super) fn forbidden_hidden_ordering_definition() -> ApplicationQueryDefiniti
         CapabilityDisclosure::AccountActivity,
         ApplicationQueryInfluenceContract::permit_all(),
     );
-    ApplicationQueryDefinitionBuilder::public(
-        ForbiddenHiddenOrderingQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(0, 0, 2),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-    )
-    .order_by(
-        label_result_field::<ForbiddenHiddenOrderingQuery>(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(ForbiddenHiddenOrderingQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .order_by(
+            label_result_field::<ForbiddenHiddenOrderingQuery>(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .build()
+        .unwrap()
 }

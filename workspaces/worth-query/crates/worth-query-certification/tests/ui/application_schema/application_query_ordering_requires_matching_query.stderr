@@ -7,9 +7,9 @@ error[E0308]: mismatched types
    |                     arguments to this method are incorrect
    |
    = note: expected struct `ApplicationQueryResultFieldRef<Query, _, Schema, _, _, _, _, _, _, _>`
-              found struct `ApplicationQueryResultFieldRef<ForeignQuery, Slot, Schema, Entity, Aspect, Field, u64, ReadOnly, worth_query_decl::facade::application_schema::EqualityPredicate, NoApplicationCurrency>`
+              found struct `ApplicationQueryResultFieldRef<ForeignQuery, Slot, Schema, Entity, Aspect, Field, u64, ReadOnly, worth_query_decl::facade::application_schema::EqualityPredicate, NoApplicationUnit>`
 note: method defined here
   --> $WORKSPACE/crates/worth-query-declaration/src/application_query/definition/builder.rs
    |
-   |     pub fn order_by<Slot, Entity, Aspect, Field, Value, Write, Equality, Currency>(
+   |     pub fn order_by<Slot, Entity, Aspect, Field, Value, Write, Equality, Unit>(
    |            ^^^^^^^^

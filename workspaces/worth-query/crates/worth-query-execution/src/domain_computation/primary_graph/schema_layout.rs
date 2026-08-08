@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_foundational::facade::{
-    AspectContract, AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
-};
+use worth_foundational::facade::{AspectContract, AspectFieldLocator, AspectKey, FieldKey};
 use worth_query_installation::facade::{
     ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
 };
@@ -10,22 +8,32 @@ use worth_relational::facade::identity::KindId;
 use worth_relational::facade::indexes::DerivedIndexId;
 use worth_relational::facade::schema::RelationalSchemaRegistry;
 
-use super::{
-    WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
-};
+use super::WorthQueryPrimaryGraphInstallationDenial;
 
 mod capability_grant_join;
 mod continuation_ordering;
+mod installation_primitives;
 mod principal_binding;
+mod provider_aftermath_causality;
+mod provider_dispatch_outbox;
 mod provider_idempotency;
 mod registry_lowering;
 
+use crate::domain_computation::application_aftermath::WorthQueryDispatchOutboxLayout;
 use capability_grant_join::{lower_capability_grant_joins, WorthQueryCapabilityGrantJoinLayout};
 use continuation_ordering::{
     lower_continuation_orderings, WorthQueryPrimaryContinuationOrderingLayout,
 };
+pub(super) use installation_primitives::{
+    contract_space_exhausted, invalid_member, kind_space_exhausted, planned_field_locator,
+    relational_schema_denial, required_kind, valid_aspect_key, valid_field_key,
+};
 use principal_binding::lower_principal_bindings;
 pub(in crate::domain_computation) use principal_binding::WorthQueryPrimaryPrincipalBindingLayout;
+pub(super) use provider_aftermath_causality::{
+    lower_provider_aftermath_causality, WorthQueryAftermathCausalityLayout,
+};
+use provider_dispatch_outbox::lower_provider_dispatch_outbox;
 use provider_idempotency::lower_provider_idempotency;
 pub(super) use provider_idempotency::WorthQueryProviderIdempotencyLayout;
 use registry_lowering::{
@@ -45,6 +53,8 @@ pub(in crate::domain_computation) struct WorthQueryPrimaryGraphLayout {
     continuation_orderings: Vec<WorthQueryPrimaryContinuationOrderingLayout>,
     capability_grant_joins: BTreeMap<(String, String), WorthQueryCapabilityGrantJoinLayout>,
     provider_idempotency: WorthQueryProviderIdempotencyLayout,
+    provider_dispatch_outbox: WorthQueryDispatchOutboxLayout,
+    provider_aftermath_causality: WorthQueryAftermathCausalityLayout,
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +115,32 @@ impl WorthQueryPrimaryGraphLayout {
             provider_kind,
             &mut contract_ordinal,
         )?;
+        let dispatch_outbox_kind = KindId(
+            provider_kind
+                .0
+                .checked_add(1)
+                .ok_or_else(kind_space_exhausted)?,
+        );
+        let (registry, provider_dispatch_outbox) = lower_provider_dispatch_outbox(
+            registry,
+            &schema_id,
+            schema_version_id,
+            dispatch_outbox_kind,
+            &mut contract_ordinal,
+        )?;
+        let aftermath_causality_kind = KindId(
+            dispatch_outbox_kind
+                .0
+                .checked_add(1)
+                .ok_or_else(kind_space_exhausted)?,
+        );
+        let (registry, provider_aftermath_causality) = lower_provider_aftermath_causality(
+            registry,
+            &schema_id,
+            schema_version_id,
+            aftermath_causality_kind,
+            &mut contract_ordinal,
+        )?;
         let principal_bindings = lower_principal_bindings(schema, &entity_kinds, &relation_kinds)?;
         let relation_layouts = lower_relation_layouts(schema, &entity_kinds, &relation_kinds)?;
         let continuation_orderings =
@@ -131,6 +167,8 @@ impl WorthQueryPrimaryGraphLayout {
                 continuation_orderings,
                 capability_grant_joins,
                 provider_idempotency,
+                provider_dispatch_outbox,
+                provider_aftermath_causality,
             },
             registry,
         ))
@@ -234,6 +272,24 @@ impl WorthQueryPrimaryGraphLayout {
     pub(super) fn provider_idempotency_mut(&mut self) -> &mut WorthQueryProviderIdempotencyLayout {
         &mut self.provider_idempotency
     }
+
+    pub(super) const fn provider_dispatch_outbox(&self) -> &WorthQueryDispatchOutboxLayout {
+        &self.provider_dispatch_outbox
+    }
+
+    pub(super) fn provider_dispatch_outbox_mut(&mut self) -> &mut WorthQueryDispatchOutboxLayout {
+        &mut self.provider_dispatch_outbox
+    }
+
+    pub(super) const fn provider_aftermath_causality(&self) -> &WorthQueryAftermathCausalityLayout {
+        &self.provider_aftermath_causality
+    }
+
+    pub(super) fn provider_aftermath_causality_mut(
+        &mut self,
+    ) -> &mut WorthQueryAftermathCausalityLayout {
+        &mut self.provider_aftermath_causality
+    }
 }
 
 fn field_capability_keys<'a>(
@@ -313,58 +369,4 @@ fn lower_fields(
             ))
         })
         .collect()
-}
-
-pub(super) fn required_kind(
-    kinds: &BTreeMap<String, KindId>,
-    name: &str,
-) -> Result<KindId, WorthQueryPrimaryGraphInstallationDenial> {
-    kinds.get(name).copied().ok_or_else(|| invalid_member(name))
-}
-
-pub(super) fn planned_field_locator(
-    aspect: &str,
-    field: &str,
-) -> Result<AspectFieldLocator, WorthQueryPrimaryGraphInstallationDenial> {
-    Ok(AspectFieldLocator::new(
-        LocatorAuthority::Planned,
-        valid_aspect_key(aspect)?,
-        CanonicalFieldPath::single(valid_field_key(field)?),
-    ))
-}
-
-pub(super) fn valid_aspect_key(
-    value: &str,
-) -> Result<AspectKey, WorthQueryPrimaryGraphInstallationDenial> {
-    AspectKey::new(value).ok_or_else(|| invalid_member(value))
-}
-
-pub(super) fn valid_field_key(
-    value: &str,
-) -> Result<FieldKey, WorthQueryPrimaryGraphInstallationDenial> {
-    FieldKey::new(value).ok_or_else(|| invalid_member(value))
-}
-
-pub(super) fn invalid_member(subject: &str) -> WorthQueryPrimaryGraphInstallationDenial {
-    WorthQueryPrimaryGraphInstallationDenial::new(
-        WorthQueryPrimaryGraphInstallationDenialKind::InvalidSchemaMember,
-        subject,
-    )
-}
-
-pub(super) fn kind_space_exhausted() -> WorthQueryPrimaryGraphInstallationDenial {
-    invalid_member("application schema exhausts Relational kind identity space")
-}
-
-pub(super) fn contract_space_exhausted() -> WorthQueryPrimaryGraphInstallationDenial {
-    invalid_member("application schema exhausts Relational aspect-contract identity space")
-}
-
-pub(super) fn relational_schema_denial(
-    denial: worth_relational::facade::schema::SchemaRegistryError,
-) -> WorthQueryPrimaryGraphInstallationDenial {
-    WorthQueryPrimaryGraphInstallationDenial::new(
-        WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
-        format!("{denial:?}"),
-    )
 }

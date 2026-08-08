@@ -9,7 +9,6 @@ use super::{
     WorthQueryWorkflowStartDenial,
 };
 use crate::domain_installation::WorthQueryAdmittedWorkflowOperation;
-use crate::domain_installation::WorthQueryAftermathExecutionDenial;
 
 #[derive(Debug)]
 pub enum WorthQueryWorkflowReexecutionStop {
@@ -26,7 +25,6 @@ pub enum WorthQueryWorkflowReexecutionStop {
         counters: WorthQueryWorkflowRunCounters,
     },
     Completion(WorthQueryWorkflowCompletionDenial),
-    Aftermath(WorthQueryAftermathExecutionDenial),
 }
 
 impl WorthQueryWorkflowReexecutionStop {
@@ -37,7 +35,6 @@ impl WorthQueryWorkflowReexecutionStop {
                 executed_effects, ..
             } => executed_effects,
             Self::Completion(denial) => denial.executed_effects(),
-            Self::Aftermath(denial) => denial.partial_effects(),
             Self::IntentDoesNotMatchInstalledGraph
             | Self::ResourceAdmission(_)
             | Self::Start(_)

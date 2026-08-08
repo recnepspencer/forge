@@ -90,6 +90,26 @@ impl<Schema> WorthQueryApplicationPinnedBasis<Schema> {
     pub(super) fn into_lease(self) -> WorthQueryApplicationBasisLease {
         self.lease
     }
+
+    /// Test-only: the same pinned basis, its deadline already settled (Q8.12).
+    ///
+    /// Expiry tests used to pin under a five-millisecond request scope and then
+    /// sleep past it. That makes the *setup* racy in the wrong direction: under
+    /// load the pin itself expired before admission and the test failed on
+    /// `DeadlineExceeded` from its own fixture rather than on the expiry it
+    /// exists to observe.
+    ///
+    /// Passing an instant captured *before* the pin inverts that. Both expiry
+    /// comparisons are `Instant::now() >= expires_at` against a monotonic
+    /// clock, so a pre-pin instant is already settled by construction — with no
+    /// elapsed time required, and more certainly so the slower the machine is.
+    /// The lease is untouched and real, so release assertions still mean what
+    /// they say.
+    #[cfg(test)]
+    pub(crate) fn with_deadline_settled_at(mut self, settled: Instant) -> Self {
+        self.expires_at = settled;
+        self
+    }
 }
 
 impl WorthQueryApplicationPinnedBasisReleaseReceipt {

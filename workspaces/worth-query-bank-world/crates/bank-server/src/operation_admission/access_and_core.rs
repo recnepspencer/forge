@@ -2,7 +2,7 @@ use bank_domain::model::{AccountId, InstitutionId};
 use bank_domain::schema::*;
 use worth_query_host::facade::admission::authenticated_principal::WorthQueryRequestScope;
 use worth_query_host::facade::declaration::application_schema::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationOperationRef, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationRef, EqualityPredicate,
     TypedApplicationValue, TypedMutationPreconditions, WritePosture,
 };
 use worth_query_host::facade::primary_graph::WorthQueryPrincipalResolutionMode;
@@ -89,7 +89,7 @@ impl BankIdentityRuntime {
         )
     }
 
-    pub(super) fn authorize<Aspect, Scope, Field, Value, Write, Currency, Operation, Input>(
+    pub(super) fn authorize<Aspect, Scope, Field, Value, Write, Unit, Operation, Input>(
         &self,
         actor: &BankAuthenticatedPrincipal,
         field: ApplicationFieldRef<
@@ -100,7 +100,7 @@ impl BankIdentityRuntime {
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
         operation: ApplicationOperationRef<BankSchema, Operation, Input>,
@@ -110,7 +110,7 @@ impl BankIdentityRuntime {
     where
         Value: TypedApplicationValue + Clone + Copy,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let identity = self
             .application_runtime()

@@ -310,8 +310,12 @@ fn committed(
             return denied(BankMutationDenial::Commit { kind, stage }, work)
         }
         BankMutationCommitOutcome::Aborted => BankMutationStatus::Aborted,
-        BankMutationCommitOutcome::PartialEffect => BankMutationStatus::PartialEffect,
-        BankMutationCommitOutcome::Indeterminate => BankMutationStatus::Indeterminate,
+        BankMutationCommitOutcome::PartialEffect(evidence) => {
+            BankMutationStatus::PartialEffect(evidence)
+        }
+        BankMutationCommitOutcome::Indeterminate(evidence) => {
+            BankMutationStatus::Indeterminate(evidence)
+        }
     };
     BankMutationOutcome::new(status, work)
 }

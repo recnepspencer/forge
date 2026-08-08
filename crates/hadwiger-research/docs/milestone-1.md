@@ -367,8 +367,7 @@ Hadwiger use:
 Docs:
 
 - `crates/worth-query/docs/domain-capabilities/ordinary-outcomes.md`
-- `crates/worth-query/docs/domain-capabilities/recovery-boundary.md`
-- `crates/worth-query/docs/domain-capabilities/workflow/stop-to-recovery.md`
+- `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
 
 Exported APIs:
 
@@ -559,7 +558,7 @@ Docs:
 - `workspaces/worth-query/crates/worth-query/docs/domain-capabilities/certification/goldens-boundaries-and-hostile-certification.md`
 - `crates/worth-query/docs/domain-capabilities/workflow/retained-artifact-to-next-step.md`
 - `crates/worth-query/docs/domain-capabilities/choosing/binding-vs-orchestration-vs-helpers.md`
-- `crates/worth-query/docs/domain-capabilities/recovery/README.md`
+- `crates/worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md`
 - `crates/worth-query/docs/domain-capabilities/grouped-authoring.md`
 - `crates/worth-query/docs/domain-capabilities/grouped-products.md`
 - `crates/worth-query/docs/domain-capabilities/grouped-contributions.md`

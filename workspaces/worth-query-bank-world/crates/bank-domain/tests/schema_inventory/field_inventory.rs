@@ -1,7 +1,7 @@
 use worth_query_decl::facade::application_schema::ApplicationSchemaMember;
 
 use super::support::{
-    aspect_name, currency_name, effect_name, expected, field_name, names, policy_name,
+    aspect_name, effect_name, expected, field_name, names, policy_name, unit_name,
 };
 
 pub(super) fn assert_field_and_governance_inventory(members: &[ApplicationSchemaMember]) {
@@ -111,7 +111,7 @@ fn assert_governance_inventory(members: &[ApplicationSchemaMember]) {
             "EstateCapabilityScopePolicy",
         ])
     );
-    assert_eq!(names(members, currency_name), expected(&["UsdCurrency"]));
+    assert_eq!(names(members, unit_name), expected(&["UsdCurrency"]));
     assert_eq!(
         names(members, effect_name),
         expected(&[

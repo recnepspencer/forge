@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 
-use worth_foundational::facade::{AspectValue, InternedString};
+use worth_foundational::facade::{AspectValue, FieldKey, InternedString};
 use worth_relational::facade::indexes::{BoundedEntityFieldLookupRequest, BoundedIndexParityMode};
 use worth_relational::facade::runtime::{ProjectionAspectRequirement, ProjectionAspectScope};
 use worth_relational::facade::storage::RecordLifecycleState;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    AspectFieldLocator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
 };
 
 use super::WorthQueryPrimaryGraphProvider;
@@ -99,112 +99,173 @@ fn resolve_at_snapshot(
     binding: WorthQueryApplicationIdempotencyBinding,
 ) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
     let key = AspectValue::String(InternedString::from(binding.key_text()));
+    let context = WorthQueryIdempotencySnapshotContext {
+        runtime,
+        snapshot,
+        layout,
+    };
+    let Some(entity_id) = locate_idempotency_entity(&context, &key)? else {
+        return Ok(WorthQueryProviderIdempotencyResolution::Absent);
+    };
+    let record = read_idempotency_record(&context, entity_id, &key)?;
+    resolve_projected_idempotency(&context, binding, record)
+}
+
+struct WorthQueryIdempotencySnapshotContext<'a> {
+    runtime: &'a worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &'a worth_relational::facade::snapshots::SnapshotHandle,
+    layout: &'a WorthQueryProviderIdempotencyLayout,
+}
+
+struct WorthQueryIdempotencyProjectionFields {
+    key: FieldKey,
+    intent: FieldKey,
+    outcome_identity: FieldKey,
+    emitted_effect_count: FieldKey,
+}
+
+struct WorthQueryProjectedIdempotencyRecord {
+    created_at_version: worth_relational::facade::identity::VersionId,
+    intent: Option<AspectValue>,
+    outcome_identity: Option<AspectValue>,
+    emitted_effect_count: Option<AspectValue>,
+}
+
+fn locate_idempotency_entity(
+    context: &WorthQueryIdempotencySnapshotContext<'_>,
+    key: &AspectValue,
+) -> Result<Option<worth_relational::facade::identity::EntityId>, &'static str> {
     let request = BoundedEntityFieldLookupRequest::new(
-        snapshot.clone(),
-        layout.key_index_id,
-        layout.entity_kind,
-        layout.key_locator.clone(),
+        context.snapshot.clone(),
+        context.layout.key_index_id,
+        context.layout.entity_kind,
+        context.layout.key_locator.clone(),
         key.clone(),
         2,
     )
     .map_err(|_| "provider idempotency lookup request was rejected")?;
-    let lookup = runtime
+    let lookup = context
+        .runtime
         .index_access()
         .execute_bounded_entity_field_lookup(request, BoundedIndexParityMode::Production)
         .map_err(|_| "provider idempotency index lookup failed")?;
     if lookup.overflowed() || lookup.candidate_entity_ids().len() > 1 {
         return Err("provider idempotency key is not unique");
     }
-    let Some(entity_id) = lookup.candidate_entity_ids().first().copied() else {
-        return Ok(WorthQueryProviderIdempotencyResolution::Absent);
-    };
-    let key_field = layout
-        .key_locator
-        .field_path()
-        .fields()
-        .first()
-        .cloned()
-        .ok_or("provider idempotency key locator is empty")?;
-    let intent_field = layout
-        .intent_locator
-        .field_path()
-        .fields()
-        .first()
-        .cloned()
-        .ok_or("provider idempotency intent locator is empty")?;
-    let emitted_effect_count_field = layout
-        .emitted_effect_count_locator
-        .field_path()
-        .fields()
-        .first()
-        .cloned()
-        .ok_or("provider idempotency emitted-effect-count locator is empty")?;
-    let outcome_identity_field = layout
-        .outcome_identity_locator
-        .field_path()
-        .fields()
-        .first()
-        .cloned()
-        .ok_or("provider idempotency outcome-identity locator is empty")?;
+    Ok(lookup.candidate_entity_ids().first().copied())
+}
+
+fn read_idempotency_record(
+    context: &WorthQueryIdempotencySnapshotContext<'_>,
+    entity_id: worth_relational::facade::identity::EntityId,
+    key: &AspectValue,
+) -> Result<WorthQueryProjectedIdempotencyRecord, &'static str> {
+    let fields = idempotency_projection_fields(context.layout)?;
     let scope = ProjectionAspectScope::from_requirements([ProjectionAspectRequirement::fields(
-        layout.key_locator.aspect().aspect_key().clone(),
+        context.layout.key_locator.aspect().aspect_key().clone(),
         [
-            key_field.clone(),
-            intent_field.clone(),
-            outcome_identity_field.clone(),
-            emitted_effect_count_field.clone(),
+            fields.key.clone(),
+            fields.intent.clone(),
+            fields.outcome_identity.clone(),
+            fields.emitted_effect_count.clone(),
         ],
     )]);
-    let record = runtime
+    context
+        .runtime
         .read_truth()
-        .project_snapshot(snapshot)
+        .project_snapshot(context.snapshot)
         .and_then(|view| {
             view.entity_record_with_projection_scope(entity_id, scope, |record| {
-                (record.kind_id() == layout.entity_kind
+                (record.kind_id() == context.layout.entity_kind
                     && record.lifecycle() == RecordLifecycleState::Live
-                    && record
-                        .aspect_field_value(layout.key_locator.aspect().aspect_key(), &key_field)
-                        == Some(&key))
-                .then(|| {
-                    (
-                        record.created_at_version(),
-                        record
-                            .aspect_field_value(
-                                layout.intent_locator.aspect().aspect_key(),
-                                &intent_field,
-                            )
-                            .cloned(),
-                        record
-                            .aspect_field_value(
-                                layout.outcome_identity_locator.aspect().aspect_key(),
-                                &outcome_identity_field,
-                            )
-                            .cloned(),
-                        record
-                            .aspect_field_value(
-                                layout.emitted_effect_count_locator.aspect().aspect_key(),
-                                &emitted_effect_count_field,
-                            )
-                            .cloned(),
-                    )
+                    && record.aspect_field_value(
+                        context.layout.key_locator.aspect().aspect_key(),
+                        &fields.key,
+                    ) == Some(key))
+                .then(|| WorthQueryProjectedIdempotencyRecord {
+                    created_at_version: record.created_at_version(),
+                    intent: record
+                        .aspect_field_value(
+                            context.layout.intent_locator.aspect().aspect_key(),
+                            &fields.intent,
+                        )
+                        .cloned(),
+                    outcome_identity: record
+                        .aspect_field_value(
+                            context
+                                .layout
+                                .outcome_identity_locator
+                                .aspect()
+                                .aspect_key(),
+                            &fields.outcome_identity,
+                        )
+                        .cloned(),
+                    emitted_effect_count: record
+                        .aspect_field_value(
+                            context
+                                .layout
+                                .emitted_effect_count_locator
+                                .aspect()
+                                .aspect_key(),
+                            &fields.emitted_effect_count,
+                        )
+                        .cloned(),
                 })
             })
         })
-        .ok_or("provider idempotency record is not authoritative")?;
+        .ok_or("provider idempotency record is not authoritative")
+}
+
+fn idempotency_projection_fields(
+    layout: &WorthQueryProviderIdempotencyLayout,
+) -> Result<WorthQueryIdempotencyProjectionFields, &'static str> {
+    Ok(WorthQueryIdempotencyProjectionFields {
+        key: required_locator_field(
+            &layout.key_locator,
+            "provider idempotency key locator is empty",
+        )?,
+        intent: required_locator_field(
+            &layout.intent_locator,
+            "provider idempotency intent locator is empty",
+        )?,
+        outcome_identity: required_locator_field(
+            &layout.outcome_identity_locator,
+            "provider idempotency outcome-identity locator is empty",
+        )?,
+        emitted_effect_count: required_locator_field(
+            &layout.emitted_effect_count_locator,
+            "provider idempotency emitted-effect-count locator is empty",
+        )?,
+    })
+}
+
+fn required_locator_field(
+    locator: &AspectFieldLocator,
+    denial: &'static str,
+) -> Result<FieldKey, &'static str> {
+    locator.field_path().fields().first().cloned().ok_or(denial)
+}
+
+fn resolve_projected_idempotency(
+    context: &WorthQueryIdempotencySnapshotContext<'_>,
+    binding: WorthQueryApplicationIdempotencyBinding,
+    record: WorthQueryProjectedIdempotencyRecord,
+) -> Result<WorthQueryProviderIdempotencyResolution, &'static str> {
     let expected_intent = AspectValue::String(InternedString::from(binding.intent_text()));
-    if record.1.as_ref() != Some(&expected_intent) {
+    if record.intent.as_ref() != Some(&expected_intent) {
         return Ok(WorthQueryProviderIdempotencyResolution::Drift);
     }
-    let committed = runtime
+    let committed = context
+        .runtime
         .history()
-        .committed_version(record.0)
+        .committed_version(record.created_at_version)
         .ok_or("provider idempotency creation commit is unavailable")?;
-    let Some(AspectValue::UInt64(outcome_identity)) = record.2 else {
+    let Some(AspectValue::UInt64(outcome_identity)) = record.outcome_identity else {
         return Err("provider idempotency outcome identity is unavailable");
     };
     let outcome_identity = WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)
         .ok_or("provider idempotency outcome identity is invalid")?;
-    let Some(AspectValue::UInt64(emitted)) = record.3 else {
+    let Some(AspectValue::UInt64(emitted)) = record.emitted_effect_count else {
         return Err("provider idempotency emitted-effect count is unavailable");
     };
     let emitted = usize::try_from(emitted)
@@ -212,9 +273,8 @@ fn resolve_at_snapshot(
     Ok(WorthQueryProviderIdempotencyResolution::Equivalent(
         WorthQueryPrimaryGraphCommittedApplication::new(
             outcome_identity,
-            snapshot.runtime_instance_id,
-            snapshot.branch_id.clone(),
-            committed.commit().commit_id,
+            context.snapshot.runtime_instance_id,
+            committed.commit().clone(),
             committed.changed_record_count(),
             emitted,
         ),
@@ -229,13 +289,15 @@ mod tests {
     };
 
     use super::*;
-    use crate::domain_computation::primary_graph::tests::fixture::installed_authorization_world;
+    use crate::domain_computation::primary_graph::{
+        primary_relational_branch_id, tests::fixture::installed_authorization_world,
+    };
 
     #[test]
     fn idempotency_lookup_never_substitutes_another_branch_head() {
         let world = installed_authorization_world(true);
         let provider = &world.application.primary_provider;
-        let main = BranchId("main".to_owned());
+        let main = primary_relational_branch_id();
         let feature = BranchId("idempotency-feature".to_owned());
         let binding = WorthQueryApplicationIdempotencyBinding::new([91; 32], [92; 32]);
         provider.graph.with_runtime_mut(|runtime| {

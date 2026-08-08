@@ -10,10 +10,10 @@ pub(crate) use admission::{
     admit_query_causal_inspection_authority_identity, admit_query_subscription_authority_identity,
 };
 pub(crate) use authority::{
-    query_domain_capability_authority, query_effect_lifecycle_authority,
-    query_operation_progression_authority, query_receipt_admission_authority,
-    query_runtime_backend_authority, query_signal_invalidation_authority,
-    query_subscription_authority, query_truth_identity_admission_authority,
+    query_domain_capability_authority, query_operation_progression_authority,
+    query_receipt_admission_authority, query_runtime_backend_authority,
+    query_signal_invalidation_authority, query_subscription_authority,
+    query_truth_identity_admission_authority,
 };
 pub use categories::{
     QueryAuthorityIdentity, QueryBoundaryBridgedIdentity, QueryCausalInspectionAuthorityIdentity,

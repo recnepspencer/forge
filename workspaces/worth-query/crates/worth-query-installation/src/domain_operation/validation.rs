@@ -54,7 +54,7 @@ pub(super) fn validate_domain_operation_meaning(
         &semantics.invariant_execution,
         &semantics.touches,
     )?;
-    validate_reversal(&semantics.reversal)?;
+    validate_aftermath(semantics.aftermath.as_ref())?;
     validate_publication(&semantics.publication)?;
     validate_projection_consumption(&semantics.publication, semantics.projection_consumption)?;
     if semantics.terminal.result_states.is_empty() {
@@ -222,51 +222,16 @@ fn validate_invariant_execution(
     Ok(())
 }
 
-fn validate_reversal(contract: &WorthQueryOperationReversalContract) -> Result<(), &'static str> {
-    let subject = match contract {
-        WorthQueryOperationReversalContract::ExactInverse { lowering_family } => lowering_family,
-        WorthQueryOperationReversalContract::Compensation { .. } => return Ok(()),
-        WorthQueryOperationReversalContract::ExactInverseWithPostcondition {
-            operation,
-            lowering_family,
-            postcondition,
-        } => {
-            validate_text_sequence(
-                &[
-                    operation.slot(),
-                    lowering_family.clone(),
-                    aftermath_identity(postcondition).into(),
-                ],
-                "empty-aftermath-contract",
-            )?;
-            return Ok(());
-        }
-        WorthQueryOperationReversalContract::CompensationWithPostcondition {
-            operation,
-            postcondition,
-        } => {
-            validate_text_sequence(
-                &[operation.slot(), aftermath_identity(postcondition).into()],
-                "empty-aftermath-contract",
-            )?;
-            return Ok(());
-        }
-        WorthQueryOperationReversalContract::RebuildRequired { recovery_family } => recovery_family,
-        WorthQueryOperationReversalContract::Irreversible
-        | WorthQueryOperationReversalContract::ProvisionalDiscard => return Ok(()),
+fn validate_aftermath(
+    contract: Option<&crate::application_aftermath::WorthQueryInstalledAftermathContract>,
+) -> Result<(), &'static str> {
+    let Some(contract) = contract else {
+        return Ok(());
     };
-    if subject.trim().is_empty() {
-        return Err("empty-reversal-subject");
+    if contract.operation_slot().trim().is_empty() {
+        return Err("empty-aftermath-operation");
     }
     Ok(())
-}
-
-fn aftermath_identity(postcondition: &WorthQueryAftermathPostcondition) -> &str {
-    match postcondition {
-        WorthQueryAftermathPostcondition::ExactPriorTruth => "exact-prior-truth",
-        WorthQueryAftermathPostcondition::InvariantRestored { invariant } => invariant,
-        WorthQueryAftermathPostcondition::BusinessPostcondition { identity } => identity,
-    }
 }
 
 fn validate_publication(

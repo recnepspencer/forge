@@ -7,7 +7,7 @@ use worth_query_decl::facade::{
         ApplicationQueryResultFieldRef, ApplicationQueryResultRelationRef,
         ApplicationQueryResultShapeBuilder, OptionalOneResult, ReverseResultTraversal,
     },
-    application_schema::{EqualityPredicate, NoApplicationCurrency, ReadOnly},
+    application_schema::{EqualityPredicate, NoApplicationUnit, ReadOnly},
 };
 use worth_query_host::facade::primary_graph::{
     WorthQueryApplicationProjection, WorthQueryApplicationProjectionDenial,
@@ -72,7 +72,7 @@ type InstitutionIdentitySelector = ApplicationQueryResultFieldRef<
     InstitutionId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type PrincipalIdentitySelector = ApplicationQueryResultFieldRef<
@@ -85,7 +85,7 @@ type PrincipalIdentitySelector = ApplicationQueryResultFieldRef<
     BankPrincipalId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 type BusinessIdentitySelector = ApplicationQueryResultFieldRef<
@@ -98,7 +98,7 @@ type BusinessIdentitySelector = ApplicationQueryResultFieldRef<
     BusinessId,
     ReadOnly,
     EqualityPredicate,
-    NoApplicationCurrency,
+    NoApplicationUnit,
 >;
 
 pub fn account_detail_definition() -> ApplicationQueryDefinition<
@@ -128,20 +128,18 @@ pub fn account_detail_definition() -> ApplicationQueryDefinition<
         .relation(account_personal_owner(), personal)
         .relation(account_business_owner(), business)
         .build();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        AccountDetailQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 4, 9),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        ViewAccount::reference(),
-    )
-    .build()
-    .expect("bank account detail query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(AccountDetailQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 4, 9))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(ViewAccount::reference())
+        .build()
+        .expect("bank account detail query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, AccountDetailQuery> for AccountDetail {

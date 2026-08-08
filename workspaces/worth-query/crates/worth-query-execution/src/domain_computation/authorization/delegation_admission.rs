@@ -12,8 +12,8 @@ use super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::decision_facts::WorthQueryDelegationDecisionFact;
 use super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::{
-    WorthQueryAuthorizationDecisionFact, WorthQueryAuthorizationTimeSample,
-    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryAuthorizationDecisionFact, WorthQueryOperationAuthorizationDenial,
+    WorthQueryOperationAuthorizationDenialKind, WorthQueryRuntimeTimeSample,
 };
 
 mod discovery;
@@ -34,7 +34,7 @@ pub(super) fn observe_capability(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
@@ -59,7 +59,7 @@ pub(super) fn observe_elevation_upper_bound(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
@@ -92,7 +92,7 @@ pub(super) fn observe_retained_capability_support(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: worth_relational::facade::identity::EntityId,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
@@ -118,7 +118,7 @@ fn observe_capability_with_posture(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
     expected: Option<&WorthQueryAuthorizationDecisionFact>,
     posture: WorthQueryCapabilityObservationPosture,
@@ -166,7 +166,7 @@ fn observe_lineage(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     leaf_grant: worth_relational::facade::identity::EntityId,
     leaf_policy: WorthQueryAuthorizationDecisionFact,
     posture: WorthQueryCapabilityObservationPosture,
@@ -261,7 +261,7 @@ fn observe_policy(
     bridge: &BridgeAuthorizationRuntime,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     exact_grant: Option<worth_relational::facade::identity::EntityId>,
 ) -> Result<WorthQueryObservedCapabilityDecision, WorthQueryOperationAuthorizationDenial> {
     match posture {

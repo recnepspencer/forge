@@ -73,9 +73,13 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             return admission.passed(evidence);
         }
         let owner_work = u64::try_from(material.expected.len()).map_err(|_| owner_failure())?;
-        let candidate = self.validate_relational_candidate(material.batch, &material.branch)?;
+        let candidate = self.validate_relational_candidate(
+            material.batch,
+            &material.branch,
+            material.expected_branch_head,
+        )?;
         let summary = candidate.invariant_evidence().summary();
-        let work = super::WorthQueryPrimaryMutationWorkEvidence::new(
+        let work = super::mutation_work::WorthQueryPrimaryMutationWorkCounters::new(
             material.decision_facts,
             material.expected.len(),
             material.expected.len(),
@@ -100,6 +104,7 @@ struct ApplicationInvariantCandidateMaterial {
     batch: worth_relational::facade::transactions::WorkerIntentBatch,
     branch: worth_relational::facade::history::BranchId,
     decision_facts: usize,
+    expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
 }
 
 impl ApplicationInvariantCandidateMaterial {
@@ -152,6 +157,10 @@ impl WorthQueryPrimaryGraphProvider {
             batch: attempt.batch.clone(),
             branch: attempt.branch.clone(),
             decision_facts: attempt.decision_fact_count,
+            expected_branch_head: attempt
+                .aftermath_causality
+                .as_ref()
+                .map(|causality| causality.expected_head()),
         })
     }
 
@@ -159,6 +168,7 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         batch: worth_relational::facade::transactions::WorkerIntentBatch,
         branch: &worth_relational::facade::history::BranchId,
+        expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
     ) -> Result<
         worth_relational::facade::transactions::ValidatedRelationalMutation,
         WorthQueryInvariantExecutionFailure,
@@ -173,6 +183,7 @@ impl WorthQueryPrimaryGraphProvider {
             let mut transaction = runtime.begin_transaction(
                 worth_relational::facade::transactions::TransactionOptions {
                     target_branch: Some(branch.clone()),
+                    expected_branch_head,
                     ..Default::default()
                 },
             );
@@ -188,7 +199,7 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         session: &str,
         candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
-        work: super::WorthQueryPrimaryMutationWorkEvidence,
+        work: super::mutation_work::WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), WorthQueryInvariantExecutionFailure> {
         let mut sessions = self
             .sessions

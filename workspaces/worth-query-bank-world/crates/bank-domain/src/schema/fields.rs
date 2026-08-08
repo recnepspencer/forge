@@ -80,7 +80,7 @@ worth_query_field!(
 );
 worth_query_field!(
     pub PostingAmount in BankSchema, Posting, PostingValue:
-    SignedMoney<USD>, currency UsdCurrency, read_write, no_equality
+    SignedMoney<USD>, unit UsdCurrency, read_write, no_equality
 );
 worth_query_field!(
     pub PostingAccountSequence in BankSchema, Posting, PostingValue:
@@ -108,5 +108,5 @@ worth_query_field!(
 );
 worth_query_field!(
     pub PaymentAmount in BankSchema, PaymentIntent, PaymentValue:
-    Money<USD>, currency UsdCurrency, read_write, no_equality
+    Money<USD>, unit UsdCurrency, read_write, no_equality
 );

@@ -190,6 +190,7 @@ impl BankOperationProposals {
             .application_runtime()
             .resolve_admitted_application_idempotency(admission.query(), binding)
             .map_err(|denial| BankOperationProposalError::Idempotency(denial.kind()))?
+            .into_resolution()
         {
             WorthQueryApplicationIdempotencyResolution::AlreadyCommitted(receipt) => {
                 return Ok(BankSendMoneyPreparation::AlreadyCommitted {

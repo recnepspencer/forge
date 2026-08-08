@@ -144,17 +144,16 @@ let shape = ApplicationQueryResultShapeBuilder::<
 .relation(activity_relation, activity_shape)
 .build();
 
-let definition = ApplicationQueryDefinitionBuilder::public(
-    AccountActivity::reference(),
-    Account::reference(),
-    Account::reference(),
-    shape,
-    ApplicationQueryCardinality::Many,
-    ApplicationQueryDependencyCeiling::bounded(1, 1, 3),
-    ApplicationQueryDisclosureContract::installed_policy("account-holder"),
-    ApplicationQueryBasisSupport::current_and_pinned(),
-    ApplicationQueryLaneEligibility::one_shot().with_historical(),
-)
+let definition = ApplicationQueryDefinitionBuilder::declare(AccountActivity::reference())
+.root(Account::reference())
+.scope(Account::reference())
+.result_shape(shape)
+.cardinality(ApplicationQueryCardinality::Many)
+.dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 3))
+.disclosure(ApplicationQueryDisclosureContract::installed_policy("account-holder"))
+.basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+.lanes(ApplicationQueryLaneEligibility::one_shot().with_historical())
+.public()
 .parameter(account_parameter)
 .where_equal(AccountId::reference(), account_parameter)
 .order_by(activity_sequence, ApplicationQueryOrderingDirection::Descending)

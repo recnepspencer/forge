@@ -34,18 +34,18 @@ fn workflow_cleanup_contains_artifact_disposal_and_destructor_panics() {
     assert_eq!(world.disposal_attempts.load(Ordering::Acquire), 1);
     assert_eq!(world.destructor_attempts.load(Ordering::Acquire), 1);
     let release = match world.handle.owner_snapshot().provider_release() {
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
             evidence,
         ) => evidence,
         posture => panic!("double-panic artifact reported {posture:?}"),
     };
     assert_eq!(
         release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Panicked
     );
     assert_eq!(
         release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Panicked
     );
 }
 
@@ -76,18 +76,18 @@ fn surviving_borrow_delays_and_then_contains_both_artifact_release_panics() {
     assert_eq!(world.disposal_attempts.load(Ordering::Acquire), 1);
     assert_eq!(world.destructor_attempts.load(Ordering::Acquire), 1);
     let release = match world.handle.owner_snapshot().provider_release() {
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
             evidence,
         ) => evidence,
         posture => panic!("delayed double-panic artifact reported {posture:?}"),
     };
     assert_eq!(
         release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Panicked
     );
     assert_eq!(
         release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Panicked
     );
     drop(world.handle);
     let cleanup = match pending.retry() {
@@ -155,18 +155,18 @@ fn yielded_cleanup_maps_double_artifact_release_panic_into_recovery_evidence() {
     assert!(cleanup.relational().released());
     assert_eq!(cleanup.attempt().capacity().released_reservation_count(), 3);
     let release = match world.handle.owner_snapshot().provider_release() {
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::RecoveryRequired(
             evidence,
         ) => evidence,
         posture => panic!("yielded double-panic artifact reported {posture:?}"),
     };
     assert_eq!(
         release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Panicked
     );
     assert_eq!(
         release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Panicked
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Panicked
     );
 }
 

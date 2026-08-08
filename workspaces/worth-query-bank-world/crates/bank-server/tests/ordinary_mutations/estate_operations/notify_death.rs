@@ -1,5 +1,5 @@
 #[path = "notify_death/fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 
 use bank_domain::{estate::DeathNoticeStatus, model::BankPrincipalId};
 use bank_server::{
@@ -33,7 +33,16 @@ fn public_query_observes_one_committed_notification_request() {
     let BankMutationCommitOutcome::Committed(receipt) = outcome else {
         panic!("the exact death notification must commit: {outcome:?}");
     };
-    assert_eq!(receipt.changed_record_count(), 2);
+    assert_eq!(
+        receipt.changed_record_count(),
+        3,
+        "the notice, its estate, and the co-committed dispatch outbox row change together"
+    );
+    assert!(receipt.co_committed_dispatch_outbox());
+    assert!(
+        receipt.external_dispatch_posture().is_none(),
+        "a bank with no installed rail commits the outbox and dispatches nothing"
+    );
     assert_eq!(receipt.emitted_effect_count(), 1);
     assert_eq!(receipt.expected_fact_count(), 0);
     assert_eq!(receipt.decision_fact_count(), Some(8));

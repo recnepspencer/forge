@@ -17,8 +17,17 @@ use worth_query_declaration::facade::application_capability::{
     application_capability_revocation_program_target,
 };
 
+mod aftermath;
+mod cardinality_denial;
 mod elevation_lifecycle_program;
+mod external_effect;
+pub(super) use aftermath::operation_aftermath;
+pub(super) use cardinality_denial::WorthQueryOperationContractCardinalityDenial;
 use elevation_lifecycle_program::{lifecycle_program_targets, lifecycle_resource_decision_read};
+pub(super) use external_effect::operation_external_effect;
+
+#[cfg(test)]
+mod tests;
 
 pub(super) fn operation_execution_posture(
     members: &[ApplicationSchemaMember],

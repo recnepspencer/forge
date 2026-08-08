@@ -4,11 +4,6 @@ error[E0432]: unresolved import `worth_query::facade::domain::WorthQueryCertific
 1 | use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryCertificationReplayCapability` in `facade::domain`
   |
-help: a similar name exists in the module
-  |
-1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;
-1 + use worth_query::facade::domain::WorthQueryCompensationCapability;
-  |
 help: consider importing one of these structs instead
   |
 1 - use worth_query::facade::domain::WorthQueryCertificationReplayCapability;

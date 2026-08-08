@@ -25,6 +25,7 @@ mod provider_start;
 mod provider_step_admission;
 mod provider_work;
 mod readmission;
+mod recovery_registry;
 mod retained_graph_execution;
 mod run_identity;
 mod safe_point_observation;
@@ -113,6 +114,10 @@ pub use readmission::{
     WorthQueryWorkflowReadmissionYieldReassembled,
     WorthQueryWorkflowReadmissionYieldReassemblyOutcome,
     WorthQueryWorkflowReadmissionYieldReassemblyRecovery,
+};
+pub(crate) use recovery_registry::{
+    WorthQueryRecoveryHandleRegistry, WorthQueryRecoveryMintClaim, WorthQueryRecoveryRegistrySlot,
+    WorthQueryRecoveryResourceTerminal,
 };
 pub use safe_point_observation::{
     WorthQueryManagedSafePointFailure, WorthQueryManagedSafePointFailureKind,

@@ -51,32 +51,30 @@ pub fn pending_payments_definition() -> ApplicationQueryDefinition<
     Principal,
 > {
     let identity = payment_identity();
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        PendingPaymentsQuery::reference(),
-        PaymentIntent::reference(),
-        Principal::reference(),
-        payment_summary_shape().build(),
-        ApplicationQueryCardinality::Many,
-        ApplicationQueryDependencyCeiling::bounded(3, 9, 8),
-        ApplicationQueryDisclosureContract::public(),
-        ApplicationQueryBasisSupport::current_and_pinned(),
-        ApplicationQueryLaneEligibility::one_shot(),
-        DiscoverOwnAccounts::reference(),
-    )
-    .root_path(
-        ApplicationQueryRootPath::from(Principal::reference())
-            .forward(AccountAuthorizedUser::reference())
-            .where_equal(AuthorizationRole::reference(), CustomerRole::Approver)
-            .forward(AuthorizationAccount::reference())
-            .reverse(PaymentSource::reference())
-            .where_equal(
-                PaymentStatusField::reference(),
-                PaymentStatus::ApprovalRequired,
-            ),
-    )
-    .order_by(identity, ApplicationQueryOrderingDirection::Ascending)
-    .build()
-    .expect("bank pending payments query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(PendingPaymentsQuery::reference())
+        .root(PaymentIntent::reference())
+        .scope(Principal::reference())
+        .result_shape(payment_summary_shape().build())
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(3, 9, 8))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(DiscoverOwnAccounts::reference())
+        .root_path(
+            ApplicationQueryRootPath::from(Principal::reference())
+                .forward(AccountAuthorizedUser::reference())
+                .where_equal(AuthorizationRole::reference(), CustomerRole::Approver)
+                .forward(AuthorizationAccount::reference())
+                .reverse(PaymentSource::reference())
+                .where_equal(
+                    PaymentStatusField::reference(),
+                    PaymentStatus::ApprovalRequired,
+                ),
+        )
+        .order_by(identity, ApplicationQueryOrderingDirection::Ascending)
+        .build()
+        .expect("bank pending payments query is statically canonical")
 }
 
 impl WorthQueryApplicationProjection<BankSchema, PendingPaymentsQuery> for PaymentSummary {

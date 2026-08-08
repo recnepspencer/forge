@@ -22,7 +22,7 @@ pub enum WorthQueryPortableOperationDimension {
     Invariants,
     InvariantExecution,
     Replay,
-    Reversal,
+    Aftermath,
     Lineage,
     Promotion,
     Publication,

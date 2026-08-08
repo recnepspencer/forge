@@ -136,34 +136,35 @@ pub(super) fn governed_live_account_definition() -> ApplicationQueryDefinition<
         CapabilityDisclosure::AccountActivity,
         influence,
     );
-    ApplicationQueryDefinitionBuilder::public(
-        GovernedLiveAccountActivityQuery::reference(),
-        Account::reference(),
-        Account::reference(),
-        shape,
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 4),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview()
-            .with_live(),
-    )
-    .parameter(account_parameter())
-    .where_equal(AccountIdentity::reference(), account_parameter())
-    .order_by(
-        activity_sequence(),
-        ApplicationQueryOrderingDirection::Ascending,
-    )
-    .continue_by(activities())
-    .live_by::<Activity, GovernedLiveAccountActivityCause, _, _, _, _, _, _, _, _>(
-        account_identity(),
-        activity_identity(),
-        ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
-    )
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(GovernedLiveAccountActivityQuery::reference())
+        .root(Account::reference())
+        .scope(Account::reference())
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 4))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_preview()
+                .with_live(),
+        )
+        .public()
+        .parameter(account_parameter())
+        .where_equal(AccountIdentity::reference(), account_parameter())
+        .order_by(
+            activity_sequence(),
+            ApplicationQueryOrderingDirection::Ascending,
+        )
+        .continue_by(activities())
+        .live_by::<Activity, GovernedLiveAccountActivityCause, _, _, _, _, _, _, _, _>(
+            account_identity(),
+            activity_identity(),
+            ApplicationQueryLiveResourceContract::bounded(4, 2_048, 4_096),
+        )
+        .build()
+        .unwrap()
 }
 
 impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedLiveAccountActivityQuery>
@@ -243,7 +244,7 @@ fn account_identity() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
@@ -258,7 +259,7 @@ fn account_label() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadWrite,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("label", AccountLabel::reference())
 }
@@ -273,7 +274,7 @@ fn activity_identity() -> ApplicationQueryResultFieldRef<
     String,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::EqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("activity", ActivityIdentity::reference())
 }
@@ -288,7 +289,7 @@ fn activity_sequence() -> ApplicationQueryResultFieldRef<
     u64,
     worth_query_declaration::facade::application_schema::ReadOnly,
     worth_query_declaration::facade::application_schema::NoEqualityPredicate,
-    worth_query_declaration::facade::application_schema::NoApplicationCurrency,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryResultFieldRef::new("sequence", ActivitySequence::reference())
 }

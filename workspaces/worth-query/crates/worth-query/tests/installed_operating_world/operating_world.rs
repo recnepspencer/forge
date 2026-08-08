@@ -222,7 +222,7 @@ fn independent_equal_role_providers_deny_before_provider_contact() {
 }
 
 #[test]
-fn separately_committed_graphs_bind_only_with_declared_compensation() {
+fn separately_committed_graphs_deny_without_domain_aftermath_compensation() {
     let contacts = Arc::new(AtomicUsize::new(0));
     let workspace = configured_runtime_for_partial_effect_package(federated_touch_package::<
         RemoteA,
@@ -251,15 +251,21 @@ fn separately_committed_graphs_bind_only_with_declared_compensation() {
     .workspace("operating-world-compensated-commit")
     .unwrap();
     let installed_domain = workspace.domain(GeometryDomain).unwrap();
-    let bound = workspace
+    // Domain operations cannot yet carry aftermath from an installed declaration
+    // (the retired caller-authored domain installer is closed). Separate-commit
+    // mutation therefore fails closed until that honest path exists.
+    let denial = match workspace
         .prepare_mutation_operating_world()
         .unwrap()
         .family(ReadFamily)
         .bind(&installed_domain, FederatedRead)
-        .unwrap();
+    {
+        Ok(_) => panic!("separate commits must deny without domain aftermath compensation"),
+        Err(denial) => denial,
+    };
     assert_eq!(
-        bound.commit_posture(),
-        domain::WorthQueryBoundCommitPosture::Compensated
+        denial.kind(),
+        domain::WorthQueryOperationBindingDenialKind::CompensationUndeclared
     );
     assert_eq!(contacts.load(Ordering::Relaxed), 0);
 }

@@ -1,5 +1,5 @@
 use super::capabilities::{
-    ApplicationFieldCurrency, OperationCreates, OperationDeletes, OperationEmits, OperationLinks,
+    ApplicationFieldUnit, OperationCreates, OperationDeletes, OperationEmits, OperationLinks,
     OperationUnlinks, OperationWrites,
 };
 use super::references::{
@@ -44,25 +44,15 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         )
     }
 
-    pub fn operation_write<
-        Operation,
-        Input,
-        Entity,
-        Aspect,
-        Field,
-        Value,
-        Write,
-        Equality,
-        Currency,
-    >(
+    pub fn operation_write<Operation, Input, Entity, Aspect, Field, Value, Write, Equality, Unit>(
         self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: OperationWrites<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.program(
             operation.name(),

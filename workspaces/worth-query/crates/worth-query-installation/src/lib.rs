@@ -8,6 +8,7 @@
 
 mod admission;
 mod application_ability;
+mod application_aftermath;
 mod application_capability;
 mod application_operation;
 mod application_principal_binding;
@@ -75,8 +76,8 @@ pub mod facade {
     pub use worth_query_declaration::facade::application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathEffect,
         ApplicationAuthorizationPredicate, ApplicationAuthorizationTraversal,
-        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldCurrency,
-        ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+        ApplicationAuthorizationTraversalDirection, ApplicationEntityRef, ApplicationFieldPresence,
+        ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationDecisionReadTarget,
         ApplicationOperationProgramTarget, ApplicationRelationRef, ApplicationSchema,
         ApplicationSchemaBindingIdentity, ApplicationSchemaMember, EqualityPosture,
         EqualityPredicate, ErasedApplicationSchemaDeclaration, OperationCreates, OperationDeletes,
@@ -99,6 +100,20 @@ pub mod facade {
     pub use crate::application_ability::{
         WorthQueryAbilityInstallationDenial, WorthQueryAbilityInstallationDenialKind,
         WorthQueryInstalledAbility,
+    };
+    pub use crate::application_aftermath::{
+        aftermath_owner_identity_digest, derive_published_posture,
+        AftermathLoweringCorrespondenceCatalog, CompensatableNextActionContract,
+        CompensateNextAction, InstalledAftermathNextActionContract,
+        InstalledAftermathPostcondition, InstalledAftermathRecoveryContract, InstalledCompensation,
+        InstalledCorrectionAuthority, InstalledCorrectionMechanism,
+        InstalledExternalEffectContract, InstalledExternalEffectPosture,
+        InstalledLoweringCorrespondence, InstalledLoweringCorrespondenceRef,
+        InstalledPreImageDemand, InstalledRecordedInverse, IrreversibleNextActionContract,
+        PublishedAftermathPosture, ReconcilableNextActionContract, ReconcileNextAction,
+        ReversibleNextActionContract, UndoViaRecordedInverse, WorthQueryAftermathCanonicalArtifact,
+        WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
+        WorthQueryInstalledAftermathContract, WorthQueryInstalledAftermathIdentity,
     };
     pub use crate::application_capability::{
         derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,

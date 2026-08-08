@@ -9,8 +9,8 @@ use worth_relational::facade::authorization::{
 use super::super::capability_registry::WorthQueryInstalledCapabilityPlan;
 use super::super::retained_capability_request::WorthQueryRetainedCapabilityRequest;
 use super::super::{
-    WorthQueryAuthorizationTimeSample, WorthQueryOperationAuthorizationDenial,
-    WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryOperationAuthorizationDenial, WorthQueryOperationAuthorizationDenialKind,
+    WorthQueryRuntimeTimeSample,
 };
 
 pub(super) struct ObservedDelegationTransition {
@@ -24,7 +24,7 @@ pub(super) fn observe_transition(
     snapshot: worth_relational::facade::snapshots::SnapshotHandle,
     installed: &WorthQueryInstalledCapabilityPlan,
     request: &WorthQueryRetainedCapabilityRequest,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
     child: worth_relational::facade::identity::EntityId,
     parent: worth_relational::facade::identity::EntityId,
 ) -> Result<ObservedDelegationTransition, WorthQueryOperationAuthorizationDenial> {
@@ -95,7 +95,7 @@ pub(super) fn observe_transition(
 
 fn parent_predicates(
     installed: &WorthQueryInstalledCapabilityPlan,
-    sample: &WorthQueryAuthorizationTimeSample,
+    sample: &WorthQueryRuntimeTimeSample,
 ) -> Vec<RelationalAuthorizationPredicate> {
     vec![
         RelationalAuthorizationPredicate::new(
@@ -164,7 +164,7 @@ fn narrowing_constraints(
             RelationalAuthorizationFieldComparison::Equal,
         ));
     }
-    if let Some(amount) = &bindings.amount {
+    if let Some(amount) = &bindings.magnitude {
         constraints.push(constraint(
             installed,
             amount,

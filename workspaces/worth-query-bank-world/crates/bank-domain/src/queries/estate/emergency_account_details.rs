@@ -88,20 +88,20 @@ pub fn estate_emergency_account_details_definition() -> ApplicationQueryDefiniti
     .disclose_field_by(account_identity(), field, influence.clone())
     .disclose_field_by(account_name(), field, influence.clone())
     .disclose_field_by(account_status(), field, influence);
-    ApplicationQueryDefinitionBuilder::requires_ability(
-        EstateEmergencyAccountDetailsQuery::reference(),
-        EstateCase::reference(),
-        EstateCase::reference(),
-        emergency_account_details_shape(),
-        ApplicationQueryCardinality::ExactlyOne,
-        ApplicationQueryDependencyCeiling::bounded(1, 1, 3),
-        disclosure,
-        ApplicationQueryBasisSupport::current_and_pinned().with_preview(),
-        ApplicationQueryLaneEligibility::one_shot()
-            .with_historical()
-            .with_preview(),
-        ViewEstateCase::reference(),
-    )
-    .build()
-    .expect("estate emergency account details query is statically canonical")
+    ApplicationQueryDefinitionBuilder::declare(EstateEmergencyAccountDetailsQuery::reference())
+        .root(EstateCase::reference())
+        .scope(EstateCase::reference())
+        .result_shape(emergency_account_details_shape())
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 3))
+        .disclosure(disclosure)
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned().with_preview())
+        .lanes(
+            ApplicationQueryLaneEligibility::one_shot()
+                .with_historical()
+                .with_preview(),
+        )
+        .requires_ability(ViewEstateCase::reference())
+        .build()
+        .expect("estate emergency account details query is statically canonical")
 }

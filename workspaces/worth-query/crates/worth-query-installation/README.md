@@ -10,9 +10,9 @@ Use its facade:
 use worth_query_installation::facade::*;
 ```
 
-Most application and domain consumers should use the same types through
-`worth_query::facade::domain` or `worth_query_host::facade::domain`. Import this
-crate directly only when working on installation meaning itself.
+Application and domain consumers use the same types through
+`worth_query_host::facade::domain`. Import this crate directly only when
+working on installation meaning itself.
 
 ## Portable Meaning Only
 
@@ -43,7 +43,7 @@ Portable definitions must remain callback-free and runtime-independent.
 and family marker types to `WorthQueryDomainOperationSemanticClosure`.
 
 The closure states parameters, canonical query and result shape, graph reads,
-touches/effects, workflow, conditional nodes, replay, reversal, lineage,
+touches/effects, workflow, conditional nodes, replay, lineage,
 promotion, publication, support, terminal states, failure classes, cost, and
 deterministic lowering identity.
 
@@ -71,6 +71,6 @@ from portable installed artifacts without changing identity or denial outcomes.
 - [Runtime-Installed Domains And Operations](../worth-query/docs/domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../worth-query/docs/domain-capabilities/conditional-installed-operations.md)
 - [Installed Operation Re-Execution And Replay](../worth-query/docs/domain-capabilities/installed-operation-reexecution-and-replay.md)
-- [Installed Operation Aftermath](../worth-query/docs/domain-capabilities/installed-operation-aftermath.md)
+- [Typed Stops And Remediation Guidance](../worth-query/docs/domain-capabilities/typed-stops-and-remediation-guidance.md)
 - [Installed Operation Lineage And Promotion](../worth-query/docs/domain-capabilities/installed-operation-lineage-and-promotion.md)
 - [Worth Query Orientation](../worth-query/docs/AI_README.md)

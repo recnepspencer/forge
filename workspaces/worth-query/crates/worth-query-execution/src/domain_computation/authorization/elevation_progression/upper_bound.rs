@@ -71,8 +71,8 @@ impl WorthQueryElevationUpperBound {
         self.request.field.as_ref()
     }
 
-    pub(in crate::domain_computation) const fn amount(&self) -> Option<&AspectValue> {
-        self.request.amount.as_ref()
+    pub(in crate::domain_computation) const fn magnitude(&self) -> Option<&AspectValue> {
+        self.request.magnitude.as_ref()
     }
 
     pub(in crate::domain_computation) const fn cardinality(&self) -> u32 {
@@ -95,7 +95,7 @@ impl WorthQueryElevationUpperBound {
             && request.related_relation == self.request.related_relation
             && request.related == self.request.related
             && request.field == self.request.field
-            && request.amount == self.request.amount
+            && request.magnitude == self.request.magnitude
             && request.cardinality == self.request.cardinality
             && request.context_name == self.request.context_name
             && request.context_type == self.request.context_type

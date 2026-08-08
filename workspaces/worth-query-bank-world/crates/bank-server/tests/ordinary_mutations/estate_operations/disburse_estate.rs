@@ -1,5 +1,5 @@
 #[path = "disburse_estate/fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 #[path = "disburse_estate/hostility.rs"]
 mod hostility;
 

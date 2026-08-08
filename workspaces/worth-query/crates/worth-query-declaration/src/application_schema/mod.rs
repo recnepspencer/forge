@@ -18,6 +18,7 @@ mod declaration;
 mod declaration_denial;
 mod effect_authoring;
 mod effect_payload;
+mod external_effect_protocol;
 mod field_presence;
 mod identifier_validation;
 mod member_closure;
@@ -25,7 +26,10 @@ mod mutation_authoring;
 mod mutation_intent_traits;
 mod mutation_precondition;
 mod mutation_precondition_authoring;
+mod operation_contract_cardinality;
+mod operation_definition;
 mod operation_program;
+mod principal_binding_authoring;
 mod principal_binding_reference;
 mod query_member_closure;
 mod read_authoring;
@@ -43,7 +47,11 @@ mod application_query_lifecycle_identity_tests;
 #[cfg(test)]
 mod capability_member_closure_tests;
 #[cfg(test)]
+mod external_effect_closure_tests;
+#[cfg(test)]
 mod field_presence_tests;
+#[cfg(test)]
+mod operation_contract_cardinality_tests;
 
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
@@ -60,9 +68,9 @@ pub use authorization_policy::{
 };
 pub use binding_identity::ApplicationSchemaBindingIdentity;
 pub use capabilities::{
-    ApplicationCurrencyMarker, ApplicationFieldCurrency, CreatableBy, DeclaredApplicationCurrency,
-    EqualityCapable, EqualityPosture, EqualityPredicate, NoApplicationCurrency,
-    NoEqualityPredicate, OperationCreates, OperationDeletes, OperationEmits, OperationExpectsFact,
+    ApplicationFieldUnit, ApplicationUnitMarker, CreatableBy, DeclaredApplicationUnit,
+    EqualityCapable, EqualityPosture, EqualityPredicate, NoApplicationUnit, NoEqualityPredicate,
+    OperationCreates, OperationDeletes, OperationEmits, OperationExpectsFact,
     OperationExpectsVersion, OperationLinks, OperationReads, OperationRequiresAbility,
     OperationUnlinks, OperationWrites, ReadOnly, ReadWrite, WritableCapability, WritePosture,
 };
@@ -72,7 +80,8 @@ pub use declaration::{
 };
 pub use declaration_denial::ApplicationSchemaDeclarationDenial;
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
-pub use effect_payload::ApplicationEffectPayload;
+pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayload};
+pub use external_effect_protocol::ApplicationExternalEffectProtocol;
 pub use field_presence::ApplicationFieldPresence;
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
@@ -82,15 +91,23 @@ pub use mutation_precondition::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,
     TypedMutationPrecondition, TypedMutationPreconditions,
 };
+pub use operation_definition::{
+    ApplicationOperationDefinition, ApplicationOperationDefinitionBuilder,
+};
+pub use principal_binding_authoring::{
+    ApplicationPrincipalBindingRequirements, ApplicationPrincipalIdentityRequirement,
+    ApplicationPrincipalMappingIdentityRequirement, ApplicationPrincipalMappingStatusRequirement,
+    ApplicationPrincipalTargetRequirement,
+};
 pub use principal_binding_reference::ApplicationPrincipalBindingRef;
 pub use read_authoring::{
     TypedEqualityPredicate, TypedProjection, TypedReadDeclaration, TypedReadDeclarationBuilder,
     TypedTraversal,
 };
 pub use references::{
-    ApplicationAbilityRef, ApplicationAspectRef, ApplicationCurrencyRef, ApplicationEffectRef,
-    ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef,
-    ApplicationRelationRef,
+    ApplicationAbilityRef, ApplicationAspectRef, ApplicationEffectRef, ApplicationEntityRef,
+    ApplicationFieldRef, ApplicationOperationRef, ApplicationPolicyRef, ApplicationRelationRef,
+    ApplicationUnitRef,
 };
 pub use schema_identity::ApplicationSchemaIdentity;
 pub use schema_member::{
@@ -100,5 +117,5 @@ pub use schema_member::{
 pub use values::{
     DeclaredApplicationFieldValue, OptionalApplicationFieldValue, RequiredApplicationFieldValue,
     TypedApplicationIdentityValue, TypedApplicationReadableValue,
-    TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedCurrencyApplicationValue,
+    TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedUnitApplicationValue,
 };

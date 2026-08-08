@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationFieldCurrency, ApplicationFieldRef, ApplicationSchema, EqualityPredicate,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationSchema, EqualityPredicate,
     OperationReads, TypedApplicationValue, WritePosture,
 };
 
@@ -211,7 +211,7 @@ where
 impl<Schema, Operation, Input, Scope, Phase>
     WorthQueryApplicationReadAttempt<Schema, Operation, Input, Scope, Phase>
 {
-    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Currency>(
+    pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(
         &self,
         field: ApplicationFieldRef<
             Schema,
@@ -221,7 +221,7 @@ impl<Schema, Operation, Input, Scope, Phase>
             Value,
             Write,
             EqualityPredicate,
-            Currency,
+            Unit,
         >,
         value: Value,
     ) -> Result<
@@ -232,7 +232,7 @@ impl<Schema, Operation, Input, Scope, Phase>
         Field: OperationReads<Operation>,
         Value: TypedApplicationValue,
         Write: WritePosture,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         let layout = self
             .layout

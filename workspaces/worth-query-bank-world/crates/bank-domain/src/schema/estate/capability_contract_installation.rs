@@ -1,22 +1,27 @@
 use worth_query_decl::facade::{
     application_capability::{
-        ApplicationCapabilityAmountDimension, ApplicationCapabilityCardinalityDimension,
-        ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityCardinalityDimension, ApplicationCapabilityConstraintDefinition,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
         ApplicationCapabilityDelegationActivationDefinition,
         ApplicationCapabilityDelegationDefinition, ApplicationCapabilityFieldBinding,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityRelationBinding,
-        ApplicationCapabilityRelationDimension, ApplicationCapabilityRevocationDefinition,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
-        ApplicationCapabilityWorkflowDefinition,
+        ApplicationCapabilityFieldDimension, ApplicationCapabilityMagnitudeDimension,
+        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
+        ApplicationCapabilityRevocationDefinition, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
     },
-    application_schema::ApplicationSchemaDeclarationBuilder,
+    application_schema::{
+        ApplicationOperationDefinition, ApplicationOperationRef,
+        ApplicationSchemaDeclarationBuilder, OperationEmits,
+    },
 };
 
 use super::*;
 use crate::{
-    estate::{CapabilityGrantStatus, EstateCapabilityOperation, EstateCapabilityPurpose},
+    estate::{
+        declared_aftermath_for, CapabilityGrantStatus, EstateAction, EstateCapabilityOperation,
+        EstateCapabilityPurpose, ESTATE_DEATH_NOTICE_RAIL,
+    },
     schema::BankSchema,
 };
 
@@ -38,12 +43,12 @@ macro_rules! field_dimension {
     };
 }
 
-macro_rules! amount_dimension {
-    (amount) => {
-        ApplicationCapabilityAmountDimension::bound(CapabilityAmountCeilingField::reference())
+macro_rules! magnitude_dimension {
+    (magnitude) => {
+        ApplicationCapabilityMagnitudeDimension::bound(CapabilityAmountCeilingField::reference())
     };
-    (no_amount) => {
-        ApplicationCapabilityAmountDimension::not_applicable()
+    (no_magnitude) => {
+        ApplicationCapabilityMagnitudeDimension::not_applicable()
     };
 }
 
@@ -56,7 +61,7 @@ macro_rules! install_contract {
         $purpose:expr,
         $relation:ident,
         $field:ident,
-        $amount:ident
+        $magnitude:ident
     ) => {{
         let contract = ApplicationCapabilityContractBuilder::new(
             $capability::reference(),
@@ -69,7 +74,7 @@ macro_rules! install_contract {
             relation_dimension!($relation),
             field_dimension!($field),
         ))
-        .constraints(constraints(amount_dimension!($amount)))
+        .constraints(constraints(magnitude_dimension!($magnitude)))
         .delegation(delegation())
         .composition(super::capability_composition::composition(
             $action, $purpose,
@@ -90,136 +95,31 @@ macro_rules! install_view_contract {
             $purpose,
             no_relation,
             field,
-            no_amount
+            no_magnitude
         )
     };
 }
+
+#[path = "capability_contract_installation/delegation_contracts.rs"]
+mod delegation_contracts;
+#[path = "capability_contract_installation/emergency_access_contracts.rs"]
+mod emergency_access_contracts;
+#[path = "capability_contract_installation/estate_lifecycle_contracts.rs"]
+mod estate_lifecycle_contracts;
+#[path = "capability_contract_installation/restricted_view_contracts.rs"]
+mod restricted_view_contracts;
+#[path = "capability_contract_installation/settlement_contracts.rs"]
+mod settlement_contracts;
 
 pub(super) fn install(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
     let schema = install_capability_dimensions(install_operations(schema));
-    let schema = install_contract!(
-        schema,
-        NotifyDeathEstateCapability,
-        NotifyDeathEstateOperation,
-        EstateCapabilityOperation::NotifyDeath,
-        EstateCapabilityPurpose::EstateAdministration,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        FreezeEstateAccountCapability,
-        FreezeEstateAccountOperation,
-        EstateCapabilityOperation::FreezeAccount,
-        EstateCapabilityPurpose::EstateAdministration,
-        account_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        OpenEstateCaseCapability,
-        OpenEstateCaseOperation,
-        EstateCapabilityOperation::OpenEstateCase,
-        EstateCapabilityPurpose::EstateAdministration,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        RecognizeEstateExecutorCapability,
-        RecognizeEstateExecutorOperation,
-        EstateCapabilityOperation::RecognizeExecutor,
-        EstateCapabilityPurpose::LegalCompliance,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        DelegateEstateCapability,
-        DelegateEstateCapabilityOperation,
-        EstateCapabilityOperation::DelegateCapability,
-        EstateCapabilityPurpose::EstateAdministration,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        RevokeEstateCapability,
-        RevokeEstateCapabilityOperation,
-        EstateCapabilityOperation::RevokeCapability,
-        EstateCapabilityPurpose::EstateAdministration,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        RequestEstateEmergencyAccessCapability,
-        RequestEstateEmergencyAccessOperation,
-        EstateCapabilityOperation::RequestEmergencyAccess,
-        EstateCapabilityPurpose::EmergencyProtection,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        ApproveEstateEmergencyAccessCapability,
-        ApproveEstateEmergencyAccessOperation,
-        EstateCapabilityOperation::ApproveEmergencyAccess,
-        EstateCapabilityPurpose::EmergencyProtection,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        RevokeEstateEmergencyAccessCapability,
-        RevokeEstateEmergencyAccessOperation,
-        EstateCapabilityOperation::RevokeEmergencyAccess,
-        EstateCapabilityPurpose::EmergencyProtection,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        CompleteEstateMandatoryReviewCapability,
-        CompleteEstateMandatoryReviewOperation,
-        EstateCapabilityOperation::CompleteMandatoryReview,
-        EstateCapabilityPurpose::MandatoryReview,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        ReleaseEstateCapability,
-        ReleaseEstateOperation,
-        EstateCapabilityOperation::ReleaseEstate,
-        EstateCapabilityPurpose::EstateAdministration,
-        no_relation,
-        no_field,
-        no_amount
-    );
-    let schema = install_contract!(
-        schema,
-        DisburseEstateCapability,
-        DisburseEstateOperation,
-        EstateCapabilityOperation::DisburseEstate,
-        EstateCapabilityPurpose::EstateDisbursement,
-        account_relation,
-        no_field,
-        amount
-    );
-    install_view_contracts(schema)
+    let schema = estate_lifecycle_contracts::install(schema);
+    let schema = delegation_contracts::install(schema);
+    let schema = emergency_access_contracts::install(schema);
+    let schema = settlement_contracts::install(schema);
+    restricted_view_contracts::install(schema)
 }
 
 fn install_capability_dimensions(
@@ -237,49 +137,107 @@ fn install_operations(
     schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
 ) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
     schema
-        .operation(NotifyDeathEstateOperation::reference())
-        .operation(FreezeEstateAccountOperation::reference())
-        .operation(OpenEstateCaseOperation::reference())
-        .operation(RecognizeEstateExecutorOperation::reference())
-        .operation(DelegateEstateCapabilityOperation::reference())
-        .operation(RevokeEstateCapabilityOperation::reference())
-        .operation(RequestEstateEmergencyAccessOperation::reference())
-        .operation(ApproveEstateEmergencyAccessOperation::reference())
-        .operation(RevokeEstateEmergencyAccessOperation::reference())
-        .operation(CompleteEstateMandatoryReviewOperation::reference())
-        .operation(ReleaseEstateOperation::reference())
-        .operation(DisburseEstateOperation::reference())
-        .operation(ViewRestrictedEstateOperation::reference())
+        .operation(escaping_operation(
+            NotifyDeathEstateOperation::reference(),
+            EstateCapabilityOperation::NotifyDeath,
+        ))
+        .operation(escaping_operation(
+            RetransmitDeathNoticeEstateOperation::reference(),
+            EstateCapabilityOperation::RetransmitDeathNotice,
+        ))
+        .operation(contained_operation(
+            FreezeEstateAccountOperation::reference(),
+            EstateCapabilityOperation::FreezeAccount,
+        ))
+        .operation(contained_operation(
+            OpenEstateCaseOperation::reference(),
+            EstateCapabilityOperation::OpenEstateCase,
+        ))
+        .operation(contained_operation(
+            RecognizeEstateExecutorOperation::reference(),
+            EstateCapabilityOperation::RecognizeExecutor,
+        ))
+        .operation(contained_operation(
+            DelegateEstateCapabilityOperation::reference(),
+            EstateCapabilityOperation::DelegateCapability,
+        ))
+        .operation(contained_operation(
+            RevokeEstateCapabilityOperation::reference(),
+            EstateCapabilityOperation::RevokeCapability,
+        ))
+        .operation(contained_operation(
+            RequestEstateEmergencyAccessOperation::reference(),
+            EstateCapabilityOperation::RequestEmergencyAccess,
+        ))
+        .operation(contained_operation(
+            ApproveEstateEmergencyAccessOperation::reference(),
+            EstateCapabilityOperation::ApproveEmergencyAccess,
+        ))
+        .operation(contained_operation(
+            RevokeEstateEmergencyAccessOperation::reference(),
+            EstateCapabilityOperation::RevokeEmergencyAccess,
+        ))
+        .operation(contained_operation(
+            CompleteEstateMandatoryReviewOperation::reference(),
+            EstateCapabilityOperation::CompleteMandatoryReview,
+        ))
+        .operation(contained_operation(
+            ReleaseEstateOperation::reference(),
+            EstateCapabilityOperation::ReleaseEstate,
+        ))
+        .operation(contained_operation(
+            DisburseEstateOperation::reference(),
+            EstateCapabilityOperation::DisburseEstate,
+        ))
+        .operation(contained_operation(
+            ViewRestrictedEstateOperation::reference(),
+            EstateCapabilityOperation::ViewRestrictedEstate,
+        ))
 }
 
-fn install_view_contracts(
-    schema: ApplicationSchemaDeclarationBuilder<BankSchema>,
-) -> ApplicationSchemaDeclarationBuilder<BankSchema> {
-    let schema = install_view_contract!(
-        schema,
-        ViewEstateAdministrationCapability,
-        EstateCapabilityPurpose::EstateAdministration
-    );
-    let schema = install_view_contract!(
-        schema,
-        ViewEstateIdentityVerificationCapability,
-        EstateCapabilityPurpose::IdentityVerification
-    );
-    let schema = install_view_contract!(
-        schema,
-        ViewEstateLegalComplianceCapability,
-        EstateCapabilityPurpose::LegalCompliance
-    );
-    let schema = install_view_contract!(
-        schema,
-        ViewEstateEmergencyProtectionCapability,
-        EstateCapabilityPurpose::EmergencyProtection
-    );
-    install_view_contract!(
-        schema,
-        ViewEstateMandatoryReviewCapability,
-        EstateCapabilityPurpose::MandatoryReview
-    )
+fn contained_operation<Operation>(
+    operation: ApplicationOperationRef<BankSchema, Operation, EstateAction>,
+    capability: EstateCapabilityOperation,
+) -> ApplicationOperationDefinition<BankSchema, Operation, EstateAction> {
+    match declared_aftermath_for(capability) {
+        Some(contract) => operation
+            .definition()
+            .no_external_effect()
+            .aftermath(contract)
+            .finish(),
+        None => operation
+            .definition()
+            .no_external_effect()
+            .no_aftermath()
+            .finish(),
+    }
+}
+
+fn escaping_operation<Operation>(
+    operation: ApplicationOperationRef<BankSchema, Operation, EstateAction>,
+    capability: EstateCapabilityOperation,
+) -> ApplicationOperationDefinition<BankSchema, Operation, EstateAction>
+where
+    EstateDeathNotificationEffect: OperationEmits<Operation>,
+{
+    match declared_aftermath_for(capability) {
+        Some(contract) => operation
+            .definition()
+            .external_effect(
+                EstateDeathNotificationEffect::reference(),
+                ESTATE_DEATH_NOTICE_RAIL,
+            )
+            .aftermath(contract)
+            .finish(),
+        None => operation
+            .definition()
+            .external_effect(
+                EstateDeathNotificationEffect::reference(),
+                ESTATE_DEATH_NOTICE_RAIL,
+            )
+            .no_aftermath()
+            .finish(),
+    }
 }
 
 fn target(
@@ -298,10 +256,10 @@ fn target(
 }
 
 fn constraints(
-    amount: ApplicationCapabilityAmountDimension,
+    magnitude: ApplicationCapabilityMagnitudeDimension,
 ) -> ApplicationCapabilityConstraintDefinition {
     ApplicationCapabilityConstraintDefinition::new(
-        amount,
+        magnitude,
         ApplicationCapabilityCardinalityDimension::One,
         ApplicationCapabilityCurrentnessDefinition::new(
             ApplicationCapabilityValueBinding::new(

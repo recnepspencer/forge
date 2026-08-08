@@ -1,10 +1,14 @@
+use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationAspectRef, ApplicationAuthorizationPathBuilder,
     ApplicationEntityRef, ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef,
-    ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationRelationRef,
-    ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
-    DeclaredApplicationFieldValue, EqualityPredicate, NoEqualityPredicate, OperationCreates,
-    OperationExpectsFact, OperationReads, OperationRequiresAbility, ReadOnly, ReadWrite,
+    ApplicationPolicyRef, ApplicationPrincipalBindingRef, ApplicationPrincipalBindingRequirements,
+    ApplicationPrincipalIdentityRequirement, ApplicationPrincipalMappingIdentityRequirement,
+    ApplicationPrincipalMappingStatusRequirement, ApplicationPrincipalTargetRequirement,
+    ApplicationRelationRef, ApplicationSchema, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, DeclaredApplicationFieldValue, EqualityPredicate,
+    NoEqualityPredicate, OperationCreates, OperationExpectsFact, OperationReads,
+    OperationRequiresAbility, ReadOnly, ReadWrite,
 };
 use worth_query_declaration::facade::authentication::{
     WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -18,9 +22,13 @@ use crate::facade::{
     WorthQueryPortableDomainPackage,
 };
 
+mod aftermath_coverage;
 mod operation_contracts;
 mod package_schema_identity;
+mod principal_binding;
 mod read_only_operations;
+
+use principal_binding::test_principal_binding;
 
 struct TestSchema;
 struct DriftedSchema;
@@ -65,7 +73,7 @@ impl ApplicationSchema for TestSchema {
         ApplicationSchemaDeclaration<Self>,
         worth_query_declaration::facade::application_schema::ApplicationSchemaDeclarationDenial,
     > {
-        test_schema_members::<Self>().build()
+        test_schema_members::<Self>(None).build()
     }
 }
 
@@ -79,7 +87,7 @@ impl ApplicationSchema for DriftedSchema {
         ApplicationSchemaDeclaration<Self>,
         worth_query_declaration::facade::application_schema::ApplicationSchemaDeclarationDenial,
     > {
-        test_schema_members::<Self>()
+        test_schema_members::<Self>(None)
             .entity(
                 ApplicationEntityRef::<Self, AddedEntity>::from_schema_identifier("AddedEntity"),
             )
@@ -87,7 +95,9 @@ impl ApplicationSchema for DriftedSchema {
     }
 }
 
-fn test_schema_members<Schema>() -> ApplicationSchemaDeclarationBuilder<Schema>
+fn test_schema_members<Schema>(
+    aftermath: Option<DeclaredApplicationAftermathContract>,
+) -> ApplicationSchemaDeclarationBuilder<Schema>
 where
     Schema: ApplicationSchema,
 {
@@ -100,6 +110,18 @@ where
         ApplicationOperationRef::<Schema, TestOperation, TestInput>::from_schema_identifier(
             "TestOperation",
         );
+    let operation_definition = match aftermath {
+        Some(contract) => operation
+            .definition()
+            .no_external_effect()
+            .aftermath(contract)
+            .finish(),
+        None => operation
+            .definition()
+            .no_external_effect()
+            .no_aftermath()
+            .finish(),
+    };
     ApplicationSchemaDeclarationBuilder::<Schema>::for_schema()
         .entity(entity)
         .aspect(
@@ -153,26 +175,7 @@ where
             entity,
             entity,
         )
-        .principal_binding(
-            ApplicationPrincipalBindingRef::<
-                Schema,
-                PrincipalBinding,
-                TestEntity,
-                TestEntity,
-                u64,
-            >::from_schema_identifiers(
-                "PrincipalBinding",
-                "TestEntity",
-                "IdentityAspect",
-                "ExternalIdentityField",
-                "IdentityAspect",
-                "MappingStatusField",
-                "MappingTarget",
-                "TestEntity",
-                "IdentityAspect",
-                "PrincipalIdentityField",
-            ),
-        )
+        .principal_binding(test_principal_binding::<Schema>())
         .policy(ApplicationPolicyRef::<Schema, TestPolicy>::from_schema_identifier(
             "TestPolicy",
         ))
@@ -182,7 +185,7 @@ where
             ApplicationPolicyRef::<Schema, TestPolicy>::from_schema_identifier("TestPolicy"),
             [ApplicationAuthorizationPathBuilder::from_principal(entity).allow(entity)],
         )
-        .operation(operation)
+        .operation(operation_definition)
         .operation_decision_fact_budget(operation, 1)
         .operation_projection_work_budget(operation, 32)
         .operation_requires_ability(operation, ability)

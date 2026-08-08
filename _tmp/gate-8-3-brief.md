@@ -1,0 +1,202 @@
+# Task Brief: Implement Runtime Phase 8 Gate 8.3
+
+Gates 8.1 and 8.2 are closed and independently audited. Gate 8.2 built
+`bank-external-rail` — a real separate-process external boundary whose
+dependency list is `serde`, `serde_json`, `tokio` and nothing else, so it
+structurally cannot reach the runtime's truth source. Seven typed external
+postures exist with causal links. You are continuing into Gate 8.3.
+
+## Mandatory reading
+
+Re-read if your context has rolled: `AGENTS.md`, all of
+`_docs/coding_guidelines/`, and
+`workspaces/worth-query/crates/worth-query/docs/AI_README.md`.
+
+Your governing specification is
+`_docs/WORTH-query/milestone-9.16-runtime-phase-8.md`. §9 Gate 8.3 is binding.
+These sections constrain it directly:
+
+- **§10 Self-Support Obligations** — read this in full before designing
+  anything. It is new since Gate 8.2 and three of its requirements land on you.
+- **§5 G5** — the inherited resolution taxonomy that `resolve` must return.
+- **§5 G6 / R8.7** — the single time source. Gate 8.2 generalized it by rename.
+  You are its first expiry consumer, which reopens two of its rows.
+- **§8** — the counter contract. R8.33's three zeros are exact, not approximate.
+- **§3** — the existing managed-run registry. You register in it. You do not
+  build a second one.
+
+The Phase 8 closure ledger is
+`_docs/WORTH-query/milestone-9.16-runtime-phase-8-closure-ledger.md`. It records
+what 8.1 and 8.2 proved, and four open findings (Q8.1, Q8.3, Q8.4, Q8.5). Two
+of them are yours.
+
+## Mandatory skill
+
+Execute `skills/implementation-batch/SKILL.md` — four ordered stages, boundary
+review and plan before any code. Your code must satisfy
+`skills/code-quality-qa/SKILL.md` and `skills/qa-tests/SKILL.md`. Do not read
+or use `skills/spec-designer/SKILL.md`.
+
+## What this gate actually is
+
+Gate 8.3 is the first gate whose centre of gravity is a **linear resource**.
+Everything before it produced facts — classifications, postures, receipts.
+Facts can be copied and re-read safely. A recovery handle cannot.
+
+The entire class of defect here is: **a handle that is really a value**. If it
+can be cloned, stored, re-read, replayed, or handed to a second principal, the
+gate has not closed no matter how many tests are green.
+
+Prefer structural enforcement over runtime denial wherever the type system can
+carry it. A transition that consumes the handle by value makes the
+double-transition test *fail to compile*, which is worth more than a test that
+passes. Where you must fall back to runtime enforcement, say so explicitly in
+your report — do not present it as if it were structural.
+
+## Start here: the receipt is not honest yet (R8.62)
+
+R8.28 binds the handle to the admitted principal scope and the idempotency
+binding. **The committed receipt does not currently carry them** — this is
+carrier C1 in §4/R8.1, and Gate 8.3 owns repairing it.
+
+Do this first. A handle bound to fields its receipt does not carry is a handle
+binding itself to values someone invented. Order matters:
+
+1. Strengthen the receipt so it names the installed operation, the admitted
+   principal scope, and the idempotency binding.
+2. Those fields must be **derived** from what was actually admitted, not
+   supplied by the caller. A field the caller passes in is a restatement of an
+   assertion, not evidence.
+3. Strengthening must preserve unforgeability (R8.1's construction rule). No
+   new public constructor. No defaulted or placeholder field at any
+   construction site — if adding the fields does not break every construction
+   site, they are not required.
+4. Only then mint handles from it.
+
+## The requirements
+
+R8.28 through R8.35, plus R8.62. Read them in the spec; they are precise. The
+notes below are about where they are easy to satisfy dishonestly.
+
+**R8.28 — minting.** One drift attack per binding axis, each denying for its
+own distinct reason. Eleven axes are named. A shared generic denial across
+several axes does not prove the binding.
+
+**R8.29 — linearity.** Register in the *existing* managed-run registry. The
+framework must be able to enumerate and to forcibly terminate. Leak detection
+must cover all four terminal paths: consumed, expired, disposed, and
+force-terminated. A `Clone` or `Copy` derive anywhere on the handle or its
+identity defeats this gate entirely.
+
+**R8.30 — transitions.** Exactly six: `inspect`, `resolve`, `safe_retry`,
+`compensate`, `reconcile`, `dispose`. Each exposed **only** when the current
+outcome and installed contract admit it. `compensate` and `reconcile` must key
+off Gate 8.1's *mechanism* axis — this is where the two-axis model earns its
+place, so wire it to the real installed contract rather than to a posture name.
+
+Do not implement two transitions as one function with a mode parameter. R8.17
+outlawed exactly that shape one gate ago; reproducing it here is a gate failure.
+
+**R8.31 — fresh authority.** The load-bearing requirement. Every transition
+that can produce effect authority must re-establish current provider truth
+*and* current application authority **first**. "A handle minted an hour ago
+authorizes nothing by itself."
+
+The failure mode: the handle stores the right identities, every drift attack
+passes, and the transition compares against its own stored copy rather than
+re-reading current truth. Your test must revoke the capability **after**
+minting and prove the transition denies — on *current* policy, with a cause
+distinguishable from policy-at-commit-time.
+
+`inspect` does not produce effect authority, which makes it the transition most
+likely to be given a cheap path — and therefore the one most likely to skip
+disclosure admission and hand back protected material. Prove it does not.
+
+**R8.32 — resolve.** An *admitted* graph read, not a privileged back door.
+Returns the **inherited** taxonomy from §5 G5 — do not define a parallel enum.
+`resolve` must never upgrade an unresolved posture to completed; an unresolved
+external posture stays unresolved.
+
+**R8.33 — cost.** Handle lookup, provider inquiry, and repeated inspection: 0
+basis preparation, 0 digest derivation, 0 digest-text comparison. Exact
+assertions. Repeat inspection more than once so the proof is not "cheap the
+second time" masquerading as "cheap always". Minting derives exactly one
+identity.
+
+**R8.34 — wire boundary.** Opaque recovery identity, descriptive posture.
+Opaque must mean *unforgeable*, not merely unreadable — a digest of the
+handle's own fields is forgeable by anyone who knows the inputs. Three negative
+cases (support artifact, opaque identity, published posture cannot be
+readmitted as a handle), each with a positive twin.
+
+**R8.35 / R8.12 — publication.** Unresolved or degraded recovery publishes
+through Foundational support-truth and basis-disclosure vocabulary, while the
+Query handle remains the **sole** next-action authority. Nothing derivable from
+published material may grant an action. Durability posture is explicit, never
+implied by absence.
+
+## Exit proof
+
+Eleven scenarios, from the spec: lost-response recovery; already-completed
+recovery; unresolved external posture; expiry; disposal; copied handle; foreign
+principal; foreign runtime; **foreign branch with an equal version ordinal**;
+duplicate transition; transition after disposal. Plus leak detection proving no
+handle survives its terminal path.
+
+The equal-version-ordinal case is deliberate: if the ordinal is what
+distinguishes the branches, the binding is to the ordinal and not to the
+branch. All seven denial causes must be distinguishable at the public boundary
+— no two collapsing into one string or one variant.
+
+Lost-response recovery must run **through the real rail**, with an independent
+oracle on balances proving no money moved.
+
+## Three obligations from §10 that are new since your last gate
+
+**R8.65 — named world-construction authority.** Gate 8.1's worst defect was a
+fixture constructor exported from the public production facade, minting
+contracts from fabricated digests. It existed because the spec demanded honest
+identities and named no sanctioned way for a test world to get one.
+
+You are the first gate to mint a new kind of test-visible identity since that
+rule was written, so **you build the authority**. It lives in test scope, it is
+named, and it derives identities through the production derivation path. A
+production crate exporting a fixture constructor is a defect regardless of
+whether production code calls it. Do not repeat 8.1's shortcut.
+
+**R8.64 — cross-gate integration.** At least one scenario must exercise the
+handle **through** Gate 8.2's real external rail and Gate 8.1's installed
+aftermath contracts — through them, not beside them. It goes in a named
+cross-gate suite that later gates will extend. A scenario that stubs the rail
+does not satisfy this; that is exactly what R8.64 forbids.
+
+Four layers stack before the first cross-cutting proof at 8.6, and
+`bank-courtroom` currently has zero tests. This requirement is the net.
+
+**Q8.3 — posture construction authority.** Gate 8.2 proved "no posture is
+derivable from an earlier one" by module *visibility*: no consumer can
+construct any posture because the type is not exported. That is real but it is
+not unrepresentability — internal code holding a predecessor's causal link
+could still build a successor.
+
+You mint handles bound to postures, so you are the first gate where this
+matters at a boundary. Either make the construction unrepresentable without the
+provider's own evidence, or state the residual internal authority and its bound
+in writing. Do not leave it implicit.
+
+## Constitution
+
+400-line file cap on everything you touch. `boundary-check` and `agent-context`
+must pass. The three consumer targets stay green. Gate 8.1's and 8.2's proved
+rows must remain proved — run those suites, do not assume.
+
+Every negative case has a positive twin, and each must fail for its intended
+reason rather than incidentally. No `String`-keyed identity, no debug-string
+equality, no direct hash as an identity grammar.
+
+## Reporting
+
+Report honestly. Gate 8.2 turn 1 correctly self-reported as not closed and that
+was the right call — it made the audit faster, not slower. If a requirement is
+enforced more weakly than the spec asks, say which one and how. I re-run every
+check rather than reading your report, so an inaccurate claim costs you a turn.

@@ -44,6 +44,7 @@ macro_rules! delegation_request {
 
 delegation_request!(
     NotifyDeathEstateCapability,
+    RetransmitDeathNoticeEstateCapability,
     FreezeEstateAccountCapability,
     OpenEstateCaseCapability,
     RecognizeEstateExecutorCapability,
@@ -154,7 +155,7 @@ fn target(
         target = target.field(field);
     }
     if let Some(amount) = scope.amount_ceiling {
-        target = target.amount(amount);
+        target = target.magnitude(amount);
     }
     target
 }

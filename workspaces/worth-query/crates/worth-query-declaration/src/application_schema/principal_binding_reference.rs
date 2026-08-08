@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use worth_foundational::facade::ScalarAspectType;
 
-use super::TypedApplicationValue;
+use super::{ApplicationPrincipalBindingRequirements, TypedApplicationValue};
 
 pub struct ApplicationPrincipalBindingRef<Schema, Binding, Mapping, Principal, PrincipalIdentity> {
     name: &'static str,
@@ -39,30 +39,32 @@ where
     PrincipalIdentity: TypedApplicationValue,
 {
     #[doc(hidden)]
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_schema_identifiers(
+    pub fn from_requirements(
         name: &'static str,
-        mapping_entity: &'static str,
-        identity_aspect: &'static str,
-        identity_field: &'static str,
-        status_aspect: &'static str,
-        status_field: &'static str,
-        target_relation: &'static str,
-        principal_entity: &'static str,
-        principal_identity_aspect: &'static str,
-        principal_identity_field: &'static str,
+        requirements: ApplicationPrincipalBindingRequirements<
+            Schema,
+            Mapping,
+            Principal,
+            PrincipalIdentity,
+        >,
     ) -> Self {
+        let ApplicationPrincipalBindingRequirements {
+            mapping_identity,
+            mapping_status,
+            target,
+            principal_identity,
+        } = requirements;
         Self {
             name,
-            mapping_entity,
-            identity_aspect,
-            identity_field,
-            status_aspect,
-            status_field,
-            target_relation,
-            principal_entity,
-            principal_identity_aspect,
-            principal_identity_field,
+            mapping_entity: mapping_identity.entity,
+            identity_aspect: mapping_identity.aspect,
+            identity_field: mapping_identity.field,
+            status_aspect: mapping_status.aspect,
+            status_field: mapping_status.field,
+            target_relation: target.relation,
+            principal_entity: target.principal_entity,
+            principal_identity_aspect: principal_identity.aspect,
+            principal_identity_field: principal_identity.field,
             principal_identity_scalar_family: PrincipalIdentity::SCALAR_FAMILY,
             principal_identity_value_type: std::any::type_name::<PrincipalIdentity>(),
             _marker: PhantomData,

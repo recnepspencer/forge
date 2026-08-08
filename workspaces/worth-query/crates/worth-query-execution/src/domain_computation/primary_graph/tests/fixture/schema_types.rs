@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "wrong_field_retention.rs"]
+pub(super) mod wrong_field_retention;
+
 worth_query_entity!(pub ExternalMapping in IdentityExecutionSchema);
 worth_query_entity!(pub Principal in IdentityExecutionSchema);
 worth_query_entity!(pub Account in IdentityExecutionSchema);
@@ -73,6 +76,9 @@ worth_query_effect!(pub AccountActivityEffect(String) in IdentityExecutionSchema
 pub struct TouchAccountInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WrongFieldRetentionInput;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MultiTouchInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -82,16 +88,21 @@ worth_query_operation!(
     pub TouchAccountOperation(TouchAccountInput) in IdentityExecutionSchema
 );
 worth_query_operation!(
+    pub WrongFieldRetentionOperation(WrongFieldRetentionInput) in IdentityExecutionSchema
+);
+worth_query_operation!(
     pub MultiTouchOperation(MultiTouchInput) in IdentityExecutionSchema
 );
 worth_query_operation!(
     pub ChangeOwnershipOperation(ChangeOwnershipInput) in IdentityExecutionSchema
 );
 worth_query_operation_requires!(TouchAccountOperation => [ViewAccount]);
+worth_query_operation_requires!(WrongFieldRetentionOperation => [ViewAccount]);
 worth_query_operation_expects_fact!(TouchAccountOperation => [AccountStatus]);
 worth_query_operation_requires!(MultiTouchOperation => [ViewAccount, EditAccount]);
 worth_query_operation_requires!(ChangeOwnershipOperation => [ManageOwnership]);
 worth_query_operation_writes!(TouchAccountOperation => [AccountStatus, AccountLabel]);
+worth_query_operation_writes!(WrongFieldRetentionOperation => [AccountLabel]);
 // Deliberately wider than the installed contract so authority-ceiling tests
 // prove that compile-time capability cannot widen installed authority.
 worth_query_operation_writes!(MultiTouchOperation => [AccountStatus, AccountLabel]);
@@ -99,6 +110,7 @@ worth_query_operation_emits!(
     TouchAccountOperation => [AccountActivityEffect, LiveActivityEffect]
 );
 worth_query_operation_reads!(TouchAccountOperation => [AccountStatus, AccountLabel, AccountOwner]);
+worth_query_operation_reads!(WrongFieldRetentionOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_reads!(MultiTouchOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_reads!(ChangeOwnershipOperation => [AccountOwner, AccountStatus]);
 worth_query_operation_links!(ChangeOwnershipOperation => [AccountOwner]);

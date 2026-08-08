@@ -128,13 +128,16 @@ governed resolution. They may not create conflict identity, participant
 authority, durable decision state, branch-aware carry-forward, or resolution
 session recovery.
 
-Query Milestone 9.16 may establish linear current-head undo and redo through a
-freshly admitted inverse or compensating operation. Query Milestone 9.17 may
-preserve that same linear aftermath contract when advanced access or bulk
-execution participated. Neither milestone owns branch selection, branch-local
-inversion, branch-shaped redo, history navigation, merge interaction, or
-branch-aware recovery, and neither may create a placeholder API, directory,
-support posture, or dormant authority for those capabilities.
+Query Milestone 9.16 contains a provisional linear current-head undo and redo
+implementation, but that code is not an accepted product contract. A separately
+specified Query Undo/Redo Semantics milestone must decide whether a freshly
+admitted inverse or compensating operation is the lawful linear product and how
+redo behaves. Query Milestone 9.17 may consume only the aftermath contract that
+the owning follow-up milestone eventually accepts. None of these Query
+milestones owns branch selection, branch-local inversion, branch-shaped redo,
+history navigation, merge interaction, or branch-aware recovery, and none may
+create a placeholder API, directory, support posture, or dormant authority for
+those capabilities.
 
 ## Branch-Aware Reversal And Redo Ownership
 
@@ -165,11 +168,12 @@ The capability enters through this roadmap in dependency order:
 - Milestone 22 owns hostile certification across divergence, merge, crash,
   authority drift, and Store-backed restart.
 
-A Milestone 9.16 linear receipt or redo intent may later be readmitted as
+A provisional Milestone 9.16 linear receipt or redo intent may later be readmitted as
 descriptive source evidence. It cannot mint a branch basis, canonical inverse,
 reference update, merge decision, publication capability, or recovery
-authority. Until the owning milestones above close, the supported Query
-surface remains explicitly linear and current-head only.
+authority. Until both the Query Undo/Redo Semantics milestone and the owning
+cross-runtime milestones close, no supported branch-aware Query reversal
+surface exists.
 
 ## Governing Summaries
 

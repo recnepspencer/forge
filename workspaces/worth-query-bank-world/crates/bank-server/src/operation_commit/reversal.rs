@@ -4,6 +4,17 @@ use bank_domain::schema::*;
 use super::journal::{lower_journal, resolve_journal_accounts};
 use super::{application_idempotency, BankCommitPreparationDenial, BankMutationCommitOutcome};
 use crate::{BankAuthorizedProposal, BankIdentityRuntime};
+use worth_query_host::facade::primary_graph::{
+    WorthQueryApplicationEffectProgram, WorthQueryApplicationIdempotencyBinding,
+};
+use worth_query_host::facade::provisional_aftermath::WorthQueryUndoProgressionHandoff;
+
+type ReverseJournalEffectProgram = WorthQueryApplicationEffectProgram<
+    BankSchema,
+    ReverseJournalOperation,
+    ReverseJournal,
+    Institution,
+>;
 
 impl BankIdentityRuntime {
     pub fn commit_reverse_journal(
@@ -15,6 +26,45 @@ impl BankIdentityRuntime {
             bank_domain::model::InstitutionId,
         >,
     ) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial> {
+        let (program, idempotency) = self.materialize_reverse_journal(proposal)?;
+        Ok(self
+            .application_runtime()
+            .compare_and_commit_application(program, idempotency)
+            .into())
+    }
+
+    pub(crate) fn commit_reverse_journal_as_undo(
+        &self,
+        proposal: BankAuthorizedProposal<
+            ReverseJournalOperation,
+            ReverseJournal,
+            Institution,
+            bank_domain::model::InstitutionId,
+        >,
+        handoff: &WorthQueryUndoProgressionHandoff,
+    ) -> Result<BankMutationCommitOutcome, BankCommitPreparationDenial> {
+        let (program, idempotency) = self.materialize_reverse_journal(proposal)?;
+        Ok(self
+            .application_runtime()
+            .compare_and_commit_undo_application(program, idempotency, handoff)
+            .into())
+    }
+
+    fn materialize_reverse_journal(
+        &self,
+        proposal: BankAuthorizedProposal<
+            ReverseJournalOperation,
+            ReverseJournal,
+            Institution,
+            bank_domain::model::InstitutionId,
+        >,
+    ) -> Result<
+        (
+            ReverseJournalEffectProgram,
+            WorthQueryApplicationIdempotencyBinding,
+        ),
+        BankCommitPreparationDenial,
+    > {
         let (admission, invariant, projection) = proposal.into_parts();
         let (original, reversal) = exact_reversal(invariant.effects())?;
         let (_, _, query_admission) = admission.into_parts();
@@ -36,10 +86,7 @@ impl BankIdentityRuntime {
         )?;
         let idempotency = application_idempotency(&invariant);
         let program = effects.finish()?;
-        Ok(self
-            .application_runtime()
-            .compare_and_commit_application(program, idempotency)
-            .into())
+        Ok((program, idempotency))
     }
 }
 

@@ -2,8 +2,10 @@ mod bulk_admission;
 mod bulk_planning;
 mod staging_inspection;
 mod validated_mutation;
+mod validated_mutation_footprint;
 
 pub use validated_mutation::{RelationalMutationInvariantEvidence, ValidatedRelationalMutation};
+pub use validated_mutation_footprint::ValidatedMutationFootprint;
 
 use crate::capabilities::RuntimeConfigSource;
 use crate::logic::runtime::RelationalRuntime;

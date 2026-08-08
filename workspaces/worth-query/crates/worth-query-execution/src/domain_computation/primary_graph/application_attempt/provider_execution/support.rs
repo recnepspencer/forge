@@ -18,6 +18,7 @@ pub(in crate::domain_computation) fn application_resource_request(
 
 pub(super) fn parse_provider_receipt(
     value: &str,
+    provider: &crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphProvider,
     branch: &worth_relational::facade::history::BranchId,
 ) -> Option<
     crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication,
@@ -34,12 +35,13 @@ pub(super) fn parse_provider_receipt(
     if parts.next().is_some() {
         return None;
     }
+    let commit = worth_relational::facade::history::CommitId(commit);
+    let commit = provider.committed_branch_head(branch, commit)?;
     Some(
         crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication::new(
         crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity::restore(outcome_identity)?,
         runtime,
-        branch.clone(),
-        worth_relational::facade::history::CommitId(commit),
+        commit,
         changed,
         emitted,
     ))
@@ -50,5 +52,20 @@ pub(super) fn denied(
 ) -> WorthQueryApplicationCommitOutcome {
     WorthQueryApplicationCommitOutcome::Denied(
         WorthQueryApplicationCommitDenial::provider_rejected(stage),
+    )
+}
+
+pub(super) fn unknown_commit_recovery_evidence(
+    detail: &'static str,
+) -> super::super::WorthQueryApplicationUnresolvedCommitEvidence {
+    let failure = crate::domain_computation::provider_session::WorthQueryProviderSessionFailure::new(
+        crate::domain_computation::provider_session::WorthQueryProviderSessionDenialKind::ProviderRejected,
+        crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolStage::Commit,
+        detail,
+        crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolCounters::default(),
+    );
+    super::super::WorthQueryApplicationUnresolvedCommitEvidence::from_provider_session_failure(
+        super::super::WorthQueryApplicationCommitRecoveryKind::CommitRecoveryRequired,
+        &failure,
     )
 }

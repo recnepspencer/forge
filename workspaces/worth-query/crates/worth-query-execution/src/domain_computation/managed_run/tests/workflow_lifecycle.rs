@@ -110,18 +110,18 @@ fn workflow_cleanup_pending_retains_run_until_live_artifact_owner_closes() {
         crate::domain_computation::WorthQueryArtifactDenialKind::ProductionClosed
     );
     let rejected_release = match denial.rejected_resource_release() {
-        Some(crate::domain_computation::WorthQueryArtifactProviderReleasePosture::Complete(
+        Some(crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::Complete(
             evidence,
         )) => evidence,
         posture => panic!("rejected resource reported {posture:?}"),
     };
     assert_eq!(
         rejected_release.disposal(),
-        crate::domain_computation::WorthQueryArtifactProviderDisposalDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDisposalDisposition::Completed
     );
     assert_eq!(
         rejected_release.destructor(),
-        crate::domain_computation::WorthQueryArtifactProviderDestructorDisposition::Completed
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderDestructorDisposition::Completed
     );
     assert_eq!(rejected_disposed.load(Ordering::Acquire), 1);
 
@@ -143,7 +143,7 @@ fn workflow_cleanup_pending_retains_run_until_live_artifact_owner_closes() {
     let released_snapshot = handle.owner_snapshot();
     assert!(matches!(
         released_snapshot.provider_release(),
-        crate::domain_computation::WorthQueryArtifactProviderReleasePosture::Complete(_)
+        crate::domain_computation::artifact_owner::WorthQueryArtifactProviderReleasePosture::Complete(_)
     ));
     assert_eq!(released_snapshot.counters().provider_disposals, 1);
     assert_eq!(released_snapshot.counters().provider_destructor_attempts, 1);

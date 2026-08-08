@@ -86,6 +86,64 @@ fn approved_emergency_discloses_account_details_and_terminal_state_reads_back() 
     assert_completed_readback(&fixture, &requester, identity);
 }
 
+/// Q8.26-C6: a commit retains a pre-image exactly when its installed contract
+/// declares one — and the negative twin holds in the same journey.
+///
+/// `ApproveEmergencyAccess` declares `RecordedInverse` over
+/// `EmergencyAccessStatusField`, so its commit must carry the demanded slice.
+/// `RequestEmergencyAccess` is a create lane declared `not_correctable`: there
+/// is no prior truth, so it must carry nothing. Asserting only the positive
+/// would pass against a runtime that retained indiscriminately, which would
+/// make every receipt claim an inverse it cannot honour.
+#[test]
+fn retention_follows_the_declared_mechanism_on_both_lifecycle_commits() {
+    let fixture = emergency_request_world(
+        "estate-emergency-retention-by-mechanism",
+        GrantSpec::emergency_view(),
+        EstateWorkflowStage::Administration,
+    );
+    let requester = fixture.authenticate();
+    let approver = fixture.authenticate_approver();
+    let requested = request_elevation(
+        &fixture,
+        &requester,
+        ElevationRequestSpec {
+            grant: GRANT,
+            access: 371,
+            review: 372,
+            idempotency: 95,
+            field: RestrictedBankField::AccountDetails,
+            duration: Duration::from_secs(300),
+        },
+    );
+    let approved = approve_elevation(
+        &fixture,
+        &approver,
+        requested,
+        ElevationApprovalSpec {
+            access: 371,
+            idempotency: 97,
+        },
+    );
+
+    assert!(
+        approved
+            .approval_commit_receipt()
+            .retained_preimage()
+            .is_some(),
+        "ApproveEmergencyAccess declares RecordedInverse/ExactPriorTruth, so its \
+         commit must carry the pre-image its installed contract demands"
+    );
+    assert!(
+        approved
+            .request_commit_receipt()
+            .retained_preimage()
+            .is_none(),
+        "RequestEmergencyAccess is a not_correctable create lane — it has no \
+         prior truth, so its commit must retain nothing"
+    );
+}
+
 fn assert_approved_account_disclosure(
     fixture: &CapabilityFixture,
     requester: &BankAuthenticatedPrincipal,

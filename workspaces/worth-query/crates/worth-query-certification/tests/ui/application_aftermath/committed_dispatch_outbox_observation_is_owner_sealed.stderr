@@ -1,0 +1,14 @@
+error[E0624]: associated function `seal` is private
+ --> tests/ui/application_aftermath/committed_dispatch_outbox_observation_is_owner_sealed.rs:4:59
+  |
+4 |       let _ = WorthQueryCommittedDispatchOutboxObservation::seal;
+  |                                                             ^^^^ private associated function
+  |
+ ::: $WORKSPACE/crates/worth-query-execution/src/domain_computation/primary_graph/provider/committed_dispatch_outbox.rs
+  |
+  | /     const fn seal(
+  | |         record: WorthQueryDispatchOutboxRecord,
+  | |         commit: CommitReference,
+  | |         record_ref: RecordRef,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

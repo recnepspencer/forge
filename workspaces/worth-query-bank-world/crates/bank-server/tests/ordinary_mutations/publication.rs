@@ -44,10 +44,43 @@ fn unrelated_graph_population_does_not_widen_commit_publication() {
     assert_fresh_publication(expanded_receipt);
     let baseline_publication = baseline_receipt.publication().inspect();
     let expanded_publication = expanded_receipt.publication().inspect();
+    let baseline_work = baseline_publication
+        .mutation_work()
+        .expect("baseline mutation work");
+    let expanded_work = expanded_publication
+        .mutation_work()
+        .expect("expanded mutation work");
+    // Counters and touched-record *count* are invariant to unrelated population.
+    // Absolute EntityIds differ across separately provisioned worlds (C2).
     assert_eq!(
-        baseline_publication.mutation_work(),
-        expanded_publication.mutation_work()
+        baseline_work.decision_fact_count(),
+        expanded_work.decision_fact_count()
     );
+    assert_eq!(
+        baseline_work.proposed_fact_count(),
+        expanded_work.proposed_fact_count()
+    );
+    assert_eq!(
+        baseline_work.invariant_state_fact_count(),
+        expanded_work.invariant_state_fact_count()
+    );
+    assert_eq!(
+        baseline_work.invariant_work_units(),
+        expanded_work.invariant_work_units()
+    );
+    assert_eq!(
+        baseline_work.relational_invariant_execution_count(),
+        expanded_work.relational_invariant_execution_count()
+    );
+    assert_eq!(
+        baseline_work.relational_invariant_result_count(),
+        expanded_work.relational_invariant_result_count()
+    );
+    assert_eq!(
+        baseline_work.touched_record_count(),
+        expanded_work.touched_record_count()
+    );
+    assert!(!baseline_work.touched_records().is_empty());
     assert_eq!(
         baseline_publication.changed_record_count(),
         expanded_publication.changed_record_count()

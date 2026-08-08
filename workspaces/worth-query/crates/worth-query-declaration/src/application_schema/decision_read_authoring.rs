@@ -1,4 +1,4 @@
-use super::capabilities::{ApplicationFieldCurrency, OperationReads};
+use super::capabilities::{ApplicationFieldUnit, OperationReads};
 use super::references::{
     ApplicationEntityRef, ApplicationFieldRef, ApplicationOperationRef, ApplicationRelationRef,
 };
@@ -55,16 +55,16 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         Value,
         Write,
         Equality,
-        Currency,
+        Unit,
     >(
         self,
         operation: ApplicationOperationRef<Schema, Operation, Input>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Currency>,
+        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
     ) -> Self
     where
         Field: OperationReads<Operation>,
         Value: TypedApplicationValue,
-        Currency: ApplicationFieldCurrency,
+        Unit: ApplicationFieldUnit,
     {
         self.decision_read(
             operation.name(),

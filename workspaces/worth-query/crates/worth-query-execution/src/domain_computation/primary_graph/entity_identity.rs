@@ -4,6 +4,7 @@ use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
 use worth_relational::facade::identity::{EntityId, KindId};
 use worth_relational::facade::indexes::{DerivedIndexGenerationId, DerivedIndexId};
+use worth_relational::facade::transactions::RecordRef;
 
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
@@ -67,6 +68,11 @@ impl<Schema, Entity> WorthQueryApplicationEntityIdentity<Schema, Entity> {
 
     pub const fn examined_candidate_count(&self) -> usize {
         self.examined_candidate_count
+    }
+
+    /// Whether this typed resolution names an exact commit-owned record.
+    pub fn matches_record(&self, record: &RecordRef) -> bool {
+        matches!(record, RecordRef::Entity(entity) if *entity == self.entity_id)
     }
 
     pub(crate) const fn entity_id(&self) -> EntityId {

@@ -1,0 +1,7 @@
+﻿Turn 2 complete — **not Gate 8.4 closure**. Status: `_tmp/gate-8-4-turn-2-status.md`.
+
+**Landed:** A10 specific denial arm; R8.2 retained pre-image + inverse consumption; R8.9 typed correspondence at install; A11 compensation through ordinary reverse-journal/`compare_and_commit`; R8.38 money + independent oracle; R8.39–R8.41 denials/fan-out/Foundational twins.
+
+**Still open (honest):** Conflicted/AlreadyConsumed Bank no-write after admit; RecordedInverse end-to-end consuming retained pre-image. Do not start 8.5.
+
+**Standing set:** bank `ordinary_mutations` 56; Query 313/37/22; cert 14; execution `--lib` 562×5; warning-clean; boundary-check; agent-context; dirty line-cap PASS.Those were mid-turn failures already resolved: R8.38 and the recovery-mechanism catalog install were fixed, and the final bank `ordinary_mutations` run was **56 passed**. Query consumers/certification (313/37/22/14) also passed.

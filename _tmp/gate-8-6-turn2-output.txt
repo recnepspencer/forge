@@ -1,0 +1,20 @@
+﻿**Phase 8 is CLOSED.** Gate 8.6 turn 2 repaired the two durable-artifact blockers; no production code changed.
+
+### 1. Exit condition
+Rewritten so it is true: every `R8.*` PROVED; every `Q8.*` CLOSED except the single named carry **Q8.3** (Runtime Hardening Track; resolves ≤ Runtime Phase 9 before facade snapshot). Sound because the residual is module-bounded and consumer-unreachable. The false “two PARTIAL / earlier-than-close” clause is gone.
+
+### 2. §11 courtroom map
+Fifteen-row table in the Gate 8.6 ledger section, each scenario → named test(s). Honest gaps:
+- **Row 11** — handle non-leak proved; multi-node session/queue is Bank Phase 5
+- **Row 14** — co-commit / lost-response / exactly-once covered; no named mutation-free (O2) e2e
+
+### Standing verification (turn 2)
+| Target | Result |
+|---|---|
+| `ordinary_mutations` | **79** |
+| `installed_operating_world` / `public_declarative_journeys` / `runtime_public_journeys` | **313 / 37 / 22** |
+| `compile_certification` | **14** |
+| `worth-query-execution --lib` × 5 | **578 × 5** |
+| warning-clean / boundary-check / agent-context / dirty line-cap | clean / 0 / 0 / PASS |
+
+Artifacts: `_tmp/gate-8-6-turn-2-boundary-and-plan.md`, `_tmp/gate-8-6-turn-2-status.md`, ledger updates in `milestone-9.16-runtime-phase-8-closure-ledger.md`.The five `worth-query-execution --lib` runs all finished green: **578 passed** each time. Those results are already recorded in the Gate 8.6 turn-2 ledger and Phase 8 close.

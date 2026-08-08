@@ -28,6 +28,7 @@ pub(crate) fn measurement_recording_definition() -> domain::WorthQueryDomainOper
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
     };
+    semantics.aftermath = None;
     semantics.publication = domain::WorthQueryOperationPublicationContract::NotRequired;
     semantics.projection_consumption =
         domain::WorthQueryOperationProjectionConsumptionContract::NotRequired;

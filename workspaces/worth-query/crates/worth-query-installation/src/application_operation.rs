@@ -7,6 +7,7 @@ mod denial;
 mod execution_posture;
 mod installed;
 mod installed_contract_support;
+mod operation_declaration_resolution;
 mod precondition_contract;
 
 #[cfg(test)]
