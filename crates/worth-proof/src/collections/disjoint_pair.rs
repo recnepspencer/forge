@@ -9,7 +9,6 @@ pub struct DisjointPair<T> {
 }
 
 impl<T> DisjointPair<T> {
-    #[allow(dead_code)]
     pub(crate) fn new(
         left: T,
         right: T,
@@ -19,6 +18,27 @@ impl<T> DisjointPair<T> {
             pair: Pair::new(left, right),
             proof,
         }
+    }
+
+    /// Admit two values as disjoint, minting the proof on success.
+    ///
+    /// The checked door, matching [`super::CanonicalVec::try_from_sorted`] and
+    /// [`super::UniqueVec::try_from_unique`]: a caller supplies raw values, this
+    /// establishes the fact, and only then does the proof exist. There is no
+    /// path that produces a `DisjointPair` without disjointness having been
+    /// checked here.
+    pub fn try_from_disjoint(left: T, right: T) -> Result<Self, Pair<T>>
+    where
+        T: PartialEq,
+    {
+        if left == right {
+            return Err(Pair::new(left, right));
+        }
+        Ok(Self::new(
+            left,
+            right,
+            Proof::<Disjointness, StructuralProofAuthority>::mint(),
+        ))
     }
 
     pub fn left(&self) -> &T {

@@ -65,6 +65,10 @@ fn sealed_minting_and_witness_authority_certification() {
                 "tests/ui/milestone2/witnesses_are_not_publicly_mintable.rs",
             ),
             (
+                "witness_minting",
+                "tests/ui/milestone2/sealed_markers_are_not_mintable_by_consumers.rs",
+            ),
+            (
                 "witness_boundaries",
                 "tests/ui/milestone2/witness_required_apis_reject_callers_without_witness.rs",
             ),
@@ -107,6 +111,7 @@ fn sealed_minting_and_witness_authority_certification() {
             "proof_authority::tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
             "proof_authority::tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
             "witness_minting::tests/ui/milestone2/witnesses_are_not_publicly_mintable.rs",
+            "witness_minting::tests/ui/milestone2/sealed_markers_are_not_mintable_by_consumers.rs",
             "witness_boundaries::tests/ui/milestone2/witness_required_apis_reject_callers_without_witness.rs",
             "recipe_boundaries::tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs",
         ]
