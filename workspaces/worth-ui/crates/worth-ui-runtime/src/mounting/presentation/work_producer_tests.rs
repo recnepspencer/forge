@@ -1,14 +1,6 @@
 use worth_ui_host_contract::{
-    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedAllocationBasis,
-    UiMountedCanonicalBox, UiMountedCanonicalBoxInput, UiMountedClipTable,
-    UiMountedContentGeneration, UiMountedCoordinateSpace, UiMountedFilledRectCompletionInput,
-    UiMountedFilledRectMechanic, UiMountedFilledRectTable, UiMountedFrameIdentity,
-    UiMountedHitTestTable, UiMountedInstanceIdentity, UiMountedLayerTable,
-    UiMountedNodeReceiptIssuer, UiMountedPaintBatchTable, UiMountedPaintCommandIdentity,
-    UiMountedPresentationWorkView, UiMountedProjectionView, UiMountedProjectionViewInput,
-    UiMountedResourceTable, UiMountedRgba8, UiMountedSemanticTextTable, UiMountedSpatialBatchTable,
-    UiMountedSurfaceBindingRequirement, UiMountedTransformProjection, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration, WorthUiHostCapabilityObservationGeneration,
+    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedPaintCommandIdentity,
+    UiMountedPresentationWorkView, UiMountedRgba8,
 };
 
 use super::work_producer::UiMountedPresentationState;
@@ -16,16 +8,10 @@ use super::work_producer::UiMountedPresentationState;
 #[path = "work_producer_tests/rect_node.rs"]
 mod rect_node;
 
-use rect_node::rect_node;
+#[path = "work_producer_tests/world.rs"]
+mod world;
 
-struct MountedPresentationWorld {
-    surface: UiSemanticSurfaceIdentity,
-    binding: UiSurfaceBindingGeneration,
-    content: UiMountedContentGeneration,
-    first_instance: UiMountedInstanceIdentity,
-    second_instance: UiMountedInstanceIdentity,
-    requirement: UiMountedSurfaceBindingRequirement,
-}
+use world::{rect_spec, rect_spec_with_clip, MountedPresentationWorld};
 
 #[test]
 fn equal_layer_total_order_follows_authored_node_order_not_command_identity() {
@@ -60,6 +46,10 @@ fn equal_layer_total_order_follows_authored_node_order_not_command_identity() {
             worth_ui_host_contract::UiMountedPaintOrderIdentity::for_command(first),
         ]
     );
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-ORDER-01\":{}}}",
+        initial.order().len()
+    );
 }
 
 #[test]
@@ -89,6 +79,7 @@ fn unchanged_successor_carries_zero_command_order_and_damage_work() {
         unchanged.affinity().baseline(),
         world.requirement.baseline()
     );
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-PRODUCER-COST-01\":0}}");
 }
 
 #[test]
@@ -111,12 +102,23 @@ fn one_replacement_carries_one_change_and_exact_predecessor_successor_damage() {
         .claim()
         .unwrap();
 
+    let initial_work = predecessor_state.issue_initial(&lease, &predecessor);
+    let UiMountedPresentationWorkView::Initial(initial) = initial_work.view() else {
+        panic!("predecessor projection must issue initial work");
+    };
+    assert_eq!(initial.affinity().predecessor(), None);
+    assert_eq!(initial.affinity().successor(), predecessor.frame());
+    assert_eq!(initial.affinity().baseline(), world.requirement.baseline());
+
     let work = predecessor_state
         .issue_successor(&successor_state, &lease)
         .unwrap();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("changed retained command must produce delta work");
     };
+    assert_eq!(delta.affinity().predecessor(), Some(predecessor.frame()));
+    assert_eq!(delta.affinity().successor(), successor.frame());
+    assert_eq!(delta.affinity().baseline(), world.requirement.baseline());
     assert_eq!(delta.changes().len(), 1);
     assert_eq!(delta.damage().len(), 2);
     assert!(delta
@@ -132,6 +134,26 @@ fn one_replacement_carries_one_change_and_exact_predecessor_successor_damage() {
             delta.changes()[0].identity(),
         ),
     ]));
+    let unchanged_projection =
+        world.projection(UiMountedFrameIdentity::mint_unbound().unwrap(), [changed]);
+    let unchanged_state =
+        UiMountedPresentationState::from_projection(&unchanged_projection, world.requirement);
+    let unchanged_work = successor_state
+        .issue_successor(&unchanged_state, &lease)
+        .unwrap();
+    let UiMountedPresentationWorkView::Unchanged(unchanged) = unchanged_work.view() else {
+        panic!("frame-only progression must issue unchanged work");
+    };
+    assert_eq!(unchanged.affinity().predecessor(), Some(successor.frame()));
+    assert_eq!(
+        unchanged.affinity().successor(),
+        unchanged_projection.frame()
+    );
+    assert_eq!(
+        unchanged.affinity().baseline(),
+        world.requirement.baseline()
+    );
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-AFFINITY-01\":3}}");
 }
 
 #[test]
@@ -200,6 +222,10 @@ fn removal_and_insert_carry_exact_identities_vacated_damage_and_total_order() {
             ),
         ]
     );
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-PRODUCER-01\":{}}}",
+        delta.changes().len()
+    );
 }
 
 #[test]
@@ -236,133 +262,10 @@ fn replacement_damage_is_clipped_to_predecessor_and_successor_visibility() {
         .map(|damage| (damage.bounds().x(), damage.bounds().width()))
         .collect::<Vec<_>>();
     assert_eq!(exact_damage, vec![(4.0, 16.0), (8.0, 10.0)]);
-}
-
-#[derive(Clone, Copy)]
-struct RectSpec {
-    instance: UiMountedInstanceIdentity,
-    x: f32,
-    color: UiMountedRgba8,
-    clip_x: f32,
-    clip_width: f32,
-}
-
-fn rect_spec(instance: UiMountedInstanceIdentity, x: f32) -> RectSpec {
-    RectSpec {
-        instance,
-        x,
-        color: UiMountedRgba8::new(47, 129, 247, 255),
-        clip_x: x,
-        clip_width: 32.0,
-    }
-}
-
-fn rect_spec_with_clip(
-    instance: UiMountedInstanceIdentity,
-    x: f32,
-    clip_x: f32,
-    clip_width: f32,
-) -> RectSpec {
-    RectSpec {
-        instance,
-        x,
-        color: UiMountedRgba8::new(47, 129, 247, 255),
-        clip_x,
-        clip_width,
-    }
-}
-
-impl MountedPresentationWorld {
-    fn new() -> Self {
-        let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
-        let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
-        let generation = WorthUiHostCapabilityObservationGeneration::new(7);
-        let requirement = UiMountedSurfaceBindingRequirement::new(
-            surface,
-            UiHostSurfaceIdentity::mint_unbound().unwrap(),
-            binding,
-            generation,
-            11,
-            UiHostSurfacePresentationMode::RecordOnly,
-        );
-        Self {
-            surface,
-            binding,
-            content: UiMountedContentGeneration::mint_unbound().unwrap(),
-            first_instance: UiMountedInstanceIdentity::mint_unbound().unwrap(),
-            second_instance: UiMountedInstanceIdentity::mint_unbound().unwrap(),
-            requirement,
-        }
-    }
-
-    fn projection(
-        &self,
-        frame: UiMountedFrameIdentity,
-        specs: impl IntoIterator<Item = RectSpec>,
-    ) -> UiMountedProjectionView {
-        let rows = specs
-            .into_iter()
-            .map(|spec| self.rect(frame, spec))
-            .collect::<Vec<_>>();
-        let nodes = rows
-            .iter()
-            .enumerate()
-            .map(|(index, row)| rect_node(index, row))
-            .collect();
-        UiMountedProjectionView::new(UiMountedProjectionViewInput {
-            frame,
-            surface: self.surface,
-            binding: self.binding,
-            content_generation: self.content,
-            nodes,
-            clips: UiMountedClipTable::produced(Vec::new()),
-            layers: UiMountedLayerTable::produced(Vec::new()),
-            filled_rects: UiMountedFilledRectTable::from_runtime_mounting(rows).unwrap(),
-            semantic_text: UiMountedSemanticTextTable::empty(),
-            hit_tests: UiMountedHitTestTable::empty(),
-            paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
-            spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
-            realtime_batches: worth_ui_host_contract::UiMountedRealtimeBatchTable::new(Vec::new()),
-            resources: UiMountedResourceTable::new(Vec::new()),
-        })
-    }
-
-    fn rect(&self, frame: UiMountedFrameIdentity, spec: RectSpec) -> UiMountedFilledRectMechanic {
-        let bounds = canonical_box(spec.x, 0.0, 32.0, 24.0);
-        UiMountedFilledRectMechanic::complete_from_runtime_mounting(
-            UiMountedFilledRectCompletionInput {
-                frame,
-                surface: self.surface,
-                binding: self.binding,
-                mounted_instance: spec.instance,
-                node_receipt: UiMountedNodeReceiptIssuer::mint_for(frame)
-                    .unwrap()
-                    .receipt_for(spec.instance),
-                allocation_basis: UiMountedAllocationBasis::new(
-                    1,
-                    2,
-                    3,
-                    UiMountedTransformProjection::Identity,
-                ),
-                bounds,
-                color: spec.color,
-                layer_semantic_order: (spec.x as u32) / 40,
-                clip_bounds: canonical_box(spec.clip_x, 0.0, spec.clip_width, 24.0),
-            },
-        )
-        .unwrap()
-    }
-}
-
-fn canonical_box(x: f32, y: f32, width: f32, height: f32) -> UiMountedCanonicalBox {
-    UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
-        x,
-        y,
-        width,
-        height,
-        coordinate_space: UiMountedCoordinateSpace::HostSurface,
-    })
-    .unwrap()
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-DAMAGE-01\":{}}}",
+        exact_damage.len()
+    );
 }
 
 trait CommandChangeIdentity {

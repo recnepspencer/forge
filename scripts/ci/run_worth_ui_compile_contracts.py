@@ -3,13 +3,18 @@ from __future__ import annotations
 import csv
 import argparse
 import difflib
+import hashlib
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+from run_worth_ui_ledger_test import source_revision, source_state_digest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -270,12 +275,98 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="replace executed compile-fail snapshots with current canonical diagnostics",
     )
+    parser.add_argument(
+        "--artifact",
+        help="retain a machine-readable successful two-session result",
+    )
     return parser.parse_args()
+
+
+def file_digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def compile_source_snapshot(cases: list[Case]) -> dict[str, object]:
+    revision = source_revision()
+    records = []
+    for case in sorted(cases, key=lambda item: (item.owner, item.kind, item.target)):
+        records.append({
+            "owner": case.owner,
+            "kind": case.kind,
+            "target": case.target,
+            "source": case.source.relative_to(ROOT).as_posix(),
+            "source_sha256": file_digest(case.source),
+            "snapshot": (
+                case.snapshot.relative_to(ROOT).as_posix()
+                if case.kind == "fail" else None
+            ),
+            "snapshot_sha256": (
+                file_digest(case.snapshot) if case.kind == "fail" else None
+            ),
+        })
+    return {
+        "source_revision": revision,
+        "source_state_digest": source_state_digest(revision),
+        "cases": records,
+    }
+
+
+def governed_snapshot_changed(
+    before: dict[str, object], after: dict[str, object]
+) -> bool:
+    return before != after
+
+
+def result_artifact(
+    cases: list[Case], source_snapshot: dict[str, object]
+) -> dict[str, object]:
+    return {
+        "schema": "worth-ui-compile-contract-result-v1",
+        "exit_posture": "passed",
+        "run_nonce": secrets.token_hex(16),
+        "source_revision": source_snapshot["source_revision"],
+        "source_state_digest": source_snapshot["source_state_digest"],
+        "cargo_sessions": 2,
+        "fail_targets": sum(case.kind == "fail" for case in cases),
+        "pass_targets": sum(case.kind == "pass" for case in cases),
+        "cases": source_snapshot["cases"],
+    }
+
+
+def write_artifact(identity: str, payload: dict[str, object]) -> None:
+    destination = (ROOT / identity).resolve()
+    destination.relative_to(ROOT)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", dir=destination.parent
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            json.dump(payload, output, indent=2)
+            output.write("\n")
+        os.replace(temporary, destination)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def publish_artifact_if_unchanged(
+    identity: str | None,
+    payload: dict[str, object] | None,
+    before: dict[str, object],
+    after: dict[str, object],
+) -> bool:
+    if governed_snapshot_changed(before, after):
+        return False
+    if identity and payload is not None:
+        write_artifact(identity, payload)
+    return True
 
 
 def main() -> int:
     arguments = parse_args()
     cases = load_cases()
+    source_snapshot = compile_source_snapshot(cases)
     failing = [case for case in cases if case.kind == "fail"]
     passing = [case for case in cases if case.kind == "pass"]
     fail_status, fail_diagnostics = cargo_check(failing)
@@ -297,6 +388,15 @@ def main() -> int:
                     )
     if failures:
         print("\n\n".join(failures), file=sys.stderr)
+        return 1
+    payload = result_artifact(cases, source_snapshot) if arguments.artifact else None
+    if not publish_artifact_if_unchanged(
+        arguments.artifact,
+        payload,
+        source_snapshot,
+        compile_source_snapshot(cases),
+    ):
+        print("compile-contract governed sources changed during execution", file=sys.stderr)
         return 1
     print(
         f"Worth UI compile contracts passed: {len(failing)} fail targets, "

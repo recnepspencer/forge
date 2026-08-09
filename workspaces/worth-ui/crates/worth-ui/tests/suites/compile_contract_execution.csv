@@ -65,10 +65,12 @@ fail,tests/ui/visual_snapshot/fail/pixel_grant_cannot_publish_overlay.rs,visual_
 fail,tests/ui/visual_snapshot/fail/published_overlay_cannot_clear_twice.rs,visual_snapshot_facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/host_neutral_builder_freezes.rs,facade_compile.rs
 fail,tests/ui/facade/construction/host_binding/bound_builder_cannot_replace_host.rs,facade_compile.rs
-fail,tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_affine.rs,facade_compile.rs
+fail,tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_private.rs,facade_compile.rs
 fail,tests/ui/facade/construction/host_binding/surface_baseline_receipt_cannot_be_reconstructed.rs,facade_compile.rs
 fail,tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.rs,facade_compile.rs
+fail,tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs,facade_compile.rs
 fail,tests/ui/facade/construction/host_binding/native_preparation_cannot_extract_builder.rs,facade_compile.rs
 fail,tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs,facade_compile.rs
+fail,tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs,facade_compile.rs

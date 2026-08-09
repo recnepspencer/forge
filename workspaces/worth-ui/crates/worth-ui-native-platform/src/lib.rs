@@ -1,16 +1,10 @@
-//! Effect-free native application preparation and lifecycle authority.
+//! Public native-platform facade over the runtime-owned binding gate.
 
-mod application;
-mod native_platform_binding;
-mod outcome;
-mod platform;
-mod profile;
-
-pub use application::{
+pub use worth_ui_runtime::native_platform::{
     UiNativeApplicationBuilder, UiNativeApplicationDefinition, UiNativeApplicationPreparation,
     UiNativeApplicationPreparationDenial, UiNativeApplicationPreparationDenialCause,
-    UiNativeApplicationPreparationOutcome, UiPreparedNativeApplication,
+    UiNativeApplicationPreparationOutcome, UiNativePlatformCloseReceipt, UiNativePlatformOutcome,
+    UiNativePlatformPreparationDenial, UiNativePlatformProfile, UiNativePlatformStopReason,
+    UiNativePlatformStopReport, UiNativeWindowSpec, UiPreparedNativeApplication,
+    UiPreparedNativePlatform, WorthUiNativePlatform,
 };
-pub use outcome::{UiNativePlatformOutcome, UiNativePlatformStop, UiNativePlatformStopReason};
-pub use platform::{UiPreparedNativePlatform, WorthUiNativePlatform};
-pub use profile::{UiNativePlatformPreparationDenial, UiNativePlatformProfile, UiNativeWindowSpec};

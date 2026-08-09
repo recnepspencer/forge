@@ -10,8 +10,9 @@ pub use worth_ui_runtime::facade::lifecycle::{
 };
 pub use worth_ui_runtime::facade::mounted::{
     UiHostSurfaceBaselineIdentity, UiMountedFrameOutcome, UiMountedFramePublicationReceipt,
-    UiMountedFrameRequest, UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
-    UiMountedInspectedFrame, UiMountedInspectionReceipt, UiMountedInspectionRequest,
+    UiMountedFrameRequest, UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
+    UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame, UiMountedInspectedFrame,
+    UiMountedInspectionReceipt, UiMountedInspectionRequest,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedVisualTargetDenial,
     UiPresentationDeadline,

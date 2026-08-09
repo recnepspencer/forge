@@ -23,25 +23,44 @@ fn baseline_receipt_construction_has_one_private_host_truth_owner() {
 }
 
 #[test]
-fn phase_one_native_outcome_has_no_future_cleanup_or_census_surface() {
+fn phase_two_close_surface_is_affine_and_bound_to_the_real_native_report() {
     let inventory = super::workspace_source_inventory();
-    for path in [
-        "crates/worth-ui-native-platform/src/outcome.rs",
-        "crates/worth-ui-native-platform/src/lib.rs",
+    let outcome = inventory
+        .source("crates/worth-ui-runtime/src/native_platform/outcome.rs")
+        .expect("native Phase 2 outcome owner");
+    assert!(outcome
+        .text()
+        .contains("pub struct UiNativePlatformCloseReceipt"));
+    assert!(outcome
+        .text()
+        .contains("report: worth_ui_host_native::UiNativeEventLoopRunReport"));
+    assert!(outcome
+        .text()
+        .contains("Closed(UiNativePlatformCloseReceipt)"));
+    assert!(!outcome.text().contains("terminal_resource_count"));
+    assert!(outcome.text().contains("UiNativePlatformStopReport"));
+    assert!(outcome.text().contains("effect_posture"));
+    assert!(outcome.text().contains("terminal_census"));
+    assert!(!outcome
+        .text()
+        .contains("#[derive(Clone, Copy)]\npub struct UiNativePlatformCloseReceipt"));
+
+    let state = inventory
+        .source("crates/worth-ui-host-native/src/native/resource_census.rs")
+        .expect("real native resource census owner");
+    for field in [
+        "windows",
+        "surfaces",
+        "adapters",
+        "devices",
+        "queues",
+        "retained_targets",
+        "registrations",
+        "readback_buffers",
+        "pending_submissions",
+        "event_wake_registrations",
+        "application_drivers",
     ] {
-        let source = inventory
-            .source(path)
-            .expect("native Phase 1 outcome owner");
-        for forbidden in [
-            "UiNativePlatformCloseReceipt",
-            "terminal_resource_count",
-            "ApplicationCleanup",
-            "Closed(",
-        ] {
-            assert!(
-                !source.text().contains(forbidden),
-                "{path} exposes future cleanup surface {forbidden}"
-            );
-        }
+        assert!(state.text().contains(&format!("pub {field}: usize")));
     }
 }

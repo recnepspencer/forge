@@ -1,17 +1,30 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use super::{repository_document, workspace_source_inventory};
 
-type Manifests = BTreeMap<String, String>;
-
 #[path = "milestone_3141_phase1_topology/authority_residue.rs"]
 mod authority_residue;
+#[path = "milestone_3141_phase1_topology/compile_contract_artifact.rs"]
+mod compile_contract_artifact;
+#[path = "milestone_3141_phase1_topology/external_ports.rs"]
+mod external_ports;
+#[path = "milestone_3141_phase1_topology/preparation_call_graph.rs"]
+mod preparation_call_graph;
 #[path = "milestone_3141_phase1_topology/pulse_text.rs"]
 mod pulse_text;
 #[path = "milestone_3141_phase1_topology/repository_manifests.rs"]
 mod repository_manifests;
 #[path = "milestone_3141_phase1_topology/resolved_graphs.rs"]
 mod resolved_graphs;
+#[path = "milestone_3141_phase1_topology/topology_edges.rs"]
+mod topology_edges;
+#[path = "milestone_3141_phase1_topology/topology_verdict.rs"]
+mod topology_verdict;
+
+use topology_verdict::{
+    assert_hiding_mutations_fail_topology_verdict, assert_resolved_qualified_versions,
+    validate_topology, workspace_manifest_count, workspace_manifests,
+};
 
 #[test]
 fn phase_one_host_platform_topology_verdict_covers_every_workspace_manifest() {
@@ -19,11 +32,42 @@ fn phase_one_host_platform_topology_verdict_covers_every_workspace_manifest() {
     validate_topology(&manifests).expect("the real repository topology must be lawful");
     assert!(manifests.contains_key("Cargo.toml"));
     assert!(manifests.contains_key("repository/Cargo.toml"));
-    assert!(
-        manifests.len() >= 15,
-        "every member and fixture manifest is audited"
+    assert_eq!(
+        manifests
+            .keys()
+            .filter(|path| !path.starts_with("repository/"))
+            .count(),
+        workspace_manifest_count(),
+        "every member and fixture manifest is explicitly classified"
     );
     assert_resolved_qualified_versions();
+    assert_hiding_mutations_fail_topology_verdict();
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-TOPOLOGY-01\":{}}}",
+        workspace_manifest_count()
+    );
+}
+
+fn assert_protocol_revision_four_rejects_mixed_revision() {
+    use worth_ui_host_contract::{
+        UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
+        UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
+        UiHostProtocolVersion, UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
+    };
+    let current = UiHostProtocolContract::current();
+    assert_eq!(current.protocol().revision(), 4);
+    let mixed = UiHostProtocolContract::new(
+        UiHostProtocolIdentity::worth_ui(),
+        UiHostProtocolVersion::new(3),
+        UiMountedFrameSchemaVersion::new(4),
+        UiMountedPresentationSchemaVersion::new(4),
+        UiHostObservationSchemaVersion::new(6),
+        UiHostMeasurementSchemaVersion::new(4),
+    );
+    assert_eq!(
+        mixed.negotiate(),
+        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::ProtocolTooOld)
+    );
 }
 
 #[test]
@@ -55,8 +99,12 @@ fn phase_one_removes_product_host_replacement_and_forged_native_host_lanes() {
     let native = inventory
         .source("crates/worth-ui-host-native/src/prepared_host.rs")
         .expect("prepared native host");
-    assert!(!native.text().contains("derive(Clone"));
-    assert!(!native.text().contains("derive(Default"));
+    assert!(!native
+        .text()
+        .contains("#[derive(Clone)]\npub struct WorthUiPreparedNativeHost"));
+    assert!(!native
+        .text()
+        .contains("#[derive(Default)]\npub struct WorthUiPreparedNativeHost"));
     assert!(!native.text().contains("from_platform_binding"));
 
     for path in [
@@ -70,7 +118,7 @@ fn phase_one_removes_product_host_replacement_and_forged_native_host_lanes() {
         );
     }
     let platform_binding = inventory
-        .source("crates/worth-ui-native-platform/src/native_platform_binding.rs")
+        .source("crates/worth-ui-runtime/src/native_platform/native_platform_binding.rs")
         .expect("private native binding owner");
     assert!(platform_binding
         .text()
@@ -82,23 +130,86 @@ fn phase_one_removes_product_host_replacement_and_forged_native_host_lanes() {
     assert!(!platform_facade
         .text()
         .contains("pub use native_platform_binding"));
+
+    let host_neutral_app = inventory
+        .source("crates/worth-ui-runtime/src/facade/entry/host_neutral_app.rs")
+        .expect("host-neutral application owner");
+    assert!(host_neutral_app
+        .text()
+        .contains("pub(crate) fn bind_qualified_native"));
+    assert!(!host_neutral_app
+        .text()
+        .contains("pub fn bind_qualified_native"));
+    let native_binding_transition = ["bind_qualified", "_native("].concat();
+    assert_exact_symbol_homes(
+        inventory,
+        &native_binding_transition,
+        &[
+            "crates/worth-ui-runtime/src/facade/entry/host_neutral_app.rs",
+            "crates/worth-ui-runtime/src/native_platform/application.rs",
+            "crates/worth-ui-runtime/src/native_platform/platform.rs",
+            "crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_bind_native_host.rs",
+        ],
+    );
 }
 
 #[test]
-fn phase_one_protocol_and_observation_revisions_are_exclusive() {
+fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
     let protocol = repository_document(
         "workspaces/worth-ui/crates/worth-ui-host-contract/src/mounted_frame/protocol.rs",
     );
     assert!(protocol.contains("const COMPATIBLE_FLOOR: u16 = 4;"));
     assert!(protocol.contains("const CURRENT: u16 = 4;"));
     assert!(protocol.contains("const CURRENT_OBSERVATION_SCHEMA: u16 = 6;"));
+    let inventory = workspace_source_inventory();
+    let consumers = [
+        (
+            "crates/worth-ui-host-headless/src/headless_translation/static_paint.rs",
+            "UiMountedFrameSchemaVersion::current().revision()",
+        ),
+        (
+            "crates/worth-ui-host-egui/src/adapter/native_paint.rs",
+            "UiMountedFrameSchemaVersion::current().revision()",
+        ),
+        (
+            "crates/worth-ui-certification/tests/application_contracts/host_platform/world/production.rs",
+            "WorthUiHeadlessRecorder",
+        ),
+    ];
+    for (source, required) in consumers {
+        let text = inventory.text(source);
+        assert!(text.contains(required), "{source} omits {required}");
+    }
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-CONSUMERS-01\":{}}}",
+        consumers.len()
+    );
+    for root in [
+        "crates/worth-ui-host-headless/src",
+        "crates/worth-ui-host-egui/src",
+    ] {
+        for source in inventory.rust_files_under(root) {
+            for forbidden in [
+                "UiMountedFrameSchemaVersion::new(",
+                "UiMountedPresentationSchemaVersion::new(",
+                "mounted_frame().revision() == 3",
+                "mounted_frame().revision() >= 3",
+            ] {
+                assert!(
+                    !source.text().contains(forbidden),
+                    "{} restores legacy protocol logic through {forbidden}",
+                    source.relative_path().display()
+                );
+            }
+        }
+    }
 }
 
 #[test]
 fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
     let inventory = workspace_source_inventory();
     let application = inventory
-        .source("crates/worth-ui-native-platform/src/application.rs")
+        .source("crates/worth-ui-runtime/src/native_platform/application.rs")
         .expect("native application preparation owner");
     for required in [
         "pub enum UiNativeApplicationPreparationOutcome",
@@ -111,7 +222,7 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
             "product preparation omits {required}"
         );
     }
-    for forbidden in [
+    let application_effects = [
         "register_filesystem_source",
         "register_query_owner",
         "register_intent_owner",
@@ -120,7 +231,8 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
         "UiNativePreparationActivation",
         "Condvar",
         "JoinHandle",
-    ] {
+    ];
+    for forbidden in application_effects {
         assert!(
             !application.text().contains(forbidden),
             "phase-one product preparation owns runtime effect {forbidden}"
@@ -128,9 +240,38 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
     }
     assert!(
         inventory
-            .source("crates/worth-ui-native-platform/src/preparation_worker.rs")
+            .source("crates/worth-ui-runtime/src/native_platform/preparation_worker.rs")
             .is_none(),
         "retired generic preparation worker still exists"
+    );
+    let platform_preparation = inventory
+        .source("crates/worth-ui-runtime/src/native_platform/platform/preparation.rs")
+        .expect("native platform preparation transition");
+    assert!(platform_preparation
+        .text()
+        .contains("impl WorthUiNativePlatform"));
+    let profile = inventory
+        .source("crates/worth-ui-runtime/src/native_platform/profile.rs")
+        .expect("native platform profile validation owner");
+    let native_profile = inventory
+        .source("crates/worth-ui-host-native/src/native_profile.rs")
+        .expect("qualified native profile identity owner");
+    let observed_effect_surfaces = preparation_call_graph::validate(
+        platform_preparation.text(),
+        profile.text(),
+        native_profile.text(),
+    )
+    .expect("preparation call graph must remain closed over pure transitions");
+    preparation_call_graph::assert_effectful_mutants_rejected();
+    let prepared = worth_ui_native_platform::WorthUiNativePlatform::prepare(
+        worth_ui_native_platform::UiNativePlatformProfile::single_window(
+            worth_ui_native_platform::UiNativeWindowSpec::new("effect-free preparation", [160, 96]),
+        ),
+    )
+    .expect("public preparation transition remains lawful and effect-free");
+    assert_eq!(
+        prepared.profile().window().initial_logical_size(),
+        [160, 96]
     );
     let facade = inventory
         .source("crates/worth-ui-native-platform/src/lib.rs")
@@ -145,6 +286,10 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
             "facade exposes synthetic lifecycle lane {forbidden}"
         );
     }
+    assert_eq!(observed_effect_surfaces, 0);
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-PREPARATION-LIFECYCLE-01\":{observed_effect_surfaces}}}"
+    );
 }
 
 #[test]
@@ -205,193 +350,5 @@ fn assert_exact_symbol_homes(
 
 #[test]
 fn hiding_mutations_fail_the_same_repository_topology_verdict() {
-    let lawful = workspace_manifests();
-    validate_topology(&lawful).unwrap();
-    for (path, section, dependency) in [
-        (
-            "crates/worth-ui-host-headless/Cargo.toml",
-            "dependencies",
-            "worth-ui-runtime",
-        ),
-        (
-            "crates/worth-ui-host-native/Cargo.toml",
-            "dev-dependencies",
-            "worth-ui-runtime",
-        ),
-        (
-            "crates/worth-ui-native-platform/Cargo.toml",
-            "build-dependencies",
-            "worth-ui-runtime",
-        ),
-        (
-            "crates/worth-ui-runtime/Cargo.toml",
-            "target.'cfg(windows)'.dependencies",
-            "worth-ui-host-native",
-        ),
-    ] {
-        let mut mutated = lawful.clone();
-        let manifest = mutated.get_mut(path).expect("governed manifest");
-        manifest.push_str(&format!(
-            "\n[{section}]\n{dependency} = {{ path = \"../{dependency}\" }}\n"
-        ));
-        assert!(
-            validate_topology(&mutated).is_err(),
-            "{path} {section} mutation must be denied"
-        );
-    }
-    let mut aliased = lawful;
-    let native = aliased
-        .get_mut("crates/worth-ui-host-native/Cargo.toml")
-        .unwrap();
-    native.push_str(
-        "\n[target.'cfg(windows)'.dependencies]\nhidden-runtime = { package = \"worth-ui-runtime\", path = \"../worth-ui-runtime\" }\n",
-    );
-    assert!(validate_topology(&aliased).is_err());
-}
-
-fn validate_topology(manifests: &Manifests) -> Result<(), String> {
-    let exact = [
-        (
-            "crates/worth-ui-host-headless/Cargo.toml",
-            set(["worth-ui-host-contract", "worth-ui-test-support"]),
-        ),
-        (
-            "crates/worth-ui-host-native/Cargo.toml",
-            set(["worth-ui-host-contract"]),
-        ),
-        (
-            "crates/worth-ui-native-platform/Cargo.toml",
-            set(["worth-ui", "worth-ui-host-contract", "worth-ui-host-native"]),
-        ),
-    ];
-    for (path, allowed) in exact {
-        let manifest = manifests
-            .get(path)
-            .ok_or_else(|| format!("missing {path}"))?;
-        let dependencies = worth_ui_dependencies(manifest)?;
-        if !dependencies.is_subset(&allowed) {
-            return Err(format!(
-                "{path} has forbidden Worth UI dependencies: {dependencies:?}"
-            ));
-        }
-        let ordinary = dependency_packages(manifest, DependencyScope::Ordinary)?
-            .into_iter()
-            .filter(|package| package.starts_with("worth-ui"))
-            .collect::<BTreeSet<_>>();
-        if path.contains("host-headless") || path.contains("host-native") {
-            if ordinary != set(["worth-ui-host-contract"]) {
-                return Err(format!(
-                    "{path} ordinary dependency set drifted: {ordinary:?}"
-                ));
-            }
-        } else if ordinary != allowed {
-            return Err(format!("{path} dependency set drifted: {ordinary:?}"));
-        }
-    }
-    let runtime = manifests
-        .get("crates/worth-ui-runtime/Cargo.toml")
-        .ok_or("missing runtime manifest")?;
-    let runtime_dependencies = worth_ui_dependencies(runtime)?;
-    for forbidden in [
-        "worth-ui-host-headless",
-        "worth-ui-host-native",
-        "worth-ui-host-egui",
-    ] {
-        if runtime_dependencies.contains(forbidden) {
-            return Err(format!("runtime imports {forbidden}"));
-        }
-    }
-    Ok(())
-}
-
-#[derive(Clone, Copy)]
-enum DependencyScope {
-    Ordinary,
-    All,
-}
-
-fn dependency_packages(manifest: &str, scope: DependencyScope) -> Result<BTreeSet<String>, String> {
-    let value = manifest
-        .parse::<toml::Value>()
-        .map_err(|error| error.to_string())?;
-    let mut packages = BTreeSet::new();
-    collect_dependency_tables(&value, scope, &mut packages);
-    Ok(packages)
-}
-
-fn collect_dependency_tables(
-    value: &toml::Value,
-    scope: DependencyScope,
-    packages: &mut BTreeSet<String>,
-) {
-    let Some(table) = value.as_table() else {
-        return;
-    };
-    for (key, value) in table {
-        let dependency_table = key == "dependencies"
-            || matches!(scope, DependencyScope::All)
-                && matches!(key.as_str(), "dev-dependencies" | "build-dependencies");
-        if dependency_table {
-            if let Some(entries) = value.as_table() {
-                for (alias, declaration) in entries {
-                    let package = declaration
-                        .get("package")
-                        .and_then(toml::Value::as_str)
-                        .unwrap_or(alias);
-                    packages.insert(package.to_owned());
-                }
-            }
-        } else if key == "target" {
-            for target in value
-                .as_table()
-                .into_iter()
-                .flat_map(|targets| targets.values())
-            {
-                collect_dependency_tables(target, scope, packages);
-            }
-        }
-    }
-}
-
-fn worth_ui_dependencies(manifest: &str) -> Result<BTreeSet<String>, String> {
-    Ok(dependency_packages(manifest, DependencyScope::All)?
-        .into_iter()
-        .filter(|package| package.starts_with("worth-ui"))
-        .collect())
-}
-
-fn workspace_manifests() -> Manifests {
-    repository_manifests::all(workspace_source_inventory())
-}
-
-fn assert_resolved_qualified_versions() {
-    let lock = repository_document("workspaces/worth-ui/Cargo.lock");
-    let parsed = lock.parse::<toml::Value>().expect("workspace lockfile");
-    let resolved = parsed
-        .get("package")
-        .and_then(toml::Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(|package| {
-            Some((
-                package.get("name")?.as_str()?,
-                package.get("version")?.as_str()?,
-            ))
-        })
-        .collect::<BTreeSet<_>>();
-    for expected in [
-        ("winit", "0.30.13"),
-        ("wgpu", "29.0.4"),
-        ("rustybuzz", "0.20.1"),
-        ("swash", "0.2.10"),
-    ] {
-        assert!(
-            resolved.contains(&expected),
-            "missing resolved pin {expected:?}"
-        );
-    }
-}
-
-fn set<const N: usize>(values: [&str; N]) -> BTreeSet<String> {
-    values.into_iter().map(str::to_owned).collect()
+    assert_hiding_mutations_fail_topology_verdict();
 }

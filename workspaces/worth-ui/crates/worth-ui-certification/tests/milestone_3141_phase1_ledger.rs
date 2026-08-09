@@ -2,10 +2,16 @@ use std::collections::BTreeMap;
 
 use super::{repository_document, workspace_source_inventory};
 
+#[path = "milestone_3141_phase1_ledger/claim_contract.rs"]
+mod claim_contract;
 #[path = "milestone_3141_phase1_ledger/claim_digest.rs"]
 mod claim_digest;
 #[path = "milestone_3141_phase1_ledger/command_binding.rs"]
 mod command_binding;
+#[path = "milestone_3141_phase1_ledger/compile_case_binding.rs"]
+mod compile_case_binding;
+#[path = "milestone_3141_phase1_ledger/execution_contract.rs"]
+mod execution_contract;
 #[cfg(test)]
 #[path = "milestone_3141_phase1_ledger/mutation_tests.rs"]
 mod mutation_tests;
@@ -13,10 +19,22 @@ mod mutation_tests;
 mod requirement_contract;
 #[path = "milestone_3141_phase1_ledger/result_artifact.rs"]
 mod result_artifact;
+#[path = "milestone_3141_phase1_ledger/result_artifact_binding.rs"]
+mod result_artifact_binding;
+#[path = "milestone_3141_phase1_ledger/result_artifact_control.rs"]
+mod result_artifact_control;
+#[path = "milestone_3141_phase1_ledger/result_artifact_cost.rs"]
+mod result_artifact_cost;
+#[path = "milestone_3141_phase1_ledger/result_artifact_counter.rs"]
+mod result_artifact_counter;
+#[path = "milestone_3141_phase1_ledger/result_artifact_environment.rs"]
+mod result_artifact_environment;
+#[path = "milestone_3141_phase1_ledger/row_evidence.rs"]
+mod row_evidence;
 #[path = "milestone_3141_phase1_ledger/schema.rs"]
 mod schema;
 #[path = "milestone_3141_phase1_ledger/source_digest.rs"]
-mod source_digest;
+pub(crate) mod source_digest;
 #[path = "milestone_3141_phase1_ledger/source_symbol.rs"]
 mod source_symbol;
 
@@ -89,6 +107,58 @@ fn validate_phase_progression(rows: &BTreeMap<String, Row>) -> Result<(), String
         .ok_or_else(|| "Phase 2 proof cannot precede Phase 1 closure".to_owned())
 }
 
+fn validate_phase_closure(rows: &BTreeMap<String, Row>, through_phase: u8) -> Result<(), String> {
+    let open = rows.values().find(|row| {
+        row["phase"]
+            .parse::<u8>()
+            .is_ok_and(|phase| phase <= through_phase)
+            && (row["result"] != "PROVED" || row["final_source"] != "true")
+    });
+    match open {
+        Some(row) => Err(format!(
+            "{} remains open for Phase {through_phase} closure",
+            row["requirement"]
+        )),
+        None => Ok(()),
+    }
+}
+
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 1 row has final evidence"]
+fn phase_one_closure_requires_every_phase_one_row() {
+    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    validate_phase_closure(&rows, 1)
+        .expect("every Phase 1 requirement must be final-source proved");
+}
+
+#[test]
+#[ignore = "closure prerequisite: execute through the governed ledger runner"]
+fn phase_one_closure_prerequisites_are_final_source() {
+    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    for (requirement, row) in &rows {
+        if requirement.starts_with("P1-") && requirement != "P1-CLOSE-01" {
+            assert_eq!(row["result"], "PROVED", "{requirement} remains open");
+            assert_eq!(
+                row["final_source"], "true",
+                "{requirement} is not final-source evidence"
+            );
+        }
+    }
+    let phase_one_rows = rows
+        .keys()
+        .filter(|requirement| requirement.starts_with("P1-"))
+        .count();
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-CLOSE-01\":{phase_one_rows}}}");
+}
+
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 2 row has final evidence"]
+fn phase_two_closure_requires_every_phase_one_and_two_row() {
+    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    validate_phase_closure(&rows, 2)
+        .expect("every Phase 1 and Phase 2 requirement must be final-source proved");
+}
+
 fn validate_row(row: &Row) -> Result<(), String> {
     validate_requirement_contract(row)?;
     match row["result"].as_str() {
@@ -97,14 +167,15 @@ fn validate_row(row: &Row) -> Result<(), String> {
         _ => return Err("invalid result/final-source posture".to_owned()),
     }
     validate_proved_presence(row)?;
-    validate_world_evidence(row)?;
-    validate_execution_evidence(row)?;
-    validate_observations(row)?;
-    validate_source_identity(row)
+    row_evidence::validate_world(row)?;
+    row_evidence::validate_execution(row)?;
+    row_evidence::validate_observations(row)?;
+    row_evidence::validate_sources(row)
 }
 
 fn validate_requirement_contract(row: &Row) -> Result<(), String> {
     validate_profile_digests(row)?;
+    claim_contract::validate_platform_dependencies(&row["requirement"])?;
     let expected_phase = if row["requirement"].starts_with("P1-") {
         "1"
     } else if row["requirement"].starts_with("P2-") {
@@ -126,15 +197,60 @@ fn validate_requirement_contract(row: &Row) -> Result<(), String> {
         || row["font_profile_digest"] != requirement_contract::FONT_PROFILE_DIGEST
         || row["native_profile_identity"] != "worth-ui-windows-dx12-v1"
         || row["native_profile_digest"] != requirement_contract::NATIVE_PROFILE_DIGEST
-        || !row["platform_versions"].contains("protocol=4")
+        || row["platform_versions"] != claim_contract::platform_versions(&row["requirement"])
     {
         return Err("closed identity mismatch".to_owned());
     }
-    if row["result"] == "PROVED"
-        && (!row["mutation_control"].starts_with(contract.mutation_family)
-            || !row["structural_counters"].contains(contract.counter_family))
-    {
-        return Err("proved evidence does not satisfy its requirement contract".to_owned());
+    if row["result"] == "PROVED" {
+        validate_mutation_control(&row["mutation_control"], contract.mutation_family)?;
+        let expected_case = claim_contract::scenario_delta(&row["requirement"])
+            .ok_or_else(|| "requirement omits its exact mutation case".to_owned())?;
+        let expected_construction = claim_contract::construction_cost(&row["requirement"]);
+        let expected_execution = claim_contract::execution_cost(&row["requirement"]);
+        let expected_baseline = claim_contract::baseline_digest(&row["requirement"])?;
+        for (field, observed, expected) in [
+            (
+                "scenario_delta",
+                row["scenario_delta"].as_str(),
+                expected_case,
+            ),
+            (
+                "generated_seed",
+                row["generated_seed"].as_str(),
+                "not-applicable",
+            ),
+            (
+                "construction_cost",
+                row["construction_cost"].as_str(),
+                expected_construction,
+            ),
+            (
+                "execution_cost",
+                row["execution_cost"].as_str(),
+                expected_execution,
+            ),
+            (
+                "baseline_digest",
+                row["baseline_digest"].as_str(),
+                expected_baseline.as_str(),
+            ),
+        ] {
+            if observed != expected {
+                return Err(format!("proved {field} differs from its immutable requirement contract: {observed} != {expected}"));
+            }
+        }
+        let counters = named_numeric_fields(&row["structural_counters"])?;
+        let expected_amount = execution_contract::counter_amount(&row["requirement"])
+            .ok_or_else(|| "requirement omits its exact counter amount".to_owned())?;
+        if counters.len() != 1 || counters.get(contract.counter_family) != Some(&expected_amount) {
+            return Err("proved evidence omits its exact counter family".to_owned());
+        }
+        if row["fault_injection_boundary"]
+            != execution_contract::fault_boundary(&row["requirement"])
+                .ok_or_else(|| "requirement omits its exact fault boundary".to_owned())?
+        {
+            return Err("proved evidence has the wrong fault boundary".to_owned());
+        }
     }
     Ok(())
 }
@@ -169,142 +285,42 @@ fn validate_proved_presence(row: &Row) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_world_evidence(row: &Row) -> Result<(), String> {
-    if row["world_version"]
-        .parse::<u16>()
-        .ok()
-        .filter(|value| *value > 0)
-        .is_none()
-    {
-        return Err("invalid world version".to_owned());
-    }
-    if row["baseline_digest"].len() != 64
-        || !row["baseline_digest"]
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit())
-    {
-        return Err("invalid baseline digest".to_owned());
-    }
-    if !matches!(
-        row["teardown_result"].as_str(),
-        "terminal" | "not-applicable"
-    ) {
-        return Err("invalid teardown result".to_owned());
-    }
-    validate_cost(&row["construction_cost"])?;
-    validate_cost(&row["execution_cost"])?;
-    validate_cost(&row["structural_counters"])?;
-    if !row["authority_provenance"].contains("::") {
-        return Err("authority provenance is not a named owner path".to_owned());
-    }
-    Ok(())
-}
-
-fn validate_execution_evidence(row: &Row) -> Result<(), String> {
-    let command = command_binding::validate(
-        &row["exact_command"],
-        &row["requirement"],
-        &row["production_entry"],
-        &row["independent_oracle"],
-        &row["source_identity"],
-    )?;
-    result_artifact::validate(
-        result_artifact::LedgerResult {
-            matched_test_count: &row["matched_test_count"],
-            command_result: &row["command_result"],
-            artifact: &row["retained_result_artifact"],
-            source_revision: &row["source_revision"],
-            source_digest: &row["source_digest"],
-            source_state_digest: &row["source_state_digest"],
-            run_nonce: &row["run_nonce"],
-            source_identity: &row["source_identity"],
-            result_artifact_digest: &row["result_artifact_digest"],
-            claim_digest: &claim_digest::calculate(row),
-        },
-        &command,
-    )?;
-    validate_named_entry(&row["production_entry"])?;
-    validate_named_entry(&row["independent_oracle"])?;
-    Ok(())
-}
-
-fn validate_observations(row: &Row) -> Result<(), String> {
-    if !matches!(
-        row["fault_injection_boundary"].as_str(),
-        "before-effects" | "after-effects-may-have-begun" | "not-applicable"
-    ) {
-        return Err("invalid fault injection boundary".to_owned());
-    }
-    for observation in ["presented_source_readback", "client_area_observation"] {
-        if !matches!(row[observation].as_str(), "not-applicable")
-            && !row[observation].starts_with("observed:")
-        {
-            return Err(format!("invalid {observation}"));
-        }
-    }
-    Ok(())
-}
-
-fn validate_source_identity(row: &Row) -> Result<(), String> {
-    for source in row["source_identity"].split(';') {
-        if source.starts_with("workspaces/worth-ui/") {
-            let relative = source.trim_start_matches("workspaces/worth-ui/");
-            if !workspace_source_inventory().contains(relative) {
-                return Err(format!("missing source {source}"));
-            }
-        } else {
-            let repository_root = workspace_source_inventory()
-                .root()
-                .parent()
-                .and_then(std::path::Path::parent)
-                .expect("repository root");
-            if !repository_root.join(source).exists() {
-                return Err(format!("missing source {source}"));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_named_entry(value: &str) -> Result<(), String> {
-    let Some((source, symbol)) = value.rsplit_once("::") else {
-        return Err("evidence entry lacks a named symbol".to_owned());
-    };
-    if symbol.is_empty() || !source.ends_with(".rs") {
-        return Err("invalid evidence entry".to_owned());
-    }
-    let source_path = resolve_source(source).ok_or_else(|| format!("missing source {source}"))?;
-    source_symbol::validate(&source_path, symbol)
-}
-
-fn validate_cost(value: &str) -> Result<(), String> {
-    let mut count = 0;
-    for field in value.split(';') {
-        let Some((name, amount)) = field.split_once('=') else {
-            return Err("cost evidence must be named numeric counters".to_owned());
-        };
-        if name.is_empty() || amount.parse::<u64>().is_err() {
-            return Err("invalid cost counter".to_owned());
-        }
-        count += 1;
-    }
-    (count > 0)
+pub(super) fn validate_cost(value: &str) -> Result<(), String> {
+    let fields = named_numeric_fields(value)?;
+    (!fields.is_empty())
         .then_some(())
         .ok_or_else(|| "empty cost evidence".to_owned())
 }
 
-fn resolve_source(source: &str) -> Option<std::path::PathBuf> {
-    if source.starts_with("workspaces/worth-ui/") {
-        let relative = source.trim_start_matches("workspaces/worth-ui/");
-        return workspace_source_inventory()
-            .contains(relative)
-            .then(|| workspace_source_inventory().root().join(relative));
+fn named_numeric_fields(value: &str) -> Result<BTreeMap<&str, u64>, String> {
+    let mut fields = BTreeMap::new();
+    for field in value.split(';') {
+        let Some((name, amount)) = field.split_once('=') else {
+            return Err("cost evidence must be named numeric counters".to_owned());
+        };
+        let amount = amount
+            .parse::<u64>()
+            .map_err(|_| "invalid cost counter".to_owned())?;
+        if name.is_empty() || fields.insert(name, amount).is_some() {
+            return Err("invalid cost counter".to_owned());
+        }
     }
-    let repository_root = workspace_source_inventory()
-        .root()
-        .parent()
-        .and_then(std::path::Path::parent)
-        .expect("repository root");
-    let path = repository_root.join(source);
-    path.exists().then_some(path)
+    Ok(fields)
+}
+
+fn validate_mutation_control(value: &str, expected_family: &str) -> Result<(), String> {
+    let fields = value
+        .split(';')
+        .map(|field| {
+            field
+                .split_once('=')
+                .ok_or_else(|| "mutation control must use named fields".to_owned())
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    if fields.get("family") != Some(&expected_family)
+        || fields.get("case").is_none_or(|case| case.is_empty())
+    {
+        return Err("proved evidence has the wrong mutation family".to_owned());
+    }
+    Ok(())
 }

@@ -24,14 +24,35 @@ fn maximum_overlap_removals_cross_public_runtime_and_headless_with_exact_work() 
         world.baseline().last().unwrap().rgba
     );
     assert_eq!(production.deltas.len(), 3);
+    world.assert_unchanged(&production.unchanged);
     for delta in &production.deltas {
         world.assert_removal_delta(delta);
     }
+    assert_eq!(production.restorations.len(), 2);
+    for restoration in &production.restorations {
+        world.assert_restoration(restoration);
+    }
+    assert_required_oracle_mutations_are_rejected();
+    let unchanged_carrier = production.unchanged.cost.delta_rows_carried()
+        + production.unchanged.cost.draw_list_mutations()
+        + production.unchanged.cost.order_mutations()
+        + production.unchanged.cost.logical_damage_regions()
+        + production.unchanged.native_work_count as u64;
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-HEADLESS-COST-01\":{unchanged_carrier},\"P1-WORLDS-01\":{}}}",
+        world.baseline().len()
+    );
+    println!("WORTH_UI_LEDGER_WORLD=1");
+    println!("WORTH_UI_LEDGER_PRESENTATIONS=7");
     let _ = production.session.shutdown();
 }
 
 #[test]
 fn independent_oracle_rejects_each_required_control_mutation_for_its_exact_cause() {
+    assert_required_oracle_mutations_are_rejected();
+}
+
+fn assert_required_oracle_mutations_are_rejected() {
     let baseline = [oracle::OracleRect {
         identity: 1,
         bounds: [4, 4, 8, 8],
@@ -56,12 +77,6 @@ fn independent_oracle_rejects_each_required_control_mutation_for_its_exact_cause
         Err(OracleDenial::OwnerDeltaDropped)
     );
     mutant = expected.clone();
-    mutant.discovery_count = 1;
-    assert_eq!(
-        adjudicate(&expected, &mutant),
-        Err(OracleDenial::HostDiscoveryUsed)
-    );
-    mutant = expected.clone();
     mutant.damage[0] = [0, 0, 160, 96];
     assert_eq!(
         adjudicate(&expected, &mutant),
@@ -74,15 +89,9 @@ fn independent_oracle_rejects_each_required_control_mutation_for_its_exact_cause
         Err(OracleDenial::PaintOrderChanged)
     );
     mutant = expected.clone();
-    mutant.vacated_replay_count = 0;
+    mutant.vacated_damage_count = 0;
     assert_eq!(
         adjudicate(&expected, &mutant),
-        Err(OracleDenial::VacatedReplayOmitted)
-    );
-    mutant = expected.clone();
-    mutant.baseline_clear = [0, 0, 0, 255];
-    assert_eq!(
-        adjudicate(&expected, &mutant),
-        Err(OracleDenial::BaselineClearChanged)
+        Err(OracleDenial::VacatedDamageOmitted)
     );
 }

@@ -37,6 +37,12 @@ fn default_all_feature_and_windows_resolved_graphs_are_exact_and_mutation_sensit
         .unwrap()
         .pop();
     assert!(validate(&hidden_edge).is_err());
+    let features = strings(&node(&graphs[0], "wgpu", "29.0.4").unwrap()["features"]).unwrap();
+    let qualified_backends = ["dx12", "vulkan", "gles", "metal", "webgpu"]
+        .into_iter()
+        .filter(|backend| features.contains(backend))
+        .count();
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-BACKEND-FEATURES-01\":{qualified_backends}}}");
 }
 
 fn validate(graph: &serde_json::Value) -> Result<(), String> {
@@ -52,7 +58,7 @@ fn validate(graph: &serde_json::Value) -> Result<(), String> {
         graph,
         "worth-ui-native-platform",
         "0.1.0",
-        &["worth_ui", "worth_ui_host_contract", "worth_ui_host_native"],
+        &["worth_ui_runtime"],
     )?;
     exact_dependencies(
         graph,

@@ -1,3 +1,4 @@
+pub use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 pub use worth_ui_runtime::facade::declaration::{
     UiAspectContract, UiAspectContractAdmissionDenial, UiAspectCoverageEntry,
     UiAspectCoverageReport, UiAspectFamily, UiAspectName, UiAspectSemanticSlice,

@@ -11,8 +11,10 @@ impl UiNativeApplicationDefinition for Application {
         self,
         mut preparation: UiNativeApplicationPreparation,
     ) -> UiNativeApplicationPreparationOutcome {
-        let borrowed = preparation.builder();
-        drop(borrowed);
+        preparation
+            .builder()
+            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+            .unwrap();
         match preparation.complete() {
             UiNativeApplicationPreparationOutcome::Prepared(prepared) => {
                 UiNativeApplicationPreparationOutcome::Prepared(prepared)

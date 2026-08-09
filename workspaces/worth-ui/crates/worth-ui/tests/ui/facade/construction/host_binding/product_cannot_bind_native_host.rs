@@ -1,6 +1,7 @@
-use worth_ui::facade::app::WorthUi;
+use worth_ui::facade::app::WorthUiHostNeutralApp;
 
-fn main() {
-    let builder = WorthUi::app();
-    let _ = builder.bind_native_platform_host((), ());
+fn bind_from_product_code(application: WorthUiHostNeutralApp) {
+    let _ = application.bind_qualified_native(());
 }
+
+fn main() {}

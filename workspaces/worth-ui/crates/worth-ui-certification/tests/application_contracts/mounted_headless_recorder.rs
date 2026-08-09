@@ -130,6 +130,10 @@ fn real_cross_lane_recording_preserves_exact_unperformed_external_mechanics() {
         UiHostSurfacePresentationDenial::UnsupportedEffect(UiMountedEffectFamily::CanvasSpatial),
     );
     assert_eq!(recorder.observed_transcripts().len(), 1);
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-HEADLESS-01\":{}}}",
+        recorder.observed_transcripts().len()
+    );
     let _ = session.shutdown();
     workspace.close();
 }

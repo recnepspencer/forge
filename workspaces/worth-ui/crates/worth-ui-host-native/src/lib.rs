@@ -1,16 +1,21 @@
-//! Contract-only Phase 1 owner for qualified native mechanics profiles.
-//!
-//! Event-loop, window, graphics, shaping, raster, and readback effects are
-//! deliberately absent until their owning vertical phases activate them.
+//! Qualified native mechanics profiles and the Worth-owned native host.
 
+mod native;
 mod native_profile;
 mod prepared_host;
 mod text_profile;
 
+pub use native::{
+    UiNativeClientPresentationAttribution, UiNativeEffectPosture, UiNativeEventLoopClient,
+    UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
+    UiNativeEventLoopStopReport, UiNativeGraphicsObservation, UiNativePresentationObservation,
+    UiNativeReadinessGrant, UiNativeResourceCensus, WorthUiNativeEventLoop,
+    WorthUiNativeMechanicsAdapter,
+};
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,
 };
-pub use prepared_host::WorthUiPreparedNativeHost;
+pub use prepared_host::{UiNativeWindowConfiguration, WorthUiPreparedNativeHost};
 pub use text_profile::{
     UiBodyDefaultAtlasCapacities, UiBodyDefaultTextProfileIdentity,
     UiUnsupportedBodyDefaultCodePoint, WORTH_UI_BODY_DEFAULT_FONT, WORTH_UI_BODY_DEFAULT_LICENSE,

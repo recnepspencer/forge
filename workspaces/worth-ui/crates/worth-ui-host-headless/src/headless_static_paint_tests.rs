@@ -24,7 +24,7 @@ use worth_ui_host_contract::{
 use super::{UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect};
 
 #[test]
-fn complete_static_paint_is_copied_into_the_headless_transcript() {
+fn validated_agreement_static_paint_consumes_and_mixed_contract_stops_before_consumer() {
     let projection = complete_projection(ProjectionMutation::None);
 
     let transcript = translate(&projection, current_protocol()).expect("complete row is valid");
@@ -43,6 +43,12 @@ fn complete_static_paint_is_copied_into_the_headless_transcript() {
             semantic_text_count: 0,
             preview_node_count: 0,
         }));
+    assert_eq!(
+        mounted_frame_revision_two().negotiate(),
+        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
+            UiHostProtocolSchemaFamily::MountedFrame
+        ))
+    );
 }
 
 #[test]
@@ -60,16 +66,6 @@ fn foreign_frame_and_allocation_basis_reject_before_a_transcript_exists() {
             Err(UiHostSurfacePresentationDenial::MalformedProjection)
         );
     }
-}
-
-#[test]
-fn mixed_old_mounted_frame_schema_is_rejected_before_consumption() {
-    assert_eq!(
-        mounted_frame_revision_two().negotiate(),
-        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
-            UiHostProtocolSchemaFamily::MountedFrame
-        ))
-    );
 }
 
 #[test]

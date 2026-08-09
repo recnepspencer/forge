@@ -153,9 +153,9 @@ The closed native record is `worth-ui-windows-dx12-v1`:
 | Window/event dependency | `winit = "=0.30.13"` |
 | Graphics dependency | `wgpu = "=29.0.4"` with only the DirectX 12 backend admitted; `pollster = "=0.4.0"` for bounded preparation joins |
 | Compiled dependency features | `winit`: defaults off, exactly `rwh_06`; `wgpu`: defaults off, exactly `std`, `parking_lot`, `dx12`, and `wgsl` |
-| Device admission | runtime backend mask exactly `Backends::DX12`, empty optional device features, and `wgpu 29.0.4 Limits::downlevel_defaults()` as the complete versioned required-limits basis |
+| Device admission | runtime backend mask exactly `Backends::DX12`, empty optional device features, and `wgpu 29.0.4 Limits::downlevel_defaults().using_resolution(adapter.limits())`; the downlevel baseline is fixed while only the selected qualified adapter's physical texture-resolution ceilings are retained so the 16,384 window bound is realizable |
 | Adapter selection | enumerate surface-compatible DX12 adapters satisfying the exact required limits; reject CPU/Other; sort Discrete, Integrated, Virtual, then vendor ID, device ID, name, and driver-info bytes; consume the first |
-| Surface/target | `Bgra8UnormSrgb` surface and `Rgba8UnormSrgb` retained presentation target |
+| Surface/target | wgpu DX12 `DxgiFromVisual` DirectComposition presentation, `Bgra8UnormSrgb` surface, and `Rgba8UnormSrgb` retained presentation target |
 | Presentation | FIFO present mode and premultiplied composite alpha; unsupported exact modes deny rather than fall back |
 | Shader/blend | input is logical straight RGBA; shader premultiplies RGB by alpha; color and alpha use source `One`, destination `OneMinusSrcAlpha`, operation `Add` |
 | Antialiasing | sample count one; filled rectangles have no renderer-selected edge antialiasing; text uses the qualified grayscale glyph coverage |
@@ -163,8 +163,8 @@ The closed native record is `worth-ui-windows-dx12-v1`:
 | Baseline | canonical transparent `[0, 0, 0, 0]`, available only through a same-surface/binding/profile `UiMountedSurfaceBaselineReceipt` |
 | Window/surface | one window and one surface in 3.14.1; transparent client background; initial logical size is the application profile size |
 | Work bounds | 4,096 retained commands, 2,048 rectangle commands, 2,048 text commands, 4,096 damage regions, 4,096 order edits, and 1 MiB admitted text bytes |
-| Scheduling bounds | eight readiness owners, 64 coalesced causes per owner, eight total ready owner slots, two presentation slots, four capture/readback slots |
-| Readback bound | 16 MiB total framework-owned mapped or pending readback bytes |
+| Scheduling bounds | 32 registered resource owners, eight readiness owners, 64 coalesced causes per owner, eight total ready owner slots, two presentation slots, four capture/readback slots |
+| Readback bound | 16 MiB total framework-owned mapped or pending readback bytes; a native GPU submission/readback wait is bounded to 5,000 ms |
 | Qualification observations | OS build; adapter name/vendor/device/driver; observed scale factors; required formats, modes, alpha, limits, and DX12 surface compatibility |
 | Independent Windows observation | retained-target readback remains distinct from the existing Pulse executable-world `xcap = 0.9.7` WGC client capture, `winsafe = 0.0.28` window binding, and `uiautomation = 0.25.0` input/close observation |
 
@@ -179,7 +179,7 @@ in every affected ledger row.
 The committed canonical manifest digests are text
 `6f140249866e6815e9284fe1c8c959a8bb1b8cab252cfbe8c7c397f9a7eb9b01`
 and native
-`93121321d608b95e496f5e7defe63f0493f90ebf965202a64160da03de24d0fe`.
+`1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b`.
 These successor digests deliberately reopen and replace the earlier incomplete
 manifest identities: every normative field above, including compiled feature
 posture, device-limits basis, saturation, and observation boundary, is now
@@ -249,6 +249,49 @@ The prepared platform privately issues one grant bound to its native-profile
 identity, preparation identity, and single application slot. Any unsuccessful
 preparation consumes that slot; a retry requires a newly prepared platform.
 
+### Enforceability correction for the Phase 1-2 implementation
+
+Rust crate privacy cannot distinguish one blessed sibling crate from another
+downstream caller. This milestone therefore does not treat sibling-crate
+identity, `#[doc(hidden)]`, a Cargo feature, or an unexported constructor in a
+different crate as an authority boundary. The enforceable native activation
+boundary is one fixed concrete transition: it consumes the move-only
+host-neutral application, the private application-slot grant, and the exact
+qualified native mechanics bundle. The transition and grant issuer live in
+the same `worth-ui-runtime` privacy boundary as host-neutral application
+construction; `worth-ui-native-platform` is the public facade over that gate.
+It exposes no generic adapter parameter and cannot bind a caller-defined host.
+Supported application crates reach it only through `WorthUiNativePlatform`;
+repository topology rejects direct product dependencies on runtime and native
+mechanics. The temporary egui and certification lanes use equivalently fixed
+transitions and no feature-gated issuer.
+
+The application-slot grant remains private to runtime-owned native-platform composition and
+prevents reuse or replacement inside the public progression. It is not passed
+across crates as a supposed friend token. A low-level integration function
+that must be Rust-public for host mechanics composition is not itself the
+application authority: it cannot receive or bind a host-neutral Worth
+application. Product dependency topology prevents importing that mechanics
+surface, while the actual application-binding transition remains crate-private.
+
+Likewise, `worth-ui-host-contract` may expose inert mechanics inputs and
+borrowed views needed by host consumers and their focused tests. Those values
+are not authoritative presentation work. Only runtime's private lease can seal
+them into the owning work envelope, admit them to an active host session, or
+mint a completion token. Compiler evidence attacks the real sealing and
+admission operations; it does not claim that inert data constructors are
+private merely because they cannot open an operational door.
+
+Ledger result artifacts are retained reproducibility and failure-diagnostic
+records, not unforgeable authorities. A repository file can always be
+hand-authored by someone able to edit the repository. Phase closure therefore
+comes only from the governed external closure runner listing and executing the
+exact requirement-bound tests on the current source state and then validating
+their machine-readable observations. The ledger binds canonical immutable
+claim fields while the source-state digest excludes the ledger bytes that the
+runner must update. A stored artifact alone, even with internally consistent
+digests, cannot change a row to `PROVED`.
+
 `UiNativeApplicationPreparation` owns the host-neutral
 `WorthUiApplicationBuilder` and no live subsystem resource. Its public
 `builder(&mut self)` returns only a
@@ -265,13 +308,18 @@ evidence and is absent; Phase 2 introduces a real census only alongside real
 resource owners and consuming stop/join transitions.
 
 Phase 2 consumes `UiPreparedNativeApplication` into a private
-`UiNativeApplicationDriverPreparation`. Only that phase may ask the real
-filesystem, Query, intent, and inspection subsystem boundaries for sealed
-stopped owners. Each owner is registered in the 32-entry resource registry
-before its eight-slot readiness capability can be activated. Driver
-preparation owns reverse stop/join, retained incomplete-cleanup authority, and
-the `ApplicationCleanup` stop. A generic counter thread, owner-kind enum, or
-test-only refusal posture cannot satisfy those Phase 2 contracts.
+`UiNativeApplicationDriverPreparation`. Only that phase or a later native
+product-integration phase may ask the real filesystem, Query, intent, and
+inspection subsystem boundaries for sealed stopped owners. The first vertical
+presentation registers only the application-driver, event-wake, window,
+graphics, presentation, and readback owners that it actually opens; it does
+not invent placeholder filesystem, Query, intent, or inspection workers.
+Whenever a later phase opens one of those real subsystem owners, it must first
+register it in the same 32-entry resource registry before activating its
+eight-slot readiness capability. The driver retains reverse stop/join and
+incomplete-cleanup authority for every owner it has actually opened. A generic
+counter thread, owner-kind enum, or test-only refusal posture cannot stand in
+for a real subsystem owner.
 
 Phase 1 creates `worth-ui-host-native` as the owner of these checked-in
 profiles, capacities, sealed inert mechanics contracts, and trust manifests,
@@ -364,13 +412,18 @@ keeps egui as a fallback.
 
 ## Supporting Proof Portfolio
 
-### `HP-02`: Delta and amplification courtroom
+### `HP-02`: Delta and amplification courtroom (Phase 3 closure)
 
-Use `MountedPresentationWorld::maximum_overlap` to build one causally valid
-mounted world at the current maximum admitted sizes: 2,048 filled rectangles,
-2,048 semantic-text rows, and the 1 MiB text-byte ceiling. Replace one text
-row, remove one rectangle, and insert one rectangle while all other rows remain
-identical. Then submit an unchanged successor.
+Phase 1 seeds `MountedPresentationWorld::maximum_overlap` through the public
+application, production lowering/graph/mounting, runtime work issuer, and real
+headless consumer with the 2,048-rectangle ceiling. Its independent manifest
+and oracle prove the complete initial order, sparse/partial/full removal,
+exact insertion restoration, logical damage, and an unchanged-zero turn.
+Phase 3 extends that same governed world to the complete admitted 4,096-command
+posture: 2,048 filled rectangles, 2,048 semantic-text rows, and the 1 MiB
+text-byte ceiling. It replaces one text row, removes one rectangle, inserts
+one rectangle while every other row remains identical, and then submits an
+unchanged successor.
 
 Command mutation and order planning must consume work proportional to the
 three changed commands plus explicitly affected order/damage entries, not all
@@ -390,10 +443,13 @@ acquisitions, submissions, and presents. If the native surface requires a
 full-area copy or present after local rendering, that physical amplification
 is reported separately and is never relabeled local.
 
-An independent ordered-pixel model adjudicates command retention, removal,
-clipping, overlap, and equal-layer order. Mutation controls remove delta
-carriage, force a full scan, widen damage, or change the total-order tie break;
-each must fail for its named reason.
+The Phase 1 seed's independent model adjudicates command retention, removal,
+insertion restoration, logical damage, and total order without reconstructing
+expected rows from the production transcript. Phase 3 adds native
+ordered-pixel adjudication for clipping, clearing, overlap, and equal-layer
+order. Its mutation controls remove delta carriage, force a full scan, widen
+damage, omit vacated replay, substitute the transparent baseline, or change
+the total-order tie break; each must fail for its named reason.
 
 ### `HP-03`: Text and atlas courtroom
 
@@ -542,12 +598,13 @@ failure, OS event, compositor result, or vendor cleanup.
 ### `WindowsNativeBoundaryWorld`
 
 This world enters through `WorthUiNativePlatform` and the existing Platform
-Pulse application in the one serialized native courtroom. It crosses the real
-Windows event loop, process-bound window, observed startup DPI, resize/
-minimize/restore, surface/device acquisition, OS input, presentation-source
-readback, compositor-visible capture, normal close, worker join, and residue
-checks. It also closes once with queued readiness and a held 3.14 application
-attempt.
+Pulse application in the one serialized native courtroom. Its Phase 2 seed
+crosses the real Windows event loop, process-bound window, observed startup
+DPI, surface/device acquisition, presentation-source readback,
+compositor-visible capture, normal close, and residue checks. Resize,
+minimize/restore, cross-monitor DPI, input, device loss, and held-attempt
+schedules remain deterministic protocol evidence until their later real-world
+phases; the Phase 2 ledger must not claim those paths from the startup seed.
 
 Only environment-qualified facts receive real-boundary credit. A single-
 monitor runner proves its observed DPI basis but not a cross-monitor DPI
@@ -623,6 +680,12 @@ mounted-presentation, and measurement schemas advance to revision 4 while the
 contract during coexistence. Older or mixed revisions reject before effects;
 there is no downgrade or reinterpretation path, and the superseded protocol
 window is retired with egui at cutover.
+
+The consumer input is the proof-carrying `UiHostProtocolAgreement`, not a raw
+protocol contract. Negotiation owns old/mixed-revision denial; headless and
+egui prove consumption of the validated revision-4 agreement, while a raw
+revision-3/mixed contract cannot be substituted into either consumer. Tests
+must not open a second constructor merely to counterfeit an invalid agreement.
 
 The host may reject a malformed or stale delta before effects. It may not
 recover by scanning the successor projection, comparing semantic digests,
@@ -707,24 +770,23 @@ device recovery, and normal close. It depends on `worth-ui-host-contract`, not
 runtime, the product facade, Query binding, DSL, inspection, or application
 code.
 
-`worth-ui-native-platform` is the higher application composition owner. It
-depends on the public `worth-ui` facade and `worth-ui-host-native`, binds one
-application driver to one native event loop, and coordinates only public
-lifecycle operations. The Worth runtime session remains on the event-loop
-thread unless an existing owner explicitly grants another posture.
+`worth-ui-runtime` is the higher application composition owner. The thin
+`worth-ui-native-platform` crate re-exports that fixed progression and does not
+own a parallel binding transition. Runtime privately binds one host-neutral
+application to one qualified mechanics bundle and keeps the Worth session on
+the event-loop thread.
 
-The mechanics boundary has one typed event-loop client contract, not arbitrary
-closures. Its methods consume host-issued wake grants and return only an
-exhaustive `Continue | WaitUntil | Close` directive. It exposes no raw paint,
-window mutation, targeting, publication, or device operation. Implementing
-that inert client contract grants no permission to register or run it. Event-
-loop admission additionally consumes a move-only platform-binding grant issued
-privately by the native application composition owner while executing the
-public Worth application preparation path; a client
-implementation, serialized value, host identity, or mechanics dependency
-cannot mint or replace that grant. The canonical client and binding are
-private to `worth-ui-native-platform`; product code implements the higher Worth
-application contract and never the mechanics client directly.
+The low-level mechanics boundary has one typed event-loop client contract, not
+arbitrary closures. Its methods consume host-issued wake grants and return only
+an exhaustive `Continue | WaitUntil | Close` directive. Because Rust has no
+cross-crate friend visibility, this mechanical integration surface is callable
+by a crate that deliberately depends on `worth-ui-host-native`; it is not
+described as a platform grant boundary. It cannot receive, construct, or bind a
+host-neutral Worth application. The enforceable product authority is the
+runtime-private transition that alone owns `UiPreparedNativeApplication` and
+its affine binding grant. Supported product topology forbids direct mechanics
+dependencies, while focused host mechanics tests may exercise the low-level
+contract without claiming application authority.
 
 Worker threads may carry only typed readiness observations through bounded
 channels and a native event-loop wake proxy. They do not receive the runtime
@@ -732,11 +794,13 @@ session, host adapter, window, device, mounted projection, or publication
 authority.
 
 A wake is a level-triggered readiness hint, never the semantic payload.
-Each owner commits work to its bounded owner queue before signalling its
-generation-bearing readiness slot. Coalescing preserves the newest ready
-generation and cannot erase pending work. One event-loop turn drains a
-profile-bounded slice in a frozen deterministic priority order; if an owner
-remains ready, the client yields and re-arms exactly one wake. Queue
+Each registered owner commits work to its bounded owner slot before signalling
+its generation-bearing readiness state. Coalescing preserves the newest ready
+generation and cannot erase pending work. The Phase 2 rectangle seed registers
+one application presentation owner; later phases add the remaining concrete
+filesystem, Query, intent, inspection, input, and capture owners without
+replacing this protocol. One event-loop turn drains the committed work; work
+committed during or after a drain re-arms exactly one wake. Queue
 exhaustion, stale wake generation, coalescing, per-owner work consumed, turns
 yielded, and starvation bounds are typed and counted. Shutdown closes wake
 registration before worker join, so a late proxy signal cannot resurrect the
@@ -987,10 +1051,11 @@ compatible implementations.
 
 ## Compile-Time and Mechanical Enforcement
 
-- `UiMountedPresentationWork`, its initial/delta/unchanged variants, paint
-  order identities/plans, and command changes have private fields. They are
-  opened only by the existing mounted presentation lease and consumed by the
-  host.
+- Runtime's owning `UiMountedPresentationWork` envelope, its
+  initial/delta/unchanged choice, lease seal, and completion authority have
+  private fields. The host contract may expose inert command, order, damage,
+  and input mechanics, but they enter an active host session only through the
+  runtime-owned envelope and lease.
 - The mounted presentation lease, authoritative work variants, consumption
   view, and completion-token minting live under runtime's private host
   presentation authority. `worth-ui-host-contract` exposes only inert command,
@@ -1027,10 +1092,11 @@ compatible implementations.
 - Window, surface, device, presentation target, atlas, readback, and event-loop
   resources are registered under framework-owned generational handles and
   require exhaustive shutdown propagation.
-- Event-loop client implementation, wake proxy, wake observation, and
-  platform-binding grant are distinct types. Only the move-only binding grant
-  can admit a client; none of the other types can construct, clone, serialize,
-  or recover it.
+- Event-loop client implementation, wake observation, and platform-binding
+  grant are distinct types. The low-level mechanics client is not application
+  authority and cannot receive a Worth application; only runtime's move-only
+  binding grant can bind the host-neutral application into the fixed native
+  product progression.
 - Prepared, acquired, encoded, submitted, present-handoff, capture-readback,
   recovery, and terminal resource states are consuming types with only their
   lawful next transitions visible.
@@ -1049,14 +1115,17 @@ compatible implementations.
   inspection, certification, or one another. Runtime-facing session authority
   wraps their inert mechanics contracts from above.
 - The host contract and native mechanics cannot import runtime or product
-  internals. Runtime cannot import the native host implementation.
-- `worth-ui-native-platform` privately owns the native platform-binding grant
+  internals. Runtime's ordinary semantic and mounting modules cannot import
+  native mechanics. One isolated host-activation composition module may depend
+  on the native mechanics facade solely to name the fixed qualified bundle;
+  vendor types and native implementation modules remain unreachable there.
+- Runtime's native-platform module privately owns the application-slot grant
   and combines a host-neutral Worth application definition with the fixed
-  native mechanics implementation. The generic Worth builder exposes no
-  host-bearing bind or replacement transition. No `native-platform-authority`
-  Cargo feature, public issuer, grant constructor, or host-contract surrogate
-  exists; the platform cannot import arbitrary host replacement or vendor
-  modules outside the native mechanics facade.
+  native mechanics implementation. `worth-ui-native-platform` re-exports only
+  that public progression. The generic Worth builder exposes no host-bearing
+  bind or replacement transition. No Cargo feature, generic adapter binder,
+  caller-defined marker, or host-contract surrogate grants native application
+  activation.
 - Public outcome matches are exhaustive and `#[must_use]`; wildcard
   translations over lifecycle, presentation, capture, or recovery topology
   are forbidden.
@@ -1136,8 +1205,9 @@ requires that boundary; exhaustive schedules remain in independent models.
 | runtime mounting | mounted projection, total paint order, exact presentation work, logical damage, publication affinity | native scheduling, GPU resources, font fallback |
 | `worth-ui-host-contract` | inert presentation-work protocol, mounted mechanics, host observations, capture and typed outcomes | runtime truth, vendor types, native implementation |
 | `worth-ui-host-headless` | production headless mechanics, bounded transcripts, measurement evidence, and record-only presentation over the inert host contract | runtime internals, native resources, application truth, certification-only authority |
-| `worth-ui-host-native` | native scheduling, windows, surfaces, graphics device, derived draw list, text mechanics, input translation, atlas, readback, resource recovery | runtime, authored meaning, targeting, intents, Query, publication |
-| `worth-ui-native-platform` | composition of public application lifecycle with opaque native wakes and the native host grant | runtime internals, vendor mechanics, drawing, target or intent authority |
+| `worth-ui-host-native` | native scheduling and readiness, windows, surfaces, graphics device, derived draw list, text mechanics, input translation, atlas, readback, resource recovery | runtime, authored meaning, targeting, intents, Query, publication |
+| runtime native platform | effect-free application preparation, private native binding, prepared-application driver handoff, and terminal outcome projection | vendor mechanics, drawing, target or intent authority |
+| `worth-ui-native-platform` | thin public facade over the runtime-owned native application lifecycle | binding issuance, runtime internals, vendor mechanics, drawing |
 | application composition root | product source/Query/intent wiring and typed readiness | event-loop ownership, raw input translation, drawing |
 | inspection | bounded immutable host and presentation evidence | operational construction or recovery |
 | certification | independent models, governed worlds, parity and deletion proof | production authority |
@@ -1217,14 +1287,14 @@ workspaces/worth-ui/
         lifecycle/
           {mod,resource_registry,census,recovery,shutdown}.rs
 
-    worth-ui-native-platform/                   [create: product composition]
+    worth-ui-runtime/src/native_platform/       [create: private binding gate]
+      {mod,application,application_driver,
+       native_platform_binding,outcome,platform,profile}.rs
+
+    worth-ui-native-platform/                   [create: public facade]
       Cargo.toml
       src/
         lib.rs                                  [facade only]
-        platform/
-          {mod,profile,prepare,run,outcome}.rs
-        application/
-          {mod,driver,readiness,wake_slot,shutdown}.rs
 
     worth-ui-host-egui/                         [remove after parity]
     worth-ui-theme/                             [remove; isolated egui era]
@@ -1278,6 +1348,16 @@ Committed successors enter additively:
   than being inferred from draw commands.
 
 ## Ordered Phases
+
+### Current implementation status
+
+Phase 1–2 closure is reopened while the final independent audit is being
+resolved. The mounted 2,048-rectangle courtroom and native DX12 startup seed
+remain useful evidence, but no ledger row is final-source until its exact
+authority, cleanup, attribution, and hostile-control artifacts validate on the
+post-repair source graph. Later phases remain ordered and open; the Phase 2
+rectangle seed does not imply retained-delta, text, input, resize, capture,
+recovery, or parity evidence.
 
 ### Phase 1: Protocol, qualification, and topology closure
 
@@ -1338,9 +1418,9 @@ native replay contracts.
 
 ### Phase 2: First native vertical presentation
 
-Activate native effects in the Phase 1-created mechanics and higher
-application-platform crates: Worth-owned event loop, affine platform binding,
-application driver, level-triggered readiness
+Activate native effects in the Phase 1-created mechanics and runtime-owned
+application-platform gate: Worth-owned event loop, private affine platform
+binding, application driver, host-native level-triggered readiness
 scheduling, Windows window/surface/DPI lifecycle, graphics device/queue,
 retained target, and resource registry. Present one attributable initial filled
 rectangle through `WindowsNativeBoundaryWorld` in a real native window, observe
@@ -1439,6 +1519,14 @@ Close all remaining `HP-04` rows with fault-injected protocol evidence and real
 native integration kept explicitly distinct. The protocol world runs the
 independent transition model; the Windows world supplies only the real-boundary
 facts its environment actually exercised.
+
+During Phase 2, before qualified text exists, the Platform Pulse library
+supplies `PlatformPulseNativeSeedApplication`: one public-composition-root
+application containing exactly one attributed filled rectangle and no text.
+That seed is the only honest application the first native vertical can present
+atomically. It does not impersonate the complete Pulse product journey. The
+full source/Query/intent/text application replaces the seed in its ordered
+phases and is the application used by the cumulative `HP-01` courtroom.
 
 Phase 8 may trust the complete native product path under ordinary, denied,
 in-flight, indeterminate, recovery, and shutdown postures.
@@ -1562,9 +1650,11 @@ distinct from product denial or non-success. The ledger explains and certifies;
 it cannot configure the host or substitute for production profile types.
 
 The ordinary warm gate must satisfy the numerical phase budgets above.
-Ledger commands are executed by one governed list-then-run wrapper: it lists
-the compiled test target, requires the fully qualified `--exact` test name to
-match exactly once, runs it, and retains a machine-readable artifact binding
+Ledger commands are executed by one governed phase-closure runner. For every
+required row through the requested phase it lists the compiled test target,
+requires the fully qualified `--exact` test name to match exactly once, runs
+it, validates requirement-specific machine-readable observations, and retains
+an artifact binding
 package, target, test name, matched count, exit posture, source revision, and
 selected-source digest. It requires exactly one executed and passed test with
 zero ignored tests. It binds the whole tracked diff except the ledger itself
@@ -1573,11 +1663,12 @@ also binds a canonical digest of the row's immutable claim fields—world,
 scenario, authority, entries, oracle, mutation, failure boundary, teardown,
 costs, counters, observations, profiles, and source identity—so recording the
 execution result cannot invalidate the source-state digest and no later ledger
-claim edit is invisible. It emits a cryptographic run nonce and retains an
-artifact whose digest is checked by the ledger. Proved rows cannot reuse a run
-nonce or result-artifact identity. A zero-match `cargo test` success,
-hand-authored artifact, stale dirty tree, claim edit, or post-run artifact edit
-cannot close a row.
+claim edit is invisible. It emits a run nonce and retains a diagnostic artifact
+whose digest is checked by the ledger. Proved rows cannot reuse a run nonce or
+result-artifact identity. The closure runner, not the retained file, is the
+evidence authority: a zero-match success, trivial unrelated passing test,
+stale source state, missing required observation, or hand-authored artifact
+cannot close a phase.
 Maximum-table model proofs reuse immutable worlds inside existing targets,
 real GPU/window startup is paid only by the serialized platform/executable
 lanes that require it, and no claim is supported solely by a rarely run soak

@@ -8,6 +8,7 @@ use super::{
 };
 
 mod font_coverage;
+mod qualified_dependencies;
 
 #[test]
 fn qualified_asset_license_and_manifests_have_exact_digests() {
@@ -25,7 +26,7 @@ fn qualified_asset_license_and_manifests_have_exact_digests() {
     );
     assert_eq!(
         sha256(WORTH_UI_NATIVE_PROFILE_MANIFEST.as_bytes()),
-        "93121321d608b95e496f5e7defe63f0493f90ebf965202a64160da03de24d0fe"
+        "1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b"
     );
 }
 
@@ -87,10 +88,25 @@ fn qualified_capacity_types_match_the_canonical_manifests() {
             integer(&platform, "readback_bytes") as u32,
         )
     );
+    assert_eq!(
+        native.resource_registry_entries,
+        integer(&platform, "resource_registry_entries") as u8,
+    );
 }
 
 #[test]
 fn every_qualified_semantic_and_dependency_pin_matches_the_closed_record() {
+    assert_eq!(
+        crate::native::QUALIFIED_DX12_PRESENTATION_SYSTEM,
+        wgpu::Dx12SwapchainKind::DxgiFromVisual
+    );
+    assert_eq!(
+        crate::native::GPU_WAIT_DEADLINE.as_millis(),
+        integer(
+            &manifest(WORTH_UI_NATIVE_PROFILE_MANIFEST),
+            "gpu_wait_deadline_ms"
+        ) as u128,
+    );
     let text = manifest(WORTH_UI_TEXT_PROFILE_MANIFEST);
     let platform = manifest(WORTH_UI_NATIVE_PROFILE_MANIFEST);
     assert_exact_manifest(
@@ -116,73 +132,9 @@ fn every_qualified_semantic_and_dependency_pin_matches_the_closed_record() {
     assert_eq!(integer(&platform, "windows"), 1);
     assert_eq!(integer(&platform, "surfaces"), 1);
     assert_eq!(integer(&platform, "sample_count"), 1);
-    assert_qualified_dependencies();
+    qualified_dependencies::assert_qualified_dependencies();
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-PROFILE-01\":2}}");
 }
-
-fn assert_qualified_dependencies() {
-    let crate_manifest = manifest(include_str!("../Cargo.toml"));
-    let workspace_manifest = manifest(include_str!("../../../Cargo.toml"));
-    let qualified = crate_manifest
-        .get("package")
-        .and_then(|package| package.get("metadata"))
-        .and_then(|metadata| metadata.get("worth-ui-qualified-dependencies"))
-        .and_then(toml::Value::as_table)
-        .expect("qualified dependency metadata");
-    let declarations = crate_manifest
-        .get("dependencies")
-        .and_then(toml::Value::as_table)
-        .expect("native dependency declarations");
-    let workspace_declarations = workspace_manifest["workspace"]["dependencies"]
-        .as_table()
-        .expect("workspace dependency declarations");
-    for &(name, version) in QUALIFIED_DEPENDENCIES {
-        let exact_version = format!("={version}");
-        assert_eq!(
-            qualified.get(name).and_then(toml::Value::as_str),
-            Some(version)
-        );
-        let workspace = workspace_declarations.get(name).expect("workspace pin");
-        let observed_version = workspace
-            .as_str()
-            .or_else(|| workspace.get("version").and_then(toml::Value::as_str));
-        assert_eq!(observed_version, Some(exact_version.as_str()));
-        let declaration = declarations.get(name).expect("native direct pin");
-        let direct_version = declaration
-            .as_str()
-            .or_else(|| declaration.get("version").and_then(toml::Value::as_str));
-        assert_eq!(direct_version, Some(exact_version.as_str()));
-    }
-    assert_workspace_dependency_features(declarations, "winit", &["rwh_06"]);
-    assert_workspace_dependency_features(
-        declarations,
-        "wgpu",
-        &["std", "parking_lot", "dx12", "wgsl"],
-    );
-    assert_workspace_dependency_features(workspace_declarations, "winit", &["rwh_06"]);
-    assert_workspace_dependency_features(
-        workspace_declarations,
-        "wgpu",
-        &["std", "parking_lot", "dx12", "wgsl"],
-    );
-    assert_eq!(qualified["winit-features"].as_str(), Some("rwh_06"));
-    assert_eq!(
-        qualified["wgpu-features"].as_str(),
-        Some("std,parking_lot,dx12,wgsl")
-    );
-    assert_eq!(qualified["wgpu-device-features"].as_str(), Some("empty"));
-    assert_eq!(
-        qualified["wgpu-limits"].as_str(),
-        Some("wgpu-29.0.4-Limits::downlevel_defaults")
-    );
-}
-
-const QUALIFIED_DEPENDENCIES: &[(&str, &str)] = &[
-    ("winit", "0.30.13"),
-    ("wgpu", "29.0.4"),
-    ("pollster", "0.4.0"),
-    ("rustybuzz", "0.20.1"),
-    ("swash", "0.2.10"),
-];
 
 const TEXT_STRING_FIELDS: &[(&str, &str)] = &[
     ("identity", "worth-ui-body-default-v1"),
@@ -273,7 +225,11 @@ const NATIVE_STRING_FIELDS: &[(&str, &str)] = &[
     ("graphics_backend", "wgpu-29.0.4-dx12-only"),
     ("graphics_backend_features", "std;parking_lot;dx12;wgsl"),
     ("device_features", "empty"),
-    ("required_limits", "wgpu-29.0.4-Limits::downlevel_defaults"),
+    (
+        "required_limits",
+        "wgpu-29.0.4-Limits::downlevel_defaults().using_resolution(adapter.limits())",
+    ),
+    ("dx12_presentation_system", "DxgiFromVisual"),
     ("runtime_backend_selection", "Backends::DX12"),
     ("joiner", "pollster-0.4.0"),
     (
@@ -315,11 +271,13 @@ const NATIVE_INTEGER_FIELDS: &[(&str, i64)] = &[
     ("order_edits", 4_096),
     ("text_bytes", 1_048_576),
     ("readiness_owners", 8),
+    ("resource_registry_entries", 32),
     ("causes_per_owner", 64),
     ("ready_owner_slots", 8),
     ("presentation_slots", 2),
     ("readback_slots", 4),
     ("readback_bytes", 16_777_216),
+    ("gpu_wait_deadline_ms", 5_000),
 ];
 
 const NATIVE_BOOL_FIELDS: &[(&str, bool)] = &[("required_surface_compatibility", true)];
@@ -355,22 +313,6 @@ fn assert_exact_manifest(
     for (key, value) in booleans {
         assert_eq!(manifest[*key].as_bool(), Some(*value), "boolean {key}");
     }
-}
-
-fn assert_workspace_dependency_features(
-    declarations: &toml::map::Map<String, toml::Value>,
-    name: &str,
-    expected: &[&str],
-) {
-    let dependency = &declarations[name];
-    assert_eq!(dependency["default-features"].as_bool(), Some(false));
-    let features = dependency["features"]
-        .as_array()
-        .expect("qualified dependency feature list")
-        .iter()
-        .map(|feature| feature.as_str().expect("feature string"))
-        .collect::<Vec<_>>();
-    assert_eq!(features, expected, "{name} feature posture drifted");
 }
 
 fn manifest(text: &str) -> toml::Value {

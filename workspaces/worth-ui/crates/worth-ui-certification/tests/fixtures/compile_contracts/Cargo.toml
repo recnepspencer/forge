@@ -13,6 +13,7 @@ wgpu = { version = "=29.0.4", default-features = false, features = ["std", "park
 pollster = "=0.4.0"
 rustybuzz = "=0.20.1"
 swash = "=0.2.10"
+egui = "=0.35.0"
 
 [dependencies]
 worth-foundational = { path = "../../../../../../../crates/worth-foundational" }
@@ -21,6 +22,7 @@ worth-ui-dsl = { path = "../../../../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../../../../worth-ui-host-contract", features = ["certification-host-binding-authority", "legacy-egui-host-binding-authority"] }
 worth-ui-host-native = { path = "../../../../worth-ui-host-native" }
 worth-ui-host-headless = { path = "../../../../worth-ui-host-headless" }
+worth-ui-host-egui = { path = "../../../../worth-ui-host-egui" }
 worth-ui-native-platform = { path = "../../../../worth-ui-native-platform" }
 worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
@@ -42,6 +44,14 @@ path = "../../../../worth-ui-host-contract/tests/ui/presentation_mechanics_consu
 [[bin]]
 name = "product-paint-identities-non-orderable"
 path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/paint_identities_are_not_orderable.rs"
+
+[[bin]]
+name = "product-raw-protocol-consumer-substitution"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs"
+
+[[bin]]
+name = "product-native-event-loop-client-substitution"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs"
 
 [[bin]]
 name = "product-host-measurement-authority"
@@ -349,7 +359,7 @@ path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/bound_bui
 
 [[bin]]
 name = "product-surface-baseline-affine"
-path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_affine.rs"
+path = "../../../../worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_private.rs"
 
 [[bin]]
 name = "product-surface-baseline-private"

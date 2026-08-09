@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
 use worth_ui_host_contract::{
-    UiMountedPresentationAttemptIdentity, UiPresentationDeadline, WorthUiHostCapabilityReport,
+    UiMountedPresentationAttemptIdentity, UiMountedSurfaceBindingRequirement,
+    UiPresentationDeadline, WorthUiHostCapabilityReport,
 };
 
 use super::super::{
@@ -112,6 +113,9 @@ impl UiMountedPresentationCoordinator {
                         requirement.binding(),
                     ),
                 )
+            } else if let Some(denial) = baseline_requirement_denial(&self.host_truth, requirement)
+            {
+                Some(denial)
             } else {
                 None
             };
@@ -157,6 +161,15 @@ impl UiMountedPresentationCoordinator {
     }
 }
 
+fn baseline_requirement_denial(
+    truth: &crate::mounting::UiMountedHostTruthCoordinator,
+    requirement: UiMountedSurfaceBindingRequirement,
+) -> Option<UiMountedPresentationAdmissionDenial> {
+    (!truth.has_live_baseline(requirement.binding(), requirement.baseline())).then_some(
+        UiMountedPresentationAdmissionDenial::BaselineReceiptUnavailable(requirement.binding()),
+    )
+}
+
 fn rejected(
     frame: super::super::super::retention::UiRetentionPreparedMountedFrame,
     denial: UiMountedPresentationAdmissionDenial,
@@ -164,4 +177,62 @@ fn rejected(
     let (frame, retention) = frame.into_parts();
     drop(retention);
     UiMountedPresentationAdmissionRejection::new(frame, denial)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::baseline_requirement_denial;
+    use crate::certification_support::UiCertificationBuilderHost;
+    use crate::facade::prepared_application_authority::WorthUiHostSessionPlan;
+    use crate::facade::WorthUiHostSessionAuthority;
+    use crate::mounting::UiMountedHostTruthCoordinator;
+    use worth_ui_host_contract::{
+        UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiHostSurfaceRegistrationInput,
+        UiHostSurfaceRegistrationRequest, UiMountedSurfaceBindingRequirement,
+        UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    };
+
+    #[test]
+    fn actual_baseline_registration_gates_the_presentation_admission_transition() {
+        let plan = WorthUiHostSessionPlan::prepare(UiCertificationBuilderHost);
+        let session = WorthUiHostSessionAuthority::activate(&plan).unwrap();
+        let report = session.capability_report();
+        let request =
+            UiHostSurfaceRegistrationRequest::from_runtime(UiHostSurfaceRegistrationInput {
+                host_session_identity: session.identity().as_u64(),
+                semantic_surface_identity: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+                host_surface_identity: UiHostSurfaceIdentity::mint_unbound().unwrap(),
+                binding_generation: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                protocol: session.protocol(),
+                capability_generation: report.observation_generation(),
+                capability_profile_digest: report.profile_identity_digest(),
+                presentation_mode: UiHostSurfacePresentationMode::NativeDisplay,
+            });
+        let requirement = UiMountedSurfaceBindingRequirement::with_baseline(
+            request.semantic_surface_identity(),
+            request.host_surface_identity(),
+            request.binding_generation(),
+            report.observation_generation(),
+            report.profile_identity_digest(),
+            request.presentation_mode(),
+            request.baseline_identity(),
+        );
+        assert_eq!(
+            request.baseline_identity().transparent_rgba8(),
+            [0, 0, 0, 0]
+        );
+        assert_eq!(requirement.baseline().transparent_rgba8(), [0, 0, 0, 0]);
+        let mut truth = UiMountedHostTruthCoordinator::default();
+        assert!(baseline_requirement_denial(&truth, requirement).is_some());
+        truth
+            .register_surface(session.effect_port(), request)
+            .unwrap();
+        let admitted = u64::from(baseline_requirement_denial(&truth, requirement).is_none());
+        assert_eq!(admitted, 1);
+        truth
+            .deregister_surface(session.effect_port(), request)
+            .unwrap();
+        assert!(baseline_requirement_denial(&truth, requirement).is_some());
+        println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-BASELINE-01\":{admitted}}}");
+    }
 }

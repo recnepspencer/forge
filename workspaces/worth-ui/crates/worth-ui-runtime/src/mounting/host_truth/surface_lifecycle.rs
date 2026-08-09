@@ -161,3 +161,45 @@ impl UiMountedHostTruthCoordinator {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{UiMountedHostTruthCoordinator, UiMountedSurfaceBaselineReceipt};
+    use worth_ui_host_contract::{
+        UiHostProtocolContract, UiHostProtocolNegotiation, UiHostSurfaceIdentity,
+        UiHostSurfacePresentationMode, UiHostSurfaceRegistrationInput,
+        UiHostSurfaceRegistrationRequest, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+        WorthUiHostCapabilityObservationGeneration,
+    };
+
+    #[test]
+    fn live_baseline_receipt_is_required_and_removal_closes_admission() {
+        let protocol = match UiHostProtocolContract::current().negotiate() {
+            UiHostProtocolNegotiation::Compatible(protocol) => protocol,
+            UiHostProtocolNegotiation::Incompatible(_) => panic!("current protocol must agree"),
+        };
+        let request =
+            UiHostSurfaceRegistrationRequest::from_runtime(UiHostSurfaceRegistrationInput {
+                host_session_identity: 1,
+                semantic_surface_identity: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+                host_surface_identity: UiHostSurfaceIdentity::mint_unbound().unwrap(),
+                binding_generation: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                protocol,
+                capability_generation: WorthUiHostCapabilityObservationGeneration::new(1),
+                capability_profile_digest: 7,
+                presentation_mode: UiHostSurfacePresentationMode::NativeDisplay,
+            });
+        let baseline = request.baseline_identity();
+        let binding = request.binding_generation();
+        let mut truth = UiMountedHostTruthCoordinator::default();
+        assert!(!truth.has_live_baseline(binding, baseline));
+        truth.known_empty.insert(
+            binding,
+            UiMountedSurfaceBaselineReceipt { identity: baseline },
+        );
+        assert!(truth.has_live_baseline(binding, baseline));
+        let receipt = truth.known_empty.remove(&binding).unwrap();
+        assert_eq!(receipt.identity(), baseline);
+        assert!(!truth.has_live_baseline(binding, baseline));
+    }
+}

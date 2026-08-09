@@ -1814,16 +1814,29 @@ The detailed specification now closes the governing Phase 1 inputs:
 rustybuzz 0.20.1, swash 0.2.10, exact raster/atlas bounds, and typed rejection
 outside the support set; `worth-ui-windows-dx12-v1` pins winit 0.30.13, wgpu
 29.0.4, DX12, exact surface/blend/rounding policy, and every queue/resource
-capacity. It also freezes the affine platform grant, borrowing bound-builder
-scope, sealed resource/readiness registration, prepared application, and
-cleanup-proved denial progression. Phase 1 must materialize and prove those
-records without amending them.
+capacity. It also freezes the runtime-private affine platform binding,
+borrowing preparation-builder scope, sealed host-native resource/readiness
+registration, host-neutral prepared application, and cleanup-proved denial
+progression. The public `worth-ui-native-platform` crate is a facade over that
+runtime-owned gate; downstream product crates cannot mint a grant or bind a
+host-neutral Worth application. The lower host-mechanics crate remains a
+deliberately callable integration surface and is not misrepresented as a
+cross-crate friend boundary.
+Phase 1 must materialize and prove those records without weakening them.
 
 The mounted host contract is the subject under test and may not change
 meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
 3.13 projection path, and the 3.14 interaction and intent path are frozen; if
 replacement pressure demands a host-contract semantic change, that is a
 reopened finding against the owning milestone, not a migration convenience.
+
+Phase 1–2 closure is reopened for the final authority, cleanup, attribution,
+and hostile-evidence repairs. The 2,048-row mounted world and first real
+Windows/DX12 startup vertical remain retained evidence, but neither phase is
+called final-source until the repaired ledger closes on the post-repair source
+graph. The native seed remains deliberately narrow: retained deltas, text,
+input, resize, capture, recovery, Pulse parity, and egui deletion stay in their
+ordered phases.
 
 The custody boundary moves down, not sideways. The new host owns a retained
 draw list in which every quad and glyph run carries its mounted node receipt,
@@ -1862,11 +1875,12 @@ retained dual-host fallback does not close the pulse.
 **Must ship**
 
 - Phase 1 materializes a contract-only Worth native host-mechanics crate as
-  profile/capacity/inert-contract owner and a higher effect-free
-  application-platform preparation owner; Phase 2 activates their event loop,
-  surface/device/DPI/close lifecycle without changing that topology
+  profile/capacity/inert-contract owner, a runtime-private effect-free
+  application-platform gate, and a thin public platform facade; Phase 2
+  activates the host's event loop, readiness, surface/device/DPI/close
+  lifecycle without changing that topology
 - a sealed public native-application preparation contract whose platform grant,
-  host-bound builder, readiness owners, resource registry, prepared
+  host-neutral builder, readiness owners, resource registry, prepared
   application, denial cleanup, and run transition are compiler-visible
 - a contract-only production headless host crate moved out of runtime and
   migrated through the same presentation-work protocol

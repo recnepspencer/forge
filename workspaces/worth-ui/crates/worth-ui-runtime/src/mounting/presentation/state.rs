@@ -63,6 +63,7 @@ pub enum UiMountedPresentationAdmissionDenial {
     CapabilityGenerationChanged(UiSurfaceBindingGeneration),
     CapabilityProfileChanged(UiSurfaceBindingGeneration),
     BindingRequiresReconciliation(UiSurfaceBindingGeneration),
+    BaselineReceiptUnavailable(UiSurfaceBindingGeneration),
     ReconciliationBasisMismatch,
     IdentityExhausted,
 }

@@ -1,6 +1,29 @@
 use super::WorthUiMountedSessionState;
 
 impl WorthUiMountedSessionState {
+    pub(crate) fn native_filled_rect_attribution(
+        &self,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> Option<(
+        worth_ui_host_contract::UiSemanticSurfaceIdentity,
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+        worth_ui_host_contract::UiMountedNodeReceiptIdentity,
+    )> {
+        let view = self.identity.current_projection()?.view_for(binding).ok()?;
+        if view.frame() != frame {
+            return None;
+        }
+        let [mechanic] = view.filled_rects().rows() else {
+            return None;
+        };
+        Some((
+            view.surface(),
+            mechanic.mounted_instance(),
+            mechanic.node_receipt(),
+        ))
+    }
+
     pub(crate) fn classify_frame_reuse(
         &self,
         contract: crate::mounting::UiMountedFrameReuseContract,

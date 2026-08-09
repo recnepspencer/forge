@@ -30,6 +30,8 @@ pub(in crate::host_platform) struct ProducedMaximumOverlap {
     pub session: worth_ui::facade::app::WorthUiActiveApplicationSession,
     pub initial: worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
     pub deltas: Box<[ProducedMaximumDelta]>,
+    pub unchanged: ProducedUnchanged,
+    pub restorations: Box<[ProducedMaximumDelta]>,
 }
 
 pub(in crate::host_platform) struct ProducedMaximumDelta {
@@ -39,6 +41,11 @@ pub(in crate::host_platform) struct ProducedMaximumDelta {
     pub draw_mutations: u64,
     pub order_mutations: u64,
     pub damage_regions: u64,
+}
+
+pub(in crate::host_platform) struct ProducedUnchanged {
+    pub cost: worth_ui_host_contract::UiHostPresentationCostReport,
+    pub native_work_count: usize,
 }
 
 struct MountedMaximumRows {
@@ -60,7 +67,9 @@ pub(crate) fn produce_maximum_overlap(
     establish_allocations(&mut session);
     execute_frame(&mut session, 10);
     let initial = one_transcript(&recorder, "maximum-overlap initial transcript");
+    let unchanged = produce_unchanged(&mut session, &recorder, 11);
     let mut deltas = Vec::new();
+    let mut restorations = Vec::new();
     for (index, count) in [1, RECTANGLE_COUNT / 2, RECTANGLE_COUNT]
         .into_iter()
         .enumerate()
@@ -74,14 +83,50 @@ pub(crate) fn produce_maximum_overlap(
         ));
         if count != RECTANGLE_COUNT {
             restore_rows(&mut session, &mut mounted, count);
-            execute_frame(&mut session, 21 + index as u64 * 2);
-            let _ = one_transcript(&recorder, "maximum-overlap restoration transcript");
+            restorations.push(produce_restoration(
+                &mut session,
+                &recorder,
+                count,
+                21 + index as u64 * 2,
+            ));
         }
     }
     ProducedMaximumOverlap {
         session,
         initial,
         deltas: deltas.into_boxed_slice(),
+        unchanged,
+        restorations: restorations.into_boxed_slice(),
+    }
+}
+
+fn produce_unchanged(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    recorder: &worth_ui_host_headless::WorthUiHeadlessRecorder,
+    tick: u64,
+) -> ProducedUnchanged {
+    let cost = execute_frame(session, tick);
+    let native_work_count = recorder.drain_transcripts().len();
+    ProducedUnchanged {
+        cost,
+        native_work_count,
+    }
+}
+
+fn produce_restoration(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    recorder: &worth_ui_host_headless::WorthUiHeadlessRecorder,
+    count: usize,
+    tick: u64,
+) -> ProducedMaximumDelta {
+    let cost = execute_frame(session, tick);
+    ProducedMaximumDelta {
+        changed_rows: count,
+        transcript: one_transcript(recorder, "maximum-overlap restoration transcript"),
+        delta_rows_carried: cost.delta_rows_carried(),
+        draw_mutations: cost.draw_list_mutations(),
+        order_mutations: cost.order_mutations(),
+        damage_regions: cost.logical_damage_regions(),
     }
 }
 

@@ -44,4 +44,17 @@ impl WorthUiHostNeutralApp {
     ) -> crate::facade::observation_report::UiHostObservationCapacity {
         self.host_observation_capacity
     }
+
+    /// Bind the one qualified native mechanics bundle inside the runtime-owned
+    /// platform gate. No public application surface can call this transition.
+    pub(crate) fn bind_qualified_native(
+        self,
+        host: worth_ui_host_native::WorthUiNativeMechanicsAdapter,
+    ) -> crate::facade::WorthUiApp {
+        let mut plan =
+            crate::facade::prepared_application_authority::WorthUiHostSessionPlan::prepare(host);
+        plan.set_mounted_frame_retention_budget(self.mounted_frame_retention_budget);
+        plan.set_host_observation_capacity(self.host_observation_capacity);
+        crate::facade::WorthUiApp::from_prepared_authority(self.prepared, plan)
+    }
 }

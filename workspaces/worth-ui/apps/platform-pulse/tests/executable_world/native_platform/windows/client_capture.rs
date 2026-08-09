@@ -1,8 +1,9 @@
 use xcap::Window;
 
-use crate::external_observation::NativeClientAreaBounds;
+use crate::external_observation::{NativeClientAreaBounds, NativeClientPixelCapture};
 
 use super::super::NativePlatformFailure;
+use super::capture_region::{crop_monitor_client, NativeMonitorCaptureRegion};
 
 pub(super) fn exact_window(
     process_id: u32,
@@ -25,49 +26,33 @@ pub(super) fn exact_window(
     Ok(window)
 }
 
-pub(super) fn capture_client(
+pub(super) fn capture_client_area(
     window: &Window,
     client: NativeClientAreaBounds,
-) -> Result<Vec<u8>, NativePlatformFailure> {
-    let window_left = window.x().map_err(capture_failure)?;
-    let window_top = window.y().map_err(capture_failure)?;
-    let screenshot = window.capture_image().map_err(capture_failure)?;
-    crop_client(screenshot, window_left, window_top, client)
-}
-
-fn crop_client(
-    screenshot: xcap::image::RgbaImage,
-    window_left: i32,
-    window_top: i32,
-    client: NativeClientAreaBounds,
-) -> Result<Vec<u8>, NativePlatformFailure> {
-    let left = u32::try_from(client.left() - window_left)
-        .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    let top = u32::try_from(client.top() - window_top)
-        .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    let right = left
-        .checked_add(client.width())
-        .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    let bottom = top
-        .checked_add(client.height())
-        .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    if right > screenshot.width() || bottom > screenshot.height() {
-        return Err(NativePlatformFailure::InvalidClientCapture {
-            image_width: screenshot.width(),
-            image_height: screenshot.height(),
-            outer: client,
-            client,
-        });
-    }
-    let source_width = screenshot.width() as usize;
-    let client_width = client.width() as usize;
-    let raw = screenshot.into_raw();
-    let mut cropped = Vec::with_capacity(client_width * client.height() as usize * 4);
-    for y in top as usize..bottom as usize {
-        let start = (y * source_width + left as usize) * 4;
-        cropped.extend_from_slice(&raw[start..start + client_width * 4]);
-    }
-    Ok(cropped)
+    process_id: u32,
+) -> Result<NativeClientPixelCapture, NativePlatformFailure> {
+    let image = window
+        .capture_image()
+        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
+    let region = if image.width() == client.width() && image.height() == client.height() {
+        NativeMonitorCaptureRegion::new(0, 0, image.width(), image.height())
+    } else {
+        let left = window
+            .x()
+            .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
+        let top = window
+            .y()
+            .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
+        NativeMonitorCaptureRegion::new(
+            u32::try_from(client.left() - left)
+                .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?,
+            u32::try_from(client.top() - top)
+                .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?,
+            client.width(),
+            client.height(),
+        )
+    };
+    crop_monitor_client(image, region)?.into_observation(process_id)
 }
 
 fn capture_failure(error: xcap::XCapError) -> NativePlatformFailure {

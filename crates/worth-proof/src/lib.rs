@@ -14,7 +14,6 @@ pub mod raw;
 mod recipe;
 mod transition;
 
-pub use facade::*;
-
 #[doc(hidden)]
 pub use band::__band_guard_package_matches_any_prefix;
+pub use facade::*;

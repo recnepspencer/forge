@@ -40,6 +40,7 @@ worth-signal.workspace = true
 worth-ui-inspection = { path = "../worth-ui-inspection" }
 worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 worth-ui-platform-pulse = { path = "../../apps/platform-pulse" }
+worth-ui-native-platform = { path = "../worth-ui-native-platform" }
 
 [[test]]
 name = "application_contracts"

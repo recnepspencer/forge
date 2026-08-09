@@ -15,7 +15,7 @@ use worth_ui_test_support::{
 };
 
 #[test]
-fn exact_semantic_text_row_prepares_native_glyph_mechanics() {
+fn validated_agreement_semantic_text_consumes_and_mixed_contract_stops_before_consumer() {
     let projection = projection(Mutation::Exact);
     let prepared = consume_projection(&projection, current_protocol(), super::prepare).unwrap();
 
@@ -23,6 +23,12 @@ fn exact_semantic_text_row_prepares_native_glyph_mechanics() {
     assert_eq!(prepared[0].origin, egui::pos2(8.0, 12.0));
     assert_eq!(prepared[0].text.as_ref(), "ONLINE");
     assert_eq!(prepared[0].font.size, 14.0);
+    assert!(matches!(
+        mounted_frame_revision_two().negotiate(),
+        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
+            UiHostProtocolSchemaFamily::MountedFrame
+        ))
+    ));
 }
 
 #[test]
@@ -63,13 +69,6 @@ fn missing_duplicate_and_old_protocol_references_are_rejected() {
             Err(UiHostSurfacePresentationDenial::MalformedProjection)
         ));
     }
-
-    assert!(matches!(
-        mounted_frame_revision_two().negotiate(),
-        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
-            UiHostProtocolSchemaFamily::MountedFrame
-        ))
-    ));
 }
 
 fn consume_projection<T>(

@@ -1,0 +1,311 @@
+use std::io::Read;
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::time::{Duration, Instant};
+
+use crate::native_platform::{
+    NativePlatformContract, NativePlatformFailure, WindowsNativePlatform,
+};
+use crate::product_process::{CargoBuiltPlatformPulse, SuccessfulPlatformPulseExit};
+
+#[test]
+#[ignore = "requires the serialized interactive Windows 11 DX12 desktop"]
+fn windows_native_boundary_world_presents_quiesces_and_closes_without_residue() {
+    let platform = WindowsNativePlatform::certified().expect("Windows observation is qualified");
+    let os_version = platform
+        .observed_os_version()
+        .expect("the executable environment reports a qualified Windows build");
+    let mut launch = CargoBuiltPlatformPulse::exact()
+        .and_then(CargoBuiltPlatformPulse::launch_native_phase2)
+        .expect("the one product binary launches under the native desktop lease");
+    let process_id = launch.process.id();
+    let outcome = catch_unwind(AssertUnwindSafe(|| {
+        execute_boundary_world(&platform, &os_version, &mut launch, process_id)
+    }));
+    if let Err(failure) = outcome {
+        finalize_failed_world(&platform, &mut launch.process, process_id);
+        resume_unwind(failure);
+    }
+}
+
+fn execute_boundary_world(
+    platform: &WindowsNativePlatform,
+    os_version: &str,
+    launch: &mut crate::product_process::NativePhase2ProcessLaunch,
+    process_id: u32,
+) {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut client = platform
+        .bind_process_client_area(process_id, deadline)
+        .expect("one process-owned native client area appears");
+    let capture = await_exact_pixels(
+        &platform,
+        &mut client,
+        &mut launch.process,
+        process_id,
+        deadline,
+    );
+    assert_eq!(capture.process_id(), process_id);
+    assert_eq!(capture.capture_count(), 1);
+    assert_exact_control_points(&capture);
+    std::thread::sleep(Duration::from_millis(250));
+    let unchanged = platform
+        .capture_client_area(&client)
+        .expect("quiescent client area remains externally observable");
+    assert_eq!(unchanged.rgba(), capture.rgba());
+    let close = platform
+        .request_normal_close(&client)
+        .expect("the real OS window accepts one normal close");
+    assert_eq!(close.process_id(), process_id);
+    assert_eq!(close.request_count(), 1);
+    let exit = SuccessfulPlatformPulseExit::wait(&mut launch.process, deadline)
+        .expect("native product exits successfully after OS close");
+    assert!(exit.status().success());
+    platform
+        .verify_process_window_released(process_id)
+        .expect("the process leaves no native window");
+    let mut stdout = String::new();
+    launch
+        .stdout
+        .read_to_string(&mut stdout)
+        .expect("native phase report is readable");
+    let evidence: serde_json::Value =
+        serde_json::from_str(stdout.trim()).expect("versioned native evidence is JSON");
+    assert_exact_native_evidence(&evidence, &capture);
+    println!(
+        "WORTH_UI_LEDGER_OBSERVATION={}",
+        ledger_observation(&evidence, &capture, &os_version)
+    );
+}
+
+fn finalize_failed_world(
+    platform: &WindowsNativePlatform,
+    process: &mut crate::product_process::LivePlatformPulseProcess,
+    process_id: u32,
+) {
+    let teardown = process.terminate_after_failure(Instant::now() + Duration::from_secs(5));
+    let window_release = platform.verify_process_window_released(process_id);
+    eprintln!(
+        "WORTH_UI_LEDGER_FAILURE={}",
+        serde_json::json!({
+            "schema": "worth-ui-native-world-failure-v1",
+            "process_id": process_id,
+            "teardown": format!("{teardown:?}"),
+            "window_release": format!("{window_release:?}"),
+        })
+    );
+    assert!(
+        teardown.is_ok(),
+        "failed world teardown was incomplete: {teardown:?}"
+    );
+    assert!(
+        window_release.is_ok(),
+        "failed world retained a process window: {window_release:?}"
+    );
+}
+
+fn ledger_observation(
+    evidence: &serde_json::Value,
+    capture: &crate::external_observation::NativeClientPixelCapture,
+    os_version: &str,
+) -> serde_json::Value {
+    let points = [
+        (capture.width() / 4, capture.height() / 4),
+        (capture.width() / 2, capture.height() / 2),
+        (capture.width() * 3 / 4, capture.height() * 3 / 4),
+    ];
+    serde_json::json!({
+        "schema": "worth-ui-native-boundary-observation-v1",
+        "os_version": os_version,
+        "architecture": std::env::consts::ARCH,
+        "product_processes": 1,
+        "presented_source": evidence["presentation"]["presented_source"],
+        "retained_center": evidence["presentation"]["retained_center"],
+        "retained_baseline": evidence["presentation"]["retained_baseline"],
+        "scale_factor_milli": evidence["presentation"]["scale_factor_milli"],
+        "logical_bounds_milli": evidence["presentation"]["logical_bounds_milli"],
+        "frame": evidence["presentation"]["frame"],
+        "surface": evidence["presentation"]["surface"],
+        "binding": evidence["presentation"]["binding"],
+        "mounted_instance": evidence["presentation"]["mounted_instance"],
+        "node_receipt": evidence["presentation"]["node_receipt"],
+        "presentation_attempt": evidence["presentation"]["presentation_attempt"],
+        "runtime_attribution": evidence["runtime_attribution"],
+        "client_physical_size": [capture.width(), capture.height()],
+        "client_control_points": points.map(|(x, y)| serde_json::json!({
+            "x": x,
+            "y": y,
+            "rgba": pixel(capture, x, y),
+        })),
+        "client_baseline_point": {
+            "x": 0,
+            "y": 0,
+            "rgba": pixel(capture, 0, 0),
+        },
+        "quiescent_capture_equal": true,
+        "normal_os_close_requests": 1,
+        "terminal_zero": evidence["terminal_zero"],
+        "peak": evidence["peak"],
+        "terminal_census": evidence["terminal_census"],
+        "counters": evidence["counters"],
+        "graphics": evidence["graphics"],
+    })
+}
+
+fn assert_exact_native_evidence(
+    evidence: &serde_json::Value,
+    capture: &crate::external_observation::NativeClientPixelCapture,
+) {
+    assert_eq!(evidence["schema"], "worth-ui-native-phase2-evidence-v1");
+    let presentation = &evidence["presentation"];
+    let runtime_attribution = &evidence["runtime_attribution"];
+    let counters = &evidence["counters"];
+    let graphics = &evidence["graphics"];
+    assert_eq!(pixel(capture, 0, 0), [255, 255, 255, 255]);
+    assert_eq!(
+        presentation["presented_source"],
+        serde_json::json!([47, 129, 247, 255])
+    );
+    assert_eq!(
+        presentation["retained_center"],
+        presentation["presented_source"]
+    );
+    assert_eq!(
+        presentation["retained_baseline"],
+        serde_json::json!([0, 0, 0, 0])
+    );
+    assert_eq!(
+        presentation["client_physical_size"],
+        serde_json::json!([capture.width(), capture.height()])
+    );
+    assert_eq!(
+        presentation["logical_bounds_milli"],
+        serde_json::json!([16_000, 12_000, 128_000, 72_000])
+    );
+    for identity in [
+        "frame",
+        "surface",
+        "binding",
+        "mounted_instance",
+        "node_receipt",
+        "presentation_attempt",
+    ] {
+        assert!(runtime_attribution[identity]
+            .as_u64()
+            .is_some_and(|value| value > 0));
+        assert_eq!(presentation[identity], runtime_attribution[identity]);
+    }
+    for counter in [
+        "surface_acquisitions",
+        "queue_submissions",
+        "presents",
+        "readiness_signals",
+        "redraw_turns",
+        "idle_wait_turns",
+    ] {
+        assert_eq!(counters[counter], 1, "unexpected {counter}");
+    }
+    assert_eq!(counters["render_passes"], 2);
+    assert_eq!(counters["port_crossings"], 4);
+    assert!(counters["coalesced_wakes"]
+        .as_u64()
+        .is_some_and(|count| count <= 4));
+    assert_eq!(graphics["backend"], "Dx12");
+    assert!(matches!(
+        graphics["device_type"].as_str(),
+        Some("DiscreteGpu" | "IntegratedGpu" | "VirtualGpu")
+    ));
+    assert_eq!(graphics["surface_format"], "Bgra8UnormSrgb");
+    assert_eq!(graphics["present_mode"], "Fifo");
+    assert_eq!(graphics["alpha_mode"], "PreMultiplied");
+    assert_eq!(graphics["retained_format"], "Rgba8UnormSrgb");
+    assert_eq!(graphics["event_loop_thread_matches_launch"], true);
+    assert!(graphics["max_texture_dimension_2d"]
+        .as_u64()
+        .is_some_and(|limit| limit >= 16_384));
+    assert_eq!(
+        evidence["peak"],
+        serde_json::json!({
+            "windows": 1,
+            "surfaces": 1,
+            "adapters": 1,
+            "devices": 1,
+            "queues": 1,
+            "retained_targets": 1,
+            "registrations": 1,
+            "readback_buffers": 1,
+            "pending_submissions": 1,
+            "event_wake_registrations": 1,
+            "application_drivers": 1,
+        })
+    );
+    assert_eq!(evidence["terminal_zero"], true);
+    assert!(graphics["event_loop_thread"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+}
+
+fn await_exact_pixels(
+    platform: &WindowsNativePlatform,
+    client: &mut <WindowsNativePlatform as NativePlatformContract>::BoundClientArea,
+    process: &mut crate::product_process::LivePlatformPulseProcess,
+    process_id: u32,
+    deadline: Instant,
+) -> crate::external_observation::NativeClientPixelCapture {
+    let mut last_center = None;
+    let mut last_error = None;
+    loop {
+        match platform.capture_client_area(client) {
+            Ok(capture) => {
+                last_center = Some(center(&capture));
+                if last_center == Some([47, 129, 247, 255]) {
+                    return capture;
+                }
+            }
+            Err(NativePlatformFailure::BoundClientAreaChanged) => {
+                last_error = Some(NativePlatformFailure::BoundClientAreaChanged);
+                *client = platform
+                    .bind_process_client_area(process_id, deadline)
+                    .expect("changed client area rebinds to one stable process window");
+            }
+            Err(error) => last_error = Some(error),
+        }
+        let status = process
+            .observed_exit()
+            .expect("native process can be polled");
+        assert!(
+            status.is_none(),
+            "native process exited before pixel observation: {status:?}; center={last_center:?}; error={last_error:?}"
+        );
+        assert!(
+            Instant::now() < deadline,
+            "qualified client pixels did not appear; center={last_center:?}; error={last_error:?}"
+        );
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+fn assert_exact_control_points(capture: &crate::external_observation::NativeClientPixelCapture) {
+    let points = [
+        (capture.width() / 4, capture.height() / 4),
+        (capture.width() / 2, capture.height() / 2),
+        (capture.width() * 3 / 4, capture.height() * 3 / 4),
+    ];
+    for (x, y) in points {
+        assert_eq!(pixel(capture, x, y), [47, 129, 247, 255]);
+    }
+}
+
+fn center(capture: &crate::external_observation::NativeClientPixelCapture) -> [u8; 4] {
+    pixel(capture, capture.width() / 2, capture.height() / 2)
+}
+
+fn pixel(
+    capture: &crate::external_observation::NativeClientPixelCapture,
+    x: u32,
+    y: u32,
+) -> [u8; 4] {
+    let index = ((y * capture.width() + x) * 4) as usize;
+    capture.rgba()[index..index + 4]
+        .try_into()
+        .expect("one RGBA control point")
+}

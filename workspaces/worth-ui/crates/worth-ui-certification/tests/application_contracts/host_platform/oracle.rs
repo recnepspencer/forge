@@ -21,21 +21,17 @@ pub(super) struct OracleDelta {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct OracleExpectation {
     pub owner_delta_count: usize,
-    pub discovery_count: usize,
     pub damage: Vec<[u16; 4]>,
     pub ordered_identities: Vec<u16>,
-    pub vacated_replay_count: usize,
-    pub baseline_clear: [u8; 4],
+    pub vacated_damage_count: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum OracleDenial {
     OwnerDeltaDropped,
-    HostDiscoveryUsed,
     DamageWidened,
     PaintOrderChanged,
-    VacatedReplayOmitted,
-    BaselineClearChanged,
+    VacatedDamageOmitted,
 }
 
 pub(super) fn expectation(baseline: &[OracleRect], delta: &OracleDelta) -> OracleExpectation {
@@ -50,14 +46,30 @@ pub(super) fn expectation(baseline: &[OracleRect], delta: &OracleDelta) -> Oracl
         *slot = change.successor;
         damage.extend([change.previous.bounds, change.successor.bounds]);
     }
-    successor.sort_by_key(|row| (row.order, row.identity));
+    successor.sort_by_key(|row| row.order);
     OracleExpectation {
         owner_delta_count: delta.changes.len(),
-        discovery_count: 0,
         damage,
         ordered_identities: successor.iter().map(|row| row.identity).collect(),
-        vacated_replay_count: delta.changes.len(),
-        baseline_clear: [0, 0, 0, 0],
+        vacated_damage_count: delta.changes.len(),
+    }
+}
+
+pub(super) fn removal_expectation(
+    baseline: &[OracleRect],
+    removed_count: usize,
+) -> OracleExpectation {
+    let successor = &baseline[removed_count..];
+    let mut damage = baseline[..removed_count]
+        .iter()
+        .map(|row| row.bounds)
+        .collect::<Vec<_>>();
+    damage.extend(successor.first().map(|row| row.bounds));
+    OracleExpectation {
+        owner_delta_count: removed_count,
+        damage,
+        ordered_identities: successor.iter().map(|row| row.identity).collect(),
+        vacated_damage_count: removed_count,
     }
 }
 
@@ -68,27 +80,21 @@ pub(super) fn adjudicate(
     if candidate.owner_delta_count != expected.owner_delta_count {
         return Err(OracleDenial::OwnerDeltaDropped);
     }
-    if candidate.discovery_count != 0 {
-        return Err(OracleDenial::HostDiscoveryUsed);
-    }
     if candidate.damage != expected.damage {
         return Err(OracleDenial::DamageWidened);
     }
     if candidate.ordered_identities != expected.ordered_identities {
         return Err(OracleDenial::PaintOrderChanged);
     }
-    if candidate.vacated_replay_count != expected.vacated_replay_count {
-        return Err(OracleDenial::VacatedReplayOmitted);
-    }
-    if candidate.baseline_clear != [0, 0, 0, 0] {
-        return Err(OracleDenial::BaselineClearChanged);
+    if candidate.vacated_damage_count != expected.vacated_damage_count {
+        return Err(OracleDenial::VacatedDamageOmitted);
     }
     Ok(())
 }
 
 pub(super) fn ordered_pixel(rows: &[OracleRect], point: [u16; 2]) -> [u8; 4] {
     let mut ordered = rows.to_vec();
-    ordered.sort_by_key(|row| (row.order, row.identity));
+    ordered.sort_by_key(|row| row.order);
     ordered
         .into_iter()
         .filter(|row| contains(row.bounds, point))

@@ -18,6 +18,9 @@ pub enum UiNativePlatformPreparationDenial {
     EmptyWindowExtent,
     WindowExtentCapacityExceeded,
     QualifiedProfileMismatch,
+    PreparationIdentityExhausted,
+    UnsupportedPlatform,
+    UnsupportedArchitecture,
 }
 
 impl UiNativeWindowSpec {
@@ -47,6 +50,7 @@ impl UiNativePlatformProfile {
     }
 
     pub(crate) fn validate(&self) -> Result<(), UiNativePlatformPreparationDenial> {
+        validate_environment(cfg!(target_os = "windows"), cfg!(target_arch = "x86_64"))?;
         if self.window.title.is_empty() {
             return Err(UiNativePlatformPreparationDenial::EmptyWindowTitle);
         }
@@ -66,5 +70,36 @@ impl UiNativePlatformProfile {
             return Err(UiNativePlatformPreparationDenial::QualifiedProfileMismatch);
         }
         Ok(())
+    }
+}
+
+fn validate_environment(
+    is_windows: bool,
+    is_x86_64: bool,
+) -> Result<(), UiNativePlatformPreparationDenial> {
+    if !is_windows {
+        return Err(UiNativePlatformPreparationDenial::UnsupportedPlatform);
+    }
+    if !is_x86_64 {
+        return Err(UiNativePlatformPreparationDenial::UnsupportedArchitecture);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{validate_environment, UiNativePlatformPreparationDenial};
+
+    #[test]
+    fn closed_environment_classifier_rejects_each_platform_substitution() {
+        assert_eq!(validate_environment(true, true), Ok(()));
+        assert_eq!(
+            validate_environment(false, true),
+            Err(UiNativePlatformPreparationDenial::UnsupportedPlatform)
+        );
+        assert_eq!(
+            validate_environment(true, false),
+            Err(UiNativePlatformPreparationDenial::UnsupportedArchitecture)
+        );
     }
 }

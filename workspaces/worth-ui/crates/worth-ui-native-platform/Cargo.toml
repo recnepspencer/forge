@@ -12,6 +12,4 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-worth-ui = { path = "../worth-ui" }
-worth-ui-host-native = { path = "../worth-ui-host-native" }
-worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-runtime = { path = "../worth-ui-runtime" }

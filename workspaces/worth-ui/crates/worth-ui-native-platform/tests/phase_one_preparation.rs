@@ -1,25 +1,16 @@
 use worth_ui_native_platform::{
     UiNativeApplicationDefinition, UiNativeApplicationPreparation,
     UiNativeApplicationPreparationDenialCause, UiNativeApplicationPreparationOutcome,
-    UiNativePlatformOutcome, UiNativePlatformProfile, UiNativePlatformStopReason,
-    UiNativeWindowSpec, WorthUiNativePlatform,
+    UiNativePlatformOutcome, UiNativePlatformProfile, UiNativeWindowSpec, WorthUiNativePlatform,
 };
 
-struct CompleteApplication;
+struct MissingChangeProfile;
 
-impl UiNativeApplicationDefinition for CompleteApplication {
+impl UiNativeApplicationDefinition for MissingChangeProfile {
     fn prepare(
         self,
-        mut preparation: UiNativeApplicationPreparation,
+        preparation: UiNativeApplicationPreparation,
     ) -> UiNativeApplicationPreparationOutcome {
-        let policy = worth_ui::facade::inspection::UiVisualInspectionPolicy::production_default(
-            worth_ui::facade::inspection::UiVisualInspectionDisclosure::local_development_unredacted(),
-        )
-        .unwrap();
-        preparation
-            .builder()
-            .with_visual_inspection_policy(policy)
-            .unwrap();
         preparation.complete()
     }
 }
@@ -36,18 +27,6 @@ impl UiNativeApplicationDefinition for DeniedApplication {
 }
 
 #[test]
-fn phase_one_preparation_is_effect_free_and_stops_before_native_activation() {
-    let platform = WorthUiNativePlatform::prepare(profile()).unwrap();
-    let UiNativePlatformOutcome::Stopped(stop) = platform.run(CompleteApplication) else {
-        panic!("Phase 1 complete preparation must stop before native effects");
-    };
-    assert_eq!(
-        stop.reason(),
-        UiNativePlatformStopReason::NativeEffectsNotActivatedInPhaseOne
-    );
-}
-
-#[test]
 fn application_denial_proves_no_subsystem_or_event_loop_client_existed() {
     let platform = WorthUiNativePlatform::prepare(profile()).unwrap();
     let UiNativePlatformOutcome::ApplicationPreparationDenied(denial) =
@@ -60,6 +39,20 @@ fn application_denial_proves_no_subsystem_or_event_loop_client_existed() {
         UiNativeApplicationPreparationDenialCause::ApplicationRejected
     );
     assert!(denial.preparation_identity() > 0);
+}
+
+#[test]
+fn product_definition_must_select_its_change_profile() {
+    let platform = WorthUiNativePlatform::prepare(profile()).unwrap();
+    let UiNativePlatformOutcome::ApplicationPreparationDenied(denial) =
+        platform.run(MissingChangeProfile)
+    else {
+        panic!("a profile-free application definition must be denied");
+    };
+    assert_eq!(
+        denial.cause(),
+        UiNativeApplicationPreparationDenialCause::ChangeProfileMissing
+    );
 }
 
 #[test]

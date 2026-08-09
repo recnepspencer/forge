@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use super::oracle::OracleRect;
+use super::oracle::{adjudicate, removal_expectation, OracleExpectation, OracleRect};
 
 mod production;
 
-pub(super) use production::{produce_maximum_overlap, ProducedMaximumDelta};
+pub(super) use production::{produce_maximum_overlap, ProducedMaximumDelta, ProducedUnchanged};
 
 pub(super) struct MountedPresentationWorld {
     identity: String,
@@ -25,36 +25,11 @@ impl MountedPresentationWorld {
         let controls = manifest["filled_rect"]
             .as_array()
             .expect("filled rectangle controls");
-        assert_eq!(transcript.filled_rects().len(), maximum);
-        let mut observed = transcript.filled_rects().iter().collect::<Vec<_>>();
-        observed.sort_by_key(|row| row.layer_semantic_order());
-        let baseline = observed
-            .into_iter()
-            .enumerate()
-            .map(|(identity, observed)| {
-                let row = OracleRect {
-                    identity: identity as u16,
-                    bounds: box_values(observed.bounds()),
-                    rgba: observed.color().channels(),
-                    order: observed.layer_semantic_order() as u16,
-                };
-                if let Some(expected) = controls.get(identity) {
-                    assert_eq!(row.bounds, array4(expected, "x", "y", "width", "height"));
-                    assert_eq!(row.rgba, rgba(expected));
-                    assert_eq!(u64::from(row.order), integer(expected, "order"));
-                } else {
-                    assert_eq!(row.bounds, [0, 0, 160, 96]);
-                    assert_eq!(row.rgba, [47, 129, 247, 255]);
-                    assert_eq!(row.order, identity as u16);
-                }
-                row
-            })
+        let baseline = (0..maximum)
+            .map(|identity| expected_rect(identity, controls))
             .collect::<Vec<_>>();
-        assert_eq!(
-            baseline.len(),
-            maximum,
-            "the entire maximum world is produced"
-        );
+        assert_exact_rows(transcript, &baseline);
+        assert_exact_order(transcript, &baseline);
         Self {
             identity,
             version,
@@ -77,6 +52,9 @@ impl MountedPresentationWorld {
     pub(super) fn assert_removal_delta(&self, delta: &ProducedMaximumDelta) {
         let count = delta.changed_rows;
         let expected_successor = &self.baseline[count..];
+        let expected = removal_expectation(&self.baseline, count);
+        let candidate = removal_candidate(delta, expected_successor.is_empty());
+        adjudicate(&expected, &candidate).expect("production removal matches independent oracle");
         assert_exact_cost(delta, count, expected_successor.is_empty());
         assert_exact_rows(&delta.transcript, expected_successor);
         assert_exact_order(&delta.transcript, expected_successor);
@@ -85,6 +63,72 @@ impl MountedPresentationWorld {
             &self.baseline[..count],
             expected_successor.first(),
         );
+    }
+
+    pub(super) fn assert_unchanged(&self, unchanged: &ProducedUnchanged) {
+        assert_eq!(unchanged.native_work_count, 0);
+        assert_eq!(unchanged.cost.delta_rows_carried(), 0);
+        assert_eq!(unchanged.cost.draw_list_mutations(), 0);
+        assert_eq!(unchanged.cost.order_mutations(), 0);
+        assert_eq!(unchanged.cost.logical_damage_regions(), 0);
+    }
+
+    pub(super) fn assert_restoration(&self, delta: &ProducedMaximumDelta) {
+        assert_exact_rows(&delta.transcript, &self.baseline);
+        assert_exact_order(&delta.transcript, &self.baseline);
+        assert_eq!(delta.draw_mutations, delta.changed_rows as u64);
+        assert_eq!(delta.order_mutations, delta.changed_rows as u64 + 1);
+        assert_eq!(delta.damage_regions, delta.changed_rows as u64 * 2 + 1);
+        assert_eq!(
+            delta.delta_rows_carried,
+            (delta.changed_rows * 4 + 2) as u64
+        );
+    }
+}
+
+fn removal_candidate(delta: &ProducedMaximumDelta, successor_is_empty: bool) -> OracleExpectation {
+    let layers = delta
+        .transcript
+        .filled_rects()
+        .iter()
+        .map(|row| (row.command_identity(), row.layer_semantic_order()))
+        .collect::<HashMap<_, _>>();
+    let ordered_identities = delta
+        .transcript
+        .paint_order()
+        .iter()
+        .map(|identity| u16::try_from(layers[&identity.command()]).expect("profile order fits"))
+        .collect();
+    let damage = delta
+        .transcript
+        .logical_damage()
+        .iter()
+        .map(|region| box_values(region.bounds()))
+        .collect::<Vec<_>>();
+    let successor_anchor = usize::from(!successor_is_empty);
+    OracleExpectation {
+        owner_delta_count: usize::try_from(delta.draw_mutations).expect("mutation count fits"),
+        vacated_damage_count: damage.len().saturating_sub(successor_anchor),
+        damage,
+        ordered_identities,
+    }
+}
+
+fn expected_rect(identity: usize, controls: &[toml::Value]) -> OracleRect {
+    let order = u16::try_from(identity).expect("maximum rectangle identity fits the profile");
+    let Some(expected) = controls.get(identity) else {
+        return OracleRect {
+            identity: order,
+            bounds: [0, 0, 160, 96],
+            rgba: [47, 129, 247, 255],
+            order,
+        };
+    };
+    OracleRect {
+        identity: order,
+        bounds: array4(expected, "x", "y", "width", "height"),
+        rgba: rgba(expected),
+        order: u16::try_from(integer(expected, "order")).expect("control order fits profile"),
     }
 }
 

@@ -2,7 +2,7 @@ pub(super) const EVIDENCE_SCHEMA: &str = "worth-ui-ledger-evidence-v3";
 pub(super) const FONT_PROFILE_DIGEST: &str =
     "6f140249866e6815e9284fe1c8c959a8bb1b8cab252cfbe8c7c397f9a7eb9b01";
 pub(super) const NATIVE_PROFILE_DIGEST: &str =
-    "93121321d608b95e496f5e7defe63f0493f90ebf965202a64160da03de24d0fe";
+    "1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b";
 
 pub(super) struct RequirementContract {
     pub(super) requirement: &'static str,
@@ -13,6 +13,19 @@ pub(super) struct RequirementContract {
     pub(super) authority: &'static str,
     pub(super) mutation_family: &'static str,
     pub(super) counter_family: &'static str,
+}
+
+impl RequirementContract {
+    pub(super) fn requires_presented_source(&self) -> bool {
+        matches!(
+            self.requirement,
+            "P2-GRAPHICS-01" | "P2-PRESENT-01" | "P2-PIXELS-01" | "P2-WORLD-01"
+        )
+    }
+
+    pub(super) fn requires_client_area(&self) -> bool {
+        matches!(self.requirement, "P2-PIXELS-01" | "P2-WORLD-01")
+    }
 }
 
 pub(super) fn for_requirement(requirement: &str) -> Option<&'static RequirementContract> {
@@ -50,11 +63,11 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
     ),
     contract!(
         "P1-AUTHORITY-01",
-        "worth-ui-native-platform",
+        "worth-ui-runtime",
         "native application preparation types",
         "native-application-world",
         "compile-runtime",
-        "worth_ui_native_platform::application",
+        "worth_ui_runtime::native_platform::application",
         "construction",
         "preparation"
     ),
@@ -95,7 +108,7 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
         "mounted-presentation-world",
         "integration",
         "worth_ui_runtime::host_composition",
-        "mixed-protocol",
+        "validated-agreement",
         "consumer"
     ),
     contract!(
@@ -115,7 +128,7 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
         "mounted-presentation-world",
         "dependency-integration",
         "worth_ui_host_headless::adapter",
-        "dependency-direction",
+        "mechanics-substitution",
         "headless"
     ),
     contract!(
@@ -150,21 +163,21 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
     ),
     contract!(
         "P1-PLATFORM-AUTHORITY-01",
-        "worth-ui-native-platform",
+        "worth-ui-runtime",
         "affine native platform binding",
         "native-application-world",
         "compile-runtime",
-        "worth_ui_native_platform::binding",
+        "worth_ui_runtime::native_platform::binding",
         "grant-forgery",
         "grant"
     ),
     contract!(
         "P1-PREPARATION-LIFECYCLE-01",
-        "worth-ui-native-platform",
+        "worth-ui-runtime",
         "effect-free host-neutral product preparation",
         "native-application-world",
         "compile-runtime",
-        "worth_ui_native_platform::preparation",
+        "worth_ui_runtime::native_platform::preparation",
         "premature-runtime-effect",
         "effect-surface"
     ),
@@ -240,21 +253,21 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
     ),
     contract!(
         "P2-APPLICATION-01",
-        "worth-ui-native-platform",
+        "worth-ui-runtime",
         "prepared application driver handoff",
         "windows-native-boundary-world",
         "windows-integration",
-        "worth_ui_native_platform::application_driver",
+        "worth_ui_runtime::native_platform::application_driver",
         "driver-substitution",
         "application"
     ),
     contract!(
         "P2-CLOSE-01",
-        "worth-ui-native-platform",
+        "worth-ui-host-native",
         "terminal native resource cleanup",
         "windows-native-boundary-world",
         "windows-integration",
-        "worth_ui_native_platform::shutdown",
+        "worth_ui_host_native::shutdown",
         "resource-leak",
         "resource-census"
     ),
@@ -305,16 +318,16 @@ pub(super) const CONTRACTS: &[RequirementContract] = &[
         "windows-native-boundary-world",
         "windows-integration",
         "worth_ui_host_native::presentation",
-        "receipt-drop",
+        "geometry-color-substitution",
         "presentation"
     ),
     contract!(
         "P2-READINESS-01",
-        "worth-ui-native-platform",
+        "worth-ui-host-native",
         "level triggered scheduling and quiescence",
         "windows-native-boundary-world",
         "lifecycle-model",
-        "worth_ui_native_platform::readiness",
+        "worth_ui_host_native::readiness",
         "wake-drop-duplicate",
         "readiness"
     ),

@@ -12,6 +12,7 @@ error[E0603]: module `entry` is private
 error[E0277]: the trait bound `FakeCapabilityId: Sealed` is not satisfied
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/support/construction/external_support_id_impl_is_forbidden.rs
  help: the trait `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed` is not implemented for `FakeCapabilityId`
+ note: `FakeCapabilityId` implements similarly named trait `unicode_width::private::Sealed`, but not `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed`
  help: the following other types implement trait `worth_ui_runtime::capability::support::capability_support_id::sealed::Sealed`:
   CommandId
   CommandProjectionId
