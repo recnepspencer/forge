@@ -152,7 +152,6 @@ impl WorthUiPreparedApplicationAuthority {
                 query_binding_plan: &self.query_binding_plan,
                 intent_application_fact_digest: self.intent_application_facts.digest_basis(),
                 intent_execution_binding_digest: self.intent_execution_bindings.digest_basis(),
-                host_session_plan: &self.host_session_plan,
                 visual_inspection_policy: self.visual_inspection_policy,
                 change_profile: self.change_profile,
             },
@@ -171,7 +170,6 @@ impl WorthUiPreparedApplicationAuthority {
             graph_authority_identity: graph_snapshot.authority_identity(),
             capability_snapshot: Rc::clone(&self.capability_snapshot),
             query_binding_plan: self.query_binding_plan.clone(),
-            host_session_plan: self.host_session_plan.clone(),
         })
     }
 }

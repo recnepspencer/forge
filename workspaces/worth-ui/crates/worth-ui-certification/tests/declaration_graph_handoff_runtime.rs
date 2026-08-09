@@ -18,6 +18,10 @@ use worth_ui_dsl::{
 #[test]
 fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authority() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-handoff")
@@ -68,6 +72,10 @@ fn public_freeze_derives_exact_graph_handoff_from_canonical_declaration_authorit
 #[test]
 fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
     let baseline = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -78,6 +86,10 @@ fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
         .freeze()
         .expect("application preparation should succeed");
     let noisy = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -121,6 +133,10 @@ fn support_noise_is_out_of_graph_but_aspect_contract_is_graph_relevant() {
 #[test]
 fn invalid_declared_posture_denies_before_graph_handoff_promotion() {
     let denial = match WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

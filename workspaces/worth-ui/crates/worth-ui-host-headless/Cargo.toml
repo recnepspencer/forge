@@ -1,0 +1,18 @@
+[package]
+name = "worth-ui-host-headless"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[lib]
+name = "worth_ui_host_headless"
+path = "src/lib.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+
+[dev-dependencies]
+worth-ui-test-support = { path = "../worth-ui-test-support" }

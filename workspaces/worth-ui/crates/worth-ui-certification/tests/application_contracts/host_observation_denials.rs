@@ -7,10 +7,9 @@ use worth_ui::facade::observation_report::{
     UiHostObservationTimeBasis,
 };
 use worth_ui_host_contract::{
-    UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostPresentationEpoch,
-    UiHostProtocolContract, UiHostProtocolDenial, UiHostProtocolIdentity,
-    UiHostProtocolNegotiation, UiHostProtocolSchemaFamily, UiHostProtocolVersion,
-    UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
+    UiHostObservationSchemaVersion, UiHostPresentationEpoch, UiHostProtocolContract,
+    UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
+    UiHostProtocolSchemaFamily,
 };
 use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
 
@@ -126,26 +125,8 @@ fn assert_foreign_protocol() {
             UiHostProtocolSchemaFamily::Observation
         ))
     );
-    let mut world = published_observation_world("observation-foreign-protocol");
-    let valid = batch(
-        source(&world.session, world.binding, &world.current),
-        (1, 1),
-        UiHostObservationLoss::Complete,
-        vec![report(1, pointer(1, 10), &world.current)],
-    );
-    let core = valid.canonical_core();
-    let foreign = core_with(
-        core,
-        CanonicalCoreMutation {
-            protocol: Some(compatible_noncurrent_protocol()),
-            ..Default::default()
-        },
-    );
-    assert_denial(
-        &mut world,
-        reseal(foreign, valid.reports().to_vec()),
-        UiHostObservationReportDenial::ForeignProtocol,
-    );
+    // Revision 4 is exclusive: no non-current agreement can be minted and
+    // therefore no foreign protocol can enter an otherwise valid report.
 }
 
 fn assert_foreign_binding() {
@@ -333,31 +314,14 @@ fn range(first: u64, last: u64) -> UiHostObservationSequenceRange {
     )
 }
 
-fn compatible_noncurrent_protocol() -> worth_ui::facade::observation_report::UiHostProtocolAgreement
-{
-    let contract = UiHostProtocolContract::new(
-        UiHostProtocolIdentity::worth_ui(),
-        UiHostProtocolVersion::new(1),
-        UiMountedFrameSchemaVersion::new(1),
-        UiMountedPresentationSchemaVersion::new(1),
-        UiHostProtocolContract::current().observation(),
-        UiHostMeasurementSchemaVersion::new(1),
-    );
-    match contract.negotiate() {
-        UiHostProtocolNegotiation::Compatible(agreement) => agreement,
-        UiHostProtocolNegotiation::Incompatible(denial) => {
-            panic!("declared compatible predecessor protocol was denied: {denial:?}")
-        }
-    }
-}
-
 fn old_observation_contract() -> UiHostProtocolContract {
+    let current = UiHostProtocolContract::current();
     UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
-        UiHostProtocolVersion::new(2),
-        UiMountedFrameSchemaVersion::new(2),
-        UiMountedPresentationSchemaVersion::new(2),
+        current.protocol(),
+        current.mounted_frame(),
+        current.mounted_presentation(),
         UiHostObservationSchemaVersion::new(5),
-        UiHostMeasurementSchemaVersion::new(2),
+        current.measurement(),
     )
 }

@@ -61,6 +61,7 @@ pub(crate) fn framework_from_artifact(
     artifact: WorthUiArtifact,
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -87,6 +88,7 @@ fn canonical_artifact_from_input(
     artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");

@@ -33,7 +33,7 @@ pub enum UiSemanticTextSlot {
     Posture,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct UiMountedCollectionRowCorrelation([u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

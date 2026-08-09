@@ -27,6 +27,16 @@ fn observe_collection(observation: &UiCollectionProjectionObservation) {
     }
 }
 
+fn borrow_query_issued_fact(fact: &worth_ui_query_binding::UiScalarProjectionFactReceipt) {
+    let _ = (fact.core(), fact.availability());
+}
+
+fn consume_query_issued_fact(
+    fact: worth_ui_query_binding::UiScalarProjectionFactReceipt,
+) -> worth_ui_query_binding::UiScalarProjectionObservation {
+    fact.into_observation()
+}
+
 fn declare_requirements() {
     let status = UiProjectionFieldRequirement::declared("status").unwrap();
     let scalar =
@@ -52,9 +62,7 @@ fn register_scalar(view: UiInstalledProjectionView) {
             worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
         )
         .register_scalar_projection(registration)
-        .expect("installed scalar projection registration")
-        .freeze()
-        .expect("application preparation should succeed");
+        .expect("installed scalar projection registration");
 }
 
 fn register_collection(view: UiInstalledProjectionView) {
@@ -71,15 +79,15 @@ fn register_collection(view: UiInstalledProjectionView) {
             worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
         )
         .register_collection_projection(registration)
-        .expect("installed collection projection registration")
-        .freeze()
-        .expect("application preparation should succeed");
+        .expect("installed collection projection registration");
 }
 
 fn main() {
     let _ = (
         observe_scalar,
         observe_collection,
+        borrow_query_issued_fact,
+        consume_query_issued_fact,
         declare_requirements,
         register_scalar,
         register_collection,

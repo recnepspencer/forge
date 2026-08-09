@@ -21,6 +21,7 @@ use candidate_composition_preparation_test_support::{
 #[test]
 fn file_watcher_uses_one_composition_pipeline_for_file_and_rust_inputs() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -152,6 +153,7 @@ fn prepared_file_and_rust_compositions_retain_exact_handoff_evidence() {
 #[test]
 fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("source snapshot should prepare");
@@ -190,11 +192,13 @@ fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
     );
 
     let left = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(left_submission)
         .freeze()
         .expect("left composition should prepare");
     let right = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(right_submission)
         .freeze()
@@ -212,6 +216,7 @@ fn import_drift_changes_exact_semantic_handoff_and_prepared_identity() {
 fn candidate_snapshot_drift_returns_deterministic_preparation_denial_without_mutating_prior_truth()
 {
     let baseline = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("baseline application should prepare");
@@ -226,6 +231,7 @@ fn candidate_snapshot_drift_returns_deterministic_preparation_denial_without_mut
     };
     let make_drifted_builder = || {
         WorthUi::app()
+            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .register_component(source_backed_package_component(
                 "workspace.component.phase7_snapshot_drift",

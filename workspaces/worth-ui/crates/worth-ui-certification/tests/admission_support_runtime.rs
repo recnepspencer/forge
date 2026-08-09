@@ -19,6 +19,10 @@ use worth_ui_dsl::{
 #[test]
 fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separate() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -31,6 +35,10 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

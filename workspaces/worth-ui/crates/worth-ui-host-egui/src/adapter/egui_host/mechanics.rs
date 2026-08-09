@@ -112,9 +112,7 @@ impl WorthUiHostMechanicsAdapter for super::WorthUiHostEgui {
             );
         }
         registrations.insert(request.binding_generation(), request);
-        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
-            request.confirm_known_empty(),
-        )
+        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty
     }
 
     fn perform_surface_deregistration(
@@ -154,40 +152,33 @@ impl WorthUiHostMechanicsAdapter for super::WorthUiHostEgui {
         if let Some(denial) = self.validate_mounted_view(view) {
             return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
         }
-        let presentation =
-            match super::super::mounted_presentation::UiEguiPreparedMountedPresentation::prepare(
+        let binding = view.requirement().binding();
+        let mut retained = self.retained_presentations.lock().unwrap();
+        let candidate =
+            match super::super::mounted_presentation::UiEguiPresentationCandidate::prepare(
                 &self.context,
                 view,
+                retained.get(&binding),
             ) {
-                Ok(prepared) => prepared,
+                Ok(candidate) => candidate,
                 Err(denial) => {
                     return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
                 }
             };
-        let realized_regions = match super::super::native_regions::prepare(view.projection()) {
-            Ok(regions) => regions,
-            Err(denial) => {
-                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
-            }
-        };
-        let cost = match super::super::presentation_cost::for_projection(view.projection()) {
+        let cost = match candidate.cost(view) {
             Ok(cost) => cost,
             Err(denial) => {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
-        let effects = presentation.completed_effects();
+        let effects = candidate.completed_effects();
+        let realized_regions = candidate.realized_regions();
         let epoch = worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
             view.attempt().diagnostic_value(),
         );
-        presentation.paint(&self.context);
-        let binding = view.requirement().binding();
-        let mut retained = self.retained_presentations.lock().unwrap();
-        if presentation.is_empty() {
-            retained.remove(&binding);
-        } else {
-            retained.insert(binding, presentation);
-        }
+        candidate.paint(&self.context);
+        retained.insert(binding, candidate.presentation);
+        drop(retained);
         super::super::visual_snapshot::record_presentation(
             &self.visual_captures,
             view,
@@ -279,8 +270,7 @@ impl super::WorthUiHostEgui {
         if !registration_matches(registered, view) {
             return Some(UiHostSurfacePresentationDenial::SurfaceBindingChanged);
         }
-        super::super::mounted_effect_support::unsupported_projection_effect(view.projection())
-            .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
+        None
     }
 }
 
@@ -300,6 +290,6 @@ fn registration_matches(
         && registered.capability_generation() == view.capability_generation()
         && registered.capability_profile_digest() == view.capability_profile_digest()
         && registered.presentation_mode() == requirement.presentation_mode()
-        && view.projection().surface() == requirement.semantic_surface()
-        && view.projection().binding() == requirement.binding()
+        && view.surface() == requirement.semantic_surface()
+        && view.binding() == requirement.binding()
 }

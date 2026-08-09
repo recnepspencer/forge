@@ -1,4 +1,6 @@
-use worth_ui::facade::app::WorthUiApplicationBuilder;
+use worth_ui::facade::app::{
+    UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUiApplicationBuilder,
+};
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
     ComponentHitTestContract, ComponentHitTestOrder, ComponentId, ComponentPropSchema,
@@ -32,7 +34,14 @@ const PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT: u64 = 256 << 10;
 const PLATFORM_PULSE_RETAINED_STRUCTURAL_BYTES: u64 =
     2 * PLATFORM_PULSE_STRUCTURAL_BYTES_PER_RECEIPT;
 
-pub(super) fn register_structure(builder: WorthUiApplicationBuilder) -> WorthUiApplicationBuilder {
+pub(super) fn register_structure<HostBindingState>(
+    builder: WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        HostBindingState,
+    >,
+) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
+{
     let background_allocation = ComponentAllocationMeasurementContract::fill_viewport();
     let target_allocation = ComponentAllocationMeasurementContract::viewport_inset(
         ComponentViewportInset::symmetric(48, 24),
@@ -100,9 +109,14 @@ pub(super) fn register_structure(builder: WorthUiApplicationBuilder) -> WorthUiA
         ))
 }
 
-pub(super) fn register_theme_tokens(
-    builder: WorthUiApplicationBuilder,
-) -> WorthUiApplicationBuilder {
+pub(super) fn register_theme_tokens<HostBindingState>(
+    builder: WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        HostBindingState,
+    >,
+) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
+{
     builder
         .register_theme_token(ThemeTokenDescriptor::define(
             token_id(WHITE_TOKEN),

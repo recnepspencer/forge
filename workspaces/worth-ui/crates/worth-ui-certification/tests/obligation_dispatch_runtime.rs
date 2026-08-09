@@ -147,6 +147,10 @@ fn query_selected_obligations_lower_to_narrow_dispatch_without_widening_families
 
 fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(

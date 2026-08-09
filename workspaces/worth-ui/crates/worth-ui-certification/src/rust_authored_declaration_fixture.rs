@@ -81,7 +81,9 @@ pub trait WorthUiCertificationBuilderExt {
     ) -> Self;
 }
 
-impl WorthUiCertificationBuilderExt for WorthUiApplicationBuilder {
+impl<ChangeProfileState, IntentWiringState, HostBindingState> WorthUiCertificationBuilderExt
+    for WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, HostBindingState>
+{
     fn with_rust_authored_declaration_fixture(
         self,
         fixture: WorthUiRustAuthoredDeclarationFixture,

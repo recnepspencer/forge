@@ -100,14 +100,11 @@ pub(super) fn frame_rejections(
 
 pub(super) fn completion_satisfies(
     surface: &super::super::UiMountedSurfaceReceipt,
+    expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
     completion: &UiMountedSurfacePresentationCompletion,
 ) -> bool {
     if completion.mode() != surface.requirement().presentation_mode() {
         return false;
     }
-    let required = super::effect_requirements::required_effects(
-        surface.requirement().presentation_mode(),
-        surface.projection(),
-    );
-    completion.effects().families() == required
+    completion.effects().families() == expected_effects
 }

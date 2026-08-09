@@ -48,16 +48,20 @@ fn declaration_and_graph_drift_change_prepared_generation_identity() {
 }
 
 #[test]
-fn query_and_host_plan_drift_change_identity_without_capability_drift() {
+fn query_drift_changes_identity_while_host_selection_remains_outside_it() {
     let left_query = query_app("prepared-query-left");
     let right_query = query_app("prepared-query-right");
     let headless = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("headless app should prepare");
     let egui = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
-        .with_host(EguiPlanAdapter)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            EguiPlanAdapter,
+        )
         .freeze()
         .expect("egui app should prepare");
 
@@ -73,7 +77,7 @@ fn query_and_host_plan_drift_change_identity_without_capability_drift() {
         headless.capabilities().digest(),
         egui.capabilities().digest()
     );
-    assert_ne!(headless.generation_identity(), egui.generation_identity());
+    assert_eq!(headless.generation_identity(), egui.generation_identity());
 }
 
 #[derive(Default)]
@@ -166,10 +170,12 @@ fn exact_change_profile_is_generation_identity_and_prepared_authority() {
     .expect("smaller observation profile should be valid");
     let custom = UiChangeProfile::new(observation, UiRebindProfile::platform_pulse());
     let baseline = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(UiChangeProfile::platform_pulse())
         .freeze()
         .expect("baseline should prepare");
     let configured = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(custom)
         .freeze()
         .expect("configured app should prepare");
@@ -184,8 +190,9 @@ fn exact_change_profile_is_generation_identity_and_prepared_authority() {
 fn app_with_package(
     package_name: &str,
     semantic_key: &str,
-) -> crate::facade::entry::WorthUiApplicationBuilder {
+) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name).with_semantic_artifact_spec(
@@ -206,6 +213,7 @@ fn query_app(installed_domain: &str) -> crate::facade::WorthUiApp {
         .live_measurement_view("workspace.view_binding.prepared")
         .expect("installed query view should admit");
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(WorthUiQueryViewRegistration::new(view))
         .expect("query view should register")

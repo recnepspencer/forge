@@ -38,6 +38,12 @@ impl WorthUiApplicationSessionState {
         self.app.generation_identity()
     }
 
+    pub(crate) fn host_session_plan(
+        &self,
+    ) -> &crate::facade::prepared_application_authority::WorthUiHostSessionPlan {
+        self.app.host_session_plan()
+    }
+
     pub(crate) fn capabilities(&self) -> &CapabilitySnapshot {
         self.app.capabilities()
     }

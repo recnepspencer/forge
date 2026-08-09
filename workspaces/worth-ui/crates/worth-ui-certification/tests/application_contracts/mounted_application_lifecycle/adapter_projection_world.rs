@@ -1,7 +1,8 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
+use worth_ui_host_headless::WorthUiHeadlessHost;
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_runtime::facade::mounted::{
     UiMountedLaneParticipation, UiRequiredLaneContributionStatus,
 };

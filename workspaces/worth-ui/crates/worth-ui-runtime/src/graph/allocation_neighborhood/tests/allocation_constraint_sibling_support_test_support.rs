@@ -54,8 +54,9 @@ pub(super) fn mosaic_peer_app_with_contracts(
 fn mosaic_peer_builder(
     world_profile: crate::graph::UiGraphWorldProfile,
     include_alternate_contract: bool,
-) -> crate::facade::entry::WorthUiApplicationBuilder {
+) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     let mut builder = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .register_component(component_descriptor("workspace.component.workflow_editor"))

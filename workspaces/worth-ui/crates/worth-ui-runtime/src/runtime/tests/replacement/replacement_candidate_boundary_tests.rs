@@ -194,6 +194,7 @@ fn candidate_from_bundle(
 
 fn default_snapshot_digest() -> crate::capability::CapabilitySnapshotDigest {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")
@@ -271,6 +272,7 @@ fn canonical_artifact_from_input(
     artifact_input: worth_ui_dsl::WorthUiSealedSemanticPackage,
 ) -> WorthUiArtifact {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");

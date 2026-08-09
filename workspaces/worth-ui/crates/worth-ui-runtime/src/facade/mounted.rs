@@ -8,7 +8,7 @@ pub use crate::inspection::mounted_frame::{
     UiMountedRetentionQueueBudget, UiMountedRetentionReport, UiMountedVisualTargetDenial,
 };
 pub use crate::mounting::{
-    UiHostPresentationReconciliation, UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity,
+    UiHostPresentationReconciliation, UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity,
     UiHostSurfacePresentationMode, UiMountCostReport, UiMountIncarnation, UiMountNamedCounters,
     UiMountWorkClass, UiMountedFrameDelta, UiMountedFrameExecutionPosture, UiMountedFrameIdentity,
     UiMountedFrameIdentityView, UiMountedFrameOutcome, UiMountedFramePreparationDenial,

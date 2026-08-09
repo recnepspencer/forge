@@ -1,4 +1,10 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+
+type BoundBuilder = WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostBound,
+>;
 use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentStateOwnership, MeasurementConstraint, MeasurementValue, MosaicChildRule,
@@ -167,10 +173,13 @@ fn file_application(workspace: &FilesystemContractWorkspace) -> worth_ui::facade
         .expect("real-file application should prepare")
 }
 
-fn builder() -> WorthUiApplicationBuilder {
+fn builder() -> BoundBuilder {
     WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(MultiRemovalHost)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            MultiRemovalHost,
+        )
         .with_graph_world_profile(installed_query_world::settled_query_world_profile(
             worth_ui::facade::declaration::ViewBindingId::new("multi.removal.filesystem").unwrap(),
             "worth-ui.phase14.filesystem.multi-removal",

@@ -3,13 +3,16 @@ use std::path::Path;
 use crate::topology::WorkspaceSourceInventory;
 
 const OPENING_MEMBERS: u64 = 11;
-const MAXIMUM_MEMBERS: u64 = 12;
+const HISTORICAL_MAXIMUM_MEMBERS: u64 = 12;
+const PHASE_ONE_FOUNDATION_MEMBERS: u64 = 15;
 const OPENING_TARGETS: u64 = 20;
 const MAXIMUM_TARGETS: u64 = 21;
 const MAXIMUM_TARGETS_WITH_OBSERVATION_LIBRARY: u64 = 22;
 const MAXIMUM_TARGETS_WITH_EXECUTABLE_WORLD: u64 = 23;
+const PHASE_ONE_FOUNDATION_TARGETS: u64 = 27;
 const INTEGRATION_TARGETS: u64 = 9;
 const INTEGRATION_TARGETS_WITH_EXECUTABLE_WORLD: u64 = 10;
+const PHASE_ONE_FOUNDATION_INTEGRATION_TARGETS: u64 = 11;
 const COMPILE_SESSIONS: u64 = 2;
 
 pub(super) fn audit(
@@ -19,12 +22,21 @@ pub(super) fn audit(
     audit_frozen_budget(baseline)?;
     let (member_count, target_count, integration_target_count) =
         current_workspace_topology(inventory)?;
-    if !(OPENING_MEMBERS..=MAXIMUM_MEMBERS).contains(&member_count) {
+    if !(OPENING_MEMBERS..=HISTORICAL_MAXIMUM_MEMBERS).contains(&member_count)
+        && member_count != PHASE_ONE_FOUNDATION_MEMBERS
+    {
         return Err(format!(
-            "Worth UI workspace member count should remain within {OPENING_MEMBERS}..={MAXIMUM_MEMBERS}; found {member_count}"
+            "Worth UI workspace member count should remain within {OPENING_MEMBERS}..={HISTORICAL_MAXIMUM_MEMBERS} or equal the exact Phase 1 foundation count {PHASE_ONE_FOUNDATION_MEMBERS}; found {member_count}"
         ));
     }
-    let expected_integration_targets = if target_count == MAXIMUM_TARGETS_WITH_OBSERVATION_LIBRARY {
+    if member_count == PHASE_ONE_FOUNDATION_MEMBERS {
+        audit_phase_one_foundation_members(inventory)?;
+    }
+    let expected_integration_targets = if target_count == PHASE_ONE_FOUNDATION_TARGETS {
+        let pulse = parse_manifest(inventory, Path::new("apps/platform-pulse/Cargo.toml"))?;
+        audit_successor_executable_world(&pulse)?;
+        PHASE_ONE_FOUNDATION_INTEGRATION_TARGETS
+    } else if target_count == MAXIMUM_TARGETS_WITH_OBSERVATION_LIBRARY {
         let pulse = parse_manifest(inventory, Path::new("apps/platform-pulse/Cargo.toml"))?;
         audit_successor_observation_library(&pulse)?;
         INTEGRATION_TARGETS
@@ -127,7 +139,7 @@ fn audit_frozen_budget(baseline: &serde_json::Value) -> Result<(), String> {
         .ok_or_else(|| "opening baseline should contain topology".to_owned())?;
     for (field, expected) in [
         ("opening_workspace_members", OPENING_MEMBERS),
-        ("maximum_workspace_members", MAXIMUM_MEMBERS),
+        ("maximum_workspace_members", HISTORICAL_MAXIMUM_MEMBERS),
         ("allowed_workspace_member_increase", 1),
         ("opening_workspace_cargo_targets", OPENING_TARGETS),
         ("maximum_workspace_cargo_targets", MAXIMUM_TARGETS),
@@ -166,6 +178,27 @@ fn audit_frozen_budget(baseline: &serde_json::Value) -> Result<(), String> {
             "the unborn pulse must have explicit null opening link and launch measurements"
                 .to_owned(),
         );
+    }
+    Ok(())
+}
+
+fn audit_phase_one_foundation_members(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
+    let workspace = parse_manifest(inventory, Path::new("Cargo.toml"))?;
+    let members = workspace["workspace"]["members"]
+        .as_array()
+        .ok_or_else(|| "Worth UI workspace should declare members".to_owned())?
+        .iter()
+        .filter_map(toml::Value::as_str)
+        .collect::<std::collections::BTreeSet<_>>();
+    let required = [
+        "crates/worth-ui-host-headless",
+        "crates/worth-ui-host-native",
+        "crates/worth-ui-native-platform",
+    ];
+    if required.iter().any(|member| !members.contains(member)) {
+        return Err(format!(
+            "the Phase 1 member exception requires exactly the named host foundations; members={members:?}"
+        ));
     }
     Ok(())
 }

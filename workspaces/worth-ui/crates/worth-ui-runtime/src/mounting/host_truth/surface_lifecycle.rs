@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceDeregistrationOutcome,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceDeregistrationOutcome,
     UiHostSurfaceRegistrationOutcome, UiHostSurfaceRegistrationRequest, UiSemanticSurfaceIdentity,
 };
 
@@ -8,6 +8,20 @@ use super::registration_attempt::UiHostTruthNativeLifecycleKind;
 use crate::facade::UiHostEffectPort;
 use crate::mounting::identity_state::surface_lifecycle::map_registration_denial;
 use crate::mounting::UiMountedIdentityDenial;
+
+/// Move-only proof that this owner observed one successful known-empty
+/// registration. Construction remains private to the host-truth response
+/// transition so a copied request cannot mint another receipt.
+#[must_use]
+pub(super) struct UiMountedSurfaceBaselineReceipt {
+    identity: UiHostSurfaceBaselineIdentity,
+}
+
+impl UiMountedSurfaceBaselineReceipt {
+    pub(super) fn identity(&self) -> UiHostSurfaceBaselineIdentity {
+        self.identity
+    }
+}
 
 impl UiMountedHostTruthCoordinator {
     pub(crate) fn recover_surface_effect(
@@ -41,23 +55,27 @@ impl UiMountedHostTruthCoordinator {
         &mut self,
         host: UiHostEffectPort<'_>,
         request: UiHostSurfaceRegistrationRequest,
-    ) -> Result<UiHostSurfaceBaselineReceipt, UiMountedIdentityDenial> {
+    ) -> Result<UiHostSurfaceBaselineIdentity, UiMountedIdentityDenial> {
         if self.surface_has_indeterminate_native_lifecycle(request.semantic_surface_identity()) {
             return Err(UiMountedIdentityDenial::SurfaceRequiresReconciliation);
+        }
+        if self.known_empty.contains_key(&request.binding_generation()) {
+            return Err(UiMountedIdentityDenial::SurfaceAlreadyBound);
         }
         match host.adapter().register_surface(host.authority(), request) {
             UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(denial) => {
                 Err(map_registration_denial(denial))
             }
-            UiHostSurfaceRegistrationOutcome::Registered(receipt)
-                if receipt.registration() == request =>
-            {
+            UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty => {
+                let receipt = UiMountedSurfaceBaselineReceipt {
+                    identity: request.baseline_identity(),
+                };
+                let identity = receipt.identity();
                 self.known_empty
                     .insert(request.binding_generation(), receipt);
-                Ok(receipt)
+                Ok(identity)
             }
-            UiHostSurfaceRegistrationOutcome::Registered(_)
-            | UiHostSurfaceRegistrationOutcome::RegistrationIndeterminate(_) => {
+            UiHostSurfaceRegistrationOutcome::RegistrationIndeterminate(_) => {
                 self.block_native_lifecycle(UiHostTruthNativeLifecycleKind::Registration, request);
                 Err(UiMountedIdentityDenial::HostSurfaceTruthIndeterminate)
             }
@@ -127,16 +145,16 @@ impl UiMountedHostTruthCoordinator {
         request: UiHostSurfaceRegistrationRequest,
     ) -> Result<(), UiMountedIdentityDenial> {
         match host.adapter().register_surface(host.authority(), request) {
-            UiHostSurfaceRegistrationOutcome::Registered(receipt)
-                if receipt.registration() == request =>
-            {
+            UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty => {
+                let receipt = UiMountedSurfaceBaselineReceipt {
+                    identity: request.baseline_identity(),
+                };
                 self.known_empty
                     .insert(request.binding_generation(), receipt);
                 self.clear_native_lifecycle(request.binding_generation());
                 Ok(())
             }
             UiHostSurfaceRegistrationOutcome::RejectedBeforeEffects(_)
-            | UiHostSurfaceRegistrationOutcome::Registered(_)
             | UiHostSurfaceRegistrationOutcome::RegistrationIndeterminate(_) => {
                 Err(UiMountedIdentityDenial::HostSurfaceTruthIndeterminate)
             }

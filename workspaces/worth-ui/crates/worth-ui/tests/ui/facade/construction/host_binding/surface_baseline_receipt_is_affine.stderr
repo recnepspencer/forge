@@ -1,0 +1,3 @@
+error[E0432]: unresolved import `worth_ui_runtime::facade::mounted::UiMountedSurfaceBaselineReceipt`
+ --> $WORKSPACE/crates/worth-ui/tests/ui/facade/construction/host_binding/surface_baseline_receipt_is_affine.rs
+ help: a similar name exists in the module

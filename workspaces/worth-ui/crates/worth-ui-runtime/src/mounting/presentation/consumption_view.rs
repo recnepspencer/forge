@@ -1,8 +1,10 @@
 use worth_ui_host_contract::{
     UiHostProtocolAgreement, UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
-    UiMountedPresentationAttemptIdentity, UiMountedPresentationLease, UiMountedProjectionView,
-    UiMountedSurfaceBindingRequirement, UiPresentationDeadline, WorthUiHostCapabilityReport,
+    UiMountedPresentationAttemptIdentity, UiMountedSurfaceBindingRequirement,
+    UiPresentationDeadline, WorthUiHostCapabilityReport,
 };
+
+use super::{UiMountedPresentationLease, UiMountedPresentationWork};
 
 #[derive(Clone, Copy)]
 pub(crate) struct UiMountedHostPresentationAuthority<'authority> {
@@ -16,7 +18,7 @@ pub(super) struct UiRuntimeMountedFrameConsumptionInput<'frame> {
     pub attempt: UiMountedPresentationAttemptIdentity,
     pub deadline: UiPresentationDeadline,
     pub requirement: UiMountedSurfaceBindingRequirement,
-    pub projection: &'frame UiMountedProjectionView,
+    pub presentation_work: &'frame UiMountedPresentationWork,
 }
 
 impl<'authority> UiMountedHostPresentationAuthority<'authority> {
@@ -42,11 +44,20 @@ impl<'authority> UiMountedHostPresentationAuthority<'authority> {
         self.capability_report
     }
 
+    pub(super) fn presentation(self) -> &'authority UiMountedPresentationLease {
+        self.presentation
+    }
+
     pub(super) fn bind<'frame>(
         self,
         input: UiRuntimeMountedFrameConsumptionInput<'frame>,
     ) -> UiMountedFrameConsumptionView<'frame> {
-        self.presentation.open(UiMountedFrameConsumptionInput {
+        assert!(
+            self.presentation.admits_work(input.presentation_work),
+            "mounted presentation work must be issued by the opening runtime lease"
+        );
+        UiMountedFrameConsumptionView::from_inert_mechanics(UiMountedFrameConsumptionInput {
+            authority: self.presentation.mechanics_authority(),
             host_session_identity: self.host_session_identity,
             protocol: self.protocol,
             capability_generation: self.capability_report.observation_generation(),
@@ -54,7 +65,7 @@ impl<'authority> UiMountedHostPresentationAuthority<'authority> {
             attempt: input.attempt,
             deadline: input.deadline,
             requirement: input.requirement,
-            projection: input.projection,
+            presentation_work: input.presentation_work.view(),
         })
     }
 }

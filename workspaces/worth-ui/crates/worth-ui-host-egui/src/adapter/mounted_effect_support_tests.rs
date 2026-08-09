@@ -74,6 +74,7 @@ fn effect_projection(motion: bool, diagnostic: bool) -> UiMountedProjectionView 
                 accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
                 motion: motion_projection,
                 diagnostic: diagnostic_projection,
+                drawables: Vec::new(),
                 semantic_text: Vec::new(),
             },
         )],

@@ -73,6 +73,7 @@ fn assert_app_freeze_measurement_posture(
     expected: UiDeclaredMeasurementPolicyPosture,
 ) {
     let app = crate::facade::WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

@@ -103,7 +103,7 @@ impl UiMountedFilledRectMechanic {
         if input.bounds.posture() != super::UiMountedGeometryPosture::Area {
             return Err(UiMountedFilledRectCompletionDenial::NonAreaGeometry);
         }
-        if input.clip_bounds != input.bounds {
+        if input.clip_bounds.coordinate_space() != input.bounds.coordinate_space() {
             return Err(UiMountedFilledRectCompletionDenial::ClipMismatch);
         }
         if input.node_receipt.frame() != input.frame {

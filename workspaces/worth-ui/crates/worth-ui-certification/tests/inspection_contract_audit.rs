@@ -14,6 +14,10 @@ use worth_ui_dsl::{
     UiDslStructuralToken,
 };
 
+#[path = "inspection_contract_audit/support.rs"]
+mod support;
+use support::{declared_surface_app, empty_app};
+
 #[test]
 fn inspection_query_preserves_budget_richness_and_relevance_through_the_facade_receipt() {
     let app = empty_app();
@@ -363,33 +367,4 @@ fn cross_family_expansion_requires_named_family_or_link_kind() {
     assert!(!local.filter().widens_beyond_local());
     assert!(cross_family.filter().widens_beyond_local());
     assert!(cross_link.filter().widens_beyond_local());
-}
-
-fn declared_surface_app() -> WorthUiApp {
-    WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_rust_authored_declaration_fixture(
-            WorthUiRustAuthoredDeclarationFixture::named(
-                "worth-ui.certification.inspection.relevance.declared",
-            )
-            .with_semantic_artifact_spec(declared_surface_region_spec()),
-        )
-        .freeze()
-        .expect("application preparation should succeed")
-}
-
-fn empty_app() -> WorthUiApp {
-    WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .freeze()
-        .expect("application preparation should succeed")
-}
-
-fn declared_surface_region_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.region.root"),
-        UiDslSemanticFamily::Region,
-        UiDslSourceProvenance::file_authored("app/inspection_relevance.wui", 1),
-    )
-    .with_structural_token(UiDslStructuralToken::new("region:sidebar"))
 }

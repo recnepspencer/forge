@@ -134,6 +134,7 @@ fn command_store(changed_label: &str) -> WorthUiPlanRegionStore {
 fn command_app(changed_label: &str) -> WorthUiApp {
     let component_id = ComponentId::new("workspace.component.owner_bundle").unwrap();
     let mut builder = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             component_id.clone(),

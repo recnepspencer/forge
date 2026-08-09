@@ -41,7 +41,7 @@ pub(crate) struct WorthUiHostSessionAuthority {
     identity: WorthUiHostSessionIdentity,
     protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     measurement_capability: WorthUiHostMeasurementCapability,
-    mounted_presentation_lease: worth_ui_host_contract::UiMountedPresentationLease,
+    mounted_presentation_lease: crate::mounting::presentation::UiMountedPresentationLease,
     adapter_authority: UiHostAdapterSessionAuthority,
     adapter_session_released: bool,
 }
@@ -66,7 +66,7 @@ pub(crate) struct WorthUiHostPlanBinding {
 pub(crate) enum WorthUiHostSessionActivationDenial {
     IdentityExhausted,
     Protocol(worth_ui_host_contract::UiHostProtocolDenial),
-    MountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
+    MountedPresentationLease(crate::mounting::presentation::UiMountedPresentationLeaseDenial),
 }
 
 impl WorthUiHostSessionAuthority {
@@ -176,7 +176,7 @@ impl WorthUiHostSessionAuthority {
 
     pub(crate) fn mounted_presentation_lease(
         &self,
-    ) -> &worth_ui_host_contract::UiMountedPresentationLease {
+    ) -> &crate::mounting::presentation::UiMountedPresentationLease {
         &self.mounted_presentation_lease
     }
 

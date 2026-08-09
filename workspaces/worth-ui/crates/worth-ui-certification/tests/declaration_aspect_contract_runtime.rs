@@ -16,6 +16,10 @@ use worth_ui_dsl::{
 #[test]
 fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.coverage")
@@ -65,6 +69,10 @@ fn public_freeze_exposes_typed_aspect_contract_and_coverage_report() {
 #[test]
 fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
     let baseline = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -78,6 +86,10 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
         .freeze()
         .expect("application preparation should succeed");
     let equivalent = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -108,6 +120,10 @@ fn equivalent_authored_aspect_spellings_converge_on_public_freeze_path() {
 #[test]
 fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.aspect.noise")
@@ -150,6 +166,10 @@ fn renderer_labels_and_queryish_noise_do_not_satisfy_aspect_contract_authority()
 #[test]
 fn unsupported_authored_aspects_deny_through_public_freeze_path() {
     let denial = match WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

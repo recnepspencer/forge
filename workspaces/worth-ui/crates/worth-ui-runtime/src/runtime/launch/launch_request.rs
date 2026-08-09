@@ -33,7 +33,7 @@ pub(crate) struct WorthUiRuntimeLaunchAuthority {
 pub enum WorthUiRuntimeLaunchDenial {
     HostSessionIdentityExhausted,
     HostProtocol(worth_ui_host_contract::UiHostProtocolDenial),
-    HostMountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
+    HostMountedPresentationLease,
     MountedIdentityExhausted,
     InitialAllocationGraphAuthorityMismatch,
     InitialAllocationObligationsUnsettled {

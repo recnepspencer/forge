@@ -143,6 +143,7 @@ fn projection(basis: UiIdentityOverlayProjectionCertificationBasis) -> UiMounted
                 accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
                 motion: UiMountedMotionProjection::Omitted(omitted),
                 diagnostic: UiMountedDiagnosticProjection::IdentityOverlay(basis.mechanic),
+                drawables: Vec::new(),
                 semantic_text: Vec::new(),
             },
         )],

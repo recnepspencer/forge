@@ -91,8 +91,8 @@ impl UiHostProtocolVersion {
 }
 
 impl UiHostProtocolContract {
-    const COMPATIBLE_FLOOR: u16 = 1;
-    const CURRENT: u16 = 3;
+    const COMPATIBLE_FLOOR: u16 = 4;
+    const CURRENT: u16 = 4;
     const CURRENT_OBSERVATION_SCHEMA: u16 = 6;
 
     pub const fn current() -> Self {
@@ -259,10 +259,10 @@ mod tests {
             current.negotiate(),
             UiHostProtocolNegotiation::Compatible(_)
         ));
-        assert!(matches!(
-            contract(1, 1, 1, observation, 1).negotiate(),
-            UiHostProtocolNegotiation::Compatible(_)
-        ));
+        assert_denial(
+            contract(protocol - 1, frame, presentation, observation, measurement),
+            UiHostProtocolDenial::ProtocolTooOld,
+        );
         assert_denial(
             contract(0, frame, presentation, observation, measurement),
             UiHostProtocolDenial::ProtocolTooOld,
@@ -273,11 +273,11 @@ mod tests {
         );
         for (contract, family) in [
             (
-                contract(protocol, 0, presentation, observation, measurement),
+                contract(protocol, frame - 1, presentation, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedFrame,
             ),
             (
-                contract(protocol, frame, 0, observation, measurement),
+                contract(protocol, frame, presentation - 1, observation, measurement),
                 UiHostProtocolSchemaFamily::MountedPresentation,
             ),
             (
@@ -285,7 +285,7 @@ mod tests {
                 UiHostProtocolSchemaFamily::Observation,
             ),
             (
-                contract(protocol, frame, presentation, observation, 0),
+                contract(protocol, frame, presentation, observation, measurement - 1),
                 UiHostProtocolSchemaFamily::Measurement,
             ),
         ] {

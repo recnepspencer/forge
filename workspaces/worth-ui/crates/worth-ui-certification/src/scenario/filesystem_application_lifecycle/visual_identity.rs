@@ -3,6 +3,12 @@ use worth_ui::facade::intent::{UiIntent, UiIntentDefinition};
 use worth_ui::facade::source::WorthUiWatchedCandidateSubmission;
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 
+type BoundApplicationBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostBound,
+>;
+
 use super::FilesystemApplicationLifecycleScenario;
 use crate::scenario::application_authority_closure::visual_identity_application::{
     clipped_semantic_text_action_application_builder_with_host,
@@ -18,10 +24,7 @@ use crate::scenario::application_authority_closure::visual_identity_application:
 impl FilesystemApplicationLifecycleScenario {
     /// Start the canonical visual-identity world compiler while allowing a
     /// scenario to add the exact capability owners its claim requires.
-    pub fn visual_identity_application_builder<Host>(
-        &self,
-        host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    pub fn visual_identity_application_builder<Host>(&self, host: Host) -> BoundApplicationBuilder
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {
@@ -33,7 +36,7 @@ impl FilesystemApplicationLifecycleScenario {
     pub fn clipped_visual_identity_application_builder<Host>(
         &self,
         host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {
@@ -45,7 +48,7 @@ impl FilesystemApplicationLifecycleScenario {
     pub fn semantic_text_action_application_builder<Host>(
         &self,
         host: Host,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {
@@ -56,7 +59,7 @@ impl FilesystemApplicationLifecycleScenario {
         &self,
         host: Host,
         profile: worth_ui::facade::rebind::UiChangeProfile,
-    ) -> worth_ui::facade::app::WorthUiApplicationBuilder
+    ) -> BoundApplicationBuilder
     where
         Host: WorthUiOperationalHostAdapter + 'static,
     {

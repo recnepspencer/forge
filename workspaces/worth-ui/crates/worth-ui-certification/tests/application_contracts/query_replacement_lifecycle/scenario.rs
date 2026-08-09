@@ -26,6 +26,17 @@ use worth_ui_query_binding::{
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 
+type BoundBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostBound,
+>;
+type UnboundBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostUnbound,
+>;
+
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
 pub(crate) const ACTIVE_COMPONENT: &str = "workspace.component.query_lifecycle_active";
@@ -82,8 +93,11 @@ where
     Host: WorthUiOperationalHostAdapter + 'static,
 {
     let binding_reference = settled_binding_reference(first.clone().into(), workspace);
-    builder(first.into(), second.into(), &binding_reference)
-        .with_host(host)
+    unbound_builder(first.into(), second.into(), &binding_reference)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            host,
+        )
         .with_candidate_submission(submission)
         .freeze()
         .expect("source-backed Query application")
@@ -239,7 +253,18 @@ fn builder(
     first: WorthUiInstalledQueryView,
     second: WorthUiInstalledQueryView,
     binding_reference: &WorthUiAdmittedQueryBindingReference,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+) -> BoundBuilder {
+    unbound_builder(first, second, binding_reference).bind_certification_host_adapter(
+        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+        worth_ui_host_headless::WorthUiHeadlessHost,
+    )
+}
+
+fn unbound_builder(
+    first: WorthUiInstalledQueryView,
+    second: WorthUiInstalledQueryView,
+    binding_reference: &WorthUiAdmittedQueryBindingReference,
+) -> UnboundBuilder {
     let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_binding(
         worth_ui::facade::declaration::ViewBindingId::new(FIRST_VIEW).unwrap(),
         binding_reference,

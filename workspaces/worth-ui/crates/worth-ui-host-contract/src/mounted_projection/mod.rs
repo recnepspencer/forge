@@ -64,6 +64,6 @@ pub use tables::{
     UiMountedSpatialBatchTable, UiMountedTableProjectionStatus,
 };
 pub use view::{
-    UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput, UiMountedProjectionView,
-    UiMountedProjectionViewInput,
+    UiMountedDrawableReference, UiMountedNodeProjectionView, UiMountedNodeProjectionViewInput,
+    UiMountedProjectionView, UiMountedProjectionViewInput,
 };

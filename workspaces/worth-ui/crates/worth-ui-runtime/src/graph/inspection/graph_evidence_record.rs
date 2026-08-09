@@ -53,6 +53,7 @@ mod tests {
     #[test]
     fn graph_evidence_refs_bind_the_real_snapshot_generation() {
         let app = WorthUi::app()
+            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .with_rust_authored_declaration_fixture(
                 WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.graph.evidence")

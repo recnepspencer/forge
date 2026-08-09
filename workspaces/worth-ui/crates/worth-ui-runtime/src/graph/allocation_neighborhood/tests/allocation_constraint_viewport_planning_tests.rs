@@ -141,6 +141,7 @@ fn stale_viewport_evidence_denies_as_incompatible_measurement_posture() {
 
 fn page_root_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .freeze()

@@ -14,16 +14,33 @@ pub(super) struct UiEguiPreparedSemanticText {
     pub(super) text: Arc<str>,
     pub(super) color: egui::Color32,
     pub(super) font: egui::FontId,
-    pub(super) layer_semantic_order: u32,
 }
 
+#[cfg(test)]
 pub(super) fn prepare(
     view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
 ) -> Result<Vec<UiEguiPreparedSemanticText>, UiHostSurfacePresentationDenial> {
-    let projection = view.projection();
+    let worth_ui_host_contract::UiMountedPresentationWorkView::Initial(initial) =
+        view.presentation_work()
+    else {
+        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+    };
+    let projection = initial.projection();
+    validate_projection(view, projection)?;
+    Ok(projection
+        .semantic_text()
+        .rows()
+        .iter()
+        .map(translate)
+        .collect())
+}
+
+pub(super) fn validate_projection(
+    view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<(), UiHostSurfacePresentationDenial> {
     let rows = projection.semantic_text().rows();
     let mut visited = vec![false; rows.len()];
-    let mut prepared = Vec::with_capacity(rows.len());
     for node in projection.nodes() {
         for reference in node.semantic_text() {
             let index = usize::from(reference.index());
@@ -39,22 +56,21 @@ pub(super) fn prepare(
             ) {
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
-            validate_row(view, node, row)?;
-            prepared.push(translate(row));
+            validate_row(view, projection, node, row)?;
         }
     }
     if visited.iter().any(|visited| !visited) {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
-    Ok(prepared)
+    Ok(())
 }
 
 fn validate_row(
     view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
     node: &worth_ui_host_contract::UiMountedNodeProjectionView,
     row: &UiMountedSemanticTextMechanic,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
-    let projection = view.projection();
     if row.schema() != UiMountedTextSchemaVersion::current()
         || row.frame() != projection.frame()
         || row.surface() != projection.surface()
@@ -107,7 +123,7 @@ fn matching_allocation(
     )
 }
 
-fn translate(row: &UiMountedSemanticTextMechanic) -> UiEguiPreparedSemanticText {
+pub(super) fn translate(row: &UiMountedSemanticTextMechanic) -> UiEguiPreparedSemanticText {
     let channels = row.color().channels();
     UiEguiPreparedSemanticText {
         origin: egui::pos2(row.origin_x(), row.origin_y()),
@@ -123,7 +139,18 @@ fn translate(row: &UiMountedSemanticTextMechanic) -> UiEguiPreparedSemanticText 
             f32::from(row.profile().size_millipoints()) / 1_000.0,
             egui::FontFamily::Proportional,
         ),
-        layer_semantic_order: row.layer_semantic_order(),
+    }
+}
+
+impl UiEguiPreparedSemanticText {
+    pub(super) fn paint(&self, painter: &egui::Painter) {
+        painter.clone().with_clip_rect(self.clip_rect).text(
+            self.origin,
+            egui::Align2::LEFT_TOP,
+            self.text.as_ref(),
+            self.font.clone(),
+            self.color,
+        );
     }
 }
 

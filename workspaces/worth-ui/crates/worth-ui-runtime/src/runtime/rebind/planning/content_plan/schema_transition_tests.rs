@@ -165,8 +165,9 @@ fn equivalent_schema_recovery_prepares_authored_content_without_structural_alloc
 
 fn schema_app_builder(
     registration: UiScalarProjectionRegistration,
-) -> crate::facade::entry::WorthUiApplicationBuilder {
+) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     crate::facade::WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new(COMPONENT).unwrap(),

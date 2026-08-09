@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::app::{
+    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi,
+};
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
@@ -7,6 +9,12 @@ use worth_ui::facade::declaration::{
     ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
 };
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+type WorthUiApplicationBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    UiChangeProfileInstalled,
+    UiIntentWiringSatisfied,
+    UiApplicationHostBound,
+>;
 
 pub(crate) const PLATFORM_PULSE_BACKGROUND_COMPONENT: &str = "platform.pulse.component.seed";
 pub(crate) const PLATFORM_PULSE_IDENTITY_TARGET_COMPONENT: &str =
@@ -39,7 +47,10 @@ where
 {
     let mut builder = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(host)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            host,
+        )
         .register_component(
             component(PLATFORM_PULSE_BACKGROUND_COMPONENT).with_static_paint(
                 ComponentStaticPaintContract::opaque_fill(

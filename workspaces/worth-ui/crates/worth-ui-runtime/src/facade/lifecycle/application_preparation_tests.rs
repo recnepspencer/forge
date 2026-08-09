@@ -83,6 +83,7 @@ fn control_identity(
     module_path: &'static str,
 ) -> UiDeclarationIdentity {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(control_package(
             package_name,
@@ -104,6 +105,7 @@ fn freeze_denial<const N: usize>(
     admissions: [UiRuntimeInstanceBasisAdmission; N],
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(package)
         .with_runtime_instance_basis_admissions(admissions)

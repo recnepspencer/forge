@@ -8,12 +8,13 @@ pub(super) fn apply(
 ) -> Result<Vec<UiMountedCollectionTextRow>, UiMountedProjectionDenial> {
     let mut rows = predecessor.to_vec();
     for change in changes {
-        apply_one(&mut rows, change)?;
+        apply_one(predecessor, &mut rows, change)?;
     }
     Ok(rows)
 }
 
 fn apply_one(
+    predecessor: &[UiMountedCollectionTextRow],
     rows: &mut Vec<UiMountedCollectionTextRow>,
     change: &UiMountedCollectionTextChange,
 ) -> Result<(), UiMountedProjectionDenial> {
@@ -21,8 +22,8 @@ fn apply_one(
 
     match change {
         Change::Insert { row, at } => insert(rows, row, *at),
-        Change::Remove { identity, from } => remove(rows, identity, *from),
-        Change::Move { identity, from, to } => move_row(rows, identity, *from, *to),
+        Change::Remove { identity, from } => remove(predecessor, rows, identity, *from),
+        Change::Move { identity, from, to } => move_row(predecessor, rows, identity, *from, *to),
         Change::Update(row) => update(rows, row),
         Change::WindowShift => Ok(()),
     }
@@ -41,27 +42,36 @@ fn insert(
 }
 
 fn remove(
+    predecessor: &[UiMountedCollectionTextRow],
     rows: &mut Vec<UiMountedCollectionTextRow>,
     identity: &crate::mounting::UiMountedCollectionRowIdentity,
     from: usize,
 ) -> Result<(), UiMountedProjectionDenial> {
-    if find(rows, identity) != Some(from) {
+    if find(predecessor, identity) != Some(from) {
         return Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch);
     }
-    rows.remove(from);
+    let current =
+        find(rows, identity).ok_or(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)?;
+    rows.remove(current);
     Ok(())
 }
 
 fn move_row(
+    predecessor: &[UiMountedCollectionTextRow],
     rows: &mut Vec<UiMountedCollectionTextRow>,
     identity: &crate::mounting::UiMountedCollectionRowIdentity,
     from: usize,
     to: usize,
 ) -> Result<(), UiMountedProjectionDenial> {
-    if find(rows, identity) != Some(from) || to >= rows.len() {
+    if find(predecessor, identity) != Some(from) {
         return Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch);
     }
-    let row = rows.remove(from);
+    let current =
+        find(rows, identity).ok_or(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)?;
+    let row = rows.remove(current);
+    if to > rows.len() {
+        return Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch);
+    }
     rows.insert(to, row);
     Ok(())
 }
@@ -102,7 +112,7 @@ mod tests {
             },
             UiMountedCollectionTextChange::Remove {
                 identity: identity(1),
-                from: 1,
+                from: 0,
             },
         ];
 
@@ -129,6 +139,26 @@ mod tests {
             apply(&predecessor, &changes),
             Err(UiMountedProjectionDenial::InvalidSemanticCollectionPatch)
         );
+    }
+
+    #[test]
+    fn predecessor_positions_remain_authoritative_across_membership_changes() {
+        let predecessor = [row(1, "Alpha"), row(2, "Bravo")];
+        let changes = [
+            UiMountedCollectionTextChange::Remove {
+                identity: identity(1),
+                from: 0,
+            },
+            UiMountedCollectionTextChange::Move {
+                identity: identity(2),
+                from: 1,
+                to: 0,
+            },
+        ];
+
+        let applied = apply(&predecessor, &changes).expect("Query predecessor coordinates apply");
+
+        assert_eq!(applied, [row(2, "Bravo")]);
     }
 
     fn row(local_slot: u64, value: &str) -> UiMountedCollectionTextRow {

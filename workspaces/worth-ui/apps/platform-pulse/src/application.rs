@@ -1,6 +1,9 @@
 use eframe::egui;
 use worth_ui::facade::app::WorthUiApplicationPreparationDenial;
-use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use worth_ui::facade::app::{
+    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi, WorthUiApp,
+    WorthUiApplicationBuilder,
+};
 use worth_ui::facade::intent::{
     UiIntentApplicationFactRegistrationError, UiIntentDefinitionRegistrationError,
     UiIntentExecutionBindingPreparationDenial,
@@ -186,11 +189,21 @@ fn builder(
     action_view: WorthUiInstalledQueryView,
     intent: &PlatformPulseIntentInputRecord,
     provider: PlatformPulseActionProvider,
-) -> Result<WorthUiApplicationBuilder, PlatformPulsePreparationDenial> {
+) -> Result<
+    WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        UiApplicationHostBound,
+    >,
+    PlatformPulsePreparationDenial,
+> {
     let builder = register_structure(
         WorthUi::app()
             .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-            .with_host(host),
+            .bind_legacy_egui_migration_host(
+                worth_ui_host_egui::UiLegacyEguiHostBindingGrant::for_migration(),
+                host,
+            ),
     );
     let builder = register_theme_tokens(builder)
         .register_intent_boolean_fact(platform_pulse_action_mutability_fact(), intent.mutable())

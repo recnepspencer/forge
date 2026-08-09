@@ -1,4 +1,4 @@
-use worth_ui::facade::query_binding::UiScalarProjectionObservation;
+use worth_ui_query_binding::UiScalarProjectionFactReceipt;
 
 mod binding_affinity {
     include!("projection_binding_is_affine.rs");
@@ -12,8 +12,8 @@ mod shape_crossing {
     include!("collection_fact_cannot_become_scalar_observation.rs");
 }
 
-fn invalid() -> UiScalarProjectionObservation {
-    UiScalarProjectionObservation {}
+fn invalid() -> UiScalarProjectionFactReceipt {
+    UiScalarProjectionFactReceipt {}
 }
 
 fn main() {}

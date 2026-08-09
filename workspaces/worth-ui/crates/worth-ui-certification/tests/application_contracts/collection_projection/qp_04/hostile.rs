@@ -16,10 +16,13 @@ pub(crate) fn hostile_query_patches_return_exact_denials_and_mint_no_ui_effect()
         let report = certify_collection_patch_attack(attack);
         assert_eq!(report.attack(), attack);
         assert_eq!(report.denial(), expected_denial);
-        assert_eq!(
-            report.rows_before_denial(),
-            report.rows_after_denial(),
+        assert!(
+            report.state_preserved(),
             "{attack:?} mutated UI-visible Query row state"
+        );
+        assert!(
+            report.follow_up_delivery_succeeded(),
+            "{attack:?} poisoned the next valid Query delivery"
         );
         assert_eq!(
             report.successful_facts().len(),

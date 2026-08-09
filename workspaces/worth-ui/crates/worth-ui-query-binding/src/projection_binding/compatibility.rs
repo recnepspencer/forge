@@ -149,11 +149,11 @@ impl UiScalarProjectionBinding {
             Err((kind, summary)) => return stopped(self, candidate, kind, summary),
         };
         let predecessor_identity =
-            crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+            crate::UiQueryIdentityReportingProjection::from_query_reporting_text(
                 predecessor_prepared.binding_identity_for_reporting(),
             );
         let successor_identity =
-            crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+            crate::UiQueryIdentityReportingProjection::from_query_reporting_text(
                 candidate_prepared.binding_identity_for_reporting(),
             );
         let query_witness = match predecessor_prepared.replacement_witness_for(&candidate_prepared)

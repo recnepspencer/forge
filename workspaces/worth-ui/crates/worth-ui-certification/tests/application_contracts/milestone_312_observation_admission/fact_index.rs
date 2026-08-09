@@ -31,7 +31,10 @@ fn fact_indexes_join_real_consumption_authority() {
     let host = ScriptedPresentationHost::default();
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(host.clone())
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            host.clone(),
+        )
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("phase-312-fact-index")
                 .with_semantic_artifact_spec(appearance_consumer_spec())

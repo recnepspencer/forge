@@ -1,0 +1,298 @@
+use worth_ui::facade::declaration::{
+    ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
+    ComponentPropSchema, ComponentStateOwnership, ComponentStaticPaintContract,
+    ComponentStaticPaintOrder, ComponentViewportInset, ThemeColorValue, ThemeTokenDescriptor,
+    ThemeTokenFamily, ThemeTokenId, ThemeTokenSource, ThemeTokenValue,
+};
+use worth_ui::facade::measurement_exchange::{
+    UiMeasurementEvidenceFamily, UiViewportExtentRequest,
+};
+use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
+use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
+use worth_ui_runtime::facade::host::{
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
+};
+use worth_ui_runtime::facade::mounted::{
+    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedFrameRequest,
+    UiPresentationDeadline,
+};
+use worth_ui_test_support::{
+    WorthUiActiveSessionCertificationExt, WorthUiMountedAllocationCertificationExt,
+    WorthUiMountedIdentityCertificationExt,
+};
+
+const RECTANGLE_COUNT: usize = 2_048;
+const BLUE: &str = "#2f81f7";
+const YELLOW: &str = "#f2cc60";
+
+pub(in crate::host_platform) struct ProducedMaximumOverlap {
+    pub session: worth_ui::facade::app::WorthUiActiveApplicationSession,
+    pub initial: worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+    pub deltas: Box<[ProducedMaximumDelta]>,
+}
+
+pub(in crate::host_platform) struct ProducedMaximumDelta {
+    pub changed_rows: usize,
+    pub transcript: worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+    pub delta_rows_carried: u64,
+    pub draw_mutations: u64,
+    pub order_mutations: u64,
+    pub damage_regions: u64,
+}
+
+struct MountedMaximumRows {
+    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    rows: Vec<MountedMaximumRow>,
+}
+
+struct MountedMaximumRow {
+    node: worth_ui_runtime::facade::mounted::UiMountedGraphNodeHandle,
+    instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+}
+
+pub(crate) fn produce_maximum_overlap(
+    recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
+) -> ProducedMaximumOverlap {
+    let app = build_application(recorder.clone());
+    let mut session = app.launch().expect("maximum-overlap application launches");
+    let mut mounted = mount_maximum_overlap(&mut session);
+    establish_allocations(&mut session);
+    execute_frame(&mut session, 10);
+    let initial = one_transcript(&recorder, "maximum-overlap initial transcript");
+    let mut deltas = Vec::new();
+    for (index, count) in [1, RECTANGLE_COUNT / 2, RECTANGLE_COUNT]
+        .into_iter()
+        .enumerate()
+    {
+        deltas.push(produce_removal_delta(
+            &mut session,
+            &recorder,
+            &mounted,
+            count,
+            20 + index as u64 * 2,
+        ));
+        if count != RECTANGLE_COUNT {
+            restore_rows(&mut session, &mut mounted, count);
+            execute_frame(&mut session, 21 + index as u64 * 2);
+            let _ = one_transcript(&recorder, "maximum-overlap restoration transcript");
+        }
+    }
+    ProducedMaximumOverlap {
+        session,
+        initial,
+        deltas: deltas.into_boxed_slice(),
+    }
+}
+
+fn produce_removal_delta(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    recorder: &worth_ui_host_headless::WorthUiHeadlessRecorder,
+    mounted: &MountedMaximumRows,
+    count: usize,
+    tick: u64,
+) -> ProducedMaximumDelta {
+    for row in mounted.rows.iter().take(count) {
+        session.unmount_instance(row.instance).unwrap();
+    }
+    let cost = execute_frame(session, tick);
+    ProducedMaximumDelta {
+        changed_rows: count,
+        transcript: one_transcript(recorder, "maximum-overlap removal transcript"),
+        delta_rows_carried: cost.delta_rows_carried(),
+        draw_mutations: cost.draw_list_mutations(),
+        order_mutations: cost.order_mutations(),
+        damage_regions: cost.logical_damage_regions(),
+    }
+}
+
+fn restore_rows(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    mounted: &mut MountedMaximumRows,
+    count: usize,
+) {
+    for row in mounted.rows.iter_mut().take(count) {
+        row.instance = session.mount_instance(row.node, mounted.surface).unwrap();
+    }
+}
+
+fn one_transcript(
+    recorder: &worth_ui_host_headless::WorthUiHeadlessRecorder,
+    context: &str,
+) -> worth_ui_host_headless::UiHeadlessMountedFrameTranscript {
+    let transcripts = recorder.drain_transcripts().into_vec();
+    assert_eq!(transcripts.len(), 1, "{context}");
+    transcripts.into_iter().next().unwrap()
+}
+
+fn build_application(
+    recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
+) -> worth_ui::facade::app::WorthUiApp {
+    let (builder, module) = (0..RECTANGLE_COUNT).fold(
+        (
+            application_builder(recorder),
+            WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
+        ),
+        |(builder, module), index| {
+            let identity = component_identity(index);
+            (
+                builder
+                    .register_theme_token(color_token(&token_identity(index), color(index)))
+                    .register_component(component(&identity, index)),
+                module
+                    .with_token(token_identity(index), color(index))
+                    .with_component_authored_identity(
+                        identity,
+                        format!("host-platform-maximum-{index:04}"),
+                    ),
+            )
+        },
+    );
+    builder
+        .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
+        .freeze()
+        .expect("maximum-overlap application freezes")
+}
+
+fn mount_maximum_overlap(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+) -> MountedMaximumRows {
+    let surface = session.create_semantic_surface().unwrap();
+    session
+        .register_host_surface(
+            surface,
+            UiHostSurfacePresentationMode::RecordOnly,
+            super::super::super::mounted_application_lifecycle::known_empty_surface_world::profile(
+                1,
+            ),
+        )
+        .unwrap();
+    let graph = session.graph();
+    let nodes = graph
+        .node_identities()
+        .filter_map(|identity| session.mounted_graph_node(identity).ok())
+        .filter(|handle| {
+            graph
+                .lookup()
+                .graph_node(handle.graph_node_identity())
+                .is_some_and(|lookup| {
+                    lookup
+                        .value()
+                        .declaration_identity()
+                        .authored_semantic_name()
+                        .starts_with("component:host.platform.maximum.rect_")
+                })
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(nodes.len(), RECTANGLE_COUNT);
+    let rows = nodes
+        .into_iter()
+        .map(|node| MountedMaximumRow {
+            instance: session.mount_instance(node, surface).unwrap(),
+            node,
+        })
+        .collect();
+    MountedMaximumRows { surface, rows }
+}
+
+fn execute_frame(
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    tick: u64,
+) -> worth_ui_host_contract::UiHostPresentationCostReport {
+    let outcome = match session.execute_mounted_frame(
+        UiMountedFrameRequest::all_bound_surfaces(),
+        UiPresentationDeadline::at_tick(tick),
+        0,
+        |_| {},
+    ) {
+        Ok(outcome) => outcome,
+        Err(_) => panic!("maximum-overlap frame stopped"),
+    };
+    match outcome {
+        UiMountedFrameOutcome::Published(publication) => publication.cost_report().adapter(),
+        _ => panic!("maximum-overlap frame did not publish"),
+    }
+}
+
+fn application_builder(
+    recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
+) -> worth_ui::facade::app::WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostBound,
+> {
+    worth_ui::facade::app::WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            recorder,
+        )
+}
+
+fn component(identity: &str, index: usize) -> ComponentDescriptor {
+    let allocation = if index == 1 {
+        ComponentAllocationMeasurementContract::viewport_inset(ComponentViewportInset::symmetric(
+            48, 24,
+        ))
+    } else {
+        ComponentAllocationMeasurementContract::fill_viewport()
+    };
+    ComponentDescriptor::new(
+        ComponentId::new(identity).unwrap(),
+        ComponentPropSchema::named(format!("{identity}.props")),
+        ComponentChildPolicy::no_children(),
+        ComponentStateOwnership::runtime_owned(),
+    )
+    .with_static_paint(
+        ComponentStaticPaintContract::opaque_fill(
+            ThemeTokenId::new(token_identity(index)).unwrap(),
+            ComponentStaticPaintOrder::back_to_front(index as u32),
+        ),
+        allocation,
+    )
+}
+
+fn color_token(identity: &str, value: &str) -> ThemeTokenDescriptor {
+    ThemeTokenDescriptor::define(
+        ThemeTokenId::new(identity).unwrap(),
+        ThemeTokenFamily::surface(),
+        ThemeTokenSource::application(),
+        ThemeTokenValue::color(ThemeColorValue::hex(value).unwrap()),
+    )
+}
+
+fn component_identity(index: usize) -> String {
+    format!("host.platform.maximum.rect_{index:04}")
+}
+
+fn token_identity(index: usize) -> String {
+    format!("host.platform.maximum.color_{index:04}")
+}
+
+fn color(index: usize) -> &'static str {
+    if index == 1 {
+        YELLOW
+    } else {
+        BLUE
+    }
+}
+
+fn establish_allocations(session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession) {
+    let capability = session.host_measurement_capability();
+    let assumptions = UiHostMeasurementAssumptionProfile::from_capability_report(
+        capability.capability_report(),
+        1,
+        2,
+        3,
+        4,
+    );
+    let request = UiMountedAllocationMeasurementRequest::new(
+        UiMeasurementEvidenceFamily::ViewportExtent,
+        UiHostMeasurementNeed::ViewportExtent(UiViewportExtentRequest),
+        UiHostMeasurementNormalizationContext::viewport_logical_exact(assumptions),
+    );
+    let receipt = session
+        .establish_mounted_allocation_catalog(1, [request])
+        .expect("maximum-overlap allocation catalog");
+    assert_eq!(receipt.committed().receipts().len(), RECTANGLE_COUNT);
+}

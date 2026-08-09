@@ -15,6 +15,7 @@ use worth_ui_dsl::WorthUiDslCompileDiagnosticCode;
 #[test]
 fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -92,6 +93,7 @@ fn watcher_event_reorder_does_not_change_final_candidate_sequence() {
 #[test]
 fn partial_write_and_atomic_rename_emit_one_ordered_candidate() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -128,6 +130,7 @@ fn partial_write_without_stable_snapshot_is_denied_before_candidate_submission()
 #[test]
 fn in_memory_source_provider_uses_same_candidate_admission() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -168,6 +171,7 @@ fn rust_authored_provider_without_composition_cannot_be_candidate() {
 #[test]
 fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -189,6 +193,7 @@ fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection
 #[test]
 fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -237,6 +242,7 @@ fn empty_source_ingress_hook_is_denied_before_debounce() {
 #[test]
 fn duplicate_source_modules_report_source_package_rejection() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -261,6 +267,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
 #[test]
 fn malformed_source_reports_parse_rejection_not_missing_material() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -281,6 +288,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
 #[test]
 fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
     let snapshot = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");

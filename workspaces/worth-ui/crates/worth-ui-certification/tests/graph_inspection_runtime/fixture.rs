@@ -10,6 +10,10 @@ use worth_ui_dsl::{
 
 pub(super) fn inspection_app() -> worth_ui::facade::app::WorthUiApp {
     WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.certification.graph-inspection")

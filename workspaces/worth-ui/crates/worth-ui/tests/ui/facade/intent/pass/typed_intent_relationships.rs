@@ -143,6 +143,7 @@ fn main() {
         .consequences(UiIntentConsequenceContract::none())
         .into_dsl_spec();
     let app = WorthUi::app()
+        .bind_certification_host_adapter(worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(), worth_ui_host_headless::WorthUiHeadlessHost)
         .with_change_profile(UiChangeProfile::platform_pulse())
         .register_intent_boolean_fact(operable, true)
         .expect("typed operability fact should register")

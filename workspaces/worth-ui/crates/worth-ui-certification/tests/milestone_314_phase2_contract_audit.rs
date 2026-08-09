@@ -132,7 +132,6 @@ fn milestone_314_phase2_native_substrate_is_exact_and_nonduplicated() {
         ("egui", "egui_version"),
         ("egui-winit", "egui_winit_version"),
         ("egui-wgpu", "egui_wgpu_version"),
-        ("egui_glow", "egui_glow_version"),
         ("egui_extras", "egui_extras_version"),
         ("winit", "winit_version"),
     ] {
@@ -145,6 +144,14 @@ fn milestone_314_phase2_native_substrate_is_exact_and_nonduplicated() {
         assert_eq!(matches.len(), 1, "{package} should resolve exactly once");
         assert_eq!(matches[0]["version"].as_str(), substrate[field].as_str());
     }
+    assert!(
+        lock["package"]
+            .as_array()
+            .expect("lock packages")
+            .iter()
+            .all(|entry| entry["name"].as_str() != Some("egui_glow")),
+        "Milestone 3.14.1 retires the live Glow backend without rewriting the historical contract"
+    );
 }
 
 #[test]

@@ -106,12 +106,12 @@ fn registration_without_known_empty_truth_is_denied_before_binding() {
 }
 
 #[test]
-fn wrong_registration_receipt_blocks_semantic_truth_until_exact_native_removal() {
+fn indeterminate_registration_blocks_semantic_truth_until_exact_native_removal() {
     let host = ScriptedPresentationHost::default();
     let app = mounted_application_with_host("mounted-wrong-registration", host.clone());
     let mut session = app.launch().expect("runtime should launch");
     let surface = session.create_semantic_surface().unwrap();
-    host.return_wrong_next_registration_receipt();
+    host.return_indeterminate_next_registration();
 
     assert_eq!(
         session.register_host_surface(
@@ -307,23 +307,16 @@ fn assert_binding_truth(
         binding.capability_profile_digest(),
         capability.capability_report().profile_identity_digest()
     );
-    let registration = binding.baseline().registration();
+    let baseline = binding.baseline();
     assert_eq!(
-        registration.host_session_identity(),
-        session.host_session_identity().as_u64()
-    );
-    assert_eq!(
-        registration.semantic_surface_identity(),
+        baseline.semantic_surface_identity(),
         binding.semantic_surface_identity()
     );
     assert_eq!(
-        registration.host_surface_identity(),
+        baseline.host_surface_identity(),
         binding.host_surface_identity()
     );
-    assert_eq!(
-        registration.presentation_mode(),
-        binding.presentation_mode()
-    );
+    assert_eq!(baseline.presentation_mode(), binding.presentation_mode());
 }
 
 #[derive(Clone, Copy, Default)]

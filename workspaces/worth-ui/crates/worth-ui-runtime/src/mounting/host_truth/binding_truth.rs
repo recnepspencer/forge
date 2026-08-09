@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
-};
+use worth_ui_host_contract::{UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration};
 
 use super::registration_attempt::{
     UiHostTruthIndeterminateObligations, UiHostTruthNativeLifecycleKind,
@@ -10,7 +8,10 @@ use super::registration_attempt::{
 
 #[derive(Default)]
 pub(crate) struct UiMountedHostTruthCoordinator {
-    pub(super) known_empty: BTreeMap<UiSurfaceBindingGeneration, UiHostSurfaceBaselineReceipt>,
+    pub(super) known_empty: BTreeMap<
+        UiSurfaceBindingGeneration,
+        super::surface_lifecycle::UiMountedSurfaceBaselineReceipt,
+    >,
     pub(super) blocked: BTreeMap<UiSurfaceBindingGeneration, UiHostTruthIndeterminateObligations>,
 }
 

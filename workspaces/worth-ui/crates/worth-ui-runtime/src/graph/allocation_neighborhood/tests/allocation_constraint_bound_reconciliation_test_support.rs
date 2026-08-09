@@ -42,6 +42,7 @@ pub(crate) fn peer_app(
     bounded_flags: &[bool; 3],
 ) -> crate::facade::WorthUiApp {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .with_rust_authored_declaration_fixture(

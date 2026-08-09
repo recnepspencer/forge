@@ -33,6 +33,7 @@ pub(super) fn app_with_view_binding_descriptor(
     view_binding_descriptor: ViewBindingDescriptor,
 ) -> WorthUiApp {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(

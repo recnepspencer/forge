@@ -3,9 +3,11 @@ use worth_ui_host_contract::{
     UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
     UiHostProtocolSchemaFamily, UiHostProtocolVersion, UiHostSurfaceIdentity,
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedFrameConsumptionInput,
-    UiMountedFrameSchemaVersion, UiMountedPresentationAttemptIdentity,
-    UiMountedPresentationLeaseGate, UiMountedPresentationSchemaVersion, UiMountedProjectionView,
-    UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
+    UiMountedFrameSchemaVersion, UiMountedPaintOrderIntegrity,
+    UiMountedPresentationAttemptIdentity, UiMountedPresentationInitial,
+    UiMountedPresentationInitialInput, UiMountedPresentationSchemaVersion,
+    UiMountedPresentationWorkView, UiMountedProjectionView, UiMountedSurfaceBindingRequirement,
+    WorthUiHostCapabilityObservationGeneration,
 };
 use worth_ui_test_support::{
     semantic_text_projection_for_certification as projection,
@@ -62,13 +64,10 @@ fn missing_duplicate_and_old_protocol_references_are_rejected() {
         ));
     }
 
-    let projection = projection(Mutation::Exact);
     assert!(matches!(
-        consume_projection(&projection, mounted_frame_revision_two(), |view| {
-            super::super::native_paint::UiEguiPreparedNativePaint::prepare(view).map(|_| ())
-        }),
-        Err(UiHostSurfacePresentationDenial::Protocol(
-            UiHostProtocolDenial::SchemaTooOld(UiHostProtocolSchemaFamily::MountedFrame)
+        mounted_frame_revision_two().negotiate(),
+        UiHostProtocolNegotiation::Incompatible(UiHostProtocolDenial::SchemaTooOld(
+            UiHostProtocolSchemaFamily::MountedFrame
         ))
     ));
 }
@@ -87,17 +86,32 @@ fn consume_projection<T>(
         11,
         UiHostSurfacePresentationMode::NativeDisplay,
     );
-    let lease = UiMountedPresentationLeaseGate::default().claim().unwrap();
-    let view = lease.open(UiMountedFrameConsumptionInput {
-        host_session_identity: 13,
-        protocol,
-        capability_generation: generation,
-        capability_profile_digest: 11,
-        attempt: UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
-        deadline: worth_ui_host_contract::UiPresentationDeadline::at_tick(20),
-        requirement,
-        projection,
-    });
+    let presentation_work =
+        UiMountedPresentationInitial::from_inert_mechanics(UiMountedPresentationInitialInput {
+            successor: projection.frame(),
+            surface: projection.surface(),
+            binding: projection.binding(),
+            content: projection.content_generation(),
+            baseline: requirement.baseline(),
+            projection: projection.clone(),
+            commands: Vec::new(),
+            order: Vec::new(),
+            order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
+            damage: Vec::new(),
+        });
+    let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
+        UiMountedFrameConsumptionInput {
+            authority: std::rc::Rc::new(()),
+            host_session_identity: 13,
+            protocol,
+            capability_generation: generation,
+            capability_profile_digest: 11,
+            attempt: UiMountedPresentationAttemptIdentity::mint_unbound().unwrap(),
+            deadline: worth_ui_host_contract::UiPresentationDeadline::at_tick(20),
+            requirement,
+            presentation_work: UiMountedPresentationWorkView::Initial(&presentation_work),
+        },
+    );
     consume(&view)
 }
 
@@ -105,15 +119,15 @@ fn current_protocol() -> UiHostProtocolAgreement {
     compatible(UiHostProtocolContract::current())
 }
 
-fn mounted_frame_revision_two() -> UiHostProtocolAgreement {
-    compatible(UiHostProtocolContract::new(
+fn mounted_frame_revision_two() -> UiHostProtocolContract {
+    UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
-        UiHostProtocolVersion::new(3),
+        UiHostProtocolVersion::new(4),
         UiMountedFrameSchemaVersion::new(2),
         UiMountedPresentationSchemaVersion::new(3),
         UiHostProtocolContract::current().observation(),
         UiHostMeasurementSchemaVersion::new(3),
-    ))
+    )
 }
 
 fn compatible(contract: UiHostProtocolContract) -> UiHostProtocolAgreement {

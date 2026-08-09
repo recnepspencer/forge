@@ -1,4 +1,4 @@
-//! SUPPORT AUTHORITY ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â runtime-origin touch fixture for certification consumers.
+//! SUPPORT AUTHORITY — runtime-origin touch fixture for certification consumers.
 
 use crate::certification_support::layout_admission::snapshot_after_layout_admission_support;
 use crate::certification_support::touch_origin_source::{

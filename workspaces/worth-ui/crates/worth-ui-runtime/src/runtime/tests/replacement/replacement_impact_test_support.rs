@@ -70,6 +70,7 @@ pub(super) fn artifact_from_modules<const N: usize>(
 
 pub(super) fn impact_test_app() -> WorthUiApp {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(CommandDescriptor::new(
             command_id("workspace.command.save"),

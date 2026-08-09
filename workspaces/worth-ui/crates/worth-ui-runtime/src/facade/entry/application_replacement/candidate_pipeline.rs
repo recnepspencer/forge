@@ -20,7 +20,10 @@ impl WorthUiActiveApplicationSession {
         )
         .admit(candidate)
         .map_err(WorthUiApplicationReplacementPreparationDenial::Admission)?;
-        let next_app = WorthUiApp::from_prepared_authority(next_authority);
+        let next_app = WorthUiApp::from_prepared_authority(
+            next_authority,
+            self.application.host_session_plan().clone(),
+        );
         let Some(basis) = WorthUiPreparedApplicationReplacementBasis::bind(
             self.session_identity(),
             &next_app,

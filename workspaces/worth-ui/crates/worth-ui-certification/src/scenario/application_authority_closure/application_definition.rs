@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::app::{
+    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi,
+};
 use worth_ui::facade::declaration::{
     CommandDescriptor, CommandId, ComponentCanvasSpatialContract, ComponentChildPolicy,
     ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentRealtimeOverlayContract,
@@ -17,9 +19,16 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
 use worth_ui::facade::query_binding::WorthUiQueryViewRegistration;
+use worth_ui_host_headless::WorthUiHeadlessHost;
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
-use worth_ui_runtime::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
+use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
+
+type WorthUiApplicationBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    UiChangeProfileInstalled,
+    UiIntentWiringSatisfied,
+    UiApplicationHostBound,
+>;
 
 pub(crate) const CURRENT_COMPONENT: &str = "workspace.component.authority_current";
 pub(crate) const CANDIDATE_COMPONENT: &str = "workspace.component.authority_candidate";
@@ -90,7 +99,10 @@ where
 {
     WorthUi::app()
         .with_change_profile(profile)
-        .with_host(host)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            host,
+        )
         .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
             ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
             query.binding_reference(),

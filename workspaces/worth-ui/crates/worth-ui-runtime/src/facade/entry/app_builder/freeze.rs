@@ -1,0 +1,97 @@
+use super::*;
+
+struct HostNeutralFreeze<HostBindingState> {
+    prepared: crate::facade::prepared_application_authority::WorthUiPreparedApplicationAuthority,
+    host_binding: HostBindingState,
+    mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
+    host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
+}
+
+impl<HostBindingState>
+    WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied, HostBindingState>
+{
+    fn freeze_host_neutral(
+        self,
+    ) -> Result<HostNeutralFreeze<HostBindingState>, WorthUiApplicationPreparationDenial> {
+        let capability_snapshot = self
+            .inner
+            .freeze_with_registration_report()
+            .into_accepted_snapshot();
+        let intent_execution_bindings = self
+            .intent_execution_bindings
+            .freeze(capability_snapshot.intent_definitions())
+            .map_err(WorthUiApplicationPreparationDenial::IntentExecutionBinding)?;
+        let preparation_source = match self.preparation_source {
+            WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
+                WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?
+            }
+            WorthUiApplicationBuilderPreparationSource::Watched(submission) => {
+                WorthUiApplicationPreparationSource::watched_submission(
+                    *submission,
+                    capability_snapshot.digest(),
+                )?
+            }
+        };
+        let prepared = prepare_application_authority(WorthUiApplicationPreparationInput {
+            capability_snapshot,
+            preparation_source,
+            visual_inspection_policy: self.visual_inspection_policy,
+            graph_world_profile: self.graph_world_profile,
+            runtime_instance_basis_admissions: self
+                .runtime_instance_basis_admissions
+                .into_boxed_slice(),
+            measurement_inspection_evidence: self
+                .measurement_inspection_evidence
+                .into_boxed_slice(),
+            query_binding_plan: self.query_binding_plan,
+            intent_application_facts: self.intent_application_facts,
+            intent_execution_bindings,
+            change_profile: self.change_profile.profile,
+        })?;
+        Ok(HostNeutralFreeze {
+            prepared,
+            host_binding: self.host_binding,
+            mounted_frame_retention_budget: self.mounted_frame_retention_budget,
+            host_observation_capacity: self.host_observation_capacity,
+        })
+    }
+}
+
+impl
+    WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        UiApplicationHostUnbound,
+    >
+{
+    pub fn freeze(
+        self,
+    ) -> Result<crate::facade::entry::WorthUiHostNeutralApp, WorthUiApplicationPreparationDenial>
+    {
+        let frozen = self.freeze_host_neutral()?;
+        Ok(crate::facade::entry::WorthUiHostNeutralApp::new(
+            frozen.prepared,
+            frozen.mounted_frame_retention_budget,
+            frozen.host_observation_capacity,
+        ))
+    }
+}
+
+impl
+    WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        UiApplicationHostBound,
+    >
+{
+    pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
+        let frozen = self.freeze_host_neutral()?;
+        let mut host_session_plan = frozen.host_binding.plan;
+        host_session_plan.set_mounted_frame_retention_budget(frozen.mounted_frame_retention_budget);
+        host_session_plan.set_host_observation_capacity(frozen.host_observation_capacity);
+        Ok(WorthUiApp::from_prepared_authority(
+            frozen.prepared,
+            host_session_plan,
+        ))
+    }
+}

@@ -141,6 +141,9 @@ fn runner_rejects_a_journey_detached_from_typed_native_close() {
         ),
         inventory
             .text("apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs"),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey/open.rs",
+        ),
         inventory
             .text("apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs"),
     ]

@@ -1,5 +1,5 @@
 use worth_ui::facade::app::{UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline};
-use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{UiHostSurfacePresentationMode, UiMountedFrameReuse};
 use worth_ui_test_support::{
     WorthUiFrameworkTurnCertificationExt, WorthUiMountedFrameExecutionCertificationExt,
@@ -10,7 +10,9 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile,
 };
 
-const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 96;
+// Revision 4 retains predecessor protocol state in both runtime and headless mechanics.
+// The exact one-instance journey is 99; this ceiling is not an O(k) or maximum-world claim.
+const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 100;
 const MAX_CHANGED_PUBLIC_BYTES: u64 = 64 * 1_024;
 
 #[test]

@@ -21,6 +21,7 @@ audience = "ordinary-app"
 feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/app_builder.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_builder/freeze.rs",
   "crates/worth-ui-runtime/src/facade/entry/app_builder/application_fact_registration.rs",
   "crates/worth-ui-runtime/src/facade/entry/app_builder/capability_registration.rs",
   "crates/worth-ui-runtime/src/facade/entry/app_builder/intent_registration.rs",
@@ -56,7 +57,8 @@ register_theme_token = "crates/worth-ui-runtime/src/source/tests/phase7_identity
 register_unsupported_intent_definition = "crates/worth-ui-certification/tests/application_contracts/intent/operability/topology/application.rs"
 with_candidate_submission = "crates/worth-ui-certification/tests/application_contracts/canvas_spatial_execution.rs"
 with_change_profile = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
-with_host = "crates/worth-ui-runtime/src/facade/prepared_application_authority/tests.rs"
+bind_certification_host_adapter = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
+bind_legacy_egui_migration_host = "apps/platform-pulse/src/application.rs"
 with_host_observation_capacity = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 with_minimal_registration_diagnostics = "crates/worth-ui/tests/registration_diagnostics.rs"
 with_mounted_frame_retention_budget = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"

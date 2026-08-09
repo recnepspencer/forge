@@ -1,6 +1,6 @@
 use crate::{
-    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedFrameIdentity,
-    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiMountedFrameIdentity, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
     WorthUiHostCapabilityObservationGeneration,
 };
 
@@ -34,6 +34,7 @@ pub struct UiMountedSurfaceBindingRequirement {
     capability_generation: WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
     presentation_mode: UiHostSurfacePresentationMode,
+    baseline: UiHostSurfaceBaselineIdentity,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,6 +78,35 @@ impl UiMountedSurfaceBindingRequirement {
         capability_profile_digest: u64,
         presentation_mode: UiHostSurfacePresentationMode,
     ) -> Self {
+        let baseline = UiHostSurfaceBaselineIdentity::from_surface_binding(
+            semantic_surface,
+            host_surface,
+            binding,
+            capability_generation,
+            capability_profile_digest,
+            presentation_mode,
+        );
+        Self::with_baseline(
+            semantic_surface,
+            host_surface,
+            binding,
+            capability_generation,
+            capability_profile_digest,
+            presentation_mode,
+            baseline,
+        )
+    }
+
+    #[doc(hidden)]
+    pub fn with_baseline(
+        semantic_surface: UiSemanticSurfaceIdentity,
+        host_surface: UiHostSurfaceIdentity,
+        binding: UiSurfaceBindingGeneration,
+        capability_generation: WorthUiHostCapabilityObservationGeneration,
+        capability_profile_digest: u64,
+        presentation_mode: UiHostSurfacePresentationMode,
+        baseline: UiHostSurfaceBaselineIdentity,
+    ) -> Self {
         Self {
             semantic_surface,
             host_surface,
@@ -84,6 +114,7 @@ impl UiMountedSurfaceBindingRequirement {
             capability_generation,
             capability_profile_digest,
             presentation_mode,
+            baseline,
         }
     }
 
@@ -109,6 +140,10 @@ impl UiMountedSurfaceBindingRequirement {
 
     pub fn presentation_mode(self) -> UiHostSurfacePresentationMode {
         self.presentation_mode
+    }
+
+    pub fn baseline(self) -> UiHostSurfaceBaselineIdentity {
+        self.baseline
     }
 }
 

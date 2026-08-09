@@ -50,7 +50,14 @@ fn geometry_origin_and_receipt_mismatches_are_typed_denials() {
     );
 
     let mut input = fixture();
-    input.clip_bounds = canonical_box(32.0, 32.0, 159.0, 96.0);
+    input.clip_bounds = UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
+        x: 32.0,
+        y: 32.0,
+        width: 159.0,
+        height: 96.0,
+        coordinate_space: UiMountedCoordinateSpace::Window,
+    })
+    .unwrap();
     assert_denial(input, UiMountedSemanticTextCompletionDenial::ClipMismatch);
 
     for (origin_x, origin_y) in [(f32::NAN, 40.0), (31.0, 40.0), (32.0, 129.0)] {

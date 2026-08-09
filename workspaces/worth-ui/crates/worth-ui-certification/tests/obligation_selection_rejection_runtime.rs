@@ -20,6 +20,10 @@ use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
 #[test]
 fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -31,6 +35,10 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
         .freeze()
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -41,6 +49,10 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
         .freeze()
         .expect("application preparation should succeed");
     let preview_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(UiGraphWorldProfile::preview_session_label(
             UiGraphSessionLabel::new("worth-ui.selection.preview")

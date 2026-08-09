@@ -1,3 +1,4 @@
+mod host_binding_grant;
 mod host_capability;
 mod host_capability_posture;
 mod host_capability_report;
@@ -6,6 +7,7 @@ mod measurement_environment;
 mod measurement_request;
 mod runtime_host_contract;
 
+pub use host_binding_grant::{UiCertificationHostBindingGrant, UiLegacyEguiHostBindingGrant};
 pub use host_capability::WorthUiHostCapability;
 pub use host_capability_posture::WorthUiHostCapabilityPosture;
 pub use host_capability_report::{

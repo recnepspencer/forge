@@ -38,8 +38,9 @@ impl WorthUiOperationalHostAdapter for AlternateHost {
 }
 
 fn main() {
-    let app = WorthUi::app().with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(AlternateHost::default())
+    let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .bind_certification_host_adapter(worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(), AlternateHost::default())
         .freeze()
         .expect("application preparation should succeed");
     let session = app.launch().expect("active session claims the adapter lease");

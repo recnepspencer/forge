@@ -10,7 +10,7 @@ pub(super) fn validate_completion(
     if input.bounds.posture() != super::super::UiMountedGeometryPosture::Area {
         return Err(UiMountedSemanticTextCompletionDenial::NonAreaGeometry);
     }
-    if input.clip_bounds != input.bounds {
+    if input.clip_bounds.coordinate_space() != input.bounds.coordinate_space() {
         return Err(UiMountedSemanticTextCompletionDenial::ClipMismatch);
     }
     let max_x = input.bounds.x() + input.bounds.width();

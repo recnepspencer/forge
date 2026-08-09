@@ -40,8 +40,16 @@ pub(super) fn touch_runtime_app() -> WorthUiApp {
         .expect("application preparation should succeed")
 }
 
-fn touch_runtime_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
+fn touch_runtime_builder() -> crate::facade::entry::WorthUiApplicationBuilder<
+    crate::facade::entry::UiChangeProfileInstalled,
+    crate::facade::entry::UiIntentWiringSatisfied,
+    crate::facade::entry::UiApplicationHostBound,
+> {
     WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            crate::certification_support::UiCertificationBuilderHost,
+        )
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new("workspace.component.dashboard").expect("valid component id"),

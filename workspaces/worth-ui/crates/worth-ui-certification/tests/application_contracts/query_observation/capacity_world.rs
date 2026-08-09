@@ -3,11 +3,11 @@ use worth_ui::facade::source::{
     WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatcherEvent,
 };
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_query_binding::{
     UiCollectionProjectionBindingAdmission, UiCollectionProjectionBudget,
     UiCollectionProjectionOpenOutcome, WorthUiQueryWorkspaceExt,
 };
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 
 use crate::projection_presentation::collection_query::{
     collection_app, collection_module, collection_plan, collection_registration,
@@ -100,7 +100,18 @@ pub(super) fn run_capacity_boundary() {
     let returned = stop.into_observation_set();
     assert_eq!(returned.turn(), rejected_turn);
     let (outcome, queued) = effecting.complete(50_001).into_parts();
-    assert!(matches!(outcome, UiRebindOutcome::Published(_)));
+    match &outcome {
+        UiRebindOutcome::Published(_) => {}
+        UiRebindOutcome::RejectedBeforeEffects(denial) => panic!(
+            "capacity publication rejected: {:?}",
+            denial
+                .host_rejections()
+                .iter()
+                .map(|rejection| rejection.denial())
+                .collect::<Vec<_>>()
+        ),
+        _ => panic!("capacity publication did not reach a terminal publish"),
+    }
     assert_eq!(queued.len(), 16);
     drop(outcome);
     drop(queued);

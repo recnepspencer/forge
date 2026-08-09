@@ -1,5 +1,5 @@
 use worth_ui_host_egui::WorthUiHostEgui;
-use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedAllocationProjection, UiMountedFrameOutcome,
     UiMountedFrameRequest, UiMountedOmissionReason, UiMountedParticipationStatus,

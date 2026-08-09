@@ -15,9 +15,17 @@ use worth_ui_dsl::{
     UiDslSourceProvenance, UiDslStructuralToken,
 };
 
+#[path = "graph_topology_authority_runtime/specs.rs"]
+mod specs;
+use specs::*;
+
 #[test]
 fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -187,6 +195,10 @@ fn topology_rows_and_indexes_agree_for_every_admitted_non_root_family() {
 #[test]
 fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -223,6 +235,10 @@ fn admit_handoffs_localizes_zero_root_topology_as_typed_boundary_denial() {
 #[test]
 fn public_freeze_returns_typed_root_cardinality_denial() {
     let denial = match WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -321,73 +337,4 @@ fn artifact_from_file_provenance<'a>(
         .unwrap_or_else(|| {
             panic!("expected declaration artifact for {module_path}#{declaration_index} on freeze path")
         })
-}
-
-fn slotted_control_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.inspector.save"),
-        UiDslSemanticFamily::Control,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("control:save"))
-    .with_structural_token(UiDslStructuralToken::new("slot:footer"))
-    .with_posture_token(UiDslPostureToken::new("query-binding:attached:view"))
-    .with_posture_token(UiDslPostureToken::new("service:portal"))
-}
-
-fn region_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.region.sidebar"),
-        UiDslSemanticFamily::Region,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 1),
-    )
-    .with_structural_token(UiDslStructuralToken::new("region:sidebar"))
-}
-
-fn mosaic_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.mosaic.workspace"),
-        UiDslSemanticFamily::Mosaic,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 2),
-    )
-    .with_structural_token(UiDslStructuralToken::new("mosaic:workspace"))
-    .with_structural_token(UiDslStructuralToken::new(
-        "mosaic-sizing:workspace.sizing.main",
-    ))
-}
-
-fn page_set_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.page_set.shell"),
-        UiDslSemanticFamily::PageSet,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 3),
-    )
-    .with_structural_token(UiDslStructuralToken::new("page-set:shell"))
-}
-
-fn local_composition_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.local_composition.inspector"),
-        UiDslSemanticFamily::LocalComposition,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 4),
-    )
-    .with_structural_token(UiDslStructuralToken::new("local-composition:inspector"))
-}
-
-fn diagnostic_surface_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.diagnostic_surface.lint"),
-        UiDslSemanticFamily::DiagnosticSurface,
-        UiDslSourceProvenance::file_authored("app/graph_topology_authority.wui", 5),
-    )
-    .with_structural_token(UiDslStructuralToken::new("diagnostic-surface:lint"))
-}
-
-fn extra_root_page_spec() -> UiDslSemanticArtifactSpec {
-    UiDslSemanticArtifactSpec::new(
-        UiDslSemanticKey::new("workflow_editor.page.authored_root"),
-        UiDslSemanticFamily::Page,
-        UiDslSourceProvenance::file_authored("app/graph_topology_root_denial.wui", 0),
-    )
-    .with_structural_token(UiDslStructuralToken::new("page:product-root"))
 }

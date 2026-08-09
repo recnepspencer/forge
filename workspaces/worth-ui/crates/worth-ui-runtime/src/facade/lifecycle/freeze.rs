@@ -14,8 +14,6 @@ use std::rc::Rc;
 pub(crate) struct WorthUiApplicationPreparationInput {
     pub(crate) capability_snapshot: CapabilitySnapshot,
     pub(crate) preparation_source: WorthUiApplicationPreparationSource,
-    pub(crate) host_session_plan:
-        crate::facade::prepared_application_authority::WorthUiHostSessionPlan,
     pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(crate) graph_world_profile: UiGraphWorldProfile,
     pub(crate) runtime_instance_basis_admissions:
@@ -34,7 +32,6 @@ pub(crate) fn prepare_application_authority(
     let WorthUiApplicationPreparationInput {
         capability_snapshot,
         preparation_source,
-        host_session_plan,
         visual_inspection_policy,
         graph_world_profile,
         runtime_instance_basis_admissions,
@@ -90,7 +87,6 @@ pub(crate) fn prepare_application_authority(
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
-            host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence: retained_measurement_inspection_evidence,
@@ -168,7 +164,6 @@ pub(crate) fn prepare_successor_application_authority(
             query_binding_plan: current.query_binding_plan().clone(),
             intent_application_facts: current.intent_application_fact_plan().clone(),
             intent_execution_bindings: current.intent_execution_bindings().clone(),
-            host_session_plan: current.host_session_plan().clone(),
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),
             measurement_inspection_evidence,

@@ -24,6 +24,10 @@ fn public_freeze_derives_support_snapshot_from_admitted_declaration_authority() 
             .with_semantic_artifact_spec(control_spec());
     let provenance = fixture.admitted_provenance_for("workflow_editor.inspector.save");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
@@ -52,6 +56,10 @@ fn public_freeze_localizes_future_semantics_to_exact_support_rows() {
     .with_semantic_artifact_spec(page_spec());
     let provenance = fixture.admitted_provenance_for("workflow_editor.region.root");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
@@ -103,6 +111,10 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
     let diagnostic_provenance =
         fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
@@ -162,6 +174,10 @@ fn public_freeze_preserves_representative_support_shapes_across_family_classes()
 #[test]
 fn public_app_inspection_surfaces_use_declaration_support_projection() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -227,6 +243,10 @@ fn public_app_inspection_receipts_keep_diagnostic_only_support_visible() {
     .with_semantic_artifact_spec(diagnostic_surface_spec());
     let provenance = fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
@@ -271,6 +291,10 @@ fn public_declaration_support_projection_keeps_diagnostic_only_rows_visible() {
     .with_semantic_artifact_spec(diagnostic_surface_spec());
     let provenance = fixture.admitted_provenance_for("workflow_editor.diagnostic_surface.lint");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()

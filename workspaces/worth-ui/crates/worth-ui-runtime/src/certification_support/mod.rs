@@ -8,6 +8,7 @@ mod active_session_observation;
 mod application_builder;
 mod application_graph;
 mod application_replacement;
+mod builder_host;
 mod framework_turn_execution;
 mod identity_overlay_projection;
 mod intent_evidence;
@@ -21,6 +22,7 @@ mod layout_admission;
 mod local_interaction_recipient;
 mod mounted_frame_execution;
 mod planning;
+mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
 mod semantic_text_projection;
@@ -52,6 +54,7 @@ pub use application_graph::{
     UiRepeatedInstanceIdentityCertificationRow, WorthUiApplicationGraphCertificationExt,
 };
 pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
+pub(crate) use builder_host::UiCertificationBuilderHost;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 pub use identity_overlay_projection::{
     identity_overlay_projection_for_certification, UiIdentityOverlayProjectionCertificationMutation,
@@ -82,6 +85,7 @@ pub use mounted_frame_execution::{
     WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
+pub use presentation_mechanics::initial_presentation_mechanics_for_certification;
 pub use rebind_identity_lifecycle::{
     identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
     UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,

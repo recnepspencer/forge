@@ -34,6 +34,10 @@ fn admitted_family_catalog_closes_the_initial_family_set_exactly_once() {
 #[test]
 fn public_freeze_exposes_bootstrap_page_family_authority() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -61,6 +65,10 @@ fn public_freeze_exposes_bootstrap_page_family_authority() {
 #[test]
 fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_roles() {
     let attached_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -103,6 +111,10 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
     let standalone_provenance =
         standalone_fixture.admitted_provenance_for("workflow_editor.query.selection");
     let standalone_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(standalone_fixture)
         .freeze()
@@ -185,6 +197,10 @@ fn freeze_denial(
     spec: UiDslSemanticArtifactSpec,
 ) -> WorthUiApplicationPreparationDenial {
     match WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(package_name)

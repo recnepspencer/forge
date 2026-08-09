@@ -115,7 +115,7 @@ guidance = "Milestone 3.13: the permanent Pulse remains a downstream application
 target = "eframe"
 version_requirement = "=0.35.0"
 uses_default_features = false
-features = ["default_fonts", "glow", "wayland", "wgpu", "x11"]
+features = ["default_fonts", "wgpu_no_default_features"]
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "uiautomation"

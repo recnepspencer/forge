@@ -12,7 +12,7 @@ path = "src/lib.rs"
 workspace = true
 
 [dependencies]
-worth-ui-host-contract = { path = "../worth-ui-host-contract" }
+worth-ui-host-contract = { path = "../worth-ui-host-contract", features = ["legacy-egui-host-binding-authority"] }
 egui = { workspace = true }
 
 [dev-dependencies]

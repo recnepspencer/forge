@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::app::{
+    UiApplicationHostBound, UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi,
+};
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
     ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentId,
@@ -9,6 +11,12 @@ use worth_ui::facade::declaration::{
     ThemeTokenSource, ThemeTokenValue,
 };
 use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+type WorthUiApplicationBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    UiChangeProfileInstalled,
+    UiIntentWiringSatisfied,
+    UiApplicationHostBound,
+>;
 
 pub(crate) const VISUAL_PAINT_ONLY_COMPONENT: &str = "visual.identity.component.paint_only";
 pub(crate) const VISUAL_HIT_ONLY_COMPONENT: &str = "visual.identity.component.hit_only";
@@ -179,7 +187,10 @@ where
     };
     WorthUi::app()
         .with_change_profile(profile)
-        .with_host(host)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            host,
+        )
         .register_component(component(VISUAL_PAINT_ONLY_COMPONENT).with_static_paint(
             ComponentStaticPaintContract::opaque_fill(
                 token_id(VISUAL_PAINT_ONLY_TOKEN),

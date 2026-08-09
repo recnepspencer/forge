@@ -21,14 +21,17 @@ use worth_ui_dsl::{
     WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_host_contract::UiSemanticTextSlot;
+use worth_ui_host_headless::{
+    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
+};
 use worth_ui_query_binding::{
     UiProjectionFieldRequirement, UiProjectionObservation, UiScalarProjectionRegistration,
     WorthUiQueryWorkspaceExt,
 };
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, UiHostMeasurementAssumptionProfile,
-    UiHostMeasurementNeed, UiHostMeasurementNormalizationContext, WorthUiHeadlessRecorder,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedRgba8, UiSurfaceBindingCoordinatePosture,
@@ -181,7 +184,10 @@ pub(super) fn projection_app(
         .register_scalar_projection(registration)
         .expect("product scalar projection registers")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
-        .with_host(recorder)
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            recorder,
+        )
         .freeze()
         .expect("projection application freezes")
 }

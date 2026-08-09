@@ -54,11 +54,12 @@ pub struct UiMountedFrameConsumptionView<'frame> {
     attempt: crate::UiMountedPresentationAttemptIdentity,
     deadline: UiPresentationDeadline,
     requirement: crate::UiMountedSurfaceBindingRequirement,
-    projection: &'frame crate::UiMountedProjectionView,
+    presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
 }
 
 #[doc(hidden)]
 pub struct UiMountedFrameConsumptionInput<'frame> {
+    pub authority: Rc<()>,
     pub host_session_identity: u64,
     pub protocol: crate::UiHostProtocolAgreement,
     pub capability_generation: crate::WorthUiHostCapabilityObservationGeneration,
@@ -66,23 +67,7 @@ pub struct UiMountedFrameConsumptionInput<'frame> {
     pub attempt: crate::UiMountedPresentationAttemptIdentity,
     pub deadline: UiPresentationDeadline,
     pub requirement: crate::UiMountedSurfaceBindingRequirement,
-    pub projection: &'frame crate::UiMountedProjectionView,
-}
-
-pub struct UiMountedPresentationLease {
-    seal: Rc<()>,
-    active: Weak<RefCell<Option<Weak<()>>>>,
-}
-
-#[derive(Clone, Default)]
-pub struct UiMountedPresentationLeaseGate {
-    active: Rc<RefCell<Option<Weak<()>>>>,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum UiMountedPresentationLeaseDenial {
-    AlreadyBound,
-    Unsupported,
+    pub presentation_work: super::presentation_work::UiMountedPresentationWorkView<'frame>,
 }
 
 pub struct UiHostPresentationCompletionToken {
@@ -90,14 +75,43 @@ pub struct UiHostPresentationCompletionToken {
     authority: Rc<()>,
 }
 
-impl UiMountedPresentationLease {
+impl<'frame> UiMountedFrameConsumptionView<'frame> {
     #[doc(hidden)]
-    pub fn open<'frame>(
-        &self,
-        input: UiMountedFrameConsumptionInput<'frame>,
-    ) -> UiMountedFrameConsumptionView<'frame> {
+    pub fn from_inert_mechanics(input: UiMountedFrameConsumptionInput<'frame>) -> Self {
+        let work_affinity = match input.presentation_work {
+            super::presentation_work::UiMountedPresentationWorkView::Initial(initial) => {
+                initial.affinity()
+            }
+            super::presentation_work::UiMountedPresentationWorkView::Delta(delta) => {
+                delta.affinity()
+            }
+            super::presentation_work::UiMountedPresentationWorkView::Unchanged(unchanged) => {
+                unchanged.affinity()
+            }
+        };
+        assert_eq!(
+            (
+                work_affinity.surface(),
+                work_affinity.binding(),
+                work_affinity.baseline(),
+            ),
+            (
+                input.requirement.semantic_surface(),
+                input.requirement.binding(),
+                input.requirement.baseline(),
+            ),
+            "presentation work must carry the exact consumed surface binding and baseline"
+        );
+        assert_eq!(
+            (input.capability_generation, input.capability_profile_digest,),
+            (
+                input.requirement.capability_generation(),
+                input.requirement.capability_profile_digest(),
+            ),
+            "presentation work consumption must use the registered profile generation"
+        );
         UiMountedFrameConsumptionView {
-            authority: Rc::clone(&self.seal),
+            authority: input.authority,
             host_session_identity: input.host_session_identity,
             protocol: input.protocol,
             capability_generation: input.capability_generation,
@@ -105,59 +119,17 @@ impl UiMountedPresentationLease {
             attempt: input.attempt,
             deadline: input.deadline,
             requirement: input.requirement,
-            projection: input.projection,
+            presentation_work: input.presentation_work,
         }
+    }
+
+    #[doc(hidden)]
+    pub fn issued_by_runtime(&self, seal: &Rc<()>) -> bool {
+        Rc::ptr_eq(&self.authority, seal)
     }
 }
 
-impl Drop for UiMountedPresentationLease {
-    fn drop(&mut self) {
-        let Some(active) = self.active.upgrade() else {
-            return;
-        };
-        let mut active = active.borrow_mut();
-        let matches = active
-            .as_ref()
-            .and_then(Weak::upgrade)
-            .is_some_and(|current| Rc::ptr_eq(&current, &self.seal));
-        if matches {
-            *active = None;
-        }
-    }
-}
-
-impl UiMountedPresentationLeaseGate {
-    pub fn claim(&self) -> Result<UiMountedPresentationLease, UiMountedPresentationLeaseDenial> {
-        let mut active = self.active.borrow_mut();
-        if active.as_ref().is_some_and(|seal| seal.upgrade().is_some()) {
-            return Err(UiMountedPresentationLeaseDenial::AlreadyBound);
-        }
-        let seal = Rc::new(());
-        *active = Some(Rc::downgrade(&seal));
-        Ok(UiMountedPresentationLease {
-            seal,
-            active: Rc::downgrade(&self.active),
-        })
-    }
-
-    pub fn admits(&self, view: &UiMountedFrameConsumptionView<'_>) -> bool {
-        self.active
-            .borrow()
-            .as_ref()
-            .and_then(Weak::upgrade)
-            .is_some_and(|active| Rc::ptr_eq(&active, &view.authority))
-    }
-
-    pub fn admits_token(&self, token: &UiHostPresentationCompletionToken) -> bool {
-        self.active
-            .borrow()
-            .as_ref()
-            .and_then(Weak::upgrade)
-            .is_some_and(|active| Rc::ptr_eq(&active, &token.authority))
-    }
-}
-
-impl UiMountedFrameConsumptionView<'_> {
+impl<'frame> UiMountedFrameConsumptionView<'frame> {
     pub fn host_session_identity(&self) -> u64 {
         self.host_session_identity
     }
@@ -186,8 +158,26 @@ impl UiMountedFrameConsumptionView<'_> {
         self.requirement
     }
 
-    pub fn projection(&self) -> &crate::UiMountedProjectionView {
-        self.projection
+    pub fn presentation_work(
+        &self,
+    ) -> super::presentation_work::UiMountedPresentationWorkView<'frame> {
+        self.presentation_work
+    }
+
+    pub fn frame(&self) -> crate::UiMountedFrameIdentity {
+        self.presentation_work.affinity().successor()
+    }
+
+    pub fn surface(&self) -> crate::UiSemanticSurfaceIdentity {
+        self.presentation_work.affinity().surface()
+    }
+
+    pub fn binding(&self) -> crate::UiSurfaceBindingGeneration {
+        self.presentation_work.affinity().binding()
+    }
+
+    pub fn content_generation(&self) -> crate::UiMountedContentGeneration {
+        self.presentation_work.affinity().content()
     }
 
     pub fn issue_completion_token(&self) -> UiHostPresentationCompletionToken {
@@ -205,6 +195,11 @@ impl UiMountedFrameConsumptionView<'_> {
 }
 
 impl UiHostPresentationCompletionToken {
+    #[doc(hidden)]
+    pub fn issued_by_runtime(&self, seal: &Rc<()>) -> bool {
+        Rc::ptr_eq(&self.authority, seal)
+    }
+
     pub fn diagnostic_value(&self) -> u64 {
         self.identity
     }
@@ -310,6 +305,5 @@ impl UiPresentationDeadline {
         now >= self.tick
     }
 }
-use std::cell::RefCell;
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};

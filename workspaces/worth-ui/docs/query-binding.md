@@ -70,9 +70,7 @@ fn register_scalar(view: UiInstalledProjectionView) {
             worth_ui::facade::rebind::UiChangeProfile::platform_pulse(),
         )
         .register_scalar_projection(registration)
-        .expect("installed scalar projection registration")
-        .freeze()
-        .expect("application preparation should succeed");
+        .expect("installed scalar projection registration");
 }
 ```
 

@@ -1,4 +1,4 @@
-use crate::facade::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::source_ingress_boundary_test_support::{
     lower_file_submission, lower_rust_submission, source_backed_package_component,
     source_backed_package_region, source_backed_package_sizing,
@@ -68,16 +68,18 @@ pub(super) fn prepare_file_authored_package_app() -> WorthUiApp {
         .expect("the complete watched composition should prepare")
 }
 
-fn convergence_builder() -> WorthUiApplicationBuilder {
+fn convergence_builder() -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_package_component(
             "workspace.component.phase6_convergence",
         ))
 }
 
-fn source_backed_package_builder() -> WorthUiApplicationBuilder {
+fn source_backed_package_builder() -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_package_component(
             "workspace.component.workflow_editor",

@@ -156,6 +156,7 @@ mod tests {
                     diagnostic: UiMountedDiagnosticProjection::Reference(
                         UiMountedDiagnosticReference::new(8),
                     ),
+                    drawables: Vec::new(),
                     semantic_text: Vec::new(),
                 },
             )],

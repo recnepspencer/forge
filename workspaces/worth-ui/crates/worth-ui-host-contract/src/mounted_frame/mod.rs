@@ -2,8 +2,12 @@ mod assembly;
 mod identity;
 mod presentation;
 mod presentation_cost;
+mod presentation_work;
 mod protocol;
 mod surface_registration;
+
+#[cfg(test)]
+mod presentation_work_tests;
 
 pub use assembly::{
     UiMountedFrameCanonicalCore, UiMountedFrameIntegrity, UiMountedFrameManifest,
@@ -20,12 +24,21 @@ pub use presentation::{
     UiHostPresentationCompletionToken, UiHostSurfaceCancellationOutcome,
     UiHostSurfaceInFlightCompletion, UiHostSurfacePresentationDenial,
     UiHostSurfacePresentationOutcome, UiMountedCompletedEffects, UiMountedEffectFamily,
-    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView, UiMountedPresentationLease,
-    UiMountedPresentationLeaseDenial, UiMountedPresentationLeaseGate,
+    UiMountedFrameConsumptionInput, UiMountedFrameConsumptionView,
     UiMountedSurfacePresentationCompletion, UiPresentationDeadline,
 };
 pub use presentation_cost::{
     UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,
+};
+pub use presentation_work::{
+    UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPaintCommandChange,
+    UiMountedPaintCommandIdentity, UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity,
+    UiMountedPaintOrderIntegrity, UiMountedPresentationAffinity,
+    UiMountedPresentationAuxiliaryState, UiMountedPresentationDelta,
+    UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
+    UiMountedPresentationInitialInput, UiMountedPresentationReconstructionDenial,
+    UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput,
+    UiMountedPresentationWorkView,
 };
 pub use protocol::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,
@@ -34,7 +47,7 @@ pub use protocol::{
     UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
 };
 pub use surface_registration::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceDeregistrationIndeterminate,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceDeregistrationIndeterminate,
     UiHostSurfaceDeregistrationOutcome, UiHostSurfaceDeregistrationReceipt,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationIndeterminate,
     UiHostSurfaceRegistrationInput, UiHostSurfaceRegistrationOutcome,

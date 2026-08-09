@@ -14,7 +14,11 @@ workspace = true
 [features]
 default = []
 # Enables public re-export of SUPPORT AUTHORITY fixtures for worth-ui-test-support only.
-certification-support = ["worth-ui-query-binding/certification-construction"]
+certification-support = [
+    "worth-ui-host-contract/certification-host-binding-authority",
+    "worth-ui-query-binding/certification-construction",
+]
+legacy-egui-migration = []
 
 [dependencies]
 notify = { workspace = true }
@@ -26,6 +30,7 @@ worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 
 [dev-dependencies]
+worth-ui-host-contract = { path = "../worth-ui-host-contract", features = ["certification-host-binding-authority"] }
 worth-query-host = { path = "../../../worth-query/crates/worth-query-host" }
 worth-ui-dsl = { path = "../worth-ui-dsl", features = ["certification-support"] }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }

@@ -8,6 +8,7 @@ mod app;
 mod app_builder;
 mod application_replacement;
 mod builder;
+mod host_neutral_app;
 mod intent_admission;
 mod intent_confirmation;
 mod intent_consequence;
@@ -70,9 +71,12 @@ pub use active_framework_turn::{
     WorthUiMountedLaneProjectionDenial,
 };
 pub use app::{WorthUi, WorthUiApp};
+#[cfg(test)]
+pub(crate) use app_builder::WorthUiCertificationApplicationBuilder;
 pub use app_builder::{
-    UiChangeProfileInstalled, UiChangeProfileMissing, UiIntentProviderRequired,
-    UiIntentWiringSatisfied, WorthUiApplicationBuilder, WorthUiProjectionRegistrationError,
+    UiApplicationHostBound, UiApplicationHostUnbound, UiChangeProfileInstalled,
+    UiChangeProfileMissing, UiIntentProviderRequired, UiIntentWiringSatisfied,
+    WorthUiApplicationBuilder, WorthUiProjectionRegistrationError,
     WorthUiQueryViewRegistrationError,
 };
 pub use application_replacement::{
@@ -90,6 +94,7 @@ pub use application_replacement::{
     WorthUiReplacementPlannedCostEnvelope,
 };
 pub use builder::CapabilityRegistrationBuilder;
+pub use host_neutral_app::WorthUiHostNeutralApp;
 pub use intent_consequence_publication::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
     UiIntentConsequencePublicationRecovery,

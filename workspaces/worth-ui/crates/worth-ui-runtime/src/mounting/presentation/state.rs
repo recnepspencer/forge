@@ -45,11 +45,13 @@ pub(super) struct UiMountedPresentationInFlightState {
     pub(super) pending: Vec<UiPendingMountedSurface>,
     pub(super) rejected: Vec<UiMountedSurfacePresentationRejection>,
     pub(super) completed: Vec<UiMountedSurfacePresentationReceipt>,
+    pub(super) candidates: super::work_producer::UiMountedPresentationCandidates,
 }
 
 pub(super) struct UiPendingMountedSurface {
     pub(super) binding: UiSurfaceBindingGeneration,
     pub(super) token: UiHostPresentationCompletionToken,
+    pub(super) expected_effects: Box<[worth_ui_host_contract::UiMountedEffectFamily]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -96,6 +96,7 @@ pub(super) fn runtime_from_import_target(
     target: &str,
 ) -> crate::runtime::WorthUiRuntimeFrameworkLoop {
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed")

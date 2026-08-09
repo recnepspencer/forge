@@ -268,6 +268,12 @@ fn node(basis: &SemanticTextProjectionBasis) -> UiMountedNodeProjectionView {
         accessibility: UiMountedAccessibilityProjection::Omitted(omitted),
         motion: UiMountedMotionProjection::Omitted(omitted),
         diagnostic: UiMountedDiagnosticProjection::Omitted(omitted),
+        drawables: basis
+            .references
+            .iter()
+            .copied()
+            .map(worth_ui_host_contract::UiMountedDrawableReference::SemanticText)
+            .collect(),
         semantic_text: basis.references.clone(),
     })
 }

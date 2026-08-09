@@ -13,6 +13,7 @@ use crate::runtime::WorthUiWatchedCandidateSubmission;
 
 mod application_fact_registration;
 mod capability_registration;
+mod freeze;
 mod intent_registration;
 mod query_registration;
 mod registration_error;
@@ -25,10 +26,13 @@ pub use registration_error::{
 pub struct WorthUiApplicationBuilder<
     ChangeProfileState = UiChangeProfileInstalled,
     IntentWiringState = UiIntentWiringSatisfied,
+    HostBindingState = UiApplicationHostUnbound,
 > {
     inner: CapabilityRegistrationBuilder,
     preparation_source: WorthUiApplicationBuilderPreparationSource,
-    host_session_plan: WorthUiHostSessionPlan,
+    host_binding: HostBindingState,
+    mounted_frame_retention_budget: crate::mounting::UiMountedFrameRetentionBudget,
+    host_observation_capacity: crate::facade::observation_report::UiHostObservationCapacity,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     graph_world_profile: UiGraphWorldProfile,
     runtime_instance_basis_admissions: Vec<crate::graph::UiRuntimeInstanceBasisAdmission>,
@@ -38,6 +42,18 @@ pub struct WorthUiApplicationBuilder<
     intent_execution_bindings: crate::runtime::intent_execution::UiIntentExecutionBindingPlan,
     change_profile: ChangeProfileState,
     intent_wiring: IntentWiringState,
+}
+
+/// Compiler-visible posture of an application definition that has not been
+/// admitted to a framework-owned host binding.
+pub struct UiApplicationHostUnbound {
+    _sealed: (),
+}
+
+/// Compiler-visible posture of an application definition admitted to exactly
+/// one framework-owned host binding.
+pub struct UiApplicationHostBound {
+    plan: WorthUiHostSessionPlan,
 }
 
 pub struct UiChangeProfileMissing {
@@ -57,16 +73,29 @@ pub struct UiIntentProviderRequired<I: crate::capability::UiIntent> {
         crate::capability::UiIntentDefinition<I, crate::capability::UiApplicationEffectDestination>,
 }
 
-impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
+#[cfg(test)]
+pub(crate) type WorthUiCertificationApplicationBuilder = WorthUiApplicationBuilder<
+    UiChangeProfileInstalled,
+    UiIntentWiringSatisfied,
+    UiApplicationHostBound,
+>;
+
+impl
+    WorthUiApplicationBuilder<
+        UiChangeProfileMissing,
+        UiIntentWiringSatisfied,
+        UiApplicationHostUnbound,
+    >
+{
     pub(crate) fn new() -> Self {
         Self {
             inner: CapabilityRegistrationBuilder::new(),
             preparation_source: WorthUiApplicationBuilderPreparationSource::RustAuthored(
                 worth_ui_dsl::WorthUiRustAuthoredArtifactInput::default(),
             ),
-            host_session_plan: WorthUiHostSessionPlan::prepare(
-                crate::host::adapter::WorthUiHeadlessHost,
-            ),
+            host_binding: UiApplicationHostUnbound { _sealed: () },
+            mounted_frame_retention_budget: Default::default(),
+            host_observation_capacity: Default::default(),
             visual_inspection_policy:
                 worth_ui_inspection::UiVisualInspectionPolicy::production_default(
                     worth_ui_inspection::UiVisualInspectionDisclosure::local_development_unredacted(
@@ -84,17 +113,25 @@ impl WorthUiApplicationBuilder<UiChangeProfileMissing> {
             intent_wiring: UiIntentWiringSatisfied { _sealed: () },
         }
     }
+}
 
+impl<HostBindingState>
+    WorthUiApplicationBuilder<UiChangeProfileMissing, UiIntentWiringSatisfied, HostBindingState>
+{
     pub fn with_change_profile(
         self,
         profile: crate::runtime::rebind::UiChangeProfile,
-    ) -> WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
+    ) -> WorthUiApplicationBuilder<
+        UiChangeProfileInstalled,
+        UiIntentWiringSatisfied,
+        HostBindingState,
+    > {
         self.transition_change_profile(UiChangeProfileInstalled { profile })
     }
 }
 
-impl<ChangeProfileState, IntentWiringState>
-    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState>
+impl<ChangeProfileState, IntentWiringState, HostBindingState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, HostBindingState>
 {
     pub fn with_rust_authored_input(
         mut self,
@@ -123,26 +160,11 @@ impl<ChangeProfileState, IntentWiringState>
         self
     }
 
-    pub fn with_host<Host>(mut self, host: Host) -> Self
-    where
-        Host: WorthUiOperationalHostAdapter + 'static,
-    {
-        let retention_budget = self.host_session_plan.mounted_frame_retention_budget();
-        let observation_capacity = self.host_session_plan.host_observation_capacity();
-        self.host_session_plan = WorthUiHostSessionPlan::prepare(host);
-        self.host_session_plan
-            .set_mounted_frame_retention_budget(retention_budget);
-        self.host_session_plan
-            .set_host_observation_capacity(observation_capacity);
-        self
-    }
-
     pub fn with_host_observation_capacity(
         mut self,
         capacity: crate::facade::observation_report::UiHostObservationCapacity,
     ) -> Self {
-        self.host_session_plan
-            .set_host_observation_capacity(capacity);
+        self.host_observation_capacity = capacity;
         self
     }
 
@@ -150,8 +172,7 @@ impl<ChangeProfileState, IntentWiringState>
         mut self,
         budget: crate::mounting::UiMountedFrameRetentionBudget,
     ) -> Self {
-        self.host_session_plan
-            .set_mounted_frame_retention_budget(budget);
+        self.mounted_frame_retention_budget = budget;
         self
     }
 
@@ -195,11 +216,13 @@ impl<ChangeProfileState, IntentWiringState>
     fn transition_change_profile<NextProfileState>(
         self,
         change_profile: NextProfileState,
-    ) -> WorthUiApplicationBuilder<NextProfileState, IntentWiringState> {
+    ) -> WorthUiApplicationBuilder<NextProfileState, IntentWiringState, HostBindingState> {
         WorthUiApplicationBuilder {
             inner: self.inner,
             preparation_source: self.preparation_source,
-            host_session_plan: self.host_session_plan,
+            host_binding: self.host_binding,
+            mounted_frame_retention_budget: self.mounted_frame_retention_budget,
+            host_observation_capacity: self.host_observation_capacity,
             visual_inspection_policy: self.visual_inspection_policy,
             graph_world_profile: self.graph_world_profile,
             runtime_instance_basis_admissions: self.runtime_instance_basis_admissions,
@@ -223,52 +246,62 @@ impl<ChangeProfileState, IntentWiringState>
     }
 }
 
-impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied> {
-    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
-        self.inner.freeze_with_registration_report()
+impl<ChangeProfileState, IntentWiringState>
+    WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, UiApplicationHostUnbound>
+{
+    #[doc(hidden)]
+    pub fn bind_certification_host_adapter<Host>(
+        self,
+        _grant: worth_ui_host_contract::UiCertificationHostBindingGrant,
+        host: Host,
+    ) -> WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, UiApplicationHostBound>
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        self.bind_with_plan(WorthUiHostSessionPlan::prepare(host))
+    }
+
+    #[doc(hidden)]
+    pub fn bind_legacy_egui_migration_host<Host>(
+        self,
+        _grant: worth_ui_host_contract::UiLegacyEguiHostBindingGrant,
+        host: Host,
+    ) -> WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, UiApplicationHostBound>
+    where
+        Host: WorthUiOperationalHostAdapter + 'static,
+    {
+        self.bind_with_plan(WorthUiHostSessionPlan::prepare(host))
+    }
+
+    fn bind_with_plan(
+        self,
+        plan: WorthUiHostSessionPlan,
+    ) -> WorthUiApplicationBuilder<ChangeProfileState, IntentWiringState, UiApplicationHostBound>
+    {
+        WorthUiApplicationBuilder {
+            inner: self.inner,
+            preparation_source: self.preparation_source,
+            host_binding: UiApplicationHostBound { plan },
+            mounted_frame_retention_budget: self.mounted_frame_retention_budget,
+            host_observation_capacity: self.host_observation_capacity,
+            visual_inspection_policy: self.visual_inspection_policy,
+            graph_world_profile: self.graph_world_profile,
+            runtime_instance_basis_admissions: self.runtime_instance_basis_admissions,
+            measurement_inspection_evidence: self.measurement_inspection_evidence,
+            query_binding_plan: self.query_binding_plan,
+            intent_application_facts: self.intent_application_facts,
+            intent_execution_bindings: self.intent_execution_bindings,
+            change_profile: self.change_profile,
+            intent_wiring: self.intent_wiring,
+        }
     }
 }
 
-impl WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied> {
-    pub fn freeze(self) -> Result<WorthUiApp, WorthUiApplicationPreparationDenial> {
-        let capability_snapshot = self
-            .inner
-            .freeze_with_registration_report()
-            .into_accepted_snapshot();
-        let intent_execution_bindings = self
-            .intent_execution_bindings
-            .freeze(capability_snapshot.intent_definitions())
-            .map_err(WorthUiApplicationPreparationDenial::IntentExecutionBinding)?;
-        let preparation_source = match self.preparation_source {
-            WorthUiApplicationBuilderPreparationSource::RustAuthored(input) => {
-                WorthUiApplicationPreparationSource::rust_authored(&input, &capability_snapshot)?
-            }
-            WorthUiApplicationBuilderPreparationSource::Watched(submission) => {
-                WorthUiApplicationPreparationSource::watched_submission(
-                    *submission,
-                    capability_snapshot.digest(),
-                )?
-            }
-        };
-        Ok(WorthUiApp::from_prepared_authority(
-            prepare_application_authority(WorthUiApplicationPreparationInput {
-                capability_snapshot,
-                preparation_source,
-                host_session_plan: self.host_session_plan,
-                visual_inspection_policy: self.visual_inspection_policy,
-                graph_world_profile: self.graph_world_profile,
-                runtime_instance_basis_admissions: self
-                    .runtime_instance_basis_admissions
-                    .into_boxed_slice(),
-                measurement_inspection_evidence: self
-                    .measurement_inspection_evidence
-                    .into_boxed_slice(),
-                query_binding_plan: self.query_binding_plan,
-                intent_application_facts: self.intent_application_facts,
-                intent_execution_bindings,
-                change_profile: self.change_profile.profile,
-            })?,
-        ))
+impl<ChangeProfileState, HostBindingState>
+    WorthUiApplicationBuilder<ChangeProfileState, UiIntentWiringSatisfied, HostBindingState>
+{
+    pub fn freeze_with_registration_report(self) -> CapabilityRegistrationReport {
+        self.inner.freeze_with_registration_report()
     }
 }
 

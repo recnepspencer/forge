@@ -115,14 +115,12 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         state
             .registrations
             .insert(request.host_surface_identity(), request);
-        if std::mem::take(&mut state.wrong_next_registration_receipt) {
-            return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
-                wrong_registration_receipt(request),
+        if std::mem::take(&mut state.indeterminate_next_registration) {
+            return worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RegistrationIndeterminate(
+                worth_ui_host_contract::UiHostSurfaceRegistrationIndeterminate::after_effects_may_have_begun(request),
             );
         }
-        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::Registered(
-            request.confirm_known_empty(),
-        )
+        worth_ui_host_contract::UiHostSurfaceRegistrationOutcome::RegisteredKnownEmpty
     }
 
     fn deregister_surface(
@@ -320,22 +318,4 @@ fn dispatch_queued_ingress(
             .observation_events
             .push("measurement-enqueued");
     }
-}
-
-fn wrong_registration_receipt(
-    request: worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
-) -> worth_ui_host_contract::UiHostSurfaceBaselineReceipt {
-    worth_ui_host_contract::UiHostSurfaceRegistrationRequest::from_runtime(
-        worth_ui_host_contract::UiHostSurfaceRegistrationInput {
-            host_session_identity: request.host_session_identity(),
-            semantic_surface_identity: request.semantic_surface_identity(),
-            host_surface_identity: request.host_surface_identity(),
-            binding_generation: request.binding_generation(),
-            protocol: request.protocol(),
-            capability_generation: request.capability_generation(),
-            capability_profile_digest: request.capability_profile_digest() ^ 1,
-            presentation_mode: request.presentation_mode(),
-        },
-    )
-    .confirm_known_empty()
 }

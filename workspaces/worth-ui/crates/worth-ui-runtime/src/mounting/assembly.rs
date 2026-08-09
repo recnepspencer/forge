@@ -384,13 +384,14 @@ fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
 pub(crate) fn binding_requirement(
     binding: super::UiSurfaceBindingIdentityView,
 ) -> UiMountedSurfaceBindingRequirement {
-    UiMountedSurfaceBindingRequirement::new(
+    UiMountedSurfaceBindingRequirement::with_baseline(
         binding.semantic_surface_identity(),
         binding.host_surface_identity(),
         binding.binding_generation(),
         binding.capability_observation_generation(),
         binding.capability_profile_digest(),
         binding.presentation_mode(),
+        binding.baseline(),
     )
 }
 

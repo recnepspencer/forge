@@ -20,6 +20,10 @@ use worth_ui::facade::graph::{
 #[test]
 fn public_freeze_materializes_parent_child_slot_topology_as_graph_truth() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -116,6 +120,10 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
     let region_provenance = fixture.admitted_provenance_for("workflow_editor.region.sidebar");
     let mosaic_provenance = fixture.admitted_provenance_for("workflow_editor.mosaic.workspace");
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(fixture)
         .freeze()
@@ -193,6 +201,10 @@ fn public_freeze_exposes_explicit_region_and_mosaic_membership_indexes() {
 #[test]
 fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -225,6 +237,10 @@ fn topology_indexes_locate_nodes_while_attachment_posture_stays_on_node_truth() 
 #[test]
 fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membership_tags() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(
@@ -301,6 +317,10 @@ fn graph_topology_keeps_root_contained_claims_explicit_without_generic_membershi
 #[test]
 fn freeze_returns_typed_denial_when_topology_has_multiple_root_pages() {
     let denial = match WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named(

@@ -3,7 +3,7 @@
 ## What This Feature Is
 
 The application lifecycle prepares, launches, runs, inspects, and shuts down
-one Worth UI application while the platform keeps graph, Query, host, mounted
+one Worth UI application while the framework keeps graph, Query, host, mounted
 publication, and generation state coherent. Application code holds one
 `WorthUiActiveApplicationSession`.
 
@@ -18,7 +18,9 @@ publication, and generation state coherent. Application code holds one
 ## Stable Entry Points
 
 - `worth_ui::facade::app::WorthUi::app()`
-- `WorthUiApplicationBuilder::freeze()`
+- `worth_ui_native_platform::WorthUiNativePlatform::prepare(...)`
+- `UiNativeApplicationDefinition::prepare(...)`
+- `UiNativeApplicationPreparation::builder()` and `complete()`
 - `WorthUiApp::launch()`
 - `WorthUiActiveApplicationSession::execute_mounted_frame(...)`
 - `WorthUiNativeApplicationShell::begin_source_rebind(...)`
@@ -36,7 +38,9 @@ module.
 
 ## Core Mental Model
 
-`freeze` prepares one inseparable application generation: authored meaning,
+The native preparation scope carries the only host-bound builder. An unbound
+builder cannot freeze, and a bound builder cannot replace its host. `complete`
+freezes one inseparable application generation: authored meaning,
 capabilities, graph, Query bindings, host plan, and inspection indexes. Launch
 consumes that prepared app and returns the only ordinary running owner.
 
@@ -54,8 +58,9 @@ same running shell; it does not launch or swap in a second application.
 
 ```text
 WorthUi::app()
--> register capabilities, source, Query views, and host
--> freeze
+-> framework-owned one-shot host binding
+-> register capabilities, source, Query views, intents, and inspection policy
+-> complete native preparation
 -> launch
 -> register/mount application-specific surfaces as required
 -> execute_mounted_frame
@@ -77,36 +82,35 @@ bindings uncertain until the typed recovery path completes.
 ## Small Example
 
 ```rust
-use worth_ui::facade::app::{
-    UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline, WorthUi,
+use worth_ui_native_platform::{
+    UiNativeApplicationDefinition, UiNativeApplicationPreparation,
+    UiNativeApplicationPreparationOutcome, UiNativePlatformProfile,
+    UiNativeWindowSpec, WorthUiNativePlatform,
 };
 
-let app = WorthUi::app()
-    .freeze()
-    .expect("application preparation should succeed");
-let mut session = app.launch().expect("application should launch");
+struct Application;
 
-let outcome = session
-    .execute_mounted_frame(
-        UiMountedFrameRequest::all_bound_surfaces(),
-        UiPresentationDeadline::at_tick(1),
-        0,
-        |_sources| {},
-    )
-    .expect("mounted-frame transition should start");
-
-match outcome {
-    UiMountedFrameOutcome::Published(receipt)
-    | UiMountedFrameOutcome::Unchanged(receipt)
-    | UiMountedFrameOutcome::Reconciled(receipt) => {
-        observe_publication(receipt);
+impl UiNativeApplicationDefinition for Application {
+    fn prepare(
+        self,
+        preparation: UiNativeApplicationPreparation,
+    ) -> UiNativeApplicationPreparationOutcome {
+        preparation.complete()
     }
-    other => handle_non_success(other),
 }
+
+let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
+    "WORTH UI",
+    [160, 96],
+));
+let platform = WorthUiNativePlatform::prepare(profile)?;
+let outcome = platform.run(Application);
 ```
 
-This is the smallest honest visible-frame call. Query-free applications do not
-create dummy Query work.
+In Phase 1 this ends with the typed `NativeEffectsNotActivatedInPhaseOne` stop
+and a zero resource census. Later phases activate the already-owned native
+lifecycle; they do not add a second application path. Query-free applications
+do not create dummy Query work.
 
 ## Executable Fresh-Reader Contract
 
@@ -131,6 +135,10 @@ fn main() {
 
 pub fn run() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("empty application preparation should succeed");

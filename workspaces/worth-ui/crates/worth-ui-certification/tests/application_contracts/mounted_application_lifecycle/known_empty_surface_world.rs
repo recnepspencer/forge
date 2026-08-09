@@ -23,7 +23,7 @@ fn mounted_application(label: &str) -> worth_ui::facade::app::WorthUiApp {
     );
     scenario.prepare_application_with_host(
         submission,
-        worth_ui_runtime::facade::host::WorthUiHeadlessRecorder::default(),
+        worth_ui_host_headless::WorthUiHeadlessRecorder::default(),
     )
 }
 

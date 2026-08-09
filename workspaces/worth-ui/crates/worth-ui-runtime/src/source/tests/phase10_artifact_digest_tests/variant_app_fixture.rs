@@ -57,6 +57,7 @@ fn phase10_test_app(variant: Phase10AppVariant) -> WorthUiApp {
         _ => default_inspector_surface(),
     };
     let mut app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_command(
             CommandDescriptor::new(

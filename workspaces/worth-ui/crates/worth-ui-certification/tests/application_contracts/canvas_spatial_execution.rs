@@ -1,4 +1,10 @@
 use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+
+type BoundBuilder = WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+    worth_ui::facade::app::UiApplicationHostBound,
+>;
 use worth_ui::facade::declaration::{
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor, ComponentId,
     ComponentPropSchema, ComponentStateOwnership,
@@ -8,6 +14,7 @@ use worth_ui_host_contract::{
     UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
     WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
 };
+use worth_ui_host_headless::WorthUiHeadlessHost;
 use worth_ui_runtime::facade::execution::{
     WorthUiCanvasSpatialFrameTarget, WorthUiCanvasSpatialLane,
     WorthUiCanvasSpatialPlanAvailability, WorthUiCanvasViewportRequest,
@@ -15,7 +22,7 @@ use worth_ui_runtime::facade::execution::{
 };
 use worth_ui_runtime::facade::host::{
     UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
+    WorthUiOperationalHostAdapter,
 };
 use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
 use worth_ui_test_support::{
@@ -239,11 +246,14 @@ fn lawful_source_reordering_preserves_spatial_plan_behavior() {
     right_workspace.close();
 }
 
-fn canvas_builder() -> WorthUiApplicationBuilder {
-    canvas_descriptor_builder().with_host(WorthUiHeadlessHost)
+fn canvas_builder() -> BoundBuilder {
+    canvas_descriptor_builder().bind_certification_host_adapter(
+        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+        WorthUiHeadlessHost,
+    )
 }
 
-fn canvas_builder_with_ordinary(count: usize) -> WorthUiApplicationBuilder {
+fn canvas_builder_with_ordinary(count: usize) -> BoundBuilder {
     let mut builder = canvas_builder();
     for index in 0..count {
         builder = builder.register_component(ordinary_component(format!(
@@ -253,8 +263,11 @@ fn canvas_builder_with_ordinary(count: usize) -> WorthUiApplicationBuilder {
     builder
 }
 
-fn unsupported_canvas_builder() -> WorthUiApplicationBuilder {
-    canvas_descriptor_builder().with_host(MissingHitTestHost)
+fn unsupported_canvas_builder() -> BoundBuilder {
+    canvas_descriptor_builder().bind_certification_host_adapter(
+        worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+        MissingHitTestHost,
+    )
 }
 
 fn canvas_descriptor_builder() -> WorthUiApplicationBuilder {
@@ -282,7 +295,7 @@ fn ordinary_component(id: impl Into<String>) -> ComponentDescriptor {
 fn file_app(
     workspace: &FilesystemContractWorkspace,
     source: &str,
-    builder: impl Fn() -> WorthUiApplicationBuilder,
+    builder: impl Fn() -> BoundBuilder,
 ) -> WorthUiApp {
     workspace.write("app/main.wui", source);
     let capability_app = builder().freeze().expect("capabilities should freeze");

@@ -17,6 +17,7 @@ use super::UiAdmissionBoundary;
 #[test]
 fn owner_boundary_can_prove_missing_declaration_artifact_denial() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(
             WorthUiRustAuthoredDeclarationFixture::named("worth-ui.runtime.admission.denied")

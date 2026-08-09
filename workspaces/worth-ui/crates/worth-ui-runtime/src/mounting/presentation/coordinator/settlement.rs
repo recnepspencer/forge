@@ -81,6 +81,7 @@ impl UiMountedPresentationCoordinator {
             pending,
             rejected,
             completed,
+            candidates,
         } = state;
         let mut progress = super::UiMountedPresentationProgress {
             pending: Vec::new(),
@@ -109,6 +110,7 @@ impl UiMountedPresentationCoordinator {
             pending: progress.pending,
             rejected: progress.rejected,
             completed: progress.completed,
+            candidates,
             host,
         })
     }
@@ -217,15 +219,21 @@ fn observe_pending_surface(
     worth_ui_host_contract::UiSurfaceBindingGeneration,
     Option<worth_ui_host_contract::UiHostPresentationCostReport>,
 )> {
-    let UiPendingMountedSurface { binding, token } = pending;
+    let UiPendingMountedSurface {
+        binding,
+        token,
+        expected_effects,
+    } = pending;
     match host
         .adapter()
         .complete_mounted_surface(host.authority(), token)
     {
         UiHostSurfaceInFlightCompletion::Pending(token) => {
-            progress
-                .pending
-                .push(UiPendingMountedSurface { binding, token });
+            progress.pending.push(UiPendingMountedSurface {
+                binding,
+                token,
+                expected_effects,
+            });
             None
         }
         UiHostSurfaceInFlightCompletion::RejectedBeforeEffects(denial) => {
@@ -241,7 +249,7 @@ fn observe_pending_surface(
                 .iter()
                 .find(|surface| surface.requirement().binding() == binding)
                 .expect("pending binding belongs to retained prepared frame");
-            if !completion_satisfies(surface, &completion) {
+            if !completion_satisfies(surface, &expected_effects, &completion) {
                 return Some((binding, Some(completion.cost())));
             }
             let (epoch, effects, adapter_cost) = completion.into_parts();

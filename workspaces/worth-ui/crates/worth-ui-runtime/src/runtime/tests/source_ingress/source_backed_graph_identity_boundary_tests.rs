@@ -58,6 +58,7 @@ component workspace.component.source_backed_boundary {
 
 fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> WorthUiApp {
     let support_app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_boundary_component())
         .register_component(source_backed_boundary_peer_component())
@@ -76,6 +77,7 @@ fn freeze_source_backed_app(provider_revision: &str, source_text: &str) -> Worth
         .attempt_candidate_for_certification(support_app.capabilities())
         .expect("source-backed graph reorder provider should lower through ingress");
     WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_candidate_submission(submission)
         .register_component(source_backed_boundary_component())

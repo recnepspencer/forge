@@ -37,7 +37,7 @@ responsibility = "application construction and lifecycle"
 disposition = "retain"
 # Successor milestones add curated mounted, observation, rebind, Query, and
 # intent composition contracts while preserving the single application lifecycle.
-fingerprint = "7aef7184114eab40"
+fingerprint = "051d158fe669f54b"
 forbidden_shortcut = "export raw runtime, host, lane, planner, or mid-protocol authority"
 
 [[surface]]
@@ -186,7 +186,7 @@ disposition = "retain"
 # Milestone 3.13 adds typed scalar/collection declaration, observation, and
 # source-lifecycle contracts. Milestone 3.14 adds proof-carrying scalar-action
 # request and outcome contracts without raw Query execution authority.
-fingerprint = "b34864ce8e834868"
+fingerprint = "32001cb6c538b1a1"
 forbidden_shortcut = "recreate query-owned execution lanes"
 
 [[surface]]
@@ -231,7 +231,7 @@ id = "certification-rust-authored-declaration-fixture"
 path = "rust_authored_declaration_fixture.rs"
 match = "exact"
 expected_files = 1
-content_fingerprint = "68e60a8937cdec11"
+content_fingerprint = "7d6a6f37d5ad3f41"
 audience = "certification-support"
 responsibility = "compiler-backed Rust-authored declaration fixture and builder extension"
 disposition = "retain"
@@ -268,7 +268,7 @@ expected_files = 26
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds; later scale certification adds one named scaled-canvas
 # scenario while preserving certification-only construction.
-content_fingerprint = "863a9a6865962163"
+content_fingerprint = "56c931a282f18fde"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -308,7 +308,7 @@ expected_files = 62
 # the typed intent provider as exact successor exclusions with hostile neighbors.
 # Milestone 3.14 moves authored intent admission into the declaration owner and
 # admits only that exact source file while a hostile sibling remains forbidden.
-content_fingerprint = "b6f7fddda68c677d"
+content_fingerprint = "cd5deafb0b237aa8"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -331,7 +331,7 @@ expected_files = 8
 # observations. Milestone 3.14 keeps the Pulse manifest honest about its direct
 # notify and Query audience-facade dependencies, and the audit now consumes the
 # canonical workspace inventory rather than reconstructing a parallel view.
-content_fingerprint = "91efc6d00c71c561"
+content_fingerprint = "dfbcd9f8a58e1e02"
 audience = "certification-support"
 responsibility = "Milestone 3.10.2 source-to-pixel inventory and courtroom freeze"
 disposition = "retain"
@@ -360,7 +360,7 @@ expected_files = 6
 # receipt-derived projection, shutdown, visual-state, and hostile-fixture audits.
 # Its named source-topology owner preserves predecessor laws while adjudicating
 # lawful successor files.
-content_fingerprint = "7f60011777039f31"
+content_fingerprint = "b01c05f9ea559cdf"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -374,7 +374,7 @@ expected_files = 4
 # The cumulative journey now proves its recovered typestate is consumed by the
 # named cleanup owner before the exact native close transition, with courtroom
 # evidence aggregated across the complete named owner.
-content_fingerprint = "64eb4991146ee6ef"
+content_fingerprint = "5a8a0979845f97b5"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
 disposition = "retain"
@@ -543,7 +543,7 @@ exit_phase = 5
 [[subsystem]]
 name = "host"
 owner = "host contract projection"
-allowed_dependencies = ["evidence"]
+allowed_dependencies = ["evidence", "mounting"]
 target = "worth-ui-host-contract"
 disposition = "retain"
 
@@ -578,7 +578,7 @@ owner = "mounted application lifecycle"
 # Mounted hit-test projection consumes the frozen capability clip contract, and
 # intent-posture projection consumes fact-contract meaning. It cannot mutate
 # either owner or construct their authority.
-allowed_dependencies = ["capability", "declaration", "facade", "fact_contract", "graph", "host", "inspection", "runtime"]
+allowed_dependencies = ["capability", "certification_support", "declaration", "facade", "fact_contract", "graph", "host", "inspection", "runtime"]
 target = "worth-ui-runtime/mounting"
 disposition = "split"
 exit_phase = 5

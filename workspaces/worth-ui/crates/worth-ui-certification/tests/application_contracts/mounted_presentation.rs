@@ -167,7 +167,9 @@ fn protocol_and_capability_drift_deny_before_any_surface_effect() {
             UiPresentationDeadline::at_tick(10),
             0,
         ),
-        worth_ui_host_contract::UiHostSurfacePresentationDenial::ProtocolChanged,
+        worth_ui_host_contract::UiHostSurfacePresentationDenial::Protocol(
+            worth_ui_host_contract::UiHostProtocolDenial::ProtocolTooOld,
+        ),
         2,
     );
     assert_eq!(host.presentation_calls(), 0);
@@ -211,6 +213,7 @@ fn adapter_overreported_effects_cannot_publish_as_exact_completion() {
                         native_resource_cache_hits: 0,
                         native_resource_cache_misses: 0,
                         asynchronous_handoffs: 0,
+                        ..Default::default()
                     },
                 ),
             ),
@@ -259,10 +262,15 @@ fn assert_rejected_with(
         panic!("late host drift must reject before effects");
     };
     assert_eq!(rejected.rejections().len(), surface_count);
-    assert!(rejected
+    let observed = rejected
         .rejections()
         .iter()
-        .all(|rejection| rejection.denial() == expected));
+        .map(|rejection| rejection.denial())
+        .collect::<Vec<_>>();
+    assert!(
+        observed.iter().all(|denial| *denial == expected),
+        "expected every denial to be {expected:?}, observed {observed:?}"
+    );
 }
 
 fn protocol(

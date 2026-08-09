@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationInput,
     UiHostSurfaceRegistrationRequest, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
     WorthUiHostCapabilityReport,
@@ -63,10 +63,10 @@ impl UiMountedIdentityState {
     pub(crate) fn commit_surface_registration(
         &mut self,
         candidate: UiMountedSurfaceRegistrationCandidate,
-        baseline: UiHostSurfaceBaselineReceipt,
+        baseline: UiHostSurfaceBaselineIdentity,
     ) -> UiSurfaceBindingIdentityView {
         let request = candidate.request;
-        debug_assert_eq!(baseline.registration(), request);
+        debug_assert_eq!(baseline.binding_generation(), request.binding_generation());
         debug_assert!(!self
             .bindings
             .contains_key(&request.semantic_surface_identity()));

@@ -33,9 +33,8 @@ const ALLOWED_DEPENDENCIES: &[&str] = &[
     "xcap",
 ];
 pub(super) const EFRAME_VERSION: &str = "=0.35.0";
-const WORKSPACE_EFRAME_FEATURES: &[&str] = &["default_fonts", "glow", "wayland", "x11"];
-pub(super) const PULSE_EFRAME_FEATURES: &[&str] =
-    &["default_fonts", "glow", "wayland", "wgpu", "x11"];
+const WORKSPACE_EFRAME_FEATURES: &[&str] = &["default_fonts"];
+pub(super) const PULSE_EFRAME_FEATURES: &[&str] = &["default_fonts", "wgpu_no_default_features"];
 
 pub(super) fn audit(
     inventory: &WorkspaceSourceInventory,
@@ -236,6 +235,13 @@ pub(super) fn audit_pulse_manifest(manifest: &toml::Value) -> Result<(), String>
     if eframe.get("workspace").and_then(toml::Value::as_bool) != Some(true) {
         return Err("pulse should inherit the frozen workspace eframe dependency".to_owned());
     }
+    if table_string_set(eframe, "features")?
+        != ["wgpu_no_default_features"]
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+    {
+        return Err("pulse should select only the no-default WGPU lane".to_owned());
+    }
     audit_windows_dev_dependencies(manifest)?;
     Ok(())
 }
@@ -274,6 +280,23 @@ fn string_set<'a>(row: &'a toml::Value, field: &str) -> Result<BTreeSet<&'a str>
             value
                 .as_str()
                 .ok_or_else(|| format!("boundary row `{field}` values should be text"))
+        })
+        .collect()
+}
+
+fn table_string_set<'a>(
+    table: &'a toml::map::Map<String, toml::Value>,
+    field: &str,
+) -> Result<BTreeSet<&'a str>, String> {
+    table
+        .get(field)
+        .and_then(toml::Value::as_array)
+        .ok_or_else(|| format!("{field} should be an array"))?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .ok_or_else(|| format!("{field} should contain strings"))
         })
         .collect()
 }

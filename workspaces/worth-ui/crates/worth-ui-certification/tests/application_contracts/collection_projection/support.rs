@@ -1,3 +1,4 @@
+use worth_query::facade::runtime::WorthQueryEvidenceIdentityKey;
 use worth_query::facade::{foundation::WorthQueryEntityIdentity, runtime::WorthQueryWorkspace};
 use worth_ui_query_binding::{
     certification::{
@@ -24,7 +25,7 @@ pub(super) struct CollectionProjectionWorld {
     workspace: WorthQueryWorkspace,
     live: Option<UiLiveCollectionProjection>,
     entities: Vec<WorthQueryEntityIdentity>,
-    identities: Vec<[u8; 32]>,
+    identities: Vec<WorthQueryEvidenceIdentityKey>,
     expected: ExpectedKeyedRows,
 }
 
@@ -127,7 +128,7 @@ impl CollectionProjectionWorld {
         &self.expected
     }
 
-    pub(super) fn identities(&self) -> &[[u8; 32]] {
+    pub(super) fn identities(&self) -> &[WorthQueryEvidenceIdentityKey] {
         &self.identities
     }
 
@@ -135,7 +136,7 @@ impl CollectionProjectionWorld {
         self.entities.len()
     }
 
-    pub(super) fn update_first(&mut self, count: usize) -> Vec<[u8; 32]> {
+    pub(super) fn update_first(&mut self, count: usize) -> Vec<WorthQueryEvidenceIdentityKey> {
         let selected = self.identities[..count].to_vec();
         let updates = self.entities[..count]
             .iter()
@@ -151,7 +152,11 @@ impl CollectionProjectionWorld {
         selected
     }
 
-    pub(super) fn insert(&mut self, authored_identity: &str, value: &str) -> [u8; 32] {
+    pub(super) fn insert(
+        &mut self,
+        authored_identity: &str,
+        value: &str,
+    ) -> WorthQueryEvidenceIdentityKey {
         let entity = insert_projection_status(&mut self.workspace, authored_identity, value);
         let identity = correlation_identity(&entity);
         self.entities.push(entity);
@@ -160,7 +165,7 @@ impl CollectionProjectionWorld {
         identity
     }
 
-    pub(super) fn remove(&mut self, index: usize) -> [u8; 32] {
+    pub(super) fn remove(&mut self, index: usize) -> WorthQueryEvidenceIdentityKey {
         let entity = self.entities.remove(index);
         let identity = self.identities.remove(index);
         self.workspace
@@ -170,7 +175,11 @@ impl CollectionProjectionWorld {
         identity
     }
 
-    pub(super) fn reorder(&mut self, index: usize, authored_identity: &str) -> [u8; 32] {
+    pub(super) fn reorder(
+        &mut self,
+        index: usize,
+        authored_identity: &str,
+    ) -> WorthQueryEvidenceIdentityKey {
         let entity = self.entities[index].clone();
         let identity = self.identities[index];
         update_projection_identity(&mut self.workspace, entity, authored_identity);
@@ -213,11 +222,8 @@ fn authored_rows(row_count: usize) -> Vec<(String, String)> {
         .collect()
 }
 
-fn correlation_identity(entity: &WorthQueryEntityIdentity) -> [u8; 32] {
-    entity
-        .evidence_identity()
-        .operational_key()
-        .correlation_digest()
+fn correlation_identity(entity: &WorthQueryEntityIdentity) -> WorthQueryEvidenceIdentityKey {
+    entity.evidence_identity().operational_key()
 }
 
 fn open_live(

@@ -344,7 +344,18 @@ fn publish(
         0,
     ) {
         UiMountedFrameOutcome::Published(publication) => publication,
-        _ => panic!("gesture world must publish"),
+        UiMountedFrameOutcome::Unchanged(_) => panic!("gesture world returned unchanged"),
+        UiMountedFrameOutcome::Reconciled(_) => panic!("gesture world returned reconciled"),
+        UiMountedFrameOutcome::RejectedBeforeEffects(_) => {
+            panic!("gesture world was rejected before effects")
+        }
+        UiMountedFrameOutcome::InFlight(_) => panic!("gesture world remained in flight"),
+        UiMountedFrameOutcome::PresentationIndeterminate(_) => {
+            panic!("gesture world presentation became indeterminate")
+        }
+        UiMountedFrameOutcome::RetentionDenied(_) => panic!("gesture world retention denied"),
+        UiMountedFrameOutcome::AdmissionDenied(_) => panic!("gesture world admission denied"),
+        UiMountedFrameOutcome::CompletionDenied(_) => panic!("gesture world completion denied"),
     };
     let binding = publication.bindings()[0];
     let epoch = presented_epoch(session, publication.frame(), binding);

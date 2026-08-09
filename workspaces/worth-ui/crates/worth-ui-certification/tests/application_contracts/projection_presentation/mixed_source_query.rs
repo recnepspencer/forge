@@ -8,10 +8,10 @@ use worth_ui::facade::source::{
     WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatcherEvent,
 };
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
-use worth_ui_query_binding::UiProjectionObservation;
-use worth_ui_runtime::facade::host::{
+use worth_ui_host_headless::{
     UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
 };
+use worth_ui_query_binding::UiProjectionObservation;
 use worth_ui_runtime::facade::mounted::UiMountedRgba8;
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 

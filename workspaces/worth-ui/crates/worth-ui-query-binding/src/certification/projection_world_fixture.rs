@@ -84,6 +84,15 @@ pub fn insert_projection_status(
     crate::scalar_text_projection_fixture::insert_collection_status(workspace, identity, status)
 }
 
+pub fn remove_projection_entity(
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    entity: worth_query::facade::foundation::WorthQueryEntityIdentity,
+) {
+    workspace
+        .delete(entity)
+        .expect("certification projection entity deletion");
+}
+
 pub fn update_projection_status(
     workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
     entity: worth_query::facade::foundation::WorthQueryEntityIdentity,

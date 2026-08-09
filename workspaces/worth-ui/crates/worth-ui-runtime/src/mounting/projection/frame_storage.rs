@@ -7,6 +7,7 @@ use worth_ui_host_contract::{
 
 use super::UiMountedProjectionDenial;
 
+mod drawable_order;
 mod rebind;
 mod semantic_projection;
 mod view;

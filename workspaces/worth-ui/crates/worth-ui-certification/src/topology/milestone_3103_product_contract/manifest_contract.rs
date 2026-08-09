@@ -149,7 +149,11 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         let table = dependency
             .as_table()
             .ok_or_else(|| format!("pulse dependency `{name}` should use workspace inheritance"))?;
-        let features = if name == "eframe" { &["wgpu"][..] } else { &[] };
+        let features = match name.as_str() {
+            "eframe" => &["wgpu_no_default_features"][..],
+            "worth-ui" => &["legacy-egui-migration"][..],
+            _ => &[],
+        };
         audit_workspace_dependency(name, table, features, "dependency")?;
     }
     Ok(())

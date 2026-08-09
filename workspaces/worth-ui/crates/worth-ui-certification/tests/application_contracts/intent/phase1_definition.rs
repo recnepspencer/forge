@@ -126,6 +126,10 @@ impl UiIntent for SubmitStatus {
 #[test]
 fn typed_definition_freezes_once_into_application_generation_meaning() {
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_intent_definition(UiIntentDefinition::<AdvanceStatus>::application_effect())
         .expect("one typed definition should register")
@@ -153,6 +157,10 @@ fn typed_definition_freezes_once_into_application_generation_meaning() {
 #[test]
 fn duplicate_definition_identity_stops_before_application_preparation() {
     let builder = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_intent_definition(UiIntentDefinition::<AdvanceStatus>::application_effect())
         .expect("first definition should register")
@@ -204,6 +212,10 @@ fn variable_width_fields_and_interaction_families_change_frozen_meaning() {
 
 fn frozen_application_digest<I: UiIntent>(definition: UiIntentDefinition<I>) -> u64 {
     WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_intent_definition(definition)
         .expect("definition should register")
@@ -227,6 +239,10 @@ where
     I::ProductOutcome: UiIntentTransitionOutcome,
 {
     WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_intent_transition_definition(definition)
         .expect("transition definition should register")

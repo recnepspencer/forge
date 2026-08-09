@@ -182,11 +182,13 @@ fn registered_measurement_artifacts_do_not_change_declaration_measurement_postur
     .with_semantic_artifact_spec(measurement_control_spec())
     .with_semantic_artifact_spec(portal_measurement_control_spec());
     let baseline = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package.clone())
         .freeze()
         .expect("application preparation should succeed");
     let with_registered_measurement = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package)
         .register_mosaic_sizing_contract(registered_measurement_descriptor(

@@ -29,8 +29,14 @@ pub struct UiHostSurfaceRegistrationInput {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct UiHostSurfaceBaselineReceipt {
-    request: UiHostSurfaceRegistrationRequest,
+pub struct UiHostSurfaceBaselineIdentity {
+    semantic_surface_identity: UiSemanticSurfaceIdentity,
+    host_surface_identity: UiHostSurfaceIdentity,
+    binding_generation: UiSurfaceBindingGeneration,
+    capability_generation: WorthUiHostCapabilityObservationGeneration,
+    capability_profile_digest: u64,
+    presentation_mode: UiHostSurfacePresentationMode,
+    transparent_rgba8: [u8; 4],
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -60,7 +66,7 @@ pub enum UiHostSurfaceRegistrationDenial {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHostSurfaceRegistrationOutcome {
     RejectedBeforeEffects(UiHostSurfaceRegistrationDenial),
-    Registered(UiHostSurfaceBaselineReceipt),
+    RegisteredKnownEmpty,
     RegistrationIndeterminate(UiHostSurfaceRegistrationIndeterminate),
 }
 
@@ -118,14 +124,65 @@ impl UiHostSurfaceRegistrationRequest {
         self.presentation_mode
     }
 
-    pub const fn confirm_known_empty(self) -> UiHostSurfaceBaselineReceipt {
-        UiHostSurfaceBaselineReceipt { request: self }
+    #[doc(hidden)]
+    pub const fn baseline_identity(self) -> UiHostSurfaceBaselineIdentity {
+        UiHostSurfaceBaselineIdentity::from_surface_binding(
+            self.semantic_surface_identity,
+            self.host_surface_identity,
+            self.binding_generation,
+            self.capability_generation,
+            self.capability_profile_digest,
+            self.presentation_mode,
+        )
     }
 }
 
-impl UiHostSurfaceBaselineReceipt {
-    pub const fn registration(self) -> UiHostSurfaceRegistrationRequest {
-        self.request
+impl UiHostSurfaceBaselineIdentity {
+    pub(crate) const fn from_surface_binding(
+        semantic_surface_identity: UiSemanticSurfaceIdentity,
+        host_surface_identity: UiHostSurfaceIdentity,
+        binding_generation: UiSurfaceBindingGeneration,
+        capability_generation: WorthUiHostCapabilityObservationGeneration,
+        capability_profile_digest: u64,
+        presentation_mode: UiHostSurfacePresentationMode,
+    ) -> Self {
+        Self {
+            semantic_surface_identity,
+            host_surface_identity,
+            binding_generation,
+            capability_generation,
+            capability_profile_digest,
+            presentation_mode,
+            transparent_rgba8: [0, 0, 0, 0],
+        }
+    }
+
+    pub const fn semantic_surface_identity(self) -> UiSemanticSurfaceIdentity {
+        self.semantic_surface_identity
+    }
+
+    pub const fn host_surface_identity(self) -> UiHostSurfaceIdentity {
+        self.host_surface_identity
+    }
+
+    pub const fn binding_generation(self) -> UiSurfaceBindingGeneration {
+        self.binding_generation
+    }
+
+    pub const fn capability_generation(self) -> WorthUiHostCapabilityObservationGeneration {
+        self.capability_generation
+    }
+
+    pub const fn capability_profile_digest(self) -> u64 {
+        self.capability_profile_digest
+    }
+
+    pub const fn presentation_mode(self) -> UiHostSurfacePresentationMode {
+        self.presentation_mode
+    }
+
+    pub const fn transparent_rgba8(self) -> [u8; 4] {
+        self.transparent_rgba8
     }
 }
 

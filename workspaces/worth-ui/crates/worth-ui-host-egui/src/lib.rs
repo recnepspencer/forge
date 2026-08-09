@@ -1,6 +1,8 @@
 mod adapter;
 mod translation;
 
+pub use worth_ui_host_contract::UiLegacyEguiHostBindingGrant;
+
 pub use adapter::{
     UiEguiCoordinateConversionDenial, UiEguiInputTranslatorFamily,
     UiEguiMountedParticipationPreparation, UiEguiMountedResourceHandle,

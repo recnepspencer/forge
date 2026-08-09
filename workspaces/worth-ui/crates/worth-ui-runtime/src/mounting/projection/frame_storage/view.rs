@@ -20,6 +20,9 @@ type UiMountedHitTestReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, UiMountedHitTestReference>;
 type UiMountedSemanticTextReferenceIndex =
     std::collections::BTreeMap<UiMountedInstanceIdentity, Vec<UiMountedSemanticTextReference>>;
+use super::drawable_order::{
+    drawable_reference_index, validate_drawable_coverage, UiMountedDrawableReferenceIndex,
+};
 
 struct UiMountedFilledRectViewRows {
     rows: Vec<UiMountedFilledRectMechanic>,
@@ -41,6 +44,7 @@ struct UiMountedNodeViewContext<'a> {
     filled_rect_by_instance: &'a UiMountedFilledRectReferenceIndex,
     hit_test_by_instance: &'a UiMountedHitTestReferenceIndex,
     semantic_text_by_instance: &'a UiMountedSemanticTextReferenceIndex,
+    drawables_by_instance: &'a UiMountedDrawableReferenceIndex,
 }
 
 #[derive(Clone)]
@@ -69,11 +73,13 @@ impl UiMountedProjectionFrame {
         let filled_rects = self.filled_rect_view_rows(surface)?;
         let hit_tests = self.hit_test_view_rows(surface)?;
         let semantic_text = self.semantic_text_view_rows(surface)?;
+        let drawables = drawable_reference_index(&filled_rects.rows, &semantic_text.rows)?;
         let node_view_context = UiMountedNodeViewContext {
             surface,
             filled_rect_by_instance: &filled_rects.references,
             hit_test_by_instance: &hit_tests.references,
             semantic_text_by_instance: &semantic_text.references,
+            drawables_by_instance: &drawables,
         };
         let nodes = self
             .semantic
@@ -82,7 +88,12 @@ impl UiMountedProjectionFrame {
             .filter_map(|instance| self.semantic.nodes.get(instance))
             .filter(|node| node.receipt.semantic_surface() == surface.surface)
             .map(|node| self.audience_node_view(node, &node_view_context))
-            .collect();
+            .collect::<Vec<_>>();
+        validate_drawable_coverage(
+            &drawables,
+            &nodes,
+            filled_rects.rows.len() + semantic_text.rows.len(),
+        )?;
         let filled_rects = UiMountedFilledRectTable::from_runtime_mounting(filled_rects.rows)
             .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
         let hit_tests = UiMountedHitTestTable::from_runtime_mounting(hit_tests.rows)
@@ -225,6 +236,11 @@ impl UiMountedProjectionFrame {
             accessibility,
             motion: receipt.motion(),
             diagnostic,
+            drawables: context
+                .drawables_by_instance
+                .get(&receipt.mounted_instance())
+                .map(|drawables| drawables.to_vec())
+                .unwrap_or_default(),
             semantic_text: context
                 .semantic_text_by_instance
                 .get(&receipt.mounted_instance())

@@ -43,6 +43,10 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         .expect("the installed domain derives one live view");
     let resource_view = view.clone();
     let snapshot = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view.clone())
         .expect("the public builder registers live installed authority")
@@ -50,6 +54,10 @@ fn public_framework_turn_atomically_admits_and_releases_a_real_query_live_resour
         .expect("capability snapshot preparation");
     let submission = query_bound_submission(snapshot.capabilities());
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view)
         .expect("the application registers live installed authority")
@@ -110,6 +118,10 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
         "the hostile pair deliberately shares its diagnostic definition digest"
     );
     let app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(first_view.clone())
         .expect("first installation registers")
@@ -123,6 +135,10 @@ fn public_builder_rejects_semantically_equal_views_from_foreign_query_installati
         Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch)
     ));
     let builder = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(first_view)
         .expect("first installation registers");
@@ -147,12 +163,20 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .unwrap();
     let identity = view.definition().identity().clone();
     let capability_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view.clone())
         .unwrap()
         .freeze()
         .unwrap();
     let file_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view.clone())
         .unwrap()
@@ -160,6 +184,10 @@ fn file_and_rust_authored_bindings_converge_before_the_same_query_gateway() {
         .freeze()
         .unwrap();
     let rust_app = WorthUi::app()
+        .bind_certification_host_adapter(
+            worth_ui_host_contract::UiCertificationHostBindingGrant::for_certification(),
+            worth_ui_host_headless::WorthUiHeadlessHost,
+        )
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_query_view(view)
         .unwrap()

@@ -3,6 +3,12 @@ use crate::{
     UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiMountedDrawableReference {
+    FilledRect(super::UiMountedFilledRectReference),
+    SemanticText(super::UiMountedSemanticTextReference),
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedNodeProjectionView {
     mounted_instance: UiMountedInstanceIdentity,
@@ -16,6 +22,7 @@ pub struct UiMountedNodeProjectionView {
     accessibility: super::UiMountedAccessibilityProjection,
     motion: super::UiMountedMotionProjection,
     diagnostic: super::UiMountedDiagnosticProjection,
+    drawables: Box<[UiMountedDrawableReference]>,
     semantic_text: Box<[super::UiMountedSemanticTextReference]>,
 }
 
@@ -49,6 +56,7 @@ pub struct UiMountedNodeProjectionViewInput {
     pub accessibility: super::UiMountedAccessibilityProjection,
     pub motion: super::UiMountedMotionProjection,
     pub diagnostic: super::UiMountedDiagnosticProjection,
+    pub drawables: Vec<UiMountedDrawableReference>,
     pub semantic_text: Vec<super::UiMountedSemanticTextReference>,
 }
 
@@ -83,6 +91,7 @@ impl UiMountedNodeProjectionView {
             accessibility: input.accessibility,
             motion: input.motion,
             diagnostic: input.diagnostic,
+            drawables: input.drawables.into_boxed_slice(),
             semantic_text: input.semantic_text.into_boxed_slice(),
         }
     }
@@ -118,6 +127,9 @@ impl UiMountedNodeProjectionView {
     }
     pub fn diagnostic(&self) -> super::UiMountedDiagnosticProjection {
         self.diagnostic
+    }
+    pub fn drawables(&self) -> &[UiMountedDrawableReference] {
+        &self.drawables
     }
     pub fn semantic_text(&self) -> &[super::UiMountedSemanticTextReference] {
         &self.semantic_text

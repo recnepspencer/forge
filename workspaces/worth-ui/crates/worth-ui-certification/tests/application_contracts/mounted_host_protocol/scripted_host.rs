@@ -46,7 +46,7 @@ struct ScriptedPresentationState {
         worth_ui_host_contract::UiHostSurfaceIdentity,
         worth_ui_host_contract::UiHostSurfaceRegistrationRequest,
     >,
-    wrong_next_registration_receipt: bool,
+    indeterminate_next_registration: bool,
     wrong_next_deregistration_receipt: bool,
     cancellation_calls: Vec<u64>,
     presentation_calls: usize,
@@ -76,7 +76,7 @@ impl Default for ScriptedPresentationState {
             cancellations: BTreeMap::new(),
             token_sessions: BTreeMap::new(),
             registrations: BTreeMap::new(),
-            wrong_next_registration_receipt: false,
+            indeterminate_next_registration: false,
             wrong_next_deregistration_receipt: false,
             cancellation_calls: Vec::new(),
             presentation_calls: 0,
@@ -114,6 +114,7 @@ fn scripted_presentation_cost() -> worth_ui_host_contract::UiHostPresentationCos
             native_resource_cache_hits: 0,
             native_resource_cache_misses: 0,
             asynchronous_handoffs: 0,
+            ..Default::default()
         },
     )
 }
@@ -182,8 +183,8 @@ impl ScriptedPresentationHost {
         self.state.lock().unwrap().presentation_calls
     }
 
-    pub(crate) fn return_wrong_next_registration_receipt(&self) {
-        self.state.lock().unwrap().wrong_next_registration_receipt = true;
+    pub(crate) fn return_indeterminate_next_registration(&self) {
+        self.state.lock().unwrap().indeterminate_next_registration = true;
     }
 
     pub(crate) fn return_wrong_next_deregistration_receipt(&self) {

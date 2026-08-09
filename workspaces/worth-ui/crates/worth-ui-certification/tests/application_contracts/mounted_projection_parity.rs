@@ -1,6 +1,6 @@
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{
     UiMountedAllocationProjection, UiMountedFrameOutcome, UiMountedFrameRequest,
     UiMountedOmissionReason, UiMountedParticipationStatus, UiPresentationDeadline,
@@ -31,6 +31,8 @@ struct ProjectedMountedOracle {
     cost: worth_ui_runtime::facade::mounted::UiMountCostReport,
     publication_transition_is_coherent: bool,
     mounted_identity_is_continuous: bool,
+    transcript_count: usize,
+    second_outcome: &'static str,
 }
 
 #[derive(Clone, Copy)]
@@ -62,7 +64,11 @@ fn file_and_rust_query_free_and_backed_worlds_match_one_mounted_contract() {
 
     for observed in [&file_free, &rust_free, &file_backed, &rust_backed] {
         assert_eq!(observed.authored, expected);
-        assert!(observed.publication_transition_is_coherent);
+        assert!(
+            observed.publication_transition_is_coherent,
+            "{} transition drifted with {} transcripts",
+            observed.second_outcome, observed.transcript_count,
+        );
         assert!(observed.mounted_identity_is_continuous);
     }
     assert_ui_owned_cost_parity(file_free.cost, rust_free.cost);
@@ -226,15 +232,23 @@ fn project_first_node(
             |_| {},
         )
         .unwrap_or_else(|_| panic!("unchanged public mounted frame executes"));
-    let publication_transition_is_coherent = match second {
-        UiMountedFrameOutcome::Unchanged(receipt) => {
-            receipt.frame() == published.frame() && recorder.observed_transcripts().len() == 1
-        }
-        UiMountedFrameOutcome::Published(receipt) => {
+    let (publication_transition_is_coherent, second_outcome) = match second {
+        UiMountedFrameOutcome::Unchanged(receipt) => (
+            receipt.frame() == published.frame() && recorder.observed_transcripts().len() == 1,
+            "unchanged",
+        ),
+        UiMountedFrameOutcome::Published(receipt) => (
             receipt.predecessor() == Some(published.frame())
-                && recorder.observed_transcripts().len() == 2
-        }
-        _ => false,
+                && recorder.observed_transcripts().len() == 1,
+            "published",
+        ),
+        UiMountedFrameOutcome::Reconciled(_) => (false, "reconciled"),
+        UiMountedFrameOutcome::RejectedBeforeEffects(_) => (false, "rejected"),
+        UiMountedFrameOutcome::InFlight(_) => (false, "in-flight"),
+        UiMountedFrameOutcome::PresentationIndeterminate(_) => (false, "indeterminate"),
+        UiMountedFrameOutcome::RetentionDenied(_) => (false, "retention-denied"),
+        UiMountedFrameOutcome::AdmissionDenied(_) => (false, "admission-denied"),
+        UiMountedFrameOutcome::CompletionDenied(_) => (false, "completion-denied"),
     };
     let identity = session.inspect_mounted_identity();
     let mounted_identity_is_continuous = identity
@@ -246,5 +260,7 @@ fn project_first_node(
         authored,
         publication_transition_is_coherent,
         mounted_identity_is_continuous,
+        transcript_count: recorder.observed_transcripts().len(),
+        second_outcome,
     }
 }

@@ -12,7 +12,7 @@ pub struct UiQueryObservationReportingProjection {
 }
 
 impl UiQueryIdentityReportingProjection {
-    pub(crate) fn from_terminal_projection_for_reporting(projection: &str) -> Self {
+    pub(crate) fn from_query_reporting_text(projection: &str) -> Self {
         Self(Arc::from(projection))
     }
 

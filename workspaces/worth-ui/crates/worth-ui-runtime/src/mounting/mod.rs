@@ -10,7 +10,7 @@ mod identity_overlay;
 mod identity_state;
 mod identity_trace_basis;
 mod identity_view;
-mod presentation;
+pub(crate) mod presentation;
 mod projection;
 mod projection_changes;
 mod publication;
@@ -120,7 +120,7 @@ pub use assembly::{
     UiMountedSurfaceReceipt, UiPreparedMountedFrame,
 };
 pub use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiMountIncarnation, UiMountedFrameIdentity, UiMountedInstanceIdentity,
     UiMountedNodeReceiptIdentity, UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration,

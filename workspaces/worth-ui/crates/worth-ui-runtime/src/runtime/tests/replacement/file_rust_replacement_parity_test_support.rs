@@ -81,6 +81,7 @@ pub(super) fn candidate_for_lane(
     lane: WorthUiCandidateAuthoringLane,
 ) -> WorthUiReplacementCandidate {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");

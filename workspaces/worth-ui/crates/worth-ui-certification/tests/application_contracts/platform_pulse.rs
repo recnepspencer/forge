@@ -3,10 +3,7 @@ use worth_ui::facade::measurement_exchange::{
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_host_contract::{
-    UiMountedFilledRectMechanic, UiMountedLayerRow, UiMountedNodeProjectionView,
-    UiMountedPaintBatchRow,
-};
+use worth_ui_host_contract::UiMountedPaintCommand;
 use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
@@ -75,16 +72,11 @@ fn in_process_checked_in_pulse_produces_independently_expected_egui_shape() {
     let adapter_cost = publication.cost_report().adapter();
     assert_eq!(projection_counts.unwrap(), [4, 0, 1, 2, 0, 1, 0, 0, 0]);
     assert_eq!(adapter_cost.presented_surfaces(), 1);
-    assert_eq!(adapter_cost.translated_rows(), 8);
+    assert_eq!(adapter_cost.translated_rows(), 6);
     assert_eq!(
         adapter_cost.translated_bytes(),
-        u64::try_from(
-            4 * std::mem::size_of::<UiMountedNodeProjectionView>()
-                + std::mem::size_of::<UiMountedLayerRow>()
-                + 2 * std::mem::size_of::<UiMountedFilledRectMechanic>()
-                + std::mem::size_of::<UiMountedPaintBatchRow>(),
-        )
-        .expect("the exact pulse projection tables fit the cost receipt")
+        u64::try_from(2 * std::mem::size_of::<UiMountedPaintCommand>())
+            .expect("the exact pulse projection tables fit the cost receipt")
     );
     assert_eq!(adapter_cost.native_resource_cache_hits(), 0);
     assert_eq!(adapter_cost.native_resource_cache_misses(), 0);

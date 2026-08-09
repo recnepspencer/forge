@@ -1809,6 +1809,16 @@ dependency graph. It exists now, between intent and services, because it is
 the last point where the host adapter surface is small: after 3.15 and 3.16
 every service, focus, motion, and appearance lane would be built twice.
 
+The detailed specification now closes the governing Phase 1 inputs:
+`worth-ui-body-default-v1` pins Noto Sans v2.015, printable Basic Latin,
+rustybuzz 0.20.1, swash 0.2.10, exact raster/atlas bounds, and typed rejection
+outside the support set; `worth-ui-windows-dx12-v1` pins winit 0.30.13, wgpu
+29.0.4, DX12, exact surface/blend/rounding policy, and every queue/resource
+capacity. It also freezes the affine platform grant, borrowing bound-builder
+scope, sealed resource/readiness registration, prepared application, and
+cleanup-proved denial progression. Phase 1 must materialize and prove those
+records without amending them.
+
 The mounted host contract is the subject under test and may not change
 meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
 3.13 projection path, and the 3.14 interaction and intent path are frozen; if
@@ -1851,11 +1861,19 @@ retained dual-host fallback does not close the pulse.
 
 **Must ship**
 
-- a contract-only Worth native host-mechanics crate owning the event loop,
-  surface/device/DPI/close lifecycle, plus a higher application-platform crate
-  that composes it only through the public Worth UI facade
+- Phase 1 materializes a contract-only Worth native host-mechanics crate as
+  profile/capacity/inert-contract owner and a higher effect-free
+  application-platform preparation owner; Phase 2 activates their event loop,
+  surface/device/DPI/close lifecycle without changing that topology
+- a sealed public native-application preparation contract whose platform grant,
+  host-bound builder, readiness owners, resource registry, prepared
+  application, denial cleanup, and run transition are compiler-visible
+- a contract-only production headless host crate moved out of runtime and
+  migrated through the same presentation-work protocol
 - a retained, receipt-keyed aspect-native draw list with layer order, clip
   bounds, and damage-scoped presentation derived from admitted plans
+- a surface-issued canonical transparent baseline for clearing uncovered
+  damage; every opaque background remains an attributed runtime-issued command
 - a host-neutral initial/delta/unchanged presentation-work protocol and unique
   total paint order that make host-side semantic diffing unnecessary
 - filled-rectangle and `BodyDefault` glyph-run presentation with atlas
@@ -1885,9 +1903,11 @@ retained dual-host fallback does not close the pulse.
 - hostile controls turn red on receiptless paint, whole-frame repaint of an
   unchanged turn, adapter-invented geometry, internal-state snapshot
   substitution, and leaked window, surface, device, or atlas resources
-- `egui` appears in zero dependency edges, the boundary gate enforces the
-  prohibition, and the cumulative executable world closes on the native host
-  with no new test target or harness
+- `egui`, `eframe`, `egui-wgpu`, and `egui_extras` appear in zero dependency
+  declarations, resolved edges, or final lockfiles across the repository-root
+  and Worth UI workspaces, the boundary gate enforces the prohibition, and the
+  cumulative executable world closes on the native host with no new test
+  target or harness
 
 ### Milestone 3.15: Production Runtime Services
 

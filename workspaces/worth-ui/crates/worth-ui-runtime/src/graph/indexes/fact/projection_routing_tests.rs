@@ -111,6 +111,7 @@ fn projection_app(registration: UiCollectionProjectionRegistration) -> crate::fa
         )
         .unwrap();
     crate::facade::WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(ComponentDescriptor::new(
             ComponentId::new(COMPONENT).unwrap(),

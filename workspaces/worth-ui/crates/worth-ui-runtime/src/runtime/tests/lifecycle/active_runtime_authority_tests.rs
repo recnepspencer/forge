@@ -15,6 +15,7 @@ use crate::source::{
 #[test]
 fn equivalent_runtime_hosts_start_with_equivalent_active_state() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -29,6 +30,7 @@ fn equivalent_runtime_hosts_start_with_equivalent_active_state() {
 #[test]
 fn different_canonical_artifact_meaning_changes_active_runtime_truth() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -52,6 +54,7 @@ fn different_canonical_artifact_meaning_changes_active_runtime_truth() {
 #[test]
 fn last_valid_state_exists_before_first_reload_candidate() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -68,6 +71,7 @@ fn last_valid_state_exists_before_first_reload_candidate() {
 #[test]
 fn diagnostic_policy_does_not_change_active_runtime_truth() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");
@@ -92,6 +96,7 @@ fn diagnostic_policy_does_not_change_active_runtime_truth() {
 #[test]
 fn shutdown_receipt_preserves_final_frame_epoch() {
     let app = WorthUi::app()
+        .bind_certification_host()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .expect("application preparation should succeed");

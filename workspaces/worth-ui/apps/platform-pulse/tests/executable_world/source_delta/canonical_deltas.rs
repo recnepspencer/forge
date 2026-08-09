@@ -8,7 +8,7 @@ use super::PulseSourceDeltaIdentity;
 const BLUE_TOKEN: &[u8] = b"theme.platform_pulse.blue";
 const GREEN_TOKEN: &[u8] = b"theme.platform_pulse.green";
 const MALFORMED_SOURCE: &[u8] = b"component platform.pulse.component.seed {";
-const INTENT_ROUTE_BINDING: &[u8] = b"  interaction activate routes platform.pulse.action.route;\n";
+const INTENT_ROUTE_BINDING: &[u8] = b"  interaction activate routes platform.pulse.action.route;";
 
 #[derive(Debug)]
 pub(crate) struct GreenPulseSourceDelta {

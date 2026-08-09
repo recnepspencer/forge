@@ -95,6 +95,7 @@ fn state_inventory_fixture(
 ) -> ProductionStateInventoryFixture {
     let app = descriptors.into_iter().fold(
         crate::facade::WorthUi::app()
+            .bind_certification_host()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse()),
         |builder, descriptor| builder.register_mosaic_state_slot(descriptor),
     );
