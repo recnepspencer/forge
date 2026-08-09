@@ -113,6 +113,7 @@ fn add_api_sources(root: &Path, paths: &mut BTreeSet<String>) -> Result<(), Stri
     add(paths, API_INVENTORY);
     for source in [
         "facade_inventory.rs",
+        "facade_inventory/destination_surface_contract.rs",
         "facade_inventory/disposition_contract.rs",
         "facade_inventory/reachable_api.rs",
     ] {
@@ -243,7 +244,15 @@ fn add_ledger_sources(guarantee: &str, paths: &mut BTreeSet<String>) {
     );
     add(
         paths,
+        &format!("{GATE_ROOT}/closure_ledger/history_contract/audit_contracts.rs"),
+    );
+    add(
+        paths,
         &format!("{GATE_ROOT}/closure_ledger/audit_source_manifest.rs"),
+    );
+    add(
+        paths,
+        &format!("{GATE_ROOT}/closure_ledger/audit_source_manifest/tests.rs"),
     );
     add(paths, QA_AUDITS);
     add(paths, QA_SOURCE_MANIFESTS);

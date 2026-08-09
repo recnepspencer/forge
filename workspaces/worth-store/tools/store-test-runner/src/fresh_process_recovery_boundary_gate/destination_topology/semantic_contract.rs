@@ -2,6 +2,9 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
     if path.starts_with("crates/worth-store-recovery-runtime") {
         return runtime_phase(path);
     }
+    if path.contains("worth-store-physical-backend/src/recovery_media/") {
+        return "phase-2";
+    }
     if path.contains("worth-store-recovery-physics/src/source_precedence/")
         || path.contains("worth-store-recovery-physics/src/wal_prefix/")
     {
@@ -35,10 +38,14 @@ pub(super) fn expected_phase(path: &str) -> &'static str {
 }
 
 fn runtime_phase(path: &str) -> &'static str {
-    if path.contains("/entry/") || runtime_scaffold(path) {
+    if path.contains("/entry/")
+        || path.ends_with("/orchestration/coordination.rs")
+        || runtime_scaffold(path)
+    {
         return "phase-2";
     }
-    if path.ends_with("/progression/discovered.rs")
+    if path.ends_with("/handoff/mod.rs")
+        || path.ends_with("/progression/discovered.rs")
         || path.ends_with("/progression/selected.rs")
         || path.ends_with("/orchestration/discovery.rs")
         || path.ends_with("/handoff/unsupported_scope.rs")
@@ -72,7 +79,6 @@ fn runtime_scaffold(path: &str) -> bool {
         || path.ends_with("/progression/mod.rs")
         || path.ends_with("/progression/admitted.rs")
         || path.ends_with("/orchestration/mod.rs")
-        || path.ends_with("/handoff/mod.rs")
 }
 const STEM_RESPONSIBILITIES: &[(&str, &str)] = &[
     ("request", "persisted-input-request-declaration"),
@@ -176,6 +182,12 @@ pub(super) fn expected_responsibility(path: &str) -> String {
 }
 
 fn path_specific_responsibility(path: &str) -> Option<&'static str> {
+    physics_or_store_responsibility(path)
+        .or_else(|| phase_two_responsibility(path))
+        .or_else(|| performed_effect_responsibility(path))
+}
+
+fn physics_or_store_responsibility(path: &str) -> Option<&'static str> {
     match path {
         "crates/worth-store-recovery-physics/src/source_precedence/admission.rs" => {
             Some("source-candidate-admission")
@@ -202,6 +214,51 @@ fn path_specific_responsibility(path: &str) -> Option<&'static str> {
         "crates/worth-store/src/physical_runtime/recovery_freshness/cleanup.rs" => {
             Some("published-root-cleanup-freshness-source-basis-policy")
         }
+        _ => None,
+    }
+}
+
+fn phase_two_responsibility(path: &str) -> Option<&'static str> {
+    match path {
+        "crates/worth-store-recovery-runtime/src/entry/configuration.rs" => {
+            Some("static-recovery-configuration-identity")
+        }
+        "crates/worth-store-recovery-runtime/src/entry/counters.rs" => {
+            Some("entry-session-and-zero-effect-counters")
+        }
+        "crates/worth-store-recovery-runtime/src/entry/limits.rs" => {
+            Some("finite-recovery-limit-admission")
+        }
+        "crates/worth-store-recovery-runtime/src/orchestration/coordination.rs" => {
+            Some("fresh-signal-and-bounded-c5-scheduler-instance")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/mod.rs" => {
+            Some("recovery-media-capability-boundary")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/qualification.rs" => {
+            Some("existing-store-recovery-qualification")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/qualified.rs" => {
+            Some("qualified-recovery-media-capability")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/profile.rs" => {
+            Some("qualified-backend-profile-identity")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/generation.rs" => {
+            Some("qualified-media-generation-identity")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/admitted.rs" => {
+            Some("persisted-store-identity-admission")
+        }
+        "crates/worth-store-physical-backend/src/recovery_media/discovery.rs" => {
+            Some("bounded-read-only-recovery-port")
+        }
+        _ => None,
+    }
+}
+
+fn performed_effect_responsibility(path: &str) -> Option<&'static str> {
+    match path {
         "crates/worth-store-recovery-runtime/src/orchestration/staging/performed_write.rs" => {
             Some("performed-staging-write-evidence")
         }

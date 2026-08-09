@@ -19,6 +19,9 @@ const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-recovery-runtime/src/entry/admission.rs",
     "crates/worth-store-recovery-runtime/src/entry/authority.rs",
     "crates/worth-store-recovery-runtime/src/entry/authority_binding.rs",
+    "crates/worth-store-recovery-runtime/src/entry/configuration.rs",
+    "crates/worth-store-recovery-runtime/src/entry/counters.rs",
+    "crates/worth-store-recovery-runtime/src/entry/limits.rs",
     "crates/worth-store-recovery-runtime/src/entry/session.rs",
     "crates/worth-store-recovery-runtime/src/entry/outcome.rs",
     "crates/worth-store-recovery-runtime/src/progression/mod.rs",
@@ -35,6 +38,7 @@ const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-recovery-runtime/src/orchestration/reopen/performed_independent_reopen.rs",
     "crates/worth-store-recovery-runtime/src/cleanup/performed_removal.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/mod.rs",
+    "crates/worth-store-recovery-runtime/src/orchestration/coordination.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/discovery.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/planning.rs",
     "crates/worth-store-recovery-runtime/src/orchestration/staging.rs",
@@ -88,6 +92,13 @@ const REQUIRED_DESTINATIONS: &[&str] = &[
     "crates/worth-store-recovery-physics/src/recovery_budget/plan_cost.rs",
     "crates/worth-store-recovery-physics/src/recovery_budget/counters.rs",
     "crates/worth-store-recovery-physics/src/recovery_budget/denial.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/mod.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/qualification.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/qualified.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/profile.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/generation.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/admitted.rs",
+    "crates/worth-store-physical-backend/src/recovery_media/discovery.rs",
     "crates/worth-store/src/physical_runtime/recovery_freshness/mod.rs",
     "crates/worth-store/src/physical_runtime/recovery_freshness/port.rs",
     "crates/worth-store/src/physical_runtime/recovery_freshness/authority.rs",
@@ -168,6 +179,15 @@ fn planned_dependencies_preserve_reconstruction_only_direction() {
 fn authority_session_effect_and_handoff_definition_homes_are_exact() {
     let document = read_repository_document(DESTINATION_TOPOLOGY).expect("read C.8 topology");
     let rows = parse_topology(&document).expect("parse C.8 topology");
+    assert_core_definition_homes(&rows);
+    assert_effect_homes(&rows);
+    assert_freshness_homes(&rows);
+    assert!(!rows.iter().any(|row| row
+        .path
+        .ends_with("recovery-runtime/src/handoff/recovered_physical_runtime.rs")));
+}
+
+fn assert_core_definition_homes(rows: &[TopologyRow]) {
     let exact = [
         (
             "crates/worth-store-recovery-runtime/src/entry/authority_binding.rs",
@@ -183,8 +203,11 @@ fn authority_session_effect_and_handoff_definition_homes_are_exact() {
         ),
     ];
     for (path, owner) in exact {
-        assert_eq!(row(&rows, path).owner, owner);
+        assert_eq!(row(rows, path).owner, owner);
     }
+}
+
+fn assert_effect_homes(rows: &[TopologyRow]) {
     let effect_homes = [
         ("orchestration/staging/performed_write.rs", "phase-5"),
         (
@@ -208,6 +231,9 @@ fn authority_session_effect_and_handoff_definition_homes_are_exact() {
             .unwrap_or_else(|| panic!("missing performed-effect home {suffix}"));
         assert_eq!(effect.phase, phase);
     }
+}
+
+fn assert_freshness_homes(rows: &[TopologyRow]) {
     let trace = read_repository_document(AUTHORITY_TRACE).expect("read C.8 authority trace");
     let trace_freshness_owners = trace
         .lines()
@@ -238,11 +264,8 @@ fn authority_session_effect_and_handoff_definition_homes_are_exact() {
             "phase-2",
         ),
     ] {
-        assert_eq!(row(&rows, path).phase, phase);
+        assert_eq!(row(rows, path).phase, phase);
     }
-    assert!(!rows.iter().any(|row| row
-        .path
-        .ends_with("recovery-runtime/src/handoff/recovered_physical_runtime.rs")));
 }
 
 #[test]

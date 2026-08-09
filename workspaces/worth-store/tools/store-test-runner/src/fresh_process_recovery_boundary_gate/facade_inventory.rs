@@ -1,9 +1,11 @@
+mod destination_surface_contract;
 pub(super) mod disposition_contract;
 mod reachable_api;
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::documents::{read_repository_document, split_csv, API_INVENTORY};
+use destination_surface_contract::BACKEND_RECOVERY_SURFACES;
 use disposition_contract::expected_current_disposition;
 use reachable_api::current_facade;
 
@@ -18,7 +20,65 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "phase-2",
     ),
     (
+        "PhysicalRecoveryStaticConfiguration",
+        "entry/configuration",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryStaticConfiguration::current",
+        "entry/configuration",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryLimitDeclaration",
+        "entry/limits",
+        "phase-2",
+    ),
+    ("PhysicalRecoveryLimits", "entry/limits", "phase-2"),
+    ("PhysicalRecoveryLimits::admit", "entry/limits", "phase-2"),
+    ("PhysicalRecoveryLimitDenial", "entry/limits", "phase-2"),
+    (
+        "PhysicalRecoveryAdmissionCounters",
+        "entry/counters",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoverySessionIdentity",
+        "entry/session",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryEntryBindingDrift",
+        "entry/authority-binding",
+        "phase-2",
+    ),
+    (
         "PhysicalRecoveryPlatformAuthority",
+        "entry/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryPlatformAuthority::acquire",
+        "entry/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryPlatformAuthority::qualified_backend_profile",
+        "entry/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryPlatformAuthority::session_identity",
+        "entry/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryPlatformAuthority::process_counters",
+        "entry/authority",
+        "phase-2",
+    ),
+    (
+        "PhysicalRecoveryPlatformAdmissionError",
         "entry/authority",
         "phase-2",
     ),
@@ -27,6 +87,31 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
     ("WorthStoreRecovery::recover", "lib", "phase-6"),
     (
         "AdmittedPhysicalRecovery",
+        "progression/admitted",
+        "phase-2",
+    ),
+    (
+        "AdmittedPhysicalRecovery::store_identity",
+        "progression/admitted",
+        "phase-2",
+    ),
+    (
+        "AdmittedPhysicalRecovery::session_identity",
+        "progression/admitted",
+        "phase-2",
+    ),
+    (
+        "AdmittedPhysicalRecovery::limits",
+        "progression/admitted",
+        "phase-2",
+    ),
+    (
+        "AdmittedPhysicalRecovery::counters",
+        "progression/admitted",
+        "phase-2",
+    ),
+    (
+        "AdmittedPhysicalRecovery::cancel_before_discovery",
         "progression/admitted",
         "phase-2",
     ),
@@ -73,6 +158,11 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "phase-2",
     ),
     (
+        "PhysicalRecoveryFreshnessPort::admit",
+        "worth-store/recovery-freshness/port",
+        "phase-2",
+    ),
+    (
         "PhysicalRecoveryFreshnessPort::sample_binding",
         "worth-store/recovery-freshness/port",
         "phase-4",
@@ -88,6 +178,7 @@ const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
         "phase-6",
     ),
     ("PhysicalRecoveryRefusal", "entry/outcome", "phase-2"),
+    ("PhysicalRecoveryRefusalKind", "entry/outcome", "phase-2"),
     ("PhysicalRecoveryBlock", "entry/outcome", "phase-3"),
     (
         "PhysicalRecoveryPublicationIndeterminate",
@@ -171,7 +262,11 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .collect::<BTreeSet<_>>();
     assert_eq!(
         destination,
-        DESTINATION_SURFACES.iter().copied().collect(),
+        DESTINATION_SURFACES
+            .iter()
+            .chain(BACKEND_RECOVERY_SURFACES)
+            .copied()
+            .collect(),
         "C.8 destination facade inventory is not exact"
     );
 }
