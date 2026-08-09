@@ -273,7 +273,19 @@ The initial C.8 mutation corpus must include at least these defect classes:
 - scan from WAL genesis or scale discovery with total Store size;
 - delete the previous root, selected checkpoint, required WAL, or unresolved
   binding before safe publication; and
-- let the offline observer call recovery-runtime or source-precedence code.
+- let the offline observer call recovery-runtime or source-precedence code;
+- let a sealed type-level recovery witness substitute for the exact root,
+  session, backend-profile, media-generation, configuration, or budget binding;
+- omit one recovery binding axis while every remaining axis still agrees;
+- accept a caller-supplied checkpoint-generation sample or freshness policy for
+  idempotency retention or cleanup revalidation;
+- promote admitted, scheduled, or attempted media work to a performed staging,
+  publication, reopen, or cleanup effect;
+- let one recovery session terminate twice or disappear without owner-visible
+  non-terminal-drop evidence; and
+- decode a recovery or observer report under the wrong protocol family or an
+  unsupported protocol version, or let that descriptive protocol authorize a
+  persisted Store artifact.
 
 Every real C.8 defect fixed after the initial corpus adds a smallest causal
 mutation that would reintroduce it. The corpus is a growing regression record,
@@ -300,9 +312,10 @@ The following cannot close C.8:
    handoff defines required facts but its in-memory value is not a C.8 input.
 2. **Recovery has a separate reconstruction-band composition root.** A new
    `worth-store-recovery-runtime` crate owns fresh-process orchestration.
-   `worth-store` remains the ordinary runtime owner and exposes only a narrow
-   recovery-construction port. `worth-store-recovery-physics` owns pure
-   selection, redo, fate, and cost law.
+   `worth-store` remains the ordinary runtime owner and exposes only two narrow
+   reconstruction-band ports: recovery-freshness sampling and final
+   recovery-construction. `worth-store-recovery-physics` owns pure selection,
+   redo, fate, and cost law.
 3. **Recovery physics is not an executable catch-all.** By C.8 closeout it does
    not depend on `worth-store`, execute media effects, host the independent
    verifier, or export unrelated backup/PITR/rollback/replica workflows through
@@ -335,6 +348,50 @@ The following cannot close C.8:
     Warnings-denied compilation, focused tests, API/topology checks, ledger
     completeness, report-schema checks, and isolated mutation runs are required
     preflights before a source-bound campaign begins.
+13. **A sealed witness proves the lane, not the recovery instance.** C.8 uses
+    the Worth Proof sealed marker-authoring pattern for private minting, but the
+    concrete Store authority also retains a private exact binding. A zero-sized
+    witness, marker type, or successful equality check is never root-, Store-,
+    session-, profile-, generation-, configuration-, or budget-specific
+    authority by itself.
+14. **Recovery bindings declare every axis once.** Store-owned concrete entry
+    and admitted-world bindings use Worth Proof `Binding`/`BindingAxes`
+    machinery privately beneath their sealed types. Across the progression the
+    declared axes cover root-ownership identity, stable Store identity once
+    admitted, recovery-session identity, backend-profile identity, qualified
+    media generation, static-configuration identity, and recovery-limit
+    identity. A successful comparison returns no reusable authority token; the
+    same owner continuation constructs the exact next concrete state.
+15. **Freshness is sampled by the owner.** Idempotency lease expiry is evaluated
+    against the selected namespace-durable checkpoint generation, never wall
+    clock time. Cleanup-plan revalidation is evaluated against the current
+    published-root generation. The Store owner supplies the concrete
+    `FreshnessSource`, sealed establishment basis, and policy; callers, reports,
+    adapters, and fixtures cannot supply a sample, source, or policy.
+16. **Admission is not performance.** Worth Proof `Performed` may exist only
+    privately beneath concrete Store effect evidence recorded in the same owner
+    function after the exact C.4 effect completes. Staging writes, recovered-
+    root replacement, namespace synchronization, independent reopen, and each
+    cleanup removal have distinct action kinds and exact dynamic bindings.
+    Scheduler completion, permission, intent, attempted I/O, counters, and
+    ambiguous effects cannot mint performed evidence.
+17. **One recovery session ends once.** The concrete recovery session uses the
+    Worth Proof `LinearResource` law privately as
+    `LinearResource<RecoverySessionIdentity, PhysicalRecoveryTerminal,
+    PhysicalRecoverySessionAuthorityMarker>`, with terminal variants matching
+    `Recovered`, `Refused`, `Blocked`, and `PublicationIndeterminate`. The
+    recovery runtime owns identity issuance, enumeration, non-terminal-drop
+    detection, and quiescence; the generic linear value or terminal receipt is
+    not public recovery authority.
+18. **Boundary protocols describe reports, not Store truth.** The recovery
+    executable emits protocol family `store.physical.recovery-report` version
+    1, and the offline observer emits
+    `store.physical.recovery-observer-report` version 1. C.8 consumers initially
+    admit exactly version 1 through a Foundational compatibility window.
+    Identity mismatch or a version that predates, exceeds, or has been retired
+    from a declared window is typed before payload interpretation. These
+    protocol values never admit roots, checkpoints, WAL, pages, effects, or a
+    handoff, and the initial one-version windows create no compatibility facade.
 
 ## Semantic Vocabulary Lock
 
@@ -373,7 +430,15 @@ The following terms have one C.8 meaning:
 - **cleanup candidate**: residue whose deletion is separately proved safe
   after recovered-root publication and independent reopen; and
 - **observer report**: read-only independent evidence that can disagree with
-  recovery and can never authorize it.
+  recovery and can never authorize it;
+- **recovery authority binding**: the complete Store-owned set of dynamic axes
+  against which one concrete recovery authority or phase state was issued;
+- **performed physical effect evidence**: a concrete Store wrapper recorded
+  only after one exact C.4 action completed for one bound recovery session and
+  subject; and
+- **report protocol envelope**: a Foundational family identity and positive
+  version preceding a descriptive cross-process payload and carrying no Store
+  admission authority.
 
 Do not use `valid`, `current`, `complete`, `durable`, `recovered`, `safe`, or
 `clean` without the exact subject and proof boundary. A decoded artifact is not
@@ -398,6 +463,15 @@ C.8 may derive current physical truth only from:
 - admitted compaction cutover records and old-generation recoverability facts;
   and
 - backend profile facts required to interpret the C.7 durability barriers.
+
+Phase 1 distinguishes existing persisted producers from required producer
+gaps. A gap row is not persisted authority and cannot be substituted with a
+derived recovery posture. The current format has no durable previous-root
+selector protocol, no raw compaction-cutover record decoder, and no persisted
+WAL or checkpoint security-binding fields reconstructed by their current
+decoders. Phase 1 records all four as explicit owner-assigned producer gaps
+with exact delivery phases so later work cannot silently treat an in-memory
+receipt, identity wrapper, or derived classification as crash-surviving truth.
 
 The recovery request's configuration and qualified platform authority decide
 what may be opened and what budgets apply. They do not decide which persisted
@@ -552,13 +626,22 @@ model, or prior runtime identity.
 `PhysicalRecoveryPlatformAuthority` is one concrete sealed platform authority
 minted by the Store composition root after exclusive root ownership, backend
 qualification, and recovery-mode lifecycle admission. It is bound to the exact
-root and attempt and is consumed by entry admission. Generic
-`AuthorityMarker`, copied digests, profile labels, Foundational receipts, or
-public constructors cannot substitute for it.
+root and attempt and is consumed by entry admission. Its private Worth Proof
+marker/witness proves only the recovery-platform lane. A private
+`PhysicalRecoveryEntryBinding` additionally retains root-ownership identity,
+recovery-session identity, backend-profile identity, qualified-media
+generation, static-configuration identity, and recovery-limit identity. After
+the persisted stable Store identity is admitted, the successor concrete world
+binding retains that identity as an additional axis. Generic `AuthorityMarker`,
+a bare `AuthorityWitness`, a bare `Binding`, copied digests, profile labels,
+Foundational receipts, or public constructors cannot substitute for the
+concrete authority.
 
 `physical_store_recover` mints that authority inside the fresh process before
 constructing the request. The authority is never accepted from command-line,
-wire, report, or serialized input.
+wire, report, or serialized input. Axis comparison occurs inside entry
+admission and returns only `()` or an exact per-axis drift denial; a match does
+not escape as a reusable admission token.
 
 ### Compiler-visible progression
 
@@ -578,7 +661,7 @@ PhysicalRecoveryOpenRequest
 
 - `AdmittedPhysicalRecovery` proves exclusive recovery lifecycle, exact Store
   identity, qualified backend profile, new recovery-session identity, concrete
-  platform authority, and finite budgets.
+  platform authority, finite budgets, and one exact admitted-world binding.
 - `DiscoveredPhysicalRecovery` owns bounded candidates and counters but no
   selected truth.
 - `SelectedPhysicalRecovery` owns one deterministic source basis and exact
@@ -588,16 +671,27 @@ PhysicalRecoveryOpenRequest
 - `StagedPhysicalRecovery` proves all planned redo is settled in one closed
   non-current generation with no live recovery work.
 - `NamespaceDurablePhysicalRecovery` proves root replacement and required
-  namespace durability.
+  namespace durability from distinct concrete performed-effect values recorded
+  after those C.4 actions.
 - `ReopenedPhysicalRecovery` proves the published generation was opened again
-  through fresh handles and agrees with the closed plan.
+  through fresh handles and agrees with the closed plan, using concrete
+  performed reopen evidence bound to that generation and session.
 - `RecoveredPhysicalRuntimeHandoff` carries the new runtime identity, verified
   physical roots, bounded access capabilities, operation fates, unsupported or
   quarantined scope, cleanup posture, and exact counters.
 
 Only the predecessor constructs its successor. No public constructor,
 `Clone`, serialization round trip, report, digest, or evidence projection can
-mint a progression state. Earlier states cannot execute later effects.
+mint a progression state. Earlier states cannot execute later effects. Bare
+Worth Proof `Performed`, `DerivedFrom`, `Inverts`, `TerminalReceipt`, or a
+successful binding comparison cannot satisfy a governed C.8 surface; only the
+Store owner can wrap the applicable substrate in the exact concrete successor.
+
+The recovery session itself is a concrete Store type over the Worth Proof
+linear-resource law. Exactly one top-level outcome consumes it into the
+matching terminal receipt. The owner runtime separately records every live
+session and treats non-terminal drop as a lifecycle defect; Rust's move-only
+value alone is not accepted as leak detection or quiescence proof.
 
 ### Outcome topology
 
@@ -620,6 +714,25 @@ effect, budget, and recovery-direction context relevant to their cause. A
 poisoned lock, unsupported format, missing range, backend denial, capacity
 deferral, foreign Store, and integrity block must not collapse into `Io`,
 `Invalid`, or `RecoveryFailed`.
+
+### Narrow Store freshness port
+
+`worth-store` exposes a separate reconstruction-only
+`PhysicalRecoveryFreshnessPort`. The entry authority derives its concrete
+`PhysicalRecoveryFreshnessAuthority`; callers cannot construct or substitute
+that authority. `sample_binding` returns a
+`StoreRecoveryBindingFreshnessSample` containing the owner-sampled selected
+checkpoint generation, sealed C.7 basis identity, and concrete policy
+identity. `sample_cleanup` returns a
+`StoreRecoveryCleanupFreshnessSample` containing the owner-sampled current
+published-root generation, cleanup-plan artifact identity, sealed publication
+basis, and concrete policy identity. The recovery runtime may pass those
+values into pure physics classification, but neither sample authorizes an
+effect or crosses into ordinary Store serving.
+
+This freshness port is distinct from construction: it cannot accept a
+recovery phase value, create cleanup or media-effect authority, publish a root,
+or construct runtime handles.
 
 ### Narrow Store construction port
 
@@ -654,7 +767,11 @@ worth-store-recovery-physics       worth-store
 
 `worth-store` does not import recovery physics or replay. The reconstruction
 composition crate depends on both participants and remains outside the ordinary
-lane.
+lane. `worth-store-recovery-runtime` may import Worth Proof only as private
+contract substrate beneath its concrete Store types. Its `observation` module
+and the offline verifier may import the Foundational facade for the locked
+report protocols; source selection, redo, fate, publication, construction, and
+cleanup do not accept Foundational protocol values.
 
 ## Signal, Worth Proof, And Foundational Law
 
@@ -688,11 +805,21 @@ is never cancellation.
 
 ### Worth Proof
 
-Worth Proof supplies concrete platform authority/witness patterns, consuming
-proof outcomes, transition readiness, nonempty/ordered structural proofs, and
-compiler-visible progression. C.8 uses those mechanisms for:
+Worth Proof supplies the private up-front contract substrate, consuming proof
+outcomes, transition readiness, nonempty/ordered structural proofs, and
+compiler-visible progression. C.8 uses those mechanisms through Store-owned
+concrete wrappers for:
 
-- concrete recovery platform and construction authority;
+- privately minted recovery-platform and construction authority markers whose
+  witnesses prove only their lanes;
+- `Binding`/`BindingAxes` declarations for exact entry and admitted recovery
+  worlds, with one generated drift kind and one hostile twin per axis;
+- a concrete recovery-session wrapper over `LinearResource` with exactly one
+  terminal outcome while Store retains the live registry and drop enforcement;
+- owner-sampled generation freshness for idempotency binding expiry and cleanup
+  retry revalidation;
+- concrete performed-effect evidence recorded after exact C.4 staging,
+  publication, namespace, reopen, and cleanup actions;
 - exact root/checkpoint/WAL continuity joins;
 - all-admitted plan construction;
 - staging quiescence;
@@ -700,18 +827,40 @@ compiler-visible progression. C.8 uses those mechanisms for:
 - independent reopen; and
 - safe cleanup eligibility.
 
-Worth Proof does not own Store identity, source precedence, WAL validity,
-pageLSN meaning, operation fate, current-root authority, or cleanup policy.
-Generic `AuthorityMarker` bounds are forbidden on governed public and
-cross-crate C.8 surfaces. Any generic machinery remains private beneath sealed
-concrete types.
+Worth Proof does not own Store identity or recovery-session identity issuance,
+live-resource registries, the selected checkpoint-generation source, source
+precedence, WAL validity, pageLSN meaning, exact effect occurrence identity,
+operation fate, current-root authority, or cleanup policy. `Branded` may prevent
+substitution inside one lexical recovery scope, but it cannot replace the
+process/runtime/Store identity values that cross phases or the final handoff.
+`DerivedFrom` and `Inverts` may express action-kind law but cannot prove which
+root, generation, artifact, or effect occurrence participated. Generic
+`AuthorityMarker` bounds and bare generic Worth Proof carriers are forbidden on
+governed public and cross-crate C.8 surfaces. All generic machinery remains
+private beneath sealed concrete Store types.
 
 ### Worth Foundational and Store aspect-native
 
 Foundational supplies stable boundary-envelope roles, canonical identities,
 typed outcome and diagnostic posture, policy admission, and counter-backed
 performance evidence where those facilities already fit. Store aspect-native
-contracts declare the four recovery work families above.
+contracts declare the four recovery work families above. Foundational also
+supplies the descriptive protocol family, positive version, compatibility
+window, and typed unsupported-version posture for the two cross-process report
+families:
+
+| Producer boundary | Protocol family | Produced version | Initial consumer window | Authority limit |
+| --- | --- | --- | --- | --- |
+| `physical_store_recover` observation export | `store.physical.recovery-report` | 1 | inclusive 1 through 1 | report interpretation only |
+| `physical_store_offline_observer` export | `store.physical.recovery-observer-report` | 1 | inclusive 1 through 1 | independent comparison only |
+
+The protocol family is stable and version-free; the produced version is a
+separate positive value. A consumer validates family identity and admits the
+version through its declared window before interpreting payload fields.
+Predates-window, exceeds-window, and retired postures remain distinct whenever
+the declared window makes them applicable. Supporting version 1 does not create
+an alternate C.8 recovery facade, and a future report version changes no Store
+authority without a separately revised Store contract.
 
 Foundational artifacts are one-way projections from executed Store recovery
 facts. They cannot be accepted back as source admission, redo, publication,
@@ -719,6 +868,13 @@ fate, or cleanup authority. C.8 must not construct rich evidence objects, JSON,
 or explanations on its ordinary recovery execution path unless the caller
 explicitly requests that observation profile and pays its separate bounded
 cost.
+
+Store-owned persisted format identity, schema version, compatibility, and
+migration law remain the only admission authority for selectors, roots,
+checkpoints, WAL, pages, extents, manifests, and bindings. A Foundational report
+protocol may describe those values after Store admission; it cannot reinterpret
+old bytes, convert an unsupported physical format into a supported one, or
+authorize recovery because a report version is accepted.
 
 No Foundational branch, commit, merge, selected-node, selected-aspect,
 skipped-scope, or semantic checkpoint vocabulary is applicable to C.8 physical
@@ -729,18 +885,24 @@ reconstruction.
 | Type or responsibility | Constructed by | Proves | Authorizes | Cannot authorize | Consumed by |
 | --- | --- | --- | --- | --- | --- |
 | `PhysicalRecoveryPlatformAuthority` | Store composition root from exclusive root lifecycle and qualified backend authority | this fresh process may attempt recovery for one root | entry admission only | current truth, redo, or serving | `PhysicalRecoveryOpenRequest` |
+| `PhysicalRecoveryEntryBinding` | Store composition root from owner-issued dynamic identities | root ownership, session, profile, media generation, configuration, and limit axes agree with authority issuance | same-continuation entry admission comparison | reusable authority or persisted currentness | entry admission |
+| `AdmittedRecoveryWorldBinding` | entry admission after persisted Store identity admission | the entry binding plus exact stable Store identity define one recovery world | construction of the concrete admitted phase in the same continuation | cross-session reuse or later effect authority | `AdmittedPhysicalRecovery` |
+| `PhysicalRecoverySession` | recovery runtime over owner-issued session identity and private Worth Proof linear substrate | one live recovery attempt has not yet terminated | exactly one terminal C.8 outcome | quiescence, Store truth, or a second terminal transition | top-level outcome owner |
 | `AdmittedPhysicalRecovery` | recovery runtime through concrete authority and limit admission | exact Store/session/profile/budget recovery world | bounded discovery | candidate selection or effects | discovery owner |
 | `RecoverySourceCandidate` | bounded discovery | one artifact was found within declared scope | role-specific admission attempt | currentness | source admission |
 | `AdmittedRecoverySource` | recovery physics from schema, Store/incarnation, generation, role, and integrity minimum | source is lawful for one role | participation in precedence | selection for another role | precedence owner |
 | `SelectedRecoveryBasis` | source-precedence owner | unique root/checkpoint/tail/page/binding cut | immutable planning | media effects | planning owner |
 | `RecoveryRedoPlan` | recovery planner from selected basis and exact limits | complete ordered apply/skip decisions and expected work | staging execution | re-selection or publication | redo executor |
 | `RecoveryOperationFateSet` | fate owner from selected compaction, tail, and recovered effect facts | weakest exact fate for every retained operation identity | duplicate/readmission handoff facts | acknowledgment delivery or semantic retry | closed staging and handoff |
+| `RecoveryBindingFreshness` | Store owner from sealed C.7 binding basis, selected checkpoint-generation source, and concrete policy | exact retained binding was classified against the owner-sampled selected generation | the matching retention, compaction, or unresolved-fate branch only | source selection, wall-clock expiry, or cleanup | fate planner |
+| `PerformedRecoveryPhysicalEffect<Action>` | exact C.4 effect owner after the bound action completes | one named action completed for one session, subject, generation, and outcome | its one concrete successor transition | another action, ambiguous effect, serving, or reuse | staging, publication, reopen, or cleanup owner |
 | `ClosedRecoveryStagingGeneration` | recovery executor after all planned work settles | exact staged bytes, pageLSNs, roots, fates, counters, and quiescence | recovered-root publication | serving | publication owner |
 | `NamespaceDurableRecoveredGeneration` | C.4-backed publication owner | recovered root replacement and namespace barrier completed | independent reopen and cleanup planning | serving by itself | reopen owner |
 | `ReopenedPhysicalRecovery` | fresh-handle reopen owner | published bytes agree with the closed plan | quiescent Store handoff construction | semantic readmission | Store construction port |
 | `RecoveredPhysicalRuntimeHandoff` | Store recovery-construction port | one fresh quiescent physical runtime and exact C.8 output | later Part II physical readmission | branch, Query, semantic writer, or acknowledgment | C.9/C.10 and later integration |
 | `RecoveryCleanupEligibility` | cleanup owner from publication, reopen, fallback, binding, and last-copy proofs | one exact residue action is safe | that one cleanup effect | recovery success or broader deletion | C.4 cleanup execution |
-| `RecoveryObserverReport` | independent offline process | read-only artifact observations | comparison and diagnostics | any recovery transition | parent harness/operator tooling |
+| `RecoveryReportEnvelope` | recovery observation exporter after Store outcome construction | versioned descriptive recovery facts under `store.physical.recovery-report` | compatible report interpretation | any Store transition or physical-format admission | parent harness/operator tooling |
+| `RecoveryObserverReport` | independent offline process under `store.physical.recovery-observer-report` | versioned read-only artifact observations | compatible comparison and diagnostics | any recovery transition or physical-format admission | parent harness/operator tooling |
 
 ## Required Destination Directory And Module Plan
 
@@ -777,6 +939,8 @@ workspaces/worth-store/crates/
 │       │   ├── request.rs                                [C]
 │       │   ├── admission.rs                              [C]
 │       │   ├── authority.rs                              [C]
+│       │   ├── authority_binding.rs                      [C]
+│       │   ├── session.rs                                [C]
 │       │   └── outcome.rs                                [C]
 │       ├── progression/                                  [C] compiler-visible phases
 │       │   ├── mod.rs                                    [C]
@@ -786,7 +950,8 @@ workspaces/worth-store/crates/
 │       │   ├── planned.rs                                [C]
 │       │   ├── staged.rs                                 [C]
 │       │   ├── published.rs                              [C]
-│       │   └── reopened.rs                               [C]
+│       │   ├── reopened.rs                               [C]
+│       │   └── performed_effect.rs                       [C] private substrate wrappers
 │       ├── orchestration/                                [C] cross-owner sequencing
 │       │   ├── mod.rs                                    [C]
 │       │   ├── discovery.rs                              [C]
@@ -795,8 +960,7 @@ workspaces/worth-store/crates/
 │       │   ├── publication.rs                            [C]
 │       │   └── reopen.rs                                 [C]
 │       ├── handoff/                                      [C] quiescent successor
-│       │   ├── mod.rs                                    [C]
-│       │   ├── recovered_physical_runtime.rs             [C]
+│       │   ├── mod.rs                                    [C] facade re-exports Store handoff
 │       │   ├── operation_fates.rs                        [C]
 │       │   ├── unsupported_scope.rs                      [C]
 │       │   └── cleanup_posture.rs                        [C]
@@ -808,6 +972,7 @@ workspaces/worth-store/crates/
 │       └── observation/                                  [C] cheap typed facts
 │           ├── mod.rs                                    [C]
 │           ├── counters.rs                               [C]
+│           ├── protocol.rs                               [C]
 │           └── report.rs                                 [C]
 ├── worth-store-recovery-physics/                         [E] narrowed to pure law
 │   └── src/
@@ -844,6 +1009,7 @@ workspaces/worth-store/crates/
 │       │   ├── mod.rs                                    [C]
 │       │   ├── identity.rs                               [C]
 │       │   ├── evidence_join.rs                          [C]
+│       │   ├── binding_freshness.rs                      [C]
 │       │   ├── fate.rs                                   [C]
 │       │   └── denial.rs                                 [C]
 │       ├── recovery_budget/                              [E] narrowed
@@ -855,6 +1021,12 @@ workspaces/worth-store/crates/
 │       └── legacy executable/evidence/verifier facade    [D]
 ├── worth-store/
 │   └── src/
+│       ├── physical_runtime/recovery_freshness/          [C]
+│       │   ├── mod.rs                                    [C]
+│       │   ├── port.rs                                   [C] reconstruction-only sampling facade
+│       │   ├── authority.rs                              [C] concrete Store sampling authority
+│       │   ├── binding.rs                                [C] selected-checkpoint source, sealed basis, policy
+│       │   └── cleanup.rs                                [C] current-root source, sealed basis, policy
 │       ├── physical_runtime/recovery_construction/       [C]
 │       │   ├── mod.rs                                    [C]
 │       │   ├── port.rs                                   [C]
@@ -869,6 +1041,7 @@ workspaces/worth-store/crates/
 │       ├── artifact_walk.rs                              [C]
 │       ├── physical_format.rs                            [C]
 │       ├── conclusion.rs                                 [C]
+│       ├── report_protocol.rs                            [C]
 │       └── report.rs                                     [C]
 └── worth-store-physical-certification/
     └── src/c8_fresh_process_recovery/                    [C]
@@ -896,16 +1069,18 @@ force later structural churn.
 
 | Boundary | Dominant axis and owner | Belongs | Excluded | Enforcement |
 | --- | --- | --- | --- | --- |
-| `recovery-runtime/entry` | fresh-process admission | public request, concrete authority, exact outcome | source logic, media effects, reports | facade and visibility gates |
-| `recovery-runtime/progression` | proof lifecycle | sealed consuming phase values | orchestration or parsing | private fields, compile-fail tests |
+| `recovery-runtime/entry` | fresh-process admission | public request, concrete authority, exact dynamic bindings, linear session, exact outcome | source logic, media effects, reports | facade, private Worth Proof substrate, and per-axis drift gates |
+| `recovery-runtime/progression` | proof lifecycle | sealed consuming phase values and concrete performed-effect wrappers | orchestration, parsing, bare generic proof carriers | private fields, compile-fail tests, and action/binding identity checks |
 | `recovery-runtime/orchestration` | cross-domain sequencing | calls into physics, Store port, and C.4 work route | domain meaning | dependency and composition checks |
+| `recovery-runtime/observation` | descriptive recovery export | cheap typed facts, report protocol identity/version, bounded rendering | Store admission, effects, rich mandatory diagnostics | separate observation profile, compatibility-window tests, and import gates |
 | `recovery-physics/source_precedence` | persisted truth selection | role-specific admission and deterministic choice | filesystem execution, operator policy | no `worth-store`, Signal, or runtime dependency |
 | `recovery-physics/wal_prefix` | WAL continuity | exact prefix/torn/middle decisions | redo execution | focused property and mutation proof |
 | `recovery-physics/redo_replay` | immutable redo plan | admitted record grammar and order | media writes | pure API and dependency check |
 | `recovery-physics/page_redo` | page transition meaning | generation/pageLSN apply or skip | buffer-pool lifecycle | pure transition tests |
-| `operation_reconciliation` | physical fate | identity/evidence join | semantic retry or acknowledgment delivery | exhaustive fate types |
+| `operation_reconciliation` | physical fate | identity/evidence join and owner-sampled generation freshness | semantic retry, acknowledgment delivery, or caller-supplied freshness | exhaustive fate types and source/policy substitution tests |
+| `recovery_freshness` | Store physical freshness ownership | owner-sampled selected-checkpoint and published-root generations, sealed bases, and concrete policies | pure classification, caller samples, or replay | exact authority-trace-to-topology owner equality and substitution tests |
 | `recovery_construction` | Store physical runtime construction | new identity, fresh handles, quiescent handoff | replay and semantic serving | reconstruction-only feature/dependency gate |
-| `c8_recovery_observation` | independent read-only evidence | stable format interpretation | recovery decisions and authority types | import/dependency and controlled-defect gates |
+| `c8_recovery_observation` | independent read-only evidence | stable format interpretation and observer report protocol | recovery decisions, authority types, and Store format admission | import/dependency, protocol-window, and controlled-defect gates |
 
 The destination forbids `recovery_manager.rs`, `helpers.rs`, `common.rs`,
 `util.rs`, generic evidence bags, flat phase-state files, and any module that
@@ -973,12 +1148,22 @@ The ordinary recovery counter snapshot contains exact:
 - pages/extents read and written;
 - staging bytes allocated and peak recovery bytes held;
 - operation fates by exact variant;
+- entry and admitted-world binding comparisons and denials by exact axis;
+- owner-sampled binding-freshness evaluations by exact verdict;
+- recovery sessions issued and terminated by exact top-level outcome, plus
+  owner-detected non-terminal drops;
+- concrete performed physical effects by action kind and exact outcome;
 - root and namespace publication effects;
 - independent-reopen reads;
 - residue classifications;
 - cleanup actions planned, completed, and deferred; and
 - scheduler submissions, deferrals, cancellations, and settlements for each
   C.8 work family.
+
+Report-protocol identity/version reads, accepted versions, typed incompatibility
+postures, encoded bytes, and payload fields materialized belong to the bounded
+observation profile. They are not charged to or silently performed by the
+ordinary recovery lane.
 
 Counters are monotonic, stage-honest, and cannot report future work as zeroed
 fields. Each phase exposes only facts already executed. Exact structural
@@ -1005,6 +1190,14 @@ Cleanup begins only after all of these proofs exist:
 6. the retained fallback and last-copy rules are satisfied; and
 7. no unresolved binding or unsupported/quarantined scope needs the artifact.
 
+Immediately before each cleanup effect, the cleanup owner samples the current
+published-root generation through its concrete Store-owned freshness source and
+re-evaluates the sealed cleanup-plan basis under the concrete cleanup policy.
+The caller cannot present an observation, choose an evaluation moment, or
+substitute a source or policy. A stale, shifted, unavailable, or failed
+evaluation returns the exact retained/deferred posture and no cleanup
+`Performed` evidence.
+
 Cleanup eligibility is per artifact and consuming. It can authorize only the
 exact removal it names. A cleanup batch cannot be constructed from filenames,
 age, generation comparison, a checkpoint-present boolean, or a generic
@@ -1026,7 +1219,10 @@ Cleanup failure after successful recovered-root publication yields
 `RecoveryCleanupPosture::Deferred` with exact candidates and causes. It does
 not roll back or invalidate the current recovered root. A later maintenance
 owner may retry the exact still-valid plan only after revalidating current root,
-generation, unresolved bindings, and last-copy facts.
+generation through the owner-sampled freshness boundary, unresolved bindings,
+and last-copy facts. Each successful removal records concrete performed-effect
+evidence only after C.4 reports completion; attempted or ambiguous removal
+retains the artifact disposition and cannot be relabeled successful.
 
 ### Source cutover accounting
 
@@ -1137,12 +1333,16 @@ operators. It must explain:
 
 - when the ordinary Store open path yields to C.8 recovery;
 - the exact fresh-process inputs and authority requirements;
+- the distinction between sealed authority lane, exact dynamic recovery
+  binding, owner-sampled freshness, and performed physical effect;
 - outcome handling for recovered, refused, blocked, publication-indeterminate,
   and cleanup-deferred cases;
 - physical operation-fate meaning and retry restrictions;
 - boundedness and exact counter interpretation;
 - unsupported/damaged scope and the C.9 boundary;
 - safe restart after interrupted C.8 publication; and
+- the recovery and observer report protocol family identities, initial version
+  windows, typed unsupported-version handling, and their non-authority; and
 - what C.8 explicitly does not restore.
 
 Every Rust example compiles against the public recovery facade. Operator
@@ -1154,12 +1354,14 @@ store and distinct processes.
 Revise or create:
 
 - `worth-store-recovery-runtime/README.md` for the composition boundary,
-  progression, effects, and exclusions;
+  authority binding axes, linear session lifecycle, progression, performed
+  effects, observation protocol, and exclusions;
 - `worth-store-recovery-physics/README.md` for its narrowed pure-law role and
   dependency direction;
 - `worth-store/` owner documentation for the reconstruction-only construction
   port and quiescent handoff;
-- `worth-store-offline-verifier/README.md` for C.8 observer independence;
+- `worth-store-offline-verifier/README.md` for C.8 observer independence and
+  the exact observer-report protocol contract;
 - `physical-durability-and-checkpoints.md` for the corrected C.7/C.8 persisted
   boundary; and
 - the physical reconstruction roadmap for C.8 and C.9/C.10 handoffs.
@@ -1169,9 +1371,10 @@ authority. Remove or correct claims that the old wide recovery-physics facade,
 same-crate verifier, sharp-checkpoint assumptions, or pre-C.7 WAL mechanics are
 the current architecture.
 
-Documentation drift checks bind API names, variants, examples, and outcome
-semantics to the real public facade. They do not assert prose through fragile
-production-source substrings.
+Documentation drift checks bind API names, variants, report family identities,
+produced versions, consumer windows, examples, and outcome semantics to the
+real public facade. They do not assert prose through fragile production-source
+substrings.
 
 ## Phase Plan
 
@@ -1191,17 +1394,42 @@ recovery-physics exports and consumers, current certification/observer routes,
 and governing laws.
 
 **Establishes:** the new crate boundary, exact fresh-process inputs, concrete
-authority provenance, phase-state names, outcome/fate vocabularies, dependency
-direction, and deletion targets. The C.7 in-memory handoff is explicitly
-non-authoritative for C.8.
+authority provenance, exact entry and admitted-world binding axes, linear
+session terminals, performed action kinds, owner-sampled freshness sources and
+policies, report protocol identities/version windows, phase-state names,
+outcome/fate vocabularies, dependency direction, and deletion targets. The C.7
+in-memory handoff is explicitly non-authoritative for C.8.
 
 **Mechanically forbids:** missing API rows, generic dispositions, unresolved
-C.8 owners, entry acceptance of live state, replay in ordinary features, and a
-recovery-physics dependency on Signal or Query.
+C.8 owners, unspecified binding axes or report versions, entry acceptance of
+live state, replay in ordinary features, and a recovery-physics dependency on
+Signal or Query.
 
 **Evidence:** exact facade inventory, dependency graph, compilation attacks,
 disposition reconciliation, architecture-law checks, and ledger completeness
 mutants.
+
+<!-- c8-phase1-requirements:start -->
+| Requirement ID | Normative Phase 1 guarantee |
+| --- | --- |
+| C8-P1-TRUTH-01 | Persisted truth and explicit producer gaps are distinguished from live or derived proxies. |
+| C8-P1-API-01 | Every reachable current surface and planned destination surface has one disposition. |
+| C8-P1-AUTHORITY-01 | Concrete Store authority retains every declared binding axis. |
+| C8-P1-SESSION-01 | One linear recovery session reaches one exact terminal. |
+| C8-P1-EFFECT-01 | Performed effects retain action outcome and occurrence identity. |
+| C8-P1-FRESHNESS-01 | Freshness uses owner-sampled sources sealed bases and exact policies. |
+| C8-P1-PROTOCOL-01 | Recovery and observer protocols are distinct versioned descriptive families. |
+| C8-P1-TOPOLOGY-01 | Every semantic destination leaf has an exact owner responsibility and introduction phase. |
+| C8-P1-DEPENDENCY-01 | Current dependency edges and forbidden replay directions are exact. |
+| C8-P1-CUTOVER-01 | Owners consumers observer routes and documents have reconciled dispositions. |
+| C8-P1-COMPILE-01 | The inherited C7 handoff remains non-forgeable pending actual C8 types. |
+| C8-P1-CLEANUP-01 | Cutover deletion gates are named without Phase 2 placeholders. |
+| C8-P1-DOCUMENTATION-01 | Specification and roadmap links and contracts agree. |
+| C8-P1-LEDGER-01 | Every normative Phase 1 requirement has one causal ledger row and closed findings. |
+| C8-P1-LEDGER-02 | Each proved row is bound to its own causal source closure. |
+| C8-P1-ENTRY-01 | Planned entry accepts exact static owner inputs and rejects live proxies. |
+| C8-P1-PERSISTED-01 | Every persisted role names a real producer/admission pair or an explicit producer gap. |
+<!-- c8-phase1-requirements:end -->
 
 **Next may trust:** no architectural decision or hidden old path remains for
 later phases to discover.
@@ -1220,15 +1448,20 @@ identity, and finite limits.
 allocation authority.
 
 **Establishes:** `worth-store-recovery-runtime`, the public request/outcome
-facade, `AdmittedPhysicalRecovery`, fresh scheduler/Signal mechanism, and
-bounded read-only discovery ports.
+facade, privately sealed authority markers, concrete entry and admitted-world
+bindings, the concrete linear recovery session plus owner lifecycle tracking,
+`AdmittedPhysicalRecovery`, fresh scheduler/Signal mechanism, and bounded
+read-only discovery ports.
 
 **Mechanically forbids:** same-process runtime reuse, copied C.7 handoff,
-foreign Store/root substitution, stale authority, generic markers, unlimited
-recovery, and effects during admission.
+foreign Store/root substitution, omitted binding axes, stale authority, a bare
+marker/witness/binding satisfying entry, duplicate session termination,
+undetected non-terminal drop, unlimited recovery, and effects during admission.
 
 **Evidence:** compile-fail authority attacks, two-process identity journeys,
-wrong-root/profile/session denials, allocation-bound tests, and zero-effect
+one-axis-at-a-time binding drift twins, wrong-root/profile/media-generation/
+configuration/limit/session denials, duplicate-terminal compiler attacks,
+owner-visible non-terminal-drop tests, allocation-bound tests, and zero-effect
 counters for refusal.
 
 **Next may trust:** discovery begins in one fresh, exclusive, bounded recovery
@@ -1268,19 +1501,24 @@ locked precedence contract.
 **Becomes true:** C.8 has one immutable, all-admitted, effect-free recovery plan.
 
 **Consumes:** selected basis, page generation/pageLSN facts, WAL record grammar,
-checkpoint binding compaction, retained attempt bindings, and exact limits.
+checkpoint binding compaction, retained attempt bindings, the sealed C.7 lease
+bases, owner-sampled selected-checkpoint generation, concrete freshness policy,
+and exact limits.
 
 **Establishes:** maximal valid WAL prefix, torn-tail versus middle-corruption
 classification, ordered apply/skip decisions, fate set, staging layout,
-publication plan, expected counters, and no-effect/indeterminate boundaries.
+publication plan, exact owner-sampled binding-freshness evaluations, expected
+counters, and no-effect/indeterminate boundaries.
 
 **Mechanically forbids:** redo redecision during execution, missing-range
 truncation, pageLSN bypass, Store-incarnation omission, absence-as-no-effect,
-and plan construction over budget.
+caller-supplied generation samples/source/policy, wall-clock lease expiry, and
+plan construction over budget.
 
 **Evidence:** independent prefix decoder tests, property tests for gaps/overlaps
 and repeated planning, every-fate identity blender, exact counter oracles,
-compile-time plan progression, and controlled mutants.
+source/policy/sample substitution compiler attacks, checkpoint-generation
+boundary twins, compile-time plan progression, and controlled mutants.
 
 **Next may trust:** execution performs a fixed plan and cannot reinterpret
 truth.
@@ -1298,16 +1536,19 @@ Store aspect-native work bases, admitted scheduler policy, and C.4 media ports.
 
 **Establishes:** fresh bounded frames, exact page/extent transitions, final
 pageLSNs and digests, staged manifests, settled fate set, stage-honest counters,
-and `ClosedRecoveryStagingGeneration`.
+concrete performed staging-effect evidence, and
+`ClosedRecoveryStagingGeneration`.
 
 **Mechanically forbids:** mutation of selected source artifacts, unplanned I/O,
 direct filesystem calls, double application, serving access, phase skipping,
-and completion with live recovery work or handles.
+admission/scheduling/attempt evidence substituting for performed effects, and
+completion with live recovery work or handles.
 
 **Evidence:** real-media apply/skip journeys, repeated-recovery convergence,
 partial-effect cancellation and failure cases, wrong-generation/pageLSN
-mutants, exact allocation/counter reconciliation, and quiescence compile/runtime
-proof.
+mutants, admitted-as-performed and wrong-action compiler attacks, evidence-
+before-effect mutants, exact allocation/counter reconciliation, and quiescence
+compile/runtime proof.
 
 **Next may trust:** one closed non-current generation exactly implements the
 plan.
@@ -1320,8 +1561,10 @@ routes, temporary staging adapters, and fixtures that bypass C.4/C.5.1.
 **Becomes true:** the recovered root is namespace durable, independently
 reopened, and exposed only as a quiescent physical handoff with new identity.
 
-**Consumes:** closed staging generation, exact publication plan, C.4 root and
-namespace effects, concrete Store construction authority, and final fate set.
+**Consumes:** closed staging generation, exact publication plan, concrete
+performed C.4 root-replacement and namespace-barrier effects, concrete
+performed fresh-handle reopen evidence, concrete Store construction authority,
+and final fate set.
 
 **Establishes:** `NamespaceDurablePhysicalRecovery`,
 `ReopenedPhysicalRecovery`, the narrow Store construction port, fresh runtime
@@ -1330,11 +1573,14 @@ indeterminate continuation law.
 
 **Mechanically forbids:** handoff before namespace durability, serving-runtime
 construction, writer identity/handle reuse, report-as-authority, in-process
-retry after ambiguous publication, and semantic state in the handoff.
+retry after ambiguous publication, permission/attempt/counter as performed
+publication, action-kind or dynamic-binding substitution, and semantic state in
+the handoff.
 
 **Evidence:** real crash seams around every publication effect, distinct-process
 and distinct-runtime identity proof, fresh-handle reopen comparison, compile-
-fail serving/semantic attacks, and root/barrier counter mutants.
+fail serving/semantic/performed-action attacks, evidence-before-barrier and
+wrong-generation binding mutants, and root/barrier counter mutants.
 
 **Next may trust:** one durable, reopened, quiescent physical generation is
 current and ready for later readmission.
@@ -1348,18 +1594,22 @@ any handoff constructor or compatibility re-export bypassing the new port.
 retained, deferred, quarantined/unsupported, or safely removed disposition.
 
 **Consumes:** published/reopened recovery, fallback and last-copy facts,
-operation fates, unresolved bindings, residue classifications, and exact
-cleanup limits.
+operation fates, unresolved bindings, sealed cleanup-plan basis, owner-sampled
+current-root generation, concrete cleanup freshness policy, residue
+classifications, and exact cleanup limits.
 
 **Establishes:** per-artifact cleanup eligibility, scheduled cleanup effects,
-deferred cleanup posture, and crash-safe retry revalidation.
+concrete performed removal evidence, deferred cleanup posture, and crash-safe
+owner-sampled retry revalidation.
 
 **Mechanically forbids:** cleanup before publication/reopen, filename/age-based
 deletion, removal of required WAL or previous root, deletion under
-indeterminate publication, stale-plan retry, and cleanup authority widening.
+indeterminate publication, caller-supplied freshness, attempted-as-performed
+removal, stale-plan retry, and cleanup authority widening.
 
 **Evidence:** hostile last-copy and unresolved-binding attacks, cleanup crash
-matrix, deferred-cleanup recovery journey, stale-plan rejection, and exact
+matrix, deferred-cleanup recovery journey, freshness source/policy substitution
+attacks, stale-plan rejection, ambiguous-removal evidence attacks, and exact
 cleanup counters.
 
 **Next may trust:** cleanup cannot destroy recovery truth and does not define
@@ -1379,14 +1629,17 @@ inventory, public API inventory, dependency graph, affected direct consumers,
 and named documentation deliverables.
 
 **Establishes:** final narrow facades, complete caller migration, exact deletion
-closure, owner READMEs, and the executable caller/operator guide.
+closure, versioned recovery and observer report protocols, owner READMEs, and
+the executable caller/operator guide.
 
 **Mechanically forbids:** compatibility aliases, duplicate entry points, broad
 re-exports, ordinary replay imports, recovery-runtime code in recovery physics,
-same-crate observer decisions, stale docs, and dead dependencies.
+same-crate observer decisions, wrong-family or unsupported-version payload
+decode, reports admitted as Store truth, stale docs, and dead dependencies.
 
 **Evidence:** exact API and reachability gates, dependency/feature checks,
-scoped inventory reconciliation, compiled and executed documentation, warnings-
+scoped inventory reconciliation, report identity/version/window tests, wrong-
+family and future-version twins, compiled and executed documentation, warnings-
 denied all-target checks, and zero stale source/dependency rows.
 
 **Next may trust:** only the destination authority path and continuing
@@ -1415,9 +1668,11 @@ recovery authority through the handoff.
 
 **Evidence:** cheap preflight; all named crash seams; 16 seeded CI schedules;
 canonical release schedule; exact seed replay; controlled-defect corpus;
-independent artifact report; documentation execution; line-cap, constitution,
-dependency, API, inventory, and ledger gates; final source identity; and
-hardware qualification for the named release profiles.
+independent versioned artifact report; authority-binding, freshness,
+performed-effect, linear-session, and protocol mutants; documentation
+execution; line-cap, constitution, dependency, API, inventory, and ledger
+gates; final source identity; and hardware qualification for the named release
+profiles.
 
 **Next may trust:** a dead writer is replaceable from persisted physical
 authority alone, within declared cost, without semantic readmission.
@@ -1432,6 +1687,10 @@ C.8 is incomplete without:
 
 - one fresh-process recovery composition facade;
 - one concrete, sealed, root-bound platform recovery authority;
+- private exact entry and admitted-world bindings covering every dynamic
+  recovery axis, with generated per-axis drift and hostile twins;
+- one concrete, owner-tracked linear recovery session that reaches exactly one
+  top-level terminal outcome;
 - no acceptance of the C.7 in-memory handoff at recovery entry;
 - compiler-visible admitted, discovered, selected, planned, staged, published,
   reopened, and handed-off phases;
@@ -1443,6 +1702,10 @@ C.8 is incomplete without:
 - idempotent redo into a non-current staging generation;
 - exact operation-fate reconciliation by Store incarnation and stable physical
   operation identity;
+- owner-sampled checkpoint-generation freshness for idempotency retention and
+  owner-sampled current-root freshness for cleanup retry;
+- concrete Store wrappers over performed C.4 staging, publication, namespace,
+  reopen, and cleanup effects;
 - namespace-durable recovered-root publication;
 - independent fresh-handle reopen before handoff;
 - one quiescent physical handoff with a new runtime identity and no semantic
@@ -1456,6 +1719,9 @@ C.8 is incomplete without:
 - a scoped, complete preserve/narrow/replace/delete inventory;
 - living requirement/evidence closure with smart causal evidence;
 - distinct writer, recoverer, observer, and parent-harness process roles;
+- `store.physical.recovery-report` version 1 and
+  `store.physical.recovery-observer-report` version 1 with exact initial
+  compatibility windows and typed incompatibility;
 - deterministic replay plus at least 16 perturbation seeds in CI;
 - an opportunistically growing mutation regression corpus;
 - public/operator and owner documentation; and
@@ -1473,8 +1739,11 @@ C.8 is incomplete without:
 - Recovery and replay remain reconstructive and absent from ordinary features.
 - WAL, pageLSN, root, checkpoint, and fate meaning remain physical and
   branch-agnostic.
-- Foundational and Proof evidence remain one-way descriptions, never Store
-  recovery authority.
+- Worth Proof remains private legality/proof substrate beneath concrete
+  Store-owned authority, identity, effect, freshness, and lifecycle types.
+- Foundational remains one-way description; its report protocols, envelopes,
+  identities, versions, and compatibility outcomes never become Store recovery
+  or physical-format authority.
 - Signal coordinates new recovery work but is not persisted truth.
 - C.9 remains the owner of comprehensive corruption localization and repair
   posture.
@@ -1493,6 +1762,9 @@ C.8 does not:
 - repair damaged authority, rebuild arbitrary derived families, or decide
   quarantine release;
 - introduce undo recovery;
+- use lexical Proof branding as persistent process, runtime, Store, or handoff
+  identity, or use generic causal action-kind evidence as exact occurrence
+  lineage;
 - optimize checkpoint cadence, compaction, WAL layout, or profitability;
 - introduce a second scheduler, media executor, or artifact namespace;
 - preserve unreleased API compatibility; or
@@ -1510,30 +1782,43 @@ C.8 closes only with all of the following green on final source:
 5. exact dependency direction, including no ordinary replay import and no
    `worth-store` dependency from narrowed recovery physics;
 6. zero unresolved scoped disposition rows and no compatibility residue;
-7. compile-fail authority, phase-order, serving, semantic, and counterfeit
-   evidence attacks;
-8. pure source-precedence, WAL-prefix, pageLSN, redo, fate, and budget property
+7. compile-fail authority, phase-order, serving, semantic, bare-witness,
+   bare-binding, bare-performed, duplicate-terminal, and counterfeit evidence
+   attacks;
+8. exact entry and admitted-world binding-axis declarations, identical-world
+   positive twins, and one-axis-at-a-time drift denials;
+9. owner-sampled freshness evidence rejecting caller samples and substitute
+   source/policy types at compile time and generation boundaries at runtime;
+10. concrete performed-effect progression proving admission, scheduling,
+    attempts, counters, and wrong action kinds cannot advance a phase;
+11. linear-session evidence proving one terminal transition and owner-visible
+    non-terminal drop;
+12. pure source-precedence, WAL-prefix, pageLSN, redo, fate, and budget property
    tests;
-9. real-media focused recovery integration tests with exact counters;
-10. real process death at every named C.7 and C.8 crash seam;
-11. independent observer/runtime comparison with explicit disagreement cases;
-12. deterministic repeated recovery over identical admitted bytes;
-13. Store-size independence at fixed checkpoint/tail/damage scope;
-14. exact operation-fate identity blender and absence-as-no-effect attack;
-15. safe-cleanup last-copy, unresolved-binding, and interrupted-publication
+13. real-media focused recovery integration tests with exact counters;
+14. real process death at every named C.7 and C.8 crash seam;
+15. independent observer/runtime comparison with explicit disagreement cases;
+16. deterministic repeated recovery over identical admitted bytes;
+17. Store-size independence at fixed checkpoint/tail/damage scope;
+18. exact operation-fate identity blender and absence-as-no-effect attack;
+19. safe-cleanup last-copy, unresolved-binding, and interrupted-publication
     attacks;
-16. all controlled mutants killed by their intended narrow proof;
-17. 16 replayable schedule-perturbation seeds in CI and canonical release
+20. recovery-report and observer-report family/version/window tests covering
+    wrong family, supported version, future version, and every declared retired
+    posture without granting Store authority;
+21. all controlled mutants killed by their intended narrow proof;
+22. 16 replayable schedule-perturbation seeds in CI and canonical release
     schedule;
-18. executable public/operator documentation;
-19. living ledger completeness and reverse-ledger attacks; and
-20. final source-bound courtroom report generated only after all cheap
+23. executable public/operator documentation;
+24. living ledger completeness and reverse-ledger attacks; and
+25. final source-bound courtroom report generated only after all cheap
     preflights pass.
 
 Evidence is rejected if it can pass through comments, string literals, dead
 syntax, copied production decision code, same-process state, a test-only
-constructor, broad `is_err()` assertions, elapsed-time luck, or an oracle that
-shares the defect under test.
+constructor, a bare generic proof carrier, a caller-supplied freshness sample,
+an unvalidated report payload, broad `is_err()` assertions, elapsed-time luck,
+or an oracle that shares the defect under test.
 
 ## C.9 And C.10 Successor Handoff
 
@@ -1587,4 +1872,9 @@ retained physical operation to the weakest exact fate; remains bounded by the
 checkpoint, WAL tail, touched/damaged scope, and admitted resources rather than
 Store size; deletes nothing without post-publication last-copy proof; exposes
 only a fresh quiescent physical handoff; and leaves no old executable recovery
-or compatibility authority beside the destination.
+or compatibility authority beside the destination. Its concrete authority is
+sealed and bound to every exact recovery axis; generation freshness is sampled
+only by Store owners; only performed C.4 effects advance effectful phases; the
+recovery session terminates exactly once under owner lifecycle observation; and
+versioned recovery/observer reports remain compatible descriptive evidence
+that cannot open a Store door.
