@@ -27,5 +27,5 @@ help: you might have meant to use the `new` associated function
 15 -         permits_observer_demand_revalidation: false,
 16 -         decision_digest: fake(),
 17 -     };
-10 +     let _plan = ResourceRevalidationDecisionPlan::new(_, _, _, _, _, _, _, _, _);
+10 +     let _plan = ResourceRevalidationDecisionPlan::new(_, _);
    |

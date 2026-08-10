@@ -1,0 +1,60 @@
+use crate::data::graph::SignalGraph;
+use crate::data::telemetry::RuntimeTelemetry;
+use crate::logic::checkpoint::CheckpointRuntime;
+use crate::logic::transaction::runtime::config::SignalRuntimeConfig;
+
+use super::super::resource::ResourceRuntimeState;
+use super::super::temporal::TemporalRuntimeState;
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct AuthorityState<T>
+where
+    T: Copy + Ord,
+{
+    pub graph: SignalGraph,
+    pub config: SignalRuntimeConfig<T>,
+}
+
+impl<T> AuthorityState<T>
+where
+    T: Copy + Ord,
+{
+    pub fn capture(graph: &SignalGraph, config: &SignalRuntimeConfig<T>) -> Self {
+        Self {
+            graph: graph.clone_stateful(),
+            config: config.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(in crate::logic::transaction::runtime) struct DerivedState<D, I>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+{
+    pub checkpoint: CheckpointRuntime<D, I>,
+    pub resource: ResourceRuntimeState,
+    pub temporal: TemporalRuntimeState,
+    pub telemetry: RuntimeTelemetry,
+}
+
+impl<D, I> DerivedState<D, I>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+{
+    pub fn capture(
+        checkpoint: &CheckpointRuntime<D, I>,
+        resource: &ResourceRuntimeState,
+        temporal: &TemporalRuntimeState,
+        telemetry: &RuntimeTelemetry,
+    ) -> Self {
+        Self {
+            checkpoint: checkpoint.clone(),
+            resource: resource.clone(),
+            temporal: temporal.clone(),
+            telemetry: *telemetry,
+        }
+    }
+}

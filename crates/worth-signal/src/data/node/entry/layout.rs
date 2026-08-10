@@ -1,0 +1,68 @@
+use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
+
+use crate::data::aspect::{AspectMask, AspectVersionHeader, PartitionVersionOverrides};
+use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
+use crate::data::dependency::DependencySnapshotId;
+use crate::data::graph::{DependencySetId, SubscriberSetId};
+use crate::data::node::NodeEvaluationConfig;
+use crate::data::trace::{
+    CausalityMetadata, ExecutionTraceStamp, RetainedDiagnosticArtifact, RuntimeArtifactState,
+};
+
+use super::NodeState;
+
+/// Cold node fields are boxed so diagnostic richness does not enter the node's
+/// inline operational storage footprint.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub(crate) struct NodeColdData {
+    #[serde(default)]
+    pub(crate) retained_artifact: Option<RetainedDiagnosticArtifact>,
+    #[serde(default)]
+    pub(crate) causality: Option<CausalityMetadata>,
+    #[serde(default)]
+    pub(crate) execution_trace: Option<ExecutionTraceStamp>,
+}
+
+/// Hot node fields are the fixed operational state consulted by invalidation,
+/// evaluation, and graph routing.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(crate) struct NodeHotData {
+    pub(crate) state: NodeState,
+    pub(crate) dirty_aspects: AspectMask,
+    #[serde(default)]
+    pub(crate) dirty_partition_scope_aspects: AspectMask,
+    pub(crate) aspect_version_header: AspectVersionHeader,
+    pub(crate) dependencies_id: DependencySetId,
+    pub(crate) subscribers_id: SubscriberSetId,
+    pub(crate) dep_snapshot_id: DependencySnapshotId,
+}
+
+/// Warm fields preserve node-local state that is bounded but not required by
+/// the tightest graph traversal loops.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub(crate) struct NodeWarmData {
+    #[serde(default)]
+    pub(crate) tombstoned: bool,
+    #[serde(default)]
+    pub(crate) aspect_version_overrides: PartitionVersionOverrides,
+    #[serde(default)]
+    pub(crate) dirty_partition_scope_payload: SmallVec<
+        [(
+            crate::data::aspect::Aspect,
+            crate::data::output::PartitionSubscription,
+        ); HOT_VEC_INLINE_CAPACITY],
+    >,
+    #[serde(default)]
+    pub(crate) runtime_artifact_state: Option<RuntimeArtifactState>,
+    #[serde(default)]
+    pub(crate) eval_config: NodeEvaluationConfig,
+}
+
+pub(crate) fn node_hot_inline_size_bytes() -> u64 {
+    std::mem::size_of::<NodeHotData>() as u64
+}
+
+pub(crate) fn node_warm_inline_size_bytes() -> u64 {
+    std::mem::size_of::<NodeWarmData>() as u64
+}

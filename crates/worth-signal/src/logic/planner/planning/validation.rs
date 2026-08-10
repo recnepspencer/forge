@@ -1,5 +1,4 @@
 use crate::data::comparator::ComparatorPolicyResolver;
-use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
@@ -12,22 +11,6 @@ use crate::logic::prepared::PreparedDependencyCapture;
 pub(crate) struct MaybeStalePreview {
     pub(crate) unchanged: bool,
     pub(crate) requires_upstream_evaluation: Vec<NodeId>,
-}
-
-#[allow(dead_code)]
-pub(crate) fn capture_current_dependencies(
-    graph: &mut SignalGraph,
-    node: NodeId,
-) -> Result<PreparedDependencyCapture, SignalError> {
-    let mut capture = PreparedDependencyCapture::new();
-    for dependency in graph.runtime_dependencies_of(node)? {
-        capture.record(
-            dependency.source(),
-            dependency.aspect(),
-            dependency.scope_ref().cloned(),
-        );
-    }
-    Ok(capture.into_sorted_unique())
 }
 
 pub(crate) fn capture_current_dependencies_without_refresh(
@@ -43,13 +26,6 @@ pub(crate) fn capture_current_dependencies_without_refresh(
         );
     }
     Ok(capture.into_sorted_unique())
-}
-
-pub(crate) fn runtime_sorted_dependencies(
-    graph: &mut SignalGraph,
-    node: NodeId,
-) -> Result<Vec<DependencyEdge>, SignalError> {
-    Ok(graph.runtime_dependencies_of(node)?.to_vec())
 }
 
 pub(crate) fn preview_maybe_stale(

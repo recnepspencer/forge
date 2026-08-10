@@ -154,7 +154,8 @@ fn build_cell_from_constraints(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::{convex_to_bsp, extract_boundary_cells, BspConfig};
+    use crate::Plane;
     use worth_math::arithmetic::Rational;
 
     fn axis_plane(axis: usize, sign: i64, offset_val: f64) -> Plane {

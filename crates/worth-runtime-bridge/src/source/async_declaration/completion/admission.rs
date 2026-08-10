@@ -2,11 +2,10 @@ use worth_signal::facade::ResourceCompletionAdmissionReport;
 
 use super::super::request_identity::state::BridgeSignalRuntime;
 use super::super::{AdmittedBridgeAsyncRequestIdentity, BridgeAsyncRequestFamilyAdmission};
-use super::completion::{
-    AdmittedBridgeAsyncCompletion, BridgeAsyncCompletionAdmissionReport,
-    BridgeAsyncDeniedCompletion,
-};
+use super::admitted::AdmittedBridgeAsyncCompletion;
+use super::completion::BridgeAsyncCompletionAdmissionReport;
 use super::counters::BridgeAsyncCompletionCounters;
+use super::denied::BridgeAsyncDeniedCompletion;
 use super::envelope::ValidatedBridgeAsyncCompletionEnvelope;
 use super::rejection::{BridgeAsyncCompletionRejection, BridgeAsyncCompletionRejectionKind};
 

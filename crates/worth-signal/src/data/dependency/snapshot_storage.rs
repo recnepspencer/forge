@@ -1,0 +1,181 @@
+use std::collections::HashMap;
+use std::num::NonZeroU32;
+
+use serde::{Deserialize, Serialize};
+
+use super::{DependencySnapshot, DependencySnapshotShapeStore, SnapshotShapeHandle};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SharedDependencySnapshot {
+    snapshot: DependencySnapshot,
+}
+
+impl SharedDependencySnapshot {
+    pub fn new(snapshot: DependencySnapshot) -> Self {
+        Self { snapshot }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(DependencySnapshot::empty())
+    }
+
+    pub fn snapshot(&self) -> &DependencySnapshot {
+        &self.snapshot
+    }
+
+    pub fn entries(&self) -> &[super::DependencySnapshotEntry] {
+        self.snapshot.entries()
+    }
+
+    pub fn into_snapshot(self) -> DependencySnapshot {
+        self.snapshot
+    }
+
+    /// Whether two shared snapshots currently point at the same backing
+    /// storage. This is a storage-strategy fact, not semantic identity.
+    pub fn shares_storage_with(&self, other: &Self) -> bool {
+        self.snapshot.shares_storage_with(&other.snapshot)
+    }
+}
+
+/// Stable handle into graph-owned dependency snapshot storage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct DependencySnapshotId(Option<NonZeroU32>);
+
+impl DependencySnapshotId {
+    /// The canonical empty snapshot id.
+    pub const EMPTY: Self = Self(None);
+
+    fn from_index(index: usize) -> Self {
+        debug_assert!(index > 0);
+        Self(NonZeroU32::new(index as u32))
+    }
+
+    fn index(self) -> Option<usize> {
+        self.0.map(|index| index.get() as usize)
+    }
+
+    pub(crate) fn from_semantic_fingerprint(fingerprint: u32) -> Self {
+        match NonZeroU32::new(fingerprint) {
+            Some(non_zero) => Self(Some(non_zero)),
+            None => Self(Some(NonZeroU32::new(1).expect("1 is non-zero"))),
+        }
+    }
+}
+
+/// Graph-owned storage for immutable dependency snapshots.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DependencySnapshotStore {
+    snapshots: Vec<DependencySnapshot>,
+    #[serde(skip, default)]
+    interner: HashMap<DependencySnapshot, DependencySnapshotId>,
+    #[serde(skip, default)]
+    shape_handles: Vec<SnapshotShapeHandle>,
+}
+
+impl DependencySnapshotStore {
+    fn rebuild_interner_if_needed(&mut self) {
+        if !self.interner.is_empty() || self.snapshots.is_empty() {
+            return;
+        }
+        self.interner.reserve(self.snapshots.len());
+        for (index, snapshot) in self.snapshots.iter().cloned().enumerate() {
+            self.interner
+                .insert(snapshot, DependencySnapshotId::from_index(index + 1));
+        }
+    }
+
+    /// Read one snapshot by id.
+    pub fn get(&self, id: DependencySnapshotId) -> &DependencySnapshot {
+        match id.index() {
+            Some(index) => &self.snapshots[index - 1],
+            None => empty_dependency_snapshot(),
+        }
+    }
+
+    /// Store one immutable snapshot and return its id.
+    pub fn insert(&mut self, snapshot: DependencySnapshot) -> DependencySnapshotId {
+        let snapshot = snapshot.canonicalize_unordered();
+        if snapshot.entries().is_empty() {
+            return DependencySnapshotId::EMPTY;
+        }
+        self.rebuild_interner_if_needed();
+        if let Some(id) = self.interner.get(&snapshot).copied() {
+            return id;
+        }
+        self.snapshots.push(snapshot);
+        let id = DependencySnapshotId::from_index(self.snapshots.len());
+        let snapshot = self.snapshots[id.index().expect("snapshot id should index") - 1].clone();
+        self.interner.insert(snapshot, id);
+        id
+    }
+
+    fn rebuild_shape_handles_if_needed(&mut self, shape_store: &mut DependencySnapshotShapeStore) {
+        if self.shape_handles.len() == self.snapshots.len() {
+            return;
+        }
+        self.shape_handles.clear();
+        self.shape_handles.reserve(self.snapshots.len());
+        for snapshot in &self.snapshots {
+            self.shape_handles
+                .push(snapshot.shape().intern(shape_store));
+        }
+    }
+
+    pub fn shape_handle_for(
+        &mut self,
+        id: DependencySnapshotId,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> SnapshotShapeHandle {
+        let Some(index) = id.index() else {
+            return SnapshotShapeHandle::EMPTY;
+        };
+        self.rebuild_shape_handles_if_needed(shape_store);
+        self.shape_handles
+            .get(index - 1)
+            .copied()
+            .unwrap_or(SnapshotShapeHandle::EMPTY)
+    }
+
+    pub fn insert_with_shape_handle(
+        &mut self,
+        snapshot: DependencySnapshot,
+        shape_store: &mut DependencySnapshotShapeStore,
+    ) -> (DependencySnapshotId, SnapshotShapeHandle) {
+        let snapshot = snapshot.canonicalize_unordered();
+        if snapshot.entries().is_empty() {
+            return (DependencySnapshotId::EMPTY, SnapshotShapeHandle::EMPTY);
+        }
+        self.rebuild_interner_if_needed();
+        self.rebuild_shape_handles_if_needed(shape_store);
+        if let Some(id) = self.interner.get(&snapshot).copied() {
+            let handle = self
+                .shape_handles
+                .get(id.index().expect("snapshot id should index") - 1)
+                .copied()
+                .unwrap_or_else(|| snapshot.shape().intern(shape_store));
+            return (id, handle);
+        }
+        let shape_handle = snapshot.shape().intern(shape_store);
+        self.snapshots.push(snapshot);
+        self.shape_handles.push(shape_handle);
+        let id = DependencySnapshotId::from_index(self.snapshots.len());
+        let snapshot = self.snapshots[id.index().expect("snapshot id should index") - 1].clone();
+        self.interner.insert(snapshot, id);
+        (id, shape_handle)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
+
+    pub(crate) fn live_snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
+}
+
+fn empty_dependency_snapshot() -> &'static DependencySnapshot {
+    static EMPTY: std::sync::OnceLock<DependencySnapshot> = std::sync::OnceLock::new();
+    EMPTY.get_or_init(DependencySnapshot::empty)
+}

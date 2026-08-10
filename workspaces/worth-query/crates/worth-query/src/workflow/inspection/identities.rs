@@ -1,7 +1,12 @@
-use super::*;
 use crate::evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
 };
+
+use super::super::foundation::QueryWorkflowDeclaration;
+#[cfg(test)]
+use super::super::lowering::LoweredMergeWorkflowDeclaration;
+use super::evidence::WorkflowAuthorityOutcomeArtifact;
+use super::model::WorkflowAuthorityOutcomeFamily;
 
 #[cfg(test)]
 pub(super) fn conflict_scope_identity(

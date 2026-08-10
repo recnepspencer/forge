@@ -39,7 +39,8 @@ pub(super) use crate::{
     SupportActionBreadthBudget, SupportActionId, SupportActionPublicationState,
     SupportActionRecoveryDisposition, SupportAllocationScope, SupportCompatibilityReceiptWitness,
     SupportFamilyVersionWindow, SupportPathClass, SupportPortabilityManifestBudget,
-    SupportProgramDensityClass, WORTHStoreBuilder,
+    SupportProgramDensityClass, SupportProgramPathAdmissionRequest, SupportProgramPathPolicy,
+    WORTHStoreBuilder,
 };
 
 pub(super) use world::{
