@@ -59,6 +59,8 @@ pub use presentation::{
 pub(crate) use presentation::{
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
 };
+#[allow(unused_imports)]
+pub(crate) use projection::compile_presentation_sources;
 pub(crate) use projection::{
     prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
     UiMountedPreviewProjectionInput, UiMountedProjectionInput, UiPreparedMountedProjection,

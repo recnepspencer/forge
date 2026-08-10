@@ -77,14 +77,6 @@ fn initial_rejects_command_payload_that_disagrees_with_projection_row() {
     assert_malformed_commands(&valid, commands);
 }
 
-#[test]
-fn initial_rejects_command_table_index_that_disagrees_with_projection() {
-    let valid = valid_initial();
-    let mut commands = valid.commands().to_vec();
-    commands[0] = command_with_table_index(commands[0].clone(), u16::MAX);
-    assert_malformed_commands(&valid, commands);
-}
-
 fn assert_malformed_commands(
     valid: &UiMountedPresentationInitial,
     commands: Vec<UiMountedPaintCommand>,
@@ -106,24 +98,12 @@ fn command_with_identity(
     identity: worth_ui_host_contract::UiMountedPaintCommandIdentity,
 ) -> UiMountedPaintCommand {
     match command {
-        UiMountedPaintCommand::FilledRect {
-            table_index,
-            mechanic,
-            ..
-        } => UiMountedPaintCommand::FilledRect {
-            identity,
-            table_index,
-            mechanic,
-        },
-        UiMountedPaintCommand::SemanticText {
-            table_index,
-            mechanic,
-            ..
-        } => UiMountedPaintCommand::SemanticText {
-            identity,
-            table_index,
-            mechanic,
-        },
+        UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+            UiMountedPaintCommand::FilledRect { identity, mechanic }
+        }
+        UiMountedPaintCommand::SemanticText { mechanic, .. } => {
+            UiMountedPaintCommand::SemanticText { identity, mechanic }
+        }
     }
 }
 
@@ -135,50 +115,24 @@ fn command_with_payload(
         (
             UiMountedPaintCommand::FilledRect {
                 identity,
-                table_index,
                 ..
             },
             UiMountedPaintCommand::FilledRect { mechanic, .. },
         ) => UiMountedPaintCommand::FilledRect {
             identity,
-            table_index,
             mechanic,
         },
         (
             UiMountedPaintCommand::SemanticText {
                 identity,
-                table_index,
                 ..
             },
             UiMountedPaintCommand::SemanticText { mechanic, .. },
         ) => UiMountedPaintCommand::SemanticText {
             identity,
-            table_index,
             mechanic,
         },
         _ => panic!("fixture donor must use the same drawable family"),
-    }
-}
-
-fn command_with_table_index(
-    command: UiMountedPaintCommand,
-    table_index: u16,
-) -> UiMountedPaintCommand {
-    match command {
-        UiMountedPaintCommand::FilledRect {
-            identity, mechanic, ..
-        } => UiMountedPaintCommand::FilledRect {
-            identity,
-            table_index,
-            mechanic,
-        },
-        UiMountedPaintCommand::SemanticText {
-            identity, mechanic, ..
-        } => UiMountedPaintCommand::SemanticText {
-            identity,
-            table_index,
-            mechanic,
-        },
     }
 }
 
@@ -218,5 +172,6 @@ fn rebuild_initial(
         order,
         order_integrity,
         damage: valid.damage().to_vec(),
+        production_cost: valid.production_cost(),
     })
 }

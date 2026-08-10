@@ -10,9 +10,10 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
     first_node, mounted_application_with_host, profile,
 };
 
-// Revision 4 retains predecessor protocol state in both runtime and headless mechanics.
-// The exact one-instance journey is 99; this ceiling is not an O(k) or maximum-world claim.
-const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 100;
+// Revision 4 retains predecessor protocol state plus the Phase 3 receipt, order,
+// damage, and structural-sharing indexes. This local ceiling complements the
+// retained-scale slope proofs; it is not itself an O(k) claim.
+const MAX_CHANGED_PUBLIC_ALLOCATIONS: u64 = 144;
 const MAX_CHANGED_PUBLIC_BYTES: u64 = 64 * 1_024;
 
 #[test]

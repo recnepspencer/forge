@@ -26,9 +26,18 @@ pub(crate) enum UiNativePresentationPortFailure {
 pub(crate) struct UiWgpuNativePresentationPort;
 
 #[derive(Clone, Copy)]
+pub(crate) enum UiNativeRasterOperation {
+    Clear(RasterRect),
+    FilledRect {
+        rect: RasterRect,
+        source_rgba8: [u8; 4],
+    },
+}
+
 pub(crate) struct UiNativePresentationPortPlan {
-    pub(super) rect: RasterRect,
-    pub(super) source_rgba8: [u8; 4],
+    pub(super) clear_retained_target: bool,
+    pub(super) operations: Box<[UiNativeRasterOperation]>,
+    pub(super) cost: UiHostPresentationCostReport,
 }
 
 pub(crate) struct UiNativePresentationPortObservation {

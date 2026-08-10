@@ -9,6 +9,12 @@ use super::source_digest;
 
 pub(super) use super::result_artifact_binding::current_revision;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum SourceValidationPosture {
+    HistoricalArtifactOnly,
+    CurrentSource,
+}
+
 pub(super) struct LedgerResult<'a> {
     pub(super) matched_test_count: &'a str,
     pub(super) command_result: &'a str,
@@ -23,6 +29,7 @@ pub(super) struct LedgerResult<'a> {
     pub(super) structural_counter: &'a str,
     pub(super) construction_cost: &'a str,
     pub(super) execution_cost: &'a str,
+    pub(super) source_validation: SourceValidationPosture,
 }
 
 pub(super) fn validate(ledger: LedgerResult<'_>, command: &CommandBinding) -> Result<(), String> {

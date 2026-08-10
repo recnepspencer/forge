@@ -1,7 +1,7 @@
 use crate::native::UiNativeGraphics;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct RasterRect {
+pub(crate) struct RasterRect {
     left: f32,
     top: f32,
     right: f32,
@@ -24,12 +24,33 @@ pub(super) fn raster_rect(
     )
 }
 
+pub(super) fn raster_damage(
+    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
+    graphics: &UiNativeGraphics,
+) -> Result<Option<RasterRect>, ()> {
+    raster_from_basis_optional(
+        [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
+        [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
+        graphics.extent(),
+        graphics.scale_factor as f32,
+    )
+}
+
 fn raster_from_basis(
     bounds: [f32; 4],
     clip: [f32; 4],
     extent: [u32; 2],
     scale: f32,
 ) -> Result<RasterRect, ()> {
+    raster_from_basis_optional(bounds, clip, extent, scale)?.ok_or(())
+}
+
+fn raster_from_basis_optional(
+    bounds: [f32; 4],
+    clip: [f32; 4],
+    extent: [u32; 2],
+    scale: f32,
+) -> Result<Option<RasterRect>, ()> {
     if !scale.is_finite()
         || scale <= 0.0
         || bounds
@@ -50,18 +71,18 @@ fn raster_from_basis(
         .min(clip[1] + clip[3])
         .min(viewport[1]);
     if right <= left || bottom <= top {
-        return Err(());
+        return Ok(None);
     }
     let (physical_left, physical_right) = snap_axis(left, right, scale, extent[0])?;
     let (physical_top, physical_bottom) = snap_axis(top, bottom, scale, extent[1])?;
-    Ok(RasterRect {
+    Ok(Some(RasterRect {
         left: physical_left as f32 * 2.0 / extent[0] as f32 - 1.0,
         top: 1.0 - physical_top as f32 * 2.0 / extent[1] as f32,
         right: physical_right as f32 * 2.0 / extent[0] as f32 - 1.0,
         bottom: 1.0 - physical_bottom as f32 * 2.0 / extent[1] as f32,
         physical_width: physical_right - physical_left,
         physical_height: physical_bottom - physical_top,
-    })
+    }))
 }
 
 fn snap_axis(

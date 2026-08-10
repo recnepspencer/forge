@@ -13,6 +13,7 @@ mod semantic_text;
 mod static_paint;
 
 pub use denial::UiMountedProjectionDenial;
+pub(crate) use frame_storage::presentation_sources::compile as compile_presentation_sources;
 pub use frame_storage::UiMountedProjectionFrame;
 pub(in crate::mounting) use frame_storage::UiMountedSemanticProjection;
 pub use node_receipt::UiMountedNodeReceipt;

@@ -19,11 +19,15 @@ MOUNTED_WORLD_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p1-worlds-01.
 
 def rows() -> list[dict[str, str]]:
     with LEDGER.open(encoding="utf-8", newline="") as stream:
-        result = list(csv.DictReader(stream))
+        complete = list(csv.DictReader(stream))
+    result = [row for row in complete if int(row["phase"]) <= 2]
+    successors = [row for row in complete if int(row["phase"]) > 2]
     if len(result) != 30 or any(
         row["result"] != "PROVED" or row["final_source"] != "true" for row in result
     ):
         raise RuntimeError("operational verification requires 30 final-source proved rows")
+    if any(row["result"] != "OPEN" or row["final_source"] != "false" for row in successors):
+        raise RuntimeError("future ledger rows advanced without their phase verifier")
     return result
 
 
@@ -142,7 +146,7 @@ def main() -> int:
                 fresh_world,
             )
     closure_tests()
-    print("Worth UI milestone 3.14.1 ledger operationally verified: 30 fresh rows")
+    print("Worth UI milestone 3.14.1 predecessor ledger operationally verified: 30 fresh rows")
     return 0
 
 

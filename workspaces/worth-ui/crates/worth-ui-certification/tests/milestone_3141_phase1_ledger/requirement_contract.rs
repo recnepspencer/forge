@@ -19,7 +19,13 @@ impl RequirementContract {
     pub(super) fn requires_presented_source(&self) -> bool {
         matches!(
             self.requirement,
-            "P2-GRAPHICS-01" | "P2-PRESENT-01" | "P2-PIXELS-01" | "P2-WORLD-01"
+            "P2-GRAPHICS-01"
+                | "P2-PRESENT-01"
+                | "P2-PIXELS-01"
+                | "P2-WORLD-01"
+                | "P3-DAMAGE-REPLAY-01"
+                | "P3-HP02-WORLD-01"
+                | "P3-PHYSICAL-AMPLIFICATION-01"
         )
     }
 

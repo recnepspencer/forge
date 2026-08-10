@@ -1,105 +1,143 @@
+use std::collections::HashSet;
+
 use worth_ui_host_contract::{
-    UiMountedLogicalDamage, UiMountedPaintCommandChange, UiMountedPaintCommandIdentity,
-    UiMountedPaintOrderEdit,
+    UiMountedInstanceIdentity, UiMountedLogicalDamage, UiMountedPaintCommandChange,
+    UiMountedPaintCommandIdentity, UiMountedPaintOrderEdit,
 };
 
-use super::{CommandSnapshot, UiMountedPresentationState};
+use super::{
+    command_same_presentation_meaning, command_visible_bounds, UiMountedPresentationState,
+};
+
+pub(super) fn affected_commands(
+    predecessor: &UiMountedPresentationState,
+    successor: &UiMountedPresentationState,
+    changed_instances: &[UiMountedInstanceIdentity],
+) -> Vec<UiMountedPaintCommandIdentity> {
+    let mut seen = HashSet::new();
+    let mut affected = Vec::new();
+    for instance in changed_instances {
+        for identity in predecessor
+            .command_identities_for_instance(*instance)
+            .iter()
+            .chain(successor.command_identities_for_instance(*instance))
+            .copied()
+        {
+            if seen.insert(identity) {
+                affected.push(identity);
+            }
+        }
+    }
+    affected.sort_unstable_by_key(|identity| {
+        successor
+            .order_position(*identity)
+            .or_else(|| predecessor.order_position(*identity))
+            .unwrap_or(usize::MAX)
+    });
+    affected
+}
 
 pub(super) fn command_changes(
     predecessor: &UiMountedPresentationState,
     successor: &UiMountedPresentationState,
+    affected: &[UiMountedPaintCommandIdentity],
 ) -> (
     Vec<UiMountedPaintCommandChange>,
     Vec<UiMountedLogicalDamage>,
 ) {
     let mut changes = Vec::new();
     let mut damage = Vec::new();
-    for order in predecessor.order.iter() {
-        let identity = order.command();
-        if !successor.commands.contains_key(&identity) {
-            push_change(
-                identity,
-                predecessor.commands.get(&identity),
-                None,
-                &mut changes,
-                &mut damage,
-            );
-        }
-    }
-    for order in successor.order.iter() {
-        let identity = order.command();
-        let before = predecessor.commands.get(&identity);
-        let after = successor.commands.get(&identity);
-        if before.is_none() || before != after {
-            push_change(identity, before, after, &mut changes, &mut damage);
-        }
+    for identity in affected.iter().copied() {
+        push_change(
+            identity,
+            predecessor.command_option(identity),
+            successor.command_option(identity),
+            &mut changes,
+            &mut damage,
+        );
     }
     (changes, damage)
 }
 
 fn push_change(
     identity: UiMountedPaintCommandIdentity,
-    before: Option<&CommandSnapshot>,
-    after: Option<&CommandSnapshot>,
+    before: Option<&worth_ui_host_contract::UiMountedPaintCommand>,
+    after: Option<&worth_ui_host_contract::UiMountedPaintCommand>,
     changes: &mut Vec<UiMountedPaintCommandChange>,
     damage: &mut Vec<UiMountedLogicalDamage>,
 ) {
     match (before, after) {
         (None, Some(command)) => {
-            changes.push(UiMountedPaintCommandChange::Insert(
-                command.to_command(identity),
-            ));
+            changes.push(UiMountedPaintCommandChange::Insert(command.clone()));
             append_damage(command, damage);
         }
         (Some(command), None) => {
             changes.push(UiMountedPaintCommandChange::Remove(identity));
             append_damage(command, damage);
         }
-        (Some(old), Some(new)) if !old.same_presentation_meaning(new) => {
-            changes.push(UiMountedPaintCommandChange::Replace(
-                new.to_command(identity),
-            ));
+        (Some(old), Some(new)) if !command_same_presentation_meaning(old, new) => {
+            changes.push(UiMountedPaintCommandChange::Replace(new.clone()));
             append_damage(old, damage);
             append_damage(new, damage);
         }
         (Some(_), Some(_)) => {}
-        (None, None) => unreachable!("identity comes from either command map"),
+        (None, None) => {}
     }
 }
 
-fn append_damage(command: &CommandSnapshot, damage: &mut Vec<UiMountedLogicalDamage>) {
-    damage.extend(
-        command
-            .visible_bounds()
-            .map(UiMountedLogicalDamage::from_runtime_mounting),
-    );
+fn append_damage(
+    command: &worth_ui_host_contract::UiMountedPaintCommand,
+    damage: &mut Vec<UiMountedLogicalDamage>,
+) {
+    damage
+        .extend(command_visible_bounds(command).map(UiMountedLogicalDamage::from_runtime_mounting));
 }
 
 pub(super) fn order_edits(
     predecessor: &UiMountedPresentationState,
     successor: &UiMountedPresentationState,
+    affected: &[UiMountedPaintCommandIdentity],
 ) -> Vec<UiMountedPaintOrderEdit> {
-    let mut edits = predecessor
-        .order
+    let affected_set = affected.iter().copied().collect::<HashSet<_>>();
+    let mut removals = affected
         .iter()
-        .filter(|identity| !successor.commands.contains_key(&identity.command()))
-        .copied()
-        .map(UiMountedPaintOrderEdit::remove)
+        .filter(|identity| {
+            predecessor.command_option(**identity).is_some()
+                && successor.command_option(**identity).is_none()
+        })
+        .map(|identity| {
+            UiMountedPaintOrderEdit::remove(
+                worth_ui_host_contract::UiMountedPaintOrderIdentity::for_command(*identity),
+            )
+        })
         .collect::<Vec<_>>();
-    edits.extend(
-        successor
-            .order
-            .iter()
-            .enumerate()
-            .filter_map(|(index, identity)| {
-                let expected = index.checked_sub(1).map(|i| successor.order[i]);
-                let retained = predecessor
-                    .commands
-                    .get(&identity.command())
-                    .map(CommandSnapshot::previous_order);
-                (retained != Some(expected))
-                    .then(|| UiMountedPaintOrderEdit::place_after(*identity, expected))
-            }),
-    );
-    edits
+    removals.sort_unstable_by_key(|edit| {
+        predecessor
+            .order_position(edit.identity().command())
+            .unwrap_or(usize::MAX)
+    });
+    let mut placement_identities = affected_set
+        .iter()
+        .filter(|identity| successor.command_option(**identity).is_some())
+        .copied()
+        .collect::<Vec<_>>();
+    placement_identities
+        .sort_unstable_by_key(|identity| successor.order_position(*identity).unwrap_or(usize::MAX));
+    let mut placements = placement_identities
+        .into_iter()
+        .filter_map(|identity| {
+            let expected = successor.previous_order(identity);
+            let retained = predecessor
+                .command_option(identity)
+                .map(|_| predecessor.previous_order(identity));
+            (retained != Some(expected)).then(|| {
+                UiMountedPaintOrderEdit::place_after(
+                    worth_ui_host_contract::UiMountedPaintOrderIdentity::for_command(identity),
+                    expected,
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+    removals.append(&mut placements);
+    removals
 }

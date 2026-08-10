@@ -83,13 +83,11 @@ macro_rules! table {
     ($name:ident, $row:ty) => {
         #[derive(Clone, Debug, PartialEq)]
         pub struct $name {
-            rows: Box<[$row]>,
+            rows: std::sync::Arc<[$row]>,
         }
         impl $name {
             pub fn new(rows: Vec<$row>) -> Self {
-                Self {
-                    rows: rows.into_boxed_slice(),
-                }
+                Self { rows: rows.into() }
             }
             pub fn rows(&self) -> &[$row] {
                 &self.rows
@@ -105,13 +103,13 @@ table!(UiMountedRealtimeBatchTable, UiMountedRealtimeBatchRow);
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedClipTable {
     status: UiMountedTableProjectionStatus,
-    rows: Box<[UiMountedClipRow]>,
+    rows: std::sync::Arc<[UiMountedClipRow]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedLayerTable {
     status: UiMountedTableProjectionStatus,
-    rows: Box<[UiMountedLayerRow]>,
+    rows: std::sync::Arc<[UiMountedLayerRow]>,
 }
 
 macro_rules! optional_table {
@@ -120,13 +118,13 @@ macro_rules! optional_table {
             pub fn produced(rows: Vec<$row>) -> Self {
                 Self {
                     status: UiMountedTableProjectionStatus::Produced,
-                    rows: rows.into_boxed_slice(),
+                    rows: rows.into(),
                 }
             }
             pub fn omitted(reason: super::UiMountedOmissionReason) -> Self {
                 Self {
                     status: UiMountedTableProjectionStatus::Omitted(reason),
-                    rows: Box::new([]),
+                    rows: std::sync::Arc::from([]),
                 }
             }
             pub fn status(&self) -> UiMountedTableProjectionStatus {

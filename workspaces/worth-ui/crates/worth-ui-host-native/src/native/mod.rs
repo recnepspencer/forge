@@ -27,9 +27,9 @@ pub(crate) use graphics::{
 };
 pub(crate) use host_state::UiNativeHostState;
 pub(crate) use observation::UiNativePresentationInput;
-pub(crate) use presentation::UiNativePendingPresentation;
 #[cfg(test)]
 pub(crate) use presentation::GPU_WAIT_DEADLINE;
+pub(crate) use presentation::{UiNativePendingPresentation, UiNativeRetainedDrawList};
 pub(crate) use readiness::{UiNativeReadinessRegistry, UiNativeReadyOwner};
 pub(crate) use resource_census::UiNativeResourceClass;
 pub(crate) use resource_ownership::UiNativeOwnedResource;

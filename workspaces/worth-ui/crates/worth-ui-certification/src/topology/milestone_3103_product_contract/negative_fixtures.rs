@@ -36,8 +36,10 @@ worth-query-decl = { workspace = true }
 worth-query-host = { workspace = true }
 worth-ui = { workspace = true, features = ["legacy-egui-migration"] }
 worth-ui-host-egui = { workspace = true }
+worth-ui-native-platform = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
+win32job = { workspace = true }
 winsafe = { workspace = true }
 xcap = { workspace = true, features = ["wgc"] }
 "#;

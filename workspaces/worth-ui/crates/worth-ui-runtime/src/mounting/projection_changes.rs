@@ -132,6 +132,18 @@ impl UiMountedProjectionChangeSnapshot {
         self.applied.removed_surfaces.iter().copied()
     }
 
+    pub(crate) fn affects_surface(&self, surface: UiSemanticSurfaceIdentity) -> bool {
+        self.applied
+            .changed_surfaces
+            .contains_with_probes(&surface)
+            .0
+            || self
+                .applied
+                .removed_surfaces
+                .contains_with_probes(&surface)
+                .0
+    }
+
     pub(crate) fn order_changed(&self) -> bool {
         self.applied.order_changed
     }

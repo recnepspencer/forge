@@ -60,11 +60,10 @@ pub(super) fn removal_expectation(
     removed_count: usize,
 ) -> OracleExpectation {
     let successor = &baseline[removed_count..];
-    let mut damage = baseline[..removed_count]
+    let damage = baseline[..removed_count]
         .iter()
         .map(|row| row.bounds)
         .collect::<Vec<_>>();
-    damage.extend(successor.first().map(|row| row.bounds));
     OracleExpectation {
         owner_delta_count: removed_count,
         damage,

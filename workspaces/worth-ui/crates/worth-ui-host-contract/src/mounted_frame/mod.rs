@@ -29,6 +29,7 @@ pub use presentation::{
 };
 pub use presentation_cost::{
     UiHostPresentationCostInput, UiHostPresentationCostOverflow, UiHostPresentationCostReport,
+    UiMountedPresentationProductionCost, UiMountedPresentationProductionCostInput,
 };
 pub use presentation_work::{
     UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPaintCommandChange,

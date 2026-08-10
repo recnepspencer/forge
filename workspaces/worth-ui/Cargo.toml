@@ -60,8 +60,12 @@ xcap = { version = "=0.9.7", default-features = false }
 winit = { version = "=0.30.13", default-features = false, features = ["rwh_06"] }
 wgpu = { version = "=29.0.4", default-features = false, features = ["std", "parking_lot", "dx12", "wgsl"] }
 pollster = "=0.4.0"
+harfrust = { version = "=0.12.0", default-features = false, features = ["std"] }
+icu_segmenter = { version = "=2.2.0", default-features = false, features = ["compiled_data", "auto"] }
 rustybuzz = "=0.20.1"
-swash = "=0.2.10"
+swash = { version = "=0.2.10", default-features = false, features = ["std", "scale", "render"] }
+unicode-bidi = { version = "=0.3.18", default-features = false, features = ["std"] }
+unicode-segmentation = { version = "=1.13.3", default-features = false }
 sha2 = "=0.10.9"
 win32job = "=2.0.3"
 

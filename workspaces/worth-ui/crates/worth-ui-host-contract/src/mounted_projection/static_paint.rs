@@ -59,7 +59,7 @@ pub struct UiMountedFilledRectCompletionInput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedFilledRectTable {
     schema: UiMountedStaticPaintSchemaVersion,
-    rows: Box<[UiMountedFilledRectMechanic]>,
+    rows: std::sync::Arc<[UiMountedFilledRectMechanic]>,
 }
 
 impl UiMountedStaticPaintSchemaVersion {
@@ -184,7 +184,7 @@ impl UiMountedFilledRectTable {
     pub fn empty() -> Self {
         Self {
             schema: UiMountedStaticPaintSchemaVersion::current(),
-            rows: Box::new([]),
+            rows: std::sync::Arc::from([]),
         }
     }
 
@@ -197,7 +197,7 @@ impl UiMountedFilledRectTable {
         }
         Ok(Self {
             schema: UiMountedStaticPaintSchemaVersion::current(),
-            rows: rows.into_boxed_slice(),
+            rows: rows.into(),
         })
     }
 

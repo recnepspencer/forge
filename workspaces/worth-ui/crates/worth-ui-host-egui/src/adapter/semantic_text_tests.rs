@@ -38,7 +38,6 @@ fn foreign_runtime_bases_are_rejected_before_paint() {
         Mutation::ForeignSurface,
         Mutation::ForeignBinding,
         Mutation::ForeignContentGeneration,
-        Mutation::ForeignInstance,
         Mutation::ForeignNodeReceipt,
         Mutation::ForeignAllocation,
         Mutation::ForeignCapabilityGeneration,
@@ -58,16 +57,25 @@ fn foreign_runtime_bases_are_rejected_before_paint() {
 
 #[test]
 fn missing_duplicate_and_old_protocol_references_are_rejected() {
+    let projection = projection(Mutation::UnreferencedRow);
+    assert!(matches!(
+        consume_projection(&projection, current_protocol(), super::prepare),
+        Err(UiHostSurfacePresentationDenial::MalformedProjection)
+    ));
+}
+
+#[test]
+fn impossible_authored_sources_stop_before_a_projection_view_exists() {
     for mutation in [
+        Mutation::ForeignInstance,
         Mutation::MissingReference,
         Mutation::DuplicateReference,
-        Mutation::UnreferencedRow,
     ] {
-        let projection = projection(mutation);
-        assert!(matches!(
-            consume_projection(&projection, current_protocol(), super::prepare),
-            Err(UiHostSurfacePresentationDenial::MalformedProjection)
-        ));
+        let result = std::panic::catch_unwind(|| projection(mutation));
+        assert!(
+            result.is_err(),
+            "mutation {mutation:?} must stop at authored-source admission"
+        );
     }
 }
 
@@ -97,6 +105,7 @@ fn consume_projection<T>(
             order: Vec::new(),
             order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
             damage: Vec::new(),
+            production_cost: Default::default(),
         });
     let view = worth_ui_host_contract::UiMountedFrameConsumptionView::from_inert_mechanics(
         UiMountedFrameConsumptionInput {

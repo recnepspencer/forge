@@ -1,5 +1,5 @@
 use super::{
-    claim_digest, command_binding, requirement_contract, result_artifact, source_symbol,
+    claim_digest, command_binding, requirement_contract_for, result_artifact, source_symbol,
     validate_cost, workspace_source_inventory, Row,
 };
 
@@ -60,12 +60,44 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
             structural_counter: &row["structural_counters"],
             construction_cost: &row["construction_cost"],
             execution_cost: &row["execution_cost"],
+            source_validation: source_validation_posture(&row["phase"]),
         },
         &command,
     )?;
-    validate_named_entry(&row["production_entry"])?;
-    validate_named_entry(&row["independent_oracle"])?;
+    validate_named_entry_for_row(row, &row["production_entry"])?;
+    validate_named_entry_for_row(row, &row["independent_oracle"])?;
     Ok(())
+}
+
+fn validate_named_entry_for_row(row: &Row, value: &str) -> Result<(), String> {
+    if matches!(
+        source_validation_posture(&row["phase"]),
+        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
+    ) {
+        return validate_historical_named_entry(value, &row["source_revision"]);
+    }
+    validate_named_entry(value)
+}
+
+fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), String> {
+    let Some((source, symbol)) = value.rsplit_once("::") else {
+        return Err("evidence entry lacks a named symbol".to_owned());
+    };
+    if symbol.is_empty() || !source.ends_with(".rs") {
+        return Err("invalid evidence entry".to_owned());
+    }
+    let source_text = super::source_digest::file_at_revision(revision, source)?;
+    let source_text = std::str::from_utf8(&source_text)
+        .map_err(|error| format!("historical Rust source is not UTF-8: {error}"))?;
+    source_symbol::validate_text(source_text, symbol, source)
+}
+
+pub(super) fn source_validation_posture(phase: &str) -> result_artifact::SourceValidationPosture {
+    if matches!(phase, "1" | "2") {
+        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
+    } else {
+        result_artifact::SourceValidationPosture::CurrentSource
+    }
 }
 
 pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
@@ -82,7 +114,7 @@ pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
             return Err(format!("invalid {observation}"));
         }
     }
-    let contract = requirement_contract::for_requirement(&row["requirement"])
+    let contract = requirement_contract_for(&row["requirement"])
         .ok_or_else(|| "missing requirement contract".to_owned())?;
     if contract.requires_presented_source()
         && !row["presented_source_readback"].starts_with("observed:")
@@ -97,6 +129,12 @@ pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
 
 pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
     for source in row["source_identity"].split(';') {
+        if matches!(row["phase"].as_str(), "1" | "2") {
+            if historical_or_retained_source_exists(source, &row["source_revision"]) {
+                continue;
+            }
+            return Err(format!("missing historical source {source}"));
+        }
         if source.starts_with("workspaces/worth-ui/") {
             let relative = source.trim_start_matches("workspaces/worth-ui/");
             if !workspace_source_inventory().contains(relative) {
@@ -114,6 +152,11 @@ pub(super) fn validate_sources(row: &Row) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn historical_or_retained_source_exists(source: &str, revision: &str) -> bool {
+    super::source_digest::repository_file(source).is_ok()
+        || super::source_digest::file_at_revision(revision, source).is_ok()
 }
 
 pub(super) fn validate_named_entry(value: &str) -> Result<(), String> {

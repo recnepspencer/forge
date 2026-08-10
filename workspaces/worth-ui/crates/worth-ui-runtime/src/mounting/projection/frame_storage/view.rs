@@ -94,6 +94,8 @@ impl UiMountedProjectionFrame {
             &nodes,
             filled_rects.rows.len() + semantic_text.rows.len(),
         )?;
+        let (authored_paint_commands, authored_paint_order) =
+            super::presentation_sources::compile(&nodes, &filled_rects.rows, &semantic_text.rows);
         let filled_rects = UiMountedFilledRectTable::from_runtime_mounting(filled_rects.rows)
             .map_err(|_| UiMountedProjectionDenial::StaticPaintCapacityExceeded)?;
         let hit_tests = UiMountedHitTestTable::from_runtime_mounting(hit_tests.rows)
@@ -115,6 +117,8 @@ impl UiMountedProjectionFrame {
             spatial_batches: UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
             realtime_batches: UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
             resources: UiMountedResourceTable::new(self.resources.clone()),
+            authored_paint_commands,
+            authored_paint_order,
         }))
     }
 

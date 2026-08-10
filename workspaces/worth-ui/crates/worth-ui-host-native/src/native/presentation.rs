@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
-    UiHostPresentationCostReport, UiHostSurfacePresentationDenial, UiMountedFrameConsumptionView,
-    UiMountedPaintCommand, UiMountedPresentationWorkView,
+    UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostSurfacePresentationDenial,
+    UiMountedFrameConsumptionView, UiMountedPaintCommand, UiMountedPresentationWorkView,
 };
 
 use super::{
@@ -8,23 +8,35 @@ use super::{
     UiNativeResourceClass, UiNativeResourceRegistry,
 };
 
+mod damage_index;
+mod damage_regions;
+mod delta;
 mod pipeline;
 mod port;
 mod raster;
 mod readback_port;
+mod reconstruction;
+mod retained_draw_list;
 mod retained_evidence_copy;
+mod retained_order;
 
-use pipeline::{draw_rectangle, draw_retained_to_surface, pipeline, retained_transfer};
+use pipeline::{
+    clear_target, draw_rectangle, draw_rectangle_after_clear, draw_retained_to_surface, pipeline,
+    replace_pipeline, retained_transfer,
+};
 use raster::{raster_rect, rectangle_shader, RasterRect};
 #[cfg(test)]
 pub(crate) use readback_port::prove_nonuniform_readback_port;
 use readback_port::{UiNativeReadbackPort, UiWgpuNativeReadbackPort};
 use retained_evidence_copy::copy_evidence_pixels;
 
+pub(crate) use delta::{present_delta, UiNativeDeltaPresentation};
 pub(crate) use port::{
     UiNativePresentationPort, UiNativePresentationPortFailure, UiNativePresentationPortPlan,
-    UiWgpuNativePresentationPort,
+    UiNativeRasterOperation, UiWgpuNativePresentationPort,
 };
+pub(crate) use reconstruction::present_reconstruction;
+pub(crate) use retained_draw_list::UiNativeRetainedDrawList;
 
 pub(crate) const GPU_WAIT_DEADLINE: std::time::Duration = std::time::Duration::from_millis(5_000);
 
@@ -36,11 +48,12 @@ pub(crate) enum UiNativePresentationFailure {
 pub(crate) struct UiNativePresentedFrame {
     observation: UiNativePresentationObservation,
     cost: UiHostPresentationCostReport,
+    retained: UiNativeRetainedDrawList,
 }
 
 struct ValidatedInitial {
     frame: u64,
-    mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
+    mechanics: Box<[worth_ui_host_contract::UiMountedFilledRectMechanic]>,
 }
 
 pub(super) struct UiNativePresentationOwners {
@@ -129,8 +142,9 @@ impl UiNativePresentedFrame {
     ) -> (
         UiNativePresentationObservation,
         UiHostPresentationCostReport,
+        UiNativeRetainedDrawList,
     ) {
-        (self.observation, self.cost)
+        (self.observation, self.cost, self.retained)
     }
 }
 
@@ -139,22 +153,50 @@ pub(crate) fn present_initial<Port: UiNativePresentationPort>(
     resources: &mut UiNativeResourceRegistry,
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> Result<UiNativePresentedFrame, UiNativePresentationFailure> {
-    let initial = validate_initial(view).map_err(UiNativePresentationFailure::BeforeEffects)?;
-    let rect = raster_rect(initial.mechanic, graphics).map_err(|_| {
+    let UiMountedPresentationWorkView::Initial(initial_work) = view.presentation_work() else {
+        return Err(UiNativePresentationFailure::BeforeEffects(
+            UiHostSurfacePresentationDenial::AdapterDeclined,
+        ));
+    };
+    let retained = UiNativeRetainedDrawList::initial(initial_work).map_err(|_| {
         UiNativePresentationFailure::BeforeEffects(
             UiHostSurfacePresentationDenial::MalformedProjection,
         )
     })?;
+    let initial = validate_initial(view).map_err(UiNativePresentationFailure::BeforeEffects)?;
+    let rects = initial
+        .mechanics
+        .iter()
+        .copied()
+        .map(|mechanic| {
+            raster_rect(mechanic, graphics).map(|rect| (rect, mechanic.color().channels()))
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|_| {
+            UiNativePresentationFailure::BeforeEffects(
+                UiHostSurfacePresentationDenial::MalformedProjection,
+            )
+        })?;
+    let cost = initial_presentation_cost(graphics.extent(), &rects);
     let owners = reserve_presentation_owners(resources)?;
     let result = Port::present(
         graphics,
         UiNativePresentationPortPlan {
-            rect,
-            source_rgba8: initial.mechanic.color().channels(),
+            clear_retained_target: true,
+            operations: rects
+                .iter()
+                .map(|(rect, source_rgba8)| UiNativeRasterOperation::FilledRect {
+                    rect: *rect,
+                    source_rgba8: *source_rgba8,
+                })
+                .collect(),
+            cost,
         },
     );
     let external = settle_port_result(resources, owners, result)?;
-    Ok(build_presented_frame(view, graphics, initial, external))
+    Ok(build_presented_frame(
+        view, graphics, initial, external, retained,
+    ))
 }
 
 pub(super) fn reserve_presentation_owners(
@@ -215,8 +257,10 @@ fn build_presented_frame(
     graphics: &UiNativeGraphics,
     initial: ValidatedInitial,
     external: port::UiNativePresentationPortObservation,
+    retained: UiNativeRetainedDrawList,
 ) -> UiNativePresentedFrame {
-    let ValidatedInitial { frame, mechanic } = initial;
+    let ValidatedInitial { frame, mechanics } = initial;
+    let mechanic = mechanics[0];
     let (pixels, cost, port_crossings) = external.into_parts();
     let [retained_baseline_rgba8, retained_center_rgba8] = pixels;
     let bounds = mechanic.bounds();
@@ -242,11 +286,42 @@ fn build_presented_frame(
         port_crossings,
         cost,
     });
-    UiNativePresentedFrame { observation, cost }
+    UiNativePresentedFrame {
+        observation,
+        cost,
+        retained,
+    }
 }
 
 fn milli(value: f32) -> i64 {
     (f64::from(value) * 1_000.0).round() as i64
+}
+
+fn initial_presentation_cost(
+    extent: [u32; 2],
+    rects: &[(RasterRect, [u8; 4])],
+) -> UiHostPresentationCostReport {
+    let pixels = u64::from(extent[0]) * u64::from(extent[1]);
+    let rows = u64::try_from(rects.len()).expect("native profile bounds rectangle rows");
+    let rendered_pixels = rects.iter().fold(0_u64, |total, (rect, _)| {
+        total + u64::from(rect.physical_width) * u64::from(rect.physical_height)
+    });
+    UiHostPresentationCostReport::from_adapter(UiHostPresentationCostInput {
+        presented_surfaces: 1,
+        translated_rows: rows,
+        native_resource_cache_misses: 1,
+        intersecting_commands: rows,
+        replayed_commands: rows,
+        cleared_pixels: pixels,
+        rendered_pixels,
+        presented_pixels: pixels,
+        gpu_writes: rows + 1,
+        render_passes: rows + 1,
+        surface_acquisitions: 1,
+        queue_submissions: 1,
+        presents: 1,
+        ..Default::default()
+    })
 }
 
 fn validate_initial(
@@ -255,95 +330,56 @@ fn validate_initial(
     let UiMountedPresentationWorkView::Initial(initial) = view.presentation_work() else {
         return Err(UiHostSurfacePresentationDenial::AdapterDeclined);
     };
-    if initial.commands().len() != 1
-        || initial.order().len() != 1
-        || initial.projection().filled_rects().rows().len() != 1
-        || !initial.projection().semantic_text().rows().is_empty()
+    if !initial.projection().semantic_text().rows().is_empty()
+        || initial
+            .commands()
+            .iter()
+            .any(|command| matches!(command, UiMountedPaintCommand::SemanticText { .. }))
+    {
+        return Err(UiHostSurfacePresentationDenial::AdapterDeclined);
+    }
+    if initial.commands().is_empty()
+        || initial.commands().len() != initial.projection().filled_rects().rows().len()
+        || initial.order().len() != initial.commands().len()
+        || !initial.order_integrity().admits(initial.order())
     {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
-    let UiMountedPaintCommand::FilledRect {
-        table_index,
-        mechanic,
-        ..
-    } = &initial.commands()[0]
-    else {
-        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-    };
-    if *table_index != 0
-        || initial.projection().filled_rects().rows()[0] != *mechanic
-        || initial.order()[0].command() != initial.commands()[0].identity()
-    {
+    let commands = initial
+        .commands()
+        .iter()
+        .map(|command| match command {
+            UiMountedPaintCommand::FilledRect {
+                identity,
+                mechanic,
+            } if *identity
+                == worth_ui_host_contract::UiMountedPaintCommandIdentity::filled_rect(mechanic)
+                && initial.projection().filled_rects().rows().contains(mechanic) =>
+            {
+                Ok((*identity, *mechanic))
+            }
+            _ => Err(UiHostSurfacePresentationDenial::MalformedProjection),
+        })
+        .collect::<Result<std::collections::HashMap<_, _>, _>>()?;
+    if commands.len() != initial.commands().len() {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
+    let mechanics = initial
+        .order()
+        .iter()
+        .map(|order| {
+            commands
+                .get(&order.command())
+                .copied()
+                .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(ValidatedInitial {
         frame: initial.affinity().successor().diagnostic_value(),
-        mechanic: *mechanic,
+        mechanics: mechanics.into_boxed_slice(),
     })
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
-        UiNativePresentationFailure, UiNativePresentationPortFailure,
-    };
-
-    struct PendingProbe {
-        dropped: std::rc::Rc<std::cell::Cell<bool>>,
-        settles: std::rc::Rc<std::cell::Cell<bool>>,
-    }
-
-    impl UiNativePendingExternalObligation for PendingProbe {
-        fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
-            self.settles.get()
-        }
-    }
-
-    impl Drop for PendingProbe {
-        fn drop(&mut self) {
-            self.dropped.set(true);
-        }
-    }
-
-    #[test]
-    fn external_port_failures_cross_the_real_framework_settlement_transition() {
-        let mut resources = crate::native::UiNativeResourceRegistry::new();
-        let owners = reserve_presentation_owners(&mut resources)
-            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
-        let denied = settle_port_result(
-            &mut resources,
-            owners,
-            Err(UiNativePresentationPortFailure::SurfaceUnavailable),
-        );
-        assert!(matches!(
-            denied,
-            Err(UiNativePresentationFailure::BeforeEffects(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined
-            ))
-        ));
-        assert!(resources.current().is_zero());
-
-        let dropped = std::rc::Rc::new(std::cell::Cell::new(false));
-        let owners = reserve_presentation_owners(&mut resources)
-            .unwrap_or_else(|_| panic!("released registry must reserve presentation owners"));
-        let pending = Box::new(PendingProbe {
-            dropped: std::rc::Rc::clone(&dropped),
-            settles: std::rc::Rc::new(std::cell::Cell::new(false)),
-        });
-        let unsettled = settle_port_result(
-            &mut resources,
-            owners,
-            Err(UiNativePresentationPortFailure::ReadbackUnsettled(pending)),
-        );
-        let Err(UiNativePresentationFailure::Indeterminate(pending)) = unsettled else {
-            panic!("readback failure must remain indeterminate");
-        };
-        assert_eq!(resources.current().readback_buffers, 1);
-        assert_eq!(resources.current().pending_submissions, 1);
-        assert!(!dropped.get());
-        pending.release(&mut resources);
-        assert!(dropped.get());
-        assert!(resources.current().is_zero());
-    }
-}
+#[path = "presentation_tests.rs"]
+mod tests;

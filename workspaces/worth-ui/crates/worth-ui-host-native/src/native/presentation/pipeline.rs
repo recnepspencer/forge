@@ -22,6 +22,28 @@ pub(super) fn pipeline(
     shader: &wgpu::ShaderModule,
     format: wgpu::TextureFormat,
 ) -> wgpu::RenderPipeline {
+    pipeline_with_blend(
+        device,
+        shader,
+        format,
+        wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING,
+    )
+}
+
+pub(super) fn replace_pipeline(
+    device: &wgpu::Device,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+) -> wgpu::RenderPipeline {
+    pipeline_with_blend(device, shader, format, wgpu::BlendState::REPLACE)
+}
+
+fn pipeline_with_blend(
+    device: &wgpu::Device,
+    shader: &wgpu::ShaderModule,
+    format: wgpu::TextureFormat,
+    blend: wgpu::BlendState,
+) -> wgpu::RenderPipeline {
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("worth-ui-filled-rectangle-pipeline"),
         layout: None,
@@ -39,7 +61,7 @@ pub(super) fn pipeline(
             entry_point: Some("fs_main"),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                blend: Some(blend),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
             compilation_options: Default::default(),
@@ -49,7 +71,47 @@ pub(super) fn pipeline(
     })
 }
 
+pub(super) fn clear_target(encoder: &mut wgpu::CommandEncoder, target: &wgpu::TextureView) {
+    let attachments = [Some(wgpu::RenderPassColorAttachment {
+        view: target,
+        depth_slice: None,
+        resolve_target: None,
+        ops: wgpu::Operations {
+            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+            store: wgpu::StoreOp::Store,
+        },
+    })];
+    let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("worth-ui-retained-baseline-clear"),
+        color_attachments: &attachments,
+        ..Default::default()
+    });
+}
+
 pub(super) fn draw_rectangle(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &wgpu::TextureView,
+    pipeline: &wgpu::RenderPipeline,
+) {
+    let attachments = [Some(wgpu::RenderPassColorAttachment {
+        view: target,
+        depth_slice: None,
+        resolve_target: None,
+        ops: wgpu::Operations {
+            load: wgpu::LoadOp::Load,
+            store: wgpu::StoreOp::Store,
+        },
+    })];
+    let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("worth-ui-filled-rectangle-pass"),
+        color_attachments: &attachments,
+        ..Default::default()
+    });
+    pass.set_pipeline(pipeline);
+    pass.draw(0..6, 0..1);
+}
+
+pub(super) fn draw_rectangle_after_clear(
     encoder: &mut wgpu::CommandEncoder,
     target: &wgpu::TextureView,
     pipeline: &wgpu::RenderPipeline,
@@ -64,7 +126,7 @@ pub(super) fn draw_rectangle(
         },
     })];
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("worth-ui-filled-rectangle-pass"),
+        label: Some("worth-ui-cleared-filled-rectangle-pass"),
         color_attachments: &attachments,
         ..Default::default()
     });

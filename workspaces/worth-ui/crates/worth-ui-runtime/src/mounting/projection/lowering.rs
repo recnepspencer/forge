@@ -71,6 +71,8 @@ struct UiMountedProjectionBuild {
     semantic: UiMountedSemanticProjection,
     cost: super::cost_accounting::UiMountedProjectionCostInput,
     replaced_order_rows: usize,
+    presentation_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
 pub(crate) fn prepare_projection(
@@ -129,6 +131,7 @@ pub(crate) fn prepare_projection(
             preview: input.preview,
             visual_overlay: input.visual_overlay,
             projection_changes,
+            presentation_changed_instances: build.presentation_changed_instances,
             counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
@@ -192,6 +195,11 @@ fn build_full_projection(
             overflowed: input.changes.overflowed(),
         },
         replaced_order_rows: node_count,
+        presentation_changed_instances: instances
+            .iter()
+            .map(|instance| instance.identity())
+            .collect::<Vec<_>>()
+            .into(),
     })
 }
 

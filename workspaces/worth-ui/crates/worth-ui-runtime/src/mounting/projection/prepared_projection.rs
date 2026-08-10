@@ -11,6 +11,8 @@ pub(crate) struct UiPreparedMountedProjection {
     preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     projection_changes: super::super::UiMountedProjectionChangeSnapshot,
+    presentation_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
     counters: super::super::UiMountStageCounters,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
@@ -22,6 +24,8 @@ pub(super) struct UiPreparedMountedProjectionInput {
     pub(super) preview: Option<super::lowering::UiMountedPreviewProjectionInput>,
     pub(super) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     pub(super) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
+    pub(super) presentation_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
     pub(super) counters: super::super::UiMountStageCounters,
     pub(super) capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -34,6 +38,8 @@ pub struct UiProjectedMountedFrameCandidate {
     pub(in crate::mounting) identity_candidate:
         super::super::identity_state::UiMountedIdentityFrameCandidate,
     pub(in crate::mounting) projection_changes: super::super::UiMountedProjectionChangeSnapshot,
+    pub(in crate::mounting) presentation_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
 impl UiProjectedMountedFrameCandidate {
@@ -48,6 +54,19 @@ impl UiProjectedMountedFrameCandidate {
 
     pub(crate) fn presented_receipt_basis(&self) -> &super::super::UiMountedNodeReceiptBasis {
         self.identity_candidate.receipt_basis()
+    }
+
+    pub(in crate::mounting) fn presentation_changed_instances(
+        &self,
+    ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
+        &self.presentation_changed_instances
+    }
+
+    pub(in crate::mounting) fn presentation_surface_changed(
+        &self,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    ) -> bool {
+        self.projection_changes.affects_surface(surface)
     }
 
     pub(crate) fn into_parts(
@@ -73,6 +92,7 @@ impl UiPreparedMountedProjection {
             preview: input.preview,
             visual_overlay: input.visual_overlay,
             projection_changes: input.projection_changes,
+            presentation_changed_instances: input.presentation_changed_instances,
             counters: input.counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
@@ -161,6 +181,7 @@ impl UiPreparedMountedProjection {
             frame,
             identity_candidate,
             projection_changes: self.projection_changes,
+            presentation_changed_instances: self.presentation_changed_instances,
         })
     }
 

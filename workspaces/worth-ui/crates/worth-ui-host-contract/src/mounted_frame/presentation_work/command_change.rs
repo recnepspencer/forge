@@ -16,12 +16,10 @@ enum UiMountedPaintCommandFamily {
 pub enum UiMountedPaintCommand {
     FilledRect {
         identity: UiMountedPaintCommandIdentity,
-        table_index: u16,
         mechanic: crate::UiMountedFilledRectMechanic,
     },
     SemanticText {
         identity: UiMountedPaintCommandIdentity,
-        table_index: u16,
         mechanic: crate::UiMountedSemanticTextMechanic,
     },
 }
@@ -95,14 +93,6 @@ impl UiMountedPaintCommand {
         }
     }
 
-    pub const fn table_index(&self) -> u16 {
-        match self {
-            Self::FilledRect { table_index, .. } | Self::SemanticText { table_index, .. } => {
-                *table_index
-            }
-        }
-    }
-
     pub fn layer_semantic_order(&self) -> u32 {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.layer_semantic_order(),
@@ -114,6 +104,13 @@ impl UiMountedPaintCommand {
         match self {
             Self::FilledRect { mechanic, .. } => mechanic.bounds(),
             Self::SemanticText { mechanic, .. } => mechanic.bounds(),
+        }
+    }
+
+    pub fn clip_bounds(&self) -> crate::UiMountedCanonicalBox {
+        match self {
+            Self::FilledRect { mechanic, .. } => mechanic.clip_bounds(),
+            Self::SemanticText { mechanic, .. } => mechanic.clip_bounds(),
         }
     }
 

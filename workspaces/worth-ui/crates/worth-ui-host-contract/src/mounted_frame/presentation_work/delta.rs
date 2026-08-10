@@ -12,6 +12,7 @@ pub struct UiMountedPresentationDelta {
     pub(super) order_integrity: UiMountedPaintOrderIntegrity,
     pub(super) damage: Box<[UiMountedLogicalDamage]>,
     pub(super) auxiliary: Option<UiMountedPresentationAuxiliaryState>,
+    pub(super) production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 #[doc(hidden)]
@@ -27,6 +28,7 @@ pub struct UiMountedPresentationDeltaInput {
     pub order_integrity: UiMountedPaintOrderIntegrity,
     pub damage: Vec<UiMountedLogicalDamage>,
     pub auxiliary: Option<UiMountedPresentationAuxiliaryState>,
+    pub production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 impl UiMountedPresentationDelta {
@@ -49,6 +51,7 @@ impl UiMountedPresentationDelta {
             order_integrity: input.order_integrity,
             damage: input.damage.into_boxed_slice(),
             auxiliary: input.auxiliary,
+            production_cost: input.production_cost,
         }
     }
 
@@ -74,5 +77,9 @@ impl UiMountedPresentationDelta {
 
     pub fn auxiliary(&self) -> Option<&UiMountedPresentationAuxiliaryState> {
         self.auxiliary.as_ref()
+    }
+
+    pub const fn production_cost(&self) -> crate::UiMountedPresentationProductionCost {
+        self.production_cost
     }
 }

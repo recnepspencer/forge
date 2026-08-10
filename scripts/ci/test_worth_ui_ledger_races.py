@@ -8,10 +8,34 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import run_worth_ui_compile_contracts as compile_runner
 import run_worth_ui_ledger_test as ledger_runner
+import close_worth_ui_3141_ledger as ledger_closer
 from verify_worth_ui_3141_ledger import bind_fresh_compile_artifact
 
 
 class GovernedRaceTests(unittest.TestCase):
+    def test_phase_preparation_preserves_the_proved_prefix_byte_for_byte(self) -> None:
+        fields = ["phase", "requirement", "result", "final_source"]
+        original = (
+            "phase,requirement,result,final_source\n"
+            "1,P1-ONE,PROVED,true\n"
+            "2,P2-ONE,PROVED,true\n"
+            "3,P3-ONE,OPEN,false\n"
+            "4,P4-ONE,OPEN,false\n"
+        )
+        rows = list(csv_rows(original))
+        selected = ledger_closer.phase_rows_to_prepare(rows, 3)
+        self.assertEqual([row["requirement"] for row in selected], ["P3-ONE"])
+        selected[0]["result"] = "PROVED"
+        selected[0]["final_source"] = "true"
+        rendered = ledger_closer.render_phase_update(original, rows, fields, 3)
+        self.assertTrue(rendered.startswith(
+            "phase,requirement,result,final_source\n"
+            "1,P1-ONE,PROVED,true\n"
+            "2,P2-ONE,PROVED,true\n"
+        ))
+        self.assertIn("3,P3-ONE,PROVED,true\n", rendered)
+        self.assertTrue(rendered.endswith("4,P4-ONE,OPEN,false\n"))
+
     def test_operational_verifier_rebinds_compile_backed_rows(self) -> None:
         canonical = "_docs/worth-ui/milestone-3.14.1-evidence/compile-contracts.json"
         fresh = "workspaces/worth-ui/target/fresh-compile-contracts.json"
@@ -84,6 +108,13 @@ class GovernedRaceTests(unittest.TestCase):
 
 def completed(stdout: str) -> subprocess.CompletedProcess[str]:
     return subprocess.CompletedProcess([], 0, stdout, "")
+
+
+def csv_rows(content: str):
+    import csv
+    import io
+
+    return csv.DictReader(io.StringIO(content))
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ use worth_ui_host_contract::{
 use super::UiMountedProjectionDenial;
 
 mod drawable_order;
+pub(crate) mod presentation_sources;
 mod rebind;
 mod semantic_projection;
 mod view;

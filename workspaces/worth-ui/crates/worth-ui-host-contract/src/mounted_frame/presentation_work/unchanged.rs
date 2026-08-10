@@ -3,6 +3,7 @@ use super::UiMountedPresentationAffinity;
 #[derive(Debug, PartialEq)]
 pub struct UiMountedPresentationUnchanged {
     pub(super) affinity: UiMountedPresentationAffinity,
+    pub(super) production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 #[doc(hidden)]
@@ -13,6 +14,7 @@ pub struct UiMountedPresentationUnchangedInput {
     pub binding: crate::UiSurfaceBindingGeneration,
     pub content: crate::UiMountedContentGeneration,
     pub baseline: crate::UiHostSurfaceBaselineIdentity,
+    pub production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 impl UiMountedPresentationUnchanged {
@@ -28,10 +30,17 @@ impl UiMountedPresentationUnchanged {
                 baseline: input.baseline,
             },
         );
-        Self { affinity }
+        Self {
+            affinity,
+            production_cost: input.production_cost,
+        }
     }
 
     pub const fn affinity(&self) -> UiMountedPresentationAffinity {
         self.affinity
+    }
+
+    pub const fn production_cost(&self) -> crate::UiMountedPresentationProductionCost {
+        self.production_cost
     }
 }

@@ -108,7 +108,7 @@ pub struct UiMountedSemanticTextCompletionInput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedSemanticTextTable {
     schema: UiMountedTextSchemaVersion,
-    rows: Box<[UiMountedSemanticTextMechanic]>,
+    rows: std::sync::Arc<[UiMountedSemanticTextMechanic]>,
 }
 
 impl UiMountedTextSchemaVersion {
@@ -277,7 +277,7 @@ impl UiMountedSemanticTextTable {
     pub fn empty() -> Self {
         Self {
             schema: UiMountedTextSchemaVersion::current(),
-            rows: Box::new([]),
+            rows: std::sync::Arc::from([]),
         }
     }
 
@@ -302,7 +302,7 @@ impl UiMountedSemanticTextTable {
         }
         Ok(Self {
             schema: UiMountedTextSchemaVersion::current(),
-            rows: rows.into_boxed_slice(),
+            rows: rows.into(),
         })
     }
 

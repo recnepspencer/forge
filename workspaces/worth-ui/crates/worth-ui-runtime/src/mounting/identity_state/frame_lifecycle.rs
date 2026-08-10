@@ -216,6 +216,7 @@ impl UiMountedIdentityState {
                     .ok_or(UiMountedIdentityDenial::NoPublishedMountedFrame)?,
             },
             projection_changes,
+            presentation_changed_instances: current_instances.into(),
         })
     }
 

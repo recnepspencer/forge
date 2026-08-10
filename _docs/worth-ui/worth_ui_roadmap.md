@@ -1809,7 +1809,7 @@ dependency graph. It exists now, between intent and services, because it is
 the last point where the host adapter surface is small: after 3.15 and 3.16
 every service, focus, motion, and appearance lane would be built twice.
 
-The detailed specification now closes the governing Phase 1 inputs:
+The detailed specification closes the governing Phase 1 inputs:
 `worth-ui-body-default-v1` pins Noto Sans v2.015, printable Basic Latin,
 rustybuzz 0.20.1, swash 0.2.10, exact raster/atlas bounds, and typed rejection
 outside the support set; `worth-ui-windows-dx12-v1` pins winit 0.30.13, wgpu
@@ -1824,37 +1824,85 @@ deliberately callable integration surface and is not misrepresented as a
 cross-crate friend boundary.
 Phase 1 must materialize and prove those records without weakening them.
 
+That v1 text record is immutable Phase 1-2 migration evidence, not the final
+text platform. The repository-owned `worth-ui-global-text-v2` candidate now
+pins the exact 30-face default collection, application-font-pack admission,
+Unicode 17 conformance data, deterministic cluster fallback, complex shaping,
+bidirectional and line layout, original-range and caret geometry, Unicode 17
+RGI color emoji, alpha/color raster formats, and bounded layout/atlas
+capacities under manifest digest
+`3f059e7b017da04fb958695567bf668e577504cd16463492f1c404a0c0c3e4de`.
+Phase 4 may consume it only after the append-only Phase 3 predecessor gate
+allows `P4-TEXT-PROFILE-01` to become final-source `PROVED`. The text work is
+split into canonical Unicode layout/measurement first and color glyph/emoji/
+native atlas presentation second; neither may begin from the Basic-Latin seed.
+
 The mounted host contract is the subject under test and may not change
 meaning. `worth-ui-host-contract` semantics, the 3.12 observation turn, the
 3.13 projection path, and the 3.14 interaction and intent path are frozen; if
 replacement pressure demands a host-contract semantic change, that is a
 reopened finding against the owning milestone, not a migration convenience.
 
-Phase 1–2 closure is reopened for the final authority, cleanup, attribution,
-and hostile-evidence repairs. The 2,048-row mounted world and first real
-Windows/DX12 startup vertical remain retained evidence, but neither phase is
-called final-source until the repaired ledger closes on the post-repair source
-graph. The native seed remains deliberately narrow: retained deltas, text,
-input, resize, capture, recovery, Pulse parity, and egui deletion stay in their
-ordered phases.
+Phase 1-2 production requirements were closed at revision `234c3aaf4` by
+thirty final-source ledger rows. This governing-document revision requires a
+source-fresh operational-verifier execution retained by the append-only
+`P3-PREDECESSOR-01` handoff before the next implementation phase; it does not
+rewrite predecessor rows or reopen the proved rectangle/native-startup
+behavior. The native seed remains deliberately narrow: retained deltas, the v2
+text platform, input, resize, capture, recovery, Pulse parity, and egui
+deletion stay in their ordered phases. The stronger future text requirement
+separately reopens Phase 4 qualification.
+
+The proof ledger advances append-only. Phase 3 adds sixteen exact retained-
+presentation rows, including one current-source handoff over the immutable
+Phase 1-2 prefix; Phase 4 adds fourteen exact Unicode/layout rows before the v2
+qualification gate is executed. Historical row nonces, claims, artifacts, and
+selected-source digests are never regenerated merely because later governed
+source changes. Each new phase instead proves that its current source still
+lawfully consumes the closed predecessor contract.
 
 The custody boundary moves down, not sideways. The new host owns a retained
 draw list in which every quad and glyph run carries its mounted node receipt,
 frame generation, surface generation, and binding generation. Damage-scoped
 presentation derives from an owner-issued, compiler-total
 `Initial | Delta | Unchanged` work contract and a runtime-issued total paint
-order, not host-side projection comparison. An unchanged turn performs
-zero draw-list, atlas, and surface work, provable by named counters rather
-than elapsed time. Text shaping and glyph rasterization are consumed as
-narrow pinned mechanics dependencies in the same trust posture as the OS
-compositor: they receive completed layout decisions and are convicted by
-external pixel adjudication; they decide no value, posture, identity,
-fallback, or clipping policy. Writing a Worth-owned shaper, IME, complex
-script certification, font-management policy, general vector tessellation,
-appearance breadth beyond the frozen `BodyDefault` profile plus filled
-rectangles, any platform beyond the currently certified Windows lane, and
-accessibility-tree projection all remain explicit non-goals owned by their
-successor milestones.
+order, not host-side projection comparison. An unchanged turn performs zero
+draw-list, Unicode analysis, shaping, line layout, raster, atlas, and surface
+work, provable by named counters rather than elapsed time. A dedicated host-
+neutral WORTH text-mechanics boundary consumes pinned Unicode, shaping, and
+raster dependencies: WORTH owns font-collection admission, deterministic
+fallback, run segmentation, layout identity, measurement equivalence, and
+resource bounds, while dependencies receive only qualified runs and decide no
+semantic value, mounted identity, product language, wrapping policy, or host
+authority. Complex scripts, mixed-direction text, locale-sensitive wrapping,
+original-range cluster/caret mapping, application-bundled fonts, and Unicode
+17 color emoji are required. Writing a custom shaping algorithm, owning IME
+composition semantics, rich-text authoring/editing authority, vertical
+writing, general vector tessellation, any platform beyond the currently
+certified Windows lane, and accessibility-tree projection remain explicit
+non-goals; the v2 artifacts must nevertheless be the foundation those later
+semantic owners consume.
+Phase 4 treats every Unicode 17 RGI emoji sequence as one qualified text unit
+through segmentation, fallback, shaping, wrapping, ellipsis, caret movement,
+hit testing, selection, and original-range mapping. That includes variation
+selectors, keycaps, flags, tag sequences, skin tones, and gendered/family ZWJ
+sequences. Phase 5 owns color-glyph raster, atlas, and native pixel evidence;
+it may not compensate for a Phase 4 sequence split.
+
+Phase 3 keeps revision 4 and its 2,048-row/1 MiB text-carrier ceiling. Its
+native damage courtroom is a 2,048-rectangle pixel world; its separate
+4,096-command mixed rectangle/text world proves runtime/headless carrier and
+index slope without claiming text layout or native glyph pixels. After the v2
+qualification gate closes, Phase 4 advances mounted-frame, presentation, and
+measurement together to revision 5 and admits 4,096 paragraphs, 65,536 UTF-8
+bytes per paragraph, and 8 MiB aggregate retained text. Mixed revision-4/v5
+frames and retained generations reject before effects.
+
+`worth-ui-text` owns concrete immutable layouts while depending only on inert
+host-contract records. Runtime retains each layout with mounted affinity and
+seals a borrowed host-contract layout view into active presentation work.
+Headless and native consumers can inspect that view but cannot shape, refallback,
+rebreak, clone authority, or retain it beyond the owning work envelope.
 
 **Platform pulse**
 
@@ -1890,15 +1938,21 @@ retained dual-host fallback does not close the pulse.
   damage; every opaque background remains an attributed runtime-issued command
 - a host-neutral initial/delta/unchanged presentation-work protocol and unique
   total paint order that make host-side semantic diffing unnecessary
-- filled-rectangle and `BodyDefault` glyph-run presentation with atlas
-  ownership and measurement-contract metrics derived from the shaping
-  dependency, never from adapter-local font defaults
+- a host-neutral Unicode 17 text-mechanics crate shared by headless and native
+  hosts, with content-addressed default/application font collections,
+  deterministic cluster fallback and Last Resort posture, UAX #29/#14/#9
+  analysis, complex shaping, line layout, original-range cluster/caret/
+  selection geometry, and one canonical measurement/rendering layout artifact
+- filled-rectangle plus multilingual, bidirectional, complex-script, symbols,
+  CJK, and Unicode 17 RGI color-emoji glyph-run presentation with bounded
+  alpha/color atlas ownership and metrics derived from that canonical layout,
+  never from adapter-local font defaults
 - snapshot capture through surface readback feeding the existing visual
   snapshot contract
 - host-neutral input observation translation sufficient for the shipped 3.14
   presentation-bound interaction families
-- pinned, audited mechanics dependencies for shaping and rasterization with a
-  recorded trust posture
+- pinned, audited mechanics dependencies and Unicode data for segmentation,
+  bidi, line breaking, shaping, and rasterization with a recorded trust posture
 - removal of `egui` and `eframe` from every workspace dependency edge, with
   the boundary gate permanently denying their return; isolated egui-era
   theme/component crates are retired rather than prematurely ported
@@ -1912,8 +1966,14 @@ retained dual-host fallback does not close the pulse.
   receipt and generation set; receiptless paint is unrepresentable
 - unchanged-frame zero work extends through the draw list, atlas, and surface
   counters, not just the semantic turn
-- the shaping dependency demonstrably receives completed layout decisions and
-  cannot alter value, posture, identity, or clipping evidence
+- Unicode, shaping, fallback, and line-layout dependencies demonstrably receive
+  only their completed typed inputs and cannot alter value, semantic style,
+  mounted identity, language/direction policy, wrapping, or clipping evidence
+- the independent text courtroom convicts Basic-Latin-only handling, scalar
+  fallback, bidi/source-order corruption, grapheme/emoji-sequence splitting,
+  missing color layers, duplicate measurement shaping, system-font lookup,
+  stale width/text-scale/DPI reuse, pinned-glyph eviction, and broad retained-
+  paragraph reshaping
 - hostile controls turn red on receiptless paint, whole-frame repaint of an
   unchanged turn, adapter-invented geometry, internal-state snapshot
   substitution, and leaked window, surface, device, or atlas resources

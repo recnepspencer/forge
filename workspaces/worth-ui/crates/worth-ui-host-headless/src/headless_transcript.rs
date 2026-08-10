@@ -8,6 +8,7 @@ use worth_ui_host_contract::{
     UiSurfaceBindingGeneration,
 };
 
+mod delta;
 mod mechanic_accessors;
 mod semantic_text;
 mod static_paint;
@@ -160,6 +161,15 @@ pub(crate) struct UiHeadlessMountedFrameTranscriptInput {
     pub unperformed_effects: Vec<UiHeadlessUnperformedEffect>,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) struct UiHeadlessTranscriptSuccessorIdentity {
+    pub host_session_identity: u64,
+    pub protocol: UiHostProtocolAgreement,
+    pub attempt: UiMountedPresentationAttemptIdentity,
+    pub frame: UiMountedFrameIdentity,
+    pub binding: UiSurfaceBindingGeneration,
+}
+
 impl UiHeadlessMountedFrameTranscript {
     pub(crate) fn new(input: UiHeadlessMountedFrameTranscriptInput) -> Self {
         Self {
@@ -235,135 +245,4 @@ impl UiHeadlessMountedFrameTranscript {
     pub fn unperformed_effects(&self) -> &[UiHeadlessUnperformedEffect] {
         &self.unperformed_effects
     }
-
-    pub(crate) fn successor_unchanged(
-        &self,
-        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-    ) -> Self {
-        self.successor_identity(view)
-    }
-
-    pub(crate) fn successor_delta(
-        &self,
-        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-        changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
-        order: &[UiMountedPaintOrderIdentity],
-        damage: &[UiMountedLogicalDamage],
-    ) -> Result<Self, worth_ui_host_contract::UiHostSurfacePresentationDenial> {
-        let mut successor = self.successor_identity(view);
-        let mut filled_rects = std::mem::take(&mut successor.filled_rects).into_vec();
-        let mut semantic_text = std::mem::take(&mut successor.semantic_text).into_vec();
-        remove_changed_commands(&mut filled_rects, &mut semantic_text, changes)?;
-        insert_changed_commands(&mut filled_rects, &mut semantic_text, changes)?;
-        successor.filled_rects = filled_rects.into_boxed_slice();
-        successor.semantic_text = semantic_text.into_boxed_slice();
-        successor.paint_order = replace_slice(successor.paint_order, order);
-        successor.logical_damage = replace_slice(successor.logical_damage, damage);
-        Ok(successor)
-    }
-
-    fn successor_identity(
-        &self,
-        view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-    ) -> Self {
-        let mut successor = self.clone();
-        successor.host_session_identity = view.host_session_identity();
-        successor.protocol = view.protocol();
-        successor.attempt = view.attempt();
-        successor.frame = view.frame();
-        successor.binding = view.binding();
-        successor
-    }
-}
-
-fn replace_slice<T: Clone>(current: Box<[T]>, replacement: &[T]) -> Box<[T]> {
-    let mut values = current.into_vec();
-    values.clear();
-    values.extend_from_slice(replacement);
-    values.into_boxed_slice()
-}
-
-fn remove_changed_commands(
-    filled_rects: &mut Vec<UiHeadlessFilledRectMechanic>,
-    semantic_text: &mut Vec<UiHeadlessSemanticTextMechanic>,
-    changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
-) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
-    for change in changes {
-        let identity = match change {
-            worth_ui_host_contract::UiMountedPaintCommandChange::Insert(_) => continue,
-            worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-                command.identity()
-            }
-            worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
-        };
-        if let Some(index) = filled_rects
-            .iter()
-            .position(|mechanic| mechanic.command_identity() == identity)
-        {
-            filled_rects.remove(index);
-        } else if let Some(index) = semantic_text
-            .iter()
-            .position(|mechanic| mechanic.command_identity() == identity)
-        {
-            semantic_text.remove(index);
-        } else {
-            return Err(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::MalformedProjection,
-            );
-        }
-    }
-    Ok(())
-}
-
-fn insert_changed_commands(
-    filled_rects: &mut Vec<UiHeadlessFilledRectMechanic>,
-    semantic_text: &mut Vec<UiHeadlessSemanticTextMechanic>,
-    changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
-) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
-    let mut rects = Vec::new();
-    let mut text = Vec::new();
-    for change in changes {
-        let command = match change {
-            worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-            | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => command,
-            worth_ui_host_contract::UiMountedPaintCommandChange::Remove(_) => continue,
-        };
-        match command {
-            worth_ui_host_contract::UiMountedPaintCommand::FilledRect {
-                table_index,
-                mechanic,
-                ..
-            } => rects.push((usize::from(*table_index), *mechanic)),
-            worth_ui_host_contract::UiMountedPaintCommand::SemanticText {
-                table_index,
-                mechanic,
-                ..
-            } => text.push((usize::from(*table_index), mechanic)),
-        }
-    }
-    rects.sort_by_key(|(index, _)| *index);
-    text.sort_by_key(|(index, _)| *index);
-    for (index, mechanic) in rects {
-        if index > filled_rects.len() {
-            return Err(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::MalformedProjection,
-            );
-        }
-        filled_rects.insert(
-            index,
-            crate::headless_translation::static_paint::translate_command(mechanic),
-        );
-    }
-    for (index, mechanic) in text {
-        if index > semantic_text.len() {
-            return Err(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::MalformedProjection,
-            );
-        }
-        semantic_text.insert(
-            index,
-            crate::headless_translation::semantic_text::translate_command(mechanic),
-        );
-    }
-    Ok(())
 }

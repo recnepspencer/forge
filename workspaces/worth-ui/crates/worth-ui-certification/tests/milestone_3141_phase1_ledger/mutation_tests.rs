@@ -7,7 +7,7 @@ mod ledger_mutants;
 mod proved_fixture_values;
 use super::{
     parse, repository_document, result_artifact, source_digest, validate_phase_closure,
-    validate_phase_progression, EXPECTED_REQUIREMENTS, HEADER, LEDGER,
+    validate_phase_progression, validate_row, EXPECTED_REQUIREMENTS, HEADER, LEDGER,
 };
 use ledger_mutants::{duplicate_first_data_row, remove_first_data_row, swap_first_data_rows};
 use proved_fixture_values::*;
@@ -183,6 +183,82 @@ fn phase_two_proof_requires_complete_phase_one_closure() {
 }
 
 #[test]
+fn future_proof_requires_every_predecessor_and_a_qualified_text_profile() {
+    let mut rows = parse(&repository_document(LEDGER)).unwrap();
+    rows.get_mut("P3-DRAW-LIST-01")
+        .unwrap()
+        .insert("result".to_owned(), "PROVED".to_owned());
+    assert!(validate_phase_progression(&rows).is_err());
+
+    rows.get_mut("P3-PREDECESSOR-01")
+        .unwrap()
+        .insert("result".to_owned(), "PROVED".to_owned());
+    assert!(validate_phase_progression(&rows).is_ok());
+
+    for row in rows.values_mut().filter(|row| row["phase"] == "3") {
+        row.insert("result".to_owned(), "PROVED".to_owned());
+    }
+    rows.get_mut("P4-BIDI-01")
+        .unwrap()
+        .insert("result".to_owned(), "PROVED".to_owned());
+    assert!(validate_phase_progression(&rows).is_err());
+
+    let digest = super::source_digest::file_digest(
+        "workspaces/worth-ui/profiles/worth-ui-global-text-v2/manifest.toml",
+    )
+    .unwrap();
+    assert!(
+        super::text_profile_gate::validate(super::text_profile_gate::ProfileClaim {
+            result: "PROVED",
+            identity: "worth-ui-global-text-v2",
+            digest: &digest,
+            platform_versions:
+                "protocol=5;text-profile=worth-ui-global-text-v2;qualification=qualified",
+        })
+        .is_ok()
+    );
+    let qualification =
+        super::text_profile_gate::validate(super::text_profile_gate::ProfileClaim {
+            result: "PROVED",
+            identity: "worth-ui-global-text-v2",
+            digest: "0000000000000000000000000000000000000000000000000000000000000000",
+            platform_versions:
+                "protocol=5;text-profile=worth-ui-global-text-v2;qualification=qualified",
+        });
+    assert_eq!(
+        qualification.unwrap_err(),
+        "qualified text profile digest does not match canonical bytes"
+    );
+}
+
+#[test]
+fn open_future_claims_reject_identity_mutation_before_execution_exists() {
+    let rows = parse(&repository_document(LEDGER)).unwrap();
+    for (requirement, field, mutant) in [
+        ("P3-DAMAGE-INDEX-01", "scenario_delta", "cooperative-case"),
+        (
+            "P3-TRANSACTION-01",
+            "fault_injection_boundary",
+            "before-effects",
+        ),
+        ("P3-PRODUCER-SLOPE-01", "structural_counters", "rows=open"),
+        (
+            "P4-FALLBACK-01",
+            "mutation_control",
+            "family=fallback;case=ascii",
+        ),
+        ("P4-TEXT-PROFILE-01", "font_profile_digest", "provisional"),
+    ] {
+        let mut row = rows[requirement].clone();
+        row.insert(field.to_owned(), mutant.to_owned());
+        assert!(
+            validate_row(&row).is_err(),
+            "{requirement} accepted mutated {field}"
+        );
+    }
+}
+
+#[test]
 fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     let mut rows = parse(&repository_document(LEDGER)).unwrap();
     for row in rows.values_mut() {
@@ -191,11 +267,15 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     }
     assert!(validate_phase_closure(&rows, 1).is_ok());
     assert!(validate_phase_closure(&rows, 2).is_ok());
+    assert!(validate_phase_closure(&rows, 3).is_ok());
+    assert!(validate_phase_closure(&rows, 4).is_ok());
     let phase_one = rows.get_mut("P1-AFFINITY-01").unwrap();
     phase_one.insert("result".to_owned(), "OPEN".to_owned());
     phase_one.insert("final_source".to_owned(), "false".to_owned());
     assert!(validate_phase_closure(&rows, 1).is_err());
     assert!(validate_phase_closure(&rows, 2).is_err());
+    assert!(validate_phase_closure(&rows, 3).is_err());
+    assert!(validate_phase_closure(&rows, 4).is_err());
     let phase_one = rows.get_mut("P1-AFFINITY-01").unwrap();
     phase_one.insert("result".to_owned(), "PROVED".to_owned());
     phase_one.insert("final_source".to_owned(), "true".to_owned());
@@ -204,6 +284,30 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     phase_two.insert("final_source".to_owned(), "false".to_owned());
     assert!(validate_phase_closure(&rows, 1).is_ok());
     assert!(validate_phase_closure(&rows, 2).is_err());
+    assert!(validate_phase_closure(&rows, 3).is_err());
+    assert!(validate_phase_closure(&rows, 4).is_err());
+}
+
+#[test]
+fn only_the_immutable_prefix_uses_historical_artifact_validation() {
+    use super::result_artifact::SourceValidationPosture;
+
+    assert_eq!(
+        super::row_evidence::source_validation_posture("1"),
+        SourceValidationPosture::HistoricalArtifactOnly
+    );
+    assert_eq!(
+        super::row_evidence::source_validation_posture("2"),
+        SourceValidationPosture::HistoricalArtifactOnly
+    );
+    assert_eq!(
+        super::row_evidence::source_validation_posture("3"),
+        SourceValidationPosture::CurrentSource
+    );
+    assert_eq!(
+        super::row_evidence::source_validation_posture("4"),
+        SourceValidationPosture::CurrentSource
+    );
 }
 
 struct ProvedFixture {

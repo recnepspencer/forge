@@ -2,100 +2,78 @@ use std::collections::{HashMap, HashSet};
 
 use worth_ui_host_contract::{
     UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostSurfacePresentationDenial,
-    UiMountedFrameConsumptionView, UiMountedPaintCommand, UiMountedPaintCommandChange,
-    UiMountedPaintCommandIdentity, UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity,
-    UiMountedPresentationWorkView,
+    UiMountedFrameConsumptionView, UiMountedPaintCommand, UiMountedPaintCommandIdentity,
+    UiMountedPaintOrderIdentity, UiMountedPresentationWorkView,
 };
 
+use super::recorded_frame::UiHeadlessRecordedFrame;
+use super::retained_order::UiHeadlessRetainedOrder;
 use super::{UiHeadlessRecorderCapacity, UiHeadlessRetainedPresentation};
 use crate::headless_translation::translate_headless_frame;
 
-pub(super) fn prepare_candidate(
+mod delta;
+
+pub(super) fn apply_work(
     view: &UiMountedFrameConsumptionView<'_>,
     capacity: UiHeadlessRecorderCapacity,
-    current: Option<&UiHeadlessRetainedPresentation>,
-) -> Result<UiHeadlessRetainedPresentation, UiHostSurfacePresentationDenial> {
+    current: &mut Option<UiHeadlessRetainedPresentation>,
+) -> Result<Option<UiHeadlessRecordedFrame>, UiHostSurfacePresentationDenial> {
     match view.presentation_work() {
         UiMountedPresentationWorkView::Initial(initial) => {
             if current.is_some() {
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
             let commands = validated_initial_commands(initial)?;
-            Ok(UiHeadlessRetainedPresentation {
-                frame: view.frame(),
-                commands,
-                order: initial.order().into(),
-                auxiliary: initial.auxiliary().clone(),
-                transcript: translate_headless_frame(
-                    view,
-                    initial.projection(),
-                    capacity,
-                    initial.order(),
-                    initial.damage(),
-                )?,
-            })
-        }
-        UiMountedPresentationWorkView::Delta(delta) => {
-            let current = current.ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
-            if delta.affinity().predecessor() != Some(current.frame) {
-                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-            }
-            let mut commands = current.commands.clone();
-            for change in delta.changes() {
-                apply_command_change(&mut commands, change)?;
-            }
-            let mut order = current.order.to_vec();
-            apply_order_edits(&mut order, delta.order())?;
-            validate_order(&commands, &order, delta.order_integrity())?;
-            let command_transcript = current.transcript.successor_delta(
+            let transcript = translate_headless_frame(
                 view,
-                delta.changes(),
-                &order,
-                delta.damage(),
+                initial.projection(),
+                capacity,
+                initial.order(),
+                initial.damage(),
             )?;
-            refresh_table_indices(&mut commands, &command_transcript)?;
-            let auxiliary = delta
-                .auxiliary()
-                .cloned()
-                .unwrap_or_else(|| current.auxiliary.clone());
-            let transcript = match delta.auxiliary() {
-                None => command_transcript,
-                Some(_) => {
-                    let projection = auxiliary
-                        .reconstruct(&commands)
-                        .map_err(|_| UiHostSurfacePresentationDenial::MalformedProjection)?;
-                    crate::headless_translation::translate_auxiliary_delta(
-                        view,
-                        &projection,
-                        &command_transcript,
-                        capacity,
-                        &order,
-                        delta.damage(),
-                    )?
-                }
-            };
-            Ok(UiHeadlessRetainedPresentation {
+            let recorded = UiHeadlessRecordedFrame::complete(transcript);
+            *current = Some(UiHeadlessRetainedPresentation {
                 frame: view.frame(),
-                transcript,
+                surface: view.surface(),
+                binding: view.binding(),
+                baseline: initial.affinity().baseline(),
                 commands,
-                order: order.into_boxed_slice(),
-                auxiliary,
-            })
+                order: UiHeadlessRetainedOrder::initial(initial.order(), initial.order_integrity())
+                    .map_err(|_| malformed())?,
+                auxiliary: initial.auxiliary().clone(),
+                reconstruction: vec![recorded.clone()],
+            });
+            Ok(Some(recorded))
+        }
+        UiMountedPresentationWorkView::Delta(work) => {
+            let Some(current) = current.as_mut() else {
+                return Err(malformed());
+            };
+            delta::apply(view, capacity, current, work).map(Some)
         }
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
-            let current = current.ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
-            if unchanged.affinity().predecessor() != Some(current.frame) {
-                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+            let current = current.as_mut().ok_or_else(malformed)?;
+            if !affinity_matches(current, unchanged.affinity()) {
+                return Err(malformed());
             }
-            Ok(UiHeadlessRetainedPresentation {
-                frame: view.frame(),
-                commands: current.commands.clone(),
-                order: current.order.clone(),
-                auxiliary: current.auxiliary.clone(),
-                transcript: current.transcript.successor_unchanged(view),
-            })
+            current.frame = view.frame();
+            Ok(None)
         }
     }
+}
+
+fn affinity_matches(
+    current: &UiHeadlessRetainedPresentation,
+    affinity: worth_ui_host_contract::UiMountedPresentationAffinity,
+) -> bool {
+    affinity.predecessor() == Some(current.frame)
+        && affinity.surface() == current.surface
+        && affinity.binding() == current.binding
+        && affinity.baseline() == current.baseline
+}
+
+fn malformed() -> UiHostSurfacePresentationDenial {
+    UiHostSurfacePresentationDenial::MalformedProjection
 }
 
 fn validated_initial_commands(
@@ -130,112 +108,21 @@ fn validate_initial_projection(
     let aligned = commands.values().all(|command| match command {
         UiMountedPaintCommand::FilledRect {
             identity,
-            table_index,
             mechanic,
         } => {
             *identity == UiMountedPaintCommandIdentity::filled_rect(mechanic)
-                && projection
-                    .filled_rects()
-                    .rows()
-                    .get(usize::from(*table_index))
-                    == Some(mechanic)
+                && projection.filled_rects().rows().contains(mechanic)
         }
         UiMountedPaintCommand::SemanticText {
             identity,
-            table_index,
             mechanic,
         } => {
             *identity == UiMountedPaintCommandIdentity::semantic_text(mechanic)
-                && projection
-                    .semantic_text()
-                    .rows()
-                    .get(usize::from(*table_index))
-                    == Some(mechanic)
+                && projection.semantic_text().rows().contains(mechanic)
         }
     });
     if !aligned {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-    }
-    Ok(())
-}
-
-fn refresh_table_indices(
-    commands: &mut HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
-    transcript: &crate::UiHeadlessMountedFrameTranscript,
-) -> Result<(), UiHostSurfacePresentationDenial> {
-    for (index, row) in transcript.filled_rects().iter().enumerate() {
-        refresh_table_index(commands, row.command_identity(), index)?;
-    }
-    for (index, row) in transcript.semantic_text().iter().enumerate() {
-        refresh_table_index(commands, row.command_identity(), index)?;
-    }
-    let represented = commands.values().all(|command| match command {
-        UiMountedPaintCommand::FilledRect {
-            identity,
-            table_index,
-            ..
-        } => transcript
-            .filled_rects()
-            .get(usize::from(*table_index))
-            .is_some_and(|row| row.command_identity() == *identity),
-        UiMountedPaintCommand::SemanticText {
-            identity,
-            table_index,
-            ..
-        } => transcript
-            .semantic_text()
-            .get(usize::from(*table_index))
-            .is_some_and(|row| row.command_identity() == *identity),
-    });
-    if !represented {
-        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-    }
-    Ok(())
-}
-
-fn refresh_table_index(
-    commands: &mut HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
-    identity: UiMountedPaintCommandIdentity,
-    index: usize,
-) -> Result<(), UiHostSurfacePresentationDenial> {
-    let index =
-        u16::try_from(index).map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    match commands
-        .get_mut(&identity)
-        .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?
-    {
-        UiMountedPaintCommand::FilledRect { table_index, .. }
-        | UiMountedPaintCommand::SemanticText { table_index, .. } => *table_index = index,
-    }
-    Ok(())
-}
-
-fn apply_order_edits(
-    order: &mut Vec<UiMountedPaintOrderIdentity>,
-    edits: &[UiMountedPaintOrderEdit],
-) -> Result<(), UiHostSurfacePresentationDenial> {
-    for edit in edits {
-        let identity = edit.identity();
-        if edit.is_removal() {
-            let index = order
-                .iter()
-                .position(|current| *current == identity)
-                .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?;
-            order.remove(index);
-            continue;
-        }
-        if let Some(index) = order.iter().position(|current| *current == identity) {
-            order.remove(index);
-        }
-        let index = match edit.predecessor() {
-            None => 0,
-            Some(predecessor) => order
-                .iter()
-                .position(|current| *current == predecessor)
-                .and_then(|index| index.checked_add(1))
-                .ok_or(UiHostSurfacePresentationDenial::MalformedProjection)?,
-        };
-        order.insert(index, identity);
     }
     Ok(())
 }
@@ -252,34 +139,6 @@ fn validate_order(
     let commanded = commands.keys().copied().collect::<HashSet<_>>();
     if ordered.len() != order.len() || ordered != commanded || !integrity.admits(order) {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-    }
-    Ok(())
-}
-
-fn apply_command_change(
-    commands: &mut HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
-    change: &UiMountedPaintCommandChange,
-) -> Result<(), UiHostSurfacePresentationDenial> {
-    match change {
-        UiMountedPaintCommandChange::Insert(command) => {
-            if commands
-                .insert(command.identity(), command.clone())
-                .is_some()
-            {
-                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-            }
-        }
-        UiMountedPaintCommandChange::Replace(command) => {
-            if !commands.contains_key(&command.identity()) {
-                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-            }
-            commands.insert(command.identity(), command.clone());
-        }
-        UiMountedPaintCommandChange::Remove(identity) => {
-            if commands.remove(identity).is_none() {
-                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
-            }
-        }
     }
     Ok(())
 }

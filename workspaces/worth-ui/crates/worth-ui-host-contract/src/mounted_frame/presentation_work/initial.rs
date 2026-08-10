@@ -13,6 +13,7 @@ pub struct UiMountedPresentationInitial {
     pub(super) order: Box<[UiMountedPaintOrderIdentity]>,
     pub(super) order_integrity: UiMountedPaintOrderIntegrity,
     pub(super) damage: Box<[UiMountedLogicalDamage]>,
+    pub(super) production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 #[doc(hidden)]
@@ -27,6 +28,7 @@ pub struct UiMountedPresentationInitialInput {
     pub order: Vec<UiMountedPaintOrderIdentity>,
     pub order_integrity: UiMountedPaintOrderIntegrity,
     pub damage: Vec<UiMountedLogicalDamage>,
+    pub production_cost: crate::UiMountedPresentationProductionCost,
 }
 
 impl UiMountedPresentationInitial {
@@ -52,6 +54,7 @@ impl UiMountedPresentationInitial {
             order: input.order.into_boxed_slice(),
             order_integrity: input.order_integrity,
             damage: input.damage.into_boxed_slice(),
+            production_cost: input.production_cost,
         }
     }
 
@@ -81,5 +84,9 @@ impl UiMountedPresentationInitial {
 
     pub fn damage(&self) -> &[UiMountedLogicalDamage] {
         &self.damage
+    }
+
+    pub const fn production_cost(&self) -> crate::UiMountedPresentationProductionCost {
+        self.production_cost
     }
 }

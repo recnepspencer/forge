@@ -12,9 +12,13 @@ mod command_binding;
 mod compile_case_binding;
 #[path = "milestone_3141_phase1_ledger/execution_contract.rs"]
 mod execution_contract;
+#[path = "milestone_3141_phase1_ledger/future_requirement_contract.rs"]
+mod future_requirement_contract;
 #[cfg(test)]
 #[path = "milestone_3141_phase1_ledger/mutation_tests.rs"]
 mod mutation_tests;
+#[path = "milestone_3141_phase1_ledger/phase_progression.rs"]
+mod phase_progression;
 #[path = "milestone_3141_phase1_ledger/requirement_contract.rs"]
 mod requirement_contract;
 #[path = "milestone_3141_phase1_ledger/result_artifact.rs"]
@@ -39,7 +43,12 @@ mod shared_world_artifact;
 pub(crate) mod source_digest;
 #[path = "milestone_3141_phase1_ledger/source_symbol.rs"]
 mod source_symbol;
+#[path = "milestone_3141_phase1_ledger/text_profile_gate.rs"]
+mod text_profile_gate;
+#[path = "milestone_3141_phase1_ledger/text_profile_qualification.rs"]
+mod text_profile_qualification;
 
+use phase_progression::validate as validate_phase_progression;
 use schema::{EXPECTED_REQUIREMENTS, HEADER};
 
 const LEDGER: &str = "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv";
@@ -97,32 +106,8 @@ fn validate_proved_run_uniqueness(rows: &BTreeMap<String, Row>) -> Result<(), St
     Ok(())
 }
 
-fn validate_phase_progression(rows: &BTreeMap<String, Row>) -> Result<(), String> {
-    let phase_one_open = rows
-        .values()
-        .any(|row| row["phase"] == "1" && row["result"] != "PROVED");
-    let phase_two_proved = rows
-        .values()
-        .any(|row| row["phase"] == "2" && row["result"] == "PROVED");
-    (!phase_one_open || !phase_two_proved)
-        .then_some(())
-        .ok_or_else(|| "Phase 2 proof cannot precede Phase 1 closure".to_owned())
-}
-
 fn validate_phase_closure(rows: &BTreeMap<String, Row>, through_phase: u8) -> Result<(), String> {
-    let open = rows.values().find(|row| {
-        row["phase"]
-            .parse::<u8>()
-            .is_ok_and(|phase| phase <= through_phase)
-            && (row["result"] != "PROVED" || row["final_source"] != "true")
-    });
-    match open {
-        Some(row) => Err(format!(
-            "{} remains open for Phase {through_phase} closure",
-            row["requirement"]
-        )),
-        None => Ok(()),
-    }
+    phase_progression::validate_closure(rows, through_phase)
 }
 
 #[test]
@@ -161,6 +146,22 @@ fn phase_two_closure_requires_every_phase_one_and_two_row() {
         .expect("every Phase 1 and Phase 2 requirement must be final-source proved");
 }
 
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 3 row has final evidence"]
+fn phase_three_closure_requires_every_predecessor_and_phase_three_row() {
+    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    validate_phase_closure(&rows, 3)
+        .expect("every predecessor and Phase 3 requirement must be final-source proved");
+}
+
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 4 row has final evidence"]
+fn phase_four_closure_requires_every_predecessor_and_phase_four_row() {
+    let rows = parse(&repository_document(LEDGER)).expect("the milestone ledger should parse");
+    validate_phase_closure(&rows, 4)
+        .expect("every predecessor and Phase 4 requirement must be final-source proved");
+}
+
 fn validate_row(row: &Row) -> Result<(), String> {
     validate_requirement_contract(row)?;
     match row["result"].as_str() {
@@ -178,26 +179,35 @@ fn validate_row(row: &Row) -> Result<(), String> {
 fn validate_requirement_contract(row: &Row) -> Result<(), String> {
     validate_profile_digests(row)?;
     claim_contract::validate_platform_dependencies(&row["requirement"])?;
-    let contract = requirement_contract::for_requirement(&row["requirement"])
+    let contract = requirement_contract_for(&row["requirement"])
         .ok_or_else(|| "missing requirement contract".to_owned())?;
     validate_closed_identity(row, contract)?;
+    future_requirement_contract::validate_open_claim(row, contract)?;
     if row["result"] == "PROVED" {
         validate_proved_claim(row, contract)?;
     }
     Ok(())
 }
 
+fn requirement_contract_for(
+    requirement: &str,
+) -> Option<&'static requirement_contract::RequirementContract> {
+    requirement_contract::for_requirement(requirement)
+        .or_else(|| future_requirement_contract::for_requirement(requirement))
+}
+
 fn validate_closed_identity(
     row: &Row,
     contract: &requirement_contract::RequirementContract,
 ) -> Result<(), String> {
-    let expected_phase = if row["requirement"].starts_with("P1-") {
-        "1"
-    } else if row["requirement"].starts_with("P2-") {
-        "2"
+    let expected_phase = requirement_phase(&row["requirement"])?;
+    let expected_font_identity = if expected_phase == "4" {
+        "worth-ui-global-text-v2"
     } else {
-        return Err("unknown requirement phase".to_owned());
+        "worth-ui-body-default-v1"
     };
+    let expected_font_digest = requirement_contract::FONT_PROFILE_DIGEST;
+    let phase_four = expected_phase == "4";
     if row["phase"] != expected_phase
         || row["owner"] != contract.owner
         || row["production_boundary"] != contract.boundary
@@ -206,15 +216,26 @@ fn validate_closed_identity(
         || row["proof_kind"] != contract.proof_kind
         || row["evidence_schema"] != requirement_contract::EVIDENCE_SCHEMA
         || row["authority_provenance"] != contract.authority
-        || row["font_profile_identity"] != "worth-ui-body-default-v1"
-        || row["font_profile_digest"] != requirement_contract::FONT_PROFILE_DIGEST
+        || row["font_profile_identity"] != expected_font_identity
+        || (!phase_four && row["font_profile_digest"] != expected_font_digest)
         || row["native_profile_identity"] != "worth-ui-windows-dx12-v1"
         || row["native_profile_digest"] != requirement_contract::NATIVE_PROFILE_DIGEST
-        || row["platform_versions"] != claim_contract::platform_versions(&row["requirement"])
+        || (!phase_four
+            && row["platform_versions"] != claim_contract::platform_versions(&row["requirement"]))
     {
         return Err("closed identity mismatch".to_owned());
     }
     Ok(())
+}
+
+fn requirement_phase(requirement: &str) -> Result<&'static str, String> {
+    match requirement.get(..3) {
+        Some("P1-") => Ok("1"),
+        Some("P2-") => Ok("2"),
+        Some("P3-") => Ok("3"),
+        Some("P4-") => Ok("4"),
+        _ => Err("unknown requirement phase".to_owned()),
+    }
 }
 
 fn validate_proved_claim(
@@ -271,9 +292,18 @@ fn validate_profile_digests(row: &Row) -> Result<(), String> {
         "workspaces/worth-ui/crates/worth-ui-host-native/profiles/worth-ui-body-default-v1.toml";
     let native =
         "workspaces/worth-ui/crates/worth-ui-host-native/profiles/worth-ui-windows-dx12-v1.toml";
-    if row["font_profile_digest"] != source_digest::file_digest(font)?
-        || row["native_profile_digest"] != source_digest::file_digest(native)?
-    {
+    let font_matches = if row["phase"] == "4" {
+        text_profile_gate::validate(text_profile_gate::ProfileClaim {
+            result: &row["result"],
+            identity: &row["font_profile_identity"],
+            digest: &row["font_profile_digest"],
+            platform_versions: &row["platform_versions"],
+        })?;
+        true
+    } else {
+        row["font_profile_digest"] == source_digest::file_digest(font)?
+    };
+    if !font_matches || row["native_profile_digest"] != source_digest::file_digest(native)? {
         return Err("ledger profile digest does not match canonical bytes".to_owned());
     }
     Ok(())

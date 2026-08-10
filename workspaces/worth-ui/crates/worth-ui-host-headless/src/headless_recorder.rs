@@ -8,18 +8,21 @@ use worth_ui_host_contract::{
     UiHostSurfacePresentationMode, UiHostSurfacePresentationOutcome,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationRequest, UiMountedCompletedEffects,
     UiMountedEffectFamily, UiMountedFrameConsumptionView, UiMountedPaintCommand,
-    UiMountedPaintCommandIdentity, UiMountedPaintOrderIdentity, UiMountedPresentationWorkView,
-    UiMountedSurfacePresentationCompletion, UiViewportExtentObservation, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostMechanicsAdapter,
-    WorthUiMeasurementHostAdapter,
+    UiMountedPaintCommandIdentity, UiMountedSurfacePresentationCompletion,
+    UiViewportExtentObservation, WorthUiHostCapability, WorthUiHostCapabilityReport,
+    WorthUiHostContract, WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
 };
 
 use super::headless_measurement::UiHeadlessMeasurementEnvironment;
 use super::{UiHeadlessMountedFrameTranscript, UiHeadlessRecorderCapacity};
 
 mod presentation;
+mod recorded_frame;
+mod retained_order;
 
-use presentation::{prepare_candidate, work_cost};
+use presentation::{apply_work, work_cost};
+use recorded_frame::{materialize_frames, UiHeadlessRecordedFrame};
+use retained_order::UiHeadlessRetainedOrder;
 
 #[derive(Clone)]
 pub struct WorthUiHeadlessRecorder {
@@ -31,20 +34,26 @@ struct WorthUiHeadlessRecorderState {
     measurement: UiHeadlessMeasurementEnvironment,
     registrations:
         BTreeMap<worth_ui_host_contract::UiHostSurfaceIdentity, UiHostSurfaceRegistrationRequest>,
-    transcripts: VecDeque<UiHeadlessMountedFrameTranscript>,
+    transcripts: VecDeque<UiHeadlessRecordedFrame>,
+    transcript_checkpoints: BTreeMap<
+        worth_ui_host_contract::UiSurfaceBindingGeneration,
+        UiHeadlessMountedFrameTranscript,
+    >,
     retained_presentations: BTreeMap<
         worth_ui_host_contract::UiSurfaceBindingGeneration,
         UiHeadlessRetainedPresentation,
     >,
 }
 
-#[derive(Clone)]
 struct UiHeadlessRetainedPresentation {
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
     commands: HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
-    order: Box<[UiMountedPaintOrderIdentity]>,
+    order: UiHeadlessRetainedOrder,
     auxiliary: worth_ui_host_contract::UiMountedPresentationAuxiliaryState,
-    transcript: UiHeadlessMountedFrameTranscript,
+    reconstruction: Vec<UiHeadlessRecordedFrame>,
 }
 
 impl WorthUiHeadlessRecorder {
@@ -86,17 +95,24 @@ impl WorthUiHeadlessRecorder {
                 measurement,
                 registrations: BTreeMap::new(),
                 transcripts: VecDeque::new(),
+                transcript_checkpoints: BTreeMap::new(),
                 retained_presentations: BTreeMap::new(),
             })),
         }
     }
 
     pub fn observed_transcripts(&self) -> Box<[UiHeadlessMountedFrameTranscript]> {
-        self.state.borrow().transcripts.iter().cloned().collect()
+        let state = self.state.borrow();
+        let mut checkpoints = state.transcript_checkpoints.clone();
+        materialize_frames(state.transcripts.iter().cloned(), &mut checkpoints)
+            .expect("admitted headless records must reconstruct exactly")
     }
 
     pub fn drain_transcripts(&self) -> Box<[UiHeadlessMountedFrameTranscript]> {
-        self.state.borrow_mut().transcripts.drain(..).collect()
+        let mut state = self.state.borrow_mut();
+        let records = state.transcripts.drain(..).collect::<Vec<_>>();
+        materialize_frames(records, &mut state.transcript_checkpoints)
+            .expect("admitted headless records must reconstruct exactly")
     }
 
     fn validate_registration(
@@ -252,6 +268,9 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         state
             .retained_presentations
             .remove(&request.binding_generation());
+        state
+            .transcript_checkpoints
+            .remove(&request.binding_generation());
         worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::Deregistered(
             worth_ui_host_contract::UiHostSurfaceDeregistrationReceipt::from_runtime(
                 request.host_session_identity(),
@@ -271,31 +290,30 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
             }
         };
         let binding = view.binding();
-        let candidate = match prepare_candidate(
-            view,
-            capacity,
-            self.state.borrow().retained_presentations.get(&binding),
-        ) {
-            Ok(candidate) => candidate,
-            Err(denial) => {
-                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
-            }
-        };
         let adapter_cost = match work_cost(view.presentation_work()) {
             Ok(cost) => cost,
             Err(denial) => {
                 return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
             }
         };
-        let recorded = !matches!(
-            view.presentation_work(),
-            UiMountedPresentationWorkView::Unchanged(_)
-        );
         let mut state = self.state.borrow_mut();
-        if recorded {
-            state.transcripts.push_back(candidate.transcript.clone());
+        let mut retained = state.retained_presentations.remove(&binding);
+        let recorded = match apply_work(view, capacity, &mut retained) {
+            Ok(recorded) => recorded,
+            Err(denial) => {
+                if let Some(retained) = retained {
+                    state.retained_presentations.insert(binding, retained);
+                }
+                return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial);
+            }
+        };
+        if let Some(recorded) = recorded {
+            state.transcripts.push_back(recorded);
         }
-        state.retained_presentations.insert(binding, candidate);
+        state.retained_presentations.insert(
+            binding,
+            retained.expect("admitted work must retain current presentation state"),
+        );
         UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
             UiHostSurfacePresentationMode::RecordOnly,
             worth_ui_host_contract::UiHostPresentationEpoch::issued_by_host(
@@ -323,6 +341,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
             .retain(|_, request| request.host_session_identity() != host_session_identity);
         for binding in released_bindings {
             state.retained_presentations.remove(&binding);
+            state.transcript_checkpoints.remove(&binding);
         }
         UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
             host_session_identity,

@@ -11,8 +11,9 @@ use worth_ui_host_contract::{
     UiMountedMechanicalRole, UiMountedMotionProjection, UiMountedNodeProjectionView,
     UiMountedNodeProjectionViewInput, UiMountedNodeReceiptIssuer, UiMountedOmissionReason,
     UiMountedPaintBatchReference, UiMountedPaintBatchRow, UiMountedPaintBatchTable,
-    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipation,
-    UiMountedParticipationFact, UiMountedParticipationInput, UiMountedParticipationStatus,
+    UiMountedPaintCommandIdentity, UiMountedPaintOrderIdentity, UiMountedPaintPrimitiveKind,
+    UiMountedPaintProjection, UiMountedParticipation, UiMountedParticipationFact,
+    UiMountedParticipationInput, UiMountedParticipationStatus,
     UiMountedPresentationAttemptIdentity, UiMountedPresentationSchemaVersion,
     UiMountedPresentationWorkView, UiMountedPreviewProjection, UiMountedProjectionView,
     UiMountedProjectionViewInput, UiMountedRealtimeBatchTable, UiMountedResourceTable,
@@ -218,6 +219,7 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         },
     )
     .unwrap();
+    let command_identity = UiMountedPaintCommandIdentity::filled_rect(&row);
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame: projection_frame,
         surface: projection_surface,
@@ -240,6 +242,11 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: vec![worth_ui_host_contract::UiMountedPaintCommand::FilledRect {
+            identity: command_identity,
+            mechanic: row,
+        }],
+        authored_paint_order: vec![UiMountedPaintOrderIdentity::for_command(command_identity)],
     })
 }
 
@@ -295,6 +302,8 @@ fn count_only_projection() -> UiMountedProjectionView {
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: Vec::new(),
+        authored_paint_order: Vec::new(),
     })
 }
 

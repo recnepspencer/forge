@@ -1,33 +1,20 @@
-use worth_ui_host_contract::{UiHostPresentationCostInput, UiHostPresentationCostReport};
-
 use crate::native::UiNativeGraphics;
 
 use super::super::{
-    copy_evidence_pixels, draw_rectangle, draw_retained_to_surface, pipeline, rectangle_shader,
-    retained_transfer, UiNativePendingWgpuObligation, UiNativeReadbackPort,
-    UiWgpuNativeReadbackPort,
+    clear_target, copy_evidence_pixels, draw_rectangle, draw_rectangle_after_clear,
+    draw_retained_to_surface, pipeline, rectangle_shader, replace_pipeline, retained_transfer,
+    UiNativePendingWgpuObligation, UiNativeReadbackPort, UiWgpuNativeReadbackPort,
 };
 use super::{
     UiNativePresentationPortFailure, UiNativePresentationPortObservation,
-    UiNativePresentationPortPlan,
+    UiNativePresentationPortPlan, UiNativeRasterOperation,
 };
 
 pub(super) fn present(
     graphics: &mut UiNativeGraphics,
     plan: UiNativePresentationPortPlan,
 ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure> {
-    let shader_source = rectangle_shader(plan.rect, plan.source_rgba8);
-    let shader = graphics
-        .device
-        .create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("worth-ui-attributed-filled-rectangle"),
-            source: wgpu::ShaderSource::Wgsl(shader_source.into()),
-        });
-    let retained_pipeline = pipeline(
-        &graphics.device,
-        &shader,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
-    );
+    let cost = plan.cost;
     let (surface_pipeline, surface_bind_group) = retained_transfer(graphics);
     let output = acquire_surface(graphics)?;
     let retained_view = graphics
@@ -42,10 +29,10 @@ pub(super) fn present(
         output,
         retained_view,
         surface_view,
-        retained_pipeline,
         surface_pipeline,
         surface_bind_group,
         &readback,
+        plan,
     );
     let (pixels, readback_crossings) =
         match UiWgpuNativeReadbackPort::read_two_pixels(&graphics.device, &readback, &submission) {
@@ -58,7 +45,7 @@ pub(super) fn present(
         };
     Ok(UiNativePresentationPortObservation {
         pixels,
-        cost: presentation_cost(graphics.extent(), plan.rect),
+        cost,
         crossing_count: readback_crossings.saturating_add(1),
     })
 }
@@ -88,17 +75,28 @@ fn encode_and_present(
     output: wgpu::SurfaceTexture,
     retained_view: wgpu::TextureView,
     surface_view: wgpu::TextureView,
-    retained_pipeline: wgpu::RenderPipeline,
     surface_pipeline: wgpu::RenderPipeline,
     surface_bind_group: wgpu::BindGroup,
     readback: &wgpu::Buffer,
+    plan: UiNativePresentationPortPlan,
 ) -> wgpu::SubmissionIndex {
     let mut encoder = graphics
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("worth-ui-initial-presentation"),
         });
-    draw_rectangle(&mut encoder, &retained_view, &retained_pipeline);
+    if plan.clear_retained_target && plan.operations.is_empty() {
+        clear_target(&mut encoder, &retained_view);
+    }
+    for (index, operation) in plan.operations.iter().copied().enumerate() {
+        draw_operation(
+            graphics,
+            &mut encoder,
+            &retained_view,
+            operation,
+            plan.clear_retained_target && index == 0,
+        );
+    }
     draw_retained_to_surface(
         &mut encoder,
         &surface_view,
@@ -116,25 +114,39 @@ fn encode_and_present(
     submission
 }
 
-fn presentation_cost(
-    extent: [u32; 2],
-    rect: super::super::RasterRect,
-) -> UiHostPresentationCostReport {
-    let pixels = u64::from(extent[0]) * u64::from(extent[1]);
-    UiHostPresentationCostReport::from_adapter(UiHostPresentationCostInput {
-        presented_surfaces: 1,
-        translated_rows: 1,
-        native_resource_cache_misses: 1,
-        intersecting_commands: 1,
-        replayed_commands: 1,
-        cleared_pixels: pixels,
-        rendered_pixels: u64::from(rect.physical_width) * u64::from(rect.physical_height),
-        presented_pixels: pixels,
-        gpu_writes: 3,
-        render_passes: 2,
-        surface_acquisitions: 1,
-        queue_submissions: 1,
-        presents: 1,
-        ..Default::default()
-    })
+fn draw_operation(
+    graphics: &UiNativeGraphics,
+    encoder: &mut wgpu::CommandEncoder,
+    retained_view: &wgpu::TextureView,
+    operation: UiNativeRasterOperation,
+    clear_before: bool,
+) {
+    let (rect, rgba, replace) = match operation {
+        UiNativeRasterOperation::Clear(rect) => (rect, [0, 0, 0, 0], true),
+        UiNativeRasterOperation::FilledRect { rect, source_rgba8 } => (rect, source_rgba8, false),
+    };
+    let shader = graphics
+        .device
+        .create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("worth-ui-retained-draw-operation"),
+            source: wgpu::ShaderSource::Wgsl(rectangle_shader(rect, rgba).into()),
+        });
+    let pipeline = if replace {
+        replace_pipeline(
+            &graphics.device,
+            &shader,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        )
+    } else {
+        pipeline(
+            &graphics.device,
+            &shader,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        )
+    };
+    if clear_before {
+        draw_rectangle_after_clear(encoder, retained_view, &pipeline);
+    } else {
+        draw_rectangle(encoder, retained_view, &pipeline);
+    }
 }

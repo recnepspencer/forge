@@ -11,6 +11,8 @@ pub struct UiHostPresentationCostReport {
     order_mutations: u64,
     logical_damage_regions: u64,
     logical_damage_pixels: u64,
+    retained_command_scans: u64,
+    retained_command_clones: u64,
     damage_index_probes: u64,
     intersecting_commands: u64,
     replayed_commands: u64,
@@ -38,6 +40,8 @@ pub struct UiHostPresentationCostInput {
     pub order_mutations: u64,
     pub logical_damage_regions: u64,
     pub logical_damage_pixels: u64,
+    pub retained_command_scans: u64,
+    pub retained_command_clones: u64,
     pub damage_index_probes: u64,
     pub intersecting_commands: u64,
     pub replayed_commands: u64,
@@ -54,6 +58,26 @@ pub struct UiHostPresentationCostInput {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiHostPresentationCostOverflow;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct UiMountedPresentationProductionCost {
+    source_instances: u64,
+    commands_considered: u64,
+    command_index_lookups: u64,
+    order_lookups: u64,
+    retained_command_scans: u64,
+    retained_command_clones: u64,
+}
+
+#[doc(hidden)]
+pub struct UiMountedPresentationProductionCostInput {
+    pub source_instances: u64,
+    pub commands_considered: u64,
+    pub command_index_lookups: u64,
+    pub order_lookups: u64,
+    pub retained_command_scans: u64,
+    pub retained_command_clones: u64,
+}
 
 macro_rules! cost_fields {
     ($source:ident, $($field:ident),+ $(,)?) => {
@@ -88,6 +112,8 @@ impl UiHostPresentationCostReport {
             order_mutations,
             logical_damage_regions,
             logical_damage_pixels,
+            retained_command_scans,
+            retained_command_clones,
             damage_index_probes,
             intersecting_commands,
             replayed_commands,
@@ -118,6 +144,8 @@ impl UiHostPresentationCostReport {
             order_mutations,
             logical_damage_regions,
             logical_damage_pixels,
+            retained_command_scans,
+            retained_command_clones,
             damage_index_probes,
             intersecting_commands,
             replayed_commands,
@@ -145,6 +173,8 @@ impl UiHostPresentationCostReport {
         order_mutations,
         logical_damage_regions,
         logical_damage_pixels,
+        retained_command_scans,
+        retained_command_clones,
         damage_index_probes,
         intersecting_commands,
         replayed_commands,
@@ -157,6 +187,29 @@ impl UiHostPresentationCostReport {
         surface_acquisitions,
         queue_submissions,
         presents,
+    );
+}
+
+impl UiMountedPresentationProductionCost {
+    #[doc(hidden)]
+    pub const fn from_runtime_mounting(input: UiMountedPresentationProductionCostInput) -> Self {
+        Self {
+            source_instances: input.source_instances,
+            commands_considered: input.commands_considered,
+            command_index_lookups: input.command_index_lookups,
+            order_lookups: input.order_lookups,
+            retained_command_scans: input.retained_command_scans,
+            retained_command_clones: input.retained_command_clones,
+        }
+    }
+
+    cost_accessors!(
+        source_instances,
+        commands_considered,
+        command_index_lookups,
+        order_lookups,
+        retained_command_scans,
+        retained_command_clones,
     );
 }
 

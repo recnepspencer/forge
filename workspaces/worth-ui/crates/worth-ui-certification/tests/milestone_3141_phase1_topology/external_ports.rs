@@ -38,6 +38,12 @@ fn phase_two_external_effect_ports_are_concrete_and_vendor_scoped() {
 
     let vendor_homes = inventory
         .rust_files_under("crates/worth-ui-host-native/src")
+        .filter(|source| {
+            !source
+                .relative_path()
+                .file_stem()
+                .is_some_and(|stem| stem.to_string_lossy().ends_with("_tests"))
+        })
         .filter(|source| uses_native_vendor_path(source.text()))
         .map(|source| source.relative_path().to_string_lossy().replace('\\', "/"))
         .collect::<BTreeSet<_>>();
@@ -191,6 +197,18 @@ fn rust_call_count(source: &str, expected: &str) -> usize {
 fn uses_native_vendor_path(source: &str) -> bool {
     struct VendorPaths(bool);
     impl<'ast> Visit<'ast> for VendorPaths {
+        fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
+            let test_only = item.attrs.iter().any(|attribute| {
+                attribute.path().is_ident("cfg")
+                    && attribute.meta.require_list().is_ok_and(|list| {
+                        list.tokens.to_string().split_whitespace().any(|token| token == "test")
+                    })
+            });
+            if !test_only {
+                syn::visit::visit_item_mod(self, item);
+            }
+        }
+
         fn visit_path(&mut self, path: &'ast syn::Path) {
             self.0 |= path
                 .segments

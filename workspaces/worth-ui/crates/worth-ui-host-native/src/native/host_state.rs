@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use worth_ui_host_contract::UiHostSurfaceRegistrationRequest;
 
 use super::{
     event_loop::UiNativeOwnedWindow, UiNativeOwnedGraphics, UiNativePendingPresentation,
     UiNativePresentationObservation, UiNativeResourceCensus, UiNativeResourceOwner,
-    UiNativeResourceRegistry,
+    UiNativeResourceRegistry, UiNativeRetainedDrawList,
 };
 
 pub(crate) struct UiNativeHostState {
@@ -17,6 +17,8 @@ pub(crate) struct UiNativeHostState {
     pub(crate) resources: UiNativeResourceRegistry,
     pub(crate) effect_posture: UiNativeEffectPosture,
     pub(crate) pending_presentations: Vec<UiNativePendingPresentation>,
+    pub(crate) retained_draw_lists: BTreeMap<u64, UiNativeRetainedDrawList>,
+    pub(crate) reconstruction_required: BTreeSet<u64>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -38,6 +40,8 @@ impl UiNativeHostState {
             resources: UiNativeResourceRegistry::new(),
             effect_posture: UiNativeEffectPosture::BeforeEffects,
             pending_presentations: Vec::new(),
+            retained_draw_lists: BTreeMap::new(),
+            reconstruction_required: BTreeSet::new(),
         }
     }
 
@@ -56,6 +60,8 @@ impl UiNativeHostState {
         }
         self.pending_presentations = retained;
         if self.pending_presentations.is_empty() {
+            self.retained_draw_lists.clear();
+            self.reconstruction_required.clear();
             if let Some(graphics) = self.graphics.take() {
                 graphics.close(&mut self.resources);
             }

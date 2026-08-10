@@ -92,7 +92,9 @@ impl MountedPresentationWorld {
             .iter()
             .enumerate()
             .map(|(index, row)| rect_node(index, row))
-            .collect();
+            .collect::<Vec<_>>();
+        let (authored_paint_commands, authored_paint_order) =
+            crate::mounting::compile_presentation_sources(&nodes, &rows, &[]);
         UiMountedProjectionView::new(UiMountedProjectionViewInput {
             frame,
             surface: self.surface,
@@ -108,6 +110,8 @@ impl MountedPresentationWorld {
             spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
             realtime_batches: worth_ui_host_contract::UiMountedRealtimeBatchTable::new(Vec::new()),
             resources: UiMountedResourceTable::new(Vec::new()),
+            authored_paint_commands,
+            authored_paint_order,
         })
     }
 

@@ -8,6 +8,7 @@ pub fn initial_presentation_mechanics_for_certification(
     crate::mounting::presentation::work_producer::UiMountedPresentationState::from_projection(
         projection,
         requirement,
+        None,
     )
     .issue_initial(&lease, projection)
     .into_initial_mechanics()

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import io
 import json
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -282,11 +284,38 @@ def run(command_text: str) -> dict[str, object]:
     return json.loads(completed.stdout.splitlines()[-1])
 
 
-def write(rows: list[dict[str, str]], fields: list[str]) -> None:
-    with LEDGER.open("w", encoding="utf-8", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
-        writer.writeheader()
-        writer.writerows(rows)
+def write_phase(rows: list[dict[str, str]], fields: list[str], phase: int) -> None:
+    original = LEDGER.read_text(encoding="utf-8")
+    rendered = render_phase_update(original, rows, fields, phase)
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", newline="", dir=LEDGER.parent, delete=False
+    ) as stream:
+        stream.write(rendered)
+        temporary = Path(stream.name)
+    temporary.replace(LEDGER)
+
+
+def render_phase_update(
+    original: str,
+    rows: list[dict[str, str]],
+    fields: list[str],
+    phase: int,
+) -> str:
+    mutable = {row["requirement"]: row for row in rows if int(row["phase"]) == phase}
+    lines = original.splitlines(keepends=True)
+    requirement_index = fields.index("requirement")
+    for index, line in enumerate(lines[1:], 1):
+        record = next(csv.reader([line]))
+        requirement = record[requirement_index]
+        if requirement in mutable:
+            lines[index] = serialize_row(mutable[requirement], fields)
+    return "".join(lines)
+
+
+def serialize_row(row: dict[str, str], fields: list[str]) -> str:
+    stream = io.StringIO(newline="")
+    csv.DictWriter(stream, fieldnames=fields, lineterminator="\n").writerow(row)
+    return stream.getvalue()
 
 
 def digest(path: Path) -> str:
@@ -295,21 +324,42 @@ def digest(path: Path) -> str:
 
 def main() -> int:
     prepare_only = "--prepare-only" in sys.argv[1:]
+    through_phase = requested_phase(sys.argv[1:])
     with LEDGER.open(encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream)
         fields = list(reader.fieldnames or ())
         rows = list(reader)
-    configured = proofs()
-    if set(configured) != {row["requirement"] for row in rows}:
-        raise RuntimeError("proof mapping does not match the exact ledger inventory")
-    for row in rows:
+    selected = phase_rows_to_prepare(rows, through_phase)
+    configured = {
+        requirement: proof
+        for requirement, proof in proofs().items()
+        if int(requirement[1]) <= through_phase
+    }
+    if set(configured) != {row["requirement"] for row in selected}:
+        raise RuntimeError("proof mapping does not match the selected phase inventory")
+    for row in selected:
         prepare_claim(row, configured[row["requirement"]])
         row["result"] = "OPEN"
         row["final_source"] = "false"
-    write(rows, fields)
+    if selected:
+        write_phase(rows, fields, through_phase)
     if prepare_only:
-        print("prepared 30 Worth UI milestone 3.14.1 ledger claims as OPEN", flush=True)
+        print(
+            f"prepared {len(selected)} Worth UI milestone 3.14.1 ledger claims as OPEN",
+            flush=True,
+        )
         return 0
+
+    if not selected:
+        subprocess.run(
+            [sys.executable, "scripts/ci/verify_worth_ui_3141_ledger.py"],
+            cwd=ROOT,
+            check=True,
+        )
+        return 0
+
+    if through_phase != 2:
+        raise RuntimeError("Phase 3 proof mappings are not implemented yet")
 
     subprocess.run(
         [
@@ -339,13 +389,41 @@ def main() -> int:
     ordered = phase_one + [phase_one_world, headless_cost, close, world] + dependent_phase_two
     for row in ordered:
         close_row(row, run(row["exact_command"]))
-        write(rows, fields)
+        write_phase(rows, fields, through_phase)
     subprocess.run(
         [sys.executable, "scripts/ci/verify_worth_ui_3141_ledger.py"],
         cwd=ROOT,
         check=True,
     )
     return 0
+
+
+def requested_phase(arguments: list[str]) -> int:
+    if "--through-phase" not in arguments:
+        return 2
+    index = arguments.index("--through-phase")
+    try:
+        phase = int(arguments[index + 1])
+    except (IndexError, ValueError) as error:
+        raise RuntimeError("--through-phase requires an integer") from error
+    if phase not in {2, 3, 4}:
+        raise RuntimeError("--through-phase must be 2, 3, or 4")
+    return phase
+
+
+def phase_rows_to_prepare(
+    rows: list[dict[str, str]], through_phase: int
+) -> list[dict[str, str]]:
+    predecessor = [row for row in rows if int(row["phase"]) < through_phase]
+    if any(row["result"] != "PROVED" or row["final_source"] != "true" for row in predecessor):
+        raise RuntimeError("cannot prepare a phase before predecessor closure")
+    return [
+        row
+        for row in rows
+        if int(row["phase"]) == through_phase
+        and row["result"] == "OPEN"
+        and row["final_source"] == "false"
+    ]
 
 
 if __name__ == "__main__":

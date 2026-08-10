@@ -1,6 +1,8 @@
 pub(super) const BASIC_PLATFORM_VERSIONS: &str = "protocol=4";
 pub(super) const PROFILE_PLATFORM_VERSIONS: &str = "pollster=0.4.0;winit=0.30.13;winit-features=rwh_06;wgpu=29.0.4;wgpu-features=std+parking_lot+dx12+wgsl;rustybuzz=0.20.1;swash=0.2.10;protocol=4";
 pub(super) const NATIVE_PLATFORM_VERSIONS: &str = "pollster=0.4.0;winit=0.30.13;winit-features=rwh_06;wgpu=29.0.4;wgpu-features=std+parking_lot+dx12+wgsl;xcap=0.9.7;xcap-features=wgc;winsafe=0.0.28;winsafe-features=dwm+kernel+user;uiautomation=0.25.0;uiautomation-features=control+input+screenshot;win32job=2.0.3;protocol=4";
+pub(super) const OPEN_TEXT_PLATFORM_VERSIONS: &str =
+    "protocol=5;text-profile=worth-ui-global-text-v2;qualification=open";
 
 use sha2::{Digest, Sha256};
 
@@ -122,7 +124,9 @@ pub(super) fn execution_cost(requirement: &str) -> &'static str {
 }
 
 pub(super) fn platform_versions(requirement: &str) -> &'static str {
-    if requirement.starts_with("P2-") {
+    if requirement.starts_with("P4-") {
+        OPEN_TEXT_PLATFORM_VERSIONS
+    } else if requirement.starts_with("P2-") {
         NATIVE_PLATFORM_VERSIONS
     } else if requirement == "P1-PROFILE-01" {
         PROFILE_PLATFORM_VERSIONS

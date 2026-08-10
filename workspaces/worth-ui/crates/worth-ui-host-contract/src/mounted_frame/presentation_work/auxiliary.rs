@@ -1,4 +1,5 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use super::{UiMountedPaintCommand, UiMountedPaintCommandIdentity};
 
@@ -8,7 +9,9 @@ pub struct UiMountedPresentationAuxiliaryState {
     surface: crate::UiSemanticSurfaceIdentity,
     binding: crate::UiSurfaceBindingGeneration,
     content: crate::UiMountedContentGeneration,
-    nodes: Box<[crate::UiMountedNodeProjectionView]>,
+    nodes: Arc<[crate::UiMountedNodeProjectionView]>,
+    filled_rects: crate::UiMountedFilledRectTable,
+    semantic_text: crate::UiMountedSemanticTextTable,
     clips: crate::UiMountedClipTable,
     layers: crate::UiMountedLayerTable,
     hit_tests: crate::UiMountedHitTestTable,
@@ -16,12 +19,15 @@ pub struct UiMountedPresentationAuxiliaryState {
     spatial_batches: crate::UiMountedSpatialBatchTable,
     realtime_batches: crate::UiMountedRealtimeBatchTable,
     resources: crate::UiMountedResourceTable,
+    authored_commands: Arc<[UiMountedPaintCommandIdentity]>,
+    authored_order: Arc<[crate::UiMountedPaintOrderIdentity]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedPresentationReconstructionDenial {
     DuplicateTableIndex,
     MissingTableIndex,
+    CommandMismatch,
     CapacityExceeded,
 }
 
@@ -33,7 +39,9 @@ impl UiMountedPresentationAuxiliaryState {
             surface: projection.surface(),
             binding: projection.binding(),
             content: projection.content_generation(),
-            nodes: projection.nodes().to_vec().into_boxed_slice(),
+            nodes: projection.retained_nodes(),
+            filled_rects: projection.filled_rects().clone(),
+            semantic_text: projection.semantic_text().clone(),
             clips: projection.clips().clone(),
             layers: projection.layers().clone(),
             hit_tests: projection.hit_tests().clone(),
@@ -41,6 +49,12 @@ impl UiMountedPresentationAuxiliaryState {
             spatial_batches: projection.spatial_batches().clone(),
             realtime_batches: projection.realtime_batches().clone(),
             resources: projection.resources().clone(),
+            authored_commands: projection
+                .retained_paint_commands()
+                .iter()
+                .map(UiMountedPaintCommand::identity)
+                .collect(),
+            authored_order: projection.retained_paint_order(),
         }
     }
 
@@ -48,24 +62,7 @@ impl UiMountedPresentationAuxiliaryState {
         &self,
         commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
     ) -> Result<crate::UiMountedProjectionView, UiMountedPresentationReconstructionDenial> {
-        let mut filled_rects = BTreeMap::new();
-        let mut semantic_text = BTreeMap::new();
-        for command in commands.values() {
-            match command {
-                UiMountedPaintCommand::FilledRect {
-                    table_index,
-                    mechanic,
-                    ..
-                } => insert(&mut filled_rects, *table_index, *mechanic)?,
-                UiMountedPaintCommand::SemanticText {
-                    table_index,
-                    mechanic,
-                    ..
-                } => insert(&mut semantic_text, *table_index, mechanic.clone())?,
-            }
-        }
-        let filled_rects = contiguous(filled_rects)?;
-        let semantic_text = contiguous(semantic_text)?;
+        validate_commands(commands, &self.filled_rects, &self.semantic_text)?;
         Ok(crate::UiMountedProjectionView::new(
             crate::UiMountedProjectionViewInput {
                 frame: self.frame,
@@ -75,17 +72,24 @@ impl UiMountedPresentationAuxiliaryState {
                 nodes: self.nodes.to_vec(),
                 clips: self.clips.clone(),
                 layers: self.layers.clone(),
-                filled_rects: crate::UiMountedFilledRectTable::from_runtime_mounting(filled_rects)
-                    .map_err(|_| UiMountedPresentationReconstructionDenial::CapacityExceeded)?,
-                semantic_text: crate::UiMountedSemanticTextTable::from_runtime_mounting(
-                    semantic_text,
-                )
-                .map_err(|_| UiMountedPresentationReconstructionDenial::CapacityExceeded)?,
+                filled_rects: self.filled_rects.clone(),
+                semantic_text: self.semantic_text.clone(),
                 hit_tests: self.hit_tests.clone(),
                 paint_batches: self.paint_batches.clone(),
                 spatial_batches: self.spatial_batches.clone(),
                 realtime_batches: self.realtime_batches.clone(),
                 resources: self.resources.clone(),
+                authored_paint_commands: self
+                    .authored_commands
+                    .iter()
+                    .map(|identity| {
+                        commands
+                            .get(identity)
+                            .expect("validated reconstruction source names a command")
+                            .clone()
+                    })
+                    .collect(),
+                authored_paint_order: self.authored_order.to_vec(),
             },
         ))
     }
@@ -99,6 +103,14 @@ impl UiMountedPresentationAuxiliaryState {
             && self.layers == other.layers
             && same_hit_tests(&self.hit_tests, &other.hit_tests)
             && self.paint_batches == other.paint_batches
+            && self.spatial_batches == other.spatial_batches
+            && self.realtime_batches == other.realtime_batches
+            && self.resources == other.resources
+    }
+
+    #[doc(hidden)]
+    pub fn same_lane_presentation_meaning(&self, other: &Self) -> bool {
+        self.paint_batches == other.paint_batches
             && self.spatial_batches == other.spatial_batches
             && self.realtime_batches == other.realtime_batches
             && self.resources == other.resources
@@ -119,6 +131,42 @@ impl UiMountedPresentationAuxiliaryState {
     pub const fn content(&self) -> crate::UiMountedContentGeneration {
         self.content
     }
+}
+
+fn validate_commands(
+    commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
+    filled_rects: &crate::UiMountedFilledRectTable,
+    semantic_text: &crate::UiMountedSemanticTextTable,
+) -> Result<(), UiMountedPresentationReconstructionDenial> {
+    let expected = filled_rects
+        .rows()
+        .iter()
+        .map(UiMountedPaintCommandIdentity::filled_rect)
+        .chain(
+            semantic_text
+                .rows()
+                .iter()
+                .map(UiMountedPaintCommandIdentity::semantic_text),
+        )
+        .collect::<HashSet<_>>();
+    let observed = commands
+        .iter()
+        .map(|(identity, command)| {
+            let derived = match command {
+                UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+                    UiMountedPaintCommandIdentity::filled_rect(mechanic)
+                }
+                UiMountedPaintCommand::SemanticText { mechanic, .. } => {
+                    UiMountedPaintCommandIdentity::semantic_text(mechanic)
+                }
+            };
+            (*identity == derived).then_some(*identity)
+        })
+        .collect::<Option<HashSet<_>>>()
+        .ok_or(UiMountedPresentationReconstructionDenial::CommandMismatch)?;
+    (expected == observed)
+        .then_some(())
+        .ok_or(UiMountedPresentationReconstructionDenial::CommandMismatch)
 }
 
 fn same_nodes(
@@ -155,28 +203,4 @@ fn same_hit_tests(
                 && left.clip_bounds() == right.clip_bounds()
                 && left.order() == right.order()
         })
-}
-
-fn insert<T>(
-    rows: &mut BTreeMap<u16, T>,
-    index: u16,
-    row: T,
-) -> Result<(), UiMountedPresentationReconstructionDenial> {
-    if rows.insert(index, row).is_some() {
-        return Err(UiMountedPresentationReconstructionDenial::DuplicateTableIndex);
-    }
-    Ok(())
-}
-
-fn contiguous<T>(
-    rows: BTreeMap<u16, T>,
-) -> Result<Vec<T>, UiMountedPresentationReconstructionDenial> {
-    rows.into_iter()
-        .enumerate()
-        .map(|(expected, (observed, row))| {
-            (usize::from(observed) == expected)
-                .then_some(row)
-                .ok_or(UiMountedPresentationReconstructionDenial::MissingTableIndex)
-        })
-        .collect()
 }

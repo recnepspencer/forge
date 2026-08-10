@@ -6,6 +6,11 @@ use sha2::{Digest, Sha256};
 
 use super::workspace_source_inventory;
 
+#[path = "source_digest/historical.rs"]
+mod historical;
+
+pub(super) use historical::file_at_revision;
+
 const LEDGER: &str = "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv";
 const EVIDENCE_ROOT: &str = "_docs/worth-ui/milestone-3.14.1-evidence/";
 

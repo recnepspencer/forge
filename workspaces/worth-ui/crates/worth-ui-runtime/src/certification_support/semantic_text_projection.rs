@@ -176,22 +176,28 @@ struct SemanticTextProjectionBasis {
 }
 
 fn projection(basis: SemanticTextProjectionBasis) -> UiMountedProjectionView {
+    let nodes = vec![node(&basis)];
+    let rows = vec![basis.row];
+    let (authored_paint_commands, authored_paint_order) =
+        crate::mounting::compile_presentation_sources(&nodes, &[], &rows);
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame: basis.frame,
         surface: basis.surface,
         binding: basis.binding,
         content_generation: basis.content_generation,
-        nodes: vec![node(&basis)],
+        nodes,
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
-        semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(vec![basis.row])
+        semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(rows)
             .expect("one semantic row fits the mounted table"),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands,
+        authored_paint_order,
     })
 }
 

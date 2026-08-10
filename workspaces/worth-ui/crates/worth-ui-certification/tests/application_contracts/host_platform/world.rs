@@ -63,16 +63,23 @@ impl MountedPresentationWorld {
         let count = delta.changed_rows;
         let expected_successor = &self.baseline[count..];
         let expected = removal_expectation(&self.baseline, count);
-        let candidate = removal_candidate(delta, expected_successor.is_empty());
-        adjudicate(&expected, &candidate).expect("production removal matches independent oracle");
-        assert_exact_cost(delta, count, expected_successor.is_empty());
+        let candidate = removal_candidate(delta);
+        adjudicate(&expected, &candidate).unwrap_or_else(|denial| {
+            let mismatch = expected
+                .damage
+                .iter()
+                .zip(&candidate.damage)
+                .position(|(expected, candidate)| expected != candidate)
+                .map(|index| (index, expected.damage[index], candidate.damage[index]));
+            panic!(
+                "production removal {count} mismatched: {denial:?}; damage-lengths={:?}; first={mismatch:?}",
+                (expected.damage.len(), candidate.damage.len())
+            )
+        });
+        assert_exact_cost(delta, count);
         assert_exact_rows(&delta.transcript, expected_successor);
         assert_exact_order(&delta.transcript, expected_successor);
-        assert_exact_damage(
-            &delta.transcript,
-            &self.baseline[..count],
-            expected_successor.first(),
-        );
+        assert_exact_damage(&delta.transcript, &self.baseline[..count]);
         attribution::assert_exact_attribution(
             &delta.transcript,
             &delta.authored_instances,
@@ -100,11 +107,11 @@ impl MountedPresentationWorld {
         assert_exact_rows(&delta.transcript, &self.baseline);
         assert_exact_order(&delta.transcript, &self.baseline);
         assert_eq!(delta.draw_mutations, delta.changed_rows as u64);
-        assert_eq!(delta.order_mutations, delta.changed_rows as u64 + 1);
-        assert_eq!(delta.damage_regions, delta.changed_rows as u64 * 2 + 1);
+        assert_eq!(delta.order_mutations, delta.changed_rows as u64);
+        assert_eq!(delta.damage_regions, delta.changed_rows as u64);
         assert_eq!(
             delta.delta_rows_carried,
-            (delta.changed_rows * 4 + 2) as u64
+            (delta.changed_rows * 3) as u64
         );
         attribution::assert_exact_attribution(
             &delta.transcript,
@@ -132,7 +139,7 @@ impl MountedPresentationWorld {
     }
 }
 
-fn removal_candidate(delta: &ProducedMaximumDelta, successor_is_empty: bool) -> OracleExpectation {
+fn removal_candidate(delta: &ProducedMaximumDelta) -> OracleExpectation {
     let layers = delta
         .transcript
         .filled_rects()
@@ -151,10 +158,9 @@ fn removal_candidate(delta: &ProducedMaximumDelta, successor_is_empty: bool) -> 
         .iter()
         .map(|region| box_values(region.bounds()))
         .collect::<Vec<_>>();
-    let successor_anchor = usize::from(!successor_is_empty);
     OracleExpectation {
         owner_delta_count: usize::try_from(delta.draw_mutations).expect("mutation count fits"),
-        vacated_damage_count: damage.len().saturating_sub(successor_anchor),
+        vacated_damage_count: damage.len(),
         damage,
         ordered_identities,
     }
@@ -178,15 +184,12 @@ fn expected_rect(identity: usize, controls: &[toml::Value]) -> OracleRect {
     }
 }
 
-fn assert_exact_cost(delta: &ProducedMaximumDelta, count: usize, successor_is_empty: bool) {
+fn assert_exact_cost(delta: &ProducedMaximumDelta, count: usize) {
     let count = count as u64;
-    let successor_anchor = u64::from(!successor_is_empty);
-    let order = count + successor_anchor;
-    let damage = count + successor_anchor;
     assert_eq!(delta.draw_mutations, count);
-    assert_eq!(delta.order_mutations, order);
-    assert_eq!(delta.damage_regions, damage);
-    assert_eq!(delta.delta_rows_carried, count + order + damage);
+    assert_eq!(delta.order_mutations, count);
+    assert_eq!(delta.damage_regions, count);
+    assert_eq!(delta.delta_rows_carried, count * 3);
 }
 
 fn assert_exact_rows(
@@ -227,15 +230,13 @@ fn assert_exact_order(
 fn assert_exact_damage(
     transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
     removed: &[OracleRect],
-    successor_anchor: Option<&OracleRect>,
 ) {
     let observed = transcript
         .logical_damage()
         .iter()
         .map(|damage| box_values(damage.bounds()))
         .collect::<Vec<_>>();
-    let mut expected = removed.iter().map(|row| row.bounds).collect::<Vec<_>>();
-    expected.extend(successor_anchor.map(|row| row.bounds));
+    let expected = removed.iter().map(|row| row.bounds).collect::<Vec<_>>();
     assert_eq!(observed, expected);
 }
 

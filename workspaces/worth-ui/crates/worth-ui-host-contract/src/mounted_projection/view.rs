@@ -2,6 +2,15 @@ use crate::{
     UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
     UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
+use std::collections::HashMap;
+use std::sync::Arc;
+
+#[path = "view/presentation_effects.rs"]
+mod presentation_effects;
+#[path = "view/presentation_sources.rs"]
+mod presentation_sources;
+
+use presentation_sources::PresentationSources;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiMountedDrawableReference {
@@ -32,7 +41,7 @@ pub struct UiMountedProjectionView {
     surface: UiSemanticSurfaceIdentity,
     binding: UiSurfaceBindingGeneration,
     content_generation: crate::UiMountedContentGeneration,
-    nodes: Box<[UiMountedNodeProjectionView]>,
+    nodes: Arc<[UiMountedNodeProjectionView]>,
     clips: super::UiMountedClipTable,
     layers: super::UiMountedLayerTable,
     filled_rects: super::UiMountedFilledRectTable,
@@ -42,6 +51,16 @@ pub struct UiMountedProjectionView {
     spatial_batches: super::UiMountedSpatialBatchTable,
     realtime_batches: super::UiMountedRealtimeBatchTable,
     resources: super::UiMountedResourceTable,
+    paint_commands: Arc<[crate::UiMountedPaintCommand]>,
+    paint_order: Arc<[crate::UiMountedPaintOrderIdentity]>,
+    command_indices: Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>>,
+    commands_by_instance:
+        Arc<HashMap<UiMountedInstanceIdentity, Arc<[crate::UiMountedPaintCommandIdentity]>>>,
+    order_predecessors: Arc<
+        HashMap<crate::UiMountedPaintCommandIdentity, Option<crate::UiMountedPaintOrderIdentity>>,
+    >,
+    order_positions: Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>>,
+    native_effects: Arc<[crate::UiMountedEffectFamily]>,
 }
 
 pub struct UiMountedNodeProjectionViewInput {
@@ -75,6 +94,8 @@ pub struct UiMountedProjectionViewInput {
     pub spatial_batches: super::UiMountedSpatialBatchTable,
     pub realtime_batches: super::UiMountedRealtimeBatchTable,
     pub resources: super::UiMountedResourceTable,
+    pub authored_paint_commands: Vec<crate::UiMountedPaintCommand>,
+    pub authored_paint_order: Vec<crate::UiMountedPaintOrderIdentity>,
 }
 
 impl UiMountedNodeProjectionView {
@@ -138,12 +159,25 @@ impl UiMountedNodeProjectionView {
 
 impl UiMountedProjectionView {
     pub fn new(input: UiMountedProjectionViewInput) -> Self {
+        let native_effects = presentation_effects::derive(
+            &input.nodes,
+            &input.paint_batches,
+            &input.spatial_batches,
+            &input.realtime_batches,
+        );
+        let presentation = PresentationSources::admit(
+            &input.nodes,
+            &input.filled_rects,
+            &input.semantic_text,
+            input.authored_paint_commands,
+            input.authored_paint_order,
+        );
         Self {
             frame: input.frame,
             surface: input.surface,
             binding: input.binding,
             content_generation: input.content_generation,
-            nodes: input.nodes.into_boxed_slice(),
+            nodes: input.nodes.into(),
             clips: input.clips,
             layers: input.layers,
             filled_rects: input.filled_rects,
@@ -153,6 +187,13 @@ impl UiMountedProjectionView {
             spatial_batches: input.spatial_batches,
             realtime_batches: input.realtime_batches,
             resources: input.resources,
+            paint_commands: presentation.commands.into(),
+            paint_order: presentation.order.into(),
+            command_indices: Arc::new(presentation.command_indices),
+            commands_by_instance: Arc::new(presentation.commands_by_instance),
+            order_predecessors: Arc::new(presentation.order_predecessors),
+            order_positions: Arc::new(presentation.order_positions),
+            native_effects: native_effects.into(),
         }
     }
     pub fn frame(&self) -> UiMountedFrameIdentity {
@@ -169,6 +210,11 @@ impl UiMountedProjectionView {
     }
     pub fn nodes(&self) -> &[UiMountedNodeProjectionView] {
         &self.nodes
+    }
+
+    #[doc(hidden)]
+    pub fn retained_nodes(&self) -> Arc<[UiMountedNodeProjectionView]> {
+        Arc::clone(&self.nodes)
     }
     pub fn clips(&self) -> &super::UiMountedClipTable {
         &self.clips
@@ -196,5 +242,88 @@ impl UiMountedProjectionView {
     }
     pub fn resources(&self) -> &super::UiMountedResourceTable {
         &self.resources
+    }
+
+    #[doc(hidden)]
+    pub fn authored_paint_commands(&self) -> &[crate::UiMountedPaintCommand] {
+        &self.paint_commands
+    }
+
+    #[doc(hidden)]
+    pub fn retained_paint_commands(&self) -> Arc<[crate::UiMountedPaintCommand]> {
+        Arc::clone(&self.paint_commands)
+    }
+
+    #[doc(hidden)]
+    pub fn authored_paint_order(&self) -> &[crate::UiMountedPaintOrderIdentity] {
+        &self.paint_order
+    }
+
+    #[doc(hidden)]
+    pub fn retained_paint_order(&self) -> Arc<[crate::UiMountedPaintOrderIdentity]> {
+        Arc::clone(&self.paint_order)
+    }
+
+    #[doc(hidden)]
+    pub fn authored_paint_command(
+        &self,
+        identity: crate::UiMountedPaintCommandIdentity,
+    ) -> Option<&crate::UiMountedPaintCommand> {
+        self.command_indices
+            .get(&identity)
+            .and_then(|index| self.paint_commands.get(*index))
+    }
+
+    #[doc(hidden)]
+    pub fn authored_commands_for_instance(
+        &self,
+        instance: UiMountedInstanceIdentity,
+    ) -> &[crate::UiMountedPaintCommandIdentity] {
+        self.commands_by_instance
+            .get(&instance)
+            .map_or(&[], AsRef::as_ref)
+    }
+
+    #[doc(hidden)]
+    pub fn authored_paint_predecessor(
+        &self,
+        identity: crate::UiMountedPaintCommandIdentity,
+    ) -> Option<Option<crate::UiMountedPaintOrderIdentity>> {
+        self.order_predecessors.get(&identity).copied()
+    }
+
+    #[doc(hidden)]
+    pub fn retained_command_indices(
+        &self,
+    ) -> Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>> {
+        Arc::clone(&self.command_indices)
+    }
+
+    #[doc(hidden)]
+    pub fn retained_commands_by_instance(
+        &self,
+    ) -> Arc<HashMap<UiMountedInstanceIdentity, Arc<[crate::UiMountedPaintCommandIdentity]>>> {
+        Arc::clone(&self.commands_by_instance)
+    }
+
+    #[doc(hidden)]
+    pub fn retained_order_predecessors(
+        &self,
+    ) -> Arc<
+        HashMap<crate::UiMountedPaintCommandIdentity, Option<crate::UiMountedPaintOrderIdentity>>,
+    > {
+        Arc::clone(&self.order_predecessors)
+    }
+
+    #[doc(hidden)]
+    pub fn retained_order_positions(
+        &self,
+    ) -> Arc<HashMap<crate::UiMountedPaintCommandIdentity, usize>> {
+        Arc::clone(&self.order_positions)
+    }
+
+    #[doc(hidden)]
+    pub fn authored_native_effects(&self) -> &[crate::UiMountedEffectFamily] {
+        &self.native_effects
     }
 }

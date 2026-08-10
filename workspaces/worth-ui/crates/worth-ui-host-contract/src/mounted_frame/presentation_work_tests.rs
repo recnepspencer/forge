@@ -35,6 +35,7 @@ fn inert_initial_delta_and_unchanged_mechanics_remain_distinct() {
             order: empty_order.clone(),
             order_integrity: empty_order_integrity,
             damage: Vec::new(),
+            production_cost: Default::default(),
         });
     assert!(matches!(
         UiMountedPresentationWorkView::Initial(&initial),
@@ -57,6 +58,7 @@ fn inert_initial_delta_and_unchanged_mechanics_remain_distinct() {
                 successor, surface, binding, content,
             )),
         ),
+        production_cost: Default::default(),
     });
     assert!(matches!(
         UiMountedPresentationWorkView::Delta(&delta),
@@ -70,6 +72,7 @@ fn inert_initial_delta_and_unchanged_mechanics_remain_distinct() {
             binding,
             content,
             baseline,
+            production_cost: Default::default(),
         });
     assert!(matches!(
         UiMountedPresentationWorkView::Unchanged(&unchanged),
@@ -98,5 +101,7 @@ fn empty_projection(
         spatial_batches: crate::UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: crate::UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: crate::UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: Vec::new(),
+        authored_paint_order: Vec::new(),
     })
 }

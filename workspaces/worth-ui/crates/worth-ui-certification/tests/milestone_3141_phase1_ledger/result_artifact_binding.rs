@@ -4,7 +4,7 @@ use std::sync::OnceLock;
 use serde_json::Value;
 
 use super::command_binding::CommandBinding;
-use super::result_artifact::LedgerResult;
+use super::result_artifact::{LedgerResult, SourceValidationPosture};
 use super::source_digest;
 
 pub(super) fn validate_ledger_fields(
@@ -18,12 +18,12 @@ pub(super) fn validate_ledger_fields(
         return Err("retained result artifact is not command-bound".to_owned());
     }
     validate_source_revision(ledger.source_revision)?;
-    if ledger.source_digest != source_digest::calculate(ledger.source_identity)? {
-        return Err("result artifact source digest is stale".to_owned());
+    if !is_lower_hex(ledger.source_digest, 64) || !is_lower_hex(ledger.source_state_digest, 64) {
+        return Err("result artifact source metadata is invalid".to_owned());
     }
-    if ledger.source_state_digest != source_digest::calculate_source_state(ledger.source_revision)?
-    {
-        return Err("result artifact source-state digest is stale".to_owned());
+    match ledger.source_validation {
+        SourceValidationPosture::CurrentSource => validate_current_source(ledger)?,
+        SourceValidationPosture::HistoricalArtifactOnly => {}
     }
     if ledger.run_nonce.len() != 32 || !is_lower_hex(ledger.run_nonce, 32) {
         return Err("result artifact run nonce is invalid".to_owned());
@@ -31,6 +31,17 @@ pub(super) fn validate_ledger_fields(
     if ledger.result_artifact_digest.len() != 64 || !is_lower_hex(ledger.result_artifact_digest, 64)
     {
         return Err("result artifact digest is invalid".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_current_source(ledger: &LedgerResult<'_>) -> Result<(), String> {
+    if ledger.source_digest != source_digest::calculate(ledger.source_identity)? {
+        return Err("result artifact source digest is stale".to_owned());
+    }
+    if ledger.source_state_digest != source_digest::calculate_source_state(ledger.source_revision)?
+    {
+        return Err("result artifact source-state digest is stale".to_owned());
     }
     Ok(())
 }

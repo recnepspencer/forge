@@ -156,5 +156,7 @@ fn projection(basis: UiIdentityOverlayProjectionCertificationBasis) -> UiMounted
         spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
         realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
         resources: UiMountedResourceTable::new(Vec::new()),
+        authored_paint_commands: Vec::new(),
+        authored_paint_order: Vec::new(),
     })
 }

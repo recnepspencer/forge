@@ -1,6 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostSurfacePresentationMode, UiMountedEffectFamily, UiMountedPaintPrimitiveKind,
-    UiMountedPaintProjection, UiMountedProjectionView,
+    UiHostSurfacePresentationMode, UiMountedEffectFamily, UiMountedProjectionView,
 };
 
 pub(super) fn required_effects(
@@ -11,80 +10,7 @@ pub(super) fn required_effects(
         return vec![UiMountedEffectFamily::RecordedProjection];
     }
 
-    let mut effects = Vec::new();
-    if has_canvas_effect(projection) {
-        effects.push(UiMountedEffectFamily::CanvasSpatial);
-    }
-    if has_realtime_effect(projection) {
-        effects.push(UiMountedEffectFamily::Realtime);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(node.paint(), UiMountedPaintProjection::FilledRect(_))
-            || !node.semantic_text().is_empty()
-            || matches!(
-                node.preview(),
-                worth_ui_host_contract::UiMountedPreviewProjection::Resize { .. }
-            )
-    }) {
-        effects.push(UiMountedEffectFamily::NativePaint);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(
-            node.accessibility(),
-            worth_ui_host_contract::UiMountedAccessibilityProjection::Admitted(_)
-        )
-    }) {
-        effects.push(UiMountedEffectFamily::Accessibility);
-    }
-    if projection.nodes().iter().any(|node| {
-        node.participation().focus().status()
-            == worth_ui_host_contract::UiMountedParticipationStatus::Admitted
-    }) {
-        effects.push(UiMountedEffectFamily::Focus);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(
-            node.motion(),
-            worth_ui_host_contract::UiMountedMotionProjection::Admitted
-        )
-    }) {
-        effects.push(UiMountedEffectFamily::Motion);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(
-            node.diagnostic(),
-            worth_ui_host_contract::UiMountedDiagnosticProjection::Reference(_)
-        )
-    }) {
-        effects.push(UiMountedEffectFamily::Diagnostic);
-    }
-    if projection.nodes().iter().any(|node| {
-        matches!(
-            node.diagnostic(),
-            worth_ui_host_contract::UiMountedDiagnosticProjection::IdentityOverlay(_)
-        )
-    }) {
-        effects.push(UiMountedEffectFamily::IdentityOverlay);
-    }
-    effects
-}
-
-fn has_canvas_effect(projection: &UiMountedProjectionView) -> bool {
-    !projection.spatial_batches().rows().is_empty()
-        || projection
-            .paint_batches()
-            .rows()
-            .iter()
-            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::CanvasSpatialBatch)
-}
-
-fn has_realtime_effect(projection: &UiMountedProjectionView) -> bool {
-    !projection.realtime_batches().rows().is_empty()
-        || projection
-            .paint_batches()
-            .rows()
-            .iter()
-            .any(|row| row.primitive_kind() == UiMountedPaintPrimitiveKind::RealtimeBatch)
+    projection.authored_native_effects().to_vec()
 }
 
 #[cfg(test)]
@@ -95,10 +21,11 @@ mod tests {
         UiMountedDiagnosticProjection, UiMountedDiagnosticReference, UiMountedFrameIdentity,
         UiMountedMechanicalRole, UiMountedMotionProjection, UiMountedNodeProjectionView,
         UiMountedNodeProjectionViewInput, UiMountedNodeReceiptIssuer, UiMountedOmissionReason,
-        UiMountedPaintBatchTable, UiMountedParticipation, UiMountedParticipationFact,
-        UiMountedParticipationInput, UiMountedParticipationStatus, UiMountedPreviewProjection,
-        UiMountedProjectionViewInput, UiMountedRealtimeBatchTable, UiMountedResourceTable,
-        UiMountedSpatialBatchTable, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+        UiMountedPaintBatchTable, UiMountedPaintProjection, UiMountedParticipation,
+        UiMountedParticipationFact, UiMountedParticipationInput, UiMountedParticipationStatus,
+        UiMountedPreviewProjection, UiMountedProjectionViewInput, UiMountedRealtimeBatchTable,
+        UiMountedResourceTable, UiMountedSpatialBatchTable, UiSemanticSurfaceIdentity,
+        UiSurfaceBindingGeneration,
     };
 
     #[test]
@@ -172,6 +99,8 @@ mod tests {
             spatial_batches: UiMountedSpatialBatchTable::new(Vec::new()),
             realtime_batches: UiMountedRealtimeBatchTable::new(Vec::new()),
             resources: UiMountedResourceTable::new(Vec::new()),
+            authored_paint_commands: Vec::new(),
+            authored_paint_order: Vec::new(),
         })
     }
 }
