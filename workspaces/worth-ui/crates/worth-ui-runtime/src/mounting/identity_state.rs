@@ -22,6 +22,7 @@ mod frame_lifecycle;
 mod graph_replacement;
 mod instance_lifecycle;
 mod interaction_affinity;
+mod presentation_attribution;
 pub(crate) mod surface_lifecycle;
 
 pub(crate) use interaction_affinity::{

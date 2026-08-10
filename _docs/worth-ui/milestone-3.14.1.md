@@ -727,6 +727,15 @@ textures, and surface epochs are mechanical identities. They can correlate
 evidence but cannot target an interaction, construct presentation work,
 publish a frame, or reconstruct mounted authority.
 
+The runtime-side native presentation attribution also carries opaque digests
+for the authored-source provenance and authored semantic identity joined from
+the exact mounted node receipt through the retained prepared-generation
+graph/declaration indexes. The native host does not derive or interpret either
+digest. `WindowsNativeBoundaryWorld` compares them with the independently
+compiled seed declaration, so changing the authored declaration identity or
+consistently reporting the same wrong mounted row cannot satisfy the courtroom
+merely through correlated mechanical identities.
+
 ### The surface baseline is explicit and carries no appearance authority
 
 Every registered presentation surface carries one move-only
@@ -1427,6 +1436,10 @@ rectangle through `WindowsNativeBoundaryWorld` in a real native window, observe
 its actual client pixels, remain quiescent without readiness, and close with
 exact zero framework resources. Establish the production external-effect ports
 and their real implementations at the boundaries this vertical slice crosses.
+External quiescence compares only the courtroom-owned opaque rectangle control
+points. Transparent retained baseline is proved at presented-source readback;
+the OS compositor backdrop behind transparent client pixels is observed but is
+not assigned to WORTH or frozen to an expected color.
 This phase stays vertical: it does not end at a window skeleton, clear color,
 fake surface, or in-memory renderer.
 
@@ -1563,6 +1576,19 @@ consolidated into the deliberately serialized `WindowsNativeBoundaryWorld`;
 `PulseNativeParityWorld` pays only for its cumulative product journey and
 cannot reuse hidden process state. Combinatorial state, maximum-table, overlap,
 and long fault schedules use cheap independent models inside existing targets.
+Within one Phase 1 closure or operational-verification run, `P1-WORLDS-01`
+owns the single 2,048-row maximum-overlap courtroom. `P1-HEADLESS-COST-01`
+binds that exact artifact by digest and validates its cost-specific observation
+without reconstructing or replaying the world; its cost record names one
+shared mounted-world reference and zero marginal main-test or presentation
+executions.
+Within one Phase 2 closure or operational-verification run, `P2-WORLD-01` owns
+the single `WindowsNativeBoundaryWorld` process/window/GPU execution and its
+immutable result artifact. The other Phase 2 rows bind that exact artifact by
+digest, validate their requirement-specific observation slice, and execute
+only their own cheap hostile control. Their cost records name one shared-world
+reference and zero marginal process, courtroom, presentation, or main-test
+executions; they may not relaunch the same native world per row.
 On the recorded executable-certified Windows reference environment, warm
 ordinary execution
 remains at or below 60 seconds, the real native lifecycle courtroom at or

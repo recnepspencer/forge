@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 TARGET = ROOT / "workspaces/worth-ui/target"
 COMPILE_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/compile-contracts.json"
+NATIVE_WORLD_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p2-world-01.json"
+MOUNTED_WORLD_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p1-worlds-01.json"
 
 
 def rows() -> list[dict[str, str]]:
@@ -33,13 +35,22 @@ def run(command: list[str]) -> None:
         raise RuntimeError(f"operational verification failed: {' '.join(command)}")
 
 
-def rerun_row(row: dict[str, str], temporary: Path, compile_artifact: str) -> None:
+def rerun_row(
+    row: dict[str, str],
+    temporary: Path,
+    compile_artifact: str,
+    shared_world_artifact: str | None = None,
+) -> None:
     command = row["exact_command"].split()
     artifact_index = command.index("--artifact") + 1
     command[artifact_index] = temporary.as_posix()
     command = bind_fresh_compile_artifact(command, compile_artifact)
+    if shared_world_artifact is not None:
+        command = bind_fresh_shared_world(command, shared_world_artifact)
     environment = dict(os.environ)
     environment["WORTH_UI_COMPILE_ARTIFACT"] = compile_artifact
+    if shared_world_artifact is not None:
+        environment["WORTH_UI_SHARED_WORLD_ARTIFACT"] = shared_world_artifact
     completed = subprocess.run(
         command, cwd=ROOT, env=environment, capture_output=True, text=True, check=False
     )
@@ -57,6 +68,16 @@ def bind_fresh_compile_artifact(command: list[str], compile_artifact: str) -> li
     for index, word in enumerate(rebound[:-1]):
         if word == "--source" and rebound[index + 1] == COMPILE_ARTIFACT:
             rebound[index + 1] = compile_artifact
+    return rebound
+
+
+def bind_fresh_shared_world(command: list[str], shared_world_artifact: str) -> list[str]:
+    rebound = list(command)
+    for index, word in enumerate(rebound[:-1]):
+        if word == "--source" and rebound[index + 1] in {
+            NATIVE_WORLD_ARTIFACT, MOUNTED_WORLD_ARTIFACT
+        }:
+            rebound[index + 1] = shared_world_artifact
     return rebound
 
 
@@ -86,8 +107,40 @@ def main() -> int:
             "--artifact",
             fresh_compile,
         ])
-        for index, row in enumerate(rows()):
-            rerun_row(row, temporary / f"row-{index:02}.json", fresh_compile)
+        governed = rows()
+        mounted_world = next(row for row in governed if row["requirement"] == "P1-WORLDS-01")
+        headless_cost = next(
+            row for row in governed if row["requirement"] == "P1-HEADLESS-COST-01"
+        )
+        phase_one = [
+            row for row in governed
+            if row["phase"] == "1"
+            and row["requirement"] not in {"P1-WORLDS-01", "P1-HEADLESS-COST-01"}
+        ]
+        world = next(row for row in governed if row["requirement"] == "P2-WORLD-01")
+        dependent_phase_two = [
+            row for row in governed
+            if row["phase"] == "2" and row["requirement"] != "P2-WORLD-01"
+        ]
+        for index, row in enumerate(phase_one):
+            rerun_row(row, temporary / f"p1-{index:02}.json", fresh_compile)
+        fresh_mounted = (temporary / "mounted-world.json").relative_to(ROOT).as_posix()
+        rerun_row(mounted_world, ROOT / fresh_mounted, fresh_compile)
+        rerun_row(
+            headless_cost,
+            temporary / "p1-headless-cost.json",
+            fresh_compile,
+            fresh_mounted,
+        )
+        fresh_world = (temporary / "native-world.json").relative_to(ROOT).as_posix()
+        rerun_row(world, ROOT / fresh_world, fresh_compile)
+        for index, row in enumerate(dependent_phase_two):
+            rerun_row(
+                row,
+                temporary / f"p2-{index:02}.json",
+                fresh_compile,
+                fresh_world,
+            )
     closure_tests()
     print("Worth UI milestone 3.14.1 ledger operationally verified: 30 fresh rows")
     return 0

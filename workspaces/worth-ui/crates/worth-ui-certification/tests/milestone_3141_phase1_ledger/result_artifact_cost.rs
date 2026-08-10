@@ -7,6 +7,9 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         .as_u64()
         .unwrap_or(0);
     let p2 = requirement.starts_with("P2-");
+    if artifact.get("shared_main_artifact").is_some() {
+        return validate_shared(requirement, artifact, control_tests);
+    }
     let product_processes = if p2 {
         artifact["boundary_observation"]["product_processes"]
             .as_u64()
@@ -35,6 +38,33 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         || artifact["execution_cost"].as_str() != Some(&execution)
     {
         return Err("result artifact cost is not derived from execution observations".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_shared(requirement: &str, artifact: &Value, control_tests: u64) -> Result<(), String> {
+    if requirement == "P1-HEADLESS-COST-01" {
+        let construction = "main-tests=0;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=0;shared-mounted-worlds=1";
+        let execution = "executed-tests=0;presentations=0;shared-presentations=7";
+        if control_tests == 0
+            && artifact["construction_cost"].as_str() == Some(construction)
+            && artifact["execution_cost"].as_str() == Some(execution)
+        {
+            return Ok(());
+        }
+        return Err("shared Phase 1 cost is not bound to one mounted world".to_owned());
+    }
+    let construction = format!(
+        "main-tests=0;hostile-controls={control_tests};product-processes=0;compile-sessions=0;courtroom-worlds=0;shared-native-worlds=1"
+    );
+    let execution =
+        format!("executed-tests={control_tests};presentations=0;shared-presentations=1");
+    if artifact["boundary_observation"]["product_processes"].as_u64() != Some(1)
+        || artifact["boundary_observation"]["counters"]["presents"].as_u64() != Some(1)
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(&execution)
+    {
+        return Err("shared Phase 2 cost is not bound to one native world".to_owned());
     }
     Ok(())
 }

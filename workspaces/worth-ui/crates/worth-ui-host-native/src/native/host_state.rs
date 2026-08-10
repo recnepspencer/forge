@@ -70,22 +70,51 @@ impl UiNativeHostState {
 #[cfg(test)]
 mod tests {
     use super::UiNativeHostState;
-    use crate::native::UiNativePendingPresentation;
+    use crate::native::presentation::{
+        reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
+        UiNativePresentationFailure, UiNativePresentationPortFailure,
+    };
     use std::cell::Cell;
     use std::rc::Rc;
+
+    struct PendingProbe {
+        dropped: Rc<Cell<bool>>,
+        settles: Rc<Cell<bool>>,
+    }
+
+    impl UiNativePendingExternalObligation for PendingProbe {
+        fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
+            self.settles.get()
+        }
+    }
+
+    impl Drop for PendingProbe {
+        fn drop(&mut self) {
+            self.dropped.set(true);
+        }
+    }
 
     #[test]
     fn pending_external_work_retains_cleanup_authority_until_it_settles() {
         let mut state = UiNativeHostState::new();
         let dropped = Rc::new(Cell::new(false));
         let settles = Rc::new(Cell::new(false));
-        state
-            .pending_presentations
-            .push(UiNativePendingPresentation::scripted_controllable(
-                &mut state.resources,
-                Rc::clone(&dropped),
-                Rc::clone(&settles),
-            ));
+        let owners = reserve_presentation_owners(&mut state.resources)
+            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+        let pending = settle_port_result(
+            &mut state.resources,
+            owners,
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+                Box::new(PendingProbe {
+                    dropped: Rc::clone(&dropped),
+                    settles: Rc::clone(&settles),
+                }),
+            )),
+        );
+        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+            panic!("unsettled external work must enter pending host state");
+        };
+        state.pending_presentations.push(pending);
 
         let pending = state.close();
         assert_eq!(pending.readback_buffers, 1);

@@ -114,8 +114,21 @@ def construction_cost(requirement: str) -> str:
         "P1-PRESENTATION-AUTHORITY-01", "P1-PROTOCOL-01",
     } else 0
     p2 = requirement.startswith("P2-")
+    shared_p2 = p2 and requirement != "P2-WORLD-01"
     control = p2 or requirement == "P1-CONSUMERS-01"
-    world = p2 or requirement in {"P1-HEADLESS-COST-01", "P1-WORLDS-01"}
+    world = requirement == "P2-WORLD-01" or requirement in {
+        "P1-HEADLESS-COST-01", "P1-WORLDS-01"
+    }
+    if shared_p2:
+        return (
+            "main-tests=0;hostile-controls=1;product-processes=0;compile-sessions=0;"
+            "courtroom-worlds=0;shared-native-worlds=1"
+        )
+    if requirement == "P1-HEADLESS-COST-01":
+        return (
+            "main-tests=0;hostile-controls=0;product-processes=0;compile-sessions=0;"
+            "courtroom-worlds=0;shared-mounted-worlds=1"
+        )
     return (
         f"main-tests=1;hostile-controls={int(control)};product-processes={int(p2)};"
         f"compile-sessions={compile_sessions};courtroom-worlds={int(world)}"
@@ -123,12 +136,16 @@ def construction_cost(requirement: str) -> str:
 
 
 def execution_cost(requirement: str) -> str:
-    if requirement in {"P1-HEADLESS-COST-01", "P1-WORLDS-01"}:
+    if requirement == "P1-HEADLESS-COST-01":
+        return "executed-tests=0;presentations=0;shared-presentations=7"
+    if requirement == "P1-WORLDS-01":
         return "executed-tests=1;presentations=7"
     if requirement == "P1-CONSUMERS-01":
         return "executed-tests=2;presentations=0"
-    if requirement.startswith("P2-"):
+    if requirement == "P2-WORLD-01":
         return "executed-tests=2;presentations=1"
+    if requirement.startswith("P2-"):
+        return "executed-tests=1;presentations=0;shared-presentations=1"
     return "executed-tests=1;presentations=0"
 
 

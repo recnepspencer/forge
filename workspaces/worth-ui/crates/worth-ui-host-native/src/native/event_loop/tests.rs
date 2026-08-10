@@ -6,12 +6,31 @@ use super::{
     UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
     UiNativeEventLoopRunDenial, UiNativeReadinessGrant,
 };
-use crate::native::{
-    UiNativeEffectPosture, UiNativeHostState, UiNativePendingPresentation, UiNativeResourceClass,
+use crate::native::presentation::{
+    reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
+    UiNativePresentationFailure, UiNativePresentationPortFailure,
 };
+use crate::native::{UiNativeEffectPosture, UiNativeHostState, UiNativeResourceClass};
 
 struct CleanupClient {
     completes: bool,
+}
+
+struct PendingProbe {
+    dropped: Rc<std::cell::Cell<bool>>,
+    settles: Rc<std::cell::Cell<bool>>,
+}
+
+impl UiNativePendingExternalObligation for PendingProbe {
+    fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
+        self.settles.get()
+    }
+}
+
+impl Drop for PendingProbe {
+    fn drop(&mut self) {
+        self.dropped.set(true);
+    }
 }
 
 #[test]
@@ -136,11 +155,21 @@ fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
     let settles = Rc::new(std::cell::Cell::new(false));
     {
         let mut state = state.borrow_mut();
-        let pending = UiNativePendingPresentation::scripted_controllable(
+        let owners = reserve_presentation_owners(&mut state.resources)
+            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+        let pending = settle_port_result(
             &mut state.resources,
-            Rc::clone(&dropped),
-            Rc::clone(&settles),
+            owners,
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+                Box::new(PendingProbe {
+                    dropped: Rc::clone(&dropped),
+                    settles: Rc::clone(&settles),
+                }),
+            )),
         );
+        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+            panic!("unsettled external work must enter retryable cleanup");
+        };
         state.pending_presentations.push(pending);
     }
     let report = stop_before_callbacks(
@@ -154,6 +183,11 @@ fn indeterminate_external_work_moves_into_retryable_cleanup_authority() {
     );
     assert!(!dropped.get());
     let cleanup = report.into_cleanup().expect("pending cleanup authority");
+    let cleanup = match cleanup.retry() {
+        Err(cleanup) => cleanup,
+        Ok(_) => panic!("unsettled external work must retain cleanup authority"),
+    };
+    assert!(!dropped.get());
     settles.set(true);
     assert!(cleanup.retry().expect("settled cleanup").is_zero());
     assert!(dropped.get());

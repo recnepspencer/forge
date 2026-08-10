@@ -62,7 +62,7 @@ def graphics_proofs(control_type, proof_factory):
     mutation = boundary_control(control_type)
     return {
         "P2-GRAPHICS-01": proof_factory(
-            f"{HOST}/graphics/adapter_selection.rs::select_eligible_adapter_index",
+            f"{HOST}/graphics/adapter_selection.rs::select_eligible_adapter",
             control(
                 control_type,
                 "worth-ui-host-native",
@@ -105,11 +105,11 @@ def graphics_proofs(control_type, proof_factory):
 def lifecycle_proofs(control_type, proof_factory):
     return {
         "P2-CLOSE-01": proof_factory(
-            f"{HOST}/event_loop.rs::terminal_cleanup_complete",
+            f"{HOST}/event_loop/terminal_cleanup.rs::terminal_cleanup_complete",
             control(
                 control_type,
                 "worth-ui-host-native",
-                "native::event_loop::tests::held_resource_with_clean_client_cannot_report_a_clean_stop",
+                "native::event_loop::tests::indeterminate_external_work_moves_into_retryable_cleanup_authority",
                 f"{HOST}/event_loop/tests.rs",
             ),
         ),

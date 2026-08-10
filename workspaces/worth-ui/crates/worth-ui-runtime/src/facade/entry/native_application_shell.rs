@@ -176,18 +176,24 @@ impl WorthUiNativeApplicationShell {
             _ => return None,
         };
         let binding = *receipt.bindings().first()?;
-        let (surface, mounted_instance, node_receipt) = self
+        let attribution = self
             .session
             .mounted
             .native_filled_rect_attribution(receipt.frame(), binding)?;
         Some(
             worth_ui_host_native::UiNativeClientPresentationAttribution::reported(
-                receipt.frame().diagnostic_value(),
-                surface.diagnostic_value(),
-                binding.diagnostic_value(),
-                mounted_instance.diagnostic_value(),
-                node_receipt.diagnostic_value(),
-                receipt.attempt().diagnostic_value(),
+                [
+                    receipt.frame().diagnostic_value(),
+                    attribution.surface.diagnostic_value(),
+                    binding.diagnostic_value(),
+                    attribution.mounted_instance.diagnostic_value(),
+                    attribution.node_receipt.diagnostic_value(),
+                    receipt.attempt().diagnostic_value(),
+                ],
+                [
+                    attribution.authored_provenance_digest,
+                    attribution.authored_semantic_identity_digest,
+                ],
             ),
         )
     }

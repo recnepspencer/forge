@@ -37,13 +37,7 @@ fn execute_boundary_world(
     let mut client = platform
         .bind_process_client_area(process_id, deadline)
         .expect("one process-owned native client area appears");
-    let capture = await_exact_pixels(
-        &platform,
-        &mut client,
-        &mut launch.process,
-        process_id,
-        deadline,
-    );
+    let capture = await_exact_pixels(&platform, &mut client, &mut launch.process, deadline);
     assert_eq!(capture.process_id(), process_id);
     assert_eq!(capture.capture_count(), 1);
     assert_exact_control_points(&capture);
@@ -51,7 +45,7 @@ fn execute_boundary_world(
     let unchanged = platform
         .capture_client_area(&client)
         .expect("quiescent client area remains externally observable");
-    assert_eq!(unchanged.rgba(), capture.rgba());
+    assert_quiescent_control_points(&capture, &unchanged);
     let close = platform
         .request_normal_close(&client)
         .expect("the real OS window accepts one normal close");
@@ -136,12 +130,7 @@ fn ledger_observation(
             "y": y,
             "rgba": pixel(capture, x, y),
         })),
-        "client_baseline_point": {
-            "x": 0,
-            "y": 0,
-            "rgba": pixel(capture, 0, 0),
-        },
-        "quiescent_capture_equal": true,
+        "quiescent_control_points_equal": true,
         "normal_os_close_requests": 1,
         "terminal_zero": evidence["terminal_zero"],
         "peak": evidence["peak"],
@@ -156,11 +145,37 @@ fn assert_exact_native_evidence(
     capture: &crate::external_observation::NativeClientPixelCapture,
 ) {
     assert_eq!(evidence["schema"], "worth-ui-native-phase2-evidence-v1");
-    let presentation = &evidence["presentation"];
-    let runtime_attribution = &evidence["runtime_attribution"];
-    let counters = &evidence["counters"];
-    let graphics = &evidence["graphics"];
-    assert_eq!(pixel(capture, 0, 0), [255, 255, 255, 255]);
+    assert_exact_presentation(&evidence["presentation"], capture);
+    assert_exact_attribution(&evidence["presentation"], &evidence["runtime_attribution"]);
+    assert_exact_counters(&evidence["counters"]);
+    assert_exact_graphics(&evidence["graphics"]);
+    assert_exact_resource_evidence(evidence);
+}
+
+fn assert_quiescent_control_points(
+    initial: &crate::external_observation::NativeClientPixelCapture,
+    unchanged: &crate::external_observation::NativeClientPixelCapture,
+) {
+    assert_eq!(unchanged.process_id(), initial.process_id());
+    assert_eq!(
+        [unchanged.width(), unchanged.height()],
+        [initial.width(), initial.height()]
+    );
+    let points = [
+        (initial.width() / 4, initial.height() / 4),
+        (initial.width() / 2, initial.height() / 2),
+        (initial.width() * 3 / 4, initial.height() * 3 / 4),
+    ];
+    for (x, y) in points {
+        assert_eq!(pixel(unchanged, x, y), pixel(initial, x, y));
+        assert_eq!(pixel(unchanged, x, y), [47, 129, 247, 255]);
+    }
+}
+
+fn assert_exact_presentation(
+    presentation: &serde_json::Value,
+    capture: &crate::external_observation::NativeClientPixelCapture,
+) {
     assert_eq!(
         presentation["presented_source"],
         serde_json::json!([47, 129, 247, 255])
@@ -181,6 +196,12 @@ fn assert_exact_native_evidence(
         presentation["logical_bounds_milli"],
         serde_json::json!([16_000, 12_000, 128_000, 72_000])
     );
+}
+
+fn assert_exact_attribution(
+    presentation: &serde_json::Value,
+    runtime_attribution: &serde_json::Value,
+) {
     for identity in [
         "frame",
         "surface",
@@ -194,6 +215,19 @@ fn assert_exact_native_evidence(
             .is_some_and(|value| value > 0));
         assert_eq!(presentation[identity], runtime_attribution[identity]);
     }
+    assert_eq!(
+        runtime_attribution["authored_provenance_digest"],
+        expected_native_seed_authored_provenance_digest(),
+        "native presentation must retain the authored seed declaration"
+    );
+    assert_eq!(
+        runtime_attribution["authored_semantic_identity_digest"],
+        expected_native_seed_authored_semantic_identity_digest(),
+        "native presentation must retain the authored seed identity"
+    );
+}
+
+fn assert_exact_counters(counters: &serde_json::Value) {
     for counter in [
         "surface_acquisitions",
         "queue_submissions",
@@ -209,6 +243,9 @@ fn assert_exact_native_evidence(
     assert!(counters["coalesced_wakes"]
         .as_u64()
         .is_some_and(|count| count <= 4));
+}
+
+fn assert_exact_graphics(graphics: &serde_json::Value) {
     assert_eq!(graphics["backend"], "Dx12");
     assert!(matches!(
         graphics["device_type"].as_str(),
@@ -222,6 +259,12 @@ fn assert_exact_native_evidence(
     assert!(graphics["max_texture_dimension_2d"]
         .as_u64()
         .is_some_and(|limit| limit >= 16_384));
+    assert!(graphics["event_loop_thread"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+}
+
+fn assert_exact_resource_evidence(evidence: &serde_json::Value) {
     assert_eq!(
         evidence["peak"],
         serde_json::json!({
@@ -239,18 +282,31 @@ fn assert_exact_native_evidence(
         })
     );
     assert_eq!(evidence["terminal_zero"], true);
-    assert!(graphics["event_loop_thread"]
-        .as_str()
-        .is_some_and(|value| !value.is_empty()));
+}
+
+fn expected_native_seed_authored_provenance_digest() -> u64 {
+    independent_text_digest("app/native_seed.wui") ^ 1_u64.rotate_left(13)
+}
+
+fn expected_native_seed_authored_semantic_identity_digest() -> u64 {
+    independent_text_digest("component:platform.pulse.native_seed.rectangle")
+}
+
+fn independent_text_digest(text: &str) -> u64 {
+    text.as_bytes()
+        .iter()
+        .fold(0xCBF2_9CE4_8422_2325_u64, |digest, byte| {
+            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
+        })
 }
 
 fn await_exact_pixels(
     platform: &WindowsNativePlatform,
     client: &mut <WindowsNativePlatform as NativePlatformContract>::BoundClientArea,
     process: &mut crate::product_process::LivePlatformPulseProcess,
-    process_id: u32,
     deadline: Instant,
 ) -> crate::external_observation::NativeClientPixelCapture {
+    let process_id = process.id();
     let mut last_center = None;
     let mut last_error = None;
     loop {

@@ -262,8 +262,6 @@ def timed_run(command: list[str]) -> tuple[subprocess.CompletedProcess[str], int
 def execution_budget_ms(requirement: str) -> int:
     if requirement.startswith("P2-"):
         return 30_000
-    if requirement in {"P1-WORLDS-01", "P1-HEADLESS-COST-01"}:
-        return 45_000
     return 60_000
 
 

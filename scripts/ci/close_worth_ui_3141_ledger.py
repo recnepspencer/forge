@@ -5,7 +5,7 @@ import hashlib
 import json
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from worth_ui_3141_ledger_contracts import (
@@ -25,6 +25,8 @@ ROOT = Path(__file__).resolve().parents[2]
 LEDGER = ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
 EVIDENCE = "_docs/worth-ui/milestone-3.14.1-evidence"
 COMPILE_ARTIFACT = f"{EVIDENCE}/compile-contracts.json"
+P1_WORLD_ARTIFACT = f"{EVIDENCE}/p1-worlds-01.json"
+P2_WORLD_ARTIFACT = f"{EVIDENCE}/p2-world-01.json"
 COMPILE_TEST_SOURCE = (
     "workspaces/worth-ui/crates/worth-ui-certification/tests/"
     "milestone_3141_phase1_topology/compile_contract_artifact.rs"
@@ -62,6 +64,7 @@ class Proof:
     sources: tuple[str, ...]
     features: tuple[str, ...] = ()
     control: Control | None = None
+    shared_main: bool = False
 
 
 def compile_proof(production_entry: str) -> Proof:
@@ -144,7 +147,27 @@ def proofs() -> dict[str, Proof]:
         "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs::validate_phase_closure",
         "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs::phase_one_closure_prerequisites_are_final_source",
     )
-    result.update(build_p2_proofs(Control, p2_proof))
+    headless_cost = result["P1-HEADLESS-COST-01"]
+    result["P1-HEADLESS-COST-01"] = replace(
+        headless_cost,
+        sources=headless_cost.sources + (
+            P1_WORLD_ARTIFACT,
+            "scripts/ci/run_worth_ui_shared_ledger_control.py",
+        ),
+        shared_main=True,
+    )
+    p2 = build_p2_proofs(Control, p2_proof)
+    for requirement, phase_proof in tuple(p2.items()):
+        if requirement != "P2-WORLD-01":
+            p2[requirement] = replace(
+                phase_proof,
+                sources=phase_proof.sources + (
+                    P2_WORLD_ARTIFACT,
+                    "scripts/ci/run_worth_ui_shared_ledger_control.py",
+                ),
+                shared_main=True,
+            )
+    result.update(p2)
     return result
 
 
@@ -162,8 +185,13 @@ def proof(package: str, target: tuple[str, str], test: str, production: str, ora
 
 
 def command(requirement: str, proof: Proof, artifact: str) -> str:
+    runner = (
+        "scripts/ci/run_worth_ui_shared_ledger_control.py"
+        if proof.shared_main
+        else "scripts/ci/run_worth_ui_ledger_test.py"
+    )
     words = [
-        "python", "scripts/ci/run_worth_ui_ledger_test.py",
+        "python", runner,
         "--manifest-path", "workspaces/worth-ui/Cargo.toml",
         "--package", proof.package,
         f"--{proof.target[0]}",
@@ -293,9 +321,22 @@ def main() -> int:
         cwd=ROOT,
         check=True,
     )
-    ordered = [row for row in rows if row["requirement"] != "P1-CLOSE-01"]
+    phase_one = [
+        row for row in rows
+        if row["phase"] == "1"
+        and row["requirement"] not in {
+            "P1-CLOSE-01", "P1-WORLDS-01", "P1-HEADLESS-COST-01"
+        }
+    ]
     close = next(row for row in rows if row["requirement"] == "P1-CLOSE-01")
-    ordered.insert(19, close)
+    phase_one_world = next(row for row in rows if row["requirement"] == "P1-WORLDS-01")
+    headless_cost = next(row for row in rows if row["requirement"] == "P1-HEADLESS-COST-01")
+    world = next(row for row in rows if row["requirement"] == "P2-WORLD-01")
+    dependent_phase_two = [
+        row for row in rows
+        if row["phase"] == "2" and row["requirement"] != "P2-WORLD-01"
+    ]
+    ordered = phase_one + [phase_one_world, headless_cost, close, world] + dependent_phase_two
     for row in ordered:
         close_row(row, run(row["exact_command"]))
         write(rows, fields)

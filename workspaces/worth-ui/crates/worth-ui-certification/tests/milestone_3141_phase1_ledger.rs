@@ -33,6 +33,8 @@ mod result_artifact_environment;
 mod row_evidence;
 #[path = "milestone_3141_phase1_ledger/schema.rs"]
 mod schema;
+#[path = "milestone_3141_phase1_ledger/shared_world_artifact.rs"]
+mod shared_world_artifact;
 #[path = "milestone_3141_phase1_ledger/source_digest.rs"]
 pub(crate) mod source_digest;
 #[path = "milestone_3141_phase1_ledger/source_symbol.rs"]
@@ -176,6 +178,19 @@ fn validate_row(row: &Row) -> Result<(), String> {
 fn validate_requirement_contract(row: &Row) -> Result<(), String> {
     validate_profile_digests(row)?;
     claim_contract::validate_platform_dependencies(&row["requirement"])?;
+    let contract = requirement_contract::for_requirement(&row["requirement"])
+        .ok_or_else(|| "missing requirement contract".to_owned())?;
+    validate_closed_identity(row, contract)?;
+    if row["result"] == "PROVED" {
+        validate_proved_claim(row, contract)?;
+    }
+    Ok(())
+}
+
+fn validate_closed_identity(
+    row: &Row,
+    contract: &requirement_contract::RequirementContract,
+) -> Result<(), String> {
     let expected_phase = if row["requirement"].starts_with("P1-") {
         "1"
     } else if row["requirement"].starts_with("P2-") {
@@ -183,8 +198,6 @@ fn validate_requirement_contract(row: &Row) -> Result<(), String> {
     } else {
         return Err("unknown requirement phase".to_owned());
     };
-    let contract = requirement_contract::for_requirement(&row["requirement"])
-        .ok_or_else(|| "missing requirement contract".to_owned())?;
     if row["phase"] != expected_phase
         || row["owner"] != contract.owner
         || row["production_boundary"] != contract.boundary
@@ -201,56 +214,54 @@ fn validate_requirement_contract(row: &Row) -> Result<(), String> {
     {
         return Err("closed identity mismatch".to_owned());
     }
-    if row["result"] == "PROVED" {
-        validate_mutation_control(&row["mutation_control"], contract.mutation_family)?;
-        let expected_case = claim_contract::scenario_delta(&row["requirement"])
-            .ok_or_else(|| "requirement omits its exact mutation case".to_owned())?;
-        let expected_construction = claim_contract::construction_cost(&row["requirement"]);
-        let expected_execution = claim_contract::execution_cost(&row["requirement"]);
-        let expected_baseline = claim_contract::baseline_digest(&row["requirement"])?;
-        for (field, observed, expected) in [
-            (
-                "scenario_delta",
-                row["scenario_delta"].as_str(),
-                expected_case,
-            ),
-            (
-                "generated_seed",
-                row["generated_seed"].as_str(),
-                "not-applicable",
-            ),
-            (
-                "construction_cost",
-                row["construction_cost"].as_str(),
-                expected_construction,
-            ),
-            (
-                "execution_cost",
-                row["execution_cost"].as_str(),
-                expected_execution,
-            ),
-            (
-                "baseline_digest",
-                row["baseline_digest"].as_str(),
-                expected_baseline.as_str(),
-            ),
-        ] {
-            if observed != expected {
-                return Err(format!("proved {field} differs from its immutable requirement contract: {observed} != {expected}"));
-            }
+    Ok(())
+}
+
+fn validate_proved_claim(
+    row: &Row,
+    contract: &requirement_contract::RequirementContract,
+) -> Result<(), String> {
+    validate_mutation_control(&row["mutation_control"], contract.mutation_family)?;
+    let expected_case = claim_contract::scenario_delta(&row["requirement"])
+        .ok_or_else(|| "requirement omits its exact mutation case".to_owned())?;
+    let expected_baseline = claim_contract::baseline_digest(&row["requirement"])?;
+    let expected_fields = [
+        ("scenario_delta", expected_case),
+        ("generated_seed", "not-applicable"),
+        (
+            "construction_cost",
+            claim_contract::construction_cost(&row["requirement"]),
+        ),
+        (
+            "execution_cost",
+            claim_contract::execution_cost(&row["requirement"]),
+        ),
+        ("baseline_digest", expected_baseline.as_str()),
+    ];
+    for (field, expected) in expected_fields {
+        if row[field] != expected {
+            return Err(format!(
+                "proved {field} differs from its immutable requirement contract"
+            ));
         }
-        let counters = named_numeric_fields(&row["structural_counters"])?;
-        let expected_amount = execution_contract::counter_amount(&row["requirement"])
-            .ok_or_else(|| "requirement omits its exact counter amount".to_owned())?;
-        if counters.len() != 1 || counters.get(contract.counter_family) != Some(&expected_amount) {
-            return Err("proved evidence omits its exact counter family".to_owned());
-        }
-        if row["fault_injection_boundary"]
-            != execution_contract::fault_boundary(&row["requirement"])
-                .ok_or_else(|| "requirement omits its exact fault boundary".to_owned())?
-        {
-            return Err("proved evidence has the wrong fault boundary".to_owned());
-        }
+    }
+    validate_proved_counter_and_fault(row, contract)
+}
+
+fn validate_proved_counter_and_fault(
+    row: &Row,
+    contract: &requirement_contract::RequirementContract,
+) -> Result<(), String> {
+    let counters = named_numeric_fields(&row["structural_counters"])?;
+    let expected_amount = execution_contract::counter_amount(&row["requirement"])
+        .ok_or_else(|| "requirement omits its exact counter amount".to_owned())?;
+    if counters.len() != 1 || counters.get(contract.counter_family) != Some(&expected_amount) {
+        return Err("proved evidence omits its exact counter family".to_owned());
+    }
+    let expected_fault = execution_contract::fault_boundary(&row["requirement"])
+        .ok_or_else(|| "requirement omits its exact fault boundary".to_owned())?;
+    if row["fault_injection_boundary"] != expected_fault {
+        return Err("proved evidence has the wrong fault boundary".to_owned());
     }
     Ok(())
 }

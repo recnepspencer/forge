@@ -38,13 +38,13 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
     if row["retained_failure_artifact"] != row["retained_result_artifact"] {
         return Err("failure posture is not retained by the governed result artifact".to_owned());
     }
-    let command = command_binding::validate(
-        &row["exact_command"],
-        &row["requirement"],
-        &row["production_entry"],
-        &row["independent_oracle"],
-        &row["source_identity"],
-    )?;
+    let command = command_binding::validate(command_binding::CommandClaim {
+        command: &row["exact_command"],
+        requirement: &row["requirement"],
+        production_entry: &row["production_entry"],
+        oracle_entry: &row["independent_oracle"],
+        source_identity: &row["source_identity"],
+    })?;
     result_artifact::validate(
         result_artifact::LedgerResult {
             matched_test_count: &row["matched_test_count"],

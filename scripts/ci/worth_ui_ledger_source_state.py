@@ -15,6 +15,7 @@ GOVERNANCE_PATHS = (
     "_docs/worth-ui/native-host-platform.md",
     "_docs/worth-ui/worth_ui_roadmap.md",
     "scripts/ci/run_worth_ui_ledger_test.py",
+    "scripts/ci/run_worth_ui_shared_ledger_control.py",
     "scripts/ci/close_worth_ui_3141_ledger.py",
     "scripts/ci/verify_worth_ui_3141_ledger.py",
     "scripts/ci/worth_ui_3141_ledger_contracts.py",

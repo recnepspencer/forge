@@ -10,6 +10,7 @@ const PACKAGES: [&str; 8] = [
 ];
 
 pub(super) struct CommandBinding {
+    pub(super) shared_main: bool,
     pub(super) requirement: String,
     pub(super) package: String,
     pub(super) target_kind: String,
@@ -29,22 +30,24 @@ pub(super) struct ControlBinding {
     pub(super) test_name: String,
 }
 
-pub(super) fn validate(
-    command: &str,
-    requirement: &str,
-    production_entry: &str,
-    oracle_entry: &str,
-    source_identity: &str,
-) -> Result<CommandBinding, String> {
-    let (production_source, _) = split_entry(production_entry)?;
-    let (oracle_source, oracle_symbol) = split_entry(oracle_entry)?;
-    let expected_sources = source_identity.split(';').collect::<Vec<_>>();
+pub(super) struct CommandClaim<'a> {
+    pub(super) command: &'a str,
+    pub(super) requirement: &'a str,
+    pub(super) production_entry: &'a str,
+    pub(super) oracle_entry: &'a str,
+    pub(super) source_identity: &'a str,
+}
+
+pub(super) fn validate(claim: CommandClaim<'_>) -> Result<CommandBinding, String> {
+    let (production_source, _) = split_entry(claim.production_entry)?;
+    let (oracle_source, oracle_symbol) = split_entry(claim.oracle_entry)?;
+    let expected_sources = claim.source_identity.split(';').collect::<Vec<_>>();
     if !expected_sources.contains(&production_source) || !expected_sources.contains(&oracle_source)
     {
         return Err("evidence source identity omits a named entry".to_owned());
     }
-    let binding = parse_words(&command.split_whitespace().collect::<Vec<_>>())?;
-    if binding.requirement != requirement
+    let binding = parse_words(&claim.command.split_whitespace().collect::<Vec<_>>())?;
+    if binding.requirement != claim.requirement
         || binding.package != crate_name(oracle_source)?
         || binding.test_name.rsplit("::").next() != Some(oracle_symbol)
         || !binding.test_name.contains("::")
@@ -52,7 +55,8 @@ pub(super) fn validate(
     {
         return Err("runner command is not bound to the oracle and sources".to_owned());
     }
-    if super::execution_contract::control_for(requirement).is_some() != binding.control.is_some()
+    if super::execution_contract::control_for(claim.requirement).is_some()
+        != binding.control.is_some()
         || binding
             .control
             .as_ref()
@@ -65,16 +69,14 @@ pub(super) fn validate(
 }
 
 fn validate_execution_identity(binding: &CommandBinding) -> Result<(), String> {
+    let expected_shared = binding.requirement == "P1-HEADLESS-COST-01"
+        || (binding.requirement.starts_with("P2-") && binding.requirement != "P2-WORLD-01");
+    if binding.shared_main != expected_shared {
+        return Err("ledger command has the wrong shared-world posture".to_owned());
+    }
     let expected = super::execution_contract::main_for(&binding.requirement)
         .ok_or_else(|| "requirement omits an execution contract".to_owned())?;
-    if !matches_test(
-        &binding.package,
-        &binding.target_kind,
-        &binding.target_name,
-        &binding.features,
-        &binding.test_name,
-        expected,
-    ) {
+    if !matches_test(TestBinding::main(binding), expected) {
         return Err("ledger command swapped its exact main test".to_owned());
     }
     let expected_control = super::execution_contract::control_for(&binding.requirement);
@@ -82,14 +84,7 @@ fn validate_execution_identity(binding: &CommandBinding) -> Result<(), String> {
     match (observed_control, expected_control) {
         (None, None) => Ok(()),
         (Some(observed), Some(expected))
-            if matches_test(
-                &observed.package,
-                &observed.target_kind,
-                &observed.target_name,
-                &observed.features,
-                &observed.test_name,
-                expected,
-            ) =>
+            if matches_test(TestBinding::control(observed), expected) =>
         {
             Ok(())
         }
@@ -97,33 +92,100 @@ fn validate_execution_identity(binding: &CommandBinding) -> Result<(), String> {
     }
 }
 
+struct TestBinding<'a> {
+    package: &'a str,
+    target_kind: &'a str,
+    target_name: &'a str,
+    features: &'a [String],
+    test_name: &'a str,
+}
+
+impl<'a> TestBinding<'a> {
+    fn main(binding: &'a CommandBinding) -> Self {
+        Self {
+            package: &binding.package,
+            target_kind: &binding.target_kind,
+            target_name: &binding.target_name,
+            features: &binding.features,
+            test_name: &binding.test_name,
+        }
+    }
+
+    fn control(binding: &'a ControlBinding) -> Self {
+        Self {
+            package: &binding.package,
+            target_kind: &binding.target_kind,
+            target_name: &binding.target_name,
+            features: &binding.features,
+            test_name: &binding.test_name,
+        }
+    }
+}
+
 fn matches_test(
-    package: &str,
-    target_kind: &str,
-    target_name: &str,
-    features: &[String],
-    test_name: &str,
+    observed: TestBinding<'_>,
     expected: super::execution_contract::TestIdentity,
 ) -> bool {
-    package == expected.package
-        && target_kind == expected.target_kind
-        && target_name == expected.target_name
-        && features
+    observed.package == expected.package
+        && observed.target_kind == expected.target_kind
+        && observed.target_name == expected.target_name
+        && observed
+            .features
             .iter()
             .map(String::as_str)
             .eq(expected.features.iter().copied())
-        && test_name == expected.test_name
+        && observed.test_name == expected.test_name
 }
 
 fn parse_words(words: &[&str]) -> Result<CommandBinding, String> {
-    let fixed = [
-        "python",
-        "scripts/ci/run_worth_ui_ledger_test.py",
-        "--manifest-path",
-        "workspaces/worth-ui/Cargo.toml",
-        "--package",
-    ];
-    if words.get(..fixed.len()) != Some(fixed.as_slice()) {
+    let main = parse_main(words)?;
+    let (control, mut cursor) = parse_control(words, main.cursor)?;
+    if words.get(cursor) != Some(&"--requirement") {
+        return Err("ledger runner lacks a requirement identity".to_owned());
+    }
+    let requirement = required(words, cursor + 1, "requirement identity")?;
+    cursor += 2;
+    let (sources, artifact) = parse_sources(words, cursor)?;
+    Ok(CommandBinding {
+        shared_main: main.shared,
+        requirement: requirement.to_owned(),
+        package: main.package,
+        target_kind: main.target_kind,
+        target_name: main.target_name,
+        features: main.features,
+        test_name: main.test_name,
+        sources,
+        artifact,
+        control,
+    })
+}
+
+struct ParsedMain {
+    shared: bool,
+    package: String,
+    target_kind: String,
+    target_name: String,
+    features: Vec<String>,
+    test_name: String,
+    cursor: usize,
+}
+
+fn parse_main(words: &[&str]) -> Result<ParsedMain, String> {
+    let shared_main = words.get(1) == Some(&"scripts/ci/run_worth_ui_shared_ledger_control.py");
+    let approved_runner =
+        shared_main || words.get(1) == Some(&"scripts/ci/run_worth_ui_ledger_test.py");
+    if words.first() != Some(&"python")
+        || !approved_runner
+        || words.get(2..5)
+            != Some(
+                [
+                    "--manifest-path",
+                    "workspaces/worth-ui/Cargo.toml",
+                    "--package",
+                ]
+                .as_slice(),
+            )
+    {
         return Err("unapproved ledger runner prefix".to_owned());
     }
     let package = required(words, 5, "package")?;
@@ -146,13 +208,18 @@ fn parse_words(words: &[&str]) -> Result<CommandBinding, String> {
     }
     let test_name = required(words, cursor + 1, "test name")?;
     cursor += 2;
-    let (control, next) = parse_control(words, cursor)?;
-    cursor = next;
-    if words.get(cursor) != Some(&"--requirement") {
-        return Err("ledger runner lacks a requirement identity".to_owned());
-    }
-    let requirement = required(words, cursor + 1, "requirement identity")?;
-    cursor += 2;
+    Ok(ParsedMain {
+        shared: shared_main,
+        package: package.to_owned(),
+        target_kind: target_kind.to_owned(),
+        target_name: target_name.to_owned(),
+        features,
+        test_name: test_name.to_owned(),
+        cursor,
+    })
+}
+
+fn parse_sources(words: &[&str], mut cursor: usize) -> Result<(Vec<String>, String), String> {
     let mut sources = Vec::new();
     while words.get(cursor) == Some(&"--source") {
         sources.push(required(words, cursor + 1, "source identity")?.to_owned());
@@ -161,17 +228,7 @@ fn parse_words(words: &[&str]) -> Result<CommandBinding, String> {
     if sources.is_empty() || words.get(cursor) != Some(&"--artifact") || words.len() != cursor + 2 {
         return Err("ledger runner needs sources and one terminal artifact".to_owned());
     }
-    Ok(CommandBinding {
-        requirement: requirement.to_owned(),
-        package: package.to_owned(),
-        target_kind: target_kind.to_owned(),
-        target_name: target_name.to_owned(),
-        features,
-        test_name: test_name.to_owned(),
-        sources,
-        artifact: words[cursor + 1].to_owned(),
-        control,
-    })
+    Ok((sources, words[cursor + 1].to_owned()))
 }
 
 fn parse_control(words: &[&str], cursor: usize) -> Result<(Option<ControlBinding>, usize), String> {
@@ -276,6 +333,7 @@ fn phase_two_control_must_precede_the_requirement_binding() {
 #[test]
 fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
     let mut binding = CommandBinding {
+        shared_main: true,
         requirement: "P2-READINESS-01".to_owned(),
         package: "worth-ui-platform-pulse".to_owned(),
         target_kind: "test".to_owned(),
@@ -293,6 +351,9 @@ fn exact_execution_contract_rejects_main_control_and_feature_swaps() {
         }),
     };
     validate_execution_identity(&binding).unwrap();
+    binding.shared_main = false;
+    assert!(validate_execution_identity(&binding).is_err());
+    binding.shared_main = true;
     binding.control.as_mut().unwrap().test_name =
         "native::graphics::tests::window_basis_classifier_rearms_only_for_new_scale_or_nonzero_extent".to_owned();
     assert!(validate_execution_identity(&binding).is_err());

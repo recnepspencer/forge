@@ -81,7 +81,7 @@ pub(super) fn control_for(requirement: &str) -> Option<TestIdentity> {
     Some(match requirement {
         "P1-CONSUMERS-01" => library("worth-ui-host-egui", "adapter::semantic_text::tests::validated_agreement_semantic_text_consumes_and_mixed_contract_stops_before_consumer"),
         "P2-APPLICATION-01" => integration("worth-ui-certification", "topology_contracts", "milestone_3141_phase1_topology::compile_contract_artifact::product_native_driver_substitution_is_compiler_rejected"),
-        "P2-CLOSE-01" => library("worth-ui-host-native", "native::event_loop::tests::held_resource_with_clean_client_cannot_report_a_clean_stop"),
+        "P2-CLOSE-01" => library("worth-ui-host-native", "native::event_loop::tests::indeterminate_external_work_moves_into_retryable_cleanup_authority"),
         "P2-EVENT-LOOP-01" => library("worth-ui-host-native", "native::event_loop::tests::callback_thread_transition_rejects_off_thread_run"),
         "P2-GRAPHICS-01" => library("worth-ui-host-native", "native::graphics::tests::adapter_selection_returns_the_exact_qualified_candidate_and_rejects_substitutes"),
         "P2-PIXELS-01" => TestIdentity {
@@ -111,7 +111,7 @@ const AUTHORITY_CASES: &[CompileCase] = &[
 const ORDER_CASES: &[CompileCase] = &[
     case("product", "fail", "product-paint-identities-non-orderable"),
     case(
-        "product",
+        "certification",
         "pass",
         "product-paint-identities-lawful-correlation",
     ),
@@ -192,8 +192,6 @@ pub(super) fn fault_boundary(requirement: &str) -> Option<&'static str> {
 pub(super) fn main_budget_ms(requirement: &str) -> u64 {
     if requirement.starts_with("P2-") {
         30_000
-    } else if matches!(requirement, "P1-WORLDS-01" | "P1-HEADLESS-COST-01") {
-        45_000
     } else {
         60_000
     }

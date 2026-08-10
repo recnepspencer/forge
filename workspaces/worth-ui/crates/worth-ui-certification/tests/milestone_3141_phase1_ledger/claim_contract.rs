@@ -92,9 +92,13 @@ pub(super) fn construction_cost(requirement: &str) -> &'static str {
         "main-tests=1;hostile-controls=0;product-processes=0;compile-sessions=2;courtroom-worlds=0"
     } else if requirement == "P1-CONSUMERS-01" {
         "main-tests=1;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0"
-    } else if requirement.starts_with("P2-") {
+    } else if requirement == "P2-WORLD-01" {
         "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;courtroom-worlds=1"
-    } else if matches!(requirement, "P1-HEADLESS-COST-01" | "P1-WORLDS-01") {
+    } else if requirement.starts_with("P2-") {
+        "main-tests=0;hostile-controls=1;product-processes=0;compile-sessions=0;courtroom-worlds=0;shared-native-worlds=1"
+    } else if requirement == "P1-HEADLESS-COST-01" {
+        "main-tests=0;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=0;shared-mounted-worlds=1"
+    } else if requirement == "P1-WORLDS-01" {
         "main-tests=1;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=1"
     } else {
         "main-tests=1;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=0"
@@ -102,12 +106,16 @@ pub(super) fn construction_cost(requirement: &str) -> &'static str {
 }
 
 pub(super) fn execution_cost(requirement: &str) -> &'static str {
-    if matches!(requirement, "P1-HEADLESS-COST-01" | "P1-WORLDS-01") {
+    if requirement == "P1-HEADLESS-COST-01" {
+        "executed-tests=0;presentations=0;shared-presentations=7"
+    } else if requirement == "P1-WORLDS-01" {
         "executed-tests=1;presentations=7"
     } else if requirement == "P1-CONSUMERS-01" {
         "executed-tests=2;presentations=0"
-    } else if requirement.starts_with("P2-") {
+    } else if requirement == "P2-WORLD-01" {
         "executed-tests=2;presentations=1"
+    } else if requirement.starts_with("P2-") {
+        "executed-tests=1;presentations=0;shared-presentations=1"
     } else {
         "executed-tests=1;presentations=0"
     }

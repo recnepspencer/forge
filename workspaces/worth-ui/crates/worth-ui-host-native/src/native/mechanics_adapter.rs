@@ -231,7 +231,25 @@ fn mark_presentation_indeterminate(
 #[cfg(test)]
 mod tests {
     use super::{settle_presentation_failure, UiNativePresentationFailure};
-    use crate::native::{UiNativeEffectPosture, UiNativeHostState, UiNativePendingPresentation};
+    use crate::native::presentation::{
+        reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
+        UiNativePresentationPortFailure,
+    };
+    use crate::native::{UiNativeEffectPosture, UiNativeHostState};
+
+    struct PendingProbe(std::rc::Rc<std::cell::Cell<bool>>);
+
+    impl UiNativePendingExternalObligation for PendingProbe {
+        fn try_settle(&mut self, _device: Option<&wgpu::Device>) -> bool {
+            false
+        }
+    }
+
+    impl Drop for PendingProbe {
+        fn drop(&mut self) {
+            self.0.set(true);
+        }
+    }
 
     #[test]
     fn scripted_before_effect_failure_keeps_before_effect_posture() {
@@ -254,10 +272,18 @@ mod tests {
         super::super::presentation::prove_nonuniform_readback_port();
         let mut state = UiNativeHostState::new();
         let external_dropped = std::rc::Rc::new(std::cell::Cell::new(false));
-        let pending = UiNativePendingPresentation::scripted(
+        let owners = reserve_presentation_owners(&mut state.resources)
+            .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+        let pending = settle_port_result(
             &mut state.resources,
-            std::rc::Rc::clone(&external_dropped),
+            owners,
+            Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+                Box::new(PendingProbe(std::rc::Rc::clone(&external_dropped))),
+            )),
         );
+        let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
+            panic!("unsettled port work must remain indeterminate");
+        };
         let outcome = settle_presentation_failure(
             &mut state,
             UiNativePresentationFailure::Indeterminate(pending),
